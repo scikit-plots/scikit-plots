@@ -1,4 +1,0 @@
-﻿plotters
-========
-
-.. automodule:: scikitplot.plotters

@@ -1,4 +1,0 @@
-﻿clustering
-==========
-
-.. automodule:: scikitplot.clustering

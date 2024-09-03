@@ -1,4 +1,0 @@
-﻿classifiers
-===========
-
-.. automodule:: scikitplot.classifiers
