@@ -156,7 +156,8 @@ Setting Up Your Environment
 ---------------------------
 
 To manage dependencies and avoid conflicts, it is recommended to use an
-isolated environment, such as `pip venv` or `conda`. This approach allows
+isolated environment, such as `pip venv <https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/>`_
+or `conda <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_. This approach allows
 you to install specific versions of `scikit-learn` and its dependencies
 independently from other Python packages.
 
@@ -173,6 +174,7 @@ Installing Dependencies
 -----------------------
 
 If you have not yet installed `NumPy` or `SciPy`, you can do so using `pip`
-or `conda`. When using `pip`, ensure that *binary wheels* are used to avoid
+or `conda <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_.
+When using `pip <https://pip.pypa.io/en/stable/>`_, ensure that *binary wheels* are used to avoid
 compiling from source. This is particularly important for certain configurations,
 such as running Linux on a Raspberry Pi.

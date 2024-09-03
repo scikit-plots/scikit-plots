@@ -389,6 +389,11 @@ html_theme_options = {
     ],
     # alternative way to set twitter and github header icons
     # "github_url": "https://github.com/scikit-plots/scikit-plots",
+    # "repository_url": "https://github.com/jupyter/jupyter-sphinx",
+    # "use_repository_button": True,
+    # "repository_branch": "main",
+    # "use_issues_button": True,
+    # "use_fullscreen_button": False,
     
     # -- Header and Footer Settings -------------------------------------------   
     "header_links_before_dropdown": 5,
@@ -797,6 +802,12 @@ intersphinx_mapping = {
     "sklearn": ("http://scikit-learn.org/stable/", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
     "skops": ("https://skops.readthedocs.io/en/stable/", None),
+    "tensorflow": (
+        "https://www.tensorflow.org/api_docs/python",
+        "https://github.com/GPflow/tensorflow-intersphinx/raw/master/tf2_py_objects.inv"
+    ),
+    "flask": ("https://flask.palletsprojects.com/en/2.1.x/", None),
+    "mlflow": ("https://mlflow.org/docs/latest/", None),
 }
 
 ##########################################################################
@@ -836,7 +847,24 @@ todo_include_todos = False
 
 # generate autosummary even if no references
 autosummary_generate = True
-# autodoc_mock_imports = ['scikitplot']
+autoclass_content = "class"
+autodoc_mock_imports = [
+    "scikitplot",
+    "numpy",
+    "pandas",
+    "scipy",
+    "sklearn",
+    "xgboost",
+    "catboost",
+    "tensorflow",
+    "pytorch",
+    "flask_sqlalchemy",
+    "mlflow",
+    "passlib",
+]
+# autodoc_inherit_docstrings = True
+# autodoc_member_order = "bysource"
+# autodoc_typehints = "signature"
 
 # maps functions with a class name that is indistinguishable when case is
 # ignore to another filename

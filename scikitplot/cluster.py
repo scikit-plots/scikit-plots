@@ -87,58 +87,58 @@ def plot_elbow(
     title_fontsize="large",
     text_fontsize="medium",
 ):
-    """Plots elbow curve of different values of K for KMeans clustering.
-
-    Args:
-        clf: Clusterer instance that implements ``fit``,``fit_predict``, and
-            ``score`` methods, and an ``n_clusters`` hyperparameter.
-            e.g. :class:`sklearn.cluster.KMeans` instance
-
-        X (array-like, shape (n_samples, n_features)):
-            Data to cluster, where n_samples is the number of samples and
-            n_features is the number of features.
-
-        title (string, optional): Title of the generated plot. Defaults to
-            "Elbow Plot"
-
-        cluster_ranges (None or :obj:`list` of int, optional): List of
-            n_clusters for which to plot the explained variances. Defaults to
-            ``range(1, 12, 2)``.
-
-        n_jobs (int, optional): Number of jobs to run in parallel. Defaults to
-            1.
-
-        show_cluster_time (bool, optional): Include plot of time it took to
-            cluster for a particular K.
-
-        ax (:class:`matplotlib.axes.Axes`, optional): The axes upon which to
-            plot the curve. If None, the plot is drawn on a new set of axes.
-
-        figsize (2-tuple, optional): Tuple denoting figure size of the plot
-            e.g. (6, 6). Defaults to ``None``.
-
-        title_fontsize (string or int, optional): Matplotlib-style fontsizes.
-            Use e.g. "small", "medium", "large" or integer-values. Defaults to
-            "large".
-
-        text_fontsize (string or int, optional): Matplotlib-style fontsizes.
-            Use e.g. "small", "medium", "large" or integer-values. Defaults to
-            "medium".
-
-    Returns:
-        ax (:class:`matplotlib.axes.Axes`): The axes on which the plot was
-            drawn.
-
-    Example:
+    """
+    Plot the elbow curve for different values of K in KMeans clustering.
+    
+    Parameters
+    ----------
+    clf : object
+        A clusterer instance with ``fit``, ``fit_predict``, and ``score`` methods, 
+        and an ``n_clusters`` hyperparameter. Typically an instance of 
+        :class:`sklearn.cluster.KMeans`.
+    X : array-like of shape (n_samples, n_features)
+        The data to cluster, where `n_samples` is the number of samples and 
+        `n_features` is the number of features.
+    title : str, optional, default="Elbow Plot"
+        The title of the generated plot.
+    cluster_ranges : list of int or None, optional, default=range(1, 12, 2)
+        List of values for `n_clusters` over which to plot the explained variances.
+    n_jobs : int, optional, default=1
+        The number of jobs to run in parallel.
+    show_cluster_time : bool, optional
+        Whether to include a plot of the time taken to cluster for each value of K.
+    ax : matplotlib.axes.Axes, optional
+        The axes on which to plot the curve. If None, a new set of axes will be created.
+    figsize : tuple, optional
+        Tuple denoting the figure size of the plot, e.g., (6, 6). If None, the default size will be used.
+    title_fontsize : str or int, optional, default="large"
+        Font size of the title. Accepts Matplotlib font sizes, such as "small", "medium", "large", or an integer value.
+    text_fontsize : str or int, optional, default="medium"
+        Font size of the text labels. Accepts Matplotlib font sizes, such as "small", "medium", "large", or an integer value.
+    
+    Returns
+    -------
+    ax : matplotlib.axes.Axes
+        The axes on which the plot was drawn.
+    
+    Examples
+    --------
+    
+    .. plot::
+       :context: close-figs
+       :align: center
+       :alt: Elbow Curve
+    
+        >>> from sklearn.cluster import KMeans
+        >>> from sklearn.datasets import load_iris as data_3_classes
         >>> import scikitplot as skplt
-        >>> kmeans = KMeans(random_state=1)
-        >>> skplt.cluster.plot_elbow(kmeans, cluster_ranges=range(1, 30))
-        <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
-        >>> plt.show()
-
-        .. image:: /images/examples/plot_elbow.png
-           :align: center
-           :alt: Elbow Curve
+        >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
+        >>> kmeans = KMeans(random_state=0)
+        >>> skplt.cluster.plot_elbow(
+        >>>     kmeans,
+        >>>     X,
+        >>>     cluster_ranges=range(1, 10),
+        >>> );
     """
     if cluster_ranges is None:
         cluster_ranges = range(1, 12, 2)

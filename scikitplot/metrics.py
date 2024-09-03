@@ -147,6 +147,8 @@ def plot_calibration_curve(
         Strategy used to define the widths of the bins:
         - 'uniform': Bins have identical widths.
         - 'quantile': Bins have the same number of samples and depend on `y_prob_list`.
+
+        .. versionadded:: 0.3.9
     
     Returns
     -------
@@ -160,27 +162,60 @@ def plot_calibration_curve(
     
     Examples
     --------
-    >>> from sklearn.ensemble import RandomForestClassifier
-    >>> from sklearn.linear_model import LogisticRegression
-    >>> from sklearn.naive_bayes import GaussianNB
-    >>> from sklearn.svm import LinearSVC
-    >>> import scikitplot as skplt
-    >>> rf = RandomForestClassifier()
-    >>> lr = LogisticRegression()
-    >>> nb = GaussianNB()
-    >>> svm = LinearSVC()
-    >>> rf_probas = rf.fit(X_train, y_train).predict_proba(X_test)
-    >>> lr_probas = lr.fit(X_train, y_train).predict_proba(X_test)
-    >>> nb_probas = nb.fit(X_train, y_train).predict_proba(X_test)
-    >>> svm_scores = svm.fit(X_train, y_train).decision_function(X_test)
-    >>> probas_list = [rf_probas, lr_probas, nb_probas, svm_scores]
-    >>> clf_names = ['Random Forest', 'Logistic Regression',
-    >>>              'Gaussian Naive Bayes', 'Support Vector Machine']
-    >>> skplt.metrics.plot_calibration_curve(y_test, probas_list, y_is_decision)
     
-    .. image:: /images/examples/plot_calibration_curve.png
+    .. plot::
+       :context: close-figs
        :align: center
        :alt: Calibration Curves
+
+        >>> from sklearn.datasets import make_classification
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.linear_model import LogisticRegression
+        >>> from sklearn.naive_bayes import GaussianNB
+        >>> from sklearn.svm import LinearSVC
+        >>> from sklearn.ensemble import RandomForestClassifier
+        >>> from sklearn.model_selection import cross_val_predict
+        >>> import numpy as np; np.random.seed(0)
+        >>> 
+        >>> # Import scikit-plot
+        >>> import scikitplot as skplt
+        >>> 
+        >>> # Load the data
+        >>> X, y = make_classification(
+        >>>     n_samples=100000, 
+        >>>     n_features=20,
+        >>>     n_informative=4,
+        >>>     n_redundant=2,
+        >>>     n_repeated=0,
+        >>>     n_classes=3,
+        >>>     n_clusters_per_class=2,
+        >>>     random_state=0
+        >>> )
+        >>> X_train, y_train, X_val, y_val = X[:1000], y[:1000], X[1000:], y[1000:]
+        >>> 
+        >>> # Create an instance of the LogisticRegression
+        >>> lr_probas = LogisticRegression().fit(X_train, y_train).predict_proba(X_val)
+        >>> nb_probas = GaussianNB().fit(X_train, y_train).predict_proba(X_val)
+        >>> svc_scores = LinearSVC().fit(X_train, y_train).decision_function(X_val)
+        >>> rf_probas = RandomForestClassifier().fit(X_train, y_train).predict_proba(X_val)
+        >>> 
+        >>> probas_dict = {
+        >>>     LogisticRegression(): lr_probas,
+        >>>     GaussianNB(): nb_probas,
+        >>>     LinearSVC(): svc_scores,
+        >>>     RandomForestClassifier(): rf_probas,
+        >>> }
+        >>> # Plot!
+        >>> ax = skplt.metrics.plot_calibration_curve(
+        >>>     y_val,
+        >>>     y_prob_list=list(probas_dict.values()),
+        >>>     y_is_decision=list([False, False, True, False]),
+        >>>     n_bins=10, 
+        >>>     clf_names=list(probas_dict.keys()),
+        >>>     multi_class=None,
+        >>>     class_index=2, 
+        >>>     classes_to_plot=[2],
+        >>> );
     """
     title_pad = None
     # Create a new figure and axes if none are provided
@@ -408,6 +443,8 @@ def plot_classifier_eval(
     digits : int, optional, default=3
         Number of digits for formatting floating point values in the plots.
 
+        .. versionadded:: 0.3.9
+
     Returns
     -------
     None
@@ -421,21 +458,25 @@ def plot_classifier_eval(
 
     Examples
     --------
-    >>> import scikitplot as skplt
-    >>> from sklearn.datasets import load_iris
-    >>> from sklearn.model_selection import train_test_split
-    >>> from sklearn import tree
-    >>> from sklearn.metrics import accuracy_score
-    >>> X, y = load_iris(return_X_y=True)
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=3)
-    >>> clf = tree.DecisionTreeClassifier(max_depth=1, random_state=3)
-    >>> clf.fit(X_train, y_train)
-    >>> y_pred = clf.predict(X_test)
-    >>> skplt.metrics.plot_classifier_eval(y_test, y_pred)
     
-    .. image:: /images/examples/plot_classifier_eval.png
+    .. plot::
+       :context: close-figs
        :align: center
-       :alt: Classifier Eval
+       :alt: Confusion Matrix
+
+        >>> from sklearn.datasets import load_digits as data_10_classes
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.naive_bayes import GaussianNB
+        >>> import scikitplot as skplt
+        >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
+        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> model = GaussianNB()
+        >>> model.fit(X_train, y_train)
+        >>> y_val_pred = model.predict(X_val)
+        >>> skplt.metrics.plot_classifier_eval(
+        >>>     y_val, y_val_pred,
+        >>>     title='val',
+        >>> );
     """
     figsize = (8, 3) if figsize is None else figsize
     title = '' if title is None else title
@@ -464,7 +505,7 @@ def plot_classifier_eval(
         y_pred, 
         labels=labels,
         digits=digits,
-        zero_division=np.NaN,
+        zero_division=np.nan,
     )
     # Generate the confusion matrix
     cm = confusion_matrix(
@@ -647,6 +688,8 @@ def plot_confusion_matrix(
     show_colorbar : bool, optional, default=True
         If False, the colorbar is not displayed.
 
+        .. versionadded:: 0.3.9
+
     Returns
     -------
     ax : matplotlib.axes.Axes
@@ -661,16 +704,24 @@ def plot_confusion_matrix(
 
     Examples
     --------
-    >>> import scikitplot as skplt
-    >>> from sklearn.ensemble import RandomForestClassifier
-    >>> rf = RandomForestClassifier()
-    >>> rf.fit(X_train, y_train)
-    >>> y_pred = rf.predict(X_test)
-    >>> skplt.metrics.plot_confusion_matrix(y_test, y_pred, normalize=True)
     
-    .. image:: /images/examples/plot_confusion_matrix.png
+    .. plot::
+       :context: close-figs
        :align: center
        :alt: Confusion Matrix
+
+        >>> from sklearn.datasets import load_digits as data_10_classes
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.naive_bayes import GaussianNB
+        >>> import scikitplot as skplt
+        >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
+        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> model = GaussianNB()
+        >>> model.fit(X_train, y_train)
+        >>> y_val_pred = model.predict(X_val)
+        >>> skplt.metrics.plot_confusion_matrix(
+        >>>     y_val, y_val_pred,
+        >>> );
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -932,7 +983,7 @@ def plot_roc(
     y_probas : array-like, shape (n_samples,) or (n_samples, n_classes)
         Predicted probabilities for each class or only target class probabilities. 
         If 1D, it is treated as probabilities for the positive class in binary 
-        or multiclass classification with the `class_index`.
+        or multiclass classification with the ``class_index``.
 
     title : str, optional, default='ROC AUC Curves'
         Title of the generated plot.
@@ -978,7 +1029,9 @@ def plot_roc(
         Whether to display the legend labels.
 
     digits : int, optional, default=3
-        Number of digits for formatting AUC values in the plot.
+        Number of digits for formatting ROC AUC values in the plot.
+
+        .. versionadded:: 0.3.9
 
     Returns
     -------
@@ -988,26 +1041,29 @@ def plot_roc(
     Notes
     -----
     The implementation is specific to binary classification. For multiclass problems, 
-    the 'ovr' or 'multinomial' strategies can be used. When `multi_class='ovr'`, 
-    the plot focuses on the specified class (`class_index`).
+    the 'ovr' or 'multinomial' strategies can be used. When ``multi_class='ovr'``, 
+    the plot focuses on the specified class (``class_index``).
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
-    >>> from sklearn.datasets import load_breast_cancer as load_data  # binary
-    >>> from sklearn.model_selection import train_test_split
-    >>> from sklearn.naive_bayes import GaussianNB
-    >>> import scikitplot as skplt
-    >>> X, y = load_data(return_X_y=True)
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
-    >>> model = GaussianNB()
-    >>> model.fit(X_train, y_train)
-    >>> y_probas = model.predict_proba(X_test)
-    >>> skplt.metrics.plot_roc(y_test, y_probas)
-
-    .. image:: /images/examples/plot_roc.png
+    
+    .. plot::
+       :context: close-figs
        :align: center
        :alt: ROC AUC Curves
+
+        >>> from sklearn.datasets import load_digits as data_10_classes
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.naive_bayes import GaussianNB
+        >>> import scikitplot as skplt
+        >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
+        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> model = GaussianNB()
+        >>> model.fit(X_train, y_train)
+        >>> y_probas = model.predict_proba(X_val)
+        >>> skplt.metrics.plot_roc(
+        >>>     y_val, y_probas,
+        >>> );
     """
     title_pad = None
     if ax is None:
@@ -1323,21 +1379,21 @@ def plot_precision_recall(
     area='pr_auc',
 ):
     """
-    Generates the Precision-Recall Curves from labels and predicted scores/probabilities.
-
+    Generates the Precision-Recall AUC Curves from labels and predicted scores/probabilities.
+    
     The Precision-Recall curve plots the precision against the recall for different threshold values. 
     The area under the curve (AUC) represents the classifier's performance. This function supports 
     both binary and multiclass classification tasks.
-
+    
     Parameters
     ----------
     y_true : array-like, shape (n_samples,)
         Ground truth (correct) target values.
 
     y_probas : array-like, shape (n_samples,) or (n_samples, n_classes)
-        Predicted probabilities for each class or only target class probabilities.
-        If 1D, it is treated as probabilities for the positive class in binary
-        or multiclass classification with the `class_index`.
+        Predicted probabilities for each class or only target class probabilities. 
+        If 1D, it is treated as probabilities for the positive class in binary 
+        or multiclass classification with the ``class_index``.
 
     title : str, optional, default='Precision-Recall AUC Curves'
         Title of the generated plot.
@@ -1373,51 +1429,51 @@ def plot_precision_recall(
         Specific classes to plot. If a given class does not exist, it will be ignored. 
         If None, all classes are plotted.
 
-    plot_micro : bool, optional, default=True
-        Whether to plot the micro-average Precision-Recall AUC curve.
+    plot_micro : bool, optional, default=False
+        Whether to plot the micro-average ROC AUC curve.
 
     plot_macro : bool, optional, default=False
-        Whether to plot the macro-average Precision-Recall AUC curve.
+        Whether to plot the macro-average ROC AUC curve.
 
     show_labels : bool, optional, default=True
         Whether to display the legend labels.
 
     digits : int, optional, default=3
-        Number of digits for formatting AUC values in the plot.
+        Number of digits for formatting PR AUC values in the plot.
 
-    area : {'average_precision', 'pr_auc'}, optional, default='pr_auc'
-        Strategy for calculating the area score:
-        - 'pr_auc': Precision-Recall AUC.
-        - 'average_precision': Average Precision score, closely related but computed differently.
+        .. versionadded:: 0.3.9
 
     Returns
     -------
     matplotlib.axes.Axes
-        The axes with the plotted Precision-Recall AUC curves.
+        The axes with the plotted PR AUC curves.
 
     Notes
     -----
     The implementation is specific to binary classification. For multiclass problems, 
-    the 'ovr' or 'multinomial' strategies can be used. When `multi_class='ovr'`, 
-    the plot focuses on the specified class (`class_index`).
+    the 'ovr' or 'multinomial' strategies can be used. When ``multi_class='ovr'``, 
+    the plot focuses on the specified class (``class_index``).
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
-    >>> from sklearn.datasets import load_breast_cancer as load_data  # binary
-    >>> from sklearn.model_selection import train_test_split
-    >>> from sklearn.naive_bayes import GaussianNB
-    >>> import scikitplot as skplt
-    >>> X, y = load_data(return_X_y=True)
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
-    >>> model = GaussianNB()
-    >>> model.fit(X_train, y_train)
-    >>> y_probas = model.predict_proba(X_test)
-    >>> skplt.metrics.plot_precision_recall(y_test, y_probas)
-
-    .. image:: /images/examples/plot_precision_recall.png
+    
+    .. plot::
+       :context: close-figs
        :align: center
        :alt: Precision-Recall AUC Curves
+
+        >>> from sklearn.datasets import load_digits as data_10_classes
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.naive_bayes import GaussianNB
+        >>> import scikitplot as skplt
+        >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
+        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> model = GaussianNB()
+        >>> model.fit(X_train, y_train)
+        >>> y_probas = model.predict_proba(X_val)
+        >>> skplt.metrics.plot_precision_recall(
+        >>>     y_val, y_probas,
+        >>> );
     """
     title_pad = None
     if ax is None:
@@ -1653,6 +1709,8 @@ def plot_silhouette(
     digits : int, optional, default=3
         Number of digits for formatting output floating point values. 
 
+        .. versionadded:: 0.3.9
+
     Returns
     -------
     matplotlib.axes.Axes
@@ -1660,18 +1718,22 @@ def plot_silhouette(
 
     Examples
     --------
-    >>> import scikitplot as skplt
-    >>> from sklearn.cluster import KMeans
-    >>> import matplotlib.pyplot as plt
-    >>> # Example data X
-    >>> kmeans = KMeans(n_clusters=4, random_state=1)
-    >>> cluster_labels = kmeans.fit_predict(X)
-    >>> skplt.metrics.plot_silhouette(X, cluster_labels)
-    >>> plt.show()
-
-    .. image:: /images/examples/plot_silhouette.png
+    
+    .. plot::
+       :context: close-figs
        :align: center
        :alt: Silhouette Plot
+    
+        >>> from sklearn.cluster import KMeans
+        >>> from sklearn.datasets import load_iris as data_3_classes
+        >>> import scikitplot as skplt
+        >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
+        >>> kmeans = KMeans(n_clusters=3, random_state=0)
+        >>> cluster_labels = kmeans.fit_predict(X)
+        >>> skplt.metrics.plot_silhouette(
+        >>>     X,
+        >>>     cluster_labels,
+        >>> );
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)

@@ -69,8 +69,17 @@ def _get_deps_info():
     return deps_info
 
 def show_versions():
-    """Print useful debugging information"""
+    """
+    Print useful debugging information
 
+    Examples
+    --------
+
+        .. jupyter-execute::
+
+            import scikitplot
+            scikitplot.show_versions()
+    """
     sys_info = _get_sys_info()
     deps_info = _get_deps_info()
 

@@ -40,25 +40,42 @@ README       = 'README.md'
 PKG_DESCRIBE = (HERE / README).read_text(encoding='utf-8')
 ## Define the keywords
 KEYWORDS = [
-    'matplotlib',
-    'visualization',
-    'scikit-learn',
-    'machine learning',
-    'data science',
+    "matplotlib", 
+    "visualization", 
+    "scikit-learn", 
+    "xgboost", 
+    "catboost", 
+    "tensorflow", 
+    "keras", 
+    "pytorch", 
+    "scikit-learn", 
+    "machine learning", 
+    "data science",
 ]
-LICENSE      = 'MIT License'
+# LICENSE      = 'MIT License'  # deprecated
+LICENSE_FILES= 'LICEN[CS]E*'
 ## If your name first as you're the current maintainer
 AUTHOR       = 'Reiichiro Nakano, Prateek Sharma et al.'
 A_EMAIL      = 'reiichiro.s.nakano@gmail.com, s.prateek3080@gmail.com'
-URL          = 'https://github.com/reiinakano/scikit-plot'  # Your fork's URL
-DOC_URL      = 'https://scikit-plots.github.io/stable/'
 MAINTAINER   = 'Muhammed Çelik'
 M_EMAIL      = 'muhammed.business.network@gmail.com'
-REPOSITORY   = 'https://github.com/celik-muhammed/scikit-plot'
 REQUIRE_PATH = 'requirements.txt'
+
+# Project homepage, often a link to GitHub or GitLab
+# Often specified in the [project] table
+HOMEPAGE      = "https://scikit-plots.github.io"  # alias URL
+DOWNLOAD_URL  = "https://github.com/celik-muhammed/scikit-plot/tree/muhammed-dev"
+DOCUMENTATION = "https://scikit-plots.github.io/stable/"
+DONATE        = "https://github.com/celik-muhammed/scikit-plot#donate"
+FORUM         = "https://github.com/celik-muhammed/scikit-plot/issues"
+ISSUES        = "https://github.com/celik-muhammed/scikit-plot/issues"
+REPO_FORKED   = "https://github.com/reiinakano/scikit-plot"
+# The changelog, really useful for ongoing users of your project
+CHANGELOG     = "https://scikit-plots.github.io/dev/whats_new/whats_new.html"
 
 ## Directories to ignore in find_packages
 EXCLUDES = [
+    "auto_building_tools",
     "docs", "docs.*",
     "examples", "examples.*",
     "notebooks", "notebooks.*",
@@ -130,6 +147,7 @@ def get_requires(path=REQUIRE_PATH):
 ## Define the configuration
 ##########################################################################
 
+## https://setuptools.pypa.io/en/latest/userguide/declarative_config.html#metadata
 ## https://setuptools.pypa.io/en/latest/deprecated/distutils/apiref.html#distutils.core.setup
 config = {
     # packages': find_packages(),  # Finds all packages automatically
@@ -141,21 +159,23 @@ config = {
     'long_description': PKG_DESCRIBE,
     'long_description_content_type': get_description_type(),
     'keywords': KEYWORDS,
-    'license': LICENSE,
+    # 'license': LICENSE,
+    'license_files': LICENSE_FILES,
     'author': AUTHOR,
     'author_email': A_EMAIL,
     'maintainer': MAINTAINER,
     'maintainer_email': M_EMAIL,
-    'url': REPOSITORY,
-    'download_url': f'{REPOSITORY}/tree/muhammed-dev',
+    'url': HOMEPAGE,
+    'download_url': DOWNLOAD_URL,
     'project_urls': {
-        'Homepage   '  : REPOSITORY,
-        'Documentation': DOC_URL,
-        'Donate'       : f'{REPOSITORY}#donate',
-        'Forum'        : f'{REPOSITORY}/issues',
-        'Issues'       : f'{REPOSITORY}/issues',
-        'Repo_Forked'  : URL,
-        'Repository '  : f'{REPOSITORY}/tree/muhammed-dev',
+        'Homepage   '  : HOMEPAGE,
+        'Download'     : DOWNLOAD_URL,
+        'Documentation': DOCUMENTATION,
+        'Donate'       : DONATE,
+        'Forum'        : FORUM,
+        'Issues'       : ISSUES,
+        'Repo_Forked'  : REPO_FORKED,
+        'Repo_Forked'  : CHANGELOG,
     },
     'classifiers': [
         # https://pypi.org/pypi?%3Aaction=list_classifiers

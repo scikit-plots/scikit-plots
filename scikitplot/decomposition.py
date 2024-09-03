@@ -70,6 +70,8 @@ def plot_pca_component_variance(
         Rotates x-axis tick labels by the specified angle. Defaults to None 
         (automatically set based on orientation).
 
+        .. versionadded:: 0.3.9
+
     Returns
     -------
     matplotlib.axes.Axes
@@ -77,18 +79,18 @@ def plot_pca_component_variance(
 
     Examples
     --------
-    >>> import scikitplot as skplt
-    >>> from sklearn.decomposition import PCA
-    >>> import matplotlib.pyplot as plt
-    >>> pca = PCA(random_state=1)
-    >>> pca.fit(X)
-    >>> skplt.decomposition.plot_pca_component_variance(pca)
-    <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
-    >>> plt.show()
-
-    .. image:: /images/examples/plot_pca_component_variance.png
+    
+    .. plot::
+       :context: close-figs
        :align: center
-       :alt: PCA Component variances
+       :alt: PCA Component Variances
+    
+        >>> from sklearn.decomposition import PCA
+        >>> from sklearn.datasets import load_iris as data_3_classes
+        >>> import scikitplot as skplt
+        >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
+        >>> pca = PCA(random_state=0).fit(X)
+        >>> skplt.decomposition.plot_pca_component_variance(pca);
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -218,18 +220,18 @@ def plot_pca_2d_projection(
 
     Examples
     --------
-    >>> import scikitplot as skplt
-    >>> from sklearn.decomposition import PCA
-    >>> import matplotlib.pyplot as plt
-    >>> pca = PCA(random_state=1)
-    >>> pca.fit(X)
-    >>> skplt.decomposition.plot_pca_2d_projection(pca, X, y)
-    <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
-    >>> plt.show()
-
-    .. image:: /images/examples/plot_pca_2d_projection.png
+    
+    .. plot::
+       :context: close-figs
        :align: center
        :alt: PCA 2D Projection
+    
+        >>> from sklearn.decomposition import PCA
+        >>> from sklearn.datasets import load_iris as data_3_classes
+        >>> import scikitplot as skplt
+        >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
+        >>> pca = PCA(random_state=0).fit(X)
+        >>> skplt.decomposition.plot_pca_2d_projection(pca, X, y);
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)

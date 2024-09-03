@@ -49,8 +49,17 @@ __all__ = [
 
 def print_labels():
     """
-    References:
+    References
+    ----------
     [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L5
+
+    Examples
+    --------
+    
+    .. jupyter-execute::
+
+        import scikitplot as skplt
+        skplt.deciles.print_labels()
     """
     print(
         "LABELS INFO:\n\n",
@@ -109,6 +118,8 @@ def decile_table(
     digits : int, optional, default=3
         The decimal precision for the result.
 
+        .. versionadded:: 0.3.9
+
     Returns
     -------
     pd.DataFrame
@@ -120,16 +131,18 @@ def decile_table(
 
     Examples
     --------
-    >>> import scikitplot as skplt
-    >>> from sklearn.datasets import load_iris
-    >>> from sklearn.model_selection import train_test_split
-    >>> from sklearn import tree
-    >>> X, y = load_iris(return_X_y=True)
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=3)
-    >>> clf = tree.DecisionTreeClassifier(max_depth=1, random_state=3)
-    >>> clf.fit(X_train, y_train)
-    >>> y_prob = clf.predict_proba(X_test)
-    >>> skplt.deciles.decile_table(y_test, y_prob[:, 1])
+    
+    .. jupyter-execute::
+
+        from sklearn.datasets import load_iris as data_3_classes
+        from sklearn.model_selection import train_test_split
+        from sklearn.tree import DecisionTreeClassifier
+        import scikitplot as skplt
+        X, y = data_3_classes(return_X_y=True, as_frame=False)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
+        clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(X_train, y_train)
+        y_prob = clf.predict_proba(X_test)
+        skplt.deciles.decile_table(y_test, y_prob[:, 1])
     """
     y_true = np.array(y_true)
     y_prob = np.array(y_prob)
@@ -265,6 +278,8 @@ def plot_cumulative_gain(
     
     show_labels : bool, optional, default=True
         Whether to display the legend labels.
+
+        .. versionadded:: 0.3.9
     
     Returns
     -------
@@ -283,22 +298,23 @@ def plot_cumulative_gain(
     
     Examples
     --------
-    >>> # from sklearn.datasets import load_iris as load_data  # multi
-    >>> from sklearn.datasets import load_breast_cancer as load_data  # binary
-    >>> from sklearn.model_selection import train_test_split
-    >>> from sklearn.linear_model import LogisticRegression
-    >>> import matplotlib.pyplot as plt
-    >>> import scikitplot as skplt
-    >>> X, y = load_data(return_X_y=True)
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
-    >>> model = LogisticRegression()
-    >>> model.fit(X_train, y_train)
-    >>> y_probas = model.predict_proba(X_test)
-    >>> skplt.deciles.plot_cumulative_gain(y_test, y_probas)
     
-    .. image:: /images/examples/plot_cumulative_gain.png
+    .. plot::
+       :context: close-figs
        :align: center
        :alt: Cumulative Gain Curves
+    
+        >>> from sklearn.datasets import load_iris as data_3_classes
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.linear_model import LogisticRegression
+        >>> import scikitplot as skplt
+        >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
+        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
+        >>> y_probas = model.predict_proba(X_val)
+        >>> skplt.deciles.plot_cumulative_gain(
+        >>>     y_val, y_probas,
+        >>> );
     """
     title_pad = None
     if ax is None:
@@ -525,6 +541,8 @@ def plot_lift(
     show_labels : bool, optional, default=True
         Whether to display the legend labels.
 
+        .. versionadded:: 0.3.9
+
     Returns
     -------
     matplotlib.axes.Axes
@@ -542,22 +560,23 @@ def plot_lift(
 
     Examples
     --------
-    >>> # from sklearn.datasets import load_iris as load_data  # multi
-    >>> from sklearn.datasets import load_breast_cancer as load_data  # binary
-    >>> from sklearn.model_selection import train_test_split
-    >>> from sklearn.linear_model import LogisticRegression
-    >>> import matplotlib.pyplot as plt
-    >>> import scikitplot as skplt
-    >>> X, y = load_data(return_X_y=True)
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
-    >>> model = LogisticRegression()
-    >>> model.fit(X_train, y_train)
-    >>> y_probas = model.predict_proba(X_test)
-    >>> skplt.deciles.plot_lift(y_test, y_probas)
-
-    .. image:: /images/examples/plot_lift.png
+    
+    .. plot::
+       :context: close-figs
        :align: center
        :alt: Lift Curves
+    
+        >>> from sklearn.datasets import load_iris as data_3_classes
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.linear_model import LogisticRegression
+        >>> import scikitplot as skplt
+        >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
+        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
+        >>> y_probas = model.predict_proba(X_val)
+        >>> skplt.deciles.plot_lift(
+        >>>     y_val, y_probas,
+        >>> );
     """
     title_pad = None
     if ax is None:
@@ -747,6 +766,8 @@ def plot_lift_decile_wise(
     figsize : tuple of int, optional, default=None
         Tuple denoting figure size of the plot (e.g., (6, 6)).
 
+        .. versionadded:: 0.3.9
+
     Returns
     -------
     None
@@ -758,16 +779,22 @@ def plot_lift_decile_wise(
 
     Examples
     --------
-    >>> import scikitplot as skplt
-    >>> from sklearn.datasets import load_iris
-    >>> from sklearn.model_selection import train_test_split
-    >>> from sklearn import tree
-    >>> X, y = load_iris(return_X_y=True)
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=3)
-    >>> clf = tree.DecisionTreeClassifier(max_depth=1, random_state=3)
-    >>> clf = clf.fit(X_train, y_train)
-    >>> y_prob = clf.predict_proba(X_test)
-    >>> skplt.deciles.plot_lift_decile_wise(y_test, y_prob[:, 1])
+    
+    .. plot::
+       :context: close-figs
+       :align: center
+       :alt: Lift Decile Wise Curves
+    
+        >>> import scikitplot as skplt
+        >>> from sklearn.datasets import load_iris
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.tree import DecisionTreeClassifier
+        >>> X, y = load_iris(return_X_y=True)
+        >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0)
+        >>> clf = clf.fit(X_train, y_train)
+        >>> y_prob = clf.predict_proba(X_test)
+        >>> skplt.deciles.plot_lift_decile_wise(y_test, y_prob[:, 1])
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -833,6 +860,8 @@ def plot_ks_statistic(
     digits : int, optional
         Number of digits for formatting output floating point values. Use e.g. 2 or 4. Defaults to 3.
 
+        .. versionadded:: 0.3.9
+
     Returns
     -------
     matplotlib.axes.Axes
@@ -840,18 +869,23 @@ def plot_ks_statistic(
 
     Examples
     --------
-    >>> import scikitplot as skplt
-    >>> from sklearn.linear_model import LogisticRegression
-    >>> lr = LogisticRegression()
-    >>> lr = lr.fit(X_train, y_train)
-    >>> y_probas = lr.predict_proba(X_test)
-    >>> skplt.deciles.plot_ks_statistic(y_test, y_probas)
-    <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
-    >>> plt.show()
-
-    .. image:: /images/examples/plot_ks_statistic.png
+    
+    .. plot::
+       :context: close-figs
        :align: center
-       :alt: KS Statistic
+       :alt: KS Statistic Plot
+    
+        >>> from sklearn.datasets import load_breast_cancer as data_2_classes
+        >>> from sklearn.model_selection import train_test_split
+        >>> from sklearn.linear_model import LogisticRegression
+        >>> import scikitplot as skplt
+        >>> X, y = data_2_classes(return_X_y=True, as_frame=False)
+        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
+        >>> y_probas = model.predict_proba(X_val)
+        >>> skplt.deciles.plot_ks_statistic(
+        >>>     y_val, y_probas,
+        >>> );
     """
     y_true = np.array(y_true)
     y_probas = np.array(y_probas)
@@ -936,6 +970,8 @@ def report(
         ['ggplot', 'seaborn', 'bmh', 'classic', 'dark_background', 'fivethirtyeight', 
         'grayscale', 'seaborn-bright', 'seaborn-colorblind', 'seaborn-dark', 
         'seaborn-dark-palette', 'tableau-colorblind10', 'fast'].
+
+        .. versionadded:: 0.3.9
 
     Returns
     -------

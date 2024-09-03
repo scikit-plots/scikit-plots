@@ -9,17 +9,17 @@ BUILDDIR      = build
 SOURCEDIR     = source
 
 ifneq ($(EXAMPLES_PATTERN),)
-    EXAMPLES_PATTERN_OPTS := -D sphinx_gallery_conf.filename_pattern="$(EXAMPLES_PATTERN)"
+	EXAMPLES_PATTERN_OPTS := -D sphinx_gallery_conf.filename_pattern="$(EXAMPLES_PATTERN)"
 endif
 
 ifeq ($(CI), true)
-    # On CircleCI using -j2 does not seem to speed up the html-noplot build
-    SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
+	# On CircleCI using -j2 does not seem to speed up the html-noplot build
+	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
 else ifeq ($(shell uname), Darwin)
-    # Avoid stalling issues on MacOS
-    SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
+	# Avoid stalling issues on MacOS
+	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
 else
-    SPHINX_NUMJOBS_NOPLOT_DEFAULT=auto
+	SPHINX_NUMJOBS_NOPLOT_DEFAULT=auto
 endif
 
 # Internal variables.

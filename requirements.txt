@@ -18,21 +18,22 @@ joblib>=0.10
 
 ## Documentation Dependencies
 # packaging
-# seaborn
-# plotly
-# Pillow
+# numpydoc
 # pooch
-# jinja2
-# numpydoc>=1.1
-# sphinx>=7.4
+# sphinx
 # sphinx-gallery
-# sphinx-copybutton
-# sphinx-prompt
-# sphinx-design
-# sphinx-remove-toctrees
-# sphinx-rtd-theme>=1.8.0
-# sphinxext-opengraph
-# sphinxcontrib-sass
+# sphinx-rtd-theme
 # pydata-sphinx-theme
 # scikit-image
+# jinja2
+# Pillow
+# seaborn
+# plotly
+# sphinx-prompt
+# sphinx-design
+# sphinx-copybutton
+# sphinx-remove-toctrees
+# sphinxext-opengraph
+# sphinxcontrib-sass
+# jupyter_sphinx
 # jupyterlite-sphinx

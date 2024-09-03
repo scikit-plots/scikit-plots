@@ -23,6 +23,7 @@
 .. Define the overall structure, that affects the prev-next buttons and the order
    of the sections in the top navbar.
 
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directives
 .. toctree::
    :maxdepth: 2
    :caption: Introduction
@@ -54,7 +55,7 @@
    Community <https://zenodo.org/communities/scikit-plots>
    
    
-   Developer’s Guide <developers/index>
+   Developer’s Guide <https://scikit-plots.github.io/dev/developers/index.html>
    
    FAQ <community/faq.rst>
    Glossary <community/scikiplot_glossary.rst>

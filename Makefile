@@ -66,7 +66,17 @@ test: clean_basic
 ## publish target: Builds the pypi Packages, and publishes the library.
 ## This target depends on clean and test.
 publish:
+	## With setup.py
+	# python setup.py sdist
+	# python setup.py bdist_wheel
+	# pip install .
+	
+	## With pyproject.toml
+	# python -m build --sdist
+	# python -m build --wheel
 	python -m build
+
+	## *twine* for the upload
 	twine check dist/*
 	twine upload dist/*
 	echo "pypi publish completed."

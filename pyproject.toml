@@ -15,6 +15,7 @@ include = [
     "scikitplot.utils"
 ]
 exclude = [
+    "auto_building_tools",
     "docs", "docs.*",
     "examples", "examples.*",
     "notebooks", "notebooks.*",
@@ -40,8 +41,14 @@ keywords = [
     "matplotlib", 
     "visualization", 
     "scikit-learn", 
+    "xgboost", 
+    "catboost", 
+    "tensorflow", 
+    "keras", 
+    "pytorch", 
+    "scikit-learn", 
     "machine learning", 
-    "data science"
+    "data science",
 ]
 # license = {text = "MIT License"}
 license = {file = "LICENSE"}
@@ -57,8 +64,8 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     'License :: OSI Approved :: BSD License',
+    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
@@ -80,13 +87,15 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage      = "https://github.com/celik-muhammed/scikit-plot"
+Homepage      = "https://scikit-plots.github.io"
+Download      = "https://github.com/celik-muhammed/scikit-plot/tree/muhammed-dev"
 Documentation = "https://scikit-plots.github.io/stable/"
 Donate        = "https://github.com/celik-muhammed/scikit-plot#donate"
 Forum         = "https://github.com/celik-muhammed/scikit-plot/issues"
 Issues        = "https://github.com/celik-muhammed/scikit-plot/issues"
 Repo_Forked   = "https://github.com/reiinakano/scikit-plot"
-Repository    = "https://github.com/celik-muhammed/scikit-plot/tree/muhammed-dev"
+# The changelog, really useful for ongoing users of your project
+changelog     = "https://scikit-plots.github.io/dev/whats_new/whats_new.html"
 
 [project.optional-dependencies]
 testing = ["pytest"]
@@ -100,7 +109,7 @@ testpaths = [
 
 [tool.black]
 line-length = 88
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py35', 'py310', 'py314']
 preview = true
 exclude = '''
 /(
@@ -115,5 +124,6 @@ exclude = '''
   | doc/auto_examples
   | scikitplot/externals
   | asv_benchmarks/env
+  | auto_building_tools/
 )/
 '''

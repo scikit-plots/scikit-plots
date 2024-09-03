@@ -45,20 +45,6 @@ Here we try to give some answers to questions that regularly pop up on the maili
 About the project
 -----------------
 
-What is the project name (a lot of people get it wrong)?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-"scikit-plots", but not "scikit" or "SciKit" nor "sci-kit plots".
-Also not "scikits.plots" or "scikits-plots", which were previously used.
-
-How do you pronounce the project name?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-"sy-kit plots". sci stands for plotting science!
-
-Why scikit?
-^^^^^^^^^^^
-There are multiple scikits, which are scientific toolboxes built around SciPy.
-Apart from scikit-learn, another popular one is `scikit-image <https://scikit-image.org/>`_.
-
 Do you support PyPy?
 ^^^^^^^^^^^^^^^^^^^^
 

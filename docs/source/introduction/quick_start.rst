@@ -65,11 +65,13 @@ The resulting confusion matrix shows how well the classifier performs. In this c
 One More Example
 ----------------
 
-Maximum flexibility. Compatibility with non-scikit-learn objects.
+**Maximum flexibility. Compatibility with non-scikit-learn objects.**
 
 Although Scikit-plot is loosely based around the scikit-learn interface, you don't actually need Scikit-learn objects to use the available functions. As long as you provide the functions what they're asking for, they'll happily draw the plots for you.
 
-Here's a quick example to generate the precision-recall curves of a Keras classifier on a sample dataset.
+Use `Tensorflow <https://www.tensorflow.org>`_ or `Pytorch <https://pytorch.org>`_
+
+Here's a quick example to generate the precision-recall curves of a :class:`~tensorflow.keras` Keras classifier model on a sample dataset.
 
 .. plot::
    :context: close-figs
