@@ -13,50 +13,50 @@ The quickest and easiest way to go from analysis...
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_learning_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_learning_curve.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_learning_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-estimators-plot_learning_curve-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_calibration_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_calibration_curve.png">
-    </td>
-  </tr>
-  <tr>
-    <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_classifier_eval.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_classifier_eval.png">
-    </td>
-    <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_feature_importances.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_feature_importances.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_calibration_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_calibration_curve-1.png">
     </td>
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_roc.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_roc.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_classifier_eval.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_classifier_eval-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_precision_recall.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_precision_recall.png">
-    </td>
-  </tr>
-  <tr>
-    <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_pca_component_variance.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_pca_component_variance.png">
-    </td>
-    <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_pca_2d_projection.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_pca_2d_projection.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_feature_importances.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-estimators-plot_feature_importances-1.png">
     </td>
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_elbow.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_elbow.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_roc.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_roc-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_silhouette.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_silhouette.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_precision_recall.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_precision_recall-1.png">
     </td>
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_cumulative_gain.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_pca_component_variance.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-decomposition-plot_pca_component_variance-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/plot_lift.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_pca_2d_projection.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-decomposition-plot_pca_2d_projection-1.png">
+    </td>
+  </tr>
+  <tr>
+    <td style="width:50%;text-align:center;">
+      <img style="display:block;width:100%;height:auto;" alt="plot_elbow.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-cluster-plot_elbow-1.png">
+    </td>
+    <td style="width:50%;text-align:center;">
+      <img style="display:block;width:100%;height:auto;" alt="plot_silhouette.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_silhouette-1.png">
+    </td>
+  </tr>
+  <tr>
+    <td style="width:50%;text-align:center;">
+      <img style="display:block;width:100%;height:auto;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-deciles-plot_cumulative_gain-1.png">
+    </td>
+    <td style="width:50%;text-align:center;">
+      <img style="display:block;width:100%;height:auto;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-deciles-plot_lift-1.png">
     </td>
   </tr>
 </table>
