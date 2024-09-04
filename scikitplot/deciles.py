@@ -201,21 +201,27 @@ def decile_table(
 
 
 def plot_cumulative_gain(
+    ## default params
     y_true,
     y_probas,
+    *,
+    class_names=None,
+    multi_class=None,
+    class_index=1,
+    to_plot_class_index=None,
+    ## plotting params
     title='Cumulative Gain Curves',
     ax=None,
+    fig=None,
     figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
-    class_index=1,
-    multi_class=None,
-    class_names=None,
-    classes_to_plot=None,   
-    plot_micro=True,
-    plot_macro=True,
     show_labels=True,
+    plot_micro=True,
+    plot_macro=False,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the Cumulative Gains Plot from labels and scores/probabilities.
@@ -233,11 +239,35 @@ def plot_cumulative_gain(
         If 1D, it is treated as probabilities for the positive class in binary 
         or multiclass classification with the `class_index`.
     
+    class_names : list of str, optional, default=None
+        List of class names for the legend. Order should match the order of classes in `y_probas`.
+    
+    multi_class : {'ovr', 'multinomial', None}, optional, default=None
+        Strategy for handling multiclass classification:
+        - 'ovr': One-vs-Rest, plotting binary problems for each class.
+        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
+    
+    class_index : int, optional, default=1
+        Index of the class of interest for multi-class classification. Ignored for
+        binary classification.
+    
+    to_plot_class_index : list-like, optional, default=None
+        Specific classes to plot. If a given class does not exist, it will be ignored. 
+        If None, all classes are plotted. e.g. [0, 'cold']
+    
     title : str, optional, default='Cumulative Gain Curves'
         Title of the generated plot.
-    
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axes on which to plot. If None, a new figure and axes are created.
+
+    ax : list of matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+        .. versionadded:: 0.3.9
     
     figsize : tuple of int, optional, default=None
         Size of the figure (width, height) in inches.
@@ -247,37 +277,27 @@ def plot_cumulative_gain(
     
     text_fontsize : str or int, optional, default='medium'
         Font size for the text in the plot.
-    
-    cmap : None, str or matplotlib.colors.Colormap, optional, default='viridis'
-        Colormap used for plotting. See Matplotlib Colormap documentation for options:
-        - https://matplotlib.org/users/colormaps.html
+
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', 'nipy_spectral', etc.
+        See Matplotlib Colormap documentation for available choices.
+        - https://matplotlib.org/stable/users/explain/colors/index.html
         - plt.colormaps()
         - plt.get_cmap()  # None == 'viridis'
     
-    class_index : int, optional, default=1
-        Index of the class of interest for multi-class classification. Ignored for
-        binary classification.
-    
-    multi_class : {'ovr', 'multinomial', None}, optional, default=None
-        Strategy for handling multiclass classification:
-        - 'ovr': One-vs-Rest, plotting binary problems for each class.
-        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
-    
-    class_names : list of str, optional, default=None
-        List of class names for the legend. Order should match the order of classes in `y_probas`.
-    
-    classes_to_plot : list-like, optional, default=None
-        Specific classes to plot. If a given class does not exist, it will be ignored. 
-        If None, all classes are plotted. e.g. [0, 'cold']
+    show_labels : bool, optional, default=True
+        Whether to display the legend labels.
+
+        .. versionadded:: 0.3.9
     
     plot_micro : bool, optional, default=True
         Whether to plot the micro-average Cumulative Gain curve.
+
+        .. versionadded:: 0.3.9
     
     plot_macro : bool, optional, default=True
         Whether to plot the macro-average Cumulative Gain curve.
-    
-    show_labels : bool, optional, default=True
-        Whether to display the legend labels.
 
         .. versionadded:: 0.3.9
     
@@ -316,9 +336,10 @@ def plot_cumulative_gain(
         >>>     y_val, y_probas,
         >>> );
     """
-    title_pad = None
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here
 
     y_true = np.array(y_true)
     y_probas = np.array(y_probas)
@@ -328,29 +349,29 @@ def plot_cumulative_gain(
         # 1D y_probas (single class probabilities)
         if y_probas.ndim == 1:
             # Combine into a two-column
-            y_probas = np.column_stack([1 - y_probas, y_probas])
+            y_probas = np.column_stack(
+                [1 - y_probas, y_probas]
+            )
     # Handle multi-class classification    
     elif len(np.unique(y_true)) > 2:
         if multi_class == 'ovr':
             # Binarize y_true for multiclass classification
-            y_true = label_binarize(y_true, classes=np.unique(y_true))[:, class_index]
+            y_true = label_binarize(
+                y_true,
+                classes=np.unique(y_true)
+            )[:, class_index]
             # Handle 1D y_probas (single class probabilities)
             if y_probas.ndim == 1:
                 # Combine into a two-column binary format OvR
-                y_probas = np.column_stack([1 - y_probas, y_probas])
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
             else:
                 # Combine into a two-column binary format OvR
                 y_probas = y_probas[:, class_index]
-                y_probas = np.column_stack([1 - y_probas, y_probas])
-                
-            # Add a subtitle indicating the use of the One-vs-Rest strategy
-            plt.suptitle(
-                t="One-vs-Rest (OVR) strategy for multi-class classification.",
-                fontsize=text_fontsize, x=0.512, y=0.902,
-                ha='center', va='center',
-                bbox=dict(facecolor='none', edgecolor='w', boxstyle='round,pad=0.2')
-            )
-            title_pad = 23
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
         elif multi_class in ['multinomial', None]:
             if y_probas.ndim == 1:
                 raise ValueError(
@@ -361,22 +382,51 @@ def plot_cumulative_gain(
         else:
             raise ValueError("Unsupported `multi_class` strategy.")
 
-    # Initialize dictionaries to store cumulative percentages and gains
-    percentages_dict, gains_dict = {}, {}
-
     # Get unique classes and filter those to be plotted
     classes = np.unique(y_true)
     if len(classes) < 2:
         raise ValueError(
             'Cannot calculate Curve for classes with only one category.'
         )
-    classes_to_plot = classes if classes_to_plot is None else classes_to_plot
-    indices_to_plot = np.isin(classes, classes_to_plot)
+    to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
+    indices_to_plot = np.isin(classes, to_plot_class_index)
     
     # Binarize y_true for multiclass classification, for micro
     y_true_bin = label_binarize(y_true, classes=classes)
     if len(classes) == 2:
-        y_true_bin = np.hstack((1 - y_true_bin, y_true_bin))
+        y_true_bin = np.column_stack(
+            [1 - y_true_bin, y_true_bin]
+        )
+
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
+
+    # Initialize dictionaries to store cumulative percentages and gains
+    percentages_dict, gains_dict = {}, {}
 
     # Loop for all classes to get different class gain
     for i, to_plot in enumerate(indices_to_plot):
@@ -424,24 +474,24 @@ def plot_cumulative_gain(
             label='macro-average',
         )
 
-    # Plot the baseline
-    ax.plot([0, 1], [0, 1], ls='--', lw=1, c='gray', label='Baseline')
+    # Plot the baseline, label='Baseline'
+    ax.plot([0, 1], [0, 1], ls='--', lw=1, c='gray')
 
     # Set title, labels, and formatting
-    ax.set_title(title, fontsize=title_fontsize, pad=title_pad)
+    ax.set_title(title, fontsize=title_fontsize)
     ax.set_ylabel('Gain', fontsize=text_fontsize)
     ax.set_xlabel('Percentage of sample', fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
     
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
+    ax.set_xlim([-0.01, 1.00])
+    ax.set_ylim([-0.00, 1.05])
 
     # Define the desired number of ticks
     num_ticks = 10
 
     # Set x-axis ticks and labels
     # ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator( (ax.get_xlim()[1] / 10) ))
-    ax.xaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False) )
+    ax.xaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, min_n_ticks=9, integer=False) )
     ax.xaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
     ax.yaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False) )
     ax.yaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
@@ -451,8 +501,8 @@ def plot_cumulative_gain(
     if show_labels:
         ax.legend(
             loc='lower right', 
-            fontsize=text_fontsize, 
-            title='Cumulative Gain Curves', 
+            fontsize=text_fontsize,
+            title=f'Cumulative Gain Curves' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
             alignment='left'
         )
 
@@ -461,21 +511,27 @@ def plot_cumulative_gain(
 
 
 def plot_lift(
+    ## default params
     y_true,
     y_probas,
+    *,
+    class_names=None,
+    multi_class=None,
+    class_index=1,
+    to_plot_class_index=None,
+    ## plotting params
     title='Lift Curves',
     ax=None,
+    fig=None,
     figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
-    class_index=1,
-    multi_class=None,
-    class_names=None,
-    classes_to_plot=None,   
+    show_labels=True,
     plot_micro=False,
     plot_macro=False,
-    show_labels=True,
+    ## additional params
+    **kwargs,
 ):
     """
     Generate a Lift Curve from true labels and predicted probabilities.
@@ -495,11 +551,35 @@ def plot_lift(
         If 1D, it is treated as probabilities for the positive class in binary 
         or multiclass classification with the `class_index`.
 
+    class_names : list of str, optional, default=None
+        List of class names for the legend. Order should match the order of classes in `y_probas`.
+
+    multi_class : {'ovr', 'multinomial', None}, optional, default=None
+        Strategy for handling multiclass classification:
+        - 'ovr': One-vs-Rest, plotting binary problems for each class.
+        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
+
+    class_index : int, optional, default=1
+        Index of the class of interest for multi-class classification. Ignored for
+        binary classification.
+
+    to_plot_class_index : list-like, optional, default=None
+        Specific classes to plot. If a given class does not exist, it will be ignored. 
+        If None, all classes are plotted. e.g. [0, 'cold']
+
     title : str, default='Lift Curves'
         Title of the plot.
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axes on which to plot. If None, a new figure and axes are created.
+    ax : list of matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+        .. versionadded:: 0.3.9
 
     figsize : tuple of int, optional, default=None
         Size of the figure (width, height) in inches.
@@ -510,27 +590,18 @@ def plot_lift(
     text_fontsize : str or int, optional, default='medium'
         Font size for the text in the plot.
 
-    cmap : None, str or matplotlib.colors.Colormap, optional, default='viridis'
-        Colormap used for plotting. See Matplotlib Colormap documentation for options:
-        - https://matplotlib.org/users/colormaps.html
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', 'nipy_spectral', etc.
+        See Matplotlib Colormap documentation for available choices.
+        - https://matplotlib.org/stable/users/explain/colors/index.html
         - plt.colormaps()
         - plt.get_cmap()  # None == 'viridis'
+    
+    show_labels : bool, optional, default=True
+        Whether to display the legend labels.
 
-    class_index : int, optional, default=1
-        Index of the class of interest for multi-class classification. Ignored for
-        binary classification.
-
-    multi_class : {'ovr', 'multinomial', None}, optional, default=None
-        Strategy for handling multiclass classification:
-        - 'ovr': One-vs-Rest, plotting binary problems for each class.
-        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
-
-    class_names : list of str, optional, default=None
-        List of class names for the legend. Order should match the order of classes in `y_probas`.
-
-    classes_to_plot : list-like, optional, default=None
-        Specific classes to plot. If a given class does not exist, it will be ignored. 
-        If None, all classes are plotted. e.g. [0, 'cold']
+        .. versionadded:: 0.3.9
 
     plot_micro : bool, optional, default=False
         Whether to plot the micro-average Lift curve.
@@ -578,9 +649,10 @@ def plot_lift(
         >>>     y_val, y_probas,
         >>> );
     """
-    title_pad = None
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here
 
     y_true = np.array(y_true)
     y_probas = np.array(y_probas)    
@@ -590,29 +662,29 @@ def plot_lift(
         # 1D y_probas (single class probabilities)
         if y_probas.ndim == 1:
             # Combine into a two-column
-            y_probas = np.column_stack([1 - y_probas, y_probas])
+            y_probas = np.column_stack(
+                [1 - y_probas, y_probas]
+            )
     # Handle multi-class classification    
     elif len(np.unique(y_true)) > 2:
         if multi_class == 'ovr':
             # Binarize y_true for multiclass classification
-            y_true = label_binarize(y_true, classes=np.unique(y_true))[:, class_index]
+            y_true = label_binarize(
+                y_true,
+                classes=np.unique(y_true)
+            )[:, class_index]
             # Handle 1D y_probas (single class probabilities)
             if y_probas.ndim == 1:
                 # Combine into a two-column binary format OvR
-                y_probas = np.column_stack([1 - y_probas, y_probas])
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
             else:
                 # Combine into a two-column binary format OvR
                 y_probas = y_probas[:, class_index]
-                y_probas = np.column_stack([1 - y_probas, y_probas])
-                
-            # Add a subtitle indicating the use of the One-vs-Rest strategy
-            plt.suptitle(
-                t="One-vs-Rest (OVR) strategy for multi-class classification.",
-                fontsize=text_fontsize, x=0.512, y=0.902,
-                ha='center', va='center',
-                bbox=dict(facecolor='none', edgecolor='w', boxstyle='round,pad=0.2')
-            )
-            title_pad = 23
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
         elif multi_class in ['multinomial', None]:
             if y_probas.ndim == 1:
                 raise ValueError(
@@ -623,23 +695,51 @@ def plot_lift(
         else:
             raise ValueError("Unsupported `multi_class` strategy.")
 
-    # Initialize dictionaries to store cumulative percentages and gains
-    percentages_dict = {}
-    gains_dict = {}
-
     # Get unique classes and filter those to be plotted
     classes = np.unique(y_true)
     if len(classes) < 2:
         raise ValueError(
             'Cannot calculate Curve for classes with only one category.'
         )
-    classes_to_plot = classes if classes_to_plot is None else classes_to_plot
-    indices_to_plot = np.isin(classes, classes_to_plot)
+    to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
+    indices_to_plot = np.isin(classes, to_plot_class_index)
     
     # Binarize y_true for multiclass classification, for micro
     y_true_bin = label_binarize(y_true, classes=classes)
     if len(classes) == 2:
-        y_true_bin = np.hstack((1 - y_true_bin, y_true_bin))
+        y_true_bin = np.column_stack(
+            [1 - y_true_bin, y_true_bin]
+        )
+
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
+
+    # Initialize dictionaries to store cumulative percentages and gains
+    percentages_dict, gains_dict = {}, {}
 
     # Loop for all classes to get different class gain
     for i, to_plot in enumerate(indices_to_plot):
@@ -695,20 +795,20 @@ def plot_lift(
     ax.plot([0, 1], [1, 1], ls='--', lw=1, c='gray', label='Baseline (1)')
 
     # Set title, labels, and formatting
-    ax.set_title(title, fontsize=title_fontsize, pad=title_pad)
+    ax.set_title(title, fontsize=title_fontsize)
     ax.set_ylabel('Lift', fontsize=text_fontsize)
     ax.set_xlabel('Percentage of sample', fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
     
-    # ax.set_xlim([0.0, 1.0])
-    # ax.set_ylim([0.0, 1.05])
+    ax.set_xlim([-0.0, 1.02])
+    # ax.set_ylim([-0.0, 1.05])
 
     # Define the desired number of ticks
     num_ticks = 10
 
     # Set x-axis ticks and labels
     # ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator( (ax.get_xlim()[1] / 10) ))
-    ax.xaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False) )
+    ax.xaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, min_n_ticks=9, integer=False) )
     ax.xaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
     ax.yaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False) )
     ax.yaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
@@ -718,8 +818,8 @@ def plot_lift(
     if show_labels:
         ax.legend(
             loc='upper right', 
-            fontsize=text_fontsize, 
-            title='Lift Curves', 
+            fontsize=text_fontsize,
+            title=f'Lift Curves' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
             alignment='left'
         )
 
@@ -822,14 +922,24 @@ def plot_lift_decile_wise(
 
 
 def plot_ks_statistic(
-    y_true, 
-    y_probas, 
+    ## default params
+    y_true,
+    y_probas,
+    *,
+    # class_names=None,
+    # multi_class=None,
+    # class_index=1,
+    # to_plot_class_index=None,
+    ## plotting params
     title='KS Statistic Plot',
-    ax=None, 
-    figsize=None, 
+    ax=None,
+    fig=None,
+    figsize=None,
     title_fontsize="large",
-    text_fontsize="medium", 
+    text_fontsize="medium",
     digits=3,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the KS Statistic plot from labels and scores/probabilities.
@@ -845,8 +955,16 @@ def plot_ks_statistic(
     title : str, optional
         Title of the generated plot. Defaults to "KS Statistic Plot".
 
-    ax : matplotlib.axes.Axes, optional
-        The axes upon which to plot the learning curve. If None, the plot is drawn on a new set of axes.
+    ax : list of matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+        .. versionadded:: 0.3.9
 
     figsize : tuple of 2 ints, optional
         Tuple denoting figure size of the plot e.g. (6, 6). Defaults to None.
@@ -887,8 +1005,13 @@ def plot_ks_statistic(
         >>>     y_val, y_probas,
         >>> );
     """
-    y_true = np.array(y_true)
-    y_probas = np.array(y_probas)
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here
+    
+    y_true = np.asarray(y_true)
+    y_probas = np.asarray(y_probas)
 
     classes = np.unique(y_true)
     if len(classes) != 2:
@@ -897,12 +1020,38 @@ def plot_ks_statistic(
     probas = y_probas
 
     # Compute KS Statistic curves
-    thresholds, pct1, pct2, ks_statistic, \
-        max_distance_at, classes = binary_ks_curve(y_true,
-                                                   probas[:, 1].ravel())
+    (thresholds, pct1, pct2, ks_statistic, max_distance_at,
+     classes) = binary_ks_curve(
+         y_true,
+         probas[:, 1].ravel()
+    )
 
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
 
     ax.plot(thresholds, pct1, lw=3, label='Class {}'.format(classes[0]))
     ax.plot(thresholds, pct2, lw=3, label='Class {}'.format(classes[1]))

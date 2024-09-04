@@ -60,6 +60,7 @@ combined_fig = skplt.utils.combine_and_save_figures(
     (fig1, fig2),
     to_save=False
 );
+
 # Adjust layout to make sure everything fits
 plt.tight_layout()
 # Save the plot to a file

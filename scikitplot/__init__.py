@@ -42,4 +42,4 @@ from .utils._show_versions import show_versions
 # 'X.Y.dev0' is the canonical version of 'X.Y.dev'
 #
 # https://packaging.python.org/en/latest/discussions/versioning/#valid-version-numbers
-__version__ = '0.3.9.rc1'
+__version__ = '0.3.9.rc2'

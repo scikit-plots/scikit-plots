@@ -53,6 +53,7 @@ ax = skplt.cluster.plot_elbow(
     X_train, 
     cluster_ranges=range(1, 11)
 );
+
 # Adjust layout to make sure everything fits
 plt.tight_layout()
 # Save the plot to a file

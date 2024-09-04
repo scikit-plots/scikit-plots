@@ -17,6 +17,7 @@ from __future__ import (
     unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import learning_curve
@@ -31,50 +32,89 @@ __all__ = [
 
 
 def plot_learning_curve(
-    clf, 
-    X, 
-    y, 
+    ## default params
+    estimator,
+    X,
+    y,
+    *,
+    # groups=None,
+    train_sizes=None,
+    cv=None,
+    scoring=None,
+    # exploit_incremental_learning=False,
+    n_jobs=None,
+    # pre_dispatch="all",
+    verbose=0,
+    shuffle=False,
+    random_state=None,
+    # error_score=np.nan,
+    # return_times=False,
+    fit_params=None,
+    ## plotting params
     title='Learning Curves',
-    ax=None, 
-    figsize=None, 
+    ax=None,
+    fig=None,
+    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
-    cv=None, 
-    scoring=None,
-    train_sizes=None, 
-    shuffle=False, 
-    random_state=None,
-    n_jobs=1, 
+    ## additional params
+    **kwargs,
 ):
     """
     Generates a plot of the train and test learning curves for a classifier.
 
-    The learning curves plot the performance of a classifier as a function of the number of training samples.
-    This helps in understanding how well the classifier performs with different amounts of training data.
+    The learning curves plot the performance of a classifier as a function of the number of
+    training samples. This helps in understanding how well the classifier performs
+    with different amounts of training data.
 
     Parameters
     ----------
-    clf : object
-        Classifier instance that implements `fit` and `predict` methods.
+    estimator : object type that implements the "fit" method
+        An object of that type which is cloned for each validation. It must
+        also implement "predict" unless `scoring` is a callable that doesn't
+        rely on "predict" to compute a score.
 
     X : array-like, shape (n_samples, n_features)
-        Training data, where `n_samples` is the number of samples and `n_features` is the number of features.
+        Training data, where `n_samples` is the number of samples
+        and `n_features` is the number of features.
 
     y : array-like, shape (n_samples,) or (n_samples, n_features), optional
-        Target relative to `X` for classification or regression; None for unsupervised learning.
+        Target relative to `X` for classification or regression.
+        None for unsupervised learning.
 
-    title : str, optional, default="Learning Curves"
-        Title of the generated plot.
+    train_sizes : iterable, optional
+        Determines the training sizes used to plot the learning curve.
+        If None, `np.linspace(.1, 1.0, 5)` is used.
+        
+    cv : int, cross-validation generator, iterable or None, default=5
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+        - None, to use the default 5-fold cross validation,
+        - integer, to specify the number of folds.
+        - :term:`CV splitter`,
+        - An iterable that generates (train, test) splits as arrays of indices.
 
-    cv : int, cross-validation generator, or iterable, optional
-        Determines the cross-validation strategy to use for splitting:
-        - None, to use the default 3-fold cross-validation,
-        - integer, to specify the number of folds,
-        - An object to be used as a cross-validation generator,
-        - An iterable yielding train/test splits.
+        For integer/None inputs, if classifier is True and ``y`` is either
+        binary or multiclass, :class:`StratifiedKFold` is used. In all other
+        cases, :class:`KFold` is used.
 
-        For integer/None inputs, if `y` is binary or multiclass, `StratifiedKFold` is used.
-        If the estimator is not a classifier or if `y` is neither binary nor multiclass, `KFold` is used.
+        Refer :ref:`User Guide <cross_validation>` for the various
+        cross-validation strategies that can be used here.
+
+    scoring : str, callable, or None, optional, default=None
+        A string (see scikit-learn model evaluation documentation)
+        or a scorer callable object/function
+        with signature `scorer(estimator, X, y)`.
+
+    n_jobs : int, optional, default=None
+        Number of jobs to run in parallel. Training the estimator and computing
+        the score are parallelized over the different training and test sets.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details.
+
+    verbose : int, default=0
+        Controls the verbosity: the higher, the more messages.
 
     shuffle : bool, optional, default=True
         Whether to shuffle the training data before splitting using cross-validation.
@@ -82,38 +122,48 @@ def plot_learning_curve(
     random_state : int or RandomState, optional
         Pseudo-random number generator state used for random sampling.
 
-    train_sizes : iterable, optional
-        Determines the training sizes used to plot the learning curve.
-        If None, `np.linspace(.1, 1.0, 5)` is used.
+    fit_params : dict, default=None
+        Parameters to pass to the fit method of the estimator.
 
-    n_jobs : int, optional, default=1
-        Number of jobs to run in parallel.
+        .. versionadded:: 0.3.9
 
-    scoring : str, callable, or None, optional, default=None
-        A string (see scikit-learn model evaluation documentation) or a scorer callable object/function
-        with signature `scorer(estimator, X, y)`.
+    title : str, optional, default="Learning Curves"
+        Title of the generated plot.
 
-    ax : matplotlib.axes.Axes, optional
-        The axes upon which to plot the curve. If None, a new figure and axes are created.
+    ax : matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
 
-    figsize : tuple of int, optional
-        Tuple denoting figure size of the plot, e.g., (6, 6). Defaults to None.
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
 
-    title_fontsize : str or int, optional, default="large"
-        Font size for the plot title. Use e.g., "small", "medium", "large" or integer values.
+    figsize : tuple of int, optional, default=None
+        Tuple denoting figure size of the plot, e.g., (6, 6).
 
-    text_fontsize : str or int, optional, default="medium"
-        Font size for the text in the plot. Use e.g., "small", "medium", "large" or integer values.
+    title_fontsize : str or int, optional, default='large'
+        Font size for the plot title.
+        Use e.g., "small", "medium", "large" or integer values.
+
+    text_fontsize : str or int, optional, default='medium'
+        Font size for the text in the plot.
+        Use e.g., "small", "medium", "large" or integer values.
+
+    kwargs: dict
+        generic keyword arguments.
+
 
     Returns
     -------
     matplotlib.axes.Axes
         The axes on which the plot was drawn.
 
-    Notes
-    -----
-    If `cv` is not specified, 3-fold cross-validation is used by default. The plot will show the learning curves
-    for training and test data across different training sizes.
+
+    .. dropdown:: References
+    
+      * `"scikit-learn learning_curve"
+        <https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.learning_curve.html#>`_.
+
 
     Examples
     --------
@@ -136,27 +186,67 @@ def plot_learning_curve(
         >>>     model, X_val, y_val_pred,
         >>> );
     """
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here
+    
     if train_sizes is None:
-        train_sizes = np.linspace(.1, 1.0, 5)
+        train_sizes = np.linspace(0.1, 1.0, 5)
 
     train_sizes, train_scores, test_scores = learning_curve(
-        clf, 
-        X, 
-        y, 
-        cv=cv, 
-        scoring=scoring,
+        ## default params
+        estimator,
+        X,
+        y,
+        # groups=None,
         train_sizes=train_sizes, 
-        shuffle=shuffle, 
-        random_state=random_state,
+        cv=cv,
+        scoring=scoring,
+        # exploit_incremental_learning=False,
         n_jobs=n_jobs,
+        # pre_dispatch="all",
+        verbose=verbose,
+        shuffle=shuffle,
+        random_state=random_state,
+        # error_score=np.nan,
+        # return_times=False,
+        fit_params=fit_params,
     )    
     train_scores_mean = np.mean(train_scores, axis=1)
     train_scores_std = np.std(train_scores, axis=1)
     test_scores_mean = np.mean(test_scores, axis=1)
     test_scores_std = np.std(test_scores, axis=1)
+
+    # Get model name if available
+    model_name = f'{estimator.__class__.__name__} ' if hasattr(estimator, '__class__') else ''
+
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
     
     ax.fill_between(
         train_sizes, train_scores_mean - train_scores_std,
@@ -173,8 +263,8 @@ def plot_learning_curve(
     ax.plot(
         train_sizes, test_scores_mean, 'o-', color="g",
         label="Cross-validation score"
-    )    
-    ax.set_title(title, fontsize=title_fontsize)
+    )
+    ax.set_title(model_name + title, fontsize=title_fontsize)
     ax.set_xlabel("Training examples", fontsize=text_fontsize)
     ax.set_ylabel("Score", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
@@ -185,22 +275,29 @@ def plot_learning_curve(
 
 
 def plot_feature_importances(
-    model,
+    ## default params
+    estimator,
+    *,
+    feature_names=None,
+    class_index=None,
+    threshold=None,
+    ## plotting params
     title='Feature Importances',
     ax=None,
+    fig=None,
     figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap='PiYG',
+    # bar plot
+    order=None,
     orientation='vertical',
     x_tick_rotation=None,
     bar_padding=11,
-    display_labels=True,
-    class_index=None,
-    threshold=None,
-    order=None,
-    feature_names=None,
+    display_bar_label=True,
     digits=4,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates a plot of a sklearn model's feature importances.
@@ -224,61 +321,66 @@ def plot_feature_importances(
 
     Parameters
     ----------
-    model : estimator object
-        A fitted sklearn model or pipeline containing a classifier.
+    estimator : estimator object
+        A fitted sklearn estimator or pipeline containing a classifier.
 
-    title : str, optional
-        Title of the generated plot.
-        Defaults to "Feature Importances".
+    feature_names : list of str, optional, default=None
+        List of feature names corresponding to the features. If None, feature
+        indices are used.
 
-    ax : matplotlib.axes.Axes, optional
-        The axes upon which to plot the curve. If None, the plot is drawn on
-        a new set of axes.
-
-    figsize : tuple, optional
-        Tuple denoting figure size of the plot e.g. (6, 6). Defaults to None.
-
-    title_fontsize : str or int, optional
-        Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or
-        integer-values. Defaults to "large".
-
-    text_fontsize : str or int, optional
-        Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or
-        integer-values. Defaults to "medium".
-
-    cmap : str or matplotlib.colors.Colormap, optional, default='PiYG'
-        Colormap used for plotting.
-        - See Matplotlib Colormap documentation for options.
-
-    orientation : {'vertical' | 'v' | 'y', 'horizontal' | 'h' | 'y'}, optional
-        Orientation of the bar plot. Defaults to 'vertical'.
-
-    x_tick_rotation : int, optional
-        Rotates x-axis tick labels by the specified angle. Defaults to None
-        (automatically set based on orientation).
-
-    bar_padding : float, optional
-        Padding between bars in the plot. Defaults to 11.
-
-    display_labels : bool, optional
-        Whether to display the bar labels. Defaults to True.
-
-    class_index : int, optional
+    class_index : int, optional, default=None
         Index of the class of interest for multi-class classification.
         Defaults to None.
 
-    threshold : float, optional
+    threshold : float, optional, default=None
         Threshold for filtering features by absolute importance. Only
         features with an absolute importance greater than this threshold will
         be plotted. Defaults to None (plot all features).
 
-    order : {'ascending', 'descending', None}, optional
+    title : str, optional, default='Feature Importances'
+        Title of the generated plot.
+
+    ax : matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+    figsize : tuple, optional, default=None
+        Tuple denoting figure size of the plot e.g. (6, 6)
+
+    title_fontsize : str or int, optional, default='large'
+        Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or
+        integer-values.
+
+    text_fontsize : str or int, optional, default='medium'
+        Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or
+        integer-values.
+
+    cmap : None, str or matplotlib.colors.Colormap, optional, default='PiYG'
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', etc.
+        See Matplotlib Colormap documentation for available choices.
+        - https://matplotlib.org/stable/users/explain/colors/index.html
+
+    order : {'ascending', 'descending', None}, optional, default=None
         Order of feature importance in the plot. Defaults to None
         (automatically set based on orientation).
 
-    feature_names : list of str, optional
-        List of feature names corresponding to the features. If None, feature
-        indices are used.
+    orientation : {'vertical' | 'v' | 'y', 'horizontal' | 'h' | 'y'}, optional
+        Orientation of the bar plot. Defaults to 'vertical'.
+
+    x_tick_rotation : int, optional, default=None
+        Rotates x-axis tick labels by the specified angle. Defaults to None
+        (automatically set based on orientation).
+
+    bar_padding : float, optional, default=11
+        Padding between bars in the plot.
+
+    display_bar_label : bool, optional, default=True
+        Whether to display the bar labels.
 
     digits : int, optional, default=4
         Number of digits for formatting AUC values in the plot.
@@ -308,31 +410,33 @@ def plot_feature_importances(
        >>> skplt.estimators.plot_feature_importances(
        >>>     model,
        >>>     orientation='y',
-       >>>     figsize=(12, 5),
+       >>>     figsize=(11, 5),
        >>> );
-    """
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-        
+    """    
+    #################################################
+    ## Preprocessing
+    #################################################
+    # Proceed with your preprocess logic here
+    
     # Handle pipelines
-    if hasattr(model, 'named_steps'):
-        model = model.named_steps[next(reversed(model.named_steps))]
+    if hasattr(estimator, 'named_steps'):
+        estimator = estimator.named_steps[next(reversed(estimator.named_steps))]
 
     # Determine the appropriate attribute for feature importances or coefficients
-    if hasattr(model, 'feature_importances_'):
-        importances = np.asarray(model.feature_importances_)
+    if hasattr(estimator, 'feature_importances_'):
+        importances = np.asarray(estimator.feature_importances_)
     # LDA (scikit-learn < 0.24)
-    elif hasattr(model, 'coef_'):
-        if model.coef_.ndim > 1:  # Multi-class case
-            if class_index is not None:
-                importances = np.asarray(model.coef_)[class_index]
+    elif hasattr(estimator, 'coef_'):
+        if estimator.coef_.ndim > 1:  # Multi-class case
+            if class_index is None:
+                importances = np.mean(np.abs(estimator.coef_), axis=0)
             else:
-                importances = np.mean(np.abs(model.coef_), axis=0)
+                importances = np.asarray(estimator.coef_)[class_index]
         else:
-            importances = np.asarray(model.coef_).ravel()
+            importances = np.asarray(estimator.coef_).ravel()
     # PCA
-    elif hasattr(model, 'explained_variance_ratio_'):
-        importances = np.asarray(model.explained_variance_ratio_)
+    elif hasattr(estimator, 'explained_variance_ratio_'):
+        importances = np.asarray(estimator.explained_variance_ratio_)
     else:
         raise TypeError(
             'The estimator does not have an attribute for feature '
@@ -341,16 +445,16 @@ def plot_feature_importances(
     # Obtain feature names
     if feature_names is None:
         # sklearn models
-        if hasattr(model, 'feature_names_in_'):
-            feature_names = np.asarray(model.feature_names_in_)
+        if hasattr(estimator, 'feature_names_in_'):
+            feature_names = np.asarray(estimator.feature_names_in_)
         # catboost
-        elif hasattr(model, 'feature_names_'):
-            feature_names = np.asarray(model.feature_names_)
+        elif hasattr(estimator, 'feature_names_'):
+            feature_names = np.asarray(estimator.feature_names_)
         else:
             # Ensure feature_names are strings
-            feature_names = np.arange(len(importances), dtype=int)
+            feature_names = np.asarray(np.arange(len(importances), dtype=int), dtype=str)
     else:
-        feature_names = np.asarray(feature_names)
+        feature_names = np.asarray(feature_names, dtype=str)
 
     # Generate indices
     indices = np.arange(len(importances))
@@ -359,7 +463,6 @@ def plot_feature_importances(
     if threshold is not None:
         mask = np.abs(importances) > threshold
         indices = indices[mask].copy()
-
 
     # Apply ordering based on orientation
     if order is None:
@@ -379,6 +482,36 @@ def plot_feature_importances(
     # Reorder the feature names according to the sorted indices
     feature_names = feature_names[indices].copy()
 
+    # Get model name if available
+    model_name = f'{estimator.__class__.__name__} ' if hasattr(estimator, '__class__') else ''
+
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
+    
     # Plot bars based on orientation
     for idx, (col, imp) in enumerate(zip(feature_names, importances)):
         # Default colormap if not provided, 'viridis'
@@ -390,7 +523,7 @@ def plot_feature_importances(
         else:
             raise ValueError(
                 "Invalid value for orientation: "
-                "must be 'vertical' or 'horizontal'."
+                "must be ['vertical', 'v', 'y'] or ['horizontal', 'h', 'x']."
             )
 
     # Set default x_tick_rotation based on orientation
@@ -399,7 +532,7 @@ def plot_feature_importances(
             0 if orientation in ['horizontal', 'h', 'x'] else 90
         )
 
-    if display_labels:
+    if display_bar_label:
         for bars in ax.containers:
             ax.bar_label(
                 bars,
@@ -408,7 +541,7 @@ def plot_feature_importances(
                 rotation=x_tick_rotation,
                 padding=bar_padding,
             )
-    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_title(model_name + title, fontsize=title_fontsize)
     if orientation in ['vertical', 'v', 'y']:
         # Set x-ticks positions and labels
         ax.set_xticks(np.arange(len(feature_names)))
@@ -426,16 +559,17 @@ def plot_feature_importances(
     else:
         raise ValueError(
             "Invalid value for orientation: must be "
-            "'vertical' or 'horizontal'."
+            "must be ['vertical', 'v', 'y'] or ['horizontal', 'h', 'x']."
         )
     
     # Adjust plot limits if needed
     if orientation in ['vertical', 'v', 'y']:
-        ax.set_ylim([ax.get_ylim()[0], ax.get_ylim()[1] * 1.2])  # Increase the upper limit by 15%
+        # Increase the upper limit by 15%
+        ax.set_ylim([ax.get_ylim()[0], ax.get_ylim()[1] * 1.2])
     elif orientation in ['horizontal', 'h', 'x']:
-        ax.set_xlim([ax.get_xlim()[0], ax.get_xlim()[1] * 1.2])  # Increase the upper limit by 15%
-
+        # Increase the upper limit by 15%
+        ax.set_xlim([ax.get_xlim()[0], ax.get_xlim()[1] * 1.2])
     
+    plt.legend([f'n_features_out_: {len(importances)}'])
     plt.tight_layout()
-    plt.legend([f'features: {len(importances)}'])
     return ax, feature_names

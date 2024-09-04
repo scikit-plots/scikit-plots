@@ -43,10 +43,10 @@ X, y = make_classification(
 X_train, y_train, X_val, y_val = X[:1000], y[:1000], X[1000:], y[1000:]
 
 # Create an instance of the LogisticRegression
-lr_probas = LogisticRegression().fit(X_train, y_train).predict_proba(X_val)
+lr_probas = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train).predict_proba(X_val)
 nb_probas = GaussianNB().fit(X_train, y_train).predict_proba(X_val)
-svc_scores = LinearSVC().fit(X_train, y_train).decision_function(X_val)
-rf_probas = RandomForestClassifier().fit(X_train, y_train).predict_proba(X_val)
+svc_scores = LinearSVC(random_state=0).fit(X_train, y_train).decision_function(X_val)
+rf_probas = RandomForestClassifier(random_state=0).fit(X_train, y_train).predict_proba(X_val)
 
 probas_dict = {
     LogisticRegression(): lr_probas,
@@ -57,14 +57,14 @@ probas_dict = {
 # Plot!
 ax = skplt.metrics.plot_calibration_curve(
     y_val,
-    y_prob_list=list(probas_dict.values()),
-    y_is_decision=list([False, False, True, False]),
-    n_bins=10, 
-    clf_names=list(probas_dict.keys()),
-    multi_class=None,
-    class_index=2, 
-    classes_to_plot=[2],
+    y_probas_list=list(probas_dict.values()),
+    estimator_names=list(probas_dict.keys()),
+    y_probas_is_decision=list([False, False, True, False]),
+    # multi_class='ovr',
+    # class_index=1,
+    to_plot_class_index=[1],
 );
+
 # Adjust layout to make sure everything fits
 plt.tight_layout()
 # Save the plot to a file

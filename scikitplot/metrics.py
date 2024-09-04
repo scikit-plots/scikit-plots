@@ -56,22 +56,29 @@ __all__ = [
 
 
 def plot_calibration_curve(
-    y_true, 
-    y_prob_list, 
-    y_is_decision, 
+    ## default params
+    y_true,
+    y_probas_list,
+    y_probas_is_decision,
+    *,
+    # pos_label=None,
+    n_bins=10,
+    strategy="uniform",
+    estimator_names=None,
+    class_names=None,
+    multi_class=None,
+    class_index=1,
+    to_plot_class_index=[1],
+    ## plotting params
     title='Calibration Curves (Reliability Diagrams)',
-    ax=None, 
-    figsize=None, 
-    title_fontsize="large", 
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
-    n_bins=10,
-    clf_names=None, 
-    multi_class=None,
-    class_index=1, 
-    class_names=None,
-    classes_to_plot=[1],
-    strategy="uniform",
+    ## additional params
+    **kwargs,
 ):
     """
     Plot calibration curves for a set of classifier probability estimates.
@@ -86,20 +93,59 @@ def plot_calibration_curve(
     y_true : array-like of shape (n_samples,)
         Ground truth (correct) target values.
     
-    y_prob_list : list of array-like, shape (n_samples, 2) or (n_samples,)
+    y_probas_list : list of array-like, shape (n_samples, 2) or (n_samples,)
         A list containing the outputs of classifiers' `predict_proba` or
         `decision_function` methods.
     
-    y_is_decision : list of bool
+    y_probas_is_decision : list of bool
         A list indicating whether the classifier's probability method is
         `decision_function` (True) or `predict_proba` (False).
     
+    n_bins : int, optional, default=10
+        Number of bins to use in the calibration curve. A higher number requires
+        more data to produce reliable results.
+    
+    strategy : str, optional, default='uniform'
+        Strategy used to define the widths of the bins:
+        - 'uniform': Bins have identical widths.
+        - 'quantile': Bins have the same number of samples and depend on `y_probas_list`.
+
+        .. versionadded:: 0.3.9
+    
+    estimator_names : list of str or None, optional, default=None
+        A list of classifier names corresponding to the probability estimates in
+        `y_probas_list`. If None, the names will be generated automatically as
+        "Classifier 1", "Classifier 2", etc.
+    
+    class_names : list of str or None, optional, default=None
+        List of class names for the legend. The order should match the classes in
+        `y_probas_list`. If None, class indices will be used.
+    
+    multi_class : {'ovr', 'multinomial', None}, optional, default=None
+        Strategy for handling multiclass classification:
+        - 'ovr': One-vs-Rest, plotting binary problems for each class.
+        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
+    
+    class_index : int, optional, default=1
+        Index of the class of interest for multiclass classification. Ignored for
+        binary classification. Related to `multi_class` parameter. Not Implemented.
+    
+    to_plot_class_index : list-like, optional, default=[1]
+        Specific classes to plot. If a given class does not exist, it will be ignored.
+        If None, all classes are plotted.
+    
     title : str, optional, default='Calibration plots (Reliability Curves)'
         Title of the generated plot.
-    
-    ax : matplotlib.axes.Axes, optional
-        The axes upon which to plot the curve. If None, a new figure and axes
-        will be created.
+
+    ax : matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+        .. versionadded:: 0.3.9
     
     figsize : tuple, optional
         Tuple denoting the figure size of the plot, e.g., (6, 6). Defaults to `None`.
@@ -111,44 +157,15 @@ def plot_calibration_curve(
     text_fontsize : str or int, optional, default='medium'
         Font size of the plot text (axis labels). Accepts Matplotlib-style sizes
         like "small", "medium", "large", or an integer.
-    
-    cmap : str or matplotlib.colors.Colormap, optional, default=None
-        Colormap used for plotting. If None, the default 'viridis' colormap is used.
-        See Matplotlib colormap documentation for options.
-    
-    n_bins : int, optional, default=10
-        Number of bins to use in the calibration curve. A higher number requires
-        more data to produce reliable results.
-    
-    clf_names : list of str or None, optional, default=None
-        A list of classifier names corresponding to the probability estimates in
-        `y_prob_list`. If None, the names will be generated automatically as
-        "Classifier 1", "Classifier 2", etc.
-    
-    multi_class : {'ovr', 'multinomial', None}, optional, default=None
-        Strategy for handling multiclass classification:
-        - 'ovr': One-vs-Rest, plotting binary problems for each class.
-        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
-        - Not Implemented: Strategy not yet available.
-    
-    class_index : int, optional, default=1
-        Index of the class of interest for multiclass classification. Ignored for
-        binary classification. Related to `multi_class` parameter. Not Implemented.
-    
-    class_names : list of str or None, optional, default=None
-        List of class names for the legend. The order should match the classes in
-        `y_prob_list`. If None, class indices will be used.
-    
-    classes_to_plot : list-like, optional, default=[1]
-        Specific classes to plot. If a given class does not exist, it will be ignored.
-        If None, all classes are plotted.
-    
-    strategy : str, optional, default='uniform'
-        Strategy used to define the widths of the bins:
-        - 'uniform': Bins have identical widths.
-        - 'quantile': Bins have the same number of samples and depend on `y_prob_list`.
 
-        .. versionadded:: 0.3.9
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', etc.
+        See Matplotlib Colormap documentation for available choices.
+        - https://matplotlib.org/stable/users/explain/colors/index.html
+
+    kwargs: dict
+        generic keyword arguments.
     
     Returns
     -------
@@ -157,8 +174,14 @@ def plot_calibration_curve(
     
     Notes
     -----
-    - The calibration curve is plotted for the class specified by `classes_to_plot`.
+    - The calibration curve is plotted for the class specified by `to_plot_class_index`.
     - This function currently supports binary and multiclass classification.
+
+
+    .. dropdown:: References
+    
+      * `"scikit-learn calibration_curve"
+        <https://scikit-learn.org/stable/modules/generated/sklearn.calibration.calibration_curve.html#>`_.
     
     Examples
     --------
@@ -194,10 +217,10 @@ def plot_calibration_curve(
         >>> X_train, y_train, X_val, y_val = X[:1000], y[:1000], X[1000:], y[1000:]
         >>> 
         >>> # Create an instance of the LogisticRegression
-        >>> lr_probas = LogisticRegression().fit(X_train, y_train).predict_proba(X_val)
+        >>> lr_probas = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train).predict_proba(X_val)
         >>> nb_probas = GaussianNB().fit(X_train, y_train).predict_proba(X_val)
-        >>> svc_scores = LinearSVC().fit(X_train, y_train).decision_function(X_val)
-        >>> rf_probas = RandomForestClassifier().fit(X_train, y_train).predict_proba(X_val)
+        >>> svc_scores = LinearSVC(random_state=0).fit(X_train, y_train).decision_function(X_val)
+        >>> rf_probas = RandomForestClassifier(random_state=0).fit(X_train, y_train).predict_proba(X_val)
         >>> 
         >>> probas_dict = {
         >>>     LogisticRegression(): lr_probas,
@@ -208,86 +231,80 @@ def plot_calibration_curve(
         >>> # Plot!
         >>> ax = skplt.metrics.plot_calibration_curve(
         >>>     y_val,
-        >>>     y_prob_list=list(probas_dict.values()),
-        >>>     y_is_decision=list([False, False, True, False]),
-        >>>     n_bins=10, 
-        >>>     clf_names=list(probas_dict.keys()),
-        >>>     multi_class=None,
-        >>>     class_index=2, 
-        >>>     classes_to_plot=[2],
+        >>>     y_probas_list=list(probas_dict.values()),
+        >>>     estimator_names=list(probas_dict.keys()),
+        >>>     y_probas_is_decision=list([False, False, True, False]),
+        >>>     # multi_class='ovr',
+        >>>     # class_index=1,
+        >>>     to_plot_class_index=[1],
         >>> );
     """
-    title_pad = None
-    # Create a new figure and axes if none are provided
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here
 
-    # Check if the length of clf_list matches y_prob_list
-    if len(y_is_decision) != len(y_prob_list):
+    # Check if the length of clf_list matches y_probas_list
+    if len(y_probas_is_decision) != len(y_probas_list):
         raise ValueError(
-            f'Length of `y_is_decision` ({len(y_is_decision)}) does not match '
-            f'length of `y_prob_list` ({len(y_prob_list)}).'
+            f'Length of `y_probas_is_decision` ({len(y_probas_is_decision)}) does not match '
+            f'length of `y_probas_list` ({len(y_probas_list)}).'
         )
 
-    # Handle the case where clf_names are not provided
-    if clf_names is None:
-        clf_names = [
-            f'Classifier {i+1}' for i, model in enumerate(y_prob_list)
+    # Handle the case where estimator_names are not provided
+    if estimator_names is None:
+        estimator_names = [
+            f'Clf {i+1}' for i, model in enumerate(y_probas_list)
         ]
     
-    # Check if the length of clf_list matches y_prob_list
-    if len(clf_names) != len(y_prob_list):
+    # Check if the length of clf_list matches y_probas_list
+    if len(estimator_names) != len(y_probas_list):
         raise ValueError(
-            f'Length of `clf_names` ({len(clf_names)}) does not match '
-            f'length of `y_prob_list` ({len(y_prob_list)}).'
+            f'Length of `estimator_names` ({len(estimator_names)}) does not match '
+            f'length of `y_probas_list` ({len(y_probas_list)}).'
         )
 
-    # Ensure y_prob_list is a list of arrays
-    if isinstance(y_prob_list, list):
-        y_prob_list = list(map(np.asarray, y_prob_list))
+    # Ensure y_probas_list is a list of arrays
+    if isinstance(y_probas_list, list):
+        y_probas_list = list(map(np.asarray, y_probas_list))
     else:
         raise ValueError(
-            '`y_prob_list` must be a list of arrays.'
+            '`y_probas_list` must be a list of arrays.'
         )
 
     y_true = np.asarray(y_true)
     
-    for j, y_probas in enumerate(y_prob_list):
+    for idx, y_probas in enumerate(y_probas_list):
         # Handle binary classification
         if len(np.unique(y_true)) == 2:
             # 1D y_probas (single class probabilities)
             if y_probas.ndim == 1:
-                if y_is_decision[j]:
-                    # `y_probas` to the range [0, 1]
+                if y_probas_is_decision[idx]:
+                    # Adjust `y_probas` to the range [0, 1]
                     y_probas = np.asarray(sigmoid(y_probas))
                 # Combine into a two-column
-                y_probas = np.column_stack([1 - y_probas, y_probas])
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
         # Handle multi-class classification
         elif len(np.unique(y_true)) > 2:
             if multi_class == 'ovr':
                 # Handle 1D y_probas (single class probabilities)
                 if y_probas.ndim == 1:
-                    if y_is_decision[j]:
-                        # `y_probas` to the range [0, 1]
-                        y_probas = np.asarray(softmax(y_probas))
+                    if y_probas_is_decision[idx]:
+                        # Adjust `y_probas` to the range [0, 1]
+                        y_probas = np.asarray(sigmoid(y_probas))
                     # Combine into a two-column binary format OvR
                     y_probas = np.column_stack([1 - y_probas, y_probas])
                 else:
-                    if y_is_decision[j]:
-                        # `y_probas` to the range [0, 1]
-                        y_probas = np.asarray(sigmoid(y_probas))
+                    if y_probas_is_decision[idx]:
+                        # Adjust `y_probas` to the range [0, 1]
+                        y_probas = np.asarray(softmax(y_probas))
                     # Combine into a two-column binary format OvR
                     y_probas = y_probas[:, class_index]
-                    y_probas = np.column_stack([1 - y_probas, y_probas])
-                    
-                # Add a subtitle indicating the use of the One-vs-Rest strategy
-                plt.suptitle(
-                    t="One-vs-Rest (OVR) strategy for multi-class classification.",
-                    fontsize=text_fontsize, x=0.512, y=0.902,
-                    ha='center', va='center',
-                    bbox=dict(facecolor='none', edgecolor='w', boxstyle='round,pad=0.2')
-                )
-                title_pad = 25
+                    y_probas = np.column_stack(
+                        [1 - y_probas, y_probas]
+                    )                
             elif multi_class in ['multinomial', None]:
                 if y_probas.ndim == 1:
                     raise ValueError(
@@ -295,13 +312,13 @@ def plot_calibration_curve(
                         "For a 1D `y_probas` with more than 2 classes in `y_true`, "
                         "only 'ovr' multi-class strategy is supported."
                     )
-                if y_is_decision[j]:
-                    # `y_probas` to the range [0, 1]
+                if y_probas_is_decision[idx]:
+                    # Adjust `y_probas` to the range [0, 1]
                     y_probas = np.asarray(softmax(y_probas))
             else:
                 raise ValueError("Unsupported `multi_class` strategy.")
 
-        y_prob_list[j] = y_probas
+        y_probas_list[idx] = y_probas
         
     if len(np.unique(y_true)) > 2:
         if multi_class == 'ovr':
@@ -310,9 +327,6 @@ def plot_calibration_curve(
                 y_true, classes=np.unique(y_true)
             )[:, class_index]
 
-    # Initialize dictionaries to store results
-    fraction_of_positives_dict, mean_predicted_value_dict = {}, {}
-
     # Get unique classes and filter the ones to plot
     classes = np.unique(y_true)
     if len(classes) < 2:
@@ -320,17 +334,49 @@ def plot_calibration_curve(
             'Cannot calculate calibration curve for a single class.'
         )
 
-    classes_to_plot = classes if classes_to_plot is None else classes_to_plot
-    indices_to_plot = np.isin(classes, classes_to_plot)
+    to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
+    indices_to_plot = np.isin(classes, to_plot_class_index)
 
     # Binarize y_true for multiclass classification
     y_true_bin = label_binarize(y_true, classes=classes)
     if len(classes) == 2:
-        y_true_bin = np.hstack((1 - y_true_bin, y_true_bin))
+        y_true_bin = np.column_stack(
+            [1 - y_true_bin, y_true_bin]
+        )
 
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
+    
+    # Initialize dictionaries to store results
+    fraction_of_positives_dict, mean_predicted_value_dict = {}, {}
+    
     # Loop through classes and classifiers
     for i, to_plot in enumerate(indices_to_plot):
-        for j, y_probas in enumerate(y_prob_list):
+        for j, y_probas in enumerate(y_probas_list):
             # Calculate the calibration curve
             fraction_of_positives_dict[i], mean_predicted_value_dict[i] = calibration_curve(
                 y_true_bin[:, i],
@@ -342,23 +388,24 @@ def plot_calibration_curve(
             if to_plot:
                 if class_names is None:
                     class_names = classes
-                color = plt.get_cmap(cmap)(float(j) / len(clf_names))
+                color = plt.get_cmap(cmap)(float(j) / len(estimator_names))
                 ax.plot(
                     mean_predicted_value_dict[i], fraction_of_positives_dict[i],
                     marker='s', ls='-', color=color, lw=2,
-                    label=f'Class {class_names[i]}, {clf_names[j]}',
+                    label=f'Class {class_names[i]}, {estimator_names[j]}',
                 )
 
     # Plot the diagonal line for reference
     ax.plot([0, 1], [0, 1], ls='--', lw=1, c='gray')
 
     # Set plot title, labels, and formatting
-    ax.set_title(title, fontsize=title_fontsize, pad=title_pad)
+    ax.set_title(title, fontsize=title_fontsize)
     ax.set_xlabel('Mean predicted value', fontsize=text_fontsize)
     ax.set_ylabel('Fraction of positives', fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
     
-    ax.set_ylim([-0.05, 1.05])
+    ax.set_xlim([-0.035, 1.05])
+    ax.set_ylim([-0.050, 1.05])
 
     # Define the desired number of ticks
     num_ticks = 10
@@ -374,7 +421,7 @@ def plot_calibration_curve(
     ax.grid(True)
     ax.legend(
         loc='lower right', 
-        title='Classifier',
+        title='Classifier' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
         alignment='left'
     )
     plt.tight_layout()
@@ -382,18 +429,25 @@ def plot_calibration_curve(
 
 
 def plot_classifier_eval(
+    ## default params
     y_true,
     y_pred,
-    title=None,
-    ax=None,
-    figsize=None,
-    title_fontsize="large",                          
-    text_fontsize="medium",
-    cmap='viridis', 
-    x_tick_rotation=0, 
+    *,
     labels=None,
     normalize=None,
     digits=3,
+    ## plotting params
+    title='train',
+    ax=None,
+    fig=None,
+    figsize=(8, 3),
+    title_fontsize="large",
+    text_fontsize="medium",
+    cmap=None,
+    # heatmap
+    x_tick_rotation=0,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates various evaluation plots for a classifier, including confusion matrix, precision-recall curve, and ROC curve.
@@ -409,29 +463,9 @@ def plot_classifier_eval(
     y_pred : array-like, shape (n_samples,)
         Predicted target values from the classifier.
 
-    title : string, optional
-        Title of the generated plot. If None, no title is set.
-
-    ax : matplotlib.axes.Axes, optional
-        The axes upon which to plot the figures. If None, new axes are created.
-
-    figsize : tuple of int, optional
-        Tuple denoting figure size of the plot, e.g. (10, 10). Defaults to None.
-
-    title_fontsize : string or int, optional, default="large"
-        Font size for the plot title. Use e.g. "small", "medium", "large" or integer values.
-
-    text_fontsize : string or int, optional, default="medium"
-        Font size for the text in the plot. Use e.g. "small", "medium", "large" or integer values.
-
-    cmap : string or matplotlib.colors.Colormap, optional, default='viridis'
-        Colormap used for plotting. View Matplotlib Colormap documentation for available options.
-
-    x_tick_rotation : int, optional, default=0
-        Rotates x-axis tick labels by the specified angle.
-
     labels : list of string, optional
-        List of labels for the classes. If None, labels are automatically generated based on the class indices.
+        List of labels for the classes.
+        If None, labels are automatically generated based on the class indices.
 
     normalize : {'true', 'pred', 'all', None}, optional
         Normalizes the confusion matrix according to the specified mode. Defaults to None.
@@ -443,11 +477,46 @@ def plot_classifier_eval(
     digits : int, optional, default=3
         Number of digits for formatting floating point values in the plots.
 
+    title : string, optional, default='train'
+        Title of the generated plot.
+
+    ax : list of matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+        .. versionadded:: 0.3.9
+
+    figsize : tuple of int, optional, default=(8, 3)
+        Tuple denoting figure size of the plot, e.g. (8, 3).
+
+    title_fontsize : string or int, optional, default="large"
+        Font size for the plot title.
+        Use e.g. "small", "medium", "large" or integer values.
+
+    text_fontsize : string or int, optional, default="medium"
+        Font size for the text in the plot.
+        Use e.g. "small", "medium", "large" or integer values.
+
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', etc.
+        See Matplotlib Colormap documentation for available choices.
+        - https://matplotlib.org/stable/users/explain/colors/index.html
+
+    x_tick_rotation : int, optional, default=0
+        Rotates x-axis tick labels by the specified angle.
+
         .. versionadded:: 0.3.9
 
     Returns
     -------
-    None
+    fig : matplotlib.figure.Figure
+        The figure on which the plot was drawn.
 
     Notes
     -----
@@ -455,6 +524,15 @@ def plot_classifier_eval(
     have the same shape and contain valid class labels. The `normalize` parameter is applicable
     to the confusion matrix plot. Adjust `cmap` and `x_tick_rotation` to customize the appearance
     of the plots.
+
+
+    .. dropdown:: References
+    
+      * `"scikit-learn classification_report"
+        <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#>`_.
+    
+      * `"scikit-learn confusion_matrix"
+        <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html#>`_.
 
     Examples
     --------
@@ -478,16 +556,10 @@ def plot_classifier_eval(
         >>>     title='val',
         >>> );
     """
-    figsize = (8, 3) if figsize is None else figsize
-    title = '' if title is None else title
-    if ax is None:
-        # Create a figure with two subplots, adjusting the width ratios
-        fig, ax = plt.subplots(
-            1, 2, 
-            figsize=figsize, 
-            gridspec_kw={'width_ratios': [5, 5]}
-        )
-    
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here    
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     
@@ -515,6 +587,38 @@ def plot_classifier_eval(
         normalize = normalize,
     )
     cm = np.around(cm, decimals=2)
+
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not all(isinstance(ax, mpl.axes.Axes) for ax in ax):
+        raise ValueError(
+            "Provided ax list must be an instance of matplotlib.axes.Axes"
+        )
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )
+    # Neither ax nor fig is provided.
+    # Create a new figure with two subplots,
+    # adjusting the width ratios with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(
+            nrows=1, ncols=2, 
+            figsize=figsize, 
+            gridspec_kw={'width_ratios': [5, 5]}
+        )
+    # fig is provided but ax is not.
+    # Add two subplots (ax) to the provided figure (fig).
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
     
     # Plot the classification report on the first subplot
     ax[0].axis('off')
@@ -603,7 +707,8 @@ def plot_classifier_eval(
     ax[1].yaxis.tick_left()
     
     # Adjust layout with additional space
-    plt.tight_layout()    
+    plt.tight_layout()
+    fig.tight_layout() 
     # Show the plot
     # plt.show()
     return fig
@@ -950,22 +1055,28 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
 
 
 def plot_roc(
+    ## default params
     y_true,
     y_probas,
+    *,
+    class_names=None,
+    multi_class=None,
+    class_index=1,
+    to_plot_class_index=None,
+    ## plotting params
     title='ROC AUC Curves',
     ax=None,
+    fig=None,
     figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
-    class_index=1,
-    multi_class=None,
-    class_names=None,
-    classes_to_plot=None,
-    plot_micro=True,
-    plot_macro=True,
     show_labels=True,
     digits=3,
+    plot_micro=True,
+    plot_macro=True,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the ROC AUC curves from labels and predicted scores/probabilities.
@@ -985,11 +1096,36 @@ def plot_roc(
         If 1D, it is treated as probabilities for the positive class in binary 
         or multiclass classification with the ``class_index``.
 
+    class_names : list of str, optional, default=None
+        List of class names for the legend.
+        Order should match the order of classes in `y_probas`.
+
+    multi_class : {'ovr', 'multinomial', None}, optional, default=None
+        Strategy for handling multiclass classification:
+        - 'ovr': One-vs-Rest, plotting binary problems for each class.
+        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
+
+    class_index : int, optional, default=1
+        Index of the class of interest for multi-class classification.
+        Ignored for binary classification.
+
+    to_plot_class_index : list-like, optional, default=None
+        Specific classes to plot. If a given class does not exist, it will be ignored. 
+        If None, all classes are plotted.
+
     title : str, optional, default='ROC AUC Curves'
         Title of the generated plot.
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axes on which to plot. If None, a new figure and axes are created.
+    ax : list of matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+        .. versionadded:: 0.3.9
 
     figsize : tuple of int, optional, default=None
         Size of the figure (width, height) in inches.
@@ -1000,30 +1136,13 @@ def plot_roc(
     text_fontsize : str or int, optional, default='medium'
         Font size for the text in the plot.
 
-    cmap : None, str or matplotlib.colors.Colormap, optional, default='viridis'
-        Colormap used for plotting. Options include 'viridis', 'plasma', 'inferno', etc.
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', 'nipy_spectral', etc.
         See Matplotlib Colormap documentation for available choices.
-
-    class_index : int, optional, default=1
-        Index of the class of interest for multi-class classification. Ignored for binary classification.
-
-    multi_class : {'ovr', 'multinomial', None}, optional, default=None
-        Strategy for handling multiclass classification:
-        - 'ovr': One-vs-Rest, plotting binary problems for each class.
-        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
-
-    class_names : list of str, optional, default=None
-        List of class names for the legend. Order should match the order of classes in `y_probas`.
-
-    classes_to_plot : list-like, optional, default=None
-        Specific classes to plot. If a given class does not exist, it will be ignored. 
-        If None, all classes are plotted.
-
-    plot_micro : bool, optional, default=False
-        Whether to plot the micro-average ROC AUC curve.
-
-    plot_macro : bool, optional, default=False
-        Whether to plot the macro-average ROC AUC curve.
+        - https://matplotlib.org/stable/users/explain/colors/index.html
+        - plt.colormaps()
+        - plt.get_cmap()  # None == 'viridis'
 
     show_labels : bool, optional, default=True
         Whether to display the legend labels.
@@ -1032,6 +1151,12 @@ def plot_roc(
         Number of digits for formatting ROC AUC values in the plot.
 
         .. versionadded:: 0.3.9
+
+    plot_micro : bool, optional, default=False
+        Whether to plot the micro-average ROC AUC curve.
+
+    plot_macro : bool, optional, default=False
+        Whether to plot the macro-average ROC AUC curve.
 
     Returns
     -------
@@ -1065,9 +1190,10 @@ def plot_roc(
         >>>     y_val, y_probas,
         >>> );
     """
-    title_pad = None
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here
 
     y_true = np.array(y_true)
     y_probas = np.array(y_probas)    
@@ -1077,29 +1203,29 @@ def plot_roc(
         # 1D y_probas (single class probabilities)
         if y_probas.ndim == 1:
             # Combine into a two-column
-            y_probas = np.column_stack([1 - y_probas, y_probas])
+            y_probas = np.column_stack(
+                [1 - y_probas, y_probas]
+            )
     # Handle multi-class classification    
     elif len(np.unique(y_true)) > 2:
         if multi_class == 'ovr':
             # Binarize y_true for multiclass classification
-            y_true = label_binarize(y_true, classes=np.unique(y_true))[:, class_index]
+            y_true = label_binarize(
+                y_true,
+                classes=np.unique(y_true)
+            )[:, class_index]
             # Handle 1D y_probas (single class probabilities)
             if y_probas.ndim == 1:
                 # Combine into a two-column binary format OvR
-                y_probas = np.column_stack([1 - y_probas, y_probas])
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
             else:
                 # Combine into a two-column binary format OvR
                 y_probas = y_probas[:, class_index]
-                y_probas = np.column_stack([1 - y_probas, y_probas])
-                
-            # Add a subtitle indicating the use of the One-vs-Rest strategy
-            plt.suptitle(
-                t="One-vs-Rest (OVR) strategy for multi-class classification.",
-                fontsize=text_fontsize, x=0.512, y=0.902,
-                ha='center', va='center',
-                bbox=dict(facecolor='none', edgecolor='w', boxstyle='round,pad=0.2')
-            )
-            title_pad = 23
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
         elif multi_class in ['multinomial', None]:
             if y_probas.ndim == 1:
                 raise ValueError(
@@ -1110,22 +1236,51 @@ def plot_roc(
         else:
             raise ValueError("Unsupported `multi_class` strategy.")
 
-    # Initialize dictionaries to store
-    fpr_dict, tpr_dict = {}, {}
-
     # Get unique classes and filter those to be plotted
     classes = np.unique(y_true)
     if len(classes) < 2:
         raise ValueError(
             'Cannot calculate Curve for classes with only one category.'
         )
-    classes_to_plot = classes if classes_to_plot is None else classes_to_plot
-    indices_to_plot = np.isin(classes, classes_to_plot)
+    to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
+    indices_to_plot = np.isin(classes, to_plot_class_index)
     
     # Binarize y_true for multiclass classification, for micro
     y_true_bin = label_binarize(y_true, classes=classes)
     if len(classes) == 2:
-        y_true_bin = np.hstack((1 - y_true_bin, y_true_bin))
+        y_true_bin = np.column_stack(
+            [1 - y_true_bin, y_true_bin]
+        )
+
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
+
+    # Initialize dictionaries to store
+    fpr_dict, tpr_dict = {}, {}
 
     # Loop for all classes to get different class
     for i, to_plot in enumerate(indices_to_plot):
@@ -1196,13 +1351,13 @@ def plot_roc(
     ax.plot([0, 1], [0, 1], ls='--', lw=1, c='gray', )  # label='Baseline'
 
     # Set title, labels, and formatting
-    ax.set_title(title, fontsize=title_fontsize, pad=title_pad)
+    ax.set_title(title, fontsize=title_fontsize)
     ax.set_xlabel('False Positive Rate', fontsize=text_fontsize)
     ax.set_ylabel('True Positive Rate', fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
     
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
+    ax.set_xlim([-0.02, 1.0])
+    ax.set_ylim([-0.00, 1.05])
 
     # Define the desired number of ticks
     # num_ticks = 10
@@ -1219,8 +1374,8 @@ def plot_roc(
     if show_labels:
         ax.legend(
             loc='lower right', 
-            fontsize=text_fontsize, 
-            title='ROC AUC', 
+            fontsize=text_fontsize,
+            title='ROC AUC' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
             alignment='left'
         )
 
@@ -1360,23 +1515,30 @@ def plot_precision_recall_curve(
 
 
 def plot_precision_recall(
+    ## default params
     y_true,
     y_probas,
+    *,
+    class_names=None,
+    multi_class=None,
+    class_index=1,
+    to_plot_class_index=None,
+    ## plotting params
     title='Precision-Recall AUC Curves',
     ax=None,
+    fig=None,
     figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
-    class_index=1,
-    multi_class=None,
-    class_names=None,
-    classes_to_plot=None,   
-    plot_micro=True,
-    plot_macro=False,
     show_labels=True,
     digits=4,
+    plot_micro=True,
+    plot_macro=False,
     area='pr_auc',
+    ap_score=True,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the Precision-Recall AUC Curves from labels and predicted scores/probabilities.
@@ -1395,11 +1557,35 @@ def plot_precision_recall(
         If 1D, it is treated as probabilities for the positive class in binary 
         or multiclass classification with the ``class_index``.
 
+    class_names : list of str, optional, default=None
+        List of class names for the legend. Order should match the order of classes in `y_probas`.
+
+    multi_class : {'ovr', 'multinomial', None}, optional, default=None
+        Strategy for handling multiclass classification:
+        - 'ovr': One-vs-Rest, plotting binary problems for each class.
+        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
+
+    class_index : int, optional, default=1
+        Index of the class of interest for multi-class classification.
+        Ignored for binary classification.
+
+    to_plot_class_index : list-like, optional, default=None
+        Specific classes to plot. If a given class does not exist, it will be ignored. 
+        If None, all classes are plotted.
+
     title : str, optional, default='Precision-Recall AUC Curves'
         Title of the generated plot.
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axes on which to plot. If None, a new figure and axes are created.
+    ax : list of matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+        .. versionadded:: 0.3.9
 
     figsize : tuple of int, optional, default=None
         Size of the figure (width, height) in inches.
@@ -1410,24 +1596,21 @@ def plot_precision_recall(
     text_fontsize : str or int, optional, default='medium'
         Font size for the text in the plot.
 
-    cmap : None, str or matplotlib.colors.Colormap, optional, default='viridis'
-        Colormap used for plotting. Options include 'viridis', 'plasma', 'inferno', etc.
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', 'nipy_spectral', etc.
         See Matplotlib Colormap documentation for available choices.
+        - https://matplotlib.org/stable/users/explain/colors/index.html
+        - plt.colormaps()
+        - plt.get_cmap()  # None == 'viridis'
 
-    class_index : int, optional, default=1
-        Index of the class of interest for multi-class classification. Ignored for binary classification.
+    show_labels : bool, optional, default=True
+        Whether to display the legend labels.
 
-    multi_class : {'ovr', 'multinomial', None}, optional, default=None
-        Strategy for handling multiclass classification:
-        - 'ovr': One-vs-Rest, plotting binary problems for each class.
-        - 'multinomial' or None: Multinomial plot for the entire probability distribution.
+    digits : int, optional, default=3
+        Number of digits for formatting PR AUC values in the plot.
 
-    class_names : list of str, optional, default=None
-        List of class names for the legend. Order should match the order of classes in `y_probas`.
-
-    classes_to_plot : list-like, optional, default=None
-        Specific classes to plot. If a given class does not exist, it will be ignored. 
-        If None, all classes are plotted.
+        .. versionadded:: 0.3.9
 
     plot_micro : bool, optional, default=False
         Whether to plot the micro-average ROC AUC curve.
@@ -1435,11 +1618,11 @@ def plot_precision_recall(
     plot_macro : bool, optional, default=False
         Whether to plot the macro-average ROC AUC curve.
 
-    show_labels : bool, optional, default=True
-        Whether to display the legend labels.
-
-    digits : int, optional, default=3
-        Number of digits for formatting PR AUC values in the plot.
+    ap_score : bool, optional, default: True
+        Annotate the graph with the average precision score, a summary of the
+        plot that is computed as the weighted mean of precisions at each
+        threshold, with the increase in recall from the previous threshold used
+        as the weight.
 
         .. versionadded:: 0.3.9
 
@@ -1475,9 +1658,10 @@ def plot_precision_recall(
         >>>     y_val, y_probas,
         >>> );
     """
-    title_pad = None
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here
 
     y_true = np.array(y_true)
     y_probas = np.array(y_probas)    
@@ -1487,7 +1671,9 @@ def plot_precision_recall(
         # 1D y_probas (single class probabilities)
         if y_probas.ndim == 1:
             # Combine into a two-column
-            y_probas = np.column_stack([1 - y_probas, y_probas])
+            y_probas = np.column_stack(
+                [1 - y_probas, y_probas]
+            )
     # Handle multi-class classification    
     elif len(np.unique(y_true)) > 2:
         if multi_class == 'ovr':
@@ -1496,20 +1682,15 @@ def plot_precision_recall(
             # Handle 1D y_probas (single class probabilities)
             if y_probas.ndim == 1:
                 # Combine into a two-column binary format OvR
-                y_probas = np.column_stack([1 - y_probas, y_probas])
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
             else:
                 # Combine into a two-column binary format OvR
                 y_probas = y_probas[:, class_index]
-                y_probas = np.column_stack([1 - y_probas, y_probas])
-                
-            # Add a subtitle indicating the use of the One-vs-Rest strategy
-            plt.suptitle(
-                t="One-vs-Rest (OVR) strategy for multi-class classification.",
-                fontsize=text_fontsize, x=0.512, y=0.902,
-                ha='center', va='center',
-                bbox=dict(facecolor='none', edgecolor='w', boxstyle='round,pad=0.2')
-            )
-            title_pad = 23
+                y_probas = np.column_stack(
+                    [1 - y_probas, y_probas]
+                )
         elif multi_class in ['multinomial', None]:
             if y_probas.ndim == 1:
                 raise ValueError(
@@ -1520,22 +1701,51 @@ def plot_precision_recall(
         else:
             raise ValueError("Unsupported `multi_class` strategy.")
 
-    # Initialize dictionaries to store
-    precision_dict, recall_dict = {}, {}
-
     # Get unique classes and filter those to be plotted
     classes = np.unique(y_true)
     if len(classes) < 2:
         raise ValueError(
             'Cannot calculate Curve for classes with only one category.'
         )
-    classes_to_plot = classes if classes_to_plot is None else classes_to_plot
-    indices_to_plot = np.isin(classes, classes_to_plot)
+    to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
+    indices_to_plot = np.isin(classes, to_plot_class_index)
     
     # Binarize y_true for multiclass classification, for micro
     y_true_bin = label_binarize(y_true, classes=classes)
     if len(classes) == 2:
-        y_true_bin = np.hstack((1 - y_true_bin, y_true_bin))
+        y_true_bin = np.column_stack(
+            [1 - y_true_bin, y_true_bin]
+        )
+
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
+
+    # Initialize dictionaries to store
+    precision_dict, recall_dict = {}, {}
 
     # Loop for all classes to get different class
     for i, to_plot in enumerate(indices_to_plot):
@@ -1584,6 +1794,13 @@ def plot_precision_recall(
                 f'(area = {pr_auc:0>{digits}.{digits}f})'
             ),
         )
+        
+    if ap_score:
+        pr_auc = average_precision_score(
+            y_true_bin.ravel(), y_probas.ravel()
+        )
+        label = "Avg. precision={:0>{digits}.{digits}f}".format(pr_auc, digits=digits)
+        ax.axhline(y=pr_auc, color="r", ls="--", label=label)
 
     if plot_macro:
         # Compute macro-average ROC curve and ROC area
@@ -1616,13 +1833,13 @@ def plot_precision_recall(
     ax.plot([0, 1], [1, 0], ls='--', lw=1, c='gray', )  # label='Baseline'
 
     # Set title, labels, and formatting
-    ax.set_title(title, fontsize=title_fontsize, pad=title_pad)
+    ax.set_title(title, fontsize=title_fontsize)
     ax.set_xlabel('Recall', fontsize=text_fontsize)
     ax.set_ylabel('Precision', fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
     
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
+    ax.set_xlim([-0.0, 1.02])
+    ax.set_ylim([-0.0, 1.05])
 
     # Define the desired number of ticks
     # num_ticks = 10
@@ -1639,8 +1856,8 @@ def plot_precision_recall(
     if show_labels:
         ax.legend(
             loc='lower left', 
-            fontsize=text_fontsize, 
-            title=f'PR-AUC by {area}', 
+            fontsize=text_fontsize,
+            title=f'PR-AUC by {area}' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
             alignment='left'
         )
 
@@ -1649,17 +1866,23 @@ def plot_precision_recall(
 
 
 def plot_silhouette(
-    X, 
-    cluster_labels, 
+    ## default params
+    X,
+    cluster_labels,
+    *,
+    metric='euclidean',
+    copy=True,
+    ## plotting params
     title='Silhouette Analysis',
-    metric='euclidean', 
-    copy=True, 
-    ax=None, 
+    ax=None,
+    fig=None,
     figsize=None,
-    cmap='nipy_spectral', 
     title_fontsize="large",
-    text_fontsize="medium", 
-    digits=3,
+    text_fontsize="medium",
+    cmap=None,
+    digits=4,
+    ## additional params
+    **kwargs,
 ):
     """
     Plots silhouette analysis of clusters provided.
@@ -1677,9 +1900,6 @@ def plot_silhouette(
     cluster_labels : array-like, shape (n_samples,)
         Cluster label for each sample.
 
-    title : str, optional, default='Silhouette Analysis'
-        Title of the generated plot.
-
     metric : str or callable, optional, default='euclidean'
         The metric to use when calculating distance between instances in a feature array.
         If metric is a string, it must be one of the options allowed by 
@@ -1689,22 +1909,34 @@ def plot_silhouette(
     copy : bool, optional, default=True
         Determines whether `fit` is used on `clf` or on a copy of `clf`.
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axes upon which to plot the curve. If None, a new figure and axes are created.
+    title : str, optional, default='Silhouette Analysis'
+        Title of the generated plot.
+
+    ax : list of matplotlib.axes.Axes, optional, default=None
+        The axis to plot the figure on. If None is passed in the current axes
+        will be used (or generated if required).
+        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+
+    fig : matplotlib.pyplot.figure, optional, default: None
+        The figure to plot the Visualizer on. If None is passed in the current
+        plot will be used (or generated if required).
+
+        .. versionadded:: 0.3.9
 
     figsize : tuple of int, optional, default=None
         Size of the figure (width, height) in inches.
-
-    cmap : str or matplotlib.colors.Colormap, optional, default='viridis'
-        Colormap used for plotting the projection. See Matplotlib Colormap documentation 
-        for available options. 
-        - https://matplotlib.org/users/colormaps.html
 
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title.
 
     text_fontsize : str or int, optional, default='medium'
         Font size for the text in the plot.
+
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', 'nipy_spectral', etc.
+        See Matplotlib Colormap documentation for available choices.
+        - https://matplotlib.org/stable/users/explain/colors/index.html
 
     digits : int, optional, default=3
         Number of digits for formatting output floating point values. 
@@ -1715,6 +1947,12 @@ def plot_silhouette(
     -------
     matplotlib.axes.Axes
         The axes on which the plot was drawn.
+
+
+    .. dropdown:: References
+    
+      * `"scikit-learn silhouette_score"
+        <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.silhouette_score.html#>`_.
 
     Examples
     --------
@@ -1735,8 +1973,10 @@ def plot_silhouette(
         >>>     cluster_labels,
         >>> );
     """
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    #################################################
+    ## Preprocessing
+    #################################################    
+    # Proceed with your preprocess logic here
         
     cluster_labels = np.asarray(cluster_labels)
 
@@ -1745,10 +1985,43 @@ def plot_silhouette(
 
     n_clusters = len(np.unique(cluster_labels))
 
-    silhouette_avg = silhouette_score(X, cluster_labels, metric=metric)
+    silhouette_avg = silhouette_score(
+        X,
+        cluster_labels,
+        metric=metric
+    )
 
-    sample_silhouette_values = silhouette_samples(X, cluster_labels,
-                                                  metric=metric)
+    sample_silhouette_values = silhouette_samples(
+        X, cluster_labels,
+        metric=metric
+    )
+
+    #################################################
+    ## Plotting
+    #################################################    
+    # Validate the types of ax and fig if they are provided
+    if ax is not None and not isinstance(ax, mpl.axes.Axes):
+        raise ValueError(
+            "Provided ax must be an instance of matplotlib.axes.Axes"
+        )    
+    if fig is not None and not isinstance(fig, mpl.figure.Figure):
+        raise ValueError(
+            "Provided fig must be an instance of matplotlib.figure.Figure"
+        )        
+    # Neither ax nor fig is provided.
+    # Create a new figure and a single subplot (ax) with the specified figsize.
+    if ax is None and fig is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    # fig is provided but ax is not.
+    # Add a single subplot (ax) to the provided figure (fig) with default positioning.
+    elif ax is None:
+        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
+        ax = fig.add_subplot(111)
+    # ax is provided (whether fig is provided or not).
+    # Use the provided ax for plotting. No new figure or subplot is created.
+    else:
+        pass        
+    # Proceed with your plotting logic here
     
     y_lower = 10
     for i in range(n_clusters):
