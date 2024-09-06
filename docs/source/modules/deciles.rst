@@ -10,7 +10,7 @@ This module contains functions related to deciles.
 
 
 
-.. _plot_cumulative_gain:
+.. _deciles_plot_cumulative_gain:
 
 plot cumulative gain
 ---------------------
@@ -42,10 +42,10 @@ performing image:
 
 
 
-.. _plot_lift:
+.. _deciles_plot_lift:
 
 plot lift
-==================================
+---------------------
 
 :func:`~scikitplot.deciles.plot_lift`
 
@@ -70,10 +70,10 @@ performing image:
 
 
 
-.. _plot_ks_statistic:
+.. _deciles_plot_ks_statistic:
 
 plot_ks_statistic
-==================================
+---------------------
 
 :func:`~scikitplot.deciles.plot_ks_statistic`
 

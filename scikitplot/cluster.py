@@ -3,7 +3,7 @@ This package/module is designed to be compatible with both Python 2 and Python 3
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 
-The :mod:`scikitplot.cluster` module includes plots built specifically for
+The :mod:`~scikitplot.cluster` module includes plots built specifically for
 scikit-learn clusterer instances e.g. KMeans. You can use your own clusterers,
 but these plots assume specific properties shared by scikit-learn estimators.
 The specific requirements are documented per function.

@@ -5,8 +5,9 @@ from sphinx_gallery.notebook import add_code_cell, add_markdown_cell
 try:
     import sklearn
     default_global_config = sklearn.get_config()
-    
-    def reset_sklearn_config(gallery_conf, fname):
+
+    # https://github.com/sphinx-gallery/sphinx-gallery/blob/master/sphinx_gallery/scrapers.py#L562
+    def _reset_sklearn (gallery_conf, fname):
         """Reset sklearn config to default values."""
         sklearn.set_config(**default_global_config)
 except Exception:
@@ -76,18 +77,21 @@ def notebook_modification_function(notebook_content, notebook_filename):
 
 def reset_others(gallery_conf, fname):
     """Reset plotting functions."""
+    # sklearn
     try:
         import sklearn        
     except Exception:
         pass
     else:
-        reset_sklearn_config(gallery_conf, fname)
+        _reset_sklearn(gallery_conf, fname)
+    # plotly
     try:
         import plotly.io
     except Exception:
         pass
     else:
         plotly.io.renderers.default = "sphinx_gallery"
+    # pyvista
     try:
         import pyvista
     except Exception:

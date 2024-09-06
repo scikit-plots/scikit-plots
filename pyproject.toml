@@ -54,7 +54,7 @@ keywords = [
 license = {file = "LICENSE"}
 authors = [
     {name = "Reiichiro Nakano", email = "reiichiro.s.nakano@gmail.com"},
-    {name = "Prateek Sharma", email = "s.prateek3080@gmail.com"}
+    # {name = "Prateek Sharma", email = "s.prateek3080@gmail.com"},
 ]
 maintainers = [
     {name = "Muhammed Çelik", email = "muhammed.business.network@gmail.com"}
@@ -65,6 +65,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     'License :: OSI Approved :: BSD License',
+    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",

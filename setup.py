@@ -55,8 +55,8 @@ KEYWORDS = [
 # LICENSE      = 'MIT License'  # deprecated
 LICENSE_FILES= 'LICEN[CS]E*'
 ## If your name first as you're the current maintainer
-AUTHOR       = 'Reiichiro Nakano, Prateek Sharma et al.'
-A_EMAIL      = 'reiichiro.s.nakano@gmail.com, s.prateek3080@gmail.com'
+AUTHOR       = 'Reiichiro Nakano et al.'
+A_EMAIL      = 'reiichiro.s.nakano@gmail.com'
 MAINTAINER   = 'Muhammed Çelik'
 M_EMAIL      = 'muhammed.business.network@gmail.com'
 REQUIRE_PATH = 'requirements.txt'
@@ -182,8 +182,9 @@ config = {
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: MIT License',
         'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python',

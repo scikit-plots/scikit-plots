@@ -305,22 +305,23 @@ def cumulative_gain_curve(
     # Sort instances by their scores in descending order
     sorted_indices = np.argsort(y_score)[::-1]
     y_true = y_true[sorted_indices]
+    y_score = y_score[sorted_indices]
 
-    # Compute cumulative gains (number of true positives as threshold decreases)
-    gains = np.cumsum(y_true)
-
-    # Calculate the cumulative percentage of instances considered
-    percentages = np.arange(start=1, stop=len(y_true) + 1)
-
-    # Normalize gains by the total number of positive instances
+    # total number of positive instances
     total_positives = float(np.sum(y_true))
     if total_positives == 0:
         raise ValueError(
             "The positive class does not appear in `y_true`, "
             "resulting in a gain of zero."
         )
+
+    # Compute cumulative gains (number of true positives as threshold decreases)
+    gains = np.cumsum(y_true)
+    # Normalize gains by the total number of positive instances
     gains = gains / float(total_positives)
 
+    # Calculate the cumulative percentage of instances considered
+    percentages = np.arange(start=1, stop=len(y_true) + 1)
     # Normalize percentages by the total number of instances
     percentages = percentages / float(len(y_true))
 
@@ -337,7 +338,7 @@ def binary_ks_curve(
 ):
     """
     Generate the data points necessary to plot the Kolmogorov-Smirnov (KS)
-    Statistic curve for binary classification tasks.
+    curve for binary classification tasks.
 
     The KS Statistic measures the maximum vertical distance between
     the cumulative distribution functions (CDFs) of the predicted
@@ -348,7 +349,7 @@ def binary_ks_curve(
     ----------
     y_true : array-like of shape (n_samples,)
         True binary labels of the data. This array should contain exactly
-        two unique classes to represent a binary classification problem.
+        two unique classes representing a binary classification problem.
         If more than two classes are present, the function will raise a 
         `ValueError`.
 
@@ -356,13 +357,12 @@ def binary_ks_curve(
         Probability predictions for the positive class.
         This array should contain continuous values representing 
         the predicted probability of the positive class.
-        Binary scores are not suitable for this function.
 
     Returns
     -------
     thresholds : numpy.ndarray of shape (n_thresholds,)
         An array containing the threshold (X-axis) values
-        used for plotting the KS Statistic curve. These thresholds
+        used for plotting the KS curve. These thresholds
         range from the minimum to the maximum predicted probabilities.
 
     pct1 : numpy.ndarray of shape (n_thresholds,)
@@ -384,14 +384,14 @@ def binary_ks_curve(
         (and hence the KS Statistic) is observed.
 
     classes : numpy.ndarray of shape (2,)
-        An array containing the labels of the two classes present in `y_true`.
+        An array containing the labels of the two classes present in ``y_true``.
 
     Raises
     ------
     ValueError
-        - If `y_true` does not contain exactly two distinct classes,
+        - If ``y_true`` does not contain exactly two distinct classes,
           indicating that the problem is not binary.
-        - If `y_probas` contains binary values instead of continuous probabilities.
+        - If ``y_probas`` contains binary values instead of continuous probabilities.
 
     Notes
     -----
@@ -407,28 +407,35 @@ def binary_ks_curve(
 
     Examples
     --------
-    >>> from sklearn.datasets import make_classification
-    >>> from sklearn.linear_model import LogisticRegression
-    >>> from sklearn.model_selection import train_test_split
-    >>> import matplotlib.pyplot as plt
-    >>> # Generate a binary classification dataset
-    >>> X, y = make_classification(n_samples=1000, n_classes=2, n_informative=3, random_state=42)
-    >>> # Split into training and test sets
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-    >>> # Train a logistic regression model
-    >>> model = LogisticRegression()
-    >>> model.fit(X_train, y_train)
-    >>> # Predict probabilities for the test set
-    >>> y_probas = model.predict_proba(X_test)[:, 1]
-    >>> # Calculate the KS Statistic curve
-    >>> thresholds, pct1, pct2, ks_statistic, max_distance_at, classes = binary_ks_curve(y_test, y_probas)
-    >>> # Plot the KS Statistic curve
-    >>> plt.plot(thresholds, pct1 - pct2, marker='o')
-    >>> plt.xlabel('Threshold')
-    >>> plt.ylabel('KS Statistic')
-    >>> plt.title('KS Statistic Curve')
-    >>> plt.grid()
-    >>> plt.show()
+    
+    .. plot::
+       :context: close-figs
+       :align: center
+       :alt: Kolmogorov-Smirnov (KS) Statistic
+    
+        >>> from sklearn.datasets import make_classification
+        >>> from sklearn.linear_model import LogisticRegression
+        >>> from sklearn.model_selection import train_test_split
+        >>> import matplotlib.pyplot as plt
+        >>> from scikitplot.utils.helpers import binary_ks_curve
+        >>> # Generate a binary classification dataset
+        >>> X, y = make_classification(n_samples=1000, n_classes=2, n_informative=3, random_state=0)
+        >>> # Split into training and test sets
+        >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> # Train a logistic regression model
+        >>> model = LogisticRegression()
+        >>> model.fit(X_train, y_train)
+        >>> # Predict probabilities for the test set
+        >>> y_probas = model.predict_proba(X_test)[:, 1]
+        >>> # Calculate the KS Statistic curve
+        >>> thresholds, pct1, pct2, ks_statistic, max_distance_at, classes = binary_ks_curve(y_test, y_probas)
+        >>> # Plot the KS Statistic curve
+        >>> plt.plot(thresholds, pct1 - pct2, marker='o')
+        >>> plt.xlabel('Threshold')
+        >>> plt.ylabel('KS Statistic')
+        >>> plt.title('KS Statistic Curve')
+        >>> plt.grid()
+        >>> plt.show()
     """
     # Convert input to numpy arrays for efficient processing
     y_true = np.asarray(y_true)
@@ -444,10 +451,14 @@ def binary_ks_curve(
         )
 
     # Separate probabilities for the two classes
+    # neg_prob = y_probas[y_true == 0]
+    # pos_prob = y_probas[y_true == 1]
     idx = encoded_labels == 0
+    
+    # Sort the predicted probabilities for both classes
     data1 = np.sort(y_probas[idx])  # Probabilities for the negative class
-    # data2 = np.sort(y_probas[~idx])  # Probabilities for the positive class
-    data2 = np.sort(y_probas[np.logical_not(idx)])
+    data2 = np.sort(y_probas[~idx])  # Probabilities for the positive class
+    # data2 = np.sort(y_probas[np.logical_not(idx)])
 
     # Initialize counters and lists to store results
     ctr1, ctr2 = 0, 0

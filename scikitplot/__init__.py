@@ -11,20 +11,32 @@ from __future__ import (
     unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 from . import (
+    # model selection
     estimators,
     metrics,
     decomposition,
     cluster,
-    deciles, 
+    # model analysis
+    deciles,
+    kds,
+    modelplotpy,
 )
-from scikitplot.classifiers import classifier_factory
-from scikitplot.clustering import clustering_factory
+from .utils import *  # noqa: F401,F403
+from .utils.rcmod import *  # noqa: F401,F403
+from .utils._show_versions import show_versions  # noqa: F401,F403
 
-from .utils._show_versions import show_versions
+from scikitplot.classifiers import classifier_factory  # noqa: F401,F403
+from scikitplot.clustering import clustering_factory  # noqa: F401,F403
+
+# Capture the original matplotlib rcParams
+import matplotlib as mpl
+_orig_rc_params = mpl.rcParams.copy()
+
 
 # __all__ = ['estimators']
 
 
+# Define the scikitplot version
 # PEP0440 compatible formatted version, see:
 # https://www.python.org/dev/peps/pep-0440/
 #
@@ -42,4 +54,4 @@ from .utils._show_versions import show_versions
 # 'X.Y.dev0' is the canonical version of 'X.Y.dev'
 #
 # https://packaging.python.org/en/latest/discussions/versioning/#valid-version-numbers
-__version__ = '0.3.9.rc2'
+__version__ = '0.3.9.rc3'

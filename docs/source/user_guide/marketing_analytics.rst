@@ -8,4 +8,6 @@ Marketing Analytics
     :maxdepth: 2
     :caption: Marketing Analytics
 
+    ../modules/modelplotpy.rst
+    ../modules/kds.rst
     ../modules/deciles.rst

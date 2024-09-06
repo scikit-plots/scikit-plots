@@ -3,7 +3,7 @@ This package/module is designed to be compatible with both Python 2 and Python 3
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 
-The :mod:`scikitplot.metrics` module includes plots for machine learning
+The :mod:`~scikitplot.metrics` module includes plots for machine learning
 evaluation metrics e.g. confusion matrix, silhouette scores, etc.
 """
 # code that needs to be compatible with both Python 2 and Python 3
@@ -15,6 +15,7 @@ from __future__ import (
 )
 import warnings
 import itertools
+import collections
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
@@ -24,12 +25,16 @@ from sklearn.preprocessing import (
     label_binarize, LabelEncoder,
     MinMaxScaler,
 )
+from sklearn import metrics
 from sklearn.metrics import (
-    classification_report, confusion_matrix,
+    confusion_matrix,
+    classification_report,
+    auc,
+    roc_curve,
+    precision_recall_curve,
     average_precision_score,
     silhouette_score,
     silhouette_samples,
-    auc, roc_curve, precision_recall_curve,
 )
 from sklearn.utils.multiclass import unique_labels
 from sklearn.calibration import calibration_curve
@@ -140,6 +145,7 @@ def plot_calibration_curve(
     ax : matplotlib.axes.Axes, optional, default=None
         The axis to plot the figure on. If None is passed in the current axes
         will be used (or generated if required).
+        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
 
     fig : matplotlib.pyplot.figure, optional, default: None
         The figure to plot the Visualizer on. If None is passed in the current
@@ -776,6 +782,7 @@ def plot_confusion_matrix(
 
     ax : matplotlib.axes.Axes, optional
         The axes upon which to plot the confusion matrix. If None, a new set of axes is created.
+        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
 
     figsize : tuple of int, optional
         Tuple denoting figure size of the plot, e.g., (6, 6). Defaults to None.
@@ -1119,7 +1126,7 @@ def plot_roc(
     ax : list of matplotlib.axes.Axes, optional, default=None
         The axis to plot the figure on. If None is passed in the current axes
         will be used (or generated if required).
-        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
 
     fig : matplotlib.pyplot.figure, optional, default: None
         The figure to plot the Visualizer on. If None is passed in the current
@@ -1168,6 +1175,12 @@ def plot_roc(
     The implementation is specific to binary classification. For multiclass problems, 
     the 'ovr' or 'multinomial' strategies can be used. When ``multi_class='ovr'``, 
     the plot focuses on the specified class (``class_index``).
+
+
+    .. dropdown:: References
+    
+      * `"scikit-learn plot_roc"
+        <https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html#>`_.
 
     Examples
     --------
@@ -1281,25 +1294,29 @@ def plot_roc(
 
     # Initialize dictionaries to store
     fpr_dict, tpr_dict = {}, {}
+    roc_auc_dict = {}
+    line_kwargs = {}
 
     # Loop for all classes to get different class
     for i, to_plot in enumerate(indices_to_plot):
         fpr_dict[i], tpr_dict[i], _ = roc_curve(
             y_true, y_probas[:, i], pos_label=classes[i]
         )
-        roc_auc = auc(
+        roc_auc_dict[i] = auc(
             fpr_dict[i], tpr_dict[i]
-        )        
+        )
+        # to plot
         if to_plot:
             if class_names is None:
                 class_names = classes
             color = plt.get_cmap(cmap)( float(i) / len(classes) )
+            # to plot
             ax.plot(
                 fpr_dict[i], tpr_dict[i],
                 ls='-', lw=2, color=color,
                 label=(
                     f'Class {classes[i]} '
-                    f'(area = {roc_auc:0>{digits}.{digits}f})'
+                    f'(area = {roc_auc_dict[i]:0>{digits}.{digits}f})'
                 ),
             )
 
@@ -1311,6 +1328,7 @@ def plot_roc(
         roc_auc = auc(
             fpr, tpr
         )
+        # to plot
         ax.plot(
             fpr, tpr,
             ls=':', lw=3, color='deeppink',
@@ -1338,6 +1356,7 @@ def plot_roc(
         roc_auc = auc(
             all_fpr, mean_tpr
         )
+        # to plot
         ax.plot(
             all_fpr, mean_tpr,
             ls=':', lw=3, color='navy',
@@ -1347,8 +1366,8 @@ def plot_roc(
             ),
         )
 
-    # Plot the baseline
-    ax.plot([0, 1], [0, 1], ls='--', lw=1, c='gray', )  # label='Baseline'
+    # Plot the baseline, label='Baseline'
+    ax.plot([0, 1], [0, 1], ls='--', lw=1, c='gray', label='Chance level (AUC = 0.5)')
 
     # Set title, labels, and formatting
     ax.set_title(title, fontsize=title_fontsize)
@@ -1356,8 +1375,8 @@ def plot_roc(
     ax.set_ylabel('True Positive Rate', fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
     
-    ax.set_xlim([-0.02, 1.0])
-    ax.set_ylim([-0.00, 1.05])
+    ax.set_xlim([-0.035, 1.00])
+    ax.set_ylim([-0.000, 1.05])
 
     # Define the desired number of ticks
     # num_ticks = 10
@@ -1379,6 +1398,9 @@ def plot_roc(
             alignment='left'
         )
 
+    # equalize the scales
+    # plt.axis('equal')
+    # ax.set_aspect(aspect='equal', adjustable='box')    
     plt.tight_layout()
     return ax
 
@@ -1535,8 +1557,9 @@ def plot_precision_recall(
     digits=4,
     plot_micro=True,
     plot_macro=False,
-    area='pr_auc',
+    pr_auc='pr_auc',
     ap_score=True,
+    plot_chance_level=True,
     ## additional params
     **kwargs,
 ):
@@ -1579,7 +1602,7 @@ def plot_precision_recall(
     ax : list of matplotlib.axes.Axes, optional, default=None
         The axis to plot the figure on. If None is passed in the current axes
         will be used (or generated if required).
-        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
 
     fig : matplotlib.pyplot.figure, optional, default: None
         The figure to plot the Visualizer on. If None is passed in the current
@@ -1618,11 +1641,23 @@ def plot_precision_recall(
     plot_macro : bool, optional, default=False
         Whether to plot the macro-average ROC AUC curve.
 
+    pr_auc : {'average_precision', 'pr_auc'}, optional, default='pr_auc'
+        Area under PR AUC curve or Average precision score.
+        sklearn uses default 'average_precision' both are slightly different.
+
+        .. versionadded:: 0.3.9
+
     ap_score : bool, optional, default: True
         Annotate the graph with the average precision score, a summary of the
         plot that is computed as the weighted mean of precisions at each
         threshold, with the increase in recall from the previous threshold used
         as the weight.
+
+        .. versionadded:: 0.3.9
+        
+    plot_chance_level : bool, optional, default: True
+        Whether to plot the chance level. The chance level is the prevalence
+        of the positive label. It is used for plotting the chance level line.
 
         .. versionadded:: 0.3.9
 
@@ -1636,6 +1671,12 @@ def plot_precision_recall(
     The implementation is specific to binary classification. For multiclass problems, 
     the 'ovr' or 'multinomial' strategies can be used. When ``multi_class='ovr'``, 
     the plot focuses on the specified class (``class_index``).
+
+
+    .. dropdown:: References
+    
+      * `"scikit-learn plot_precision_recall"
+        <https://scikit-learn.org/stable/auto_examples/model_selection/plot_precision_recall.html#>`_.
 
     Examples
     --------
@@ -1744,33 +1785,55 @@ def plot_precision_recall(
         pass        
     # Proceed with your plotting logic here
 
+    def pr_auc_score(recall, precision, y_true, y_proba, pr_auc):
+        if pr_auc == 'pr_auc' :
+            score = auc(
+                recall, precision,
+            )
+        elif pr_auc == 'average_precision':
+            score = average_precision_score(
+                y_true, y_proba,
+                #pos_label=classes[i]
+            )
+        else:
+            raise ValueError(
+                "Unsupported `pr_auc` scoring option, "
+                "only 'pr_auc' or 'average_precision' is supported."
+            )
+        return score
+
     # Initialize dictionaries to store
     precision_dict, recall_dict = {}, {}
+    average_precision_dict = {}
+    line_kwargs = {"drawstyle": "steps-post"}
 
     # Loop for all classes to get different class
     for i, to_plot in enumerate(indices_to_plot):
         precision_dict[i], recall_dict[i], _ = precision_recall_curve(
             y_true, y_probas[:, i], pos_label=classes[i]
         )
-        if area == 'pr_auc' :
-            pr_auc = auc(
-                recall_dict[i], precision_dict[i]
-            )
-        else:
-            pr_auc = average_precision_score(
-                y_true_bin[:, i], y_probas[:, i], #pos_label=classes[i]
-            )
+        # average_precision
+        average_precision_dict[i] = pr_auc_score(
+            recall=recall_dict[i],
+            precision=precision_dict[i],
+            y_true=y_true_bin[:, i],
+            y_proba=y_probas[:, i],
+            pr_auc=pr_auc,
+        )
+        # to plot
         if to_plot:
             if class_names is None:
                 class_names = classes            
             color = plt.get_cmap(cmap)( float(i) / len(classes) )
+            # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/metrics/_plot/precision_recall_curve.py#L190
             ax.plot(
-                precision_dict[i], recall_dict[i],
+                recall_dict[i], precision_dict[i],
                 ls='-', lw=2, color=color,
                 label=(
                     f'Class {classes[i]} '
-                    f'(area = {pr_auc:0>{digits}.{digits}f})'
+                    f'(area = {average_precision_dict[i]:0>{digits}.{digits}f})'
                 ),
+                **line_kwargs,
             )
 
     # Whether or to plot macro or micro
@@ -1778,29 +1841,24 @@ def plot_precision_recall(
         precision, recall, _ = precision_recall_curve(
             y_true_bin.ravel(), y_probas.ravel()
         )
-        if area == 'pr_auc' :
-            pr_auc = auc(
-                recall, precision
-            )
-        else:
-            pr_auc = average_precision_score(
-                y_true_bin.ravel(), y_probas.ravel()
-            )
+        # average_precision
+        average_precision = pr_auc_score(
+            recall=recall,
+            precision=precision,
+            y_true=y_true_bin.ravel(),
+            y_proba=y_probas.ravel(),
+            pr_auc=pr_auc,
+        )
+        # to plot
         ax.plot(
-            precision, recall,
+            recall, precision,
             ls=':', lw=3, color='deeppink',
             label=(
                 'micro-average '
-                f'(area = {pr_auc:0>{digits}.{digits}f})'
+                f'(area = {average_precision:0>{digits}.{digits}f})'
             ),
+            **line_kwargs,
         )
-        
-    if ap_score:
-        pr_auc = average_precision_score(
-            y_true_bin.ravel(), y_probas.ravel()
-        )
-        label = "Avg. precision={:0>{digits}.{digits}f}".format(pr_auc, digits=digits)
-        ax.axhline(y=pr_auc, color="r", ls="--", label=label)
 
     if plot_macro:
         # Compute macro-average ROC curve and ROC area
@@ -1814,23 +1872,43 @@ def plot_precision_recall(
             mean_recall += np.interp(
                 all_precision, precision_dict[i], recall_dict[i]
             )
-
-        # Finally average it and compute AUC
+        # Finally average it
         mean_recall /= len(classes)
-        pr_auc = average_precision_score(
+        
+        # average_precision
+        average_precision = average_precision_score(
             y_true_bin.ravel(), y_probas.ravel(), average='macro'
         )
         ax.plot(
-            all_precision, mean_recall,
+            mean_recall, all_precision,
             ls=':', lw=3, color='navy',
             label=(
                 'macro-average '
-                f'(area = {pr_auc:0>{digits}.{digits}f})'
+                f'(area = {average_precision:0>{digits}.{digits}f})'
             ),
+            **line_kwargs,
+        )
+        
+    if ap_score:
+        average_precision = average_precision_score(
+            y_true_bin.ravel(), y_probas.ravel()
+        )
+        label = "Avg. precision={:0>{digits}.{digits}f}".format(average_precision, digits=digits)
+        ax.axhline(y=average_precision, color="r", ls="--", label=label)
+        
+    if plot_chance_level:
+        # chance_level_line
+        class_count = collections.Counter(y_true)
+        prevalence_pos_label = class_count[class_index] / sum(class_count.values())
+        label = f"Chance level (AP = {prevalence_pos_label:0>{2}.{2}f})"  # digits
+        ax.plot(
+            [0, 1], [prevalence_pos_label, prevalence_pos_label],
+            ls='--', lw=1, c='k',
+            label = label,
         )
 
-    # Plot the baseline
-    ax.plot([0, 1], [1, 0], ls='--', lw=1, c='gray', )  # label='Baseline'
+    # Plot the baseline, label='Baseline'
+    ax.plot([0, 1], [1, 0], ls='--', lw=1, c='gray')
 
     # Set title, labels, and formatting
     ax.set_title(title, fontsize=title_fontsize)
@@ -1838,8 +1916,8 @@ def plot_precision_recall(
     ax.set_ylabel('Precision', fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
     
-    ax.set_xlim([-0.0, 1.02])
-    ax.set_ylim([-0.0, 1.05])
+    ax.set_xlim([-0.0, 1.025])
+    ax.set_ylim([-0.0, 1.050])
 
     # Define the desired number of ticks
     # num_ticks = 10
@@ -1857,10 +1935,13 @@ def plot_precision_recall(
         ax.legend(
             loc='lower left', 
             fontsize=text_fontsize,
-            title=f'PR-AUC by {area}' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
+            title=f'PR-AUC by {pr_auc}' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
             alignment='left'
         )
-
+        
+    # equalize the scales
+    # plt.axis('equal')
+    # ax.set_aspect(aspect='equal', adjustable='box')    
     plt.tight_layout()
     return ax
 
@@ -1915,7 +1996,7 @@ def plot_silhouette(
     ax : list of matplotlib.axes.Axes, optional, default=None
         The axis to plot the figure on. If None is passed in the current axes
         will be used (or generated if required).
-        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
+        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
 
     fig : matplotlib.pyplot.figure, optional, default: None
         The figure to plot the Visualizer on. If None is passed in the current
@@ -1938,7 +2019,7 @@ def plot_silhouette(
         See Matplotlib Colormap documentation for available choices.
         - https://matplotlib.org/stable/users/explain/colors/index.html
 
-    digits : int, optional, default=3
+    digits : int, optional, default=4
         Number of digits for formatting output floating point values. 
 
         .. versionadded:: 0.3.9
@@ -2046,7 +2127,7 @@ def plot_silhouette(
 
     ax.axvline(
         x=silhouette_avg, color="red", linestyle="--",
-        label='Silhouette score: {0:.{digits}f}'.format(silhouette_avg, digits=2)
+        label='Silhouette score: {0:.{digits}f}'.format(silhouette_avg, digits=digits)
     )
 
     # Set title, labels, and formatting

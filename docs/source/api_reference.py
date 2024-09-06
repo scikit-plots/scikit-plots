@@ -112,24 +112,6 @@ API_REFERENCE = {
             },
         ],
     },
-    "scikitplot.deciles": {
-        "short_summary": "Deciles.",
-        "description": _get_guide("deciles"),
-        "sections": [
-            {
-                "title": None,
-                "autosummary": [
-                    "print_labels",
-                    "decile_table",
-                    "plot_cumulative_gain",
-                    "plot_lift",
-                    "plot_lift_decile_wise",
-                    "plot_ks_statistic",
-                    "report",
-                ],
-            },
-        ],
-    },
     "scikitplot.decomposition": {
         "short_summary": "Decomposition.",
         "description": _get_guide("decomposition"),
@@ -182,6 +164,60 @@ API_REFERENCE = {
                 "description": _get_guide("metrics"),
                 "autosummary": [
                     "plot_silhouette",
+                ],
+            },
+        ],
+    },
+    "scikitplot.deciles": {
+        "short_summary": "Deciles.",
+        "description": _get_guide("deciles"),
+        "sections": [
+            {
+                "title": None,
+                "autosummary": [
+                    "plot_cumulative_gain",
+                    "plot_lift",
+                    "plot_ks_statistic",
+                ],
+            },
+        ],
+    },
+    "scikitplot.kds": {
+        "short_summary": "kds - KeyToDataScience Visualization Library.",
+        "description": _get_guide("kds"),
+        "sections": [
+            {
+                "title": None,
+                "autosummary": [
+                    'print_labels',
+                    'decile_table',
+                    'plot_cumulative_gain',
+                    'plot_lift',
+                    'plot_lift_decile_wise',
+                    'plot_ks_statistic',
+                    'report',
+                ],
+            },
+        ],
+    },
+    "scikitplot.modelplotpy": {
+        "short_summary": "Explain your modelling efforts easily to business colleagues.",
+        "description": _get_guide("modelplotpy"),
+        "sections": [
+            {
+                "title": None,
+                "autosummary": [
+                    "ModelPlotPy",
+                    "plot_response",
+                    "plot_cumresponse",
+                    "plot_cumlift",
+                    "plot_cumgains",
+                    "plot_all",
+                    "plot_costsrevs",
+                    "plot_profit",
+                    "plot_roi",
+                    "range01",
+                    "check_input",
                 ],
             },
         ],

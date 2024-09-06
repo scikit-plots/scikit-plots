@@ -3,7 +3,7 @@ This package/module is designed to be compatible with both Python 2 and Python 3
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 
-The :mod:`scikitplot.estimators` module includes plots built specifically for
+The :mod:`~scikitplot.estimators` module includes plots built specifically for
 scikit-learn estimator (classifier/regressor) instances e.g. Random Forest.
 You can use your own estimators, but these plots assume specific properties
 shared by scikit-learn estimators. The specific requirements are documented per
@@ -321,8 +321,9 @@ def plot_feature_importances(
 
     Parameters
     ----------
-    estimator : estimator object
-        A fitted sklearn estimator or pipeline containing a classifier.
+    estimator : estimator object        
+        Fitted classifier or a fitted :class:`~sklearn.pipeline.Pipeline`
+        in which the last estimator is a classifier.
 
     feature_names : list of str, optional, default=None
         List of feature names corresponding to the features. If None, feature

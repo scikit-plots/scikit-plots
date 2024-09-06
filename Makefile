@@ -39,20 +39,20 @@ clean: clean_basic
 ## example_script target: Runs py script on the examples/ directory.
 ## Run this target to save generated script plot image.
 examples:
-	cd examples && python plot_calibration_curve.py
-	cd examples && python plot_classifier_eval.py
-	cd examples && python plot_confusion_matrix.py
-	cd examples && python plot_cumulative_gain.py
-	cd examples && python plot_elbow_curve.py
-	cd examples && python plot_feature_importances.py
-	cd examples && python plot_ks_statistic.py
-	cd examples && python plot_learning_curve.py
-	cd examples && python plot_lift.py
-	cd examples && python plot_pca_2d_projection.py
-	cd examples && python plot_pca_component_variance.py
-	cd examples && python plot_precision_recall.py
-	cd examples && python plot_roc.py
-	cd examples && python plot_silhouette.py
+	cd examples && python cluster/plot_elbow_script.py
+	cd examples && python deciles/plot_cumulative_gain_script.py
+	cd examples && python deciles/plot_ks_statistic_script.py
+	cd examples && python deciles/plot_lift_script.py
+	cd examples && python decomposition/plot_pca_2d_projection_script.py
+	cd examples && python decomposition/plot_pca_component_variance_script.py
+	cd examples && python estimators/plot_feature_importances_script.py
+	cd examples && python estimators/plot_learning_curve_script.py
+	cd examples && python metrics/plot_calibration_curve_script.py
+	cd examples && python metrics/plot_classifier_eval_script.py
+	cd examples && python metrics/plot_confusion_matrix_script.py
+	cd examples && python metrics/plot_precision_recall_script.py
+	cd examples && python metrics/plot_roc_script.py
+	cd examples && python metrics/plot_silhouette_script.py
 	echo "All py Script executed."
 
 
