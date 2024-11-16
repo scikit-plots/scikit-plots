@@ -7,6 +7,7 @@ from sklearn.decomposition import PCA
 import numpy as np
 import matplotlib.pyplot as plt
 
+import scikitplot
 from scikitplot.decomposition import plot_pca_component_variance
 from scikitplot.decomposition import plot_pca_2d_projection
 
@@ -81,3 +82,27 @@ class TestPlotPCA2DProjection(unittest.TestCase):
         clf.fit(self.X)
         ax = plot_pca_2d_projection(clf, self.X, self.y, biplot=True,
                                     feature_labels=load_data().feature_names)
+
+    def test_label_order(self):
+        '''
+        Plot labels should be in the same order as the classes in the provided y-array
+        '''
+        np.random.seed(0)
+        clf = PCA()
+        clf.fit(self.X)
+
+        # define y such that the first entry is 1
+        y = np.copy(self.y)
+        y[0] = 1  # load_iris is be default orderer (i.e.: 0 0 0 ... 1 1 1 ... 2 2 2)
+
+        # test with len(y) == X.shape[0] with multiple rows belonging to the same class
+        ax = plot_pca_2d_projection(clf, self.X, y, cmap='Spectral')
+        legend_labels = ax.get_legend_handles_labels()[1]
+        self.assertListEqual(['1', '0', '2'], legend_labels)
+
+        # test with len(y) == #classes with each row belonging to an individual class
+        y = list(range(len(y)))
+        np.random.shuffle(y)
+        ax = plot_pca_2d_projection(clf, self.X, y, cmap='Spectral')
+        legend_labels = ax.get_legend_handles_labels()[1]
+        self.assertListEqual([str(v) for v in y], legend_labels)
