@@ -1,0 +1,21 @@
+## Documentation Dependencies
+packaging
+numpydoc
+pooch
+sphinx
+sphinx-gallery
+sphinx-rtd-theme
+pydata-sphinx-theme
+scikit-image
+jinja2
+Pillow
+seaborn
+plotly
+sphinx-prompt
+sphinx-design
+sphinx-copybutton
+sphinx-remove-toctrees
+sphinxext-opengraph
+sphinxcontrib-sass
+jupyter_sphinx
+jupyterlite-sphinx

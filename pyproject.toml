@@ -1,0 +1,130 @@
+# https://packaging.python.org/en/latest/discussions/setup-py-deprecated/#setup-py-deprecated
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#a-full-example
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = [
+    "scikitplot", 
+    "scikitplot.utils"
+]
+exclude = [
+    "auto_building_tools",
+    "docs", "docs.*",
+    "examples", "examples.*",
+    "notebooks", "notebooks.*",
+    "tests", "tests.*",
+    "paper", "paper.*",
+    "binder", "binder.*",
+    "register",
+    "fixtures",
+    "bin",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "scikitplot.__version__"}
+
+[project]
+name = "scikit-plots"
+dynamic = ["version"]
+description = "An intuitive library to add plotting functionality to scikit-learn objects."
+# [project.readme]
+# content-type = "text/x-rst"
+readme = "README.md"
+keywords = [
+    "matplotlib", 
+    "visualization", 
+    "scikit-learn", 
+    "xgboost", 
+    "catboost", 
+    "tensorflow", 
+    "keras", 
+    "pytorch", 
+    "scikit-learn", 
+    "machine learning", 
+    "data science",
+]
+# license = {text = "MIT License"}
+license = {file = "LICENSE"}
+authors = [
+    {name = "Reiichiro Nakano", email = "reiichiro.s.nakano@gmail.com"},
+    # {name = "Prateek Sharma", email = "s.prateek3080@gmail.com"},
+]
+maintainers = [
+    {name = "Muhammed Çelik", email = "muhammed.business.network@gmail.com"}
+]
+# https://pypi.org/pypi?%3Aaction=list_classifiers
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    'License :: OSI Approved :: BSD License',
+    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+requires-python = ">=3"
+dependencies = [
+    # Replace these with the actual dependencies from requirements.txt
+    "matplotlib>=1.4.0",
+    "scikit-learn>=0.21",
+    "scipy>=0.9",
+    "joblib>=0.10",
+    "pandas",
+]
+
+[project.urls]
+Homepage      = "https://scikit-plots.github.io"
+Download      = "https://github.com/celik-muhammed/scikit-plot/tree/muhammed-dev"
+Documentation = "https://scikit-plots.github.io/stable/"
+Donate        = "https://github.com/celik-muhammed/scikit-plot#donate"
+Forum         = "https://github.com/celik-muhammed/scikit-plot/issues"
+Issues        = "https://github.com/celik-muhammed/scikit-plot/issues"
+Repo_Forked   = "https://github.com/reiinakano/scikit-plot"
+# The changelog, really useful for ongoing users of your project
+changelog     = "https://scikit-plots.github.io/dev/whats_new/whats_new.html"
+
+[project.optional-dependencies]
+testing = ["pytest"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"  # Specify the minimum version of pytest
+addopts = "-ra -q"  # Add command-line options
+testpaths = [
+    "tests",
+]  # Directories to search for tests
+
+[tool.black]
+line-length = 88
+target-version = ['py35', 'py310', 'py314']
+preview = true
+exclude = '''
+/(
+    \.eggs         # exclude a few common directories in the
+  | \.git          # root of the project
+  | \.mypy_cache
+  | \.vscode
+  | build
+  | dist
+  | doc/build
+  | doc/_build
+  | doc/auto_examples
+  | scikitplot/externals
+  | asv_benchmarks/env
+  | auto_building_tools/
+)/
+'''
