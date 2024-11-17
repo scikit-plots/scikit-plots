@@ -23,7 +23,7 @@ on:
     #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
     #        │  │ │ │ │
     # cron: "42 2 * * SUN,WED"
-    - cron: "*/30 * * * *"
+    - cron: "*/30 * * * *"  # Run every 30 minutes
   pull_request:
     branches:
       - main
@@ -31,13 +31,13 @@ on:
   push:
     tags:
       - v*
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-permissions:
+permissions: # Grants read-only permission to repository contents
   contents: read # to fetch code (actions/checkout)
 
 jobs:
