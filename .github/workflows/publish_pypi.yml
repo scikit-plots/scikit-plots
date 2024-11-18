@@ -1,0 +1,65 @@
+## This workflow automates the process of publishing your Python package to TestPyPI or PyPI.
+
+name: Publish to PyPI
+
+## Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
+on:
+  workflow_dispatch:
+    inputs:
+      ## Input for specifying the version of your package to upload.
+      version:
+        description: 'Version to upload to PyPI (e.g., 1.0.0)'
+        required: true
+      ## Input for choosing the repository to upload to: TestPyPI (for testing) or PyPI (production).
+      pypi_repo:
+        description: 'Repository to upload to (testpypi or pypi)'
+        default: 'testpypi'  # Default to TestPyPI for safety.
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest  # The workflow will execute on the latest Ubuntu virtual machine.
+    permissions:
+      id-token: write  # Required for secure publishing using trusted publishing.
+
+    steps:
+    ## Step 1: Check out your repository's code.
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    ## Step 2: Set up Python.
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8'  # Specify the Python version to use. You can change this based on your project.
+
+    ## Step 3: Install dependencies for building and publishing the package.
+    - name: Install build dependencies
+      run: |
+        ## This installs setuptools (for package setup), wheel (for building), and twine (for uploading).
+        ## Install 'build' for building the distribution from pyproject.toml
+        pip install --upgrade setuptools wheel build twine
+
+    ## Step 4: Build the package using 'build'.
+    - name: Build the package
+      run: |
+        ## Creates both source distribution (sdist) and built distribution (wheel).
+        ## Make sure your project has a setup.py or pyproject.toml file configured!
+        # python setup.py sdist bdist_wheel
+        ## Use the 'build' tool to create the wheel and sdist (source) distribution from pyproject.toml
+        python -m build
+
+    ## Step 5a: Publish the package to TestPyPI (if specified).
+    - name: Publish package to TestPyPI
+      uses: pypa/gh-action-pypi-publish@v1.10.0  # GitHub action for PyPI publishing.
+      with:
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Securely use your TestPyPI API token.
+        repository_url: https://test.pypi.org/legacy/  # TestPyPI URL.
+      if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}  # Run only if 'testpypi' is chosen.
+
+    ## Step 5b: Publish the package to PyPI (if specified).
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@v1.10.0
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}  # Securely use your PyPI API token.
+      if: ${{ github.event.inputs.pypi_repo == 'pypi' }}  # Run only if 'pypi' is chosen.
