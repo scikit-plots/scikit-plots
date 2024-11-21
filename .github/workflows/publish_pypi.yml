@@ -40,8 +40,8 @@ jobs:
       run: |
         ## This installs setuptools (for package setup), wheel (for building), and twine (for uploading).
         ## Install 'build' for building the distribution from pyproject.toml
-        # pip install --upgrade setuptools wheel build twine
-        pip install -U wheelhouse_uploader pyyaml
+        pip install --upgrade setuptools wheel build twine
+        # pip install -U wheelhouse_uploader pyyaml
 
     env:
       SKLEARN_VERSION: ${{ github.event.inputs.version }}
