@@ -40,7 +40,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5.3.0
         with:
-          python-version: '3.8'  # Specify the Python version
+          python-version: '3.9'  # Specify the Python version
 
       # Step 3: Install dependencies for building and publishing
       - name: Install build dependencies
