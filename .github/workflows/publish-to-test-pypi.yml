@@ -4,7 +4,6 @@ name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
 
 # Trigger the workflow on any push
 on:
-  push:
   workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:

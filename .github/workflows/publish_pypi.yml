@@ -4,7 +4,6 @@ name: Publish to PyPI
 
 # Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
 on:
-  push:
   workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
       version:  # Specify the version of the package to upload
@@ -21,8 +20,9 @@ on:
 
 jobs:
   publish:
-    # Restrict this job to the 'publish_pypi' environment
-    environment: publish_pypi
+    ## Restrict this job to the 'publish_pypi' environment
+    ## If Activated, Accessing Environment Secret for 'publish_pypi'
+    # environment: publish_pypi
     name: Publish Package to PyPI or TestPyPI
     runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
 
@@ -71,7 +71,7 @@ jobs:
       - name: Publish package to TestPyPI
         uses: pypa/gh-action-pypi-publish@v1.10.0
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Securely use your TestPyPI API token
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
           repository_url: https://test.pypi.org/legacy/  # TestPyPI URL
         if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}  # Run only if 'testpypi' is chosen
 
@@ -79,5 +79,5 @@ jobs:
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@v1.10.0
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}  # Securely use your PyPI API token
+          password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
         if: ${{ github.event.inputs.pypi_repo == 'pypi' }}  # Run only if 'pypi' is chosen
