@@ -14,6 +14,10 @@ on:
         description: 'Repository to upload to (testpypi or pypi)'
         default: 'testpypi'  # Default to TestPyPI for safety
         required: true
+      debug:  # Specify whether to log for debugging
+        description: 'Debugging'
+        default: 'true'  # Default to true for debugging
+        required: false
 
 jobs:
   publish:
@@ -51,6 +55,17 @@ jobs:
         run: |
           # Build both source distribution (sdist) and built distribution (wheel)
           python -m build
+
+      # Step to verify if secrets are being loaded correctly (only for debugging purposes)
+      - name: Verify secrets for debugging (optional)
+        run: |
+          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
+            echo "TestPyPI Token: ${{ secrets.TEST_PYPI_API_TOKEN }}"
+            echo "PyPI Token: ${{ secrets.PYPI_API_TOKEN }}"
+          else
+            echo "Debugging is turned off."
+          fi
+        if: ${{ github.event.inputs.debug == 'true' }} # Run this step only if debugging is enabled
 
       # Step 5a: Publish the package to TestPyPI (if selected)
       - name: Publish package to TestPyPI
