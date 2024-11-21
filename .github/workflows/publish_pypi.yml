@@ -4,14 +4,7 @@ name: Publish to PyPI
 
 # Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
 on:
-  pull_request:
-    branches:
-      - main
-      - maintenance/**
   push:
-    # Release branches/tags
-    tags:
-      - v*
   workflow_dispatch: # Allows manual triggering of the workflow
     inputs:
       version: # Specify the version of the package to upload
