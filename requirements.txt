@@ -1,0 +1,12 @@
+## Library Dependencies
+scipy>=0.9
+pandas
+pyarrow
+polars
+matplotlib>=1.4.0
+scikit-learn>=0.24
+joblib>=0.10
+
+## Build Requirements (uncomment for deployment)
+# wheel>=0.35
+# twine>=3.3
