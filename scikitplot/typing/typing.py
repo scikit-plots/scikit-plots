@@ -36,7 +36,6 @@ from collections.abc import Hashable, Sequence
 from datetime import date, datetime, timedelta
 from fractions import Fraction
 
-from enum import Enum, EnumType
 from types import GenericAlias, NoneType, ModuleType
 from types import DynamicClassAttribute, LambdaType
 
@@ -44,6 +43,10 @@ from typing import TYPE_CHECKING
 from typing import TypeVar, TypeAlias, Generic, Any
 from typing import Callable, Literal, Optional, Union
 from typing import List, Tuple, Dict, NamedTuple, TypedDict
+
+# Allows for the creation of enumerated constants
+# Enum values are immutable after definition. 
+from enum import Enum
 
 import numpy.typing as np_typing
 from numpy.typing import NDArray
