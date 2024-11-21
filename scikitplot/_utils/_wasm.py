@@ -14,7 +14,6 @@ improved performance compared to JavaScript.
 # Authors: scikit-plots developers
 # License: BSD-3 Clause
 
-from IPython.display import display, Javascript, HTML
 import importlib.metadata
 
 __all__ = [
@@ -38,6 +37,7 @@ def _display_msg(message, level="h4"):
     --------
     >>> _display_msg("Processing complete.", level="h3")
     """
+    from IPython.display import display, HTML, Javascript
     display(HTML(f"<{level}>{message}</{level}>"))
 
 def _clear_console(delay=1000):
@@ -53,6 +53,7 @@ def _clear_console(delay=1000):
     --------
     >>> _clear_console(delay=5000)  # Clears the console after 5 seconds.
     """
+    from IPython.display import display, HTML, Javascript
     display(Javascript(f"""
         function clearConsole() {{
             const consoleContent = document.querySelector('.jp-CodeConsole-content');
@@ -79,6 +80,7 @@ def _add_new_cell(content="micropip.list()"):
     --------
     >>> _add_new_cell("print('Hello, world!')")
     """
+    from IPython.display import display, HTML, Javascript
     display(Javascript(f"""
         const code = `{content}`;
         const kernel = Jupyter.notebook.kernel;
