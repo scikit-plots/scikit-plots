@@ -4,6 +4,27 @@
 
 The quickest and easiest way to go from analysis...
 
+
+## User Installation
+
+### Install Scikit-plots
+
+- Install spesific/latest version by `pypi` use:
+
+```sh
+pip install scikit-plots
+```
+
+- Install spesific/latest version by `GITHUB` use `<branches>` or `<tags>`
+
+```bash
+#pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
+pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
+
+#pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
+```
+
 ## Sample Plots
 
 <table style="margin-left:auto;margin-right:auto;width:100%;border-collapse:collapse;">
@@ -13,50 +34,50 @@ The quickest and easiest way to go from analysis...
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_learning_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-estimators-plot_learning_curve-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_learning_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-estimators-plot_learning_curve-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_calibration_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_calibration_curve-1.png">
-    </td>
-  </tr>
-  <tr>
-    <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_classifier_eval.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_classifier_eval-1.png">
-    </td>
-    <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_feature_importances.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-estimators-plot_feature_importances-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_calibration_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-metrics-plot_calibration-1.png">
     </td>
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_roc.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_roc-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_classifier_eval.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-metrics-plot_classifier_eval-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_precision_recall.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_precision_recall-1.png">
-    </td>
-  </tr>
-  <tr>
-    <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_pca_component_variance.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-decomposition-plot_pca_component_variance-1.png">
-    </td>
-    <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_pca_2d_projection.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-decomposition-plot_pca_2d_projection-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_feature_importances.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-estimators-plot_feature_importances-1.png">
     </td>
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_elbow.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-cluster-plot_elbow-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_roc.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-metrics-plot_roc-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_silhouette.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-metrics-plot_silhouette-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_precision_recall.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-metrics-plot_precision_recall-1.png">
     </td>
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-deciles-plot_cumulative_gain-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_pca_component_variance.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-decomposition-plot_pca_component_variance-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/muhammed-dev/dev/_images/scikitplot-deciles-plot_lift-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_pca_2d_projection.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-decomposition-plot_pca_2d_projection-1.png">
+    </td>
+  </tr>
+  <tr>
+    <td style="width:50%;text-align:center;">
+      <img style="display:block;width:100%;height:auto;" alt="plot_elbow.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-estimators-plot_elbow-1.png">
+    </td>
+    <td style="width:50%;text-align:center;">
+      <img style="display:block;width:100%;height:auto;" alt="plot_silhouette.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-metrics-plot_silhouette-1.png">
+    </td>
+  </tr>
+  <tr>
+    <td style="width:50%;text-align:center;">
+      <img style="display:block;width:100%;height:auto;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-kds-plot_cumulative_gain-1.png">
+    </td>
+    <td style="width:50%;text-align:center;">
+      <img style="display:block;width:100%;height:auto;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-kds-plot_lift-1.png">
     </td>
   </tr>
 </table>
@@ -137,18 +158,9 @@ As long as you provide the functions what they're asking for, they'll happily dr
 
 The possibilities are endless.
 
-## User Installation
-
-1. **Install Scikit-plots**:
-   - Use pip to install Scikit-plots:
-
-     ```bash
-     pip install scikit-plots
-     ```
-
 ## Release Notes
 
-See the [changelog](https://scikit-plots.github.io/stable/whats_new/whats_new.html)
+See the [changelog](https://scikit-plots.github.io/dev/whats_new/index.html)
 for a history of notable changes to scikit-plots.
 
 ## Documentation and Examples

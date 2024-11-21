@@ -1,0 +1,84 @@
+## Documentation: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+## This workflow automates the process of publishing your Python package to TestPyPI or PyPI.
+
+name: Publish to TestPyPI/PyPI
+
+## Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
+on:
+  workflow_dispatch:  # Allows manual triggering of the workflow
+    inputs:
+      version:  # Specify the version of the package to upload
+        description: 'Version to upload to PyPI (e.g., 1.0.0)'
+        required: true
+      pypi_repo:  # Specify whether to publish to TestPyPI or PyPI
+        description: 'Repository to upload to (testpypi or pypi)'
+        default: 'testpypi'  # Default to TestPyPI for safety
+        required: true
+      debug:  # Specify whether to log for debugging
+        description: 'Debugging? (true/false)'
+        default: 'false'  # Default to false for debugging
+        required: false
+
+jobs:
+  publish:
+    ## Restrict this job to the 'publish_pypi' environment
+    ## If Activated, Accessing Environment Secret for 'publish_pypi'
+    # environment: publish_pypi
+    name: Publish Package to PyPI or TestPyPI
+    runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
+
+    permissions:
+      # IMPORTANT: This permission is mandatory for secure publishing
+      id-token: write  # Required for trusted publishing
+
+    steps:
+      # Step 1: Check out the code from the repository
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up the Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'  # Specify the Python version
+
+      # Step 3: Install dependencies for building and publishing
+      - name: Install build dependencies
+        run: |
+          # Install the necessary tools for building and publishing
+          pip install --upgrade setuptools wheel build twine
+
+        env:
+          SKPLT_VERSION: ${{ github.event.inputs.version }}
+
+      # Step 4: Build the package
+      - name: Build the package
+        run: |
+          # Build both source distribution (sdist) and built distribution (wheel)
+          python -m build
+
+      # Step to verify if secrets are being loaded correctly (only for debugging purposes)
+      - name: Verify secrets for debugging (optional)
+        run: |
+          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
+            echo "TestPyPI Token: ${{ secrets.TEST_PYPI_API_TOKEN }}"
+            echo "PyPI Token: ${{ secrets.PYPI_API_TOKEN }}"
+          else
+            echo "Debugging is turned off."
+          fi
+        if: ${{ github.event.inputs.debug == 'true' }} # Run this step only if debugging is enabled
+
+      # Step 5a: Publish the package to TestPyPI (if selected)
+      - name: Publish package to TestPyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.0
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
+          repository_url: https://test.pypi.org/legacy/  # TestPyPI URL
+        if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}  # Run only if 'testpypi' is chosen
+
+      # Step 5b: Publish the package to PyPI (if selected)
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.0
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
+        if: ${{ github.event.inputs.pypi_repo == 'pypi' }}  # Run only if 'pypi' is chosen
