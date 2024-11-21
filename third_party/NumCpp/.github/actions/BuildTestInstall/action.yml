@@ -1,0 +1,51 @@
+name: Build Test and Install
+description: "Builds the binaries, runs the tests, and installs the library"
+
+inputs:
+  numcpp_no_use_boost:
+    description: “NUMCPP_NO_USE_BOOST compiler flag”
+    required: true
+  shell:
+    description: the shell to use
+    required: true
+  boost_root:
+    description: the root of the boost installation
+    required: true
+  cxx_std_version:
+    description: the c++ standard to use for compilation
+    required: false
+    default: 17
+  numcpp_use_multithread:
+    description: compile with multithread support
+    required: false
+    default: false
+  sudo:
+    description: run command with sudo
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure CMake
+      shell: ${{inputs.shell}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=${{inputs.cxx_std_version}} -DBOOST_ROOT=${{inputs.boost_root}} -DNUMCPP_NO_USE_BOOST=${{inputs.numcpp_no_use_boost}} -DNUMCPP_USE_MULTITHREAD=${{inputs.numcpp_use_multithread}} -DBUILD_TESTS=ON -DBUILD_MULTIPLE_TEST=ON -DBUILD_EXAMPLE_README=ON -DBUILD_EXAMPLE_GAUSS_NEWTON_NLLS=ON
+
+    - name: Build
+      shell: ${{inputs.shell}}
+      run: cmake --build ${{github.workspace}}/build --config Release -j88
+
+    - name: pytest
+      shell: ${{inputs.shell}}
+      working-directory: ${{github.workspace}}/test/pytest
+      run: pytest
+
+    - name: gtest
+      shell: ${{inputs.shell}}
+      working-directory: ${{github.workspace}}/build
+      run: ctest
+
+    - name: Install
+      shell: ${{inputs.shell}}
+      working-directory: ${{github.workspace}}
+      run: ${{inputs.sudo}} cmake --build ${{github.workspace}}/build --config Release --target install

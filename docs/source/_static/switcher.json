@@ -1,7 +1,7 @@
 [
     {
-        "name": "v0.4.0 (dev)",
-        "version": "0.4.0dev0",
+        "name": "v0.4.1.dev0 (dev)",
+        "version": "0.4.1.dev0",
         "url": "https://scikit-plots.github.io/dev/"
     },
     {
@@ -9,5 +9,10 @@
         "version": "0.4.0",
         "url": "https://scikit-plots.github.io/stable/",
         "preferred": true
+    },
+    {
+        "name": "v0.3.7 (stable_prev)",
+        "version": "0.3.7",
+        "url": "https://scikit-plot.readthedocs.io/en/stable/"
     }
 ]

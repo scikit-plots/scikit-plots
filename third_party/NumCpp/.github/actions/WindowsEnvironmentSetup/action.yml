@@ -1,0 +1,32 @@
+name: Windows Environment Setup
+description: "Sets up the windows environment"
+
+outputs:
+  BOOST_ROOT:
+    description: "The Boost root directory"
+    value: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        miniconda-version: "latest"
+        activate-environment: test
+        environment-file: test/pytest/environment.yml
+
+    - name: Activate Env
+      shell: powershell
+      run: |
+        conda activate test 
+
+    - name: Install boost
+      uses: MarkusJx/install-boost@v2.3.0
+      id: install-boost
+      with:
+        boost_version: 1.79.0
+        platform_version: 2022
+        toolset: msvc
+        link: static
+        arch: x86

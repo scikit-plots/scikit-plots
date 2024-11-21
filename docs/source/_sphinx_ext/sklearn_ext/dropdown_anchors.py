@@ -28,7 +28,8 @@ class DropdownAnchorAdder(SphinxPostTransform):
         for sd_dropdown in self.document.findall(dropdown_main):
             # Grab the summary text node
             sd_summary_text = sd_dropdown.next_node(
-                lambda node: "sd-summary-text" in node.get("classes", [])
+                # lambda node: "sd-summary-text" in node.get("classes", [])
+                lambda node: isinstance(node, nodes.Element) and "sd-summary-text" in node.get("classes", [])
             )
 
             # Concatenate the text of relevant nodes as the title text

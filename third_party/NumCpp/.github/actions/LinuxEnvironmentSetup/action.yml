@@ -1,0 +1,28 @@
+name: Linux Environment Setup
+description: "Sets up the linux environment"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        miniconda-version: "latest"
+        activate-environment: test
+        environment-file: test/pytest/environment.yml
+
+    - name: Activate Env
+      shell: bash -l {0}
+      run: |
+        conda activate test 
+
+    - name: Install Dependency libs
+      shell: bash -l {0}
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential lsb-release wget software-properties-common gnupg libboost-all-dev
+        wget https://apt.llvm.org/llvm.sh
+        chmod u+x llvm.sh
+        sed -i 's/add-apt-repository "${REPO_NAME}"/add-apt-repository -y "${REPO_NAME}"/g' llvm.sh 
+        sudo ./llvm.sh 16
+        sudo ln -sfn /usr/bin/clang++-16 /usr/bin/clang++

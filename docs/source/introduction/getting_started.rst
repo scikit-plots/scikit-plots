@@ -45,7 +45,7 @@ Here’s a brief overview of the installation and setup process:
         >>> pip install scikit-plots
 
 2. **Dependencies**:
-   - Ensure you have the required libraries installed, including `matplotlib`, `numpy`, `scikit-learn`, and `tensorflow` (if using TensorFlow models). You can install these using pip as well::
+   - Ensure you have the required libraries installed, including :py:mod:`~matplotlib`, :py:mod:`~numpy`, :py:mod:`~sklearn`, and :py:mod:`~torch` or :py:mod:`~tensorflow.keras` (if using TensorFlow models). You can install these using pip as well::
     
     >>> pip install matplotlib numpy scikit-learn tensorflow
 

@@ -1,0 +1,28 @@
+var classnc_1_1polynomial_1_1_poly1d =
+[
+    [ "Poly1d", "classnc_1_1polynomial_1_1_poly1d.html#a30777a0dd9351cf64f96959dad0d9ba5", null ],
+    [ "Poly1d", "classnc_1_1polynomial_1_1_poly1d.html#a4f7f317a4ecbc855aabd4087e1c1b9a2", null ],
+    [ "area", "classnc_1_1polynomial_1_1_poly1d.html#adcbfe7e5fe2ed3b73bc5c81a73ece1cb", null ],
+    [ "astype", "classnc_1_1polynomial_1_1_poly1d.html#a7e31c4af1b8b0bfe211725224ad44d6b", null ],
+    [ "coefficients", "classnc_1_1polynomial_1_1_poly1d.html#adf75c8dad7d05c35e4364149f87cf693", null ],
+    [ "deriv", "classnc_1_1polynomial_1_1_poly1d.html#aefda1bab9a8a39f11f8bd74febfaf879", null ],
+    [ "eval", "classnc_1_1polynomial_1_1_poly1d.html#a881a194909e80712919e961452a61f8f", null ],
+    [ "eval", "classnc_1_1polynomial_1_1_poly1d.html#a2fb68aababcddb6da10c9b1ffc29f727", null ],
+    [ "fit", "classnc_1_1polynomial_1_1_poly1d.html#a194a8f7ba0dcf3087779fdd37be77df6", null ],
+    [ "fit", "classnc_1_1polynomial_1_1_poly1d.html#a6a062e1c37f8ed8619997014e36e9658", null ],
+    [ "integ", "classnc_1_1polynomial_1_1_poly1d.html#a36254243c290ca82f43f3e6c8b5b6c10", null ],
+    [ "operator()", "classnc_1_1polynomial_1_1_poly1d.html#a9a5873bc4f595a80ecb4380c1abe9d23", null ],
+    [ "operator()", "classnc_1_1polynomial_1_1_poly1d.html#ac82910d648a2a3cfd2301e12907414dd", null ],
+    [ "operator*", "classnc_1_1polynomial_1_1_poly1d.html#a0d0536c7341e12fe924e00d0f0f40a05", null ],
+    [ "operator*=", "classnc_1_1polynomial_1_1_poly1d.html#a4060b78a9003acdf231f0cbba5c422ec", null ],
+    [ "operator+", "classnc_1_1polynomial_1_1_poly1d.html#a28696fdd89d1c2f32c4a0f899f07ae60", null ],
+    [ "operator+=", "classnc_1_1polynomial_1_1_poly1d.html#a8fe067a57f7a064a81eccf4fb7c5a74d", null ],
+    [ "operator-", "classnc_1_1polynomial_1_1_poly1d.html#a013822c468194720dbc7e70438746fc5", null ],
+    [ "operator-=", "classnc_1_1polynomial_1_1_poly1d.html#a69e6f1c7698236f2a361b598767a5d38", null ],
+    [ "operator^", "classnc_1_1polynomial_1_1_poly1d.html#ab2156e21533f3d21b39dfd351178c0ad", null ],
+    [ "operator^=", "classnc_1_1polynomial_1_1_poly1d.html#a1b995f2dd0a04fcb33345a1232c66e6f", null ],
+    [ "order", "classnc_1_1polynomial_1_1_poly1d.html#ab978ca2f65c7cd640309c1be86aa9141", null ],
+    [ "print", "classnc_1_1polynomial_1_1_poly1d.html#ab17f5e0983d6c66a3419cb331d158395", null ],
+    [ "str", "classnc_1_1polynomial_1_1_poly1d.html#aa5c091077a037bab14a1c558ece21435", null ],
+    [ "operator<<", "classnc_1_1polynomial_1_1_poly1d.html#adcedc353f4d1f6cbc5e89d37a7b1f6fd", null ]
+];

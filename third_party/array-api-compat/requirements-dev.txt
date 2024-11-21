@@ -1,0 +1,8 @@
+array-api-strict
+dask[array]
+jax[cpu]
+numpy
+pytest
+torch
+sparse >=0.15.1
+ndonnx

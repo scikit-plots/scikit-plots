@@ -5,13 +5,6 @@ from sphinx.util.logging import getLogger
 logger = getLogger(__name__)
 
 
-def disable_plot_gallery_for_linkcheck(app):
-    """Disable plot gallery for the linkcheck builder."""        
-    if app.builder.name == "linkcheck":
-        app.config.sphinx_gallery_conf["plot_gallery"] = "False"
-        logger.info("Plot gallery disabled for linkcheck builder")
-
-
 def filter_search_index(app, exception):
     """Remove methods from the search index."""
     if exception is not None:
@@ -22,6 +15,8 @@ def filter_search_index(app, exception):
     if app.builder.name != "html":
         return
 
+    # searchindex_js_path = os.path.join(app.builder.confdir, "searchindex.js")
+    # searchindex_js_path = os.path.join(app.builder.outdir, "searchindex.js")
     searchindex_path = os.path.join(app.builder.outdir, "searchindex.js")
     if not os.path.exists(searchindex_path):
         logger.warning("Search index file does not exist: %s", searchindex_path)
@@ -48,12 +43,6 @@ def setup(app):
     logger.info("Setting up Sphinx application")
 
     # Connect event handlers
-    try:
-        app.connect("builder-inited", disable_plot_gallery_for_linkcheck, priority=50)
-        logger.info("Connected 'disable_plot_gallery_for_linkcheck' to 'builder-inited' event")
-    except Exception as e:
-        logger.error(f"Failed to connect 'disable_plot_gallery_for_linkcheck': {e}")
-
     try:
         app.connect("build-finished", filter_search_index)
         logger.info("Connected 'filter_search_index' to 'build-finished' event")

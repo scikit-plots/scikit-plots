@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['hamming_0',['hamming',['../namespacenc.html#a7c74f200b79212768ca974ae2af6a249',1,'nc']]],
+  ['hamming_2ehpp_1',['hamming.hpp',['../hamming_8hpp.html',1,'']]],
+  ['hammingencode_2ehpp_2',['hammingEncode.hpp',['../hamming_encode_8hpp.html',1,'']]],
+  ['hanning_3',['hanning',['../namespacenc.html#a118a8a728566b57cf3000d6f0bc8c0ca',1,'nc']]],
+  ['hanning_2ehpp_4',['hanning.hpp',['../hanning_8hpp.html',1,'']]],
+  ['has_5fserialize_5',['has_serialize',['../classnc_1_1logger_1_1detail_1_1type__traits_1_1has__serialize.html',1,'nc::logger::detail::type_traits']]],
+  ['has_5fserialize_3c_20datatype_2c_20std_3a_3avoid_5ft_3c_20std_3a_3aenable_5fif_5ft_3c_20std_3a_3ais_5fsame_5fv_3c_20serialize_5ft_3c_20datatype_20_3e_2c_20std_3a_3astring_20_3e_2c_20int_20_3e_20_3e_20_3e_6',['has_serialize&lt; DataType, std::void_t&lt; std::enable_if_t&lt; std::is_same_v&lt; serialize_t&lt; DataType &gt;, std::string &gt;, int &gt; &gt; &gt;',['../classnc_1_1logger_1_1detail_1_1type__traits_1_1has__serialize_3_01_data_type_00_01std_1_1void__te6ccce939d7e8d93862519645c528e31.html',1,'nc::logger::detail::type_traits']]],
+  ['has_5fserialize_5fv_7',['has_serialize_v',['../namespacenc_1_1logger_1_1detail_1_1type__traits.html#aa30c2da7db6ec70c49ea2a8903255397',1,'nc::logger::detail::type_traits']]],
+  ['hat_8',['hat',['../namespacenc_1_1linalg.html#af55949f0049c2a7b1a3e1f36a31a678f',1,'nc::linalg::hat(const Vec3 &amp;inVec)'],['../namespacenc_1_1linalg.html#ad93ac021edcd0c8f81891c93996dee25',1,'nc::linalg::hat(const NdArray&lt; dtype &gt; &amp;inVec)'],['../namespacenc_1_1linalg.html#afa7cc2a8a4084e94b4af00484d3a511e',1,'nc::linalg::hat(dtype inX, dtype inY, dtype inZ)']]],
+  ['hat_2ehpp_9',['hat.hpp',['../hat_8hpp.html',1,'']]],
+  ['height_10',['height',['../classnc_1_1image_processing_1_1_cluster.html#a71ccd5ee3fea70b4b1b27ba25f4b3fb8',1,'nc::imageProcessing::Cluster']]],
+  ['hermite_11',['hermite',['../namespacenc_1_1polynomial.html#aeea1ebbc592a6a8c533f2230fb0f6f10',1,'nc::polynomial::hermite(uint32 n, dtype x)'],['../namespacenc_1_1polynomial.html#ade1c7e2792babf10bfaa60ff14156c12',1,'nc::polynomial::hermite(uint32 n, const NdArray&lt; dtype &gt; &amp;inArrayX)']]],
+  ['hermite_2ehpp_12',['hermite.hpp',['../hermite_8hpp.html',1,'']]],
+  ['higher_13',['HIGHER',['../namespacenc.html#a476f76c3468948fe24d7abf9cd0d650ea5bc0a7ce2c77ccd49169277e9289e5d1',1,'nc']]],
+  ['histogram_14',['histogram',['../namespacenc.html#a49ca5ca0de10a6321946fb1f41e39ed3',1,'nc::histogram(const NdArray&lt; dtype &gt; &amp;inArray, uint32 inNumBins=10)'],['../namespacenc.html#abcfc0394917cd12eae1bde686895e66d',1,'nc::histogram(const NdArray&lt; dtype &gt; &amp;inArray, const NdArray&lt; double &gt; &amp;inBinEdges)']]],
+  ['histogram_2ehpp_15',['histogram.hpp',['../histogram_8hpp.html',1,'']]],
+  ['hour_16',['hour',['../classnc_1_1_date_time.html#a143437e94c7b720e6c089963e2af971b',1,'nc::DateTime']]],
+  ['hours_17',['hours',['../classnc_1_1coordinates_1_1reference__frames_1_1_r_a.html#aca0b8d776ff826aa39a4c8bf60b090ac',1,'nc::coordinates::reference_frames::RA']]],
+  ['hours_5fper_5fday_18',['HOURS_PER_DAY',['../namespacenc_1_1constants.html#aef903b1f40001bc712b61f5dec7de716',1,'nc::constants']]],
+  ['hsplit_19',['hsplit',['../namespacenc.html#a1141544c6f1d2fca531612f726123e48',1,'nc']]],
+  ['hsplit_2ehpp_20',['hsplit.hpp',['../hsplit_8hpp.html',1,'']]],
+  ['hstack_21',['hstack',['../namespacenc.html#aa5a0927210f0193fd7bbe40dc889b562',1,'nc::hstack(std::initializer_list&lt; NdArray&lt; dtype &gt; &gt; inArrayList)'],['../namespacenc.html#a0a3a8a6738b0bf84212a0389db201863',1,'nc::hstack(std::vector&lt; NdArray&lt; dtype &gt; &gt; inArrayList)']]],
+  ['hstack_2ehpp_22',['hstack.hpp',['../hstack_8hpp.html',1,'']]],
+  ['hypot_23',['hypot',['../namespacenc.html#a4648674053cd83851d9549bbcc7a8481',1,'nc::hypot(dtype inValue1, dtype inValue2) noexcept'],['../namespacenc.html#ad2d90c3dcbe0a1e652b0505b637d973a',1,'nc::hypot(dtype inValue1, dtype inValue2, dtype inValue3) noexcept'],['../namespacenc.html#ab847598f9e2e08106edd8c6ae3fa2f7a',1,'nc::hypot(const NdArray&lt; dtype &gt; &amp;inArray1, const NdArray&lt; dtype &gt; &amp;inArray2)'],['../namespacenc.html#a142bd95cc364924602eedeb78a979aa0',1,'nc::hypot(const NdArray&lt; dtype &gt; &amp;inArray1, const NdArray&lt; dtype &gt; &amp;inArray2, const NdArray&lt; dtype &gt; &amp;inArray3)']]],
+  ['hypot_2ehpp_24',['hypot.hpp',['../hypot_8hpp.html',1,'']]]
+];

@@ -51,29 +51,32 @@ help:
 ## clean target: Removes build artifacts and cleans up the project directory.
 ## Useful for ensuring a fresh build environment.
 clean_basic:
-	rm -rf `find -L -type d -name .ipynb_checkpoints`
+	@echo "Basic cleaning started ..."
+	@# Command Substitution "$(...)" "(`...`)" (its output in place of the backticks):
+	@rm -rf `find -L -type d -name .ipynb_checkpoints`
 	@echo "Removed all '.ipynb_checkpoints'"
-	rm -rf `find -L -type d -name __pycache__` 
+	@rm -rf `find -L -type d -name __pycache__` 
 	@echo "Removed all '__pycache__'"
-	rm -rf `find -L -type d -name .pytest_cache`
+	@rm -rf `find -L -type d -name .pytest_cache`
 	@echo "Removed all '.pytest_cache'"
-	echo "basic clean completed."
+	@echo "basic clean completed."
 
 clean: clean_basic
-	-rm -rf $(BUILDDIR)/*
+	@echo "Cleaning started..."
+	@rm -rf $(BUILDDIR)/*
 	@echo "Removed $(BUILDDIR)/*"
-	-rm -rf $(SOURCEDIR)/auto_examples/
-	@echo "Removed $(SOURCEDIR)/auto_examples/"
-	-rm -rf $(SOURCEDIR)/modules/generated/
-	@echo "Removed $(SOURCEDIR)/modules/generated/"
-	-rm -rf $(SOURCEDIR)/generated/*
-	@echo "Removed $(SOURCEDIR)/generated/"
-	-rm -rf $(SOURCEDIR)/api/*.rst
-	@echo "Removed $(SOURCEDIR)/api/*.rst"
-	-rm -rf $(SOURCEDIR)/css/styles/
+	@rm -rf $(SOURCEDIR)/css/styles/
 	@echo "Removed $(SOURCEDIR)/css/styles/"
-	-rm -rf $(SOURCEDIR)/jupyterlite_contents/
+	@rm -rf $(SOURCEDIR)/api/*.rst $(SOURCEDIR)/devel/maintainer.rst $(SOURCEDIR)/index.rst
+	@echo "Removed $(SOURCEDIR)/api/*.rst" "$(SOURCEDIR)/devel/maintainer.rst" "$(SOURCEDIR)/index.rst"
+	@rm -rf $(SOURCEDIR)/auto_examples/
+	@echo "Removed $(SOURCEDIR)/auto_examples/"
+	@rm -rf $(SOURCEDIR)/modules/generated/ $(SOURCEDIR)/generated/
+	@echo "Removed $(SOURCEDIR)/modules/generated/ $(SOURCEDIR)/generated/"
+	@rm -rf $(SOURCEDIR)/jupyterlite_contents/
 	@echo "Removed $(SOURCEDIR)/jupyterlite_contents/"
+	@rm -rf $(SOURCEDIR)/_tags/
+	@echo "Removed $(SOURCEDIR)/_tags/"
 
 # Default to SPHINX_NUMJOBS=1 for full documentation build. Using
 # SPHINX_NUMJOBS!=1 may actually slow down the build, or cause weird issues in

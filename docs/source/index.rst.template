@@ -1,43 +1,31 @@
-.. https://docs.open-mpi.org/en/v5.0.x/developers/rst-for-markdown-expats.html#whitespace-and-indenting
-.. https://docutils.sourceforge.io/docs/user/rst/quickref.html
-.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#hyperlink-targets
-.. Used for setting metadata like the document's title for processing tools.
-.. title:: Homepage
-
+{#-
+.. rst Comments
+.. https://sphinx-tutorial.readthedocs.io/cheatsheet/#rst-cheat-sheet
 .. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#comments
-.. Adding Comments
 .. Headings and Sections
 .. = Main title or top-level heading.
 .. - Second-level heading.
 .. ~ Third-level heading.
 .. ^ Fourth-level heading.
 .. " Fifth-level heading.
+-#}
+.. Used for setting metadata like the document's title for processing tools.
+.. title:: Homepage
 
-.. External Links
-.. `Link text <http://example.com>`_
-.. Internal Links (to sections within the document)
-.. See the :ref:`section_name` for more details.
-.. Cross-referencing Sections
-.. :ref:`section_name`
-
-.. Define the overall structure, that affects the prev-next buttons and the order
-   of the sections in the top navbar.
-
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directives
 .. toctree::
    :maxdepth: 2
    :caption: Introduction
    :hidden:
 
-   Introduction <introduction/introduction.rst>
+   Introduction <introduction/index.rst>
 
 .. toctree::
    :maxdepth: 2
    :caption: Documentation
    :hidden:
 
-   User Guide <user_guide/user_guide.rst>
-   API Reference <api/index.rst>
+   User Guide <user_guide/index.rst>
+   APIs Reference <api/index.rst>
 
 .. toctree::
    :maxdepth: 2
@@ -51,12 +39,12 @@
    :caption: Community
    :hidden:
 
-   Release Notes <whats_new/whats_new.rst>
+   Release Notes <whats_new/index.rst>
    Community <https://zenodo.org/communities/scikit-plots>
-   {% if development_link | default(false) %}
-   {# if development_link is defined and development_link #}
+   {%- if development_link | default(false) %}
+   {#- if development_link is defined and development_link #}
    Developer’s Guide <{{ development_link }}>
-   {% endif %}
-   FAQ <community/faq.rst>
-   Glossary <community/scikiplot_glossary.rst>
-   About us <teams/about.rst>
+   {#- else #}
+   {%- endif %}
+   Tags <_tags/tagsindex.rst>
+   About us <project/index.rst>
