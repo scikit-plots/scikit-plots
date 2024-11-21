@@ -101,8 +101,8 @@ cpp = meson.get_compiler('cpp')
 
 # Check compiler is recent enough (see the SciPy Toolchain Roadmap for details)
 if cc.get_id() == 'gcc'
-  if not cc.version().version_compare('>=9.1')
-    error('scikit-plots requires GCC >= 9.1')
+  if not cc.version().version_compare('>=8.0')
+    error('scikit-plots requires GCC >= 8.0')
   endif
 elif cc.get_id() == 'clang' or cc.get_id() == 'clang-cl'
   if not cc.version().version_compare('>=12.0')
@@ -306,14 +306,27 @@ endif
 ######################################################################
 
 if host_machine.system() == 'darwin'
+  # Check if the compiler supports the '-Wl,-ld_classic' argument (new linker in macOS 14)
   if cc.has_link_argument('-Wl,-ld_classic')
     # New linker introduced in macOS 14 not working yet with at least OpenBLAS in Spack,
     # see gh-24964 (and linked scipy issue from there).
     add_project_link_arguments('-Wl,-ld_classic', language : ['c', 'cpp', 'fortran'])
   endif
+  # Check if the compiler supports the '-Wl,-dead_strip' argument (linker option to strip unused symbols)
   if cc.has_link_argument('-Wl,-dead_strip')
     # Allow linker to strip unused symbols
     add_project_link_arguments('-Wl,-dead_strip', language : ['c', 'cpp', 'fortran'])
+  endif
+
+  # Ensure that std::filesystem is available and supported by the compiler
+  cpp_filesystem = cc.get_supported_features().contains('filesystem')
+  if not cpp_filesystem
+    error('std::filesystem not available with this compiler configuration.')
+  endif
+
+  # Optional: Link against the system filesystem library (if necessary)
+  if cc.has_library('stdc++fs', '', static: false)
+    add_project_link_arguments('-lstdc++fs', language: 'cpp')  # Link filesystem library
   endif
 endif
 
