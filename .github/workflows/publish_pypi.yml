@@ -5,25 +5,26 @@ name: Publish to PyPI
 # Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
 on:
   push:
-  workflow_dispatch: # Allows manual triggering of the workflow
+  workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
-      version: # Specify the version of the package to upload
+      version:  # Specify the version of the package to upload
         description: 'Version to upload to PyPI (e.g., 1.0.0)'
         required: true
-      pypi_repo: # Specify whether to publish to TestPyPI or PyPI
+      pypi_repo:  # Specify whether to publish to TestPyPI or PyPI
         description: 'Repository to upload to (testpypi or pypi)'
-        default: 'testpypi' # Default to TestPyPI for safety
+        default: 'testpypi'  # Default to TestPyPI for safety
         required: true
 
 jobs:
   publish:
-    name: Publish Package to PyPI or TestPyPI
-    runs-on: ubuntu-latest # Use the latest Ubuntu virtual environment
+    # Restrict this job to the 'publish_pypi' environment
     environment: publish_pypi
+    name: Publish Package to PyPI or TestPyPI
+    runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
 
     permissions:
       # IMPORTANT: This permission is mandatory for secure publishing
-      id-token: write # Required for trusted publishing
+      id-token: write  # Required for trusted publishing
 
     steps:
       # Step 1: Check out the code from the repository
@@ -34,7 +35,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.8' # Specify the Python version
+          python-version: '3.8'  # Specify the Python version
 
       # Step 3: Install dependencies for building and publishing
       - name: Install build dependencies
@@ -43,7 +44,7 @@ jobs:
           pip install --upgrade setuptools wheel build twine
 
         env:
-          SKLEARN_VERSION: ${{ github.event.inputs.version }}
+          SKPLT_VERSION: ${{ github.event.inputs.version }}
 
       # Step 4: Build the package
       - name: Build the package
@@ -55,13 +56,13 @@ jobs:
       - name: Publish package to TestPyPI
         uses: pypa/gh-action-pypi-publish@v1.10.0
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }} # Securely use your TestPyPI API token
-          repository_url: https://test.pypi.org/legacy/ # TestPyPI URL
-        if: ${{ github.event.inputs.pypi_repo == 'testpypi' }} # Run only if 'testpypi' is chosen
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Securely use your TestPyPI API token
+          repository_url: https://test.pypi.org/legacy/  # TestPyPI URL
+        if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}  # Run only if 'testpypi' is chosen
 
       # Step 5b: Publish the package to PyPI (if selected)
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@v1.10.0
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }} # Securely use your PyPI API token
-        if: ${{ github.event.inputs.pypi_repo == 'pypi' }} # Run only if 'pypi' is chosen
+          password: ${{ secrets.PYPI_API_TOKEN }}  # Securely use your PyPI API token
+        if: ${{ github.event.inputs.pypi_repo == 'pypi' }}  # Run only if 'pypi' is chosen
