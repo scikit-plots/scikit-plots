@@ -9,7 +9,7 @@
 # https://packaging.python.org/en/latest/specifications/pyproject-toml/
 [build-system]
 # "build-backend" specifies the Python backend to use for building the package.
-build-backend = "mesonpy.build"
+build-backend = "mesonpy"
 requires = [
   # building an env isolated one
   "meson>=1.1.0",          # The Meson build system itself to coordinate the compilation of code.
