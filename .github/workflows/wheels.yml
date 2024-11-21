@@ -30,6 +30,7 @@ on:
       - main
       - maintenance/**
   push:
+    # Release branches/tags
     tags:
       - v*
   workflow_dispatch: # Allows manual triggering of the workflow
@@ -63,6 +64,7 @@ jobs:
           echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
           echo github.ref ${{ github.ref }}
 
+  # Build the wheels for Linux, Windows and macOS for Python 3.9 and newer
   build_wheels:
     name: Build wheel ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
     needs: get_commit_message
@@ -101,12 +103,13 @@ jobs:
             python: "cp313t"
 
     env:
-      # IS_SCHEDULE_DISPATCH checks if the event is a schedule or manual workflow dispatch
-      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-      # The IS_PUSH variable checks if the current event is a push event with a tag starting with 'v'
-      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       # The IS_32_BIT variable checks if the build platform is 32-bit (e.g., win32)
       IS_32_BIT: ${{ matrix.buildplat[1] == 'win32' }}
+      # The IS_PUSH variable checks if the current event is a push event with a tag starting with 'v'
+      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+      # IS_SCHEDULE_DISPATCH checks if the event is a schedule or manual workflow dispatch
+      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+
     steps:
       - name: Checkout scikit-plots
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -182,37 +185,38 @@ jobs:
           name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
           path: ./wheelhouse/*.whl
 
-      # - uses: mamba-org/setup-micromamba@ab6bf8bf7403e8023a094abeec19d6753bdc143e
-      #   with:
-      #     # for installation of anaconda-client, required for upload to
-      #     # anaconda.org
-      #     # Note that this step is *after* specific pythons have been used to
-      #     # build and test the wheel
-      #     # for installation of anaconda-client, for upload to anaconda.org
-      #     # environment will be activated after creation, and in future bash steps
-      #     init-shell: bash
-      #     environment-name: upload-env
-      #     create-args: >-
-      #       anaconda-client
+      - uses: mamba-org/setup-micromamba@ab6bf8bf7403e8023a094abeec19d6753bdc143e
+        with:
+          # for installation of anaconda-client, required for upload to
+          # anaconda.org
+          # Note that this step is *after* specific pythons have been used to
+          # build and test the wheel
+          # for installation of anaconda-client, for upload to anaconda.org
+          # environment will be activated after creation, and in future bash steps
+          init-shell: bash
+          environment-name: upload-env
+          create-args: >-
+            anaconda-client
 
-      # - name: Upload wheels
-      #   if: success()
-      #   shell: bash -el {0}
-      #   # see https://github.com/marketplace/actions/setup-miniconda for why
-      #   # `-el {0}` is required.
-      #   env: # ${{ secrets.<SECRET_NAME> }}: This syntax retrieves the value of a secret stored securely in the repository's Secrets settings on GitHub.
-      #     NUMPY_STAGING_UPLOAD_TOKEN: ${{ secrets.NUMPY_STAGING_UPLOAD_TOKEN }}
-      #     NUMPY_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.NUMPY_NIGHTLY_UPLOAD_TOKEN }}
-      #   run: |
-      #     source tools/wheels/upload_wheels.sh
-      #     set_upload_vars
-      #     # trigger an upload to
-      #     # https://anaconda.org/scientific-python-nightly-wheels/numpy
-      #     # for cron jobs or "Run workflow" (restricted to main branch).
-      #     # Tags will upload to
-      #     # https://anaconda.org/multibuild-wheels-staging/numpy
-      #     # The tokens were originally generated at anaconda.org
-      #     upload_wheels
+      - name: Upload wheels
+        if: success()
+        shell: bash -el {0}
+        # see https://github.com/marketplace/actions/setup-miniconda for why
+        # `-el {0}` is required.
+        env: 
+          # ${{ secrets.<SECRET_NAME> }}: This syntax retrieves the value of a secret stored securely in the repository's Secrets settings on GitHub.
+          SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}
+          # SKPLT_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.SKPLT_NIGHTLY_UPLOAD_TOKEN }}
+        run: |
+          source tools/wheels/upload_wheels.sh
+          set_upload_vars
+          # trigger an upload to
+          # https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots
+          # for cron jobs or "Run workflow" (restricted to main branch).
+          # Tags will upload to
+          # https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
+          # The tokens were originally generated at anaconda.org
+          upload_wheels
 
   build_sdist:
     name: Build sdist
@@ -243,7 +247,7 @@ jobs:
           python-version: "3.10"
       - name: Build sdist
         run: |
-          python -m pip install -U pip build
+          python -m pip install -U pip build setuptools wheel
           python -m build --sdist -Csetup-args=-Dallow-noblas=true
       - name: Test the sdist
         run: |
@@ -257,7 +261,7 @@ jobs:
 
       - name: Check README rendering for PyPI
         run: |
-          python -mpip install twine
+          python -m pip install twine
           twine check dist/*
 
       - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
@@ -265,31 +269,31 @@ jobs:
           name: sdist
           path: ./dist/*
 
-      # - uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
-      #   with:
-      #     # for installation of anaconda-client, required for upload to
-      #     # anaconda.org
-      #     # default (and activated) environment name is test
-      #     # Note that this step is *after* specific pythons have been used to
-      #     # build and test
-      #     auto-update-conda: true
-      #     python-version: "3.10"
+      - uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
+        with:
+          # for installation of anaconda-client, required for upload to
+          # anaconda.org
+          # default (and activated) environment name is test
+          # Note that this step is *after* specific pythons have been used to
+          # build and test
+          auto-update-conda: true
+          python-version: "3.10"
 
-      # - name: Upload sdist
-      #   if: success()
-      #   shell: bash -el {0}
-      #   env:
-      #     NUMPY_STAGING_UPLOAD_TOKEN: ${{ secrets.NUMPY_STAGING_UPLOAD_TOKEN }}
-      #     # commented out so the sdist doesn't upload to nightly
-      #     # NUMPY_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.NUMPY_NIGHTLY_UPLOAD_TOKEN }}
-      #   run: |
-      #     conda install -y anaconda-client
-      #     source tools/wheels/upload_wheels.sh
-      #     set_upload_vars
-      #     # trigger an upload to
-      #     # https://anaconda.org/scientific-python-nightly-wheels/numpy
-      #     # for cron jobs or "Run workflow" (restricted to main branch).
-      #     # Tags will upload to
-      #     # https://anaconda.org/multibuild-wheels-staging/numpy
-      #     # The tokens were originally generated at anaconda.org
-      #     upload_wheels
+      - name: Upload sdist
+        if: success()
+        shell: bash -el {0}
+        env:
+          SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}
+          # commented out so the sdist doesn't upload to nightly
+          # SKPLT_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.SKPLT_NIGHTLY_UPLOAD_TOKEN }}
+        run: |
+          conda install -y anaconda-client
+          source tools/wheels/upload_wheels.sh
+          set_upload_vars
+          # trigger an upload to
+          # https://anaconda.org/scientific-python-nightly-wheels/numpy
+          # for cron jobs or "Run workflow" (restricted to main branch).
+          # Tags will upload to
+          # https://anaconda.org/multibuild-wheels-staging/numpy
+          # The tokens were originally generated at anaconda.org
+          upload_wheels
