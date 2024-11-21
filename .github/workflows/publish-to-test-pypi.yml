@@ -5,10 +5,6 @@ name: Publish to TestPyPI/PyPI
 
 ## Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
 on:
-  push:
-    ## Release branches/tags
-    tags:
-      - v*
   workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
       version:  # Specify the version of the package to upload
@@ -19,7 +15,7 @@ on:
         default: 'testpypi'  # Default to TestPyPI for safety
         required: true
       debug:  # Specify whether to log for debugging
-        description: 'Debugging'
+        description: 'Debugging? (true/false)'
         default: 'false'  # Default to false for debugging
         required: false
 
