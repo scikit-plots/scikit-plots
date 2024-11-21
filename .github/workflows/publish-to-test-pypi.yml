@@ -4,6 +4,14 @@ name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
 
 # Trigger the workflow on any push
 on: 
+  pull_request:
+    branches:
+      - main
+      - maintenance/**
+  push:
+    # Release branches/tags
+    tags:
+      - v*
   workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
