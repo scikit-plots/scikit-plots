@@ -12,15 +12,17 @@ project(
   # That only happens when importing from a git repository.
   # See `scikitplot/__init__.py`
   version: run_command(
+    # This should become `scikitplot/_version.py` in 'scikit-plots' 0.4
+    # ['scikitplot/_build_utils/version.py'],
     ['python', 'scikitplot/_build_utils/version.py'],
     check: true,
   ).stdout().strip(),
   license: 'BSD-3 Clause',
   meson_version: '>= 1.1.0',
   default_options: [
-    # 'pkgconfig.relocatable=true',
-    'buildtype=debugoptimized',
     'b_ndebug=if-release',
+    'buildtype=debugoptimized',
+    'pkgconfig.relocatable=true',
     'fortran_std=legacy',            # Set C standard to C11
     'c_std=c11',                     # Set C standard to C11
     'cpp_std=c++17',                 # Set C++ standard to C++17
@@ -97,7 +99,7 @@ endif
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
-# Check compiler is recent enough (see "Toolchain Roadmap" for details)
+# Check compiler is recent enough (see the SciPy Toolchain Roadmap for details)
 if cc.get_id() == 'gcc'
   if not cc.version().version_compare('>=9.1')
     error('scikit-plots requires GCC >= 9.1')
@@ -269,7 +271,7 @@ if not cc.links(
 endif
 
 ######################################################################
-## Platform
+## Platform OS detection
 ######################################################################
 
 # Platform detection
@@ -293,7 +295,7 @@ if is_windows and py.has_variable('EXT_SUFFIX')
   if py.get_variable('EXT_SUFFIX').contains('win32')
     warning(
       'You are building from source on a 32-bit Python install. ' +
-      'Scikitplot does not provide 32-bit wheels; install 64-bit Python ' +
+      'scikitplot does not provide 32-bit wheels; install 64-bit Python ' +
       'if you are having issues!'
     )
   endif
@@ -305,7 +307,8 @@ endif
 
 if host_machine.system() == 'darwin'
   if cc.has_link_argument('-Wl,-ld_classic')
-    # New linker introduced in macOS 14 not working yet, see gh-19357 and gh-19387
+    # New linker introduced in macOS 14 not working yet with at least OpenBLAS in Spack,
+    # see gh-24964 (and linked scipy issue from there).
     add_project_link_arguments('-Wl,-ld_classic', language : ['c', 'cpp', 'fortran'])
   endif
   if cc.has_link_argument('-Wl,-dead_strip')
@@ -543,15 +546,24 @@ endif
 cython_c_flags = [
   '-DCYTHON_CCOMPLEX=0',  # see gh-18975 for why we need this
 ]
+
 if is_mingw
-  # For mingw-w64, link statically against the UCRT.
-  gcc_link_args = ['-lucrt', '-static']
-  add_project_link_arguments(gcc_link_args, language: ['c', 'cpp', 'fortran'])
-  # Force gcc to float64 long doubles for compatibility with MSVC
-  # builds, for C only.
-  add_project_arguments('-mlong-double-64', language: 'c')
+  is_mingw_built_python = run_command(
+    py, ['-c', 'import sysconfig; print(sysconfig.get_platform())'],
+    check: true
+  ).stdout().strip().startswith('mingw')
+  if not is_mingw_built_python
+    # For mingw-w64, link statically against the UCRT.
+    _gcc_link_args = ['-lucrt', '-static']
+    add_project_link_arguments(_gcc_link_args, language: ['c', 'cpp', 'fortran'])
+    # Force gcc to float64 long doubles for compatibility with MSVC
+    # builds, for C only.
+    add_project_arguments('-mlong-double-64', language: 'c')
+  endif
   # Make fprintf("%zd") work (see https://github.com/rgommers/scipy/issues/118)
   add_project_arguments('-D__USE_MINGW_ANSI_STDIO=1', language: ['c', 'cpp'])
+endif
+if is_mingw
   ###############################################################
   # Manual add of MS_WIN64 macro when not using MSVC.
   # https://bugs.python.org/issue28267
@@ -730,6 +742,223 @@ gen_tempita = generator(cli_tempita,
 )
 
 ######################################################################
+## BLAS/LAPACK dependency
+######################################################################
+
+
+blas_name = get_option('blas')
+lapack_name = get_option('lapack')
+allow_noblas = get_option('allow-noblas')
+# This is currently injected directly into CFLAGS/CXXFLAGS for wheel builds
+# (see cibuildwheel settings in pyproject.toml), but used by CI jobs already
+blas_symbol_suffix = get_option('blas-symbol-suffix')
+
+use_ilp64 = get_option('use-ilp64')
+if use_ilp64
+  blas_interface = ['interface: ilp64']
+else
+  blas_interface = ['interface: lp64']
+endif
+
+
+blas_order = get_option('blas-order')
+if blas_order == ['auto']
+  blas_order = []
+  if host_machine.system() == 'darwin'
+    blas_order += 'accelerate'
+  endif
+  if host_machine.cpu_family() == 'x86_64'
+    blas_order += 'mkl'
+  endif
+  blas_order += ['openblas', 'flexiblas', 'blis', 'blas']
+endif
+lapack_order = get_option('lapack-order')
+if lapack_order == ['auto']
+  lapack_order = []
+  if host_machine.system() == 'darwin'
+    lapack_order += 'accelerate'
+  endif
+  if host_machine.cpu_family() == 'x86_64'
+    lapack_order += 'mkl'
+  endif
+  lapack_order += ['openblas', 'flexiblas', 'lapack']
+endif
+
+# MKL-specific options
+_threading_opt = get_option('mkl-threading')
+if _threading_opt == 'auto'
+  # Switch default to iomp once conda-forge missing openmp.pc issue is fixed
+  mkl_opts = ['threading: seq']
+else
+  mkl_opts = ['threading: ' + _threading_opt]
+endif
+blas_opts = {'mkl': mkl_opts}
+mkl_version_req = '>=2023.0'  # see gh-24824
+mkl_may_use_sdl = not use_ilp64 and _threading_opt in ['auto', 'iomp']
+
+# Note that we can only use a BLAS which provides a CBLAS interface. So disable
+# BLAS completely if CBLAS is not found.
+
+# First try scipy-openblas, and if found don't look for cblas or lapack, we
+# know what's inside the scipy-openblas wheels already.
+if blas_name == 'openblas' or blas_name == 'auto'
+  blas = dependency('scipy-openblas', method: 'pkg-config', required: false)
+  if blas.found()
+    blas_name = 'scipy-openblas'
+  endif
+endif
+if blas_name == 'auto'
+  foreach _name : blas_order
+    if _name == 'mkl'
+      blas = dependency('mkl',
+        modules: ['cblas'] + blas_interface + mkl_opts,
+        required: false,  # may be required, but we need to emit a custom error message
+        version: mkl_version_req,
+      )
+      # Insert a second try with MKL, because we may be rejecting older versions
+      # or missing it because no pkg-config installed. If so, we need to retry
+      # with MKL SDL, and drop the version constraint (this always worked).
+      if not blas.found() and mkl_may_use_sdl
+        blas = dependency('mkl', modules: ['cblas', 'sdl: true'], required: false)
+      endif
+    else
+      if _name == 'flexiblas' and use_ilp64
+        _name = 'flexiblas64'
+      endif
+      blas = dependency(_name, modules: ['cblas'] + blas_interface, required: false)
+    endif
+    if blas.found()
+      break
+    endif
+  endforeach
+else
+  if blas_name == 'mkl'
+    blas = dependency('mkl',
+      modules: ['cblas'] + blas_interface + mkl_opts,
+      required: false,
+      version: mkl_version_req,
+    )
+    # Same deal as above - try again for MKL
+    if not blas.found() and mkl_may_use_sdl
+      blas = dependency('mkl', modules: ['cblas', 'sdl: true'], required: false)
+    endif
+  else
+    blas = dependency(blas_name, modules: ['cblas'] + blas_interface, required: false)
+  endif
+endif
+
+have_blas = blas.found()
+if have_blas
+  _args_blas = ['-DHAVE_CBLAS']  # note: used for C and C++ via `blas_dep` below
+  if use_ilp64
+    _args_blas += ['-DHAVE_BLAS_ILP64']
+    if 'openblas' in blas.name()
+      _args_blas += ['-DOPENBLAS_ILP64_NAMING_SCHEME']
+    endif
+  endif
+  if blas_symbol_suffix == 'auto'
+    if blas_name == 'scipy-openblas' and use_ilp64
+      blas_symbol_suffix = '64_'
+    else
+      blas_symbol_suffix = blas.get_variable('symbol_suffix', default_value: '')
+    endif
+    message(f'BLAS symbol suffix: @blas_symbol_suffix@')
+  endif
+  if blas_symbol_suffix != ''
+    _args_blas += ['-DBLAS_SYMBOL_SUFFIX=' + blas_symbol_suffix]
+  endif
+  blas_dep = declare_dependency(
+    dependencies: [blas],
+    compile_args: _args_blas,
+  )
+else
+  if allow_noblas
+    blas_dep = []
+  else
+    error('No BLAS library detected! Install one, or use the ' + \
+          '`allow-noblas` build option (note, this may be up to 100x slower ' + \
+          'for some linear algebra operations).')
+  endif
+endif
+
+if 'mkl' in blas.name() or blas.name() == 'accelerate' or blas_name == 'scipy-openblas'
+  # For these libraries we know that they contain LAPACK, and it's desirable to
+  # use that - no need to run the full detection twice.
+  lapack = blas
+else
+  if lapack_name == 'auto'
+    foreach _name : lapack_order
+      lapack = dependency(_name, modules: ['lapack'] + blas_interface, required: false)
+      if lapack.found()
+        break
+      endif
+    endforeach
+  else
+    lapack = dependency(lapack_name, modules: ['lapack'] + blas_interface, required: false)
+  endif
+endif
+
+have_lapack = lapack.found()
+if not have_lapack and not allow_noblas
+  error('No LAPACK library detected! Install one, or use the ' + \
+        '`allow-noblas` build option (note, this may be up to 100x slower ' + \
+        'for some linear algebra operations).')
+else
+  lapack_dep = declare_dependency(dependencies: [lapack, blas_dep])
+endif
+
+######################################################################
+## 32-bit platforms when atomic operations
+######################################################################
+
+
+# # Determine whether it is necessary to link libatomic with gcc. This
+# # could be the case on 32-bit platforms when atomic operations are used
+# # on 64-bit types or on RISC-V using 8-bit atomics, so we explicitly
+# # check for both 64 bit and 8 bit operations.  The check is adapted from
+# # SciPy, who copied it from Mesa.
+# null_dep = dependency('', required : false)
+# atomic_dep = null_dep
+# code_non_lockfree = '''
+#   #include <stdint.h>
+#   int main() {
+#    struct {
+#      void *p;
+#      uint8_t u8v;
+#    } x;
+#    x.p = NULL;
+#    x.u8v = 0;
+#    uint8_t res = __atomic_load_n(x.u8v, __ATOMIC_SEQ_CST);
+#    __atomic_store_n(x.u8v, 1, ATOMIC_SEQ_CST);
+#    void *p = __atomic_load_n(x.p, __ATOMIC_SEQ_CST);
+#    __atomic_store_n((void **)x.p, NULL, __ATOMIC_SEQ_CST)
+#    return 0;
+#    }
+# '''
+# if cc.get_id() != 'msvc'
+#   if not cc.links(
+#       code_non_lockfree,
+#       name : 'Check atomic builtins without -latomic'
+#     )
+#     atomic_dep = cc.find_library('atomic', required: false)
+#     if atomic_dep.found()
+#       # We're not sure that with `-latomic` things will work for all compilers,
+#       # so verify and only keep libatomic as a dependency if this works. It is
+#       # possible the build will fail later otherwise - unclear under what
+#       # circumstances (compilers, runtimes, etc.) exactly and this may need to
+#       # be extended when support is added for new CPUs
+#       if not cc.links(
+#           code_non_lockfree,
+#           dependencies: atomic_dep,
+#           name : 'Check atomic builtins with -latomic'
+#         )
+#         atomic_dep = null_dep
+#       endif
+#     endif
+#   endif
+# endif
+
+######################################################################
 ## Installation tags
 ## https://mesonbuild.com/Installing.html#installing
 ## https://mesonbuild.com/Installing.html#installation-tags
@@ -740,19 +969,30 @@ gen_tempita = generator(cli_tempita,
 ######################################################################
 
 ######################################################################
+## Fs-module
+## https://mesonbuild.com/Fs-module.html
+######################################################################
+
+# Copy the main __init__.py|pxd files to the build dir (needed for Cython)
+fs = import('fs')
+
+######################################################################
 ## Copy all the .py files
 ## https://mesonbuild.com/Reference-manual_functions.html#install_subdir
 ## https://mesonbuild.com/Installing.html#installing
 ######################################################################
 
+# Install the main `scikitplot` package without any `tests` folders
 # Copy all the .py files to the install dir, rather than using
 # py.install_sources and needing to list them explicitely one by one
 install_subdir(
   'scikitplot',
   install_dir: py.get_install_dir(),  # Folder relative to site-packages to install to
-  install_tag: 'runtime',
-  # strip_directory : true,
-  # exclude_directories: ['third_party', ],  # Include all directories if not needed
+  install_tag: 'python-runtime',      # Tag to help categorize the install
+  exclude_directories: [              # Directories to exclude from installation
+    'tests',                          # Excludes the 'tests' directory
+    # 'third_party',                  # This line is commented, so not excluded
+  ],
 )
 # Optionally add a message to confirm the installation
 message(
@@ -760,13 +1000,22 @@ message(
   '@0@'.format(py.get_install_dir())
 )
 
-######################################################################
-## Fs-module
-## https://mesonbuild.com/Fs-module.html
-######################################################################
-
-# https://mesonbuild.com/Fs-module.html
-fs = import('fs')
+# # 'tests' directories in the 'scikitplot' folder
+# subdirs_with_tests = [
+#   'scikitplot/tests',
+#   'scikitplot/subdir1/tests',
+#   'scikitplot/subdir2/tests'
+#   # Add more paths here as needed
+# ]
+# foreach subdir : subdirs_with_tests
+#   if subdir != ''
+#     install_subdir(
+#       subdir,
+#       install_dir: join_paths(py.get_install_dir(), subdir),
+#       install_tag: 'tests',
+#     )
+#   endif
+# endforeach
 
 ######################################################################
 ## Next
