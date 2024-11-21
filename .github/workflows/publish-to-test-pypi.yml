@@ -1,145 +1,88 @@
-# Workflow Name: Publish Python distribution to PyPI and TestPyPI
-# Documentation: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
+## Documentation: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+## This workflow automates the process of publishing your Python package to TestPyPI or PyPI.
 
-# Trigger the workflow on any push
+name: Publish to TestPyPI/PyPI
+
+## Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
 on:
   push:
-    # Release branches/tags
+    ## Release branches/tags
     tags:
       - v*
-  workflow_dispatch: # Allows manual triggering of the workflow
+  workflow_dispatch:  # Allows manual triggering of the workflow
+    inputs:
+      version:  # Specify the version of the package to upload
+        description: 'Version to upload to PyPI (e.g., 1.0.0)'
+        required: true
+      pypi_repo:  # Specify whether to publish to TestPyPI or PyPI
+        description: 'Repository to upload to (testpypi or pypi)'
+        default: 'testpypi'  # Default to TestPyPI for safety
+        required: true
+      debug:  # Specify whether to log for debugging
+        description: 'Debugging'
+        default: 'false'  # Default to false for debugging
+        required: false
 
 jobs:
-  # Job 1: Build the distribution
-  build:
-    name: Build Python Distribution 📦
-    runs-on: ubuntu-latest
+  publish:
+    ## Restrict this job to the 'publish_pypi' environment
+    ## If Activated, Accessing Environment Secret for 'publish_pypi'
+    # environment: publish_pypi
+    name: Publish Package to PyPI or TestPyPI
+    runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
+
+    permissions:
+      # IMPORTANT: This permission is mandatory for secure publishing
+      id-token: write  # Required for trusted publishing
 
     steps:
-      # Step 1: Checkout the repository
-      - uses: actions/checkout@v4
+      # Step 1: Check out the code from the repository
+      - name: Check out code
+        uses: actions/checkout@v4
 
-      # Step 2: Set up Python environment
+      # Step 2: Set up the Python environment
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"  # Use the latest Python 3.x version
+          python-version: '3.8'  # Specify the Python version
 
-      # Step 3: Install the required package for building
-      - name: Install pypa/build
-        run: python3 -m pip install build --user
+      # Step 3: Install dependencies for building and publishing
+      - name: Install build dependencies
+        run: |
+          # Install the necessary tools for building and publishing
+          pip install --upgrade setuptools wheel build twine
 
-      # Step 4: Build the binary wheel and source tarball
-      - name: Build a binary wheel and a source tarball
-        run: python3 -m build
-
-      # Step 5: Store the distribution packages as artifacts
-      - name: Store the distribution packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-package-distributions
-          path: dist/
-
-  # Job 2: Publish to PyPI
-  publish-to-pypi:
-    name: Publish to PyPI
-    # Only trigger this job on tag pushes
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: 
-      - build
-    runs-on: ubuntu-latest
-
-    environment:
-      name: pypi
-      # url: https://pypi.org/p/<package-name>  # Replace <package-name> with your PyPI project name
-      url: https://pypi.org/p/scikit-plots  # Set to your PyPI project name
-
-    permissions:
-      id-token: write  # Required for trusted publishing to PyPI
-
-    steps:
-      # Step 1: Download the built distributions
-      - name: Download the distribution artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: python-package-distributions
-          path: dist/
-
-      # Step 2: Publish the distribution to PyPI
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-
-  # Job 3: Create a GitHub Release and sign with Sigstore
-  github-release:
-    name: Sign and Upload to GitHub Release
-    needs: 
-      - publish-to-pypi
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write  # Required for creating GitHub Releases
-      id-token: write  # Required for Sigstore signing
-
-    steps:
-      # Step 1: Download the built distributions
-      - name: Download the distribution artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: python-package-distributions
-          path: dist/
-
-      # Step 2: Sign the distributions with Sigstore
-      - name: Sign the distributions with Sigstore
-        uses: sigstore/gh-action-sigstore-python@v3.0.0
-        with:
-          inputs: >-
-            ./dist/*.tar.gz
-            ./dist/*.whl
-
-      # Step 3: Create a GitHub Release
-      - name: Create GitHub Release
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: >
-          gh release create
-          '${{ github.ref_name }}'
-          --repo '${{ github.repository }}'
-          --notes ""
+          SKPLT_VERSION: ${{ github.event.inputs.version }}
 
-      # Step 4: Upload artifact signatures to the GitHub Release
-      - name: Upload artifact signatures to GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: >
-          gh release upload
-          '${{ github.ref_name }}' dist/**
-          --repo '${{ github.repository }}'
+      # Step 4: Build the package
+      - name: Build the package
+        run: |
+          # Build both source distribution (sdist) and built distribution (wheel)
+          python -m build
 
-  # Job 4: Publish to TestPyPI
-  publish-to-testpypi:
-    name: Publish to TestPyPI
-    needs: 
-      - build
-    runs-on: ubuntu-latest
+      # Step to verify if secrets are being loaded correctly (only for debugging purposes)
+      - name: Verify secrets for debugging (optional)
+        run: |
+          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
+            echo "TestPyPI Token: ${{ secrets.TEST_PYPI_API_TOKEN }}"
+            echo "PyPI Token: ${{ secrets.PYPI_API_TOKEN }}"
+          else
+            echo "Debugging is turned off."
+          fi
+        if: ${{ github.event.inputs.debug == 'true' }} # Run this step only if debugging is enabled
 
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/<package-name>  # Replace <package-name> with your TestPyPI project name
-
-    permissions:
-      id-token: write  # Required for trusted publishing to TestPyPI
-
-    steps:
-      # Step 1: Download the built distributions
-      - name: Download the distribution artifacts
-        uses: actions/download-artifact@v4
+      # Step 5a: Publish the package to TestPyPI (if selected)
+      - name: Publish package to TestPyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.0
         with:
-          name: python-package-distributions
-          path: dist/
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
+          repository_url: https://test.pypi.org/legacy/  # TestPyPI URL
+        if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}  # Run only if 'testpypi' is chosen
 
-      # Step 2: Publish the distribution to TestPyPI
-      - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      # Step 5b: Publish the package to PyPI (if selected)
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.10.0
         with:
-          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
+        if: ${{ github.event.inputs.pypi_repo == 'pypi' }}  # Run only if 'pypi' is chosen
