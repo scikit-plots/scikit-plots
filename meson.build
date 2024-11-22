@@ -42,7 +42,7 @@ project(
 # build_dir = meson.current_build_dir()
 
 ######################################################################
-## fortran
+## Fortran Compiler Setup
 ######################################################################
 
 # Conditional Fortran setup
@@ -93,32 +93,36 @@ if get_option('fortran').enabled()
 endif
 
 ######################################################################
-## C and C++
+## C and C++ Compiler Setup
 ######################################################################
 
-cc = meson.get_compiler('c')
+cc  = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
+# C Compiler version checks
+cc_version = cc.version()
+
+# Detect which C and C++ compiler is being used
+cc_id  = cc.get_id()
+cpp_id = cpp.get_id() # Possible values: 'gcc', 'clang', 'msvc', etc.
+
 # Check compiler is recent enough (see the SciPy Toolchain Roadmap for details)
-if cc.get_id() == 'gcc'
-  if not cc.version().version_compare('>=8.0')
+if cc_id == 'gcc'
+  if not cc_version.version_compare('>=8.0')
     error('scikit-plots requires GCC >= 8.0')
   endif
-elif cc.get_id() == 'clang' or cc.get_id() == 'clang-cl'
-  if not cc.version().version_compare('>=12.0')
-    error('scikit-plots requires clang >= 12.0')
+elif cc_id == 'clang' or cc_id == 'clang-cl'
+  if not cc_version.version_compare('>=12.0')
+    error('scikit-plots requires Clang >= 12.0')
   endif
-elif cc.get_id() == 'msvc'
-  if not cc.version().version_compare('>=19.20')
-    error(
-      'scikit-plots requires at least vc142 (default with Visual Studio 2019) ' +
-      'when building with MSVC'
-    )
+elif cc_id == 'msvc'
+  if not cc_version.version_compare('>=19.20')
+    error('scikit-plots requires MSVC >= 19.20 (Visual Studio 2019 or newer)')
   endif
 endif
 
 ######################################################################
-## C strict aliasing
+## Compiler Flags: C strict aliasing flags
 ######################################################################
 
 # Add default compile flags for any compiler that supports them.
@@ -130,7 +134,7 @@ add_project_arguments(
 )
 
 ######################################################################
-## Clang C and C++ strict behavior
+## Compiler Flags: Clang trapping math flags
 ######################################################################
 
 # Clang defaults to a non-strict floating error point model, but we need strict
@@ -155,9 +159,8 @@ if cc_id.startswith('clang')
       trapping_math = [trapping_math, '-Wno-unsupported-floating-point-opt']
       # Inform the user about the workaround.
       message(
-        'NumPy is being built against a version of Clang that does not strictly enforce ' +
-        'floating-point exception handling. Workarounds will be used, which may impact performance.\n' +
-        'Consider upgrading Clang to the latest version.'
+        'Clang version does not strictly enforce floating-point exception handling. ' +
+        'Performance may be impacted. Consider upgrading Clang.'
       )
     endif
     add_project_arguments(
@@ -171,7 +174,7 @@ endif
 ## C and C++ Global compiler flags/options argument
 ######################################################################
 
-# Global compiler options
+# List of global arguments for C and C++
 _global_args = [
   '-DDEBUG',                        # Define DEBUG macro to enable debug mode
   '-W',                             # Enable all warnings
@@ -200,55 +203,71 @@ _global_args = [
   '-Wno-unused-variable',           # Suppress warnings about unused variables
   '-Wno-write-strings',             # Treat string literals as `const char[]`
 ]
-# Compiler options for C
+# Additional arguments for C
 _global_c_args = cc.get_supported_arguments(
   _global_args + [
     '-Wno-implicit-function-declaration',  # Suppress warnings about implicit function declarations
   ]
 )
-# Compiler options for C++
+# Additional arguments for C++
 _global_cpp_args = cpp.get_supported_arguments(
+  # GCC/Clang flags
   _global_args + [
+    '-std=c++17',
     '-pthread',                  # Add pthread support for POSIX systems
     '-Wno-class-memaccess',      # Suppress warnings about accessing class members inappropriately
-    '-Wno-cpp',                  # Suppress warnings about C++ preprocessor directives
     '-Wno-int-in-bool-context',  # Suppress warnings about int used in boolean context
     '-Wno-non-virtual-dtor',     # Suppress warnings about non-virtual destructors
+    # invalid in MSVC (cl) as they are specific to GCC/Clang
+    '-Wno-cpp',                  # Suppress warnings about C++ preprocessor directives
     '-Wno-pedantic',             # Suppress strict ISO C++ compliance warnings
     '-Wno-terminate',            # Suppress warnings about code that might terminate unexpectedly
   ]
 )
 
-# Check for std::thread support and add appropriate flags
+# Enable multithreading if std::thread is supported
 if cpp.has_function('std::thread')
   # Enable multithreading with STL parallel execution policies
   _global_cpp_args += ['-DNUMCPP_USE_MULTITHREAD']
 endif
 
-add_project_arguments(
-  _global_c_args,
-  language: ['c'],
-)
+# Apply C arguments if supported
+foreach arg : _global_c_args
+  if cc.has_argument(arg)
+    add_project_arguments(arg, language: 'c')
+  else
+    # Debug message for compiler IDs
+    message('C compiler (' + c_compiler_name + ') does not support argument: ' + arg)
+  endif
+endforeach
 
-add_project_arguments(
-  _global_cpp_args,
-  language: ['cpp'],
-)
+# Apply C++ arguments if supported
+foreach arg : _global_cpp_args
+  if cpp.has_argument(arg)
+    add_project_arguments(arg, language: 'cpp')
+  else
+    # Debug message for compiler IDs
+    message('C++ compiler (' + cpp_compiler_name + ') does not support argument: ' + arg)
+  endif
+endforeach
 
 ######################################################################
-## C and C++ math functions, symbols
+## C and C++ Math Library functions, symbols
 ######################################################################
 
 # We need -lm for all C code (assuming it uses math functions, which is safe to
 # assume for scikit-image). For C++ it isn't needed, because libstdc++/libc++ is
 # guaranteed to depend on it. For Fortran code, Meson already adds `-lm`.
-dep_m = cc.find_library('m', required : false)
-if dep_m.found()
+dep_math = cc.find_library('m', required : false)
+if dep_math.found()
   add_project_link_arguments(
-    ['-lm'],
-    language : ['c'],
+    ['-lm'], language : ['c'],
   )
 endif
+
+######################################################################
+## C and C++ Symbol Visibility
+######################################################################
 
 # Hide symbols when building on Linux with GCC. For Python extension modules,
 # we only need `PyInit_*` to be public, anything else may cause problems. So we
