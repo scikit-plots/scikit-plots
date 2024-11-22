@@ -7,10 +7,11 @@ PROJECT_DIR="${1:-$PWD}"
 rm -rf build
 
 # Update license
-echo "" >> $PROJECT_DIR/LICENSE.txt
-echo "----" >> $PROJECT_DIR/LICENSE.txt
-echo "" >> $PROJECT_DIR/LICENSE.txt
-cat $PROJECT_DIR/LICENSES_bundled.txt >> $PROJECT_DIR/LICENSE.txt
+echo "" >> $PROJECT_DIR/LICENSE
+echo "----" >> $PROJECT_DIR/LICENSE
+echo "" >> $PROJECT_DIR/LICENSE
+cat $PROJECT_DIR/LICENSES/ >> $PROJECT_DIR/LICENSES/
+
 if [[ $RUNNER_OS == "Linux" ]] ; then
     cat $PROJECT_DIR/tools/wheels/LICENSE_linux.txt >> $PROJECT_DIR/LICENSE.txt
 elif [[ $RUNNER_OS == "macOS" ]]; then
