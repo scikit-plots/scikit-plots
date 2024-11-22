@@ -65,6 +65,5 @@ fi
 FREE_THREADED_BUILD="$(python -c"import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")"
 if [[ $FREE_THREADED_BUILD == "True" ]]; then
     python -m pip install meson-python ninja
-    # python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython
-    python -m pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging/simple cython
+    python -m pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging/simple cython || python -m pip install cython
 fi

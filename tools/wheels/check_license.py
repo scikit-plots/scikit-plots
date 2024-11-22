@@ -38,7 +38,7 @@ def main():
     distinfo_path = list(sitepkgs.glob("scikitplot-*.dist-info"))[0]
 
     # Check license text
-    license_txt = distinfo_path / "LICENSE.txt"
+    license_txt = distinfo_path / "LICENSE"
     with open(license_txt, encoding="utf-8") as f:
         text = f.read()
 
