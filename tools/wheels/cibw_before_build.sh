@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
 set -x  # Print each command before executing it
-echo "Running cibw_before_build.sh"
+
+echo "Starting OpenBLAS setup..."
+
 # remove any cruft from a previous run
 rm -rf build
 
@@ -18,53 +20,50 @@ elif [[ $RUNNER_OS == "Windows" ]]; then
 fi
 
 
-# Check if the system is 32-bit or 64-bit to Install OpenBLAS
-if [[ $(python -c "import sys; print(sys.maxsize)") < $(python -c "import sys; print(2**33)") ]]; then
-    echo "32-bit wheels"
-    # Install required CI dependencies with 32 bit Openblas
-    python -m pip install -r requirements/ci32_requirements.txt
-    python -c "import scipy_openblas32; print(scipy_openblas32.get_pkg_config())" > $PROJECT_DIR/scipy-openblas.pc
+# Check system bit architecture
+if [[ $(python -c "import sys; print(sys.maxsize)") < $(python -c "print(2**33)") ]]; then
+    echo "32-bit wheels detected"
+    # Install 32-bit specific requirements
+    python -m pip install --upgrade -r requirements/ci32_requirements.txt
+    
+    # Generate OpenBLAS pkg-config file
+    python -c "import scipy_openblas32; print(scipy_openblas32.get_pkg_config())" > "$PROJECT_DIR/scipy-openblas.pc"
+    echo "OpenBLAS setup completed successfully."
     export INSTALL_OPENBLAS64=false
 elif [ -z "$INSTALL_OPENBLAS64" ]; then
-    echo "64-bit wheels"
+    echo "64-bit wheels detected"
     export INSTALL_OPENBLAS64=true
 fi
 
-# Install OpenBLAS from scipy-openblas64 if required
-if [[ "$INSTALL_OPENBLAS64" = "true" ]] ; then
-    echo "Setting up OpenBLAS"
-    echo PKG_CONFIG_PATH $PKG_CONFIG_PATH
-    PKG_CONFIG_PATH=$PROJECT_DIR/.openblas
-    
-    # Cleanup any previous OpenBLAS directories and create a fresh one
+# If OpenBLAS setup is required for 64-bit
+if [[ "$INSTALL_OPENBLAS64" == "true" ]]; then
+    echo "Setting up OpenBLAS for 64-bit..."
+
+    PKG_CONFIG_PATH="$PROJECT_DIR/.openblas"
+    export PKG_CONFIG_PATH
+    echo "PKG_CONFIG_PATH set to $PKG_CONFIG_PATH"
+
+    # Clean up and recreate the OpenBLAS directory
     rm -rf "$PKG_CONFIG_PATH"
     mkdir -p "$PKG_CONFIG_PATH"
-    
-    # Install required CI dependencies with 32/64 bit Openblas
+
+    # Install CI requirements
     python -m pip install --upgrade -r requirements/ci_requirements.txt
     
-    # Configure OpenBLAS using scipy_openblas64 and create pkg-config file
-    if python -c "import scipy_openblas64" &>/dev/null; then
-        python -c "import scipy_openblas64; print(scipy_openblas64.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc"
+    # Generate OpenBLAS pkg-config file
+    python -c "import scipy_openblas64; print(scipy_openblas64.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc"
         
-        # Copy the shared objects into the OpenBLAS directory
-        # Copy the shared objects to a path under $PKG_CONFIG_PATH, the build
-        # will point $LD_LIBRARY_PATH there and then auditwheel/delocate-wheel will
-        # pull these into the wheel. Use python to avoid windows/posix problems
-        python <<EOF
+    # Copy OpenBLAS shared libraries to the build directory
+    python <<EOF
 import os, scipy_openblas64, shutil
-srcdir = os.path.join(os.path.dirname(scipy_openblas64.__file__), "lib")
-shutil.copytree(srcdir, os.path.join("$PKG_CONFIG_PATH", "lib"))
+lib_dir = os.path.join(os.path.dirname(scipy_openblas64.__file__), "lib")
+shutil.copytree(lib_dir, os.path.join("$PKG_CONFIG_PATH", "lib"))
 
-# Handle macOS-specific shared objects (if applicable)
-srcdir = os.path.join(os.path.dirname(scipy_openblas64.__file__), ".dylibs")
-if os.path.exists(srcdir):  # macOS delocate
-    shutil.copytree(srcdir, os.path.join("$PKG_CONFIG_PATH", ".dylibs"))
+dylib_dir = os.path.join(os.path.dirname(scipy_openblas64.__file__), ".dylibs")
+if os.path.exists(dylib_dir):
+    shutil.copytree(dylib_dir, os.path.join("$PKG_CONFIG_PATH", ".dylibs"))
 EOF
-        # pkg-config scipy-openblas --print-provides
-    else
-        echo "scipy_openblas64 module not found. Skipping OpenBLAS configuration."
-    fi
+    echo "OpenBLAS64 setup completed successfully."
 fi
 
 # Windows-specific setup for delvewheel if the OS is Windows
@@ -73,6 +72,19 @@ if [[ $RUNNER_OS == "Windows" ]]; then
     echo "Installing delvewheel and wheel for Windows"
     python -m pip install delvewheel wheel
 fi
+
+# # Debugging pkg-config
+# echo "Testing pkg-config detection..."
+# if pkg-config --exists scipy-openblas; then
+#     echo "OpenBLAS pkg-config setup is correct"
+#     pkg-config --cflags --libs scipy-openblas
+# else
+#     echo "ERROR: OpenBLAS pkg-config setup failed"
+#     echo "PKG_CONFIG_PATH contents:"
+#     ls -R "$PKG_CONFIG_PATH"
+#     cat "$PKG_CONFIG_PATH/scipy-openblas.pc" || echo "scipy-openblas.pc file not found"
+#     exit 1
+# fi
 
 # TODO: delete along with enabling build isolation by unsetting
 # CIBW_BUILD_FRONTEND when numpy is buildable under free-threaded
