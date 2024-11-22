@@ -25,69 +25,52 @@ python -c "import scipy_openblas32; print(scipy_openblas32.get_pkg_config())" > 
 
 echo "OpenBLAS setup completed successfully."
     
-# # Check system bit architecture
-# if [[ $(python -c "import sys; print(sys.maxsize)") < $(python -c "print(2**33)") ]]; then
-#     echo "32-bit wheels detected"
-#     export INSTALL_OPENBLAS64=false
-# elif [ -z "$INSTALL_OPENBLAS64" ]; then
-#     echo "64-bit wheels detected"
-#     export INSTALL_OPENBLAS64=true
-# fi
+# Check system bit architecture
+if [[ $(python -c "import sys; print(sys.maxsize)") < $(python -c "print(2**33)") ]]; then
+    echo "32-bit wheels detected"
+    export INSTALL_OPENBLAS64=false
+elif [ -z "$INSTALL_OPENBLAS64" ]; then
+    echo "64-bit wheels detected"
+    export INSTALL_OPENBLAS64=true
+fi
 
-# # If OpenBLAS setup is required for 64-bit
-# if [[ "$INSTALL_OPENBLAS64" == "true" ]]; then
-#     echo "Setting up OpenBLAS for 64-bit..."
+# If OpenBLAS setup is required for 64-bit
+if [[ "$INSTALL_OPENBLAS64" == "true" ]]; then
+    echo "Setting up OpenBLAS for 64-bit..."
 
-#     PKG_CONFIG_PATH="$PROJECT_DIR/.openblas"
-#     export PKG_CONFIG_PATH
-#     echo "PKG_CONFIG_PATH set to $PKG_CONFIG_PATH"
+    PKG_CONFIG_PATH="$PROJECT_DIR/.openblas"
+    export PKG_CONFIG_PATH
+    echo "PKG_CONFIG_PATH set to $PKG_CONFIG_PATH"
 
-#     # Clean up and recreate the OpenBLAS directory
-#     rm -rf "$PKG_CONFIG_PATH"
-#     mkdir -p "$PKG_CONFIG_PATH"
+    # Clean up and recreate the OpenBLAS directory
+    rm -rf "$PKG_CONFIG_PATH"
+    mkdir -p "$PKG_CONFIG_PATH"
 
-#     # Install CI requirements
-#     python -m pip install --upgrade -r requirements/ci_requirements.txt
+    # Install CI requirements
+    python -m pip install --upgrade -r requirements/ci_requirements.txt
     
-#     # Generate OpenBLAS pkg-config file
-#     python -c "import scipy_openblas64; print(scipy_openblas64.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc"
+    # Generate OpenBLAS pkg-config file
+    python -c "import scipy_openblas64; print(scipy_openblas64.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc"
         
-#     # Copy OpenBLAS shared libraries to the build directory
-#     python <<EOF
-# import os, scipy_openblas64, shutil
-# lib_dir = os.path.join(os.path.dirname(scipy_openblas64.__file__), "lib")
-# shutil.copytree(lib_dir, os.path.join("$PKG_CONFIG_PATH", "lib"))
+    # Copy OpenBLAS shared libraries to the build directory
+    python <<EOF
+import os, scipy_openblas64, shutil
+lib_dir = os.path.join(os.path.dirname(scipy_openblas64.__file__), "lib")
+shutil.copytree(lib_dir, os.path.join("$PKG_CONFIG_PATH", "lib"))
 
-# dylib_dir = os.path.join(os.path.dirname(scipy_openblas64.__file__), ".dylibs")
-# if os.path.exists(dylib_dir):
-#     shutil.copytree(dylib_dir, os.path.join("$PKG_CONFIG_PATH", ".dylibs"))
-# EOF
-#     echo "OpenBLAS64 setup completed successfully."
-# fi
+dylib_dir = os.path.join(os.path.dirname(scipy_openblas64.__file__), ".dylibs")
+if os.path.exists(dylib_dir):  # macosx delocate
+    shutil.copytree(dylib_dir, os.path.join("$PKG_CONFIG_PATH", ".dylibs"))
+EOF
+    # pkg-config scipy-openblas --print-provides
+    echo "OpenBLAS64 setup completed successfully."
+fi
 
 # Windows-specific setup for delvewheel if the OS is Windows
 if [[ $RUNNER_OS == "Windows" ]]; then
     # delvewheel is the equivalent of delocate/auditwheel for windows.
     echo "Installing delvewheel and wheel for Windows"
     python -m pip install delvewheel wheel
-fi
-
-# TODO: delete along with enabling build isolation by unsetting
-# CIBW_BUILD_FRONTEND when numpy is buildable under free-threaded
-# python with a released version of cython
-# Handle Free-Threaded Python builds (if applicable)
-FREE_THREADED_BUILD="$(python -c"import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")"
-if [[ $FREE_THREADED_BUILD == "True" ]]; then
-    echo "Free-threaded build detected, installing additional build dependencies"
-    
-    # Install build tools like Meson, Ninja, and Cython (via nightly if needed)
-    python -m pip install -U --pre pip
-    python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython || python -m pip install cython
-    # TODO: Remove meson installation from source once a new release
-    # that includes https://github.com/mesonbuild/meson/pull/13851 is available
-    python -m pip install git+https://github.com/mesonbuild/meson
-    # python -m pip install git+https://github.com/serge-sans-paille/pythran
-    python -m pip install ninja meson-python pybind11 pythran
 fi
 
 # macOS-specific setup
@@ -155,6 +138,24 @@ if [[ $RUNNER_OS == "macOS" ]]; then
         install_name_tool -change @loader_path/../.dylibs/$lib @rpath/$lib $lib_loc/libsci*
     done
     codesign -s - -f $lib_loc/libsci*
+fi
+
+# TODO: delete along with enabling build isolation by unsetting
+# CIBW_BUILD_FRONTEND when numpy is buildable under free-threaded
+# python with a released version of cython
+# Handle Free-Threaded Python builds (if applicable)
+FREE_THREADED_BUILD="$(python -c"import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")"
+if [[ $FREE_THREADED_BUILD == "True" ]]; then
+    echo "Free-threaded build detected, installing additional build dependencies"
+    
+    # Install build tools like Meson, Ninja, and Cython (via nightly if needed)
+    python -m pip install -U --pre pip
+    python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython || python -m pip install cython
+    # TODO: Remove meson installation from source once a new release
+    # that includes https://github.com/mesonbuild/meson/pull/13851 is available
+    python -m pip install git+https://github.com/mesonbuild/meson
+    # python -m pip install git+https://github.com/serge-sans-paille/pythran
+    python -m pip install ninja meson-python pybind11 pythran
 fi
 
 echo "Build environment setup complete."
