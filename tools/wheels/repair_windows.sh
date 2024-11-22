@@ -1,5 +1,7 @@
+#!/bin/bash
+set -e  # Exit immediately if a command exits with a non-zero status
+set -x  # Print each command before executing it
 # Repairing wheel script
-set -xe
 
 WHEEL="$1"
 DEST_DIR="$2"

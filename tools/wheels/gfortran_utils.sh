@@ -25,12 +25,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Bash utilities for use with gfortran
-
 ARCHIVE_SDIR="${ARCHIVE_SDIR:-archives}"
 
-GF_LIB_URL="https://3f23b170c54c2533c070-1c8a9b3114517dc5fe17b7c3f8c63a43.ssl.cf2.rackcdn.com"
-
 GF_UTIL_DIR=$(dirname "${BASH_SOURCE[0]}")
+GF_LIB_URL="https://3f23b170c54c2533c070-1c8a9b3114517dc5fe17b7c3f8c63a43.ssl.cf2.rackcdn.com"
 
 function get_distutils_platform {
     # Report platform as in form of distutils get_platform.
