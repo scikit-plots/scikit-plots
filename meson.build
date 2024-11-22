@@ -111,6 +111,12 @@ if cc_id == 'gcc'
   if not cc_version.version_compare('>=8.0')
     error('scikit-plots requires GCC >= 8.0')
   endif
+
+  # Add -lstdc++fs if GCC version is below 9.1
+  if not cc_version.version_compare('>=9.1')
+    # Add GCC<9.1, explicitly link the stdc++fs library to provide std::filesystem support
+    add_project_link_arguments('-lstdc++fs', language: 'cpp')
+  endif
 elif cc_id == 'clang' or cc_id == 'clang-cl'
   if not cc_version.version_compare('>=12.0')
     error('scikit-plots requires Clang >= 12.0')
@@ -214,7 +220,6 @@ _global_cpp_args = cpp.get_supported_arguments(
   # GCC/Clang flags
   _global_args + [
     '-std=c++17',
-    '-pthread',                  # Add pthread support for POSIX systems
     '-Wno-class-memaccess',      # Suppress warnings about accessing class members inappropriately
     '-Wno-int-in-bool-context',  # Suppress warnings about int used in boolean context
     '-Wno-non-virtual-dtor',     # Suppress warnings about non-virtual destructors
@@ -224,9 +229,13 @@ _global_cpp_args = cpp.get_supported_arguments(
     '-Wno-terminate',            # Suppress warnings about code that might terminate unexpectedly
   ]
 )
+if host_machine.system() == 'linux' or host_machine.system() == 'darwin'
+  add_project_link_arguments('-pthread', language: ['c', 'cpp'])  # Add pthread support for POSIX systems
+endif
 
 # Enable multithreading if std::thread is supported
-if cpp.has_function('std::thread')
+if (cpp.has_function('std::thread') or 
+    cpp.compiles('#include <thread>\nint main() { std::thread t; return 0; }', name: 'std::thread support'))
   # Enable multithreading with STL parallel execution policies
   _global_cpp_args += ['-DNUMCPP_USE_MULTITHREAD']
 endif
@@ -250,6 +259,10 @@ foreach arg : _global_cpp_args
     message('C++ compiler (' + cpp_compiler_name + ') does not support argument: ' + arg)
   endif
 endforeach
+
+if cpp.get_id() == 'gcc' and not cpp.version().version_compare('>=9.1')
+    add_project_link_arguments('-lstdc++fs', language: 'cpp')
+endif
 
 ######################################################################
 ## C and C++ Math Library functions, symbols
