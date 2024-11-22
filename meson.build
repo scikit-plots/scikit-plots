@@ -24,7 +24,7 @@ project(
     'buildtype=debugoptimized',
     'pkgconfig.relocatable=true',
     'fortran_std=legacy',            # Set C standard to C11
-    'c_std=c11',                     # Set C standard to C11
+    'c_std=c17',                     # Set C standard to C11
     'cpp_std=c++17',                 # Set C++ standard to C++17
     # https://mesonbuild.com/Builtin-options.html#details-for-warning_level
     # 'warning_level=3',             # You can specify warning levels here if needed
@@ -303,18 +303,6 @@ if get_option('fortran').enabled()
   endif
 endif
 
-# Emit a warning for 32-bit Python installs on Windows; users are getting
-# unexpected from-source builds there because we no longer provide wheels.
-if is_windows and py.has_variable('EXT_SUFFIX')
-  if py.get_variable('EXT_SUFFIX').contains('win32')
-    warning(
-      'You are building from source on a 32-bit Python install. ' +
-      'scikitplot does not provide 32-bit wheels; install 64-bit Python ' +
-      'if you are having issues!'
-    )
-  endif
-endif
-
 ######################################################################
 ## macOS 14
 ######################################################################
@@ -346,6 +334,18 @@ py = mod_py.find_installation(pure: false)
 
 # Get the Python Dependencies
 dep_py = py.dependency()
+
+# Emit a warning for 32-bit Python installs on Windows; users are getting
+# unexpected from-source builds there because we no longer provide wheels.
+if is_windows and py.has_variable('EXT_SUFFIX')
+  if py.get_variable('EXT_SUFFIX').contains('win32')
+    warning(
+      'You are building from source on a 32-bit Python install. ' +
+      'scikitplot does not provide 32-bit wheels; install 64-bit Python ' +
+      'if you are having issues!'
+    )
+  endif
+endif
 
 ######################################################################
 ## python headers 'Python.h'
