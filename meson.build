@@ -18,14 +18,16 @@ project(
     check: true,
   ).stdout().strip(),
   license: 'BSD-3 Clause',
-  meson_version: '>= 1.1.0',
+  meson_version: '>= 1.5.0',
   default_options: [
     'b_ndebug=if-release',
     'buildtype=debugoptimized',
     'pkgconfig.relocatable=true',
-    'fortran_std=legacy',            # Set C standard to C11
-    'c_std=c17',                     # Set C standard to C11
+    'c_std=c17',                     # Set C standard to C17
     'cpp_std=c++17',                 # Set C++ standard to C++17
+    'fortran_std=legacy',
+    'blas=openblas',
+    'lapack=openblas',
     # https://mesonbuild.com/Builtin-options.html#details-for-warning_level
     # 'warning_level=3',             # You can specify warning levels here if needed
     # 'werror=true',                 # Treat warnings as errors globally
@@ -90,6 +92,15 @@ if get_option('fortran').enabled()
     _global_fortran_args,
     language: ['fortran'],
   )
+  # # Apply fortran arguments if supported
+  # foreach arg : _global_fortran_args
+  #   if ff.has_argument(arg)
+  #     add_project_arguments(arg, language: 'fortran')
+  #   else
+  #     # Debug message for compiler IDs
+  #     message('fortran compiler (' + ff.get_id() + ') does not support argument: ' + arg)
+  #   endif
+  # endforeach
 endif
 
 ######################################################################
@@ -108,14 +119,8 @@ cpp_id = cpp.get_id() # Possible values: 'gcc', 'clang', 'msvc', etc.
 
 # Check compiler is recent enough (see the SciPy Toolchain Roadmap for details)
 if cc_id == 'gcc'
-  if not cc_version.version_compare('>=8.0')
-    error('scikit-plots requires GCC >= 8.0')
-  endif
-
-  # Add -lstdc++fs if GCC version is below 9.1
   if not cc_version.version_compare('>=9.1')
-    # Add GCC<9.1, explicitly link the stdc++fs library to provide std::filesystem support
-    add_project_link_arguments('-lstdc++fs', language: 'cpp')
+    error('scikit-plots requires GCC >= 9.1')
   endif
 elif cc_id == 'clang' or cc_id == 'clang-cl'
   if not cc_version.version_compare('>=12.0')
@@ -246,7 +251,7 @@ foreach arg : _global_c_args
     add_project_arguments(arg, language: 'c')
   else
     # Debug message for compiler IDs
-    message('C compiler (' + c_compiler_name + ') does not support argument: ' + arg)
+    message('C compiler (' + cc_id + ') does not support argument: ' + arg)
   endif
 endforeach
 
@@ -256,13 +261,9 @@ foreach arg : _global_cpp_args
     add_project_arguments(arg, language: 'cpp')
   else
     # Debug message for compiler IDs
-    message('C++ compiler (' + cpp_compiler_name + ') does not support argument: ' + arg)
+    message('C++ compiler (' + cpp_id + ') does not support argument: ' + arg)
   endif
 endforeach
-
-if cpp.get_id() == 'gcc' and not cpp.version().version_compare('>=9.1')
-    add_project_link_arguments('-lstdc++fs', language: 'cpp')
-endif
 
 ######################################################################
 ## C and C++ Math Library functions, symbols
@@ -287,15 +288,14 @@ endif
 # use a linker script to avoid exporting those symbols (this is in addition to
 # Meson using `-fvisibility=hidden` for C and `-fvisibility-inlines-hidden` for
 # C++ code. See gh-15996 for details.
-# _linker_script = (
-#   meson.project_source_root() / 'scikitplot/_build_utils/link-version-pyinit.map'
-# )
-# _version_link_args = ['-Wl,--version-script=' + _linker_script]
-
-# Only use version-link-args if GCC or compatible linker is used
+_linker_script = meson.project_source_root() / 'scikitplot/_build_utils/link-version-pyinit.map'
+version_link_args = ['-Wl,--version-script=' + _linker_script]
 # Note that FreeBSD only accepts version scripts when -shared is passed,
 # hence we need to pass that to `cc.links` explicitly (flag is already
 # present for `extension_module` invocations).
+if not cc.links('', name: '-Wl,--version-script', args: ['-shared', version_link_args])
+  version_link_args = []
+endif
 
 ######################################################################
 ## Platform OS detection

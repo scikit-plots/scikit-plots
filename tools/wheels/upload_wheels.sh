@@ -1,3 +1,6 @@
+# Copied from numpy version
+# https://github.com/numpy/numpy/blob/main/tools/wheels/upload_wheels.sh
+
 set_travis_vars() {
     # Set env vars
     echo "TRAVIS_EVENT_TYPE is $TRAVIS_EVENT_TYPE"
@@ -43,6 +46,9 @@ upload_wheels() {
                 anaconda -q -t ${TOKEN} upload --force -u ${ANACONDA_ORG} ./dist/*.gz
             elif compgen -G "./wheelhouse/*.whl"; then
                 echo "Found wheel"
+                # Force a replacement if the remote file already exists -
+                # nightlies will not have the commit ID in the filename, so
+                # are named the same (1.X.Y.dev0-<platform/interpreter-tags>)
                 anaconda -q -t ${TOKEN} upload --force -u ${ANACONDA_ORG} ./wheelhouse/*.whl
             else
                 echo "Files do not exist"
