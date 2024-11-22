@@ -356,17 +356,6 @@ if host_machine.system() == 'darwin'
     # Allow linker to strip unused symbols
     add_project_link_arguments('-Wl,-dead_strip', language : ['c', 'cpp', 'fortran'])
   endif
-
-  # Ensure that std::filesystem is available and supported by the compiler
-  cpp_filesystem = cc.get_supported_features().contains('filesystem')
-  if not cpp_filesystem
-    error('std::filesystem not available with this compiler configuration.')
-  endif
-
-  # Optional: Link against the system filesystem library (if necessary)
-  if cc.has_library('stdc++fs', '', static: false)
-    add_project_link_arguments('-lstdc++fs', language: 'cpp')  # Link filesystem library
-  endif
 endif
 
 ######################################################################
