@@ -10,7 +10,12 @@ rm -rf build
 echo "" >> $PROJECT_DIR/LICENSE
 echo "----" >> $PROJECT_DIR/LICENSE
 echo "" >> $PROJECT_DIR/LICENSE
-cat $PROJECT_DIR/LICENSES/ >> $PROJECT_DIR/LICENSES/
+
+# cat $PROJECT_DIR/LICENSES/ >> $PROJECT_DIR/LICENSES/
+echo "$PROJECT_DIR/LICENSES/"; ls -R $PROJECT_DIR/LICENSES/ | sed '1d' | sed 's/^\(.*\)\/$/|-- \1/' | sed 's/^\([^|]\)/|-- \1/'
+echo "" >> $PROJECT_DIR/LICENSE
+echo "----" >> $PROJECT_DIR/LICENSE
+echo "" >> $PROJECT_DIR/LICENSE
 
 if [[ $RUNNER_OS == "Linux" ]] ; then
     cat $PROJECT_DIR/tools/wheels/LICENSE_linux.txt >> $PROJECT_DIR/LICENSE.txt
