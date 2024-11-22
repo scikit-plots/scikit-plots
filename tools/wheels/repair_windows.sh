@@ -32,4 +32,6 @@ rm -rf tmp
 
 # the libopenblas.dll is placed into this directory in the cibw_before_build
 # script.
-delvewheel repair --add-path $cwd/.openblas/lib -w $DEST_DIR $WHEEL
+# delvewheel repair --add-path $cwd/.openblas/lib -w $DEST_DIR $WHEEL
+OPENBLAS_DIR=$(python -c"import scipy_openblas32 as sop; print(sop.get_lib_dir())")
+delvewheel repair --add-path $OPENBLAS_DIR --no-dll libsf_error_state.dll -w $DEST_DIR $WHEEL

@@ -7,16 +7,18 @@ and that it appears to contain text prevalent for a scikitplot binary
 distribution.
 
 """
+import os
 import sys
-import re
 import argparse
 import pathlib
+import re
 
 
 def check_text(text):
     ok = "Copyright (c)" in text and re.search(
         r"This binary distribution of \w+ also bundles the following software",
         text,
+        re.IGNORECASE
     )
     return ok
 
