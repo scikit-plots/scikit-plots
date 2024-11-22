@@ -33,7 +33,7 @@ if [[ $FREE_THREADED_BUILD == "True" ]]; then
     # TODO: delete when scikitplot is buildable under free-threaded python
     # with a released version of cython
     python -m pip uninstall -y cython
-    python -m pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging/simple cython || python -m pip install cython
+    python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython || python -m pip install cython
 
     # Manually check that importing scikitplot does not re-enable the GIL.
     # In principle the tests should catch this but it seems harmless to leave it
