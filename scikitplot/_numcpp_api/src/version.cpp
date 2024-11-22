@@ -14,6 +14,6 @@
 extern "C" const char* get_version() {
   // Print the version
   // std::cout << nc::VERSION << std::endl;
-  // Return the version as a C-style string
-  // return nc::VERSION;  // Return nc::VERSION is a const char[], no need to call c_str()
+  // Return the version as a const char* from the nc::VERSION array
+  return nc::VERSION;  // Return nc::VERSION is a const char[], no need to call c_str()
 }

@@ -274,40 +274,15 @@ endif
 # use a linker script to avoid exporting those symbols (this is in addition to
 # Meson using `-fvisibility=hidden` for C and `-fvisibility-inlines-hidden` for
 # C++ code. See gh-15996 for details.
-_linker_script = (
-  meson.project_source_root() / 'scikitplot/_build_utils/link-version-pyinit.map'
-)
-_version_link_args = ['-Wl,--version-script=' + _linker_script]
-
+# _linker_script = (
+#   meson.project_source_root() / 'scikitplot/_build_utils/link-version-pyinit.map'
+# )
+# _version_link_args = ['-Wl,--version-script=' + _linker_script]
 
 # Only use version-link-args if GCC or compatible linker is used
 # Note that FreeBSD only accepts version scripts when -shared is passed,
 # hence we need to pass that to `cc.links` explicitly (flag is already
 # present for `extension_module` invocations).
-
-# Check platform and compiler compatibility for version link arguments
-if cc.get_id() == 'gcc' or cc.get_id() == 'clang' or cc.get_id() == 'apple-clang'
-  # Check if the linker supports the '--version-script' argument
-  if cc.has_link_argument('-Wl,--version-script')
-    # Add the version-script linker argument if supported
-    add_project_link_arguments('-Wl,--version-script', language: ['c', 'cpp'])
-  else
-    # If not supported, clear the _version_link_args to avoid errors
-    _version_link_args = []
-  endif
-else
-  # If the compiler is not GCC, Clang, or AppleClang, skip the version-script flag
-  _version_link_args = []
-endif
-
-# Add version-link-args if they are still set (i.e., compiler supports them)
-if _version_link_args != []
-  # FreeBSD requires the -shared flag to accept version scripts
-  if host_machine.system() == 'freebsd'
-    add_project_link_arguments('-shared', language: ['c', 'cpp'])
-  endif
-  add_project_link_arguments(_version_link_args, language: ['c', 'cpp'])
-endif
 
 ######################################################################
 ## Platform OS detection
