@@ -174,14 +174,19 @@ jobs:
           cl /?
           gcc --version
 
-      # Install required system dependencies (OpenBLAS and MKL)
+      # Setup Windows System dependencies (OpenBLAS and MKL)
       - name: Install MKL and OpenBLAS
+        if: ${{ runner.os == 'Windows' }}
         run: |
-          choco install intel-mkl
+          architecture="${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}"          
+          echo "Architecture: $architecture"
+          # Install MKL based on architecture
+          choco install intel-mkl --architecture $architecture          
+          # Install OpenBLAS based on architecture
+          choco install openblas --architecture $architecture
           # Print the version of MKL (Intel's version)
           echo "MKL Version:"
-          dir "C:\Program Files (x86)\Intel\oneAPI\mkl" /s /b | findstr /i "version.txt"
-          choco install openblas
+          dir "C:\Program Files (x86)\Intel\oneAPI\mkl" /s /b | findstr /i "version.txt"          
           # Print the version of OpenBLAS
           echo "OpenBLAS Version:"
           openblas_version=$(findstr /s /m "OpenBLAS" "C:\Program Files\OpenBLAS\*.dll")
