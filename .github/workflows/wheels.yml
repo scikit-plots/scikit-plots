@@ -155,6 +155,7 @@ jobs:
           python-version: "3.x"
 
       - name: Run OpenBLAS build script
+        if: ${{ runner.os == 'Windows' }}
         run: |
           # Assuming the script is in the root of the repository and is named build_openblas.sh
           bash ./tools/wheels/openblas_setup_windows.sh  # Run the shell script you created
