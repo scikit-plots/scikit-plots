@@ -115,10 +115,10 @@ jobs:
           - [macos-13, macosx, x86_64, accelerate, "14.0"]
           - [macos-14, macosx, arm64, openblas, "12.3"]
           - [macos-14, macosx, arm64, accelerate, "14.0"]
-          - [windows-2019, win, AMD64]  # Window 64 bit
+          - [windows-2019, win, AMD64]  # Window 64 bit ("*-win_amd64")
         exclude:
-          # (Optional) Don't build PyPy 32-bit windows
-          - buildplat: [windows-2019, win32, ""]
+          # (Optional) Don't build PyPy 32-bit windows ("*-win32")
+          - buildplat: [windows-2019, win32,]
             python: "pp310"
 
     env:
@@ -173,22 +173,6 @@ jobs:
           # Verify Tools
           cl /?
           gcc --version
-
-      # Setup Windows System dependencies (OpenBLAS and MKL)
-      - name: Install MKL and OpenBLAS
-        if: ${{ runner.os == 'Windows' }}
-        run: |
-          # Install MKL
-          choco install intel-mkl
-          # Install OpenBLAS based on architecture
-          choco install openblas
-          # Print the version of MKL (Intel's version)
-          echo "MKL Version:"
-          dir "C:\Program Files (x86)\Intel\oneAPI\mkl" /s /b | findstr /i "version.txt"
-          # Print the version of OpenBLAS
-          echo "OpenBLAS Version:"
-          openblas_version=$(findstr /s /m "OpenBLAS" "C:\Program Files\OpenBLAS\*.dll")
-          echo $openblas_version
 
       - name: Setup Windows Environment Variables (set PKG_CONFIG_PATH)
         if: ${{ runner.os == 'Windows' }}
