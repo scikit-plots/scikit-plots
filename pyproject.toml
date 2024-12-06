@@ -309,7 +309,7 @@ repair-wheel-command = "bash -el /project/tools/wheels/repair_windows.sh {wheel}
 # This does not work because pkg-config does not like backslashes, use CIBW_ENVIRONMENT_WINDOWS
 PKG_CONFIG_PATH="/project/.openblas"
 # do this instead (which will override this setting)
-set CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=PWD.replace('\\', '/')
+set CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=%CD:\=%
 
 # [[tool.cibuildwheel.overrides]]
 # select = "*-win32"
