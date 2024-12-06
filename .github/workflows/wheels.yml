@@ -158,7 +158,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         run: |
           # Assuming the script is in the root of the repository and is named build_openblas.sh
-          bash ./tools/wheels/openblas_setup_windows.sh  # Run the shell script you created
+          bash tools/wheels/openblas_setup_windows.sh  # Run the shell script you created
 
       - name: Setup Windows MSVC (32|64-bit)
         if: ${{ runner.os == 'Windows' }}
