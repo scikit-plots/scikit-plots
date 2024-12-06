@@ -62,7 +62,7 @@ jobs:
         run: |
           set -xe
           # (Optional) Utility script source it
-          source scripts/utils.sh
+          source .github/scripts/utils.sh
           COMMIT_MSG=$(git log --no-merges -1 --oneline)
           echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
           RUN="0"
