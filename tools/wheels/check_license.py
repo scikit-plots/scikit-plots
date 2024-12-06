@@ -39,7 +39,7 @@ def main():
     sitepkgs = pathlib.Path(mod.__file__).parent.parent  # This should give you the site-packages path
     print(f"Looking for .dist-info directory in: {sitepkgs}")
 
-    distinfo_path = list(sitepkgs.glob(f"{args.module.replace('-', '_')}-*.dist-info"))  # Handling package name format
+    distinfo_paths = list(sitepkgs.glob(f"{args.module.replace('-', '_')}-*.dist-info"))  # Handling package name format
 
     if not distinfo_paths:
         print(f"ERROR: No .dist-info directory found for module '{args.module}' in {sitepkgs}")
