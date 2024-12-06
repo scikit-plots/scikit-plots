@@ -88,6 +88,25 @@ handle_free_threaded_build() {
 ######################################################################
 ## (All OS Platform) Install Scipy OpenBLAS
 ######################################################################
+# Function to configure the OpenBLAS PKG_CONFIG_PATH
+configure_openblas_pkg_config() {
+    local project_dir="$1"  # Take the project directory as input
+    local pkg_config_path="$project_dir/.openblas"  # Define the PKG_CONFIG_PATH
+    # Export PKG_CONFIG_PATH and log
+    export PKG_CONFIG_PATH="$pkg_config_path"
+    log "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"    
+    # Check if directory exists before attempting to delete it
+    if [ -d "$PKG_CONFIG_PATH" ]; then
+        log "Removing existing OpenBLAS config directory..."
+        rm -rf "$PKG_CONFIG_PATH"  # Remove existing config directory
+    else
+        log "No existing OpenBLAS config directory to remove."
+    fi    
+    # Create a new OpenBLAS directory and log the success
+    log "Creating OpenBLAS config directory..."
+    mkdir -p "$PKG_CONFIG_PATH"
+    success "OpenBLAS config directory created successfully."
+}
 # Function to handle Scipy OpenBLAS setup
 install_requirements() {
     # Define the requirements file based on Platform
@@ -132,14 +151,6 @@ EOF
         log "pkg-config found. Verifying OpenBLAS detection..."
         pkg-config --libs scipy-openblas --print-provides || error "Failed to find OpenBLAS with pkg-config."
     fi
-    # Manually set OpenBLAS paths if necessary
-    log "Using OpenBLAS directory: $OpenBLAS_dir"
-    if [ -d "$OpenBLAS_dir" ]; then
-        export LD_LIBRARY_PATH="$OpenBLAS_dir:$LD_LIBRARY_PATH"  # For Linux
-        export LIBRARY_PATH="$OpenBLAS_dir:$LIBRARY_PATH"        # For Windows
-    else
-        error "OpenBLAS directory not found at: $OpenBLAS_dir"
-    fi
     success "$openblas_module setup completed successfully."
 }
 setup_openblas() {
@@ -167,22 +178,7 @@ setup_openblas() {
         return
     fi
     # Configure the PKG_CONFIG_PATH
-    # local pkg_config_path
-    PKG_CONFIG_PATH="$project_dir/.openblas"
-    export PKG_CONFIG_PATH
-    log "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
-    # Check if directory exists before trying to delete
-    if [ -d "$PKG_CONFIG_PATH" ]; then
-        log "Removing existing OpenBLAS config directory..."
-        # Clean up and recreate the OpenBLAS directory
-        rm -rf "$PKG_CONFIG_PATH"
-    else
-        log "No existing OpenBLAS config directory to remove."
-    fi
-    # Create the OpenBLAS directory
-    log "Creating OpenBLAS config directory..."
-    mkdir -p "$PKG_CONFIG_PATH"
-    success "OpenBLAS config directory created successfully."
+    configure_openblas_pkg_config "$project_dir"
     # Determine architecture and install the appropriate requirements
     case "$arch" in
         i686|x86)
