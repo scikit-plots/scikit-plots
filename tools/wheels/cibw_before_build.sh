@@ -244,33 +244,6 @@ setup_macos() {
         fi
     fi
 }
-    if [[ $RUNNER_OS == "macOS" ]]; then
-        echo "Detected macOS platform: $ARCH"
-        if [[ $ARCH == "x86_64" ]]; then
-            # GFORTRAN=$(type -p gfortran-9)
-            # sudo ln -s $GFORTRAN /usr/local/bin/gfortran    
-        elif [[ $ARCH == "arm64" ]]; then
-            # Download and install gfortran for ARM64
-            curl -L https://github.com/fxcoudert/gfortran-for-macOS/releases/download/12.1-monterey/gfortran-ARM-12.1-Monterey.dmg -o gfortran.dmg
-            GFORTRAN_SHA256=$(shasum -a 256 gfortran.dmg)
-            KNOWN_SHA256="e2e32f491303a00092921baebac7ffb7ae98de4ca82ebbe9e6a866dd8501acdf  gfortran.dmg"
-            if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
-                echo "SHA256 mismatch for gfortran DMG"
-                exit 1
-            fi
-            hdiutil attach -mountpoint /Volumes/gfortran gfortran.dmg
-            sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
-            type -p gfortran
-        fi
-        log "OpenBLAS path: $OpenBLAS_dir"
-        # Use the libgfortran from gfortran rather than the one in the wheel
-        # since delocate gets confused if there is more than one
-        # https://github.com/scipy/scipy/issues/20852
-        for lib in libgfortran.5.dylib libgcc_s.1.1.dylib libquadmath.0.dylib; do
-            install_name_tool -change @loader_path/../.dylibs/$lib @rpath/$lib $OpenBLAS_dir/libsci*
-        done
-        codesign -s - -f $OpenBLAS_dir/libsci*
-    fi
 ######################################################################
 ## Main Script
 ######################################################################

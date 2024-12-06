@@ -6,7 +6,7 @@ name: Linux Tests
 # options like relaxed-strides.
 
 on:
-  push:
+  # push:
     # branches:
     #   # coverage comparison in the "full" step needs to run on main after merges
     #   - main
