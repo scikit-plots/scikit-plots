@@ -12,6 +12,8 @@ import re
 import argparse
 import pathlib
 
+from glob import glob
+from pprtint import pprtint
 
 def check_text(text):
     # Define the expected text fragments you want to check
@@ -56,7 +58,10 @@ def main():
         sys.exit(1)
 
     distinfo_path = distinfo_paths[0]
-    license_txt = distinfo_path / "LICENSE.txt"
+    # Use glob pattern to find LICENSE files including subdirectories
+    license_files = list(sitepkgs.glob(f"{args.package_name.replace('-', '_')}-*.dist-info/LICENSE*"))
+    print(license_files)
+    license_txt = distinfo_path / "LICENSE"
     # license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE.txt")
 
     # Check if LICENSE.txt exists
