@@ -20,7 +20,7 @@ permissions:
 jobs:
   musllinux_x86_64:
     runs-on: ubuntu-latest
-    if: "github.repository == 'scikit-plots/scikit-plots'"
+    if: github.repository == 'scikit-plots/scikit-plots'
     container:
       # Use container used for building musllinux wheels
       # it has git installed, all the pythons, etc

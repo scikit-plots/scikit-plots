@@ -1,4 +1,4 @@
-name: Linux tests
+name: Linux Tests
 
 # This file is meant for testing across supported Python versions, build types
 # and interpreters (PyPy, python-dbg, a pre-release Python in summer time),
@@ -7,9 +7,9 @@ name: Linux tests
 
 on:
   push:
-    branches:
-      # coverage comparison in the "full" step needs to run on main after merges
-      - main
+    # branches:
+    #   # coverage comparison in the "full" step needs to run on main after merges
+    #   - main
   pull_request:
     branches:
       - main
