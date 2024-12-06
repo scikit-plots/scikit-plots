@@ -315,11 +315,7 @@ select = [
   "*-win32",
   "*-win_amd64"
 ]
-config-settings = [
-  "setup-args=--vsenv",
-  "setup-args=-Dallow-noblas=true",
-  "build-dir=build"
-]
+config-settings = "setup-args=--vsenv setup-args=-Dallow-noblas=true build-dir=build"
 repair-wheel-command = ""  # Leave empty if no repair script is needed
 
 [tool.cibuildwheel.pyodide]
