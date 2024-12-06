@@ -1,8 +1,6 @@
 #!/bin/bash
 
 set -e  # Exit immediately if a command exits with a non-zero status
-# Define the path to utils.sh (Ensure utils.sh exists in directory)
-source .github/utils
 
 # Install dependencies using Chocolatey
 echo "Installing required dependencies..."
@@ -54,4 +52,4 @@ echo "Installing OpenBLAS..."
 make PREFIX=/usr/local install
 
 # Verify installation
-success "OpenBLAS installed successfully."
+echo "OpenBLAS installed successfully."
