@@ -41,4 +41,4 @@ fi
 # the available N CPU cores: 2 by default for Linux instances and 4 for macOS arm64
 # python -c "import sys; import scikitplot; sys.exit(not scikitplot.test(label='full', extra_argv=['-n=auto']))"
 python -c "import sys; import scikitplot;"
-# python $PROJECT_DIR/tools/wheels/check_license.py
+python $PROJECT_DIR/tools/wheels/check_license.py
