@@ -19,12 +19,11 @@ BUILD_TYPE="${BUILD_TYPE:-dynamic}" # Use 'static' for static library builds
 echo "Configuring $BUILD_TYPE build settings..."
 
 # Detect the system architecture
-local arch
 if [[ "$OSTYPE" == "msys" ]]; then
   # For Git Bash on Windows
-  arch=$(wmic os get architecture | grep -o '[0-9]*')
+  ARCH=$(wmic os get architecture | grep -o '[0-9]*')
 else
-  arch=$(uname -m)
+  ARCH=$(uname -m)
 fi
 
 # Determine architecture and set targets
