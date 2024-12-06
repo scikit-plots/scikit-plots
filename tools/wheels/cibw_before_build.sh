@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
-set -x  # Print each command before executing it
+# set -x  # Print each command before executing it
 set -o pipefail  # Ensure pipeline errors are captured
 set -u  # Treat unset variables as an error
 ######################################################################
@@ -134,7 +134,10 @@ setup_openblas() {
     # Detect the system architecture
     local arch=$(uname -m)
     log "Running on platform: $RUNNER_OS (Architecture: $arch)"
-    # Check and set INSTALL_OPENBLAS if not already set
+    # Check and set INSTALL_OPENBLAS if not already set, initialized as an empty string
+    # set +u  # Temporarily disable unbound variable check
+    # set -u  # Re-enable unbound variable check
+    INSTALL_OPENBLAS="${INSTALL_OPENBLAS:-}"
     if [[ -z "$INSTALL_OPENBLAS" ]]; then
         log "INSTALL_OPENBLAS is not set. Setting INSTALL_OPENBLAS=true."
         INSTALL_OPENBLAS=true
@@ -209,7 +212,7 @@ setup_macos() {
             GFORTRAN_SHA256=$(shasum -a 256 gfortran.tar.gz)
             KNOWN_SHA256="981367dd0ad4335613e91bbee453d60b6669f5d7e976d18c7bdb7f1966f26ae4  gfortran.tar.gz"
             if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
-                echo "SHA256 mismatch for gfortran tarball"
+                log "SHA256 mismatch for gfortran tarball"
                 exit 1
             fi
             sudo mkdir -p /opt/
@@ -235,7 +238,7 @@ setup_macos() {
             GFORTRAN_SHA256=$(shasum -a 256 gfortran.dmg)
             KNOWN_SHA256="e2e32f491303a00092921baebac7ffb7ae98de4ca82ebbe9e6a866dd8501acdf  gfortran.dmg"
             if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
-                echo "SHA256 mismatch for gfortran DMG"
+                log "SHA256 mismatch for gfortran DMG"
                 exit 1
             fi
             hdiutil attach -mountpoint /Volumes/gfortran gfortran.dmg
