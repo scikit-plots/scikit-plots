@@ -37,7 +37,15 @@ def main():
     # Locate the LICENSE.txt file
     # Try to find the .dist-info directory associated with the package, so find it there
     sitepkgs = pathlib.Path(mod.__file__).parent.parent  # This should give you the site-packages path
-    distinfo_path = list(sitepkgs.glob(f"{args.module.replace('-', '_')}-*.dist-info"))[0]  # Handling package name format
+    print(f"Looking for .dist-info directory in: {sitepkgs}")
+
+    distinfo_path = list(sitepkgs.glob(f"{args.module.replace('-', '_')}-*.dist-info"))  # Handling package name format
+
+    if not distinfo_paths:
+        print(f"ERROR: No .dist-info directory found for module '{args.module}' in {sitepkgs}")
+        sys.exit(1)
+
+    distinfo_path = distinfo_paths[0]
     license_txt = distinfo_path / "LICENSE.txt"
     # license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE.txt")
 
