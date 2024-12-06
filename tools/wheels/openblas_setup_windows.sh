@@ -29,17 +29,17 @@ fi
 # Determine architecture and set targets
 case "$arch" in
     i686|x86)
-        log "Detected 32-bit architecture."
+        echo "Detected 32-bit architecture."
         ARCH="i686"          # 32-bit architecture
         TARGET="GENERIC"     # Generic target for compatibility
         ;;
     x86_64|arm64)
-        log "Detected 64-bit architecture."
+        echo "Detected 64-bit architecture."
         ARCH="x86_64"        # 64-bit architecture (generic target)
         TARGET="GENERIC"     # Generic target for compatibility
         ;;
     *)
-        log "Unknown architecture detected. Defaulting to x86_64."
+        echo "Unknown architecture detected. Defaulting to x86_64."
         ARCH="x86_64"        # Default to 64-bit
         TARGET="GENERIC"     # Generic target for compatibility
         ;;
