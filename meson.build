@@ -26,8 +26,8 @@ project(
     'c_std=c17',                     # Set C standard to C17
     'cpp_std=c++17',                 # Set C++ standard to C++17
     'fortran_std=legacy',
-    'blas=openblas',
-    'lapack=openblas',
+    # 'blas=openblas',
+    # 'lapack=openblas',
     # https://mesonbuild.com/Builtin-options.html#details-for-warning_level
     # 'warning_level=3',             # You can specify warning levels here if needed
     # 'werror=true',                 # Treat warnings as errors globally
