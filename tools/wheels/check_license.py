@@ -14,6 +14,7 @@ import pathlib
 
 
 def check_text(text):
+    # Define the expected text fragments you want to check
     ok = "Copyright (c)" in text and re.search(
         r"This binary distribution of \w+ also bundles the following software",
         text, re.IGNORECASE
@@ -33,16 +34,23 @@ def main():
     __import__(args.module)
     mod = sys.modules[args.module]
 
-    # Check LICENSE.txt is installed in the .dist-info directory, so find it there
-    # sitepkgs = pathlib.Path(mod.__file__).parent.parent
-    # distinfo_path = list(sitepkgs.glob("scikit_plots-*.dist-info"))[0]
-    # license_txt = distinfo_path / "LICENSE"
+    # Locate the LICENSE.txt file
+    # Try to find the .dist-info directory associated with the package, so find it there
+    sitepkgs = pathlib.Path(mod.__file__).parent.parent  # This should give you the site-packages path
+    distinfo_path = list(sitepkgs.glob(f"{args.module.replace('-', '_')}-*.dist-info"))[0]  # Handling package name format
+    license_txt = distinfo_path / "LICENSE.txt"
+    # license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE.txt")
 
-    # Check license text
-    license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE.txt")
+    # Check if LICENSE.txt exists
+    if not license_txt.exists():
+        print(f"ERROR: LICENSE.txt not found at {license_txt}")
+        sys.exit(1)
+
+    # Read and check the content of LICENSE.txt
     with open(license_txt, encoding="utf-8") as f:
         text = f.read()
 
+    # Check if the license text contains the expected fragments
     ok = check_text(text)
     if not ok:
         print(
