@@ -128,12 +128,13 @@ EOF
     success "$openblas_module setup completed successfully."
 }
 setup_openblas() {
-    log "Installing Python Scipy OpenBLAS from $requirements_file..."
+    log "Starting Python Scipy OpenBLAS setup..."
     # Define project directory
     local project_dir="$1"
     # Detect the system architecture
     local arch=$(uname -m)
-    log "Running on platform: $RUNNER_OS (Adjusting by Architecture: $arch)"
+    log "Running on platform: $RUNNER_OS (Architecture: $arch)"
+    # Check and set INSTALL_OPENBLAS if not already set
     if [[ -z "$INSTALL_OPENBLAS" ]]; then
         log "INSTALL_OPENBLAS is not set. Setting INSTALL_OPENBLAS=true."
         INSTALL_OPENBLAS=true
@@ -142,35 +143,40 @@ setup_openblas() {
         # Log INSTALL_OPENBLAS is set or not
         log "INSTALL_OPENBLAS is already set: $INSTALL_OPENBLAS"
     fi
-    # Install Openblas from scipy-openblas64
-    if [[ "$INSTALL_OPENBLAS" = "true" ]] ; then
-        # Clean up and recreate the OpenBLAS directory
-        # local PKG_CONFIG_PATH
-        PKG_CONFIG_PATH=$project_dir/.openblas
-        export PKG_CONFIG_PATH
-        rm -rf $PKG_CONFIG_PATH
-        mkdir -p "$PKG_CONFIG_PATH"
-        # Check if the system is 32-bit or 64-bit
-        case $arch in
-            i686|x86)
-                log "32-bit system detected."
-                # Install CI 32-bit specific requirements and generate OpenBLAS pkg-config file
-                install_requirements "requirements/ci32_requirements.txt"
-                generate_openblas_pkgconfig "scipy_openblas32"
-                copy_shared_libs "scipy_openblas32"
-                ;;
-            x86_64|arm64)
-                log "64-bit system detected."
-                # Install CI 32-bit specific requirements and generate OpenBLAS pkg-config file
-                install_requirements "requirements/ci_requirements.txt"
-                generate_openblas_pkgconfig "scipy_openblas64"
-                copy_shared_libs "scipy_openblas64"
-                ;;
-            *)
-                error "Unknown architecture detected: $arch. Unable to determine which requirements to install. Exiting..."
-                exit 1
-                ;;
-        esac
+    # Skip setup if INSTALL_OPENBLAS is not enabled
+    if [[ "$INSTALL_OPENBLAS" != "true" ]]; then
+        log "INSTALL_OPENBLAS is disabled. Skipping setup."
+        return
+    fi
+    # Configure the PKG_CONFIG_PATH
+    # local pkg_config_path
+    PKG_CONFIG_PATH="$project_dir/.openblas"
+    export PKG_CONFIG_PATH
+    log "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
+    # Clean up and recreate the OpenBLAS directory
+    rm -rf $PKG_CONFIG_PATH
+    mkdir -p "$PKG_CONFIG_PATH"
+    # Determine architecture and install the appropriate requirements
+    case "$arch" in
+        i686|x86)
+            log "Detected 32-bit architecture."
+            # Install CI 32-bit specific requirements and generate OpenBLAS pkg-config file
+            install_requirements "requirements/ci32_requirements.txt"
+            generate_openblas_pkgconfig "scipy_openblas32"
+            copy_shared_libs "scipy_openblas32"
+            ;;
+        x86_64|arm64)
+            log "Detected 64-bit architecture."
+            # Install CI 64-bit specific requirements and generate OpenBLAS pkg-config file
+            install_requirements "requirements/ci_requirements.txt"
+            generate_openblas_pkgconfig "scipy_openblas64"
+            copy_shared_libs "scipy_openblas64"
+            ;;
+        *)
+            error "Unknown architecture detected: $arch. Unable to proceed. Exiting..."
+            exit 1
+            ;;
+    esac    
 }
 ######################################################################
 ## Windows

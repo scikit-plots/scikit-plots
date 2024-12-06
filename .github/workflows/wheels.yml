@@ -76,10 +76,10 @@ jobs:
     # Wheel-cp310-macosx-arm64-accelerate-14.0
     name: >-
       Wheel-${{ matrix.python[0] }}
-      ${{ matrix.buildplat[1] != '' && '-' || '' }}${{ matrix.buildplat[1] }}
-      ${{ matrix.buildplat[2] != '' && '-' || '' }}${{ matrix.buildplat[2] }}
-      ${{ matrix.buildplat[3] != '' && '-' || '' }}${{ matrix.buildplat[3] }}
-      ${{ matrix.buildplat[4] != '' && '-' || '' }}${{ matrix.buildplat[4] }}
+      ${{ matrix.buildplat[1] && format('-{}', matrix.buildplat[1]) || '' }}
+      ${{ matrix.buildplat[2] && format('-{}', matrix.buildplat[2]) || '' }}
+      ${{ matrix.buildplat[3] && format('-{}', matrix.buildplat[3]) || '' }}
+      ${{ matrix.buildplat[4] && format('-{}', matrix.buildplat[4]) || '' }}
     runs-on: ${{ matrix.buildplat[0] }}
     # Contains '[wheel build]' or '1'
     needs: get_commit_message
