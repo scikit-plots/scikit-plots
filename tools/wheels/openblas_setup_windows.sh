@@ -1,8 +1,8 @@
 #!/bin/bash
 
 set -e  # Exit immediately if a command exits with a non-zero status
-# Define the path to utils.sh (Ensure utils.sh exists in the same directory)
-source utils; load_logs 
+# Define the path to utils.sh (Ensure utils.sh exists in directory)
+source .github/utils
 
 # Install dependencies using Chocolatey
 echo "Installing required dependencies..."
