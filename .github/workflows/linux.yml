@@ -51,7 +51,7 @@ jobs:
         python tools/linter.py --branch origin/${{ github.base_ref }}
 
   smoke_test:
-    if: "github.repository == 'numpy/numpy'"
+    if: github.repository == 'scikit-plots/scikit-plots'
     runs-on: ubuntu-latest
     env:
       MESON_ARGS: "-Dallow-noblas=true -Dcpu-baseline=none -Dcpu-dispatch=none"

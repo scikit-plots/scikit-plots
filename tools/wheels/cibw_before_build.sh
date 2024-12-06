@@ -1,161 +1,293 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
 set -x  # Print each command before executing it
-
-# Define project directory
-PROJECT_DIR="${1:-$PWD}"
-
-# Clean up any previous build artifacts
-rm -rf build
-
-# Update LICENSE file based on the OS
-if [[ $RUNNER_OS == "Linux" ]] ; then
-    cat $PROJECT_DIR/tools/wheels/LICENSE_linux.txt >> $PROJECT_DIR/LICENSE.txt
-elif [[ $RUNNER_OS == "macOS" ]]; then
-    cat $PROJECT_DIR/tools/wheels/LICENSE_osx.txt >> $PROJECT_DIR/LICENSE.txt
-elif [[ $RUNNER_OS == "Windows" ]]; then
-    cat $PROJECT_DIR/tools/wheels/LICENSE_win32.txt >> $PROJECT_DIR/LICENSE.txt
-fi
-
-echo "Starting OpenBLAS setup..."
-
-# Install 32-bit specific requirements and generate OpenBLAS pkg-config file
-python -m pip install --upgrade -r requirements/ci32_requirements.txt
-python -c "import scipy_openblas32; print(scipy_openblas32.get_pkg_config())" > "$PROJECT_DIR/scipy-openblas.pc"
-
-echo "OpenBLAS setup completed successfully."
-    
-# Check system bit architecture
-if [[ $(python -c "import sys; print(sys.maxsize)") < $(python -c "print(2**33)") ]]; then
-    echo "32-bit wheels detected"
-    export INSTALL_OPENBLAS64=false
-elif [ -z "$INSTALL_OPENBLAS64" ]; then
-    echo "64-bit wheels detected"
-    export INSTALL_OPENBLAS64=true
-fi
-
-# If OpenBLAS setup is required for 64-bit
-if [[ "$INSTALL_OPENBLAS64" == "true" ]]; then
-    echo "Setting up OpenBLAS for 64-bit..."
-
-    PKG_CONFIG_PATH="$PROJECT_DIR/.openblas"
-    export PKG_CONFIG_PATH
-    echo "PKG_CONFIG_PATH set to $PKG_CONFIG_PATH"
-
-    # Clean up and recreate the OpenBLAS directory
-    rm -rf "$PKG_CONFIG_PATH"
-    mkdir -p "$PKG_CONFIG_PATH"
-
-    # Install CI requirements
-    python -m pip install --upgrade -r requirements/ci_requirements.txt
-    
-    # Generate OpenBLAS pkg-config file
-    python -c "import scipy_openblas64; print(scipy_openblas64.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc"
-        
-    # Copy OpenBLAS shared libraries to the build directory
+set -o pipefail  # Ensure pipeline errors are captured
+set -u  # Treat unset variables as an error
+######################################################################
+## Logging Functions
+######################################################################
+# Colors for Pretty Logs
+# RESET="\033[0m"
+# CYAN="\033[1;36m"
+# GREEN="\033[1;32m"
+# YELLOW="\033[1;33m"
+# RED="\033[1;31m"
+log()     { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;36m[INFO]\033[0m $1"; }
+success() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;32m[SUCCESS]\033[0m $1";}
+warn()    { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;33m[WARNING]\033[0m $1"; }
+error()   {
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;31m[ERROR]\033[0m $1" >&2;
+    exit 1;
+}
+######################################################################
+## Utility Functions
+######################################################################
+# Function to clean up build artifacts
+clean_build() {
+    log "Cleaning up any previous build artifacts..."
+    rm -rf build || log_error "Failed to remove build artifacts."
+}
+######################################################################
+## (All OS Platform) Append OS LICENSE
+######################################################################
+# Function to handle LICENSE setup
+setup_license() {
+    log "Updating LICENSE file for $RUNNER_OS..."
+    # Define project directory
+    local project_dir="$1"
+    # Define the license file based on OS
+    local os_license_file
+    case $RUNNER_OS in
+        Linux)
+            os_license_file="$project_dir/tools/wheels/LICENSE_linux.txt"
+            ;;
+        macOS)
+            os_license_file="$project_dir/tools/wheels/LICENSE_osx.txt"
+            ;;
+        Windows)
+            os_license_file="$project_dir/tools/wheels/LICENSE_win32.txt"
+            ;;
+        *)
+            warn "Unknown OS: $RUNNER_OS. Skipping OS LICENSE update."
+            return
+            ;;
+    esac    
+    # Check if the file exists before appending
+    if [[ -f $os_license_file ]]; then
+        log "Appending $os_license_file to LICENSE.txt..."
+        cat "$os_license_file" >> "$project_dir/LICENSE.txt" || warn "Failed to append LICENSE file."
+    else
+        warn "LICENSE file not found: $project_dir. Skipping OS LICENSE update."
+    fi
+}
+######################################################################
+## (All OS Platform) Handle Free-Threaded Python builds
+######################################################################
+# Function to handle free-threaded Python builds
+handle_free_threaded_build() {
+    log "Checking for free-threaded Python support..."
+    # TODO: delete along with enabling build isolation by unsetting
+    # CIBW_BUILD_FRONTEND when numpy is buildable under free-threaded
+    # python with a released version of cython
+    # Handle Free-Threaded Python builds (if applicable)
+    # local FREE_THREADED_BUILD
+    FREE_THREADED_BUILD=$(python -c "import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")
+    if [[ $FREE_THREADED_BUILD == "True" ]]; then
+        log "Free-threaded Python build detected. Installing additional build dependencies..."
+        python -m pip install -U --pre pip
+        python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython || python -m pip install cython
+        # TODO: Remove meson installation from source once a new release
+        # that includes https://github.com/mesonbuild/meson/pull/13851 is available
+        python -m pip install git+https://github.com/mesonbuild/meson
+        # python -m pip install git+https://github.com/serge-sans-paille/pythran
+        python -m pip install meson-python ninja pybind11 pythran
+    else
+        log "No free-threaded Python build detected. Skipping additional dependencies."
+    fi
+}
+######################################################################
+## (All OS Platform) Install Scipy OpenBLAS
+######################################################################
+# Function to handle Scipy OpenBLAS setup
+install_requirements() {
+    # Define the requirements file based on Platform
+    local requirements_file="$1"
+    log "Installing Python requirements from $requirements_file..."
+    python -m pip install -U pip -r "$requirements_file" \
+        || error "Failed to install requirements."
+}
+generate_openblas_pkgconfig() {
+    # Define the Scipy OpenBLAS based on Platform
+    local openblas_module="$1"
+    # Generate OpenBLAS pkg-config file based on Platform
+    log "Generating OpenBLAS pkg-config file using $openblas_module..."
+    python -c "import $openblas_module; print($openblas_module.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc" \
+        || error "Failed to generate pkg-config."
+    # Fix library paths for macOS
+    OpenBLAS_dir=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
+    export OpenBLAS_dir
+    log "OpenBLAS path: $OpenBLAS_dir"
+}
+copy_shared_libs() {
+    # Copy Scipy OpenBLAS shared libraries to the build directory
+    # Copy the shared objects to a path under $PKG_CONFIG_PATH, the build
+    # will point $LD_LIBRARY_PATH there and then auditwheel/delocate-wheel will
+    # pull these into the wheel. Use python to avoid windows/posix problems
+    # Define the Scipy OpenBLAS based on Platform
+    local openblas_module="$1"
+    log "Copying shared libraries for $openblas_module..."
     python <<EOF
-import os, scipy_openblas64, shutil
-lib_dir = os.path.join(os.path.dirname(scipy_openblas64.__file__), "lib")
-shutil.copytree(lib_dir, os.path.join("$PKG_CONFIG_PATH", "lib"))
-
-dylib_dir = os.path.join(os.path.dirname(scipy_openblas64.__file__), ".dylibs")
-if os.path.exists(dylib_dir):  # macosx delocate
-    shutil.copytree(dylib_dir, os.path.join("$PKG_CONFIG_PATH", ".dylibs"))
+import os, shutil, $openblas_module
+srcdir = os.path.join(os.path.dirname($openblas_module.__file__), "lib")
+shutil.copytree(srcdir, os.path.join("$PKG_CONFIG_PATH", "lib"))
+srcdir = os.path.join(os.path.dirname($openblas_module.__file__), ".dylibs")
+if os.path.exists(srcdir):  # macOS delocate
+    shutil.copytree(srcdir, os.path.join("$PKG_CONFIG_PATH", ".dylibs"))
 EOF
     # pkg-config scipy-openblas --print-provides
-    echo "OpenBLAS64 setup completed successfully."
-fi
-
-# Windows-specific setup for delvewheel if the OS is Windows
-if [[ $RUNNER_OS == "Windows" ]]; then
-    # delvewheel is the equivalent of delocate/auditwheel for windows.
-    echo "Installing delvewheel and wheel for Windows"
-    python -m pip install delvewheel wheel
-fi
-
-# macOS-specific setup
-if [[ $RUNNER_OS == "macOS" ]]; then
-    PLATFORM=$(uname -m)
-    echo "Detected macOS platform: $PLATFORM"
-    #########################################################################################
-    # Install GFortran + OpenBLAS
-    
-    if [[ $PLATFORM == "x86_64" ]]; then
-        #GFORTRAN=$(type -p gfortran-9)
-        #sudo ln -s $GFORTRAN /usr/local/bin/gfortran
-        # same version of gfortran as the openblas-libs
-        # https://github.com/MacPython/gfortran-install.git
-        
-        # Download and install gfortran for x86_64
-        curl -L https://github.com/isuruf/gcc/releases/download/gcc-11.3.0-2/gfortran-darwin-x86_64-native.tar.gz -o gfortran.tar.gz      
-        GFORTRAN_SHA256=$(shasum -a 256 gfortran.tar.gz)
-        KNOWN_SHA256="981367dd0ad4335613e91bbee453d60b6669f5d7e976d18c7bdb7f1966f26ae4  gfortran.tar.gz"
-        if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
-            echo "SHA256 mismatch for gfortran tarball"
-            exit 1
-        fi
-      
-        sudo mkdir -p /opt/
-        # places gfortran in /opt/gfortran-darwin-x86_64-native. There's then
-        # bin, lib, include, libexec underneath that.
-        sudo tar -xv -C /opt -f gfortran.tar.gz
-      
-        # Link gfortran libraries and binaries
-        # Link these into /usr/local so that there's no need to add rpath or -L
-        for f in libgfortran.dylib libgfortran.5.dylib libgcc_s.1.dylib libgcc_s.1.1.dylib libquadmath.dylib libquadmath.0.dylib; do
-          ln -sf /opt/gfortran-darwin-x86_64-native/lib/$f /usr/local/lib/$f
-        done
-        ln -sf /opt/gfortran-darwin-x86_64-native/bin/gfortran /usr/local/bin/gfortran
-      
-        # Set SDKROOT env variable if not set
-        # This step is required whenever the gfortran compilers sourced from
-        # conda-forge (built by isuru fernando) are used outside of a conda-forge
-        # environment (so it mirrors what is done in the conda-forge compiler
-        # activation scripts)
-        export SDKROOT=${SDKROOT:-$(xcrun --show-sdk-path)}
-        
-    elif [[ $PLATFORM == "arm64" ]]; then
-        # Download and install gfortran for ARM64
-        curl -L https://github.com/fxcoudert/gfortran-for-macOS/releases/download/12.1-monterey/gfortran-ARM-12.1-Monterey.dmg -o gfortran.dmg
-        GFORTRAN_SHA256=$(shasum -a 256 gfortran.dmg)
-        KNOWN_SHA256="e2e32f491303a00092921baebac7ffb7ae98de4ca82ebbe9e6a866dd8501acdf  gfortran.dmg"      
-        if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
-            echo "SHA256 mismatch for gfortran DMG"
-            exit 1
-        fi
-      
-        hdiutil attach -mountpoint /Volumes/gfortran gfortran.dmg
-        sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
-        type -p gfortran
+    success "$openblas_module setup completed successfully."
+}
+setup_openblas() {
+    log "Installing Python Scipy OpenBLAS from $requirements_file..."
+    # Define project directory
+    local project_dir="$1"
+    # Detect the system architecture
+    local arch=$(uname -m)
+    log "Running on platform: $RUNNER_OS (Adjusting by Architecture: $arch)"
+    if [[ -z "$INSTALL_OPENBLAS" ]]; then
+        log "INSTALL_OPENBLAS is not set. Setting INSTALL_OPENBLAS=true."
+        INSTALL_OPENBLAS=true
+        export INSTALL_OPENBLAS
+    else        
+        # Log INSTALL_OPENBLAS is set or not
+        log "INSTALL_OPENBLAS is already set: $INSTALL_OPENBLAS"
     fi
-
-    # Fix library paths for macOS
-    lib_loc=$(python -c "import scipy_openblas32; print(scipy_openblas32.get_lib_dir())")
-    # Use the libgfortran from gfortran rather than the one in the wheel
-    # since delocate gets confused if there is more than one
-    # https://github.com/scipy/scipy/issues/20852
-    for lib in libgfortran.5.dylib libgcc_s.1.1.dylib libquadmath.0.dylib; do
-        install_name_tool -change @loader_path/../.dylibs/$lib @rpath/$lib $lib_loc/libsci*
-    done
-    codesign -s - -f $lib_loc/libsci*
-fi
-
-# TODO: delete along with enabling build isolation by unsetting
-# CIBW_BUILD_FRONTEND when numpy is buildable under free-threaded
-# python with a released version of cython
-# Handle Free-Threaded Python builds (if applicable)
-FREE_THREADED_BUILD="$(python -c"import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")"
-if [[ $FREE_THREADED_BUILD == "True" ]]; then
-    echo "Free-threaded build detected, installing additional build dependencies"
-    
-    # Install build tools like Meson, Ninja, and Cython (via nightly if needed)
-    python -m pip install -U --pre pip
-    python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython || python -m pip install cython
-    # TODO: Remove meson installation from source once a new release
-    # that includes https://github.com/mesonbuild/meson/pull/13851 is available
-    python -m pip install git+https://github.com/mesonbuild/meson
-    # python -m pip install git+https://github.com/serge-sans-paille/pythran
-    python -m pip install ninja meson-python pybind11 pythran
-fi
-
-echo "Build environment setup complete."
+    # Install Openblas from scipy-openblas64
+    if [[ "$INSTALL_OPENBLAS" = "true" ]] ; then
+        # Clean up and recreate the OpenBLAS directory
+        # local PKG_CONFIG_PATH
+        PKG_CONFIG_PATH=$project_dir/.openblas
+        export PKG_CONFIG_PATH
+        rm -rf $PKG_CONFIG_PATH
+        mkdir -p "$PKG_CONFIG_PATH"
+        # Check if the system is 32-bit or 64-bit
+        case $arch in
+            i686|x86)
+                log "32-bit system detected."
+                # Install CI 32-bit specific requirements and generate OpenBLAS pkg-config file
+                install_requirements "requirements/ci32_requirements.txt"
+                generate_openblas_pkgconfig "scipy_openblas32"
+                copy_shared_libs "scipy_openblas32"
+                ;;
+            x86_64|arm64)
+                log "64-bit system detected."
+                # Install CI 32-bit specific requirements and generate OpenBLAS pkg-config file
+                install_requirements "requirements/ci_requirements.txt"
+                generate_openblas_pkgconfig "scipy_openblas64"
+                copy_shared_libs "scipy_openblas64"
+                ;;
+            *)
+                error "Unknown architecture detected: $arch. Unable to determine which requirements to install. Exiting..."
+                exit 1
+                ;;
+        esac
+}
+######################################################################
+## Windows
+######################################################################
+# Function to handle Windows-specific setup
+setup_windows() {
+    if [[ $RUNNER_OS == "Windows" ]]; then
+        log "Windows platform detected. Installing delvewheel and wheel..."
+        # delvewheel is the equivalent of delocate/auditwheel for windows.
+        python -m pip install delvewheel wheel
+    fi
+}
+######################################################################
+## macOS-specific setup GFortran + OpenBLAS
+######################################################################
+# Function to handle macOS-specific setup
+setup_macos() {
+    # Detect the system architecture
+    local arch=$(uname -m)
+    if [[ $RUNNER_OS == "macOS" ]]; then
+        log "macOS platform detected: $arch"
+        if [[ $arch == "x86_64" ]]; then
+            log "Setting up GFortran for x86_64..."
+            # GFORTRAN=$(type -p gfortran-9)
+            # sudo ln -s $GFORTRAN /usr/local/bin/gfortran
+            # same version of gfortran as the openblas-libs
+            # https://github.com/MacPython/gfortran-install.git
+            # Download and install gfortran for x86_64
+            curl -L https://github.com/isuruf/gcc/releases/download/gcc-11.3.0-2/gfortran-darwin-x86_64-native.tar.gz -o gfortran.tar.gz
+            GFORTRAN_SHA256=$(shasum -a 256 gfortran.tar.gz)
+            KNOWN_SHA256="981367dd0ad4335613e91bbee453d60b6669f5d7e976d18c7bdb7f1966f26ae4  gfortran.tar.gz"
+            if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
+                echo "SHA256 mismatch for gfortran tarball"
+                exit 1
+            fi
+            sudo mkdir -p /opt/
+            # places gfortran in /opt/gfortran-darwin-x86_64-native. There's then
+            # bin, lib, include, libexec underneath that.
+            sudo tar -xv -C /opt -f gfortran.tar.gz
+            # Link gfortran libraries and binaries
+            # Link these into /usr/local so that there's no need to add rpath or -L
+            for f in libgfortran.dylib libgfortran.5.dylib libgcc_s.1.dylib libgcc_s.1.1.dylib libquadmath.dylib libquadmath.0.dylib; do
+            ln -sf /opt/gfortran-darwin-x86_64-native/lib/$f /usr/local/lib/$f
+            done
+            ln -sf /opt/gfortran-darwin-x86_64-native/bin/gfortran /usr/local/bin/gfortran
+            # Set SDKROOT env variable if not set
+            # This step is required whenever the gfortran compilers sourced from
+            # conda-forge (built by isuru fernando) are used outside of a conda-forge
+            # environment (so it mirrors what is done in the conda-forge compiler
+            # activation scripts)
+            export SDKROOT=${SDKROOT:-$(xcrun --show-sdk-path)}
+        elif [[ $arch == "arm64" ]]; then
+            log "Setting up GFortran for ARM64..."
+            # Download and install gfortran for ARM64
+            curl -L https://github.com/fxcoudert/gfortran-for-macOS/releases/download/12.1-monterey/gfortran-ARM-12.1-Monterey.dmg -o gfortran.dmg
+            GFORTRAN_SHA256=$(shasum -a 256 gfortran.dmg)
+            KNOWN_SHA256="e2e32f491303a00092921baebac7ffb7ae98de4ca82ebbe9e6a866dd8501acdf  gfortran.dmg"
+            if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
+                echo "SHA256 mismatch for gfortran DMG"
+                exit 1
+            fi
+            hdiutil attach -mountpoint /Volumes/gfortran gfortran.dmg
+            sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
+            type -p gfortran
+        fi
+    fi
+}
+    if [[ $RUNNER_OS == "macOS" ]]; then
+        echo "Detected macOS platform: $ARCH"
+        if [[ $ARCH == "x86_64" ]]; then
+            # GFORTRAN=$(type -p gfortran-9)
+            # sudo ln -s $GFORTRAN /usr/local/bin/gfortran    
+        elif [[ $ARCH == "arm64" ]]; then
+            # Download and install gfortran for ARM64
+            curl -L https://github.com/fxcoudert/gfortran-for-macOS/releases/download/12.1-monterey/gfortran-ARM-12.1-Monterey.dmg -o gfortran.dmg
+            GFORTRAN_SHA256=$(shasum -a 256 gfortran.dmg)
+            KNOWN_SHA256="e2e32f491303a00092921baebac7ffb7ae98de4ca82ebbe9e6a866dd8501acdf  gfortran.dmg"
+            if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
+                echo "SHA256 mismatch for gfortran DMG"
+                exit 1
+            fi
+            hdiutil attach -mountpoint /Volumes/gfortran gfortran.dmg
+            sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
+            type -p gfortran
+        fi
+        log "OpenBLAS path: $OpenBLAS_dir"
+        # Use the libgfortran from gfortran rather than the one in the wheel
+        # since delocate gets confused if there is more than one
+        # https://github.com/scipy/scipy/issues/20852
+        for lib in libgfortran.5.dylib libgcc_s.1.1.dylib libquadmath.0.dylib; do
+            install_name_tool -change @loader_path/../.dylibs/$lib @rpath/$lib $OpenBLAS_dir/libsci*
+        done
+        codesign -s - -f $OpenBLAS_dir/libsci*
+    fi
+######################################################################
+## Main Script
+######################################################################
+# Main function to orchestrate all steps
+main() {
+    log "Starting build environment setup..."
+    # Define project directory
+    local project_dir="${1:-$PWD}"
+    log "Project directory: $project_dir"
+    printenv
+    # Clean up previous build artifacts
+    clean_build
+    # Append LICENSE file based on the OS
+    setup_license $project_dir
+    # Install free-threaded Python dependencies if applicable
+    handle_free_threaded_build
+    # Set up Scipy OpenBLAS based on architecture
+    setup_openblas "$project_dir"
+    # Windows-specific setup delvewheel
+    setup_windows
+    # macOS-specific setup GFortran + OpenBLAS
+    setup_macos
+    success "Build environment setup complete!"
+}
+# Execute the main function
+main "$@"

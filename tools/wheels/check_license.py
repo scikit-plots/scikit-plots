@@ -5,20 +5,18 @@ check_license.py [MODULE]
 Check the presence of a LICENSE.txt in the installed module directory,
 and that it appears to contain text prevalent for a scikitplot binary
 distribution.
-
 """
 import os
 import sys
+import re
 import argparse
 import pathlib
-import re
 
 
 def check_text(text):
     ok = "Copyright (c)" in text and re.search(
         r"This binary distribution of \w+ also bundles the following software",
-        text,
-        re.IGNORECASE
+        text, re.IGNORECASE
     )
     return ok
 
@@ -35,23 +33,24 @@ def main():
     __import__(args.module)
     mod = sys.modules[args.module]
 
-    # LICENSE.txt is installed in the .dist-info directory, so find it there
-    sitepkgs = pathlib.Path(mod.__file__).parent.parent
-    distinfo_path = list(sitepkgs.glob("scikit_plots-*.dist-info"))[0]
+    # Check LICENSE.txt is installed in the .dist-info directory, so find it there
+    # sitepkgs = pathlib.Path(mod.__file__).parent.parent
+    # distinfo_path = list(sitepkgs.glob("scikit_plots-*.dist-info"))[0]
+    # license_txt = distinfo_path / "LICENSE"
 
     # Check license text
-    license_txt = distinfo_path / "LICENSE"
+    license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE")
     with open(license_txt, encoding="utf-8") as f:
         text = f.read()
 
-    # ok = check_text(text)
-    # if not ok:
-    #     print(
-    #         "ERROR: License text {} does not contain expected "
-    #         "text fragments\n".format(license_txt)
-    #     )
-    #     print(text)
-    #     sys.exit(1)
+    ok = check_text(text)
+    if not ok:
+        print(
+            "ERROR: License text {} does not contain expected "
+            "text fragments\n".format(license_txt)
+        )
+        print(text)
+        sys.exit(1)
 
     sys.exit(0)
 
