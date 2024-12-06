@@ -4,7 +4,10 @@ set -e  # Exit immediately if a command exits with a non-zero status
 
 # Install dependencies using Chocolatey
 echo "Installing required dependencies..."
-choco install --no-progress --force -y make llvm ninja git git-lfs
+# Install make, llvm, and ninja only if they are not already installed
+choco install --no-progress --skip-automatic -y make llvm ninja
+# Check if Git is installed
+git --version || winget install --id Git.Git -e --source winget
 
 # Clone the OpenBLAS repository
 echo "Cloning OpenBLAS repository..."
