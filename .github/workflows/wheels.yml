@@ -150,11 +150,11 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Setup Windows MSVC (32-bit)
-        if: ${{ runner.os == 'Windows' && env.IS_32_BIT == 'true' }}
+      - name: Setup Windows MSVC (32|64-bit)
+        if: ${{ runner.os == 'Windows' }}
         uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
         with:
-          architecture: 'x86'
+          architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
       - name: Setup Windows rtools
         if: ${{ runner.os == 'Windows' && env.IS_32_BIT == 'false' }}
