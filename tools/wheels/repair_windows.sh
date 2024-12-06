@@ -32,8 +32,22 @@ mv -fv *.whl $WHEEL
 cd $DEST_DIR
 rm -rf tmp
 
+# Detect architecture (32-bit or 64-bit)
+ARCHITECTURE=$(python -c "import platform; print(platform.architecture()[0])")
+if [[ "$ARCHITECTURE" == "32bit" ]]; then
+  echo "Detected 32-bit architecture"
+  OPENBLAS_DIR=$(python -c "import scipy_openblas32 as sop; print(sop.get_lib_dir())")
+elif [[ "$ARCHITECTURE" == "64bit" ]]; then
+  echo "Detected 64-bit architecture"
+  OPENBLAS_DIR=$(python -c "import scipy_openblas64 as sop; print(sop.get_lib_dir())")
+else
+  echo "Unknown architecture: $ARCHITECTURE"
+  exit 1
+fi
+# Show the OpenBLAS directory
+echo "OpenBLAS Directory: $OPENBLAS_DIR"
+# Run delvewheel to repair the wheel and add OpenBLAS path
 # the libopenblas.dll is placed into this directory in the cibw_before_build
 # script.
 # delvewheel repair --add-path $cwd/.openblas/lib -w $DEST_DIR $WHEEL
-OPENBLAS_DIR=$(python -c"import scipy_openblas32 as sop; print(sop.get_lib_dir())")
 delvewheel repair --add-path $OPENBLAS_DIR --no-dll libsf_error_state.dll -w $DEST_DIR $WHEEL
