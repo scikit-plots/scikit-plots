@@ -280,7 +280,7 @@ jobs:
         if: endsWith(matrix.python[0], 't')
         shell: bash
         run: |
-          pip install numpy scipy
+          pip install numpy scipy --only-binary :all:
           CIBW="pip; args: --no-build-isolation"
           echo "CIBW_BUILD_FRONTEND=$CIBW" >> "$GITHUB_ENV"
 
