@@ -61,6 +61,8 @@ jobs:
         id: commit_message
         run: |
           set -xe
+          # (Optional) Utility script source it
+          source scripts/utils.sh
           COMMIT_MSG=$(git log --no-merges -1 --oneline)
           echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
           RUN="0"
@@ -142,13 +144,20 @@ jobs:
       - name: Checkout scikit-plots
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          submodules: true
+          # submodules: true
+          submodules: recursive
+          fetch-tags: true
 
       # Used to push the built wheels
       - name: Setup Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.x"
+
+      - name: Run OpenBLAS build script
+        run: |
+          # Assuming the script is in the root of the repository and is named build_openblas.sh
+          bash ./tools/wheels/openblas_setup_windows.sh  # Run the shell script you created
 
       - name: Setup Windows MSVC (32|64-bit)
         if: ${{ runner.os == 'Windows' }}
