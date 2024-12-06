@@ -39,7 +39,7 @@ def main():
     # license_txt = distinfo_path / "LICENSE"
 
     # Check license text
-    license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE")
+    license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE.txt")
     with open(license_txt, encoding="utf-8") as f:
         text = f.read()
 
