@@ -43,6 +43,188 @@ project(
 # Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
 
+
+######################################################################
+## BLAS/LAPACK dependency
+######################################################################
+
+# TODO: 64-bit BLAS and LAPACK
+#
+# Note that this works as long as BLAS and LAPACK are detected properly via
+# pkg-config. By default we look for OpenBLAS, other libraries can be configured via
+# `meson configure -Dblas=blas -Dlapack=lapack` (example to build with Netlib
+# BLAS and LAPACK).
+# For MKL and for auto-detecting one of multiple libs, we'll need a custom
+# dependency in Meson (like is done for scalapack) - see
+# https://github.com/mesonbuild/meson/issues/2835
+
+blas_name = get_option('blas')
+lapack_name = get_option('lapack')
+allow_noblas = get_option('allow-noblas')
+
+# This is currently injected directly into CFLAGS/CXXFLAGS for wheel builds
+# (see cibuildwheel settings in pyproject.toml), but used by CI jobs already
+blas_symbol_suffix = get_option('blas-symbol-suffix')
+
+use_ilp64 = get_option('use-ilp64')
+if use_ilp64
+  blas_interface = ['interface: ilp64']
+else
+  blas_interface = ['interface: lp64']
+endif
+
+# pkg-config uses a lower-case name while CMake uses a capitalized name, so try
+# that too to make the fallback detection with CMake work
+blas_order = get_option('blas-order')
+if blas_order == ['auto']
+  blas_order = []
+  if host_machine.system() == 'darwin'
+    blas_order += 'accelerate'
+  endif
+  if host_machine.cpu_family() == 'x86_64'
+    blas_order += 'mkl'
+  endif
+  blas_order += ['openblas', 'flexiblas', 'blis', 'blas']
+endif
+lapack_order = get_option('lapack-order')
+if lapack_order == ['auto']
+  lapack_order = []
+  if host_machine.system() == 'darwin'
+    lapack_order += 'accelerate'
+  endif
+  if host_machine.cpu_family() == 'x86_64'
+    lapack_order += 'mkl'
+  endif
+  lapack_order += ['openblas', 'flexiblas', 'lapack']
+endif
+
+# MKL-specific options
+_threading_opt = get_option('mkl-threading')
+if _threading_opt == 'auto'
+  # Switch default to iomp once conda-forge missing openmp.pc issue is fixed
+  mkl_opts = ['threading: seq']
+else
+  mkl_opts = ['threading: ' + _threading_opt]
+endif
+blas_opts = {'mkl': mkl_opts}
+mkl_version_req = '>=2023.0'  # see gh-24824
+mkl_may_use_sdl = not use_ilp64 and _threading_opt in ['auto', 'iomp']
+
+# Note that we can only use a BLAS which provides a CBLAS interface. So disable
+# BLAS completely if CBLAS is not found.
+
+# First try scipy-openblas, and if found don't look for cblas or lapack, we
+# know what's inside the scipy-openblas wheels already.
+if blas_name == 'openblas' or blas_name == 'auto'
+  blas = dependency('scipy-openblas', method: 'pkg-config', required: false)
+  if blas.found()
+    blas_name = 'scipy-openblas'
+  endif
+endif
+if blas_name == 'auto'
+  foreach _name : blas_order
+    if _name == 'mkl'
+      blas = dependency('mkl',
+        modules: ['cblas'] + blas_interface + mkl_opts,
+        required: false,  # may be required, but we need to emit a custom error message
+        version: mkl_version_req,
+      )
+      # Insert a second try with MKL, because we may be rejecting older versions
+      # or missing it because no pkg-config installed. If so, we need to retry
+      # with MKL SDL, and drop the version constraint (this always worked).
+      if not blas.found() and mkl_may_use_sdl
+        blas = dependency('mkl', modules: ['cblas', 'sdl: true'], required: false)
+      endif
+    else
+      if _name == 'flexiblas' and use_ilp64
+        _name = 'flexiblas64'
+      endif
+      blas = dependency(_name, modules: ['cblas'] + blas_interface, required: false)
+    endif
+    if blas.found()
+      break
+    endif
+  endforeach
+else
+  if blas_name == 'mkl'
+    blas = dependency('mkl',
+      modules: ['cblas'] + blas_interface + mkl_opts,
+      required: false,
+      version: mkl_version_req,
+    )
+    # Same deal as above - try again for MKL
+    if not blas.found() and mkl_may_use_sdl
+      blas = dependency('mkl', modules: ['cblas', 'sdl: true'], required: false)
+    endif
+  else
+    blas = dependency(blas_name, modules: ['cblas'] + blas_interface, required: false)
+  endif
+endif
+
+have_blas = blas.found()
+if have_blas
+  _args_blas = ['-DHAVE_CBLAS']  # note: used for C and C++ via `blas_dep` below
+  if use_ilp64
+    _args_blas += ['-DHAVE_BLAS_ILP64']
+    if 'openblas' in blas.name()
+      _args_blas += ['-DOPENBLAS_ILP64_NAMING_SCHEME']
+    endif
+  endif
+  if blas_symbol_suffix == 'auto'
+    if blas_name == 'scipy-openblas' and use_ilp64
+      blas_symbol_suffix = '64_'
+    else
+      blas_symbol_suffix = blas.get_variable('symbol_suffix', default_value: '')
+    endif
+    message(f'BLAS symbol suffix: @blas_symbol_suffix@')
+  endif
+  if blas_symbol_suffix != ''
+    _args_blas += ['-DBLAS_SYMBOL_SUFFIX=' + blas_symbol_suffix]
+  endif
+  blas_dep = declare_dependency(
+    dependencies: [blas],
+    compile_args: _args_blas,
+  )
+else
+  if allow_noblas
+    blas_dep = []
+  else
+    error('No BLAS library detected! Install one, or use the ' + \
+          '`allow-noblas` build option (note, this may be up to 100x slower ' + \
+          'for some linear algebra operations).')
+  endif
+endif
+
+if 'mkl' in blas.name() or blas.name() == 'accelerate' or blas_name == 'scipy-openblas'
+  # For these libraries we know that they contain LAPACK, and it's desirable to
+  # use that - no need to run the full detection twice.
+  lapack = blas
+else
+  if lapack_name == 'auto'
+    foreach _name : lapack_order
+      lapack = dependency(_name, modules: ['lapack'] + blas_interface, required: false)
+      if lapack.found()
+        break
+      endif
+    endforeach
+  else
+    lapack = dependency(lapack_name, modules: ['lapack'] + blas_interface, required: false)
+  endif
+endif
+
+have_lapack = lapack.found()
+if not have_lapack and not allow_noblas
+  error('No LAPACK library detected! Install one, or use the ' + \
+        '`allow-noblas` build option (note, this may be up to 100x slower ' + \
+        'for some linear algebra operations).')
+else
+  lapack_dep = declare_dependency(dependencies: [lapack, blas_dep])
+endif
+
+######################################################################
+## atomic operations dep
+######################################################################
+
 ######################################################################
 ## Fortran Compiler Setup
 ######################################################################
@@ -330,6 +512,56 @@ if not cc.links('', name: '-Wl,--version-script', args: ['-shared'] + version_li
 endif
 
 ######################################################################
+## C 32-bit platforms when atomic operations
+######################################################################
+
+# Determine whether it is necessary to link libatomic with gcc. This
+# could be the case on 32-bit platforms when atomic operations are used
+# on 64-bit types or on RISC-V using 8-bit atomics, so we explicitly
+# check for both 64 bit and 8 bit operations.  The check is adapted from
+# SciPy, who copied it from Mesa.
+null_dep = dependency('', required : false)
+atomic_dep = null_dep
+code_non_lockfree = '''
+  #include <stdint.h>
+  int main() {
+   struct {
+     void *p;
+     uint8_t u8v;
+   } x;
+   x.p = NULL;
+   x.u8v = 0;
+   uint8_t res = __atomic_load_n(x.u8v, __ATOMIC_SEQ_CST);
+   __atomic_store_n(x.u8v, 1, ATOMIC_SEQ_CST);
+   void *p = __atomic_load_n(x.p, __ATOMIC_SEQ_CST);
+   __atomic_store_n((void **)x.p, NULL, __ATOMIC_SEQ_CST)
+   return 0;
+   }
+'''
+if cc.get_id() != 'msvc'
+  if not cc.links(
+      code_non_lockfree,
+      name : 'Check atomic builtins without -latomic'
+    )
+    atomic_dep = cc.find_library('atomic', required: false)
+    if atomic_dep.found()
+      # We're not sure that with `-latomic` things will work for all compilers,
+      # so verify and only keep libatomic as a dependency if this works. It is
+      # possible the build will fail later otherwise - unclear under what
+      # circumstances (compilers, runtimes, etc.) exactly and this may need to
+      # be extended when support is added for new CPUs
+      if not cc.links(
+          code_non_lockfree,
+          dependencies: atomic_dep,
+          name : 'Check atomic builtins with -latomic'
+        )
+        atomic_dep = null_dep
+      endif
+    endif
+  endif
+endif
+
+######################################################################
 ## Platform OS detection
 ######################################################################
 
@@ -351,6 +583,14 @@ endif
 ######################################################################
 ## macOS 14
 ######################################################################
+
+macOS13_3_or_later = false
+if host_machine.system() == 'darwin'
+  r = run_command('xcrun', '-sdk', 'macosx', '--show-sdk-version', check: true)
+  sdkVersion = r.stdout().strip()
+
+  macOS13_3_or_later = sdkVersion.version_compare('>=13.3')
+endif
 
 if host_machine.system() == 'darwin'
   # Check if the compiler supports the '-Wl,-ld_classic' argument (new linker in macOS 14)
@@ -801,242 +1041,6 @@ gen_tempita = generator(cli_tempita,
   arguments : ['@INPUT@', '-o', '@OUTPUT@'],
   output : '@BASENAME@',
 )
-
-######################################################################
-## BLAS/LAPACK dependency
-######################################################################
-
-# TODO: 64-bit BLAS and LAPACK
-#
-# Note that this works as long as BLAS and LAPACK are detected properly via
-# pkg-config. By default we look for OpenBLAS, other libraries can be configured via
-# `meson configure -Dblas=blas -Dlapack=lapack` (example to build with Netlib
-# BLAS and LAPACK).
-# For MKL and for auto-detecting one of multiple libs, we'll need a custom
-# dependency in Meson (like is done for scalapack) - see
-# https://github.com/mesonbuild/meson/issues/2835
-blas_name = get_option('blas')
-lapack_name = get_option('lapack')
-
-macOS13_3_or_later = false
-if host_machine.system() == 'darwin'
-  r = run_command('xcrun', '-sdk', 'macosx', '--show-sdk-version', check: true)
-  sdkVersion = r.stdout().strip()
-
-  macOS13_3_or_later = sdkVersion.version_compare('>=13.3')
-endif
-
-allow_noblas = get_option('allow-noblas')
-# This is currently injected directly into CFLAGS/CXXFLAGS for wheel builds
-# (see cibuildwheel settings in pyproject.toml), but used by CI jobs already
-blas_symbol_suffix = get_option('blas-symbol-suffix')
-
-use_ilp64 = get_option('use-ilp64')
-if use_ilp64
-  blas_interface = ['interface: ilp64']
-else
-  blas_interface = ['interface: lp64']
-endif
-
-
-# pkg-config uses a lower-case name while CMake uses a capitalized name, so try
-# that too to make the fallback detection with CMake work
-blas_order = get_option('blas-order')
-if blas_order == ['auto']
-  blas_order = []
-  if host_machine.system() == 'darwin'
-    blas_order += 'accelerate'
-  endif
-  if host_machine.cpu_family() == 'x86_64'
-    blas_order += 'mkl'
-  endif
-  blas_order += ['scipy-openblas', 'openblas', 'OpenBLAS', 'flexiblas', 'blis', 'blas']
-endif
-lapack_order = get_option('lapack-order')
-if lapack_order == ['auto']
-  lapack_order = []
-  if host_machine.system() == 'darwin'
-    lapack_order += 'accelerate'
-  endif
-  if host_machine.cpu_family() == 'x86_64'
-    lapack_order += 'mkl'
-  endif
-  lapack_order += ['scipy-openblas', 'openblas', 'OpenBLAS', 'flexiblas', 'lapack']
-endif
-
-# MKL-specific options
-_threading_opt = get_option('mkl-threading')
-if _threading_opt == 'auto'
-  # Switch default to iomp once conda-forge missing openmp.pc issue is fixed
-  mkl_opts = ['threading: seq']
-else
-  mkl_opts = ['threading: ' + _threading_opt]
-endif
-blas_opts = {'mkl': mkl_opts}
-mkl_version_req = '>=2023.0'  # see gh-24824
-mkl_may_use_sdl = not use_ilp64 and _threading_opt in ['auto', 'iomp']
-
-# Note that we can only use a BLAS which provides a CBLAS interface. So disable
-# BLAS completely if CBLAS is not found.
-
-# First try scipy-openblas, and if found don't look for cblas or lapack, we
-# know what's inside the scipy-openblas wheels already.
-if blas_name == 'openblas' or blas_name == 'auto'
-  blas = dependency('scipy-openblas', method: 'pkg-config', required: false)
-  if blas.found()
-    blas_name = 'scipy-openblas'
-  endif
-endif
-
-if blas_name == 'auto'
-  foreach _name : blas_order
-    if _name == 'mkl'
-      blas = dependency('mkl',
-        modules: ['cblas'] + blas_interface + mkl_opts,
-        required: false,  # may be required, but we need to emit a custom error message
-        version: mkl_version_req,
-      )
-      # Insert a second try with MKL, because we may be rejecting older versions
-      # or missing it because no pkg-config installed. If so, we need to retry
-      # with MKL SDL, and drop the version constraint (this always worked).
-      if not blas.found() and mkl_may_use_sdl
-        blas = dependency('mkl', modules: ['cblas', 'sdl: true'], required: false)
-      endif
-    else
-      if _name == 'flexiblas' and use_ilp64
-        _name = 'flexiblas64'
-      endif
-      blas = dependency(_name, modules: ['cblas'] + blas_interface, required: false)
-    endif
-    if blas.found()
-      break
-    endif
-  endforeach
-else
-  if blas_name == 'mkl'
-    blas = dependency('mkl',
-      modules: ['cblas'] + blas_interface + mkl_opts,
-      required: false,
-      version: mkl_version_req,
-    )
-    # Same deal as above - try again for MKL
-    if not blas.found() and mkl_may_use_sdl
-      blas = dependency('mkl', modules: ['cblas', 'sdl: true'], required: false)
-    endif
-  else
-    blas = dependency(blas_name, modules: ['cblas'] + blas_interface, required: false)
-  endif
-endif
-
-have_blas = blas.found()
-if have_blas
-  _args_blas = ['-DHAVE_CBLAS']  # note: used for C and C++ via `blas_dep` below
-  if use_ilp64
-    _args_blas += ['-DHAVE_BLAS_ILP64']
-    if 'openblas' in blas.name()
-      _args_blas += ['-DOPENBLAS_ILP64_NAMING_SCHEME']
-    endif
-  endif
-  if blas_symbol_suffix == 'auto'
-    if blas_name == 'scipy-openblas' and use_ilp64
-      blas_symbol_suffix = '64_'
-    else
-      blas_symbol_suffix = blas.get_variable('symbol_suffix', default_value: '')
-    endif
-    message(f'BLAS symbol suffix: @blas_symbol_suffix@')
-  endif
-  if blas_symbol_suffix != ''
-    _args_blas += ['-DBLAS_SYMBOL_SUFFIX=' + blas_symbol_suffix]
-  endif
-  blas_dep = declare_dependency(
-    dependencies: [blas],
-    compile_args: _args_blas,
-  )
-else
-  if allow_noblas
-    blas_dep = []
-  else
-    error('No BLAS library detected! Install one, or use the ' + \
-          '`allow-noblas` build option (note, this may be up to 100x slower ' + \
-          'for some linear algebra operations).')
-  endif
-endif
-
-if 'mkl' in blas.name() or blas.name() == 'accelerate' or blas_name == 'scipy-openblas'
-  # For these libraries we know that they contain LAPACK, and it's desirable to
-  # use that - no need to run the full detection twice.
-  lapack = blas
-else
-  if lapack_name == 'auto'
-    foreach _name : lapack_order
-      lapack = dependency(_name, modules: ['lapack'] + blas_interface, required: false)
-      if lapack.found()
-        break
-      endif
-    endforeach
-  else
-    lapack = dependency(lapack_name, modules: ['lapack'] + blas_interface, required: false)
-  endif
-endif
-
-have_lapack = lapack.found()
-if not have_lapack and not allow_noblas
-  error('No LAPACK library detected! Install one, or use the ' + \
-        '`allow-noblas` build option (note, this may be up to 100x slower ' + \
-        'for some linear algebra operations).')
-else
-  lapack_dep = declare_dependency(dependencies: [lapack, blas_dep])
-endif
-
-######################################################################
-## 32-bit platforms when atomic operations
-######################################################################
-
-# Determine whether it is necessary to link libatomic with gcc. This
-# could be the case on 32-bit platforms when atomic operations are used
-# on 64-bit types or on RISC-V using 8-bit atomics, so we explicitly
-# check for both 64 bit and 8 bit operations.  The check is adapted from
-# SciPy, who copied it from Mesa.
-null_dep = dependency('', required : false)
-atomic_dep = null_dep
-code_non_lockfree = '''
-  #include <stdint.h>
-  int main() {
-   struct {
-     void *p;
-     uint8_t u8v;
-   } x;
-   x.p = NULL;
-   x.u8v = 0;
-   uint8_t res = __atomic_load_n(x.u8v, __ATOMIC_SEQ_CST);
-   __atomic_store_n(x.u8v, 1, ATOMIC_SEQ_CST);
-   void *p = __atomic_load_n(x.p, __ATOMIC_SEQ_CST);
-   __atomic_store_n((void **)x.p, NULL, __ATOMIC_SEQ_CST)
-   return 0;
-   }
-'''
-if cc.get_id() != 'msvc'
-  if not cc.links(
-      code_non_lockfree,
-      name : 'Check atomic builtins without -latomic'
-    )
-    atomic_dep = cc.find_library('atomic', required: false)
-    if atomic_dep.found()
-      # We're not sure that with `-latomic` things will work for all compilers,
-      # so verify and only keep libatomic as a dependency if this works. It is
-      # possible the build will fail later otherwise - unclear under what
-      # circumstances (compilers, runtimes, etc.) exactly and this may need to
-      # be extended when support is added for new CPUs
-      if not cc.links(
-          code_non_lockfree,
-          dependencies: atomic_dep,
-          name : 'Check atomic builtins with -latomic'
-        )
-        atomic_dep = null_dep
-      endif
-    endif
-  endif
-endif
 
 ######################################################################
 ## Installation tags

@@ -159,6 +159,7 @@ setup_openblas() {
     local project_dir="$1"
     # Detect the system architecture
     local arch=$(uname -m)
+    arch=$(echo "$arch" | tr '[:upper:]' '[:lower:]')
     log "Running on platform: $RUNNER_OS (Architecture: $arch)"
     # Check and set INSTALL_OPENBLAS if not already set, initialized as an empty string
     # set +u  # Temporarily disable unbound variable check
@@ -188,7 +189,7 @@ setup_openblas() {
             generate_openblas_pkgconfig "scipy_openblas32"
             copy_shared_libs "scipy_openblas32"
             ;;
-        x86_64|arm64)
+        x86_64|*arm64*)
             log "Detected 64-bit architecture."
             # Install CI 64-bit specific requirements and generate OpenBLAS pkg-config file
             install_requirements "requirements/ci_requirements.txt"
