@@ -176,11 +176,13 @@ setup_openblas() {
         log "Removing existing OpenBLAS config directory..."
         # Clean up and recreate the OpenBLAS directory
         rm -rf "$PKG_CONFIG_PATH"
-        # Create the OpenBLAS directory
-        mkdir -p "$PKG_CONFIG_PATH"
     else
         log "No existing OpenBLAS config directory to remove."
     fi
+    # Create the OpenBLAS directory
+    log "Creating OpenBLAS config directory..."
+    mkdir -p "$PKG_CONFIG_PATH"
+    success "OpenBLAS config directory created successfully."
     # Determine architecture and install the appropriate requirements
     case "$arch" in
         i686|x86)
