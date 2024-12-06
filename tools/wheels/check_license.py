@@ -11,9 +11,7 @@ import sys
 import re
 import argparse
 import pathlib
-
-from glob import glob
-from pprtint import pprtint
+# from glob import glob
 
 def check_text(text):
     # Define the expected text fragments you want to check
