@@ -59,7 +59,7 @@ def main():
     # Use glob pattern to find LICENSE files including subdirectories
     license_files = list(sitepkgs.glob(f"{args.package_name.replace('-', '_')}-*.dist-info/LICENSE*"))
     print(license_files)
-    license_txt = distinfo_path / "LICENSE"
+    license_txt = distinfo_path / "LICENSE.txt"
     # license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE.txt")
 
     # Check if LICENSE.txt exists
