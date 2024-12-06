@@ -11,7 +11,7 @@
 option('tests', type: 'boolean', value: true,
        description: 'Build and run tests.')
 
-option('fortran', type: 'feature', value: 'auto',
+option('fortran', type: 'feature', value: 'enabled',
         description: 'Enable Fortran support (default: disabled)' + 
                      'A feature option has three states: enabled, disabled or auto.')
 
