@@ -124,7 +124,22 @@ srcdir = os.path.join(os.path.dirname($openblas_module.__file__), ".dylibs")
 if os.path.exists(srcdir):  # macOS delocate
     shutil.copytree(srcdir, os.path.join("$PKG_CONFIG_PATH", ".dylibs"))
 EOF
-    # pkg-config scipy-openblas --print-provides
+    # Check for pkg-config availability
+    log "Verifying OpenBLAS pkg-config file..."
+    if ! command -v pkg-config &> /dev/null; then
+        log "pkg-config not found. Attempting to manually set OpenBLAS library paths."
+    else
+        log "pkg-config found. Verifying OpenBLAS detection..."
+        pkg-config --libs scipy-openblas --print-provides || error "Failed to find OpenBLAS with pkg-config."
+    fi
+    # Manually set OpenBLAS paths if necessary
+    log "Using OpenBLAS directory: $OpenBLAS_dir"
+    if [ -d "$OpenBLAS_dir" ]; then
+        export LD_LIBRARY_PATH="$OpenBLAS_dir:$LD_LIBRARY_PATH"  # For Linux
+        export LIBRARY_PATH="$OpenBLAS_dir:$LIBRARY_PATH"        # For Windows
+    else
+        error "OpenBLAS directory not found at: $OpenBLAS_dir"
+    fi
     success "$openblas_module setup completed successfully."
 }
 setup_openblas() {
@@ -156,9 +171,16 @@ setup_openblas() {
     PKG_CONFIG_PATH="$project_dir/.openblas"
     export PKG_CONFIG_PATH
     log "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
-    # Clean up and recreate the OpenBLAS directory
-    rm -rf $PKG_CONFIG_PATH
-    mkdir -p "$PKG_CONFIG_PATH"
+    # Check if directory exists before trying to delete
+    if [ -d "$PKG_CONFIG_PATH" ]; then
+        log "Removing existing OpenBLAS config directory..."
+        # Clean up and recreate the OpenBLAS directory
+        rm -rf "$PKG_CONFIG_PATH"
+        # Create the OpenBLAS directory
+        mkdir -p "$PKG_CONFIG_PATH"
+    else
+        log "No existing OpenBLAS config directory to remove."
+    fi
     # Determine architecture and install the appropriate requirements
     case "$arch" in
         i686|x86)
