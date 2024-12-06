@@ -54,8 +54,8 @@ setup_license() {
     esac    
     # Check if the file exists before appending
     if [[ -f $os_license_file ]]; then
-        log "Appending $os_license_file to LICENSE.txt..."
-        cat "$os_license_file" >> "$project_dir/LICENSE.txt" || warn "Failed to append LICENSE file."
+        log "Appending $os_license_file to LICENSE|LICENSE.txt..."
+        cat "$os_license_file" >> "$project_dir/LICENSE" || warn "Failed to append LICENSE file."
     else
         warn "LICENSE file not found: $project_dir. Skipping OS LICENSE update."
     fi

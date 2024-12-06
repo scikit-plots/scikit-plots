@@ -26,6 +26,7 @@ def main():
     p = argparse.ArgumentParser(usage=__doc__.rstrip())
     p.add_argument("mod_name", nargs="?", default='scikitplot')  # import name format
     p.add_argument("package_name", nargs="?", default='scikit-plots')  # Package name format
+    p.add_argument("license_name", nargs="?", default='LICENSE')  # LICENSE file name format
     args = p.parse_args()
 
     # Drop '' from sys.path
@@ -57,14 +58,14 @@ def main():
 
     distinfo_path = distinfo_paths[0]
     # Use glob pattern to find LICENSE files including subdirectories
-    license_files = list(sitepkgs.glob(f"{args.package_name.replace('-', '_')}-*.dist-info/LICENSE*"))
+    license_files = list(sitepkgs.glob(f"{args.package_name.replace('-', '_')}-*.dist-info/{args.license_name}*"))
     print(license_files)
-    license_txt = distinfo_path / "LICENSE.txt"
-    # license_txt = os.path.join(os.path.dirname(mod.__file__), "LICENSE.txt")
+    license_txt = distinfo_path / args.license_name
+    # license_txt = os.path.join(os.path.dirname(mod.__file__), args.license_name)
 
     # Check if LICENSE.txt exists
     if not license_txt.exists():
-        print(f"ERROR: LICENSE.txt not found at {license_txt}")
+        print(f"ERROR: {args.license_name} not found at {license_txt}")
         sys.exit(1)
 
     # Read and check the content of LICENSE.txt
