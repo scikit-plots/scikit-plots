@@ -1,8 +1,8 @@
 meson
 ninja
 meson-python>=0.16.0
-Cython>=3.0.10
-pybind11>=2.13.1
+Cython>=3.0.8
+pybind11>=2.13.2
 pythran>=0.14.0
 scipy>=1.6.0
 numpy>=2.0.0

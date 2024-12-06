@@ -279,9 +279,40 @@ if dep_math.found()
   )
 endif
 
+# Intel compilers default to fast-math, so disable it if we detect Intel
+# compilers. A word of warning: this may not work with the conda-forge
+# compilers, because those have the annoying habit of including lots of flags
+# that are gcc-specific in CFLAGS/CXXFLAGS/FFLAGS, which throws off the
+# detection logic below. You have to remove the wrong flags (only `-isystem`
+# is actually needed, everything else shouldn't be there).
+_intel_cflags = []
+_intel_fflags = []
+if cc.get_id() in ['intel', 'intel-llvm']
+  _intel_cflags += cc.get_supported_arguments('-fp-model=strict')
+elif cc.get_id() in ['intel-cl', 'intel-llvm-cl']
+  _intel_cflags += cc.get_supported_arguments('/fp:strict')
+endif
+if ff.get_id() in ['intel', 'intel-llvm']
+  _intel_fflags = ff.get_supported_arguments('-fp-model=strict')
+  minus0_arg = ['-assume', 'minus0']
+  if ff.has_multi_arguments(minus0_arg)
+    _intel_fflags += minus0_arg
+  endif
+elif ff.get_id() in ['intel-cl', 'intel-llvm-cl']
+  # Intel Fortran on Windows does things differently, so deal with that
+  # (also specify dynamic linking and the right name mangling)
+  _intel_fflags = ff.get_supported_arguments(
+    '/fp:strict', '/MD', '/names:lowercase', '/assume:underscore',
+    '/assume:minus0'
+  )
+endif
+add_project_arguments(_intel_cflags, language: ['c', 'cpp'])
+add_project_arguments(_intel_fflags, language: 'fortran')
+
 ######################################################################
 ## C and C++ Symbol Visibility
 ######################################################################
+
 # Hide symbols when building on Linux with GCC. For Python extension modules,
 # we only need `PyInit_*` to be public; anything else may cause problems. 
 # So we use a linker script to avoid exporting those symbols (this is in addition 
@@ -775,9 +806,26 @@ gen_tempita = generator(cli_tempita,
 ## BLAS/LAPACK dependency
 ######################################################################
 
-
+# TODO: 64-bit BLAS and LAPACK
+#
+# Note that this works as long as BLAS and LAPACK are detected properly via
+# pkg-config. By default we look for OpenBLAS, other libraries can be configured via
+# `meson configure -Dblas=blas -Dlapack=lapack` (example to build with Netlib
+# BLAS and LAPACK).
+# For MKL and for auto-detecting one of multiple libs, we'll need a custom
+# dependency in Meson (like is done for scalapack) - see
+# https://github.com/mesonbuild/meson/issues/2835
 blas_name = get_option('blas')
 lapack_name = get_option('lapack')
+
+macOS13_3_or_later = false
+if host_machine.system() == 'darwin'
+  r = run_command('xcrun', '-sdk', 'macosx', '--show-sdk-version', check: true)
+  sdkVersion = r.stdout().strip()
+
+  macOS13_3_or_later = sdkVersion.version_compare('>=13.3')
+endif
+
 allow_noblas = get_option('allow-noblas')
 # This is currently injected directly into CFLAGS/CXXFLAGS for wheel builds
 # (see cibuildwheel settings in pyproject.toml), but used by CI jobs already
@@ -791,6 +839,8 @@ else
 endif
 
 
+# pkg-config uses a lower-case name while CMake uses a capitalized name, so try
+# that too to make the fallback detection with CMake work
 blas_order = get_option('blas-order')
 if blas_order == ['auto']
   blas_order = []
@@ -800,7 +850,7 @@ if blas_order == ['auto']
   if host_machine.cpu_family() == 'x86_64'
     blas_order += 'mkl'
   endif
-  blas_order += ['openblas', 'flexiblas', 'blis', 'blas']
+  blas_order += ['scipy-openblas', 'openblas', 'OpenBLAS', 'flexiblas', 'blis', 'blas']
 endif
 lapack_order = get_option('lapack-order')
 if lapack_order == ['auto']
@@ -811,7 +861,7 @@ if lapack_order == ['auto']
   if host_machine.cpu_family() == 'x86_64'
     lapack_order += 'mkl'
   endif
-  lapack_order += ['openblas', 'flexiblas', 'lapack']
+  lapack_order += ['scipy-openblas', 'openblas', 'OpenBLAS', 'flexiblas', 'lapack']
 endif
 
 # MKL-specific options
@@ -837,6 +887,7 @@ if blas_name == 'openblas' or blas_name == 'auto'
     blas_name = 'scipy-openblas'
   endif
 endif
+
 if blas_name == 'auto'
   foreach _name : blas_order
     if _name == 'mkl'
@@ -941,52 +992,51 @@ endif
 ## 32-bit platforms when atomic operations
 ######################################################################
 
-
-# # Determine whether it is necessary to link libatomic with gcc. This
-# # could be the case on 32-bit platforms when atomic operations are used
-# # on 64-bit types or on RISC-V using 8-bit atomics, so we explicitly
-# # check for both 64 bit and 8 bit operations.  The check is adapted from
-# # SciPy, who copied it from Mesa.
-# null_dep = dependency('', required : false)
-# atomic_dep = null_dep
-# code_non_lockfree = '''
-#   #include <stdint.h>
-#   int main() {
-#    struct {
-#      void *p;
-#      uint8_t u8v;
-#    } x;
-#    x.p = NULL;
-#    x.u8v = 0;
-#    uint8_t res = __atomic_load_n(x.u8v, __ATOMIC_SEQ_CST);
-#    __atomic_store_n(x.u8v, 1, ATOMIC_SEQ_CST);
-#    void *p = __atomic_load_n(x.p, __ATOMIC_SEQ_CST);
-#    __atomic_store_n((void **)x.p, NULL, __ATOMIC_SEQ_CST)
-#    return 0;
-#    }
-# '''
-# if cc.get_id() != 'msvc'
-#   if not cc.links(
-#       code_non_lockfree,
-#       name : 'Check atomic builtins without -latomic'
-#     )
-#     atomic_dep = cc.find_library('atomic', required: false)
-#     if atomic_dep.found()
-#       # We're not sure that with `-latomic` things will work for all compilers,
-#       # so verify and only keep libatomic as a dependency if this works. It is
-#       # possible the build will fail later otherwise - unclear under what
-#       # circumstances (compilers, runtimes, etc.) exactly and this may need to
-#       # be extended when support is added for new CPUs
-#       if not cc.links(
-#           code_non_lockfree,
-#           dependencies: atomic_dep,
-#           name : 'Check atomic builtins with -latomic'
-#         )
-#         atomic_dep = null_dep
-#       endif
-#     endif
-#   endif
-# endif
+# Determine whether it is necessary to link libatomic with gcc. This
+# could be the case on 32-bit platforms when atomic operations are used
+# on 64-bit types or on RISC-V using 8-bit atomics, so we explicitly
+# check for both 64 bit and 8 bit operations.  The check is adapted from
+# SciPy, who copied it from Mesa.
+null_dep = dependency('', required : false)
+atomic_dep = null_dep
+code_non_lockfree = '''
+  #include <stdint.h>
+  int main() {
+   struct {
+     void *p;
+     uint8_t u8v;
+   } x;
+   x.p = NULL;
+   x.u8v = 0;
+   uint8_t res = __atomic_load_n(x.u8v, __ATOMIC_SEQ_CST);
+   __atomic_store_n(x.u8v, 1, ATOMIC_SEQ_CST);
+   void *p = __atomic_load_n(x.p, __ATOMIC_SEQ_CST);
+   __atomic_store_n((void **)x.p, NULL, __ATOMIC_SEQ_CST)
+   return 0;
+   }
+'''
+if cc.get_id() != 'msvc'
+  if not cc.links(
+      code_non_lockfree,
+      name : 'Check atomic builtins without -latomic'
+    )
+    atomic_dep = cc.find_library('atomic', required: false)
+    if atomic_dep.found()
+      # We're not sure that with `-latomic` things will work for all compilers,
+      # so verify and only keep libatomic as a dependency if this works. It is
+      # possible the build will fail later otherwise - unclear under what
+      # circumstances (compilers, runtimes, etc.) exactly and this may need to
+      # be extended when support is added for new CPUs
+      if not cc.links(
+          code_non_lockfree,
+          dependencies: atomic_dep,
+          name : 'Check atomic builtins with -latomic'
+        )
+        atomic_dep = null_dep
+      endif
+    endif
+  endif
+endif
 
 ######################################################################
 ## Installation tags

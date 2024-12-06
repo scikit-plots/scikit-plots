@@ -12,11 +12,11 @@
 build-backend = "mesonpy"
 requires = [
   # building an env isolated one
-  "meson>=1.1.0",          # The Meson build system itself to coordinate the compilation of code.
+  "meson>=1.5.0",          # The Meson build system itself to coordinate the compilation of code.
   "ninja>=1.11.0",         # The ninja build system used to compile code
   "meson-python>=0.16.0",  # A PEP 517 backend for building Python packages with Meson.
-  "Cython>=3.0.10",
-  "pybind11>=2.13.1",
+  "Cython>=3.0.8",
+  "pybind11>=2.13.2",
   "pythran>=0.14.0",
   "scipy>=1.6.0",
 
@@ -135,11 +135,11 @@ dev = [
   # "pydevtool",
 ]
 build = [
-  "meson>=1.1.0",          # The Meson build system itself to coordinate the compilation of code.
+  "meson>=1.5.0",          # The Meson build system itself to coordinate the compilation of code.
   "ninja>=1.11.0",         # The ninja build system used to compile code
   "meson-python>=0.16.0",  # A PEP 517 backend for building Python packages with Meson.
-  "Cython>=3.0.10",
-  "pybind11>=2.13.1",
+  "Cython>=3.0.8",
+  "pybind11>=2.13.2",
   "pythran>=0.14.0",
   "scipy>=1.6.0",  
   "numpy>=1.23.5",
