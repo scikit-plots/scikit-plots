@@ -22,27 +22,37 @@ def check_text(text):
     return ok
 
 
-def main():
+def main():    
     p = argparse.ArgumentParser(usage=__doc__.rstrip())
-    p.add_argument("module", nargs="?", default="scikitplot")
+    p.add_argument("mod_name", nargs="?", default='scikitplot')  # import name format
+    p.add_argument("package_name", nargs="?", default='scikit-plots')  # Package name format
     args = p.parse_args()
 
     # Drop '' from sys.path
     sys.path.pop(0)
 
-    # Find module path
-    __import__(args.module)
-    mod = sys.modules[args.module]
+    try:
+        # Try to import the module dynamically
+        mod = __import__(args.mod_name)
+        # Access the imported module via sys.modules
+        # mod = sys.modules[args.mod_name]
+        print(f"Module {args.mod_name} imported successfully.")
+    except ImportError as e:
+        # Catch ImportError and raise a more specific error with context
+        raise RuntimeError(f"Failed to import the module '{args.mod_name}'. Please check if the module is installed correctly.") from e
+    except Exception as e:
+        # Catch any other unexpected exceptions and raise them
+        raise RuntimeError(f"An unexpected error occurred while importing '{args.mod_name}'.") from e
 
     # Locate the LICENSE.txt file
-    # Try to find the .dist-info directory associated with the package, so find it there
+    # Try to find the .dist-info directory associated with the package, so find it there by Package name
     sitepkgs = pathlib.Path(mod.__file__).parent.parent  # This should give you the site-packages path
     print(f"Looking for .dist-info directory in: {sitepkgs}")
 
-    distinfo_paths = list(sitepkgs.glob(f"{args.module.replace('-', '_')}-*.dist-info"))  # Handling package name format
+    distinfo_paths = list(sitepkgs.glob(f"{args.package_name.replace('-', '_')}-*.dist-info"))  # Package name format
 
     if not distinfo_paths:
-        print(f"ERROR: No .dist-info directory found for module '{args.module}' in {sitepkgs}")
+        print(f"ERROR: No .dist-info directory found for module '{args.mod_name}' in {sitepkgs}")
         sys.exit(1)
 
     distinfo_path = distinfo_paths[0]
