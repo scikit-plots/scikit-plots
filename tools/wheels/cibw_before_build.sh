@@ -286,7 +286,7 @@ setup_macos() {
             type -p gfortran
         fi
         # Define the Scipy OpenBLAS based on Platform
-        local openblas_module="$1"
+        local openblas_module
         # Determine architecture and install the appropriate requirements
         case "$arch" in
             i686|x86)
