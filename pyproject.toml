@@ -303,12 +303,9 @@ repair-wheel-command = [
 # /project will be the $PWD equivalent inside the docker used to build the wheel
 PKG_CONFIG_PATH="/project/.openblas"
 LD_LIBRARY_PATH="/project/.openblas/lib:$LD_LIBRARY_PATH"
+DYLD_LIBRARY_PATH="/project/.openblas/lib"
 CIBW_ENVIRONMENT_MACOS = "PKG_CONFIG_PATH=/project/.openblas;LD_LIBRARY_PATH=/project/.openblas/lib:$LD_LIBRARY_PATH"
 
-[tool.cibuildwheel.macos.environment]
-# /project will be the $PWD equivalent inside the docker used to build the wheel
-PKG_CONFIG_PATH="/project/.openblas"
-DYLD_LIBRARY_PATH="/project/.openblas/lib"
 
 [tool.cibuildwheel.windows]
 # config-settings = "setup-args=--vsenv setup-args=-Dallow-noblas=false build-dir=build"
