@@ -92,28 +92,28 @@ handle_free_threaded_build() {
 # Function to configure the OpenBLAS PKG_CONFIG_PATH
 configure_openblas_pkg_config() {
     local project_dir="$1"  # Take the project directory as input
-    # Define the PKG_CONFIG_PATH
-    local pkg_config_path="$project_dir/.openblas"
+    # Define the pkg_config_path
+    PKG_CONFIG_PATH="$project_dir/.openblas"
     # Check if directory exists before attempting to delete it
-    if [ -d "$pkg_config_path" ]; then
+    if [ -d "$PKG_CONFIG_PATH" ]; then
         log "Removing existing OpenBLAS config directory..."
-        rm -rf "$pkg_config_path"  # Remove existing config directory
+        rm -rf "$PKG_CONFIG_PATH"  # Remove existing config directory
     else
         log "No existing OpenBLAS config directory to remove."
     fi    
     # Create a new OpenBLAS directory and log the success
     log "Creating OpenBLAS config directory..."
-    mkdir -p "$pkg_config_path"
+    mkdir -p "$PKG_CONFIG_PATH"
     log "OpenBLAS config directory created successfully."
     # Export PKG_CONFIG_PATH based on the OS and log
     case $RUNNER_OS in
-        Linux) export PKG_CONFIG_PATH="$pkg_config_path:$PKG_CONFIG_PATH"  ;;
-        macOS) export PKG_CONFIG_PATH="$pkg_config_path:$PKG_CONFIG_PATH" ;;
+        Linux) export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"  ;;
+        macOS) export PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
         Windows) 
             # Adjust the path format for Windows
-            PKG_CONFIG_PATH=$(echo "$pkg_config_path" | sed 's/\//\\/g')
-            $env:PKG_CONFIG_PATH = "$PKG_CONFIG_PATH;$env:PKG_CONFIG_PATH" ;;
-        *) PKG_CONFIG_PATH="$pkg_config_path" ;;
+            PKG_CONFIG_PATH=$(echo "$PKG_CONFIG_PATH" | sed 's/\//\\/g')
+            $env:PKG_CONFIG_PATH = "$PKG_CONFIG_PATH" ;;
+        *) PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
     esac
     success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
 }
