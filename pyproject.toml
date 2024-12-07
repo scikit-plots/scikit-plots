@@ -301,7 +301,7 @@ repair-wheel-command = [
 PKG_CONFIG_PATH="/project/.openblas"
 
 [tool.cibuildwheel.windows]
-config-settings = "setup-args=--vsenv setup-args=-Dallow-noblas=false build-dir=build"
+# config-settings = "setup-args=--vsenv setup-args=-Dallow-noblas=false build-dir=build"
 repair-wheel-command = "bash -el {project}/tools/wheels/repair_windows.sh {wheel} {dest_dir}"
 
 # [[tool.cibuildwheel.overrides]]

@@ -75,7 +75,8 @@ handle_free_threaded_build() {
     if [[ $FREE_THREADED_BUILD == "True" ]]; then
         log "Free-threaded Python build detected. Installing additional build dependencies..."
         python -m pip install -U --pre pip
-        python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy cython || python -m pip install cython
+        python -m pip uninstall -y cython numpy
+        python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy || python -m pip install cython numpy
         # TODO: Remove meson installation from source once a new release
         # that includes https://github.com/mesonbuild/meson/pull/13851 is available
         python -m pip install git+https://github.com/mesonbuild/meson
