@@ -51,7 +51,7 @@ setup_license() {
             warn "Unknown OS: $RUNNER_OS. Skipping OS LICENSE update."
             return
             ;;
-    esac    
+    esac
     # Check if the file exists before appending
     if [[ -f $os_license_file ]]; then
         log "Appending $os_license_file to LICENSE|LICENSE.txt..."
@@ -92,21 +92,30 @@ handle_free_threaded_build() {
 # Function to configure the OpenBLAS PKG_CONFIG_PATH
 configure_openblas_pkg_config() {
     local project_dir="$1"  # Take the project directory as input
-    local pkg_config_path="$project_dir/.openblas"  # Define the PKG_CONFIG_PATH
-    # Export PKG_CONFIG_PATH and log
-    export PKG_CONFIG_PATH="$pkg_config_path"
-    log "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"    
+    # Define the PKG_CONFIG_PATH
+    local pkg_config_path="$project_dir/.openblas"
     # Check if directory exists before attempting to delete it
-    if [ -d "$PKG_CONFIG_PATH" ]; then
+    if [ -d "$pkg_config_path" ]; then
         log "Removing existing OpenBLAS config directory..."
-        rm -rf "$PKG_CONFIG_PATH"  # Remove existing config directory
+        rm -rf "$pkg_config_path"  # Remove existing config directory
     else
         log "No existing OpenBLAS config directory to remove."
     fi    
     # Create a new OpenBLAS directory and log the success
     log "Creating OpenBLAS config directory..."
-    mkdir -p "$PKG_CONFIG_PATH"
-    success "OpenBLAS config directory created successfully."
+    mkdir -p "$pkg_config_path"
+    log "OpenBLAS config directory created successfully."
+    # Export PKG_CONFIG_PATH based on the OS and log
+    case $RUNNER_OS in
+        Linux) export PKG_CONFIG_PATH="$pkg_config_path:$PKG_CONFIG_PATH"  ;;
+        macOS) export PKG_CONFIG_PATH="$pkg_config_path:$PKG_CONFIG_PATH" ;;
+        Windows) 
+            # Adjust the path format for Windows
+            PKG_CONFIG_PATH=$(echo "$pkg_config_path" | sed 's/\//\\/g')
+            $env:PKG_CONFIG_PATH = "$PKG_CONFIG_PATH;$env:PKG_CONFIG_PATH" ;;
+        *) PKG_CONFIG_PATH="$pkg_config_path" ;;
+    esac
+    success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
 }
 # Function to handle Scipy OpenBLAS setup
 install_requirements() {
@@ -124,9 +133,19 @@ generate_openblas_pkgconfig() {
     python -c "import $openblas_module; print($openblas_module.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc" \
         || error "Failed to generate pkg-config."
     # Fix library paths for macOS
-    OpenBLAS_dir=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
-    export OpenBLAS_dir
-    log "OpenBLAS path: $OpenBLAS_dir"
+    OPENBLAS_LIB_DIR=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
+    log "OpenBLAS path: $OPENBLAS_LIB_DIR"
+    # Export LIBRARY PATH based on the OS and log
+    case $RUNNER_OS in
+        Linux) export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$LD_LIBRARY_PATH"  ;;
+        macOS) export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$DYLD_LIBRARY_PATH" ;;
+        Windows) 
+            # Adjust the path format for Windows
+            OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
+            $env:PATH = "$OPENBLAS_LIB_DIR;$env:PATH" ;;
+        *) OPENBLAS_LIB_DIR="$OPENBLAS_LIB_DIR" ;;
+    esac
+    success "Setting LIBRARY PATH to: $PKG_CONFIG_PATH"
 }
 copy_shared_libs() {
     # Copy Scipy OpenBLAS shared libraries to the build directory
@@ -267,6 +286,13 @@ setup_macos() {
             sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
             type -p gfortran
         fi
+        # lib_loc=$OPENBLAS_LIB_DIR
+        # # Use the libgfortran from gfortran rather than the one in the wheel
+        # # since delocate gets confused if there is more than one
+        # # https://github.com/scipy/scipy/issues/20852
+        # install_name_tool -change @loader_path/../.dylibs/libgfortran.5.dylib @rpath/libgfortran.5.dylib $lib_loc/libsci*
+        # install_name_tool -change @loader_path/../.dylibs/libgcc_s.1.1.dylib @rpath/libgcc_s.1.1.dylib $lib_loc/libsci*
+        # install_name_tool -change @loader_path/../.dylibs/libquadmath.0.dylib @rpath/libquadmath.0.dylib $lib_loc/libsci*
     fi
 }
 ######################################################################

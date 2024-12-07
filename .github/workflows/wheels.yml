@@ -105,7 +105,7 @@ jobs:
           ["cp311", "3.11"],
           ["cp312", "3.12"],
           ["cp313", "3.13"],
-          # ["cp313t", "3.13"]  https://github.com/scipy/scipy/issues/21970
+          ["cp313t", "3.13"]  # https://github.com/scipy/scipy/issues/21970
         ]
         buildplat:
           # should also be able to do multi-archs on a single entry, e.g.
@@ -113,7 +113,7 @@ jobs:
           # so easier to separate out here.
           - [ubuntu-22.04, manylinux, x86_64]
           - [ubuntu-22.04, musllinux, x86_64]
-          # - [macos-13, macosx, x86_64, openblas, "10.13"]  # Numcpp C|Cpp error: 'path' is unavailable: introduced in macOS 10.15
+          - [macos-13, macosx, x86_64, openblas, "10.13"]  # Numcpp C|Cpp error: 'path' is unavailable: introduced in macOS 10.15
           - [macos-13, macosx, x86_64, accelerate, "14.0"]
           - [macos-14, macosx, arm64, openblas, "12.3"]
           - [macos-14, macosx, arm64, accelerate, "14.0"]
@@ -185,7 +185,7 @@ jobs:
           choco install -y --no-progress --stoponfirstfailure --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
           # Verify pkg-config installation and its version
           pkg-config --version
-          # Set up the CIBW environment variable
+          # Set up the CIBW environment variable, in PowerShell (Windows)
           # pkgconfig needs a complete path, and not just "./openblas since the
           $env:CIBW = "${{ github.workspace }}/.openblas"
           # Handle backslash in paths (convert to forward slash)
@@ -193,11 +193,12 @@ jobs:
           # It seems somewhere in the env passing, `\` is not
           # passed through, so convert it to '/'
           $env:CIBW = $env:CIBW.Replace("\", "/")
-          # Debug the PKG_CONFIG_PATH and check if it's set correctly
-          echo "PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
           # Export the environment variable for GitHub Actions
-          echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
-          echo "CIBW_ENVIRONMENT=PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$env:CIBW;$env:PKG_CONFIG_PATH" >> $env:GITHUB_ENV
+          echo "CIBW_ENVIRONMENT=$env:CIBW;$env:CIBW_ENVIRONMENT" >> $env:GITHUB_ENV
+          echo "CIBW_ENVIRONMENT_WINDOWS=$env:CIBW;$env:CIBW_ENVIRONMENT_WINDOWS" >> $env:GITHUB_ENV
+          # Debug the PKG_CONFIG_PATH and check if it's set correctly
+          echo "$PKG_CONFIG_PATH"
 
       - name: macOS Setup
         if: startsWith( matrix.buildplat[0], 'macos-' )
@@ -233,7 +234,7 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app
           CIBW="MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[4] }}\
             SDKROOT=$(xcrun --sdk macosx --show-sdk-path)\
-            PKG_CONFIG_PATH=${{ github.workspace }}"
+            PKG_CONFIG_PATH=${{ github.workspace }}/.openblas"
           echo "CIBW_ENVIRONMENT=$CIBW" >> "$GITHUB_ENV"
 
           echo "REPAIR_PATH=$LIB_PATH" >> "$GITHUB_ENV"
