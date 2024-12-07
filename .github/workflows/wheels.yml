@@ -187,7 +187,7 @@ jobs:
           pkg-config --version
           # Set up the CIBW environment variable
           # pkgconfig needs a complete path, and not just "./openblas since the
-          $CIBW = "${{ github.workspace }}/.openblas"
+          $env:CIBW = "${{ github.workspace }}/.openblas"
           # Handle backslash in paths (convert to forward slash)
           # build is run in a tmp dir (?)
           # It seems somewhere in the env passing, `\` is not
