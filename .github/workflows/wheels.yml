@@ -149,18 +149,18 @@ jobs:
           fetch-tags: true
 
       # Used to push the built wheels
-      - name: Setup Python
+      - name: Python Setup
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.x"
 
-      - name: Setup Windows MSVC (32|64-bit)
+      - name: Windows Setup MSVC (32|64-bit)
         if: ${{ runner.os == 'Windows' }}
         uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
-      - name: Setup Windows RTools (32|64-bit)
+      - name: Windows Setup RTools (32|64-bit)
         if: ${{ runner.os == 'Windows' }}
         run: |
           if ($env:IS_32_BIT -eq "true") {
@@ -178,19 +178,28 @@ jobs:
           cl /?
           gcc --version
 
-      - name: Setup Windows Environment Variables (set PKG_CONFIG_PATH)
+      - name: Windows Setup Environment Variables (set PKG_CONFIG_PATH)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          $env:CIBW = "${{ github.workspace }}"
+          # Install pkg-config via Chocolatey
+          choco install -y --no-progress --stoponfirstfailure --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
+          # Verify pkg-config installation and its version
+          pkg-config --version
+          # Set up the CIBW environment variable
+          # pkgconfig needs a complete path, and not just "./openblas since the
+          $CIBW = "${{ github.workspace }}/.openblas"
+          # Handle backslash in paths (convert to forward slash)
+          # build is run in a tmp dir (?)
           # It seems somewhere in the env passing, `\` is not
           # passed through, so convert it to '/'
-          $env:CIBW=$env:CIBW.replace("\","/")
+          $env:CIBW = $env:CIBW.Replace("\", "/")
+          # Debug the PKG_CONFIG_PATH and check if it's set correctly
+          echo "PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
+          # Export the environment variable for GitHub Actions
+          echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
           echo "CIBW_ENVIRONMENT=PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
-          choco install -y --no-progress --stoponfirstfailure --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
-          # Verify Tools
-          pkg-config --version
 
-      - name: Setup macOS
+      - name: macOS Setup
         if: startsWith( matrix.buildplat[0], 'macos-' )
         run: |
           if [[ ${{ matrix.buildplat[3] }} == 'accelerate' ]]; then
@@ -287,7 +296,7 @@ jobs:
           CIBW="pip; args: --no-build-isolation"
           echo "CIBW_BUILD_FRONTEND=$CIBW" >> "$GITHUB_ENV"
 
-      - name: Build wheels
+      - name: Build Wheels
         uses: pypa/cibuildwheel@ee63bf16da6cddfb925f542f2c7b59ad50e93969  # v2.22.0
         env:
           # Specify target platform
@@ -298,7 +307,7 @@ jobs:
           # Enable support for free-threaded builds (specific to some platforms)
           CIBW_FREE_THREADED_SUPPORT: True
 
-      - name: Rename macOS wheels
+      - name: macOS Rename wheels
         if: startsWith( matrix.buildplat[0], 'macos-' )
         run: |
           # macos-x86_64-accelerate wheels targeting macos-14 were renamed to 13
