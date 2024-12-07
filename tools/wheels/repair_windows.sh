@@ -33,15 +33,15 @@ cd $DEST_DIR
 rm -rf tmp
 
 # Check if OpenBLAS exists in the expected directory
-OPENBLAS_DLL_PATH="$cwd/.openblas/lib/libopenblas.dll"
+OPENBLAS_DLL_PATH="$cwd/.openblas/lib"
 if [[ -f "$OPENBLAS_DLL_PATH" ]]; then
-  echo "Found libopenblas.dll at $OPENBLAS_DLL_PATH"
   # the libopenblas.dll is placed into this directory in the cibw_before_build
   # script.
   # Run delvewheel to repair the wheel and add OpenBLAS path
   delvewheel repair --add-path $cwd/.openblas/lib -w $DEST_DIR $WHEEL
+  echo "Fixed libopenblas.dll at $OPENBLAS_DLL_PATH"
 else
-  echo "Error: libopenblas.dll not found at $OPENBLAS_DLL_PATH"
+  echo "Error: openblas/lib not found at $OPENBLAS_DLL_PATH"
   exit 1
 fi
 
