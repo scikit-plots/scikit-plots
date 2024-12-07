@@ -282,9 +282,9 @@ musllinux-x86_64-image = "musllinux_1_2"
 # Linux-specific environment variables
 [tool.cibuildwheel.linux.environment]
 # /project will be the $PWD equivalent inside the docker used to build the wheel
-PKG_CONFIG_PATH="/project/.openblas"
-LD_LIBRARY_PATH="/project/.openblas/lib:$LD_LIBRARY_PATH"
-CIBW_ENVIRONMENT = "PKG_CONFIG_PATH=/project/.openblas;LD_LIBRARY_PATH=/project/.openblas/lib:$LD_LIBRARY_PATH"
+LD_LIBRARY_PATH = "/project/.openblas/lib:$LD_LIBRARY_PATH"
+PKG_CONFIG_PATH = "/project/.openblas"
+CIBW_ENVIRONMENT = "PKG_CONFIG_PATH=/project/.openblas"
 # RUNNER_OS is a GitHub Actions specific env var; define it here so it works on Cirrus CI too
 RUNNER_OS="Linux"
 
@@ -298,13 +298,13 @@ repair-wheel-command = [
   "echo DYLD_LIBRARY_PATH $DYLD_LIBRARY_PATH",
   "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}",
 ]
+
 # macOS-specific environment variables
 [tool.cibuildwheel.macos.environment]
 # /project will be the $PWD equivalent inside the docker used to build the wheel
-PKG_CONFIG_PATH="/project/.openblas"
-LD_LIBRARY_PATH="/project/.openblas/lib:$LD_LIBRARY_PATH"
-DYLD_LIBRARY_PATH="/project/.openblas/lib"
-CIBW_ENVIRONMENT_MACOS = "PKG_CONFIG_PATH=/project/.openblas;LD_LIBRARY_PATH=/project/.openblas/lib:$LD_LIBRARY_PATH"
+DYLD_LIBRARY_PATH = "/project/.openblas/lib"
+PKG_CONFIG_PATH = "/project/.openblas"
+CIBW_ENVIRONMENT_MACOS = "PKG_CONFIG_PATH=/project/.openblas"
 
 
 [tool.cibuildwheel.windows]
@@ -322,9 +322,9 @@ repair-wheel-command = "bash -el {project}/tools/wheels/repair_windows.sh {wheel
 # Windows-specific environment variables
 [tool.cibuildwheel.windows.environment]
 # /project will be the $PWD equivalent inside the docker used to build the wheel
-PKG_CONFIG_PATH="{project}/.openblas"
-PATH="{project}/.openblas/lib;${env:PATH}"
-CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH={project}/.openblas;PATH={project}/.openblas/lib;${env:PATH}"
+PATH = "{project}/.openblas/lib;$PATH"
+PKG_CONFIG_PATH = "{project}/.openblas"
+CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH={project}/.openblas"
 
 [tool.cibuildwheel.pyodide]
 config-settings = "build-dir=build setup-args=--cross-file=$PWD/tools/ci/emscripten/emscripten.meson.cross setup-args=-Dblas=none setup-args=-Dlapack=none"

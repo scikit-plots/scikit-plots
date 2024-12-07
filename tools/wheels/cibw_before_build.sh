@@ -94,6 +94,7 @@ configure_openblas_pkg_config() {
     local project_dir="$1"  # Take the project directory as input
     # Define the pkg_config_path
     PKG_CONFIG_PATH="$project_dir/.openblas"
+    OPENBLAS_LIB_DIR="$project_dir/.openblas/lib"
     # Check if directory exists before attempting to delete it
     if [ -d "$PKG_CONFIG_PATH" ]; then
         log "Removing existing OpenBLAS config directory..."
@@ -116,6 +117,17 @@ configure_openblas_pkg_config() {
         *) PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
     esac
     success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
+    # Export LIBRARY PATH based on the OS and log
+    case $RUNNER_OS in
+        Linux) export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$LD_LIBRARY_PATH"  ;;
+        macOS) export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR" ;;
+        Windows) 
+            # Adjust the path format for Windows
+            OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
+            $env:PATH = "$OPENBLAS_LIB_DIR;$env:PATH" ;;
+        *) CIBW_ENVIRONMENT = "OPENBLAS_LIB_DIR=$OPENBLAS_LIB_DIR" ;;
+    esac
+    success "Setting LIBRARY PATH to: $PKG_CONFIG_PATH"
 }
 # Function to handle Scipy OpenBLAS setup
 install_requirements() {
@@ -132,20 +144,7 @@ generate_openblas_pkgconfig() {
     log "Generating OpenBLAS pkg-config file using $openblas_module..."
     python -c "import $openblas_module; print($openblas_module.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc" \
         || error "Failed to generate pkg-config."
-    # Fix library paths for macOS
-    OPENBLAS_LIB_DIR=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
-    log "OpenBLAS path: $OPENBLAS_LIB_DIR"
-    # Export LIBRARY PATH based on the OS and log
-    case $RUNNER_OS in
-        Linux) export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$LD_LIBRARY_PATH"  ;;
-        macOS) export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$LD_LIBRARY_PATH" ;;
-        Windows) 
-            # Adjust the path format for Windows
-            OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
-            $env:PATH = "$OPENBLAS_LIB_DIR;$env:PATH" ;;
-        *) OPENBLAS_LIB_DIR="$OPENBLAS_LIB_DIR" ;;
-    esac
-    success "Setting LIBRARY PATH to: $PKG_CONFIG_PATH"
+    success "Defined scipy-openblas to: $PKG_CONFIG_PATH/scipy-openblas.pc"
 }
 copy_shared_libs() {
     # Copy Scipy OpenBLAS shared libraries to the build directory
@@ -220,7 +219,7 @@ setup_openblas() {
             error "Unknown architecture detected: $arch. Unable to proceed. Exiting..."
             exit 1
             ;;
-    esac    
+    esac
 }
 ######################################################################
 ## Windows
@@ -286,7 +285,28 @@ setup_macos() {
             sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
             type -p gfortran
         fi
-        # lib_loc=$OPENBLAS_LIB_DIR
+        # Define the Scipy OpenBLAS based on Platform
+        local openblas_module="$1"
+        # Determine architecture and install the appropriate requirements
+        case "$arch" in
+            i686|x86)
+                log "Detected 32-bit architecture."
+                openblas_module="scipy_openblas32"
+                ;;
+            x86_64|*arm64*)
+                log "Detected 64-bit architecture."
+                openblas_module="scipy_openblas64"
+                ;;
+            *)
+                error "Unknown architecture detected: $arch. Unable to proceed. Exiting..."
+                exit 1
+                ;;
+        esac
+        # Fix library paths for macOS openblas_lib_dir
+        openblas_lib_dir=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
+        log "OpenBLAS path: $openblas_lib_dir"
+        # lib_dir by openblas_lib_dir
+        # lib_loc=$openblas_lib_dir
         # # Use the libgfortran from gfortran rather than the one in the wheel
         # # since delocate gets confused if there is more than one
         # # https://github.com/scipy/scipy/issues/20852
