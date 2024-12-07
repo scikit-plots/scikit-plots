@@ -108,13 +108,12 @@ configure_openblas_pkg_config() {
     log "OpenBLAS config directory created successfully."
     # Export PKG_CONFIG_PATH based on the OS and log
     case $RUNNER_OS in
-        Linux) export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"  ;;
-        macOS) export PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
+        Linux|macOS) export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"  ;;
         Windows) 
             # Adjust the path format for Windows
             PKG_CONFIG_PATH=$(echo "$PKG_CONFIG_PATH" | sed 's/\//\\/g')
-            $env:PKG_CONFIG_PATH = "$PKG_CONFIG_PATH" ;;
-        *) PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
+            export PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
+        *) CIBW_ENVIRONMENT = "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" ;;
     esac
     success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
     # Export LIBRARY PATH based on the OS and log
@@ -124,7 +123,7 @@ configure_openblas_pkg_config() {
         Windows) 
             # Adjust the path format for Windows
             OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
-            $env:PATH = "$OPENBLAS_LIB_DIR;$env:PATH" ;;
+            export PATH="$OPENBLAS_LIB_DIR:$PATH" ;;
         *) CIBW_ENVIRONMENT = "OPENBLAS_LIB_DIR=$OPENBLAS_LIB_DIR" ;;
     esac
     success "Setting LIBRARY PATH to: $PKG_CONFIG_PATH"
