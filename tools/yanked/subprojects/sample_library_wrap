@@ -7,3 +7,31 @@ source_url = https://archives.boost.io/release/1.81.0/source/boost_1_81_0.tar.gz
 source_filename = boost_1_81_0.tar.gz
 # You need to provide the correct hash for the downloaded file.
 source_hash = 205666dea9f6a7cfed87c7a6dfbeb52a2c1b9de55712c9c1a87735d7181452b6
+
+[wrap-file]
+directory = OpenBLAS-0.3.28
+source_url = https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.28/OpenBLAS-0.3.28.tar.gz
+source_filename = OpenBLAS-0.3.28.tar.gz
+source_hash = f1003466ad074e9b0c8d421a204121100b0751c96fc6fcf3d1456bd12f8a00a1
+patch_filename = openblas_0.3.28-1_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/openblas_0.3.28-1/get_patch
+patch_hash = 77debe1fc9392d2b0553f0c8e8b85d8f78b3576b4a3f766ea3296ee25222678f
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/openblas_0.3.28-1/OpenBLAS-0.3.28.tar.gz
+wrapdb_version = 0.3.28-1
+
+[provide]
+openblas = openblas_dep
+
+[wrap-file]
+directory = pybind11-2.13.5
+source_url = https://github.com/pybind/pybind11/archive/refs/tags/v2.13.5.tar.gz
+source_filename = pybind11-2.13.5.tar.gz
+source_hash = b1e209c42b3a9ed74da3e0b25a4f4cd478d89d5efbb48f04b277df427faf6252
+patch_filename = pybind11_2.13.5-1_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/pybind11_2.13.5-1/get_patch
+patch_hash = ecb031b830481560b3d8487ed63ba4f5509a074be42f5d19af64d844c795e15b
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/pybind11_2.13.5-1/pybind11-2.13.5.tar.gz
+wrapdb_version = 2.13.5-1
+
+[provide]
+pybind11 = pybind11_dep
