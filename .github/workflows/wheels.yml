@@ -105,7 +105,7 @@ jobs:
           ["cp311", "3.11"],
           ["cp312", "3.12"],
           ["cp313", "3.13"],
-          ["cp313t", "3.13"]  # https://github.com/scipy/scipy/issues/21970
+          # ["cp313t", "3.13"]  # https://github.com/scipy/scipy/issues/21970
         ]
         buildplat:
           # should also be able to do multi-archs on a single entry, e.g.
