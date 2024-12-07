@@ -138,7 +138,7 @@ generate_openblas_pkgconfig() {
     # Export LIBRARY PATH based on the OS and log
     case $RUNNER_OS in
         Linux) export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$LD_LIBRARY_PATH"  ;;
-        macOS) export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$DYLD_LIBRARY_PATH" ;;
+        macOS) export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$LD_LIBRARY_PATH" ;;
         Windows) 
             # Adjust the path format for Windows
             OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
