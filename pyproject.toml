@@ -326,10 +326,6 @@ PKG_CONFIG_PATH="{project}/.openblas"
 PATH="{project}/.openblas/lib;${env:PATH}"
 CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH={project}/.openblas;PATH={project}/.openblas/lib;${env:PATH}"
 
-PKG_CONFIG_PATH = "{project}/.openblas"
-CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH
-PATH = "{project}/.openblas/lib;${env:PATH}"
-
 [tool.cibuildwheel.pyodide]
 config-settings = "build-dir=build setup-args=--cross-file=$PWD/tools/ci/emscripten/emscripten.meson.cross setup-args=-Dblas=none setup-args=-Dlapack=none"
 
