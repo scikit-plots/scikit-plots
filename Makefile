@@ -140,7 +140,7 @@ LAST_COMMIT_MESSAGE = $(shell git log -1 --pretty=%B)
 COMMIT_MESSAGE = "Release version $LAST_COMMIT_MESSAGE"
 
 ## Tagging the latest commit
-tag:
+git-tag:
 	@echo "Creating tag v$(LAST_COMMIT_MESSAGE) with message: $(LAST_COMMIT_MESSAGE)"
 	@git tag
 	@#git tag -a v0.3.7 -m "Release version 0.3.7"
@@ -151,18 +151,29 @@ tag:
 	@git tag -a v$(LAST_COMMIT_MESSAGE) -m "$(LAST_COMMIT_MESSAGE)"
 	@echo "Tag v$(LAST_COMMIT_MESSAGE) created with message: $(LAST_COMMIT_MESSAGE)."
 
+## Steps to Force Update Your Branch with main
+git-main:
+	@## Ensure You're on the Correct Branch
+	@git switch maintenance/0.4.x || git checkout -t maintenance/0.4.x
+	@Fetch the Latest Updates:
+	@git fetch origin
+	@Hard Reset to Match main:
+	@git reset --hard origin/main
+	@Force Push the Updated Branch:
+	@git push origin maintenance/0.4.x --force
+
 ## Push the tag to the remote repository
-push-tag:
+git-push-tag:
 	@echo "Pushing tag v$(LAST_COMMIT_MESSAGE) to the remote repository."
 	@git push origin v$(LAST_COMMIT_MESSAGE)
 	@echo "Tag v$(LAST_COMMIT_MESSAGE) pushed to the remote repository."
 
 ## Release combines tagging and pushing the tag to remote
-release: tag push-tag
+git-release: tag push-tag
 	@echo "Release v$(LAST_COMMIT_MESSAGE) is ready."
 
 # Publish to PyPI (example for Python projects)
-publish:
+pypi-publish:
 	@echo "Checking the distribution files with twine."
 	@twine check dist/*
 	@echo "Uploading the distribution files to PyPI."
