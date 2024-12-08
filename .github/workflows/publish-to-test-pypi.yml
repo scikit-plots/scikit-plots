@@ -55,7 +55,7 @@ jobs:
         run: |
           # Install the necessary tools for building and publishing
           # pip install --upgrade setuptools wheel build twine
-          pip install -U wheelhouse_uploader apache-libcloud==2.2.1 pyyaml twine
+          pip install -qU wheelhouse_uploader apache-libcloud==2.2.1 pyyaml twine
 
       # # Step 4a:Build source and wheel distributions
       # - name: Build source and wheel distributions
