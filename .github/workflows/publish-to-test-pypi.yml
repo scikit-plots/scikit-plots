@@ -20,16 +20,15 @@ on:
         default: 'testpypi'  # Default to TestPyPI for safety
         required: true
 
-# permissions: # Grants read-only permission to repository contents
-#   contents: read # to fetch code (actions/checkout)
+permissions: # Grants read-only permission to repository contents
+  contents: read # to fetch code (actions/checkout)
+  # IMPORTANT: This permission is mandatory for secure publishing
+  id-token: write  # Required for trusted publishing
 
 jobs:
   publish_on_pypi:
     name: Publish Package to TestPyPI|PyPI
     runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
-    permissions:
-      # IMPORTANT: This permission is mandatory for secure publishing
-      id-token: write  # Required for trusted publishing
 
     ## Restrict this job to the 'publish_pypi' environment
     ## If Activated, Accessing Environment Secret for 'publish_pypi'
@@ -67,6 +66,7 @@ jobs:
           show-channel-urls: true
           miniforge-version: latest
           python-version: "3.10"
+
       - name: Conda environment creation and activation anaconda-client
         if: success()
         # see https://github.com/marketplace/actions/setup-miniconda for why
@@ -80,33 +80,33 @@ jobs:
           # pip install -U pip pyyaml twine  # wheelhouse_uploader
 
       # Step 4: Download wheels and sdist from Anaconda
-    - name: Download wheels and sdist from Anaconda
-      run: |
-        echo "Downloading $SKPLT_VERSION wheels and sdist from Anaconda repository"
-        anaconda-client download \
-          scikit-plots=$SKPLT_VERSION \
-          --channel https://pypi.anaconda.org/$CONDA_SOURCE/simple \
-          --output-dir dist/
+      - name: Download wheels and sdist from Anaconda
+        run: |
+          echo "Downloading $SKPLT_VERSION wheels and sdist from Anaconda repository"
+          anaconda-client download \
+            scikit-plots=$SKPLT_VERSION \
+            --channel https://pypi.anaconda.org/$CONDA_SOURCE/simple \
+            --output-dir dist/
           ls -al dist/
           # Filter or delete platform-specific files as needed
           # find dist/ -type f ! -name "*.whl" -delete  # Example to delete non-wheel files
           
-      # # Step 5a: Publish the package to TestPyPI (if selected)
-      # - name: Publish package distributions to TestPyPI
-      #   if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}
-      #   uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
-      #   with:
-      #     user: __token__
-      #     # password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
-      #     repository-url: https://test.pypi.org/legacy/
-      #     print-hash: true
+      # Step 5a: Publish the package to TestPyPI (if selected)
+      - name: Publish package distributions to TestPyPI
+        if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}
+        uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
+        with:
+          user: __token__
+          # password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
+          repository-url: https://test.pypi.org/legacy/
+          print-hash: true
 
-      # # Step 5b: Publish the package to PyPI (if selected)
-      # - name: Publish package distributions to  PyPI
-      #   if: ${{ github.event.inputs.pypi_repo == 'pypi' }}  # Run only if 'pypi' is chosen
-      #   uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
-      #   with:
-      #     print-hash: true
+      # Step 5b: Publish the package to PyPI (if selected)
+      - name: Publish package distributions to  PyPI
+        if: ${{ github.event.inputs.pypi_repo == 'pypi' }}  # Run only if 'pypi' is chosen
+        uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
+        with:
+          print-hash: true
 
       # # Step 3: Install dependencies for building and publishing
       # - name: Install build dependencies
