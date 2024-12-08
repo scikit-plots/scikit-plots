@@ -22,11 +22,16 @@ pip install scikit-plots
 pip install git+https://github.com/scikit-plots/scikit-plots.git@main
 pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
 pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
-
-#pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
-pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
-pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 ```
+
+```bash
+#pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0.post0  # CPython Compiled with supported Cython,C,Cpp,Fortran
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3     # Python Compiled
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7        # Python Compiled
+```
+**Note**:
+- **Python == CPython** is the reference implementation of Python, written in C.
 
 ## Sample Plots
 

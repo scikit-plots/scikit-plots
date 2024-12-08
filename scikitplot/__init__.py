@@ -31,14 +31,14 @@ online at https://scikit-plots.github.io.
 
 # https://packaging.python.org/en/latest/discussions/versioning/#valid-version-numbers
 # Admissible pre-release markers:
-#   X.Y.ZaN   # Alpha release
-#   X.Y.ZbN   # Beta release
-#   X.Y.ZrcN  # Release Candidate
-#   X.Y.Z     # Final release
-# Dev branch marker is: 'X.Y.dev' or 'X.Y.devN' where N is an integer.
-# 'X.Y.dev0' is the canonical version of 'X.Y.dev'
+#   Dev branch marker is: 'X.Y.dev' or 'X.Y.devN' where N is an integer.
+#   X.Y.dev0     # is the canonical version of 'X.Y.dev'
+#   X.Y.ZaN      # Alpha release
+#   X.Y.ZbN      # Beta release
+#   X.Y.ZrcN     # Release Candidate
+#   X.Y.Z        # Final release
+#   X.Y.Z.postM  # Post release
 __version__ = '0.4.0.post0'
-
 # from ._version import get_versions
 # __version__ = get_versions()['version']
 # del get_versions
@@ -47,7 +47,7 @@ __version__ = '0.4.0.post0'
 ## scikit-plots configuration
 ######################################################################
 
-py_set = set  # keep python set module have 'set' it raise error
+py_set = set  # keep python set, 'scikitplot.set' Override then raise error
 
 import os
 import sys
