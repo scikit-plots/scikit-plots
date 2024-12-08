@@ -67,7 +67,8 @@ jobs:
           miniforge-version: latest
           python-version: "3.10"
 
-      - name: Conda environment creation and activation anaconda-client
+      # Step 4: Download wheels and sdist from Anaconda
+      - name: Download wheels and sdist from Anaconda
         if: success()
         # see https://github.com/marketplace/actions/setup-miniconda for why
         # `-el {0}` is required.
@@ -75,13 +76,10 @@ jobs:
         run: |
           # https://github.com/marketplace/actions/build-and-upload-conda-packages
           # # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          conda install -y anaconda-client
+          conda install -y -q anaconda-client
           # conda install conda-forge::wheelhouse_uploader
-          # pip install -U pip pyyaml twine  # wheelhouse_uploader
+          # pip install -qU pip pyyaml twine  # wheelhouse_uploader
 
-      # Step 4: Download wheels and sdist from Anaconda
-      - name: Download wheels and sdist from Anaconda
-        run: |
           echo "Downloading $SKPLT_VERSION wheels and sdist from Anaconda repository"
           anaconda-client download \
             scikit-plots=$SKPLT_VERSION \
