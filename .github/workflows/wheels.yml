@@ -15,17 +15,19 @@
 name: Wheel Builder Conda
 
 on:
-  # schedule:
-    ## Cron schedule for automated runs
-    ## https://crontab.cronhub.io
-    ##        ┌───────────── minute (0 - 59)
-    ##        │  ┌───────────── hour (0 - 23)
-    ##        │  │ ┌───────────── day of the month (1 - 31)
-    ##        │  │ │ ┌───────────── month (1 - 12 or JAN-DEC)
-    ##        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
-    ##        │  │ │ │ │
-    ## cron: "42 2 * * SUN,WED"
-    # - cron: "*/30 * * * *"  # Run every 30 minutes
+  schedule:
+    # Automatically built and released every night (or at a regular interval, often nightly)
+    # Cron schedule for automated runs
+    # https://crontab.cronhub.io
+    #        ┌───────────── minute (0 - 59)
+    #        │  ┌───────────── hour (0 - 23)
+    #        │  │ ┌───────────── day of the month (1 - 31)
+    #        │  │ │ ┌───────────── month (1 - 12 or JAN-DEC)
+    #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
+    #        │  │ │ │ │
+    # cron: "11 1 * * SUN,WED"
+    # Run every Monday at 11:11 AM
+    - cron: '11 11 * * 1'
   # triggers a workflow when a pull request (PR) is opened
   # Code Review: Use this to run tests, checks, or CI pipelines
   # Pre-Merge Validation: Ensure that changes introduced in the PR won't break
@@ -95,13 +97,13 @@ jobs:
   build_wheels:
     name: >-
       Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
-      # Allows splitting a string across multiple lines while treating it as a single logical line.
-      # ${{ matrix.buildplat[1] && format('-{0}', matrix.buildplat[1]) || '' }}
-      # ${{ matrix.buildplat[2] && format('-{0}', matrix.buildplat[2]) || '' }}
-      # ${{ matrix.buildplat[3] && format('-{0}', matrix.buildplat[3]) || '' }}
-      # ${{ matrix.buildplat[4] && format('-{0}', matrix.buildplat[4]) || '' }}
-      # ${{ matrix.buildplat[1] != '' && '-' || '' }}${{ matrix.buildplat[1] }}
-      # Wheel-cp310-macosx-arm64-accelerate-14.0
+    # Allows splitting a string across multiple lines while treating it as a single logical line.
+    # ${{ matrix.buildplat[1] && format('-{0}', matrix.buildplat[1]) || '' }}
+    # ${{ matrix.buildplat[2] && format('-{0}', matrix.buildplat[2]) || '' }}
+    # ${{ matrix.buildplat[3] && format('-{0}', matrix.buildplat[3]) || '' }}
+    # ${{ matrix.buildplat[4] && format('-{0}', matrix.buildplat[4]) || '' }}
+    # ${{ matrix.buildplat[1] != '' && '-' || '' }}${{ matrix.buildplat[1] }}
+    # Wheel-cp310-macosx-arm64-accelerate-14.0
     if: >- 
       contains(needs.get_commit_message.outputs.message, '[wheel build]') ||
       contains(needs.get_commit_message.outputs.message, '1') ||
@@ -144,15 +146,15 @@ jobs:
           - buildplat: [windows-2019, win32,]
             python: "pp310"
 
-    env:  # Job level enviroment NAME: '', $NAME, ${{ env.NAME }}      
+    env:  # Job level enviroment NAME: '', $NAME, ${{ env.NAME }}
       IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
-      IS_PUSH: >-        
-        # Check current event is a push event with a tag starting with 'v'
-        # upload to staging if it's a push to a maintenance branch
-        # and the lastcommit message contains '[wheel build]' or '1'
-        # ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-        # Triggered for specific branches (e.g., main, maintenance/**)
-        # Triggered for tags starting with 'v'
+      # Check current event is a push event with a tag starting with 'v'
+      # upload to staging if it's a push to a maintenance branch
+      # and the lastcommit message contains '[wheel build]' or '1'
+      # ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+      # Triggered for specific branches (e.g., main, maintenance/**)
+      # Triggered for tags starting with 'v'
+      IS_PUSH: >-
         ${{ 
           github.event_name == 'push' && 
           (startsWith(github.ref, 'refs/heads/main') ||
@@ -160,24 +162,24 @@ jobs:
            startsWith(github.ref, 'refs/tags/v') ) &&
           contains(needs.get_commit_message.outputs.message, '1')
         }}
+      # Checks if the event is a schedule or manual workflow dispatch
       IS_SCHEDULE_DISPATCH: >-
-        # Checks if the event is a schedule or manual workflow dispatch
         ${{
           github.event_name == 'schedule' ||
           github.event_name == 'workflow_dispatch'
         }}
+      # cibuildwheel to represent
+      # {project} might be used for higher-level tasks, like referencing the project root.
+      # {package} is used to refer to the specific package directory
+      # Call: echo $CIBW_BEFORE_BUILD
       CIBW_BEFORE_BUILD: >-
-        # cibuildwheel to represent
-        # {project} might be used for higher-level tasks, like referencing the project root.
-        # {package} is used to refer to the specific package directory
         rm -rf {project}/build
-        # Call: echo $CIBW_BEFORE_BUILD
+      # cibuildwheel to represent
+      # {project} might be used for higher-level tasks, like referencing the project root.
+      # {package} is used to refer to the specific package directory
+      # Call: echo $CIBW_BEFORE_BUILD_WINDOWS
       CIBW_BEFORE_BUILD_WINDOWS: >-
-        # cibuildwheel to represent
-        # {project} might be used for higher-level tasks, like referencing the project root.
-        # {package} is used to refer to the specific package directory
         pip install delvewheel && rm -rf {project}/build
-        # Call: echo $CIBW_BEFORE_BUILD_WINDOWS
 
     steps:
       - name: Checkout Repository with all submodules recursively
@@ -213,8 +215,8 @@ jobs:
             echo "PKG_CONFIG_PATH=c:/rtools40/ucrt64/lib/pkgconfig" >> $env:GITHUB_ENV
           }
           # Verify Tools
-          cl /?
-          gcc --version
+          echo cl /? >> $GITHUB_OUTPUT
+          echo gcc --version >> $GITHUB_OUTPUT
 
       - name: Windows Setup Environment Variables (set PKG_CONFIG_PATH)
         if: ${{ runner.os == 'Windows' }}
@@ -236,7 +238,7 @@ jobs:
           echo CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
           echo CIBW_ENVIRONMENT_WINDOWS="PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
           # Debug the PKG_CONFIG_PATH and check if it's set correctly
-          echo "$PKG_CONFIG_PATH" >> $env:GITHUB_PATH
+          echo "$PKG_CONFIG_PATH" >> $GITHUB_OUTPUT
 
       - name: macOS Setup
         if: startsWith( matrix.buildplat[0], 'macos-' )
@@ -365,9 +367,9 @@ jobs:
         with:
           name: >-
             ${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
-            # ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-            #   ${{ matrix.buildplat[2] }} ${{ matrix.buildplat[3] }}
-            #   ${{ matrix.buildplat[4] }}
+          # ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          #   ${{ matrix.buildplat[2] }} ${{ matrix.buildplat[3] }}
+          #   ${{ matrix.buildplat[4] }}
           path: ./wheelhouse/*.whl
 
       - name: Conda environment creation and activation anaconda-client
@@ -414,7 +416,7 @@ jobs:
           # in the Repository's Secrets or  Enviroments Secrets settings on GitHub.
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
           # commented out so the sdist doesn't upload to nightly
-          # SKPLT_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.SKPLT_NIGHTLY_UPLOAD_TOKEN }}  # Use as TOKEN
+          SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN
 
   build_sdist:
     name: Build Source (sdist) Packages
@@ -429,10 +431,26 @@ jobs:
     needs: get_commit_message
     runs-on: ubuntu-latest
     env:
-      # The IS_PUSH variable checks if the current event is a push event with a tag starting with 'v'
-      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-      # commented out so the sdist doesn't upload to nightly
-      # IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+      # Check current event is a push event with a tag starting with 'v'
+      # upload to staging if it's a push to a maintenance branch
+      # and the lastcommit message contains '[wheel build]' or '1'
+      # ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+      # Triggered for specific branches (e.g., main, maintenance/**)
+      # Triggered for tags starting with 'v'
+      IS_PUSH: >-
+        ${{ 
+          github.event_name == 'push' && 
+          (startsWith(github.ref, 'refs/heads/main') ||
+           contains( github.ref,  'maintenance') ||
+           startsWith(github.ref, 'refs/tags/v') ) &&
+          contains(needs.get_commit_message.outputs.message, '1')
+        }}
+      # Checks if the event is a schedule or manual workflow dispatch
+      IS_SCHEDULE_DISPATCH: >-
+        ${{
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
+        }}
 
     steps:
       - name: Checkout scikit-plots
@@ -513,4 +531,4 @@ jobs:
           # in the Repository's Secrets or  Enviroments Secrets settings on GitHub.
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
           # commented out so the sdist doesn't upload to nightly
-          # SKPLT_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.SKPLT_NIGHTLY_UPLOAD_TOKEN }}  # Use as TOKEN
+          SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN

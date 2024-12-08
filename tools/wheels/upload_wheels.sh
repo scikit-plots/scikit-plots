@@ -27,7 +27,7 @@ set_upload_vars() {
         export ANACONDA_UPLOAD="true"
     elif [[ "$IS_SCHEDULE_DISPATCH" == "true" ]]; then
         echo scheduled or dispatched event
-        export TOKEN="$SKPLT_NIGHTLY_UPLOAD_TOKEN"
+        export TOKEN="$SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY"
         export USERNAME="scikit-plots-wheels-staging-nightly"
         export ANACONDA_UPLOAD="true"
     else

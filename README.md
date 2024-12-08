@@ -19,9 +19,12 @@ pip install scikit-plots
 
 ```bash
 #pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
+pip install git+https://github.com/scikit-plots/scikit-plots.git@main
+pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
 pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
 
 #pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
 pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 ```
 
