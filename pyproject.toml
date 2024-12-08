@@ -266,6 +266,9 @@ exclude = '''
 # `tools/ci/cirrus_wheels.yml`.
 build-frontend = "build"
 skip = "cp36-* cp37-* cp-38* pp37-* *-manylinux_i686 *_ppc64le *_s390x *_universal2"
+# cibuildwheel to represent
+# {project} might be used for higher-level tasks, like referencing the project root.
+# {package} is used to refer to the specific package directory
 before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
 # The build will use openblas64 everywhere, except on arm64 macOS >=14.0 (uses Accelerate)
 config-settings = "setup-args=-Duse-ilp64=true setup-args=-Dallow-noblas=false build-dir=build"

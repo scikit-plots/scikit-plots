@@ -168,18 +168,6 @@ jobs:
           github.event_name == 'schedule' ||
           github.event_name == 'workflow_dispatch'
         }}
-      # cibuildwheel to represent
-      # {project} might be used for higher-level tasks, like referencing the project root.
-      # {package} is used to refer to the specific package directory
-      # Call: echo $CIBW_BEFORE_BUILD
-      CIBW_BEFORE_BUILD: >-
-        rm -rf {project}/build
-      # cibuildwheel to represent
-      # {project} might be used for higher-level tasks, like referencing the project root.
-      # {package} is used to refer to the specific package directory
-      # Call: echo $CIBW_BEFORE_BUILD_WINDOWS
-      CIBW_BEFORE_BUILD_WINDOWS: >-
-        pip install delvewheel && rm -rf {project}/build
 
     steps:
       - name: Checkout Repository with all submodules recursively
@@ -205,12 +193,12 @@ jobs:
         run: |
           if ($env:IS_32_BIT -eq "true") {
             # mingw-w32
-            choco install rtools --no-progress --version=4.2.0 -y
+            choco install --no-progress --skip-automatic -y rtools
             echo "c:\rtools40\i386\bin;" >> $env:GITHUB_PATH
             echo "PKG_CONFIG_PATH=c:/rtools40/i386/lib/pkgconfig" >> $env:GITHUB_ENV
           } else {
             # mingw-w64
-            choco install rtools --no-progress --version=4.2.0 -y
+            choco install --no-progress --skip-automatic -y rtools
             echo "c:\rtools40\ucrt64\bin;" >> $env:GITHUB_PATH
             echo "PKG_CONFIG_PATH=c:/rtools40/ucrt64/lib/pkgconfig" >> $env:GITHUB_ENV
           }
@@ -222,7 +210,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         run: |
           # Install pkg-config via Chocolatey
-          choco install -y --no-progress --stoponfirstfailure --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
+          choco install --no-progress --skip-automatic --stoponfirstfailure --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
           # Verify pkg-config installation and its version
           pkg-config --version
           # Set up the CIBW environment variable, in PowerShell (Windows)
