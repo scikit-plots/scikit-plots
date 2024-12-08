@@ -75,13 +75,13 @@ jobs:
         shell: bash -el {0}
         run: |
           # https://github.com/marketplace/actions/build-and-upload-conda-packages
-          # # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
+          # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
           conda install -y -q anaconda-client
           # conda install conda-forge::wheelhouse_uploader
           # pip install -qU pip pyyaml twine  # wheelhouse_uploader
 
           echo "Downloading $SKPLT_VERSION wheels and sdist from Anaconda repository"
-          anaconda-client download \
+          anaconda download \
             scikit-plots=$SKPLT_VERSION \
             --channel https://pypi.anaconda.org/$CONDA_SOURCE/simple \
             --output-dir dist/
