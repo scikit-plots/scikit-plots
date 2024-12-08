@@ -44,14 +44,14 @@ upload_wheels() {
             # sdists are located under dist folder when built through setup.py
             if compgen -G "./dist/*.gz"; then
                 echo "Found sdist"
-                WHEEL_FILE_PATH = "./dist/*.gz"
+                export WHEEL_FILE_PATH="./dist/*.gz"
                 anaconda -t ${TOKEN} -u ${USERNAME} --force -q upload ${WHEEL_FILE_PATH}
             elif compgen -G "./wheelhouse/*.whl"; then
                 echo "Found wheel"
                 # Force a replacement if the remote file already exists -
                 # nightlies will not have the commit ID in the filename, so
                 # are named the same (1.X.Y.dev0-<platform/interpreter-tags>)
-                WHEEL_FILE_PATH = "./wheelhouse/*.whl"
+                export WHEEL_FILE_PATH="./wheelhouse/*.whl"
                 anaconda -t ${TOKEN} -u ${USERNAME} --force -q upload ${WHEEL_FILE_PATH}
             else
                 echo "Files do not exist"
