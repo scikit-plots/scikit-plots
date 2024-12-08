@@ -7,17 +7,21 @@ name: Upload to TestPyPI|PyPI
 on:
   workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
+      pkg_name:  # Specify package name
+        description: 'Python Lib Name'
+        default: 'scikit-plots'
+        required: true
       version:  # Specify the version of the package to upload
-        description: 'Version to upload to PyPI (e.g., 1.0.0)'
+        description: 'Version for PyPI (e.g., 1.0.0)'
         default: '0.4.0.post0'
         required: true
       conda_source:  # Specify whether to conda pkg source
-        description: 'conda pkg source'
+        description: 'Conda Pkg Source'
         default: 'scikit-plots-wheels-staging-nightly'  # Default
         required: true
       pypi_repo:  # Specify whether to publish to TestPyPI or PyPI
-        description: 'Repository to upload to (test-pypi or pypi)'
-        default: 'testpypi'  # Default to TestPyPI for safety
+        description: 'Upload (test-pypi or pypi)'
+        default: 'test-pypi'  # Default to TestPyPI for safety
         required: true
 
 permissions: # Grants read-only permission to repository contents
@@ -80,7 +84,7 @@ jobs:
             --version $SKPLT_VERSION \
             --local-folder dist/ \
             scikit-plots \
-            https://pypi.anaconda.org/scikit-plots-wheels-staging/simple/scikit-plots/
+            https://pypi.anaconda.org/$CONDA_SOURCE/simple/scikit-plots/
           ls -al dist/
           # Filter or delete platform-specific files as needed
           # find dist/ -type f ! -name "*.whl" -delete  # Example to delete non-wheel files
