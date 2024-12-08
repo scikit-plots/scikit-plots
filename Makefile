@@ -114,9 +114,13 @@ build:
 	@# ninja -C builddir test
 	@python -m pip install --no-build-isolation --no-cache-dir -e .
 
+	@## Delete the Tag Locally
+	@git tag -d v0.4.0.post0
+	@## Delete the Tag from the Remote
+	@git push origin --delete v0.4.0.post0
 	@## Create a Tag for the Release
-	@git tag -a v0.4.0 -m "Release version 0.4.0"
-	@git push origin v0.4.0
+	@git tag -a v0.4.0.post0 -m "Release version 0.4.0.post0" && git push --tags
+	@git push origin v0.4.0.post0
 
 	@## Build the PyPI Package
 	@git config --global --add safe.directory /home/jovyan/work/contribution/scikit-plots/third_party/NumCpp
