@@ -115,7 +115,7 @@ jobs:
         with:
           # user: __token__  # default name
           password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
-          repository-url: https://pypi.org/p/${{ env.PKG_NAME }}/
+          repository-url: https://upload.pypi.org/legacy/
           verify-metadata: true
           skip-existing: true
           print-hash: true
