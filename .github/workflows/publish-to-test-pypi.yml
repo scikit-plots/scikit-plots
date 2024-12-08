@@ -26,12 +26,11 @@ on:
 
 permissions: # Grants read-only permission to repository contents
   contents: read # to fetch code (actions/checkout)
-  # IMPORTANT: This permission is mandatory for secure publishing
-  id-token: write  # Required for trusted publishing
+  id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
 
 jobs:
-  publish_on_pypi:
-    name: Publish Package to TestPyPI|PyPI
+  pypi-publish:
+    name: Upload release to TestPyPI|PyPI
     runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
 
     ## Restrict this job to the 'publish_pypi' environment
@@ -40,8 +39,10 @@ jobs:
     #   publish_pypi  # Specify the environment for environment secrets
     #   url: https://pypi.org/p/<your-pypi-project-name>
     env:  # Step level enviroment NAME: '', $NAME, ${{ env.NAME }}
+      PKG_NAME: ${{ github.event.inputs.pkg_name }}
       SKPLT_VERSION: ${{ github.event.inputs.version }}
       CONDA_SOURCE: ${{ github.event.inputs.conda_source }}
+      PYPI_REPO: ${{ github.event.inputs.pypi_repo }}
 
     steps:
       # Step 1: Check out the code from the repository
@@ -95,17 +96,27 @@ jobs:
           
       # Step 5a: Publish the package to TestPyPI (if selected)
       - name: Publish package distributions to TestPyPI
-        if: ${{ github.event.inputs.pypi_repo == 'test-pypi' }}
+        if: ${{ $PYPI_REPO == 'test-pypi' }}
         uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
         with:
-          user: __token__
-          # password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
+          # packages-dir: dist/  # default
+          # user: __token__  # default name
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
           repository-url: https://test.pypi.org/legacy/
+          verify-metadata: true
+          skip-existing: true
           print-hash: true
+          verbose: true
 
       # Step 5b: Publish the package to PyPI (if selected)
       - name: Publish package distributions to  PyPI
-        if: ${{ github.event.inputs.pypi_repo == 'pypi' }}  # Run only if 'pypi' is chosen
+        if: ${{ $PYPI_REPO == 'pypi' }}  # Run only if 'pypi' is chosen
         uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
         with:
+          # user: __token__  # default name
+          password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
+          repository-url: https://pypi.org/p/$PKG_NAME
+          verify-metadata: true
+          skip-existing: true
           print-hash: true
+          verbose: true
