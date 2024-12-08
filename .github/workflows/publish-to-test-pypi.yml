@@ -96,7 +96,7 @@ jobs:
           
       # Step 5a: Publish the package to TestPyPI (if selected)
       - name: Publish package distributions to TestPyPI
-        if: ${{ $PYPI_REPO == 'test-pypi' }}
+        if: ${{ env.PYPI_REPO == 'test-pypi' }}
         uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
         with:
           # packages-dir: dist/  # default
@@ -110,7 +110,7 @@ jobs:
 
       # Step 5b: Publish the package to PyPI (if selected)
       - name: Publish package distributions to  PyPI
-        if: ${{ $PYPI_REPO == 'pypi' }}  # Run only if 'pypi' is chosen
+        if: ${{ env.PYPI_REPO == 'pypi' }}  # Run only if 'pypi' is chosen
         uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
         with:
           # user: __token__  # default name
