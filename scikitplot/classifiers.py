@@ -1,9 +1,19 @@
-from __future__ import absolute_import, division, print_function, \
-    unicode_literals
-import six
-import warnings
-import types
+"""
+This package/module is designed to be compatible with both Python 2 and Python 3.
+The imports below ensure consistent behavior across different Python versions by
+enforcing Python 3-like behavior in Python 2.
 
+"""
+# code that needs to be compatible with both Python 2 and Python 3
+from __future__ import (
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,         # Changes the division operator `/` to always perform true division.
+    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+)
+import six
+import types
+import warnings
 import numpy as np
 
 from sklearn.model_selection import StratifiedKFold
@@ -67,14 +77,16 @@ def classifier_factory(clf):
     return clf
 
 
-def plot_confusion_matrix_with_cv(clf, X, y, labels=None, true_labels=None,
-                                  pred_labels=None, title=None,
-                                  normalize=False, hide_zeros=False,
-                                  x_tick_rotation=0, do_cv=True, cv=None,
-                                  shuffle=True, random_state=None, ax=None,
-                                  figsize=None, cmap='Blues',
-                                  title_fontsize="large",
-                                  text_fontsize="medium"):
+def plot_confusion_matrix_with_cv(
+    clf, X, y, labels=None, true_labels=None,
+    pred_labels=None, title=None,
+    normalize=False, hide_zeros=False,
+    x_tick_rotation=0, do_cv=True, cv=None,
+    shuffle=True, random_state=None, ax=None,
+    figsize=None, cmap='Blues',
+    title_fontsize="large",
+    text_fontsize="medium"
+):
     """Generates the confusion matrix for a given classifier and dataset.
 
     Args:
@@ -173,7 +185,7 @@ def plot_confusion_matrix_with_cv(clf, X, y, labels=None, true_labels=None,
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_confusion_matrix.png
+        .. image:: /images/examples/plot_confusion_matrix.png
            :align: center
            :alt: Confusion matrix
     """
@@ -219,11 +231,13 @@ def plot_confusion_matrix_with_cv(clf, X, y, labels=None, true_labels=None,
     return ax
 
 
-def plot_roc_curve_with_cv(clf, X, y, title='ROC Curves', do_cv=True,
-                           cv=None, shuffle=True, random_state=None,
-                           curves=('micro', 'macro', 'each_class'),
-                           ax=None, figsize=None, cmap='nipy_spectral',
-                           title_fontsize="large", text_fontsize="medium"):
+def plot_roc_curve_with_cv(
+    clf, X, y, title='ROC Curves', do_cv=True,
+    cv=None, shuffle=True, random_state=None,
+    curves=('micro', 'macro', 'each_class'),
+    ax=None, figsize=None, cmap='nipy_spectral',
+    title_fontsize="large", text_fontsize="medium"
+):
     """Generates the ROC curves for a given classifier and dataset.
 
     Args:
@@ -303,7 +317,7 @@ def plot_roc_curve_with_cv(clf, X, y, title='ROC Curves', do_cv=True,
             <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
             >>> plt.show()
 
-        .. image:: _static/examples/plot_roc_curve.png
+        .. image:: /images/examples/plot_roc_curve.png
            :align: center
            :alt: ROC Curves
     """
@@ -349,10 +363,12 @@ def plot_roc_curve_with_cv(clf, X, y, title='ROC Curves', do_cv=True,
     return ax
 
 
-def plot_ks_statistic_with_cv(clf, X, y, title='KS Statistic Plot',
-                              do_cv=True, cv=None, shuffle=True,
-                              random_state=None, ax=None, figsize=None,
-                              title_fontsize="large", text_fontsize="medium"):
+def plot_ks_statistic_with_cv(
+    clf, X, y, title='KS Statistic Plot',
+    do_cv=True, cv=None, shuffle=True,
+    random_state=None, ax=None, figsize=None,
+    title_fontsize="large", text_fontsize="medium"
+):
     """Generates the KS Statistic plot for a given classifier and dataset.
 
     Args:
@@ -422,7 +438,7 @@ def plot_ks_statistic_with_cv(clf, X, y, title='KS Statistic Plot',
             <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
             >>> plt.show()
 
-        .. image:: _static/examples/plot_ks_statistic.png
+        .. image:: /images/examples/plot_ks_statistic.png
            :align: center
            :alt: KS Statistic
     """
@@ -467,15 +483,17 @@ def plot_ks_statistic_with_cv(clf, X, y, title='KS Statistic Plot',
     return ax
 
 
-def plot_precision_recall_curve_with_cv(clf, X, y,
-                                        title='Precision-Recall Curve',
-                                        do_cv=True, cv=None, shuffle=True,
-                                        random_state=None,
-                                        curves=('micro', 'each_class'),
-                                        ax=None, figsize=None,
-                                        cmap='nipy_spectral',
-                                        title_fontsize="large",
-                                        text_fontsize="medium"):
+def plot_precision_recall_curve_with_cv(
+    clf, X, y,
+    title='Precision-Recall Curve',
+    do_cv=True, cv=None, shuffle=True,
+    random_state=None,
+    curves=('micro', 'each_class'),
+    ax=None, figsize=None,
+    cmap='nipy_spectral',
+    title_fontsize="large",
+    text_fontsize="medium"
+):
     """Generates the Precision-Recall curve for a given classifier and dataset.
 
     Args:
@@ -554,7 +572,7 @@ def plot_precision_recall_curve_with_cv(clf, X, y,
             <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
             >>> plt.show()
 
-        .. image:: _static/examples/plot_precision_recall_curve.png
+        .. image:: /images/examples/plot_precision_recall_curve.png
            :align: center
            :alt: Precision Recall Curve
     """

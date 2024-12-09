@@ -5,7 +5,7 @@ from sklearn.datasets import load_iris as load_data
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 
-from scikitplot.cluster import plot_elbow_curve
+from scikitplot.cluster import plot_elbow
 
 
 class TestPlotElbow(unittest.TestCase):
@@ -32,28 +32,28 @@ class TestPlotElbow(unittest.TestCase):
                 pass
 
         clf = DummyClusterer()
-        self.assertRaises(TypeError, plot_elbow_curve, clf, self.X)
+        self.assertRaises(TypeError, plot_elbow, clf, self.X)
 
     def test_cluster_ranges(self):
         np.random.seed(0)
         clf = KMeans()
-        plot_elbow_curve(clf, self.X, cluster_ranges=range(1, 10))
+        plot_elbow(clf, self.X, cluster_ranges=range(1, 10))
 
     def test_ax(self):
         np.random.seed(0)
         clf = KMeans()
         fig, ax = plt.subplots(1, 1)
-        out_ax = plot_elbow_curve(clf, self.X)
+        out_ax = plot_elbow(clf, self.X)
         assert ax is not out_ax
-        out_ax = plot_elbow_curve(clf, self.X, ax=ax)
+        out_ax = plot_elbow(clf, self.X, ax=ax)
         assert ax is out_ax
 
     def test_n_jobs(self):
         np.random.seed(0)
         clf = KMeans()
-        plot_elbow_curve(clf, self.X, n_jobs=2)
+        plot_elbow(clf, self.X, n_jobs=2)
 
     def test_show_cluster_time(self):
         np.random.seed(0)
         clf = KMeans()
-        plot_elbow_curve(clf, self.X, show_cluster_time=False)
+        plot_elbow(clf, self.X, show_cluster_time=False)
