@@ -1,3 +1,41 @@
-include README.md
-include LICENSE
+## Optional file to specify additional files for packaging.
+## Can be Access import importlib.resources as pkg_resources
+
+## Include all Python files (these are included by default, but it's good practice to be explicit)
+## Include all files in the package source code
+recursive-include scikitplot *
+
+## Include specific files with particular extensions in a subdirectory
+#recursive-include assets *.png *.jpg *.svg
+
+## Include all non-Python files in your package directory (e.g., data files, config files)
+## Replace `your_package_name` with the actual name of your package
+# recursive-include scikitplot *.txt *.csv *.json *.yaml
+
+## Exclude unnecessary files or directories (useful for keeping the package clean)
+# prune tests  # Exclude the tests directory from the distribution
+# prune examples  # Exclude the examples directory
+
+# Include files in a specific subdirectory (e.g., docs for documentation)
+# recursive-include docs *
+recursive-include requirements *
 include requirements.txt
+
+## Include specific data files, like your CITATION.bib
+include CITATION.bib
+include CITATION.cff
+
+## Include the README and LICENSE files (important for documentation and legal information)
+include CODE_OF_CONDUCT.md
+include CONTRIBUTING.md
+include LICENSE
+include LICENSE.txt
+recursive-include LICENSES *
+
+# Optionally, include other specific folders or files
+include pyproject.toml
+include pytest.ini
+include README.md
+include SECURITY.md
+include setup.cfg
+include tox.ini

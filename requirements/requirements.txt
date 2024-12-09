@@ -1,0 +1,7 @@
+## Dependencies
+scipy>=0.9
+pandas
+#pyarrow
+matplotlib>=1.4.0
+scikit-learn>=0.24
+joblib>=0.10

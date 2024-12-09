@@ -1,0 +1,15 @@
+meson
+ninja
+meson-python>=0.16.0
+Cython>=3.0.8
+pybind11>=2.13.2
+pythran>=0.14.0
+scipy>=1.6.0
+numpy>=2.0.0
+pandas>=1.1.5
+#pyarrow
+matplotlib>=1.4.0
+scikit-learn>=1.4
+joblib
+spin==0.13
+build

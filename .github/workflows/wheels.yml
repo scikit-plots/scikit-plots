@@ -1,0 +1,522 @@
+# Workflow to build and test wheels.
+# To work on the wheel building infrastructure on a fork, comment out:
+#
+# if: github.repository == 'scikit-plots/scikit-plots'
+#
+# in the get_commit_message job. Be sure to include [wheel build] in your commit
+# message to trigger the build. All files related to wheel building are located
+# at tools/wheels/
+# Alternatively, you can add labels to the pull request in order to trigger wheel
+# builds.
+# 
+# The labels that trigger builds are:
+# 36 - Build(for changes to the building process,
+# 14 - Release(ensure wheels build before release)
+name: Wheel Builder Conda
+
+on:
+  schedule:
+    # Automatically built and released every night (or at a regular interval, often nightly)
+    # Cron schedule for automated runs
+    # https://crontab.cronhub.io
+    #        ┌───────────── minute (0 - 59)
+    #        │  ┌───────────── hour (0 - 23)
+    #        │  │ ┌───────────── day of the month (1 - 31)
+    #        │  │ │ ┌───────────── month (1 - 12 or JAN-DEC)
+    #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
+    #        │  │ │ │ │
+    # cron: "11 1 * * SUN,WED"
+    # Run every Monday at 11:11 AM
+    - cron: '11 11 * * 1'
+  # triggers a workflow when a pull request (PR) is opened
+  # Code Review: Use this to run tests, checks, or CI pipelines
+  # Pre-Merge Validation: Ensure that changes introduced in the PR won't break
+  # Pull Requests to Ensure Code Quality
+  pull_request:
+    branches:
+      - main
+      - maintenance/**
+  # triggers a workflow when commits are pushed to specific branches or tags.
+  # Releases: Use this to automate packaging or deployment when pushing a versioned tag.
+  # Continuous Deployment (CD): Automatically deploy changes in main or maintenance/ branches.
+  # Push for Continuous Integration or Tagged Releases for Versioned Deployments
+  push:
+    # Release by branches|tags
+    branches:
+      - main
+      - maintenance/**
+    tags:
+      - v*
+  # manually trigger the workflow from the GitHub Actions UI.
+  # Ad-Hoc Scenarios: Use this to rerun workflows with specific parameters or to debug a workflow.
+  # Manual Jobs: When you need a flexible way to trigger a job, such as running a custom deployment or testing process.
+  # Manual Trigger for Flexibility
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+permissions: # Grants read-only permission to repository contents
+  contents: read # to fetch code (actions/checkout)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+      
+# https://learn.microsoft.com/en-us/azure/devops/pipelines/process/expressions
+# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/evaluate-expressions-in-workflows-and-actions#example-of-literals
+# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#default-environment-variables
+jobs:
+  get_commit_message:
+    name: Get Commit Message
+    # To enable this job and subsequent jobs on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scikit-plots
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        # Gets the correct commit message for pull request
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Get Commit Message
+        id: commit_message
+        run: |
+          # OUTPUT Contains '[wheel build]' or '1'
+          set -xe
+          # (Optional) Use Utility script by source it
+          # source .github/scripts/utils.sh
+          COMMIT_MSG=$(git log --no-merges -1 --oneline)
+          echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          RUN="0"
+          if [[ "$COMMIT_MSG" == *"[wheel build]"* ]]; then
+              RUN="1"
+          fi
+          echo "message=$RUN" >> $GITHUB_OUTPUT
+          echo github.ref ${{ github.ref }}
+    outputs:
+      message: ${{ steps.commit_message.outputs.message }}
+
+  # Build the wheels for Linux, Windows and macOS for Python 3.9 and newer
+  build_wheels:
+    name: >-
+      Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
+    # Allows splitting a string across multiple lines while treating it as a single logical line.
+    # ${{ matrix.buildplat[1] && format('-{0}', matrix.buildplat[1]) || '' }}
+    # ${{ matrix.buildplat[2] && format('-{0}', matrix.buildplat[2]) || '' }}
+    # ${{ matrix.buildplat[3] && format('-{0}', matrix.buildplat[3]) || '' }}
+    # ${{ matrix.buildplat[4] && format('-{0}', matrix.buildplat[4]) || '' }}
+    # ${{ matrix.buildplat[1] != '' && '-' || '' }}${{ matrix.buildplat[1] }}
+    # Wheel-cp310-macosx-arm64-accelerate-14.0
+    if: >- 
+      contains(needs.get_commit_message.outputs.message, '[wheel build]') ||
+      contains(needs.get_commit_message.outputs.message, '1') ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' &&
+       startsWith(github.ref, 'refs/tags/v') && !endsWith(github.ref, 'dev0')
+      )
+    needs: get_commit_message  # OUTPUT Contains '[wheel build]' or '1'
+    runs-on: ${{ matrix.buildplat[0] }}
+    strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
+      # Dynamic Environment Variables Using Matrix Context
+      matrix:
+        # Github Actions doesn't support pairing matrix values together, let's improvise
+        # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
+        # python[0] is used to specify the python versions made by cibuildwheel
+        python: [
+          ["cp310", "3.10"],  # cp310 (CPython 3.10) Broadest library support
+          ["cp311", "3.11"],  # pp310 (PyPy 3.10) Slower Just-In-Time (JIT) warm-up
+          ["cp312", "3.12"],
+          ["cp313", "3.13"],
+          # ["cp313t", "3.13"]  # See: https://github.com/scipy/scipy/issues/21970
+        ]
+        buildplat:
+          # should also be able to do multi-archs on a single entry, e.g.
+          # [windows-2019, win*, "AMD64 x86"]. However, those two require a different compiler setup
+          # so easier to separate out here.
+          - [ubuntu-22.04, manylinux, x86_64]
+          - [ubuntu-22.04, musllinux, x86_64]
+          # - [macos-13, macosx, x86_64, openblas, "10.13"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
+          - [macos-13, macosx, x86_64, accelerate, "14.0"]
+          - [macos-14, macosx, arm64, openblas, "12.3"]
+          - [macos-14, macosx, arm64, accelerate, "14.0"]
+          - [windows-2019, win, AMD64]  # Window 64 bit ("*-win_amd64", "*-x86_64")
+        exclude:
+          # (Optional) Don't build PyPy 32-bit windows ("*-win32", "*-x86")
+          # Don't build PyPy 32-bit windows
+          - buildplat: [windows-2019, win32,]
+            python: "pp310"
+
+    env:  # Job level enviroment NAME: '', $NAME, ${{ env.NAME }}
+      IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
+      # Check current event is a push event with a tag starting with 'v'
+      # upload to staging if it's a push to a maintenance branch
+      # and the lastcommit message contains '[wheel build]' or '1'
+      # ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+      # Triggered for specific branches (e.g., main, maintenance/**)
+      # Triggered for tags starting with 'v'
+      IS_PUSH: >-
+        ${{ 
+          github.event_name == 'push' && 
+          (startsWith(github.ref, 'refs/heads/main') ||
+           contains( github.ref,  'maintenance') ||
+           startsWith(github.ref, 'refs/tags/v') ) &&
+          contains(needs.get_commit_message.outputs.message, '1')
+        }}
+      # Checks if the event is a schedule or manual workflow dispatch
+      IS_SCHEDULE_DISPATCH: >-
+        ${{
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
+        }}
+
+    steps:
+      - name: Checkout Repository with all submodules recursively
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Fetches all nested submodules or  submodules: true
+          submodules: recursive
+          fetch-tags: true
+      
+      - name: Python Setup  # Used to push the built wheels
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.x"          
+
+      - name: Windows Setup MSVC (32|64-bit)
+        if: ${{ runner.os == 'Windows' }}
+        uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
+        with:
+          architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
+
+      - name: Windows Setup RTools (32|64-bit)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          if ($env:IS_32_BIT -eq "true") {
+            # mingw-w32
+            choco install --no-progress --skip-automatic -y rtools
+            echo "c:\rtools40\i386\bin;" >> $env:GITHUB_PATH
+            echo "PKG_CONFIG_PATH=c:/rtools40/i386/lib/pkgconfig" >> $env:GITHUB_ENV
+          } else {
+            # mingw-w64
+            choco install --no-progress --skip-automatic -y rtools
+            echo "c:\rtools40\ucrt64\bin;" >> $env:GITHUB_PATH
+            echo "PKG_CONFIG_PATH=c:/rtools40/ucrt64/lib/pkgconfig" >> $env:GITHUB_ENV
+          }
+          # Verify Tools
+          echo cl /? >> $GITHUB_OUTPUT
+          echo gcc --version >> $GITHUB_OUTPUT
+
+      - name: Windows Setup Environment Variables (set PKG_CONFIG_PATH)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          # Install pkg-config via Chocolatey
+          choco install --no-progress --skip-automatic --stoponfirstfailure --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
+          # Verify pkg-config installation and its version
+          pkg-config --version
+          # Set up the CIBW environment variable, in PowerShell (Windows)
+          # pkgconfig needs a complete path, and not just "./openblas since the
+          $env:CIBW = "${{ github.workspace }}/.openblas"
+          # Handle backslash in paths (convert to forward slash)
+          # build is run in a tmp dir (?)
+          # It seems somewhere in the env passing, `\` is not
+          # passed through, so convert it to '/'
+          $env:CIBW = $env:CIBW.Replace("\", "/")
+          # Export the environment variable for GitHub Actions
+          echo "PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
+          echo CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
+          echo CIBW_ENVIRONMENT_WINDOWS="PKG_CONFIG_PATH=$env:CIBW" >> $env:GITHUB_ENV
+          # Debug the PKG_CONFIG_PATH and check if it's set correctly
+          echo "$PKG_CONFIG_PATH" >> $GITHUB_OUTPUT
+
+      - name: macOS Setup
+        if: startsWith( matrix.buildplat[0], 'macos-' )
+        run: |
+          # Needed due to https://github.com/actions/runner-images/issues/3371
+          # Supported versions: https://github.com/actions/runner-images/blob/main/images/macos/macos-14-arm64-Readme.md
+          echo "FC=gfortran-13" >> "$GITHUB_ENV"
+          echo "F77=gfortran-13" >> "$GITHUB_ENV"
+          echo "F90=gfortran-13" >> "$GITHUB_ENV"
+          if [[ ${{ matrix.buildplat[3] }} == 'accelerate' ]]; then
+            echo CIBW_CONFIG_SETTINGS=\"setup-args=-Dblas=accelerate\" >> "$GITHUB_ENV"
+            # Always use preinstalled gfortran for Accelerate builds
+            ln -s $(which gfortran-13) gfortran
+            export PATH=$PWD:$PATH
+            echo "PATH=$PATH" >> "$GITHUB_ENV"
+            LIB_PATH=$(dirname $(gfortran --print-file-name libgfortran.dylib))
+          fi
+          if [[ ${{ matrix.buildplat[4] }} == '10.13' ]]; then
+            # 20241017 macos-13 images span Xcode 14.1-->15.2
+            # XCODE_VER='14.1'
+            # Check for Xcode 14 and set the highest available version dynamically
+            XCODE_VER=$(ls /Applications | grep -E 'Xcode_14\.' | sort -V | tail -n 1)
+            # Extract the full version number (e.g., 14.3.1 from Xcode_14.3.1.app)
+            XCODE_VER=$(echo "$XCODE_VER" | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/')
+          else
+            # XCODE_VER='15.2'
+            # Check for Xcode 15 and set the highest available version dynamically
+            XCODE_VER=$(ls /Applications | grep -E 'Xcode_15\.' | sort -V | tail -n 1)
+            # Extract the full version number (e.g., 15.4.0 from Xcode_15.4.0.app)
+            XCODE_VER=$(echo "$XCODE_VER" | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/')
+          fi
+          echo "Selected Xcode version: $XCODE_VER"
+          # Use the selected Xcode version in the xcode-select command
+          CIBW="sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app"
+          echo "CIBW_BEFORE_ALL=$CIBW" >> $GITHUB_ENV
+          # setting SDKROOT necessary when using the gfortran compiler
+          # installed in cibw_before_build_macos.sh
+          sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app
+          CIBW="MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[4] }}\
+            SDKROOT=$(xcrun --sdk macosx --show-sdk-path)\
+            PKG_CONFIG_PATH=${{ github.workspace }}/.openblas"
+          echo "CIBW_ENVIRONMENT=$CIBW" >> "$GITHUB_ENV"
+
+          echo "REPAIR_PATH=$LIB_PATH" >> "$GITHUB_ENV"
+
+          PREFIX=DYLD_LIBRARY_PATH="\$(dirname \$(gfortran --print-file-name libgfortran.dylib))"
+          # remove libgfortran from location used for linking (if any), to
+          # check wheel has bundled things correctly and all tests pass without
+          # needing installed gfortran
+          POSTFIX=" sudo rm -rf /opt/gfortran-darwin-x86_64-native &&\
+                    sudo rm -rf /usr/local/gfortran/lib"
+          CIBW="$PREFIX delocate-listdeps -d {wheel} && echo "-----------" &&\
+            $PREFIX delocate-wheel -v $EXCLUDE --require-archs \
+            {delocate_archs} -w {dest_dir} {wheel} && echo "-----------" &&\
+            delocate-listdeps -d {dest_dir}/*.whl && echo "-----------" &&\
+            $POSTFIX"
+
+          # Rename x86 Accelerate wheel to test on macOS 13 runner
+          if [[ ${{ matrix.buildplat[0] }} == 'macos-13' && ${{ matrix.buildplat[4] }} == '14.0' ]]; then
+            CIBW+=" && mv {dest_dir}/\$(basename {wheel}) \
+              {dest_dir}/\$(echo \$(basename {wheel}) | sed 's/14_0/13_0/')"
+          fi
+
+          # macos-arm64-openblas wheels that target macos-12 need a
+          # MACOS_DEPLOYMENT_TARGET of 12.3 otherwise delocate complains.
+          # Unclear of cause, possibly build tool related.
+          # This results in wheels that have 12_3 in their name. Since Python
+          # has no concept of minor OS versions in packaging land rename the
+          # wheel back to 12.
+          if [[ ${{ matrix.buildplat[0] }} == 'macos-14' && ${{ matrix.buildplat[4] }} == '12.3' ]]; then
+            CIBW+=" && echo \$(ls {dest_dir}) && \
+            mv {dest_dir}/*.whl \$(find {dest_dir} -type f -name '*.whl' | sed 's/12_3/12_0/')"
+          fi
+          echo "CIBW_REPAIR_WHEEL_COMMAND_MACOS=$CIBW" >> "$GITHUB_ENV"
+
+      # - name: Inject environment variable for python dev version
+      #   if: ${{ matrix.python[1] == '3.14-dev'
+      #   shell: bash
+      #   run: |
+      #     # For dev versions of python need to use wheels from scientific-python-nightly-wheels
+      #     # When the python version is released please comment out this section, but do not remove
+      #     # (there will soon be another dev version to target).
+      #     DEPS0="pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy"
+      #     DEPS1="pip install ninja meson-python pybind11 pythran cython"
+
+      #     CIBW="$DEPS0;$DEPS1;bash {project}/tools/wheels/cibw_before_build_linux.sh {project}"
+      #     echo "CIBW_BEFORE_BUILD_LINUX=$CIBW" >> "$GITHUB_ENV"
+
+      #     CIBW="$DEPS0 && $DEPS1 && bash {project}/tools/wheels/cibw_before_build_win.sh {project}"
+      #     echo "CIBW_BEFORE_BUILD_WINDOWS=$CIBW" >> "$GITHUB_ENV"
+
+      #     CIBW="$DEPS0;$DEPS1;bash {project}/tools/wheels/cibw_before_build_macos.sh {project}"
+      #     echo "CIBW_BEFORE_BUILD_MACOS=$CIBW" >> "$GITHUB_ENV"
+
+      #     echo "CIBW_BEFORE_TEST=$DEPS0" >> "$GITHUB_ENV"
+
+      - name: Disable build isolation for python free-threaded version
+        if: endsWith(matrix.python[0], 't') || matrix.python == 'cp313t'
+        shell: bash -el {0}
+        run: |
+          CIBW="pip; args: --no-build-isolation"
+          echo "CIBW_BUILD_FRONTEND=$CIBW" >> "$GITHUB_ENV"
+
+      - name: Build Wheels Packages
+        uses: pypa/cibuildwheel@ee63bf16da6cddfb925f542f2c7b59ad50e93969  # v2.22.0
+        env:  # Step level enviroment NAME: '', $NAME, ${{ env.NAME }}
+          # Set CIBW_PRERELEASE_PYTHONS to True to build for pre-release versions of Python
+          CIBW_PRERELEASE_PYTHONS: True
+          # Enable support for free-threaded builds (specific to some platforms)
+          CIBW_FREE_THREADED_SUPPORT: True
+          # Specify target platform
+          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
+          CIBW_ARCHS: ${{ matrix.buildplat[2] }}
+
+      - name: macOS Wheels Packages Rename
+        if: startsWith( matrix.buildplat[0], 'macos-' )
+        run: |
+          # macos-x86_64-accelerate wheels targeting macos-14 were renamed to 13
+          # so they could be tested. Shift wheel name back to targeting 14.
+          if [[ ${{ matrix.buildplat[0] }} == 'macos-13' && ${{ matrix.buildplat[4] }} == '14.0' ]]; then
+            mv ./wheelhouse/*.whl $(find ./wheelhouse -type f -name '*.whl' | sed 's/13_0/14_0/')
+          fi
+
+      - name: Upload Wheelhouse Wheels Packages
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: >-
+            ${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
+          # ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          #   ${{ matrix.buildplat[2] }} ${{ matrix.buildplat[3] }}
+          #   ${{ matrix.buildplat[4] }}
+          path: ./wheelhouse/*.whl
+
+      - name: Conda environment creation and activation anaconda-client
+        uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
+        with:
+          # for installation of anaconda-client, required for upload to
+          # anaconda.org
+          # Note that this step is *after* specific pythons have been used to
+          # build and test the wheel
+          # for installation of anaconda-client, for upload to anaconda.org
+          # environment will be activated after creation, and in future bash steps
+          # environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
+          # auto-activate-base: false
+          auto-update-conda: true
+          show-channel-urls: true
+          miniforge-version: latest
+          python-version: "3.10"
+
+      - name: Upload Conda Wheels Packages
+        if: success()
+        # see https://github.com/marketplace/actions/setup-miniconda for why
+        # `-el {0}` is required.
+        shell: bash -el {0}
+        run: |
+          # https://github.com/marketplace/actions/build-and-upload-conda-packages
+          # # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
+          conda install -y anaconda-client
+          source tools/wheels/upload_wheels.sh
+          set_upload_vars  # Required TOKEN, USERNAME
+          # For cron jobs (restricted to main branch) or "Run workflow" trigger
+          # an upload to:
+          #
+          # https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots
+          #
+          # Pushes to a maintenance branch that contain '[wheel build]' will
+          # cause wheels to be built and uploaded to:
+          #
+          # https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
+          #
+          # The tokens were originally generated at anaconda.org
+          upload_wheels  # Required WHEEL_FILE_PATH
+        env: 
+          # ${{ secrets.<SECRET_NAME> }} retrieves the value of a secret stored securely
+          # in the Repository's Secrets or  Enviroments Secrets settings on GitHub.
+          SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
+          # commented out so the sdist doesn't upload to nightly
+          SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN
+
+  build_sdist:
+    name: Build Source (sdist) Packages
+    if: >-
+      contains(needs.get_commit_message.outputs.message, '[wheel build]') ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+      (contains(github.event.pull_request.labels.*.name, '36 - Build') ||
+      contains(github.event.pull_request.labels.*.name, '14 - Release'))) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
+    needs: get_commit_message
+    runs-on: ubuntu-latest
+    env:
+      # Check current event is a push event with a tag starting with 'v'
+      # upload to staging if it's a push to a maintenance branch
+      # and the lastcommit message contains '[wheel build]' or '1'
+      # ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+      # Triggered for specific branches (e.g., main, maintenance/**)
+      # Triggered for tags starting with 'v'
+      IS_PUSH: >-
+        ${{ 
+          github.event_name == 'push' && 
+          (startsWith(github.ref, 'refs/heads/main') ||
+           contains( github.ref,  'maintenance') ||
+           startsWith(github.ref, 'refs/tags/v') ) &&
+          contains(needs.get_commit_message.outputs.message, '1')
+        }}
+      # Checks if the event is a schedule or manual workflow dispatch
+      IS_SCHEDULE_DISPATCH: >-
+        ${{
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
+        }}
+
+    steps:
+      - name: Checkout scikit-plots
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: true
+      # Used to push the built wheels
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          # Build sdist on lowest supported Python
+          python-version: "3.10"
+      - name: Build sdist
+        run: |
+          python -m pip install -U pip build setuptools wheel
+          python -m build --sdist -Csetup-args=-Dallow-noblas=true
+      - name: Test the sdist
+        run: |
+          # TODO: Don't run test suite, and instead build wheels from sdist
+          # Depends on pypa/cibuildwheel#1020
+          python -m pip install dist/*.gz -Csetup-args=-Dallow-noblas=true
+          pip install -r requirements/test_requirements.txt
+          cd .. # Can't import "scikitplot" within "scikitplot" src directory
+          # python -c "import scikitplot, sys; print(scikitplot.__version__); sys.exit(numpy.test() is False)"
+          python -c "import scikitplot, sys; print(scikitplot.__version__);"
+
+      - name: PyPI Check README rendering
+        run: |
+          python -m pip install twine
+          twine check dist/*
+
+      - name: Upload Wheelhouse Wheels Packages
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: sdist
+          path: ./dist/*
+
+      - name: Conda environment creation and activation anaconda-client
+        uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d # v3.1.0
+        with:
+          # for installation of anaconda-client, required for upload to
+          # anaconda.org
+          # Note that this step is *after* specific pythons have been used to
+          # build and test the wheel
+          # for installation of anaconda-client, for upload to anaconda.org
+          # environment will be activated after creation, and in future bash steps
+          # environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
+          # auto-activate-base: false
+          auto-update-conda: true
+          show-channel-urls: true
+          miniforge-version: latest
+          python-version: "3.10"
+
+      - name: Upload Conda Source (sdist) Packages
+        if: success()
+        # see https://github.com/marketplace/actions/setup-miniconda for why
+        # `-el {0}` is required.
+        shell: bash -el {0}
+        run: |
+          # https://github.com/marketplace/actions/build-and-upload-conda-packages
+          # # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
+          conda install -y anaconda-client
+          source tools/wheels/upload_wheels.sh
+          set_upload_vars  # Required TOKEN, USERNAME
+          # For cron jobs (restricted to main branch) or "Run workflow" trigger
+          # an upload to:
+          #
+          # https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots
+          #
+          # Pushes to a maintenance branch that contain '[wheel build]' will
+          # cause wheels to be built and uploaded to:
+          #
+          # https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
+          #
+          # The tokens were originally generated at anaconda.org
+          upload_wheels  # Required WHEEL_FILE_PATH
+        env: 
+          # ${{ secrets.<SECRET_NAME> }} retrieves the value of a secret stored securely
+          # in the Repository's Secrets or  Enviroments Secrets settings on GitHub.
+          SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
+          # commented out so the sdist doesn't upload to nightly
+          SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN
