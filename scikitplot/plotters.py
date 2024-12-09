@@ -1,16 +1,22 @@
 """
+This package/module is designed to be compatible with both Python 2 and Python 3.
+The imports below ensure consistent behavior across different Python versions by
+enforcing Python 3-like behavior in Python 2.
+
 This module contains a more flexible API for Scikit-plot users, exposing
 simple functions to generate plots.
 """
-from __future__ import absolute_import, division, print_function, \
-    unicode_literals
-
+# code that needs to be compatible with both Python 2 and Python 3
+from __future__ import (
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,         # Changes the division operator `/` to always perform true division.
+    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+)
 import warnings
 import itertools
-
-import matplotlib.pyplot as plt
-
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import label_binarize
@@ -25,7 +31,11 @@ from sklearn.metrics import silhouette_score
 from sklearn.metrics import silhouette_samples
 from sklearn.utils import deprecated
 
-from scikitplot.helpers import binary_ks_curve, validate_labels
+from .utils.helpers import (
+    validate_labels,
+    cumulative_gain_curve,
+    binary_ks_curve,
+)
 
 
 warnings.warn("This module was deprecated in version 0.3.0 and its functions "
@@ -108,7 +118,7 @@ def plot_confusion_matrix(y_true, y_pred, labels=None, true_labels=None,
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_confusion_matrix.png
+        .. image:: /images/examples/plot_confusion_matrix.png
            :align: center
            :alt: Confusion matrix
     """
@@ -153,7 +163,7 @@ def plot_confusion_matrix(y_true, y_pred, labels=None, true_labels=None,
     else:
         ax.set_title('Confusion Matrix', fontsize=title_fontsize)
 
-    image = ax.imshow(cm, interpolation='nearest', cmap=plt.cm.get_cmap(cmap))
+    image = ax.imshow(cm, interpolation='nearest', cmap=plt.get_cmap(cmap))
     plt.colorbar(mappable=image)
     x_tick_marks = np.arange(len(pred_classes))
     y_tick_marks = np.arange(len(true_classes))
@@ -234,7 +244,7 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_roc_curve.png
+        .. image:: /images/examples/plot_roc_curve.png
            :align: center
            :alt: ROC Curves
     """
@@ -301,7 +311,7 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
 
     if 'each_class' in curves:
         for i in range(len(classes)):
-            color = plt.cm.get_cmap(cmap)(float(i) / len(classes))
+            color = plt.get_cmap(cmap)(float(i) / len(classes))
             ax.plot(fpr[i], tpr[i], lw=2, color=color,
                     label='ROC curve of class {0} (area = {1:0.2f})'
                     ''.format(classes[i], roc_auc[i]))
@@ -373,7 +383,7 @@ def plot_ks_statistic(y_true, y_probas, title='KS Statistic Plot',
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_ks_statistic.png
+        .. image:: /images/examples/plot_ks_statistic.png
            :align: center
            :alt: KS Statistic
     """
@@ -468,7 +478,7 @@ def plot_precision_recall_curve(y_true, y_probas,
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_precision_recall_curve.png
+        .. image:: /images/examples/plot_precision_recall_curve.png
            :align: center
            :alt: Precision Recall Curve
     """
@@ -517,7 +527,7 @@ def plot_precision_recall_curve(y_true, y_probas,
 
     if 'each_class' in curves:
         for i in range(len(classes)):
-            color = plt.cm.get_cmap(cmap)(float(i) / len(classes))
+            color = plt.get_cmap(cmap)(float(i) / len(classes))
             ax.plot(recall[i], precision[i], lw=2,
                     label='Precision-recall curve of class {0} '
                           '(area = {1:0.3f})'.format(classes[i],
@@ -541,7 +551,7 @@ def plot_precision_recall_curve(y_true, y_probas,
 
 @deprecated('This will be removed in v0.4.0. Please use '
             'scikitplot.estimators.plot_feature_importances instead.')
-def plot_feature_importances(clf, title='Feature Importance',
+def plot_feature_importances(clf, title='Feature Importances',
                              feature_names=None, max_num_features=20,
                              order='descending', x_tick_rotation=0, ax=None,
                              figsize=None, title_fontsize="large",
@@ -599,7 +609,7 @@ def plot_feature_importances(clf, title='Feature Importance',
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_feature_importances.png
+        .. image:: /images/examples/plot_feature_importances.png
            :align: center
            :alt: Feature Importances
     """
@@ -733,7 +743,7 @@ def plot_learning_curve(clf, X, y, title='Learning Curve', cv=None,
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_learning_curve.png
+        .. image:: /images/examples/plot_learning_curve.png
            :align: center
            :alt: Learning Curve
     """
@@ -825,7 +835,7 @@ def plot_silhouette(clf, X, title='Silhouette Analysis', metric='euclidean',
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_silhouette.png
+        .. image:: /images/examples/plot_silhouette.png
            :align: center
            :alt: Silhouette Plot
     """
@@ -863,7 +873,7 @@ def plot_silhouette(clf, X, title='Silhouette Analysis', metric='euclidean',
         size_cluster_i = ith_cluster_silhouette_values.shape[0]
         y_upper = y_lower + size_cluster_i
 
-        color = plt.cm.get_cmap(cmap)(float(i) / n_clusters)
+        color = plt.get_cmap(cmap)(float(i) / n_clusters)
 
         ax.fill_betweenx(np.arange(y_lower, y_upper),
                          0, ith_cluster_silhouette_values,
@@ -936,7 +946,7 @@ def plot_elbow_curve(clf, X, title='Elbow Plot', cluster_ranges=None,
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_elbow_curve.png
+        .. image:: /images/examples/plot_elbow.png
            :align: center
            :alt: Elbow Curve
     """
@@ -1012,7 +1022,7 @@ def plot_pca_component_variance(clf, title='PCA Component Explained Variances',
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_pca_component_variance.png
+        .. image:: /images/examples/plot_pca_component_variance.png
            :align: center
            :alt: PCA Component variances
     """
@@ -1104,7 +1114,7 @@ def plot_pca_2d_projection(clf, X, y, title='PCA 2-D Projection', ax=None,
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: _static/examples/plot_pca_2d_projection.png
+        .. image:: /images/examples/plot_pca_2d_projection.png
            :align: center
            :alt: PCA 2D Projection
     """
@@ -1115,7 +1125,7 @@ def plot_pca_2d_projection(clf, X, y, title='PCA 2-D Projection', ax=None,
     ax.set_title(title, fontsize=title_fontsize)
     classes = np.unique(np.array(y))
 
-    colors = plt.cm.get_cmap(cmap)(np.linspace(0, 1, len(classes)))
+    colors = plt.get_cmap(cmap)(np.linspace(0, 1, len(classes)))
 
     for label, color in zip(classes, colors):
         ax.scatter(transformed_X[y == label, 0], transformed_X[y == label, 1],

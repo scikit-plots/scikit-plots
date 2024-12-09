@@ -1,0 +1,220 @@
+# This file is the modern replacement for setup.py, used to configure how your Python package is built.
+# 
+# https://packaging.python.org/en/latest/discussions/setup-py-deprecated/#setup-py-deprecated
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#a-full-example
+# 
+# The [build-system] section specifies the build system requirements.
+# "setuptools.build_meta" is the default backend used by setuptools for building projects.
+# You can add other build dependencies as needed.
+# https://packaging.python.org/en/latest/specifications/pyproject-toml/
+[build-system]
+# "build-backend" specifies the Python backend to use for building the package.
+build-backend = "setuptools.build_meta"
+requires = [
+	"setuptools>=70.0",
+	"wheel",
+  "numpy>=1.23.5",
+  "scipy>=1.6.0",
+  "matplotlib>=1.4.0",
+]
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = [
+	"scikitplot",
+]
+exclude = [
+	"auto_building_tools",
+	"docs", "docs.*",
+	"examples", "examples.*",
+	"notebooks", "notebooks.*",
+	"tests", "tests.*",
+	"paper", "paper.*",
+	"binder", "binder.*",
+	"register",
+	"fixtures",
+	"bin",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "scikitplot.__version__"}
+
+[project]
+name = "scikit-plots"
+dynamic = ["version"]
+description = "An intuitive library to add plotting functionality to scikit-learn objects."
+# [project.readme]
+# content-type = "text/x-rst"
+readme = "README.md"
+keywords = [
+	"matplotlib", 
+	"visualization", 
+	"scikit-learn", 
+	"xgboost", 
+	"catboost", 
+	"tensorflow", 
+	"keras", 
+	"pytorch", 
+	"scikit-learn", 
+	"machine learning", 
+	"data science",
+]
+# license = {text = "MIT License"}
+license = {file = "LICENSE"}
+authors = [
+	# {name = "Reiichiro Nakano", email = "reiichiro.s.nakano@gmail.com"},
+	# {name = "Prateek Sharma", email = "s.prateek3080@gmail.com"},
+]
+maintainers = [
+	{name = "muhammed çelik", email = "muhammed.business.network@gmail.com"}
+]
+# https://pypi.org/pypi?%3Aaction=list_classifiers
+classifiers = [
+	"Development Status :: 4 - Beta",
+	"Intended Audience :: Developers",
+	"Intended Audience :: Science/Research",
+	'License :: OSI Approved :: BSD License',
+	'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+	"License :: OSI Approved :: MIT License",
+	"Natural Language :: English",
+	"Operating System :: OS Independent",
+	"Programming Language :: Python",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3.5",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.14",
+	"Topic :: Scientific/Engineering :: Visualization",
+	"Topic :: Software Development :: Libraries :: Python Modules"
+]
+requires-python = ">=3"
+dependencies = [
+	# Replace these with the actual dependencies from requirements.txt
+	"matplotlib>=1.4.0",
+	"scikit-learn>=0.21",
+	"scipy>=0.9",
+	"joblib>=0.10",
+	"pandas",
+]
+
+[project.optional-dependencies]
+build = [
+  "setuptools>=70.0",  
+  "wheel",  
+  "numpy>=1.23.5",
+  "scipy>=1.6.0",  
+  "matplotlib>=1.4.0",
+  "pandas>=1.5.0",
+  "build",
+  "twine",
+]
+test = [
+  "pandas>=1.1.5",
+  "polars>=0.20.30",
+  "pyarrow>=12.0.0",
+  "matplotlib>=3.3.4",
+  "catboost",
+  "tensorflow",
+  "numpydoc>=1.2.0",
+  "pytest>=7.1.2",
+  "pytest-mpl",
+  "hypothesis>=6.30",
+  "pooch>=1.6.0",
+  "black>=24.3.0",
+  "ruff>=0.5.1",
+]
+doc = [
+  "packaging>=21",
+  "jinja2",
+  "numpydoc>=1.2.0",
+  "pandas>=1.5",
+  "polars>=0.20.30",
+  "pyarrow>=12.0.0",
+  "matplotlib>=3.5",
+  "seaborn>=0.11",
+  "plotly>=5.10",
+  "Pillow>=9.1",
+  "pooch",
+  "scikit-image>=0.17.2",
+  "scikit-learn>=1.1",
+  "tensorflow>=2.10",
+  "sphinx>=5.0.0,<8.0.0",
+  "sphinx-rtd-theme",
+  "pydata-sphinx-theme",
+  "sphinx-gallery",
+  "sphinx-prompt",
+  "sphinxext-opengraph",
+  "sphinx-copybutton",
+  "sphinxcontrib-sass",
+  "sphinx-design",
+  "sphinx-remove-toctrees",
+  "myst-parser",
+  "myst-nb",
+  "jupytext",
+  "jupyter-sphinx",
+  "jupyterlite-sphinx",
+  "jupyterlite-pyodide-kernel",
+  "intersphinx_registry",
+  "colorspacious",
+  "sphinxcontrib-svg2pdfconverter",
+  "sphinxcontrib-inlinesyntaxhighlight",
+  "sphinx-tabs",
+  "sphinx-tags",
+]
+
+# https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
+# Links to important pages related to the project
+[project.urls]
+# homepage (Homepage)
+homepage      = "https://scikit-plots.github.io"
+# source (Source Code), repository, sourcecode, github
+repository    = "https://github.com/scikit-plots/scikit-plots"
+# download (Download), equivalent to Download-URL
+download      = "https://github.com/scikit-plots/scikit-plots"
+# changelog (Changelog), changes, whatsnew, history
+# The changelog, really useful for ongoing users of your project
+changelog     = "https://scikit-plots.github.io/dev/whats_new/index.html"
+# releasenotes (Release Notes)
+# documentation (Documentation), docs
+documentation = "https://scikit-plots.github.io"
+# issues (Issue Tracker), "Bug Tracker"
+# bugs, issue, tracker, issuetracker, bugtracker
+issues        = "https://github.com/celik-muhammed/scikit-plot/issues"
+# funding (Funding), sponsor, donate, donation
+# Donate        = "https://github.com/celik-muhammed/scikit-plot#donate"
+# Forum         = "https://github.com/celik-muhammed/scikit-plot/issues"
+# Forked        = "https://github.com/reiinakano/scikit-plot"
+
+# Configuration for the pytest testing framework
+[tool.pytest.ini_options]
+minversion = "6.0"  # Specify the minimum version of pytest
+addopts = "-ra -q"  # Add command-line options
+testpaths = [
+  "scikitplot",
+]  # Directories where tests are located
+# filterwarnings = [
+#     "error",
+#     'default:.*pyamg, which cannot \(yet\) be imported with NumPy >=2:RuntimeWarning'
+# ]
+
+# Black is a code formatter; this section configures its behavior.
+[tool.black]
+line-length = 100  # Maximum line length 88
+target-version = ['py35', 'py310', 'py314']  # Python versions to target
+preview = true     # Enable Black's preview features
+exclude = '''
+/(
+    \.eggs         # exclude a few common directories in the
+  | \.git          # root of the project
+  | \.mypy_cache
+  | \.vscode
+  | builddir
+  | build
+  | dist
+  | doc/build
+  | doc/_build
+  | doc/auto_examples
+  | scikitplot/externals
+  | asv_benchmarks/env
+  | auto_building_tools/
+)/
+'''
