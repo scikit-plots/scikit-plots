@@ -1,21 +1,24 @@
-{% extends "layout.html" %}
+{%- extends "layout.html" -%}
 
-{% set title = 'scikit-plots: machine learning visualization in Python' %}
+{%- set title = 'scikit-plots: machine learning visualization in Python' -%}
 
-{% if is_devrelease|tobool %}
-  {%- set contributing_link = pathto("developers/contributing") %}
-  {%- set contributing_attrs = "" %}
-{%- else %}
-  {%- set contributing_link = "https://scikit-plots.github.io/dev/developers/contributing.html" %}
-  {%- set contributing_attrs = 'target="_blank" rel="noopener noreferrer"' %}
-{%- endif %}
+{#- Meet the Community -#}
+{%- if is_devrelease|tobool -%}
+  {%- set contributing_link = pathto("devel/index") -%}
+  {%- set contributing_attrs = "" -%}
+{%- else -%}
+  {%- set contributing_link = "https://scikit-plots.github.io/dev/devel/index.html" -%}
+  {%- set contributing_attrs = 'target="_blank" rel="noopener noreferrer"' -%}
+{%- endif -%}
 
-{%- import "static/webpack-macros.html" as _webpack with context %}
+{%- import "static/webpack-macros.html" as _webpack with context -%}
 
 
-{% block docs_navbar %}
+{%- block docs_navbar %}
+{#- Original content of docs_main block from the theme #}
 {{ super() }}
 
+{#- Custom content that comes after the original docs_main content #}
 <div class="container-fluid sk-landing-top-bar py-4">
   <div class="container sk-landing-container">
     <div class="row justify-content-center">
@@ -25,18 +28,18 @@
         <h4 class="sk-landing-subheader fst-italic mb-3">Machine Learning Visualization in Python</h4>
 
         <!-- Conditional rendering for "Getting Started" button -->
-        {% if getting_started is defined and getting_started %}
+        {%- if getting_started is defined and getting_started %}
           <a class="btn sk-btn-orange mb-2" href="{{ pathto('getting_started') }}" role="button">
             Getting Started
           </a>
-        {% endif %}
+        {%- endif %}
 
         <!-- Conditional rendering for "Release Highlights" button -->
-        {% if release_highlights is defined and release_highlights and release_highlights_version is defined %}
+        {%- if release_highlights is defined and release_highlights and release_highlights_version is defined %}
           <a class="btn sk-btn-orange mb-2" href="{{ pathto(release_highlights) }}" role="button">
             Release Highlights for {{ release_highlights_version }}
           </a>
-        {% endif %}
+        {%- endif %}
 
         <!-- Description List -->
         <ul class="sk-landing-header-body list-unstyled mt-4">
@@ -47,52 +50,28 @@
   </div>
 </div>
 
-{% endblock docs_navbar %}
+{%- endblock docs_navbar %}
 
 
-{% block docs_main %}
 
+{%- block docs_main %}
+{#- Main content goes here #}
 <div class="container sk-landing-container pt-3 sk-landing-body" role="main">
   <div class="row no-gutters">
-    <!-- Model Performance Evaluation -->
+    <!-- Dimensionality reduction -->
     <div class="col-md-4 mb-3 px-md-2 sk-px-xl-4">
       <div class="card h-100" sk-align-group="1">
         <div class="card-body">
           <h4 class="sk-card-title card-title sk-vert-align" sk-align-name="title">
-            <a href="user_guide/model_performance_evaluation.html">Model Performance Evaluation</a>
+            <a href="modules/api/metrics_performance/decomposition.html">Dimensionality Reduction</a>
           </h4>
-          <p class="sk-vert-align" sk-align-name="desc">Plotting model performance evaluation metrics.</p>
-          <p>
-            <strong>Applications:</strong> Spam detection, image recognition.</br>
-            <strong>Metrics:</strong>
-            <a href="modules/metrics.html#scikitplot.metrics.plot_precision_recall">Precision-Recall Curves</a>,
-            <a href="modules/metrics.html#scikitplot.metrics.plot_roc">ROC AUC Curves</a>,
-            <a href="modules/metrics.html#scikitplot.metrics.plot_calibration_curve">Calibration Curves</a>,
-            and <a href="user_guide/model_performance_evaluation.html">more...</a>
-          </p>
-        </div>
-        <div class="sk-card-img-container overflow-hidden mx-2 flex-fill">
-          <a href="auto_examples/metrics/index.html" aria-label="metrics">
-            <img src="_images/sphx_glr_plot_classifier_eval_script_001.png" alt="metrics sample">
-          </a>
-        </div>
-        <a href="auto_examples/metrics/index.html" class="sk-btn-cyan btn" role="button">Tutorials</a>
-      </div>
-    </div>
-    <!-- Dimensionality reduction -->
-    <div class="col-md-4 mb-3 px-md-2 sk-px-xl-4">
-      <div class="card h-100" sk-align-group="2">
-        <div class="card-body">
-          <h4 class="sk-card-title card-title sk-vert-align" sk-align-name="title">
-            <a href="modules/decomposition.html">Dimensionality Reduction</a>
-          </h4>
-          <p class="sk-vert-align" sk-align-name="desc">Reducing the number of random variables to consider.</p>
+          <p class="sk-vert-align" sk-align-name="desc">Plotting the reducing the number of random variables to consider.</p>
           <p>
             <strong>Applications:</strong> Visualization, increased efficiency.</br>
             <strong>Algorithms:</strong>
-            <a href="modules/decomposition.html#scikitplot.decomposition.plot_pca_2d_projection">Plots the 2-dimensional projection of PCA</a>,
-            <a href="modules/decomposition.html#scikitplot.decomposition.plot_pca_component_variance">Plots PCA components’ explained variance ratios</a>,
-            and <a href="modules/decomposition.html">more...</a>
+            <a href="modules/api/metrics_performance/decomposition.html#plot-pca-2d-projection">Plots the 2-dimensional projection of PCA</a>,
+            <a href="modules/api/metrics_performance/decomposition.html#plot-pca-component-variance">Plots PCA components’ explained variance ratios</a>,
+            and <a href="modules/api/metrics_performance/decomposition.html">more...</a>
           </p>
         </div>
         <div class="sk-card-img-container overflow-hidden mx-2 flex-fill">
@@ -103,39 +82,69 @@
         <a href="auto_examples/decomposition/index.html" class="sk-btn-cyan btn" role="button">Tutorials</a>
       </div>
     </div>
-    <!-- Model selection -->
+    <!-- Model Performance Evaluation -->
     <div class="col-md-4 mb-3 px-md-2 sk-px-xl-4">
-      <div class="card h-100" sk-align-group="3">
+      <div class="card h-100" sk-align-group="1">
         <div class="card-body">
           <h4 class="sk-card-title card-title sk-vert-align" sk-align-name="title">
-            <a href="user_guide/marketing_analytics.html">Model Analysis</a>
+            <a href="modules/api/index.html">Metric Performance Evaluation</a>
           </h4>
-          <p class="sk-vert-align" sk-align-name="desc">Marketing analytics for models.</p>
+          <p class="sk-vert-align" sk-align-name="desc">Model Evaluation: Metrics Performance.</p>
           <p>
             <strong>Applications:</strong> Spam detection, image recognition.</br>
-            <strong>Algorithms:</strong>
-            <a href="modules/deciles.html#scikitplot.kds.plot_cumulative_gain">Generates the Cumulative Gains plot</a>,
-            <a href="modules/deciles.html#scikitplot.kds.plot_lift">Generate a Lift Curve plot</a>,
-            <a href="modules/deciles.html#scikitplot.kds.plot_ks_statistic">Generates the KS Statistic plot</a>,
-            and <a href="user_guide/marketing_analytics.html">more...</a>
+            <strong>Metrics:</strong>
+            <a href="modules/api/metrics_performance/estimators.html#plot-feature-importances">Feature Importances</a>,
+            <a href="modules/api/metrics_performance/metrics.html#plot-roc">ROC AUC Curves</a>,
+            <a href="modules/api/metrics_performance/metrics.html#plot-precision-recall">Precision-Recall Curves</a>,
+            and <a href="modules/api/index.html">more...</a>
           </p>
         </div>
         <div class="sk-card-img-container overflow-hidden mx-2 flex-fill">
-          <a href="auto_examples/deciles/index.html" aria-label="Model selection">
+          <a href="auto_examples/index.html#classification" aria-label="metrics">
+            <img src="_images/sphx_glr_plot_classifier_eval_script_001.png" alt="metrics sample">
+          </a>
+        </div>
+        <a href="auto_examples/index.html#classification" class="sk-btn-cyan btn" role="button">Tutorials</a>
+      </div>
+    </div>
+    <!-- Model selection -->
+    <div class="col-md-4 mb-3 px-md-2 sk-px-xl-4">
+      <div class="card h-100" sk-align-group="1">
+        <div class="card-body">
+          <h4 class="sk-card-title card-title sk-vert-align" sk-align-name="title">
+            <a href="modules/api/index.html">Decile-wise Performance Evaluation</a>
+          </h4>
+          <p class="sk-vert-align" sk-align-name="desc">Model Evaluation: Decile-wise Performance.</p>
+          <p>
+            <strong>Applications:</strong> Spam detection, image recognition.</br>
+            <strong>Algorithms:</strong>
+            <a href="modules/api/decile_wise_performance/kds.html#plot-ks-statistic">Generates the KS Statistic plot</a>,
+            <a href="modules/api/decile_wise_performance/kds.html#plot-cumulative-gain">Generates the Cumulative Gains plot</a>,
+            <a href="modules/api/decile_wise_performance/modelplotpy.html#plot-cumgains">Generates the Cumulative Gains plot</a>,
+            and <a href="modules/api/index.html">more...</a>
+          </p>
+        </div>
+        <div class="sk-card-img-container overflow-hidden mx-2 flex-fill">
+          <a href="auto_examples/index.html#kds" aria-label="Model selection">
             <img src="_images/sphx_glr_plot_ks_statistic_script_001.png" alt="deciles report">
           </a>
         </div>
-        <a href="auto_examples/deciles/index.html" class="sk-btn-cyan btn" role="button">Tutorials</a>
+        <a href="auto_examples/index.html#kds" class="sk-btn-cyan btn" role="button">Tutorials</a>
       </div>
     </div>
+
   </div>
 </div>
 
-{% endblock docs_main %}
+<div class="additional-content">
+    {%- include "shell.html" %}
+</div>
+
+{%- endblock docs_main %}
 
 
-{% block footer %}
 
+{%- block footer %}
 <div class="container-fluid sk-landing-more-info py-3">
   <div class="container sk-landing-container bd-page-width">
     <div class="row">
@@ -178,16 +187,16 @@
       <div class="col-md-4">
         <h4 class="sk-landing-call-header">Release Notes</h4>
         <ul class="sk-landing-call-list list-unstyled">
-          <li><strong>On-going development:</strong> <a href="whats_new/v0.4.html">scikit-plots 0.4 (Changelog)</a>.</li>
+          <li><strong>On-going development:</strong> <a href="whats_new/v0.5.html#version-0-5-0">scikit-plots 0.5 (Changelog)</a>.</li>
           <li><strong>Nov 2024.</strong> scikit-plots 0.4.0 is available for download (<a href="whats_new/v0.4.html#version-0-4-0">Changelog</a>).</li>
-          <li><strong>All releases:</strong> <a href="https://scikit-plots.github.io/dev/whats_new/whats_new.html"><strong>What's new</strong> (Changelog)</a>.</li>
+          <li><strong>All releases:</strong> <a href="https://scikit-plots.github.io/dev/whats_new/index.html"><strong>What's new</strong> (Changelog)</a>.</li>
         </ul>
       </div>
       <!-- Community -->
       <div class="col-md-4">
         <h4 class="sk-landing-call-header">Meet the Community</h4>
         <ul class="sk-landing-call-list list-unstyled">
-          <li><strong>About us:</strong> See <a href="teams/about.html#the-people-behind-scikit-plots">people</a> and <a href="{{ contributing_link }}" {{ contributing_attrs }}>contributing</a></li>
+          <li><strong>About us:</strong> See <a href="project/teams/index2.html#the-people-behind-scikit-plots">people</a> and <a href="{{ contributing_link }}" {{ contributing_attrs }}>contributing</a></li>
           <!-- <li><strong>More Machine Learning:</strong> Find <a href="related_projects.html">related projects</a></li>
           <li><strong>Questions?</strong> See <a href="faq.html">FAQ</a>, <a href="support.html">support</a>, and <a href="https://stackoverflow.com/questions/tagged/scikit-learn">stackoverflow</a></li>
           <li><strong>Subscribe to the</strong> <a href="https://mail.python.org/mailman/listinfo/scikit-learn">mailing list</a></li>
@@ -206,7 +215,7 @@
         </ul>
         <p>
           <!-- <a class="btn sk-btn-orange mb-1" href="https://numfocus.org/donate-to-scikit-learn">Help us, <strong>donate!</strong></a> -->
-          <a class="btn sk-btn-orange mb-1" href="teams/about.html#citing-scikit-plots"><strong>Cite us!</strong></a>
+          <a class="btn sk-btn-orange mb-1" href="project/citing.html"><strong>Cite us!</strong></a>
         </p>
       </div>
     </div>
@@ -215,7 +224,7 @@
 
 <div class="container-fluid sk-landing-footer py-3">
   <div class="container sk-landing-container">
-    <a class="sk-footer-funding-link" href="teams/about.html#funding">
+    <a class="sk-footer-funding-link" href="project/funding.html">
       <div class="text-center">
         <p class="mt-2 sk-footer-funding-text">
           scikit-plots supported by
@@ -238,7 +247,8 @@
   </div>
 </div>
 
-{% endblock footer %}
+{%- endblock footer %}
+
 
 
 {%- block scripts_end %}

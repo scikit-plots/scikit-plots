@@ -29,6 +29,7 @@ include CITATION.cff
 include CODE_OF_CONDUCT.md
 include CONTRIBUTING.md
 include LICENSE
+include LICENSE.txt
 recursive-include LICENSES *
 
 # Optionally, include other specific folders or files
