@@ -12,30 +12,26 @@
 # ---------------------------------------------------------
 
 cff-version: 1.2.0  {# The version of the CFF format used. #}
-message: "If you use this software, please cite it using the following metadata."  {# Optional message to users. #}
+message: "{{ message | trim }}"  {# Optional message to users. #}
 authors:  {# Authors and contributors of the software project. #}
-- developers: "{{ author | trim }}"
-  {#- orcid: "https://orcid.org/0000-0000-0000-0000" -#}
-  {#- family-names: "{{ author_family | trim }}" -#}
-  {#- given-names: "{{ author_given | trim }}" -#} 
-  {#- orcid: "{{ author_orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
-  {#- affiliation: "{{ author_affiliation | trim }}" -#}  {#- Optional, but recommended, Contributor Organization. #}
-title: "{{ library_title | trim }}"  {# The name of your software. #}
+- family-names: "{{ author | trim }}"
+  {#- given-names: "{{ given_names | trim }}" -#} 
+  {#- orcid: "{{ orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
+  {#- affiliation: "{{ affiliation | trim }}" -#}  {#- Optional, but recommended, Contributor Organization. #}
+title: "{{ title | trim }}"  {# The name of your software. #}
 version: "{{ version | trim }}"  {# The current version of your software. #}
 doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
-date-released: {{ release_date | trim }}  {# Date when this version was released. #}
+date-released: {{ date_released | trim }}  {# Date when this version was released. #}
 url:  "{{ url | trim }}"
 preferred-citation:
-  type: software
+  type: {{ type | trim }}
   authors:  {# Authors and contributors of the software project. #}
-  - developers: "{{ author | trim }}"
-    {#- orcid: "https://orcid.org/0000-0000-0000-0000" -#}
-    {#- family-names: "{{ author_family | trim }}" -#}
-    {#- given-names: "{{ author_given | trim }}" -#} 
-    {#- orcid: "{{ author_orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
-    {#- affiliation: "{{ author_affiliation | trim }}" -#}  {#- Optional, but recommended. #}
+  - family-names: "{{ author | trim }}"
+  title: "{{ title | trim }}"  {# The name of your software. #}
+  version: "{{ version | trim }}"  {# The current version of your software. #}
   doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
-
+  date-released: {{ date_released | trim }}  {# Date when this version was released. #}
+  url:  "{{ url | trim }}"
 
 {#-
 # Optionally, add references to any related articles or papers
