@@ -13,14 +13,15 @@ def _get_bibtex(
     _bibtex = ''
     try:
         # Attempt to read the CITATION.bib file
-        refs = (pathlib.Path(__file__).parent / "../CITATION.bib").read_text().split("@{preferred_type}")[1:][0]
+        refs = (pathlib.Path(__file__).parent / "../CITATION.bib").read_text().split(f"@{preferred_type}")[1:][0]
         _bibtex = f"@{preferred_type}{refs}" if refs else ""
         log.debug("_bibtex from file CITATION.bib")
     except FileNotFoundError:
-        # If CITATION.bib file is not found, fall back to the defined CITATION string
-        refs = CITATION.split("@{preferred_type}")[1:][0]
+        # If CITATION.bib file is not found,
+        # fall back to the defined CITATION text string
+        refs = CITATION.split(f"@{preferred_type}")[1:][0]
         _bibtex = f"@{preferred_type}{refs}" if refs else ""
-        log.debug("_bibtex from attr CITATION")
+        log.debug("_bibtex from attr CITATION text")
     except Exception as e:
         # Handle any unexpected errors
         log.error(f"Unexpected error while reading CITATION.bib: {e}")
