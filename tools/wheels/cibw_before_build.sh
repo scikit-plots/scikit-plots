@@ -1,6 +1,6 @@
 #!/bin/bash
 ######################################################################
-## Logic Functions
+## INFO Logic Functions
 # is_true  Returns 0 (true) for values matching the truthy set: 1, true, True, yes, etc.
 # is_false Returns 0 (true) if the value is not in the truthy set.
 ######################################################################
@@ -18,29 +18,21 @@
 # -n	String is not empty                 [ -n "$a" ]
 # -f	File exists and is a regular file   [ -f "$file" ]
 # -d	File exists and is a directory      [ -d "$dir" ]
-is_true() {
-    case "$1" in
-        1|true|True|TRUE|y|Y|yes|Yes|YES|'1') return 0 ;;  # True values (return success)
-        0|false|False|FALSE|n|N|no|No|NO|'0') return 1 ;;  # False values (return failure)
-        *) return 1 ;;  # Default to false for anything else
-    esac
-}
-is_false() {
-    ! is_true "$1"  # Invert the result of is_true
-}
+# is_true() {
+#     case "$1" in
+#         1|true|True|TRUE|y|Y|yes|Yes|YES|'1') return 0 ;;  # True values (return success)
+#         0|false|False|FALSE|n|N|no|No|NO|'0') return 1 ;;  # False values (return failure)
+#         *) return 1 ;;  # Default to false for anything else
+#     esac
+# }
+# is_false() {
+#     ! is_true "$1"  # Invert the result of is_true
+# }
 ######################################################################
 ## RUNNING
 ######################################################################
-if is_true "$LOCAL_RUN"; then
-    export LOCAL_RUN=1
-else
-    export LOCAL_RUN=0
-fi
-echo "LOCAL_RUN=$LOCAL_RUN"  # Output: 1 for LINUX
-RUNNER_OS=${RUNNER_OS:-'Linux'}
-
 set -e  # Exit immediately if a command exits with a non-zero status
-LOCAL_RUN && set -o pipefail  # Ensure pipeline errors are captured
+set -o pipefail  # Ensure pipeline errors are captured
 set -u  # Treat unset variables as an error
 # set -x  # Print each command before executing it
 ######################################################################
@@ -159,12 +151,7 @@ configure_openblas_pkg_config() {
     # Export LIBRARY PATH based on the OS and log
     case $RUNNER_OS in
         Linux)
-            export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$(LD_LIBRARY_PATH:-'')"
-            if [ "$LOCAL_RUN" -eq 1 ]; then
-                echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> ~/.bashrc;
-                . ~/.bashrc;
-            fi
-            ;;
+            export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$(LD_LIBRARY_PATH:-'')" ;;
         macOS) export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR" ;;
         Windows) 
             # Adjust the path format for Windows
@@ -365,17 +352,17 @@ setup_macos() {
 ######################################################################
 # Main function to orchestrate all steps
 main() {
+    printenv
     log "Starting build environment setup..."
     # Define project directory
     local project_dir="${1:-$PWD}"
     log "Project directory: $project_dir"
-    printenv
     # Clean up previous build artifacts
-    [ "$LOCAL_RUN" -eq 1 ] && clean_build
+    clean_build
     # Append LICENSE file based on the OS
-    [ "$LOCAL_RUN" -eq 1 ] && setup_license $project_dir
+    setup_license $project_dir
     # Install free-threaded Python dependencies if applicable
-    [ "$LOCAL_RUN" -eq 1 ] && handle_free_threaded_build
+    handle_free_threaded_build
     # Set up Scipy OpenBLAS based on architecture
     setup_openblas "$project_dir"
     # Windows-specific setup delvewheel
