@@ -38,6 +38,7 @@ else
 fi
 echo "LOCAL_RUN=$LOCAL_RUN"  # Output: 1 for LINUX
 RUNNER_OS=${RUNNER_OS:-'Linux'}
+
 set -e  # Exit immediately if a command exits with a non-zero status
 LOCAL_RUN && set -o pipefail  # Ensure pipeline errors are captured
 set -u  # Treat unset variables as an error
