@@ -1,4 +1,8 @@
 ## Makefile for Python Packaging Library
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ## This Makefile contains various "targets" for project management tasks such as "compiling" the project,
 ## "cleaning" up build files, "running" tests, "building" Docker images, and more.
 

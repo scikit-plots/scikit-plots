@@ -11,5 +11,5 @@ pandas>=1.1.5
 matplotlib>=1.4.0
 scikit-learn>=1.4
 joblib
-spin==0.13
+spin>=0.13
 build

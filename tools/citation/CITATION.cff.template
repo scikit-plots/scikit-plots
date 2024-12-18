@@ -1,9 +1,9 @@
 {#-
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
--#}
-{#-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+# https://jinja.palletsprojects.com/en/stable/templates/
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
 -#}
 # ---------------------------------------------------------
 # CITATION.cff file for {{ library_name }}
@@ -11,46 +11,31 @@
 # who want to cite the library, related papers, and books.
 # ---------------------------------------------------------
 
-cff-version: 1.2.0  # The version of the CFF format used.
+cff-version: 1.2.0  {# The version of the CFF format used. #}
 message: "If you use this software, please cite it using the following metadata."  {# Optional message to users. #}
+authors:  {# Authors and contributors of the software project. #}
+- developers: "{{ author | trim }}"
+  {#- orcid: "https://orcid.org/0000-0000-0000-0000" -#}
+  {#- family-names: "{{ author_family | trim }}" -#}
+  {#- given-names: "{{ author_given | trim }}" -#} 
+  {#- orcid: "{{ author_orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
+  {#- affiliation: "{{ author_affiliation | trim }}" -#}  {#- Optional, but recommended, Contributor Organization. #}
 title: "{{ library_title | trim }}"  {# The name of your software. #}
 version: "{{ version | trim }}"  {# The current version of your software. #}
-doi: "{{ doi | trim }}"  {# Optional DOI (if archived on platforms like Zenodo). #}
-date-released: "{{ release_date | trim }}"  {# Date when this version was released. #}
+doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
+date-released: {{ release_date | trim }}  {# Date when this version was released. #}
+url:  "{{ url | trim }}"
+preferred-citation:
+  type: software
+  authors:  {# Authors and contributors of the software project. #}
+  - developers: "{{ author | trim }}"
+    {#- orcid: "https://orcid.org/0000-0000-0000-0000" -#}
+    {#- family-names: "{{ author_family | trim }}" -#}
+    {#- given-names: "{{ author_given | trim }}" -#} 
+    {#- orcid: "{{ author_orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
+    {#- affiliation: "{{ author_affiliation | trim }}" -#}  {#- Optional, but recommended. #}
+  doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
 
-# Authors and contributors of the software project.
-authors:
-  - team: "{{ author | trim }}"
-    website:  "{{ url | trim }}"
-    {#- given-names: "{{ author_given | trim }}" -#}
-    {#- Optional, but recommended. -#}
-    {#- affiliation: "{{ author_affiliation | trim }}" -#}  
-    {#- Optional, if you have an ORCID. -#}
-    {#- orcid: "{{ author_orcid | trim }}" -#}
-
-  {#- Uncomment this section for additional contributors when needed. -#}
-  {#- 
-  - family-names: ContributorLastName
-    given-names: ContributorFirstName
-    affiliation: Contributor Organization
-    orcid: https://orcid.org/0000-0002-9876-5432  #}
-
-# Repository information
-{#- The URL to your software repository (GitHub, GitLab, etc.). #}
-repository-code: "{{ repository_url | trim }}"
-{#- Optional: Link to archived artifacts (e.g., Zenodo DOI). #}
-repository-artifact: "{{ artifact_url | trim }}"
-
-# License for your software
-{#- The license under which your software is released. -#}
-license: "{{ license | trim }}"
-type: software
-url: "{{ url | trim }}"
-
-# Keywords related to your software
-keywords:
-  {#- This allows a list of keywords. #}
-  - {{ keywords | join("\n  - ") | trim }}
 
 {#-
 # Optionally, add references to any related articles or papers

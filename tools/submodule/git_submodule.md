@@ -3,17 +3,37 @@
 To add a new submodule to your repository, use the following command:
 
 ```sh
+git config --global --add safe.directory <path>
+
 ## git submodule add -b <gh-branch> <repository-url> <submodule-path>
+
+# scikit-plots
+git submodule add -b "gh_array_api_compat" "https://github.com/scikit-plots/array-api-compat.git" "third_party/array-api-compat"
+
+# lightnumpy
+git submodule add -b "gh_boost_math" "https://github.com/scikit-plots/math.git" "third_party/math"
+git submodule add -b "gh_xla"        "https://github.com/scikit-plots/xla.git" "third_party/xla"
+git submodule add -b "gh_numcpp"     "https://github.com/scikit-plots/NumCpp.git" "third_party/NumCpp"
+
 # git submodule add -b "gh_boost" "https://github.com/scikit-plots/boost.git" "third_party/boost"
 
-git submodule add -b "gh_array_api_compat" "https://github.com/scikit-plots/array-api-compat.git" "third_party/array-api-compat"
-git submodule add -b "gh_boost_math" "https://github.com/scikit-plots/math.git" "third_party/math"
-git submodule add -b "gh_xla" "https://github.com/scikit-plots/xla.git" "third_party/xla"
-
+# subprojects
 # https://mesonbuild.com/Adding-new-projects-to-wrapdb.html#adding-new-projects-to-wrapdb
-# git submodule add -b "gh_numcpp" "https://github.com/scikit-plots/NumCpp.git" "lightnumpy/_cpp_core/NumCpp"
-git submodule add -b "gh_lightnumpy" "https://github.com/scikit-plots/lightnumpy.git" "subprojects/lightnumpy"
 ```
+---
+
+## Verifying Submodules
+
+1. **Check submodules' status**:
+    ```sh
+    git submodule status
+    ```
+
+2. **List submodule directories**:
+    ```sh
+    ls third_party/
+    ```
+
 ---
 
 ## Resetting All Submodules
@@ -30,22 +50,10 @@ git submodule foreach git reset --hard
 git submodule foreach git clean -fdx
 ```
 
-## Verifying Submodules
-
-1. **Check submodules' status**:
-    ```sh
-    git submodule status
-    ```
-
-2. **List submodule directories**:
-    ```sh
-    ls third_party/
-    ```
-
 ---
 
 
-## How effectively delete a git submodule.
+## How effectively delete a git submodule One by One.
 
 To remove a submodule you need to:
 

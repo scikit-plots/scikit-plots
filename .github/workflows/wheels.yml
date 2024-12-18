@@ -26,8 +26,7 @@ on:
   #   #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
   #   #        │  │ │ │ │
   #   # cron: "11 1 * * SUN,WED"
-  #   # Run every Monday at 11:11 AM
-  #   - cron: '11 11 * * 1'
+  #   - cron: '11 11 * * 1'  # Runs every Sunday and Wednesday at 01:11 UTC
   # triggers a workflow when a pull request (PR) is opened
   # Code Review: Use this to run tests, checks, or CI pipelines
   # Pre-Merge Validation: Ensure that changes introduced in the PR won't break

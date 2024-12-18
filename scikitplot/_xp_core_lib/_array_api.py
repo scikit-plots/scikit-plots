@@ -26,13 +26,13 @@ from typing import Any, Literal, TYPE_CHECKING
 from typing import Tuple, Optional
 
 # from scipy._lib import array_api_compat
-from . import array_api_compat
 from .array_api_compat import (
     is_array_api_obj,
     size as xp_size,
     numpy as np_compat,
     device as xp_device
 )
+from . import array_api_compat
 
 if TYPE_CHECKING:
     Array = Any  # To be changed to a Protocol later (see array-api#589)

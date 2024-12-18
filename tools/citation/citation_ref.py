@@ -19,17 +19,19 @@ template_bib = env.get_template('CITATION.bib.template')
 template_cff = env.get_template('CITATION.cff.template')
 
 # Step 2: Define the values to render the template
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
 context = {
-  # misc
-  "include_misc": True,
+  # software
+  "include_software": True,
   "library_name": "scikit-plots",
   "author": "scikit-plots developers",
-  "library_title": "scikit-plots: Machine Learning Visualization in Python",
-  "release_year": "2024",
-  "version": "latest",
-  "url": "https://scikit-plots.github.io",
-  "note": "Scikit-plot is the result of an unartistic data scientist's dreadful realization that visualization is one of the most crucial components in the data science process, not just a mere afterthought.",
   "doi": "10.5281/zenodo.13367000",
+  "release_month": "11",
+  "library_title": "scikit-plots: Machine Learning Visualization in Python",
+  "url": "https://scikit-plots.github.io",
+  "version": "latest",
+  "release_year": "2024",
+  "note": "Scikit-plot is the result of an unartistic data scientist's dreadful realization that visualization is one of the most crucial components in the data science process, not just a mere afterthought.",
   # article
   "include_article": False,
   "article_key": "yourarticle2024",
@@ -55,8 +57,8 @@ context = {
   # cff
   "library_title": "scikit-plots: Machine Learning Visualization in Python",
   "release_date": formatted_date,
-  "author_family": "Çelik",
-  "author_given": "Muhammed",
+  "author_family": "celik",
+  "author_given": "muhammed",
   "author_affiliation": "scikit-plots",
   "author_orcid": "https://orcid.org/0000-0001-2345-6789",
   "repository_url": "https://github.com/scikit-plots/scikit-plots",

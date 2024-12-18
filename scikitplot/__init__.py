@@ -39,16 +39,20 @@ online at https://scikit-plots.github.io.
 #   X.Y.Z        # Final release
 #   X.Y.Z.postM  # Post release
 __version__ = '0.4.0.post0'
-# from ._version import get_versions
-# __version__ = get_versions()['version']
-# del get_versions
+
+# If a version with git hash was stored, use that instead
+from . import version
+from .version import __githash__#, __version__
+
+from ._citation import __citation__, __bibtex__
+
+__array_api_version__ = "2023.12"
 
 ######################################################################
 ## scikit-plots configuration
 ######################################################################
 
 py_set = set  # keep python set, 'scikitplot.set' Override then raise error
-
 import os
 import sys
 import pathlib
@@ -56,7 +60,6 @@ import warnings
 
 # import logging; log=logging.getLogger(__name__); del logging;
 from ._log import log
-
 try:
   from scikitplot.__config__ import show as show_config
 except (ImportError, ModuleNotFoundError) as e:
@@ -73,71 +76,54 @@ except (ImportError, ModuleNotFoundError) as e:
 else:
   _BUILT_WITH_MESON = True
 
-# Capture the original matplotlib rcParams, delete the mpl module reference
-import matplotlib as mpl; _orig_rc_params=mpl.rcParams.copy(); del mpl
+######################################################################
+## scikit-plots modules and objects
+######################################################################
 
 # Import scikitplot objects
-from ._globals import ModuleDeprecationWarning, VisibleDeprecationWarning
 from ._globals import _Default, _NoValue, _Deprecated
+from ._globals import ModuleDeprecationWarning, VisibleDeprecationWarning
 from ._utils._show_versions import show_versions  # noqa: E402
-from .colors import xkcd_rgb, crayons  # noqa: F401
-from .rcmod import reset_orig, reset_defaults  # noqa: F401,F403
+# from .rcmod import reset_orig, reset_defaults  # noqa: F401,F403
 
 # Export Modules
-from .colors import xkcd_rgb, crayons  # noqa: F401
-from .miscplot import *  # noqa: F401,F403
-from .palettes import *  # noqa: F401,F403
-from .rcmod import *  # noqa: F401,F403
-from .utils._utils import *  # noqa: F401,F403
-from .widgets import *  # noqa: F401,F403
-
+from ._seaborn import *
 from .api import *
-from .api.axisgrid import *  # noqa: F401,F403
-from .api.categorical import *  # noqa: F401,F403
-from .api.distributions import *  # noqa: F401,F403
-from .api.matrix import *  # noqa: F401,F403
-from .api.regression import *  # noqa: F401,F403
-from .api.relational import *  # noqa: F401,F403
-
-from ._citation import _get_bibtex
-__citation__ = __bibtex__ = _get_bibtex()
-
-######################################################################
-## scikit-plots modules
-######################################################################
-
-# Modules
-from . import (  # noqa: F401
+from . import (
   _api,
-  _core,
+  _astropy,
+  _build_utils,
+  _compat,
+  _externals,
   _factory_api,
-  _marks,
+  _kds,
+  _modelplotpy,
+  _seaborn,
+  _testing,
+  _tweedie,
+  _utils,
   _xp_core_lib,
   api,
-  backends,
-  cm,
-  colors,
-  miscplot,
-  palettes,
+  experimental,
+  misc,
   probscale,
-  rcmod,
   stats,
+  typing,
   utils,
-  widgets,
-  _compat,
+  __config__,
+  _citation,
+  _config,
   _docstring,
-  _docstrings,
-  # _globals,
+  _globals,
+  _log,
   _preprocess,
-  _statistics,
-  algorithms,
-  cbook
+  cbook,
+  version,
 )
 
 # Pytest testing
 from ._testing._pytesttester import PytestTester
-test = PytestTester(__name__)
-del PytestTester
+test = PytestTester(__name__); del PytestTester;
 
 # Remove symbols imported for internal use
 del os, sys, pathlib, warnings
@@ -152,6 +138,7 @@ __all__ = [
 ] + [
   '__dir__',
   '__getattr__',
+  'online_help',
 ]
 
 ######################################################################
@@ -176,3 +163,68 @@ def __getattr__(name):
       raise AttributeError(
         f"Module 'scikitplot' has no attribute '{name}'"
       )
+######################################################################
+## online search helper scikit-plots
+######################################################################
+
+def online_docs(
+    query: str = '',
+    docs_root_url: str = 'https://scikit-plots.github.io/',
+    search_page: str = 'search.html',
+    new_window: int = 0,  # default
+) -> bool:
+    """
+    Open the online documentation search page for a given query in the default web browser.
+
+    This function constructs a search URL based on the provided query and opens it in the web browser.
+    It detects whether the version is in a development or stable state and directs the user to the correct documentation.
+
+    Parameters
+    ----------
+    query : str, optional
+        The search query to find relevant documentation. Defaults to an empty string.
+    docs_root_url : str, optional
+        The base URL of the documentation website. Defaults to 'https://scikit-plots.github.io/'.
+    search_page : str, optional
+        The search page URL (relative to `docs_root_url`). Defaults to 'search.html'.
+    new_window : int, optional
+        Controls how the URL is opened in the browser:
+        - 0: Open in the same browser window.
+        - 1: Open in a new browser window.
+        - 2: Open in a new browser tab (default).
+
+    Returns
+    -------
+    bool
+        Returns True if the browser was successfully launched, False otherwise.
+
+    Notes
+    -----
+    - The function automatically switches between the 'dev' and 'stable' versions of the documentation based on the value of `__version__`.
+    - Requires an active internet connection.
+
+    Examples
+    --------
+    >>> search_docs(query='installation')
+    True
+    """
+    import os
+    import webbrowser
+    from urllib.parse import urlparse, urlencode, quote
+    # Determine if the current version is in development or stable
+    version_type = 'dev' if 'dev' in __version__ else 'stable'
+
+    # Construct the base documentation URL, appending the version type
+    docs_root_url = os.getenv('DOCS_ROOT_URL', docs_root_url).strip().strip('/')
+    docs_root_url = f"{docs_root_url}/{version_type}/"
+
+    # Build the search URL with query parameters
+    search_url = f'{docs_root_url}/{search_page}'
+    params = {
+        # 'lang': 'en',
+        'q': query,
+    }
+    full_url = f"{search_url}{('&' if urlparse(search_url).query else '?')}{urlencode(params)}"
+
+    # Open the URL in the browser
+    return webbrowser.open(full_url, new=new_window)

@@ -1,10 +1,5 @@
 """
-Scikit-plots Factory API
-
-An intuitive library to add plotting functionality to scikit-learn objects
-
-Documentation is available in the docstrings and
-online at https://scikit-plots.github.io.
+scikit-plots Factory API
 """
 
 # Authors: The scikit-plots developers

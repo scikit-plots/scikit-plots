@@ -23,3 +23,5 @@ def _get_bibtex():
         # Handle any unexpected errors
         log.error(f"Unexpected error while reading CITATION.bib: {e}")
     return _bibtex
+
+__citation__ = __bibtex__ = _get_bibtex()

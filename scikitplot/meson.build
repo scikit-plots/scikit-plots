@@ -16,12 +16,67 @@
 # )
 
 ######################################################################
+## Generate 'version.py' for Sourde Distrubution "--sdist"
+## "--sdist" require '.git' if error use only "--wheel" packaging
+######################################################################
+
+# Generate version.py for sdist
+meson.add_dist_script(
+  '_build_utils/gitversion.py',       # The script to execute
+  '--meson-dist',                      # Additional arguments
+  '--write', 'scikitplot/version.py',  # Additional arguments
+)
+if not fs.exists('version.py')
+  generate_version = custom_target(
+    'generate-version',
+    build_always_stale: true,
+    build_by_default: true,
+    input: '_build_utils/gitversion.py',
+    output: 'version.py',
+    command: [py, '@INPUT@', '--write', '@OUTPUT@'],
+    install: true,
+    install_dir: py.get_install_dir() / 'scikitplot',
+    install_tag: 'python-runtime',
+  )
+else
+  # When building from sdist, version.py exists and should be included
+  py.install_sources(
+    ['version.py'],
+    subdir: 'scikitplot',
+    install_tag: 'python-runtime', # default
+  )
+endif
+
+######################################################################
+## Generate '_citation.py' for "--sdist" or use MANIFEST.in
+## https://mesonbuild.com/Reference-manual_functions.html#configure_file
+######################################################################
+
+# Read bibtex from 'CITATION.bib'
+_citation_file = meson.project_source_root() / 'CITATION.bib'
+_citation_content = fs.read(_citation_file).strip()
+
+# bib configure_file
+conf_data_bib = configuration_data()
+conf_data_bib.set('CITATION', _citation_content)
+
+# Generate _CITATION.bib for sdist
+configure_file(
+  input: '_citation.py.in',
+  output: '_citation.py',
+  configuration: conf_data_bib,
+  install: true,
+  install_dir: py.get_install_dir() / 'scikitplot',
+  install_tag: 'python-runtime',
+)
+
+######################################################################
 ## Templated file: '__config__.py.in'
 ## https://mesonbuild.com/Reference-manual_functions.html#configure_file
 ######################################################################
 
+# OS configure_file
 conf_data = configuration_data()
-
 conf_data.set('CROSS_COMPILED', meson.is_cross_build())
 
 # Python information
@@ -112,66 +167,15 @@ configure_file(
 )
 
 ######################################################################
-## Generate '_citation.py' for "--sdist" or use MANIFEST.in
-######################################################################
-
-# Read bibtex from 'CITATION.bib'
-_citation_file = meson.project_source_root() / 'CITATION.bib'
-_citation_content = fs.read(_citation_file).strip()
-
-conf_data_bib = configuration_data()
-conf_data_bib.set('CITATION', _citation_content)
-
-# Generate _CITATION.bib for sdist
-configure_file(
-  input: '_citation.py.in',
-  output: '_citation.py',
-  configuration: conf_data_bib,
-  install_dir: py.get_install_dir() / 'scikitplot',
-  install: true,
-  install_tag: 'python-runtime',
-)
-
-######################################################################
-## Generate 'version.py' for "--sdist"
-## "--sdist" require '.git' if error use only "--wheel" packaging
-######################################################################
-
-# Generate version.py for sdist
-meson.add_dist_script(
-  '_build_utils/gitversion.py',       # The script to execute
-  '--meson-dist',                      # Additional arguments
-  '--write', 'scikitplot/version.py',  # Additional arguments
-)
-if not fs.exists('version.py')
-  generate_version = custom_target('generate-version',
-    build_always_stale: true,
-    build_by_default: true,
-    command: [py, '@INPUT@', '--write', '@OUTPUT@'],
-    input: '_build_utils/gitversion.py',
-    install: true,
-    install_dir: py.get_install_dir() / 'scikitplot',
-    install_tag: 'python-runtime',
-    output: 'version.py',
-  )
-else
-  # When building from sdist, version.py exists and should be included
-  py.install_sources(
-    ['version.py'],
-    subdir: 'scikitplot',
-    install_tag: 'python-runtime', # default
-  )
-endif
-
-######################################################################
 ## cython tree
 ######################################################################
 
 # Copy the main "__init__.py"|"*.pxd" files to the build dir (needed for Cython)
 # Need for Cython cimports across subpackages to work, i.e. avoid errors like
 # relative cimport from non-package directory is not allowed
-_cython_tree = [
-  fs.copyfile('__init__.py'),
+_root_cython_tree = [
+  fs.copyfile('__init__.py'),       # Ensure __init__.py is copied early
+  fs.copyfile('experimental.pxd'),  # Cython definition file for C/C++ code
   
   # Pure Python types.
   fs.copyfile('__init__.pyi'),
@@ -192,6 +196,5 @@ _cython_tree = [
 # After those, subdirs with the most heavy builds should come first
 # (that parallelizes better)
 # belows can be needs to be to be before ... since ... cimport *.pxd
-subdir('_xp_core_lib')
-subdir('api')
-subdir('stats')
+subdir('_astropy')
+subdir('experimental')

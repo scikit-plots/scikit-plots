@@ -1,31 +1,34 @@
 {#-
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
--#}
-{#-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+# https://jinja.palletsprojects.com/en/stable/templates/
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
 -#}
-% ---------------------------------------------------------
+% --------------------------------------------------------------------
 % CITATION.bib file for {{ library_name }}
 % This file provides citation information for users
 % who want to cite the library, related papers, and books.
-% ---------------------------------------------------------
-{% if include_misc %}
-@misc{{ '{' }}{{ library_name }}:v{{ version }},
-  {#- The author(s) or maintainer(s) of the Python library #}
-  author = { {{ author }} },  
+% --------------------------------------------------------------------
+
+{% if include_software -%}
+@software{{ '{' }}{{ library_name }}:v{{ version }},
   {#- The title of your Python library (name it appropriately) #}
-  title  = { {{ library_title }} },  
+  title   = {{ '{{' }} {{ library_title }} {{ '}}' }},
+  {#- The author(s) or maintainer(s) of the Python library #}
+  author  = { {{ author }} },
   {#- Year of the library release or the latest significant update #}
-  year   = { {{ release_year }} },
+  year    = { {{ release_year }} },
+  {#- Month of the library release or the latest significant update #}
+  month   = { {{ release_month }} },
+  {#- Optional: Add the DOI if your project has one (e.g., if you've archived it in Zenodo) #}
+  doi     = { {{ doi }} },
+  {#- The URL to your project repository (GitHub, GitLab, etc.) #}
+  url     = { {{ url }} },
+  {#- You can provide a short note, such as the purpose of the library or a brief description #}
+  note    = { {{ note }} },
   {#- Optional: Add the version number of your library #}
   version = { {{ version }} },
-  {#- The URL to your project repository (GitHub, GitLab, etc.) #}
-  url    = { {{ url }} },
-  {#- You can provide a short note, such as the purpose of the library or a brief description #}
-  note   = { {{ note }} },
-  {#- Optional: Add the DOI if your project has one (e.g., if you've archived it in Zenodo) #}
-  doi    = { {{ doi }} }
 }
 {%- endif %}
 

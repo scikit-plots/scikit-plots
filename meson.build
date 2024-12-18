@@ -1,7 +1,11 @@
 ## scikit-plots/meson.build
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ######################################################################
 ## Project
+## https://mesonbuild.com/Syntax.html#syntax
 ######################################################################
 
 # Project configuration
@@ -19,7 +23,7 @@ project(
   ).stdout().strip(),
   meson_version: '>= 1.5.0',
   license: 'BSD-3 Clause',
-  license_files: [],
+  # license_files: [],
   default_options: [
     'b_ndebug=if-release',
     'buildtype=debugoptimized',
@@ -27,8 +31,8 @@ project(
     'c_std=c17',                     # Set C standard to C17
     'cpp_std=c++17',                 # Set C++ standard to C++17
     'fortran_std=legacy',
-    # 'blas=openblas',
-    # 'lapack=openblas',
+    # 'blas=openblas',               # 'scipy-openblas'
+    # 'lapack=openblas',             # 'scipy-openblas'
     # https://mesonbuild.com/Builtin-options.html#details-for-warning_level
     # 'warning_level=3',             # You can specify warning levels here if needed
     # 'werror=true',                 # Treat warnings as errors globally
@@ -44,7 +48,6 @@ release_version = meson.project_version()
 # 
 # Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
-
 
 ######################################################################
 ## BLAS/LAPACK dependency
@@ -666,6 +669,7 @@ endif
 ## or header for the same reasons as 'Python.h'.
 ######################################################################
 
+# python3 -m pybind11 --includes
 # pybind11 — Seamless operability between C++11 and Python
 dep_pybind11 = dependency('pybind11', version: '>=2.13.1')
 
@@ -1065,9 +1069,8 @@ install_subdir(
   'scikitplot',
   install_dir: py.get_install_dir(),  # Folder relative to site-packages to install to
   install_tag: 'python-runtime',      # Tag to help categorize the install
-  exclude_directories: [              # Directories to exclude from installation
-    'tests',                          # Excludes the 'tests' directory
-    # 'third_party',                  # This line is commented, so not excluded
+  exclude_directories: [              # Exclude from installation, but it doesn't work as expected
+    '**tests',                        # Excludes the 'tests' directory
   ],
 )
 # Optionally add a message to confirm the installation
@@ -1075,23 +1078,6 @@ message(
   '\nscikitplot files installed successfully: ' +
   '@0@'.format(py.get_install_dir())
 )
-
-# # 'tests' directories in the 'scikitplot' folder
-# subdirs_with_tests = [
-#   'scikitplot/tests',
-#   'scikitplot/subdir1/tests',
-#   'scikitplot/subdir2/tests'
-#   # Add more paths here as needed
-# ]
-# foreach subdir : subdirs_with_tests
-#   if subdir != ''
-#     install_subdir(
-#       subdir,
-#       install_dir: join_paths(py.get_install_dir(), subdir),
-#       install_tag: 'tests',
-#     )
-#   endif
-# endforeach
 
 ######################################################################
 ## Next

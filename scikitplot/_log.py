@@ -57,6 +57,9 @@ Usage:
         log.setLevel(logging.DEBUG)
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import annotations
 
 import os

@@ -5,7 +5,5 @@ and subject to changes without deprecations. Do not use it in external
 packages or code.
 
 """
-from ._compat import *
-
 # Importing this module will also install monkey-patches defined in it
 from .numpycompat import *

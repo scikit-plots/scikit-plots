@@ -1,6 +1,8 @@
 """
 Real probability scales for matplotlib.
 """
+# scikitplot/probscale/__init__.py
+
 from .viz import *
 
 from .probscale import ProbScale

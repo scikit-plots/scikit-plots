@@ -56,13 +56,3 @@ option('pythran', type: 'feature', value: 'auto',
                      'to either pure Python code or Cython code, depending on ' + 
                      'the implementation). ' + 
                      'A feature option has three states: "enabled", "disabled" or "auto".')
-# numcpp
-option('numcpp', type: 'feature', value: 'enabled',
-        description: 'If set to "disabled", disables using numcpp (it falls back ' +
-                     'to either pure Python code or Cython code, depending on ' +
-                     'the implementation).'  + 
-                     'A feature option has three states: "enabled", "disabled" or "auto".')
-option('numcpp_no_use_boost', type: 'boolean', value: true,
-        description: 'Do not use Boost libraries.')
-option('numcpp_use_multithread', type: 'boolean', value: false,
-        description: 'Enable multithreading support.')
