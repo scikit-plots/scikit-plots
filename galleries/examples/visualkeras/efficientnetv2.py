@@ -1,0 +1,126 @@
+# Force garbage collection
+import gc; gc.collect()
+import tensorflow as tf
+# Clear any session to reset the state of TensorFlow/Keras
+tf.keras.backend.clear_session()
+
+from scikitplot import visualkeras
+
+model = tf.keras.applications.EfficientNetV2B0(
+    include_top=True,
+    weights=None,  # "imagenet" or 'path/'
+    input_tensor=None,
+    input_shape=None,
+    pooling=None,
+    classes=1000,
+    classifier_activation="softmax",
+    name="efficientnetv2-b0",
+)
+visualkeras.layered_view(
+  model,
+  legend=True,
+  show_dimension=True,
+  to_file='../result_images/efficientnetv2-b0.png',
+)
+
+# model = tf.keras.applications.EfficientNetV2B1(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="efficientnetv2-b1",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/efficientnetv2-b1.png',
+# )
+
+# model = tf.keras.applications.EfficientNetV2B2(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="efficientnetv2-b2",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/efficientnetv2-b2.png',
+# )
+
+# model = tf.keras.applications.EfficientNetV2B3(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="efficientnetv2-b3",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/efficientnetv2-b3.png',
+# )
+
+# model = tf.keras.applications.EfficientNetV2S(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="efficientnetv2-s",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/efficientnetv2-s.png',
+# )
+
+# model = tf.keras.applications.EfficientNetV2M(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="efficientnetv2-m",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/efficientnetv2-m.png',
+# )
+
+# model = tf.keras.applications.EfficientNetV2L(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="efficientnetv2-l",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/efficientnetv2-l.png',
+# )

@@ -6,7 +6,7 @@ To install the latest version (with pip)::
 
     >>> pip install --upgrade scikit-plots
 
-This exercise is used in :py:class:`~scikitplot.api.modelplotpy.ModelPlotPy` class the part of the
+This exercise is used in :py:class:`~scikitplot.modelplotpy.ModelPlotPy` class the part of the
 :ref:`modelplotpy` and :ref:`modelplotpy_financial` sections.
 
 .. rubric:: References
@@ -56,11 +56,11 @@ import io
 import os
 import zipfile
 import requests
-import numpy as np; np.random.seed(0)
-import pandas as pd
-
 import warnings
 warnings.filterwarnings('ignore')
+
+import numpy as np; np.random.seed(0)  # reproducibility
+import pandas as pd
 
 #r = requests.get("https://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank-additional.zip")
 # we encountered that the source at uci.edu is not always available,
@@ -70,6 +70,9 @@ z = zipfile.ZipFile(io.BytesIO(r.content))
 # You can change the path, currently the data is written to the working directory
 path = os.getcwd()
 z.extractall(path)
+# Remove the specified file path 
+os.remove(os.path.join(path, 'bank-additional/__MACOSX'))
+# Load csv data
 bank = pd.read_csv(path + "/bank-additional/bank-additional-full.csv", sep = ';')
 
 # select the 6 columns
@@ -119,7 +122,7 @@ clf_mult = LogisticRegression(multi_class='multinomial', solver='newton-cg').fit
 # can help them select customers for their term deposit campaign.
 
 # from scikitplot import modelplotpy as mp
-import scikitplot.api.modelplotpy as mp
+import scikitplot.modelplotpy as mp
 obj = mp.modelplotpy(
     feature_data   = [X_train, X_test],
     label_data     = [y_train, y_test],

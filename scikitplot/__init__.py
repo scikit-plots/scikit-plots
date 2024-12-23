@@ -39,14 +39,8 @@ online at https://scikit-plots.github.io.
 #   X.Y.Z        # Final release
 #   X.Y.Z.postM  # Post release
 __version__ = '0.4.0.post0'
-
-# If a version with git hash was stored, use that instead
-from . import version
-from .version import __githash__#, __version__
-
-from ._citation import __citation__, __bibtex__
-
 __array_api_version__ = "2023.12"
+
 
 ######################################################################
 ## scikit-plots configuration
@@ -61,7 +55,12 @@ import warnings
 # import logging; log=logging.getLogger(__name__); del logging;
 from ._log import log
 try:
+  # Meson builded modules
   from scikitplot.__config__ import show as show_config
+  # If a version with git hash was stored, use that instead
+  # from . import version
+  from .version import __githash__#, __version__
+  from ._citation import __citation__, __bibtex__
 except (ImportError, ModuleNotFoundError) as e:
   msg = (
     "Error importing scikitplot: you cannot import scikitplot while "
@@ -96,8 +95,6 @@ from . import (
   _compat,
   _externals,
   _factory_api,
-  _kds,
-  _modelplotpy,
   _seaborn,
   _testing,
   _tweedie,
@@ -105,11 +102,14 @@ from . import (
   _xp_core_lib,
   api,
   experimental,
+  kds,
   misc,
+  modelplotpy,
   probscale,
   stats,
   typing,
   utils,
+  visualkeras,
   __config__,
   _citation,
   _config,
@@ -125,16 +125,14 @@ from . import (
 from ._testing._pytesttester import PytestTester
 test = PytestTester(__name__); del PytestTester;
 
-# Remove symbols imported for internal use
+# Don't pollute namespace. Imported for internal use.
 del os, sys, pathlib, warnings
 # Define __all__ to control what gets imported with 'from module import *'
 # Combine global names (explicitly defined in the module) and dynamically available names
 __all__ = [
   name for name in map(str, py_set(globals()).union(dir()))
   # Exclude private/internal names (those starting with '_')
-  if not name.startswith('_') or name not in [
-    'externals',
-  ]
+  if not ( name.startswith('_') or name in ['externals',])
 ] + [
   '__dir__',
   '__getattr__',

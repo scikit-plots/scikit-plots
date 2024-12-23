@@ -6,8 +6,8 @@ An example showing the :py:func:`~scikitplot.api.decomposition.plot_pca_componen
 used by a scikit-learn PCA object.
 """
 
-# Authors: scikit-plots developers
-# License: MIT
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 from sklearn.datasets import (
     make_classification,
@@ -22,12 +22,13 @@ from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_predict
 from sklearn.decomposition import PCA
-import numpy as np; np.random.seed(0)
+
+import numpy as np; np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
 # Import scikit-plot
-import scikitplot as skplt
+import scikitplot as sp
 
 # Load the data
 X, y = data_3_classes(return_X_y=True, as_frame=False)
@@ -37,7 +38,7 @@ X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_st
 pca = PCA(random_state=0).fit(X_train)
 
 # Plot!
-ax = skplt.decomposition.plot_pca_component_variance(
+ax = sp.decomposition.plot_pca_component_variance(
     pca, figsize=(9,5)
 );
 
@@ -45,7 +46,7 @@ ax = skplt.decomposition.plot_pca_component_variance(
 plt.tight_layout()
 
 # Save the plot with a filename based on the current script's name
-skplt.utils.save_current_plot()
+sp.utils.save_current_plot()
 
 # Display the plot
 plt.show(block=True)

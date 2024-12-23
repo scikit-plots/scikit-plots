@@ -1,0 +1,41 @@
+# Force garbage collection
+import gc; gc.collect()
+import tensorflow as tf
+# Clear any session to reset the state of TensorFlow/Keras
+tf.keras.backend.clear_session()
+
+from scikitplot import visualkeras
+
+# model = tf.keras.applications.VGG16(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="vgg16",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/vgg16.png',
+# )
+
+model = tf.keras.applications.VGG19(
+    include_top=True,
+    weights=None,  # "imagenet" or 'path/'
+    input_tensor=None,
+    input_shape=None,
+    pooling=None,
+    classes=1000,
+    classifier_activation="softmax",
+    name="vgg19",
+)
+visualkeras.layered_view(
+  model,
+  legend=True,
+  show_dimension=True,
+  to_file='../result_images/vgg19.png',
+)

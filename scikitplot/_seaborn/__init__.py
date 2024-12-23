@@ -28,4 +28,9 @@ import matplotlib as mpl
 _orig_rc_params = mpl.rcParams.copy(); del mpl;
 
 # Define the seaborn version
-__version__ = "0.14.0.dev0"
+# https://github.com/mwaskom/seaborn/blob/master/seaborn/__init__.py
+__version__ = '0.14.0.dev0'
+
+# Define the seaborn git hash
+# scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/mwaskom/seaborn')[0]
+__githash__ = '385e54676ca16d0132434bc9df6bc41ea8b2a0d4'

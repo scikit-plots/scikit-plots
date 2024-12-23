@@ -19,7 +19,7 @@ from scikitplot._xp_core_lib._array_api_no_0d import (
   xp_assert_less,
 )
 
-from scikitplot.api.experimental._logsumexp import logsumexp, softmax
+from .._logsumexp import logsumexp, softmax
 
 
 dtypes = ['float32', 'float64', 'int32', 'int64', 'complex64', 'complex128']

@@ -6,8 +6,8 @@ An example showing the :py:func:`~scikitplot.api.metrics.plot_classifier_eval` f
 used by a scikit-learn classifier.
 """
 
-# Authors: scikit-plots developers
-# License: MIT
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 from sklearn.datasets import (
     make_classification,
@@ -21,13 +21,14 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_predict
-import numpy as np; np.random.seed(0)
+
+import numpy as np; np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 # import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 # Import scikit-plot
-import scikitplot as skplt
+import scikitplot as sp
 
 # Load the data
 X, y = data_3_classes(return_X_y=True, as_frame=True)
@@ -40,14 +41,14 @@ model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_tra
 y_val_pred = model.predict(X_val)
 y_train_pred = model.predict(X_train)
 
-fig1 = skplt.metrics.plot_classifier_eval(
+fig1 = sp.metrics.plot_classifier_eval(
     y_val, y_val_pred, 
     labels=np.unique(y_train),
     figsize=(8, 2),
     title='Val',
 );
 # plt.show(block=True)
-fig2 = skplt.metrics.plot_classifier_eval(
+fig2 = sp.metrics.plot_classifier_eval(
     y_train, y_train_pred, 
     labels=np.unique(y_train),
     figsize=(8, 2),
@@ -55,7 +56,7 @@ fig2 = skplt.metrics.plot_classifier_eval(
 );
 
 # Save the combined figure as an image file
-combined_fig = skplt.utils.combine_and_save_figures(
+combined_fig = sp.utils.combine_and_save_figures(
     (fig1, fig2),
     to_save=False
 );
@@ -64,7 +65,7 @@ combined_fig = skplt.utils.combine_and_save_figures(
 plt.tight_layout()
 
 # Save the plot with a filename based on the current script's name
-skplt.utils.save_current_plot()
+sp.utils.save_current_plot()
 
 # Display the plot
 plt.show(block=True)

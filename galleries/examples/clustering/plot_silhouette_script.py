@@ -6,8 +6,8 @@ An example showing the :py:func:`~scikitplot.api.metrics.plot_silhouette` functi
 used by a scikit-learn clusterer.
 """
 
-# Authors: scikit-plots developers
-# License: MIT
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 from sklearn.datasets import (
     make_classification,
@@ -18,12 +18,13 @@ from sklearn.datasets import (
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
 from sklearn.model_selection import cross_val_predict
-import numpy as np; np.random.seed(0)
+
+import numpy as np; np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
 # Import scikit-plot
-import scikitplot as skplt
+import scikitplot as sp
 
 # Load the data
 X, y = data_3_classes(return_X_y=True, as_frame=False)
@@ -35,7 +36,7 @@ model = KMeans(n_clusters=4, random_state=0)
 cluster_labels = model.fit_predict(X_train)
 
 # Plot!
-ax = skplt.metrics.plot_silhouette(
+ax = sp.metrics.plot_silhouette(
     X_train, cluster_labels
 );
 
@@ -43,7 +44,7 @@ ax = skplt.metrics.plot_silhouette(
 plt.tight_layout()
 
 # Save the plot with a filename based on the current script's name
-skplt.utils.save_current_plot()
+sp.utils.save_current_plot()
 
 # Display the plot
 plt.show(block=True)

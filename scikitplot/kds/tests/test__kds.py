@@ -14,7 +14,7 @@ from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.cluster import KMeans
 
-from scikitplot.api.kds import (
+from .._kds import (
     plot_cumulative_gain,
     plot_lift,
     plot_ks_statistic,

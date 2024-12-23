@@ -28,7 +28,7 @@ from ._docstrings import (
 
 __all__ = ["FacetGrid", "PairGrid", "JointGrid", "pairplot", "jointplot"]
 
-
+_MODULE_NAME = __package__  # Use 'scikitplot/_seaborn' instead of 'seaborn'
 _param_docs = DocstringComponents.from_nested_components(
     core=_core_docs["params"],
 )
@@ -707,10 +707,10 @@ class FacetGrid(Grid):
         kw_color = kwargs.pop("color", None)
 
         # How we use the function depends on where it comes from
-        func_module = str(getattr(func, "__module__", ""))
+        func_module = str(getattr(func, "__module__", ""))  # 'scikitplot/_seaborn'
 
         # Check for categorical plots without order information
-        if func_module == "seaborn.categorical":
+        if func_module == f"{_MODULE_NAME}.categorical":
             if "order" not in kwargs:
                 warning = ("Using the {} function without specifying "
                            "`order` is likely to produce an incorrect "
@@ -730,7 +730,7 @@ class FacetGrid(Grid):
                 continue
 
             # Get the current axis
-            modify_state = not func_module.startswith("seaborn")
+            modify_state = not func_module.startswith(_MODULE_NAME)
             ax = self.facet_axis(row_i, col_j, modify_state)
 
             # Decide what color to plot with
@@ -802,7 +802,7 @@ class FacetGrid(Grid):
                 continue
 
             # Get the current axis
-            modify_state = not str(func.__module__).startswith("seaborn")
+            modify_state = not str(func.__module__).startswith(_MODULE_NAME)
             ax = self.facet_axis(row_i, col_j, modify_state)
 
             # Decide what color to plot with
@@ -844,7 +844,7 @@ class FacetGrid(Grid):
     def _facet_plot(self, func, ax, plot_args, plot_kwargs):
 
         # Draw the plot
-        if str(func.__module__).startswith("seaborn"):
+        if str(func.__module__).startswith(_MODULE_NAME):
             plot_kwargs = plot_kwargs.copy()
             semantics = ["x", "y", "hue", "size", "style"]
             for key, val in zip(semantics, plot_args):
@@ -1488,7 +1488,7 @@ class PairGrid(Grid):
         for var, ax in zip(self.diag_vars, self.diag_axes):
 
             plot_kwargs = kwargs.copy()
-            if str(func.__module__).startswith("seaborn"):
+            if str(func.__module__).startswith(_MODULE_NAME):
                 plot_kwargs["ax"] = ax
             else:
                 plt.sca(ax)
@@ -1525,7 +1525,7 @@ class PairGrid(Grid):
             hue_grouped = self.data[var].groupby(self.hue_vals, observed=True)
 
             plot_kwargs = kwargs.copy()
-            if str(func.__module__).startswith("seaborn"):
+            if str(func.__module__).startswith(_MODULE_NAME):
                 plot_kwargs["ax"] = ax
             else:
                 plt.sca(ax)
@@ -1546,7 +1546,7 @@ class PairGrid(Grid):
                 if self._dropna:
                     data_k = utils.remove_na(data_k)
 
-                if str(func.__module__).startswith("seaborn"):
+                if str(func.__module__).startswith(_MODULE_NAME):
                     func(x=data_k, label=label_k, color=color, **plot_kwargs)
                 else:
                     func(data_k, label=label_k, color=color, **plot_kwargs)
@@ -1584,7 +1584,7 @@ class PairGrid(Grid):
             return
 
         kwargs = kwargs.copy()
-        if str(func.__module__).startswith("seaborn"):
+        if str(func.__module__).startswith(_MODULE_NAME):
             kwargs["ax"] = ax
         else:
             plt.sca(ax)
@@ -1619,7 +1619,7 @@ class PairGrid(Grid):
     def _plot_bivariate_iter_hue(self, x_var, y_var, ax, func, **kwargs):
         """Draw a bivariate plot while iterating over hue subsets."""
         kwargs = kwargs.copy()
-        if str(func.__module__).startswith("seaborn"):
+        if str(func.__module__).startswith(_MODULE_NAME):
             kwargs["ax"] = ax
         else:
             plt.sca(ax)
@@ -1653,7 +1653,7 @@ class PairGrid(Grid):
             if self._hue_var is not None:
                 kws["label"] = label_k
 
-            if str(func.__module__).startswith("seaborn"):
+            if str(func.__module__).startswith(_MODULE_NAME):
                 func(x=x, y=y, **kws)
             else:
                 func(x, y, **kws)
@@ -1820,7 +1820,7 @@ class JointGrid(_BaseGrid):
 
         """
         kwargs = kwargs.copy()
-        if str(func.__module__).startswith("seaborn"):
+        if str(func.__module__).startswith(_MODULE_NAME):
             kwargs["ax"] = self.ax_joint
         else:
             plt.sca(self.ax_joint)
@@ -1828,7 +1828,7 @@ class JointGrid(_BaseGrid):
             kwargs["hue"] = self.hue
             self._inject_kwargs(func, kwargs, self._hue_params)
 
-        if str(func.__module__).startswith("seaborn"):
+        if str(func.__module__).startswith(_MODULE_NAME):
             func(x=self.x, y=self.y, **kwargs)
         else:
             func(self.x, self.y, **kwargs)
@@ -1857,7 +1857,7 @@ class JointGrid(_BaseGrid):
 
         """
         seaborn_func = (
-            str(func.__module__).startswith("seaborn")
+            str(func.__module__).startswith(_MODULE_NAME)
             # deprecated distplot has a legacy API, special case it
             and not func.__name__ == "distplot"
         )

@@ -9,6 +9,12 @@ online at https://www.astropy.org/.
 """
 # scikitplot/_astropy/__init__.py
 
-__version__ = "7.1.0"
+# Define the astropy version
+# https://docs.astropy.org/en/latest/index.html
+__version__ = "7.1.dev322+gde6168803"
 __author__ = "Astropy Developers"
 __author_email__ = "astropy.team@gmail.com"
+
+# Define the astropy git hash
+# scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/astropy/astropy')[0]
+__githash__ = 'de6168803e7787142cc1d065e3c734848a8bae1f'

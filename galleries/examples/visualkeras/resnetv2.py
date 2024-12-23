@@ -1,0 +1,58 @@
+# Force garbage collection
+import gc; gc.collect()
+import tensorflow as tf
+# Clear any session to reset the state of TensorFlow/Keras
+tf.keras.backend.clear_session()
+
+from scikitplot import visualkeras
+
+model = tf.keras.applications.ResNet50V2(
+    include_top=True,
+    weights=None,  # "imagenet" or 'path/'
+    input_tensor=None,
+    input_shape=None,
+    pooling=None,
+    classes=1000,
+    classifier_activation="softmax",
+    name="resnet50v2",
+)
+visualkeras.layered_view(
+  model,
+  legend=True,
+  show_dimension=True,
+  to_file='../result_images/resnet50v2.png',
+)
+
+model = tf.keras.applications.ResNet101V2(
+    include_top=True,
+    weights=None,  # "imagenet" or 'path/'
+    input_tensor=None,
+    input_shape=None,
+    pooling=None,
+    classes=1000,
+    classifier_activation="softmax",
+    name="resnet101v2",
+)
+visualkeras.layered_view(
+  model,
+  legend=True,
+  show_dimension=True,
+  to_file='../result_images/resnet101v2.png',
+)
+
+model = tf.keras.applications.ResNet152V2(
+    include_top=True,
+    weights=None,  # "imagenet" or 'path/'
+    input_tensor=None,
+    input_shape=None,
+    pooling=None,
+    classes=1000,
+    classifier_activation="softmax",
+    name="resnet152v2",
+)
+visualkeras.layered_view(
+  model,
+  legend=True,
+  show_dimension=True,
+  to_file='../result_images/resnet152v2.png',
+)

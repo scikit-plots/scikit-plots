@@ -18,6 +18,10 @@ from .results import (
   test_ys,
   test_results,
 )
+# __name__ stores the fully qualified name of a module,
+# and __package__ is used to support relative imports for main modules.
+# package_base = __name__.rsplit('.', 2)[0]
+package_base = __package__.rsplit('.', 1)[0]
 
 
 def test_R_compat_density():
@@ -135,7 +139,7 @@ def test_cdf_to_ppf(mu, p, phi):
 
 # these tests basically verify that _logpdf and _logcdf broadcast the arguments
 # before calling the function that estimates the tweedie loglike and logcdf
-@mock.patch("scikitplot.stats._tweedie._tweedie_dist.estimate_tweedie_loglike_series")
+@mock.patch(package_base + '._tweedie_dist.estimate_tweedie_loglike_series')
 def test_broadcasting_pdf(mock_estimate_tweedie):
     x = np.array([1, 2, 3])
     p = 1
@@ -151,7 +155,7 @@ def test_broadcasting_pdf(mock_estimate_tweedie):
     assert_equal(phi_call, np.array([phi, phi, phi]))
 
 
-@mock.patch("scikitplot.stats._tweedie._tweedie_dist.estimate_tweeide_logcdf_series")
+@mock.patch("scikitplot._tweedie._tweedie_dist.estimate_tweeide_logcdf_series")
 def test_broadcasting_cdf(mock_estimate_tweedie):
     x = np.array([1, 2, 3])
     p = 1

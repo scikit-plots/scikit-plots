@@ -73,6 +73,8 @@ clean-basic:
 	@echo "Removed all '.pytest_cache'"
 	@rm -rf `find -L . -type d -name "__MACOSX" -not -path "./third_party/*"`
 	@echo "Removed zip file leftovers '__MACOSX'"
+	@rm -rf `find -L . -type d -name ".vscode" -not -path "./third_party/*"`
+	@echo "Removed zip file leftovers '.vscode'"
 	@echo "basic cleaning completed."
 
 ## pypi cleaning in 'build dirs'

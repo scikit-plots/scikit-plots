@@ -1,5 +1,15 @@
 # scikitplot/_build_utils/__init__.py
 
+from . import (
+  copyfiles,
+  cythoner,
+  gcc_build_bitness,
+  gitversion,
+  system_info,
+  tempita,
+  version,
+)
+
 # Don't use the deprecated NumPy C API. Define this to a fixed version instead of
 # NPY_API_VERSION in order not to break compilation for released SciPy versions
 # when NumPy introduces a new deprecation. Use in setup.py::
@@ -9,8 +19,7 @@
 # numpy_nodepr_api = dict(
 #     define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_9_API_VERSION")]
 # )
-
-
+#
 # def import_file(folder, module_name):
 #     """
 #     Import a file directly, avoiding importing scipy

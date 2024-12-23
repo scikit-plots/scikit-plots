@@ -6,8 +6,8 @@ An example showing the :py:func:`~scikitplot.api.metrics.plot_residuals_distribu
 used by a scikit-learn regressor.
 """
 
-# Authors: scikit-plots developers
-# License: BSD-3 Clause
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 from sklearn.datasets import (
     make_classification,
@@ -18,12 +18,13 @@ from sklearn.linear_model import LinearRegression
 from sklearn.svm import LinearSVR
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_predict
-import numpy as np; np.random.seed(0)
+
+import numpy as np; np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
 # Import scikit-plot
-import scikitplot as skplt
+import scikitplot as sp
 import scikitplot.probscale as probscale
 
 # Load the data
@@ -37,7 +38,7 @@ model = LinearRegression().fit(X_train, y_train)
 y_val_pred = model.predict(X_val)
 
 # Plot!
-ax = skplt.metrics.plot_residuals_distribution(
+ax = sp.metrics.plot_residuals_distribution(
     y_val, y_val_pred, dist_type='normal'
 );
 
@@ -45,7 +46,7 @@ ax = skplt.metrics.plot_residuals_distribution(
 plt.tight_layout()
 
 # Save the plot with a filename based on the current script's name
-skplt.utils.save_current_plot()
+sp.utils.save_current_plot()
 
 # Display the plot
 plt.show(block=True)

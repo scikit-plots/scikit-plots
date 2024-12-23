@@ -3,12 +3,12 @@
 plot_lift with examples
 =============================
 
-An example showing the :py:func:`~scikitplot.api.kds.plot_lift` function used
+An example showing the :py:func:`~scikitplot.kds.plot_lift` function used
 by a scikit-learn classifier.
 """
 
-# Authors: scikit-plots developers
-# License: MIT
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 from sklearn.datasets import (
     make_classification,
@@ -22,12 +22,13 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_predict
-import numpy as np; np.random.seed(0)
+
+import numpy as np; np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
 # Import scikit-plot
-import scikitplot as skplt
+import scikitplot as sp
 
 # Load the data
 X, y = data_3_classes(return_X_y=True, as_frame=False)
@@ -40,7 +41,7 @@ model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_tra
 y_val_prob = model.predict_proba(X_val)
 
 # Plot!
-ax = skplt.kds.plot_lift(
+ax = sp.kds.plot_lift(
     y_val, y_val_prob
 );
 
@@ -48,7 +49,7 @@ ax = skplt.kds.plot_lift(
 plt.tight_layout()
 
 # Save the plot with a filename based on the current script's name
-skplt.utils.save_current_plot()
+sp.utils.save_current_plot()
 
 # Display the plot
 plt.show(block=True)

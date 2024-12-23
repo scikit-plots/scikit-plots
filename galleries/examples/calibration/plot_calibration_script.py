@@ -6,8 +6,8 @@ An example showing the :py:func:`~scikitplot.api.metrics.plot_calibration` funct
 used by a scikit-learn classifier.
 """
 
-# Authors: scikit-plots developers
-# License: MIT
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -17,12 +17,13 @@ from sklearn.svm import LinearSVC
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_predict
-import numpy as np; np.random.seed(0)
+
+import numpy as np; np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
 # Import scikit-plot
-import scikitplot as skplt
+import scikitplot as sp
 
 # Load the data
 X, y = make_classification(
@@ -55,7 +56,7 @@ probas_dict = {
 }
 # Plot!
 fig, ax = plt.subplots(figsize=(12, 6))
-ax = skplt.metrics.plot_calibration(
+ax = sp.metrics.plot_calibration(
   y_val,
   y_probas_list=probas_dict.values(),
   estimator_names=probas_dict.keys(),
@@ -66,7 +67,7 @@ ax = skplt.metrics.plot_calibration(
 plt.tight_layout()
 
 # Save the plot with a filename based on the current script's name
-skplt.utils.save_current_plot()
+sp.utils.save_current_plot()
 
 # Display the plot
 plt.show(block=True)
