@@ -1,7 +1,7 @@
 """
 Visualizing predictive model insights for enhanced business decision-making.
 
-The :py:mod:`~scikitplot._modelplotpy` module to build nice plots
+The :py:mod:`~scikitplot.modelplotpy` module to build nice plots
 to explain your modelling efforts easily to business colleages.
 
 Documentation is available in the docstrings and
@@ -11,7 +11,7 @@ online at https://modelplot.github.io/.
 
    [1] https://www.kdnuggets.com/2018/10/evaluating-business-value-predictive-models-modelplotpy.html
 """
-# scikitplot/_modelplotpy/__init__.py
+# scikitplot/modelplotpy/__init__.py
 
 # Your package/module initialization code goes here
 from ._modelplotpy import *

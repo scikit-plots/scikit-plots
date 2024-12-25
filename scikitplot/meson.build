@@ -22,7 +22,7 @@
 
 # Generate version.py for sdist
 meson.add_dist_script(
-  '_build_utils/gitversion.py',       # The script to execute
+  '_build_utils/gitversion.py',        # The script to execute
   '--meson-dist',                      # Additional arguments
   '--write', 'scikitplot/version.py',  # Additional arguments
 )

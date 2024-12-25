@@ -97,6 +97,10 @@ clean: clean-basic
 
 ######################################################################
 ## Packaging
+## https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html
+## https://mesonbuild.com/meson-python/tutorials/introduction.html
+## https://build.pypa.io/en/stable/
+## https://github.com/pypa/build
 ######################################################################
 
 ## Packaging: 'setup.py' build the pypi Packages, depends on "clean"
@@ -111,7 +115,6 @@ pkg-setup: clean
 ## Packaging: 'build' library by 'setup.py' or 'pyproject.toml' for pypi Packages, depends on "clean"
 pkg-build: clean
 	@echo "Packaging: 'build' library by 'setup.py' or 'pyproject.toml' with own configuration..."
-	@## https://mesonbuild.com/meson-python/how-to-guides/editable-installs.html
 	@echo "Configuration libraries: can be (e.g. (setuptools, wheels) or (mesonbuild, meson, ninja))."
 	@# pip install build
 	@# python -m build --sdist
@@ -119,7 +122,7 @@ pkg-build: clean
 	@python -m build
 
 ######################################################################
-## Compiling
+## Compiling by Meson step-by-step
 ######################################################################
 
 ## Compiling: "meson" library for step-by-step compiling, depends on "clean"
@@ -147,7 +150,9 @@ comp-meson: clean
 	@# ninja -C builddir test
 
 ######################################################################
-## Installing
+## Installing Development Mode (a.k.a. “Editable Installs”)
+## https://setuptools.pypa.io/en/stable/userguide/development_mode.html
+## https://mesonbuild.com/meson-python/how-to-guides/editable-installs.html
 ######################################################################
 
 ## Install Packages to local, depends on "clean"

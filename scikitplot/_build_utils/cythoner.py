@@ -9,29 +9,16 @@ Other options passed through to cython command line parser.
 """
 #!/usr/bin/env python
 import os
-import os.path as op
 import sys
 import subprocess
 
-
 def main():
-    in_fname, out_fname = (op.abspath(p) for p in sys.argv[1:3])
-
-    subprocess.run(
-        [
-            'cython',
-            '-3',
-            '--fast-fail',
-            '--output-file',
-            out_fname,
-            '--include-dir',
-            os.getcwd(),
-        ]
-        + sys.argv[3:]
-        + [in_fname],
-        check=True,
-    )
-
+  f_in, f_out = ( os.path.abspath(p) for p in sys.argv[1:3] )
+  subprocess.run(
+    ['cython', '-3', '--fast-fail', '--output-file', f_out, '--include-dir', os.getcwd(),] +
+    sys.argv[3:] + [f_in],
+    check=True,
+  )
 
 if __name__ == '__main__':
     main()

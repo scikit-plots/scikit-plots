@@ -5,7 +5,6 @@ plot_cumulative_gain with examples
 An example showing the :py:func:`~scikitplot.kds.plot_cumulative_gain` function used
 by a scikit-learn classifier.
 """
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 

@@ -6,72 +6,37 @@ An intuitive library to add plotting functionality to scikit-learn objects
 Documentation is available in the docstrings and
 online at https://scikit-plots.github.io.
 """
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-######################################################################
-## scikit-plots version
-## PEP0440 compatible formatted version, see:
-## https://peps.python.org/pep-0440/#version-scheme
-## https://www.python.org/dev/peps/pep-0440/
-## Version scheme: [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
-## Generic release markers (.devN, aN, bN, rcN, <no suffix>, .postN):
-#   X.Y.devN             # 'Development release' 1.0.dev1
-#   X.YrcN.devM          # Developmental release of a release candidate
-#   X.Y.postN.devM       # Developmental release of a post-release
-#   X.YrcN.postN.devN    # Developmental release of a post-release of a release candidate
-#   X.Y{a|b|rc|c}N       # 'Pre-release' 1.0a1
-#   X.Y==X.Y.0==N(.N)*   # For first 'Release' after an increment in Y
-#   X.Y{post|rev|r}N     # 'Post-release' 1.0.post1
-#   X.YrcN.postM         # Post-release of a release candidate
-#   X.Y.N                # 'Bug fixes' 1.0.1
-## setuptools-scm extracts Python package versions
-######################################################################
-
-# https://packaging.python.org/en/latest/discussions/versioning/#valid-version-numbers
-# Admissible pre-release markers:
-#   Dev branch marker is: 'X.Y.dev' or 'X.Y.devN' where N is an integer.
-#   X.Y.dev0     # is the canonical version of 'X.Y.dev'
-#   X.Y.ZaN      # Alpha release
-#   X.Y.ZbN      # Beta release
-#   X.Y.ZrcN     # Release Candidate
-#   X.Y.Z        # Final release
-#   X.Y.Z.postM  # Post release
-__version__ = '0.4.0.post0'
+__version__ = '0.4.1.dev0'
 __array_api_version__ = "2023.12"
 
-
-######################################################################
-## scikit-plots configuration
-######################################################################
-
-py_set = set  # keep python set, 'scikitplot.set' Override then raise error
+py_set = set  # 'seaborn.set' override raise error
 import os
 import sys
 import pathlib
 import warnings
 
-# import logging; log=logging.getLogger(__name__); del logging;
-from ._log import log
+from scikitplot import sp_logging as logging
+from scikitplot.sp_logging import get_logger, SpLogger, sp_logger
 try:
-  # Meson builded modules
-  from scikitplot.__config__ import show as show_config
+  # Trt to import meson builded files, modules (etc. *.in)
+  from .__config__ import show as show_config
+  from ._citation import __citation__, __bibtex__
   # If a version with git hash was stored, use that instead
   # from . import version
-  from .version import __githash__#, __version__
-  from ._citation import __citation__, __bibtex__
+  from .version import __git_hash__, __version__  # Override git version
 except (ImportError, ModuleNotFoundError) as e:
   msg = (
     "Error importing scikitplot: you cannot import scikitplot while "
     "being in scikitplot source directory; please exit the scikitplot source "
     "tree first and relaunch your Python interpreter."
   )
-  # raise ImportError(msg) from e
-    
-  log.error('BOOM! :: %s', msg)
-  sys.stderr.write('Running on source directory: %s\n' % 'scikitplot')
+  get_logger().warning('Running on source directory: %s' % 'scikitplot')
+  get_logger().warning('BOOM! :: %s', msg)
   show_config = _BUILT_WITH_MESON = None; del msg;
+  # raise ImportError(msg) from e
 else:
   _BUILT_WITH_MESON = True
 
@@ -91,7 +56,7 @@ from .api import *
 from . import (
   _api,
   _astropy,
-  _build_utils,
+  # _build_utils,
   _compat,
   _externals,
   _factory_api,
@@ -106,6 +71,7 @@ from . import (
   misc,
   modelplotpy,
   probscale,
+  sp_logging,
   stats,
   typing,
   utils,
@@ -115,7 +81,6 @@ from . import (
   _config,
   _docstring,
   _globals,
-  _log,
   _preprocess,
   cbook,
   version,
@@ -125,14 +90,19 @@ from . import (
 from ._testing._pytesttester import PytestTester
 test = PytestTester(__name__); del PytestTester;
 
+######################################################################
+## Public Interface define explicitly `__all__`
+######################################################################
+
 # Don't pollute namespace. Imported for internal use.
 del os, sys, pathlib, warnings
+
 # Define __all__ to control what gets imported with 'from module import *'
 # Combine global names (explicitly defined in the module) and dynamically available names
 __all__ = [
   name for name in map(str, py_set(globals()).union(dir()))
   # Exclude private/internal names (those starting with '_')
-  if not ( name.startswith('_') or name in ['externals',])
+  if not ( name.startswith('...') or name in ['py_set',])
 ] + [
   '__dir__',
   '__getattr__',
@@ -161,6 +131,7 @@ def __getattr__(name):
       raise AttributeError(
         f"Module 'scikitplot' has no attribute '{name}'"
       )
+
 ######################################################################
 ## online search helper scikit-plots
 ######################################################################
@@ -226,3 +197,7 @@ def online_docs(
 
     # Open the URL in the browser
     return webbrowser.open(full_url, new=new_window)
+
+######################################################################
+##
+######################################################################

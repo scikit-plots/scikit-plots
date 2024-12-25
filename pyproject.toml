@@ -1,68 +1,56 @@
 # This file is the modern replacement for setup.py, used to configure how your Python package is built.
 # 
 # https://packaging.python.org/en/latest/discussions/setup-py-deprecated/#setup-py-deprecated
+#
+# https://packaging.python.org/en/latest/specifications/pyproject-toml/
 # https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#a-full-example
 # 
 # The [build-system] section specifies the build system requirements.
 # "setuptools.build_meta" is the default backend used by setuptools for building projects.
-# You can add other build dependencies as needed.
+# You can add other build like 'mesonpy' dependencies as needed.
+# 
+# https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html
+# https://setuptools.pypa.io/en/stable/userguide/declarative_config.html#metadata
+# 
+# SciPy probably the most complex project using Meson and meson-python.
+# It combines CPython extensions and libraries written in C, C++, Fortran, Cython, and Pythran.
 #
-# https://packaging.python.org/en/latest/specifications/pyproject-toml/
+# https://mesonbuild.com/meson-python/tutorials/introduction.html
+# https://mesonbuild.com/meson-python/projects-using-meson-python.html
+#
+# https://setuptools.pypa.io/en/stable/build_meta.html#dynamic-build-dependencies-and-other-build-meta-tweaks
 [build-system]
-#
-# "build-backend" specifies the Python backend to use for building the package.
-build-backend = "mesonpy"
-requires = [
-  # building an env isolated one
-  "meson-python>=0.16.0",  # A PEP 517 backend for building Python packages with Meson.
-  "meson>=1.5.0",          # The Meson build system itself to coordinate the compilation of code.
-  "ninja>=1.11.0",         # The ninja build system used to compile code
-  "Cython>=3.0.8",
-  "pybind11>=2.13.0",
+# backend-path = ["_custom_build"]
+build-backend = "mesonpy"                   # Specifies the Python backend to use for building the package.
+requires = [                                # Building an env isolated one
+  "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
+  "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
+  "ninja>=1.11.0",                          # The Ninja build system used to compile code
+  "cython>=3.0.8",                          # C/C++ Cython bindings
+  "pybind11>=2.13.0",                       # C/C++ Pybind bindings
   # numpy requirement for wheel builds for distribution on PyPI - building
   # against 2.x yields wheels that are also compatible with numpy 1.x at
   # runtime.
   # Note that building against numpy 1.x works fine too - users and
   # redistributors can do this by installing the numpy version they like and
   # disabling build isolation.
-  "numpy>=2.0.0",
+  "numpy>=2.0.0",                           # Numpy C-Api Headers and python module
   # Add other dependencies here if needed
   "scipy>=1.6.0",
   "pythran>=0.14.0",
 ]
 
 # The [project] section contains metadata about your project.
+# https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html
+# https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html#dynamic-metadata
 [project]
-name = "scikit-plots"  # The name of your project
-dynamic = ["version"]  # The version is determined dynamically, inside meson.build
+name = "scikit-plots"                       # The name of your project
+dynamic = ["version"]                       # Determined dynamically, inside one of meson.build, setup.cfg, setuptools.dynamic
 description = "An intuitive library to add plotting functionality to scikit-learn objects."
 
-# [project.readme]
-# content-type = "text/x-rst"
-# The readme file is specified here. This is what users will see on your project's PyPI page.
-readme = "README.md"
-
-# [project.license]
-# License information is critical. It's recommended to specify the license file.
-# license = {text = "BSD-3 Clause License"}
-# TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
-# at that point, no longer include them in `py3.install_sources()`
-license = {file = "LICENSE"}
-
-# [[project.authors]]
-# List the authors of the project
-authors = [
-  # {name = "scikit-plots developers", email=""},
-  # {name = "Reiichiro Nakano et al.", email = "reiichiro.s.nakano@gmail.com"},
-  # {name = "Prateek Sharma", email = "s.prateek3080@gmail.com"},
-]
-# [[project.maintainers]]
-# Project maintainers
-maintainers = [
-  {name = "scikit-plots developers", email=""},
-]
-
 # Keywords to describe your project, useful for searchability
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#keywords
+# https://packaging.python.org/en/latest/specifications/core-metadata/#keywords
 keywords = [
   "data science",
   "machine learning",
@@ -77,7 +65,10 @@ keywords = [
   "transformers",
 ]
 
-# Classifiers help users understand the maturity, audience, and compatible environments for your project.
+# Classifiers help users understand the maturity, audience,
+# and compatible environments for your project.
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#classifiers
+# https://packaging.python.org/en/latest/specifications/core-metadata/#classifier-multiple-use
 # https://pypi.org/pypi?%3Aaction=list_classifiers
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -103,10 +94,46 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 
+# The readme file this is what users will see on your project's PyPI page.
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#readme
+# [[project.readme]]  # Usage individually, If Needed
+# file = "README.md"
+# content-type = "text/x-rst"
+# readme = "README.md"
+readme = {file = "README.md", content-type = "text/markdown"}
+
+# License information is critical. It's recommended to specify the license file.
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license
+# https://packaging.python.org/en/latest/specifications/core-metadata/#license-file-multiple-use
+# TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
+# at that point, no longer include them in `py3.install_sources()`
+# [[project.license]]  # Usage individually, If Needed
+# license = {file = "LICENSE"}
+# license-files field to be used only if the license field contains a valid SPDX license expression.
+license = {text = "BSD-3-Clause"}           # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later', 
+license-files = ['LICEN[CS]E*', 'LICENSE', 'COPYING']  # must valid glob patterns
+
+# List the authors of the project
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
+# [[project.authors]]  # Usage individually, If Needed
+authors = [
+  # {name = "scikit-plots developers", email=""},
+  # {name = "Reiichiro Nakano et al.", email = "reiichiro.s.nakano@gmail.com"},
+  # {name = "Prateek Sharma", email = "s.prateek3080@gmail.com"},
+  # ...
+]
+# Project maintainers
+# [[project.maintainers]]  # Usage individually, If Needed
+maintainers = [
+  {name = "scikit-plots developers", email=""},
+]
+
 # Specify the minimum Python version required
+# https://packaging.python.org/en/latest/specifications/core-metadata/#requires-python
 requires-python = ">=3.9"
 
 # Replace these with the actual dependencies from requirements.txt
+# https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#declaring-required-dependency
 dependencies = [
   # Core dependencies required for the project to run
   "numpy>=1.23.5",
@@ -118,8 +145,11 @@ dependencies = [
   "threadpoolctl>=3.1.0", 
 ]
 
-[project.optional-dependencies]
 # Development dependencies (for linting, type checking, and general dev tools)
+# https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#optional-dependencies
+# https://peps.python.org/pep-0508/
+# https://peps.python.org/pep-0735/#deferred-ideas
+[project.optional-dependencies]
 dev = [
   "numpydoc>=1.2.0",                        # Numpy-style docstrings
   "mypy>=1.9.0",                            # Type checking
@@ -232,8 +262,10 @@ tpu = [
   # "flax",                                   # Flax is another JAX-based library but with a more comprehensive set of tools for defining neural networks.
 ]
 
-# https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
 # Links to important pages related to the project
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
+# https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
+# https://packaging.python.org/en/latest/specifications/core-metadata/#deprecated-fields
 [project.urls]
 # homepage (Homepage)
 homepage        = "https://scikit-plots.github.io"
@@ -254,6 +286,18 @@ issues          = "https://github.com/scikit-plots/scikit-plots/issues"
 # Donate        = "https://github.com/scikit-plots/scikit-plots#donate"
 # Forum         = "https://github.com/orgs/scikit-plots/discussions"
 # Forked        = "https://github.com/reiinakano/scikit-plot"
+
+# Advanced plugins: Creating executable scripts
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#advanced-plugins
+# https://setuptools.pypa.io/en/stable/userguide/entry_point.html#entry-points-syntax
+# [project.scripts]
+# my-script = "my_package.module:function"
+# [project.scripts]
+# spam-cli = "spam:main_cli"
+# [project.gui-scripts]
+# spam-gui = "spam:main_gui"
+# [project.entry-points."spam.magical"]
+# tomatoes = "spam:main_tomatoes"
 
 # Configuration for the pytest testing framework
 [tool.pytest.ini_options]

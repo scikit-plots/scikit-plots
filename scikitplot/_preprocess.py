@@ -7,7 +7,6 @@ import importlib
 import inspect
 from inspect import Parameter
 import locale
-import logging
 import os
 from pathlib import Path
 import pprint
@@ -17,11 +16,12 @@ import subprocess
 import sys
 import tempfile
 
+# from scikitplot import sp_logging as logging
+from scikitplot import sp_logger as logging
+
 # cbook must import matplotlib only within function
 # definitions, so it is safe to import from it here.
 from . import _api, cbook, _docstring
-
-_log = logging.getLogger(__name__)
 
 ######################################################################
 ## matplotlib like wrapper
@@ -86,13 +86,13 @@ def _add_data_doc(docstring, replace_names):
     # using string replacement instead of formatting has the advantages
     # 1) simpler indent handling
     # 2) prevent problems with formatting characters '{', '%' in the docstring
-    if _log.level <= logging.DEBUG:
+    if logging.level <= logging.DEBUG:
         # test_data_parameter_replacement() tests against these log messages
         # make sure to keep message and test in sync
         if "data : indexable object, optional" not in docstring:
-            _log.debug("data parameter docstring error: no data parameter")
+            logging.debug("data parameter docstring error: no data parameter")
         if 'DATA_PARAMETER_PLACEHOLDER' not in docstring:
-            _log.debug("data parameter docstring error: missing placeholder")
+            logging.debug("data parameter docstring error: missing placeholder")
     return docstring.replace('    DATA_PARAMETER_PLACEHOLDER', data_doc)
 
 

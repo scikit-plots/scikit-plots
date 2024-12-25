@@ -1,5 +1,5 @@
 """
-The :mod:`~scikitplot.api.modelplotpy` module includes plots for machine learning
+The :mod:`~scikitplot.modelplotpy` module includes plots for machine learning
 evaluation decile analysis e.g. Gain, Lift and Decile charts, etc.
 
 References
@@ -119,16 +119,6 @@ def _check_input(
 class ModelPlotPy(object):
     """\
     ModelPlotPy decile analysis.
-    
-    .. dropdown:: View aliases
-
-        **Main aliases**
-        
-        `scikitplot.api.modelplotpy.ModelPlotPy`
-
-        **Compat aliases**
-        
-        `scikitplot.api.modelplotpy.modelplotpy`
 
     Parameters
     ----------
@@ -168,7 +158,11 @@ class ModelPlotPy(object):
     Notes
     -----    
     ``modelplotpy`` == ``ModelPlotPy`` Alias
-    for backward compatibility or convenience ``ModelPlotPy``        
+    for backward compatibility or convenience ``ModelPlotPy``
+
+    See Also
+    --------
+    https://modelplot.github.io/intro_modelplotpy.html
     """
     def __init__(
         self,
@@ -234,17 +228,6 @@ class ModelPlotPy(object):
         self.model_labels = []
         self.ntiles = 10
         self.seed = 0
-    
-    def reset_modules(self):
-        """
-        Reset the internal state of the ModelPlotPy object.
-
-        .. versionadded:: 0.3.9
-        """
-        # Add any additional reset logic specific to your module here
-        # For example, clearing any cached data or resetting custom variables
-        self.reset_params()
-        print("ModelPlotPy module has been reset.")
 
     def prepare_scores_and_ntiles(self):
         """

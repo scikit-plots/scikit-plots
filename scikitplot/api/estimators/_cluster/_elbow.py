@@ -136,8 +136,7 @@ def plot_elbow(
         The axes on which the plot was drawn.
     
     Examples
-    --------
-    
+    --------    
     .. plot::
        :context: close-figs
        :align: center

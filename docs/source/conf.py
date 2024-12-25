@@ -79,6 +79,12 @@ except ImportError:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 ##########################################################################
 
+# import requests
+# _metadata_info = requests.get(
+#     "https://pypi.org/pypi/scikit-plots/json", timeout=10
+# ).json()["info"]
+# _last_version = _metadata_info["version"]
+
 # General information about the project.
 project = u'scikit-plots'
 # author = u'Reiichiro S. Nakano'
@@ -87,7 +93,7 @@ author = u'scikit-plots developers'
 # where ‘YYYY’ represents a four-digit year.
 # The project_copyright alias.
 # copyright = u'2017, Reiichiro S. Nakano'
-copyright = f"2024 - {datetime.now().year}, scikit-plots developers (BSD-3 Clause License)"
+copyright = f"2024 - {datetime.now(tz=datetime.UTC).year}, {author} (BSD-3 Clause License)"
 
 # Import scikitplot information.
 import scikitplot as skplt
@@ -100,11 +106,11 @@ if _version_release is None:
   raise ValueError(
     "Ill-formed version: {!r}. Version should follow PEP440".format(_version_raw)
   )
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-tags
-# https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#substitutions
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-tags
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#substitutions
 # The short X.Y version.
 version = ".".join(_version_parsed.base_version.split(".")[:2])
 
@@ -1135,6 +1141,7 @@ numpydoc_use_plots = True
 # https://matplotlib.org/stable/api/sphinxext_plot_directive_api.html
 plot_formats = [
   "png",
+  # "svg",
   # "pdf",
   # ('hires.png', 350),
 ]
@@ -1151,6 +1158,7 @@ plot_rcparams = {
   "figure.dpi": 128,
 }
 # Code that should be executed before each plot.
+# Default also includes a numpy and matplotlib import
 plot_pre_code = (
   "import numpy as np; np.random.seed(0)\n"
   "import matplotlib.pyplot as plt\n"
@@ -1277,7 +1285,7 @@ sphinx_gallery_conf = {
   # "ignore_pattern": r'__init__\\.py',
   # Only run files with filenames matching this pattern (default is ".py")
   # "filename_pattern": r'/plot',
-  # 'filename_pattern': '^((?!sgskip).)*$',  
+  # 'filename_pattern': r'^((?!(sg|skip)).)*$',  
 
   # Binder integration
   "binder": {

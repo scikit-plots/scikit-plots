@@ -13,8 +13,8 @@ import importlib
 
 from pprint import pprint
 
-from .._log import get_logger
-log = get_logger(__name__)
+# from scikitplot import sp_logging as logging
+from scikitplot import sp_logger as logging
 
 
 __all__ = [
@@ -221,27 +221,27 @@ def formatargvalues(args, varargs, varkw, locals,
 #     # Try importing the base module
 #     try:
 #         module = importlib.import_module(module_name)
-#         log.info(f"Successfully imported module: {module_name}")
+#         logging.info(f"Successfully imported module: {module_name}")
 #     except ModuleNotFoundError:
-#         log.error(f"Module '{module_name}' not found.")
+#         logging.error(f"Module '{module_name}' not found.")
 #         return results
 
 #     # Helper function to recursively scan modules
 #     def recursive_scan(mod):
 #         if 'tests' in mod.__name__:
-#             log.info(f"Skipping 'tests' module: {mod.__name__}")
+#             logging.info(f"Skipping 'tests' module: {mod.__name__}")
 #             return  # Skip modules containing 'tests' in their name
 
-#         log.info(f"Inspecting module: {mod.__name__}")
+#         logging.info(f"Inspecting module: {mod.__name__}")
 
 #         # Inspect the current module for classes and functions
 #         for name, obj in inspect.getmembers(mod):
 #             if inspect.isclass(obj) and obj.__module__ == mod.__name__:
 #                 results["classes"].append(f"{mod.__name__}.{name}")
-#                 log.info(f"Found class: {mod.__name__}.{name}")
+#                 logging.info(f"Found class: {mod.__name__}.{name}")
 #             elif inspect.isfunction(obj) and obj.__module__ == mod.__name__:
 #                 results["functions"].append(f"{mod.__name__}.{name}")
-#                 log.info(f"Found function: {mod.__name__}.{name}")
+#                 logging.info(f"Found function: {mod.__name__}.{name}")
 
 #         # Recursively scan submodules if available
 #         if hasattr(mod, "__path__"):  # Packages have __path__ attribute
@@ -251,7 +251,7 @@ def formatargvalues(args, varargs, varkw, locals,
 #                     submodule = importlib.import_module(submodule_name)
 #                     recursive_scan(submodule)
 #                 except ModuleNotFoundError:
-#                     log.warning(f"Could not import submodule: {submodule_name}")
+#                     logging.warning(f"Could not import submodule: {submodule_name}")
 
 #     # Start scanning from the base module
 #     recursive_scan(module)
@@ -302,28 +302,28 @@ def inspect_module(module_name : str = "scikitplot._numcpp_api", debug=False):
 
     try:
         module = importlib.import_module(module_name)
-        log.info(f"Successfully imported module: {module_name}")
+        logging.info(f"Successfully imported module: {module_name}")
     except ModuleNotFoundError:
-        log.error(f"Module '{module_name}' not found.")
+        logging.error(f"Module '{module_name}' not found.")
         return results
 
     def recursive_scan(mod):
         if 'tests' in mod.__name__:
-            log.info(f"Skipping 'tests' module: {mod.__name__}")
+            logging.info(f"Skipping 'tests' module: {mod.__name__}")
             return
 
-        log.info(f"Inspecting module: {mod.__name__}")
+        logging.info(f"Inspecting module: {mod.__name__}")
         for name in dir(mod):
             try:
                 attr = getattr(mod, name)
                 if inspect.isclass(attr):
                     results["classes"].append(f"{mod.__name__}.{name}")
-                    log.info(f"Found class: {mod.__name__}.{name}")
+                    logging.info(f"Found class: {mod.__name__}.{name}")
                 elif callable(attr):
                     results["functions"].append(f"{mod.__name__}.{name}")
-                    log.info(f"Found function or callable: {mod.__name__}.{name}")
+                    logging.info(f"Found function or callable: {mod.__name__}.{name}")
             except AttributeError:
-                log.warning(f"Could not access attribute: {name}")
+                logging.warning(f"Could not access attribute: {name}")
 
         if hasattr(mod, "__path__"):
             for submodule_info in pkgutil.iter_modules(mod.__path__):
@@ -332,7 +332,7 @@ def inspect_module(module_name : str = "scikitplot._numcpp_api", debug=False):
                     submodule = importlib.import_module(submodule_name)
                     recursive_scan(submodule)
                 except ModuleNotFoundError:
-                    log.warning(f"Could not import submodule: {submodule_name}")
+                    logging.warning(f"Could not import submodule: {submodule_name}")
 
     recursive_scan(module)
   

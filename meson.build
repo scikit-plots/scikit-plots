@@ -16,14 +16,14 @@ project(
   # That only happens when importing from a git repository.
   # See `scikitplot/__init__.py`
   version: run_command(
-    # This should become `scikitplot/_version.py` in 'scikit-plots' 0.4
-    # ['scikitplot/_build_utils/version.py'],
-    ['python', 'scikitplot/_build_utils/version.py'],
+    # ['python', 'scikitplot/_build_utils/version.py'],
+    # This should become `scikitplot/_version.py` in 'scikit-plots'
+    ['scikitplot/_build_utils/gitversion.py'],
     check: true,
   ).stdout().strip(),
   meson_version: '>= 1.5.0',
-  license: 'BSD-3 Clause',
-  # license_files: [],
+  license: 'BSD-3-Clause',           # Valid SPDX license expression: 'MIT', 'Apache-2.0', 'GPL-3.0-or-later'
+  license_files: ['LICENSE'],        # list[file] 'COPYING'
   default_options: [
     'b_ndebug=if-release',
     'buildtype=debugoptimized',

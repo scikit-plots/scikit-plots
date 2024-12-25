@@ -1,24 +1,23 @@
+import os
 import sys
-from typing import Final, TypeAlias
 
+from typing import TypeAlias, Final, LiteralString
 from typing_extensions import LiteralString
 
 __all__ = (
-  '__githash__',
-  'git_revision',
-  'version',
-  '__version__',
-  'full_version',
+  '__version__', 'version', 'full_version',
   'short_version',
+  '__git_hash__', 'git_revision',
+  'short_git_revision',
   'release',
 )
+version            : Final[LiteralString]
+__version__        : Final[LiteralString]
+full_version       : Final[LiteralString]
+short_version      : Final[LiteralString]
 
-__githash__: Final[LiteralString]
-git_revision: Final[LiteralString]
+__git_hash__       : Final[LiteralString]
+git_revision       : Final[LiteralString]
+short_git_revision : Final[LiteralString]
 
-version: Final[LiteralString]
-__version__: Final[LiteralString]
-full_version: Final[LiteralString]
-short_version: Final[LiteralString]
-
-release: Final[bool]
+release            : Final[bool]
