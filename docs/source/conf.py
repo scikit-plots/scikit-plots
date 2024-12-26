@@ -15,50 +15,40 @@ serve to show the default.
 See: https://www.sphinx-doc.org/en/master/usage/configuration.html
 for more details on configuring the documentation build.
 """
-# conf
+# sphinx conf
 # scikit-plots documentation build configuration file, created by
 # sphinx-quickstart on Sun Feb 12 17:56:21 2017.
 # 
 ##########################################################################
 ## Imports
 ##########################################################################
-
 # Python's standard library
 import os
 import sys
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_sphinx_ext/sklearn_ext"))
 sys.path.insert(0, os.path.abspath("."))
+import _sphinx_ext  # local
 
 import re
 import json
 import shutil
 import warnings
 import importlib
+import datetime
 
 from pathlib import Path
-from datetime import datetime
 from urllib.parse import quote
 from urllib.request import urlopen
 
 import jinja2
-import sphinx_gallery
-from sphinx.application import Sphinx
 
-# import logging
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
-# handler = logging.StreamHandler()
-# handler.setLevel(logging.INFO)
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# handler.setFormatter(formatter)
-# logger.addHandler(handler)
-# Set up logging
-from sphinx.util.logging import getLogger
-logger = getLogger(__name__)
+# Set up sphinx
+from sphinx.application import Sphinx
+from sphinx.util import logging
+logger = logging.getLogger(__name__)
 
 try:
   # Set the backend of matplotlib to prevent build errors.
@@ -93,13 +83,13 @@ author = u'scikit-plots developers'
 # where ‘YYYY’ represents a four-digit year.
 # The project_copyright alias.
 # copyright = u'2017, Reiichiro S. Nakano'
-copyright = f"2024 - {datetime.now(tz=datetime.UTC).year}, {author} (BSD-3 Clause License)"
+copyright = f"2024 - {datetime.datetime.now(tz=datetime.UTC).year}, {author} (BSD-3 Clause License)"
 
 # Import scikitplot information.
-import scikitplot as skplt
+import scikitplot as sp
 # from sklearn.externals._packaging.version import parse
 from scikitplot._externals._packaging.version import parse
-_version_raw = skplt.__version__
+_version_raw = sp.__version__
 _version_parsed = parse(_version_raw)
 _version_release = _version_parsed.release
 if _version_release is None:
@@ -214,7 +204,7 @@ extensions = [
   "_sphinx_ext.sklearn_ext.search_filter",                # Custom extension
   "_sphinx_ext.sklearn_ext.add_js_css_files",             # Custom extension
   
-  # skplt: Custom extensions
+  # sp: Custom extensions
   "_sphinx_ext.skplt_ext.url_extension",                  # URL, REPLite extension
   "_sphinx_ext.skplt_ext.version_info_extension",         # version_info_extension
   # "_sphinx_ext.skplt_ext.api_extension",                  # api_extension extension   
@@ -264,42 +254,42 @@ except ImportError:
 ##########################################################################
 
 def _check_dependencies():
-    names = {
-        **{ext: ext.split(".")[0] for ext in extensions},
-        # Explicitly list deps that are not extensions, or whose PyPI package
-        # name does not match the (toplevel) module name.
-        "colorspacious": 'colorspacious',
-        "pydata_sphinx_theme": 'pydata_sphinx_theme',
-        # "mpl_sphinx_theme": 'mpl_sphinx_theme',
-        "sphinxcontrib.inkscapeconverter": 'sphinxcontrib-svg2pdfconverter',
-    }
-    missing = []
-    for name in names:
-        try:
-            __import__(name)
-        except ImportError:
-            missing.append(names[name])
-    if missing:
-        raise ImportError(
-            "The following dependencies are missing to build the "
-            f"documentation: {', '.join(missing)}")
+  names = {
+    **{e: e.split(".")[0] for e in extensions},
+    # Explicitly list deps that are not extensions, or whose PyPI package
+    # name does not match the (toplevel) module name.
+    "colorspacious": 'colorspacious',
+    "pydata_sphinx_theme": 'pydata_sphinx_theme',
+    # "mpl_sphinx_theme": 'mpl_sphinx_theme',
+    "sphinxcontrib.inkscapeconverter": 'sphinxcontrib-svg2pdfconverter',
+  }
+  missing = []
+  for name in names:
+    try:
+      __import__(name)
+    except (ImportError, ModuleNotFoundError):
+      missing.append(names[name])
+  if missing:
+    raise ImportError(
+      "The following dependencies are missing to build the "
+      f"documentation: {', '.join(missing)}")
 
-    # debug sphinx-pydata-theme and mpl-theme-version
-    if 'pydata_sphinx_theme' not in missing:
-        import pydata_sphinx_theme
-        print(f"pydata sphinx theme : {pydata_sphinx_theme.__version__}")
-    # if 'mpl_sphinx_theme' not in missing:      
-    #     import mpl_sphinx_theme
-    #     print(f"mpl sphinx theme: {mpl_sphinx_theme.__version__}")
+  # debug sphinx-pydata-theme and mpl-theme-version
+  if 'pydata_sphinx_theme' not in missing:
+    import pydata_sphinx_theme
+    print(f"pydata sphinx theme : {pydata_sphinx_theme.__version__}")
+  # if 'mpl_sphinx_theme' not in missing:      
+  #     import mpl_sphinx_theme
+  #     print(f"mpl sphinx theme: {mpl_sphinx_theme.__version__}")
 
-    if shutil.which('dot') is None:
-        raise OSError(
-            "No binary named dot - graphviz must be installed to build the "
-            "documentation")
-    # if shutil.which('latex') is None:
-    #     raise OSError(
-    #         "No binary named latex - a LaTeX distribution must be installed to build "
-    #         "the documentation")
+  if shutil.which('dot') is None:
+    raise OSError(
+      "No binary named dot - graphviz must be installed to build the "
+      "documentation")
+  # if shutil.which('latex') is None:
+  #     raise OSError(
+  #         "No binary named latex - a LaTeX distribution must be installed to build "
+  #         "the documentation")
 
 _check_dependencies()
 
@@ -346,7 +336,7 @@ _check_dependencies()
 # 
 # Option 2: Use today's date in the specified format
 today_fmt = '%B %d, %Y'
-today = datetime.today().strftime(today_fmt)
+today = datetime.datetime.today().strftime(today_fmt)
 
 ##########################################################################
 ## Options for highlighting
@@ -996,7 +986,7 @@ intersphinx_mapping = {
   'IPython': ('https://ipython.readthedocs.io/en/stable/', None),
   'ipykernel': ('https://ipykernel.readthedocs.io/en/latest/', None),
   'pytest': ('https://pytest.org/en/stable/', None),
-  'meson-python': ('https://meson-python.readthedocs.io/en/stable/', None),
+  'meson-python': ('https://mesonbuild.com/meson-python/', None),
   'numpydoc': ('https://numpydoc.readthedocs.io/en/latest', None),
   "numpy": ("https://numpy.org/doc/stable", None),
   "scipy": ("https://docs.scipy.org/doc/scipy/", None),
@@ -1020,7 +1010,7 @@ intersphinx_mapping = {
   "https://www.tensorflow.org/api_docs/python",
   "https://raw.githubusercontent.com/GPflow/tensorflow-intersphinx/master/tf2_py_objects.inv",
   ),
-  "flask": ("https://flask.palletsprojects.com/en/2.1.x/", None),
+  "flask": ("https://flask.palletsprojects.com/en/stable/", None),
   'xarray': ('https://docs.xarray.dev/en/stable/', None),
 }
 

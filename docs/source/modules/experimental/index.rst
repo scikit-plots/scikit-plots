@@ -1,7 +1,7 @@
 .. _experimental:
 
 ======================================================================
-Experimental (experimental)
+experimental (Experimental)
 ======================================================================
 
-This module contains functions related to :py:mod:`~.api.experimental`.
+This module contains functions related to :py:mod:`~.experimental`.

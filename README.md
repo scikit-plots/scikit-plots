@@ -1,38 +1,37 @@
-# Welcome to 101 Scikit-plots
+# Welcome to Scikit-plots 101
 
 ## Single line functions for detailed visualizations
 
 The quickest and easiest way to go from analysis...
 
-
 ## User Installation
 
 ### Install Scikit-plots
 
-- Install spesific/latest version by `pypi` use:
+- Doc: https://scikit-plots.github.io/
+- Install by `pypi` use:
+  ```sh
+  pip install scikit-plots -U
+  ```
 
-```sh
-pip install scikit-plots
-```
+#### Install by `GITHUB` use `<branches>` or `<tags>`
 
-- Install spesific/latest version by `GITHUB` use `<branches>` or `<tags>`
+- Branches
+  ```bash
+  #pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@main               # latest
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x  # Added C,Cpp,Fortran Support
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x  # Pure Python
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7  # Pure Python
+  ```
 
-```bash
-#pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
-pip install git+https://github.com/scikit-plots/scikit-plots.git@main
-pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
-pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
-pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
-```
-
-```bash
-#pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
-pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0.post0  # CPython Compiled with supported Cython,C,Cpp,Fortran
-pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3     # Python Compiled
-pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7        # Python Compiled
-```
-**Note**:
-- **Python == CPython** is the reference implementation of Python, written in C.
+- Tags
+  ```bash
+  #pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0.post0  # Added C,Cpp,Fortran Support
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3     # Pure Python 
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7        # Pure Python 
+  ```
 
 ## Sample Plots
 

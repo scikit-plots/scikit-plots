@@ -1,39 +1,29 @@
-.. _api:
+.. _decile-wise-perf:
 
 ======================================================================
-Model Evaluation Metric Perfomance
+Model Evaluation Decile-Wise Perfomance
 ======================================================================
 
-This module contains functions related to :py:mod:`~.api`.
+This module contains functions related to :py:mod:`~.kds` and :py:mod:`~.modelplotpy`.
 
 .. grid:: 1 1 2 2
 
     .. grid-item-card::
         :padding: 2
 
-        **decomposition**
+        **kds**
         ^^^
         .. toctree::
             :maxdepth: 2
 
-            decomposition.rst
+            kds.rst
 
     .. grid-item-card::
         :padding: 2
 
-        **estimators**
+        **modelplotpy**
         ^^^
         .. toctree::
             :maxdepth: 2
 
-            estimators.rst
-
-    .. grid-item-card::
-        :padding: 2
-
-        **metrics**
-        ^^^
-        .. toctree::
-            :maxdepth: 2
-
-            metrics.rst
+            modelplotpy.rst

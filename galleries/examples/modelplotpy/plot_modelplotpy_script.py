@@ -70,8 +70,11 @@ z = zipfile.ZipFile(io.BytesIO(r.content))
 # You can change the path, currently the data is written to the working directory
 path = os.getcwd()
 z.extractall(path)
-# Remove the specified file path 
-os.remove(os.path.join(path, 'bank-additional/__MACOSX'))
+# Define the directory to be removed
+dir_to_remove = os.path.join(path, 'bank-additional/__MACOSX')
+# Check if the directory exists before attempting to remove it
+if os.path.exists(dir_to_remove):
+    os.remove(dir_to_remove)
 # Load csv data
 bank = pd.read_csv(path + "/bank-additional/bank-additional-full.csv", sep = ';')
 

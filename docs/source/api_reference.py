@@ -100,35 +100,6 @@ API_REFERENCE = {
             },
         ],
     },
-    "scikitplot._numcpp_api": {
-        "short_summary": "NumCpp Api functions and utilities by Pybind11 and Cython",
-        "description": (
-            _get_guide("numcpp_api")
-        ),
-        "sections": [
-            {
-                "title": "Pybind11 Functions Demo",
-                "description": _get_submodule("scikitplot._numcpp_api", "py_numcpp_api"),
-                "autosummary": [
-                    "py_numcpp_api.py_get_version",
-                    "py_numcpp_api.py_print_message",
-                    "py_numcpp_api.py_random_array",
-                    "py_numcpp_api.py_sum_of_squares",
-                ],
-            },
-            {
-                "title": "Cython Functions Demo",
-                "description": _get_submodule("scikitplot._numcpp_api", "cy_numcpp_api"),
-                "autosummary": [
-                    "cy_numcpp_api.py_get_version",
-                    "cy_numcpp_api.py_print_message",
-                    "cy_numcpp_api.py_say_hello_inline",
-                    "cy_numcpp_api.py_random_array",
-                    "cy_numcpp_api.py_sum_of_squares",
-                ],
-            },
-        ],
-    },
     "scikitplot.api": {
         "short_summary": "Functional Api for Visualizations (function-based, implicit)",
         "description": (
@@ -165,35 +136,6 @@ API_REFERENCE = {
                 ],
             },
             {
-                "title": "Experimental functions",
-                "description": (
-                    _get_submodule("scikitplot.api", "experimental")
-                    + "\n\n"
-                    + _get_guide("experimental")
-                ),
-                "autosummary": [
-                    "experimental.expit",
-                    "experimental.softmax",
-                ],
-            },
-            {
-                "title": "KeyToDataScience",
-                "description": (
-                    _get_submodule("scikitplot.api", "kds")
-                    + "\n\n"
-                    + _get_guide("kds")
-                ),
-                "autosummary": [
-                    "kds.print_labels",
-                    "kds.decile_table",
-                    "kds.plot_cumulative_gain",
-                    "kds.plot_lift",
-                    "kds.plot_lift_decile_wise",
-                    "kds.plot_ks_statistic",
-                    "kds.report",
-                ],
-            },
-            {
                 "title": "Plot model evaluation metrics",
                 "description": (
                     _get_submodule("scikitplot.api", "metrics")
@@ -214,26 +156,59 @@ API_REFERENCE = {
                     "metrics.plot_silhouette",
                 ],
             },
+        ],
+    },
+    "scikitplot.kds": {
+        "short_summary": "KeyToDataScience",
+        "description": (
+            _get_guide("kds")
+        ),
+        "sections": [
+            {
+                "title": "Key To DataScience",
+                # "description": (
+                #     _get_submodule("scikitplot.kds", "_kds")
+                #     + "\n\n"
+                #     + _get_guide("kds")
+                # ),
+                "autosummary": [
+                    'print_labels',
+                    'decile_table',
+                    'plot_cumulative_gain',
+                    'plot_lift',
+                    'plot_lift_decile_wise',
+                    'plot_ks_statistic',
+                    'report',
+                ],
+            },
+        ],
+    },
+    "scikitplot.modelplotpy": {
+        "short_summary": "Predictive model insights",
+        "description": (
+            _get_guide("modelplotpy", "modelplotpy_financial")
+        ),
+        "sections": [
             {
                 "title": "Predictive model insights",
-                "description": (
-                    _get_submodule("scikitplot.api", "modelplotpy")
-                    + "\n\n"
-                    + _get_guide("modelplotpy", "modelplotpy_financial")
-                ),
+                # "description": (
+                #     _get_submodule("scikitplot.modelplotpy", "_modelplotpy")
+                #     + "\n\n"
+                #     + _get_guide("modelplotpy")
+                # ),
                 "autosummary": [
                     # Initialize modelplotpy object
-                    "modelplotpy.ModelPlotPy",  # ModelPlotPy
+                    'ModelPlotPy',
                     # Gains, Lift and (cumulative) Response plots
-                    "modelplotpy.plot_response",
-                    "modelplotpy.plot_cumresponse",
-                    "modelplotpy.plot_cumlift",
-                    "modelplotpy.plot_cumgains",
-                    "modelplotpy.plot_all",
+                    'plot_response',
+                    'plot_cumresponse',
+                    'plot_cumlift',
+                    'plot_cumgains',
+                    'plot_all',
                     # Business-savvy financial plots
-                    "modelplotpy.plot_costsrevs",
-                    "modelplotpy.plot_profit",
-                    "modelplotpy.plot_roi",
+                    'plot_costsrevs',
+                    'plot_profit',
+                    'plot_roi',
                 ],
             },
         ],
@@ -246,11 +221,37 @@ API_REFERENCE = {
         "sections": [
             {
                 "title": "probscale",
+                # "description": (
+                #     _get_submodule("scikitplot.probscale", "Probscale")
+                #     + "\n\n"
+                #     + _get_guide("modelplotpy")
+                # ),
                 "autosummary": [
                     'ProbScale',
                     'probplot',
                     'plot_pos',
                     'fit_line',
+                ],
+            },
+        ],
+    },
+    "scikitplot.sp_logging": {
+        "short_summary": "Scikit-plots Logging.",
+        "description": (
+            _get_guide("sp_logging")
+        ),
+        "sections": [
+            {
+                "title": "scikit-plots Logging",
+                # "description": (
+                #     _get_submodule("scikitplot.probscale", "Probscale")
+                #     + "\n\n"
+                #     + _get_guide("modelplotpy")
+                # ),
+                "autosummary": [
+                    'SpLogger',
+                    'get_logger',
+                    'sp_logger',
                 ],
             },
         ],
@@ -262,26 +263,24 @@ API_REFERENCE = {
         ),
         "sections": [
             {
-                "title": "Discrete distributions",
-                "description": _get_submodule("scikitplot.stats", "_tweedie"),
+                "title": "Astrostatistics Tools",
+                "description": _get_submodule("scikitplot", "_astropy.stats"),
+                "autosummary": [
+                    '_astropy.stats.akaike_info_criterion',
+                    '_astropy.stats.bayesian_info_criterion',
+                    '_astropy.stats.histogram',
+                    '_astropy.stats.histogram_intervals',
+                    '_astropy.stats.knuth_bin_width',
+                    '_astropy.stats.scott_bin_width',
+                    '_astropy.stats.median_absolute_deviation',
+                ],
+            },
+            {
+                "title": "Discrete Distributions Tools",
+                "description": _get_submodule("scikitplot", "_tweedie"),
                 "autosummary": [
                     '_tweedie.tweedie_gen',
                     '_tweedie.tweedie',
-                ],
-            },
-        ],
-    },
-    "scikitplot.rcmod": {
-        "short_summary": "Themeing.",
-        "description": (
-            _get_guide("rcmod")
-        ),
-        "sections": [
-            {
-                "title": "Themeing",
-                "autosummary": [
-                    'reset_defaults',
-                    'reset_orig',
                 ],
             },
         ],
@@ -292,6 +291,13 @@ API_REFERENCE = {
             _get_guide("developers-guide-index", is_developer=True)
         ),
         "sections": [
+            {
+                "title": "Optimal matplotlib operations",
+                "description": _get_submodule("scikitplot.utils", "_figures"),
+                "autosummary": [
+                    '_figures.combine_and_save_figures',
+                ],
+            },
             {
                 "title": "Optimal mathematical operations",
                 "description": _get_submodule("scikitplot.utils", "_helpers"),
@@ -308,11 +314,26 @@ API_REFERENCE = {
                     'validation.validate_plotting_kwargs',
                 ],
             },
+        ],
+    },
+    "scikitplot.visualkeras": {
+        "short_summary": "Visualization of Neural Network Architectures Keras (either standalone or included in tensorflow).",
+        "description": (
+            _get_guide("visualkeras")
+        ),
+        "sections": [
             {
-                "title": "Optimal matplotlib operations",
-                "description": _get_submodule("scikitplot.utils", "_figures"),
+                "title": "Layered Visualization",
+                "description": _get_submodule("scikitplot.visualkeras", "graph"),
                 "autosummary": [
-                    '_figures.combine_and_save_figures',
+                    "graph_view",
+                ],
+            },
+            {
+                "title": "Graphical Visualization",
+                "description": _get_submodule("scikitplot.visualkeras", "layered"),
+                "autosummary": [
+                    "layered_view",
                 ],
             },
         ],

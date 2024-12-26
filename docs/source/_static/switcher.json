@@ -5,6 +5,11 @@
         "url": "https://scikit-plots.github.io/dev/"
     },
     {
+        "name": "v0.4.1.dev0+ (dev)",
+        "version": "0.4.1.dev0+git20241225.a12d424",
+        "url": "https://scikit-plots.github.io/dev/"
+    },
+    {
         "name": "v0.4.0 (stable)",
         "version": "0.4.0",
         "url": "https://scikit-plots.github.io/stable/",

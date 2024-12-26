@@ -1,5 +1,5 @@
 """
-Scikitplot Logging Module
+Scikit-plots Logging Module
 
 This module provides advanced logging utilities for Python applications, 
 including support for singleton-based logging with customizable formatters, 
@@ -18,63 +18,64 @@ Key Features
 - `PrettyJSONFormatter`: A formatter for pretty-printing log messages in JSON format.
 - `AlwaysStdErrHandler`: A handler that enforces logging to standard error (stderr) or optionally to standard output (stdout).
 - Utility functions for creating default formatters and handlers (`make_default_formatter`, `make_default_handler`).
-
-Classes
--------
-SpLogger
-    Singleton-based logger with support for thread-safety, customizable name, 
-    formatter, handler, and logging level.
-
-PrettyJSONFormatter
-    Custom formatter to pretty-print JSON logs with customizable options.
-
-AlwaysStdErrHandler
-    A custom logging handler that ensures logs are output to stderr or stdout 
-    based on user preference.
-
-Functions
----------
-get_logger(use_stderr: bool = True) -> logging.Logger
-    Retrieve the singleton logger instance, initializing it if necessary.
-
-_make_default_formatter(formatter=None, time_format=None) -> logging.Formatter
-    Create a default logging formatter with support for JSON and custom formats.
-
-_make_default_handler(handler=None, formatter=None) -> logging.Handler
-    Create a default logging handler with customizable formatter and stream.
-
-Notes
------
-This module builds on Python's standard `logging` library. For more information 
-on Python's logging API, refer to the official documentation:
-https://docs.python.org/3/library/logging.html
-
-The `SpLogger` class ensures a single shared logger instance across the project, 
-simplifying configuration and usage. The `get_logger` function provides easy 
-access to this shared logger or or vice versa.
-
-Logging Levels:
-  - NOTSET (0)  : NOTSET
-  - DEBUG (10)  : Detailed information useful during development,
-    typically of interest only when diagnosing problems.
-  - INFO (20)   : Confirmation that things are working as expected.
-  - WARNING (30): An indication that something unexpected happened,
-    or indicative of some problem in the near future.
-  - ERROR (40)  : Due to a more serious problem,
-    the software has not been able to perform some function.
-  - CRITICAL = FATAL (50): A very serious error, indicating that
-    the program itself may be unable to continue running.
-    
-Examples
---------
-Basic Usage by func
-    >>> from scikitplot import get_logger
-    >>> get_logger().warning("Warning information.")
-
-Basic Usage by class
-    >>> from scikitplot import SpLogger
-    >>> SpLogger().warning("Warning information.")
 """
+# """
+# Classes
+# -------
+# SpLogger
+#     Singleton-based logger with support for thread-safety, customizable name, 
+#     formatter, handler, and logging level.
+
+# PrettyJSONFormatter
+#     Custom formatter to pretty-print JSON logs with customizable options.
+
+# AlwaysStdErrHandler
+#     A custom logging handler that ensures logs are output to stderr or stdout 
+#     based on user preference.
+
+# Functions
+# ---------
+# get_logger(use_stderr: bool = True) -> logging.Logger
+#     Retrieve the singleton logger instance, initializing it if necessary.
+
+# _make_default_formatter(formatter=None, time_format=None) -> logging.Formatter
+#     Create a default logging formatter with support for JSON and custom formats.
+
+# _make_default_handler(handler=None, formatter=None) -> logging.Handler
+#     Create a default logging handler with customizable formatter and stream.
+
+# Notes
+# -----
+# This module builds on Python's standard `logging` library. For more information 
+# on Python's logging API, refer to the official documentation:
+# https://docs.python.org/3/library/logging.html
+
+# The `SpLogger` class ensures a single shared logger instance across the project, 
+# simplifying configuration and usage. The `get_logger` function provides easy 
+# access to this shared logger or or vice versa.
+
+# Logging Levels:
+#   - NOTSET (0)  : NOTSET
+#   - DEBUG (10)  : Detailed information useful during development,
+#     typically of interest only when diagnosing problems.
+#   - INFO (20)   : Confirmation that things are working as expected.
+#   - WARNING (30): An indication that something unexpected happened,
+#     or indicative of some problem in the near future.
+#   - ERROR (40)  : Due to a more serious problem,
+#     the software has not been able to perform some function.
+#   - CRITICAL = FATAL (50): A very serious error, indicating that
+#     the program itself may be unable to continue running.
+    
+# Examples
+# --------
+# Basic Usage by func
+#     >>> from scikitplot import get_logger
+#     >>> get_logger().warning("Warning information.")
+
+# Basic Usage by class
+#     >>> from scikitplot import SpLogger
+#     >>> SpLogger().warning("Warning information.")
+# """
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -121,8 +122,7 @@ __all__ = [
   'ERROR',
   'FATAL', 'CRITICAL',
   'get_logger',         # func based
-  'get_verbosity',
-  'set_verbosity',
+  'getEffectiveLevel', 'setLevel',
   'log',
   'log_if',
   'error_log',
@@ -581,22 +581,29 @@ def get_logger(use_stderr: bool = True) -> logging.Logger:
 
     You can also specify the logging verbosity.  In this case, the
     WARN level log will not be emitted:
-
-    >>> sp.get_logger().setLevel(ERROR)
-    >>> sp.get_logger().warn("This is a warning.")
     
-    See Also
-    --------
-    https://rich.readthedocs.io/en/stable/index.html
+    >>> sp.get_logger().setLevel(WARNING)
+    >>> sp.get_logger().debug("This is a debug.")  # This will not be shown, as level is WARNING.
+    >>> sp.get_logger().info("This is a info.")    # This will not be shown, as level is WARNING.
+    >>> sp.get_logger().warning("This is a warning.")
     
     Examples
     --------
-    Get a root logger:
+    Get a root logger by module:
     
     .. jupyter-execute::
     
-        >>> import scikitplot as sp
-        >>> sp.get_logger().info("This is a log message from the sp logger.")
+        >>> import scikitplot.sp_logging as logging  # module logger
+        >>> logging.setLevel(logging.INFO)  # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
+    
+    Get a root logger by func:
+    
+    .. jupyter-execute::
+    
+        >>> from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure logger, not have level
+        >>> logging.setLevel(sp_logging.INFO)  # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
     """
     # Ensure the root logger is initialized
     global _logger
@@ -642,11 +649,11 @@ def get_logger(use_stderr: bool = True) -> logging.Logger:
 ## Exposed loggers helper funcs
 ######################################################################
   
-def get_verbosity():
+def getEffectiveLevel():
   """Return how much logging output will be produced."""
   return get_logger().getEffectiveLevel()
 
-def set_verbosity(v):
+def setLevel(v):
   """Sets the threshold for what messages will be logged."""
   get_logger().setLevel(v)
   
@@ -688,7 +695,7 @@ def info(msg, *args, **kwargs):
 
 def debug(msg, *args, **kwargs):
   get_logger().debug(msg, *args, **kwargs)
-
+  
 ######################################################################
 ## Class (SingletonBase) based SpLogger to expose the initialized logger
 ######################################################################
@@ -701,20 +708,30 @@ class SpLogger(SingletonBase):
     This class implements the Singleton pattern, ensuring only a single instance of
     the logger exists throughout the application. It supports different log levels
     (e.g., DEBUG, INFO, WARNING) and thread-safe logging.
-
+    
     Attributes
     ----------
-    logger : logging.Logger
-        The underlying logger instance used to log messages.
-    name : str
-        The name of the logger instance. Defaults to 'scikitplot' if not provided.
-    lock : Optional[threading.Lock]
-        A lock used for thread-safe logging operations. If thread safety is disabled, this is None.
-    level : int
-        The current logging level of the logger (e.g., DEBUG, INFO, WARNING).
+    CRITICAL : logging.CRITICAL
+        The logging level.
+    FATAL : logging.CRITICAL
+        The logging level.
+    ERROR : logging.ERROR
+        The logging level.
+    WARNING : logging.WARNING
+        The logging level.
+    WARN : logging.WARNING
+        The logging level.
+    INFO : logging.INFO
+        The logging level.
+    DEBUG : logging.DEBUG
+        The logging level.
 
     Methods
     -------
+    getEffectiveLevel(level: int)
+        Sets the logger's logging level.
+    setLevel()
+        Returns the current logging level of the logger.
     log(level: int, msg: str, *args: Any, **kwargs: Any)
         Logs a message with the specified logging level.
     fatal(msg: str, *args: Any, **kwargs: Any)
@@ -727,10 +744,6 @@ class SpLogger(SingletonBase):
         Logs a message at the INFO level.
     debug(msg: str, *args: Any, **kwargs: Any)
         Logs a message at the DEBUG level.
-    setLevel(level: int)
-        Sets the logger's logging level.
-    getLevel()
-        Returns the current logging level of the logger.
 
     Notes
     -----
@@ -753,33 +766,38 @@ class SpLogger(SingletonBase):
 
     You can change the verbosity of the logger as follows:
 
-    >>> sp.SpLogger().setLevel(ERROR)
-    >>> sp.SpLogger().warn("This is a warning.")  # This will not be shown, as level is ERROR.
+    >>> sp.SpLogger().setLevel(WARNING)
+    >>> sp.SpLogger().debug("This is a debug.")  # This will not be shown, as level is ERROR.
+    >>> sp.SpLogger().info("This is a info.")    # This will not be shown, as level is ERROR.
+    >>> sp.SpLogger().warning("This is a warning.")
 
-    See Also
-    --------
-    Python Logging Documentation: https://docs.python.org/3/library/logging.html
-
-    https://docs.python.org/3/library/logging.html#formatter-objects
-    
-    https://rich.readthedocs.io/en/stable/index.html
+    .. see_also:
+       
+       Python Logging Documentation: `https://docs.python.org/3/library/logging.html`_
     
     Examples
     --------
-    Example of logging an INFO message:
+    Example of logging an INFO message by module:
 
     .. jupyter-execute::
     
-        >>> import scikitplot as sp
-        >>> sp.SpLogger().info("This is a log message from the scikitplot logger.")
+        >>> import scikitplot.sp_logging as logging  # module logger
+        >>> logging.setLevel(logging.INFO)  # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
     
-    Example of logging an ERROR message:
+    Example of logging an INFO message by class:
 
     .. jupyter-execute::
     
-        >>> import scikitplot as sp
-        >>> sp.SpLogger().error("This is an error message.")
-    """    
+        >>> from scikitplot import sp_logger as logging  # class instance logger
+        >>> logging.setLevel(logging.INFO)  # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
+    
+        >>> from scikitplot import SpLogger; logging=SpLogger()  # class logger
+        >>> logging.setLevel(logging.INFO)  # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
+    """
+    # cls attr
     CRITICAL = FATAL = CRITICAL
     ERROR    = ERROR
     WARNING  = WARN = WARNING
@@ -823,6 +841,7 @@ class SpLogger(SingletonBase):
         lock : Optional[threading.Lock]
             A lock used for thread-safe logging operations.
         """
+        # instance attr
         if not hasattr(self, "logger"):  # Ensure initialization happens only once
             self._name = name or "scikitplot"
             self.logger = get_logger() or logging.getLogger(self._name)
@@ -883,7 +902,8 @@ class SpLogger(SingletonBase):
             raise ValueError("Logging level must be an integer.")
         self.logger.setLevel(value)
 
-    def get_verbosity(self) -> int:
+    # @staticmethod
+    def getEffectiveLevel(self) -> int:
         """
         Gets the current logging level of the logger.
 
@@ -894,7 +914,8 @@ class SpLogger(SingletonBase):
         """
         return self.logger.getEffectiveLevel()
 
-    def set_verbosity(self, level: int):
+    # @staticmethod
+    def setLevel(self, level: int):
         """
         Set the logger's logging level.
 

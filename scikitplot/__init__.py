@@ -33,7 +33,6 @@ except (ImportError, ModuleNotFoundError) as e:
     "being in scikitplot source directory; please exit the scikitplot source "
     "tree first and relaunch your Python interpreter."
   )
-  get_logger().warning('Running on source directory: %s' % 'scikitplot')
   get_logger().warning('BOOM! :: %s', msg)
   show_config = _BUILT_WITH_MESON = None; del msg;
   # raise ImportError(msg) from e
@@ -48,7 +47,6 @@ else:
 from ._globals import _Default, _NoValue, _Deprecated
 from ._globals import ModuleDeprecationWarning, VisibleDeprecationWarning
 from ._utils._show_versions import show_versions  # noqa: E402
-# from .rcmod import reset_orig, reset_defaults  # noqa: F401,F403
 
 # Export Modules
 from ._seaborn import *

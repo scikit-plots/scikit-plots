@@ -1,3 +1,13 @@
+"""
+visualkeras transformers example
+==========================================
+
+An example showing the :py:func:`~scikitplot.visualkeras` function
+used by a :py:mod:`~tf.keras` and :py:mod:`~transformers`.
+"""
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Force garbage collection
 import gc; gc.collect()
 import tensorflow as tf

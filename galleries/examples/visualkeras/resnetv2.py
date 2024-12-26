@@ -1,3 +1,13 @@
+"""
+visualkeras ResNetV2 example
+==========================================
+
+An example showing the :py:func:`~scikitplot.visualkeras` function
+used by a :py:mod:`~tf.keras`.
+"""
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Force garbage collection
 import gc; gc.collect()
 import tensorflow as tf
@@ -23,36 +33,36 @@ visualkeras.layered_view(
   to_file='../result_images/resnet50v2.png',
 )
 
-model = tf.keras.applications.ResNet101V2(
-    include_top=True,
-    weights=None,  # "imagenet" or 'path/'
-    input_tensor=None,
-    input_shape=None,
-    pooling=None,
-    classes=1000,
-    classifier_activation="softmax",
-    name="resnet101v2",
-)
-visualkeras.layered_view(
-  model,
-  legend=True,
-  show_dimension=True,
-  to_file='../result_images/resnet101v2.png',
-)
+# model = tf.keras.applications.ResNet101V2(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="resnet101v2",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/resnet101v2.png',
+# )
 
-model = tf.keras.applications.ResNet152V2(
-    include_top=True,
-    weights=None,  # "imagenet" or 'path/'
-    input_tensor=None,
-    input_shape=None,
-    pooling=None,
-    classes=1000,
-    classifier_activation="softmax",
-    name="resnet152v2",
-)
-visualkeras.layered_view(
-  model,
-  legend=True,
-  show_dimension=True,
-  to_file='../result_images/resnet152v2.png',
-)
+# model = tf.keras.applications.ResNet152V2(
+#     include_top=True,
+#     weights=None,  # "imagenet" or 'path/'
+#     input_tensor=None,
+#     input_shape=None,
+#     pooling=None,
+#     classes=1000,
+#     classifier_activation="softmax",
+#     name="resnet152v2",
+# )
+# visualkeras.layered_view(
+#   model,
+#   legend=True,
+#   show_dimension=True,
+#   to_file='../result_images/resnet152v2.png',
+# )

@@ -1,17 +1,29 @@
 .. _stats:
 
-Stats (experimental)
+Stats (Experimental)
 ======================================================================
 
 Examples relevant to the :py:mod:`~.stats` module.
 
-Exponential Dispersion
+Astrostatistics Tools
 ----------------------------------------------------------------------
 
-Tweedie Family
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Documentation is available in the docstrings and
+online at https://www.astropy.org/.
 
-Examples relevant to the :py:data:`~.stats._tweedie.tweedie` variable.
+
+Tweedie Distribution Module
+----------------------------------------------------------------------
+
+Applications
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The Tweedie distribution is widely used in:
+
+- Insurance industry: Modeling claim amounts and policy exposure.
+- Medical and genomic testing: Analyzing datasets with zero-inflated and continuous positive values.
+- Environmental science: Rainfall modeling and hydrology studies.
+
+Examples relevant to the :py:data:`~.tweedie` variable.
 
 .. seealso::
 

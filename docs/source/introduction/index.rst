@@ -6,7 +6,10 @@
 
 .. _generic-items: https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
 
-.. centered:: Welcome to Scikit-plots |release|
+.. role:: raw-html(raw)
+   :format: html
+
+.. centered:: Welcome to Scikit-plots :raw-html:`<br />` |release|
 
 .. _introduction:
 

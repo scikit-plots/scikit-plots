@@ -151,6 +151,11 @@ class ModelPlotPy(object):
         .. versionchanged:: 0.3.9
             Default changed from 999 to 0.
 
+    Methods
+    -------
+    get_params():
+        Method to get params.
+
     Raises
     ------
     ValueError: If there is no match with the complete list or the input list again
@@ -159,10 +164,6 @@ class ModelPlotPy(object):
     -----    
     ``modelplotpy`` == ``ModelPlotPy`` Alias
     for backward compatibility or convenience ``ModelPlotPy``
-
-    See Also
-    --------
-    https://modelplot.github.io/intro_modelplotpy.html
     """
     def __init__(
         self,

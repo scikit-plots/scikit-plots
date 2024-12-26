@@ -1,12 +1,15 @@
 .. raw:: html
 
-    <title>Scikit-plots {{ release }} Documentation</title>
+    <title>Scikit-plots Documentation {{ release }}</title>
 
 .. _scikit_plots_documentation:
 
 .. _generic-items: https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
 
-.. centered:: Scikit-plots |release| Documentation
+.. role:: raw-html(raw)
+   :format: html
+
+.. centered:: Scikit-plots Documentation :raw-html:`<br />` |release|
 
 .. _user_guide:
 
@@ -19,24 +22,33 @@ User Guide
     .. grid-item-card::
         :padding: 2
 
-        **api**
+        **Metric Perf**
         ^^^
         .. toctree::
             :maxdepth: 2
-            :caption: api Module
 
             ../modules/api/index.rst
 
     .. grid-item-card::
         :padding: 2
 
-        **probscale**
+        **Decile-Wise Perf**
         ^^^
         .. toctree::
             :maxdepth: 2
-            :caption: Modules
 
-            ../modules/probscale/index.rst
+            ../modules/decile_wise_perf/index.rst
+
+    .. grid-item-card::
+        :padding: 2
+
+        **Logging System**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            ../modules/sp_logging/index.rst
+
 
     .. grid-item-card::
         :padding: 2
@@ -51,12 +63,12 @@ User Guide
     .. grid-item-card::
         :padding: 2
 
-        **rcmod**
+        **visualkeras**
         ^^^
         .. toctree::
             :maxdepth: 2
 
-            ../modules/rcmod/index.rst
+            ../modules/visualkeras/index.rst
 
 
 .. _under_development:
@@ -65,9 +77,12 @@ Under Development
 ----------------------------------------------------------------------
 
 .. toctree::
-   :maxdepth: 1
    :caption: Developers
-   :numbered:
+   :maxdepth: 1
+   :titlesonly:
 
-   ../modules/_numcpp_api/index.rst
-   ../modules/api/experimental/index.rst
+   ../modules/_astropy/index.rst
+   ../modules/_seaborn/index.rst
+   ../modules/_tweedie/index.rst
+   ../modules/experimental/index.rst
+   ../modules/probscale/index.rst

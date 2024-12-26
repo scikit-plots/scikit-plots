@@ -16,8 +16,7 @@ import subprocess
 import sys
 import tempfile
 
-# from scikitplot import sp_logging as logging
-from scikitplot import sp_logger as logging
+import scikitplot.sp_logging as logging  # module logger
 
 # cbook must import matplotlib only within function
 # definitions, so it is safe to import from it here.
@@ -86,7 +85,7 @@ def _add_data_doc(docstring, replace_names):
     # using string replacement instead of formatting has the advantages
     # 1) simpler indent handling
     # 2) prevent problems with formatting characters '{', '%' in the docstring
-    if logging.level <= logging.DEBUG:
+    if logging.getEffectiveLevel() <= logging.DEBUG:
         # test_data_parameter_replacement() tests against these log messages
         # make sure to keep message and test in sync
         if "data : indexable object, optional" not in docstring:

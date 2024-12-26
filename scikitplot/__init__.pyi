@@ -16,7 +16,17 @@ from typing_extensions import LiteralString
 # Only imports when type checking, not at runtime
 from typing import TYPE_CHECKING
     # Heavy import, only for type checking
-    import tensorflow as tf  # Usege str type 'tf'
+    import tensorflow as tf  # Usege as str type 'tf'
+
+import scikitplot.sp_logging as logging                                # module logger
+# from scikitplot import sp_logger as logging                          # class instance logger
+# from scikitplot import SpLogger; logging=SpLogger()                  # class logger
+# from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure logger, not have level
+
+logging.warning('scikitplot warning!!!')
+
+logging.setLevel(level=logging.INFO)  # default WARNING
+logging.info("This is a info message from the sp logger.")
 
 ######################################################################
 ## scikit-plots version

@@ -1,3 +1,13 @@
+"""
+visualkeras custom vgg16 show dimension example
+======================================================================
+
+An example showing the :py:func:`~scikitplot.visualkeras` function
+used by a :py:mod:`~tf.keras`.
+"""
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Force garbage collection
 import gc; gc.collect()
 import tensorflow as tf
