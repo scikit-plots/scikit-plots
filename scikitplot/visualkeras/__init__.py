@@ -13,4 +13,4 @@ __author_email__ = "paul.gavrikov@hs-offenburg.de"
 
 # Define the visualkeras git hash
 # scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/paulgavrikov/visualkeras')[0]
-__githash__ = '8d42f3a9128373eac7b4d38c23a17edc9357e3c9'
+__git_hash__ = '8d42f3a9128373eac7b4d38c23a17edc9357e3c9'

@@ -54,7 +54,7 @@ from .api import *
 from . import (
   _api,
   _astropy,
-  # _build_utils,
+  _build_utils,
   _compat,
   _externals,
   _factory_api,

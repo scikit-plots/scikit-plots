@@ -1,15 +1,7 @@
-{#-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# https://jinja.palletsprojects.com/en/stable/templates/
--#}
 [
-{#- if version.split('+')[0] == version #}
-{#- endif #}
     {
-        "name": "{{ version.split('+')[0] | trim }} (dev)", {#- "0.4.1.dev0 (dev)" #}
-        "version": "{{ version.split('+')[0] | trim }}",
+        "name": "0.4.1.dev0 (dev)",
+        "version": "0.4.1.dev0",
         "url": "https://scikit-plots.github.io/dev/"
     },
     {

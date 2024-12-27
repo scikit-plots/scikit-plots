@@ -25,7 +25,7 @@ __author_email__ = "pquack@gmail.com"
 
 # Define the tweedie git hash
 # scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/thequackdaddy/tweedie')[0]
-__githash__ = 'f14a189d7cd80d41886041f44f40ae4db27d0067'
+__git_hash__ = 'f14a189d7cd80d41886041f44f40ae4db27d0067'
 
 # Define __all__ to control what gets imported with 'from module import *'
 # Combine global names (explicitly defined in the module) and dynamically available names

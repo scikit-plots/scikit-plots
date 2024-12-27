@@ -254,19 +254,6 @@ class GoogleLogFormatter(logging.Formatter):
     - `filename`: The name of the file generating the log entry.
     - `lineno`: The line number where the log entry was generated.
     - `message`: The log message.
-
-    Parameters
-    ----------
-    datefmt : str, optional
-        Date format for `asctime`. Default is '%Y-%m-%d %H:%M:%S'.
-    default_time_format : str, optional
-        Default time format. Default is '%Y-%m-%d %H:%M:%S'.
-    default_msec_format : str, optional
-        Default millisecond format. Default is '%s,%03d'.
-    backend : {'json', 'pprint'}, optional
-        Backend to use for formatting the log output. Default is None.
-    use_datetime : bool, optional
-        Whether to include microseconds in the timestamp using datetime. Default is True.
     """
     def __init__(
         self,
@@ -276,6 +263,22 @@ class GoogleLogFormatter(logging.Formatter):
         backend: Optional[str] = None,
         use_datetime: Optional[bool] = True,
     ) -> None:
+        """
+        Initialize the GoogleLogFormatter with the desired Formatter.
+    
+        Parameters
+        ----------
+        datefmt : str, optional
+            Date format for `asctime`. Default is '%Y-%m-%d %H:%M:%S'.
+        default_time_format : str, optional
+            Default time format. Default is '%Y-%m-%d %H:%M:%S'.
+        default_msec_format : str, optional
+            Default millisecond format. Default is '%s,%03d'.
+        backend : {'json', 'pprint'}, optional
+            Backend to use for formatting the log output. Default is None.
+        use_datetime : bool, optional
+            Whether to include microseconds in the timestamp using datetime. Default is True.
+        """
         # formatTime time module's strftime() function does not support microseconds
         # Need to manual extract seconds and microseconds,time.time() with microseconds
         # sec, mics  = int(now), int(1e6 * (now % 1.0)) or int(1e6 * (now - sec))
@@ -804,11 +807,12 @@ class SpLogger(SingletonBase):
         >>> logging.info("This is a info message from the sp logger.")
     """
     # cls attr
-    CRITICAL = FATAL = CRITICAL
-    ERROR    = ERROR
-    WARNING  = WARN = WARNING
-    INFO     = INFO
-    DEBUG    = DEBUG
+    CRITICAL  = FATAL = CRITICAL
+    ERROR     = ERROR
+    WARNING   = WARN = WARNING
+    INFO      = INFO
+    DEBUG     = DEBUG
+    NOTSET    = NOTSET
   
     def __init__(
         self,

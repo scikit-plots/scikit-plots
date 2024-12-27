@@ -4,7 +4,7 @@ Tweedie Distribution Module
 
 This module implements the Tweedie distribution,
 a member of the exponential dispersion model (EDM) family,
-using SciPy's :py:mod:`~scipy.stats.rv_continuous` class.
+using SciPy's :py:class:`~scipy.stats.rv_continuous` class.
 
 It is especially useful for modeling claim amounts in the insurance industry,
 where data often exhibit a mixture of zeroes and positive continuous values.

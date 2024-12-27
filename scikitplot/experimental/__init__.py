@@ -9,7 +9,7 @@ to leverage its speed advantages.
 This package is intended for experimental use. Functionality and APIs may 
 change in future releases.
 """
-# scikitplot/api/experimental/__init__.py
+# scikitplot/experimental/__init__.py
 
 # Your package/module initialization code goes here
 from ._logsumexp import *

@@ -24,4 +24,4 @@ __author_email__ = "pb.marcus@hotmail.com"
 
 # Define the modelplotpy git hash
 # scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/modelplot/modelplotpy')[0]
-__githash__ = '83ca84e67c357ee3bd98e296b94219c1a0863f68'
+__git_hash__ = '83ca84e67c357ee3bd98e296b94219c1a0863f68'

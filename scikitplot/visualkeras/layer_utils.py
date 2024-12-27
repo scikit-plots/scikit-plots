@@ -44,24 +44,20 @@ __all__ = [
 class _DummyLayer:
     """
     A simple densely-connected neural network layer.
-
-    Parameters
-    ----------
-    name : str
-        Name of the layer.
-    units : int, optional
-        Positive integer, dimensionality of the output space. Default is None.
-    **kwargs : dict
-        Additional keyword arguments for the base Layer class.
-
-    Attributes
-    ----------
-    name : str
-        Name of the layer.
-    units : int
-        Positive integer, dimensionality of the output space, if provided.
     """
     def __init__(self, name, units=None, **kwargs):
+        """
+        Initialize the dynamic layer with spacing and additional arguments.
+
+        Parameters
+        ----------
+        name : str
+            Name of the layer.
+        units : int
+            Positive integer, dimensionality of the output space, if provided.
+        **kwargs : dict
+            Additional keyword arguments for the base Layer class.
+        """
         self.name = name
         # Assign the units attribute if provided
         if units:
@@ -91,18 +87,6 @@ class SpacingDummyLayer:
 
     This class dynamically inherits from TensorFlow's `Layer` class, ensuring
     that TensorFlow is only imported when this class is instantiated.
-
-    Parameters
-    ----------
-    spacing : int, optional
-        Spacing value to be used by the layer. Default is 50.
-    **kwargs : dict
-        Additional keyword arguments for the base Layer class.
-
-    Attributes
-    ----------
-    spacing : int
-        The spacing value used by the layer.
     """
     # Custom behavior when creating an instance, if needed
     def __new__(cls, *args, spacing: int = 50, **kwargs):

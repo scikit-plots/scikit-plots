@@ -508,7 +508,7 @@ html_theme_options = {
   "switcher": {
     # "json_url": "https://scikit-plots.github.io/dev/_static/versions.json",
     "json_url": "https://scikit-plots.github.io/dev/_static/switcher.json",
-    "version_match": release,
+    "version_match": release.split('+')[0],  # without git
   },
   # check_switcher may be set to False if docbuild pipeline fails. See
   # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html#configure-switcher-json-url

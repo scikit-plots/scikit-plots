@@ -43,7 +43,7 @@ Introduction
 
     .. grid-item-card::
         :padding: 2
-        :columns: 12 12 12 6
+        :columns: 12 12 12 12
 
         **Getting Started Guide**
         ^^^
