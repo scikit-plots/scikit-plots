@@ -36,7 +36,7 @@ reference on concepts repeated across the API, see :ref:`glossary`.
 {%- else -%}
 {%- set full_module = module -%}
 {%- endif %}
-  * - :obj:`~{{ module }}.{{ obj }}`  
+  * - :obj:`~.{{ obj }}`  
     - .. div:: sk-apisearch-desc
     
         .. currentmodule:: {{ full_module }}

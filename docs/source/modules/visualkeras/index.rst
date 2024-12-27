@@ -14,3 +14,15 @@ Visualkeras is a Python package to help visualize Keras (either standalone or in
 .. seealso::
 
    [1] https://github.com/paulgavrikov/visualkeras
+
+
+Graphical Visualization
+----------------------------------------------------------------------
+
+This module contains functions related to :py:mod:`~.visualkeras.graph_view`.
+
+
+Layered Visualization
+----------------------------------------------------------------------
+
+This module contains functions related to :py:mod:`~.visualkeras.layered_view`.

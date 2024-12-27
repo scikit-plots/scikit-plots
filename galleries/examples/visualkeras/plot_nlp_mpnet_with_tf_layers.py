@@ -77,10 +77,17 @@ dummy_output = tf.keras.layers.Dense(2, activation='softmax', name="dummy_classi
 wrapped_model = tf.keras.Model(inputs=[input_ids, attention_mask], outputs=dummy_output)
 
 # Visualize the wrapped model
-visualkeras.layered_view(
+img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
     wrapped_model,
     legend=True,
     show_dimension=True,
     scale_xy=1, scale_z=1, max_z=250,
     to_file="../result_images/nlp_mpnet_with_tf_layers.png"
 )
+try:
+    import matplotlib.pyplot as plt
+    plt.imshow(img_nlp_mpnet_with_tf_layers)
+    plt.axis('off')
+    plt.show()
+except:
+    pass

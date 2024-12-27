@@ -85,6 +85,12 @@ author = u'scikit-plots developers'
 # copyright = u'2017, Reiichiro S. Nakano'
 copyright = f"2024 - {datetime.datetime.now(tz=datetime.UTC).year}, {author} (BSD-3 Clause License)"
 
+##########################################################################
+## version
+##########################################################################
+
+import switcher; switcher.main()  # switcher.json
+
 # Import scikitplot information.
 import scikitplot as sp
 # from sklearn.externals._packaging.version import parse
@@ -1055,6 +1061,7 @@ autodoc_default_options = {
   # 'inherited-members': True,     # Show inherited members
   # 'show-inheritance': True,      # Show inheritance by default for all classes
 }
+
 ## Show both class-level and __init__ docstrings together
 ## Specifies what content to display for class-level docstrings.
 # 'both': Both the class and __init__ docstrings are combined. 'class' (default)

@@ -1,32 +1,27 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-
 """
 Methods for selecting the bin width of histograms.
 
 Ported from the astroML project: https://www.astroml.org/
 """
-
 from __future__ import annotations
-
-from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .bayesian_blocks import bayesian_blocks
-
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from numpy.typing import ArrayLike, NDArray
     from typing import Literal
 
-    from numpy.typing import ArrayLike, NDArray
+from .bayesian_blocks import bayesian_blocks
 
 __all__ = [
-    "calculate_bin_edges",
-    "freedman_bin_width",
-    "histogram",
-    "knuth_bin_width",
-    "scott_bin_width",
+  "calculate_bin_edges",
+  "freedman_bin_width",
+  "histogram",
+  "knuth_bin_width",
+  "scott_bin_width",
 ]
-
 
 def calculate_bin_edges(
     a: ArrayLike,
@@ -110,134 +105,6 @@ def calculate_bin_edges(
 
     return bins
 
-
-def histogram(
-    a: ArrayLike,
-    bins: int
-    | list[float]
-    | Literal["blocks", "knuth", "scott", "freedman"]
-    | None = 10,
-    range: tuple[float, float] | None = None,
-    weights: ArrayLike | None = None,
-    **kwargs,
-) -> tuple[NDArray, NDArray]:
-    """Enhanced histogram function, providing adaptive binnings.
-
-    This is a histogram function that enables the use of more sophisticated
-    algorithms for determining bins.  Aside from the ``bins`` argument allowing
-    a string specified how bins are computed, the parameters are the same
-    as `numpy.histogram`.
-
-    Parameters
-    ----------
-    a : array-like
-        array of data to be histogrammed
-
-    bins : int, list, or str, optional
-        If bins is a string, then it must be one of:
-
-        - 'blocks' : use bayesian blocks for dynamic bin widths
-
-        - 'knuth' : use Knuth's rule to determine bins
-
-        - 'scott' : use Scott's rule to determine bins
-
-        - 'freedman' : use the Freedman-Diaconis rule to determine bins
-
-    range : tuple or None, optional
-        the minimum and maximum range for the histogram.  If not specified,
-        it will be (x.min(), x.max())
-
-    weights : array-like, optional
-        An array the same shape as ``a``. If given, the histogram accumulates
-        the value of the weight corresponding to ``a`` instead of returning the
-        count of values. This argument does not affect determination of bin
-        edges.
-
-    **kwargs : dict, optional
-        Extra arguments are described in `numpy.histogram`.
-
-    Returns
-    -------
-    hist : array
-        The values of the histogram. See ``density`` and ``weights`` for a
-        description of the possible semantics.
-    bin_edges : array of dtype float
-        Return the bin edges ``(length(hist)+1)``.
-
-    See Also
-    --------
-    numpy.histogram
-    """
-    bins = calculate_bin_edges(a, bins=bins, range=range, weights=weights)
-    # Now we call numpy's histogram with the resulting bin edges
-    return np.histogram(a, bins=bins, range=range, weights=weights, **kwargs)
-
-
-def scott_bin_width(
-    data: ArrayLike,
-    return_bins: bool | None = False,
-) -> float | tuple[float, NDArray]:
-    r"""Return the optimal histogram bin width using Scott's rule.
-
-    Scott's rule is a normal reference rule: it minimizes the integrated
-    mean squared error in the bin approximation under the assumption that the
-    data is approximately Gaussian.
-
-    Parameters
-    ----------
-    data : array-like, ndim=1
-        observed (one-dimensional) data
-    return_bins : bool, optional
-        if True, then return the bin edges
-
-    Returns
-    -------
-    width : float
-        optimal bin width using Scott's rule
-    bins : ndarray
-        bin edges: returned if ``return_bins`` is True
-
-    Notes
-    -----
-    The optimal bin width is
-
-    .. math::
-        \Delta_b = \frac{3.5\sigma}{n^{1/3}}
-
-    where :math:`\sigma` is the standard deviation of the data, and
-    :math:`n` is the number of data points [1]_.
-
-    References
-    ----------
-    .. [1] Scott, David W. (1979). "On optimal and data-based histograms".
-       Biometricka 66 (3): 605-610
-
-    See Also
-    --------
-    knuth_bin_width
-    freedman_bin_width
-    bayesian_blocks
-    histogram
-    """
-    data = np.asarray(data)
-    if data.ndim != 1:
-        raise ValueError("data should be one-dimensional")
-
-    n = data.size
-    sigma = np.std(data)
-
-    dx = 3.5 * sigma / (n ** (1 / 3))
-
-    if return_bins:
-        Nbins = np.ceil((data.max() - data.min()) / dx)
-        Nbins = max(1, Nbins)
-        bins = data.min() + dx * np.arange(Nbins + 1)
-        return dx, bins
-    else:
-        return dx
-
-
 def freedman_bin_width(
     data: ArrayLike,
     return_bins: bool | None = False,
@@ -315,73 +182,67 @@ def freedman_bin_width(
     else:
         return dx
 
+def histogram(
+    a: ArrayLike,
+    bins: int
+    | list[float]
+    | Literal["blocks", "knuth", "scott", "freedman"]
+    | None = 10,
+    range: tuple[float, float] | None = None,
+    weights: ArrayLike | None = None,
+    **kwargs,
+) -> tuple[NDArray, NDArray]:
+    """Enhanced histogram function, providing adaptive binnings.
 
-def knuth_bin_width(
-    data: ArrayLike,
-    return_bins: bool | None = False,
-    quiet: bool | None = True,
-) -> float | tuple[float, NDArray]:
-    r"""Return the optimal histogram bin width using Knuth's rule.
-
-    Knuth's rule is a fixed-width, Bayesian approach to determining
-    the optimal bin width of a histogram.
+    This is a histogram function that enables the use of more sophisticated
+    algorithms for determining bins.  Aside from the ``bins`` argument allowing
+    a string specified how bins are computed, the parameters are the same
+    as `numpy.histogram`.
 
     Parameters
     ----------
-    data : array-like, ndim=1
-        observed (one-dimensional) data
-    return_bins : bool, optional
-        if True, then return the bin edges
-    quiet : bool, optional
-        if True (default) then suppress stdout output from scipy.optimize
+    a : array-like
+        array of data to be histogrammed
+
+    bins : int, list, or str, optional
+        If bins is a string, then it must be one of:
+
+        - 'blocks' : use bayesian blocks for dynamic bin widths
+
+        - 'knuth' : use Knuth's rule to determine bins
+
+        - 'scott' : use Scott's rule to determine bins
+
+        - 'freedman' : use the Freedman-Diaconis rule to determine bins
+
+    range : tuple or None, optional
+        the minimum and maximum range for the histogram.  If not specified,
+        it will be (x.min(), x.max())
+
+    weights : array-like, optional
+        An array the same shape as ``a``. If given, the histogram accumulates
+        the value of the weight corresponding to ``a`` instead of returning the
+        count of values. This argument does not affect determination of bin
+        edges.
+
+    **kwargs : dict, optional
+        Extra arguments are described in `numpy.histogram`.
 
     Returns
     -------
-    dx : float
-        optimal bin width. Bins are measured starting at the first data point.
-    bins : ndarray
-        bin edges: returned if ``return_bins`` is True
-
-    Notes
-    -----
-    The optimal number of bins is the value M which maximizes the function
-
-    .. math::
-        F(M|x,I) = n\log(M) + \log\Gamma(\frac{M}{2})
-        - M\log\Gamma(\frac{1}{2})
-        - \log\Gamma(\frac{2n+M}{2})
-        + \sum_{k=1}^M \log\Gamma(n_k + \frac{1}{2})
-
-    where :math:`\Gamma` is the Gamma function, :math:`n` is the number of
-    data points, :math:`n_k` is the number of measurements in bin :math:`k`
-    [1]_.
-
-    References
-    ----------
-    .. [1] Knuth, K.H. "Optimal Data-Based Binning for Histograms".
-       arXiv:0605197, 2006
+    hist : array
+        The values of the histogram. See ``density`` and ``weights`` for a
+        description of the possible semantics.
+    bin_edges : array of dtype float
+        Return the bin edges ``(length(hist)+1)``.
 
     See Also
     --------
-    freedman_bin_width
-    scott_bin_width
-    bayesian_blocks
-    histogram
+    numpy.histogram
     """
-    # import here because of optional scipy dependency
-    from scipy import optimize
-
-    knuthF = _KnuthF(data)
-    dx0, bins0 = freedman_bin_width(data, True)
-    M = optimize.fmin(knuthF, len(bins0), disp=not quiet)[0]
-    bins = knuthF.bins(M)
-    dx = bins[1] - bins[0]
-
-    if return_bins:
-        return dx, bins
-    else:
-        return dx
-
+    bins = calculate_bin_edges(a, bins=bins, range=range, weights=weights)
+    # Now we call numpy's histogram with the resulting bin edges
+    return np.histogram(a, bins=bins, range=range, weights=weights, **kwargs)
 
 class _KnuthF:
     r"""Class which implements the function minimized by knuth_bin_width.
@@ -462,3 +323,132 @@ class _KnuthF:
             - self.gammaln(self.n + 0.5 * M)
             + np.sum(self.gammaln(nk + 0.5))
         )
+
+def knuth_bin_width(
+    data: ArrayLike,
+    return_bins: bool | None = False,
+    quiet: bool | None = True,
+) -> float | tuple[float, NDArray]:
+    r"""Return the optimal histogram bin width using Knuth's rule.
+
+    Knuth's rule is a fixed-width, Bayesian approach to determining
+    the optimal bin width of a histogram.
+
+    Parameters
+    ----------
+    data : array-like, ndim=1
+        observed (one-dimensional) data
+    return_bins : bool, optional
+        if True, then return the bin edges
+    quiet : bool, optional
+        if True (default) then suppress stdout output from scipy.optimize
+
+    Returns
+    -------
+    dx : float
+        optimal bin width. Bins are measured starting at the first data point.
+    bins : ndarray
+        bin edges: returned if ``return_bins`` is True
+
+    Notes
+    -----
+    The optimal number of bins is the value M which maximizes the function
+
+    .. math::
+        F(M|x,I) = n\log(M) + \log\Gamma(\frac{M}{2})
+        - M\log\Gamma(\frac{1}{2})
+        - \log\Gamma(\frac{2n+M}{2})
+        + \sum_{k=1}^M \log\Gamma(n_k + \frac{1}{2})
+
+    where :math:`\Gamma` is the Gamma function, :math:`n` is the number of
+    data points, :math:`n_k` is the number of measurements in bin :math:`k`
+    [1]_.
+
+    References
+    ----------
+    .. [1] Knuth, K.H. "Optimal Data-Based Binning for Histograms".
+       arXiv:0605197, 2006
+
+    See Also
+    --------
+    freedman_bin_width
+    scott_bin_width
+    bayesian_blocks
+    histogram
+    """
+    # import here because of optional scipy dependency
+    from scipy import optimize
+
+    knuthF = _KnuthF(data)
+    dx0, bins0 = freedman_bin_width(data, True)
+    M = optimize.fmin(knuthF, len(bins0), disp=not quiet)[0]
+    bins = knuthF.bins(M)
+    dx = bins[1] - bins[0]
+
+    if return_bins:
+        return dx, bins
+    else:
+        return dx
+
+def scott_bin_width(
+    data: ArrayLike,
+    return_bins: bool | None = False,
+) -> float | tuple[float, NDArray]:
+    r"""Return the optimal histogram bin width using Scott's rule.
+
+    Scott's rule is a normal reference rule: it minimizes the integrated
+    mean squared error in the bin approximation under the assumption that the
+    data is approximately Gaussian.
+
+    Parameters
+    ----------
+    data : array-like, ndim=1
+        observed (one-dimensional) data
+    return_bins : bool, optional
+        if True, then return the bin edges
+
+    Returns
+    -------
+    width : float
+        optimal bin width using Scott's rule
+    bins : ndarray
+        bin edges: returned if ``return_bins`` is True
+
+    Notes
+    -----
+    The optimal bin width is
+
+    .. math::
+        \Delta_b = \frac{3.5\sigma}{n^{1/3}}
+
+    where :math:`\sigma` is the standard deviation of the data, and
+    :math:`n` is the number of data points [1]_.
+
+    References
+    ----------
+    .. [1] Scott, David W. (1979). "On optimal and data-based histograms".
+       Biometricka 66 (3): 605-610
+
+    See Also
+    --------
+    knuth_bin_width
+    freedman_bin_width
+    bayesian_blocks
+    histogram
+    """
+    data = np.asarray(data)
+    if data.ndim != 1:
+        raise ValueError("data should be one-dimensional")
+
+    n = data.size
+    sigma = np.std(data)
+
+    dx = 3.5 * sigma / (n ** (1 / 3))
+
+    if return_bins:
+        Nbins = np.ceil((data.max() - data.min()) / dx)
+        Nbins = max(1, Nbins)
+        bins = data.min() + dx * np.arange(Nbins + 1)
+        return dx, bins
+    else:
+        return dx

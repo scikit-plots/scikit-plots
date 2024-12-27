@@ -26,12 +26,19 @@ model = tf.keras.applications.ResNet50V2(
     classifier_activation="softmax",
     name="resnet50v2",
 )
-visualkeras.layered_view(
+img_resnet50v2 = visualkeras.layered_view(
   model,
   legend=True,
   show_dimension=True,
   to_file='../result_images/resnet50v2.png',
 )
+try:
+    import matplotlib.pyplot as plt
+    plt.imshow(img_resnet50v2)
+    plt.axis('off')
+    plt.show()
+except:
+    pass
 
 # model = tf.keras.applications.ResNet101V2(
 #     include_top=True,

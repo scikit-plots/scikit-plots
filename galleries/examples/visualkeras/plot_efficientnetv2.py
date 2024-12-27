@@ -26,12 +26,19 @@ model = tf.keras.applications.EfficientNetV2B0(
     classifier_activation="softmax",
     name="efficientnetv2-b0",
 )
-visualkeras.layered_view(
+img_efficientnetv2 = visualkeras.layered_view(
   model,
   legend=True,
   show_dimension=True,
   to_file='../result_images/efficientnetv2-b0.png',
 )
+try:
+    import matplotlib.pyplot as plt
+    plt.imshow(img_efficientnetv2)
+    plt.axis('off')
+    plt.show()
+except:
+    pass
 
 # model = tf.keras.applications.EfficientNetV2B1(
 #     include_top=True,

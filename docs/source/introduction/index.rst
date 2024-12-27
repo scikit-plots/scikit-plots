@@ -21,7 +21,7 @@ Introduction
 
     .. grid-item-card::
         :padding: 2
-        :columns: 6
+        :columns: auto
 
         **Installation**
         ^^^
@@ -32,7 +32,7 @@ Introduction
 
     .. grid-item-card::
         :padding: 2
-        :columns: 6
+        :columns: auto
 
         **Quickstart Tutorial**
         ^^^
@@ -43,7 +43,7 @@ Introduction
 
     .. grid-item-card::
         :padding: 2
-        :columns: 12
+        :columns: 12 12 12 6
 
         **Getting Started Guide**
         ^^^

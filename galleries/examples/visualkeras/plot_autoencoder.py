@@ -35,5 +35,21 @@ autoencoder = tf.keras.Model(encoder_input, decoder_output, name='autoencoder')
 
 from scikitplot import visualkeras
 
-visualkeras.layered_view(encoder, to_file='../result_images/encoder.png')
-visualkeras.layered_view(autoencoder, to_file='../result_images/autoencoder.png')
+img_encoder = visualkeras.layered_view(
+  encoder,
+  to_file='../result_images/encoder.png'
+)
+img_autoencoder = visualkeras.layered_view(
+  autoencoder,
+  to_file='../result_images/autoencoder.png'
+)
+try:
+    import matplotlib.pyplot as plt
+    plt.imshow(img_encoder)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_autoencoder)
+    plt.axis('off')
+    plt.show()
+except:
+    pass

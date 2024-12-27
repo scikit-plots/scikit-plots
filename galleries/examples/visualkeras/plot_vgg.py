@@ -43,9 +43,16 @@ model = tf.keras.applications.VGG19(
     classifier_activation="softmax",
     name="vgg19",
 )
-visualkeras.layered_view(
+img_vgg19 = visualkeras.layered_view(
   model,
   legend=True,
   show_dimension=True,
   to_file='../result_images/vgg19.png',
 )
+try:
+    import matplotlib.pyplot as plt
+    plt.imshow(img_vgg19)
+    plt.axis('off')
+    plt.show()
+except:
+    pass

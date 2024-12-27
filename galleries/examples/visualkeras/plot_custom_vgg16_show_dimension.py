@@ -104,23 +104,63 @@ def get_font():
 # Example usage
 font = get_font()
 
-visualkeras.layered_view(model, legend=True, show_dimension=True, to_file='../result_images/vgg16_show_dimension.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer])
-
-visualkeras.layered_view(model, legend=True, show_dimension=True, to_file='../result_images/vgg16_legend_show_dimension.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer], font=font)
-
-visualkeras.layered_view(model, legend=True, show_dimension=True, to_file='../result_images/vgg16_spacing_layers_show_dimension.png',
-                         type_ignore=[], spacing=0)
-
-visualkeras.layered_view(model, legend=True, show_dimension=True, to_file='../result_images/vgg16_type_ignore_show_dimension.png',
-                         type_ignore=[tf.keras.layers.ZeroPadding2D, tf.keras.layers.Dropout, tf.keras.layers.Flatten, visualkeras.SpacingDummyLayer])
-
-visualkeras.layered_view(model, legend=True, show_dimension=True, to_file='../result_images/vgg16_color_map_show_dimension.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer], color_map=color_map)
-
-visualkeras.layered_view(model, legend=True, show_dimension=True, to_file='../result_images/vgg16_flat_show_dimension.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer], draw_volume=False)
-
-visualkeras.layered_view(model, legend=True, show_dimension=True, to_file='../result_images/vgg16_scaling_show_dimension.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer], scale_xy=1, scale_z=1, max_z=1000)
+img_vgg16_show_dimension = visualkeras.layered_view(
+  model, legend=True, show_dimension=True,
+  to_file='../result_images/vgg16_show_dimension.png',
+  type_ignore=[visualkeras.SpacingDummyLayer]
+)
+img_vgg16_legend_show_dimension = visualkeras.layered_view(
+  model, legend=True, show_dimension=True,
+  to_file='../result_images/vgg16_legend_show_dimension.png',
+  type_ignore=[visualkeras.SpacingDummyLayer], font=font
+)
+img_vgg16_spacing_layers_show_dimension = visualkeras.layered_view(
+  model, legend=True, show_dimension=True,
+  to_file='../result_images/vgg16_spacing_layers_show_dimension.png',
+  type_ignore=[], spacing=0
+)
+img_vgg16_type_ignore_show_dimension = visualkeras.layered_view(
+  model, legend=True, show_dimension=True,
+  to_file='../result_images/vgg16_type_ignore_show_dimension.png',
+  type_ignore=[tf.keras.layers.ZeroPadding2D, tf.keras.layers.Dropout, tf.keras.layers.Flatten, visualkeras.SpacingDummyLayer]
+)
+img_vgg16_color_map_show_dimension = visualkeras.layered_view(
+  model, legend=True, show_dimension=True,
+  to_file='../result_images/vgg16_color_map_show_dimension.png',
+  type_ignore=[visualkeras.SpacingDummyLayer], color_map=color_map
+)
+img_vgg16_flat_show_dimension = visualkeras.layered_view(
+  model, legend=True, show_dimension=True,
+  to_file='../result_images/vgg16_flat_show_dimension.png',
+  type_ignore=[visualkeras.SpacingDummyLayer], draw_volume=False
+)
+img_vgg16_scaling_show_dimension = visualkeras.layered_view(
+  model, legend=True, show_dimension=True,
+  to_file='../result_images/vgg16_scaling_show_dimension.png',
+  type_ignore=[visualkeras.SpacingDummyLayer], scale_xy=1, scale_z=1, max_z=1000
+)
+try:
+    import matplotlib.pyplot as plt
+    plt.imshow(img_vgg16_show_dimension)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_legend_show_dimension)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_spacing_layers_show_dimension)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_type_ignore_show_dimension)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_color_map_show_dimension)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_flat_show_dimension)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_scaling_show_dimension)
+    plt.axis('off')
+    plt.show()
+except:
+    pass

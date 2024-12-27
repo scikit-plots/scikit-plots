@@ -2,23 +2,16 @@ r"""
 Tweedie Distribution Module
 ===============================================
 
-This module implements the Tweedie distribution, a member of the exponential dispersion model (EDM) family, using SciPy's :py:mod:`~scipy.stats.rv_continuous` class.
-It is especially useful for modeling claim amounts in the insurance industry, where data often exhibit a mixture of zeroes and positive continuous values.
+This module implements the Tweedie distribution,
+a member of the exponential dispersion model (EDM) family,
+using SciPy's :py:mod:`~scipy.stats.rv_continuous` class.
 
-The primary focus of this package is the compound-Poisson behavior of the Tweedie distribution, particularly in the range `1 < p < 2`.
+It is especially useful for modeling claim amounts in the insurance industry,
+where data often exhibit a mixture of zeroes and positive continuous values.
+
+The primary focus of this package is the compound-Poisson behavior
+of the Tweedie distribution, particularly in the range `1 < p < 2`.
 However, it supports calculations for all valid values of the shape parameter `p`.
-
-Features
---------
-- Supports modeling data with a point mass at zero and a continuous positive domain.
-- Parameterized by a mean and a variance function of the form `Var(Y) = \phi \mu^p`, where `p` is a shape parameter.
-- Encompasses well-known distributions as special cases for specific values of `p`.
-- Implements SciPy's :py:mod:`~scipy.stats.rv_continuous` class for seamless integration with Python scientific libraries.
-
-Notes
------
-The probability density function (PDF) of the Tweedie distribution cannot be expressed in a closed form for most values of `p`.
-However, approximations and numerical methods are employed to compute the PDF for practical purposes.
 """
 # scikitplot/_tweedie/__init__.py
 

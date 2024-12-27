@@ -104,23 +104,63 @@ def get_font():
 # Example usage
 font = get_font()
 
-visualkeras.layered_view(model, to_file='../result_images/vgg16.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer])
-
-visualkeras.layered_view(model, to_file='../result_images/vgg16_legend.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer], legend=True, font=font)
-
-visualkeras.layered_view(model, to_file='../result_images/vgg16_spacing_layers.png',
-                         type_ignore=[], spacing=0)
-
-visualkeras.layered_view(model, to_file='../result_images/vgg16_type_ignore.png',
-                         type_ignore=[tf.keras.layers.ZeroPadding2D, tf.keras.layers.Dropout, tf.keras.layers.Flatten, visualkeras.SpacingDummyLayer])
-
-visualkeras.layered_view(model, to_file='../result_images/vgg16_color_map.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer], color_map=color_map)
-
-visualkeras.layered_view(model, to_file='../result_images/vgg16_flat.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer], draw_volume=False)
-
-visualkeras.layered_view(model, to_file='../result_images/vgg16_scaling.png',
-                         type_ignore=[visualkeras.SpacingDummyLayer], scale_xy=1, scale_z=1, max_z=1000)
+img_vgg16 = visualkeras.layered_view(
+  model,
+  to_file='../result_images/vgg16.png',
+  type_ignore=[visualkeras.SpacingDummyLayer]
+)
+img_vgg16_legend = visualkeras.layered_view(
+  model,
+  to_file='../result_images/vgg16_legend.png',
+  type_ignore=[visualkeras.SpacingDummyLayer], legend=True, font=font
+)
+img_vgg16_spacing_layers = visualkeras.layered_view(
+  model,
+  to_file='../result_images/vgg16_spacing_layers.png',
+  type_ignore=[], spacing=0
+)
+img_vgg16_type_ignore = visualkeras.layered_view(
+  model,
+  to_file='../result_images/vgg16_type_ignore.png',
+  type_ignore=[tf.keras.layers.ZeroPadding2D, tf.keras.layers.Dropout, tf.keras.layers.Flatten, visualkeras.SpacingDummyLayer]
+)
+img_vgg16_color_map = visualkeras.layered_view(
+  model,
+  to_file='../result_images/vgg16_color_map.png',
+  type_ignore=[visualkeras.SpacingDummyLayer], color_map=color_map
+)
+img_vgg16_flat = visualkeras.layered_view(
+  model,
+  to_file='../result_images/vgg16_flat.png',
+  type_ignore=[visualkeras.SpacingDummyLayer], draw_volume=False
+)
+img_vgg16_scaling = visualkeras.layered_view(
+  model,
+  to_file='../result_images/vgg16_scaling.png',
+  type_ignore=[visualkeras.SpacingDummyLayer], scale_xy=1, scale_z=1, max_z=1000
+)
+try:
+    import matplotlib.pyplot as plt
+    plt.imshow(img_vgg16)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_legend)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_spacing_layers)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_type_ignore)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_color_map)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_flat)
+    plt.axis('off')
+    plt.show()
+    plt.imshow(img_vgg16_scaling)
+    plt.axis('off')
+    plt.show()
+except:
+    pass

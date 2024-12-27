@@ -4,22 +4,31 @@ The functions in this module provide faster versions of np.nan*
 functions using the optional bottleneck package if it is installed. If
 bottleneck is not installed, then the np.nan* functions are used.
 """
-
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING
-
 import numpy as np
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike, NDArray
+    from collections.abc import Callable
 
 from .funcs import mad_std  # astropy.stats.funcs
 # from astropy.units import Quantity  # astropy.units
 # from astropy.utils.compat.optional_deps import HAS_BOTTLENECK
 from scikitplot._compat.optional_deps import HAS_BOTTLENECK
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-    from numpy.typing import ArrayLike, NDArray
+__all__ = [
+  "nansum",
+  "nanmin",
+  "nanmax",
+  "nanmean",
+  "nanmedian",
+  "nanstd",
+  "nanvar",
+  "nanmadstd",
+]
 
 
 if HAS_BOTTLENECK:

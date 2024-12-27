@@ -22,9 +22,16 @@ model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accurac
 
 from scikitplot import visualkeras
 
-visualkeras.layered_view(
-  model, to_file='../result_images/spam.png',
-  min_xy=10, min_z=10,
-  scale_xy=100, scale_z=100,
+img_spam = visualkeras.layered_view(
+  model,
+  to_file='../result_images/spam.png',
+  min_xy=10, min_z=10, scale_xy=100, scale_z=100,
   one_dim_orientation='x',
 )
+try:
+    import matplotlib.pyplot as plt
+    plt.imshow(img_spam)
+    plt.axis('off')
+    plt.show()
+except:
+    pass

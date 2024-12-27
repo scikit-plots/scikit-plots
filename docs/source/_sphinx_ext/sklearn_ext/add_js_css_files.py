@@ -30,13 +30,13 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
     JS and CSS files should be added here instead.
     """
     # Adding a custom variable to the context dictionary for every page
-    api_search_js_path = "scripts/api-search.js"
+    api_search_js_path  = "scripts/api-search.js"
     api_search_css_path = "styles/api-search.css"
-    index_css_path = "styles/index.css"
-    api_css_path = "styles/api.css"
+    index_css_path      = "styles/index.css"
+    api_css_path        = "styles/api.css"
   
-    shell_js_path = "shell_scripts.js"
-    shell_css_path = "shell_styles.css"
+    shell_js_path       = "shell_scripts.js"
+    shell_css_path      = "shell_styles.css"
     shell_code_css_path = "shell_code_styles.css"
 
     # missing_file = []

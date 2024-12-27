@@ -1,5 +1,4 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-
 """Bayesian Blocks for Time Series Analysis.
 
 Bayesian Blocks for Time Series Analysis
@@ -33,6 +32,8 @@ as for irregularly-spaced time series events. The easiest interface for
 creating Bayesian Blocks histograms is the :func:`astropy.stats.histogram`
 function.
 
+For detailed explanations see [1]_-[2]_-[3]_-[4]_.
+
 References
 ----------
 .. [1] https://ui.adsabs.harvard.edu/abs/2013ApJ...764..167S
@@ -44,29 +45,32 @@ References
    straight lines. J. Amer. Statist. Assoc. 64, 1079–1084.
    https://www.tandfonline.com/doi/abs/10.1080/01621459.1969.10501038
 """
-
 from __future__ import annotations
 
 import warnings
 from inspect import signature
-from typing import TYPE_CHECKING
-
 import numpy as np
-# from astropy.utils.exceptions import AstropyUserWarning
-from scikitplot._utils.exceptions import ScikitplotUserWarning as AstropyUserWarning
 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from numpy.typing import ArrayLike, NDArray
     from collections.abc import KeysView
     from typing import Literal
-
-    from numpy.typing import ArrayLike, NDArray
+  
+# from astropy.utils.exceptions import AstropyUserWarning
+from scikitplot._utils.exceptions import ScikitplotUserWarning as AstropyUserWarning
 
 # TODO: typing: use a custom-defined 'ArrayLike-but-not-a-scalar' type for `float | ArrayLike` or `ArrayLike | float` hints
 
 # TODO: implement other fitness functions from appendix C of Scargle 2013
 
-__all__ = ["Events", "FitnessFunc", "PointMeasures", "RegularEvents", "bayesian_blocks"]
-
+__all__ = [
+  "Events",
+  "FitnessFunc",
+  "PointMeasures",
+  "RegularEvents",
+  "bayesian_blocks",
+]
 
 def bayesian_blocks(
     t: ArrayLike,
@@ -79,6 +83,8 @@ def bayesian_blocks(
 
     This is a flexible implementation of the Bayesian Blocks algorithm
     described in Scargle 2013 [1]_.
+
+    For detailed explanations see [1]_-[2]_-[3]_.
 
     Parameters
     ----------
@@ -159,15 +165,15 @@ def bayesian_blocks(
     References
     ----------
     .. [1] Scargle, J et al. (2013)
-       https://ui.adsabs.harvard.edu/abs/2013ApJ...764..167S
+       https://ui.adsabs.harvard.edu/abs/2013ApJ...764..167S/
 
     .. [2] Bellman, R.E., Dreyfus, S.E., 1962. Applied Dynamic
        Programming. Princeton University Press, Princeton.
-       https://press.princeton.edu/books/hardcover/9780691651873/applied-dynamic-programming
+       https://press.princeton.edu/books/hardcover/9780691651873/applied-dynamic-programming/
 
     .. [3] Bellman, R., Roth, R., 1969. Curve fitting by segmented
        straight lines. J. Amer. Statist. Assoc. 64, 1079–1084.
-       https://www.tandfonline.com/doi/abs/10.1080/01621459.1969.10501038
+       https://www.tandfonline.com/doi/abs/10.1080/01621459.1969.10501038/
 
     See Also
     --------

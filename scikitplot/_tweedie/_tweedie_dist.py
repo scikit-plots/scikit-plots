@@ -1,75 +1,55 @@
-"""
+r"""
 Tweedie Distribution Module
 ===============================================
 
-This module implements the Tweedie distribution, a member of the exponential dispersion model (EDM) family, using SciPy's `rv_continuous` class. It is especially useful for modeling claim amounts in the insurance industry, where data often exhibit a mixture of zeroes and positive continuous values.
+This module implements the Tweedie distribution,
+a member of the exponential dispersion model (EDM) family,
+using SciPy's :py:mod:`~scipy.stats.rv_continuous` class.
 
-The primary focus of this package is the compound-Poisson behavior of the Tweedie distribution, particularly in the range `1 < p < 2`. However, it supports calculations for all valid values of the shape parameter `p`.
+It is especially useful for modeling claim amounts in the insurance industry,
+where data often exhibit a mixture of zeroes and positive continuous values.
 
-Classes
--------
-tweedie_gen :
-    A generator class for Tweedie continuous random variables. Provides parameterization options for users to work with the Tweedie distribution in diverse modeling scenarios.
-
-tweedie :
-    An instance of `tweedie_gen`, offering predefined Tweedie distribution functionality.
-
-Parameters
-----------
-mu : float
-    The mean of the Tweedie distribution.
-phi : float
-    The dispersion parameter of the Tweedie distribution.
-p : float
-    The shape parameter of the Tweedie distribution, which defines its specific form.
-
-Features
---------
-- Supports modeling data with a point mass at zero and a continuous positive domain.
-- Parameterized by a mean and a variance function of the form `Var(Y) = \phi \mu^p`, where `p` is a shape parameter.
-- Encompasses well-known distributions as special cases for specific values of `p`.
-- Implements SciPy's `rv_continuous` class for seamless integration with Python scientific libraries.
-
-Special Cases of the Tweedie Distribution
------------------------------------------
-The Tweedie distribution family includes several well-known distributions based on the value of the shape parameter `p`:
-
-- `p = 0` : Normal distribution
-- `p = 1` : Poisson distribution
-- `1 < p < 2` : Compound Poisson-Gamma distribution
-- `p = 2` : Gamma distribution
-- `2 < p < 3` : Positive stable distributions
-- `p = 3` : Inverse Gaussian distribution
-- `p > 3` : Positive stable distributions
-
-The Tweedie distribution is undefined for values of `p` in the range `(0, 1)`.
-
-Applications
-------------
-The Tweedie distribution is widely used in:
-
-- Insurance industry: Modeling claim amounts and policy exposure.
-- Medical and genomic testing: Analyzing datasets with zero-inflated and continuous positive values.
-- Environmental science: Rainfall modeling and hydrology studies.
+The primary focus of this package is the compound-Poisson behavior
+of the Tweedie distribution, particularly in the range `1 < p < 2`.
+However, it supports calculations for all valid values of the shape parameter `p`.
 
 Notes
 -----
-The probability density function (PDF) of the Tweedie distribution cannot be expressed in a closed form for most values of `p`. However, approximations and numerical methods are employed to compute the PDF for practical purposes.
+The probability density function (PDF) of the Tweedie distribution cannot be expressed in a closed form for most values of `p`.
+However, approximations and numerical methods are employed to compute the PDF for practical purposes.
+
+The Tweedie distribution family includes several well-known distributions based on the value of the shape parameter `p`:
+
+- `p = 0`     : Normal distribution
+- `p = 1`     : Poisson distribution
+- `1 < p < 2` : Compound Poisson-Gamma distribution
+- `p = 2`     : Gamma distribution
+- `2 < p < 3` : Positive stable distributions
+- `p = 3`     : Inverse Gaussian distribution
+- `p > 3`     : Positive stable distributions
+
+The Tweedie distribution is undefined for values of `p` in the range `(0, 1)`.
 
 References
 ----------
-1. Jørgensen, B. (1987). "Exponential dispersion models". Journal of the Royal Statistical Society, Series B. 49 (2): 127–162.
-2. Tweedie, M. C. K. (1984). "An index which distinguishes between some important exponential families". In Statistics: Applications and New Directions. Proceedings of the Indian Statistical Institute Golden Jubilee International Conference.
-3. Statistical Methods Series: Zero-Inflated GLM and GLMM. [YouTube]
-4https://www.statisticshowto.com/tweedie-distribution/
+[1] Jørgensen, B. (1987). "Exponential dispersion models".
+    Journal of the Royal Statistical Society, Series B. 49 (2): 127–162.
+    
+[2] Tweedie, M. C. K. (1984). "An index which distinguishes between some important exponential families".
+    In Statistics: Applications and New Directions.
+    Proceedings of the Indian Statistical Institute Golden Jubilee International Conference.
+    
+[3] Statistical Methods Series: Zero-Inflated GLM and GLMM. [YouTube]
 
-.. seealso::
+[4] https://www.statisticshowto.com/tweedie-distribution/
 
-   [1] https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html
-   
-   [2] https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution
-   
-   [3] https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood
+See Also
+--------
+[GLM Tweedie](https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html)
+
+[GLM TweedieDistribution](https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution)
+
+[GLM TweedieDistribution log_likelihood](https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood)
 """
 from __future__ import division
 
@@ -85,21 +65,14 @@ __all__ = [
 
 
 class tweedie_gen(rv_continuous):
-    r"""A Tweedie continuous random variable.
+    r"""A Tweedie continuous random variable inherited :py:class:`scipy.stats.rv_continuous`.
     
-    .. dropdown:: View aliases
-
-        **Main aliases**
-        
-        `scikitplot.stats._tweedie.tweedie_gen`
-
-        **Compat aliases**
-        
-        `scikitplot.stats.tweedie_gen`
-        
     See Also
     --------
-    tweedie : An instance of `tweedie_gen`, providing Tweedie distribution functionality.
+    tweedie :
+        An instance of :py:class:`tweedie_gen`, providing Tweedie distribution functionality.
+    scipy.stats.rv_continuous :
+        doc https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rv_continuous.html
 
     Notes
     -----
@@ -284,17 +257,7 @@ almost_zero = np.nextafter(0, -1)
 tweedie = tweedie_gen(name='tweedie', a=almost_zero, b=np.inf,
                       shapes='p, mu, phi')
 tweedie.__doc__ = """\
-An instance of `tweedie_gen`, providing Tweedie distribution functionality.
-    
-.. dropdown:: View aliases
-
-    **Main aliases**
-    
-    `scikitplot.stats._tweedie.tweedie`
-
-    **Compat aliases**
-    
-    `scikitplot.stats.tweedie`
+An instance of :py:class:`tweedie_gen`, providing Tweedie distribution functionality.
 
 This instance provides:
 
@@ -313,6 +276,11 @@ by a `p` parameter that determines its behavior:
 - `p = 3`: Inverse Gaussian distribution
 - `1 < p < 2`: Compound Poisson-Gamma distribution
 
+See Also
+--------
+tweedie_gen :
+    A Tweedie continuous random variable.
+
 Parameters
 ----------
 p : float
@@ -321,11 +289,6 @@ mu : float
     Mean or location parameter.
 phi : float
     Dispersion parameter, controlling the variance of the distribution.
-        
-See Also
---------
-tweedie_gen : A Tweedie continuous random variable.
-
 
 Examples
 --------

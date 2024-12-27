@@ -7,17 +7,9 @@ handlers, and thread-safety. It extends Python's standard logging library
 to enhance usability and flexibility for large-scale projects.
 
 Module Dependencies:
-  - Python standard library: `logging`
+  - Python standard library: :py:mod:`logging`
 
 logging helpers, supports vendoring
-
-Key Features
-------------
-- `SpLogger`: A singleton-based logger ensuring a single shared instance across the application.
-- `get_logger`: Utility to initialize and retrieve the shared logger instance.
-- `PrettyJSONFormatter`: A formatter for pretty-printing log messages in JSON format.
-- `AlwaysStdErrHandler`: A handler that enforces logging to standard error (stderr) or optionally to standard output (stdout).
-- Utility functions for creating default formatters and handlers (`make_default_formatter`, `make_default_handler`).
 """
 # """
 # Classes
@@ -133,6 +125,7 @@ __all__ = [
   'info',
   'debug',
   'SpLogger',           # class based
+  'sp_logger',          # class instance
 ]
 
 # Don't use this directly. Use get_logger() instead.
@@ -547,6 +540,17 @@ def get_logger(use_stderr: bool = True) -> logging.Logger:
     """
     Return SP (scikitpot) logger instance.
     
+    See Also
+    --------
+    SpLogger :
+        A singleton logger class that provides a shared :py:class:`logging.Logger` instance
+        with customizable name, formatter, handler, logging level, and thread-safety.
+    sp_logger :
+        An instance of :py:class:`SpLogger` class, providing logging functionality.
+    logging.getLogger :
+        Standard library function to retrieve :py:class:`logging.Logger` instance.
+        For more: https://docs.python.org/3/library/logging.html
+    
     Returns
     -------
     logging.Logger
@@ -559,19 +563,19 @@ def get_logger(use_stderr: bool = True) -> logging.Logger:
 
     The logger has 5 levels of logging from the most serious to the least:
 
-    1. FATAL
-    2. ERROR
-    3. WARNING
-    4. INFO
-    5. DEBUG
+    1. `FATAL`
+    2. `ERROR`
+    3. `WARNING`
+    4. `INFO`
+    5. `DEBUG`
 
     The logger has the following methods, based on these logging levels:
 
-    1. fatal(msg, *args, **kwargs)
-    2. error(msg, *args, **kwargs)
-    3. warn(msg, *args, **kwargs)
-    4. info(msg, *args, **kwargs)
-    5. debug(msg, *args, **kwargs)
+    1. `fatal(msg, *args, **kwargs)`
+    2. `error(msg, *args, **kwargs)`
+    3. `warn(msg, *args, **kwargs)`
+    4. `info(msg, *args, **kwargs)`
+    5. `debug(msg, *args, **kwargs)`
 
     The `msg` can contain string formatting.  An example of logging at the `ERROR`
     level
@@ -708,6 +712,16 @@ class SpLogger(SingletonBase):
     This class implements the Singleton pattern, ensuring only a single instance of
     the logger exists throughout the application. It supports different log levels
     (e.g., DEBUG, INFO, WARNING) and thread-safe logging.
+
+    See Also
+    --------
+    sp_logger :
+        An instance of :py:class:`SpLogger` class, providing logging functionality.
+    get_logger :
+        Function that provides a shared :py:class:`logging.Logger` instance.
+    logging.getLogger :
+        Standard library function to retrieve :py:class:`logging.Logger` instance,
+        for more https://docs.python.org/3/library/logging.html.
     
     Attributes
     ----------
@@ -754,11 +768,11 @@ class SpLogger(SingletonBase):
     
     Here supported logging levels:
     
-    - CRITICAL, FATAL
-    - ERROR
-    - WARNING
-    - INFO
-    - DEBUG
+    - `CRITICAL`, `FATAL`
+    - `ERROR`
+    - `WARNING`
+    - `INFO`
+    - `DEBUG`
 
     The logger methods support string formatting. For example:
     
@@ -770,10 +784,6 @@ class SpLogger(SingletonBase):
     >>> sp.SpLogger().debug("This is a debug.")  # This will not be shown, as level is ERROR.
     >>> sp.SpLogger().info("This is a info.")    # This will not be shown, as level is ERROR.
     >>> sp.SpLogger().warning("This is a warning.")
-
-    .. see_also:
-       
-       Python Logging Documentation: `https://docs.python.org/3/library/logging.html`_
     
     Examples
     --------
@@ -788,10 +798,6 @@ class SpLogger(SingletonBase):
     Example of logging an INFO message by class:
 
     .. jupyter-execute::
-    
-        >>> from scikitplot import sp_logger as logging  # class instance logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
     
         >>> from scikitplot import SpLogger; logging=SpLogger()  # class logger
         >>> logging.setLevel(logging.INFO)  # default WARNING
@@ -1012,6 +1018,46 @@ class SpLogger(SingletonBase):
 
 # Instantiate the class so its methods can be accessed directly via the module
 sp_logger = SpLogger()
+sp_logger.__doc__ = """\
+An instance of :py:class:`SpLogger`, providing logging functionality.
+        
+See Also
+--------
+SpLogger :
+    A singleton logger class that provides a shared :py:class:`logging.Logger` instance
+    with customizable name, formatter, handler, logging level, and thread-safety.
+get_logger :
+    Function that provides a shared :py:class:`logging.Logger` instance.
+logging.getLogger :
+    Standard library function to retrieve :py:class:`logging.Logger` instance,
+    for more https://docs.python.org/3/library/logging.html.
+
+Examples
+--------
+Example of logging an INFO message by module:
+
+.. jupyter-execute::
+
+    >>> import scikitplot.sp_logging as logging  # module logger
+    >>> logging.setLevel(logging.INFO)  # default WARNING
+    >>> logging.info("This is a info message from the sp logger.")
+
+Example of logging an INFO message by class:
+
+.. jupyter-execute::
+
+    >>> from scikitplot import SpLogger; logging=SpLogger()  # class logger
+    >>> logging.setLevel(logging.INFO)  # default WARNING
+    >>> logging.info("This is a info message from the sp logger.")
+
+Example of logging an INFO message by class instance:
+
+.. jupyter-execute::
+
+    >>> from scikitplot import sp_logger as logging  # class instance logger
+    >>> logging.setLevel(logging.INFO)  # default WARNING
+    >>> logging.info("This is a info message from the sp logger.")
+"""
 
 ######################################################################
 ## 
