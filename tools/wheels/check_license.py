@@ -24,9 +24,9 @@ def check_text(text):
 
 def main():    
     p = argparse.ArgumentParser(usage=__doc__.rstrip())
-    p.add_argument("mod_name", nargs="?", default='scikitplot')  # import name format
+    p.add_argument("mod_name", nargs="?", default='scikitplot')        # import name format
     p.add_argument("package_name", nargs="?", default='scikit-plots')  # Package name format
-    p.add_argument("license_name", nargs="?", default='LICENSE')  # LICENSE file name format
+    p.add_argument("license_name", nargs="?", default='LICENSE')       # LICENSE file name format
     args = p.parse_args()
 
     # Drop '' from sys.path
@@ -50,16 +50,19 @@ def main():
     sitepkgs = pathlib.Path(mod.__file__).parent.parent  # This should give you the site-packages path
     print(f"Looking for .dist-info directory in: {sitepkgs}")
 
-    distinfo_paths = list(sitepkgs.glob(f"{args.package_name.replace('-', '_')}-*.dist-info"))  # Package name format
+    distinfo_path = f"{args.package_name.replace('-', '_')}-*.dist-info"  # Package name format
+    distinfo_paths = list(sitepkgs.glob(distinfo_path))
+    print(distinfo_paths)
 
     if not distinfo_paths:
-        print(f"ERROR: No .dist-info directory found for module '{args.mod_name}' in {sitepkgs}")
+        print(f"ERROR: No file found under '*.dist-info' directory for module '{args.mod_name}' in '{sitepkgs}'")
         sys.exit(1)
 
     distinfo_path = distinfo_paths[0]
     # Use glob pattern to find LICENSE files including subdirectories
-    license_files = list(sitepkgs.glob(f"{args.package_name.replace('-', '_')}-*.dist-info/{args.license_name}*"))
+    license_files = list(sitepkgs.glob(f"{distinfo_path}/{args.license_name}*"))
     print(license_files)
+  
     license_txt = distinfo_path / args.license_name
     # license_txt = os.path.join(os.path.dirname(mod.__file__), args.license_name)
 
