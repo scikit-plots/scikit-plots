@@ -109,10 +109,12 @@ readme = {file = "README.md", content-type = "text/markdown"}
 # TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
 # at that point, no longer include them in `py3.install_sources()`
 # [[project.license]]  # Usage individually, If Needed
-# license = {file = "LICENSE"}  # Primary license file
+license = {file = "LICENSE"}  # Primary license file
+
+# [tool.meson-python]
 # license-files field to be used only if the license field contains a valid SPDX license expression.
-license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later', 
-license-files = ['LICEN[CS]E*', 'LICENSE']  # must valid glob patterns
+# license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later', 
+# license-files = ['LICEN[CS]E*', 'LICENSE']  # must valid glob patterns
 
 # List the authors of the project
 # https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
