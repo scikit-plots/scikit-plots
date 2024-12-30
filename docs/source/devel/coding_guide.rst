@@ -4,6 +4,10 @@
 Coding guidelines
 *****************
 
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
+
 We appreciate these guidelines being followed because it improves the readability,
 consistency, and maintainability of the code base.
 

@@ -1,10 +1,12 @@
-.. redirect-from:: /devel/documenting_mpl
-
-.. _documenting-matplotlib:
+.. _documenting-scikit-plots:
 
 ===================
 Write documentation
 ===================
+
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
 
 Getting started
 ===============
@@ -51,6 +53,8 @@ To build the documentation you will need to
 :ref:`set up Matplotlib for development <installing_for_devs>`. Note in
 particular the :ref:`additional dependencies <doc-dependencies>` required to
 build the documentation.
+
+.. _build_docs:
 
 Build the docs
 --------------
@@ -371,7 +375,7 @@ a couple of static images::
 Files can be included verbatim.  For instance the ``LICENSE`` file is included
 at :ref:`license-agreement` using ::
 
-    .. literalinclude:: ../../LICENSE/LICENSE
+    .. literalinclude:: ../../../LICENSE
 
 The examples directory is copied to :file:`doc/gallery` by sphinx-gallery,
 so plots from the examples directory can be included using

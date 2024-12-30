@@ -3,6 +3,10 @@
 API guidelines
 ==============
 
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
+
 API consistency and stability are of great value; Therefore, API changes
 (e.g. signature changes, behavior changes, removals) will only be conducted
 if the added benefit is worth the effort of adapting existing code.
@@ -17,7 +21,7 @@ Add new API and features
 ------------------------
 
 Every new function, parameter and attribute that is not explicitly marked as
-private (i.e., starts with an underscore) becomes part of Matplotlib's public
+private (i.e., starts with an underscore) becomes part of scikit-plots's public
 API. As discussed above, changing the existing API is cumbersome. Therefore,
 take particular care when adding new API:
 
@@ -25,7 +29,7 @@ take particular care when adding new API:
   with an underscore.
 - Carefully think about good names for your functions and variables.
 - Try to adopt patterns and naming conventions from existing parts of the
-  Matplotlib API.
+  scikit-plots API.
 - Consider making as many arguments keyword-only as possible. See also
   `API Evolution the Right Way -- Add Parameters Compatibly`__.
 
@@ -54,7 +58,7 @@ them. While the decision is case-by-case, evaluation criteria include:
 Deprecate API
 -------------
 
-API changes in Matplotlib have to be performed following the deprecation process
+API changes in scikit-plots have to be performed following the deprecation process
 below, except in very rare circumstances as deemed necessary by the development
 team. Generally API deprecation happens in two stages:
 
@@ -138,8 +142,6 @@ Expire deprecation
      allowlist is required.
 
 
-.. redirect-from:: /devel/coding_guide#new-features-and-api-changes
-
 .. _api_whats_new:
 
 Announce new and deprecated API
@@ -149,24 +151,26 @@ When adding or changing the API in a backward in-compatible way, please add the
 appropriate :ref:`versioning directive <versioning-directives>` and document it
 for the release notes and add the entry to the appropriate folder:
 
-+-------------------+-----------------------------+----------------------------------------------+
-|                   |   versioning directive      |  announcement folder                         |
-+===================+=============================+==============================================+
-| new feature       | ``.. versionadded:: 3.N``   | :file:`doc/users/next_whats_new/`            |
-+-------------------+-----------------------------+----------------------------------------------+
-| API change        | ``.. versionchanged:: 3.N`` | :file:`doc/api/next_api_changes/[kind]`      |
-+-------------------+-----------------------------+----------------------------------------------+
+.. 
+  +-------------------+-----------------------------+----------------------------------------------+
+  |                   |   versioning directive      |  announcement folder                         |
+  +===================+=============================+==============================================+
+  | new feature       | ``.. versionadded:: 3.N``   | :file:`doc/users/next_whats_new/`            |
+  +-------------------+-----------------------------+----------------------------------------------+
+  | API change        | ``.. versionchanged:: 3.N`` | :file:`doc/api/next_api_changes/[kind]`      |
+  +-------------------+-----------------------------+----------------------------------------------+
 
 When deprecating API, please add a notice as described in the
 :ref:`deprecation guidelines <deprecation-guidelines>` and summarized here:
 
-+--------------------------------------------------+----------------------------------------------+
-|   stage                                          |             announcement folder              |
-+===========+======================================+==============================================+
-| :ref:`introduce deprecation <intro-deprecation>` | :file:`doc/api/next_api_changes/deprecation` |
-+-----------+--------------------------------------+----------------------------------------------+
-| :ref:`expire deprecation <expire-deprecation>`   | :file:`doc/api/next_api_changes/[kind]`      |
-+-----------+--------------------------------------+----------------------------------------------+
+..
+  +--------------------------------------------------+----------------------------------------------+
+  |   stage                                          |             announcement folder              |
+  +===========+======================================+==============================================+
+  | :ref:`introduce deprecation <intro-deprecation>` | :file:`doc/api/next_api_changes/deprecation` |
+  +-----------+--------------------------------------+----------------------------------------------+
+  | :ref:`expire deprecation <expire-deprecation>`   | :file:`doc/api/next_api_changes/[kind]`      |
+  +-----------+--------------------------------------+----------------------------------------------+
 
 Generally the introduction notices can be repurposed for the expiration notice as they
 are expected to be describing the same API changes and removals.
@@ -227,18 +231,19 @@ a cross-reference is included in the descriptive text.
 API change notes
 """"""""""""""""
 
-.. include:: ../api/next_api_changes/README.rst
-   :start-after: api-change-guide-start
-   :end-before: api-change-guide-end
+..
+    .. include:: ../api/next_api_changes/README.rst
+      :start-after: api-change-guide-start
+      :end-before: api-change-guide-end
 
 .. _whats-new-notes:
 
 What's new notes
 """"""""""""""""
-
-.. include:: ../users/next_whats_new/README.rst
-   :start-after: whats-new-guide-start
-   :end-before: whats-new-guide-end
+..  
+    .. include:: ../users/next_whats_new/README.rst
+      :start-after: whats-new-guide-start
+      :end-before: whats-new-guide-end
 
 Discourage API
 --------------
@@ -256,3 +261,8 @@ To do so, add a note to the docstring ::
 
 You find several examples for good descriptions if you search the codebase for
 ``.. admonition:: Discouraged``.
+
+Additionally, if a whole function is discouraged, prefix the summary line with
+``[*Discouraged*]`` so that it renders in the API overview like this
+
+    [*Discouraged*] Return the XAxis instance.

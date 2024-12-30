@@ -88,10 +88,10 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Classification
-#    model-workflow: Model Evaluation
-#    component: fitted-model
+#    model-type: classification
+#    model-workflow: model evaluation
+#    component: fitted model
 #    plot-type: line
-#    plot-type: calibration-plot
+#    plot-type: calibration plot
 #    level: beginner
 #    purpose: showcase

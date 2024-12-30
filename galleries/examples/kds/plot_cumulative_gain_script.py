@@ -56,9 +56,9 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Classification
-#    model-workflow: Model Evaluation
+#    model-type: classification
+#    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: cum-gain-curve
+#    plot-type: cum-gain curve
 #    level: beginner
 #    purpose: showcase

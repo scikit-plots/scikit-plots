@@ -63,8 +63,8 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Regression
-#    model-workflow: Model Evaluation
+#    model-type: regression
+#    model-workflow: model evaluation
 #    plot-type: histogram
 #    plot-type: qqplot
 #    domain: statistics

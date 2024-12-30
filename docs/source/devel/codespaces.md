@@ -1,9 +1,9 @@
-# Contributing to Matplotlib using GitHub codespaces
+# Contributing to scikit-plots using GitHub codespaces
 
-* For a general overview of contributing to Matplotlib, see https://matplotlib.org/devdocs/devel/index.html
+* For a general overview of contributing to scikit-plots, see https://scikit-plots.github.io/dev/devel/index.html
 
-* For instructions on how to submit Pull Requests using GitHub codespaces, see https://matplotlib.org/devdocs/devel/contribute.html#contributing-code
+* For instructions on how to submit Pull Requests using GitHub codespaces, see https://scikit-plots.github.io/dev/devel/contribute.html#contributing-code
 
-* For instructions on running tests to verify your changes, see https://matplotlib.org/devdocs/devel/testing.html
+* For instructions on running tests to verify your changes, see https://scikit-plots.github.io/dev/devel/testing.html
 
-* For instructions on building the Matplotlib documentation, see https://matplotlib.org/devdocs/devel/document.html#documenting-matplotlib
+* For instructions on building the scikit-plots documentation, see https://scikit-plots.github.io/dev/devel/document.html#documenting-scikit-plots

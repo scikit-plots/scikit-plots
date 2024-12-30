@@ -1,5 +1,6 @@
-import numpy
 import warnings
+import numpy
+
 from matplotlib.scale import ScaleBase
 from matplotlib.ticker import (
     FixedLocator,

@@ -57,9 +57,9 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Classification
-#    model-workflow: Model Evaluation
+#    model-type: classification
+#    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: pr-auc-curve
+#    plot-type: pr-auc curve
 #    level: beginner
 #    purpose: showcase

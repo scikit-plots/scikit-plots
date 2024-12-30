@@ -8,13 +8,13 @@ Contribute
 
    .. important::
 
-      If you plan to contribute to Matplotlib, please read the
-      `development version <https://matplotlib.org/devdocs/devel/index.html>`_
+      If you plan to contribute to scikit-plots, please read the
+      `development version <https://scikit-plots.github.io/dev/devel/index.html>`_
       of this document as it will have the most up to date installation
       instructions, workflow process, and contributing guidelines.
 
 :octicon:`heart;1em;sd-text-info` Thank you for your interest in helping to improve
-Matplotlib! :octicon:`heart;1em;sd-text-info`
+scikit-plots! :octicon:`heart;1em;sd-text-info`
 
 This project is a community effort, and everyone is welcome to contribute. Everyone
 within the community is expected to abide by our :ref:`code of conduct <code_of_conduct>`.
@@ -29,7 +29,7 @@ reporting and fixing bugs, requesting and implementing new features...
 GitHub issue tracker
 ====================
 
-The `issue tracker <https://github.com/matplotlib/matplotlib/issues>`_ serves as the
+The `issue tracker <https://github.com/scikit-plots/scikit-plots/issues>`_ serves as the
 centralized location for making feature requests, reporting bugs, identifying major
 projects to work on, and discussing priorities.
 
@@ -47,7 +47,7 @@ context that may be necessary for resolving the issue:
 
       Thank you for your help in keeping bug reports targeted and descriptive.
 
-      .. button-link:: https://github.com/matplotlib/matplotlib/issues/new/choose
+      .. button-link:: https://github.com/scikit-plots/scikit-plots/issues/new/choose
             :expand:
             :color: primary
 
@@ -61,20 +61,20 @@ context that may be necessary for resolving the issue:
 
       Thank you for your help in keeping feature requests well defined and tightly scoped.
 
-      .. button-link:: https://github.com/matplotlib/matplotlib/issues/new/choose
+      .. button-link:: https://github.com/scikit-plots/scikit-plots/issues/new/choose
          :expand:
          :color: primary
 
          Request a feature
 
-Since Matplotlib is an open source project with limited resources, we encourage users
+Since scikit-plots is an open source project with limited resources, we encourage users
 to also :ref:`participate <contribute_code>` in fixing bugs and implementing new
 features.
 
 Contributing guide
 ==================
 
-We welcome you to get more involved with the Matplotlib project! If you are new
+We welcome you to get more involved with the scikit-plots project! If you are new
 to contributing, we recommend that you first read our
 :ref:`contributing guide<contributing>`:
 
@@ -242,7 +242,7 @@ manage, or release manage, these guidelines describe how our current process wor
          release_guide
          communication_guide
          min_dep_policy
-         MEP/index
+         SEP/index
 
 Maintainer
 =======================

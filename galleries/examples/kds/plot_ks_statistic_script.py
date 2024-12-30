@@ -58,11 +58,11 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Classification
-#    model-workflow: Model Evaluation
+#    model-type: classification
+#    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: ks-statistic-curve
+#    plot-type: ks-statistic curve
 #    domain: statistics
-#    domain: Kolmogorov-Smirnov
+#    domain: KS (kolmogorov-smirnov)
 #    level: beginner
 #    purpose: showcase

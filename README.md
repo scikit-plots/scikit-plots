@@ -19,11 +19,13 @@ The quickest and easiest way to go from analysis...
 - Branches
   ```bash
   #pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@main               # latest
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@main               # Latest in Development
   pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x  # Added C,Cpp,Fortran Support
   pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x  # Pure Python
   pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7  # Pure Python
   ```
+  
+<br>
 
 - Tags
   ```bash
@@ -82,10 +84,10 @@ The quickest and easiest way to go from analysis...
   </tr>
   <tr>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-kds-plot_cumulative_gain-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-kds-plot_cumulative_gain-1.png">
     </td>
     <td style="width:50%;text-align:center;">
-      <img style="display:block;width:100%;height:auto;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-api-kds-plot_lift-1.png">
+      <img style="display:block;width:100%;height:auto;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/muhammed-dev/dev/_images/scikitplot-kds-plot_lift-1.png">
     </td>
   </tr>
 </table>

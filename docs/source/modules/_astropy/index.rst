@@ -4,7 +4,7 @@
 Astropy (Astronomy in Python)
 ======================================================================
 
-This module contains functions related to :py:mod:`~._astropy`.
+This module contains functions related to :py:mod:`~scikitplot._astropy`.
 
 Documentation is available in the docstrings and
 online at https://www.astropy.org/.

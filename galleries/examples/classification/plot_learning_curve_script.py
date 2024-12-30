@@ -53,9 +53,9 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Classification
-#    model-workflow: Model Evaluation
+#    model-type: classification
+#    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: learning-curve
+#    plot-type: learning curve
 #    level: beginner
 #    purpose: showcase

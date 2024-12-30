@@ -1,8 +1,9 @@
 import aggdraw
-import numpy as np
 from math import ceil
-from PIL import Image, ImageDraw
 from typing import Any
+
+import numpy as np
+from PIL import Image, ImageDraw
 
 from .utils import *
 from .layer_utils import *

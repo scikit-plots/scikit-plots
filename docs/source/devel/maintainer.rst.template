@@ -3,6 +3,10 @@
 Maintainer Information
 ======================
 
+.. admonition:: Template
+   
+   Template for further usage, template belong to scikit-learn.
+
 Releasing
 ---------
 
@@ -351,8 +355,8 @@ Individual commits are squashed when a PR is merged on GitHub. Before merging:
   Whether code contributions are significantly enough to merit co-authorship is left to
   the maintainer's discretion, same as for the what's new entry.
 
-The `scikit-learn.org` Website
-------------------------------
+The `scikit-plots.github.io` Website
+----------------------------------------
 
 The scikit-learn website (https://scikit-learn.org) is hosted on GitHub, but should
 rarely be updated manually by pushing to the

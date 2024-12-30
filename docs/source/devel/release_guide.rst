@@ -6,6 +6,10 @@
 Release guide
 =============
 
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
+
 
 .. admonition::  This document is only relevant for Matplotlib release managers.
 

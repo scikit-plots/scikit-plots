@@ -70,9 +70,9 @@ One More Example
 
 Although Scikit-plot is loosely based around the scikit-learn interface, you don't actually need Scikit-learn objects to use the available functions. As long as you provide the functions what they're asking for, they'll happily draw the plots for you.
 
-Use `Tensorflow <https://www.tensorflow.org>`_ or `Pytorch <https://pytorch.org>`_
+Try Deep Learning Models like `Tensorflow <https://www.tensorflow.org>`_ or `Pytorch <https://pytorch.org>`_ or  `🤗 Transformers <https://huggingface.co/docs/transformers/index>`_ etc.
 
-Here's a quick example to generate the precision-recall curves of a :py:mod:`~torch` or :py:mod:`~tensorflow.keras` Keras classifier model on a sample dataset.
+Here's a quick example to generate the precision-recall curves of a :py:class:`~tensorflow.keras.Model` or :py:class:`~torch.nn.Module` or :py:class:`~transformers.TFPreTrainedModel` model on a sample dataset.
 
 .. plot::
     :context: close-figs

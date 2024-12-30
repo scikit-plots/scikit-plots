@@ -1,35 +1,27 @@
 .. highlight:: bash
 
-.. redirect-from:: /devel/gitwash/configure_git
-.. redirect-from:: /devel/gitwash/dot2_dot3
-.. redirect-from:: /devel/gitwash/following_latest
-.. redirect-from:: /devel/gitwash/forking_hell
-.. redirect-from:: /devel/gitwash/git_development
-.. redirect-from:: /devel/gitwash/git_install
-.. redirect-from:: /devel/gitwash/git_intro
-.. redirect-from:: /devel/gitwash/git_resources
-.. redirect-from:: /devel/gitwash/patching
-.. redirect-from:: /devel/gitwash/set_up_fork
-.. redirect-from:: /devel/gitwash/index
-
 .. _installing_for_devs:
 
-=====================================
-Setting up Matplotlib for development
-=====================================
+=======================================
+Setting up scikit-plots for development
+=======================================
 
-To set up Matplotlib for development follow these steps:
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
+
+To set up scikit-plots for development follow these steps:
 
 .. contents::
    :local:
 
-Fork the Matplotlib repository
-==============================
+Fork the scikit-plots repository
+================================
 
-Matplotlib is hosted at https://github.com/matplotlib/matplotlib.git. If you
-plan on solving issues or submitting pull requests to the main Matplotlib
+scikit-plots is hosted at https://github.com/scikit-plots/scikit-plots.git. If you
+plan on solving issues or submitting pull requests to the main scikit-plots
 repository, you should first fork this repository by *clicking* the
-:octicon:`repo-forked` **Fork** button near the top of the `project repository <https://github.com/matplotlib/matplotlib>`_ page.
+:octicon:`repo-forked` **Fork** button near the top of the `project repository <https://github.com/scikit-plots/scikit-plots>`_ page.
 
 This creates a copy of the code under your account on the GitHub server. See `the GitHub
 documentation <https://docs.github.com/get-started/quickstart/fork-a-repo>`__ for more details.
@@ -47,13 +39,13 @@ commands (replace ``<your-username>`` with your GitHub username):
 
       .. code-block:: bash
 
-         git clone https://github.com/<your-username>/matplotlib.git
+         git clone https://github.com/<your-username>/scikit-plots.git
 
    .. tab-item:: ssh
 
       .. code-block:: bash
 
-         git clone git@github.com:<your-username>/matplotlib.git
+         git clone git@github.com:<your-username>/scikit-plots.git
 
       This requires you to setup an `SSH key`_ in advance, but saves you from
       typing your password at every connection.
@@ -61,13 +53,13 @@ commands (replace ``<your-username>`` with your GitHub username):
       .. _SSH key: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
 
 
-This will place the sources in a directory :file:`matplotlib` below your
+This will place the sources in a directory :file:`scikit-plots` below your
 current working directory and set the remote name ``origin`` to point to your
 fork. Change into this directory before continuing::
 
-    cd matplotlib
+    cd scikit-plots
 
-Now set the remote name ``upstream`` to point to the Matplotlib main repository:
+Now set the remote name ``upstream`` to point to the scikit-plots main repository:
 
 .. tab-set::
 
@@ -75,13 +67,13 @@ Now set the remote name ``upstream`` to point to the Matplotlib main repository:
 
       .. code-block:: bash
 
-         git remote add upstream https://github.com/matplotlib/matplotlib.git
+         git remote add upstream https://github.com/scikit-plots/scikit-plots.git
 
    .. tab-item:: ssh
 
       .. code-block:: bash
 
-         git remote add upstream git@github.com:matplotlib/matplotlib.git
+         git remote add upstream git@github.com:scikit-plots/scikit-plots.git
 
 You can now use ``upstream`` to retrieve the most current snapshot of the source
 code, as described in :ref:`development-workflow`.
@@ -108,8 +100,8 @@ code, as described in :ref:`development-workflow`.
 
 Create a dedicated environment
 ==============================
-You should set up a dedicated environment to decouple your Matplotlib
-development from other Python and Matplotlib installations on your system.
+You should set up a dedicated environment to decouple your scikit-plots
+development from other Python and scikit-plots installations on your system.
 
 We recommend using one of the following options for a dedicated development environment
 because these options are configured to install the Python dependencies as part of their
@@ -139,7 +131,7 @@ setup.
 
         pip install -r requirements/dev/dev-requirements.txt
 
-      Remember to activate the environment whenever you start working on Matplotlib!
+      Remember to activate the environment whenever you start working on scikit-plots!
 
    .. tab-item:: conda environment
 
@@ -156,13 +148,13 @@ setup.
 
         conda activate mpl-dev
 
-      Remember to activate the environment whenever you start working on Matplotlib!
+      Remember to activate the environment whenever you start working on scikit-plots!
 
    .. tab-item:: :octicon:`codespaces` GitHub Codespaces
 
       `GitHub Codespaces <https://docs.github.com/codespaces>`_ is a cloud-based
       in-browser development environment that comes with the appropriate setup to
-      contribute to Matplotlib.
+      contribute to scikit-plots.
 
       #. Open codespaces on your fork by clicking on the green :octicon:`code` ``Code``
          button on the GitHub web interface and selecting the ``Codespaces`` tab.
@@ -175,12 +167,12 @@ setup.
          tab where you can use the terminal to activate a pre-defined conda
          environment called ``mpl-dev``::
 
-         conda activate mpl-dev
+           conda activate mpl-dev
 
       Remember to activate the *mpl-dev* environment whenever you start working on
-      Matplotlib.
+      scikit-plots.
 
-      If you need to open a GUI window with Matplotlib output on Codespaces, our
+      If you need to open a GUI window with scikit-plots output on Codespaces, our
       configuration includes a `light-weight Fluxbox-based desktop
       <https://github.com/devcontainers/features/tree/main/src/desktop-lite>`_.
       You can use it by connecting to this desktop via your web browser. To do this:
@@ -219,17 +211,17 @@ need to be installed when working in codespaces.
 
 .. _development-install:
 
-Install Matplotlib in editable mode
-===================================
+Install scikit-plots in editable mode
+=====================================
 
-Install Matplotlib in editable mode from the :file:`matplotlib` directory using the
+Install scikit-plots in editable mode from the :file:`scikit-plots` directory using the
 command ::
 
     python -m pip install --verbose --no-build-isolation --editable ".[dev]"
 
 The 'editable/develop mode' builds everything and places links in your Python environment
-so that Python will be able to import Matplotlib from your development source directory.
-This allows you to import your modified version of Matplotlib without having to
+so that Python will be able to import scikit-plots from your development source directory.
+This allows you to import your modified version of scikit-plots without having to
 re-install after changing a ``.py`` or compiled extension file.
 
 When working on a branch that does not have Meson enabled, meaning it does not
@@ -237,7 +229,7 @@ have :ghpull:`26621` in its history (log), you will have to reinstall from sourc
 each time you change any compiled extension code.
 
 If the installation is not working, please consult the :ref:`troubleshooting guide <troubleshooting-faq>`.
-If the guide does not offer a solution, please reach out via `chat <https://gitter.im/matplotlib/matplotlib>`_
+If the guide does not offer a solution, please reach out via `chat <https://gitter.im/scikit-plots/scikit-plots>`_
 or :ref:`open an issue <submitting-a-bug-report>`.
 
 
@@ -259,19 +251,19 @@ For a list of the other environment variables you can set before install, see :r
 Verify the Installation
 =======================
 
-Run the following command to make sure you have correctly installed Matplotlib in
+Run the following command to make sure you have correctly installed scikit-plots in
 editable mode. The command should be run when the virtual environment is activated::
 
-    python -c "import matplotlib; print(matplotlib.__file__)"
+    python -c "import scikitplot; print(scikitplot.__file__)"
 
-This command should return : ``<matplotlib_local_repo>\lib\matplotlib\__init__.py``
+This command should return : ``<scikit-plots_local_repo>\scikitplot\__init__.py``
 
 We encourage you to run tests and build docs to verify that the code installed correctly
 and that the docs build cleanly, so that when you make code or document related changes
 you are aware of the existing issues beforehand.
 
 * Run test cases to verify installation :ref:`testing`
-* Verify documentation build :ref:`documenting-matplotlib`
+* Verify documentation build :ref:`documenting-scikit-plots`
 
 .. _pre-commit-hooks:
 
@@ -282,7 +274,7 @@ identifying issues with the code before a pull request is formally opened. Most
 hooks can also aide in fixing the errors, and the checks should have
 corresponding :ref:`development workflow <development-workflow>` and
 :ref:`pull request <pr-guidelines>` guidelines. Hooks are configured in
-`.pre-commit-config.yaml <https://github.com/matplotlib/matplotlib/blob/main/.pre-commit-config.yaml?>`_
+`.pre-commit-config.yaml <https://github.com/scikit-plots/scikit-plots/blob/main/.pre-commit-config.yaml?>`_
 and include checks for spelling and formatting, flake 8 conformity, accidentally
 committed files, import order, and incorrect branching.
 

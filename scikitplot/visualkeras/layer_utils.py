@@ -1,6 +1,7 @@
 import warnings
-import numpy as np
 from collections.abc import Iterable
+
+import numpy as np
 
 def _lazy_import_tensorflow():
     try:

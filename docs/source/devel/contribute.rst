@@ -1,23 +1,26 @@
-.. redirect-from:: /devel/contributing
-
 .. _contributing:
 
 ******************
 Contributing guide
 ******************
+
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
+
 You've discovered a bug or something else you want to change
-in Matplotlib — excellent!
+in scikit-plots — excellent!
 
 You've worked out a way to fix it — even better!
 
 You want to tell us about it — best of all!
 
 Below, you can find a number of ways to contribute, and how to connect with the
-Matplotlib community.
+scikit-plots community.
 
 Ways to contribute
 ==================
-.. dropdown:: Do I really have something to contribute to Matplotlib?
+.. dropdown:: Do I really have something to contribute to scikit-plots?
     :open:
     :icon: person-fill
 
@@ -26,21 +29,21 @@ Ways to contribute
 
     There are a few typical new contributor profiles:
 
-    * **You are a Matplotlib user, and you see a bug, a potential improvement, or
+    * **You are a scikit-plots user, and you see a bug, a potential improvement, or
       something that annoys you, and you can fix it.**
 
       You can search our issue tracker for an existing issue that describes your problem or
       open a new issue to inform us of the problem you observed and discuss the best approach
       to fix it. If your contributions would not be captured on GitHub (social media,
       communication, educational content), you can also reach out to us on gitter_,
-      `Discourse <https://discourse.matplotlib.org/>`__ or attend any of our `community
+      `Discourse <https://discourse.scikit-plots.org/>`__ or attend any of our `community
       meetings <https://scientific-python.org/calendars>`__.
 
-    * **You are not a regular Matplotlib user but a domain expert: you know about
+    * **You are not a regular scikit-plots user but a domain expert: you know about
       visualization, 3D plotting, design, technical writing, statistics, or some
-      other field where Matplotlib could be improved.**
+      other field where scikit-plots could be improved.**
 
-      Awesome -- you have a focus on a specific application and domain and can
+      Awesome — you have a focus on a specific application and domain and can
       start there. In this case, maintainers can help you figure out the best
       implementation; open an issue or pull request with a starting point, and we'll
       be happy to discuss technical approaches.
@@ -51,20 +54,20 @@ Ways to contribute
       aware that maintainers may not review your contribution unless it has the
       "Ready to review" state on GitHub.
 
-    * **You are new to Matplotlib, both as a user and contributor, and want to start
+    * **You are new to scikit-plots, both as a user and contributor, and want to start
       contributing but have yet to develop a particular interest.**
 
       Having some previous experience or relationship with the library can be very
       helpful when making open-source contributions. It helps you understand why
       things are the way they are and how they *should* be. Having first-hand
       experience and context is valuable both for what you can bring to the
-      conversation (and given the breadth of Matplotlib's usage, there is a good
+      conversation (and given the breadth of scikit-plots's usage, there is a good
       chance it is a unique context in any given conversation) and make it easier to
       understand where other people are coming from.
 
       Understanding the entire codebase is a long-term project, and nobody expects
       you to do this right away. If you are determined to get started with
-      Matplotlib and want to learn, going through the basic functionality,
+      scikit-plots and want to learn, going through the basic functionality,
       choosing something to focus on (3d, testing, documentation, animations, etc.)
       and gaining context on this area by reading the issues and pull requests
       touching these subjects is a reasonable approach.
@@ -183,15 +186,31 @@ please cite us following the :doc:`/project/citing` guidelines.
 If you have developed an extension to Matplotlib, please consider adding it to our
 `third party package <https://github.com/matplotlib/mpl-third-party>`_  list.
 
+
+.. _generative_ai:
+
+
+Restrictions on Generative AI Usage
+===================================
+
+We expect authentic engagement in our community.  Be wary of posting output
+from Large Language Models or similar generative AI as comments on GitHub or
+our discourse server, as such comments tend to be formulaic and low content.
+If you use generative AI tools as an aid in developing code or documentation
+changes, ensure that you fully understand the proposed changes and can explain
+why they are the correct approach and an improvement to the current state.
+
+
 .. _new_contributors:
 
 New contributors
 ================
 
-There is no pre-defined pathway for new contributors - we recommend looking at
-existing issue and pull request discussions, and following the conversations
-during pull request reviews to get context. Or you can deep-dive into a subset
-of the code-base to understand what is going on.
+Everyone comes to the project from a different place — in terms of experience
+and interest — so there is no one-size-fits-all path to getting involved.  We
+recommend looking at existing issue or pull request discussions, and following
+the conversations during pull request reviews to get context.  Or you can
+deep-dive into a subset of the code-base to understand what is going on.
 
 .. _new_contributors_meeting:
 
@@ -276,10 +295,10 @@ guide you through each step:
    and ensure you understand/are able to complete the template when you open your pull request.
    Additional information can be found in the `pull request guidelines <https://matplotlib.org/devdocs/devel/pr_guide.html>`_.
 
-.. dropdown:: `Pull request template <https://github.com/matplotlib/matplotlib/blob/main/.github/PULL_REQUEST_TEMPLATE.md>`_
+.. dropdown:: `Pull request template <https://github.com/scikit-plots/scikit-plots/blob/main/.github/PULL_REQUEST_TEMPLATE.md>`_
     :open:
 
-    .. literalinclude:: ../../.github/PULL_REQUEST_TEMPLATE.md
+    .. literalinclude:: ../../../.github/PULL_REQUEST_TEMPLATE.md
        :language: markdown
 
 .. _get_connected:
@@ -325,13 +344,15 @@ then submit a "pull request" (PR). To work on a a pull request:
    Matplotlib repository to your own computer or by using Github codespaces, by
    following the instructions in :ref:`installing_for_devs`
 
-#. **Then** start a pull request by following the guidance in :ref:`development workflow <development-workflow>`
+#. **Then** start solving the issue, following the guidance in
+   :ref:`development workflow <development-workflow>`
 
-#. **After starting** check that your contribution meets the :ref:`pull request guidelines <pr-author-guidelines>`
-   and :ref:`update the pull request <update-pull-request>` as needed.
+#. **As part of verifying your changes** check that your contribution meets
+   the :ref:`pull request guidelines <pr-author-guidelines>`
+   and then :ref:`open a pull request <open-pull-request>`.
 
 #. **Finally** follow up with maintainers on the PR if waiting more than a few days for
-   feedback.
+   feedback.  :ref:`Update the pull request <update-pull-request>` as needed.
 
 If you have questions of any sort, reach out on the :ref:`contributor_incubator` and join
 the :ref:`new_contributors_meeting`.

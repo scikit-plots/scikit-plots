@@ -19,7 +19,12 @@
         "preferred": true
     },
     {
-        "name": "0.3.7 (stable_mini)",
+        "name": "0.3.7 (stable_prev)",
+        "version": "0.3.7",
+        "url": "https://scikit-plot.readthedocs.io/en/stable/"
+    },
+    {
+        "name": "0.3.7 (mini)",
         "version": "0.3.7",
         "url": "https://scikit-plot.readthedocs.io/en/stable/"
     }

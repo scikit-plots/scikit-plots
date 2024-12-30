@@ -125,7 +125,7 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
         >>> y_probas = nb.predict_proba(X_test)
         >>> skplt.metrics.plot_roc_curve(y_test, y_probas)
 
-        .. image:: /images/examples/plot_roc_curve.png
+        .. image:: /_static/examples/plot_roc_curve.png
            :align: center
            :alt: ROC Curves
     """

@@ -58,10 +58,10 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Classification
-#    model-workflow: Model Evaluation
+#    model-type: classification
+#    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: lift-curve
+#    plot-type: lift curve
 #    domain: statistics
 #    level: beginner
 #    purpose: showcase

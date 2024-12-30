@@ -4,11 +4,11 @@ The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 
 The :mod:`~scikitplot.deciles` module includes plots for machine learning
-evaluation decile analysis e.g. Gain, Lift and Decile charts, etc.
+evaluation decile analysis e.g. Gain, Lift and Decile charts, etc. [1]_.
 
 References
 ----------
-[1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L5
+[1] https://github.com/tensorbored/kds
 """
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (

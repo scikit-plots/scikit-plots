@@ -1,6 +1,7 @@
 import aggdraw  # Anti-Grain Geometry (AGG) graphics library
-from PIL import Image, ImageFont, ImageColor, ImageDraw
 from typing import Any
+
+from PIL import Image, ImageFont, ImageColor, ImageDraw
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [

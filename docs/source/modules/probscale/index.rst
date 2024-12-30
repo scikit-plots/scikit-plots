@@ -8,7 +8,7 @@ Probability Plots (Experimental)
 Probscale
 ----------------------------------------------------------------------
 
-This module contains functions related to :py:mod:`~.probscale`.
+This module contains functions related to :py:mod:`~scikitplot.probscale`.
 
 .. seealso::
 

@@ -5,7 +5,6 @@ plot_pca_2d_projection with examples
 An example showing the :py:func:`~scikitplot.api.decomposition.plot_pca_2d_projection` function
 used by a scikit-learn PCA object.
 """
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -61,11 +60,11 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Classification
-#    model-workflow: Feature Engineering
+#    model-type: classification
+#    model-workflow: feature engineering
 #    plot-type: scatter
 #    plot-type: 2D
-#    plot-type: principal-component
+#    plot-type: principal component
 #    plot-type: PCA
 #    level: beginner
 #    purpose: showcase

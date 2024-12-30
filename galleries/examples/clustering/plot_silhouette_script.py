@@ -53,10 +53,10 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Clustering
-#    model-type: K-Means
-#    model-workflow: Model Evaluation
+#    model-type: clustering
+#    model-type: k-means
+#    model-workflow: model evaluation
 #    plot-type: bar
-#    plot-type: silhouette-plot
+#    plot-type: silhouette plot
 #    level: beginner
 #    purpose: showcase

@@ -1018,6 +1018,8 @@ intersphinx_mapping = {
   ),
   "flask": ("https://flask.palletsprojects.com/en/stable/", None),
   'xarray': ('https://docs.xarray.dev/en/stable/', None),
+  'datasets': ('https://huggingface.co/docs/datasets/main/en/', None),
+  'transformers': ('https://huggingface.co/docs/transformers/main/en/', None),
 }
 
 ##########################################################################
@@ -1106,11 +1108,18 @@ autosummary_generate = True
 
 # maps functions with a class name that is indistinguishable when case is
 # ignore to another filename
-# autosummary_filename_map = {
-#     "sklearn.cluster.dbscan": "dbscan-function",
-#     "sklearn.covariance.oas": "oas-function",
-#     "sklearn.decomposition.fastica": "fastica-function",
-# }
+# Map fully qualified names of modules, classes, or functions to custom stub filenames.
+# This is useful to resolve naming conflicts or control the generated filenames for `autosummary`.
+autosummary_filename_map = {
+  # "sklearn.cluster.dbscan": "dbscan-function",
+  'scikitplot.modelplotpy.ModelPlotPy' : 'modelplotpy-cls',
+  'scikitplot.sp_logging.critical'     : 'critical-function',
+  'scikitplot.sp_logging.debug'        : 'debug-function',
+  'scikitplot.sp_logging.error'        : 'error-function',
+  'scikitplot.sp_logging.fatal'        : 'fatal-function',
+  'scikitplot.sp_logging.warn'         : 'warn-function',
+  'scikitplot.sp_logging.warning'      : 'warning-function',
+}
 
 ##########################################################################
 ## Extension: numpydoc

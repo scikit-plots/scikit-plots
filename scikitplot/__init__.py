@@ -18,7 +18,7 @@ import sys
 import pathlib
 import warnings
 
-from scikitplot import sp_logging as logging
+from scikitplot import sp_logging
 from scikitplot.sp_logging import get_logger, SpLogger, sp_logger
 try:
   # Trt to import meson builded files, modules (etc. *.in)
@@ -111,54 +111,112 @@ __all__ = [
 ## additional
 ######################################################################
 
+# Custom attributes we want to be displayed when dir() is called
 def __dir__():
-  # Custom attributes we want to be displayed when dir() is called
-  return sorted(__all__)
+    """
+    Returns a sorted list of custom attributes for the module.
+
+    This function overrides the default `dir()` behavior to display
+    a custom list of attributes defined in the `__all__` variable.
+
+    Returns
+    -------
+    list of str
+        A sorted list of attribute names defined in `__all__`.
+
+    Examples
+    --------
+    >>> from scikitplot import __dir__
+    >>> __dir__()
+    ['attribute1', 'attribute2', 'attribute3']  # Example output
+    """
+    return sorted(__all__)
 
 # Define how undefined attributes should be handled in this module
 def __getattr__(name):
-  import importlib
-  # Submodules dir()
-  if name in dir():
-    return importlib.import_module(f'scikitplot.{name}')
-  else:
+    """
+    Dynamically handles undefined attributes in the 'scikitplot' module.
+
+    This function allows for dynamic imports of submodules or retrieval of 
+    explicitly defined attributes within the 'scikitplot' module. If the 
+    attribute cannot be resolved, an AttributeError is raised.
+
+    Parameters
+    ----------
+    name : str
+        The name of the attribute being accessed.
+
+    Returns
+    -------
+    Any
+        The dynamically imported submodule or the explicitly defined attribute.
+
+    Raises
+    ------
+    AttributeError
+        If the attribute does not exist as a submodule or in the global namespace.
+
+    Examples
+    --------
+    >>> from scikitplot import __getattr__
+    >>> plot = __getattr__('metrics')
+    >>> print(plot)
+    <module 'scikitplot.metrics' from '.../scikitplot/metrics.py'>
+
+    """
+    import importlib
+
+    # Attempt to import submodule dynamically, submodules dir()
     try:
-      # Explicitly defined names
-      return globals()[name]
+        return importlib.import_module(f'scikitplot.{name}')
+    except ModuleNotFoundError:
+        pass
+
+    # Attempt to retrieve from global namespace
+    try:
+        return globals()[name]
     except KeyError:
-      raise AttributeError(
-        f"Module 'scikitplot' has no attribute '{name}'"
-      )
+        raise AttributeError(
+            f"Module 'scikitplot' has no attribute '{name}'. "
+            "Ensure the attribute or submodule exists and is correctly named."
+        )
 
 ######################################################################
 ## online search helper scikit-plots
 ######################################################################
 
-def online_docs(
+def online_help(
     query: str = '',
     docs_root_url: str = 'https://scikit-plots.github.io/',
     search_page: str = 'search.html',
-    new_window: int = 0,  # default
+    new_window: int = 0,
 ) -> bool:
-    """
-    Open the online documentation search page for a given query in the default web browser.
+    """\
+    Open the online documentation search page
+    for a given query in the default web browser.
 
-    This function constructs a search URL based on the provided query and opens it in the web browser.
-    It detects whether the version is in a development or stable state and directs the user to the correct documentation.
+    This function constructs a search URL based on the provided query
+    and opens it in the web browser.
+    It detects whether the version is in development or stable state
+    and directs the user to the appropriate documentation.
 
     Parameters
     ----------
     query : str, optional
-        The search query to find relevant documentation. Defaults to an empty string.
+        The search query to find relevant documentation.
+        Defaults to an empty string.
     docs_root_url : str, optional
-        The base URL of the documentation website. Defaults to 'https://scikit-plots.github.io/'.
+        The base URL of the documentation website.
+        Defaults to `https://scikit-plots.github.io/`.
     search_page : str, optional
-        The search page URL (relative to `docs_root_url`). Defaults to 'search.html'.
+        The search page URL (relative to `docs_root_url`).
+        Defaults to `search.html`.
     new_window : int, optional
         Controls how the URL is opened in the browser:
+        
         - 0: Open in the same browser window.
         - 1: Open in a new browser window.
-        - 2: Open in a new browser tab (default).
+        - 2: Open in a new browser tab.
 
     Returns
     -------
@@ -167,34 +225,42 @@ def online_docs(
 
     Notes
     -----
-    - The function automatically switches between the 'dev' and 'stable' versions of the documentation based on the value of `__version__`.
+    - The function automatically switches between the 'dev' and 'stable'
+      versions of the documentation based on the value of `__version__`.
     - Requires an active internet connection.
+    - If the environment variable `DOCS_ROOT_URL` is set,
+      it overrides the `docs_root_url` argument.
 
     Examples
     --------
-    >>> search_docs(query='installation')
-    True
+    .. jupyter-execute::
+    
+        >>> import scikitplot
+        >>> scikitplot.online_help('installation')
     """
-    import os
-    import webbrowser
-    from urllib.parse import urlparse, urlencode, quote
-    # Determine if the current version is in development or stable
-    version_type = 'dev' if 'dev' in __version__ else 'stable'
+    try:
+        import os
+        import webbrowser
+        from urllib.parse import urlparse, urlencode
+        # from scikitplot import __version__
 
-    # Construct the base documentation URL, appending the version type
-    docs_root_url = os.getenv('DOCS_ROOT_URL', docs_root_url).strip().strip('/')
-    docs_root_url = f"{docs_root_url}/{version_type}/"
+        # Determine if the current version is in development or stable
+        version_type = 'dev' if 'dev' in __version__ else 'stable'
 
-    # Build the search URL with query parameters
-    search_url = f'{docs_root_url}/{search_page}'
-    params = {
-        # 'lang': 'en',
-        'q': query,
-    }
-    full_url = f"{search_url}{('&' if urlparse(search_url).query else '?')}{urlencode(params)}"
+        # Construct the base documentation URL, appending the version type
+        docs_root_url = os.getenv('DOCS_ROOT_URL', docs_root_url).strip().strip('/')
+        docs_root_url = f"{docs_root_url}/{version_type}"
 
-    # Open the URL in the browser
-    return webbrowser.open(full_url, new=new_window)
+        # Build the search URL with query parameters
+        search_url = f"{docs_root_url}/{search_page}"
+        params = {'q': query}
+        full_url = f"{search_url}{('&' if urlparse(search_url).query else '?')}{urlencode(params)}"
+
+        # Open the URL in the browser
+        return webbrowser.open(full_url, new=new_window)
+    except Exception as e:
+        print(f"Error opening documentation: {e}")
+        return False
 
 ######################################################################
 ##

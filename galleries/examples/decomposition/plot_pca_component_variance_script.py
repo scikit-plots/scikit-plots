@@ -55,9 +55,9 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Regression
-#    model-type: Classification
-#    model-workflow: Feature Engineering
+#    model-type: regression
+#    model-type: classification
+#    model-workflow: feature engineering
 #    plot-type: line
 #    level: beginner
 #    purpose: showcase

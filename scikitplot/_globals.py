@@ -357,9 +357,10 @@ class _NoValueType(SingletonBase):
         """
         return "<no value>"
 
-_Default = _DefaultType()
-_NoValue = _NoValueType()
+# Create class instance to direct use
+_Default    = _DefaultType()
 _Deprecated = _DeprecatedType()
+_NoValue    = _NoValueType()
 
 ######################################################################
 ## Singleton for Resource Management

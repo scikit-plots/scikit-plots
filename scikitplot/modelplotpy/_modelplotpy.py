@@ -37,7 +37,7 @@ __all__ = [
   '_range01',
   '_check_input',
   # class
-  'ModelPlotPy', 'modelplotpy',
+  'ModelPlotPy',
   # (cumulative) Response, Lift, Gains and plots
   'plot_response',
   'plot_cumresponse',
@@ -159,11 +159,6 @@ class ModelPlotPy(object):
     Raises
     ------
     ValueError: If there is no match with the complete list or the input list again
-
-    Notes
-    -----    
-    ``modelplotpy`` == ``ModelPlotPy`` Alias
-    for backward compatibility or convenience ``ModelPlotPy``
     """
     def __init__(
         self,
@@ -502,7 +497,7 @@ class ModelPlotPy(object):
         select_dataset_label = [],
         select_targetclass = [],
         select_smallest_targetclass = True
-    ):
+    ) -> 'pandas.DataFrame' :
         """
         Create plot_input
         
@@ -564,9 +559,10 @@ class ModelPlotPy(object):
 
         Returns
         -------
-        Pandas dataframe, a subset of scores_and_ntiles, for all dataset, model
-        and target value combinations for all ntiles.
-        It contains all necessary information for model plotting.
+        pandas.DataFrame : 
+            Pandas dataframe, a subset of scores_and_ntiles, for all dataset, model
+            and target value combinations for all ntiles.
+            It contains all necessary information for model plotting.
 
         Raises
         ------
@@ -686,16 +682,12 @@ class ModelPlotPy(object):
                 (ntiles_aggregate.target_class.isin(select_targetclass))]
         return plot_input
 
-
-# Alias for backward compatibility or convenience ModelPlotPy
-modelplotpy = ModelPlotPy
-
 ##########################################################################
 ## (cumulative) Response, Lift, Gains and plots
 ##########################################################################
 
 def plot_response(
-    plot_input,
+    plot_input: 'pandas.DataFrame',
     save_fig = True,
     save_fig_filename = '',
     highlight_ntile = None,
@@ -1171,7 +1163,7 @@ def plot_response(
 
 
 def plot_cumresponse(
-    plot_input,
+    plot_input: 'pandas.DataFrame',
     save_fig = True,
     save_fig_filename = '',
     highlight_ntile = None,
@@ -1647,7 +1639,7 @@ def plot_cumresponse(
 
 
 def plot_cumlift(
-    plot_input,
+    plot_input: 'pandas.DataFrame',
     save_fig = True,
     save_fig_filename = '',
     highlight_ntile = None,
@@ -2092,7 +2084,7 @@ def plot_cumlift(
 
 
 def plot_cumgains(
-    plot_input,
+    plot_input: 'pandas.DataFrame',
     save_fig = True,
     save_fig_filename = '',
     highlight_ntile = None,
@@ -2573,7 +2565,7 @@ def plot_cumgains(
 
 
 def plot_all(
-    plot_input,
+    plot_input: 'pandas.DataFrame',
     save_fig = True,
     save_fig_filename = '',
 ):
@@ -2951,7 +2943,7 @@ def plot_all(
 ##########################################################################
 
 def plot_costsrevs(
-    plot_input,
+    plot_input: 'pandas.DataFrame',
     fixed_costs,
     variable_costs_per_unit,
     profit_per_unit,
@@ -3452,7 +3444,7 @@ def plot_costsrevs(
 
 
 def plot_profit(
-    plot_input,
+    plot_input: 'pandas.DataFrame',
     fixed_costs,
     variable_costs_per_unit,
     profit_per_unit,
@@ -3936,7 +3928,7 @@ def plot_profit(
 
 
 def plot_roi(
-    plot_input,
+    plot_input: 'pandas.DataFrame',
     fixed_costs,
     variable_costs_per_unit,
     profit_per_unit,

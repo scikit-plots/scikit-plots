@@ -4,4 +4,4 @@
 experimental (Experimental)
 ======================================================================
 
-This module contains functions related to :py:mod:`~.experimental`.
+This module contains functions related to :py:mod:`~scikitplot.experimental`.

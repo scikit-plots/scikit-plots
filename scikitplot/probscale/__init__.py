@@ -9,7 +9,6 @@ from .probscale import ProbScale
 from matplotlib import scale
 scale.register_scale(ProbScale); del scale;
 
-
 # Define the probscale version
 # https://github.com/matplotlib/mpl-probscale/blob/master/probscale/__init__.py
 __version__ = "0.2.6dev"

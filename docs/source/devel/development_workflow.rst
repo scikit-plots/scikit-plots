@@ -1,13 +1,14 @@
 .. highlight:: bash
 
-.. redirect-from:: /devel/gitwash/development_workflow
-.. redirect-from:: /devel/gitwash/maintainer_workflow
-
 .. _development-workflow:
 
 ####################
 Development workflow
 ####################
+
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
 
 Workflow summary
 ================
@@ -23,9 +24,9 @@ why you did it, we recommend the following:
 * Name your branch for the purpose of the changes - e.g.
   ``bugfix-for-issue-14`` or ``refactor-database-code``.
 * If you get stuck, reach out on Gitter or
-  `discourse <https://discourse.matplotlib.org>`__.
+  `discourse <https://discourse.scikit-plots.org>`__.
 * When you're ready or need feedback on your code, open a pull request so that the
-  Matplotlib developers can give feedback and eventually include your suggested
+  scikit-plots developers can give feedback and eventually include your suggested
   code into the ``main`` branch.
 
 Overview
@@ -94,7 +95,7 @@ branch to a feature branch by renaming it::
    git branch -m <newname>
 
 Generally, you will want to keep your feature branches on your public GitHub
-fork of Matplotlib.  To do this, you ``git push`` this new branch up to your
+fork of scikit-plots.  To do this, you ``git push`` this new branch up to your
 GitHub repo.  Generally, if you followed the instructions in these pages, and by
 default, git will have a link to your fork of the GitHub repo, called
 ``origin``.  You push up to your own fork with::
@@ -146,15 +147,36 @@ The editing workflow
 .. _why the -a flag?: http://gitready.com/beginner/2009/01/18/the-staging-area.html
 
 
+Verify your changes
+===================
+
+Check that your change does what you intend.  For code changes:
+
+* If the issue you are working on provided a code example, run that example
+  against your branch and check that you now get the desired result.  Note that
+  adapting the issue example is often a good way to create a new test.
+
+* Run the tests to check that your change has not had unintended consequences
+  on existing functionality.  See :ref:`run_tests`.
+
+For documentation changes, build the documentation locally to check that
+it renders how you intended and that any new links work correctly.  See
+:ref:`build_docs`.
+
+This is also a good time to look through the :ref:`pr-author-guidelines` and
+address as many of the relevant points as you can.
+
+.. _open-pull-request:
+
 Open a pull request
 ===================
 
 When you are ready to ask for someone to review your code and consider a merge,
 `submit your Pull Request (PR) <https://docs.github.com/pull-requests>`_.
 
-Go to the web page of *your fork* of the Matplotlib repo, and click
+Go to the web page of *your fork* of the scikit-plots repo, and click
 ``Compare & pull request`` to send your changes to the maintainers for review.
-The base repository is ``matplotlib/matplotlib`` and the base branch is
+The base repository is ``scikit-plots/scikit-plots`` and the base branch is
 generally ``main``.
 
 Enter a title for the set of changes with some explanation of what you've done.
@@ -434,10 +456,10 @@ branch *cool-feature*.  If you try to push the new commits to GitHub, it will
 fail and show an error that looks like ::
 
    $ git push
-   Pushing to github.com:origin/matplotlib.git
-   To github.com:origin/matplotlib.git
+   Pushing to github.com:origin/scikit-plots.git
+   To github.com:origin/scikit-plots.git
     ! [rejected]              cool_feature -> cool_feature (non-fast-forward)
-   error: failed to push some refs to 'github.com:origin/matplotlib.git'
+   error: failed to push some refs to 'github.com:origin/scikit-plots.git'
    hint: Updates were rejected because the tip of your current branch is behind
    hint: its remote counterpart. Integrate the remote changes (e.g.
    hint: 'git pull ...') before pushing again.

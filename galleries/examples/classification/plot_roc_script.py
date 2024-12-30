@@ -57,9 +57,9 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Classification
-#    model-workflow: Model Evaluation
+#    model-type: classification
+#    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: roc-auc-curve
+#    plot-type: roc-auc curve
 #    level: beginner
 #    purpose: showcase

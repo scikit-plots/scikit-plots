@@ -20,9 +20,9 @@
 
 .. autoclass:: {{ objname }}
    :members:
-   :undoc-members:
    :inherited-members:
    :special-members: __call__
+   :undoc-members:
 
 .. minigallery:: {{ module }}.{{ objname }} {% for meth in methods %}{{ module }}.{{ objname }}.{{ meth }} {% endfor %}
    :add-heading: Gallery examples

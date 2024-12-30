@@ -4,6 +4,10 @@
 Pull request guidelines
 ***********************
 
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
+
 `Pull requests (PRs) on GitHub
 <https://docs.github.com/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests>`__
 are the mechanism for contributing to Matplotlib's code and documentation.

@@ -126,7 +126,7 @@ clf_mult = LogisticRegression(multi_class='multinomial', solver='newton-cg').fit
 
 # from scikitplot import modelplotpy as mp
 import scikitplot.modelplotpy as mp
-obj = mp.modelplotpy(
+obj = mp.ModelPlotPy(
     feature_data   = [X_train, X_test],
     label_data     = [y_train, y_test],
     dataset_labels = ['train_data', 'test_data'],
@@ -196,6 +196,17 @@ mp.plot_cumgains(
     save_fig = False,
 );
 
+# %%
+#
+# .. tags::
+#
+#    model-type: classification
+#    model-workflow: model evaluation
+#    plot-type: line
+#    plot-type: cum-gain curve
+#    level: beginner
+#    purpose: showcase
+
 
 # %%
 # 2. Cumulative lift plot
@@ -211,6 +222,18 @@ mp.plot_cumlift(
     highlight_ntile = 3,
     save_fig = False,
 );
+
+# %%
+#
+# .. tags::
+#
+#    model-type: classification
+#    model-workflow: model evaluation
+#    plot-type: line
+#    plot-type: lift curve
+#    domain: statistics
+#    level: beginner
+#    purpose: showcase
 
 
 # %%

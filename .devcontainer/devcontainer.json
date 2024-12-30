@@ -1,0 +1,46 @@
+{
+  "hostRequirements": {
+    "memory": "8gb",
+    "cpus": 2
+  },
+  "name": "scikit-plots",
+  "image": "mcr.microsoft.com/devcontainers/miniconda:0-3",
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {},
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "packages": [
+          "inkscape",
+          "ffmpeg"
+      ]
+    }
+  },
+  "onCreateCommand": [
+    "conda init bash",
+    "# Add Message", 
+    "sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt",
+    "# Enviroment",
+    "#.devcontainer/setup.sh",
+    ""
+  ],
+  "postCreateCommand": "git fetch --tags && pip install tox",
+  "waitFor": "postCreateCommand",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "ms-python.black-formatter",
+        "ms-vscode.live-server",
+        "charliermarsh.ruff",
+        "stkb.rewrap"
+      ],
+      "settings": {}
+    },
+    "codespaces": {
+      "openFiles": [
+        "README.md",
+        "doc/devel/codespaces.md"
+      ]
+    }
+  }
+} 

@@ -1,5 +1,6 @@
 # skplt_ext/infer_next_release_versions.py
 
+import os
 import json
 import pprint
 import jinja2
@@ -7,10 +8,11 @@ import importlib
 from pathlib import Path
 from urllib.request import urlopen
 
-from scikitplot._externals._packaging.version import parse
-
 from sphinx.application import Sphinx
 from sphinx.util.logging import getLogger
+
+from scikitplot._externals._packaging.version import parse
+from scikitplot import __version__
 
 logger = getLogger(__name__)
 
@@ -48,7 +50,7 @@ def get_inferred():
     return {
         "previous_tag" : {"rc": "unused", "final": "0.98.33", "bf": "0.97.22"},
         "version_full" : {"rc": "0.99.0rc1", "final": "0.99.0", "bf": "0.98.1"},
-        "version_short": {"rc": "0.99", "final": "0.99", "bf": "0.98"},
+        "version_short": {"rc": "0.99", "final": "0.99", "bf": "0.98"}
     }
 
 def infer_next_release_versions(app: Sphinx):
@@ -66,9 +68,16 @@ def infer_next_release_versions(app: Sphinx):
         html_theme_options = app.config.html_theme_options
       
         # Fetch the version switcher JSON; see `html_theme_options` for more details
-        versions_json = json.loads(
-            urlopen(html_theme_options["switcher"]["json_url"], timeout=10).read()
-        )
+        if 'dev' in __version__:
+          # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx-runtime-information
+          staticdir = os.path.join(app.builder.srcdir, '_static')
+          # Open and read the file
+          with open(f'{staticdir}/switcher.json') as f_in:
+            versions_json = json.loads(f_in.read())  # Use `.read()` to get the file content as a string
+        else:
+          versions_json = json.loads(
+              urlopen(html_theme_options["switcher"]["json_url"], timeout=10).read()
+          )
         # See `build_tools/circle/list_versions.py`, stable is always the second entry
         # stable_version = parse(versions_json[1]["version"])
         # stable_prev_version = parse(versions_json[2]["version"])

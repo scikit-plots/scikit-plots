@@ -106,7 +106,9 @@ from logging import (
 from ._globals import SingletonBase
 
 __all__ = [
+  '_default_log_level',
   '_get_thread_id',
+  '_is_jupyter_notebook',
   'NOTSET',
   'DEBUG',
   'INFO',
@@ -164,8 +166,8 @@ def _default_log_level(debug_mode: bool = False) -> int:
     val: bool | str | None = debug_mode or os.getenv("SKPLT_DEBUG")
     return logging.WARNING if val is None else logging.DEBUG
 
-def is_jupyter_notebook() -> bool:
-    """ Define jupyter notebook """
+def _is_jupyter_notebook() -> bool:
+    """ Define running enviroment is jupyter notebook. """
     try:
         from IPython import get_ipython
         if get_ipython() is None:
@@ -428,15 +430,20 @@ class AlwaysStdErrHandler(logging.StreamHandler):  # type: ignore[type-arg]
     to a stream. Note that this class does not close the stream, as
     sys.stdout or sys.stderr may be used.
     """
-    def __init__(self, use_stderr: bool = True) -> None:
+    def __init__(self, use_stderr: bool = not _is_jupyter_notebook()) -> None:
         """
         Initialize the AlwaysStdErrHandler with the desired stream.
 
         Parameters
         ----------
-        use_stderr : bool, default=True
+        use_stderr : bool, default= not _is_jupyter_notebook()
             If True, the handler will use standard error (sys.stderr) as the stream.
             If False, the handler will use standard output (sys.stdout) as the stream.
+    
+        See Also
+        --------
+        _is_jupyter_notebook : 
+            Define running enviroment is jupyter notebook.
         """
         self._use_stderr = use_stderr
         self._stream = sys.stderr if use_stderr else sys.stdout
@@ -665,7 +672,20 @@ def setLevel(v):
   get_logger().setLevel(v)
   
 def log(level, msg, *args, **kwargs):
-  """Logs a message at the specified log level."""
+  """
+  Logs a message at the specified log level.
+
+  Parameters
+  ----------
+  level : int
+      The logging level (e.g., DEBUG, INFO, WARNING, etc.).
+  msg : str
+      The log message to be logged.
+  args : Any
+      Arguments for string formatting in the message.
+  kwargs : Any
+      Additional keyword arguments for logging.
+  """
   get_logger().log(level, msg, *args, **kwargs)
   
 def log_if(level, msg, condition, *args, **kwargs):
@@ -683,24 +703,108 @@ def vlog(level, msg, *args, **kwargs):
   get_logger().log(level, msg, *args, **kwargs)
 
 def critical(msg, *args, **kwargs):
+  """
+  Logs a message at the CRITICAL log level.
+
+  Parameters
+  ----------
+  msg : str
+      The log message to be logged.
+  args : Any
+      Arguments for string formatting in the message.
+  kwargs : Any
+      Additional keyword arguments for logging.
+  """
   get_logger().critical(msg, *args, **kwargs)
 
 def fatal(msg, *args, **kwargs):
+  """
+  Logs a message at the FATAL - CRITICAL log level.
+
+  Parameters
+  ----------
+  msg : str
+      The log message to be logged.
+  args : Any
+      Arguments for string formatting in the message.
+  kwargs : Any
+      Additional keyword arguments for logging.
+  """
   get_logger().fatal(msg, *args, **kwargs)
 
 def error(msg, *args, **kwargs):
+  """
+  Logs a message at the ERROR log level.
+
+  Parameters
+  ----------
+  msg : str
+      The log message to be logged.
+  args : Any
+      Arguments for string formatting in the message.
+  kwargs : Any
+      Additional keyword arguments for logging.
+  """
   get_logger().error(msg, *args, **kwargs)
 
 def warning(msg, *args, **kwargs):
+  """
+  Logs a message at the WARNING log level.
+
+  Parameters
+  ----------
+  msg : str
+      The log message to be logged.
+  args : Any
+      Arguments for string formatting in the message.
+  kwargs : Any
+      Additional keyword arguments for logging.
+  """
   get_logger().warning(msg, *args, **kwargs)
 
 def warn(msg, *args, **kwargs):
+  """
+  Logs a message at the WARN - WARNING log level.
+
+  Parameters
+  ----------
+  msg : str
+      The log message to be logged.
+  args : Any
+      Arguments for string formatting in the message.
+  kwargs : Any
+      Additional keyword arguments for logging.
+  """
   get_logger().warning(msg, *args, **kwargs)
 
 def info(msg, *args, **kwargs):
+  """
+  Logs a message at the INFO log level.
+
+  Parameters
+  ----------
+  msg : str
+      The log message to be logged.
+  args : Any
+      Arguments for string formatting in the message.
+  kwargs : Any
+      Additional keyword arguments for logging.
+  """
   get_logger().info(msg, *args, **kwargs)
 
 def debug(msg, *args, **kwargs):
+  """
+  Logs a message at the DEBUG log level.
+
+  Parameters
+  ----------
+  msg : str
+      The log message to be logged.
+  args : Any
+      Arguments for string formatting in the message.
+  kwargs : Any
+      Additional keyword arguments for logging.
+  """
   get_logger().debug(msg, *args, **kwargs)
   
 ######################################################################
@@ -725,42 +829,6 @@ class SpLogger(SingletonBase):
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance,
         for more https://docs.python.org/3/library/logging.html.
-    
-    Attributes
-    ----------
-    CRITICAL : logging.CRITICAL
-        The logging level.
-    FATAL : logging.CRITICAL
-        The logging level.
-    ERROR : logging.ERROR
-        The logging level.
-    WARNING : logging.WARNING
-        The logging level.
-    WARN : logging.WARNING
-        The logging level.
-    INFO : logging.INFO
-        The logging level.
-    DEBUG : logging.DEBUG
-        The logging level.
-
-    Methods
-    -------
-    getEffectiveLevel(level: int)
-        Sets the logger's logging level.
-    setLevel()
-        Returns the current logging level of the logger.
-    log(level: int, msg: str, *args: Any, **kwargs: Any)
-        Logs a message with the specified logging level.
-    fatal(msg: str, *args: Any, **kwargs: Any)
-        Logs a message at the FATAL level.
-    error(msg: str, *args: Any, **kwargs: Any)
-        Logs a message at the ERROR level.
-    warn(msg: str, *args: Any, **kwargs: Any)
-        Logs a message at the WARNING level.
-    info(msg: str, *args: Any, **kwargs: Any)
-        Logs a message at the INFO level.
-    debug(msg: str, *args: Any, **kwargs: Any)
-        Logs a message at the DEBUG level.
 
     Notes
     -----
@@ -993,11 +1061,11 @@ class SpLogger(SingletonBase):
         self.logger.log(level, self._format_msg_with_thread(msg), *args, **kwargs)
 
     def critical(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the FATAL level."""
+        """Logs a message at the CRITICAL level."""
         self.log(CRITICAL, msg, *args, **kwargs)
 
     def fatal(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the FATAL level."""
+        """Logs a message at the CRITICAL level."""
         self.log(FATAL, msg, *args, **kwargs)
 
     def error(self, msg: str, *args: Any, **kwargs: Any):

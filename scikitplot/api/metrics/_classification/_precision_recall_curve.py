@@ -130,7 +130,7 @@ def plot_precision_recall_curve(
         <matplotlib.axes._subplots.AxesSubplot object at 0x7fe967d64490>
         >>> plt.show()
 
-        .. image:: /images/examples/plot_precision_recall_curve.png
+        .. image:: /_static/examples/plot_precision_recall_curve.png
            :align: center
            :alt: Precision Recall Curve
     """

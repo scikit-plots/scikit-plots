@@ -7,6 +7,7 @@ It provides a high-level interface for drawing attractive statistical graphics.
 Documentation is available in the docstrings and
 online at https://seaborn.pydata.org/.
 """
+# scikitplot/_seaborn/__init__.py
 
 # Import seaborn objects
 from .rcmod import *  # noqa: F401,F403
@@ -33,4 +34,4 @@ __version__ = '0.14.0.dev0'
 
 # Define the seaborn git hash
 # scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/mwaskom/seaborn')[0]
-__githash__ = '385e54676ca16d0132434bc9df6bc41ea8b2a0d4'
+__git_hash__ = '385e54676ca16d0132434bc9df6bc41ea8b2a0d4'

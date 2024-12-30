@@ -165,6 +165,7 @@ dev = [
 ]
 # Build dependencies (for packaging and building extensions)
 build = [
+  "pre-commit",                             # Git hook scripts are useful for identifying simple issues before submission to code review. ".pre-commit-config.yaml"
   "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
   "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
   "ninja>=1.11.0",                          # The ninja build system used to compile code
@@ -182,6 +183,7 @@ build = [
 test = [
   "pytest>=7.1.2",                          # Core testing framework
   "pytest-cov>=2.9.0",                      # Coverage reports
+  "pytest-xdist",                           # Use Multiple CPUs to speed up
   "pytest-mpl",                             # Matplotlib testing
   "hypothesis>=6.30",                       # Property-based testing
   "matplotlib>=3.5",                        # Plotting for tests
@@ -196,7 +198,7 @@ test = [
   "tensorflow",                             # Deep learning
 ]
 # Documentation dependencies
-doc = [
+docs = [
   "pooch>=1.6.0",                           # Data management
   "packaging>=21",                          # Package utilities
   "numpydoc>=1.2.0",                        # Numpy-style docstrings
@@ -325,9 +327,9 @@ exclude = '''
   | builddir
   | build
   | dist
-  | doc/build
-  | doc/_build
-  | doc/auto_examples
+  | docs/build
+  | docs/_build
+  | docs/auto_examples
   | scikitplot/externals
   | asv_benchmarks/env
   | auto_building_tools/

@@ -1,8 +1,9 @@
-import aggdraw
 import warnings
+import aggdraw
 from math import ceil
-from PIL import Image, ImageFont, ImageColor, ImageDraw
 from typing import Any, Callable
+
+from PIL import Image, ImageFont, ImageColor, ImageDraw
 
 def _lazy_import_tensorflow():
     try:

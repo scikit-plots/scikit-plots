@@ -67,9 +67,9 @@ plt.show(block=True)
 #
 # .. tags::
 #
-#    model-type: Clustering
-#    model-type: K-Means
-#    model-workflow: Model Evaluation
+#    model-type: clustering
+#    model-type: k-means
+#    model-workflow: model evaluation
 #    plot-type: line
 #    plot-type: WSS (within-cluster sum of squares)
 #    plot-type: inertia (sum of squared distances)

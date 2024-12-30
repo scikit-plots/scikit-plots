@@ -4,6 +4,10 @@
 Dependency version policy
 =========================
 
+.. admonition:: Template
+   
+   Template for further usage, template belong to matplotlib.
+
 For the purpose of this document, 'minor version' is in the sense of SemVer
 (major, minor, patch) or 'meso version' in the sense of `EffVer
 <https://jacobtomlinson.dev/effver/>`_ (macro, meso, micro).  It includes both
@@ -115,6 +119,7 @@ specification of the dependencies.
 ==========  ========  ======
 Matplotlib  Python    NumPy
 ==========  ========  ======
+`3.10`_     3.10      1.23.0
 `3.9`_      3.9       1.23.0
 `3.8`_      3.9       1.21.0
 `3.7`_      3.8       1.20.0
@@ -136,6 +141,7 @@ Matplotlib  Python    NumPy
 1.0         2.4       1.1
 ==========  ========  ======
 
+.. _`3.10`: https://matplotlib.org/3.10.0/devel/dependencies.html
 .. _`3.9`: https://matplotlib.org/3.9.0/devel/dependencies.html
 .. _`3.8`: https://matplotlib.org/3.8.0/devel/dependencies.html
 .. _`3.7`: https://matplotlib.org/3.7.0/devel/dependencies.html

@@ -1,8 +1,9 @@
 ---
 name: Documentation
 description: Create a report to help us improve the documentation
-title: "[Doc]: "
 labels: [Documentation]
+title: "[Doc]: "
+
 body:
   - type: input
     id: link
@@ -18,6 +19,7 @@ body:
       label: Problem
       description: What is missing, unclear, or wrong in the documentation?
       placeholder: |
+        * Tell us about the confusion introduced in the documentation.
         * I found [...] to be unclear because [...]
         * [...] made me think that [...] when really it should be [...]
         * There is no example showing how to do [...]
@@ -28,6 +30,7 @@ body:
     attributes:
       label: Suggested improvement
       placeholder: |
+        * Tell us how we could improve the documentation in this regard.
         * This line should be be changed to say [...]
         * Include a paragraph explaining [...]
         * Add a figure showing [...]

@@ -96,6 +96,7 @@ API_REFERENCE = {
         "autosummary": [
           "show_config",
           "show_versions",
+          "online_help",
         ],
       },
     ],
@@ -190,7 +191,7 @@ API_REFERENCE = {
     ),
     "sections": [
       {
-        "title": "Predictive model insights",
+        "title": "Initializer ModelPlotPy object",
         # "description": (
         #   _get_submodule("scikitplot.modelplotpy", "_modelplotpy")
         #   + "\n\n"
@@ -199,12 +200,24 @@ API_REFERENCE = {
         "autosummary": [
           # Initialize modelplotpy object
           'ModelPlotPy',
+        ],
+      },
+      {
+        "title": "Gains, Lift and (cumulative) Response Plots",
+        "description": None,
+        "autosummary": [
           # Gains, Lift and (cumulative) Response plots
           'plot_response',
           'plot_cumresponse',
           'plot_cumlift',
           'plot_cumgains',
           'plot_all',
+        ],
+      },
+      {
+        "title": "Business-savvy Financial Insight Plots",
+        "description": None,
+        "autosummary": [
           # Business-savvy financial plots
           'plot_costsrevs',
           'plot_profit',
@@ -242,7 +255,21 @@ API_REFERENCE = {
     ),
     "sections": [
       {
-        "title": "scikit-plots Logging",
+        "title": "Logging Levels",
+        "description": None,
+        "autosummary": [
+          'CRITICAL',
+          'DEBUG',
+          'ERROR',
+          'FATAL',
+          'INFO',
+          'NOTSET',
+          'WARN',
+          'WARNING',
+        ],
+      },
+      {
+        "title": "Functional Interface - get_logger",
         # "description": (
         #   _get_submodule("scikitplot.sp_logging", "SpLogger")
         #   + "\n\n"
@@ -250,16 +277,7 @@ API_REFERENCE = {
         # ),
         "autosummary": [
           'AlwaysStdErrHandler',
-          'CRITICAL',
-          'DEBUG',
-          'ERROR',
-          'FATAL',
           'GoogleLogFormatter',
-          'INFO',
-          'NOTSET',
-          'SpLogger',
-          'WARN',
-          'WARNING',
           'critical',
           'debug',
           'error',
@@ -269,10 +287,17 @@ API_REFERENCE = {
           'get_logger',
           'log_if',
           'setLevel',
-          'sp_logger',
           'vlog',
           'warn',
           'warning',
+        ],
+      },
+      {
+        "title": "Class Interface - SpLogger",
+        "description": None,
+        "autosummary": [
+          'SpLogger',
+          'sp_logger',
         ],
       },
     ],
@@ -285,7 +310,7 @@ API_REFERENCE = {
     "sections": [
       {
         "title": "Astrostatistics: Bayesian Blocks for Time Series Analysis",
-        "description": _get_submodule("scikitplot._astropy.stats", "bayesian_blocks"),
+        "description": _get_submodule("scikitplot._astropy.stats", "_bayesian_blocks"),
         "autosummary": [
           'Events',
           'FitnessFunc',
@@ -318,7 +343,7 @@ API_REFERENCE = {
       },
       {
         "title": "Astrostatistics: Selecting the bin width of histograms",
-        "description": _get_submodule("scikitplot._astropy.stats", "histogram"),
+        "description": _get_submodule("scikitplot._astropy.stats", "_histogram"),
         "autosummary": [
           "calculate_bin_edges",
           "freedman_bin_width",

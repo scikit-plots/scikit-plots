@@ -1,8 +1,9 @@
 ---
 name: Tag Proposal
 description: Suggest a new tag or subcategory for the gallery of examples
-title: "[Tag]: "
 labels: ["Documentation: tags"]
+title: "[Tag]: "
+
 body:
   - type: markdown
     attributes:
