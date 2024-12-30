@@ -111,7 +111,7 @@ readme = {file = "README.md", content-type = "text/markdown"}
 # license = {file = "LICENSE"}
 # license-files field to be used only if the license field contains a valid SPDX license expression.
 license = {text = "BSD-3-Clause"}           # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later', 
-license-files = ['LICEN[CS]E*', 'LICENSE', 'COPYING']  # must valid glob patterns
+license-files = ['LICEN[CS]E*', 'LICENSE']  # must valid glob patterns
 
 # List the authors of the project
 # https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
