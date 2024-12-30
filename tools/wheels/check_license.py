@@ -57,13 +57,12 @@ def main():
     if not distinfo_paths:
         print(f"ERROR: No file found under '*.dist-info' directory for module '{args.mod_name}' in '{sitepkgs}'")
         sys.exit(1)
-
-    distinfo_path = distinfo_paths[0]
+      
     # Use glob pattern to find LICENSE files including subdirectories
     license_files = list(sitepkgs.glob(f"{distinfo_path}/{args.license_name}*"))
     print(license_files)
-  
-    license_txt = distinfo_path / args.license_name
+
+    license_txt = distinfo_paths[0] / args.license_name
     # license_txt = os.path.join(os.path.dirname(mod.__file__), args.license_name)
 
     # Check if LICENSE.txt exists
