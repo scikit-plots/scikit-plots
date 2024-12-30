@@ -30,9 +30,9 @@ The quickest and easiest way to go from analysis...
 - Tags
   ```bash
   #pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0.post0  # Added C,Cpp,Fortran Support
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3     # Pure Python 
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7        # Pure Python 
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc0  # Added C,Cpp,Fortran Support
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3  # Pure Python 
+  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7     # Pure Python 
   ```
 
 ## Sample Plots

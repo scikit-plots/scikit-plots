@@ -14,9 +14,12 @@ will still work correctly after scikitplot is reloaded::
 That was not the case when the singleton classes were defined in the scikitplot
 ``__init__.py`` file. See gh-7844 for a discussion of the reload problem that
 motivated this module.
-
 """
-from __future__ import division, absolute_import, print_function
+from __future__ import (
+  division,
+  absolute_import,
+  print_function,
+)
 
 import enum
 from typing import Any, Type, Optional
@@ -284,6 +287,9 @@ class _DefaultType(SingletonBase):
             The string representation of the default object.
         """
         return "<default>"
+
+# Create class instance to direct use
+_Default = _DefaultType()
       
 ######################################################################
 ## Singleton Marker Types
@@ -320,6 +326,9 @@ class _DeprecatedType(SingletonBase):
             The string representation of the deprecated object.
         """
         return "<deprecated>"
+
+# Create class instance to direct use
+_Deprecated = _DeprecatedType()
       
 ######################################################################
 ## Singleton Marker Types
@@ -332,6 +341,21 @@ class _NoValueType(SingletonBase):
 
     This class provides a unique marker to detect whether a user has provided 
     a value to a function or if a default behavior should be applied.
+
+    The instance of this class may be used as the default value assigned to a
+    keyword if no other obvious default (e.g., `None`) is suitable,
+
+    Common reasons for using this keyword are:
+
+    - A new keyword is added to a function, and that function forwards its
+      inputs to another function or method which can be defined outside of
+      NumPy. For example, ``np.std(x)`` calls ``x.std``, so when a ``keepdims``
+      keyword was added that could only be forwarded if the user explicitly
+      specified ``keepdims``; downstream array libraries may not have added
+      the same keyword, so adding ``x.std(..., keepdims=keepdims)``
+      unconditionally could have broken previously working code.
+    - A keyword is being deprecated, and a deprecation warning must only be
+      emitted when the keyword is used.
 
     Examples
     --------
@@ -358,9 +382,7 @@ class _NoValueType(SingletonBase):
         return "<no value>"
 
 # Create class instance to direct use
-_Default    = _DefaultType()
-_Deprecated = _DeprecatedType()
-_NoValue    = _NoValueType()
+_NoValue = _NoValueType()
 
 ######################################################################
 ## Singleton for Resource Management

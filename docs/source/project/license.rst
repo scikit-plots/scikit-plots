@@ -143,27 +143,3 @@ Third Party Licenses
 
    .. literalinclude:: ../../../LICENSES/LICENSE_array-api-compat
       :language: none
-
-.. dropdown:: boost
-   :class-container: sdd
-
-   .. literalinclude:: ../../../LICENSES/LICENSE_boost
-      :language: none
-
-.. dropdown:: boost-math
-   :class-container: sdd
-
-   .. literalinclude:: ../../../LICENSES/LICENSE_boost-math
-      :language: none
-
-.. dropdown:: NumCpp
-   :class-container: sdd
-
-   .. literalinclude:: ../../../LICENSES/LICENSE_NumCpp
-      :language: none
-
-.. dropdown:: xla
-   :class-container: sdd
-
-   .. literalinclude:: ../../../LICENSES/LICENSE_OpenXLA-xla
-      :language: none

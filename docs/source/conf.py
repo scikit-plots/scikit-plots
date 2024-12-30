@@ -484,7 +484,10 @@ html_theme = "pydata_sphinx_theme"  # scikit-learn
 # documentation.
 html_theme_options = {
   # -- General configuration ------------------------------------------------
-  "show_version_warning_banner": True,
+  # If the version compares greater than the preferred version
+  # (or if the version match contains the strings “dev”, “rc” or “pre”),
+  # the announcement will say they are viewing an unstable development version instead.
+  "show_version_warning_banner": True and 'dev' in release,
   "surface_warnings": True,
   "logo": {
     "alt_text": "scikit-plots homepage",

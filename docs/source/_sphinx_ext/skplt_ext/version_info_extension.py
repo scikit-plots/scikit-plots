@@ -80,14 +80,14 @@ def infer_next_release_versions(app: Sphinx):
           )
         # See `build_tools/circle/list_versions.py`, stable is always the second entry
         # stable_version = parse(versions_json[1]["version"])
-        # stable_prev_version = parse(versions_json[2]["version"])
+        # prev_version = parse(versions_json[2]["version"])
 
-        # Try to find the stable and stable_prev version entries
-        stable_prev_entry = next((entry for entry in versions_json if "stable_prev" in entry.get("name", "").lower()), None)
+        # Try to find the stable and prev_version entries
+        prev_entry = next((entry for entry in versions_json if "prev" in entry.get("name", "").lower()), None)
         stable_entry = next((entry for entry in versions_json if "stable" in entry.get("name", "").lower()), None)
 
-        if stable_entry and stable_prev_entry:
-            stable_version_prev = parse(stable_prev_entry["version"])
+        if stable_entry and prev_entry:
+            stable_version_prev = parse(prev_entry["version"])
             stable_version      = parse(stable_entry["version"])
           
             next_major_minor    = f"{stable_version.major}.{stable_version.minor + 1}"

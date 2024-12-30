@@ -9,7 +9,7 @@ online at https://scikit-plots.github.io.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-__version__ = '0.4.1.dev0'
+__version__ = '0.4.0rc0'
 __array_api_version__ = "2023.12"
 
 py_set = set  # 'seaborn.set' override raise error
