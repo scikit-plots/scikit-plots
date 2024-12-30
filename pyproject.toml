@@ -38,6 +38,7 @@ requires = [                                # Building an env isolated one
   # Add other dependencies here if needed
   "scipy>=1.6.0",
   "pythran>=0.14.0",
+  "aggdraw",                                # visualkeras dep
 ]
 
 # The [project] section contains metadata about your project.
@@ -143,6 +144,7 @@ dependencies = [
   "scikit-learn>=1.1",
   "joblib>=1.2.0", 
   "threadpoolctl>=3.1.0", 
+  "aggdraw",
 ]
 
 # Development dependencies (for linting, type checking, and general dev tools)
@@ -196,6 +198,7 @@ test = [
   "scikit-image>=0.17.2",                   # Image processing
   "catboost",                               # Gradient boosting
   "tensorflow",                             # Deep learning
+  "aggdraw",
 ]
 # Documentation dependencies
 docs = [
