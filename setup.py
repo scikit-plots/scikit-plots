@@ -1,13 +1,10 @@
 """
-Updated:  August 17 2024
-Author :  Muhammed Çelik
-
 Setup script for installing scikit-plots
 
 For license information, see LICENSE and/or NOTICE.md
 """
 from __future__ import (
-	print_function
+  print_function
 )
 import os
 import io
@@ -16,9 +13,9 @@ import codecs
 import pathlib
 
 from setuptools import (
-	setup,
-	find_packages,
-	find_namespace_packages
+  setup,
+  find_packages,
+  find_namespace_packages
 )
 
 # import pytest
@@ -39,17 +36,17 @@ README       = 'README.md'
 PKG_DESCRIBE = (HERE / README).read_text(encoding='utf-8')
 ## Define the keywords
 KEYWORDS = [
-	"matplotlib", 
-	"visualization", 
-	"scikit-learn", 
-	"xgboost", 
-	"catboost", 
-	"tensorflow", 
-	"keras", 
-	"pytorch", 
-	"scikit-learn", 
-	"machine learning", 
-	"data science",
+  "matplotlib", 
+  "visualization", 
+  "scikit-learn", 
+  "xgboost", 
+  "catboost", 
+  "tensorflow", 
+  "keras", 
+  "pytorch", 
+  "scikit-learn", 
+  "machine learning", 
+  "data science",
 ]
 # LICENSE      = 'MIT License'  # deprecated
 LICENSE_FILES= 'LICEN[CS]E*'
@@ -58,7 +55,7 @@ AUTHOR       = ''  # 'Reiichiro Nakano et al.'
 A_EMAIL      = ''  # 'reiichiro.s.nakano@gmail.com'
 MAINTAINER   = 'muhammed çelik'
 M_EMAIL      = 'muhammed.business.network@gmail.com'
-REQUIRE_PATH = 'requirements.txt'
+REQUIRE_PATH = 'requirements/build_requirements.txt'
 
 # Project homepage, often a link to GitHub or GitLab
 # Often specified in the [project] table
@@ -73,21 +70,21 @@ CHANGELOG     = "https://scikit-plots.github.io/dev/whats_new/index.html"
 
 ## Directories to ignore in find_packages
 EXCLUDES = [
-	"auto_building_tools",
-	"docs", "docs.*",
-	"examples", "examples.*",
-	"notebooks", "notebooks.*",
-	"tests", "tests.*",
-	"paper", "paper.*",
-	"binder", "binder.*",
-	"register",
-	"fixtures",
-	"bin",
+  "auto_building_tools",
+  "docs", "docs.*",
+  "examples", "examples.*",
+  "notebooks", "notebooks.*",
+  "tests", "tests.*",
+  "paper", "paper.*",
+  "binder", "binder.*",
+  "register",
+  "fixtures",
+  "bin",
 ]
 PACKAGE = find_packages(
-	where='.', 
-	include=['scikitplot', 'scikitplot.utils'], 
-	exclude=EXCLUDES
+  where='.', 
+  include=['scikitplot'], 
+  exclude=EXCLUDES
 )
 
 ##########################################################################
@@ -144,57 +141,57 @@ def get_requires(path=REQUIRE_PATH):
 ## https://setuptools.pypa.io/en/latest/userguide/declarative_config.html#metadata
 ## https://setuptools.pypa.io/en/latest/deprecated/distutils/apiref.html#distutils.core.setup
 config = {
-	# packages': find_packages(),  # Finds all packages automatically
-	'packages': PACKAGE,
-	'include_package_data': True,
-	'name': NAME,
-	'version': get_version(),
-	'description': DESCRIPTION,
-	'long_description': PKG_DESCRIBE,
-	'long_description_content_type': get_description_type(),
-	'keywords': KEYWORDS,
-	# 'license': LICENSE,
-	'license_files': LICENSE_FILES,
-	'author': AUTHOR,
-	'author_email': A_EMAIL,
-	'maintainer': MAINTAINER,
-	'maintainer_email': M_EMAIL,
-	'url': HOMEPAGE,
-	'download_url': DOWNLOAD_URL,
-	'project_urls': {
-		'Homepage   '  : HOMEPAGE,
-		'Download'     : DOWNLOAD_URL,
-		'Documentation': DOCUMENTATION,
-		'Issues'       : ISSUES,
-		'Repo_Forked'  : CHANGELOG,
-	},
-	'classifiers': [
-		# https://pypi.org/pypi?%3Aaction=list_classifiers
-		'Development Status :: 4 - Beta',
-		'Intended Audience :: Developers',
-		'Intended Audience :: Science/Research',
-		'License :: OSI Approved :: BSD License',
-		'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-		'License :: OSI Approved :: MIT License',
-		'Natural Language :: English',
-		'Operating System :: OS Independent',
-		'Programming Language :: Python',
-		'Programming Language :: Python :: 3',
-		'Programming Language :: Python :: 3.5',
-		'Programming Language :: Python :: 3.10',
-		'Programming Language :: Python :: 3.14',
-		'Topic :: Scientific/Engineering :: Visualization',
-		'Topic :: Software Development :: Libraries :: Python Modules',
-	],
-	# 'entry_points': {"console_scripts": []},
-	'python_requires': '>=3',
-	'install_requires': list(get_requires()),
-	'platforms': 'any',
-	'extras_require': {
-			'testing': ['pytest'],
-	},
-	# 'cmdclass': {'test': PyTest},
-	# 'cmdclass': {'test': pytest},
+  # packages': find_packages(),  # Finds all packages automatically
+  'packages': PACKAGE,
+  'include_package_data': True,
+  'name': NAME,
+  'version': get_version(),
+  'description': DESCRIPTION,
+  'long_description': PKG_DESCRIBE,
+  'long_description_content_type': get_description_type(),
+  'keywords': KEYWORDS,
+  # 'license': LICENSE,
+  'license_files': LICENSE_FILES,
+  'author': AUTHOR,
+  'author_email': A_EMAIL,
+  'maintainer': MAINTAINER,
+  'maintainer_email': M_EMAIL,
+  'url': HOMEPAGE,
+  'download_url': DOWNLOAD_URL,
+  'project_urls': {
+    'Homepage   '  : HOMEPAGE,
+    'Download'     : DOWNLOAD_URL,
+    'Documentation': DOCUMENTATION,
+    'Issues'       : ISSUES,
+    'Repo_Forked'  : CHANGELOG,
+  },
+  'classifiers': [
+    # https://pypi.org/pypi?%3Aaction=list_classifiers
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: BSD License',
+    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+    'License :: OSI Approved :: MIT License',
+    'Natural Language :: English',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.14',
+    'Topic :: Scientific/Engineering :: Visualization',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+  ],
+  # 'entry_points': {"console_scripts": []},
+  'python_requires': '>=3',
+  'install_requires': list(get_requires()),
+  'platforms': 'any',
+  'extras_require': {
+    'testing': ['pytest'],
+  },
+  # 'cmdclass': {'test': PyTest},
+  # 'cmdclass': {'test': pytest},
 }
 
 ##########################################################################

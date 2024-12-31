@@ -10,15 +10,34 @@ logger = getLogger(__name__)
 # https://www.sphinx-doc.org/en/master/_modules/sphinx/application.html#Sphinx
 # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx-runtime-information
 # https://www.sphinx-doc.org/en/master/_modules/sphinx/builders/html.html
-def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
-    """Load additional JS and CSS files only for certain pages."""
 
-    # api_search_js_path = os.path.join(app.builder.confdir, "searchindex.js")
-    # api_search_js_path = os.path.join(app.builder.outdir, "searchindex.js")
-    api_search_js_path = "scripts/api-search.js"
+
+def disable_plot_gallery_for_linkcheck(app: Sphinx):
+    # Check if the current builder is 'linkcheck'
+    if app.builder.name == "linkcheck":
+        # Ensure sphinx_gallery_conf exists in app.config
+        if hasattr(app.config, "sphinx_gallery_conf") and "plot_gallery" in app.config.sphinx_gallery_conf:
+            # Set plot_gallery to False for linkcheck builds
+            app.config.sphinx_gallery_conf["plot_gallery"] = False
+            logger.info("Plot gallery disabled for linkcheck builder")
+
+
+def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
+    """Load additional JS and CSS files only for certain pages.
+
+    Note that `html_js_files` and `html_css_files` are included in all pages and
+    should be used for the ones that are used by multiple pages. All page-specific
+    JS and CSS files should be added here instead.
+    """
+    # Adding a custom variable to the context dictionary for every page
+    api_search_js_path  = "scripts/api-search.js"
     api_search_css_path = "styles/api-search.css"
-    index_css_path = "styles/index.css"
-    api_css_path = "styles/api.css"
+    index_css_path      = "styles/index.css"
+    api_css_path        = "styles/api.css"
+  
+    shell_js_path       = "shell_scripts.js"
+    shell_css_path      = "shell_styles.css"
+    shell_code_css_path = "shell_code_styles.css"
 
     # missing_file = []
     # for file in [api_search_js_path, api_search_css_path, index_css_path, api_css_path]:        
@@ -30,7 +49,7 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
     #     logger.warning("File does not exist here: %s", app.builder.outdir)
     #     return
     
-    if pagename == "api/index":
+    if pagename == "api/index":  # "api/index"
         # External: jQuery and DataTables
         app.add_js_file("https://code.jquery.com/jquery-3.7.0.js")
         app.add_js_file("https://cdn.datatables.net/2.0.0/js/dataTables.min.js")
@@ -39,9 +58,22 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
         # Internal: API search initialization and styling
         app.add_js_file(api_search_js_path)
         app.add_css_file(api_search_css_path)
+      
         # logger.info("Adding JS and CSS files for page: %s", pagename)
     elif pagename == "index":
+        # External: Include Prism.js for syntax highlighting
+        app.add_js_file("https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js")
+        app.add_js_file("https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js")
+        # Internal: Include the modular JavaScript file
+        app.add_js_file(shell_js_path)
+      
+        # External: Link to Prism.js CSS for syntax highlighting
+        app.add_css_file("https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css")
+        # Internal: Link to custom CSS for styling
         app.add_css_file(index_css_path)
+        app.add_css_file(shell_css_path)
+        app.add_css_file(shell_code_css_path)
+      
         # logger.info("Adding JS and CSS files for page: %s", pagename)
     elif pagename.startswith("modules/generated/"):
         app.add_css_file(api_css_path)
@@ -74,6 +106,15 @@ def setup(app: Sphinx):
     Set up the Sphinx application with custom event handlers and configuration.
     """
     logger.info("Setting up Sphinx application")
+
+    try:
+        # Connect the function to the 'config-inited' event, which allows access to config values
+        # do not run the examples when using linkcheck by using a small priority
+        # (default priority is 500 and sphinx-gallery using builder-inited event too)
+        app.connect("builder-inited", disable_plot_gallery_for_linkcheck, priority=50)
+        logger.info("Connected 'disable_plot_gallery_for_linkcheck' to 'builder-inited' event")
+    except Exception as e:
+        logger.error(f"Failed to connect 'disable_plot_gallery_for_linkcheck': {e}")
 
     try:
         app.connect("html-page-context", add_js_css_files)

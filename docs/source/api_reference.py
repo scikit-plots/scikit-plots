@@ -2,7 +2,6 @@
 Configuration for the API reference documentation.
 """
 
-
 def _get_guide(*refs, is_developer=False):
     """Get the rst to refer to user/developer guide.
 
@@ -88,158 +87,217 @@ under `sklearn.datasets`.
 """
 
 API_REFERENCE = {
-    "scikitplot": {
-        "short_summary": "Settings and information visualization tools.",
-        "description": None,
-        "sections": [
-            {
-                "title": None,
-                "autosummary": [
-                    "show_versions",
-                ],
-            },
+  "scikitplot": {
+    "short_summary": "Settings and information visualization tools.",
+    "description": None,
+    "sections": [
+      {
+        "title": "Configure global settings and get information about the working environment.",
+        "autosummary": [
+          "show_versions",
+          "online_help",
         ],
-    },
-    "scikitplot.cluster": {
-        "short_summary": "Clustering.",
-        "description": _get_guide("clustering"),
-        "sections": [
-            {
-                "title": None,
-                "autosummary": [
-                    "plot_elbow",
-                ],
-            },
+      },
+    ],
+  },
+  "scikitplot.cluster": {
+    "short_summary": "Clustering.",
+    "description": _get_guide("clustering"),
+    "sections": [
+      {
+        "title": None,
+        "autosummary": [
+          "plot_elbow",
         ],
-    },
-    "scikitplot.decomposition": {
-        "short_summary": "Decomposition.",
-        "description": _get_guide("decomposition"),
-        "sections": [
-            {
-                "title": None,
-                "autosummary": [
-                    "plot_pca_component_variance", 
-                    "plot_pca_2d_projection",
-                ],
-            },
+      },
+    ],
+  },
+  "scikitplot.decomposition": {
+    "short_summary": "Decomposition.",
+    "description": _get_guide("decomposition"),
+    "sections": [
+      {
+        "title": None,
+        "autosummary": [
+          "plot_pca_component_variance", 
+          "plot_pca_2d_projection",
         ],
-    },
-    "scikitplot.estimators": {
-        "short_summary": "Visualizations for model’s decision-making process.",
-        "description": _get_guide("estimators"),
-        "sections": [
-            {
-                "title": None,
-                "autosummary": [
-                    "plot_feature_importances",
-                    "plot_learning_curve",
-                ],
-            },
+      },
+    ],
+  },
+  "scikitplot.estimators": {
+    "short_summary": "Visualizations for model’s decision-making process.",
+    "description": _get_guide("estimators"),
+    "sections": [
+      {
+        "title": None,
+        "autosummary": [
+          "plot_feature_importances",
+          "plot_learning_curve",
         ],
-    },
-    "scikitplot.metrics": {
-        "short_summary": "Visualizations for model performance metrics.",
+      },
+    ],
+  },
+  "scikitplot.metrics": {
+    "short_summary": "Visualizations for model performance metrics.",
+    "description": _get_guide("metrics"),
+    "sections": [
+      {
+        "title": "Model selection interface",
+        # "description": (
+        #   _get_submodule("scikitplot.metrics", "decomposition")
+        #   + "\n\n"
+        #   + _get_guide("decomposition")
+        # ),
+        "autosummary": [
+          "plot_calibration_curve",
+        ],
+      },
+      {
+        "title": "Classification metrics",
         "description": _get_guide("metrics"),
-        "sections": [
-            {
-                "title": "Model selection interface",
-                "description": _get_guide("metrics"),
-                "autosummary": [
-                    "plot_calibration_curve",
-                ],
-            },
-            {
-                "title": "Classification metrics",
-                "description": _get_guide("metrics"),
-                "autosummary": [
-                    "plot_classifier_eval",
-                    "plot_confusion_matrix",
-                    "plot_roc",
-                    "plot_precision_recall",
-                ],
-            },
-            {
-                "title": "Clustering metrics",
-                "description": _get_guide("metrics"),
-                "autosummary": [
-                    "plot_silhouette",
-                ],
-            },
+        "autosummary": [
+          "plot_classifier_eval",
+          "plot_confusion_matrix",
+          "plot_roc",
+          "plot_precision_recall",
         ],
-    },
-    "scikitplot.deciles": {
-        "short_summary": "Deciles.",
-        "description": _get_guide("deciles"),
-        "sections": [
-            {
-                "title": None,
-                "autosummary": [
-                    "plot_cumulative_gain",
-                    "plot_lift",
-                    "plot_ks_statistic",
-                ],
-            },
+      },
+      {
+        "title": "Clustering metrics",
+        "description": _get_guide("metrics"),
+        "autosummary": [
+          "plot_silhouette",
         ],
-    },
-    "scikitplot.kds": {
-        "short_summary": "kds - KeyToDataScience Visualization Library.",
-        "description": _get_guide("kds"),
-        "sections": [
-            {
-                "title": None,
-                "autosummary": [
-                    'print_labels',
-                    'decile_table',
-                    'plot_cumulative_gain',
-                    'plot_lift',
-                    'plot_lift_decile_wise',
-                    'plot_ks_statistic',
-                    'report',
-                ],
-            },
+      },
+    ],
+  },
+  "scikitplot.deciles": {
+    "short_summary": "Deciles.",
+    "description": _get_guide("deciles"),
+    "sections": [
+      {
+        "title": None,
+        "autosummary": [
+          "plot_cumulative_gain",
+          "plot_lift",
+          "plot_ks_statistic",
         ],
-    },
-    "scikitplot.modelplotpy": {
-        "short_summary": "Explain your modelling efforts easily to business colleagues.",
-        "description": _get_guide("modelplotpy"),
-        "sections": [
-            {
-                "title": None,
-                "autosummary": [
-                    "ModelPlotPy",
-                    "plot_response",
-                    "plot_cumresponse",
-                    "plot_cumlift",
-                    "plot_cumgains",
-                    "plot_all",
-                    "plot_costsrevs",
-                    "plot_profit",
-                    "plot_roi",
-                    "range01",
-                    "check_input",
-                ],
-            },
+      },
+    ],
+  },
+  "scikitplot.kds": {
+    "short_summary": "kds - KeyToDataScience Visualization Library.",
+    "description": _get_guide("kds"),
+    "sections": [
+      {
+        "title": None,
+        "autosummary": [
+          'print_labels',
+          'decile_table',
+          'plot_cumulative_gain',
+          'plot_lift',
+          'plot_lift_decile_wise',
+          'plot_ks_statistic',
+          'report',
         ],
-    },
-    "scikitplot.utils": {
-        "short_summary": "Utilities.",
-        "description": _get_guide("developers-utils", is_developer=True),
-        "sections": [
-            {
-                "title": "Optimal mathematical operations",
-                "description": _get_submodule("scikitplot.utils", "helpers"),
-                "autosummary": [
-                    "helpers.combine_and_save_figures",
-                    "helpers.validate_labels",
-                    "helpers.cumulative_gain_curve",
-                    "helpers.binary_ks_curve",
-                    "helpers.sigmoid",
-                    "helpers.softmax",
-                ],
-            },
+      },
+    ],
+  },
+  "scikitplot.modelplotpy": {
+    "short_summary": "Explain your modelling efforts easily to business colleagues.",
+    "description": _get_guide("modelplotpy"),
+    "sections": [
+      {
+        "title": None,
+        "autosummary": [
+          "ModelPlotPy",
+          "plot_response",
+          "plot_cumresponse",
+          "plot_cumlift",
+          "plot_cumgains",
+          "plot_all",
+          "plot_costsrevs",
+          "plot_profit",
+          "plot_roi",
+          "range01",
+          "check_input",
         ],
-    },
+      },
+    ],
+  },
+  "scikitplot.utils": {
+    "short_summary": "Utilities.",
+    "description": _get_guide("developers-utils", is_developer=True),
+    "sections": [
+      {
+        "title": "Optimal mathematical operations",
+        "description": _get_submodule("scikitplot.utils", "helpers"),
+        "autosummary": [
+          "helpers.combine_and_save_figures",
+          "helpers.validate_labels",
+          "helpers.cumulative_gain_curve",
+          "helpers.binary_ks_curve",
+          "helpers.sigmoid",
+          "helpers.softmax",
+        ],
+      },
+    ],
+  },
+  "scikitplot.sp_logging": {
+    "short_summary": "Scikit-plots Logging.",
+    "description": (
+      _get_guide("sp_logging")
+    ),
+    "sections": [
+      {
+        "title": "Logging Levels",
+        "description": None,
+        "autosummary": [
+          'CRITICAL',
+          'DEBUG',
+          'ERROR',
+          'FATAL',
+          'INFO',
+          'NOTSET',
+          'WARN',
+          'WARNING',
+        ],
+      },
+      {
+        "title": "Functional Interface - get_logger",
+        # "description": (
+        #   _get_submodule("scikitplot.sp_logging", "SpLogger")
+        #   + "\n\n"
+        #   + _get_guide("sp_logging")
+        # ),
+        "autosummary": [
+          'AlwaysStdErrHandler',
+          'GoogleLogFormatter',
+          'critical',
+          'debug',
+          'error',
+          'error_log',
+          'fatal',
+          'getEffectiveLevel',
+          'get_logger',
+          'log_if',
+          'setLevel',
+          'vlog',
+          'warn',
+          'warning',
+        ],
+      },
+      {
+        "title": "Class Interface - SpLogger",
+        "description": None,
+        "autosummary": [
+          'SpLogger',
+          'sp_logger',
+        ],
+      },
+    ],
+  },
 }
 
 
@@ -279,11 +337,9 @@ DEPRECATED_API_REFERENCE = {
 """
 
 DEPRECATED_API_REFERENCE = {
-    "0.4": [
-        "metrics.plot_roc_curve",
-        "metrics.plot_precision_recall_curve",
-        "classifiers",
-        "clustering",
-        "plotters",
+    "0.5": [
+        "_factory_api",  # Visualizations (object-based, explicit)
+        "api.metrics.plot_roc_curve",
+        "api.metrics.plot_precision_recall_curve",
     ]
 }  # type: ignore

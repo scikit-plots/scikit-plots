@@ -11,10 +11,10 @@ function.
 """
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,         # Changes the division operator `/` to always perform true division.
-    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+  division,         # Changes the division operator `/` to always perform true division.
+  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 import numpy as np
 import matplotlib as mpl
@@ -26,8 +26,8 @@ from sklearn.inspection import permutation_importance
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
-    'plot_learning_curve',
-    'plot_feature_importances',
+  'plot_learning_curve',
+  'plot_feature_importances',
 ]
 
 

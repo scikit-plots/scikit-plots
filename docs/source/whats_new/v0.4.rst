@@ -1,52 +1,57 @@
 .. include:: _contributors.rst
-.. include:: changelog_legend.inc
+
+.. include:: _changelog_legend.inc
 
 .. currentmodule:: scikitplot
 
 .. _release_notes_0_4:
 
-===========
 Version 0.4
 ===========
-
-**In Development**
 
 ..
   -- UNCOMMENT WHEN 0.4.0 IS RELEASED --
   For a short description of the main highlights of the release, please refer to
   :ref:`sphx_glr_auto_examples_release_highlights_plot_release_highlights_0_4_0.py`.
+..
+  DELETE WHEN 0.4.0 IS RELEASED
+  Since November 2024, DO NOT add your changelog entry in this file.
+..
+  Instead, create a file named `<PR_NUMBER>.<TYPE>.rst` in the relevant sub-folder in
+  `doc/whats_new/upcoming_changes/`. For full details, see:
+  https://github.com/scikit-learn/scikit-learn/blob/main/doc/whats_new/upcoming_changes/README.md
 
-.. _changes_0_4_0:
+.. town crier release notes start
+
+.. rubric:: Code and documentation contributors
+
+
+.. _changelog_0_4_0:
 
 Version 0.4.0
-=============
-
-**In Development**
-
-Changelog for Version 0.4.0
 ---------------------------
 
-:mod:`scikitplot.metrics`
+:mod:`.metrics`
 ............................
 
 - |Fix|
 
-:mod:`scikitplot.estimators`
+:mod:`.estimators`
 ............................
 
 - |Fix|
 
-:mod:`scikitplot.deciles`
+:mod:`.deciles`
 ............................
 
 - |Fix|
 
-:mod:`scikitplot.decomposition`
+:mod:`.decomposition`
 ................................
 
 - |Fix|
 
-:mod:`scikitplot.cluster`
+:mod:`.cluster`
 ............................
 
 - |Fix|

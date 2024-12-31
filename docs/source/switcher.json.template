@@ -1,0 +1,31 @@
+{#-
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# https://jinja.palletsprojects.com/en/stable/templates/
+-#}
+{#- if version.split('+')[0] == version #}
+{#- endif #}
+[
+  {
+    "name": "0.5.dev0 (dev)",
+    "version": "{{ version.split('+')[0] | trim }}",
+    "url": "https://scikit-plots.github.io/dev/"
+  },
+  {
+    "name": "0.4.0rc0 (stable)",
+    "version": "0.4.0rc0",
+    "url": "https://scikit-plots.github.io/stable/",
+    "preferred": true
+  },
+  {
+    "name": "0.3.9rc3 (prev)",
+    "version": "0.3.9rc3",
+    "url": "https://scikit-plots.github.io/prev/"
+  },
+  {
+    "name": "0.3.7 (mini)",
+    "version": "0.3.7",
+    "url": "https://scikit-plot.readthedocs.io/en/stable/#"
+  }
+]

@@ -26,8 +26,7 @@ on:
   #   #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
   #   #        │  │ │ │ │
   #   # cron: "11 1 * * SUN,WED"
-  #   # Run every Monday at 11:11 AM
-  #   - cron: '11 11 * * 1'
+  #   - cron: '11 11 * * 1'  # Runs every Sunday and Wednesday at 01:11 UTC
   # triggers a workflow when a pull request (PR) is opened
   # Code Review: Use this to run tests, checks, or CI pipelines
   # Pre-Merge Validation: Ensure that changes introduced in the PR won't break
@@ -135,7 +134,7 @@ jobs:
           # so easier to separate out here.
           - [ubuntu-22.04, manylinux, x86_64]
           - [ubuntu-22.04, musllinux, x86_64]
-          # - [macos-13, macosx, x86_64, openblas, "10.13"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
+          - [macos-13, macosx, x86_64, openblas, "10.13"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
           - [macos-13, macosx, x86_64, accelerate, "14.0"]
           - [macos-14, macosx, arm64, openblas, "12.3"]
           - [macos-14, macosx, arm64, accelerate, "14.0"]
@@ -351,7 +350,7 @@ jobs:
           fi
 
       - name: Upload Wheelhouse Wheels Packages
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: >-
             ${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
@@ -470,7 +469,7 @@ jobs:
           twine check dist/*
 
       - name: Upload Wheelhouse Wheels Packages
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: sdist
           path: ./dist/*

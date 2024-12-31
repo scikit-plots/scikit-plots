@@ -8,10 +8,10 @@ evaluation metrics e.g. confusion matrix, silhouette scores, etc.
 """
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,         # Changes the division operator `/` to always perform true division.
-    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+  division,         # Changes the division operator `/` to always perform true division.
+  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 import warnings
 import itertools
@@ -51,16 +51,16 @@ from .utils.helpers import (
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
-    'plot_calibration_curve',
-    'plot_classifier_eval',
-    'plot_confusion_matrix',
-    'plot_roc_curve', 'plot_roc',
-    'plot_precision_recall_curve', 'plot_precision_recall',
-    'plot_silhouette',
+  'plot_calibration',
+  'plot_classifier_eval',
+  'plot_confusion_matrix',
+  'plot_roc_curve', 'plot_roc',
+  'plot_precision_recall_curve', 'plot_precision_recall',
+  'plot_silhouette',
 ]
 
 
-def plot_calibration_curve(
+def plot_calibration(
     ## default params
     y_true,
     y_probas_list,
@@ -235,7 +235,7 @@ def plot_calibration_curve(
         >>>     RandomForestClassifier(): rf_probas,
         >>> }
         >>> # Plot!
-        >>> ax = skplt.metrics.plot_calibration_curve(
+        >>> ax = skplt.metrics.plot_calibration(
         >>>     y_val,
         >>>     y_probas_list=list(probas_dict.values()),
         >>>     estimator_names=list(probas_dict.keys()),

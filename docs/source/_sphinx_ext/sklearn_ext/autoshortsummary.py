@@ -1,4 +1,5 @@
-from sphinx.ext.autodoc import ModuleLevelDocumenter
+import inspect
+from sphinx.ext.autodoc import Documenter, ModuleLevelDocumenter
 
 
 class ShortSummaryDocumenter(ModuleLevelDocumenter):
@@ -16,8 +17,38 @@ class ShortSummaryDocumenter(ModuleLevelDocumenter):
 
     @classmethod
     def can_document_member(cls, member, membername, isattr, parent):
-        """Allow documenting any object."""
-        return True
+        """Allow documenting any object.
+        
+        Dynamically checks if an object can be documented based on its type.
+        This checks if the member is a function, class, data, module, etc.
+        """
+
+        # Check if it's a function
+        if inspect.isfunction(member):
+            cls.objtype = "function"  # Treat as a function
+        # Check if it's a class
+        elif inspect.isclass(member):
+            cls.objtype = "class"  # Treat as a class
+        # Check if it's a module-level object (module)
+        elif inspect.ismodule(member):
+            cls.objtype = "module"  # Treat as a module
+        # Check if it's a method (also caught by isfunction, but explicitly here for clarity)
+        elif inspect.ismethod(member):
+            cls.objtype = "method"  # Treat as a method
+        # Check if it's a property (optional)
+        elif isinstance(member, property):
+            cls.objtype = "property"  # Treat as a property
+        # Check if it's an instance (custom object like tweedie_gen)
+        elif isinstance(member, object):
+            cls.objtype = "data"  # Treat as data if it's an instance of a class
+        # Check if the member is a constant or simple module-level variable (data)
+        elif isinstance(member, (int, float, str, bool, complex, dict, list)):
+            cls.objtype = "data"  # Treat as data if it's a simple module-level constant or value
+        # Default fallback for unrecognized types
+        else:
+            cls.objtype = "shortsummary"  # Default to short summary for unknown types
+
+        return True  # Allow all objects to be documented
 
     def get_object_members(self, want_all):
         """Document no members."""

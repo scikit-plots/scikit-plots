@@ -1,37 +1,51 @@
 """
-This package/module is designed to be compatible with both Python 2 and Python 3.
-The imports below ensure consistent behavior across different Python versions by
-enforcing Python 3-like behavior in Python 2.
-
 The :mod:`~scikitplot.kds` module includes plots for machine learning
 evaluation decile analysis e.g. Gain, Lift and Decile charts, etc.
 
 References
 ----------
-[1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#
+[1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py
+
+This package/module is designed to be compatible with both Python 2 and Python 3.
+The imports below ensure consistent behavior across different Python versions by
+enforcing Python 3-like behavior in Python 2.
 """
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,         # Changes the division operator `/` to always perform true division.
-    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+  division,         # Changes the division operator `/` to always perform true division.
+  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+# Define the kds version
+# https://github.com/tensorbored/kds/blob/master/setup.py
+__version__ = "0.1.3"
+__author__ = "Prateek Sharma"
+__author_email__ = "s.prateek3080@gmail.com"
+
+# Define the visualkeras git hash
+__git_hash__ = '18a2e90872f0dae8bb92a2eb13f637eeaa196fc4'
+
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
-    'print_labels',
-    'decile_table',
-    'plot_cumulative_gain',
-    'plot_lift',
-    'plot_lift_decile_wise',
-    'plot_ks_statistic',
-    'report',
+  # module info
+  '__version__',
+  '__author__',
+  '__author_email__',
+  '__git_hash__',
+  'print_labels',
+  'decile_table',
+  'plot_cumulative_gain',
+  'plot_lift',
+  'plot_lift_decile_wise',
+  'plot_ks_statistic',
+  'report',
 ]
 
 
@@ -52,8 +66,8 @@ def print_labels(**kwargs):
     
     .. jupyter-execute::
 
-        >>> import scikitplot as skplt
-        >>> skplt.kds.print_labels()
+        >>> import scikitplot as sp
+        >>> sp.kds.print_labels()
     """
     print(
         "LABELS INFO:\n\n",
@@ -80,18 +94,18 @@ def print_labels(**kwargs):
 
 
 def decile_table(
-    ## default params
-    y_true,
-    y_probas,
-    *,
-    # class_names=None,
-    # multi_class=None,
-    class_index=1,
-    labels=True,
-    change_deciles=10,
-    digits=3,
-    ## additional params
-    **kwargs,
+  ## default params
+  y_true,
+  y_probas,
+  *,
+  # class_names=None,
+  # multi_class=None,
+  class_index=1,
+  labels=True,
+  change_deciles=10,
+  digits=3,
+  ## additional params
+  **kwargs,
 ):
     """
     Generates the Decile Table from labels and probabilities
@@ -147,53 +161,73 @@ def decile_table(
         >>> from sklearn.datasets import load_breast_cancer as data_2_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
-        >>> import scikitplot as skplt
+        >>> import scikitplot as sp
         >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
         >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
         >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(X_train, y_train)
         >>> y_prob = clf.predict_proba(X_test)
-        >>> skplt.kds.decile_table(
+        >>> sp.kds.decile_table(
         >>>     y_test, y_prob, class_index=1
         >>> )
     """
-    y_true = np.asarray(y_true)
+    # Convert input to numpy arrays for efficient processing
+    y_true   = np.asarray(y_true)
     y_probas = np.asarray(y_probas)
 
     if y_probas.ndim > 1:
         y_probas = y_probas[:, class_index].ravel()
 
+    # Create DataFrame
     df = pd.DataFrame()
     df['y_true'] = y_true
     df['y_prob'] = y_probas
+  
     # df['decile']=pd.qcut(df['y_prob'], 10, labels=list(np.arange(10,0,-1))) 
     # ValueError: Bin edges must be unique
-
+    # Sort by probabilities for decile
     df.sort_values('y_prob', ascending=False, inplace=True)
     df['decile'] = np.linspace(1, change_deciles+1, len(df), False, dtype=int)
 
     # dt abbreviation for decile_table
-    dt = df.groupby('decile').apply(lambda x: pd.Series([
-        np.min(x['y_prob']),
-        np.max(x['y_prob']),
-        np.mean(x['y_prob']),
-        np.size(x['y_prob']),
-        np.sum(x['y_true']),
-        np.size(x['y_true'][x['y_true'] == 0]),
-    ],
-        index=(["prob_min", "prob_max", "prob_avg",
-                "cnt_cust", "cnt_resp", "cnt_non_resp"])
-    )).reset_index()
+    dt = df.groupby('decile').apply(
+      lambda x: pd.Series(
+        [
+          np.min(x['y_prob']),
+          np.max(x['y_prob']),
+          np.mean(x['y_prob']),
+          np.size(x['y_prob']),
+          np.sum(x['y_true']),
+          np.size(x['y_true'][x['y_true'] == 0]),
+        ],
+        index=([
+          "prob_min",
+          "prob_max",
+          "prob_avg",
+          "cnt_cust",
+          "cnt_resp",
+          "cnt_non_resp"
+        ]),
+        ),
+        # include_groups=False,  # Deprecated since version 2.2.0: Setting include_groups to True is deprecated.
+    ).reset_index()
 
+    # Round the results
     dt['prob_min']=dt['prob_min'].round(digits)
     dt['prob_max']=dt['prob_max'].round(digits)
     dt['prob_avg']=round(dt['prob_avg'],digits)
     # dt=dt.sort_values(by='decile',ascending=False).reset_index(drop=True)
 
+    # Calculate additional columns
     tmp = df[['y_true']].sort_values('y_true', ascending=False)
     tmp['decile'] = np.linspace(1, change_deciles+1, len(tmp), False, dtype=int)
 
     dt['cnt_resp_rndm'] = np.sum(df['y_true']) / change_deciles
-    dt['cnt_resp_wiz'] = tmp.groupby('decile', as_index=False)['y_true'].sum()['y_true']
+    dt['cnt_resp_wiz'] = tmp.groupby(
+      'decile',
+      # group_keys=False,  # Changed in version 2.0.0: group_keys now defaults to True.
+      # as_index=True,
+      as_index=False,
+    )['y_true'].sum()['y_true']
 
     dt['resp_rate'] = round(dt['cnt_resp'] * 100 / dt['cnt_cust'], digits)
     dt['cum_cust'] = np.cumsum(dt['cnt_cust'])
@@ -215,27 +249,27 @@ def decile_table(
 
 
 def plot_lift(
-    ## default params
-    y_true,
-    y_probas,
-    *,
-    # class_names=None,
-    # multi_class=None,
-    class_index=1,
-    # to_plot_class_index=None,
-    ## plotting params
-    title='Lift Curves',
-    ax=None,
-    fig=None,
-    figsize=None,
-    title_fontsize="large",
-    text_fontsize="medium",
-    # cmap=None,
-    # show_labels=True,
-    # plot_micro=False,
-    # plot_macro=False,
-    ## additional params
-    **kwargs,
+  ## default params
+  y_true,
+  y_probas,
+  *,
+  # class_names=None,
+  # multi_class=None,
+  class_index=1,
+  # to_plot_class_index=None,
+  ## plotting params
+  title='Lift Curves',
+  ax=None,
+  fig=None,
+  figsize=None,
+  title_fontsize="large",
+  text_fontsize="medium",
+  # cmap=None,
+  # show_labels=True,
+  # plot_micro=False,
+  # plot_macro=False,
+  ## additional params
+  **kwargs,
 ):
     """
     Generates the Decile based cumulative Lift Plot from labels and probabilities
@@ -302,12 +336,12 @@ def plot_lift(
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
-        >>> import scikitplot as skplt
+        >>> import scikitplot as sp
         >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
         >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
         >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
         >>> y_probas = model.predict_proba(X_val)
-        >>> skplt.kds.plot_lift(
+        >>> sp.kds.plot_lift(
         >>>     y_val, y_probas, class_index=1,
         >>> );
     """
@@ -336,27 +370,27 @@ def plot_lift(
 
 
 def plot_lift_decile_wise(
-    ## default params
-    y_true,
-    y_probas,
-    *,
-    # class_names=None,
-    # multi_class=None,
-    class_index=1,
-    # to_plot_class_index=None,
-    ## plotting params
-    title='Decile-wise Lift Plot',
-    ax=None,
-    fig=None,
-    figsize=None,
-    title_fontsize="large",
-    text_fontsize="medium",
-    # cmap=None,
-    # show_labels=True,
-    # plot_micro=False,
-    # plot_macro=False,
-    ## additional params
-    **kwargs,
+  ## default params
+  y_true,
+  y_probas,
+  *,
+  # class_names=None,
+  # multi_class=None,
+  class_index=1,
+  # to_plot_class_index=None,
+  ## plotting params
+  title='Decile-wise Lift Plot',
+  ax=None,
+  fig=None,
+  figsize=None,
+  title_fontsize="large",
+  text_fontsize="medium",
+  # cmap=None,
+  # show_labels=True,
+  # plot_micro=False,
+  # plot_macro=False,
+  ## additional params
+  **kwargs,
 ):
     """
     Generates the Decile-wise Lift Plot from labels and probabilities
@@ -411,7 +445,7 @@ def plot_lift_decile_wise(
        :align: center
        :alt: Lift Decile Wise Curves
     
-        >>> import scikitplot as skplt
+        >>> import scikitplot as sp
         >>> from sklearn.datasets import load_iris
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
@@ -420,7 +454,7 @@ def plot_lift_decile_wise(
         >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0)
         >>> clf = clf.fit(X_train, y_train)
         >>> y_prob = clf.predict_proba(X_test)
-        >>> skplt.kds.plot_lift_decile_wise(y_test, y_prob, class_index=1)
+        >>> sp.kds.plot_lift_decile_wise(y_test, y_prob, class_index=1)
     """
     # Decile-wise Lift Plot
     # plt.subplot(2, 2, 2)
@@ -446,27 +480,27 @@ def plot_lift_decile_wise(
 
 
 def plot_cumulative_gain(
-    ## default params
-    y_true,
-    y_probas,
-    *,
-    # class_names=None,
-    # multi_class=None,
-    class_index=1,
-    # to_plot_class_index=None,
-    ## plotting params
-    title='Cumulative Gain Plot',
-    ax=None,
-    fig=None,
-    figsize=None,
-    title_fontsize="large",
-    text_fontsize="medium",
-    # cmap=None,
-    # show_labels=True,
-    # plot_micro=False,
-    # plot_macro=False,
-    ## additional params
-    **kwargs,
+  ## default params
+  y_true,
+  y_probas,
+  *,
+  # class_names=None,
+  # multi_class=None,
+  class_index=1,
+  # to_plot_class_index=None,
+  ## plotting params
+  title='Cumulative Gain Plot',
+  ax=None,
+  fig=None,
+  figsize=None,
+  title_fontsize="large",
+  text_fontsize="medium",
+  # cmap=None,
+  # show_labels=True,
+  # plot_micro=False,
+  # plot_macro=False,
+  ## additional params
+  **kwargs,
 ):
     """
     Generates the Decile-wise Lift Plot from labels and probabilities
@@ -537,12 +571,12 @@ def plot_cumulative_gain(
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
-        >>> import scikitplot as skplt
+        >>> import scikitplot as sp
         >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
         >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
         >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
         >>> y_probas = model.predict_proba(X_val)
-        >>> skplt.kds.plot_cumulative_gain(
+        >>> sp.kds.plot_cumulative_gain(
         >>>     y_val, y_probas, class_index=1,
         >>> );
     """
@@ -571,24 +605,24 @@ def plot_cumulative_gain(
 
 
 def plot_ks_statistic(
-    ## default params
-    y_true,
-    y_probas,
-    *,
-    # class_names=None,
-    # multi_class=None,
-    class_index=1,
-    # to_plot_class_index=None,
-    ## plotting params
-    title='KS Statistic Plot',
-    ax=None,
-    fig=None,
-    figsize=None,
-    title_fontsize="large",
-    text_fontsize="medium",
-    digits=2,
-    ## additional params
-    **kwargs,
+  ## default params
+  y_true,
+  y_probas,
+  *,
+  # class_names=None,
+  # multi_class=None,
+  class_index=1,
+  # to_plot_class_index=None,
+  ## plotting params
+  title='KS Statistic Plot',
+  ax=None,
+  fig=None,
+  figsize=None,
+  title_fontsize="large",
+  text_fontsize="medium",
+  digits=2,
+  ## additional params
+  **kwargs,
 ):
     """
     Generates the KS Statistic Plot from labels and probabilities
@@ -655,12 +689,12 @@ def plot_ks_statistic(
         >>> from sklearn.datasets import load_breast_cancer as data_2_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
-        >>> import scikitplot as skplt
+        >>> import scikitplot as sp
         >>> X, y = data_2_classes(return_X_y=True, as_frame=False)
         >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
         >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
         >>> y_probas = model.predict_proba(X_val)
-        >>> skplt.kds.plot_ks_statistic(
+        >>> sp.kds.plot_ks_statistic(
         >>>     y_val, y_probas, class_index=1,
         >>> );
     """
@@ -696,21 +730,21 @@ def plot_ks_statistic(
 
 
 def report(
-    ## default params
-    y_true,
-    y_probas,
-    *,
-    class_index=1,
-    term_tables=True,
-    digits=3,
-    ## plotting params
-    ax=None,
-    figsize=(12, 7),
-    title_fontsize="large",
-    text_fontsize="medium",
-    plot_style = None,
-    ## additional params
-    **kwargs,
+  ## default params
+  y_true,
+  y_probas,
+  *,
+  class_index=1,
+  term_tables=True,
+  digits=3,
+  ## plotting params
+  ax=None,
+  figsize=(12, 7),
+  title_fontsize="large",
+  text_fontsize="medium",
+  plot_style = None,
+  ## additional params
+  **kwargs,
 ):
     """    
     Generates a decile table and four plots:
@@ -794,12 +828,12 @@ def report(
         >>> from sklearn.datasets import load_breast_cancer as data_2_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
-        >>> import scikitplot as skplt
+        >>> import scikitplot as sp
         >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
         >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
         >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(X_train, y_train)
         >>> y_prob = clf.predict_proba(X_test)
-        >>> dt = skplt.kds.report(
+        >>> dt = sp.kds.report(
         >>>     y_test, y_prob, class_index=1
         >>> )
         >>> dt

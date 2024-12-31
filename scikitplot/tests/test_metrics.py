@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.cluster import KMeans
 
 from scikitplot.metrics import (
-    plot_calibration_curve,
+    plot_calibration,
     plot_confusion_matrix,
     plot_roc_curve, plot_roc,
     plot_precision_recall_curve, plot_precision_recall,
@@ -23,7 +23,7 @@ def convert_labels_into_string(y_true):
     return ["A" if x == 0 else x for x in y_true]
 
 
-class TestPlotCalibrationCurve(unittest.TestCase):
+class TestPlotCalibration(unittest.TestCase):
     def setUp(self):
         np.random.seed(0)
         self.X, self.y = load_breast_cancer(return_X_y=True, as_frame=False)
@@ -41,34 +41,34 @@ class TestPlotCalibrationCurve(unittest.TestCase):
         plt.close("all")
 
     def test_decision_function(self):
-        plot_calibration_curve(
+        plot_calibration(
             self.y,
             [self.lr_probas, self.rf_probas, self.svc_scores],
             y_probas_is_decision=[False, False, True],
         )
 
     def test_plot_calibration(self):
-        plot_calibration_curve(
+        plot_calibration(
             self.y, 
             [self.lr_probas, self.rf_probas],
             y_probas_is_decision=[False, False],
         )
 
     def test_string_classes(self):
-        plot_calibration_curve(
+        plot_calibration(
             convert_labels_into_string(self.y),
             [self.lr_probas, self.rf_probas],
             y_probas_is_decision=[False, False],
         )
 
     def test_cmap(self):
-        plot_calibration_curve(
+        plot_calibration(
             self.y,
             [self.lr_probas, self.rf_probas],
             y_probas_is_decision=[False, False],
             cmap='Spectral'
         )
-        plot_calibration_curve(
+        plot_calibration(
             self.y, 
             [self.lr_probas, self.rf_probas],
             y_probas_is_decision=[False, False],
@@ -76,19 +76,19 @@ class TestPlotCalibrationCurve(unittest.TestCase):
         )
 
     def test_ax(self):
-        plot_calibration_curve(
+        plot_calibration(
             self.y,
             [self.lr_probas, self.rf_probas],
             y_probas_is_decision=[False, False],
         )
         fig, ax = plt.subplots(1, 1)
-        out_ax = plot_calibration_curve(
+        out_ax = plot_calibration(
             self.y,
             [self.lr_probas, self.rf_probas],
             y_probas_is_decision=[False, False],
         )
         assert ax is not out_ax
-        out_ax = plot_calibration_curve(
+        out_ax = plot_calibration(
             self.y,
             [self.lr_probas, self.rf_probas],
             y_probas_is_decision=[False, False],
@@ -97,12 +97,12 @@ class TestPlotCalibrationCurve(unittest.TestCase):
         assert ax is out_ax
 
     def test_array_like(self):
-        plot_calibration_curve(
+        plot_calibration(
             self.y, 
             [self.lr_probas.tolist(), self.rf_probas.tolist()],
             y_probas_is_decision=[False, False],
         )
-        plot_calibration_curve(
+        plot_calibration(
             convert_labels_into_string(self.y),
             [self.lr_probas.tolist(), self.rf_probas.tolist()],
             y_probas_is_decision=[False, False],
@@ -111,7 +111,7 @@ class TestPlotCalibrationCurve(unittest.TestCase):
     def test_invalid_probas_list(self):
         self.assertRaises(
             ValueError, 
-            plot_calibration_curve,
+            plot_calibration,
             self.y, 
             'notalist',
             y_probas_is_decision=[False],
@@ -123,7 +123,7 @@ class TestPlotCalibrationCurve(unittest.TestCase):
     #     wrong_y[-1] = 3
     #     self.assertRaises(
     #         ValueError,
-    #         plot_calibration_curve,
+    #         plot_calibration,
     #         wrong_y,
     #         [self.lr_probas, self.rf_probas],
     #         y_probas_is_decision=[False, False],
@@ -132,7 +132,7 @@ class TestPlotCalibrationCurve(unittest.TestCase):
     def test_wrong_estimator_names(self):
         self.assertRaises(
             ValueError,
-            plot_calibration_curve,
+            plot_calibration,
             self.y,
             [self.lr_probas, self.rf_probas],
             y_probas_is_decision=[False, False],
@@ -142,14 +142,14 @@ class TestPlotCalibrationCurve(unittest.TestCase):
     def test_wrong_probas_shape(self):
         self.assertRaises(
             ValueError,
-            plot_calibration_curve,
+            plot_calibration,
             self.y,
             [self.lr_probas.reshape(-1), self.rf_probas],
             y_probas_is_decision=[False, False],
         )
         self.assertRaises(
             ValueError,
-            plot_calibration_curve,
+            plot_calibration,
             self.y,
             [np.random.randn(1, 5)],
             y_probas_is_decision=[True],

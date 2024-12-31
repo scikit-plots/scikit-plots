@@ -13,8 +13,8 @@ https://github.com/sphinx-gallery/sphinx-gallery/issues/1258
 """
 
 from pathlib import Path
-
 from bs4 import BeautifulSoup
+
 from sphinx.util.display import status_iterator
 from sphinx.util.logging import getLogger
 

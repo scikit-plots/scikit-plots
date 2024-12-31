@@ -6,9 +6,8 @@ Recently Deprecated
 ===================
 
 .. currentmodule:: scikitplot
-
 {% for ver, objs in DEPRECATED_API_REFERENCE %}
-.. _api_depr_ref-{{ ver|replace(".", "-") }}:
+.. _api_depr_ref-{{ ver | replace(".", "-") }}:
 
 .. rubric:: To be removed in {{ ver }}
 
@@ -16,9 +15,8 @@ Recently Deprecated
   :nosignatures:
   :toctree: ../modules/generated/
   :template: base.rst
-
 {% for obj in objs %}
   {{ obj }}
-{%- endfor %}
+{%- endfor -%}
 
-{% endfor %}
+{%- endfor -%}
