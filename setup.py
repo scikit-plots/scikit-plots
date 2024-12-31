@@ -53,8 +53,8 @@ LICENSE_FILES= 'LICEN[CS]E*'
 ## If your name first as you're the current maintainer
 AUTHOR       = ''  # 'Reiichiro Nakano et al.'
 A_EMAIL      = ''  # 'reiichiro.s.nakano@gmail.com'
-MAINTAINER   = 'muhammed çelik'
-M_EMAIL      = 'muhammed.business.network@gmail.com'
+MAINTAINER   = 'muhammed celik'
+M_EMAIL      = ''
 REQUIRE_PATH = 'requirements/build_requirements.txt'
 
 # Project homepage, often a link to GitHub or GitLab
@@ -73,6 +73,7 @@ EXCLUDES = [
   "auto_building_tools",
   "docs", "docs.*",
   "examples", "examples.*",
+  "galleries", "galleries.*",
   "notebooks", "notebooks.*",
   "tests", "tests.*",
   "paper", "paper.*",

@@ -17,7 +17,7 @@ from __future__ import (
   unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 
-__version__ = '0.3.9rc4'
+__version__ = '0.3.9rc4.dev0'
 
 # Capture the original matplotlib rcParams
 import matplotlib as mpl; _orig_rc_params=mpl.rcParams.copy(); del mpl;
