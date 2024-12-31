@@ -1,0 +1,24 @@
+# ---------------------------------------------------------
+# CITATION.cff file for 
+# This file provides citation information for users
+# who want to cite the library, related papers, and books.
+# ---------------------------------------------------------
+
+cff-version: 1.2.0  
+message: "Scikit-plot is the result of an unartistic data scientist's dreadful realization that visualization is one of the most crucial components in the data science process, not just a mere afterthought."  
+authors:  
+- family-names: "scikit-plots developers"
+title: "scikit-plots: Machine Learning Visualization in Python"  
+version: "latest"  
+doi: 10.5281/zenodo.13367000  
+date-released: 2024-12-18  
+url:  "https://scikit-plots.github.io"
+preferred-citation:
+  type: software
+  authors:  
+  - family-names: "scikit-plots developers"
+  title: "scikit-plots: Machine Learning Visualization in Python"  
+  version: "latest"  
+  doi: 10.5281/zenodo.13367000  
+  date-released: 2024-12-18  
+  url:  "https://scikit-plots.github.io"

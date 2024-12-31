@@ -1,0 +1,3 @@
+-r ci32_requirements.txt
+# Keep this in sync with ci32_requirements.txt
+scipy-openblas64==0.3.28.0.2
