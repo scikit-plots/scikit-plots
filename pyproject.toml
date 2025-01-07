@@ -244,7 +244,7 @@ docs = [
   "scikit-image>=0.17.2",                   # Image processing
   "scikit-learn>=1.1",                      # Machine learning
   "tensorflow>=2.10",                       # Deep learning
-  "transformers,                            # Deep learning NLP
+  "transformers",                           # Deep learning NLP
   "towncrier>=24.8.0",
 ]
 # Maintenance tools
@@ -264,7 +264,8 @@ gpu = [
   # "jax[cuda12]",                          # import jax.numpy as jnp
   "cupy",                                   # GPU-based numerical computing
   "torch",                                  # PyTorch
-  "transformers tf-keras",                  # Transformers.
+  "transformers",                           # Transformers.
+  "tf-keras",                               # Transformers.
 ]
 tpu = [
   # JAXlib is a library by DeepMind that provides the low-level bindings for JAX and allows you to perform tensor computations on TPU, GPU, and CPU.
@@ -273,7 +274,8 @@ tpu = [
   "jax[tpu]",                               # TPU-accelerated machine learning
   # "dm-haiku",  # neural network library built on top of JAX by Google Research
   # "flax",      # Flax is another JAX-based library but with a more comprehensive set of tools for defining neural networks.
-  "tensorflow tf-keras",                    # TPU-accelerated machine learning
+  "tensorflow[and-cuda]",                   # TPU-accelerated machine learning
+  "tf-keras",                               # TPU-accelerated machine learning
 ]
 
 # Links to important pages related to the project
