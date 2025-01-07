@@ -5,9 +5,11 @@ plot_calibration with examples
 An example showing the :py:func:`~scikitplot.api.metrics.plot_calibration` function
 used by a scikit-learn classifier.
 """
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+# run: Python scripts and shows any outputs directly in the notebook.
+# %run ./examples/calibration/plot_calibration_script.py
 
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split

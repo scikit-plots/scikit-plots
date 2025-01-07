@@ -7,9 +7,6 @@ e.g. confusion matrix, silhouette scores, etc.
 # scikitplot/api/metrics/__init__.py
 
 # Your package/module initialization code goes here
-from ._regression import *
 from ._classification import *
 from ._clustering import *
-
-# Deprecated namespaces, to be removed in v0.5.0
-from . import plotters
+from ._regression import *

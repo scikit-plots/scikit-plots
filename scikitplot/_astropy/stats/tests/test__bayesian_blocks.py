@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from ..bayesian_blocks import RegularEvents, bayesian_blocks
+from .._bayesian_blocks import RegularEvents, bayesian_blocks
 
 
 def test_single_change_point(rseed=0):

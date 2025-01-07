@@ -173,6 +173,7 @@ build = [
   "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
   "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
   "ninja>=1.11.0",                          # The ninja build system used to compile code
+  # 'ninja; sys_platform != "emscripten"',
   "Cython>=3.0.8",                          # Cython bindings for extensions
   "pybind11>=2.13.2",                       # Python bindings
   "numpy>=1.23.5",
@@ -189,18 +190,21 @@ test = [
   "pytest-cov>=2.9.0",                      # Coverage reports
   "pytest-xdist",                           # Use Multiple CPUs to speed up
   "pytest-mpl",                             # Matplotlib testing
+  "pytest-run-parallel",
+  "pytest-timeout",
+  "pytest-fail-slow",
   "hypothesis>=6.30",                       # Property-based testing
   "matplotlib>=3.5",                        # Plotting for tests
   "pandas>=1.5.1",                          # Data analysis for tests
   "pyarrow>=12.0.0",                        # Arrow format
   "polars>=0.20.30",                        # DataFrame library
   "pyamg>=4.0.0",                           # Algebraic multigrid solvers
-  "pooch>=1.6.0",                           # Data downloading
+  "pooch>=1.6.0",                           # Data by downloading files from a server
   "scikit-learn>=1.1",                      # Machine learning
   "scikit-image>=0.17.2",                   # Image processing
   "catboost",                               # Gradient boosting
   "tensorflow",                             # Deep learning
-  "aggdraw",
+  "aggdraw",                                # high-quality drawing, with anti-aliasing and alpha compositing
 ]
 # Documentation dependencies
 docs = [
@@ -211,7 +215,7 @@ docs = [
   "sphinx>=5.0.0,<9.0.0",                   # Documentation generator
   "sphinx-rtd-theme",                       # ReadTheDocs theme
   "pydata-sphinx-theme",                    # PyData theme
-  "sphinx-gallery",                         # Gallery examples
+  "sphinx-gallery<=0.7.0",                  # Gallery examples
   "sphinx-prompt",                          # Shell prompts
   "sphinxext-opengraph",                    # Social media metadata
   "sphinx-copybutton",                      # Copy button for code blocks
@@ -220,10 +224,10 @@ docs = [
   "sphinx-remove-toctrees",                 # Customize toctrees
   "myst-parser",                            # Markdown support
   "myst-nb",                                # Jupyter Notebook integration
-  "jupytext",                               # Text-based Notebook formats
   "jupyter-sphinx",                         # Jupyter integration
   "jupyterlite-sphinx",                     # JupyterLite integration
   "jupyterlite-pyodide-kernel",             # Pyodide support
+  "jupytext",                               # Text-based Notebook formats
   "intersphinx_registry",                   # Intersphinx management
   "colorspacious",                          # Color management
   "sphinxcontrib-svg2pdfconverter",         # SVG to PDF conversion
@@ -240,6 +244,8 @@ docs = [
   "scikit-image>=0.17.2",                   # Image processing
   "scikit-learn>=1.1",                      # Machine learning
   "tensorflow>=2.10",                       # Deep learning
+  "transformers,                            # Deep learning NLP
+  "towncrier>=24.8.0",
 ]
 # Maintenance tools
 maintenance = [
@@ -247,9 +253,9 @@ maintenance = [
 ]
 # Specialized dependencies for specific hardware
 cpu = [
-  "numpy",                                  # CPU-based numerical computing
+  # "jaxlib",                               # import jax.numpy as jnp
   "jax",                                    # import jax.numpy as jnp
-  # "jaxlib",                                 # import jax.numpy as jnp
+  "numpy",                                  # CPU-based numerical computing
 ]
 gpu = [
   # https://jax.readthedocs.io/en/latest/installation.html#installation
@@ -258,15 +264,16 @@ gpu = [
   # "jax[cuda12]",                          # import jax.numpy as jnp
   "cupy",                                   # GPU-based numerical computing
   "torch",                                  # PyTorch
+  "transformers tf-keras",                  # Transformers.
 ]
 tpu = [
-  "tensorflow",                             # TPU-accelerated machine learning
   # JAXlib is a library by DeepMind that provides the low-level bindings for JAX and allows you to perform tensor computations on TPU, GPU, and CPU.
   # https://jax.readthedocs.io/en/latest/installation.html#installation
   # "jax[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html"
   "jax[tpu]",                               # TPU-accelerated machine learning
-  # "dm-haiku",                               # neural network library built on top of JAX by Google Research
-  # "flax",                                   # Flax is another JAX-based library but with a more comprehensive set of tools for defining neural networks.
+  # "dm-haiku",  # neural network library built on top of JAX by Google Research
+  # "flax",      # Flax is another JAX-based library but with a more comprehensive set of tools for defining neural networks.
+  "tensorflow tf-keras",                    # TPU-accelerated machine learning
 ]
 
 # Links to important pages related to the project

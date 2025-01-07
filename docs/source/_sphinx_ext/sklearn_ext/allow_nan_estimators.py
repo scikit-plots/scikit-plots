@@ -5,7 +5,10 @@ from docutils.parsers.rst import Directive
 
 from sklearn.utils import all_estimators
 from sklearn.utils._testing import SkipTest
-from sklearn.utils._test_common.instance_generator import _construct_instances
+try:
+	from sklearn.utils._test_common.instance_generator import _construct_instances  # >=1.5.2
+except:
+	from sklearn.utils.estimator_checks import _construct_instance  # <=1.5.2
 
 
 class AllowNanEstimators(Directive):

@@ -8,10 +8,10 @@ simple functions to generate plots.
 """
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,         # Changes the division operator `/` to always perform true division.
-    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+  division,         # Changes the division operator `/` to always perform true division.
+  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 import warnings
 import itertools
@@ -32,12 +32,28 @@ from sklearn.metrics import silhouette_samples
 from sklearn.utils import deprecated
 
 
-from scikitplot.utils._helpers import (
-    validate_labels,
-    cumulative_gain_curve,
-    binary_ks_curve,
+from .utils._helpers import (
+  validate_labels,
+  cumulative_gain_curve,
+  binary_ks_curve,
 )
 
+__all__ = [
+  'plot_confusion_matrix',
+  'plot_roc_curve',
+  'plot_ks_statistic',
+  'plot_precision_recall_curve',
+  'plot_feature_importances',
+  'plot_learning_curve',
+  'plot_silhouette',
+  'plot_elbow_curve',
+  'plot_pca_component_variance',
+  'plot_pca_2d_projection',
+]
+
+######################################################################
+## Module Deprecation
+######################################################################
 
 warnings.warn("This module was deprecated in version 0.3.0 and its functions "
               "are spread throughout different modules. Please check the "
@@ -45,7 +61,28 @@ warnings.warn("This module was deprecated in version 0.3.0 and its functions "
               "possible. This module will be removed in 0.4.0",
               DeprecationWarning)
 
+from .._xp_core_lib.deprecation import _sub_module_deprecation
 
+def __dir__():
+    return __all__
+
+def __getattr__(name):
+    return _sub_module_deprecation(sub_package="api", module="plotters",
+                                   private_modules=['decomposition', 'estimators', 'metrics',], all=__all__,
+                                   attribute=name)
+
+######################################################################
+## Module Attr Deprecation
+######################################################################
+
+from .._xp_core_lib.deprecation import _deprecated, __DEPRECATION_MSG, deprecated as deprecated_test
+@_deprecated(
+  __DEPRECATION_MSG.format(
+    "api.plotters.plot_confusion_matrix",
+    "0.4.0", "0.5.0",
+    "metrics.plot_confusion_matrix"))
+@deprecated_test('This will be removed in v0.4.0. Please use '
+            'scikitplot.metrics.plot_confusion_matrix instead.')
 @deprecated('This will be removed in v0.4.0. Please use '
             'scikitplot.metrics.plot_confusion_matrix instead.')
 def plot_confusion_matrix(y_true, y_pred, labels=None, true_labels=None,

@@ -1,6 +1,11 @@
 import numpy as numpy
 from matplotlib.ticker import Formatter
 
+__all__ = [
+  '_FormatterMixin',
+  'PctFormatter',
+  'ProbFormatter',
+]
 
 class _FormatterMixin(Formatter):
     """A mpl-axes formatter mixin class"""

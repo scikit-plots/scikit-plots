@@ -4,7 +4,8 @@
 
 # flake8: noqa
 
-"""This file is directly from
+"""
+This file is directly from
 https://github.com/ActiveState/appdirs/blob/3fe6a83776843a46f20c2e5587afcffe05e03b39/appdirs.py
 
 The license of https://github.com/ActiveState/appdirs copied below:

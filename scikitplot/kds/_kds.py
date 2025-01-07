@@ -22,20 +22,15 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from scikitplot.utils.validation import (
+from ..api.utils.validation import (
   validate_plotting_kwargs_decorator,
   validate_shapes_decorator,
   validate_y_true_decorator,
   validate_y_probas_decorator,
   validate_y_probas_bounds_decorator,
 )
-from scikitplot.utils._helpers import (
-  validate_labels,
-  cumulative_gain_curve,
-  binary_ks_curve,
-)
 
-from scikitplot import _api, _docstring, _preprocess
+from .. import _api, _docstring, _preprocess
 
 
 ## Define __all__ to specify the public interface of the module, not required default all above func

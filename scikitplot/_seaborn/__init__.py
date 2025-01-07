@@ -35,3 +35,6 @@ __version__ = '0.14.0.dev0'
 # Define the seaborn git hash
 # scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/mwaskom/seaborn')[0]
 __git_hash__ = '385e54676ca16d0132434bc9df6bc41ea8b2a0d4'
+
+# Without __all__: All public names (not starting with _) are importedto supmodule.
+# {'_base', '_core', '_docstrings', '_orig_rc_params', '_statistics', '_stats'}

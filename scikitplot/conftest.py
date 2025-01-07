@@ -1,18 +1,22 @@
-# Pytest customization
-import numpy as np
-import numpy.testing as npt
+# Pytest customization conftest.py
 import pytest
 import unittest
+
 import hypothesis
 import hypothesis.extra.numpy as npst
 
+import numpy as np
+import numpy.testing as np_testing
+
+import pandas as pd
+import pandas.testing as pd_testing
+
 import os
+import gc
 import json
 import warnings
 import tempfile
 import contextlib
-
-import pandas as pd
 
 from ._xp_core_lib import _pep440
 from ._xp_core_lib._array_api import (
@@ -24,36 +28,47 @@ from ._xp_core_lib._array_api import (
 ## pytest_configure
 ######################################################################
 
+# Following the approach of Scipy's conftest.py...
+try:
+    import pytest_run_parallel  # noqa:F401
+    PARALLEL_RUN_AVAILABLE = True
+except Exception:
+    PARALLEL_RUN_AVAILABLE = False
+
 def pytest_configure(config):
-    config.addinivalue_line("markers",
-        "slow: Tests that are very slow.")
-    config.addinivalue_line("markers",
-        "xslow: mark test as extremely slow (not run unless explicitly requested)")
-    config.addinivalue_line("markers",
-        "xfail_on_32bit: mark test as failing on 32-bit platforms")
     try:
         import pytest_timeout  # noqa:F401
     except Exception:
-        config.addinivalue_line(
-            "markers", 'timeout: mark a test for a non-default timeout')
+        config.addinivalue_line("markers",
+            'timeout: mark a test for a non-default timeout')
     try:
         # This is a more reliable test of whether pytest_fail_slow is installed
         # When I uninstalled it, `import pytest_fail_slow` didn't fail!
         from pytest_fail_slow import parse_duration  # type: ignore[import-not-found] # noqa:F401,E501
     except Exception:
-        config.addinivalue_line(
-            "markers", 'fail_slow: mark a test for a non-default timeout failure')
-    config.addinivalue_line("markers",
-        "skip_xp_backends(backends, reason=None, np_only=False, cpu_only=False, "
-        "exceptions=None): "
-        "mark the desired skip configuration for the `skip_xp_backends` fixture.")
-    config.addinivalue_line("markers",
-        "xfail_xp_backends(backends, reason=None, np_only=False, cpu_only=False, "
-        "exceptions=None): "
-        "mark the desired xfail configuration for the `xfail_xp_backends` fixture.")
+        config.addinivalue_line("markers",
+            'fail_slow: mark a test for a non-default timeout failure')
+    
+    if not PARALLEL_RUN_AVAILABLE:
+        config.addinivalue_line('markers',
+            'parallel_threads(n): run the given test function in parallel '
+            'using `n` threads.')
+        config.addinivalue_line("markers",
+            "thread_unsafe: mark the test function as single-threaded",
+        )
+        config.addinivalue_line("markers",
+            "iterations(n): run the given test function `n` times in each thread",
+        )
 
+######################################################################
+## globally for all tests
+######################################################################
 
 def pytest_runtest_setup(item):
+    # Before each test
+    # Trigger garbage collection
+    gc.collect()
+
     mark = item.get_closest_marker("xslow")
     if mark is not None:
         try:
@@ -69,7 +84,7 @@ def pytest_runtest_setup(item):
 
     # Older versions of threadpoolctl have an issue that may lead to this
     # warning being emitted, see gh-14441
-    with npt.suppress_warnings() as sup:
+    with np_testing.suppress_warnings() as sup:
         sup.filter(pytest.PytestUnraisableExceptionWarning)
 
         try:
@@ -101,10 +116,37 @@ def pytest_runtest_setup(item):
                     # Catch any error for robustness.
                     return
 
+def pytest_runtest_teardown(item, nextitem):
+    # After each test
+    # Trigger garbage collection
+    gc.collect()
+
 ######################################################################
-## pytest reproducible
+## pytest: run_gc
 ######################################################################
 
+# @pytest.fixture(autouse=True)
+# def run_gc():
+#     # Run garbage collection before each test
+#     gc.collect()
+#     yield
+#     # Run garbage collection after each test
+#     gc.collect()
+
+######################################################################
+## pytest: num_parallel_threads
+######################################################################
+
+if not PARALLEL_RUN_AVAILABLE:
+    @pytest.fixture
+    def num_parallel_threads():
+        return 1
+
+######################################################################
+## pytest fixture: plotting
+######################################################################
+
+# Following the approach of Seaborn's conftest.py...
 @pytest.fixture(autouse=True)
 def close_figs():
     yield
@@ -122,7 +164,59 @@ def rng():
     return np.random.RandomState(0)
 
 ######################################################################
-## numpy, pandas
+## pytest fixture: xarray
+######################################################################
+
+@pytest.fixture
+def xr():
+    """
+    Fixture to import xarray so that the test is skipped when xarray is not installed.
+    Use this fixture instead of importing xrray in test files.
+
+    Examples
+    --------
+    Request the xarray fixture by passing in ``xr`` as an argument to the test ::
+
+        def test_imshow_xarray(xr):
+
+            ds = xr.DataArray(np.random.randn(2, 3))
+            im = plt.figure().subplots().imshow(ds)
+            np.testing.assert_array_equal(im.get_array(), ds)
+    """
+    return pytest.importorskip('xarray')
+
+######################################################################
+## if not import skip pandas
+######################################################################
+
+# @pytest.fixture
+# def pd():
+#     """
+#     Fixture to import and configure pandas. Using this fixture, the test is skipped when
+#     pandas is not installed. Use this fixture instead of importing pandas in test files.
+
+#     Examples
+#     --------
+#     Request the pandas fixture by passing in ``pd`` as an argument to the test ::
+
+#         def test_matshow_pandas(pd):
+
+#             df = pd.DataFrame({'x':[1,2,3], 'y':[4,5,6]})
+#             im = plt.figure().subplots().matshow(df)
+#             np.testing.assert_array_equal(im.get_array(), df)
+#     """
+#     pd = pytest.importorskip('pandas')
+#     try:
+#         from pandas.plotting import (
+#             deregister_matplotlib_converters as deregister
+#         )
+#         deregister()
+#     except ImportError:
+#         pass
+#     return pd
+
+######################################################################
+## pytest fixture: numpy, pandas dataset
 ######################################################################
   
 @pytest.fixture
@@ -262,31 +356,7 @@ def mock_long_df(long_df):
     return MockInterchangeableDataFrame(long_df)
 
 ######################################################################
-## xarray
-######################################################################
-
-@pytest.fixture
-def xr():
-    """
-    Fixture to import xarray so that the test is skipped when xarray is not installed.
-    Use this fixture instead of importing xrray in test files.
-
-    Examples
-    --------
-    Request the xarray fixture by passing in ``xr`` as an argument to the test ::
-
-        def test_imshow_xarray(xr):
-
-            ds = xr.DataArray(np.random.randn(2, 3))
-            im = plt.figure().subplots().imshow(ds)
-            np.testing.assert_array_equal(im.get_array(), ds)
-    """
-
-    xr = pytest.importorskip('xarray')
-    return xr
-
-######################################################################
-## xp Array API backend
+## Array API xp backend from scipy
 ######################################################################
 
 # Array API backend handling
@@ -295,7 +365,7 @@ xp_available_backends = {'numpy': np}
 if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
     # fill the dict of backends with available libraries
     try:
-        import array_api_strict
+        from ._xp_core_lib import array_api_strict
         xp_available_backends.update({'array_api_strict': array_api_strict})
         if _pep440.parse(array_api_strict.__version__) < _pep440.Version('2.0'):
             raise ImportError("array-api-strict must be >= version 2.0")
@@ -310,6 +380,16 @@ if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
         xp_available_backends.update({'torch': torch})
         # can use `mps` or `cpu`
         torch.set_default_device(SKPLT_DEVICE)
+
+        # default to float64 unless explicitly requested
+        default = os.getenv('SKPLT_DEFAULT_DTYPE', default='float64')
+        if default == 'float64':
+            torch.set_default_dtype(torch.float64)
+        elif default != "float32":
+            raise ValueError(
+                "SKPLT_DEFAULT_DTYPE env var, if set, can only be either 'float64' "
+               f"or 'float32'. Got '{default}' instead."
+            )
     except ImportError:
         pass
 
@@ -348,23 +428,48 @@ if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
 if 'cupy' in xp_available_backends:
     SKPLT_DEVICE = 'cuda'
 
-
-array_api_compatible = (
-  pytest.mark.parametrize("xp", xp_available_backends.values())
-)
-
-skip_xp_invalid_arg = (
-    pytest.mark.skipif(
-        SKPLT_ARRAY_API,
-        reason = (
-            'Test involves masked arrays, object arrays, or other types '
-            'that are not valid input when `SKPLT_ARRAY_API` is used.'
-        ),
+    # this is annoying in CuPy 13.x
+    warnings.filterwarnings(
+        'ignore', 'cupyx.jit.rawkernel is experimental', category=FutureWarning
     )
-)
+    from cupyx.scipy import signal; del signal
+
+
+@pytest.fixture(params=[
+    pytest.param(v, id=k, marks=pytest.mark.array_api_backends)
+    for k, v in xp_available_backends.items()
+])
+def xp(request):
+    """Run the test that uses this fixture on each available array API library.
+
+    You can select all and only the tests that use the `xp` fixture by
+    passing `-m array_api_backends` to pytest.
+
+    Please read: https://docs.scipy.org/doc/scipy/dev/api-dev/array_api.html
+    """
+    if SKPLT_ARRAY_API:
+        from ._xp_core_lib._array_api import default_xp
+
+        # Throughout all calls to assert_almost_equal, assert_array_almost_equal, and
+        # xp_assert_* functions, test that the array namespace is xp in both the
+        # expected and actual arrays. This is to detect the case where both arrays are
+        # erroneously just plain numpy while xp is something else.
+        with default_xp(request.param):
+            yield request.param
+    else:
+        yield request.param
+
+# array_api_compatible = (
+#   pytest.mark.parametrize("xp", xp_available_backends.values())
+# )
+array_api_compatible = pytest.mark.array_api_compatible
+
+skip_xp_invalid_arg  = pytest.mark.skipif(SKPLT_ARRAY_API,
+  reason = ('Test involves masked arrays, object arrays, or other types '
+            'that are not valid input when `SKPLT_ARRAY_API` is used.'), )
 
 ######################################################################
-## xp backends
+## array API xp backends
 ######################################################################
 
 def _backends_kwargs_from_request(request, skip_or_xfail):
@@ -383,11 +488,13 @@ def _backends_kwargs_from_request(request, skip_or_xfail):
         if marker.kwargs.get('np_only'):
             kwargs['np_only'] = True
             kwargs['exceptions'] = marker.kwargs.get('exceptions', [])
+            kwargs['reason'] = marker.kwargs.get('reason', None)
         elif marker.kwargs.get('cpu_only'):
             if not kwargs.get('np_only'):
                 # if np_only is given, it is certainly cpu only
                 kwargs['cpu_only'] = True
                 kwargs['exceptions'] = marker.kwargs.get('exceptions', [])
+                kwargs['reason'] = marker.kwargs.get('reason', None)
 
         # add backends, if any
         if len(marker.args) > 0:
@@ -436,7 +543,7 @@ def xfail_xp_backends(xp, request):
 def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
     """
     Skip based on the ``skip_xp_backends`` or ``xfail_xp_backends`` marker.
-    
+
     See the "Support for the array API standard" docs page for usage examples.
 
     Parameters
@@ -445,22 +552,20 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
         Backends to skip/xfail, e.g. ``("array_api_strict", "torch")``.
         These are overriden when ``np_only`` is ``True``, and are not
         necessary to provide for non-CPU backends when ``cpu_only`` is ``True``.
-        For a custom reason to apply, you should pass a dict ``{'reason': '...'}``
-        to a keyword matching the name of the backend.
-    reason : str, optional
-        A reason for the skip/xfail in the case of ``np_only=True``.
-        If unprovided, a default reason is used. Note that it is not possible
-        to specify a custom reason with ``cpu_only``.
+        For a custom reason to apply, you should pass
+        ``kwargs={<backend name>: {'reason': '...'}, ...}``.
     np_only : bool, optional
         When ``True``, the test is skipped/xfailed for all backends other
         than the default NumPy backend. There is no need to provide
-        any ``backends`` in this case. To specify a reason, pass a
-        value to ``reason``. Default: ``False``.
+        any ``backends`` in this case. Default: ``False``.
     cpu_only : bool, optional
         When ``True``, the test is skipped/xfailed on non-CPU devices.
         There is no need to provide any ``backends`` in this case,
         but any ``backends`` will also be skipped on the CPU.
         Default: ``False``.
+    reason : str, optional
+        A reason for the skip/xfail in the case of ``np_only=True`` or
+        ``cpu_only=True``. If omitted, a default reason is used.
     exceptions : list, optional
         A list of exceptions for use with ``cpu_only`` or ``np_only``.
         This should be provided when delegation is implemented for some,
@@ -472,7 +577,7 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
     np_only = kwargs.get("np_only", False)
     cpu_only = kwargs.get("cpu_only", False)
     exceptions = kwargs.get("exceptions", [])
-    
+
     if reasons := kwargs.get("reasons"):
         raise ValueError(f"provide a single `reason=` kwarg; got {reasons=} instead")
 
@@ -483,17 +588,32 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
     if exceptions and not (cpu_only or np_only):
         raise ValueError("`exceptions` is only valid alongside `cpu_only` or `np_only`")
 
+    # Test explicit backends first so that their reason can override
+    # those from np_only/cpu_only
+    if backends is not None:
+        for i, backend in enumerate(backends):
+            if xp.__name__ == backend:
+                reason = kwargs[backend].get('reason')
+                if not reason:
+                    reason = f"do not run with array API backend: {backend}"
+
+                skip_or_xfail(reason=reason)
+
     if np_only:
-        reason = kwargs.get("reason", "do not run with non-NumPy backends.")
-        if not isinstance(reason, str) and len(reason) > 1:
-            raise ValueError("please provide a singleton `reason` "
-                             "when using `np_only`")
+        reason = kwargs.get("reason")
+        if not reason:
+            reason = "do not run with non-NumPy backends"
+
         if xp.__name__ != 'numpy' and xp.__name__ not in exceptions:
             skip_or_xfail(reason=reason)
         return
+
     if cpu_only:
-        reason = ("no array-agnostic implementation or delegation available "
-                  "for this backend and device")
+        reason = kwargs.get("reason")
+        if not reason:
+            reason = ("no array-agnostic implementation or delegation available "
+                      "for this backend and device")
+
         exceptions = [] if exceptions is None else exceptions
         if SKPLT_ARRAY_API and SKPLT_DEVICE != 'cpu':
             if xp.__name__ == 'cupy' and 'cupy' not in exceptions:
@@ -506,15 +626,6 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
                     if 'cpu' not in d.device_kind:
                         skip_or_xfail(reason=reason)
 
-    if backends is not None:
-        for i, backend in enumerate(backends):
-            if xp.__name__ == backend:
-                reason = kwargs[backend].get('reason')
-                if not reason:
-                    reason = f"do not run with array API backend: {backend}"
-
-                skip_or_xfail(reason=reason)
-
 ######################################################################
 ## hypothesis profiles
 ######################################################################
@@ -525,7 +636,6 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
 hypothesis.configuration.set_hypothesis_home_dir(
     os.path.join(tempfile.gettempdir(), ".hypothesis")
 )
-
 # We register two custom profiles for SciPy - for details see
 # https://hypothesis.readthedocs.io/en/latest/settings.html
 # The first is designed for our own CI runs; the latter also
@@ -538,7 +648,6 @@ hypothesis.settings.register_profile(
     deadline=None, print_blob=True, database=None, derandomize=True,
     suppress_health_check=list(hypothesis.HealthCheck),
 )
-
 # Profile is currently set by environment variable `SKPLT_HYPOTHESIS_PROFILE`
 # In the future, it would be good to work the choice into dev.py.
 SKPLT_HYPOTHESIS_PROFILE = os.environ.get("SKPLT_HYPOTHESIS_PROFILE",
@@ -558,7 +667,7 @@ hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 # if HAVE_SCPDT:
 
 #     # FIXME: populate the dict once
-#     @contextlib.contextmanager
+#     @contextmanager
 #     def warnings_errors_and_rng(test=None):
 #         """Temporarily turn (almost) all warnings to errors.
 
@@ -650,6 +759,14 @@ hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 #         'scipy.optimize.show_options',  # does not have much to doctest
 #         'scipy.signal.normalize',       # manipulates warnings (XXX temp skip)
 #         'scipy.sparse.linalg.norm',     # XXX temp skip
+#         # these below test things which inherit from np.ndarray
+#         # cross-ref https://github.com/numpy/numpy/issues/28019
+#         'scipy.io.matlab.MatlabObject.strides',
+#         'scipy.io.matlab.MatlabObject.dtype',
+#         'scipy.io.matlab.MatlabOpaque.dtype',
+#         'scipy.io.matlab.MatlabOpaque.strides',
+#         'scipy.io.matlab.MatlabFunction.strides',
+#         'scipy.io.matlab.MatlabFunction.dtype'
 #     ])
 
 #     # these are affected by NumPy 2.0 scalar repr: rely on string comparison
@@ -712,34 +829,3 @@ hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 #     }
 
 #     dt_config.strict_check = True
-
-
-######################################################################
-## if not import skip pandas
-######################################################################
-
-# @pytest.fixture
-# def pd():
-#     """
-#     Fixture to import and configure pandas. Using this fixture, the test is skipped when
-#     pandas is not installed. Use this fixture instead of importing pandas in test files.
-
-#     Examples
-#     --------
-#     Request the pandas fixture by passing in ``pd`` as an argument to the test ::
-
-#         def test_matshow_pandas(pd):
-
-#             df = pd.DataFrame({'x':[1,2,3], 'y':[4,5,6]})
-#             im = plt.figure().subplots().matshow(df)
-#             np.testing.assert_array_equal(im.get_array(), df)
-#     """
-#     pd = pytest.importorskip('pandas')
-#     try:
-#         from pandas.plotting import (
-#             deregister_matplotlib_converters as deregister
-#         )
-#         deregister()
-#     except ImportError:
-#         pass
-#     return pd

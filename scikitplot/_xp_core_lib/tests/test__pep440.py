@@ -1,6 +1,6 @@
-from pytest import raises as assert_raises
+import pytest  # assert_raises
 
-from scikitplot._xp_core_lib._pep440 import Version, parse
+from .._pep440 import Version, parse
 
 
 def test_main_versions():
@@ -59,7 +59,7 @@ def test_dev0_a_b_rc_mixed():
 
 def test_raises():
     for ver in ['1,9.0', '1.7.x']:
-        assert_raises(ValueError, Version, ver)
+        pytest.raises(ValueError, Version, ver)
 
 def test_legacy_version():
     # Non-PEP-440 version identifiers always compare less. For NumPy this only

@@ -2,6 +2,15 @@ from matplotlib import pyplot
 
 from .algo import _bs_fit
 
+__all__ = [
+  'axes_object',
+  'axis_name',
+  'fit_argument',
+  'axis_type',
+  'axis_label',
+  'other_options',
+  'estimator',
+]
 
 def axes_object(ax):
     """Checks if a value if an Axes. If None, a new one is created.

@@ -9,48 +9,50 @@ online at https://scikit-plots.github.io.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-__version__ = '0.4.0rc0'
-__array_api_version__ = "2023.12"
+__version__ = '0.5.dev0'
 
-py_set = set  # 'seaborn.set' override raise error
-import os
-import sys
-import pathlib
-import warnings
+# import os
+# import sys
+# import pathlib
+# import warnings
+# py_set = set  # 'seaborn.set' override raise error or use builtins.set
+import builtins
 
-from scikitplot import sp_logging
-from scikitplot.sp_logging import get_logger, SpLogger, sp_logger
+######################################################################
+## scikit-plots modules and objects
+######################################################################
+
+# import logging
+from .sp_logging import get_logger, SpLogger, sp_logger
 try:
   # Trt to import meson builded files, modules (etc. *.in)
   from .__config__ import show as show_config
   from ._citation import __citation__, __bibtex__
-  # If a version with git hash was stored, use that instead
-  # from . import version
-  from .version import __git_hash__, __version__  # Override git version
+  # If a version with git hash was stored, use that instead.
+  from .version import __git_hash__, __version__  # Override version if any.
 except (ImportError, ModuleNotFoundError) as e:
   msg = (
     "Error importing scikitplot: you cannot import scikitplot while "
     "being in scikitplot source directory; please exit the scikitplot source "
     "tree first and relaunch your Python interpreter."
   )
-  get_logger().warning('BOOM! :: %s', msg)
-  show_config = _BUILT_WITH_MESON = None; del msg;
   # raise ImportError(msg) from e
+  get_logger().warning('BOOM! :: %s', msg); del msg;
+  _BUILT_WITH_MESON = show_config = None
 else:
   _BUILT_WITH_MESON = True
 
-######################################################################
-## scikit-plots modules and objects
-######################################################################
-
-# Import scikitplot objects
-from ._globals import _Default, _NoValue, _Deprecated
-from ._globals import ModuleDeprecationWarning, VisibleDeprecationWarning
+from ._config import config_context, get_config, set_config
+from ._globals import _Default, _Deprecated, _NoValue
+from ._seaborn import _orig_rc_params
 from ._utils._show_versions import show_versions  # noqa: E402
+from ._xp_core_lib import __array_api_version__
 
-# Export Modules
+# Export modules
 from ._seaborn import *
 from .api import *
+
+# Sub-modules:
 from . import (
   _api,
   _astropy,
@@ -69,10 +71,8 @@ from . import (
   misc,
   modelplotpy,
   probscale,
-  sp_logging,
   stats,
   typing,
-  utils,
   visualkeras,
   __config__,
   _citation,
@@ -81,37 +81,91 @@ from . import (
   _globals,
   _preprocess,
   cbook,
+  sp_logging,
   version,
 )
 
 # Pytest testing
 from ._testing._pytesttester import PytestTester
-test = PytestTester(__name__); del PytestTester;
+test = PytestTester(__name__); del PytestTester
 
 ######################################################################
 ## Public Interface define explicitly `__all__`
 ######################################################################
 
 # Don't pollute namespace. Imported for internal use.
-del os, sys, pathlib, warnings
+# del os, sys, pathlib, warnings
 
-# Define __all__ to control what gets imported with 'from module import *'
-# Combine global names (explicitly defined in the module) and dynamically available names
-__all__ = [
-  name for name in map(str, py_set(globals()).union(dir()))
-  # Exclude private/internal names (those starting with '_')
-  if not ( name.startswith('...') or name in ['py_set',])
-] + [
+# public submodules are imported lazily, therefore are accessible from
+# __getattr__.
+_submodules = {
+  # Sub-modules:
+  '_api',
+  '_astropy',
+  '_build_utils',
+  '_compat',
+  '_externals',
+  '_factory_api',
+  '_seaborn',
+  '_testing',
+  '_tweedie',
+  '_utils',
+  '_xp_core_lib',
+  'api',
+  'experimental',
+  'kds',
+  'misc',
+  'modelplotpy',
+  'probscale',
+  'stats',
+  'typing',
+  'utils',
+  'visualkeras',
+  '__config__',
+  '_citation',
+  '_config',
+  '_docstring',
+  '_globals',
+  '_preprocess',
+  'cbook',
+  'sp_logging',
+  'version',
+  # Non-modules:
+  "show_versions",
+  'test',
   '__dir__',
   '__getattr__',
   'online_help',
-]
+  'setup_module',
+}
+_discard = {
+  '_discard',
+  '_submodules',
+  'py_set',
+  'builtins',
+}
+## Define __all__ to control what gets imported with 'from module import *'.
+## If __all__ is not defined, Python falls back to using the module's global namespace
+## (as returned by dir() or globals().keys()) for 'from module import *'.
+## This means that all names in the global namespace, except those starting with '_',
+## will be imported by default.
+## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
+__all__ = sorted([
+  name for name in builtins.set(globals()).union(_submodules).difference(_discard)
+  # Exclude private/internal names (those starting with '_')
+  if not ( (name.startswith('...') and not name.endswith('...')) )
+])
 
 ######################################################################
-## additional
+## Customize lazy-loading mechanism `__dir__` with `__getattr__`
 ######################################################################
 
-# Custom attributes we want to be displayed when dir() is called
+## Customize dir(object) behavior to control what attributes are displayed.
+## By default, dir() lists all names in the module's global namespace,
+## including functions, classes, variables, and special attributes like '__doc__'.
+## Reference: https://docs.python.org/3/library/functions.html#dir
+## dir() default behavior: Similar to globals().keys().
+## To customize what dir() returns, define a custom __dir__() function within the module.
 def __dir__():
     """
     Returns a sorted list of custom attributes for the module.
@@ -130,16 +184,29 @@ def __dir__():
     >>> __dir__()
     ['attribute1', 'attribute2', 'attribute3']  # Example output
     """
-    return sorted(__all__)
-
-# Define how undefined attributes should be handled in this module
+    from . import (
+      _seaborn,
+      api,
+    )
+    return sorted(
+      builtins
+      .set(globals())
+      .union(_submodules)
+      .union(dir(_seaborn))
+      .union(dir(api))
+      .difference(_discard)
+    )
+  
+## Dynamically import submodules only when they are accessed (lazy-loading mechanism).
+## Avoid loading unnecessary submodules, reducing initial import overhead.
+## Provide clear error handling and suggestions for unresolved attributes.
 def __getattr__(name):
     """
-    Dynamically handles undefined attributes in the 'scikitplot' module.
+    Dynamically handle undefined attributes in the module.
 
-    This function allows for dynamic imports of submodules or retrieval of 
-    explicitly defined attributes within the 'scikitplot' module. If the 
-    attribute cannot be resolved, an AttributeError is raised.
+    This function is called when an attribute is accessed but not found in the module's
+    global namespace. It allows for dynamic imports of submodules or the generation of 
+    attributes at runtime. If the attribute cannot be resolved, it raises an AttributeError.
 
     Parameters
     ----------
@@ -155,31 +222,24 @@ def __getattr__(name):
     ------
     AttributeError
         If the attribute does not exist as a submodule or in the global namespace.
-
-    Examples
-    --------
-    >>> from scikitplot import __getattr__
-    >>> plot = __getattr__('metrics')
-    >>> print(plot)
-    <module 'scikitplot.metrics' from '.../scikitplot/metrics.py'>
-
     """
-    import importlib
-
-    # Attempt to import submodule dynamically, submodules dir()
     try:
-        return importlib.import_module(f'scikitplot.{name}')
-    except ModuleNotFoundError:
-        pass
-
-    # Attempt to retrieve from global namespace
-    try:
+        if name in dir():
+            import importlib
+            return importlib.import_module(f'.{name}', package=__name__)
+          
         return globals()[name]
-    except KeyError:
-        raise AttributeError(
-            f"Module 'scikitplot' has no attribute '{name}'. "
-            "Ensure the attribute or submodule exists and is correctly named."
-        )
+    except (ModuleNotFoundError,KeyError):
+        pass  # Submodule not found; proceed to error handling.
+
+    import difflib
+    # Generate suggestions for mistyped names.
+    all_names = dir()
+    suggestions = difflib.get_close_matches(name, all_names)
+    
+    # Raise an error indicating the attribute could not be found, with suggestions if any.
+    suggestion_msg = f" Did you mean: {', '.join(suggestions)}?" if suggestions else ""
+    raise AttributeError(f"Module '{__name__}' has no attribute '{name}'.{suggestion_msg}")
 
 ######################################################################
 ## online search helper scikit-plots
@@ -261,6 +321,25 @@ def online_help(
     except Exception as e:
         print(f"Error opening documentation: {e}")
         return False
+
+######################################################################
+## globally seeding
+######################################################################
+
+def setup_module(module):
+    """Fixture for the tests to assure globally controllable seeding of RNGs"""
+    import os
+    import random
+    import numpy as np
+
+    # Check if a random seed exists in the environment, if not create one.
+    _random_seed = os.environ.get("SKPLT_SEED", None)
+    if _random_seed is None:
+        _random_seed = np.random.uniform() * np.iinfo(np.int32).max
+    _random_seed = int(_random_seed)
+    print("I: Seeding RNGs with %r" % _random_seed)
+    np.random.seed(_random_seed)
+    random.seed(_random_seed)
 
 ######################################################################
 ##

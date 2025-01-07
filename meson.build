@@ -671,7 +671,7 @@ endif
 
 # python3 -m pybind11 --includes
 # pybind11 — Seamless operability between C++11 and Python
-dep_pybind11 = dependency('pybind11', version: '>=2.13.1')
+dep_pybind11 = dependency('pybind11', version: '>=2.13.0')
 
 ######################################################################
 ## pythran

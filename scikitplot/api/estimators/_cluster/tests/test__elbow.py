@@ -55,7 +55,7 @@ class TestPlotElbow(unittest.TestCase):
 
     def test_n_jobs(self):
         np.random.seed(0)
-        clf = KMeans(n_jobs=1)  # Set n_jobs to 1 for testing
+        clf = KMeans()
         plot_elbow(clf, self.X, n_jobs=2)
 
     def test_show_cluster_time(self):

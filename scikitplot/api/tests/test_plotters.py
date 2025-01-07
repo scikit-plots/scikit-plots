@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import load_iris as load_data
 from sklearn.decomposition import PCA
 
-import scikitplot as skplt
+import scikitplot as sp
 
 
 class TestPlotPCAComponentVariance(unittest.TestCase):
@@ -20,32 +20,26 @@ class TestPlotPCAComponentVariance(unittest.TestCase):
         self.X, self.y = load_data(return_X_y=True)
         p = np.random.permutation(len(self.X))
         self.X, self.y = self.X[p], self.y[p]
+        self.clf_not_fitted = PCA()
+        self.clf = PCA().fit(self.X)
 
     def tearDown(self):
         plt.close("all")
 
-    def test_target_explained_variance(self):
-        np.random.seed(0)
-        clf = PCA()
-        clf.fit(self.X)
-        ax = skplt.api.plotters.plot_pca_component_variance(clf, target_explained_variance=0)
-        ax = skplt.api.plotters.plot_pca_component_variance(clf, target_explained_variance=0.5)
-        ax = skplt.api.plotters.plot_pca_component_variance(clf, target_explained_variance=1)
-        ax = skplt.api.plotters.plot_pca_component_variance(clf, target_explained_variance=1.5)
-
     def test_fitted(self):
-        np.random.seed(0)
-        clf = PCA()
-        self.assertRaises(TypeError, skplt.api.plotters.plot_pca_component_variance, clf)
+        self.assertRaises(TypeError, sp.api.plotters.plot_pca_component_variance, self.clf_not_fitted)
+
+    def test_target_explained_variance(self):
+        ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=0)
+        ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=0.5)
+        ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=1)
+        ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=1.5)
 
     def test_ax(self):
-        np.random.seed(0)
-        clf = PCA()
-        clf.fit(self.X)
         fig, ax = plt.subplots(1, 1)
-        out_ax = skplt.api.plotters.plot_pca_component_variance(clf)
+        out_ax = sp.api.plotters.plot_pca_component_variance(self.clf)
         assert ax is not out_ax
-        out_ax = skplt.api.plotters.plot_pca_component_variance(clf, ax=ax)
+        out_ax = sp.api.plotters.plot_pca_component_variance(self.clf, ax=ax)
         assert ax is out_ax
 
 
@@ -56,27 +50,23 @@ class TestPlotPCA2DProjection(unittest.TestCase):
         self.X, self.y = load_data(return_X_y=True)
         p = np.random.permutation(len(self.X))
         self.X, self.y = self.X[p], self.y[p]
+        self.clf_not_fitted = PCA()
+        self.clf = PCA().fit(self.X)
 
     def tearDown(self):
         plt.close("all")
 
     def test_ax(self):
-        np.random.seed(0)
-        clf = PCA()
-        clf.fit(self.X)
         fig, ax = plt.subplots(1, 1)
-        out_ax = skplt.api.plotters.plot_pca_2d_projection(clf, self.X, self.y)
+        out_ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y)
         assert ax is not out_ax
-        out_ax =skplt.api.plotters.plot_pca_2d_projection(clf, self.X, self.y, ax=ax)
+        out_ax =sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, ax=ax)
         assert ax is out_ax
 
     def test_cmap(self):
-        np.random.seed(0)
-        clf = PCA()
-        clf.fit(self.X)
         fig, ax = plt.subplots(1, 1)
-        ax = skplt.api.plotters.plot_pca_2d_projection(clf, self.X, self.y, cmap='Spectral')
-        ax = skplt.api.plotters.plot_pca_2d_projection(clf, self.X, self.y, cmap=plt.cm.Spectral)
+        ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, cmap='Spectral')
+        ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, cmap=plt.cm.Spectral)
 
 
 class TestValidateLabels(unittest.TestCase):
@@ -86,7 +76,7 @@ class TestValidateLabels(unittest.TestCase):
         passed_labels = ["A", "B", "C"]
         arg_name = "true_labels"
 
-        actual = skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
         self.assertEqual(actual, None)
 
     def test_valid_subset(self):
@@ -94,7 +84,7 @@ class TestValidateLabels(unittest.TestCase):
         passed_labels = ["A", "B"]
         arg_name = "true_labels"
 
-        actual = skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
         self.assertEqual(actual, None)
 
     def test_invalid_one_duplicate(self):
@@ -103,7 +93,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following duplicate labels were passed into true_labels: B"
         self.assertEqual(msg, str(context.exception))
@@ -114,7 +104,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following duplicate labels were passed into true_labels: A, B"
         self.assertEqual(msg, str(context.exception))
@@ -125,7 +115,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following labels were passed into true_labels, but were not found in labels: D"
         self.assertEqual(msg, str(context.exception))
@@ -136,7 +126,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following labels were passed into true_labels, but were not found in labels: E, D"
         self.assertEqual(msg, str(context.exception))
@@ -146,7 +136,7 @@ class TestValidateLabels(unittest.TestCase):
         passed_labels = [0, 2]
         arg_name = "true_labels"
 
-        actual = skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
         self.assertEqual(actual, None)
 
     def test_invalid_duplicate_numerical_labels(self):
@@ -155,7 +145,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following duplicate labels were passed into true_labels: 2"
         self.assertEqual(msg, str(context.exception))
@@ -166,7 +156,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            skplt.api.plotters.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following labels were passed into true_labels, but were not found in labels: 3"
         self.assertEqual(msg, str(context.exception))

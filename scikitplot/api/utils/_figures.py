@@ -21,9 +21,9 @@ Figures are typically created using pyplot methods :py:func:`~matplotlib.pyplot.
 
 """
 import os
-import matplotlib.pyplot as plt
 import inspect
 import functools
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from cycler import cycler

@@ -157,6 +157,23 @@ API_REFERENCE = {
           "metrics.plot_silhouette",
         ],
       },
+      {
+        "title": "API Development Utilities",
+        "description": (          
+          _get_guide("developers-guide-index", is_developer=True)
+          # _get_submodule("scikitplot.api", "utils")
+          # + "\n\n"
+          # + _get_guide("utils")
+        ),
+        "autosummary": [
+          # _helper
+          'utils.validate_labels',
+          'utils.cumulative_gain_curve',
+          'utils.binary_ks_curve',
+          # validation
+          'utils.validate_plotting_kwargs',
+        ],
+      },
     ],
   },
   "scikitplot.kds": {
@@ -372,37 +389,37 @@ API_REFERENCE = {
       },
     ],
   },
-  "scikitplot.utils": {
-    "short_summary": "Development Utilities",
-    "description": (
-      _get_guide("developers-guide-index", is_developer=True)
-    ),
-    "sections": [
-      {
-        "title": "Optimal matplotlib operations",
-        "description": _get_submodule("scikitplot.utils", "_figures"),
-        "autosummary": [
-          '_figures.combine_and_save_figures',
-        ],
-      },
-      {
-        "title": "Optimal mathematical operations",
-        "description": _get_submodule("scikitplot.utils", "_helpers"),
-        "autosummary": [
-          '_helpers.validate_labels',
-          '_helpers.cumulative_gain_curve',
-          '_helpers.binary_ks_curve',
-        ],
-      },
-      {
-        "title": "Input and parameter validation",
-        "description": _get_submodule("scikitplot.utils", "validation"),
-        "autosummary": [
-          'validation.validate_plotting_kwargs',
-        ],
-      },
-    ],
-  },
+  # "scikitplot.utils": {
+  #   "short_summary": "Development Utilities",
+  #   "description": (
+  #     _get_guide("developers-guide-index", is_developer=True)
+  #   ),
+  #   "sections": [
+  #     {
+  #       "title": "Optimal matplotlib operations",
+  #       "description": _get_submodule("scikitplot.utils", "_figures"),
+  #       "autosummary": [
+  #         '_figures.combine_and_save_figures',
+  #       ],
+  #     },
+  #     {
+  #       "title": "Optimal mathematical operations",
+  #       "description": _get_submodule("scikitplot.utils", "_helpers"),
+  #       "autosummary": [
+  #         '_helpers.validate_labels',
+  #         '_helpers.cumulative_gain_curve',
+  #         '_helpers.binary_ks_curve',
+  #       ],
+  #     },
+  #     {
+  #       "title": "Input and parameter validation",
+  #       "description": _get_submodule("scikitplot.utils", "validation"),
+  #       "autosummary": [
+  #         'validation.validate_plotting_kwargs',
+  #       ],
+  #     },
+  #   ],
+  # },
   "scikitplot.visualkeras": {
     "short_summary": "Visualization of Neural Network Architectures Keras (either standalone or included in tensorflow).",
     "description": (

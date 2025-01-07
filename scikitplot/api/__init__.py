@@ -14,6 +14,7 @@ from . import (
   decomposition,
   estimators,
   metrics,
+  utils,
 )
 # Deprecated namespaces, to be removed in v0.5.0
-from .metrics import plotters  # noqa: F401,F403
+from . import plotters  # noqa: F401,F403

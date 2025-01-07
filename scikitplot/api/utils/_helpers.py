@@ -7,28 +7,26 @@ enforcing Python 3-like behavior in Python 2.
 """
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,         # Changes the division operator `/` to always perform true division.
-    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+  division,         # Changes the division operator `/` to always perform true division.
+  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
-
 ## Define __all__ to specify the public interface of the module,
 ## not required default all belove func
 __all__ = [
-    'validate_labels',
-    'cumulative_gain_curve',
-    'binary_ks_curve',
+  'validate_labels',
+  'cumulative_gain_curve',
+  'binary_ks_curve',
 ]
 
-
 def validate_labels(
-    known_classes, 
-    passed_labels, 
-    argument_name,
+  known_classes, 
+  passed_labels, 
+  argument_name,
 ):
     """
     Validates the labels passed into arguments such as `true_labels` or `pred_labels`
@@ -58,7 +56,8 @@ def validate_labels(
     --------
     >>> known_classes = ["A", "B", "C"]
     >>> passed_labels = ["A", "B"]
-    >>> validate_labels(known_classes, passed_labels, "true_labels")
+    >>> import scikitplot as sp
+    >>> sp.utils.validate_labels(known_classes, passed_labels, "true_labels")
     """
     known_classes = np.array(known_classes)
     passed_labels = np.array(passed_labels)
@@ -87,9 +86,9 @@ def validate_labels(
 
 
 def cumulative_gain_curve(
-    y_true, 
-    y_score, 
-    pos_label=None
+  y_true, 
+  y_score, 
+  pos_label=None
 ):
     """
     Generate the data points necessary to plot the Cumulative Gain curve for binary classification tasks.
@@ -170,7 +169,8 @@ def cumulative_gain_curve(
     >>> # Predict probabilities for the test set
     >>> y_scores = model.predict_proba(X_test)[:, 1]
     >>> # Calculate the cumulative gain curve
-    >>> percentages, gains = cumulative_gain_curve(y_test, y_scores)
+    >>> import scikitplot as sp
+    >>> percentages, gains = sp.utils.cumulative_gain_curve(y_test, y_scores)
     >>> # Plot the cumulative gain curve
     >>> plt.plot(percentages, gains, marker='o')
     >>> plt.xlabel('Percentage of Samples')
@@ -251,8 +251,8 @@ def cumulative_gain_curve(
 
 
 def binary_ks_curve(
-    y_true, 
-    y_probas
+  y_true, 
+  y_probas,
 ):
     """
     Generate the data points necessary to plot the Kolmogorov-Smirnov (KS)
@@ -335,7 +335,6 @@ def binary_ks_curve(
         >>> from sklearn.linear_model import LogisticRegression
         >>> from sklearn.model_selection import train_test_split
         >>> import matplotlib.pyplot as plt
-        >>> from scikitplot.utils._helpers import binary_ks_curve
         >>> # Generate a binary classification dataset
         >>> X, y = make_classification(n_samples=1000, n_classes=2, n_informative=3, random_state=0)
         >>> # Split into training and test sets
@@ -346,7 +345,8 @@ def binary_ks_curve(
         >>> # Predict probabilities for the test set
         >>> y_probas = model.predict_proba(X_test)[:, 1]
         >>> # Calculate the KS Statistic curve
-        >>> thresholds, pct1, pct2, ks_statistic, max_distance_at, classes = binary_ks_curve(y_test, y_probas)
+        >>> import scikitplot as sp
+        >>> thresholds, pct1, pct2, ks_statistic, max_distance_at, classes = sp.utils.binary_ks_curve(y_test, y_probas)
         >>> # Plot the KS Statistic curve
         >>> plt.plot(thresholds, pct1 - pct2, marker='o')
         >>> plt.xlabel('Threshold')

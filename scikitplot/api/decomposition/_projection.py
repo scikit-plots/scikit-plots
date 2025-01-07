@@ -23,7 +23,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from scikitplot.utils.validation import (
+from ..utils.validation import (
   validate_plotting_kwargs_decorator,
   # validate_shapes_decorator,
   # validate_y_true_decorator,

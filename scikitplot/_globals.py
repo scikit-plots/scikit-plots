@@ -24,12 +24,12 @@ from __future__ import (
 import enum
 from typing import Any, Type, Optional
 
-__ALL__ = [
+__all__ = [
+  '_Default',
+  '_Deprecated',
+  '_NoValue',
   'ModuleDeprecationWarning',
   'VisibleDeprecationWarning',
-  '_Default',
-  '_NoValue',
-  '_Deprecated',
 ]
 
 ######################################################################
@@ -146,6 +146,7 @@ class SingletonBase:
     # Class attribute to hold the single instance of the class.
     _instance: Optional["SingletonBase"] = None
 
+    # magic method to get called in an object’s instantiation.
     def __new__(cls: Type["SingletonBase"], *args, **kwargs) -> "SingletonBase":
         """
         Override the default object creation method to implement the singleton pattern.
@@ -274,7 +275,7 @@ class _DefaultType(SingletonBase):
     >>> default is another_default  # Singleton behavior ensures one instance
     True
     """
-
+    # print our string object
     def __repr__(self) -> str:
         """
         Returns a string representation of the object.

@@ -128,7 +128,7 @@ class TestKDE:
             .groupby("alpha")
             .apply(integrate_by_color_and_sum, **groupby_apply_include_groups(False))
         )
-        assert_array_almost_equal(areas, [1, 1], decimal=2)  # 3
+        assert_array_almost_equal(areas, [1, 1], decimal=3)
 
     @pytest.mark.parametrize("param", ["norm", "grid"])
     def test_common_input_checks(self, df, param):

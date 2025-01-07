@@ -30,7 +30,6 @@ import sys
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_sphinx_ext/sklearn_ext"))
 sys.path.insert(0, os.path.abspath("."))
-import _sphinx_ext  # local
 
 import re
 import json
@@ -146,6 +145,14 @@ else:
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+#
+# Note on Extension Order:
+# -------------------------
+# The order of extensions in the `extensions` list may affect the behavior of Sphinx.
+# - Extensions that modify or depend on others should be listed after the ones they depend on.
+# - Built-in Sphinx extensions (e.g., 'sphinx.ext.*') should generally come first.
+# - Custom or third-party extensions should be added after all core extensions.
+# - If you encounter issues, consider changing the order to resolve potential conflicts.
 extensions = [
   # Core extensions
   "sphinx.ext.autodoc",           # Include documentation from docstrings
@@ -260,33 +267,31 @@ except ImportError:
 ##########################################################################
 
 def _check_dependencies():
-  names = {
+  module_names = {
     **{e: e.split(".")[0] for e in extensions},
     # Explicitly list deps that are not extensions, or whose PyPI package
     # name does not match the (toplevel) module name.
     "colorspacious": 'colorspacious',
+    "sphinxcontrib.inkscapeconverter": 'sphinxcontrib-svg2pdfconverter',
     "pydata_sphinx_theme": 'pydata_sphinx_theme',
     # "mpl_sphinx_theme": 'mpl_sphinx_theme',
-    "sphinxcontrib.inkscapeconverter": 'sphinxcontrib-svg2pdfconverter',
   }
-  missing = []
-  for name in names:
+  for module_name in module_names:
     try:
-      __import__(name)
-    except (ImportError, ModuleNotFoundError):
-      missing.append(names[name])
-  if missing:
-    raise ImportError(
-      "The following dependencies are missing to build the "
-      f"documentation: {', '.join(missing)}")
+      # import importlib
+      # module = importlib.import_module(module_name)
+      module = __import__(module_name)
+      print(module)
+    except Exception as e:      
+      raise ImportError(
+        "The following dependencies are missing to build the "
+        f"documentation: {', '.join(module_name)}") from e
 
   # debug sphinx-pydata-theme and mpl-theme-version
-  if 'pydata_sphinx_theme' not in missing:
-    import pydata_sphinx_theme
-    print(f"pydata sphinx theme : {pydata_sphinx_theme.__version__}")
-  # if 'mpl_sphinx_theme' not in missing:      
-  #     import mpl_sphinx_theme
-  #     print(f"mpl sphinx theme: {mpl_sphinx_theme.__version__}")
+  import pydata_sphinx_theme
+  print(f"pydata sphinx theme : {pydata_sphinx_theme.__version__}")   
+  # import mpl_sphinx_theme
+  # print(f"mpl sphinx theme: {mpl_sphinx_theme.__version__}")
 
   if shutil.which('dot') is None:
     raise OSError(
@@ -985,44 +990,55 @@ tags_badge_colors = {
 # Locations of objects.inv files for intersphinx extension that auto-links
 # to external api docs.
 intersphinx_mapping = {
+  # Build
   "python": ("https://docs.python.org/{.major}".format(sys.version_info), None),
   'pip': ('https://pip.pypa.io/en/stable/', None),
-  "virtualenv": ("https://virtualenv.pypa.io/en/stable", None),
+  'meson-python': ('https://mesonbuild.com/meson-python/', None),
   "setuptools": ("https://setuptools.pypa.io/en/stable", None),
   "packaging": ("https://packaging.python.org/en/latest", None),
-  "tox": ("https://tox.wiki/en/stable", None),
-  "pluggy": ("https://pluggy.readthedocs.io/en/stable", None),
+  "virtualenv": ("https://virtualenv.pypa.io/en/stable", None),
   'IPython': ('https://ipython.readthedocs.io/en/stable/', None),
   'ipykernel': ('https://ipykernel.readthedocs.io/en/latest/', None),
+  # Test
   'pytest': ('https://pytest.org/en/stable/', None),
-  'meson-python': ('https://mesonbuild.com/meson-python/', None),
+  "tox": ("https://tox.wiki/en/stable", None),
+  # Docs
   'numpydoc': ('https://numpydoc.readthedocs.io/en/latest', None),
+  # Data Manuplation
   "numpy": ("https://numpy.org/doc/stable", None),
   "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-  'statsmodels': ('https://www.statsmodels.org/stable/', None),
   "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
   'dateutil': ('https://dateutil.readthedocs.io/en/stable/', None),
+  'xarray': ('https://docs.xarray.dev/en/stable/', None),
+  # Visualization
   "matplotlib": ("https://matplotlib.org/stable/", None),
   'cycler': ('https://matplotlib.org/cycler/', None),
-  'Pillow': ('https://pillow.readthedocs.io/en/stable/', None),
   "seaborn": ("https://seaborn.pydata.org/", None),
+  "astropy": ("https://docs.astropy.org/en/stable/", None),
+  # ML
+  'statsmodels': ('https://www.statsmodels.org/stable/', None),
   "sklearn": ("https://scikit-learn.org/stable/", None),
-  'skimage': ('https://scikit-image.org/docs/stable', None),
-  'imageio': ('https://imageio.readthedocs.io/en/stable', None),
-  "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
-  "skops": ("https://skops.readthedocs.io/en/stable/", None),
-  "pytorch": (
-    "https://pytorch.org/docs/stable", None,
-    # "https://github.com/pytorch/docs/blob/main/stable/objects.inv",
-  ),
+  # DL
   "tensorflow": (
   "https://www.tensorflow.org/api_docs/python",
   "https://raw.githubusercontent.com/GPflow/tensorflow-intersphinx/master/tf2_py_objects.inv",
   ),
-  "flask": ("https://flask.palletsprojects.com/en/stable/", None),
-  'xarray': ('https://docs.xarray.dev/en/stable/', None),
+  "pytorch": (
+    "https://pytorch.org/docs/stable/", None,
+    # "https://github.com/pytorch/docs/blob/main/stable/objects.inv",
+  ),
   'datasets': ('https://huggingface.co/docs/datasets/main/en/', None),
   'transformers': ('https://huggingface.co/docs/transformers/main/en/', None),
+  # image
+  'aggdraw': ('https://aggdraw.readthedocs.io/en/stable/', None),
+  'pillow': ('https://pillow.readthedocs.io/en/stable/', None),
+  'imageio': ('https://imageio.readthedocs.io/en/stable', None),
+  'skimage': ('https://scikit-image.org/docs/stable', None),
+  # Misc
+  "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
+  "skops": ("https://skops.readthedocs.io/en/stable/", None),
+  "pluggy": ("https://pluggy.readthedocs.io/en/stable", None),
+  "flask": ("https://flask.palletsprojects.com/en/stable/", None),
 }
 
 ##########################################################################

@@ -34,17 +34,19 @@ all: html-noplot
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  clean     to remove build artifacts and temporary files"
-	@echo "  html      to make standalone HTML files"
-	@echo "  dirhtml   to make HTML files named index.html in directories"
-	@echo "  ziphtml   to make a ZIP of the HTML"
-	@echo "  pickle    to make pickle files"
-	@echo "  json      to make JSON files"
-	@echo "  latex     to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
-	@echo "  latexpdf   to make LaTeX files and run them through pdflatex"
-	@echo "  changes   to make an overview of all changed/added/deprecated items"
-	@echo "  linkcheck to check all external links for integrity"
-	@echo "  doctest   to run all doctests embedded in the documentation (if enabled)"
+	@echo "  clean          to remove build artifacts and temporary files"
+	@echo "  get_abs_path   to calculates the absolute path of the parent directory (../) and prints it."
+	@echo "  add_safe_dir   to adds the path as a safe directory to Git using the git config command."
+	@echo "  html           to make standalone HTML files"
+	@echo "  dirhtml        to make HTML files named index.html in directories"
+	@echo "  ziphtml        to make a ZIP of the HTML"
+	@echo "  pickle         to make pickle files"
+	@echo "  json           to make JSON files"
+	@echo "  latex          to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
+	@echo "  latexpdf        to make LaTeX files and run them through pdflatex"
+	@echo "  changes        to make an overview of all changed/added/deprecated items"
+	@echo "  linkcheck      to check all external links for integrity"
+	@echo "  doctest        to run all doctests embedded in the documentation (if enabled)"
 
 
 ## clean target: Removes build artifacts and cleans up the project directory.
@@ -76,6 +78,17 @@ clean: clean_basic
 	@echo "Removed $(SOURCEDIR)/jupyterlite_contents/"
 	@rm -rf $(SOURCEDIR)/_tags/
 	@echo "Removed $(SOURCEDIR)/_tags/"
+
+# Define a target to get the absolute path
+get_abs_path:
+	@abs_path=$(realpath ../); \
+	echo "The absolute path of the parent directory is: '$$abs_path'"
+
+# Define a target to add the Git safe directory
+add_safe_dir: get_abs_path
+	@abs_path=$(realpath ../); \
+	echo "Adding '$$abs_path' git safe dir..."; \
+	git config --global --add safe.directory $$abs_path
 
 # Default to SPHINX_NUMJOBS=1 for full documentation build. Using
 # SPHINX_NUMJOBS!=1 may actually slow down the build, or cause weird issues in

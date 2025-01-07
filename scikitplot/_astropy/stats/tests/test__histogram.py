@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from ..histogram import (
+from .._histogram import (
     histogram,
     calculate_bin_edges,
     freedman_bin_width,

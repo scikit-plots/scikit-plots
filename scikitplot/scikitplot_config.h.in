@@ -1,0 +1,19 @@
+/* Thread-local storage */
+#mesondefine HAVE_THREAD_LOCAL
+#mesondefine HAVE__THREAD_LOCAL
+#mesondefine HAVE__THREAD
+#mesondefine HAVE___DECLSPEC_THREAD_
+
+#ifdef __cplusplus
+    #define SKPLT_TLS thread_local
+#elif defined(HAVE_THREAD_LOCAL)
+    #define SKPLT_TLS thread_local
+#elif defined(HAVE__THREAD_LOCAL)
+    #define SKPLT_TLS _Thread_local
+#elif defined(HAVE___THREAD)
+    #define SKPLT_TLS __thread
+#elif defined(HAVE___DECLSPEC_THREAD_)
+    #define SKPLT_TLS __declspec(thread)
+#else
+    #define SKPLT_TLS
+#endif

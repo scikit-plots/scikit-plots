@@ -1,32 +1,20 @@
-import numpy as np
 import pytest
+import numpy as np
 
-# from scipy.conftest import array_api_compatible
-# skip_xp_backends = pytest.mark.skip_xp_backends
-from scikitplot.conftest import array_api_compatible
-skip_xp_backends = pytest.mark.skip_xp_backends
+from ...conftest import array_api_compatible
 
-# import scipy._lib.array_api_compat.numpy as np_compat
-import scikitplot._xp_core_lib.array_api_compat.numpy as np_compat
+from .. import array_api_extra as xpx
 
-# from scipy._lib._array_api import (
-#     _GLOBAL_CONFIG, array_namespace, _asarray, xp_copy, xp_assert_equal, is_numpy
-# )
-from scikitplot._xp_core_lib._array_api import (
-  _GLOBAL_CONFIG,
-  array_namespace,
-  _asarray,
-  xp_copy,
-  xp_assert_equal,
-  is_numpy,
+from .._array_api_no_0d import xp_assert_equal as xp_assert_equal_no_0d
+
+from .._array_api import (
+    _GLOBAL_CONFIG, array_namespace, _asarray, xp_copy, xp_assert_equal, is_numpy,
+    np_compat, xp_default_dtype
 )
-# from scipy._lib._array_api_no_0d import xp_assert_equal as xp_assert_equal_no_0d
-from scikitplot._xp_core_lib._array_api_no_0d import xp_assert_equal as xp_assert_equal_no_0d
 
-
+import os
 # manual checking
-_GLOBAL_CONFIG["SKPLT_ARRAY_API"] = True
-
+_GLOBAL_CONFIG["SKPLT_ARRAY_API"] = os.getenv("SKPLT_ARRAY_API", True)
 
 @pytest.mark.skipif(not _GLOBAL_CONFIG["SKPLT_ARRAY_API"],
         reason="Array API test; set environment variable SKPLT_ARRAY_API=1 to run it")
@@ -71,9 +59,14 @@ class TestArrayAPI:
         array_namespace(1, 2, 3)
         array_namespace(1)
 
-    @skip_xp_backends('jax.numpy',
-                      reason="JAX arrays do not support item assignment")
-    @pytest.mark.usefixtures("skip_xp_backends")
+    def test_array_api_extra_hook(self):
+        """Test that the `array_namespace` function used by
+        array-api-extra has been overridden by scipy
+        """
+        msg = "only boolean and numerical dtypes are supported"
+        with pytest.raises(TypeError, match=msg):
+            xpx.atleast_nd("abc", ndim=0)
+
     @array_api_compatible
     def test_copy(self, xp):
         for _xp in [xp, None]:
@@ -81,15 +74,14 @@ class TestArrayAPI:
             y = xp_copy(x, xp=_xp)
             # with numpy we'd want to use np.shared_memory, but that's not specified
             # in the array-api
-            x[0] = 10
-            x[1] = 11
-            x[2] = 12
-
-            assert x[0] != y[0]
-            assert x[1] != y[1]
-            assert x[2] != y[2]
             assert id(x) != id(y)
-
+            try:
+                y[0] = 10
+            except (TypeError, ValueError):
+                pass
+            else:
+                assert x[0] != y[0]
+    
     @array_api_compatible
     @pytest.mark.parametrize('dtype', ['int32', 'int64', 'float32', 'float64'])
     @pytest.mark.parametrize('shape', [(), (3,)])
@@ -105,8 +97,16 @@ class TestArrayAPI:
         if xp == np:
             xp_assert_equal(x, y, **options)
         else:
-            with pytest.raises(AssertionError, match="Namespaces do not match."):
+            with pytest.raises(
+                AssertionError,
+                match="Namespace of desired array does not match",
+            ):
                 xp_assert_equal(x, y, **options)
+            with pytest.raises(
+                AssertionError,
+                match="Namespace of actual and desired arrays do not match",
+            ):
+                xp_assert_equal(y, x, **options)
 
         options = dict(zip(kwarg_names, [False, True, False, False]))
         if y.dtype.name in str(x.dtype):
@@ -128,7 +128,6 @@ class TestArrayAPI:
         elif is_numpy(xp):
             with pytest.raises(AssertionError, match="Array-ness does not match."):
                 xp_assert_equal(x, y, **options)
-
 
     @array_api_compatible
     def test_check_scalar(self, xp):
@@ -163,7 +162,6 @@ class TestArrayAPI:
 
         # as an alternative to `check_0d=False`, explicitly expect scalar
         xp_assert_equal(xp.float64(0), xp.asarray(0.)[()])
-
 
     @array_api_compatible
     def test_check_scalar_no_0d(self, xp):
@@ -202,3 +200,7 @@ class TestArrayAPI:
         # scalars-vs-0d passes (if values match) also with regular python objects
         xp_assert_equal_no_0d(0., xp.asarray(0.))
         xp_assert_equal_no_0d(42, xp.asarray(42))
+
+    @array_api_compatible
+    def test_default_dtype(self, xp):
+        assert xp_default_dtype(xp) == xp.asarray(1.).dtype

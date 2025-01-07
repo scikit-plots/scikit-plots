@@ -53,7 +53,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import label_binarize
 
-from .. import _api, _docstring, _preprocess
+from ... import _api, _docstring, _preprocess
 
 
 __all__ = [

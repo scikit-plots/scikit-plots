@@ -19,10 +19,10 @@ to facilitate the validation and processing of inputs.
 """
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,         # Changes the division operator `/` to always perform true division.
-    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+  division,         # Changes the division operator `/` to always perform true division.
+  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 import warnings
 import re
@@ -50,30 +50,30 @@ import numpy.ma as npma
 
 import scipy.sparse
 
-from scikitplot._xp_core_lib._array_api import array_namespace
+from ._array_api import array_namespace
 
 __all__ = [
-    '_lazywhere',
-    '_lazyselect',
-    '_prune_array',
-    'float_factorial',
-    'check_random_state',
-    'rng_integers',
-    '_fixed_default_rng',
-    '_rng_html_rewrite',
-    '_asarray_validated',
-    '_validate_int',
-    'FullArgSpec',
-    'getfullargspec_no_self',
-    '_FunctionWrapper',
-    '_PythonFuncWrapper',
-    '_python_func_wrapper',
-    'MapWrapper',
-    '_argmin',
-    '_first_nonnan',
-    '_nan_allsame',
-    '_get_nan',
-    '_rename_parameter',
+  '_lazywhere',
+  '_lazyselect',
+  '_prune_array',
+  'float_factorial',
+  'check_random_state',
+  'rng_integers',
+  '_fixed_default_rng',
+  '_rng_html_rewrite',
+  '_asarray_validated',
+  '_validate_int',
+  'FullArgSpec',
+  'getfullargspec_no_self',
+  '_FunctionWrapper',
+  '_PythonFuncWrapper',
+  '_python_func_wrapper',
+  'MapWrapper',
+  '_argmin',
+  '_first_nonnan',
+  '_nan_allsame',
+  '_get_nan',
+  '_rename_parameter',
 ]
 _all_ignore = [
   'absolute_import', 'division', 'print_function', 'unicode_literals', 'mpl',

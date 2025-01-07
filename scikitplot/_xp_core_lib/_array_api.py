@@ -1,3 +1,4 @@
+# copied from scipy/_lib/_array_api.py
 """
 Utility functions to use Python Array API compatible libraries.
 
@@ -13,51 +14,112 @@ import os
 import sys
 import math
 import warnings
+import itertools
+import functools
+import contextlib
+import collections
+import contextvars 
 
 import numpy as np
-import numpy.testing as np_testing
-import pytest
-import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
+# import numpy.testing as np_testing
+# import pytest
+# import unittest
+# import hypothesis
+# import hypothesis.extra.numpy as npst
 
-from types import ModuleType
-from typing import Any, Literal, TYPE_CHECKING
-from typing import Tuple, Optional
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+  from types import ModuleType
+  from typing import Any, Literal, TypeAlias
+  from typing import Tuple, Optional, Union
+
+  import numpy.typing as np_typing
+  Array: TypeAlias = Any  # To be changed to a Protocol later (see array-api#589)
+  ArrayLike: TypeAlias = Array | np_typing.ArrayLike
 
 # from scipy._lib import array_api_compat
-from .array_api_compat import (
-    is_array_api_obj,
-    size as xp_size,
-    numpy as np_compat,
-    device as xp_device
-)
 from . import array_api_compat
+from .array_api_compat import (
+  is_array_api_obj,
+  size as xp_size,
+  numpy as np_compat,
+  device as xp_device,
+  is_numpy_namespace as is_numpy,
+  is_cupy_namespace as is_cupy,
+  is_torch_namespace as is_torch,
+  is_jax_namespace as is_jax,
+  is_array_api_strict_namespace as is_array_api_strict,
+)
 
-if TYPE_CHECKING:
-    Array = Any  # To be changed to a Protocol later (see array-api#589)
-    ArrayLike = Array | np_testing.ArrayLike
+######################################################################
+## array API xp ModuleType '.array_api_compat.common._helpers'
+######################################################################
+
+# def _compat_module_name():
+#     assert __name__.endswith('._array_api')
+#     return __name__.removesuffix('._array_api')
+
+# def is_numpy(xp: ModuleType) -> bool:
+#     """
+#     Returns True if `xp` is a NumPy namespace.
+
+#     This includes both NumPy itself and the version wrapped by array-api-compat.
+
+#     See Also
+#     --------
+
+#     array_namespace
+#     is_cupy_namespace
+#     is_torch_namespace
+#     is_ndonnx_namespace
+#     is_dask_namespace
+#     is_jax_namespace
+#     is_pydata_sparse_namespace
+#     is_array_api_strict_namespace
+#     """
+#     return xp.__name__ in {'numpy', _compat_module_name() + '.numpy'}
+
+# def is_cupy(xp: ModuleType) -> bool:
+#     return xp.__name__ in {'cupy', _compat_module_name() + '.cupy'}
+
+# def is_torch(xp: ModuleType) -> bool:
+#     return xp.__name__ in {'torch', _compat_module_name() + '.torch'}
+
+# def is_ndonnx(xp: ModuleType) -> bool:
+#     return xp.__name__ == 'ndonnx'
+
+# def is_dask(xp: ModuleType) -> bool:
+#     return xp.__name__ in {'dask.array', _compat_module_name() + '.dask.array'}
+
+# def is_jax(xp):
+#     return xp.__name__ in {'jax.numpy', 'jax.experimental.array_api'}
+
+# def is_pydata_sparse(xp):
+#     return xp.__name__ == 'sparse'
+
+# def is_array_api_strict(xp):
+#     return xp.__name__ == 'array_api_strict'
 
 
 __all__ = [
-  'SKPLT_ARRAY_API',
-  'SKPLT_DEVICE',
   '_asarray',
   'array_namespace',
   'assert_almost_equal',
   'assert_array_almost_equal',
   'get_xp_devices',
-  'is_array_api_obj',
+  'default_xp',
   'is_array_api_strict',
+  'is_complex',
   'is_cupy',
   'is_jax',
   'is_numpy',
   'is_torch',
+  'SKPLT_ARRAY_API',
+  'SKPLT_DEVICE',
   'skplt_namespace_for',
   'xp_assert_close',
   'xp_assert_equal',
   'xp_assert_less',
-  'xp_atleast_nd',
   'xp_copy',
   'xp_copysign',
   'xp_device',
@@ -68,11 +130,11 @@ __all__ = [
   'xp_size',
   'xp_take_along_axis',
   'xp_unsupported_param_msg',
-  'xp_vector_norm'
+  'xp_vector_norm',
 ]
 
 ######################################################################
-## from Scipy array API config
+## from Scipy array API xp config
 ######################################################################
 
 # To enable array API and strict array-like input validation
@@ -81,12 +143,77 @@ SKPLT_ARRAY_API: str | bool = os.environ.get("SKPLT_ARRAY_API", False)
 SKPLT_DEVICE = os.environ.get("SKPLT_DEVICE", "cpu")
 
 _GLOBAL_CONFIG = {
-    "SKPLT_ARRAY_API": SKPLT_ARRAY_API,
-    "SKPLT_DEVICE": SKPLT_DEVICE,
+  "SKPLT_ARRAY_API": SKPLT_ARRAY_API,
+  "SKPLT_DEVICE": SKPLT_DEVICE,
 }
 
 ######################################################################
-## from Scipy array API compatible namespace
+## array API xp sub-namespaces
+######################################################################
+
+def skplt_namespace_for(xp: ModuleType) -> ModuleType | None:
+    """Return the `scikitplot`-like namespace of a non-NumPy backend.
+
+    This function returns the namespace corresponding with backend `xp` 
+    that contains `scikitplot` sub-namespaces like `linalg` and `special`. 
+    If no such namespace exists, return ``None``. This function is useful 
+    for dispatching to different array-processing libraries (such as CuPy, 
+    JAX, or Torch) that provide similar `scikitplot` functionality.
+
+    Parameters
+    ----------
+    xp : ModuleType
+        The array-processing module for which the `scikitplot`-like namespace 
+        is needed. This could be, for example, a backend like CuPy, JAX, or Torch.
+
+    Returns
+    -------
+    ModuleType or None
+        The module providing the `scikitplot` sub-namespaces for the given 
+        backend. If the backend does not provide such a namespace, returns `None`.
+
+    Examples
+    --------
+    You can use this function to dispatch operations to the appropriate backend 
+    based on the array-processing module in use.
+
+    >>> import numpy as np
+    >>> 
+    >>> def array_operation(xp):
+    ...     skplt = skplt_namespace_for(xp)
+    ...     if skplt is None:
+    ...         print(f"No scikitplot namespace found for {xp.__name__}")
+    ...         return
+    ...     # Example of a mock operation with `scikitplot.linalg`
+    ...     result = skplt.linalg.some_function()  # Placeholder for actual function
+    ...     return result
+
+    Dispatching with different backends:
+
+    >>> array_operation(np)
+    No scikitplot namespace found for numpy
+    # This would call `np.scikitplot.linalg.some_function()` (if it exists)
+
+    Notes
+    -----
+    This function currently supports Cupy, JAX, and Torch backends. You can 
+    expand it by adding additional backends as needed.
+    """
+    if is_cupy(xp):
+        import cupyx  # type: ignore[import-not-found,import-untyped]
+        return cupyx.scipy
+
+    if is_jax(xp):
+        import jax  # type: ignore[import-not-found]
+        return jax.scipy
+
+    if is_torch(xp):
+        return xp
+
+    return None
+
+######################################################################
+## from Scipy array API xp compatible namespace
 ######################################################################
 
 def _compliance_scipy(arrays: list[ArrayLike]) -> list[Array]:
@@ -99,11 +226,12 @@ def _compliance_scipy(arrays: list[ArrayLike]) -> list[Array]:
     - Any array-like which is neither array API compatible nor coercible by NumPy
     - Any array-like which is coerced by NumPy to an unsupported dtype
     """
+    from scipy.sparse import issparse
+    # this comes from `_util._asarray_validated`
+
     for i in range(len(arrays)):
         array = arrays[i]
 
-        from scipy.sparse import issparse
-        # this comes from `_util._asarray_validated`
         if issparse(array):
             msg = ('Sparse arrays/matrices are not supported by this function. '
                    'Perhaps one of the `scipy.sparse.linalg` functions '
@@ -134,7 +262,6 @@ def _compliance_scipy(arrays: list[ArrayLike]) -> list[Array]:
                 raise TypeError(message)
             arrays[i] = array
     return arrays
-
 
 def array_namespace(*arrays: Array) -> ModuleType:
     """Get the array API compatible namespace for the arrays xs.
@@ -187,7 +314,6 @@ def _check_finite(array: Array, xp: ModuleType) -> None:
     except TypeError:
         raise ValueError(msg)
 
-
 def _asarray(
   array: ArrayLike,
   dtype: Any = None,
@@ -235,106 +361,60 @@ def _asarray(
     return array
 
 ######################################################################
-## array API ModuleType 'scipy._lib.array_api_compat.numpy'
+## array API xp strict check
 ######################################################################
 
-def is_numpy(xp: ModuleType) -> bool:
-    return xp.__name__ in ('numpy', 'scikitplot._xp_core_lib.array_api_compat.numpy')
+@contextlib.contextmanager
+def default_xp(xp: ModuleType) -> collections.abc.Generator[None, None, None]:
+    """In all ``xp_assert_*`` and ``assert_*`` function calls executed within this
+    context manager, test by default that the array namespace is 
+    the provided across all arrays, unless one explicitly passes the ``xp=``
+    parameter or ``check_namespace=False``.
 
-
-def is_cupy(xp: ModuleType) -> bool:
-    return xp.__name__ in ('cupy', 'scikitplot._xp_core_lib.array_api_compat.cupy')
-
-
-def is_torch(xp: ModuleType) -> bool:
-    return xp.__name__ in ('torch', 'scikitplot._xp_core_lib.array_api_compat.torch')
-
-
-def is_jax(xp):
-    return xp.__name__ in ('jax.numpy', 'jax.experimental.array_api')
-
-######################################################################
-## array API sub-namespaces
-######################################################################
-
-def skplt_namespace_for(xp: ModuleType) -> ModuleType | None:
+    Without this context manager, the default value for `xp` is the namespace
+    for the desired array (the second parameter of the tests).
     """
-    Return the `scikitplot`-like namespace of a non-NumPy backend.
+    token = _default_xp_ctxvar.set(xp)
+    try:
+        yield
+    finally:
+        _default_xp_ctxvar.reset(token)
 
-    This function returns the namespace corresponding with backend `xp` 
-    that contains `scikitplot` sub-namespaces like `linalg` and `special`. 
-    If no such namespace exists, return ``None``. This function is useful 
-    for dispatching to different array-processing libraries (such as CuPy, 
-    JAX, or Torch) that provide similar `scikitplot` functionality.
+_default_xp_ctxvar: contextvars.ContextVar[ModuleType] = contextvars.ContextVar("_default_xp")
 
-    Parameters
-    ----------
-    xp : ModuleType
-        The array-processing module for which the `scikitplot`-like namespace 
-        is needed. This could be, for example, a backend like CuPy, JAX, or Torch.
+def _assert_matching_namespace(actual, desired, xp):
+    __tracebackhide__ = True  # Hide traceback for py.test
 
-    Returns
-    -------
-    ModuleType or None
-        The module providing the `scikitplot` sub-namespaces for the given 
-        backend. If the backend does not provide such a namespace, returns `None`.
+    desired_arr_space = array_namespace(desired)
+    _msg = ("Namespace of desired array does not match expectations "
+            "set by the `default_xp` context manager or by the `xp`"
+            "pytest fixture.\n"
+            f"Desired array's space: {desired_arr_space.__name__}\n"
+            f"Expected namespace: {xp.__name__}")
+    assert desired_arr_space == xp, _msg
 
-    Examples
-    --------
-    You can use this function to dispatch operations to the appropriate backend 
-    based on the array-processing module in use.
-
-    >>> import numpy as np
-    >>> 
-    >>> def array_operation(xp):
-    ...     skplt = skplt_namespace_for(xp)
-    ...     if skplt is None:
-    ...         print(f"No scikitplot namespace found for {xp.__name__}")
-    ...         return
-    ...     # Example of a mock operation with `scikitplot.linalg`
-    ...     result = skplt.linalg.some_function()  # Placeholder for actual function
-    ...     return result
-
-    Dispatching with different backends:
-
-    >>> array_operation(np)
-    No scikitplot namespace found for numpy
-    # This would call `np.scikitplot.linalg.some_function()` (if it exists)
-
-    Notes
-    -----
-    This function currently supports Cupy, JAX, and Torch backends. You can 
-    expand it by adding additional backends as needed.
-    """
-
-    if is_cupy(xp):
-        import cupyx  # type: ignore[import-not-found,import-untyped]
-        return cupyx.scikitplot
-
-    if is_jax(xp):
-        import jax  # type: ignore[import-not-found]
-        return jax.scikitplot
-
-    if is_torch(xp):
-        return xp
-
-    return None
-
-
-######################################################################
-## array API strict
-######################################################################
-
-def is_array_api_strict(xp):
-    return xp.__name__ == 'array_api_strict'
-
+    actual_arr_space = array_namespace(actual)
+    _msg = ("Namespace of actual and desired arrays do not match.\n"
+            f"Actual: {actual_arr_space.__name__}\n"
+            f"Desired: {xp.__name__}")
+    assert actual_arr_space == xp, _msg
 
 def _strict_check(actual, desired, xp, *,
                   check_namespace=True, check_dtype=True, check_shape=True,
                   check_0d=True):
     __tracebackhide__ = True  # Hide traceback for py.test
+
+    if xp is None:
+        try:
+            xp = _default_xp_ctxvar.get()
+        except LookupError:
+            xp = array_namespace(desired)
+        else:
+            # Wrap namespace if needed
+            xp = array_namespace(xp.asarray(0))
+ 
     if check_namespace:
-        _assert_matching_namespace(actual, desired)
+        _assert_matching_namespace(actual, desired, xp)
 
     # only NumPy distinguishes between scalars and arrays; we do if check_0d=True.
     # do this first so we can then cast to array (and thus use the array API) below.
@@ -356,28 +436,23 @@ def _strict_check(actual, desired, xp, *,
         assert actual.shape == desired.shape, _msg
 
     desired = xp.broadcast_to(desired, actual.shape)
-    return actual, desired
+    return actual, desired, xp
 
+######################################################################
+## array API xp assert
+######################################################################
 
-def _assert_matching_namespace(actual, desired):
-    __tracebackhide__ = True  # Hide traceback for py.test
-    actual = actual if isinstance(actual, tuple) else (actual,)
-    desired_space = array_namespace(desired)
-    for arr in actual:
-        arr_space = array_namespace(arr)
-        _msg = (f"Namespaces do not match.\n"
-                f"Actual: {arr_space.__name__}\n"
-                f"Desired: {desired_space.__name__}")
-        assert arr_space == desired_space, _msg
+def xp_unsupported_param_msg(param: Any) -> str:
+    return f'Providing {param!r} is only supported for numpy arrays.'
 
+def is_complex(x: Array, xp: ModuleType) -> bool:
+    return xp.isdtype(x.dtype, 'complex floating')
 
 def xp_assert_equal(actual, desired, *, check_namespace=True, check_dtype=True,
                     check_shape=True, check_0d=True, err_msg='', xp=None):
     __tracebackhide__ = True  # Hide traceback for py.test
-    if xp is None:
-        xp = array_namespace(actual)
 
-    actual, desired = _strict_check(
+    actual, desired, xp = _strict_check(
         actual, desired, xp, check_namespace=check_namespace,
         check_dtype=check_dtype, check_shape=check_shape,
         check_0d=check_0d
@@ -394,15 +469,12 @@ def xp_assert_equal(actual, desired, *, check_namespace=True, check_dtype=True,
     # JAX uses `np.testing`
     return np.testing.assert_array_equal(actual, desired, err_msg=err_msg)
 
-
 def xp_assert_close(actual, desired, *, rtol=None, atol=0, check_namespace=True,
                     check_dtype=True, check_shape=True, check_0d=True,
                     err_msg='', xp=None):
     __tracebackhide__ = True  # Hide traceback for py.test
-    if xp is None:
-        xp = array_namespace(actual)
 
-    actual, desired = _strict_check(
+    actual, desired, xp = _strict_check(
         actual, desired, xp,
         check_namespace=check_namespace, check_dtype=check_dtype,
         check_shape=check_shape, check_0d=check_0d
@@ -428,14 +500,11 @@ def xp_assert_close(actual, desired, *, rtol=None, atol=0, check_namespace=True,
     return np.testing.assert_allclose(actual, desired, rtol=rtol,
                                       atol=atol, err_msg=err_msg)
 
-
 def xp_assert_less(actual, desired, *, check_namespace=True, check_dtype=True,
                    check_shape=True, check_0d=True, err_msg='', verbose=True, xp=None):
     __tracebackhide__ = True  # Hide traceback for py.test
-    if xp is None:
-        xp = array_namespace(actual)
 
-    actual, desired = _strict_check(
+    actual, desired, xp = _strict_check(
         actual, desired, xp, check_namespace=check_namespace,
         check_dtype=check_dtype, check_shape=check_shape,
         check_0d=check_0d
@@ -453,7 +522,6 @@ def xp_assert_less(actual, desired, *, check_namespace=True, check_dtype=True,
     return np.testing.assert_array_less(actual, desired,
                                         err_msg=err_msg, verbose=verbose)
 
-
 def assert_array_almost_equal(actual, desired, decimal=6, *args, **kwds):
     """Backwards compatible replacement. In new code, use xp_assert_close instead.
     """
@@ -461,7 +529,6 @@ def assert_array_almost_equal(actual, desired, decimal=6, *args, **kwds):
     return xp_assert_close(actual, desired,
                            atol=atol, rtol=rtol, check_dtype=False, check_shape=False,
                            *args, **kwds)
-
 
 def assert_almost_equal(actual, desired, decimal=7, *args, **kwds):
     """Backwards compatible replacement. In new code, use xp_assert_close instead.
@@ -471,16 +538,9 @@ def assert_almost_equal(actual, desired, decimal=7, *args, **kwds):
                            atol=atol, rtol=rtol, check_dtype=False, check_shape=False,
                            *args, **kwds)
 
-
-
-
-def xp_unsupported_param_msg(param: Any) -> str:
-    return f'Providing {param!r} is only supported for numpy arrays.'
-
-
-def is_complex(x: Array, xp: ModuleType) -> bool:
-    return xp.isdtype(x.dtype, 'complex floating')
-
+######################################################################
+## array API xp devices
+######################################################################
 
 def get_xp_devices(xp: ModuleType) -> list[str] | list[None]:
     """Returns a list of available devices for the given namespace."""
@@ -518,7 +578,7 @@ def get_xp_devices(xp: ModuleType) -> list[str] | list[None]:
     return [None]
 
 ######################################################################
-## array API moveaxis_to_end
+## array API xp moveaxis_to_end
 ######################################################################
 
 # temporary substitute for xp.moveaxis, which is not yet in all backends
@@ -535,7 +595,7 @@ def xp_moveaxis_to_end(
     return xp.permute_dims(x, axes)
 
 ######################################################################
-## array API copysign
+## array API xp copysign
 ######################################################################
 
 # temporary substitute for xp.copysign, which is not yet in all backends
@@ -547,7 +607,7 @@ def xp_copysign(x1: Array, x2: Array, /, *, xp: ModuleType | None = None) -> Arr
     return xp.where(x2 >= 0, abs_x1, -abs_x1)
 
 ######################################################################
-## array API sign
+## array API xp sign
 ######################################################################
 
 # partial substitute for xp.sign, which does not cover the NaN special case
@@ -564,7 +624,7 @@ def xp_sign(x: Array, /, *, xp: ModuleType | None = None) -> Array:
     return sign
 
 ######################################################################
-## array API vector_nor
+## array API xp vector_nor
 ######################################################################
 
 # maybe use `scipy.linalg` if/when array API support is added
@@ -594,7 +654,7 @@ def xp_vector_norm(x: Array, /, *,
         return np.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
 
 ######################################################################
-## array API ravel
+## array API xp ravel
 ######################################################################
 
 def xp_ravel(x: Array, /, *, xp: ModuleType | None = None) -> Array:
@@ -605,7 +665,7 @@ def xp_ravel(x: Array, /, *, xp: ModuleType | None = None) -> Array:
     return xp.reshape(x, (-1,))
 
 ######################################################################
-## array API allows non-complex input
+## array API xp allows non-complex input
 ######################################################################
 
 def xp_real(x: Array, /, *, xp: ModuleType | None = None) -> Array:
@@ -615,7 +675,7 @@ def xp_real(x: Array, /, *, xp: ModuleType | None = None) -> Array:
     return xp.real(x) if xp.isdtype(x.dtype, 'complex floating') else x
 
 ######################################################################
-## array API take_along_axis
+## array API xp take_along_axis
 ######################################################################
 
 def xp_take_along_axis(arr: Array,
@@ -633,7 +693,7 @@ def xp_take_along_axis(arr: Array,
         return xp.take_along_axis(arr, indices, axis)
 
 ######################################################################
-## array API float_to_complex
+## array API xp float_to_complex
 ######################################################################
 
 def xp_float_to_complex(arr: Array, xp: ModuleType | None = None) -> Array:
@@ -650,19 +710,8 @@ def xp_float_to_complex(arr: Array, xp: ModuleType | None = None) -> Array:
     return arr
 
 ######################################################################
-## array API xp_cov
+## array API xp copy
 ######################################################################
-
-def xp_atleast_nd(x: Array, *, ndim: int, xp: ModuleType | None = None) -> Array:
-    """Recursively expand the dimension to have at least `ndim`."""
-    if xp is None:
-        xp = array_namespace(x)
-    x = xp.asarray(x)
-    if x.ndim < ndim:
-        x = xp.expand_dims(x, axis=0)
-        x = xp_atleast_nd(x, ndim=ndim, xp=xp)
-    return x
-
 
 def xp_copy(x: Array, *, xp: ModuleType | None = None) -> Array:
     """
@@ -691,36 +740,45 @@ def xp_copy(x: Array, *, xp: ModuleType | None = None) -> Array:
 
     return _asarray(x, copy=True, xp=xp)
 
+# def xp_atleast_nd(x: Array, *, ndim: int, xp: ModuleType | None = None) -> Array:
+#     """Recursively expand the dimension to have at least `ndim`."""
+#     if xp is None:
+#         xp = array_namespace(x)
+#     x = xp.asarray(x)
+#     if x.ndim < ndim:
+#         x = xp.expand_dims(x, axis=0)
+#         x = xp_atleast_nd(x, ndim=ndim, xp=xp)
+#     return x
 
-def xp_cov(x: Array, *, xp: ModuleType | None = None) -> Array:
-    if xp is None:
-        xp = array_namespace(x)
+# def xp_cov(x: Array, *, xp: ModuleType | None = None) -> Array:
+#     if xp is None:
+#         xp = array_namespace(x)
 
-    X = xp_copy(x, xp=xp)
-    dtype = xp.result_type(X, xp.float64)
+#     X = xp_copy(x, xp=xp)
+#     dtype = xp.result_type(X, xp.float64)
 
-    X = xp_atleast_nd(X, ndim=2, xp=xp)
-    X = xp.asarray(X, dtype=dtype)
+#     X = xp_atleast_nd(X, ndim=2, xp=xp)
+#     X = xp.asarray(X, dtype=dtype)
 
-    avg = xp.mean(X, axis=1)
-    fact = X.shape[1] - 1
+#     avg = xp.mean(X, axis=1)
+#     fact = X.shape[1] - 1
 
-    if fact <= 0:
-        warnings.warn("Degrees of freedom <= 0 for slice",
-                      RuntimeWarning, stacklevel=2)
-        fact = 0.0
+#     if fact <= 0:
+#         warnings.warn("Degrees of freedom <= 0 for slice",
+#                       RuntimeWarning, stacklevel=2)
+#         fact = 0.0
 
-    X -= avg[:, None]
-    X_T = X.T
-    if xp.isdtype(X_T.dtype, 'complex floating'):
-        X_T = xp.conj(X_T)
-    c = X @ X_T
-    c /= fact
-    axes = tuple(axis for axis, length in enumerate(c.shape) if length == 1)
-    return xp.squeeze(c, axis=axes)
+#     X -= avg[:, None]
+#     X_T = X.T
+#     if xp.isdtype(X_T.dtype, 'complex floating'):
+#         X_T = xp.conj(X_T)
+#     c = X @ X_T
+#     c /= fact
+#     axes = tuple(axis for axis, length in enumerate(c.shape) if length == 1)
+#     return xp.squeeze(c, axis=axes)
 
 ######################################################################
-## array API to broadcast arrays and promote to common dtype
+## array API xp to broadcast arrays and promote to common dtype
 ######################################################################
 
 # utility to broadcast arrays and promote to common dtype
@@ -771,6 +829,20 @@ def xp_broadcast_promote(*args, ensure_writeable=False, force_floating=False, xp
         out.append(arg)
 
     return out
+
+######################################################################
+## array API xp default floating-point dtype
+######################################################################
+
+def xp_default_dtype(xp):
+    """Query the namespace-dependent default floating-point dtype.
+    """
+    if is_torch(xp):
+        # historically, we allow pytorch to keep its default of float32
+        return xp.get_default_dtype()
+    else:
+        # we default to float64
+        return xp.float64
 
 ######################################################################
 ## 

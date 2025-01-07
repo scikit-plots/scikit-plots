@@ -7,6 +7,6 @@ e.g. regressor, cluster, etc.
 # scikitplot/api/estimators/__init__.py
 
 # Your package/module initialization code goes here
-from ._regressor import *
 from ._classifier import *
 from ._cluster import *
+from ._regressor import *

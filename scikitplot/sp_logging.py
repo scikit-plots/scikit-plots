@@ -91,9 +91,9 @@ from typing import (
   Mapping,
   IO,
 )
-import logging
+import logging as _logging
 from logging import (
-  NOTSET,
+  NOTSET,             # Module-level variable
   DEBUG,
   INFO,
   WARNING,
@@ -164,7 +164,7 @@ def _get_thread_id() -> int:
 def _default_log_level(debug_mode: bool = False) -> int:
     """ Define and Set log level """
     val: bool | str | None = debug_mode or os.getenv("SKPLT_DEBUG")
-    return logging.WARNING if val is None else logging.DEBUG
+    return _logging.WARNING if val is None else _logging.DEBUG
 
 def _is_jupyter_notebook() -> bool:
     """ Define running enviroment is jupyter notebook. """
@@ -243,7 +243,7 @@ _level_names = {
 ## logging Formatter
 ######################################################################
 
-class GoogleLogFormatter(logging.Formatter):
+class GoogleLogFormatter(_logging.Formatter):
     """
     Custom logging formatter that formats log messages in a Google-style format:
     YYYY-MM-DD HH:MM:SS.mmmmmm logger_name log_level message
@@ -304,7 +304,7 @@ class GoogleLogFormatter(logging.Formatter):
         self.default_msec_format = default_msec_format # for time does not support microseconds
         self.backend = backend
 
-    def format(self, record: logging.LogRecord) -> str:
+    def format(self, record: _logging.LogRecord) -> str:
         """
         Format the log record into a JSON string or a pretty-printed dictionary.
 
@@ -347,10 +347,10 @@ class GoogleLogFormatter(logging.Formatter):
         return ''.join(log_obj.values())
 
 def _make_default_formatter(
-    formatter: Optional[Union[logging.Formatter, str]] = 'CUSTOM_FORMAT',
+    formatter: Optional[Union[_logging.Formatter, str]] = 'CUSTOM_FORMAT',
     time_format: Optional[str] = None,
     use_datetime: Optional[bool] = True,
-) -> logging.Formatter:
+) -> _logging.Formatter:
     """
     Create and return a default logging Formatter instance based on the provided formatter type.
 
@@ -377,10 +377,10 @@ def _make_default_formatter(
     # Configure time format (default if none is provided)
     time_format = time_format or '%Y-%m-%d %H:%M:%S'
     try:
-      if isinstance(formatter, logging.Formatter):
+      if isinstance(formatter, _logging.Formatter):
         return formatter
       elif formatter == 'BASIC_FORMAT':
-        return logging.Formatter(logging.BASIC_FORMAT, None)
+        return _logging.Formatter(_logging.BASIC_FORMAT, None)
       elif formatter == 'CUSTOM_FORMAT':
         # d=(
         #   '{'
@@ -404,7 +404,7 @@ def _make_default_formatter(
           # '%(pathname)s '
           '%(message)s '
         )
-        return logging.Formatter(
+        return _logging.Formatter(
           fmt=short,
           datefmt=time_format
         )
@@ -414,13 +414,13 @@ def _make_default_formatter(
       # sys.stderr.write(e)
       pass
     # Fallback to basic formatter if other formatters are not available
-    return logging.Formatter(logging.BASIC_FORMAT, None)
+    return _logging.Formatter(_logging.BASIC_FORMAT, None)
 
 ######################################################################
 ## logging Handler
 ######################################################################
 
-class AlwaysStdErrHandler(logging.StreamHandler):  # type: ignore[type-arg]
+class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
     """
     A custom logging handler that allows selecting between standard error (stderr)
     and standard output (stdout) with enforced rules for stream assignment.
@@ -489,9 +489,9 @@ class AlwaysStdErrHandler(logging.StreamHandler):  # type: ignore[type-arg]
             # raise ValueError("The stream must be either sys.stderr or sys.stdout.")          
 
 def _make_default_handler(
-    handler: Optional[logging.Handler] = None,
-    formatter: Optional[logging.Formatter] = None
-) -> logging.Handler:
+    handler: Optional[_logging.Handler] = None,
+    formatter: Optional[_logging.Formatter] = None
+) -> _logging.Handler:
     """
     Create and return a default logging Handler instance based on the provided
     `handler` type.
@@ -516,11 +516,11 @@ def _make_default_handler(
     # Configure formatter (default if none is provided)
     formatter = formatter or _make_default_formatter()
     try:
-      if isinstance(handler, logging.Handler):
+      if isinstance(handler, _logging.Handler):
         handler.setFormatter(formatter)
         return handler
       elif handler == 'RotatingFileHandler':
-        from logging.handlers import RotatingFileHandler        
+        from _logging.handlers import RotatingFileHandler        
         handler = RotatingFileHandler(
             "app.log", maxBytes=5000, backupCount=2  # 5KB per file, 2 backups
         )
@@ -546,7 +546,7 @@ def _make_default_handler(
 ######################################################################
 
 # Expose the logger to other modules.
-def get_logger(use_stderr: bool = True) -> logging.Logger:
+def get_logger(use_stderr: bool = True) -> _logging.Logger:
     """
     Return SP (scikitpot) logger instance.
     
@@ -632,22 +632,22 @@ def get_logger(use_stderr: bool = True) -> logging.Logger:
       ## Define scikit-plots the top-level logger
       ######################################################################
       # This uses the default logging configuration
-      # logging.basicConfig()  # Using default settings
-      # logging.basicConfig(
-      #     # level=logging.WARN,
-      #     # handlers=[logging.StreamHandler()],
+      # _logging.basicConfig()  # Using default settings
+      # _logging.basicConfig(
+      #     # level=_logging.WARNING,
+      #     # handlers=[_logging.StreamHandler()],
       #     format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}',
       #     datefmt="%Y-%m-%d %H:%M:%S"
       # )
       # Scope the scikit-plots logger
       name = 'scikitplot'
       # Configure the logger here (only once for the entire project).
-      logger = logging.getLogger(name)
+      logger = _logging.getLogger(name)
       # Set propagate to False to prevent messages from propagating to the root logger
       logger.propagate = False
       # Configure handler (default is StreamHandler)
-      handler = _make_default_handler() #or logging.StreamHandler()
-      # handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
+      handler = _make_default_handler() #or _logging.StreamHandler()
+      # handler.setFormatter(_logging.Formatter(_logging.BASIC_FORMAT, None))
       # Add the handler to the logger
       logger.addHandler(handler)
       # Set the logging level (default is WARNING)
@@ -856,6 +856,19 @@ class SpLogger(SingletonBase):
     >>> sp.SpLogger().info("This is a info.")    # This will not be shown, as level is ERROR.
     >>> sp.SpLogger().warning("This is a warning.")
     
+    .. important::
+    
+        If the attribute is not defined within the `SpLogger` class, it will be 
+        dynamically fetched from the `logging` module. This is particularly useful 
+        for logging constants like `DEBUG`, `INFO`, `ERROR`, etc., which are often 
+        used in logging configurations but are not necessarily attributes of the 
+        logger class itself.
+        
+    .. attention::
+    
+        Be cautious when using dynamically retrieved attributes, as it may 
+        lead to unexpected behavior if the module's constants change.
+    
     Examples
     --------
     Example of logging an INFO message by module:
@@ -875,13 +888,48 @@ class SpLogger(SingletonBase):
         >>> logging.info("This is a info message from the sp logger.")
     """
     # cls attr
-    CRITICAL  = FATAL = CRITICAL
-    ERROR     = ERROR
-    WARNING   = WARN = WARNING
-    INFO      = INFO
-    DEBUG     = DEBUG
-    NOTSET    = NOTSET
+    # Directly or Dynamically reference the module-level variable
+    # CRITICAL  = FATAL = getattr(__import__(__name__), 'CRITICAL', 50)
+    # ERROR     = getattr(__import__(__name__), 'ERROR', 40)
+    # WARNING   = WARN = getattr(__import__(__name__), 'WARNING', 30)
+    # INFO      = getattr(__import__(__name__), 'INFO', 20)
+    # DEBUG     = getattr(__import__(__name__), 'DEBUG', 10)
+    # NOTSET    = NOTSET
+    def __getattr__(self, name):
+        """
+        Retrieves the attribute `name` either from the instance or the `logging` module.
+
+        If the attribute is not found within the class, this method checks for it 
+        in the `logging` module (e.g., `DEBUG`, `INFO`, etc.).
+
+        Parameters
+        ----------
+        name : str
+            The name of the attribute to retrieve.
+
+        Returns
+        -------
+        Any
+            The value of the attribute `name`, either from the class or the `logging` module.
+
+        Raises
+        ------
+        AttributeError
+            If the attribute is not found in the class or the `logging` module.
+        """
+        # First, check if the attribute is in the instance's dictionary
+        if name in self.__dict__:
+            return self.__dict__[name]
+
+        # Now, dynamically import the logging module and check for the attribute
+        module = _logging  # Importing logging module explicitly
+        if hasattr(module, name):
+            return getattr(module, name)
+
+        # If not found, raise an AttributeError
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
   
+    # magic method to initiate object, To get called by the __new__ method.
     def __init__(
         self,
         name: Optional[str] = None,
@@ -922,7 +970,7 @@ class SpLogger(SingletonBase):
         # instance attr
         if not hasattr(self, "logger"):  # Ensure initialization happens only once
             self._name = name or "scikitplot"
-            self.logger = get_logger() or logging.getLogger(self._name)
+            self.logger = get_logger() or _logging.getLogger(self._name)
           
             # Thread-safe logging lock
             self.lock = _logger_lock or threading.Lock() if thread_safe else None

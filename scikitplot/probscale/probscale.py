@@ -12,6 +12,10 @@ from matplotlib.ticker import (
 from .transforms import ProbTransform
 from .formatters import PctFormatter, ProbFormatter
 
+__all__ = [
+  '_minimal_norm',
+  'ProbScale',
+]
 
 class _minimal_norm(object):
     """

@@ -53,7 +53,7 @@ from scipy.special import (
   softmax  
 )
 
-from scikitplot.utils.validation import (
+from ...utils.validation import (
   validate_plotting_kwargs_decorator,
   validate_shapes_decorator,
   validate_y_true_decorator,

@@ -16,7 +16,7 @@
 # )
 
 ######################################################################
-## Generate 'version.py' for Sourde Distrubution "--sdist"
+## Generate file 'version.py' for Sourde Distrubution "--sdist"
 ## "--sdist" require '.git' if error use only "--wheel" packaging
 ######################################################################
 
@@ -48,7 +48,7 @@ else
 endif
 
 ######################################################################
-## Generate '_citation.py' for "--sdist" or use MANIFEST.in
+## Generate file '_citation.py' for "--sdist" or use MANIFEST.in
 ## https://mesonbuild.com/Reference-manual_functions.html#configure_file
 ######################################################################
 
@@ -167,6 +167,65 @@ configure_file(
 )
 
 ######################################################################
+## Generate file 'scikitplot_config.h'
+## https://mesonbuild.com/Reference-manual_functions.html#configure_file
+######################################################################
+
+# scikitplot_config configure_file
+cdata = configuration_data()
+
+# Test variable attribute to use for thread-local storage;
+# Adapted from `numpy/_core/meson.build`.
+check_tls_attrs = [
+  ['thread_local', 'HAVE_THREAD_LOCAL'],    # C23
+  ['_Thread_local', 'HAVE__THREAD_LOCAL'],  # C11/C17
+  ['__thread', 'HAVE__THREAD'],
+]
+if is_windows and not is_mingw
+  check_tls_attrs += ['__declspec(thread)', 'HAVE___DECLSPEC_THREAD_']
+endif
+f2py_tls_define = ''
+foreach tls_attrs: check_tls_attrs
+  attr = tls_attrs[0]
+  code = f'''
+    #pragma GCC diagnostic error "-Wattributes"
+    #pragma clang diagnostic error "-Wattributes"
+
+    int @attr@ foo;
+  '''
+  code += '''
+    int
+    main()
+    {
+      return 0;
+    }
+  '''
+  if cc.compiles(code, name: tls_attrs[0])
+    cdata.set10(tls_attrs[1], true)
+    f2py_tls_define = tls_attrs[0]
+  endif
+endforeach
+
+# Contains only TLS check results for now - name chosen for when more compiler
+# checks need adding in the future.
+scipy_config_h = configure_file(
+  input: 'scikitplot_config.h.in',
+  output: 'scikitplot_config.h',
+  configuration: cdata,
+  install: false
+)
+
+# Generate _CITATION.bib for sdist
+configure_file(
+  input: '_citation.py.in',
+  output: '_citation.py',
+  configuration: conf_data_bib,
+  install: true,
+  install_dir: py.get_install_dir() / 'scikitplot',
+  install_tag: 'python-runtime',
+)
+
+######################################################################
 ## cython tree
 ######################################################################
 
@@ -196,5 +255,6 @@ _root_cython_tree = [
 # After those, subdirs with the most heavy builds should come first
 # (that parallelizes better)
 # belows can be needs to be to be before ... since ... cimport *.pxd
-subdir('_astropy')
+subdir('_xp_core_lib')
 subdir('experimental')
+subdir('_astropy')

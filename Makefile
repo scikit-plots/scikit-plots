@@ -162,6 +162,7 @@ install: clean
 	@# python -m pip install --use-pep517 .
 	@# python -m pip install --no-build-isolation --no-cache-dir .
 	@# python -m pip install --no-build-isolation --no-cache-dir -e . -vvv
+	@# make clean && python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 	@python -m pip install --no-build-isolation --no-cache-dir --editable .
 
 ######################################################################

@@ -1,4 +1,4 @@
-## scikit-plots/scikitplot/_experimental/meson.build
+## scikit-plots/scikitplot/experimental/meson.build
 
 ######################################################################
 ## cython tree
@@ -95,6 +95,9 @@ experimental_extension_metadata = {
     },
 }
 
+######################################################################
+## create the corresponding module
+######################################################################
 
 # Loop over each defined extension and create the corresponding module
 foreach ext_name, ext_dict : experimental_extension_metadata
@@ -113,3 +116,7 @@ foreach ext_name, ext_dict : experimental_extension_metadata
     # install_dir: ext_dict.get('install_dir', '.'),                 # Subdirectory where the .so file module will be installed
   )
 endforeach
+
+######################################################################
+## 
+######################################################################

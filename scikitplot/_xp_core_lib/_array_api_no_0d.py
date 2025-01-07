@@ -1,3 +1,4 @@
+# copied from scipy/_lib/deprecation.py
 """
 Extra testing functions that forbid 0d-input, see #21044
 
@@ -24,18 +25,12 @@ However, when scalars are not generally the expected NumPy return type,
 it remains preferable to use the assert functions from
 the `scipy._lib._array_api` module, which have less surprising behaviour.
 """
-from __future__ import annotations
-
-from ._array_api import (
-  array_namespace,
-  is_numpy,
-  xp_assert_close as xp_assert_close_base,
-  xp_assert_equal as xp_assert_equal_base,
-  xp_assert_less as xp_assert_less_base,
-)
+from ._array_api import ( array_namespace, is_numpy,
+                          xp_assert_close as xp_assert_close_base,
+                          xp_assert_equal as xp_assert_equal_base,
+                          xp_assert_less  as xp_assert_less_base,)
 
 __all__: list[str] = []
-
 
 def _check_scalar(actual, desired, *, xp=None, **kwargs):
     __tracebackhide__ = True  # Hide traceback for py.test

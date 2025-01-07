@@ -1,5 +1,11 @@
 import numpy
 
+__all__ = [
+  '_make_boot_index',
+  '_fit_simple',
+  '_bs_fit',
+  '_estimate_from_fit',
+]
 
 def _make_boot_index(elements, niter):
     """Generate an array of bootstrap sample sets

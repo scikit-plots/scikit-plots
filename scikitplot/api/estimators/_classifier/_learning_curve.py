@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.model_selection import learning_curve
 
-from scikitplot.utils.validation import (
+from ...utils.validation import (
   validate_plotting_kwargs_decorator,
   # validate_shapes_decorator,
   # validate_y_true_decorator,

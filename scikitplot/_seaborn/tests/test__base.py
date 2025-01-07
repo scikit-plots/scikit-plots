@@ -454,7 +454,9 @@ class TestSizeMapping:
     def test_array_palette_deprecation(self, long_df):
 
         p = VectorPlotter(long_df, {"y": "y", "hue": "s"})
-        pal = mpl.cm.Blues([.3, .8])[:, :3]
+        # Generate a palette with enough colors for all unique hue levels
+        unique_hues = len(long_df["s"].unique())
+        pal = mpl.cm.Blues(np.linspace(0.3, 0.8, unique_hues))[:, :3]
         with pytest.warns(UserWarning, match="Numpy array is not a supported type"):
             m = HueMapping(p, pal)
         assert m.palette == pal.tolist()
@@ -1334,14 +1336,11 @@ class TestVectorPlotter:
             [2, 0, 1, 2],
         )
 
-    @pytest.fixture(
-        params=itertools.product(
-            [None, np.nan, pd.NA],
-            ["numeric", "category", "datetime"],
-        )
-    )
-    @pytest.mark.parametrize("NA,var_type")
+    @pytest.fixture
     def comp_data_missing_fixture(self, request):
+        """
+        Fixture to generate comparison data with different NA values and variable types.
+        """
 
         # This fixture holds the logic for parameterizing
         # the following test (test_comp_data_missing)
@@ -1365,6 +1364,15 @@ class TestVectorPlotter:
 
         return orig_data, comp_data
 
+    @pytest.mark.parametrize(
+        argnames="comp_data_missing_fixture",  # "test_input,expected"
+        argvalues=itertools.product(
+            [None, np.nan, pd.NA],  # `NA` argument
+            ["numeric", "category", "datetime"],  # `var_type` argument
+        ),
+        # A list of arguments’ names (subset of argnames), Each argvalue corresponding to an argname in this list
+        indirect=True,  # Use the fixture with parameterization
+    )
     def test_comp_data_missing(self, comp_data_missing_fixture):
 
         orig_data, comp_data = comp_data_missing_fixture
