@@ -72,7 +72,7 @@ py.extension_module('_ccallback_c',
   dependencies: dep_xp_core_lib,
   cython_args: cython_c_args,
   # disables warnings about discarded qualifiers (e.g., discarding const, volatile, or restrict qualifiers in function arguments or variables).
-  c_args: cython_c_flags + ['-Wno-discarded-qualifiers'],
+  c_args: cython_c_flags,
   install: true,
   subdir: 'scikitplot/_xp_core_lib',
   # install_tag: 'tests'

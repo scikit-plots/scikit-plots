@@ -392,6 +392,7 @@ _global_args = [
   '-Wno-unused-result',             # Suppress warnings about unused results
   '-Wno-unused-variable',           # Suppress warnings about unused variables
   '-Wno-write-strings',             # Treat string literals as `const char[]`
+  '-Wno-discarded-qualifiers',      # to suppress warnings about discarded qualifiers (like const, volatile, etc.).
 ]
 # Additional arguments for C
 _global_c_args = cc.get_supported_arguments(
