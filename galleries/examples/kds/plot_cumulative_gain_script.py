@@ -47,7 +47,7 @@ ax = sp.kds.plot_cumulative_gain(
 plt.tight_layout()
 
 # Save the plot with a filename based on the current script's name
-sp.utils.save_current_plot()
+# sp.api._utils.save_plot()
 
 # Display the plot
 plt.show(block=True)

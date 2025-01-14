@@ -47,10 +47,10 @@ from sklearn.calibration import calibration_curve
 from sklearn.utils import deprecated
 
 
-from ...utils.validation import (
+from ..._utils.validation import (
   validate_plotting_kwargs_decorator,
 )
-from ...utils._helpers import (
+from ..._utils._helpers import (
   validate_labels,
 )
 

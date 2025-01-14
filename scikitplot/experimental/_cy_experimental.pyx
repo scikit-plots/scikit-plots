@@ -4,50 +4,15 @@
 Experimental API Functions by Cython
 =====================================
 
-This module provides Cython implementations of several mathematical functions often used in statistical and machine learning contexts, such as the expit (sigmoid) function, its logarithm, and the logit function. These functions are scalar and typed versions of functions commonly found in libraries like `scipy.special`.
+This module provides Cython implementations of several mathematical functions
+often used in statistical and machine learning contexts,
+such as the expit (sigmoid) function, its logarithm, and the logit function.
+These functions are scalar and typed versions of functions commonly
+found in libraries like :py:mod:`scipy.special`.
 
-The module leverages Cython's fused types to handle different numeric types (`double`, `float`, `long double`) in a single function definition, making the code both efficient and flexible.
-
-Key Conventions:
-----------------
-- Functions that return multiple values in Python will return their outputs via pointers in the final arguments.
-- Functions returning a single value in Python will return that value directly.
-
-Error Handling:
----------------
-- Functions return `nan` to indicate an error, but unlike their `scipy.special` counterparts, they do not emit warnings.
-
-Usage:
-------
-The module is usable from Cython via::
-
-    cimport scikitplot._experimental._cy_experimental
-
-Available Functions:
---------------------
-- :py:func:`~scikitplot.experimental.expit`:
-  
-  Computes the sigmoid of the input value.
-
-        double expit(double)
-        float expit(float)
-        long double expit(long double)
-
-- :py:func:`~scikitplot.experimental.log_expit`:
-  
-  Computes the logarithm of the sigmoid of the input value.
-
-        double log_expit(double)
-        float log_expit(float)
-        long double log_expit(long double)
-
-- :py:func:`~scikitplot._experimental.logit`:
-  
-  Computes the logit (inverse of the sigmoid) of the input value.
-
-        double logit(double)
-        float logit(float)
-        long double logit(long double)
+The module leverages Cython's fused types to handle different numeric types
+(`double`, `float`, `long double`) in a single function definition,
+making the code both efficient and flexible.
 """
 
 cimport cython

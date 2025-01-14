@@ -30,17 +30,18 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
     JS and CSS files should be added here instead.
     """
     # Adding a custom variable to the context dictionary for every page
-    api_search_js_path  = "scripts/api-search.js"
-    api_search_css_path = "styles/api-search.css"
+    apis_search_js_path  = "scripts/apis-search.js"
+    apis_search_css_path = "styles/apis-search.css"
+  
     index_css_path      = "styles/index.css"
-    api_css_path        = "styles/api.css"
+    apis_css_path        = "styles/apis.css"
   
     shell_js_path       = "shell_scripts.js"
     shell_css_path      = "shell_styles.css"
     shell_code_css_path = "shell_code_styles.css"
 
     # missing_file = []
-    # for file in [api_search_js_path, api_search_css_path, index_css_path, api_css_path]:        
+    # for file in [apis_search_js_path, api_search_css_path, index_css_path, apis_css_path]:        
     #     if not os.path.exists(os.path.join(app.builder.outdir, "_static", file)):
     #         missing_file.append(file)
     #         logger.warning("File does not exist: %s", file)
@@ -49,34 +50,34 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
     #     logger.warning("File does not exist here: %s", app.builder.outdir)
     #     return
     
-    if pagename == "api/index":  # "api/index"
+    if pagename == "apis/index":  # "apis/index"
         # External: jQuery and DataTables
         app.add_js_file("https://code.jquery.com/jquery-3.7.0.js")
         app.add_js_file("https://cdn.datatables.net/2.0.0/js/dataTables.min.js")
-        app.add_css_file("https://cdn.datatables.net/2.0.0/css/dataTables.dataTables.min.css")
-        
-        # Internal: API search initialization and styling
-        app.add_js_file(api_search_js_path)
-        app.add_css_file(api_search_css_path)
-      
+        app.add_css_file(
+          "https://cdn.datatables.net/2.0.0/css/dataTables.dataTables.min.css"
+        )        
+        # Internal: APIs search initialization and styling
+        app.add_js_file(apis_search_js_path)
+        app.add_css_file(apis_search_css_path)      
         # logger.info("Adding JS and CSS files for page: %s", pagename)
     elif pagename == "index":
         # External: Include Prism.js for syntax highlighting
         app.add_js_file("https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js")
-        app.add_js_file("https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js")
+        app.add_js_file(
+          "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js"
+        )
         # Internal: Include the modular JavaScript file
-        app.add_js_file(shell_js_path)
-      
+        app.add_js_file(shell_js_path)      
         # External: Link to Prism.js CSS for syntax highlighting
         app.add_css_file("https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css")
         # Internal: Link to custom CSS for styling
         app.add_css_file(index_css_path)
         app.add_css_file(shell_css_path)
-        app.add_css_file(shell_code_css_path)
-      
+        app.add_css_file(shell_code_css_path)      
         # logger.info("Adding JS and CSS files for page: %s", pagename)
     elif pagename.startswith("modules/generated/"):
-        app.add_css_file(api_css_path)
+        app.add_css_file(apis_css_path)
         # logger.info("Adding JS and CSS files for page: %s", pagename)
 
 

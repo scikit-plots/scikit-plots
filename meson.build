@@ -500,7 +500,9 @@ add_project_arguments(_intel_fflags, language: 'fortran')
 # See gh-15996 for details.
 
 _linker_script = meson.project_source_root() / 'scikitplot/_build_utils/link-version-pyinit.map'
-version_link_args = ['-Wl,--version-script=' + _linker_script]
+version_link_args = [
+  '-Wl,--version-script=' + _linker_script,
+]
 
 # Note that FreeBSD only accepts version scripts when -shared is passed,
 # hence we need to pass that to `cc.links` explicitly (the flag is already present 

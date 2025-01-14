@@ -29,7 +29,7 @@ from sklearn.preprocessing import (
 # from sklearn.utils import deprecated
 from sklearn.utils.multiclass import unique_labels
 
-from scikitplot.api.utils._helpers import (
+from ..api._utils._helpers import (
   validate_labels,
   cumulative_gain_curve,
   binary_ks_curve,

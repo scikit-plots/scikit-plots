@@ -13,10 +13,10 @@ enforcing Python 3-like behavior in Python 2.
 """
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,         # Changes the division operator `/` to always perform true division.
-    print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+  division,         # Changes the division operator `/` to always perform true division.
+  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
+  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
 )
 import os
 from abc import ABC, abstractmethod
@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 #from matplotlib.offsetbox import (TextArea, AnnotationBbox)
 
+# from .._array_api import array_namespace, device, size, _expit
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all etc.
@@ -70,11 +71,10 @@ def _range01(x):
     """
     return (x-np.min(x))/(np.max(x)-np.min(x))
 
-
 def _check_input(
-    input_list,
-    check_list,
-    check = '',
+  input_list,
+  check_list,
+  check = '',
 ):
     """
     Check if the input matches any of a complete list
@@ -161,14 +161,14 @@ class ModelPlotPy(object):
     ValueError: If there is no match with the complete list or the input list again
     """
     def __init__(
-        self,
-        feature_data = [],
-        label_data = [],
-        dataset_labels = [],
-        models = [],
-        model_labels = [],
-        ntiles = 10,
-        seed = 0,
+      self,
+      feature_data = [],
+      label_data = [],
+      dataset_labels = [],
+      models = [],
+      model_labels = [],
+      ntiles = 10,
+      seed = 0,
     ):
         """
         Create a model_plots object
@@ -491,12 +491,12 @@ class ModelPlotPy(object):
         return ntiles_aggregate[cols]
     
     def plotting_scope(
-        self,
-        scope = 'no_comparison',
-        select_model_label = [],
-        select_dataset_label = [],
-        select_targetclass = [],
-        select_smallest_targetclass = True
+      self,
+      scope = 'no_comparison',
+      select_model_label = [],
+      select_dataset_label = [],
+      select_targetclass = [],
+      select_smallest_targetclass = True
     ) -> 'pandas.DataFrame' :
         """
         Create plot_input
@@ -687,11 +687,11 @@ class ModelPlotPy(object):
 ##########################################################################
 
 def plot_response(
-    plot_input: 'pandas.DataFrame',
-    save_fig = True,
-    save_fig_filename = '',
-    highlight_ntile = None,
-    highlight_how = 'plot_text',
+  plot_input: 'pandas.DataFrame',
+  save_fig = True,
+  save_fig_filename = '',
+  highlight_ntile = None,
+  highlight_how = 'plot_text',
 ):
     """
     Plotting response curve
@@ -1161,13 +1161,12 @@ def plot_response(
     plt.show()
     return ax
 
-
 def plot_cumresponse(
-    plot_input: 'pandas.DataFrame',
-    save_fig = True,
-    save_fig_filename = '',
-    highlight_ntile = None,
-    highlight_how = 'plot_text',
+  plot_input: 'pandas.DataFrame',
+  save_fig = True,
+  save_fig_filename = '',
+  highlight_ntile = None,
+  highlight_how = 'plot_text',
 ):
     """
     Plotting cumulative response curve
@@ -1637,13 +1636,12 @@ def plot_cumresponse(
     plt.show()
     return ax
 
-
 def plot_cumlift(
-    plot_input: 'pandas.DataFrame',
-    save_fig = True,
-    save_fig_filename = '',
-    highlight_ntile = None,
-    highlight_how = 'plot_text',
+  plot_input: 'pandas.DataFrame',
+  save_fig = True,
+  save_fig_filename = '',
+  highlight_ntile = None,
+  highlight_how = 'plot_text',
 ):
     """
     Plotting cumulative lift curve
@@ -2082,13 +2080,12 @@ def plot_cumlift(
     plt.show()
     return ax
 
-
 def plot_cumgains(
-    plot_input: 'pandas.DataFrame',
-    save_fig = True,
-    save_fig_filename = '',
-    highlight_ntile = None,
-    highlight_how = 'plot_text',
+  plot_input: 'pandas.DataFrame',
+  save_fig = True,
+  save_fig_filename = '',
+  highlight_ntile = None,
+  highlight_how = 'plot_text',
 ):
     """
     Plotting cumulative gains curve
@@ -2563,11 +2560,10 @@ def plot_cumgains(
     plt.show()
     return ax
 
-
 def plot_all(
-    plot_input: 'pandas.DataFrame',
-    save_fig = True,
-    save_fig_filename = '',
+  plot_input: 'pandas.DataFrame',
+  save_fig = True,
+  save_fig_filename = '',
 ):
     """
     Plotting cumulative gains curve
@@ -2943,14 +2939,14 @@ def plot_all(
 ##########################################################################
 
 def plot_costsrevs(
-    plot_input: 'pandas.DataFrame',
-    fixed_costs,
-    variable_costs_per_unit,
-    profit_per_unit,
-    save_fig = True,
-    save_fig_filename = '',
-    highlight_ntile = None,
-    highlight_how = 'plot_text',
+  plot_input: 'pandas.DataFrame',
+  fixed_costs,
+  variable_costs_per_unit,
+  profit_per_unit,
+  save_fig = True,
+  save_fig_filename = '',
+  highlight_ntile = None,
+  highlight_how = 'plot_text',
 ):
     """
     Plotting costs / revenue curve
@@ -3442,16 +3438,15 @@ def plot_costsrevs(
     plt.show()
     return ax
 
-
 def plot_profit(
-    plot_input: 'pandas.DataFrame',
-    fixed_costs,
-    variable_costs_per_unit,
-    profit_per_unit,
-    save_fig = True,
-    save_fig_filename = '',
-    highlight_ntile = None,
-    highlight_how = 'plot_text',
+  plot_input: 'pandas.DataFrame',
+  fixed_costs,
+  variable_costs_per_unit,
+  profit_per_unit,
+  save_fig = True,
+  save_fig_filename = '',
+  highlight_ntile = None,
+  highlight_how = 'plot_text',
 ):
     """
     Plotting profit curve
@@ -3926,16 +3921,15 @@ def plot_profit(
     plt.show()
     return ax
 
-
 def plot_roi(
-    plot_input: 'pandas.DataFrame',
-    fixed_costs,
-    variable_costs_per_unit,
-    profit_per_unit,
-    save_fig = True,
-    save_fig_filename = '',
-    highlight_ntile = None,
-    highlight_how = 'plot_text',
+  plot_input: 'pandas.DataFrame',
+  fixed_costs,
+  variable_costs_per_unit,
+  profit_per_unit,
+  save_fig = True,
+  save_fig_filename = '',
+  highlight_ntile = None,
+  highlight_how = 'plot_text',
 ):
     """
     Plotting ROI curve

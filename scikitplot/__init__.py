@@ -9,8 +9,6 @@ online at https://scikit-plots.github.io.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-__version__ = '0.5.dev0'
-
 # import os
 # import sys
 # import pathlib
@@ -22,14 +20,20 @@ import builtins
 ## scikit-plots modules and objects
 ######################################################################
 
+__version__ = '0.5.dev0'
+
 # import logging
 from .sp_logging import get_logger, SpLogger, sp_logger
-try:
-  # Trt to import meson builded files, modules (etc. *.in)
-  from .__config__ import show as show_config
-  from ._citation import __citation__, __bibtex__
+
+try:  # Trt to import meson builded files, modules (etc. *.in)
   # If a version with git hash was stored, use that instead.
   from .version import __git_hash__, __version__  # Override version if any.
+  # Configuration helper
+  from .__config__ import show as show_config
+  # Citations helper
+  from ._citation import __citation__, __bibtex__
+  # Low-level callback function
+  from ._xp_core_lib._ccallback import LowLevelCallable
 except (ImportError, ModuleNotFoundError) as e:
   msg = (
     "Error importing scikitplot: you cannot import scikitplot while "
@@ -47,9 +51,9 @@ from ._globals import _Default, _Deprecated, _NoValue
 from ._seaborn import _orig_rc_params
 from ._utils._show_versions import show_versions  # noqa: E402
 from ._xp_core_lib import __array_api_version__
+from ._xp_core_lib._array_api import gpu_libraries
 
-# Export modules
-from ._seaborn import *
+# Export api modules
 from .api import *
 
 # Sub-modules:
@@ -60,7 +64,7 @@ from . import (
   _compat,
   _externals,
   _factory_api,
-  _seaborn,
+  _seaborn,  # Experimental, we keep transform api module to compatibility seaborn core.
   _testing,
   _tweedie,
   _utils,
@@ -184,15 +188,11 @@ def __dir__():
     >>> __dir__()
     ['attribute1', 'attribute2', 'attribute3']  # Example output
     """
-    from . import (
-      _seaborn,
-      api,
-    )
+    from . import api
     return sorted(
       builtins
       .set(globals())
       .union(_submodules)
-      .union(dir(_seaborn))
       .union(dir(api))
       .difference(_discard)
     )
@@ -225,9 +225,9 @@ def __getattr__(name):
     """
     try:
         if name in dir():
+            # return __import__(f'{__name__}.{name}')
             import importlib
-            return importlib.import_module(f'.{name}', package=__name__)
-          
+            return importlib.import_module(f'.{name}', package=__name__)          
         return globals()[name]
     except (ModuleNotFoundError,KeyError):
         pass  # Submodule not found; proceed to error handling.
@@ -235,8 +235,7 @@ def __getattr__(name):
     import difflib
     # Generate suggestions for mistyped names.
     all_names = dir()
-    suggestions = difflib.get_close_matches(name, all_names)
-    
+    suggestions = difflib.get_close_matches(name, all_names)    
     # Raise an error indicating the attribute could not be found, with suggestions if any.
     suggestion_msg = f" Did you mean: {', '.join(suggestions)}?" if suggestions else ""
     raise AttributeError(f"Module '{__name__}' has no attribute '{name}'.{suggestion_msg}")

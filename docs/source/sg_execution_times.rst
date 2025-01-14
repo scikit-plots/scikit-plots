@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**07:05.251** total execution time for 25 files **from all galleries**:
+**03:26.489** total execution time for 25 files **from all galleries**:
 
 .. container::
 
@@ -32,78 +32,78 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_auto_examples_visualkeras_ANN_plot_conv_dense.py` (``../../galleries/examples/visualkeras_ANN/plot_conv_dense.py``)
-     - 03:00.975
+   * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_vgg.py` (``../../galleries/examples/visualkeras_CNN/plot_vgg.py``)
+     - 01:18.916
      - 0.0
    * - :ref:`sphx_glr_auto_examples_visualkeras_NLP_plot_nlp_mpnet_with_tf_layers.py` (``../../galleries/examples/visualkeras_NLP/plot_nlp_mpnet_with_tf_layers.py``)
-     - 01:06.420
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_custom_vgg16.py` (``../../galleries/examples/visualkeras_CNN/plot_custom_vgg16.py``)
-     - 00:42.351
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_efficientnetv2.py` (``../../galleries/examples/visualkeras_CNN/plot_efficientnetv2.py``)
-     - 00:37.047
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_custom_vgg16_show_dimension.py` (``../../galleries/examples/visualkeras_CNN/plot_custom_vgg16_show_dimension.py``)
-     - 00:24.734
+     - 00:44.472
      - 0.0
    * - :ref:`sphx_glr_auto_examples_classification_plot_learning_curve_script.py` (``../../galleries/examples/classification/plot_learning_curve_script.py``)
-     - 00:17.710
+     - 00:15.056
      - 0.0
    * - :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py` (``../../galleries/examples/modelplotpy/plot_modelplotpy_script.py``)
-     - 00:17.265
+     - 00:14.473
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_custom_vgg16_show_dimension.py` (``../../galleries/examples/visualkeras_CNN/plot_custom_vgg16_show_dimension.py``)
+     - 00:09.026
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_custom_vgg16.py` (``../../galleries/examples/visualkeras_CNN/plot_custom_vgg16.py``)
+     - 00:08.647
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_efficientnetv2.py` (``../../galleries/examples/visualkeras_CNN/plot_efficientnetv2.py``)
+     - 00:07.662
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_visualkeras_ANN_plot_conv_dense.py` (``../../galleries/examples/visualkeras_ANN/plot_conv_dense.py``)
+     - 00:06.518
      - 0.0
    * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_resnetv2.py` (``../../galleries/examples/visualkeras_CNN/plot_resnetv2.py``)
-     - 00:10.493
+     - 00:05.929
      - 0.0
    * - :ref:`sphx_glr_auto_examples_calibration_plot_calibration_script.py` (``../../galleries/examples/calibration/plot_calibration_script.py``)
-     - 00:07.159
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_clustering_plot_elbow_script.py` (``../../galleries/examples/clustering/plot_elbow_script.py``)
-     - 00:03.410
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_kds_plot_cumulative_gain_script.py` (``../../galleries/examples/kds/plot_cumulative_gain_script.py``)
-     - 00:03.364
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_vgg.py` (``../../galleries/examples/visualkeras_CNN/plot_vgg.py``)
-     - 00:01.830
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_classification_plot_classifier_eval_script.py` (``../../galleries/examples/classification/plot_classifier_eval_script.py``)
-     - 00:01.640
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_classification_plot_precision_recall_script.py` (``../../galleries/examples/classification/plot_precision_recall_script.py``)
-     - 00:01.626
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_regression_plot_residuals_distribution_script.py` (``../../galleries/examples/regression/plot_residuals_distribution_script.py``)
-     - 00:01.360
+     - 00:03.555
      - 0.0
    * - :ref:`sphx_glr_auto_examples_classification_plot_confusion_matrix_script.py` (``../../galleries/examples/classification/plot_confusion_matrix_script.py``)
-     - 00:01.209
+     - 00:01.858
      - 0.0
    * - :ref:`sphx_glr_auto_examples_classification_plot_roc_script.py` (``../../galleries/examples/classification/plot_roc_script.py``)
-     - 00:01.174
+     - 00:01.491
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_classification_plot_precision_recall_script.py` (``../../galleries/examples/classification/plot_precision_recall_script.py``)
+     - 00:01.059
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_classification_plot_classifier_eval_script.py` (``../../galleries/examples/classification/plot_classifier_eval_script.py``)
+     - 00:01.050
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_regression_plot_residuals_distribution_script.py` (``../../galleries/examples/regression/plot_residuals_distribution_script.py``)
+     - 00:01.045
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_clustering_plot_elbow_script.py` (``../../galleries/examples/clustering/plot_elbow_script.py``)
+     - 00:00.837
      - 0.0
    * - :ref:`sphx_glr_auto_examples_kds_plot_ks_statistic_script.py` (``../../galleries/examples/kds/plot_ks_statistic_script.py``)
-     - 00:01.032
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_decomposition_plot_pca_2d_projection_script.py` (``../../galleries/examples/decomposition/plot_pca_2d_projection_script.py``)
-     - 00:01.027
+     - 00:00.825
      - 0.0
    * - :ref:`sphx_glr_auto_examples_visualkeras_CNN_plot_autoencoder.py` (``../../galleries/examples/visualkeras_CNN/plot_autoencoder.py``)
-     - 00:00.817
+     - 00:00.740
      - 0.0
    * - :ref:`sphx_glr_auto_examples_classification_plot_feature_importances_script.py` (``../../galleries/examples/classification/plot_feature_importances_script.py``)
-     - 00:00.757
+     - 00:00.611
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_decomposition_plot_pca_2d_projection_script.py` (``../../galleries/examples/decomposition/plot_pca_2d_projection_script.py``)
+     - 00:00.603
      - 0.0
    * - :ref:`sphx_glr_auto_examples_visualkeras_ANN_plot_dense.py` (``../../galleries/examples/visualkeras_ANN/plot_dense.py``)
-     - 00:00.573
+     - 00:00.501
      - 0.0
    * - :ref:`sphx_glr_auto_examples_decomposition_plot_pca_component_variance_script.py` (``../../galleries/examples/decomposition/plot_pca_component_variance_script.py``)
-     - 00:00.481
+     - 00:00.467
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_kds_plot_cumulative_gain_script.py` (``../../galleries/examples/kds/plot_cumulative_gain_script.py``)
+     - 00:00.427
      - 0.0
    * - :ref:`sphx_glr_auto_examples_kds_plot_lift_script.py` (``../../galleries/examples/kds/plot_lift_script.py``)
-     - 00:00.399
+     - 00:00.408
      - 0.0
    * - :ref:`sphx_glr_auto_examples_clustering_plot_silhouette_script.py` (``../../galleries/examples/clustering/plot_silhouette_script.py``)
-     - 00:00.397
+     - 00:00.313
      - 0.0

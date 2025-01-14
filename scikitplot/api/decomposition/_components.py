@@ -23,7 +23,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from ..utils.validation import (
+from .._utils.validation import (
   validate_plotting_kwargs_decorator,
 )
 

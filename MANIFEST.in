@@ -33,6 +33,7 @@ include LICENSE
 recursive-include LICENSES *
 
 # Optionally, include other specific folders or files
+include .pre-commit-config.yaml
 include pyproject.toml
 include pytest.ini
 include README.md

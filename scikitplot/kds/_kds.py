@@ -22,7 +22,7 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from ..api.utils.validation import (
+from ..api._utils.validation import (
   validate_plotting_kwargs_decorator,
   validate_shapes_decorator,
   validate_y_true_decorator,

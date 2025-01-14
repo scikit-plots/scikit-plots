@@ -32,7 +32,7 @@ from sklearn.metrics import silhouette_samples
 from sklearn.utils import deprecated
 
 
-from .utils._helpers import (
+from ._utils._helpers import (
   validate_labels,
   cumulative_gain_curve,
   binary_ks_curve,

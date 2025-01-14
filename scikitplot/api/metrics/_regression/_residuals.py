@@ -56,7 +56,7 @@ import scikitplot.probscale as probscale
 # probscale.probplot
 # stats.probplot
 
-from ...utils.validation import (
+from ..._utils.validation import (
   validate_plotting_kwargs_decorator,
 )
 

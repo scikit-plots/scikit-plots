@@ -5,69 +5,13 @@ This module provides advanced logging utilities for Python applications,
 including support for singleton-based logging with customizable formatters, 
 handlers, and thread-safety. It extends Python's standard logging library 
 to enhance usability and flexibility for large-scale projects.
+    
+Scikit-plots logging helpers, supports vendoring.
 
 Module Dependencies:
   - Python standard library: :py:mod:`logging`
-
-logging helpers, supports vendoring
+  - This module defines a logging class based on the built-in logging module.
 """
-# """
-# Classes
-# -------
-# SpLogger
-#     Singleton-based logger with support for thread-safety, customizable name, 
-#     formatter, handler, and logging level.
-
-# PrettyJSONFormatter
-#     Custom formatter to pretty-print JSON logs with customizable options.
-
-# AlwaysStdErrHandler
-#     A custom logging handler that ensures logs are output to stderr or stdout 
-#     based on user preference.
-
-# Functions
-# ---------
-# get_logger(use_stderr: bool = True) -> logging.Logger
-#     Retrieve the singleton logger instance, initializing it if necessary.
-
-# _make_default_formatter(formatter=None, time_format=None) -> logging.Formatter
-#     Create a default logging formatter with support for JSON and custom formats.
-
-# _make_default_handler(handler=None, formatter=None) -> logging.Handler
-#     Create a default logging handler with customizable formatter and stream.
-
-# Notes
-# -----
-# This module builds on Python's standard `logging` library. For more information 
-# on Python's logging API, refer to the official documentation:
-# https://docs.python.org/3/library/logging.html
-
-# The `SpLogger` class ensures a single shared logger instance across the project, 
-# simplifying configuration and usage. The `get_logger` function provides easy 
-# access to this shared logger or or vice versa.
-
-# Logging Levels:
-#   - NOTSET (0)  : NOTSET
-#   - DEBUG (10)  : Detailed information useful during development,
-#     typically of interest only when diagnosing problems.
-#   - INFO (20)   : Confirmation that things are working as expected.
-#   - WARNING (30): An indication that something unexpected happened,
-#     or indicative of some problem in the near future.
-#   - ERROR (40)  : Due to a more serious problem,
-#     the software has not been able to perform some function.
-#   - CRITICAL = FATAL (50): A very serious error, indicating that
-#     the program itself may be unable to continue running.
-    
-# Examples
-# --------
-# Basic Usage by func
-#     >>> from scikitplot import get_logger
-#     >>> get_logger().warning("Warning information.")
-
-# Basic Usage by class
-#     >>> from scikitplot import SpLogger
-#     >>> SpLogger().warning("Warning information.")
-# """
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -423,12 +367,13 @@ def _make_default_formatter(
 class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
     """
     A custom logging handler that allows selecting between standard error (stderr)
-    and standard output (stdout) with enforced rules for stream assignment.
+    and standard output (stdout), enforcing rules for stream assignment.
 
-    StreamHandler class
-    A handler class which writes logging records, appropriately formatted,
-    to a stream. Note that this class does not close the stream, as
-    sys.stdout or sys.stderr may be used.
+    See Also
+    --------
+    logging.StreamHandler :
+        This handler writes logging records, appropriately formatted, to a stream.
+        Note: This class does not close the stream, as sys.stdout or sys.stderr may be used.
     """
     def __init__(self, use_stderr: bool = not _is_jupyter_notebook()) -> None:
         """
@@ -487,6 +432,10 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
             # Fallback to default stream not raise error
             super().setStream(stream=self._stream)
             # raise ValueError("The stream must be either sys.stderr or sys.stdout.")          
+
+# Error `name` property documentation
+AlwaysStdErrHandler.name.__doc__ = """
+"""
 
 def _make_default_handler(
     handler: Optional[_logging.Handler] = None,
@@ -608,15 +557,31 @@ def get_logger(use_stderr: bool = True) -> _logging.Logger:
     .. jupyter-execute::
     
         >>> import scikitplot.sp_logging as logging  # module logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
+        >>> logging.setLevel(logging.INFO)           # default WARNING
         >>> logging.info("This is a info message from the sp logger.")
     
     Get a root logger by func:
     
     .. jupyter-execute::
+        
+        >>> from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure python logger, not have direct log level
+        >>> logging.setLevel(sp_logging.INFO)                                    # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
     
-        >>> from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure logger, not have level
-        >>> logging.setLevel(sp_logging.INFO)  # default WARNING
+    Get a root logger by class:
+    
+    .. jupyter-execute::
+        
+        >>> from scikitplot import SpLogger; logging=SpLogger()  # class logger
+        >>> logging.setLevel(logging.INFO)                       # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
+    
+    Get a root logger by class instance:
+    
+    .. jupyter-execute::
+        
+        >>> from scikitplot import sp_logger as logging  # class instance logger
+        >>> logging.setLevel(logging.INFO)               # default WARNING
         >>> logging.info("This is a info message from the sp logger.")
     """
     # Ensure the root logger is initialized
@@ -868,23 +833,39 @@ class SpLogger(SingletonBase):
     
         Be cautious when using dynamically retrieved attributes, as it may 
         lead to unexpected behavior if the module's constants change.
-    
+     
     Examples
     --------
-    Example of logging an INFO message by module:
-
+    Get a root logger by module:
+    
     .. jupyter-execute::
     
         >>> import scikitplot.sp_logging as logging  # module logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
+        >>> logging.setLevel(logging.INFO)           # default WARNING
         >>> logging.info("This is a info message from the sp logger.")
     
-    Example of logging an INFO message by class:
-
-    .. jupyter-execute::
+    Get a root logger by func:
     
+    .. jupyter-execute::
+        
+        >>> from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure python logger, not have direct log level
+        >>> logging.setLevel(sp_logging.INFO)                                    # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
+    
+    Get a root logger by class:
+    
+    .. jupyter-execute::
+        
         >>> from scikitplot import SpLogger; logging=SpLogger()  # class logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
+        >>> logging.setLevel(logging.INFO)                       # default WARNING
+        >>> logging.info("This is a info message from the sp logger.")
+    
+    Get a root logger by class instance:
+    
+    .. jupyter-execute::
+        
+        >>> from scikitplot import sp_logger as logging  # class instance logger
+        >>> logging.setLevel(logging.INFO)               # default WARNING
         >>> logging.info("This is a info message from the sp logger.")
     """
     # cls attr
@@ -1151,31 +1132,39 @@ get_logger :
 logging.getLogger :
     Standard library function to retrieve :py:class:`logging.Logger` instance,
     for more https://docs.python.org/3/library/logging.html.
-
+ 
 Examples
 --------
-Example of logging an INFO message by module:
+Get a root logger by module:
 
 .. jupyter-execute::
 
     >>> import scikitplot.sp_logging as logging  # module logger
-    >>> logging.setLevel(logging.INFO)  # default WARNING
+    >>> logging.setLevel(logging.INFO)           # default WARNING
     >>> logging.info("This is a info message from the sp logger.")
 
-Example of logging an INFO message by class:
+Get a root logger by func:
 
 .. jupyter-execute::
+    
+    >>> from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure python logger, not have direct log level
+    >>> logging.setLevel(sp_logging.INFO)                                    # default WARNING
+    >>> logging.info("This is a info message from the sp logger.")
 
+Get a root logger by class:
+
+.. jupyter-execute::
+    
     >>> from scikitplot import SpLogger; logging=SpLogger()  # class logger
-    >>> logging.setLevel(logging.INFO)  # default WARNING
+    >>> logging.setLevel(logging.INFO)                       # default WARNING
     >>> logging.info("This is a info message from the sp logger.")
 
-Example of logging an INFO message by class instance:
+Get a root logger by class instance:
 
 .. jupyter-execute::
-
+    
     >>> from scikitplot import sp_logger as logging  # class instance logger
-    >>> logging.setLevel(logging.INFO)  # default WARNING
+    >>> logging.setLevel(logging.INFO)               # default WARNING
     >>> logging.info("This is a info message from the sp logger.")
 """
 

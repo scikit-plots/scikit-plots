@@ -18,8 +18,8 @@ from scikitplot._xp_core_lib._array_api import (
 
 __all__ = [
   'sigmoid',
-  'logsumexp',
   'softmax',
+  'logsumexp',
   'log_softmax',
 ]
 

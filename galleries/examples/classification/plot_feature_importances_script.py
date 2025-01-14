@@ -10,10 +10,10 @@ used by a scikit-learn classifier.
 # SPDX-License-Identifier: BSD-3-Clause
 
 from sklearn.datasets import (
-    make_classification,
-    load_breast_cancer as data_2_classes,
-    load_iris as data_3_classes,
-    load_digits as data_10_classes,
+  make_classification,
+  load_breast_cancer as data_2_classes,
+  load_iris as data_3_classes,
+  load_digits as data_10_classes,
 )
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
@@ -38,15 +38,15 @@ model = RandomForestClassifier(random_state=0).fit(X_train, y_train)
 
 # Plot!
 ax, features = sp.estimators.plot_feature_importances(
-    model, 
-    feature_names=['petal length', 'petal width', 'sepal length', 'sepal width'],
+  model, 
+  feature_names=['petal length', 'petal width', 'sepal length', 'sepal width'],
 );
 
 # Adjust layout to make sure everything fits
 plt.tight_layout()
 
 # Save the plot with a filename based on the current script's name
-sp.utils.save_current_plot()
+# sp.api._utils.save_plot()
 
 # Display the plot
 plt.show(block=True)

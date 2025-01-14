@@ -5,21 +5,100 @@ import subprocess
 import textwrap
 from typing import Tuple
 
-def toml_version():
-  """
-  Extract version number from `pyproject.toml`
-  """
-  scikitplot_toml = os.path.join(
-    os.path.dirname(__file__), '../../pyproject.toml'
-  )  
-  with open(scikitplot_toml) as fid:
-      data = fid.readlines()
-  version_line = next(
-      line for line in data if line.startswith('version =')
-  )
-  version = version_line.strip().split('=')[1].strip()
-  version = version.replace('"', '').replace("'", '')
-  return version
+# try:
+#   # Determine the current working directory
+#   current_dir = os.path.dirname(os.path.abspath(__file__))
+# except NameError:
+#   # Fallback for interactive environments
+#   current_dir = os.getcwd()
+
+######################################################################
+## add_safe_directory
+######################################################################
+
+def add_safe_directory(repo_path=None):
+    """
+    Add a Git repository as a safe directory globally.
+
+    This function uses the `git config` command to add the specified repository
+    path to Git's list of globally safe directories. If no path is provided, the
+    current working directory is used as the repository path.
+
+    Parameters
+    ----------
+    repo_path : str, optional
+        The path to the Git repository to be added as a safe directory.
+        If None, the current working directory is used.
+
+    Returns
+    -------
+    int
+        The return code of the subprocess command (0 if successful).
+    str
+        The standard output from the git config command.
+    str
+        The standard error from the git config command.
+
+    Raises
+    ------
+    ValueError
+        If the specified path is invalid or not absolute.
+    Exception
+        If an unexpected error occurs during the subprocess execution.
+
+    Examples
+    --------
+    >>> add_safe_directory("/path/to/repo")
+    Successfully added /path/to/repo as a safe directory.
+
+    >>> Add the current working directory as a safe directory
+    >>> add_safe_directory()
+    Successfully added /current/working/directory as a safe directory.
+    """
+    try:
+      # Use the provided path or default to the current working directory
+      if repo_path is None:
+        repo_path = os.getcwd()      
+      # Ensure the path is absolute
+      repo_path = os.path.abspath(repo_path)
+      if not os.path.isdir(repo_path):
+        raise ValueError(f"The path '{repo_path}' is not a valid directory.")
+      # Build the git command
+      git_command = [
+        "git", "config", "--global", "--add", "safe.directory", repo_path,
+      ]
+      # Run the git command
+      def run_command():
+        p = subprocess.Popen(
+          git_command,
+          stdout=subprocess.PIPE,
+          stderr=subprocess.PIPE,
+          cwd=os.path.dirname(__file__),
+        )
+        out, err = p.communicate()
+        return (
+          p.returncode, out.decode('utf-8').strip(), err.decode('utf-8').strip()
+        )
+      code, out, err = run_command()
+      # Handle the output
+      if code == 0:
+        print(f"Successfully added {repo_path} as a safe directory.")
+      else:
+        print(f"Failed to add {repo_path} as a safe directory!")
+        print("Error:", err)
+      return (
+        code, out, err
+      )
+    except ValueError as ve:
+      print(f"ValueError: {ve}")
+      raise
+    except Exception as e:
+      print(f"An unexpected error occurred: {e}")
+      raise
+
+######################################################################
+## version
+######################################################################
 
 def init_version():
   """
@@ -36,6 +115,26 @@ def init_version():
   version = version_line.strip().split("=")[1].strip()
   version = version.replace('"', '').replace("'", '')
   return version
+
+def toml_version():
+  """
+  Extract version number from `pyproject.toml`
+  """
+  scikitplot_toml = os.path.join(
+    os.path.dirname(__file__), '../../pyproject.toml'
+  )  
+  with open(scikitplot_toml) as fid:
+      data = fid.readlines()
+  version_line = next(
+      line for line in data if line.startswith('version =')
+  )
+  version = version_line.strip().split('=')[1].strip()
+  version = version.replace('"', '').replace("'", '')
+  return version
+
+######################################################################
+## git_version
+######################################################################
 
 def git_version(
   version: str, 
@@ -87,8 +186,6 @@ def git_version(
   >>> git_version('1.0.0', format='%H', short=False)
   ('1.0.0', '')
   """
-  import os
-  import subprocess
   git_hash = ''
   try:
     # Build the git log command with the custom format
@@ -98,14 +195,25 @@ def git_version(
       # f'--pretty=format:"%h - %an, %ar : %s"',  # 9a1f3d7 - John Doe, 2 days ago : Update README file
       f'--pretty=format:{format}',
     ]
-    p = subprocess.Popen(
-      git_command,
-      stdout=subprocess.PIPE,
-      stderr=subprocess.PIPE,
-      cwd=os.path.dirname(__file__),
-    )
-    out, err = p.communicate()
-    if p.returncode == 0:
+    # Run the git command
+    def run_command():
+      p = subprocess.Popen(
+        git_command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=os.path.dirname(__file__),
+      )
+      out, err = p.communicate()
+      return (
+        p.returncode, out, err.decode('utf-8').strip()
+      )
+    # First attempt
+    code, out, err = run_command()
+    if code == 128:  # Error: fatal: detected dubious ownership in repository
+      add_safe_directory(repo_path=None)
+      # Retry once
+      code, out, err = run_command()    
+    if code == 0:
       # Extract commit hash and date based on the format
       git_hash, git_date = (                
         out.decode('utf-8')
@@ -126,6 +234,10 @@ def git_version(
     # Catch-all for other exceptions
     pass
   return version, git_hash
+
+######################################################################
+## git_remote_version
+######################################################################
 
 def git_remote_version(
   url: str, 
@@ -253,3 +365,7 @@ if __name__ == "__main__":
       f.write(template)
   else:
     print(version)
+
+######################################################################
+## ...
+######################################################################

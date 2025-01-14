@@ -1,6 +1,6 @@
 .. raw:: html
 
-    <title>Welcome to Scikit-plots {{ release }}</title>
+    <title>Welcome to Scikit-plots{{ release }}</title>
 
 .. _welcome:
 
@@ -9,7 +9,7 @@
 .. role:: raw-html(raw)
    :format: html
 
-.. centered:: Welcome to Scikit-plots :raw-html:`<br />` |release|
+.. centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
 
 .. _introduction:
 

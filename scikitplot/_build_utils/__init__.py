@@ -1,15 +1,5 @@
 # scikitplot/_build_utils/__init__.py
 
-from . import (
-  copyfiles,
-  cythoner,
-  gcc_build_bitness,
-  gitversion,
-  system_info,
-  tempita,
-  version,
-)
-
 # Don't use the deprecated NumPy C API. Define this to a fixed version instead of
 # NPY_API_VERSION in order not to break compilation for released SciPy versions
 # when NumPy introduces a new deprecation. Use in setup.py::
@@ -32,3 +22,13 @@ from . import (
 #     module = importlib.util.module_from_spec(spec)
 #     spec.loader.exec_module(module)
 #     return module
+
+from . import (
+  copyfiles,
+  cythoner,
+  gcc_build_bitness,
+  gitversion,
+  system_info,
+  tempita,
+  version,
+)

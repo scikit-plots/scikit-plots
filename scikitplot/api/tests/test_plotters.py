@@ -76,7 +76,7 @@ class TestValidateLabels(unittest.TestCase):
         passed_labels = ["A", "B", "C"]
         arg_name = "true_labels"
 
-        actual = sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
         self.assertEqual(actual, None)
 
     def test_valid_subset(self):
@@ -84,7 +84,7 @@ class TestValidateLabels(unittest.TestCase):
         passed_labels = ["A", "B"]
         arg_name = "true_labels"
 
-        actual = sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
         self.assertEqual(actual, None)
 
     def test_invalid_one_duplicate(self):
@@ -93,7 +93,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following duplicate labels were passed into true_labels: B"
         self.assertEqual(msg, str(context.exception))
@@ -104,7 +104,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following duplicate labels were passed into true_labels: A, B"
         self.assertEqual(msg, str(context.exception))
@@ -115,7 +115,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following labels were passed into true_labels, but were not found in labels: D"
         self.assertEqual(msg, str(context.exception))
@@ -126,7 +126,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following labels were passed into true_labels, but were not found in labels: E, D"
         self.assertEqual(msg, str(context.exception))
@@ -136,7 +136,7 @@ class TestValidateLabels(unittest.TestCase):
         passed_labels = [0, 2]
         arg_name = "true_labels"
 
-        actual = sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
         self.assertEqual(actual, None)
 
     def test_invalid_duplicate_numerical_labels(self):
@@ -145,7 +145,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following duplicate labels were passed into true_labels: 2"
         self.assertEqual(msg, str(context.exception))
@@ -156,7 +156,7 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api.utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
         msg = "The following labels were passed into true_labels, but were not found in labels: 3"
         self.assertEqual(msg, str(context.exception))

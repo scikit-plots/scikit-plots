@@ -464,7 +464,7 @@ def xp(request):
 # )
 array_api_compatible = pytest.mark.array_api_compatible
 
-skip_xp_invalid_arg  = pytest.mark.skipif(SKPLT_ARRAY_API,
+skip_xp_invalid_arg = pytest.mark.skipif(SKPLT_ARRAY_API,
   reason = ('Test involves masked arrays, object arrays, or other types '
             'that are not valid input when `SKPLT_ARRAY_API` is used.'), )
 

@@ -1,0 +1,22 @@
+:html_theme.sidebar_secondary.remove:
+
+.. _apis_depr_ref:
+
+Recently Deprecated
+===================
+
+.. currentmodule:: scikitplot
+{% for ver, objs in DEPRECATED_APIS_REFERENCE %}
+.. _apis_depr_ref-{{ ver | replace(".", "-") }}:
+
+.. rubric:: To be removed in {{ ver }}
+
+.. autosummary::
+  :nosignatures:
+  :toctree: ../modules/generated/
+  :template: base.rst
+{% for obj in objs %}
+  {{ obj }}
+{%- endfor -%}
+
+{%- endfor -%}

@@ -18,7 +18,10 @@ import itertools
 import functools
 import contextlib
 import collections
-import contextvars 
+import contextvars
+
+import importlib
+import subprocess
 
 import numpy as np
 # import numpy.testing as np_testing
@@ -131,6 +134,8 @@ __all__ = [
   'xp_take_along_axis',
   'xp_unsupported_param_msg',
   'xp_vector_norm',
+  # gpu lib check
+  'gpu_libraries',
 ]
 
 ######################################################################
@@ -843,6 +848,168 @@ def xp_default_dtype(xp):
     else:
         # we default to float64
         return xp.float64
+
+######################################################################
+## gpu_libraries
+######################################################################
+
+def check_cupy(device='cuda'):
+    """Check CuPy GPU and CPU availability and perform a test operation."""
+    try:
+        print("Checking CuPy availability...")
+        import cupy as cp  # Lazy import
+        
+        # Check if CUDA is available
+        if cp.cuda.is_available():
+            gpu_count = cp.cuda.runtime.getDeviceCount()
+            print(f"GPUs Available (CuPy): {gpu_count}")
+        else:
+            print(f"No GPUs available for CuPy. Required GPU.")
+        
+        # Perform a simple matrix multiplication
+        a = cp.array([[1.0, 2.0], [3.0, 4.0]])
+        b = cp.array([[5.0, 6.0], [7.0, 8.0]])
+        c = cp.matmul(a, b)
+        print("Matrix multiplication result (CuPy):", c)
+    except Exception as e:
+        print(f"CuPy check failed: {str(e)}")
+
+def check_tensorflow(device='cuda'):
+    """Check TensorFlow GPU and CPU availability and perform a test operation."""
+    try:
+        print("Checking TensorFlow availability...")
+        import tensorflow as tf  # Lazy import
+        
+        # Check available devices
+        gpus = tf.config.list_physical_devices('GPU')
+        cpus = tf.config.list_physical_devices('CPU')
+        
+        if gpus:
+            print(f"GPUs Available (TensorFlow): {len(gpus)}")
+        else:
+            print(f"No GPUs available for TensorFlow. Using CPU.")
+        
+        if cpus:
+            print(f"CPUs Available (TensorFlow): {len(cpus)}")
+
+        # Perform a simple matrix multiplication
+        a = tf.constant([[1.0, 2.0], [3.0, 4.0]])
+        b = tf.constant([[5.0, 6.0], [7.0, 8.0]])
+        c = tf.matmul(a, b)
+        print("Matrix multiplication result (TensorFlow):", c.numpy())
+    except Exception as e:
+        print(f"TensorFlow check failed: {str(e)}")
+
+def check_jax(device='cuda'):
+    """Check JAX GPU and CPU availability and perform a test operation."""
+    try:
+        print("Checking JAX availability...")
+        import jax  # Lazy import
+        import jax.numpy as jnp  # Lazy import
+        
+        # Check available devices
+        # backend = jax.default_backend()
+        # device_count = jax.local_device_count()
+        devices = jax.devices()
+        cpus = jax.devices('cpu')
+        
+        if any(device.platform == "gpu" for device in devices):
+            print(f"GPUs Available (JAX): {len([d for d in devices if d.platform == 'gpu'])}")
+        else:
+            print(f"No GPUs available for JAX. Using CPU.")
+        
+        if cpus:
+            print(f"CPUs Available (JAX): {len(cpus)}")
+
+        # Perform a simple matrix multiplication
+        a = jnp.array([[1.0, 2.0], [3.0, 4.0]])
+        b = jnp.array([[5.0, 6.0], [7.0, 8.0]])
+        c = jnp.dot(a, b)
+        print("Matrix multiplication result (JAX):", c)
+    except Exception as e:
+        print(f"JAX check failed: {str(e)}")
+
+def check_pytorch(device='cuda'):
+    """Check PyTorch GPU and CPU availability and perform a test operation."""
+    try:
+        print("Checking PyTorch availability...")
+        import torch  # Lazy import
+        
+        # Check available devices
+        gpu_count = torch.cuda.device_count()
+        cpu_count = os.cpu_count()  # Get CPU count
+        
+        if gpu_count > 0:
+            print(f"GPUs Available (PyTorch): {gpu_count}")
+            device = torch.device('cuda')
+        else:
+            print(f"No GPUs available for PyTorch. Using CPU.")
+            device = torch.device('cpu')
+        
+        print(f"CPUs Available (PyTorch): {cpu_count}")
+        
+        # Perform a simple matrix multiplication
+        a = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device=device)
+        b = torch.tensor([[5.0, 6.0], [7.0, 8.0]], device=device)
+        c = torch.matmul(a, b)
+        print("Matrix multiplication result (PyTorch):", c)
+    except Exception as e:
+        print(f"PyTorch check failed: {str(e)}")
+
+def gpu_libraries(device='cuda'):
+    """
+    Check GPU and CPU availability for TensorFlow, JAX, PyTorch, and CuPy.
+    
+    Each library's check includes:
+    - Device availability (GPU/CPU)
+    - A simple matrix multiplication operation to confirm functionality.
+    
+    Each library's GPU check is clearly marked for easy debugging.
+    
+    --- CuPy Check ---
+    Checking CuPy availability...
+    GPUs Available (CuPy): 1
+    Matrix multiplication result (CuPy): [[19. 22.]
+     [43. 50.]]
+
+    --- TensorFlow Check ---
+    Checking TensorFlow availability...
+    No GPUs available for TensorFlow. Using CPU.
+    CPUs Available (TensorFlow): 1
+    Matrix multiplication result (TensorFlow): [[19. 22.]
+     [43. 50.]]
+    
+    --- JAX Check ---
+    Checking JAX availability...
+    JAX Devices: [GpuDevice(id=0)]
+    Matrix multiplication result (JAX): [[19. 22.]
+     [43. 50.]]
+    
+    --- PyTorch Check ---
+    Checking PyTorch availability...
+    GPUs Available (PyTorch): 1
+    Matrix multiplication result (PyTorch): tensor([[19., 22.],
+     [43., 50.]], device='cuda:0')
+
+    Parameters
+    ----------
+    device : {'cpu', 'gpu', 'cuda', 'tpu'} str, default='cuda'
+        Check target device av ailable libraries.
+    """
+    # Lazy imports within subprocess
+    checks = {
+        "CuPy": check_cupy,
+        "TensorFlow": check_tensorflow,
+        "JAX": check_jax,
+        "PyTorch": check_pytorch,
+    }
+    for name, check_function in checks.items():
+        print(f"\n--- {name} Check ---")
+        try:
+            # Run each check function with target device
+            check_function(device=device)
+        except Exception as err:
+            print(f"{name} check failed with error: {err}")
 
 ######################################################################
 ## 

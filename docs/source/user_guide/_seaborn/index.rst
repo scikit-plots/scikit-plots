@@ -1,0 +1,20 @@
+.. _seaborn-index:
+
+======================================================================
+Seaborn (experimental)
+======================================================================
+
+This module contains functions related to :py:mod:`~.seaborn`.
+For Seaborn: statistical data visualization.
+
+.. important::
+
+    Experimental, we keep :py:mod:`seborn` to transform :py:mod:`~.api`
+    module for compatibility seaborn core.
+
+Documentation is available in the docstrings and
+online at https://seaborn.pydata.org/index.html.
+
+.. seealso::
+
+   * https://github.com/mwaskom/seaborn

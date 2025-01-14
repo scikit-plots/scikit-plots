@@ -13,6 +13,7 @@ experimental_cython_tree = [
   fs.copyfile('__init__.py'),             # Ensure __init__.py is copied early
   fs.copyfile('_complexstuff.pxd'),       # Cython definition file for C/C++ code
   fs.copyfile('_cy_experimental.pxd'),    # Cython definition file for C/C++ code
+  fs.copyfile('_cy_experimental.pyi'),    # Cython definition file for C/C++ code
 ]
 
 ######################################################################
@@ -71,34 +72,63 @@ inc_dir_experimental = include_directories(experimental_inc_dir)
 
 # Define metadata for shared Cython files '.pyx' extensions targeting both C and C++
 experimental_extension_metadata = {
-  # Define the '.pyx' extension with C++ support
+  # Define Python Module Name
   '_cy_experimental':
-    {
-      'sources': ['_cy_experimental.pyx'],          # Source .pyx file
-      'dependencies': [
-        dep_np,
-        # dep_pybind11,
-      ],                                            # External libraries and dependencies
-      'include_directories': [
-        inc_dir_experimental,
-        # inc_dir_np,
-      ],                                            # Include dirs for compilation
-      'link_with': [],                              # Link with the created static library
-      'override_options': [
-        'cython_language=cpp',                      # Ensure Cython knows to generate C++ code
-        'optimization=3',                           # Optimization level '-O3'
-      ],
-      # 'c_args': cython_c_flags,                     # Additional C/C++ arguments
-      'cpp_args': cython_cpp_flags,
-      'install': true,                              # Whether to install the .so file executable after building
-      'subdir': 'scikitplot/experimental',          # Path where the module is located
-    },
+  {
+    # Ceyton bindings source .pyx extension with C/C++ support
+    'sources': [
+      # gen_cython_cpp.process('_cy_experimental.pyx'),     #  manually call a generator, if Needed
+      '_cy_experimental.pyx'
+    ],          
+    'dependencies': [
+      dep_np,
+    ],                                            # External libraries and dependencies
+    'include_directories': [
+      inc_dir_experimental,
+      inc_dir_np,
+    ],                                            # Include dirs for compilation
+    'link_with': [                                # Link with the created static library
+      # version_link_args
+    ],
+    'override_options': [
+      'cython_language=cpp',                      # Ensure Cython knows to generate C++ code
+      'optimization=3',                           # Optimization level '-O3'
+    ],
+    # 'c_args': cython_c_flags,                     # Additional C/C++ arguments
+    'cpp_args': cython_cpp_flags,
+    'install': true,                              # Whether to install the .so file executable after building
+    'subdir': 'scikitplot/experimental',          # Path where the module is located
+  },
+  # Define Python Module Name
+  '_py_experimental':
+  {
+    # Pybind11 bindings source .cpp extension with C/C++ support
+    'sources': ['bindings/_py_experimental.cpp'], 
+    'dependencies': [
+      dep_pybind11,
+      dep_np,
+    ],                                            # External libraries and dependencies
+    'include_directories': [
+      inc_dir_experimental,
+      inc_dir_np,
+    ],                                            # Include dirs for compilation
+    'link_with': [                                # Link with the created static library
+      # version_link_args
+    ],
+    'override_options': [
+      'cython_language=cpp',                      # Ensure Cython knows to generate C++ code
+      'optimization=3',                           # Optimization level '-O3'
+    ],
+    # 'c_args': cython_c_flags,                     # Additional C/C++ arguments
+    'cpp_args': cython_cpp_flags,
+    'install': true,                              # Whether to install the .so file executable after building
+    'subdir': 'scikitplot/experimental',          # Path where the module is located
+  },
 }
-
 ######################################################################
 ## create the corresponding module
 ######################################################################
-
+# https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
 # Loop over each defined extension and create the corresponding module
 foreach ext_name, ext_dict : experimental_extension_metadata
   py.extension_module(

@@ -4,36 +4,53 @@
 
 The quickest and easiest way to go from analysis...
 
-## User Installation
+### Install|Try Scikit-plots - Doc: https://scikit-plots.github.io/
 
-### Install Scikit-plots
+## User Installation: 
 
-- Doc: https://scikit-plots.github.io/
-- Install by `pypi` use:
+### Installing using pip
+
+The easiest way to set up scikit-plots is to install it using pip with the following command:
+
+- by `pypi`:
   ```sh
   pip install scikit-plots -U
   ```
 
-#### Install by `GITHUB` use `<branches>` or `<tags>`
+- by `GITHUB` use `<branches>` or `<tags>` If any:
+  - Branches:
+    ```bash
+    #pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
+    # Latest in Development
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@main
+    # Added C,Cpp,Fortran Support
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
+    # Pure Python
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
+    ```    
+  <br>
 
-- Branches
-  ```bash
-  #pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@main               # Latest in Development
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x  # Added C,Cpp,Fortran Support
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x  # Pure Python
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7  # Pure Python
-  ```
-  
-<br>
+  - Tags:
+    ```bash
+    #pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc0
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
+    ```
 
-- Tags
-  ```bash
-  #pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc0  # Added C,Cpp,Fortran Support
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3  # Pure Python 
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7     # Pure Python 
-  ```
+### Installing from source
+You can also install scikit-plots from source if you want to take advantage of the latest changes:
+```sh
+git clone https://github.com/scikit-plots/scikit-plots.git
+cd scikit-plots
+pip install --user -e .
+
+# (Optionally) Try Development [dev,build,test,docs,gpu]
+# gpu refer Cupy lib require NVIDIA CUDA support
+# For More in Doc: https://scikit-plots.github.io/
+python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+```
 
 ## Sample Plots
 

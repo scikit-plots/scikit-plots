@@ -11,7 +11,7 @@
 
 .. centered:: Scikit-plots Documentation :raw-html:`<br />` |release|
 
-.. _user_guide:
+.. _user_guide-index:
 
 ======================================================================
 User Guide
@@ -20,69 +20,80 @@ User Guide
 .. grid:: 1 1 1 1
 
     .. grid-item-card::
-        :padding: 2
+        :padding: 3
 
         **Metric Perf**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
-            ../modules/api/index.rst
+            ./api/index.rst
 
     .. grid-item-card::
-        :padding: 2
+        :padding: 3
 
         **Decile-Wise Perf**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
-            ../modules/decile_wise_perf/index.rst
-
-    .. grid-item-card::
-        :padding: 2
-
-        **Logging System**
-        ^^^
-        .. toctree::
-            :maxdepth: 2
-
-            ../modules/sp_logging/index.rst
+            ./decile_wise_perf/index.rst
 
 
     .. grid-item-card::
-        :padding: 2
+        :padding: 3
 
         **stats**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
-            ../modules/stats/index.rst
+            ./stats/index.rst
 
     .. grid-item-card::
-        :padding: 2
+        :padding: 3
 
         **visualkeras**
         ^^^
         .. toctree::
+            :maxdepth: 3
+
+            ./visualkeras/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **Logging System**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./sp_logging/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **Dispatching**
+        ^^^
+        .. toctree::
             :maxdepth: 2
 
-            ../modules/visualkeras/index.rst
+            ./_xp_core_lib/index.rst
 
 
-.. _under_development:
+.. _under-development:
 
 Under Development
 ----------------------------------------------------------------------
 
 .. toctree::
-   :caption: Developers
+   :caption: Development
    :maxdepth: 1
    :titlesonly:
 
-   ../modules/_astropy/index.rst
-   ../modules/_seaborn/index.rst
-   ../modules/_tweedie/index.rst
-   ../modules/experimental/index.rst
-   ../modules/probscale/index.rst
+   ./_astropy/index.rst
+   ./experimental/index.rst
+   ./_seaborn/index.rst
+   ./probscale/index.rst
+   ./_tweedie/index.rst
+   ./__lightnumpy/index.rst

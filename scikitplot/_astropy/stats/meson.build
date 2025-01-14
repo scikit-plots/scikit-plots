@@ -48,49 +48,53 @@ dep_list = [dep_np]
 stats_extension_metadata = {
   # Define Python Module Name
   '_fast_sigma_clip':
-    {
-      'sources': [                                  # C++ source file with Python/Pybind11 bindings
-        'src/compute_bounds.c',
-        'src/fast_sigma_clip.c',
-        'src/wirth_select.c',
-      ],
-      'include_directories': [                      # Include dirs for compilation
-        inc_dir_stats,
-      ],
-      'dependencies': dep_list,                     # External libraries and dependencies
-      'link_with': [],                              # Link with the created static library
-      'override_options': [
-        'cython_language=c',                        # Ensure Cython knows to generate C code
-        'optimization=3',                           # Optimization level '-O3'
-      ],
-      'cython_args': cython_c_args,
-      'c_args': cython_c_flags,                     # Additional C/C++ arguments
-      # 'cpp_args': cython_cpp_flags,                 # Additional C/C++ arguments
-      'install': true,                              # Whether to install the .so file executable after building
-      'subdir': 'scikitplot/_astropy/stats',        # Path where the module is located
-    },
+  {
+    'sources': [                                  # C++ source file with Python/Pybind11 bindings
+      'src/compute_bounds.c',
+      'src/fast_sigma_clip.c',
+      'src/wirth_select.c',
+    ],
+    'include_directories': [                      # Include dirs for compilation
+      inc_dir_stats,
+    ],
+    'dependencies': dep_list,                     # External libraries and dependencies
+    'link_with': [                                # Link with the created static library
+      # version_link_args
+    ],
+    'override_options': [
+      'cython_language=c',                        # Ensure Cython knows to generate C code
+      'optimization=3',                           # Optimization level '-O3'
+    ],
+    'cython_args': cython_c_args,
+    'c_args': cython_c_flags,                     # Additional C/C++ arguments
+    # 'cpp_args': cython_cpp_flags,                 # Additional C/C++ arguments
+    'install': true,                              # Whether to install the .so file executable after building
+    'subdir': 'scikitplot/_astropy/stats',        # Path where the module is located
+  },
   # Define Python Module Name
   '_stats':
-    {
-      'sources': [                                  # .pyx source file with Cython bindings
-        # gen_cython_cpp.process('_stats.pyx'),     #  manually call a generator, if Needed
-        '_stats.pyx'
-      ],
-      'include_directories': [                      # Include dirs for compilation
-        inc_dir_stats,
-      ],
-      'dependencies': dep_list,                     # External libraries and dependencies
-      'link_with': [],                              # Link with the created static library
-      'override_options': [
-        'cython_language=c',                        # Ensure Cython knows to generate C code
-        'optimization=3'                            # Optimization level '-O3'
-      ],
-      'cython_args': cython_c_args,
-      'c_args': cython_c_flags,                     # Additional C/C++ arguments
-      # 'cpp_args': cython_cpp_flags,                 # Additional C/C++ arguments
-      'install': true,                              # Whether to install the .so file executable after building
-      'subdir': 'scikitplot/_astropy/stats',        # Path where the module is located
-    },
+  {
+    'sources': [                                  # .pyx source file with Cython bindings
+      # gen_cython_cpp.process('_stats.pyx'),     #  manually call a generator, if Needed
+      '_stats.pyx'
+    ],
+    'include_directories': [                      # Include dirs for compilation
+      inc_dir_stats,
+    ],
+    'dependencies': dep_list,                     # External libraries and dependencies
+    'link_with': [                                # Link with the created static library
+      # version_link_args
+    ],
+    'override_options': [
+      'cython_language=c',                        # Ensure Cython knows to generate C code
+      'optimization=3'                            # Optimization level '-O3'
+    ],
+    'cython_args': cython_c_args,
+    'c_args': cython_c_flags,                     # Additional C/C++ arguments
+    # 'cpp_args': cython_cpp_flags,                 # Additional C/C++ arguments
+    'install': true,                              # Whether to install the .so file executable after building
+    'subdir': 'scikitplot/_astropy/stats',        # Path where the module is located
+  },
 }
 # https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
 # Loop over each defined extension and create the corresponding module

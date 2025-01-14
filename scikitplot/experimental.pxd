@@ -1,1 +1,1 @@
-from scikitplot.experimental cimport *
+# scikitplot/experimental.pxd

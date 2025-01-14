@@ -8,6 +8,20 @@ Write documentation
    
    Template for further usage, template belong to matplotlib.
 
+.. design: https://sphinx-design.readthedocs.io/en/latest/index.html
+
+.. dropdown:: restructuredtext References:
+    :color: info
+
+    * https://www.sphinx-doc.org/en/master/index.html
+    * https://sphinx-tutorial.readthedocs.io/cheatsheet/#rst-cheat-sheet
+    * https://documatt.com/restructuredtext-reference/
+    * https://docs.anaconda.com/restructuredtext/#restructuredtext-cheat-sheet
+    * https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#comments
+    * https://bashtage.github.io/sphinx-material/rst-cheatsheet/rst-cheatsheet.html
+    * https://sphinxdocs.ansys.com/version/stable/examples/sphinx-design.html
+
+
 Getting started
 ===============
 

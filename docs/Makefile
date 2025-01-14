@@ -68,8 +68,8 @@ clean: clean_basic
 	@echo "Removed $(BUILDDIR)/*"
 	@rm -rf $(SOURCEDIR)/css/styles/
 	@echo "Removed $(SOURCEDIR)/css/styles/"
-	@rm -rf $(SOURCEDIR)/api/*.rst $(SOURCEDIR)/devel/maintainer.rst $(SOURCEDIR)/index.rst
-	@echo "Removed $(SOURCEDIR)/api/*.rst" "$(SOURCEDIR)/devel/maintainer.rst" "$(SOURCEDIR)/index.rst"
+	@rm -rf $(SOURCEDIR)/api/*.rst $(SOURCEDIR)/apis/*.rst $(SOURCEDIR)/devel/maintainer.rst $(SOURCEDIR)/index.rst
+	@echo "Removed $(SOURCEDIR)/api[s]/*.rst" "$(SOURCEDIR)/devel/maintainer.rst" "$(SOURCEDIR)/index.rst"
 	@rm -rf $(SOURCEDIR)/auto_examples/
 	@echo "Removed $(SOURCEDIR)/auto_examples/"
 	@rm -rf $(SOURCEDIR)/modules/generated/ $(SOURCEDIR)/generated/

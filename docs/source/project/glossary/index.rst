@@ -1,6 +1,6 @@
-.. _scikiplot-glossary:
-
 .. currentmodule:: scikiplot
+
+.. _glossary-index:
 
 =====================
 scikit-plots Glossary
@@ -24,4 +24,4 @@ scikit-plots Glossary
             :numbered:
             :caption: glossary
 
-            scikit-learn Glossary <sklearn_glossary.rst>
+            scikit-learn Glossary <_glossary_sklearn.rst>

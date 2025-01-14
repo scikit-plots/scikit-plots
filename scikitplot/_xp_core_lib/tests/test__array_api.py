@@ -12,10 +12,6 @@ from .._array_api import (
     np_compat, xp_default_dtype
 )
 
-import os
-# manual checking
-_GLOBAL_CONFIG["SKPLT_ARRAY_API"] = os.getenv("SKPLT_ARRAY_API", True)
-
 @pytest.mark.skipif(not _GLOBAL_CONFIG["SKPLT_ARRAY_API"],
         reason="Array API test; set environment variable SKPLT_ARRAY_API=1 to run it")
 class TestArrayAPI:
@@ -204,3 +200,68 @@ class TestArrayAPI:
     @array_api_compatible
     def test_default_dtype(self, xp):
         assert xp_default_dtype(xp) == xp.asarray(1.).dtype
+
+######################################################################
+
+def test_tensorflow():
+    try:
+        import tensorflow as tf
+        gpus = tf.config.list_physical_devices('GPU')
+        assert len(gpus) > 0, "No GPUs available for TensorFlow"
+        
+        a = tf.constant([[1.0, 2.0], [3.0, 4.0]])
+        b = tf.constant([[5.0, 6.0], [7.0, 8.0]])
+        c = tf.matmul(a, b)
+        assert c.numpy().tolist() == [[19.0, 22.0], [43.0, 50.0]], "Incorrect matrix multiplication result for TensorFlow"
+    except ImportError:
+        pytest.skip("TensorFlow is not installed")
+    except Exception as e:
+        pytest.fail(f"TensorFlow test failed: {e}")
+
+
+def test_jax():
+    try:
+        import jax
+        import jax.numpy as jnp
+        devices = jax.devices()
+        assert len(devices) > 0 and devices[0].platform == "gpu", "No GPUs available for JAX"
+        
+        a = jnp.array([[1.0, 2.0], [3.0, 4.0]])
+        b = jnp.array([[5.0, 6.0], [7.0, 8.0]])
+        c = jnp.dot(a, b)
+        assert jnp.allclose(c, jnp.array([[19.0, 22.0], [43.0, 50.0]])), "Incorrect matrix multiplication result for JAX"
+    except ImportError:
+        pytest.skip("JAX is not installed")
+    except Exception as e:
+        pytest.fail(f"JAX test failed: {e}")
+
+
+def test_pytorch():
+    try:
+        import torch
+        assert torch.cuda.is_available(), "No GPUs available for PyTorch"
+        
+        device = torch.device('cuda')
+        a = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device=device)
+        b = torch.tensor([[5.0, 6.0], [7.0, 8.0]], device=device)
+        c = torch.matmul(a, b)
+        assert torch.allclose(c, torch.tensor([[19.0, 22.0], [43.0, 50.0]], device=device)), "Incorrect matrix multiplication result for PyTorch"
+    except ImportError:
+        pytest.skip("PyTorch is not installed")
+    except Exception as e:
+        pytest.fail(f"PyTorch test failed: {e}")
+
+
+def test_cupy():
+    try:
+        import cupy as cp
+        assert cp.cuda.runtime.getDeviceCount() > 0, "No GPUs available for CuPy"
+        
+        a = cp.array([[1.0, 2.0], [3.0, 4.0]])
+        b = cp.array([[5.0, 6.0], [7.0, 8.0]])
+        c = cp.matmul(a, b)
+        assert cp.allclose(c, cp.array([[19.0, 22.0], [43.0, 50.0]])), "Incorrect matrix multiplication result for CuPy"
+    except ImportError:
+        pytest.skip("CuPy is not installed")
+    except Exception as e:
+        pytest.fail(f"CuPy test failed: {e}")

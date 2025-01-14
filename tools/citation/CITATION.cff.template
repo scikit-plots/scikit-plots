@@ -9,6 +9,7 @@
 # CITATION.cff file for {{ library_name }}
 # This file provides citation information for users
 # who want to cite the library, related papers, and books.
+# Generated CITATION.cff helper in APA, MLA, Chicago, and Harvard style by github.
 # ---------------------------------------------------------
 
 cff-version: 1.2.0  {# The version of the CFF format used. #}

@@ -1,1 +1,10 @@
-{global: PyInit_*; local: *; };
+# GNU linker script syntax.
+{
+  global:
+    # PyInit_my_module;  # Export the Python module initialization function
+    PyInit_*;            # For Python modules (C-style symbols)
+    # _Z10myFunctioni;   # Export the mangled C++ symbol
+    # _Z*;                 # Export all C++ mangled symbols (wildcard, use with caution)
+  local:
+    *;                   # Hide all other symbols
+};

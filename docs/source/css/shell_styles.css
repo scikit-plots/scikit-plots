@@ -41,19 +41,22 @@
     flex: 1;
     text-align: left;
     padding: 0 3px;
+    width: auto; 
+    height: 100%; 
 }
 
 /* Code section (takes 33% of the width) */
 .shell-lesson.code-content {
     flex: 0 0 33.3%;  /* Takes 33.3% of the width */
-    height: 100%;  /* Make sure this section stretches to match height of parent */
     width: auto;  /* Allowing the code container to resize based on content */
+    height: 100%;  /* Make sure this section stretches to match height of parent */
     overflow-y: auto;  /* Enable scrolling if content overflows */
 }
 
 /* Shell section (takes 66% of the width) */
 .shell-lesson.shell-content {
     flex: 0 0 66.6%;  /* Takes 66.6% of the width */
+    width: auto; 
     height: 100%;  /* Make sure this section stretches to match height of parent */
 }
 

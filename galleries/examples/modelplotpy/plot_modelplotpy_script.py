@@ -7,7 +7,7 @@ To install the latest version (with pip)::
     >>> pip install --upgrade scikit-plots
 
 This exercise is used in :py:class:`~scikitplot.modelplotpy.ModelPlotPy` class the part of the
-:ref:`modelplotpy` and :ref:`modelplotpy_financial` sections.
+:ref:`modelplotpy-index` and :ref:`modelplotpy_financial-index` sections.
 
 .. rubric:: References
 

@@ -1,5 +1,5 @@
-"""This module was copied from the numpy project.
-
+# This module was copied from the numpy project.
+"""
 Module defining global singleton classes.
 
 This module raises a RuntimeError if an attempt to reload it is made. In that

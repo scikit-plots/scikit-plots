@@ -45,8 +45,8 @@ Notes
 # https://github.com/data-apis/array-api-compat/blob/main/array_api_compat/numpy/__init__.py
 try:
   from .array_api_compat.numpy import __array_api_version__
-  from .array_api_compat import __version__ as __array_api_compat_version__
-  from .array_api_extra import __version__ as __array_api_extra_version__
+  from .array_api_compat import __version__ as __array_api_compat_version__  # xpc
+  from .array_api_extra import __version__ as __array_api_extra_version__  # xpx
 
   from . import _ccallback_c
 except:

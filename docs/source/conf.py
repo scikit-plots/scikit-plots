@@ -157,24 +157,24 @@ extensions = [
   # Core extensions
   "sphinx.ext.autodoc",           # Include documentation from docstrings
   "sphinx.ext.autosummary",       # Generate autodoc summaries
-  'sphinx.ext.napoleon',          # Support for NumPy and Google style docstrings
   "numpydoc",                     # Support for NumPy-style docstrings, Needs to be loaded *after* autodoc.
+  'sphinx.ext.napoleon',          # Support for NumPy and Google style docstrings
   
   # Built-in extensions (load early)
-  "sphinx.ext.doctest",           # Test snippets in the documentation
   "sphinx.ext.ifconfig",          # Include content based on configuration
-  "sphinx.ext.imgconverter",      # A reference image converter using Imagemagick
-  "sphinx.ext.inheritance_diagram",  # Include inheritance diagrams
+  "sphinx.ext.extlinks",          # Markup to shorten external links by extlinks
   "sphinx.ext.intersphinx",       # Link to other projects’ documentation
   "sphinx.ext.linkcode",          # Add external links to source code
-  # "sphinx.ext.extlinks",          # Markup to shorten external links
   # 'sphinx.ext.viewcode',          # Add links to highlighted source code
-  # "sphinx.ext.todo",              # Support for todo items
   # "sphinx.ext.graphviz",          # Add Graphviz graphs
+  "sphinx.ext.imgconverter",      # A reference image converter using Imagemagick
+  "sphinx.ext.inheritance_diagram",  # Include inheritance diagrams
+  # "sphinx.ext.todo",              # Support for todo items
+  # "sphinx.ext.autosectionlabel",  # Allow reference sections using its title
+  # "sphinx.ext.duration",          # Measure durations of Sphinx processing
   # "sphinx.ext.coverage",          # Collect doc coverage stats
   # "sphinx.ext.githubpages",       # Publish HTML docs in GitHub Pages
-  # "sphinx.ext.duration",          # Measure durations of Sphinx processing
-  # "sphinx.ext.autosectionlabel",  # Allow reference sections using its title
+  "sphinx.ext.doctest",           # Test snippets in the documentation
 
   # Matplotlib extensions (load after built-ins)
   'matplotlib.sphinxext.figmpl_directive',
@@ -202,6 +202,7 @@ extensions = [
   'sphinxcontrib.inkscapeconverter',  # Convert SVGs created by Inkscape.
   
   # Custom extensions (these should be placed last to avoid conflicts)
+  # See _sphinx_ext/
   # local matplotlib: Custom extensions
   "_sphinx_ext.mpl_ext.redirect_from",
   "_sphinx_ext.mpl_ext.github",
@@ -285,7 +286,7 @@ def _check_dependencies():
     except Exception as e:      
       raise ImportError(
         "The following dependencies are missing to build the "
-        f"documentation: {', '.join(module_name)}") from e
+        f"documentation: { module_name }") from e
 
   # debug sphinx-pydata-theme and mpl-theme-version
   import pydata_sphinx_theme
@@ -610,10 +611,11 @@ html_theme_options = {
 }
 _html_secondary_sidebars = {
   "introduction/index": [],
-  "modules/api/index": [],
-  "_tags/tagsindex": [],
   "user_guide/index": [],
+  "user_guide/api/index": [],
+  "user_guide/decile_wise_perf/index": [],
   "whats_new/index": [],
+  "_tags/tagsindex": [],
 }
 for k, v in _html_secondary_sidebars.items():
   html_theme_options["secondary_sidebar_items"][k] = v
@@ -1079,8 +1081,13 @@ todo_include_todos = False
 ## option without needing to specify it each time.
 autodoc_default_options = {
   # 'members': True,               # Include member functions and attributes
+  # 'member-order': 'bysource',
+  # 'undoc-members': True,
   # 'inherited-members': True,     # Show inherited members
+  # 'exclude-members': '__weakref__',
+  # 'special-members': '__init__',
   # 'show-inheritance': True,      # Show inheritance by default for all classes
+  # 'private-members': True,
 }
 
 ## Show both class-level and __init__ docstrings together
@@ -1289,7 +1296,7 @@ gallery_dirs = ["auto_examples"]
 # Sphinx Gallery Configuration
 sphinx_gallery_conf = {
   # Backreferences and linking to function docs
-  # Links examples to API documentation
+  # Links examples to APIs documentation
   "backreferences_dir": os.path.join("modules", "generated"),
   # Specify the module to document
   "doc_module": ('scikitplot', 'sklearn'),
@@ -1386,6 +1393,13 @@ ogp_site_name = "scikit-plots"
 issues_github_path = "scikit-plots/scikit-plots"
 
 ##########################################################################
+## Extension: extlinks
+##########################################################################
+
+extlinks = {'issue': ('https://github.com/scikit-plots/scikit-plots/issues/%s',
+                      'issue %s')}
+
+##########################################################################
 ## Extension: _sphinx_ext skplt_ext infer_next_release_versions
 ## Convert .rst.template files to .rst
 ##########################################################################
@@ -1435,45 +1449,45 @@ url_rst_templates = [
 ## Convert .rst.template files to .rst
 ##########################################################################
 
-from api_reference import API_REFERENCE, DEPRECATED_API_REFERENCE
+from apis_reference import APIS_REFERENCE, DEPRECATED_APIS_REFERENCE
 
 # Define the templates and target files for conversion
 # Each entry is in the format (template name, file name, kwargs for rendering)
 rst_templates = [
   (
-    "api/index",
-    "api/index",
+    "apis/index",
+    "apis/index",
     {
-      "API_REFERENCE": sorted(API_REFERENCE.items(), key=lambda x: x[0]),
-      "DEPRECATED_API_REFERENCE": sorted(
-        DEPRECATED_API_REFERENCE.items(), key=lambda x: x[0], reverse=True
+      "APIS_REFERENCE": sorted(APIS_REFERENCE.items(), key=lambda x: x[0]),
+      "DEPRECATED_APIS_REFERENCE": sorted(
+        DEPRECATED_APIS_REFERENCE.items(), key=lambda x: x[0], reverse=True
       ),
     },
   ),
 ]
 
-# Convert each module API reference page
-for module in API_REFERENCE:
+# Convert each module APIs reference page
+for module in APIS_REFERENCE:
   rst_templates.append(
     (
-      "api/module",
-      f"api/{module}",
+      f"apis/module",
+      f"apis/{module}",
       {
         "module": module,
-        "module_info": API_REFERENCE[module]
+        "module_info": APIS_REFERENCE[module]
       },
     )
   )
 
-# Convert the deprecated API reference page (if there exists any)
-if DEPRECATED_API_REFERENCE:
+# Convert the deprecated APIs reference page (if there exists any)
+if DEPRECATED_APIS_REFERENCE:
   rst_templates.append(
     (
-      "api/deprecated",
-      "api/deprecated",
+      "apis/deprecated",
+      "apis/deprecated",
       {
-        "DEPRECATED_API_REFERENCE": sorted(
-          DEPRECATED_API_REFERENCE.items(), key=lambda x: x[0], reverse=True
+        "DEPRECATED_APIS_REFERENCE": sorted(
+          DEPRECATED_APIS_REFERENCE.items(), key=lambda x: x[0], reverse=True
         )
       },
     )

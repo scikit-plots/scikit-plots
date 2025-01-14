@@ -11,9 +11,9 @@
 _xp_core_lib_cython_tree = [
   _root_cython_tree,                              # also _cython_tree
   fs.copyfile('__init__.py'),                     # Ensure __init__.py is copied early
-  fs.copyfile('_test_deprecation_def.pxd'),       # Cython definition file for C/C++ code
   fs.copyfile('_ccallback.pxd'),
   fs.copyfile('_ccallback_c.pxd'),
+  fs.copyfile('_test_deprecation_def.pxd'),       # Cython definition file for C/C++ code
   fs.copyfile('messagestream.pxd'),
 ]
 

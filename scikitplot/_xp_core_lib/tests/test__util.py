@@ -15,14 +15,14 @@ from scipy import cluster, interpolate, linalg, optimize, sparse, spatial, stats
 
 from ...conftest import array_api_compatible, skip_xp_invalid_arg
 
+from .. import array_api_extra as xpx
+
 from .._array_api import (xp_assert_equal, xp_assert_close, is_numpy,
                           xp_copy, is_array_api_strict)
 from .._util import (_aligned_zeros, check_random_state, MapWrapper,
                      getfullargspec_no_self, FullArgSpec,
                      rng_integers, _validate_int, _rename_parameter,
                      _contains_nan, _rng_html_rewrite, _lazywhere)
-
-from .. import array_api_extra as xpx
 
 skip_xp_backends = pytest.mark.skip_xp_backends
 
@@ -338,25 +338,17 @@ class TestContainsNaNTest:
 
     @skip_xp_invalid_arg
     def test_contains_nan_with_strings(self):
-        msg = "only boolean and numerical dtypes are supported"
-        with pytest.raises(TypeError, match=msg):
-            data1 = np.array([1, 2, "3", np.nan])  # converted to string "nan"
-            assert not _contains_nan(data1)[0]
+        data1 = np.array([1, 2, "3", np.nan])  # converted to string "nan"
+        assert not _contains_nan(data1)[0]
 
-        msg = "only boolean and numerical dtypes are supported"
-        with pytest.raises(TypeError, match=msg):
-            data2 = np.array([1, 2, "3", np.nan], dtype='object')
-            assert _contains_nan(data2)[0]
+        data2 = np.array([1, 2, "3", np.nan], dtype='object')
+        assert _contains_nan(data2)[0]
 
-        msg = "only boolean and numerical dtypes are supported"
-        with pytest.raises(TypeError, match=msg):
-            data3 = np.array([["1", 2], [3, np.nan]])  # converted to string "nan"
-            assert not _contains_nan(data3)[0]
-
-        msg = "only boolean and numerical dtypes are supported"
-        with pytest.raises(TypeError, match=msg):
-            data4 = np.array([["1", 2], [3, np.nan]], dtype='object')
-            assert _contains_nan(data4)[0]
+        data3 = np.array([["1", 2], [3, np.nan]])  # converted to string "nan"
+        assert not _contains_nan(data3)[0]
+        
+        data4 = np.array([["1", 2], [3, np.nan]], dtype='object')
+        assert _contains_nan(data4)[0]
 
     @array_api_compatible
     @pytest.mark.parametrize("nan_policy", ['propagate', 'omit', 'raise'])

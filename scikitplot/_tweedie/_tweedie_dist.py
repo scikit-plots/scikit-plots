@@ -33,23 +33,19 @@ The Tweedie distribution is undefined for values of `p` in the range `(0, 1)`.
 References
 ----------
 [1] Jørgensen, B. (1987). "Exponential dispersion models".
-    Journal of the Royal Statistical Society, Series B. 49 (2): 127–162.
-    
+    Journal of the Royal Statistical Society, Series B. 49 (2): 127–162.    
 [2] Tweedie, M. C. K. (1984). "An index which distinguishes between some important exponential families".
     In Statistics: Applications and New Directions.
-    Proceedings of the Indian Statistical Institute Golden Jubilee International Conference.
-    
-[3] Statistical Methods Series: Zero-Inflated GLM and GLMM. [YouTube]
-
+    Proceedings of the Indian Statistical Institute Golden Jubilee International Conference.    
+[3] [YouTube]
+    Statistical Methods Series: Zero-Inflated GLM and GLMM. 
 [4] https://www.statisticshowto.com/tweedie-distribution/
 
 See Also
 --------
-[GLM Tweedie](https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html)
-
-[GLM TweedieDistribution](https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution)
-
-[GLM TweedieDistribution log_likelihood](https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood)
+* https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html
+* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution
+* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood
 """
 from __future__ import division
 
