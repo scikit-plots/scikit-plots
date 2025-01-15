@@ -45,6 +45,11 @@ You can also install scikit-plots from source if you want to take advantage of t
 git clone https://github.com/scikit-plots/scikit-plots.git
 cd scikit-plots
 pip install --user -e .
+```
+
+### It is also possible to include optional dependencies:
+```sh
+pip install "scikit-plots[gpu]"
 
 # (Optionally) Try Development [dev,build,test,docs,gpu]
 # gpu refer Cupy lib require NVIDIA CUDA support

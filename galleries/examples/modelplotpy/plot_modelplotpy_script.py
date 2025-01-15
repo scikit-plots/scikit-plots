@@ -11,7 +11,7 @@ This exercise is used in :py:class:`~scikitplot.modelplotpy.ModelPlotPy` class t
 
 .. rubric:: References
 
-* [1] https://modelplot.github.io/intro_modelplotpy.html
+* https://modelplot.github.io/intro_modelplotpy.html
 
 A tutorial exercise example: Predictive models from sklearn
 on the Bank Marketing Data Set

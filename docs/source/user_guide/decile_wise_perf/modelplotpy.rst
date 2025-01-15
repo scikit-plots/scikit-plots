@@ -10,8 +10,8 @@ your modelling efforts easily to business colleages.
 
 .. seealso::
   
-   * https://modelplot.github.io/intro_modelplotpy.html
    * https://github.com/modelplot/modelplotpy/blob/master/modelplotpy/functions.py 
+   * https://modelplot.github.io/intro_modelplotpy.html
 
 
 modelplotpy Plots

@@ -212,11 +212,9 @@ extensions = [
   "_sphinx_ext.sklearn_ext.autoshortsummary",             # Custom extension for generating short summaries.
   "_sphinx_ext.sklearn_ext.doi_role",                     # Custom extension for handling DOI references.
   "_sphinx_ext.sklearn_ext.dropdown_anchors",             # Custom extension for dropdown navigation anchors.
-  "_sphinx_ext.sklearn_ext.move_gallery_links",           # Custom extension for rearranging gallery links.
   "_sphinx_ext.sklearn_ext.override_pst_pagetoc",         # Custom extension for overriding page TOC in certain cases.
   "_sphinx_ext.sklearn_ext.sphinx_issues",                # Custom extension for managing and displaying issues.
-  "_sphinx_ext.sklearn_ext.search_filter",                # Custom extension
-  "_sphinx_ext.sklearn_ext.add_js_css_files",             # Custom extension
+  "_sphinx_ext.sklearn_ext.move_gallery_links",           # Custom extension for rearranging gallery links.
   
   # sp: Custom extensions
   "_sphinx_ext.skplt_ext.url_extension",                  # URL, REPLite extension
@@ -226,6 +224,9 @@ extensions = [
   # Tags and other utility extensions (load last if they depend on others)
   # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
   'sphinx_tags',  # Needs to be loaded *after* autodoc.
+  
+  "_sphinx_ext.sklearn_ext.search_filter",                # Custom extension
+  "_sphinx_ext.sklearn_ext.add_js_css_files",             # Custom extension
 ]
 
 ##########################################################################

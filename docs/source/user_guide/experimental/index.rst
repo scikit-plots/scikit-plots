@@ -63,6 +63,7 @@ A lightweight version of NumPy (or similar functionality).
 .. jupyter-execute::
 
     >>> try:
+    >>>   # pip install git+https://github.com/scikit-plots/lightnumpy.git@main
     >>>   import lightnumpy as lp
     >>>   # Return the directory that contains the NumCpp *.h header files.
     >>>   inc_dir_lightnumpy = lp.get_include()
