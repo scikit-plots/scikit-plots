@@ -11,27 +11,27 @@
     <pre><code class="language-python" id="code-block-1"
 ># Example code to try:
 from sklearn.datasets import (
-    make_classification,
-    load_breast_cancer as data_2_classes,
-    load_iris as data_3_classes,
-    load_digits as data_10_classes,
+  load_breast_cancer as data_2_classes,
+  load_iris as data_3_classes,
+  load_digits as data_10_classes,
+  make_classification,
 )
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-
-#import matplotlib.pyplot as plt
-import scikitplot as skplt
-
 # Load the data
 X, y = data_3_classes(return_X_y=True, as_frame=True)
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5)
-
+X_train, X_val, y_train, y_val = \
+      train_test_split(X, y, test_size=0.5)
 # Create and train the model
-model = RandomForestClassifier().fit(X_train, y_train)
+model = RandomForestClassifier()\
+      .fit(X_train, y_train)
 
+#import matplotlib.pyplot as plt
+import scikitplot as sp
 # Plot feature importances
-ax, features = skplt.estimators.plot_feature_importances(
-    model, display_bar_label=False,
+ax, features = sp.estimators.plot_feature_importances(
+    model,
+    display_bar_label=False,
     figsize=(12,5)
 );</code></pre>
     <!-- Copy button with data-copy-target attribute -->

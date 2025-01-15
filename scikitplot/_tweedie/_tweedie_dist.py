@@ -39,7 +39,8 @@ References
     Proceedings of the Indian Statistical Institute Golden Jubilee International Conference.    
 [3] [YouTube]
     Statistical Methods Series: Zero-Inflated GLM and GLMM. 
-[4] https://www.statisticshowto.com/tweedie-distribution/
+[4] [Google]
+    https://www.statisticshowto.com/tweedie-distribution/
 
 See Also
 --------

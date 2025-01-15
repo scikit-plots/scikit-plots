@@ -1,20 +1,17 @@
-.. currentmodule:: scikitplot.api.modelplotpy
-
 .. _modelplotpy-index:
 
 modelplotpy
 ======================================================================
 
-This module contains functions related to :py:mod:`~scikitplot.api.modelplotpy`.
+This module contains functions related to :py:mod:`~.modelplotpy`.
 
-The :py:mod:`~scikitplot.api.modelplotpy` module to build nice plots to explain
+The :py:mod:`~.modelplotpy` module to build nice plots to explain
 your modelling efforts easily to business colleages.
 
 .. seealso::
-
-   [1] https://github.com/modelplot/modelplotpy/blob/master/modelplotpy/functions.py
-   
-   [2] https://modelplot.github.io/intro_modelplotpy.html
+  
+   * https://modelplot.github.io/intro_modelplotpy.html
+   * https://github.com/modelplot/modelplotpy/blob/master/modelplotpy/functions.py 
 
 
 modelplotpy Plots
@@ -27,7 +24,7 @@ modelplotpy Plots
 plot response
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.modelplotpy.plot_response`
+:py:func:`~.modelplotpy.plot_response`
 
 .. rubric:: Examples
 
@@ -41,7 +38,7 @@ plot response
 plot cumresponse
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.modelplotpy.plot_cumresponse`
+:py:func:`~.modelplotpy.plot_cumresponse`
 
 .. rubric:: Examples
 
@@ -55,7 +52,7 @@ plot cumresponse
 plot cumlift
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.modelplotpy.plot_cumlift`
+:py:func:`~.modelplotpy.plot_cumlift`
 
 .. rubric:: Examples
 
@@ -69,7 +66,7 @@ plot cumlift
 plot cumgains
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.modelplotpy.plot_cumgains`
+:py:func:`~.modelplotpy.plot_cumgains`
 
 .. rubric:: Examples
 
@@ -83,7 +80,7 @@ plot cumgains
 plot all
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.modelplotpy.plot_all`
+:py:func:`~.modelplotpy.plot_all`
 
 .. rubric:: Examples
 
@@ -102,7 +99,7 @@ modelplotpy financial
 plot costsrevs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.modelplotpy.plot_costsrevs`
+:py:func:`~.modelplotpy.plot_costsrevs`
 
 .. rubric:: Examples
 
@@ -116,7 +113,7 @@ plot costsrevs
 plot profit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.modelplotpy.plot_profit`
+:py:func:`~.modelplotpy.plot_profit`
 
 .. rubric:: Examples
 
@@ -130,7 +127,7 @@ plot profit
 plot roi
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.modelplotpy.plot_roi`
+:py:func:`~.modelplotpy.plot_roi`
 
 .. rubric:: Examples
 

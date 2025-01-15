@@ -4,12 +4,12 @@
 Seaborn (experimental)
 ======================================================================
 
-This module contains functions related to :py:mod:`~.seaborn`.
+This module contains functions related to :py:mod:`~._seaborn`.
 For Seaborn: statistical data visualization.
 
 .. important::
 
-    Experimental, we keep :py:mod:`seborn` to transform :py:mod:`~.api`
+    Experimental, we keep :py:mod:`seaborn` to transform :py:mod:`~.api`
     module for compatibility seaborn core.
 
 Documentation is available in the docstrings and

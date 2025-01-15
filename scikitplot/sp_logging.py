@@ -9,8 +9,9 @@ to enhance usability and flexibility for large-scale projects.
 Scikit-plots logging helpers, supports vendoring.
 
 Module Dependencies:
-  - Python standard library: :py:mod:`logging`
-  - This module defines a logging class based on the built-in logging module.
+
+* Python standard library: :py:mod:`logging`
+* This module defines a logging class based on the built-in logging module.
 """
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -23,6 +24,7 @@ import os
 import sys
 import json
 import pprint
+import textwrap  # textwrap.dedent
 import threading  # Python 2 to thread.get_ident
 import contextlib
 import time as time
@@ -111,17 +113,34 @@ def _default_log_level(debug_mode: bool = False) -> int:
     return _logging.WARNING if val is None else _logging.DEBUG
 
 def _is_jupyter_notebook() -> bool:
-    """ Define running enviroment is jupyter notebook. """
+    """
+    Determines if the current environment is a Jupyter notebook.
+
+    This function checks several indicators to detect if the code is running
+    inside a Jupyter notebook environment, including:
+    
+    * Presence of the `get_ipython` function.
+    * Active IPython kernel configuration (e.g., `IPKernelApp`).
+    * Environment variables specific to Jupyter.
+    * Modules loaded in the current Python session.
+
+    Returns
+    -------
+    bool
+        True if running in a Jupyter notebook, False otherwise.
+    """
     try:
-        from IPython import get_ipython
-        if get_ipython() is None:
+        # from IPython import get_ipython
+        # Check if `get_ipython` is available and callable
+        # get_ipython = globals().get("get_ipython", None)
+        if get_ipython is None or not callable(get_ipython):
             return False
-        # Check if IPKernelApp is running
+        # Check if IPython kernel is active
         if 'IPKernelApp' in get_ipython().config:
             return True
-    except ImportError:
+    except (ImportError, AttributeError, NameError):
         pass
-    # Check environment variables
+    # Check environment variables and loaded modules
     return 'JPY_PARENT_PID' in os.environ or 'ipykernel' in sys.modules
   
 ######################################################################
@@ -189,17 +208,41 @@ _level_names = {
 
 class GoogleLogFormatter(_logging.Formatter):
     """
-    Custom logging formatter that formats log messages in a Google-style format:
-    YYYY-MM-DD HH:MM:SS.mmmmmm logger_name log_level message
+    A custom logging formatter inherited from :py:class:`~logging.Formatter`
+    that formats log messages in a Google-style format::
 
-    This formatter outputs logs in a structured format with the following fields:
-    - `asctime`: The timestamp of the log entry.
-    - `levelname`: The log level (e.g., DEBUG, INFO, WARNING).
-    - `name`: The name of the logger.
-    - `thread`: The thread ID.
-    - `filename`: The name of the file generating the log entry.
-    - `lineno`: The line number where the log entry was generated.
-    - `message`: The log message.
+      >>> # Google-style format
+      >>> `YYYY-MM-DD HH:MM:SS.mmmmmm logger_name log_level message`
+    
+    Parameters
+    ----------
+    datefmt : str, optional
+        Date format for `asctime`. Default is '%Y-%m-%d %H:%M:%S'.
+    default_time_format : str, optional
+        Default time format. Default is '%Y-%m-%d %H:%M:%S'.
+    default_msec_format : str, optional
+        Default millisecond format. Default is '%s,%03d'.
+    backend : {'json', 'pprint'}, optional
+        Backend to use for formatting the log output. Default is None.
+    use_datetime : bool, optional
+        Whether to include microseconds in the timestamp using datetime. Default is True.
+
+    Notes
+    -----
+    This formatter outputs logs in a structured format with the following fields if any:
+    
+    * `asctime`: The timestamp of the log entry.
+    * `levelname`: The log level (e.g., DEBUG, INFO, WARNING).
+    * `name`: The name of the logger.
+    * `thread`: The thread ID.
+    * `filename`: The name of the file generating the log entry.
+    * `lineno`: The line number where the log entry was generated.
+    * `message`: The log message.
+    
+    See Also
+    --------
+    logging.Formatter :
+        logging Formatter.
     """
     def __init__(
         self,
@@ -211,19 +254,6 @@ class GoogleLogFormatter(_logging.Formatter):
     ) -> None:
         """
         Initialize the GoogleLogFormatter with the desired Formatter.
-    
-        Parameters
-        ----------
-        datefmt : str, optional
-            Date format for `asctime`. Default is '%Y-%m-%d %H:%M:%S'.
-        default_time_format : str, optional
-            Default time format. Default is '%Y-%m-%d %H:%M:%S'.
-        default_msec_format : str, optional
-            Default millisecond format. Default is '%s,%03d'.
-        backend : {'json', 'pprint'}, optional
-            Backend to use for formatting the log output. Default is None.
-        use_datetime : bool, optional
-            Whether to include microseconds in the timestamp using datetime. Default is True.
         """
         # formatTime time module's strftime() function does not support microseconds
         # Need to manual extract seconds and microseconds,time.time() with microseconds
@@ -302,10 +332,11 @@ def _make_default_formatter(
     ----------
     formatter : Union[str, logging.Formatter], optional
         The formatter type or instance to create. Options are:
-        - 'BASIC_FORMAT': A basic formatter (default format).
-        - 'CUSTOM_FORMAT': A custom formatter with detailed log fields.
-        - 'GOOGLE_FORMAT': Google-style formatter.
-        - An instance of `logging.Formatter`. Default is 'GOOGLE_FORMAT'.
+        
+        * 'BASIC_FORMAT': A basic formatter (default format).
+        * 'CUSTOM_FORMAT': A custom formatter with detailed log fields.
+        * 'GOOGLE_FORMAT': Google-style formatter.
+        * An instance of `logging.Formatter`. Default is 'GOOGLE_FORMAT'.
 
     time_format : str, optional
         Time format for the log's timestamp (`asctime`). Default is '%Y-%m-%d %H:%M:%S'.
@@ -366,33 +397,64 @@ def _make_default_formatter(
 
 class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
     """
-    A custom logging handler that allows selecting between standard error (stderr)
-    and standard output (stdout), enforcing rules for stream assignment.
+    A custom logging handler inherited from :py:class:`~logging.StreamHandler`
+    that enforces the use of a specific output stream: either standard error
+    (`sys.stderr`) or standard output (`sys.stdout`).
+
+    This handler is particularly useful for environments where log streams must 
+    be explicitly directed, such as Jupyter notebooks or specialized logging setups.
+
+    Parameters
+    ----------
+    use_stderr : bool, default= not _is_jupyter_notebook()
+        If True, the handler will use standard error `sys.stderr` as the stream.
+        If False, the handler will use standard output `sys.stdout` as the stream.
 
     See Also
     --------
     logging.StreamHandler :
-        This handler writes logging records, appropriately formatted, to a stream.
-        Note: This class does not close the stream, as sys.stdout or sys.stderr may be used.
+        Writes logging records, appropriately formatted, to a stream.
+        This class does not close the stream, as `sys.stdout` or `sys.stderr`
+        may be used.
+    _is_jupyter_notebook :
+        Determines if the environment is a Jupyter notebook.
     """
-    def __init__(self, use_stderr: bool = not _is_jupyter_notebook()) -> None:
+    def __init__(
+      self,
+      use_stderr: bool = not _is_jupyter_notebook(),
+    ) -> None:
         """
         Initialize the AlwaysStdErrHandler with the desired stream.
-
-        Parameters
-        ----------
-        use_stderr : bool, default= not _is_jupyter_notebook()
-            If True, the handler will use standard error (sys.stderr) as the stream.
-            If False, the handler will use standard output (sys.stdout) as the stream.
     
-        See Also
-        --------
-        _is_jupyter_notebook : 
-            Define running enviroment is jupyter notebook.
+        Attributes
+        ----------
+        _use_stderr : bool
+            Stores the value of the `use_stderr` parameter.
+        _stream : IO[str]
+            Points to the chosen stream (`sys.stderr` or `sys.stdout`).
         """
         self._use_stderr = use_stderr
         self._stream = sys.stderr if use_stderr else sys.stdout
         super().__init__(stream=self._stream)
+    
+    # def get_name(self):
+    #     """Getter for the name property."""
+    #     return super().name  # Use the parent class's name property behavior.
+    # def set_name(self, value):
+    #     """Setter for the name property."""
+    #     super(_logging.StreamHandler, self.__class__).name.fset(self, value)  # Set the name in the parent class.
+    # # Define the property
+    # name = property(get_name, set_name, doc="This is the name property for AlwaysStdErrHandler.")
+    # Add a docstring to the inherited 'name' property if it doesn't already have one
+    if not _logging.StreamHandler.name.__doc__:
+        _logging.StreamHandler.name.__doc__ = textwrap.dedent("""\
+            This is the name property for StreamHandler.
+
+            Returns
+            -------
+            Optional[str]
+                The current handler object name if provided, otherwise None.
+        """)
 
     @property  # type: ignore [override]
     def stream(self) -> IO[str]:
@@ -433,10 +495,6 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
             super().setStream(stream=self._stream)
             # raise ValueError("The stream must be either sys.stderr or sys.stdout.")          
 
-# Error `name` property documentation
-AlwaysStdErrHandler.name.__doc__ = """
-"""
-
 def _make_default_handler(
     handler: Optional[_logging.Handler] = None,
     formatter: Optional[_logging.Formatter] = None
@@ -449,10 +507,11 @@ def _make_default_handler(
     ----------
     handler : Optional[logging.Handler], default=None
         The handler type or instance to create. Can be one of:
-        - A custom logging handler (e.g., StreamHandler, RotatingFileHandler).
-        - 'RotatingFileHandler': A rotating file handler.
-        - 'RichHandler': A rich handler for formatted output.
-        - None: Falls back to AlwaysStdErrHandler.
+        
+        * A custom logging handler (e.g., StreamHandler, RotatingFileHandler).
+        * 'RotatingFileHandler': A rotating file handler.
+        * 'RichHandler': A rich handler for formatted output.
+        * None: Falls back to AlwaysStdErrHandler.
 
     formatter : Optional[logging.Formatter], default=None
         The formatter to use for the handler. If not provided, the default formatter is used.
@@ -545,7 +604,7 @@ def get_logger(use_stderr: bool = True) -> _logging.Logger:
     You can also specify the logging verbosity.  In this case, the
     WARN level log will not be emitted:
     
-    >>> sp.get_logger().setLevel(WARNING)
+    >>> sp.get_logger().setLevel(sp.sp_logging.WARNING)
     >>> sp.get_logger().debug("This is a debug.")  # This will not be shown, as level is WARNING.
     >>> sp.get_logger().info("This is a info.")    # This will not be shown, as level is WARNING.
     >>> sp.get_logger().warning("This is a warning.")
@@ -604,6 +663,7 @@ def get_logger(use_stderr: bool = True) -> _logging.Logger:
       #     format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}',
       #     datefmt="%Y-%m-%d %H:%M:%S"
       # )
+      # _logging.config.fileConfig('logging.conf')
       # Scope the scikit-plots logger
       name = 'scikitplot'
       # Configure the logger here (only once for the entire project).
@@ -784,13 +844,48 @@ class SpLogger(SingletonBase):
     This class implements the Singleton pattern, ensuring only a single instance of
     the logger exists throughout the application. It supports different log levels
     (e.g., DEBUG, INFO, WARNING) and thread-safe logging.
+    
+    .. important::
+    
+        If the attribute is not defined within the :py:class:`~.SpLogger` class, it will be 
+        dynamically fetched from the `logging` module. This is particularly useful 
+        for logging constants like `DEBUG`, `INFO`, `ERROR`, etc., which are often 
+        used in logging configurations but are not necessarily attributes of the 
+        logger class itself.
+        
+    .. attention::
+    
+        Be cautious when using dynamically retrieved attributes, as it may 
+        lead to unexpected behavior if the module's constants change.
+
+    Parameters
+    ----------
+    name : Optional[str], default=None
+        The name of the logger.
+        If None, defaults to 'scikitplot'.
+    formatter : Optional[logging.Formatter], default=None
+        The formatter to use for logging.
+        If None, a default customized formatter is applied.
+    handler : Optional[logging.Handler], default=None
+        The handler to use for logging.
+        If None, a default customized handler is applied.
+    log_level : Optional[int], default=None
+        The logging level to set for the logger (e.g., DEBUG, INFO, WARNING).
+        Defaults to WARNING.
+    thread_safe : bool, default=True
+        Indicates whether thread-safety is enabled for the logger.
+        If True, a threading lock is used.
+    *args : Any, optional
+        Additional positional arguments for customization.
+    **kwargs : Any, optional
+        Additional keyword arguments for further customization.
 
     See Also
     --------
-    sp_logger :
-        An instance of :py:class:`SpLogger` class, providing logging functionality.
     get_logger :
         Function that provides a shared :py:class:`logging.Logger` instance.
+    sp_logger :
+        An instance of :py:class:`SpLogger` class, providing logging functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance,
         for more https://docs.python.org/3/library/logging.html.
@@ -804,35 +899,22 @@ class SpLogger(SingletonBase):
     
     Here supported logging levels:
     
-    - `CRITICAL`, `FATAL`
-    - `ERROR`
-    - `WARNING`
-    - `INFO`
-    - `DEBUG`
+    * `CRITICAL`, `FATAL`
+    * `ERROR`
+    * `WARNING`
+    * `INFO`
+    * `DEBUG`
 
-    The logger methods support string formatting. For example:
+    The logger methods support string formatting. For example::
     
-    >>> sp.SpLogger().error("The value %d is invalid.", 3)
+      >>> sp.SpLogger().error("The value %d is invalid.", 3)
 
-    You can change the verbosity of the logger as follows:
+    You can change the verbosity of the logger as follows::
 
-    >>> sp.SpLogger().setLevel(WARNING)
-    >>> sp.SpLogger().debug("This is a debug.")  # This will not be shown, as level is ERROR.
-    >>> sp.SpLogger().info("This is a info.")    # This will not be shown, as level is ERROR.
-    >>> sp.SpLogger().warning("This is a warning.")
-    
-    .. important::
-    
-        If the attribute is not defined within the `SpLogger` class, it will be 
-        dynamically fetched from the `logging` module. This is particularly useful 
-        for logging constants like `DEBUG`, `INFO`, `ERROR`, etc., which are often 
-        used in logging configurations but are not necessarily attributes of the 
-        logger class itself.
-        
-    .. attention::
-    
-        Be cautious when using dynamically retrieved attributes, as it may 
-        lead to unexpected behavior if the module's constants change.
+      >>> sp.SpLogger().setLevel(WARNING)
+      >>> sp.SpLogger().debug("This is a debug.")  # This will not be shown, as level is ERROR.
+      >>> sp.SpLogger().info("This is a info.")    # This will not be shown, as level is ERROR.
+      >>> sp.SpLogger().warning("This is a warning.")
      
     Examples
     --------
@@ -890,12 +972,12 @@ class SpLogger(SingletonBase):
 
         Returns
         -------
-        Any
+        Any :
             The value of the attribute `name`, either from the class or the `logging` module.
 
         Raises
         ------
-        AttributeError
+        AttributeError :
             If the attribute is not found in the class or the `logging` module.
         """
         # First, check if the attribute is in the instance's dictionary
@@ -913,33 +995,16 @@ class SpLogger(SingletonBase):
     # magic method to initiate object, To get called by the __new__ method.
     def __init__(
         self,
+        *args: Any,
         name: Optional[str] = None,
         formatter: Optional['Formatter'] = None,
         handler: Optional['StreamHandler'] = None,
         log_level: Optional[int] = None,
         thread_safe: bool = True,
-        *args: Any,
         **kwargs: Any
     ):
         """
         Initializes the logger instance with custom configuration.
-
-        Parameters
-        ----------
-        name : Optional[str], default=None
-            The name of the logger. If None, defaults to 'scikitplot'.
-        formatter : Optional[logging.Formatter], default=None
-            The formatter to use for logging. If None, a default formatter is applied.
-        handler : Optional[logging.Handler], default=None
-            The handler to use for logging. If None, a StreamHandler is applied.
-        log_level : Optional[int], default=None
-            The logging level to set for the logger (e.g., DEBUG, INFO, WARNING). Defaults to WARNING.
-        thread_safe : bool, default=True
-            Indicates whether thread-safety is enabled for the logger. If True, a threading lock is used.
-        args : Any, optional
-            Additional positional arguments for customization.
-        kwargs : Any, optional
-            Additional keyword arguments for further customization.
 
         Attributes
         ----------
@@ -1124,11 +1189,11 @@ An instance of :py:class:`SpLogger`, providing logging functionality.
         
 See Also
 --------
+get_logger :
+    Function that provides a shared :py:class:`logging.Logger` instance.
 SpLogger :
     A singleton logger class that provides a shared :py:class:`logging.Logger` instance
     with customizable name, formatter, handler, logging level, and thread-safety.
-get_logger :
-    Function that provides a shared :py:class:`logging.Logger` instance.
 logging.getLogger :
     Standard library function to retrieve :py:class:`logging.Logger` instance,
     for more https://docs.python.org/3/library/logging.html.

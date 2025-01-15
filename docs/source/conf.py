@@ -1025,6 +1025,7 @@ intersphinx_mapping = {
   "https://www.tensorflow.org/api_docs/python",
   "https://raw.githubusercontent.com/GPflow/tensorflow-intersphinx/master/tf2_py_objects.inv",
   ),
+  # 'keras': ('https://keras.io/api/', None),  # Add Keras API documentation
   "pytorch": (
     "https://pytorch.org/docs/stable/", None,
     # "https://github.com/pytorch/docs/blob/main/stable/objects.inv",

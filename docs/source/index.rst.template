@@ -55,7 +55,8 @@ References:
    :hidden:
 
    Release Notes <whats_new/index.rst>
-   Community <https://zenodo.org/communities/scikit-plots>
+   Community G <https://github.com/orgs/scikit-plots/discussions>
+   Community Z <https://zenodo.org/communities/scikit-plots>
    {%- if development_link | default(false) %}
    {#- if development_link is defined and development_link #}
    Developer’s Guide <{{ development_link }}>

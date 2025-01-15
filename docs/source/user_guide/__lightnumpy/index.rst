@@ -11,6 +11,16 @@ A lightweight version of NumPy (or similar functionality).
    * https://github.com/scikit-plots/lightnumpy
    * https://github.com/dpilger26/NumCpp
 
+.. jupyter-execute::
+
+    >>> try:
+    >>>   import lightnumpy as lp
+    >>>   # Return the directory that contains the NumCpp *.h header files.
+    >>>   inc_dir_lightnumpy = lp.get_include()
+    >>> except: pass
+    >>> else:
+    >>>   !ls $inc_dir_lightnumpy
+
 Why LightNumPy?
 ----------------------------------------------------------------------
 Performance-Driven: Optimized for both CPU and hardware accelerators (GPU/TPU).

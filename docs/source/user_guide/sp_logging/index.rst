@@ -53,19 +53,24 @@ Get a root logger by class instance:
 
 .. note::
 
-    This module builds on Python's standard `logging` library. For more information 
-    on Python's logging API, refer to the official documentation:
-    https://docs.python.org/3/library/logging.html
+    This module builds on Python's standard :py:mod:`logging` library.
+    For more information on Python's logging API, refer to the official
+    documentation: https://docs.python.org/3/library/logging.html
+    ::
+
+      >>> import logging
+      >>> logger = logging.getLogger(__name__)
+      >>> logger.setLevel(logging.DEBUG)
     
     Logging Levels:
 
-    * NOTSET (0)  : NOTSET
-    * DEBUG (10)  : Detailed information useful during development,
+    * `NOTSET` (0)  : NOTSET
+    * `DEBUG` (10)  : Detailed information useful during development,
       typically of interest only when diagnosing problems.
-    * INFO (20)   : Confirmation that things are working as expected.
-    * WARNING (30): An indication that something unexpected happened,
+    * `INFO` (20)   : Confirmation that things are working as expected.
+    * `WARNING` (30): An indication that something unexpected happened,
       or indicative of some problem in the near future.
-    * ERROR (40)  : Due to a more serious problem,
+    * `ERROR` (40)  : Due to a more serious problem,
       the software has not been able to perform some function.
-    * CRITICAL = FATAL (50): A very serious error, indicating that
+    * `CRITICAL` = `FATAL` (50): A very serious error, indicating that
       the program itself may be unable to continue running.

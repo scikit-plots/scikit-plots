@@ -23,8 +23,11 @@ def _lazy_import_tensorflow():
             # raise ImportError(
             #   "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
             # ) from e
-            warnings.warn("Could not import the 'layers' module from TensorFlow-Keras. 'text_callable' will not work.")
-
+            warnings.warn(
+              "Could not import the 'layers' module from TensorFlow-Keras. "
+              "'text_callable' will not work."
+            )
+            
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:  # Only imported during type checking
   Layer = _lazy_import_tensorflow()
@@ -38,44 +41,45 @@ __all__ = [
 ]
 
 def layered_view(
-    model, 
-    to_file: str = None, 
-    min_z: int = 20, 
-    min_xy: int = 20, 
-    max_z: int = 400,
-    max_xy: int = 2000,
-    scale_z: float = 0.1, 
-    scale_xy: float = 4, 
-    type_ignore: list = None, 
-    index_ignore: list = None,
-    color_map: dict = None, 
-    one_dim_orientation: str = 'z', 
-    index_2d: list = None,
-    background_fill: Any = 'white', 
-    draw_volume: bool = True,
-    draw_reversed: bool = False, 
-    padding: int = 10,
-    # Python understands it as a forward declaration and resolves it later when the 'Layer' type is available.
-    text_callable: Callable[[int, 'Layer'], tuple] = None,
-    text_vspacing: int = 4,
-    spacing: int = 10, 
-    draw_funnel: bool = True, 
-    shade_step=10, 
-    legend: bool = False,
-    legend_text_spacing_offset = 15,
-    font: ImageFont = None, 
-    font_color: Any = 'black', 
-    show_dimension=False,
+  model, 
+  to_file: str = None, 
+  min_z: int = 20, 
+  min_xy: int = 20, 
+  max_z: int = 400,
+  max_xy: int = 2000,
+  scale_z: float = 0.1, 
+  scale_xy: float = 4, 
+  type_ignore: list = None, 
+  index_ignore: list = None,
+  color_map: dict = None, 
+  one_dim_orientation: str = 'z', 
+  index_2d: list = None,
+  background_fill: Any = 'white', 
+  draw_volume: bool = True,
+  draw_reversed: bool = False, 
+  padding: int = 10,
+  # Python understands it as a forward declaration and resolves it later when the 'Layer' type is available.
+  text_callable: Callable[[int, 'Layer'], tuple] = None,
+  text_vspacing: int = 4,
+  spacing: int = 10, 
+  draw_funnel: bool = True, 
+  shade_step=10, 
+  legend: bool = False,
+  legend_text_spacing_offset = 15,
+  font: ImageFont = None, 
+  font_color: Any = 'black', 
+  show_dimension=False,
 ) -> Image:
     """
-    Generates an architectural visualization for a given linear Keras model
+    Generates an architectural visualization for a given linear Keras
+    :py:class:`~tensorflow.keras.Model` model
     (i.e., one input and output tensor for each layer) in a layered style,
     which is particularly suitable for convolutional neural networks (CNNs).
 
     Parameters
     ----------
-    model : keras.Model
-        A Keras model to be visualized.
+    model : tensorflow.keras.Model
+        A Keras :py:class:`~tensorflow.keras.Model` model to be visualized.
     to_file : str or None
         Path to the file where the generated image will be saved.
         If the image does not exist yet it will be created, else overwritten.

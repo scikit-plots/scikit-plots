@@ -16,7 +16,7 @@ and class attributes.
 
 .. seealso::
 
-   https://cython.org/
+   * https://cython.org/
 
 Pybind11 Bindings
 ----------------------------------------------------------------------
@@ -26,7 +26,7 @@ and vice versa, mainly to create Python bindings of existing C++ code.
 
 .. seealso::
 
-   https://github.com/pybind/pybind11
+   * https://github.com/pybind/pybind11
 
 
 C/CPP Headers Source
@@ -62,9 +62,10 @@ A lightweight version of NumPy (or similar functionality).
 
 .. jupyter-execute::
 
-    >>> import lightnumpy as lp
-    >>> # Return the directory that contains the NumCpp *.h header files.
-    >>> inc_dir_lightnumpy = lp.get_include()
-    >>> inc_dir_lightnumpy
-
-    >>> !ls $inc_dir_lightnumpy
+    >>> try:
+    >>>   import lightnumpy as lp
+    >>>   # Return the directory that contains the NumCpp *.h header files.
+    >>>   inc_dir_lightnumpy = lp.get_include()
+    >>> except: pass
+    >>> else:
+    >>>   !ls $inc_dir_lightnumpy

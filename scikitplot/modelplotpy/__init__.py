@@ -9,7 +9,7 @@ online at https://modelplot.github.io/.
 
 .. seealso::
 
-   [1] https://www.kdnuggets.com/2018/10/evaluating-business-value-predictive-models-modelplotpy.html
+   * https://www.kdnuggets.com/2018/10/evaluating-business-value-predictive-models-modelplotpy.html
 """
 # scikitplot/modelplotpy/__init__.py
 

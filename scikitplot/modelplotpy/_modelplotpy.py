@@ -4,8 +4,8 @@ evaluation decile analysis e.g. Gain, Lift and Decile charts, etc.
 
 References
 ----------
-[1] https://github.com/modelplot/modelplotpy/blob/master/modelplotpy/functions.py
-[2] https://modelplot.github.io/intro_modelplotpy.html
+* https://github.com/modelplot/modelplotpy/blob/master/modelplotpy/functions.py
+* https://modelplot.github.io/intro_modelplotpy.html
 
 This package/module is designed to be compatible with both Python 2 and Python 3.
 The imports below ensure consistent behavior across different Python versions by
@@ -83,20 +83,20 @@ def _check_input(
     ----------
     input_list : list of str
         List containing elements specified by the user.
-
     check_list : list of str
         List containing all possible elements defined by the model_plots object.
-
     check : str, default empty
         String contains the parameter that will be checked to provide an informative error.
 
     Returns
     -------
-    error if there is no match with the complete list or the input list again
+    Error :
+        if there is no match with the complete list or the input list again
         
     Raises
     ------
-    ValueError: If the elements in `input list` do not correspond with the `check_lisk`.
+    ValueError :
+        If the elements in `input list` do not correspond with the `check_lisk`.
 
     """
     if len(input_list) >= 1:
@@ -123,27 +123,22 @@ class ModelPlotPy(object):
     Parameters
     ----------
     feature_data : list of objects (n_datasets, )
-        Objects containing the X matrix for one or more different datasets.
-        
+        Objects containing the X matrix for one or more different datasets.        
     label_data : list of objects (n_datasets, )
-        Objects of the y vector for one or more different datasets.
-        
+        Objects of the y vector for one or more different datasets.        
     dataset_labels : list of str (n_datasets, )
         Containing the names of the different `feature_data`
-        and `label_data` combination pairs.
-    
+        and `label_data` combination pairs.    
     models : list of objects (n_models, )
-        Containing the sk-learn model objects.
-    
+        Containing the sk-learn model objects.    
     model_labels : list of str (n_models, )
-        Names of the (sk-learn) models.
-    
+        Names of the (sk-learn) models.    
     ntiles : int, default 10
         The number of splits range is (2, inf]:
         
-        - 10 is called `deciles`
-        - 100 is called `percentiles`
-        - any other value is an `ntile`
+        * 10 is called `deciles`
+        * 100 is called `percentiles`
+        * any other value is an `ntile`
     
     seed : int, default=0
         Making the splits reproducible.
@@ -151,14 +146,10 @@ class ModelPlotPy(object):
         .. versionchanged:: 0.3.9
             Default changed from 999 to 0.
 
-    Methods
-    -------
-    get_params():
-        Method to get params.
-
     Raises
     ------
-    ValueError: If there is no match with the complete list or the input list again
+    ValueError :
+        If there is no match with the complete list or the input list again
     """
     def __init__(
       self,
@@ -236,26 +227,20 @@ class ModelPlotPy(object):
         Parameters
         ----------
         feature_data : list of objects (n_datasets, )
-            Objects containing the X matrix for one or more different datasets.
-            
+            Objects containing the X matrix for one or more different datasets.            
         label_data : list of objects (n_datasets, )
-            Objects of the y vector for one or more different datasets.
-            
+            Objects of the y vector for one or more different datasets.            
         dataset_labels : list of str (n_datasets, )
             Containing the names of the different feature ``feature_data``
-            and label ``label_data`` data combination pairs.
-        
+            and label ``label_data`` data combination pairs.        
         models : list of objects (n_models, )
-            Containing the sk-learn model objects.
-        
+            Containing the sk-learn model objects.        
         model_labels : list of str (n_models, )
-            Names of the (sk-learn) models.
-            
+            Names of the (sk-learn) models.            
         ntiles : int, default 10
             The number of splits 10 is called deciles, 100 is called percentiles
             and any other value is an ntile.
-            Range is (2, inf].
-        
+            Range is (2, inf].        
         seed : int, default=0
             Making the splits reproducible.
         
@@ -271,7 +256,8 @@ class ModelPlotPy(object):
 
         Raises
         ------
-        ValueError: If there is no match with the complete list or the input list again
+        ValueError :
+            If there is no match with the complete list or the input list again
         """
         if (len(self.models) == len(self.model_labels)) == False:
             raise ValueError(
@@ -358,26 +344,20 @@ class ModelPlotPy(object):
         Parameters
         ----------
         feature_data : list of objects (n_datasets, )
-            Objects containing the X matrix for one or more different datasets.
-            
+            Objects containing the X matrix for one or more different datasets.            
         label_data : list of objects (n_datasets, )
-            Objects of the y vector for one or more different datasets.
-            
+            Objects of the y vector for one or more different datasets.            
         dataset_labels : list of str (n_datasets, )
             Containing the names of the different feature `feature_data`
-            and label `label_data` data combination pairs.
-        
+            and label `label_data` data combination pairs.        
         models : list of objects (n_models, )
-            Containing the sk-learn model objects.
-        
+            Containing the sk-learn model objects.        
         model_labels : list of str (n_models, )
-            Names of the (sk-learn) models.
-            
+            Names of the (sk-learn) models.            
         ntiles : int, default 10
             The number of splits 10 is called deciles,
             100 is called percentiles and any other value is an ntile.
-            Range is (2, inf].
-        
+            Range is (2, inf].        
         seed : int, default=0
             Making the splits reproducible.
         
@@ -386,12 +366,14 @@ class ModelPlotPy(object):
 
         Returns
         -------
-        Pandas dataframe with combination of all datasets, models, target values and ntiles.
-        It already contains almost all necessary information for model plotting.
+        pandas.DataFrame :
+            Pandas dataframe with combination of all datasets, models, target values and ntiles.
+            It already contains almost all necessary information for model plotting.
 
         Raises
         ------
-        ValueError: If there is no match with the complete list or the input list again.
+        ValueError :
+            If there is no match with the complete list or the input list again.
         """
         scores_and_ntiles = self.prepare_scores_and_ntiles()
         scores_and_ntiles['all'] = 1
@@ -566,7 +548,8 @@ class ModelPlotPy(object):
 
         Raises
         ------
-        ValueError: If the wrong `scope` value is specified.
+        ValueError :
+            If the wrong `scope` value is specified.
         """
         ntiles_aggregate = self.aggregate_over_ntiles()
         ntiles_aggregate['scope'] = scope
@@ -721,18 +704,21 @@ def plot_response(
     
     Returns
     -------
-    It returns a matplotlib.axes._subplots.AxesSubplot object
-    that can be transformed into the same plot with the .figure command.
-    The plot is by default written to disk (save_fig = True).
-    The location and filetype of the file depend on the save_fig_filename parameter.
-    If the save_fig_filename parameter is empty (not specified),
-    the plot will be written to the working directory as png. 
-    Otherwise the location and file type is specified by the user.
+    matplotlib.axes._subplots.AxesSubplot :
+        It returns a matplotlib.axes._subplots.AxesSubplot object
+        that can be transformed into the same plot with the .figure command.
+        The plot is by default written to disk (save_fig = True).
+        The location and filetype of the file depend on the save_fig_filename parameter.
+        If the save_fig_filename parameter is empty (not specified),
+        the plot will be written to the working directory as png. 
+        Otherwise the location and file type is specified by the user.
         
     Raises
     ------
-    TypeError: If ``highlight_ntile`` is not specified as an int.
-    ValueError: If the wrong ``highlight_how`` value is specified.
+    TypeError :
+        If ``highlight_ntile`` is not specified as an int.
+    ValueError :
+        If the wrong ``highlight_how`` value is specified.
     """
     
     models   = plot_input.model_label.unique().tolist()
@@ -1196,18 +1182,21 @@ def plot_cumresponse(
         
     Returns
     -------
-    It returns a matplotlib.axes._subplots.AxesSubplot object
-    that can be transformed into the same plot with the .figure command.
-    The plot is by default written to disk (save_fig = True).
-    The location and filetype of the file depend on the save_fig_filename parameter.
-    If the save_fig_filename parameter is empty (not specified),
-    the plot will be written to the working directory as png. 
-    Otherwise the location and file type is specified by the user.
+    matplotlib.axes._subplots.AxesSubplot :
+        It returns a matplotlib.axes._subplots.AxesSubplot object
+        that can be transformed into the same plot with the .figure command.
+        The plot is by default written to disk (save_fig = True).
+        The location and filetype of the file depend on the save_fig_filename parameter.
+        If the save_fig_filename parameter is empty (not specified),
+        the plot will be written to the working directory as png. 
+        Otherwise the location and file type is specified by the user.
         
     Raises
     ------
-    TypeError: If ``highlight_ntile`` is not specified as an int.
-    ValueError: If the wrong ``highlight_how`` value is specified.
+    TypeError :
+        If ``highlight_ntile`` is not specified as an int.
+    ValueError :
+        If the wrong ``highlight_how`` value is specified.
     """
     models   = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
@@ -1671,18 +1660,21 @@ def plot_cumlift(
     
     Returns
     -------
-    It returns a matplotlib.axes._subplots.AxesSubplot object
-    that can be transformed into the same plot with the .figure command.
-    The plot is by default written to disk (save_fig = True). The location
-    and filetype of the file depend on the save_fig_filename parameter.
-    If the save_fig_filename parameter is empty (not specified),
-    the plot will be written to the working directory as png. 
-    Otherwise the location and file type is specified by the user.
+    matplotlib.axes._subplots.AxesSubplot :
+        It returns a matplotlib.axes._subplots.AxesSubplot object
+        that can be transformed into the same plot with the .figure command.
+        The plot is by default written to disk (save_fig = True). The location
+        and filetype of the file depend on the save_fig_filename parameter.
+        If the save_fig_filename parameter is empty (not specified),
+        the plot will be written to the working directory as png. 
+        Otherwise the location and file type is specified by the user.
         
     Raises
     ------
-    TypeError: If ``highlight_ntile`` is not specified as an int.
-    ValueError: If the wrong ``highlight_how`` value is specified.
+    TypeError :
+        If ``highlight_ntile`` is not specified as an int.
+    ValueError :
+        If the wrong ``highlight_how`` value is specified.
     """
     models   = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
@@ -2115,18 +2107,21 @@ def plot_cumgains(
     
     Returns
     -------
-    It returns a matplotlib.axes._subplots.AxesSubplot object
-    that can be transformed into the same plot with the .figure command.
-    The plot is by default written to disk (save_fig = True).
-    The location and filetype of the file depend on the save_fig_filename parameter.
-    If the save_fig_filename parameter is empty (not specified),
-    the plot will be written to the working directory as png. 
-    Otherwise the location and file type is specified by the user.
+    matplotlib.axes._subplots.AxesSubplot :
+        It returns a matplotlib.axes._subplots.AxesSubplot object
+        that can be transformed into the same plot with the .figure command.
+        The plot is by default written to disk (save_fig = True).
+        The location and filetype of the file depend on the save_fig_filename parameter.
+        If the save_fig_filename parameter is empty (not specified),
+        the plot will be written to the working directory as png. 
+        Otherwise the location and file type is specified by the user.
         
     Raises
     ------
-    TypeError: If ``highlight_ntile`` is not specified as an int.
-    ValueError: If the wrong ``highlight_how`` value is specified.
+    TypeError :
+        If ``highlight_ntile`` is not specified as an int.
+    ValueError : 
+        If the wrong ``highlight_how`` value is specified.
     """
     models   = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
@@ -2583,13 +2578,14 @@ def plot_all(
 
     Returns
     -------
-    It returns a matplotlib.axes._subplots.AxesSubplot object
-    that can be transformed into the same plot with the .figure command.
-    The plot is by default written to disk (save_fig = True).
-    The location and filetype of the file depend on the save_fig_filename parameter.
-    If the save_fig_filename parameter is empty (not specified),
-    the plot will be written to the working directory as png. 
-    Otherwise the location and file type is specified by the user.
+    matplotlib.axes._subplots.AxesSubplot :
+        It returns a matplotlib.axes._subplots.AxesSubplot object
+        that can be transformed into the same plot with the .figure command.
+        The plot is by default written to disk (save_fig = True).
+        The location and filetype of the file depend on the save_fig_filename parameter.
+        If the save_fig_filename parameter is empty (not specified),
+        the plot will be written to the working directory as png. 
+        Otherwise the location and file type is specified by the user.
     """
     models   = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
@@ -2987,18 +2983,21 @@ def plot_costsrevs(
     
     Returns
     -------
-    It returns a matplotlib.axes._subplots.AxesSubplot object
-    that can be transformed into the same plot with the .figure command.
-    The plot is by default written to disk (save_fig = True).
-    The location and filetype of the file depend on the save_fig_filename parameter.
-    If the save_fig_filename parameter is empty (not specified),
-    the plot will be written to the working directory as png. 
-    Otherwise the location and file type is specified by the user.
+    matplotlib.axes._subplots.AxesSubplot :
+        It returns a matplotlib.axes._subplots.AxesSubplot object
+        that can be transformed into the same plot with the .figure command.
+        The plot is by default written to disk (save_fig = True).
+        The location and filetype of the file depend on the save_fig_filename parameter.
+        If the save_fig_filename parameter is empty (not specified),
+        the plot will be written to the working directory as png. 
+        Otherwise the location and file type is specified by the user.
         
     Raises
     ------
-    TypeError: If ``highlight_ntile`` is not specified as an int.
-    ValueError: If the wrong ``highlight_how`` value is specified.
+    TypeError :
+        If ``highlight_ntile`` is not specified as an int.
+    ValueError :
+        If the wrong ``highlight_how`` value is specified.
     """
     
     models   = plot_input.model_label.unique().tolist()
@@ -3486,18 +3485,21 @@ def plot_profit(
     
     Returns
     -------
-    It returns a matplotlib.axes._subplots.AxesSubplot object
-    that can be transformed into the same plot with the .figure command.
-    The plot is by default written to disk (save_fig = True).
-    The location and filetype of the file depend on the save_fig_filename parameter.
-    If the save_fig_filename parameter is empty (not specified),
-    the plot will be written to the working directory as png. 
-    Otherwise the location and file type is specified by the user.
+    matplotlib.axes._subplots.AxesSubplot :
+        It returns a matplotlib.axes._subplots.AxesSubplot object
+        that can be transformed into the same plot with the .figure command.
+        The plot is by default written to disk (save_fig = True).
+        The location and filetype of the file depend on the save_fig_filename parameter.
+        If the save_fig_filename parameter is empty (not specified),
+        the plot will be written to the working directory as png. 
+        Otherwise the location and file type is specified by the user.
         
     Raises
     ------
-    TypeError: If ``highlight_ntile`` is not specified as an int.
-    ValueError: If the wrong ``highlight_how`` value is specified.
+    TypeError :
+        If ``highlight_ntile`` is not specified as an int.
+    ValueError :
+        If the wrong ``highlight_how`` value is specified.
     """
     
     models   = plot_input.model_label.unique().tolist()
@@ -3970,18 +3972,21 @@ def plot_roi(
     
     Returns
     -------
-    It returns a matplotlib.axes._subplots.AxesSubplot object
-    that can be transformed into the same plot with the .figure command.
-    The plot is by default written to disk (save_fig = True).
-    The location and filetype of the file depend on the save_fig_filename parameter.
-    If the save_fig_filename parameter is empty (not specified),
-    the plot will be written to the working directory as png. 
-    Otherwise the location and file type is specified by the user.
+    matplotlib.axes._subplots.AxesSubplot :
+        It returns a matplotlib.axes._subplots.AxesSubplot object
+        that can be transformed into the same plot with the .figure command.
+        The plot is by default written to disk (save_fig = True).
+        The location and filetype of the file depend on the save_fig_filename parameter.
+        If the save_fig_filename parameter is empty (not specified),
+        the plot will be written to the working directory as png. 
+        Otherwise the location and file type is specified by the user.
         
     Raises
     ------
-    TypeError: If ``highlight_ntile`` is not specified as an int.
-    ValueError: If the wrong ``highlight_how`` value is specified.
+    TypeError :
+        If ``highlight_ntile`` is not specified as an int.
+    ValueError :
+        If the wrong ``highlight_how`` value is specified.
     """
     
     models   = plot_input.model_label.unique().tolist()

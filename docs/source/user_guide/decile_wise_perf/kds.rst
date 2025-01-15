@@ -1,15 +1,13 @@
-.. currentmodule:: scikitplot.api.kds
-
 .. _kds-index:
 
 KeyToDataScience
 ======================================================================
 
-This module contains functions related to :py:mod:`~scikitplot.api.kds`.
+This module contains functions related to :py:mod:`~.kds`.
 
 .. seealso::
 
-   [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py
+   * https://github.com/tensorbored/kds/blob/master/kds/metrics.py
 
 
 kds Plots
@@ -22,7 +20,7 @@ kds Plots
 plot cumulative gain
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.kds.plot_cumulative_gain`
+:py:func:`~.kds.plot_cumulative_gain`
 
 The mathematical formulation is the following:
 
@@ -54,7 +52,7 @@ performing image:
 plot lift
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.kds.plot_lift`
+:py:func:`~.kds.plot_lift`
 
 .. note:: **Lift Curve**
 
@@ -82,7 +80,7 @@ performing image:
 plot_ks_statistic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.kds.plot_ks_statistic`
+:py:func:`~.kds.plot_ks_statistic`
 
 Trained model of :class:`~sklearn.linear_model.LogisticRegression` and
 :class:`~sklearn.ensemble.RandomForestClassifier`. For an example of
@@ -108,7 +106,7 @@ performing image:
 report
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~scikitplot.api.kds.report`
+:py:func:`~.kds.report`
 
 Trained model of :class:`~sklearn.linear_model.LogisticRegression` and
 :class:`~sklearn.ensemble.RandomForestClassifier`. For an example of

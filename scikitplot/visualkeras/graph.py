@@ -24,28 +24,29 @@ def _draw_connector(draw, start_node, end_node, color, width):
 
 
 def graph_view(
-    model,
-    to_file: str = None,
-    color_map: dict = None,
-    node_size: int = 50,
-    background_fill: Any = 'white',
-    padding: int = 10,
-    layer_spacing: int = 250,
-    node_spacing: int = 10,
-    connector_fill: Any = 'gray',
-    connector_width: int = 1,
-    ellipsize_after: int = 10,
-    inout_as_tensor: bool = True,
-    show_neurons: bool = True,
+  model,
+  to_file: str = None,
+  color_map: dict = None,
+  node_size: int = 50,
+  background_fill: Any = 'white',
+  padding: int = 10,
+  layer_spacing: int = 250,
+  node_spacing: int = 10,
+  connector_fill: Any = 'gray',
+  connector_width: int = 1,
+  ellipsize_after: int = 10,
+  inout_as_tensor: bool = True,
+  show_neurons: bool = True,
 ) -> Image:
     """
-    Generates an architectural visualization for a given linear Keras model
+    Generates an architectural visualization for a given linear Keras 
+    :py:class:`~tensorflow.keras.Model` model 
     (i.e., one input and output tensor for each layer) in graph style.
 
     Parameters
     ----------
-    model : keras.Model
-        A Keras model to be visualized.
+    model : tensorflow.keras.Model
+        A Keras :py:class:`~tensorflow.keras.Model` model to be visualized.
     to_file : str or None
         Path to the file where the generated image will be saved.
         The file type is inferred from the file extension.

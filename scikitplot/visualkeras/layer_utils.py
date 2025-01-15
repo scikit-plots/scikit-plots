@@ -86,8 +86,8 @@ class SpacingDummyLayer:
     """
     A dummy layer to add spacing or other custom behavior.
 
-    This class dynamically inherits from TensorFlow's `Layer` class, ensuring
-    that TensorFlow is only imported when this class is instantiated.
+    This class dynamically inherits from TensorFlow's :py:class:`~tensorfow.keras.layers.Layer`
+    class, ensuring that TensorFlow is only imported when this class is instantiated.
     """
     # Custom behavior when creating an instance, if needed
     def __new__(cls, *args, spacing: int = 50, **kwargs):
