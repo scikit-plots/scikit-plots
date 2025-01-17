@@ -10,8 +10,9 @@
    :Release: |version|
    :Date: |today|
 
-
+.. https://github.com/readthedocs/readthedocs.org/issues/809
 .. include:: README.rst
+    :start-after: :orphan:
 
 .. toctree::
    :maxdepth: 1
