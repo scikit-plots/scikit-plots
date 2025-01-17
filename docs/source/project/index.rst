@@ -14,14 +14,14 @@ Project information
 .. toctree::
     :maxdepth: 2
 
-    mission.rst
+    citing.rst
     history.rst
     license.rst
-    citing.rst
+    mission.rst
     Teams <teams/index.rst>
     Governance <governance.rst>
     Code of Conduct <code_of_conduct.rst>
-    Roadmap <project/roadmap.rst>
-    FAQ <faq.rst>
-    Glossary <glossary/index.rst>
+    Roadmap <roadmap.rst>
     funding.rst
+    Glossary <glossary/index.rst>
+    FAQ <faq.rst>

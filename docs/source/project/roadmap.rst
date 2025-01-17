@@ -20,7 +20,7 @@ is an indication that help is welcomed on this topic.
 
 Statement of purpose: Scikit-plots in 2024
 ------------------------------------------
-Eleven years after the inception of Scikit-plot now Scikit-plots,
+Since 2017 after the inception of Scikit-plot now Scikit-plots,
 much has changed in the world of machine learning.
 
 
