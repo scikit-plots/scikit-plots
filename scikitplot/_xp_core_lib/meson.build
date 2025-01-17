@@ -15,6 +15,9 @@ _xp_core_lib_cython_tree = [
   fs.copyfile('_ccallback_c.pxd'),
   fs.copyfile('_test_deprecation_def.pxd'),       # Cython definition file for C/C++ code
   fs.copyfile('messagestream.pxd'),
+  # submodule stub
+  fs.copyfile('array_api_compat.pyi'),
+  fs.copyfile('array_api_extra.pyi'),
 ]
 
 # _lib_pxd = [

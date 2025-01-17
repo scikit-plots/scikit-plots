@@ -417,7 +417,7 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
         This class does not close the stream, as `sys.stdout` or `sys.stderr`
         may be used.
     _is_jupyter_notebook :
-        Determines if the environment is a Jupyter notebook.
+        Determines if the environment is a Jupyter notebook. For define `use_stderr`.
     """
     def __init__(
       self,
@@ -554,9 +554,9 @@ def _make_default_handler(
 ######################################################################
 
 # Expose the logger to other modules.
-def get_logger(use_stderr: bool = True) -> _logging.Logger:
+def get_logger() -> _logging.Logger:
     """
-    Return SP (scikitpot) logger instance.
+    Return SP (scikitplot) logger instance.
     
     See Also
     --------
@@ -568,6 +568,8 @@ def get_logger(use_stderr: bool = True) -> _logging.Logger:
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance.
         For more: https://docs.python.org/3/library/logging.html
+    _is_jupyter_notebook :
+        Determines if the environment is a Jupyter notebook. For define `use_stderr`.
     
     Returns
     -------
@@ -907,14 +909,16 @@ class SpLogger(SingletonBase):
 
     The logger methods support string formatting. For example::
     
+      >>> import scikitplot as sp
       >>> sp.SpLogger().error("The value %d is invalid.", 3)
 
     You can change the verbosity of the logger as follows::
 
-      >>> sp.SpLogger().setLevel(WARNING)
-      >>> sp.SpLogger().debug("This is a debug.")  # This will not be shown, as level is ERROR.
-      >>> sp.SpLogger().info("This is a info.")    # This will not be shown, as level is ERROR.
-      >>> sp.SpLogger().warning("This is a warning.")
+      >>> import scikitplot as sp
+      >>> sp.SpLogger().setLevel(sp.SpLogger().INFO)   # set level INFO
+      >>> sp.SpLogger().debug("This is a debug.")      # This will not be shown, as level is INFO.
+      >>> sp.SpLogger().info("This is a info.")        # This will be shown, as level is INFO.
+      >>> sp.SpLogger().warning("This is a warning.")  # This will be shown, as level is INFO.
      
     Examples
     --------

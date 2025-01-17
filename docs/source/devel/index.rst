@@ -242,7 +242,7 @@ manage, or release manage, these guidelines describe how our current process wor
          release_guide
          communication_guide
          min_dep_policy
-         SEP/index
+         SPEP/index
 
 Maintainer
 =======================

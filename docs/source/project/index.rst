@@ -1,4 +1,4 @@
-.. _about:
+.. _about-index:
 
 About us
 ========
@@ -16,9 +16,12 @@ Project information
 
     mission.rst
     history.rst
-    Code of Conduct <code_of_conduct.rst>
-    citing.rst
     license.rst
-    funding.rst
+    citing.rst
+    Teams <teams/index.rst>
+    Governance <governance.rst>
+    Code of Conduct <code_of_conduct.rst>
+    Roadmap <project/roadmap.rst>
     FAQ <faq.rst>
     Glossary <glossary/index.rst>
+    funding.rst

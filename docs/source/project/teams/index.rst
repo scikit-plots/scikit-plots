@@ -1,10 +1,10 @@
-.. _teams:
+.. _teams-index:
 
 =======
 Teams
 =======
 
-The people behind scikit-plots
+The people behind Scikit-plots
 ------------------------------
 
 list of contributors can be found `on
