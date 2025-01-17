@@ -9,6 +9,16 @@
     </style>
         <div>
         <a href='https://github.com/celik-muhammed'><img src='https://avatars.githubusercontent.com/u/94930605' class='avatar' /></a> <br />
-        <p>muhammed çelik</p>
+        <p>muhammed celik</p>
+        </div>
+    </div>
+
+    <div class="sk-authors-container">
+    <style>
+      img.avatar {border-radius: 7px;}
+    </style>
+        <div>
+        <a href='https://github.com/jurrr'><img src='https://avatars.githubusercontent.com/u/13237470' class='avatar' /></a> <br />
+        <p>Jurriaan Nagelkerke</p>
         </div>
     </div>

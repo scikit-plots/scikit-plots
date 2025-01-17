@@ -12,3 +12,13 @@
         <p>muhammed çelik</p>
         </div>
     </div>
+
+    <div class="sk-authors-container">
+    <style>
+      img.avatar {border-radius: 7px;}
+    </style>
+        <div>
+        <a href='https://github.com/jurrr'><img src='https://avatars.githubusercontent.com/u/13237470' class='avatar' /></a> <br />
+        <p>Jurriaan Nagelkerke</p>
+        </div>
+    </div>
