@@ -1,5 +1,6 @@
 .. _about-index:
 
+========
 About us
 ========
 
@@ -9,7 +10,7 @@ This project was started in 2024.
 .. _project_information:
 
 Project information
-===================
+-------------------
 
 .. toctree::
     :maxdepth: 2

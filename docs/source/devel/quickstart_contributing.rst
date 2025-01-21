@@ -1,7 +1,7 @@
 .. _quickstart_contributing:
 
 ======================================================================
-Quickstart Contributing
+Quickstart Guide to Contributing
 ======================================================================
 
 .. _contributing_environment:
@@ -40,14 +40,15 @@ You will need `Build Tools for Visual Studio
 <https://visualstudio.microsoft.com/downloads/?q=build+tools>`_.
 
 .. note::
-        You DO NOT need to install Visual Studio.
-        You only need "Build Tools for Visual Studio" found by
-        scrolling down to "All downloads" -> "Tools for Visual Studio" -> "Build Tools
-        for Visual Studio".
+    You DO NOT need to install Visual Studio.
+    You only need "Build Tools for Visual Studio" found by
+    scrolling down to "All downloads" -> "Tools for Visual Studio" -> "Build Tools
+    for Visual Studio".
 
 Alternative options include:
 
-- Install the necessary components on the command line using `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_.
+- Install the necessary components on the command line using `vs_BuildTools.exe
+  <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_.
 - Use the `WSL <https://learn.microsoft.com/en-us/windows/wsl/install>`_.
 
 **MacOS**
@@ -66,7 +67,7 @@ For Linux-based installations, you won't have to install any additional componen
 .. _contributing.forking:
 
 Create a clone of scikit-plots
--------------------------
+------------------------------
 
 If you have not done so already, you will need your own copy of ``scikit-plots`` to
 build it and/or contribute to the source. scikit-plots is hosted in the
@@ -82,13 +83,13 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
 .. code-block:: shell
 
-    git clone https://github.com/YOUR-USER-NAME/astropy.git
-    cd astropy
-    git remote add upstream https://github.com/astropy/astropy.git
+    git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
+    cd scikit-plots
+    git remote add upstream https://github.com/scikit-plots/scikit-plots.git
     git fetch upstream --tags
 
-This creates the directory ``astropy`` and connects your repository to the upstream
-(main project) `astropy <https://github.com/astropy/astropy>`__ repository.
+This creates the directory ``scikit-plots`` and connects your repository to the upstream
+(main project) `scikit-plots <https://github.com/scikit-plots/scikit-plots>`__ repository.
 
 You can see the remote repositories as follows::
 
@@ -96,10 +97,10 @@ You can see the remote repositories as follows::
 
 You will see something like::
 
-    origin  git@github.com:YOUR-USER-NAME/astropy.git (fetch)
-    origin  git@github.com:YOUR-USER-NAME/astropy.git (push)
-    upstream        https://github.com/astropy/astropy.git (fetch)
-    upstream        https://github.com/astropy/astropy.git (push)
+    origin  git@github.com:YOUR-USER-NAME/scikit-plots.git (fetch)
+    origin  git@github.com:YOUR-USER-NAME/scikit-plots.git (push)
+    upstream        https://github.com/scikit-plots/scikit-plots.git (fetch)
+    upstream        https://github.com/scikit-plots/scikit-plots.git (push)
 
 .. _create-isolated-env:
 
@@ -130,35 +131,35 @@ If you do not already have ``conda`` installed, `download and install miniforge
 your system but the end result is to provide a ``conda`` executable that you can use
 to create and manage isolated Python environments.
 
-Now create and activate an ``astropy-dev`` conda environment using the following::
+Now create and activate an ``skplt-dev`` conda environment using the following::
 
-   conda create -n astropy-dev python graphviz
-   conda activate astropy-dev
+   >>> conda create -n skplt-dev python graphviz
+   >>> conda activate skplt-dev
 
 Note the ``graphviz`` package is required for building the documentation.
 
-Install the development version of astropy
-------------------------------------------
+Install the development version of scikit-plots
+-----------------------------------------------
 
-Now you can install the development version of astropy into your new environment. This
-will install the latest version of astropy from your local git repo, along with
-all the dependencies needed to build and fully test astropy::
+Now you can install the development version of ``scikit-plots`` into your new environment. This
+will install the latest version of ``scikit-plots`` from your local git repo, along with
+all the dependencies needed to build and fully test ``scikit-plots``::
 
-   python -m pip install --editable '.[dev_all]'
+   >>> python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
 **Checking the build**
 
-At this point you should be able to import astropy from your locally built version::
+At this point you should be able to ``import scikitplot`` from your locally built version::
 
-   python -c 'import astropy; astropy.system_info()'
+   >>> python -c 'import scikitplot; scikitplot.show_config()'
 
-Next you may want to try running some or all of the ``astropy`` unit tests.
+Next you may want to try running some or all of the ``scikitplot`` unit tests.
 Running the full test suite can take a few minutes, so you may want to start with a
-single sub-package (e.g. :ref:`astropy-coordinates`)::
+single sub-package (e.g. :ref:`kds-index`)::
 
 
    # run a sub set of the test suite
-   pytest astropy/coordinates
+   pytest scikitplot/kds
 
    # or the whole suite
    pytest
@@ -177,7 +178,7 @@ tool that runs a number of :ref:`Continuous Integration (CI) <contributing.ci>` 
 is likely that one or more of those CI checks will fail when you make a pull request,
 resulting in lost time (yours and CI resources).
 
-Installation is straightforward. From the root of the astropy repository, run::
+Installation is straightforward. From the root of the ``scikit-plots`` repository, run::
 
     pre-commit install
 
@@ -194,10 +195,10 @@ Creating and submitting a pull request
 
 You can contribute bug fixes, new features, and documentation updates by submitting a
 GitHub pull request (PR). This section will guide you through the process. We encourage
-you to `ask for help <https://www.astropy.org/help.html>`_ if you get stuck. The Astropy
-community is welcoming and friendly and will help you!
+you to `ask for help <https://github.com/orgs/scikit-plots/discussions>`_ if you get stuck.
+The ``scikit-plots`` community is welcoming and friendly and will help you!
 
-If you are new to the Astropy Project and interested to submit a large patch
+If you are new to the ``scikit-plots`` Project and interested to submit a large patch
 (e.g., a new big feature or significant refactoring), we encourage you to first
 discuss your ideas on GitHub to increase the chance of your PR
 being accepted.
@@ -205,8 +206,8 @@ being accepted.
 Creating a branch
 -----------------
 
-Your local ``main`` branch should always reflect the current state of astropy repository.
-First ensure it's up-to-date with the main astropy repository::
+Your local ``main`` branch should always reflect the current state of ``scikit-plots`` repository.
+First ensure it's up-to-date with the main ``scikit-plots`` repository::
 
     git switch main
     git pull upstream main --ff-only
@@ -217,13 +218,13 @@ Now create a development branch for making your changes. For example::
 
 This changes your working branch from ``main`` to the ``subpackage-bug-fix`` branch.
 Keep any changes in this branch specific to one bug or feature so it is clear what the
-branch brings to astropy. You can have many feature branches and switch in between them
+branch brings to ``scikit-plots``. You can have many feature branches and switch in between them
 using the `git switch <https://git-scm.com/docs/git-switch>`_ command.
 
 Using a descriptive branch name can help you stay organized. For example
-```io-ascii-commented-header``` might be a good name for a branch that fixes the
-commented header issue `#15513 <https://github.com/astropy/astropy/issues/15513>`_ in
-the ``io.ascii`` sub-package.
+```kds-commented-header``` might be a good name for a branch that fixes the
+commented header issue `#15513 <https://github.com/scikit-plots/scikit-plots/issues/15513>`_ in
+the ``kds`` sub-package.
 
 When you want to update the feature branch with changes in main after
 you created the branch, check the section on
@@ -277,14 +278,14 @@ forked feature branch's commits::
 
 Here ``origin`` is the default name given to your fork on GitHub.
 
-Now your code is on GitHub, but it is not visible to the Astropy maintainers. For that
+Now your code is on GitHub, but it is not visible to the ``scikit-plots`` maintainers. For that
 to happen, a pull request needs to be submitted on GitHub.
 
 The first time you push to a new branch on GitHub, you will see a message like below
 with a useful link to create a pull request::
 
   remote: Create a pull request for 'subpackage-bug-fix' on GitHub by visiting:
-  remote:      https://github.com/YOUR-USER-NAME/astropy/pull/new/subpackage-bug-fix
+  remote:      https://github.com/YOUR-USER-NAME/scikit-plots/pull/new/subpackage-bug-fix
 
 
 .. _quickstart-pull-request:
@@ -297,12 +298,14 @@ code from your local repository becomes available to the GitHub community to rev
 merged into project to appear the in the next release.
 
 Most of the time you can just follow the link that ``git`` provided when you pushed
-your branch and create the PR. If you don't have that link (and for a few more details), you can follow the :ref:`pull-request` instructions.
+your branch and create the PR. If you don't have that link (and for a few more details),
+you can follow the :ref:`pull-request` instructions.
 
 Follow the instructions in the PR template and fill it out as completely as possible.
 
 If your PR is still a work in progress then instead of clicking "Create pull request",
-click on the small down arrow next to it and select "`Create draft pull request <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`__".
+click on the small down arrow next to it and select "`Create draft pull request
+<https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`__".
 In addition, if your commits are not ready for CI testing, you
 should include ``[ci skip]`` the last commit message – but note that code formatting
 checks and documentation building will still be done. Formatting and style errors *should*
@@ -310,7 +313,7 @@ already have been fixed before committing if you have locally
 :ref:`installed pre-commit<contributing.pre-commit>`; but if you have not,
 you can use the :ref:`pre-commit_bot` to fix them automatically in the PR.
 
-Once submitted (and marked as ready), this request goes to the astropy maintainers and
+Once submitted (and marked as ready), this request goes to the ``scikit-plots`` maintainers and
 they will review the PR.
 
 .. _contributing.update-pr:
@@ -339,7 +342,8 @@ If you have made it to this point and submitted a pull request, one of the core
 maintainers will take a look. To make the process as smooth and efficient as possible,
 here are some tips:
 
-- **Reference any existing open issue** to `link to that issue <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`_ and close the
+- **Reference any existing open issue** to `link to that issue
+  <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`_ and close the
   issue if the PR is merged.
 - **Ensure you have appropriate tests**.
 - **Keep your pull requests as simple as possible** -- larger PRs take longer to review.

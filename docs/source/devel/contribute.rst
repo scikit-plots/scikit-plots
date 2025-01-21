@@ -1,8 +1,8 @@
 .. _contributing:
 
-******************
-Contributing guide
-******************
+=====================================
+Getting Started Guide to Contributing
+=====================================
 
 .. admonition:: Template
    

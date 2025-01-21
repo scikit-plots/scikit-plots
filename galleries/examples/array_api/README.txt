@@ -1,4 +1,4 @@
-.. array_api_examples:
+.. array-api-examples:
 
 Array API support (experimental)
 ----------------------------------------------------------------------

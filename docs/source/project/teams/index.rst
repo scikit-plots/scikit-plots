@@ -3,6 +3,13 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. role:: raw-latex(raw)
+   :format: latex
+
+.. |br| raw:: html
+
+   <br/>
+
 =======
 Teams
 =======
@@ -10,8 +17,13 @@ Teams
 The people behind Scikit-plots
 ----------------------------------------------------------------------
 
-list of contributors can be found `on
-github <https://github.com/scikit-plots/scikit-plots/graphs/contributors>`_.
+.. seealso::
+
+    Scikit-plots is a community project, developed by a large group of people,
+    all across the world.
+    A few core contributor teams, listed below, have central roles,
+    however a more complete list of contributors can be found
+    `on github <https://github.com/scikit-plots/scikit-plots/graphs/contributors>`_.
 
 Maintainers Team
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -24,7 +36,7 @@ consolidating scikit-plots's development and maintenance:
 .. note::
 
   Please do not email the authors directly to ask for assistance or report issues.
-  Instead, please see `What's the best way to ask questions about scikit-learn
+  Instead, please see `What's the best way to ask questions about scikit-plots
   <https://scikit-plots.github.io/stable/project/faq.html#what-s-the-best-way-to-get-help-on-scikit-plots-usage>`_
   in the FAQ.
 
@@ -107,49 +119,49 @@ These are the current deputy project leader positions:
 
    * - **Release Managers**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - TBD
      - TBD
 
    * - **API Leader**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - TBD
      - TBD
 
    * - **Principal Engineer**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - TBD
      - TBD
 
    * - **Reference Documentation Leader**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - TBD
      - TBD
 
    * - **Narrative Documentation Leader**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - TBD
      - TBD
 
    * - **Secretary**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - TBD
      - TBD
 
    * - **Community Manager**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - TBD
      - TBD
@@ -164,10 +176,10 @@ Steering Council
 
    * - **Steering Council**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - Jurriaan Nagelkerke
-       :raw-html:`<br />`
+       |br|
        `@jurrr <https://github.com/jurrr>`__
      - TBD
 
@@ -185,10 +197,10 @@ CoC Subcommittee
 
    * - **CoC Subcommittee**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - Jurriaan Nagelkerke
-       :raw-html:`<br />`
+       |br|
        `@jurrr <https://github.com/jurrr>`__
      - TBD
 
@@ -202,10 +214,10 @@ NumFOCUS Subcommittee
 
    * - **NumFOCUS Subcommittee**
      - muhammed celik
-       :raw-html:`<br />`
+       |br|
        `@celik-muhammed <https://github.com/celik-muhammed>`__
      - Jurriaan Nagelkerke
-       :raw-html:`<br />`
+       |br|
        `@jurrr <https://github.com/jurrr>`__
      - TBD
 

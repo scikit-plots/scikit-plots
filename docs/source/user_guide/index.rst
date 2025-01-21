@@ -1,23 +1,24 @@
-.. raw:: html
-
-    <title>Scikit-plots Documentation {{ release }}</title>
-
-.. _scikit_plots_documentation:
-
-.. _generic-items: https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
+.. _scikit-plots-documentation:
 
 .. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
 .. role:: raw-html(raw)
    :format: html
 
+.. role:: raw-latex(raw)
+   :format: latex
+
+.. |br| raw:: html
+
+   <br/>
+
 .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
    centered:: Scikit-plots Documentation :raw-html:`<br />` |release|
-.. class:: centered-text
-   :align: centered
 
-   Scikit-plots Documentation :raw-html:`<br />` |release|
+:raw-html:`<div style="text-align: center"><strong>`
+Scikit-plots Documentation |br| |release|
+:raw-html:`</strong></div>`
 
-.. _user_guide-index:
+.. _user-guide-index:
 
 ======================================================================
 User Guide

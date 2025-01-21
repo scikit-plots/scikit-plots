@@ -55,6 +55,7 @@ logging.info("This is a info message from the sp logger.")
 #   X.Y.ZrcN     # Release Candidate
 #   X.Y.Z        # Final release
 #   X.Y.Z.postM  # Post release
+## https://libraries.io/pypi/scikit-plots
 __version__           : Final[LiteralString]
 __git_hash__          : Final[LiteralString]
 __array_api_version__ : Final[LiteralString]

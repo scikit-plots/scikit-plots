@@ -13,16 +13,17 @@ Contribute
       of this document as it will have the most up to date installation
       instructions, workflow process, and contributing guidelines.
 
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
-   centered:: :octicon:`heart;1em;sd-text-info`
-   Thank you for your interest in helping to improve scikit-plots!
-   :octicon:`heart;1em;sd-text-info`
-.. class:: centered-text
-   :align: centered
+.. raw:: html
 
-   :octicon:`heart;1em;sd-text-info`
-   Thank you for your interest in helping to improve scikit-plots!
-   :octicon:`heart;1em;sd-text-info`
+    <div style="text-align: center;">
+
+:octicon:`heart;1em;sd-text-info`
+Thank you for your interest in helping to improve scikit-plots!
+:octicon:`heart;1em;sd-text-info`
+
+.. raw:: html
+
+    </div>
 
 This project is a community effort, and everyone is welcome to contribute. Everyone
 within the community is expected to abide by our :ref:`code of conduct <code_of_conduct>`.
@@ -30,6 +31,28 @@ within the community is expected to abide by our :ref:`code of conduct <code_of_
 There are various ways to contribute, such as optimizing and refactoring code,
 detailing unclear documentation and writing new examples, helping the community,
 reporting and fixing bugs, requesting and implementing new features...
+
+Quickstart Guide to Contributing
+================================
+
+Here you'll find all the guidance and resources you need to quickly start contributing to this project.
+
+.. grid:: 1 1 2 2
+   :class-row: sf-fs-1
+   :gutter: 2
+
+   .. grid-item-card::
+      :shadow: none
+
+      **Quickstart**
+      ^^^
+      Get up and running quickly:
+
+      .. toctree::
+         :maxdepth: 2
+         :caption: Resources
+
+         Quickstart Contributing <quickstart_contributing.rst>
 
 .. _submitting-a-bug-report:
 .. _request-a-new-feature:
@@ -79,8 +102,8 @@ Since scikit-plots is an open source project with limited resources, we encourag
 to also :ref:`participate <contribute_code>` in fixing bugs and implementing new
 features.
 
-Contributing guide
-==================
+Getting Started Guide to Contributing
+=====================================
 
 We welcome you to get more involved with the scikit-plots project! If you are new
 to contributing, we recommend that you first read our
@@ -89,7 +112,7 @@ to contributing, we recommend that you first read our
 .. toctree::
    :hidden:
 
-   contribute
+   Getting Started Contributing <contribute.rst>
 
 .. grid:: 1 1 2 2
    :class-row: sd-fs-5 sd-align-minor-center
@@ -171,7 +194,7 @@ and managing a development environment and workflow:
       .. toctree::
          :maxdepth: 2
 
-         development_setup
+         Development Setup <development_setup.rst>
 
 
    .. grid-item-card::
@@ -182,7 +205,7 @@ and managing a development environment and workflow:
       .. toctree::
          :maxdepth: 2
 
-         development_workflow
+         Development Workflow <development_workflow.rst>
 
       .. toctree::
          :maxdepth: 1
@@ -250,7 +273,7 @@ manage, or release manage, these guidelines describe how our current process wor
          release_guide
          communication_guide
          min_dep_policy
-         SPEP/index
+         Sp Enhancement Proposals <SPEP/index.rst>
 
 Maintainer
 =======================

@@ -11,6 +11,8 @@ References:
 - https://docutils.sourceforge.io/docs/ref/rst/directives.html#class-1
 - https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
 
+- https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
+
 .. rst Comments one-line below multi-line
 .. 
 
@@ -25,6 +27,17 @@ References:
 :orphan:
 - Sphinx issues a warning: WARNING: document isn't included in any toctree.
 - Sphinx suppresses the warning, and the file can still be built and accessed by its direct URL.
+
+.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
+.. role:: raw-html(raw)
+   :format: html
+
+.. role:: raw-latex(raw)
+   :format: latex
+
+.. |br| raw:: html
+
+  <br/>
 -#}
 
 .. Used for setting metadata like the document's title for processing tools.
@@ -63,7 +76,7 @@ References:
    :caption: Community
    :hidden:
 
-   Release Notes <whats_new/index.rst>
+   Release History <whats_new/index.rst>
    Community-G <https://github.com/orgs/scikit-plots/discussions>
    Community-Z <https://zenodo.org/communities/scikit-plots>
    {%- if development_link | default(false) %}
