@@ -84,6 +84,7 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 .. code-block:: shell
 
     git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
+    git submodule update --init  # download submodules
     cd scikit-plots
     git remote add upstream https://github.com/scikit-plots/scikit-plots.git
     git fetch upstream --tags
@@ -93,14 +94,14 @@ This creates the directory ``scikit-plots`` and connects your repository to the 
 
 You can see the remote repositories as follows::
 
-    git remote --verbose
+    >>> git remote --verbose
 
 You will see something like::
 
-    origin  git@github.com:YOUR-USER-NAME/scikit-plots.git (fetch)
-    origin  git@github.com:YOUR-USER-NAME/scikit-plots.git (push)
-    upstream        https://github.com/scikit-plots/scikit-plots.git (fetch)
-    upstream        https://github.com/scikit-plots/scikit-plots.git (push)
+    >>> origin  git@github.com:YOUR-USER-NAME/scikit-plots.git (fetch)
+    >>> origin  git@github.com:YOUR-USER-NAME/scikit-plots.git (push)
+    >>> upstream        https://github.com/scikit-plots/scikit-plots.git (fetch)
+    >>> upstream        https://github.com/scikit-plots/scikit-plots.git (push)
 
 .. _create-isolated-env:
 
@@ -158,11 +159,11 @@ Running the full test suite can take a few minutes, so you may want to start wit
 single sub-package (e.g. :ref:`kds-index`)::
 
 
-   # run a sub set of the test suite
-   pytest scikitplot/kds
+   >>> # run a sub set of the test suite
+   >>> pytest scikitplot/kds
 
-   # or the whole suite
-   pytest
+   >>> # or the whole suite
+   >>> pytest
 
 Details on running and writing tests can be found in the :ref:`testing-guidelines`
 section.
@@ -180,7 +181,7 @@ resulting in lost time (yours and CI resources).
 
 Installation is straightforward. From the root of the ``scikit-plots`` repository, run::
 
-    pre-commit install
+    >>> pre-commit install
 
 Now all of the styling checks will be run each time you commit changes, ensuring that
 the CI formatting checks for your :ref:`pull request <quickstart-pull-request>` will
@@ -209,12 +210,12 @@ Creating a branch
 Your local ``main`` branch should always reflect the current state of ``scikit-plots`` repository.
 First ensure it's up-to-date with the main ``scikit-plots`` repository::
 
-    git switch main
-    git pull upstream main --ff-only
+    >>> git switch main
+    >>> git pull upstream main --ff-only
 
 Now create a development branch for making your changes. For example::
 
-    git switch -c subpackage-bug-fix
+    >>> git switch -c subpackage-bug-fix
 
 This changes your working branch from ``main`` to the ``subpackage-bug-fix`` branch.
 Keep any changes in this branch specific to one bug or feature so it is clear what the
@@ -274,7 +275,7 @@ Pushing your changes
 When you want your changes to appear publicly on your GitHub page, push your
 forked feature branch's commits::
 
-    git push origin --set-upstream subpackage-bug-fix
+    >>> git push origin --set-upstream subpackage-bug-fix
 
 Here ``origin`` is the default name given to your fork on GitHub.
 
@@ -284,8 +285,8 @@ to happen, a pull request needs to be submitted on GitHub.
 The first time you push to a new branch on GitHub, you will see a message like below
 with a useful link to create a pull request::
 
-  remote: Create a pull request for 'subpackage-bug-fix' on GitHub by visiting:
-  remote:      https://github.com/YOUR-USER-NAME/scikit-plots/pull/new/subpackage-bug-fix
+  >>> remote: Create a pull request for 'subpackage-bug-fix' on GitHub by visiting:
+  >>> remote:      https://github.com/YOUR-USER-NAME/scikit-plots/pull/new/subpackage-bug-fix
 
 
 .. _quickstart-pull-request:
@@ -325,7 +326,7 @@ Based on the review you get on your pull request, you will probably need to make
 some adjustments. You can follow the :ref:`code committing steps <contributing.commit-code>`
 again to address any feedback and update your pull request::
 
-    git push origin subpackage-bug-fix
+    >>> git push origin subpackage-bug-fix
 
 Any ``git push`` will automatically update your pull request with your branch's changes
 and restart the :ref:`Continuous Integration <contributing.ci>` checks.
