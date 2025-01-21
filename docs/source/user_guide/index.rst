@@ -6,10 +6,16 @@
 
 .. _generic-items: https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
 
+.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
 .. role:: raw-html(raw)
    :format: html
 
-.. centered:: Scikit-plots Documentation :raw-html:`<br />` |release|
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
+   centered:: Scikit-plots Documentation :raw-html:`<br />` |release|
+.. class:: centered-text
+   :align: centered
+
+   Scikit-plots Documentation :raw-html:`<br />` |release|
 
 .. _user_guide-index:
 

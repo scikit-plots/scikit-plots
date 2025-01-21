@@ -1,8 +1,8 @@
 .. _developers-guide-index:
 
-##########
+======================================================================
 Contribute
-##########
+======================================================================
 
 .. ifconfig:: releaselevel != 'dev'
 
@@ -13,8 +13,16 @@ Contribute
       of this document as it will have the most up to date installation
       instructions, workflow process, and contributing guidelines.
 
-:octicon:`heart;1em;sd-text-info` Thank you for your interest in helping to improve
-scikit-plots! :octicon:`heart;1em;sd-text-info`
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
+   centered:: :octicon:`heart;1em;sd-text-info`
+   Thank you for your interest in helping to improve scikit-plots!
+   :octicon:`heart;1em;sd-text-info`
+.. class:: centered-text
+   :align: centered
+
+   :octicon:`heart;1em;sd-text-info`
+   Thank you for your interest in helping to improve scikit-plots!
+   :octicon:`heart;1em;sd-text-info`
 
 This project is a community effort, and everyone is welcome to contribute. Everyone
 within the community is expected to abide by our :ref:`code of conduct <code_of_conduct>`.

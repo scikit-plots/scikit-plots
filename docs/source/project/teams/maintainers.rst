@@ -11,14 +11,15 @@
         <a href='https://github.com/celik-muhammed'><img src='https://avatars.githubusercontent.com/u/94930605' class='avatar' /></a> <br />
         <p>muhammed çelik</p>
         </div>
-    </div>
 
-    <div class="sk-authors-container">
-    <style>
-      img.avatar {border-radius: 7px;}
-    </style>
         <div>
         <a href='https://github.com/jurrr'><img src='https://avatars.githubusercontent.com/u/13237470' class='avatar' /></a> <br />
         <p>Jurriaan Nagelkerke</p>
         </div>
+
+        <div>
+        <a href='https://github.com/dpilger26'><img src='https://avatars.githubusercontent.com/u/29182592' class='avatar' /></a> <br />
+        <p>David Pilger</p>
+        </div>
+
     </div>

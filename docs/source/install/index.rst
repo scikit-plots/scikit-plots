@@ -1,3 +1,5 @@
+:orphan:
+
 .. redirect-from:: /users/installing
 .. redirect-from:: /users/installing/index
 
@@ -292,3 +294,4 @@ picked up by other Pythons.  If all these fail, please :ref:`let us know
 
 
 .. include:: troubleshooting_faq.inc.rst
+    :start-after: :orphan:

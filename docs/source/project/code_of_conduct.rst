@@ -70,7 +70,7 @@ Enforcement
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
 `https://scikit-plots.github.io/ <mailto:https://scikit-plots.github.io/>`_ which is
-monitored by the `CoC subcommittee <https://scikit-plots.github.io/governance/people.html#coc-subcommittee>`_ or a
+monitored by the :ref:`CoC subcommittee <coc-subcommittee>` or a
 report can be made using the `NumFOCUS Code of Conduct report form <https://numfocus.typeform.com/to/ynjGdT>`_.
 If community leaders cannot come to a resolution about enforcement,
 reports will be escalated to the NumFocus Code of Conduct committee
@@ -145,3 +145,8 @@ enforcement ladder <https://github.com/mozilla/diversity>`_.
 For answers to common questions about this code of conduct, see the FAQ at
 https://www.contributor-covenant.org/faq. Translations are available at
 https://www.contributor-covenant.org/translations.
+
+.. seealso::
+
+    We fully abide by the principles of openness, respect, and consideration of others of the
+    Python Software Foundation: https://www.python.org/psf/codeofconduct/

@@ -1,17 +1,20 @@
 .. _teams-index:
 
+.. role:: raw-html(raw)
+   :format: html
+
 =======
 Teams
 =======
 
 The people behind Scikit-plots
-------------------------------
+----------------------------------------------------------------------
 
 list of contributors can be found `on
 github <https://github.com/scikit-plots/scikit-plots/graphs/contributors>`_.
 
 Maintainers Team
-................
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following people are currently maintainers, in charge of
 consolidating scikit-plots's development and maintenance:
@@ -30,14 +33,14 @@ consolidating scikit-plots's development and maintenance:
   How you can :ref:`contribute to the project <contributing>`.
 
 Documentation Team
-..................
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following people help with documenting the project:
 
 .. include:: documentation_team.rst
 
 Contributor Experience Team
-...........................
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following people are active contributors who also help with
 :ref:`triaging issues <bug_triaging>`, PRs, and general
@@ -46,7 +49,7 @@ maintenance:
 .. include:: contributor_experience_team.rst
 
 Communication Team
-..................
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following people help with :ref:`communication around scikit-plots
 <communication_team>`.
@@ -54,7 +57,7 @@ The following people help with :ref:`communication around scikit-plots
 .. include:: communication_team.rst
 
 Emeritus Core Developers
-........................
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following people have been active contributors in the past, but are no
 longer active in the project:
@@ -62,7 +65,7 @@ longer active in the project:
 .. include:: maintainers_emeritus.rst
 
 Emeritus Communication Team
-...........................
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following people have been active in the communication team in the
 past, but no longer have communication responsibilities:
@@ -70,9 +73,146 @@ past, but no longer have communication responsibilities:
 .. include:: communication_team_emeritus.rst
 
 Emeritus Contributor Experience Team
-....................................
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following people have been active in the contributor experience team in the
 past:
 
 .. include:: contributor_experience_team_emeritus.rst
+
+
+People
+=======
+
+Project Lead
+----------------------------------------------------------------------
+
+.. list-table::
+
+   * - **Project Lead**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - TBD
+     - TBD
+
+
+Deputy Project Leads
+----------------------------------------------------------------------
+
+These are the current deputy project leader positions:
+
+
+.. list-table::
+
+   * - **Release Managers**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - TBD
+     - TBD
+
+   * - **API Leader**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - TBD
+     - TBD
+
+   * - **Principal Engineer**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - TBD
+     - TBD
+
+   * - **Reference Documentation Leader**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - TBD
+     - TBD
+
+   * - **Narrative Documentation Leader**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - TBD
+     - TBD
+
+   * - **Secretary**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - TBD
+     - TBD
+
+   * - **Community Manager**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - TBD
+     - TBD
+
+
+.. _steering-souncil:
+
+Steering Council
+----------------------------------------------------------------------
+
+.. list-table::
+
+   * - **Steering Council**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - Jurriaan Nagelkerke
+       :raw-html:`<br />`
+       `@jurrr <https://github.com/jurrr>`__
+     - TBD
+
+NOTE: The Council will be initially formed through PL nomination from the set
+of existing Developers who meet the criteria laid out in the governance
+document.
+
+
+.. _coc-subcommittee:
+
+CoC Subcommittee
+----------------------------------------------------------------------
+
+.. list-table::
+
+   * - **CoC Subcommittee**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - Jurriaan Nagelkerke
+       :raw-html:`<br />`
+       `@jurrr <https://github.com/jurrr>`__
+     - TBD
+
+
+.. _numfocus-subcommittee:
+
+NumFOCUS Subcommittee
+----------------------------------------------------------------------
+
+.. list-table::
+
+   * - **NumFOCUS Subcommittee**
+     - muhammed celik
+       :raw-html:`<br />`
+       `@celik-muhammed <https://github.com/celik-muhammed>`__
+     - Jurriaan Nagelkerke
+       :raw-html:`<br />`
+       `@jurrr <https://github.com/jurrr>`__
+     - TBD
+
+
+.. _project-specific-leads:
+
+Project Specific Leads
+----------------------------------------------------------------------
+
+- TBD

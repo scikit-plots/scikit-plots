@@ -1,0 +1,242 @@
+---
+# For a single document, --- is optional and has no effect on parsing but can improve clarity and consistency.
+
+# This file contains globs for automatically adding labels based on changed files,
+# for use with https://github.com/actions/labeler.
+
+CI:
+- changed-files:
+  - any-glob-to-any-file:
+    - .github/workflows/**
+    - .circleci/**
+    - .cirrus.star
+    - ci/**
+
+Documentation:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/**
+
+DX:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/source/devel/**
+
+Meson:
+- changed-files:
+  - any-glob-to-any-file:
+    - meson.build
+    - scikitplot/**/meson.build
+
+Cython:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.pyx*
+    - scikitplot/**/*.pxd*
+    - scikitplot/**/*.pxi*
+    - scikitplot/**/*.pyi*
+    - scikitplot/**/_generate_pyx.py
+
+Fortran:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.f
+    - scikitplot/**/*.f.src
+    - scikitplot/**/*.F
+    - scikitplot/**/*.f90
+    - scikitplot/**/*.pyf
+
+C/C++:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.c
+    - scikitplot/**/*.c.in
+    - scikitplot/**/*.c.old
+    - scikitplot/**/*.h
+    - scikitplot/**/*.h.in
+    - scikitplot/**/*.cpp
+    - scikitplot/**/*.cc
+    - scikitplot/**/*.cxx
+    - scikitplot/**/*.hpp
+
+Tempita templates:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.tp
+
+Build issues:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_build_utils/**
+
+array types:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_xp_core_lib/_array_api.py
+
+module:_astropy:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_astropy/**
+
+module:_compat:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_compat/**
+
+module:_factory_api:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_factory_api/**
+
+module:_seaborn:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_seaborn/**
+
+module:_tweedie:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_tweedie/**
+
+module:api:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/api/**
+
+module:experimental:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/experimental/**
+
+module:kds:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/kds/**
+
+module:modelplotpy:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/modelplotpy/**
+
+module:probscale:
+- scikitplot/probscale/**/*
+
+module:stats:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/stats/**
+
+module:visualkeras:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/visualkeras/**
+
+module:sp_logging:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/sp_logging/**
+
+
+"CI: Run wheels":
+  - changed-files:
+      - any-glob-to-any-file: ['.github/workflows/wheels.yml']
+"CI: Run publish-to-test-pypi":
+  - changed-files:
+      - any-glob-to-any-file: ['.github/workflows/publish-to-test-pypi.yml']
+
+"Documentation: examples":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'galleries/examples/**'
+"Documentation: build":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/Makefile'
+          - 'docs/make.bat'
+          - 'docs/source/conf.py'
+          - 'docs/source/_sphinx_ext/**'
+"Documentation: user guide":
+  - all:
+      - changed-files:
+          - any-glob-to-any-file:
+              - 'docs/source/user_guide/**'
+          - all-globs-to-all-files:
+              - '!docs/source/user_guide/__lightnumpy/**'
+              - '!docs/source/user_guide/__resources/**'
+"Documentation: devdocs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/source/devel/**'
+"Documentation: API":
+  - all:
+      - changed-files:
+          - any-glob-to-any-file:
+              - 'docs/source/apis/**'
+          - all-globs-to-all-files:
+              - '!docs/source/apis/__lightnumpy/**'
+
+
+"backend: agg":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'extern/agg24-svn/'
+          - 'lib/matplotlib/backends/_backend_agg.pyi'
+          - 'lib/matplotlib/backends/backend_agg.py*'
+          - 'src/_backend_agg*'
+"GUI: tk":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/matplotlib/backends/*backend_tk*'
+          - 'lib/matplotlib/backends/_tkagg.pyi'
+          - 'src/_tkagg.cpp'
+          - 'src/_tkmini.h'
+"GUI: gtk":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/matplotlib/backends/_backend_gtk.py*'
+          - 'lib/matplotlib/backends/backend_gtk*'
+"GUI: Qt":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/matplotlib/backends/backend_qt*'
+          - 'lib/matplotlib/backends/qt_compat.py'
+          - 'lib/matplotlib/backends/qt_editor/**'
+"topic: axes":
+  - changed-files:
+      - any-glob-to-any-file:
+          # Note, axes.py is not included here because it contains many plotting
+          # methods, for which changes would not be considered on topic.
+          - 'lib/matplotlib/axes/_base.py*'
+"topic: mpl_toolkit":
+  - all:
+      - changed-files:
+          - any-glob-to-any-file:
+              - 'lib/mpl_toolkits/**'
+          - all-globs-to-all-files:
+              - '!lib/mpl_toolkits/mplot3d/**'
+"topic: sphinx extension":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/matplotlib/sphinxext/**'
+"topic: text":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/matplotlib/text.py*'
+          - 'lib/matplotlib/textpath.py*'
+"topic: text/fonts":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/checkdep_freetype2.c'
+          - 'src/ft2font*'
+"topic: text/mathtext":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/matplotlib/mathtext.py*'
+          - 'lib/matplotlib/_mathtext.py*'
+          - 'lib/matplotlib/_mathtext_data.py*'
+"topic: ticks axis labels":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/matplotlib/axis.py*'
+          - 'lib/matplotlib/ticker.py*'

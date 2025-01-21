@@ -20,16 +20,24 @@ updates:
       actions:
         patterns:
           - "*"
-    commit-message:
-      prefix: "MAINT"
     labels:
       - "03 - Maintenance"
+      - "Build / CI"
+      - "dependencies"
+    commit-message:
+      prefix: "MAINT"
+    reviewers:
+      - "scikit-plots/core-devs"
       
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
-    commit-message:
-      prefix: "MAINT"
     labels:
       - "03 - Maintenance"
+      - "Build / CI"
+      - "dependencies"
+    commit-message:
+      prefix: "MAINT"
+    reviewers:
+      - "scikit-plots/core-devs"

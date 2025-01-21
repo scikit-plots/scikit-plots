@@ -2,9 +2,9 @@
 
 .. title:: scikit-plots: Machine Learning Visualization with Python
 
-===========
-Quick Start
-===========
+======================================================================
+Quick Start Guide
+======================================================================
 
 This guide provides a quick introduction to plotting with scikit-plots.
 
