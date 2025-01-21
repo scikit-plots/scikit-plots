@@ -2,9 +2,9 @@
 
 .. _development-workflow:
 
-####################
-Development workflow
-####################
+====================
+Development Workflow
+====================
 
 .. admonition:: Template
    

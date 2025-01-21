@@ -1,23 +1,24 @@
-.. raw:: html
-
-    <title>Welcome to Scikit-plots{{ release }}</title>
-
 .. _welcome:
-
-.. _generic-items: https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
 
 .. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
 .. role:: raw-html(raw)
    :format: html
 
+.. role:: raw-latex(raw)
+   :format: latex
+
+.. |br| raw:: html
+
+   <br/>
+
 .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
    centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
-.. class:: centered-text
-   :align: centered
 
-   Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
+:raw-html:`<div style="text-align: center"><strong>`
+Welcome to Scikit-plots 101 |br| |release|
+:raw-html:`</strong></div>`
 
-.. _introduction:
+.. _introduction-index:
 
 ======================================================================
 Introduction

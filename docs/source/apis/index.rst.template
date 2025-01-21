@@ -7,7 +7,7 @@ APIs Reference
 ==============
 
 This is the class and function reference of scikit-plots. Please refer to the
-:ref:`full user guide <user_guide-index>` for further details, as the raw specifications of
+:ref:`full user guide <user-guide-index>` for further details, as the raw specifications of
 classes and functions may not be enough to give full guidelines on their uses. For
 reference on concepts repeated across the APIs, see :ref:`glossary-index`.
 

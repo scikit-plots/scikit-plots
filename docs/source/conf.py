@@ -132,7 +132,7 @@ if is_devrelease:
   gh_branch = "main"
 else:
   major, minor = _version_parsed.release[:2]
-  gh_branch = "{}.{}.X".format(major, minor)
+  gh_branch = "maintenance/{}.{}.X".format(major, minor)
 
 ##########################################################################
 ## General configuration

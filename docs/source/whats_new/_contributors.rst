@@ -1,3 +1,5 @@
+:orphan:
+
 ..
     This file maps contributor names to their URLs. It should mostly be used
     for core contributors, and occasionally for contributors who do not want
@@ -11,6 +13,10 @@
 .. role:: raw-latex(raw)
    :format: latex
 
+.. |br| raw:: html
+
+  <br/>
+
 .. |MajorFeature| replace:: :raw-html:`<span class="badge text-bg-success">Major Feature</span>` :raw-latex:`{\small\sc [Major Feature]}`
 .. |Feature| replace:: :raw-html:`<span class="badge text-bg-success">Feature</span>` :raw-latex:`{\small\sc [Feature]}`
 .. |Efficiency| replace:: :raw-html:`<span class="badge text-bg-info">Efficiency</span>` :raw-latex:`{\small\sc [Efficiency]}`
@@ -19,4 +25,4 @@
 .. |API| replace:: :raw-html:`<span class="badge text-bg-warning">API Change</span>` :raw-latex:`{\small\sc [API Change]}`
 
 
-.. _Muhammed Çelik: https://github.com/celik-muhammed
+.. _muhammed celik: https://github.com/celik-muhammed

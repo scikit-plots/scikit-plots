@@ -160,14 +160,15 @@ def setup(app: Sphinx):
     """Setup the Sphinx extension."""
     logger.info("Setting up Sphinx extension")
 
-    try:      
-        # Fetch the templates (default or user-defined)
-        version = getattr(app.config, 'version', 'env')      
-        if any(st in version for st in ('post', 'dev', 'alpha', 'a', 'beta', 'b')):
+    try:
+        # The full version, including alpha/beta/rc tags.
+        # version = getattr(app.config, 'version', __version__)
+        if any(st in __version__ for st in ('dev', 'alpha', 'a', 'beta', 'b', 'post', )):
             bulid_type = 'dev'
         else:
             bulid_type = 'rel'          
         app.add_config_value('releaselevel', bulid_type, 'env')
+        logger.info(f"Successfully processed releaselevel to {bulid_type}")
 
     except Exception as e:
         logger.error(f"Failed to set up Sphinx extension: {e}")
