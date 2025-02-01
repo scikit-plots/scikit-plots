@@ -1,7 +1,9 @@
 {
   "hostRequirements": {
+    "cpus": 2,
     "memory": "8gb",
-    "cpus": 2
+    "storage": "32gb",
+    "gpu": "optional"
   },
   "name": "scikit-plots",
   "image": "mcr.microsoft.com/devcontainers/miniconda:0-3",
@@ -39,7 +41,7 @@
     "codespaces": {
       "openFiles": [
         "README.md",
-        "doc/devel/codespaces.md"
+        "docs/source/devel/codespaces.md"
       ]
     }
   }
