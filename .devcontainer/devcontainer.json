@@ -56,6 +56,7 @@
       ],
       "settings": {
         "terminal.integrated.shell.linux": "/bin/bash",
+        "markdown.preview.autoShowPreviewToSide": true,
         "editor.tabSize": 4
       }
     },
