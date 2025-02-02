@@ -5,7 +5,7 @@
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "scikit-plots",
+  "name": "scipy_notebook",
   "dockerComposeFile": "/docker/docker-compose.yaml",
   "service": "scipy_notebook",
   "features": {
