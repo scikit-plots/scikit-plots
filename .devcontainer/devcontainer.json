@@ -8,7 +8,7 @@
   },
   "name": "Dev Env (default)",
   "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "runArgs": ["--gpus","all"],
+  // "runArgs": ["--gpus","all"],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
