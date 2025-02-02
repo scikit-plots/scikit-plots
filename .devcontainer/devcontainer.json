@@ -13,6 +13,8 @@
     "ghcr.io/devcontainers/features/common-utils:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/desktop-lite:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/sshd:1": {},
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": [
           "inkscape",
@@ -24,14 +26,16 @@
   // If this is a single string, it will be run in a shell.
   // If this is an array of strings, it will be run as a single command without shell.
   // If this is an object, each provided command will be run in parallel.
-  "onCreateCommand": {
-    "message": "sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt",
-    "setup": ".devcontainer/setup.sh"
-  },
+  "onCreateCommand": "bash .devcontainer/setup.sh && sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.tx",
   "postCreateCommand": "git fetch --tags && pip install tox",
   "waitFor": "postCreateCommand",
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+  // Configure tool-specific properties.
   "customizations": {
+    // Configure properties specific to VS Code.
     "vscode": {
+      // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
         "ms-python.python",
         "ms-toolsai.jupyter",
