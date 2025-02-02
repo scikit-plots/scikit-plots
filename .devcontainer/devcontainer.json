@@ -7,7 +7,7 @@
     "gpu": "optional"
   },
   "name": "Dev Env (default)",
-  "image": "mcr.microsoft.com/devcontainers/miniconda:0-3",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
   // "runArgs": ["--gpus","all"],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:1": {},
@@ -22,7 +22,7 @@
       ]
     }
   },
-  "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/miniconda:0-3",
+  "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   // If this is a single string, it will be run in a shell.
   // If this is an array of strings, it will be run as a single command without shell.
   // If this is an object, each provided command will be run in parallel.
