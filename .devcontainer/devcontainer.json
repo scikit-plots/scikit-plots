@@ -1,13 +1,14 @@
 {
+  // More info about Features: https://containers.dev/features
   "hostRequirements": {
     "cpus": 2,
     "memory": "8gb",
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "miniconda",
-  "image": "mcr.microsoft.com/devcontainers/miniconda:0-3",
-	"runArgs": ["--gpus","all"],
+  "name": "Dev Env (default)",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "runArgs": ["--gpus","all"],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
@@ -19,7 +20,7 @@
       ]
     }
   },
-	"initializeCommand": "docker pull mcr.microsoft.com/devcontainers/miniconda:0-3",
+  "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   "onCreateCommand": [
     "conda init bash",
     "# Add Message", 
