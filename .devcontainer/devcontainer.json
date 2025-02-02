@@ -21,11 +21,13 @@
     }
   },
   "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/miniconda:0-3",
-  "onCreateCommand": [
-    "cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt",
-    "echo 'Setting up environment...'",
-    "bash .devcontainer/setup.sh"
-  ],
+  // If this is a single string, it will be run in a shell.
+  // If this is an array of strings, it will be run as a single command without shell.
+  // If this is an object, each provided command will be run in parallel.
+  "onCreateCommand": {
+    "message": "sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt",
+    "setup": "bash .devcontainer/setup.sh"
+  },
   "postCreateCommand": "git fetch --tags && pip install tox",
   "waitFor": "postCreateCommand",
   "customizations": {
