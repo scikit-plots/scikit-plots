@@ -6,7 +6,7 @@
     "gpu": "optional"
   },
   "name": "scipy_notebook",
-  "dockerComposeFile": "/docker/docker-compose.yaml",
+  "dockerComposeFile": "docker/docker-compose.yaml",
   "service": "scipy_notebook",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:1": {},
@@ -40,6 +40,7 @@
         "stkb.rewrap"
       ],
       "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
         "editor.tabSize": 4
       }
     },
