@@ -24,12 +24,12 @@
   },
   "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   // If this is a single string, it will be run in a shell.
-  // If this is an array of strings, it will be run as a single command without shell.
+  // If this is an array of strings, it will be run as a single command without shell. Use script file.
   // If this is an object, each provided command will be run in parallel.
-  "onCreateCommand": [
-    "bash -c 'sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.tx'",
-    "bash .devcontainer/setup.sh"
-  ],
+  "onCreateCommand": {
+    "message": "bash -c 'sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.tx'",
+    "setup": "bash .devcontainer/setup.sh"
+  },
   "postCreateCommand": "git fetch --tags && pip install tox",
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
