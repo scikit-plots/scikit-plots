@@ -1,4 +1,4 @@
-👋 Welcome to "scikit-plots" in GitHub Codespaces!
+👋 Welcome to 'scikit-plots' in GitHub Codespaces!
 
 🔍 To explore VS Code to its fullest, search using the Command Palette (Cmd/Ctrl + Shift + P or F1).
 
