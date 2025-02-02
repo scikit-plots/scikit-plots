@@ -22,11 +22,8 @@
   },
   "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/miniconda:0-3",
   "onCreateCommand": [
-    "conda init bash",
-    "# Add Message", 
     "sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt",
-    "# Enviroment",
-    "#.devcontainer/setup.sh",
+    ".devcontainer/setup.sh",
     ""
   ],
   "postCreateCommand": "git fetch --tags && pip install tox",
