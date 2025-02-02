@@ -8,7 +8,7 @@
 ⭐⭐ =================================  IMPORTANT!!  ================================== ⭐⭐
    To complete setup of your development environment run the following in the terminal:
 
-      pip install -e .[dev,build,test,docs]
+      pip install --no-cache-dir -e .[dev,build,test,docs] -v
 
       If you don't need any preinstalled editors. That'll give you ~11gb back.
       rm -rf /workspaces/.codespaces/shared/editors/jetbrains
