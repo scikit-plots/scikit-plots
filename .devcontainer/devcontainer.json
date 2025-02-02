@@ -6,7 +6,7 @@
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "Dev Env (default)",
+  "name": "Skplt Dev Env (default)",
   "image": "mcr.microsoft.com/devcontainers/universal:2",
   // "runArgs": ["--gpus","all"],
   "features": {
@@ -26,7 +26,10 @@
   // If this is a single string, it will be run in a shell.
   // If this is an array of strings, it will be run as a single command without shell.
   // If this is an object, each provided command will be run in parallel.
-  "onCreateCommand": "bash .devcontainer/setup.sh && sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.tx",
+  "onCreateCommand": [
+    "sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.tx",
+    "bash .devcontainer/setup.sh"
+  ],
   "postCreateCommand": "git fetch --tags && pip install tox",
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
