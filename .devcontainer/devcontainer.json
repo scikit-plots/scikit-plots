@@ -1,3 +1,5 @@
+// See the full list here: https://aka.ms/ghcs-default-image
+// Learn more here: https://aka.ms/configure-codespace
 {
   // More info about Features: https://containers.dev/features
   "hostRequirements": {
