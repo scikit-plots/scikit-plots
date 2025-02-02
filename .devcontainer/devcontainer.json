@@ -27,7 +27,7 @@
   // If this is an array of strings, it will be run as a single command without shell.
   // If this is an object, each provided command will be run in parallel.
   "onCreateCommand": [
-    "sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.tx",
+    "bash -c 'sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.tx'",
     "bash .devcontainer/setup.sh"
   ],
   "postCreateCommand": "git fetch --tags && pip install tox",
