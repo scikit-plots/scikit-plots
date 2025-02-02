@@ -5,7 +5,7 @@
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "scikit-plots",
+  "name": "miniconda",
   "image": "mcr.microsoft.com/devcontainers/miniconda:0-3",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:1": {},
