@@ -64,8 +64,8 @@ services:
       - "8888:8888"  # scipy
       - "5000:5000"
       - "9000:9000"
-    volumes:
-      - ".:/home/jovyan/work"
+    # volumes:
+    #   - ".:/home/jovyan/work"
     networks:
       - "back_tier"
       - "front_tier"
@@ -104,8 +104,8 @@ services:
     ports:
       ## Map host port 8888 to container port 8888 (default)
       - "8889:8889"  # tensorflow gpu
-    volumes:
-      - ".:/home/jovyan/work"
+    # volumes:
+    #   - ".:/home/jovyan/work"
     networks:
       - "back_tier"
       - "front_tier"
