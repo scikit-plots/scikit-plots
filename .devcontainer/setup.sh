@@ -15,3 +15,7 @@ git submodule update --init
 # Enables users to activate environment without having to specify the full path
 echo "envs_dirs:
   - /home/codespace/micromamba/envs" > /opt/conda/.condarc
+
+sudo apt-get clean
+rm -rf ~/.cache/*
+pip cache purge
