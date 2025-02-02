@@ -7,6 +7,7 @@
   },
   "name": "miniconda",
   "image": "mcr.microsoft.com/devcontainers/miniconda:0-3",
+	"runArgs": ["--gpus","all"],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
@@ -18,6 +19,7 @@
       ]
     }
   },
+	"initializeCommand": "docker pull mcr.microsoft.com/devcontainers/miniconda:0-3",
   "onCreateCommand": [
     "conda init bash",
     "# Add Message", 
