@@ -30,7 +30,12 @@
   "postCreateCommand": "git fetch --tags && pip install tox",
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  // "forwardPorts": [],
+  "forwardPorts": [9001],
+  "portsAttributes": {
+    "9001": {
+      "label": "desktop"
+    }
+  },
   // Configure tool-specific properties.
   "customizations": {
     // Configure properties specific to VS Code.
