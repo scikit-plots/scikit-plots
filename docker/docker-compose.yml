@@ -1,0 +1,163 @@
+## Primary File  : docker-compose.yml
+## Override File : docker-compose.override.yml (automatically included if present)
+## docker compose config
+## docker compose up --build
+## https://docs.localstack.cloud/getting-started/installation/#docker-compose
+## Specifies the Docker Compose file version
+version: "3.9"  # Use the latest version that supports your features
+
+## Defines networks that can be used by services in the Docker Compose file
+networks:
+  ## Declares a network named "back_tier"
+  back_tier:
+    # driver: bridge
+  front_tier:
+
+## https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#image-relationships
+## https://github.com/jupyter/docker-stacks/blob/main/images/base-notebook/Dockerfile#L58
+## Use the official Jupyter Docker Stacks
+## "jupyter/base-notebook:latest"
+## "jupyter/minimal-notebook:latest"
+## "jupyter/scipy-notebook:latest"
+## "jupyter/r-notebook:latest"
+## "jupyter/tensorflow-notebook:latest"
+## "jupyter/pytorch-notebook:latest"
+## "jupyter/pyspark-notebook:latest"
+## Declares services (containers) that will be run by Docker Compose
+services:
+
+  ## docker-compose up --build app_nvidia_host_gpu_driver
+  app_nvidia_host_gpu_driver:
+    # stdin_open: true  # Keeps STDIN open (for interactive mode)
+    # tty: true  # Allocates a pseudo-TTY
+    ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
+    ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
+    image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    ## If the host has CUDA installed, the container can use it without installing CUDA inside.
+    ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
+    user: root  # Ensure the container runs as root
+    runtime: nvidia  # Enable NVIDIA runtime
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    environment:
+      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
+      - NVIDIA_DISABLE_REQUIRE=1
+      - TZ=Etc/GMT  # Set timezone to Greenwich Mean Time (GMT)
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    ports:
+      - "8888:8888"  # Exposing port 8888
+    ## Adjust the working directory as needed
+    working_dir: "/home/jovyan/work"
+    volumes:
+    #   - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
+      - ".:/home/jovyan/work"
+    # entrypoint:
+    command:
+      - "/bin/bash"
+      - "-c"
+      - |-
+        ## Run nvidia-smi to verify GPU access
+        nvidia-smi
+        apt update
+        apt install -y sudo python3-pip python3-venv
+        ## Ubuntu 22.04+ enforces PEP 668,
+        ## which restricts system-wide package installations with pip
+        python3 -m venv ~/venv
+        . ~/venv/bin/activate  # source or . (dot Works in both bash and sh)
+        python3 -m pip install cupy-cuda12x
+        python3 -c "import cupy; print(cupy.cuda.runtime.getDeviceCount())"
+        # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
+        ## Notebook
+        ## Add jovyan to the sudoers.
+        echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+        ## Change password for jovyan user
+        echo "jovyan:jovyan" | sudo chpasswd
+        start-notebook.py
+  
+  ## docker-compose up --build app_nvidia_internal_gpu_driver
+  app_nvidia_internal_gpu_driver:
+    # stdin_open: true  # Keeps STDIN open (for interactive mode)
+    # tty: true  # Allocates a pseudo-TTY
+    ## nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04    # CUDA-enabled base image compressed 5.5+Gb
+    ## nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04  # CUDA-enabled base image compressed 2.7+Gb
+    image: nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04  # CUDA-enabled base image (CUDA preinstalled in the container)
+    ## If the host has CUDA installed, the container can use it without installing CUDA inside.
+    ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
+    user: root  # Ensure the container runs as root
+    runtime: nvidia  # Enable NVIDIA runtime
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    environment:
+      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
+      - NVIDIA_DISABLE_REQUIRE=1
+      - TZ=Etc/GMT  # Set timezone to Greenwich Mean Time (GMT)
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    ports:
+      - "8889:8888"  # Exposing port 8888
+    ## Adjust the working directory as needed
+    working_dir: "/home/jovyan/work"
+    volumes:
+    #   - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
+      - ".:/home/jovyan/work"
+    # entrypoint:
+    command:
+      - "/bin/bash"
+      - "-c"
+      - |-
+        ## Run nvidia-smi to verify GPU access
+        nvidia-smi
+        apt update
+        apt install -y sudo python3-pip python3-venv
+        ## Ubuntu 22.04+ enforces PEP 668,
+        ## which restricts system-wide package installations with pip
+        python3 -m venv ~/venv
+        . ~/venv/bin/activate  # source or . (dot Works in both bash and sh)
+        python3 -m pip install cupy-cuda12x
+        python3 -c "import cupy; print(cupy.cuda.runtime.getDeviceCount())"
+        /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
+
+  ## docker-compose up --build app_macos_metal_gpu
+  app_macos_metal_gpu:
+    # stdin_open: true  # Keeps STDIN open (for interactive mode)
+    # tty: true  # Allocates a pseudo-TTY
+    ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
+    ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
+    image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    ## If the host has CUDA installed, the container can use it without installing CUDA inside.
+    ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
+    user: root  # Ensure the container runs as root
+    environment:
+      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
+    ports:
+      - "8888:8888"  # Exposing port 8888
+    ## Adjust the working directory as needed
+    working_dir: "/home/jovyan/work"
+    volumes:
+      - ".:/home/jovyan/work"
+    # entrypoint:
+    command:
+      - "/bin/bash"
+      - "-c"
+      - |-
+        apt update
+        apt install -y sudo
+        # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
+        ## Notebook
+        ## Add jovyan to the sudoers.
+        echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+        ## Change password for jovyan user
+        echo "jovyan:jovyan" | sudo chpasswd
+        start-notebook.py
