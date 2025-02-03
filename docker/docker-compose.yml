@@ -58,7 +58,8 @@ services:
         # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
         ## Notebook
         ## Add jovyan to the sudoers.
-        echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+        # echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+        echo "jovyan ALL=(ALL) ALL" | sudo tee -a /etc/sudoers
         ## Change password for jovyan user
         echo "jovyan:jovyan" | sudo chpasswd
         start-notebook.py
