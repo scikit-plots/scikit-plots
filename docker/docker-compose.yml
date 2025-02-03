@@ -45,6 +45,9 @@ services:
     working_dir: "/home/jovyan/work"
     volumes:
       - ".:/home/jovyan/work"
+    networks:
+      - "back_tier"
+      - "front_tier"
     # entrypoint:
     command:
       - "/bin/bash"
