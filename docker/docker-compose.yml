@@ -54,15 +54,15 @@ services:
       - "-c"
       - |-
         apt update
-        apt install -y sudo
+        apt install -y sudo gosu
         # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
         ## Notebook
         ## Add jovyan to the sudoers.
         # echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
-        echo "jovyan ALL=(ALL) ALL" | sudo tee -a /etc/sudoers
+        echo "jovyan ALL=(ALL) ALL" | tee -a /etc/sudoers
         ## Change password for jovyan user
-        echo "jovyan:jovyan" | sudo chpasswd
-        su jovyan
+        echo "jovyan:jovyan" | chpasswd
+        gosu jovyan bash
         start-notebook.py
 
   ## docker-compose up --build app_nvidia_host_gpu_driver
@@ -74,7 +74,7 @@ services:
     image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
-    # user: root  # Ensure the container runs as root
+    user: root  # Ensure the container runs as root
     runtime: nvidia  # Enable NVIDIA runtime
     deploy:
       resources:
@@ -107,7 +107,7 @@ services:
         ## Run nvidia-smi to verify GPU access
         nvidia-smi
         apt update
-        apt install -y sudo python3-pip python3-venv
+        apt install -y sudo gosu python3-pip python3-venv
         ## Ubuntu 22.04+ enforces PEP 668,
         ## which restricts system-wide package installations with pip
         python3 -m venv ~/venv
@@ -117,9 +117,11 @@ services:
         # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
         ## Notebook
         ## Add jovyan to the sudoers.
-        echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+        # echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+        echo "jovyan ALL=(ALL) ALL" | tee -a /etc/sudoers
         ## Change password for jovyan user
-        echo "jovyan:jovyan" | sudo chpasswd
+        echo "jovyan:jovyan" | chpasswd
+        gosu jovyan bash
         start-notebook.py
   
   ## docker-compose up --build app_nvidia_internal_gpu_driver
@@ -131,7 +133,7 @@ services:
     image: nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04  # CUDA-enabled base image (CUDA preinstalled in the container)
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
-    # user: root  # Ensure the container runs as root
+    user: root  # Ensure the container runs as root
     runtime: nvidia  # Enable NVIDIA runtime
     deploy:
       resources:
