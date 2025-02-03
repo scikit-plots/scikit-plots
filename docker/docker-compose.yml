@@ -35,7 +35,7 @@ services:
     image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
-    user: root  # Ensure the container runs as root
+    # user: root  # Ensure the container runs as root
     environment:
       # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
@@ -72,7 +72,7 @@ services:
     image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
-    user: root  # Ensure the container runs as root
+    # user: root  # Ensure the container runs as root
     runtime: nvidia  # Enable NVIDIA runtime
     deploy:
       resources:
@@ -129,7 +129,7 @@ services:
     image: nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04  # CUDA-enabled base image (CUDA preinstalled in the container)
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
-    user: root  # Ensure the container runs as root
+    # user: root  # Ensure the container runs as root
     runtime: nvidia  # Enable NVIDIA runtime
     deploy:
       resources:
