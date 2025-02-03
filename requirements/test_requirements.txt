@@ -9,7 +9,7 @@ pytest
 pytest-cov
 pytest-xdist
 pytest-timeout
-pytz==2024.2
+pytz==2025.1
 # for numpy.random.test.test_extending
 cffi; python_version < '3.10'
 # For testing types. Notes on the restrictions:
