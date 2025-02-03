@@ -27,7 +27,7 @@ networks:
 services:
 
   ## docker-compose up --build app_std_cpu
-  "app_std_cpu":
+  "app_notebook_cpu":
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
     # tty: true  # Allocates a pseudo-TTY
     ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
