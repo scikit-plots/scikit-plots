@@ -9,7 +9,7 @@
     "gpu": "optional"
   },
   // https://docs.github.com/en/enterprise-cloud@latest/actions/using-github-hosted-runners/using-larger-runners/about-larger-runners
-  "name": "Skplt Host GPU Dev (for larger runners)",
+  "name": "Host GPU Dev (for larger runners)",
   // "image": "mcr.microsoft.com/devcontainers/universal:2",
   // "build": {
     // Path is relative to the devcontainer.json file.
