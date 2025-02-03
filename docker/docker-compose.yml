@@ -4,7 +4,7 @@
 ## docker compose up --build
 ## https://docs.localstack.cloud/getting-started/installation/#docker-compose
 ## Specifies the Docker Compose file version
-version: "3.9"  # Use the latest version that supports your features
+# version: "3.9"  # Use the latest version that supports your features
 
 ## Defines networks that can be used by services in the Docker Compose file
 networks:
@@ -27,7 +27,7 @@ networks:
 services:
 
   ## docker-compose up --build app_nvidia_host_gpu_driver
-  app_nvidia_host_gpu_driver:
+  "app_nvidia_host_gpu_driver":
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
     # tty: true  # Allocates a pseudo-TTY
     ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
@@ -81,7 +81,7 @@ services:
         start-notebook.py
   
   ## docker-compose up --build app_nvidia_internal_gpu_driver
-  app_nvidia_internal_gpu_driver:
+  "app_nvidia_internal_gpu_driver":
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
     # tty: true  # Allocates a pseudo-TTY
     ## nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04    # CUDA-enabled base image compressed 5.5+Gb
@@ -129,7 +129,7 @@ services:
         /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
 
   ## docker-compose up --build app_macos_metal_gpu
-  app_macos_metal_gpu:
+  "app_macos_metal_gpu":
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
     # tty: true  # Allocates a pseudo-TTY
     ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
