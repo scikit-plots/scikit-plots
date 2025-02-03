@@ -57,6 +57,9 @@ services:
     volumes:
     #   - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
       - ".:/home/jovyan/work"
+    networks:
+      - "back_tier"
+      - "front_tier"
     # entrypoint:
     command:
       - "/bin/bash"
@@ -111,6 +114,9 @@ services:
     volumes:
     #   - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
       - ".:/home/jovyan/work"
+    networks:
+      - "back_tier"
+      - "front_tier"
     # entrypoint:
     command:
       - "/bin/bash"
