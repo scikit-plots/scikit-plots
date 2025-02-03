@@ -43,8 +43,7 @@
   // If this is an array of strings, it will be run as a single command without shell. Use script file.
   // If this is an object, each provided command will be run in parallel.
   "onCreateCommand": {
-    "message": "bash -c 'sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'",
-    "setup": "bash .devcontainer/setup.sh"
+    // "setup": "bash .devcontainer/setup.sh"
   },
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "git fetch --tags && pip install tox",
