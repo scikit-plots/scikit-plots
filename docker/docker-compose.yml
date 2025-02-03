@@ -26,6 +26,40 @@ networks:
 ## Declares services (containers) that will be run by Docker Compose
 services:
 
+  ## docker-compose up --build app_std_cpu
+  "app_std_cpu":
+    # stdin_open: true  # Keeps STDIN open (for interactive mode)
+    # tty: true  # Allocates a pseudo-TTY
+    ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
+    ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
+    image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    ## If the host has CUDA installed, the container can use it without installing CUDA inside.
+    ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
+    user: root  # Ensure the container runs as root
+    environment:
+      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
+    ports:
+      - "8888:8888"  # Exposing port 8888
+    ## Adjust the working directory as needed
+    working_dir: "/home/jovyan/work"
+    volumes:
+      - ".:/home/jovyan/work"
+    # entrypoint:
+    command:
+      - "/bin/bash"
+      - "-c"
+      - |-
+        apt update
+        apt install -y sudo
+        # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
+        ## Notebook
+        ## Add jovyan to the sudoers.
+        echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+        ## Change password for jovyan user
+        echo "jovyan:jovyan" | sudo chpasswd
+        start-notebook.py
+
   ## docker-compose up --build app_nvidia_host_gpu_driver
   "app_nvidia_host_gpu_driver":
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
@@ -133,37 +167,3 @@ services:
         python3 -m pip install cupy-cuda12x
         python3 -c "import cupy; print(cupy.cuda.runtime.getDeviceCount())"
         /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
-
-  ## docker-compose up --build app_macos_metal_gpu
-  "app_macos_metal_gpu":
-    # stdin_open: true  # Keeps STDIN open (for interactive mode)
-    # tty: true  # Allocates a pseudo-TTY
-    ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
-    ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
-    image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
-    ## If the host has CUDA installed, the container can use it without installing CUDA inside.
-    ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
-    user: root  # Ensure the container runs as root
-    environment:
-      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
-      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
-    ports:
-      - "8888:8888"  # Exposing port 8888
-    ## Adjust the working directory as needed
-    working_dir: "/home/jovyan/work"
-    volumes:
-      - ".:/home/jovyan/work"
-    # entrypoint:
-    command:
-      - "/bin/bash"
-      - "-c"
-      - |-
-        apt update
-        apt install -y sudo
-        # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
-        ## Notebook
-        ## Add jovyan to the sudoers.
-        echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
-        ## Change password for jovyan user
-        echo "jovyan:jovyan" | sudo chpasswd
-        start-notebook.py
