@@ -8,7 +8,7 @@
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "Skplt Host GPU Dev (notebook)",
+  "name": "Skplt Internal GPU Dev (notebook)",
   // "image": "mcr.microsoft.com/devcontainers/universal:2",
   // "build": {
     // Path is relative to the devcontainer.json file.
