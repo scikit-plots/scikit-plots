@@ -41,7 +41,7 @@
   // If this is an array of strings, it will be run as a single command without shell. Use script file.
   // If this is an object, each provided command will be run in parallel.
   "onCreateCommand": {
-    "user": "su jovyan || true"
+    "user": "gosu jovyan"
     // "setup": "bash .devcontainer/setup.sh"
   },
   // Use 'postCreateCommand' to run commands after the container is created.
