@@ -62,7 +62,7 @@ services:
         echo "jovyan ALL=(ALL) ALL" | tee -a /etc/sudoers
         ## Change password for jovyan user
         echo "jovyan:jovyan" | chpasswd
-        gosu jovyan bash
+        gosu jovyan
         start-notebook.py
 
   ## docker-compose up --build app_nvidia_host_gpu_driver
@@ -121,7 +121,7 @@ services:
         echo "jovyan ALL=(ALL) ALL" | tee -a /etc/sudoers
         ## Change password for jovyan user
         echo "jovyan:jovyan" | chpasswd
-        gosu jovyan bash
+        gosu jovyan
         start-notebook.py
   
   ## docker-compose up --build app_nvidia_internal_gpu_driver
