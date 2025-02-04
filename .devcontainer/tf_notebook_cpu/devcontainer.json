@@ -17,8 +17,8 @@
     // "args": {}
   // },
   "dockerComposeFile": "../../docker/docker-compose.yml",
-  "service": "app_notebook_cpu",
-  "runServices": ["app_notebook_cpu"],
+  "service": "notebook_cpu",
+  "runServices": ["notebook_cpu"],
   // "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "runArgs": ["--gpus","all"],
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
