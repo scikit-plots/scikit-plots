@@ -26,44 +26,55 @@ networks:
 ## Declares services (containers) that will be run by Docker Compose
 services:
 
-  ## docker-compose up --build app_std_cpu
-  "app_notebook_cpu":
+  ## docker-compose up --build notebook_cpu
+  "notebook_cpu":
+    container_name: "notebook_main"
+    ## Restart policy: always restart the container if it stops
+    restart: "always"
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
     # tty: true  # Allocates a pseudo-TTY
     ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
     ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
-    image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    # image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+      args:
+        BASE_IMAGE: "${BASE_IMAGE:-jupyter/tensorflow-notebook:latest}"
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
-    user: root  # Ensure the container runs as root
-    environment:
-      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
-      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
-    ports:
-      - "8888:8888"  # Exposing port 8888
+    # user: root  # Ensure the container runs as root
     ## Adjust the working directory as needed
     working_dir: "/home/jovyan/work"
     volumes:
       - ".:/home/jovyan/work"
+    environment:
+      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
+    ports:
+      ## Map host port 8888 to container port 8888 (default)
+      - "8888:8888"  # notebook
+      # - "5000:5000"
+      # - "9000:9000"
     networks:
       - "back_tier"
       - "front_tier"
     # entrypoint:
-    command:
-      - "/bin/bash"
-      - "-c"
-      - |-
-        apt update
-        apt install -y sudo gosu
-        # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
-        ## Notebook
-        ## Add jovyan to the sudoers.
-        # echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
-        echo "jovyan ALL=(ALL) ALL" | tee -a /etc/sudoers
-        ## Change password for jovyan user
-        echo "jovyan:jovyan" | chpasswd
-        gosu jovyan
-        start-notebook.py
+    # command:
+    #   - "/bin/bash"
+    #   - "-c"
+    #   - |-
+    #     apt update
+    #     apt install -y sudo gosu
+    #     # /bin/bash  # Starts a Bash shell so the container doesn't exit immediately
+    #     ## Notebook
+    #     ## Add jovyan to the sudoers.
+    #     # echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+    #     echo "jovyan ALL=(ALL) ALL" | tee -a /etc/sudoers
+    #     ## Change password for jovyan user
+    #     echo "jovyan:jovyan" | chpasswd
+    #     gosu jovyan
+    #     start-notebook.py --port ${JUPYTER_PORT:-8888}
 
   ## docker-compose up --build app_nvidia_host_gpu_driver
   "app_nvidia_host_gpu_driver":
