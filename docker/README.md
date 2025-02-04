@@ -1,5 +1,7 @@
 # 🚀 Docker
 
+### 💡 Work on `Docker Desktop` or `Github Codespaces`
+
 ## Docker Environment Setup for Jupyter and/or NVIDIA GPU
 
 - This repository contains Docker & Docker Compose configurations for running Jupyter Notebooks with optional NVIDIA GPU support.
@@ -15,8 +17,6 @@
  │   ├── 📝 install_gpu_nvidia_cuda.sh  # GPU setup script  
 
 ## 🏷️ Quick Start (Docker Compose)
-
-### 💡 Work on `Docker Desktop` or `Github Codespaces`
 
 ### 💡 The easiest way to launch the environment is using Docker Compose.
 
