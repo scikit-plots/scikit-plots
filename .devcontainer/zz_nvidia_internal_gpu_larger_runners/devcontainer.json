@@ -46,7 +46,7 @@
     // "setup": "bash .devcontainer/setup.sh"
   },
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "git fetch --tags && pip install tox",
+  // "postCreateCommand": "git fetch --tags && pip install tox",
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [9001],
