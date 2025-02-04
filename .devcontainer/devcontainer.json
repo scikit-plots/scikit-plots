@@ -21,8 +21,8 @@
     "ghcr.io/devcontainers/features/sshd:1": {},
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": [
-          "inkscape",
-          "ffmpeg"
+        "inkscape",
+        "ffmpeg"
       ]
     }
   },
