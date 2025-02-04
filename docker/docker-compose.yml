@@ -79,6 +79,8 @@ services:
     #     # sudo -u jovyan
     #     # gosu jovyan
     #     start-notebook.py --port ${JUPYTER_PORT:-8888}
+    #     ## Extract the Token Directly
+    #     # jupyter notebook list | grep -oP 'token=\K[^ ]+'
 
   ## docker-compose up --build app_nvidia_host_gpu_driver
   "app_nvidia_host_gpu_driver":
