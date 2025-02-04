@@ -140,10 +140,16 @@ RUN apt-get update --yes \
   && rm -rf /var/lib/apt/lists/* \
   ;
 
-## Create a root-owned folder and copy the script there
+## Create a root-owned folder and copy the script there only if it exists
 # COPY --chown="${NB_UID}:${NB_GID}" "./script/install_gpu_nvidia_cuda.sh" "/script/install_gpu_nvidia_cuda.sh"
-COPY "./script/install_gpu_nvidia_cuda.sh" "/script/install_gpu_nvidia_cuda.sh"
-RUN chmod +x "/script/install_gpu_nvidia_cuda.sh"
+COPY "./docker/script/install_gpu_nvidia_cuda.sh" "/script/install_gpu_nvidia_cuda.sh"
+# Use a wrapper script to check for file existence before running it, ([ -f file ] && ... || ...)
+RUN bash -c ' \
+  [ -f /script/install_gpu_nvidia_cuda.sh ] \
+  && chmod +x /script/install_gpu_nvidia_cuda.sh \
+  # && /script/install_gpu_nvidia_cuda.sh \
+  || echo "Script not found, skipping..." \
+  '
 
 ## Switch back to the notebook default user jovyan to avoid accidental container runs as root
 USER ${NB_UID}
