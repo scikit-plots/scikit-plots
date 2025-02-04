@@ -48,9 +48,9 @@
   // "postCreateCommand": "git fetch --tags && pip install tox",
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [8888],
+  "forwardPorts": [8889],
   "portsAttributes": {
-    "8888": {
+    "8889": {
       "label": "desktop"
     }
   },
