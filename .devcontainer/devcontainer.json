@@ -10,9 +10,9 @@
   },
   "name": "Skplt Dev Env (default)",
   "image": "mcr.microsoft.com/devcontainers/universal:2",
-  // "runArgs": ["--gpus","all"],
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+  "runArgs": ["--gpus","all"],
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
   "features": {
     "ghcr.io/devcontainers/features/common-utils:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
@@ -26,7 +26,7 @@
       ]
     }
   },
-  "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
+  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   // If this is a single string, it will be run in a shell.
   // If this is an array of strings, it will be run as a single command without shell. Use script file.
   // If this is an object, each provided command will be run in parallel.
@@ -34,13 +34,13 @@
     "message": "bash -c 'sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'",
     "setup": "bash .devcontainer/setup.sh"
   },
-	// Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "git fetch --tags && pip install tox",
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "git fetch --tags && pip install tox",
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [9001],
+  "forwardPorts": [8888],
   "portsAttributes": {
-    "9001": {
+    "8888": {
       "label": "desktop"
     }
   },
