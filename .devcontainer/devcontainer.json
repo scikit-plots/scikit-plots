@@ -10,7 +10,7 @@
   },
   "name": "Skplt Dev Env (default)",
   "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "runArgs": ["--gpus","all"],
+  // "runArgs": ["--gpus","all"],
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "remoteUser": "root"
   "features": {
