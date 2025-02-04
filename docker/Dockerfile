@@ -48,7 +48,7 @@ RUN apt-get update \
   && apt-get install -y sudo gosu \
   # && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
-  && echo "jovyan:jovyan" | chpasswd
+  && echo "jovyan:jovyan" | chpasswd \
   ;
 
 ## If Time Zone Error
