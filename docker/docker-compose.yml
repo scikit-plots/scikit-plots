@@ -159,7 +159,10 @@ services:
           devices:
             - driver: nvidia
               capabilities: [gpu]
+              # count: 1
+              # device_ids: ['0', '3']
     environment:
+      ## https://forums.developer.nvidia.com/t/nvidia-docker-runtime-does-not-seem-to-work-with-docker-compose/307879
       # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       - NVIDIA_DISABLE_REQUIRE=1
