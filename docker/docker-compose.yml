@@ -93,6 +93,7 @@ services:
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
     user: root  # Ensure the container runs as root, jupyter default jovyan
+    ## https://docs.docker.com/engine/containers/resource_constraints/#gpu
     runtime: nvidia  # Enable NVIDIA runtime
     deploy:
       resources:
@@ -152,6 +153,7 @@ services:
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
     # user: root  # Ensure the container runs as root, ubuntu default root
+    ## https://docs.docker.com/engine/containers/resource_constraints/#gpu
     runtime: nvidia  # Enable NVIDIA runtime
     deploy:
       resources:
