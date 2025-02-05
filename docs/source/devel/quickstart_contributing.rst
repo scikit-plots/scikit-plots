@@ -84,8 +84,15 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 .. code-block:: shell
 
     git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
-    git submodule update --init  # download submodules
     cd scikit-plots
+
+    # to initialise local config file and fetch + checkout submodule (not needed every time)
+    git submodule update --init --recursive  # download submodules
+    # pulls changes from the upstream remote repo and merges them
+    git submodule update --recursive --remote --merge
+    # Updating your submodule to the latest commit
+    git submodule update --remote
+
     git remote add upstream https://github.com/scikit-plots/scikit-plots.git
     git fetch upstream --tags
 
@@ -98,8 +105,8 @@ You can see the remote repositories as follows::
 
 You will see something like::
 
-    >>> origin  git@github.com:YOUR-USER-NAME/scikit-plots.git (fetch)
-    >>> origin  git@github.com:YOUR-USER-NAME/scikit-plots.git (push)
+    >>> origin  https://github.com/YOUR-USER-NAME/scikit-plots (fetch)
+    >>> origin  https://github.com/YOUR-USER-NAME/scikit-plots (push)
     >>> upstream        https://github.com/scikit-plots/scikit-plots.git (fetch)
     >>> upstream        https://github.com/scikit-plots/scikit-plots.git (push)
 
@@ -224,7 +231,7 @@ using the `git switch <https://git-scm.com/docs/git-switch>`_ command.
 
 Using a descriptive branch name can help you stay organized. For example
 ```kds-commented-header``` might be a good name for a branch that fixes the
-commented header issue `#15513 <https://github.com/scikit-plots/scikit-plots/issues/15513>`_ in
+commented header issue `#1 <https://github.com/scikit-plots/scikit-plots/issues/1>`_ in
 the ``kds`` sub-package.
 
 When you want to update the feature branch with changes in main after
