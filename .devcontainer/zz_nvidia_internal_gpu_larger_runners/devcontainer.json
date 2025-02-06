@@ -65,6 +65,7 @@
         "ms-toolsai.jupyter",
         "ms-python.black-formatter",
         "ms-vscode.live-server",
+        "ritwickdey.liveserver",
         "charliermarsh.ruff",
         "stkb.rewrap"
       ],

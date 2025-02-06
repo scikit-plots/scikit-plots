@@ -39,7 +39,7 @@ pca = PCA(random_state=0).fit(X_train)
 
 # Plot!
 ax = sp.decomposition.plot_pca_component_variance(
-    pca, figsize=(9,5)
+    pca, figsize=(9, 5)
 );
 
 # Adjust layout to make sure everything fits

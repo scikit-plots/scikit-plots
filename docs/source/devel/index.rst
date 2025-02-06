@@ -46,11 +46,11 @@ Here you'll find all the guidance and resources you need to quickly start contri
 
       **Quickstart**
       ^^^
-      Get up and running quickly:
+      Get up and running quickly to local:
 
       .. toctree::
          :maxdepth: 2
-         :caption: Resources
+         :caption: quickstart
 
          Quickstart Contributing <quickstart_contributing.rst>
 
@@ -59,11 +59,11 @@ Here you'll find all the guidance and resources you need to quickly start contri
 
       **Docker Desktop or Github Codespaces**
       ^^^
-      Running quickly by Docker Env:
+      Fast launch by predefined Docker Env:
 
       .. toctree::
          :maxdepth: 2
-         :caption: Resources
+         :caption: docker
 
          Docker <docker.rst>
 
@@ -124,6 +124,7 @@ to contributing, we recommend that you first read our
 
 .. toctree::
    :hidden:
+   :caption: getting started
 
    Getting Started Contributing <contribute.rst>
 
