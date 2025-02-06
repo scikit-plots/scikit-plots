@@ -1,0 +1,191 @@
+{
+ "ImageFont.load_default": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "PIL.ImageFont",
+   "module_short": "PIL.ImageFont",
+   "name": "load_default"
+  }
+ ],
+ "ImageFont.truetype": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "PIL.ImageFont",
+   "module_short": "PIL.ImageFont",
+   "name": "truetype"
+  }
+ ],
+ "defaultdict": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "collections",
+   "module_short": "collections",
+   "name": "defaultdict"
+  }
+ ],
+ "gc.collect": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "gc",
+   "module_short": "gc",
+   "name": "collect"
+  }
+ ],
+ "platform.system": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "platform",
+   "module_short": "platform",
+   "name": "system"
+  }
+ ],
+ "plt.axis": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "axis"
+  }
+ ],
+ "plt.imshow": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "imshow"
+  }
+ ],
+ "plt.show": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "show"
+  }
+ ],
+ "scikitplot.visualkeras": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "scikitplot",
+   "module_short": "scikitplot",
+   "name": "visualkeras"
+  }
+ ],
+ "tensorflow.keras.Model": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "tensorflow.keras",
+   "module_short": "tensorflow.keras",
+   "name": "Model"
+  }
+ ],
+ "tf.keras.backend.clear_session": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.backend",
+   "module_short": "tensorflow.keras.backend",
+   "name": "clear_session"
+  }
+ ],
+ "tf.keras.layers.Conv2D": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Conv2D"
+  }
+ ],
+ "tf.keras.layers.Dense": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Dense"
+  }
+ ],
+ "tf.keras.layers.Dropout": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Dropout"
+  }
+ ],
+ "tf.keras.layers.Flatten": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Flatten"
+  }
+ ],
+ "tf.keras.layers.InputLayer": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "InputLayer"
+  }
+ ],
+ "tf.keras.layers.MaxPooling2D": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "MaxPooling2D"
+  }
+ ],
+ "tf.keras.layers.ZeroPadding2D": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "ZeroPadding2D"
+  }
+ ],
+ "tf.keras.models.Sequential": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.models",
+   "module_short": "tensorflow.keras.models",
+   "name": "Sequential"
+  }
+ ],
+ "visualkeras.SpacingDummyLayer": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scikitplot.visualkeras",
+   "module_short": "scikitplot.visualkeras",
+   "name": "SpacingDummyLayer"
+  }
+ ],
+ "visualkeras.layered_view": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scikitplot.visualkeras",
+   "module_short": "scikitplot.visualkeras",
+   "name": "layered_view"
+  }
+ ]
+}

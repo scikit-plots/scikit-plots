@@ -1,17 +1,17 @@
 ## This file is the modern replacement for setup.py, used to configure how your Python package is built.
-## 
+##
 ## https://packaging.python.org/en/latest/discussions/setup-py-deprecated/#setup-py-deprecated
 ##
 ## https://packaging.python.org/en/latest/specifications/pyproject-toml/
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#a-full-example
-## 
+##
 ## The [build-system] section specifies the build system requirements.
 ## "setuptools.build_meta" is the default backend used by setuptools for building projects.
 ## You can add other build like 'mesonpy' dependencies as needed.
-## 
+##
 ## https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html
 ## https://setuptools.pypa.io/en/stable/userguide/declarative_config.html#metadata
-## 
+##
 ## SciPy probably the most complex project using Meson and meson-python.
 ## It combines CPython extensions and libraries written in C, C++, Fortran, Cython, and Pythran.
 ##
@@ -113,7 +113,7 @@ license = {file = "LICENSE"}  # Primary license file
 
 ## [tool.meson-python]
 ## license-files field to be used only if the license field contains a valid SPDX license expression.
-## license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later', 
+## license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later',
 ## license-files = ['LICEN[CS]E*', 'LICENSE']  # must valid glob patterns
 
 ## List the authors of the project

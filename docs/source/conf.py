@@ -1,5 +1,4 @@
-"""
-scikit-plots documentation build config file, created by sphinx-quickstart.
+"""scikit-plots documentation build config file, created by sphinx-quickstart.
 
 This file is executed with the current directory set to its containing dir
 by ``execfile()``, e.g. the working directory will be scikit-plots/docs.
@@ -18,7 +17,7 @@ for more details on configuring the documentation build.
 # sphinx conf
 # scikit-plots documentation build configuration file, created by
 # sphinx-quickstart on Sun Feb 12 17:56:21 2017.
-# 
+#
 ##########################################################################
 ## Imports
 ##########################################################################
@@ -62,6 +61,8 @@ except ImportError:
   # Make it possible to render the doc when not running the examples
   # that need plotly.
   pass
+
+import scikitplot
 
 ##########################################################################
 ## Project information
@@ -159,7 +160,7 @@ extensions = [
   "sphinx.ext.autosummary",       # Generate autodoc summaries
   "numpydoc",                     # Support for NumPy-style docstrings, Needs to be loaded *after* autodoc.
   'sphinx.ext.napoleon',          # Support for NumPy and Google style docstrings
-  
+
   # Built-in extensions (load early)
   "sphinx.ext.ifconfig",          # Include content based on configuration
   "sphinx.ext.extlinks",          # Markup to shorten external links by extlinks
@@ -180,12 +181,13 @@ extensions = [
   'matplotlib.sphinxext.figmpl_directive',
   'matplotlib.sphinxext.mathmpl',
   "matplotlib.sphinxext.plot_directive",  # Integrate Matplotlib plots into documentation.
-  'matplotlib.sphinxext.roles',
-  
+  # 'matplotlib.sphinxext.roles',           # required matplotlib 3.9.1
+  'scikitplot.sphinxext.roles',           # required matplotlib 3.9.1
+
   # IPython extensions (load after built-ins and matplotlib)
   'IPython.sphinxext.ipython_console_highlighting',
   'IPython.sphinxext.ipython_directive',
-  
+
   # Third-party extensions (load after built-ins and matplotlib/IPython)
   # https://sphinx-extensions.readthedocs.io/en/latest/
   "sphinx-prompt",                # Add prompts and outputs to your documentation
@@ -200,13 +202,13 @@ extensions = [
   "sphinx_gallery.gen_gallery",   # Generate galleries of example scripts and figures.
   "sphinxcontrib.sass",           # Support for SASS stylesheets in Sphinx documentation.
   'sphinxcontrib.inkscapeconverter',  # Convert SVGs created by Inkscape.
-  
+
   # Custom extensions (these should be placed last to avoid conflicts)
   # See _sphinx_ext/
   # local matplotlib: Custom extensions
   "_sphinx_ext.mpl_ext.redirect_from",
   "_sphinx_ext.mpl_ext.github",
-  
+
   # local sklearn: Custom extensions
   "_sphinx_ext.sklearn_ext.allow_nan_estimators",         # Custom extension for handling NaN values in estimators.
   "_sphinx_ext.sklearn_ext.autoshortsummary",             # Custom extension for generating short summaries.
@@ -215,16 +217,16 @@ extensions = [
   "_sphinx_ext.sklearn_ext.override_pst_pagetoc",         # Custom extension for overriding page TOC in certain cases.
   "_sphinx_ext.sklearn_ext.sphinx_issues",                # Custom extension for managing and displaying issues.
   "_sphinx_ext.sklearn_ext.move_gallery_links",           # Custom extension for rearranging gallery links.
-  
+
   # sp: Custom extensions
   "_sphinx_ext.skplt_ext.url_extension",                  # URL, REPLite extension
   "_sphinx_ext.skplt_ext.version_info_extension",         # version_info_extension
-  # "_sphinx_ext.skplt_ext.api_extension",                  # api_extension extension   
-  
+  # "_sphinx_ext.skplt_ext.api_extension",                  # api_extension extension
+
   # Tags and other utility extensions (load last if they depend on others)
   # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
   'sphinx_tags',  # Needs to be loaded *after* autodoc.
-  
+
   "_sphinx_ext.sklearn_ext.search_filter",                # Custom extension
   "_sphinx_ext.sklearn_ext.add_js_css_files",             # Custom extension
 ]
@@ -251,8 +253,8 @@ else:
 try:
   import jupyter_sphinx  # noqa: F401
   extensions.append("jupyter_sphinx")
-  
-  import jupyterlite_sphinx  # noqa: F401  
+
+  import jupyterlite_sphinx  # noqa: F401
   extensions.append("jupyterlite_sphinx")
   with_jupyterlite = True
 except ImportError:
@@ -284,14 +286,14 @@ def _check_dependencies():
       # module = importlib.import_module(module_name)
       module = __import__(module_name)
       print(module)
-    except Exception as e:      
+    except Exception as e:
       raise ImportError(
         "The following dependencies are missing to build the "
         f"documentation: { module_name }") from e
 
   # debug sphinx-pydata-theme and mpl-theme-version
   import pydata_sphinx_theme
-  print(f"pydata sphinx theme : {pydata_sphinx_theme.__version__}")   
+  print(f"pydata sphinx theme : {pydata_sphinx_theme.__version__}")
   # import mpl_sphinx_theme
   # print(f"mpl sphinx theme: {mpl_sphinx_theme.__version__}")
 
@@ -309,7 +311,7 @@ _check_dependencies()
 ##########################################################################
 ## READ_THE_DOCS configuration
 ##########################################################################
-  
+
 # -- Sitemap ---------------------------------------------------------
 # ReadTheDocs has its own way of generating sitemaps, etc.
 # if not os.environ.get("READTHEDOCS"):
@@ -346,7 +348,7 @@ _check_dependencies()
 # today = ''
 # Else, today_fmt is used as the format for a strftime call.
 # today_fmt = '%B %d, %Y'
-# 
+#
 # Option 2: Use today's date in the specified format
 today_fmt = '%B %d, %Y'
 today = datetime.datetime.today().strftime(today_fmt)
@@ -395,7 +397,7 @@ language = 'en'  # default
 #   - 'subscript' – subscript text
 #   - 'superscript' – superscript text
 #   - 'title-reference' – for titles of books, periodicals, and other materials
-# 
+#
 # https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#roles
 # want references to Python objects (like classes or functions), then use this role.
 # default_role = 'obj'  # 'any' 'py:obj'
@@ -506,7 +508,7 @@ html_theme_options = {
   # -- Search and Edit ------------------------------------------------------
   "search_bar_text": "Search the docs ...",
   "use_edit_page_button": True,
-  
+
   # -- Appearance Settings --------------------------------------------------
   "pygments_light_style": "tango",
   "pygments_dark_style": "monokai",
@@ -524,7 +526,7 @@ html_theme_options = {
   # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html#configure-switcher-json-url
   "check_switcher": True,
 
-  # -- External and Icon Links ----------------------------------------------    
+  # -- External and Icon Links ----------------------------------------------
   "external_links": [],
   "icon_links_label": "Icon Links",
   "icon_links": [
@@ -549,10 +551,10 @@ html_theme_options = {
   # "repository_branch": "main",
   # "use_issues_button": True,
   # "use_fullscreen_button": False,
-  
-  # -- Header and Footer Settings -------------------------------------------   
+
+  # -- Header and Footer Settings -------------------------------------------
   "header_links_before_dropdown": 5,
-  "header_dropdown_text": "More", 
+  "header_dropdown_text": "More",
   "navbar_align": "left",
   "navbar_start": ["navbar-logo"],
   # Note that the alignment of navbar_center is controlled by navbar_align
@@ -564,12 +566,12 @@ html_theme_options = {
   "footer_start": ["copyright"],
   "footer_center": [],
   "footer_end": [],
-  
+
   # -- Article and Content Settings -----------------------------------------
   "article_header_start": ["breadcrumbs"],
   "article_header_end": [],
   "article_footer_items": ["prev-next"],
-  
+
   # -- Navigation Settings --------------------------------------------------
   "sidebar_includehidden": True,
   "collapse_navigation": False,
@@ -581,9 +583,9 @@ html_theme_options = {
   # https://github.com/pydata/pydata-sphinx-theme/blob/b731dc230bc26a3d1d1bb039c56c977a9b3d25d8/src/pydata_sphinx_theme/theme/pydata_sphinx_theme/layout.html#L118-L129
   "show_prev_next": False,
   "navigation_with_keys": False,
-  
+
   # Use html_sidebars that map page patterns to list of sidebar templates
-  "primary_sidebar_end": [],    
+  "primary_sidebar_end": [],
   # When specified as a dictionary, the keys should follow glob-style patterns, as in
   # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-exclude_patterns
   # In particular, "**" specifies the default for all pages
@@ -598,13 +600,13 @@ html_theme_options = {
       # "sg_launcher_links",
     ],
   },
-  
+
   # -- Announcement ---------------------------------------------------------
   # We override the announcement template from pydata-sphinx-theme, where
   # this special value indicates the use of the unreleased banner. If we need
   # an actual announcement, then just place the text here as usual.
   "announcement": None,  # "unreleased" if not is_release_build else None,
-  
+
   # "analytics": {
   #     "plausible_analytics_domain": "scikit-plots.github.io",
   #     "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
@@ -755,16 +757,16 @@ html_additional_pages = {
 ##########################################################################
 
 # latex_elements = {
-#     # The paper size ('letterpaper' or 'a4paper').    
+#     # The paper size ('letterpaper' or 'a4paper').
 #     'papersize': 'letterpaper',
-    
-#     # The font size ('10pt', '11pt' or '12pt').    
+
+#     # The font size ('10pt', '11pt' or '12pt').
 #     'pointsize': '10pt',
-    
-#     # Additional stuff for the LaTeX preamble.    
+
+#     # Additional stuff for the LaTeX preamble.
 #     'preamble': '',
-    
-#     # Latex figure (float) alignment    
+
+#     # Latex figure (float) alignment
 #     'figure_align': 'htbp',
 # }
 
@@ -1319,7 +1321,7 @@ sphinx_gallery_conf = {
   # "ignore_pattern": r'__init__\\.py',
   # Only run files with filenames matching this pattern (default is ".py")
   # "filename_pattern": r'/plot',
-  # 'filename_pattern': r'^((?!(sg|skip)).)*$',  
+  # 'filename_pattern': r'^((?!(sg|skip)).)*$',
 
   # Binder integration
   "binder": {
@@ -1433,7 +1435,7 @@ release_versions_rst_templates = [
 # If development build, link to local page in the top navbar; otherwise link to the
 # development version; see https://github.com/scikit-learn/scikit-learn/pull/22550
 development_link = (
-  "devel/index" if is_devrelease else 
+  "devel/index" if is_devrelease else
   "https://scikit-plots.github.io/dev/devel/index.html"
 )
 

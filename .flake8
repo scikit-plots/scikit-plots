@@ -1,0 +1,44 @@
+[flake8]
+max-line-length = 88
+select =
+    # flake8 default
+    D, E, F, W,
+ignore =
+    # flake8 default
+    E121,E123,E126,E226,E24,E704,W503,W504,
+    # Additional ignores:
+    E127, E131,
+    E266,
+    E305, E306,
+    E741,
+    F841,
+    # pydocstyle
+    D100, D101, D102, D103, D104, D105, D106,
+    D200, D202, D204, D205,
+    D301,
+    D400, D401, D403, D404
+    # ignored by pydocstyle numpy docstring convention
+    D107, D203, D212, D402, D413, D415, D416, D417,
+    # while D213 is ignored by the numpy docstring convention, it's left out above,
+    # because we want to enforce it.
+
+extend-ignore = E202, E203, E221, E251, E265, E302, E303, F401, E402, E501, E702, E703, E722
+
+exclude =
+    .git
+    build/
+    docs/source/auto_examples/
+    docs/source/conf.py
+    # External files.
+    # tools
+    .tox
+    .eggs
+
+per-file-ignores =
+    docs/source/conf.py: E402
+
+    docs/source/auto_examples/decomposition/plot_pca_component_variance_script.py: E231
+
+    scikitplot/kds/_kds.py: D412, E225, E231, E261, E262, D412
+
+force-check = True

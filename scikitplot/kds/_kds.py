@@ -30,6 +30,7 @@ from ..api._utils.validation import (
   validate_y_probas_bounds_decorator,
 )
 
+from .._seaborn._compat import groupby_apply_include_groups
 from .. import _api, _docstring, _preprocess
 
 
@@ -50,18 +51,18 @@ def print_labels(**kwargs):
     A legend for the abbreviations of decile table column names.
 
     .. versionadded:: 0.3.9
-        
+
     See Also
     --------
     decile_table : Generates the Decile Table from labels and probabilities.
-    
+
     References
     ----------
     [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L5
 
     Examples
     --------
-    
+
     .. jupyter-execute::
 
         >>> import scikitplot as skplt
@@ -69,7 +70,7 @@ def print_labels(**kwargs):
     """
     print(
         "LABELS INFO:\n\n",
-        "prob_min         : Minimum probability in a particular decile\n", 
+        "prob_min         : Minimum probability in a particular decile\n",
         "prob_max         : Minimum probability in a particular decile\n",
         "prob_avg         : Average probability in a particular decile\n",
         "cnt_events       : Count of events in a particular decile\n",
@@ -110,11 +111,11 @@ def decile_table(
 ):
     """
     Generates the Decile Table from labels and probabilities
-    
-    The Decile Table is creared by first sorting the customers by their predicted 
-    probabilities, in decreasing order from highest (closest to one) to 
-    lowest (closest to zero). Splitting the customers into equally sized segments, 
-    we create groups containing the same numbers of customers, for example, 10 decile 
+
+    The Decile Table is creared by first sorting the customers by their predicted
+    probabilities, in decreasing order from highest (closest to one) to
+    lowest (closest to zero). Splitting the customers into equally sized segments,
+    we create groups containing the same numbers of customers, for example, 10 decile
     groups each containing 10% of the customer base.
 
     .. versionadded:: 0.3.9
@@ -128,11 +129,11 @@ def decile_table(
         Prediction probabilities for each class returned by a classifier/algorithm.
 
     pos_label : scalar, optional
-        The positive label for binary classification. If None, it defaults to 
+        The positive label for binary classification. If None, it defaults to
         `classes[1]`.
 
         .. versionadded:: 0.3.9
-        
+
     class_index : int, optional
         Index of the class for which to extract probabilities in multi-class case.
         If None, returns all class probabilities in the 2D case. Ignored if y_probas is 1D.
@@ -149,16 +150,16 @@ def decile_table(
 
     labels : bool, optional, default=True
         If True, prints a legend for the abbreviations of decile table column names.
-        
+
     **kwargs : dict, optional
-         
+
         .. versionadded:: 0.3.9
 
     Returns
     -------
     pandas.DataFrame
         The dataframe `dt` (decile-table) with the deciles and related information.
-        
+
     See Also
     --------
     print_labels : A legend for the abbreviations of decile table column names.
@@ -169,7 +170,7 @@ def decile_table(
 
     Examples
     --------
-    
+
     .. jupyter-execute::
 
         >>> from sklearn.datasets import load_breast_cancer as data_2_classes
@@ -190,8 +191,8 @@ def decile_table(
     df = pd.DataFrame()
     df['y_true'] = y_true
     df['y_prob'] = y_probas
-  
-    # df['decile']=pd.qcut(df['y_prob'], 10, labels=list(np.arange(10,0,-1))) 
+
+    # df['decile']=pd.qcut(df['y_prob'], 10, labels=list(np.arange(10,0,-1)))
     # ValueError: Bin edges must be unique
     # Sort by probabilities
     df = df.sort_values(by=['y_prob'], ascending=False)
@@ -213,7 +214,7 @@ def decile_table(
                 ["prob_min", "prob_max", "prob_avg", "cnt_cust", "cnt_resp", "cnt_non_resp"]
             ),
         ),
-        include_groups=False,  # Deprecated since version 2.2.0: Setting include_groups to True is deprecated.
+        **groupby_apply_include_groups(False),  # Deprecated since version 2.2.0: Setting include_groups to True is deprecated.
     ).reset_index()
 
     # Round the results
@@ -282,17 +283,17 @@ def plot_lift(
   ## additional params
   **kwargs,
 ):
-    """\
+    """
     Generates the Decile based cumulative Lift Plot from labels and probabilities.
-    
+
     .. dropdown:: View aliases
 
         **Main aliases**
-        
+
         `scikitplot.api.kds.plot_lift`
 
         **Compat aliases**
-        
+
         `scikitplot.kds.plot_lift`
 
     The lift curve is used to determine the effectiveness of a
@@ -306,8 +307,8 @@ def plot_lift(
         Ground truth (correct) target values.
 
     y_probas : array-like of shape (n_samples,) or (n_samples, n_classes)
-        Predicted probabilities for each class or only target class probabilities. 
-        If 1D, it is treated as probabilities for the positive class in binary 
+        Predicted probabilities for each class or only target class probabilities.
+        If 1D, it is treated as probabilities for the positive class in binary
         or multiclass classification with the `class_index`.
 
     class_index : int, optional, default=1
@@ -322,32 +323,32 @@ def plot_lift(
 
     text_fontsize : str or int, optional, default='medium'
         Font size for the text in the plot.
-        
+
     **kwargs : dict, optional
-         
+
         .. versionadded:: 0.3.9
 
     Other Parameters
-    ----------------    
+    ----------------
     %(_validate_plotting_kwargs_doc)s
 
     Returns
     -------
     matplotlib.axes.Axes
         The axes with the plotted lift curves.
-        
+
     See Also
     --------
     plot_lift_decile_wise : Generates the Decile-wise Lift Plot from labels and probabilities.
 
     Examples
     --------
-    
+
     .. plot::
        :context: close-figs
        :align: center
        :alt: Lift Curves
-    
+
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
@@ -370,17 +371,17 @@ def plot_lift(
     # fig, ax = validate_plotting_kwargs(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
-    
+
     # Proceed with your plotting logic here, e.g.:
-    ax.plot(pl.decile.values, pl.lift.values, marker='o', label='Model')    
+    ax.plot(pl.decile.values, pl.lift.values, marker='o', label='Model')
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
     ax.plot([1, 10], [1, 1], 'k--', marker='o', label='Random')
-    
+
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel('Deciles', fontsize=text_fontsize)
     plt.ylabel('Lift', fontsize=text_fontsize)
     plt.legend()
-    plt.grid(True)    
+    plt.grid(True)
     # plt.show()
     return ax
 
@@ -451,7 +452,7 @@ def plot_lift_decile_wise(
     -------
     matplotlib.axes.Axes
         The axes with the plotted Decile-wise Lift curves.
-        
+
     See Also
     --------
     plot_lift : Generates the Decile based cumulative Lift Plot from labels and probabilities.
@@ -462,12 +463,12 @@ def plot_lift_decile_wise(
 
     Examples
     --------
-    
+
     .. plot::
        :context: close-figs
        :align: center
        :alt: Lift Decile Wise Curves
-    
+
         >>> import scikitplot as skplt
         >>> from sklearn.datasets import load_iris
         >>> from sklearn.model_selection import train_test_split
@@ -480,7 +481,7 @@ def plot_lift_decile_wise(
         >>> skplt.kds.plot_lift_decile_wise(y_test, y_prob, class_index=1)
     """
     # Convert input to numpy arrays for efficient processing
-        
+
     pldw = decile_table(y_true, y_probas, labels=False)
 
     ##################################################################
@@ -489,17 +490,17 @@ def plot_lift_decile_wise(
     # fig, ax = validate_plotting_kwargs(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
-    
+
     # Proceed with your plotting logic here, e.g.:
     ax.plot(pldw.decile.values, pldw.cnt_resp.values / pldw.cnt_resp_rndm.values, marker='o', label='Model')
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
     ax.plot([1, 10], [1, 1], 'k--', marker='o', label='Random')
-    
+
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel('Deciles', fontsize=text_fontsize)
     plt.ylabel('Lift @ Decile', fontsize=text_fontsize)
     plt.legend()
-    plt.grid(True)    
+    plt.grid(True)
     # plt.show()
     return ax
 
@@ -541,21 +542,21 @@ def plot_cumulative_gain(
     binary classifier. A detailed explanation can be found at
     http://www2.cs.uregina.ca/~dbd/cs831/notes/lift_chart/lift_chart.html
     The implementation here works only for binary classification.
-    
+
     Parameters
     ----------
     y_true : array-like of shape (n_samples,)
         Ground truth (correct) target values.
-    
+
     y_probas : array-like of shape (n_samples,) or (n_samples, n_classes)
-        Predicted probabilities for each class or only target class probabilities. 
-        If 1D, it is treated as probabilities for the positive class in binary 
+        Predicted probabilities for each class or only target class probabilities.
+        If 1D, it is treated as probabilities for the positive class in binary
         or multiclass classification with the `class_index`.
-    
+
     class_index : int, optional, default=1
         Index of the class of interest for multi-class classification. Ignored for
         binary classification.
-    
+
     title : str, optional, default='Cumulative Gain Curves'
         Title of the generated plot.
 
@@ -569,37 +570,37 @@ def plot_cumulative_gain(
         plot will be used (or generated if required).
 
         .. versionadded:: 0.3.9
-    
+
     figsize : tuple of int, optional, default=None
         Size of the figure (width, height) in inches.
-    
+
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title.
-    
+
     text_fontsize : str or int, optional, default='medium'
         Font size for the text in the plot.
-    
+
     Returns
     -------
     matplotlib.axes.Axes
         The axes with the plotted cumulative gain curves.
-    
+
     Notes
     -----
     The implementation is specific to binary classification.
-    
+
     References
     ----------
     [1] http://mlwiki.org/index.php/Cumulative_Gain_Chart
-    
+
     Examples
     --------
-    
+
     .. plot::
        :context: close-figs
        :align: center
        :alt: Cumulative Gain Curves
-    
+
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
@@ -613,7 +614,7 @@ def plot_cumulative_gain(
         >>> );
     """
     # Convert input to numpy arrays for efficient processing
-        
+
     pcg = decile_table(y_true, y_probas, labels=False)
 
     ##################################################################
@@ -622,18 +623,18 @@ def plot_cumulative_gain(
     # fig, ax = validate_plotting_kwargs(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
-    
+
     # Proceed with your plotting logic here, e.g.:
     ax.plot(np.append(0, pcg.decile.values), np.append(0, pcg.cum_resp_pct.values), marker='o', label='Model')
     ax.plot(np.append(0, pcg.decile.values), np.append(0, pcg.cum_resp_pct_wiz.values), 'c--', label='Wizard')
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
     ax.plot([0, 10], [0, 100], 'k--', marker='o', label='Random')
-    
+
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel('Deciles', fontsize=text_fontsize)
     plt.ylabel('% Resonders', fontsize=text_fontsize)
     plt.legend()
-    plt.grid(True)    
+    plt.grid(True)
     # plt.show()
     return ax
 
@@ -668,10 +669,10 @@ def plot_ks_statistic(
     """
     Generates the KS Statistic Plot from labels and probabilities
 
-    Kolmogorov-Smirnov (KS) statistic is used to measure how well the 
-    binary classifier model separates the Responder class (Yes) from 
-    Non-Responder class (No). The range of K-S statistic is between 0 and 1. 
-    Higher the KS statistic value better the model in separating the 
+    Kolmogorov-Smirnov (KS) statistic is used to measure how well the
+    binary classifier model separates the Responder class (Yes) from
+    Non-Responder class (No). The range of K-S statistic is between 0 and 1.
+    Higher the KS statistic value better the model in separating the
     Responder class from Non-Responder class.
 
     Parameters
@@ -681,7 +682,7 @@ def plot_ks_statistic(
 
     y_probas : array-like, shape (n_samples, n_classes)
         Prediction probabilities for each class returned by a classifier.
-    
+
     class_index : int, optional, default=1
         Index of the class of interest for multi-class classification. Ignored for
         binary classification.
@@ -721,12 +722,12 @@ def plot_ks_statistic(
 
     Examples
     --------
-    
+
     .. plot::
        :context: close-figs
        :align: center
        :alt: KS Statistic Plot
-    
+
         >>> from sklearn.datasets import load_breast_cancer as data_2_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
@@ -740,7 +741,7 @@ def plot_ks_statistic(
         >>> );
     """
     # Convert input to numpy arrays for efficient processing
-        
+
     pks = decile_table(y_true, y_probas, labels=False)
 
     ##################################################################
@@ -749,7 +750,7 @@ def plot_ks_statistic(
     # fig, ax = validate_plotting_kwargs(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
-    
+
     # Proceed with your plotting logic here, e.g.:
     ax.plot(np.append(0, pks.decile.values), np.append(0, pks.cum_resp_pct.values),
              marker='o', label='Responders')
@@ -762,12 +763,12 @@ def plot_ks_statistic(
              [pks[pks.KS == ksmx].cum_resp_pct.values,
               pks[pks.KS == ksmx].cum_non_resp_pct.values],
              'g--', marker='o', label='KS Statisic: ' + str(ksmx) + ' at decile ' + str(list(ksdcl)[0]))
-    
+
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel('Deciles', fontsize=text_fontsize)
     plt.ylabel('% Resonders', fontsize=text_fontsize)
     plt.legend()
-    plt.grid(True)    
+    plt.grid(True)
     # plt.show()
     return ax
 
@@ -798,14 +799,14 @@ def report(
   ## additional params
   **kwargs,
 ):
-    """    
+    """
     Generates a decile table and four plots:
-    
+
     - ``Lift`` -> :func:`~scikitplot.kds.plot_lift`
     - ``Lift@Decile`` -> :func:`~scikitplot.kds.plot_lift_decile_wise`
     - ``Gain`` -> :func:`~scikitplot.kds.plot_cumulative_gain`
     - ``KS`` -> :func:`~scikitplot.kds.plot_ks_statistic`
-    
+
     from labels and probabilities.
 
     Parameters
@@ -815,7 +816,7 @@ def report(
 
     y_probas : array-like, shape (n_samples, n_classes)
         Prediction probabilities for each class returned by a classifier.
-    
+
     class_index : int, optional, default=1
         Index of the class of interest for multi-class classification. Ignored for
         binary classification.
@@ -851,8 +852,8 @@ def report(
 
     plot_style : str, optional, default=None
         Check available styles with "plt.style.available". Examples include:
-        ['ggplot', 'seaborn', 'bmh', 'classic', 'dark_background', 'fivethirtyeight', 
-        'grayscale', 'seaborn-bright', 'seaborn-colorblind', 'seaborn-dark', 
+        ['ggplot', 'seaborn', 'bmh', 'classic', 'dark_background', 'fivethirtyeight',
+        'grayscale', 'seaborn-bright', 'seaborn-colorblind', 'seaborn-dark',
         'seaborn-dark-palette', 'tableau-colorblind10', 'fast'].
 
         .. versionadded:: 0.3.9
@@ -861,7 +862,7 @@ def report(
     -------
     pandas.DataFrame
         The dataframe containing the decile table with the deciles and related information.
-        
+
     See Also
     --------
     plot_lift : Generates the Decile based cumulative Lift Plot from labels and probabilities.
@@ -882,7 +883,7 @@ def report(
 
     Examples
     --------
-        
+
     .. jupyter-execute::
 
         >>> from sklearn.datasets import load_breast_cancer as data_2_classes
@@ -898,7 +899,7 @@ def report(
         >>> )
         >>> dt
     """
-    # Convert input to numpy arrays for efficient processing    
+    # Convert input to numpy arrays for efficient processing
     dc = decile_table(
         y_true,
         y_probas,
@@ -913,7 +914,7 @@ def report(
         None
     else:
         plt.style.use(plot_style)
-    
+
     fig = plt.figure(figsize=figsize)
 
     # Cumulative Lift Plot

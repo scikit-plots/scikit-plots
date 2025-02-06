@@ -83,6 +83,7 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
 .. code-block:: shell
 
+    # Forked repo: https://github.com/scikit-plots/scikit-plots.git
     git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
     cd scikit-plots
 
