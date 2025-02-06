@@ -47,7 +47,7 @@ services:
     ## Adjust the working directory as needed
     working_dir: "/home/jovyan/work"
     volumes:
-      - ".:/home/jovyan/work"
+      - "../:/home/jovyan/work"
     environment:
       # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
