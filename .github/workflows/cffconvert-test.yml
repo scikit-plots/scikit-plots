@@ -10,6 +10,9 @@ on:
       - "CITATION.cff"
   workflow_dispatch: # Allows manual triggering of the workflow
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

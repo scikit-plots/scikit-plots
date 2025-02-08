@@ -48,8 +48,9 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
 You can also install scikit-plots from source if you want to take advantage of the latest changes:
 ```sh
 git clone https://github.com/scikit-plots/scikit-plots.git
-git submodule update --init  # download submodules
 cd scikit-plots
+
+git submodule update --init  # download submodules
 pip install --user -e .
 ```
 
