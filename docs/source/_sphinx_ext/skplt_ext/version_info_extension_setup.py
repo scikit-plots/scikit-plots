@@ -13,17 +13,13 @@ html_theme_options = {
 }
 """
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="version_info_extension",
     version="0.1",
     packages=find_packages(),
-    install_requires=[
-        "sphinx",
-        "scikit-plots",
-        "packaging"
-    ],
+    install_requires=["sphinx", "scikit-plots", "packaging"],
     entry_points={
         "sphinx.extension": [
             "version_info_extension = sphinx_extensions.version_info_extension",

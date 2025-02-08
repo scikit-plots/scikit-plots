@@ -1,6 +1,7 @@
 cimport cython
 from libc cimport stdio, stdlib
 
+
 @cython.final
 cdef class MessageStream:
     cdef stdio.FILE *handle

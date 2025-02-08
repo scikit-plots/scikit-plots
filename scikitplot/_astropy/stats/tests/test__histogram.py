@@ -4,14 +4,15 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
+from scikitplot._compat.optional_deps import HAS_SCIPY
+
 from .._histogram import (
-    histogram,
     calculate_bin_edges,
     freedman_bin_width,
+    histogram,
     knuth_bin_width,
     scott_bin_width,
 )
-from scikitplot._compat.optional_deps import HAS_SCIPY
 
 
 def test_scott_bin_width(N=10000, rseed=0):

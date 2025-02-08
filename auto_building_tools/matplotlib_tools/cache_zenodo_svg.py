@@ -1,6 +1,6 @@
+import os
 import urllib.request
 from io import BytesIO
-import os
 from pathlib import Path
 
 
@@ -30,9 +30,7 @@ def download_or_cache(url, version):
         else:
             return BytesIO(data)
 
-    with urllib.request.urlopen(
-        urllib.request.Request(url, headers={"User-Agent": ""})
-    ) as req:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": ""})) as req:
         data = req.read()
 
     if cache_dir is not None:  # Try to cache the downloaded file.

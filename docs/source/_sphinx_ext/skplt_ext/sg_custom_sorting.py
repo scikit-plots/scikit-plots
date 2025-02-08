@@ -1,16 +1,18 @@
 # custom_sorting.py
 import os
 import re
+
 from sphinx_gallery.sorting import ExampleTitleSortKey
 
 
 # https://sphinx-gallery.github.io/stable/gen_modules/sphinx_gallery.sorting.html#module-sphinx_gallery.sorting
 class SubSectionTitleOrder:
     """Sort example gallery by title of subsection.
-    
+
     Assumes README.txt exists for all subsections and uses the subsection with
     dashes, '---', as the adornment.
     """
+
     def __init__(self, src_dir):
         self.src_dir = src_dir
         self.regex = re.compile(r"^([\w ]+)\n-", re.MULTILINE)
@@ -38,6 +40,7 @@ class SubSectionTitleOrder:
             return title_match.group(1)
         return directory
 
+
 class SKExampleTitleSortKey(ExampleTitleSortKey):
     """Sorts release highlights based on version number."""
 
@@ -49,7 +52,7 @@ class SKExampleTitleSortKey(ExampleTitleSortKey):
         if not str(filename).startswith(prefix):
             return title
 
-        major_minor = filename[len(prefix):].split("_")[:2]
+        major_minor = filename[len(prefix) :].split("_")[:2]
         version_float = float(".".join(major_minor))
 
         # Negate to place the newest version highlights first

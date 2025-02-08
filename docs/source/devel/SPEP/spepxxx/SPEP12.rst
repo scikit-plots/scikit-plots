@@ -3,7 +3,7 @@ SEP12: Improve Gallery and Examples
 =====================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

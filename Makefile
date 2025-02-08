@@ -199,7 +199,7 @@ else
 	@echo "MOD is not defined"
 endif
 
-## git submodule foreach --recursive git pull 
+## git submodule foreach --recursive git pull
 # git submodule update --init --recursive --remote
 
 ######################################################################
@@ -324,7 +324,7 @@ tag:
 ifdef BR
 	@## Tagging in the stable Branch (Stability-First Workflow)
 	@#Best practice: Tag before PyPI publishing.
-	@echo "Adding tag to branch: '$(BR)'" 
+	@echo "Adding tag to branch: '$(BR)'"
 	@git checkout "$(BR)"
 	@echo "Existing tags:"
 	@git tag

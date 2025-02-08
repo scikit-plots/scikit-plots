@@ -3,7 +3,7 @@ SEP29: Text light markup
 =========================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

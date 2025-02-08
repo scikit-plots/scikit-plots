@@ -24,7 +24,7 @@
   {#- Optional: Add the DOI if your project has one (e.g., if you've archived it in Zenodo) #}
   doi     = { {{ doi }} },
   {#- The URL to your project repository (GitHub, GitLab, etc.) #}
-  url     = { {{ url }} },
+  url     = { {{ github_url }} },
   {#- Optional: Add the version number of your library #}
   version = { {{ version }} },
   {#- You can provide a short note, such as the purpose of the library or a brief description #}

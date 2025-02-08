@@ -6,27 +6,27 @@ Check the presence of a LICENSE.txt in the installed module directory,
 and that it appears to contain text prevalent for a scikitplot binary
 distribution.
 """
-import os
-import sys
-import re
 import argparse
 import pathlib
+import re
+import sys
+
 # from glob import glob
+
 
 def check_text(text):
     # Define the expected text fragments you want to check
     ok = "Copyright (c)" in text and re.search(
-        r"This binary distribution of \w+ also bundles the following software",
-        text, re.IGNORECASE
+        r"This binary distribution of \w+ also bundles the following software", text, re.IGNORECASE
     )
     return ok
 
 
-def main():    
+def main():
     p = argparse.ArgumentParser(usage=__doc__.rstrip())
-    p.add_argument("mod_name", nargs="?", default='scikitplot')        # import name format
-    p.add_argument("package_name", nargs="?", default='scikit-plots')  # Package name format
-    p.add_argument("license_name", nargs="?", default='LICENSE')       # LICENSE file name format
+    p.add_argument("mod_name", nargs="?", default="scikitplot")  # import name format
+    p.add_argument("package_name", nargs="?", default="scikit-plots")  # Package name format
+    p.add_argument("license_name", nargs="?", default="LICENSE")  # LICENSE file name format
     args = p.parse_args()
 
     # Drop '' from sys.path
@@ -40,14 +40,20 @@ def main():
         print(f"Module {args.mod_name} imported successfully.")
     except ImportError as e:
         # Catch ImportError and raise a more specific error with context
-        raise RuntimeError(f"Failed to import the module '{args.mod_name}'. Please check if the module is installed correctly.") from e
+        raise RuntimeError(
+            f"Failed to import the module '{args.mod_name}'. Please check if the module is installed correctly."
+        ) from e
     except Exception as e:
         # Catch any other unexpected exceptions and raise them
-        raise RuntimeError(f"An unexpected error occurred while importing '{args.mod_name}'.") from e
+        raise RuntimeError(
+            f"An unexpected error occurred while importing '{args.mod_name}'."
+        ) from e
 
     # Locate the LICENSE.txt file
     # Try to find the .dist-info directory associated with the package, so find it there by Package name
-    sitepkgs = pathlib.Path(mod.__file__).parent.parent  # This should give you the site-packages path
+    sitepkgs = pathlib.Path(
+        mod.__file__
+    ).parent.parent  # This should give you the site-packages path
     print(f"Looking for .dist-info directory in: {sitepkgs}")
 
     distinfo_path = f"{args.package_name.replace('-', '_')}-*.dist-info"  # Package name format
@@ -55,9 +61,11 @@ def main():
     print(distinfo_paths)
 
     if not distinfo_paths:
-        print(f"ERROR: No file found under '*.dist-info' directory for module '{args.mod_name}' in '{sitepkgs}'")
+        print(
+            f"ERROR: No file found under '*.dist-info' directory for module '{args.mod_name}' in '{sitepkgs}'"
+        )
         sys.exit(1)
-      
+
     # Use glob pattern to find LICENSE files including subdirectories
     license_files = list(sitepkgs.glob(f"{distinfo_path}/{args.license_name}*"))
     print(license_files)

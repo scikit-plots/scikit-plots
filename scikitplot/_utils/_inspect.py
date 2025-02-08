@@ -5,23 +5,22 @@ significantly contributes to numpy import times. Importing this copy has almost
 no overhead.
 
 """
-import types
 
-import pkgutil
-import inspect
 import importlib
-
+import inspect
+import pkgutil
+import types
 from pprint import pprint
 
 # from scikitplot import sp_logging as logging
 from scikitplot import sp_logger as logging
 
-
 __all__ = [
-  'getargspec',
-  'formatargspec',
-  'inspect_module',
+    "getargspec",
+    "formatargspec",
+    "inspect_module",
 ]
+
 
 # ----------------------------------------------------------- type-checking
 def ismethod(object):
@@ -37,6 +36,7 @@ def ismethod(object):
     """
     return isinstance(object, types.MethodType)
 
+
 def isfunction(object):
     """Return true if the object is a user-defined function.
 
@@ -51,6 +51,7 @@ def isfunction(object):
 
     """
     return isinstance(object, types.FunctionType)
+
 
 def iscode(object):
     """Return true if the object is a code object.
@@ -72,9 +73,11 @@ def iscode(object):
     """
     return isinstance(object, types.CodeType)
 
+
 # ------------------------------------------------ argument list extraction
 # These constants are from Python's compile.h.
 CO_OPTIMIZED, CO_NEWLOCALS, CO_VARARGS, CO_VARKEYWORDS = 1, 2, 4, 8
+
 
 def getargs(co):
     """Get information about the arguments accepted by a code object.
@@ -86,7 +89,7 @@ def getargs(co):
     """
 
     if not iscode(co):
-        raise TypeError('arg is not a code object')
+        raise TypeError("arg is not a code object")
 
     nargs = co.co_argcount
     names = co.co_varnames
@@ -96,7 +99,7 @@ def getargs(co):
     # Which we do not need to support, so remove to avoid importing
     # the dis module.
     for i in range(nargs):
-        if args[i][:1] in ['', '.']:
+        if args[i][:1] in ["", "."]:
             raise TypeError("tuple function arguments are not supported")
     varargs = None
     if co.co_flags & CO_VARARGS:
@@ -106,6 +109,7 @@ def getargs(co):
     if co.co_flags & CO_VARKEYWORDS:
         varkw = co.co_varnames[nargs]
     return args, varargs, varkw
+
 
 def getargspec(func):
     """Get the names and default values of a function's arguments.
@@ -120,9 +124,10 @@ def getargspec(func):
     if ismethod(func):
         func = func.__func__
     if not isfunction(func):
-        raise TypeError('arg is not a Python function')
+        raise TypeError("arg is not a Python function")
     args, varargs, varkw = getargs(func.__code__)
     return args, varargs, varkw, func.__defaults__
+
 
 def getargvalues(frame):
     """Get information about arguments passed into a particular frame.
@@ -136,27 +141,33 @@ def getargvalues(frame):
     args, varargs, varkw = getargs(frame.f_code)
     return args, varargs, varkw, frame.f_locals
 
+
 def joinseq(seq):
     if len(seq) == 1:
-        return '(' + seq[0] + ',)'
+        return "(" + seq[0] + ",)"
     else:
-        return '(' + ', '.join(seq) + ')'
+        return "(" + ", ".join(seq) + ")"
+
 
 def strseq(object, convert, join=joinseq):
-    """Recursively walk a sequence, stringifying each element.
-
-    """
+    """Recursively walk a sequence, stringifying each element."""
     if type(object) in [list, tuple]:
         return join([strseq(_o, convert, join) for _o in object])
     else:
         return convert(object)
 
-def formatargspec(args, varargs=None, varkw=None, defaults=None,
-                  formatarg=str,
-                  formatvarargs=lambda name: '*' + name,
-                  formatvarkw=lambda name: '**' + name,
-                  formatvalue=lambda value: '=' + repr(value),
-                  join=joinseq):
+
+def formatargspec(
+    args,
+    varargs=None,
+    varkw=None,
+    defaults=None,
+    formatarg=str,
+    formatvarargs=lambda name: "*" + name,
+    formatvarkw=lambda name: "**" + name,
+    formatvalue=lambda value: "=" + repr(value),
+    join=joinseq,
+):
     """Format an argument spec from the 4 values returned by getargspec.
 
     The first four arguments are (args, varargs, varkw, defaults).  The
@@ -177,14 +188,20 @@ def formatargspec(args, varargs=None, varkw=None, defaults=None,
         specs.append(formatvarargs(varargs))
     if varkw is not None:
         specs.append(formatvarkw(varkw))
-    return '(' + ', '.join(specs) + ')'
+    return "(" + ", ".join(specs) + ")"
 
-def formatargvalues(args, varargs, varkw, locals,
-                    formatarg=str,
-                    formatvarargs=lambda name: '*' + name,
-                    formatvarkw=lambda name: '**' + name,
-                    formatvalue=lambda value: '=' + repr(value),
-                    join=joinseq):
+
+def formatargvalues(
+    args,
+    varargs,
+    varkw,
+    locals,
+    formatarg=str,
+    formatvarargs=lambda name: "*" + name,
+    formatvarkw=lambda name: "**" + name,
+    formatvalue=lambda value: "=" + repr(value),
+    join=joinseq,
+):
     """Format an argument spec from the 4 values returned by getargvalues.
 
     The first four arguments are (args, varargs, varkw, locals).  The
@@ -193,16 +210,18 @@ def formatargvalues(args, varargs, varkw, locals,
     argument is an optional function to format the sequence of arguments.
 
     """
-    def convert(name, locals=locals,
-                formatarg=formatarg, formatvalue=formatvalue):
+
+    def convert(name, locals=locals, formatarg=formatarg, formatvalue=formatvalue):
         return formatarg(name) + formatvalue(locals[name])
+
     specs = [strseq(arg, convert, join) for arg in args]
 
     if varargs:
         specs.append(formatvarargs(varargs) + formatvalue(locals[varargs]))
     if varkw:
         specs.append(formatvarkw(varkw) + formatvalue(locals[varkw]))
-    return '(' + ', '.join(specs) + ')'
+    return "(" + ", ".join(specs) + ")"
+
 
 ######################################################################
 ## Inspect a module
@@ -258,12 +277,12 @@ def formatargvalues(args, varargs, varkw, locals,
 #     return results
 
 
-def inspect_module(module_name : str = "scikitplot._numcpp_api", debug=False):
+def inspect_module(module_name: str = "scikitplot._numcpp_api", debug=False):
     """
     Inspect a module and its submodules to find all classes and functions.
 
-    This function attempts to recursively scan a given module, examining its attributes to identify 
-    classes and functions, including any in submodules. It uses `dir()` and direct attribute access 
+    This function attempts to recursively scan a given module, examining its attributes to identify
+    classes and functions, including any in submodules. It uses `dir()` and direct attribute access
     to work around potential issues with dynamically loaded objects.
 
     Parameters
@@ -287,7 +306,7 @@ def inspect_module(module_name : str = "scikitplot._numcpp_api", debug=False):
     Notes
     -----
     This function skips any modules named 'tests' to avoid unnecessary inspection of test code.
-    If the module or its submodules use unusual methods of defining or loading classes and functions, 
+    If the module or its submodules use unusual methods of defining or loading classes and functions,
     results may vary.
 
     Examples
@@ -308,7 +327,7 @@ def inspect_module(module_name : str = "scikitplot._numcpp_api", debug=False):
         return results
 
     def recursive_scan(mod):
-        if 'tests' in mod.__name__:
+        if "tests" in mod.__name__:
             logging.info(f"Skipping 'tests' module: {mod.__name__}")
             return
 
@@ -335,12 +354,13 @@ def inspect_module(module_name : str = "scikitplot._numcpp_api", debug=False):
                     logging.warning(f"Could not import submodule: {submodule_name}")
 
     recursive_scan(module)
-  
+
     if debug:
         pprint(results)
     else:
         return results
 
+
 ######################################################################
-## 
+##
 ######################################################################

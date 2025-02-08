@@ -11,7 +11,7 @@ providing essential functionalities for array operations.
 
 See Also
 --------
-array_api_compat : 
+array_api_compat :
     Python array API standard https://data-apis.org/array-api/latest/index.html
 
 Core Features
@@ -23,7 +23,7 @@ Core Features
 Behind `xp` functionality
 ----------------------------
 
-The `_xp_core_api` module offers a simple and intuitive interface for users to interact 
+The `_xp_core_api` module offers a simple and intuitive interface for users to interact
 with array data. Below are some key functionalities:
 
 1. **Array Creation**
@@ -34,25 +34,27 @@ with array data. Below are some key functionalities:
 
 Notes
 -----
-- Ensure that the `xp` namespace is correctly imported before using the 
+- Ensure that the `xp` namespace is correctly imported before using the
   functionalities within this module.
-- For more advanced usage, refer to the documentation of the individual 
+- For more advanced usage, refer to the documentation of the individual
   functions available in this module.
 """
+
 # scikitplot/_xp_core_lib/__init__.py
 
 # https://data-apis.org/array-api/latest/index.html
 # https://github.com/data-apis/array-api-compat/blob/main/array_api_compat/numpy/__init__.py
 try:
-  from .array_api_compat.numpy import __array_api_version__
-  from .array_api_compat import __version__ as __array_api_compat_version__  # xpc
-  from .array_api_extra import __version__ as __array_api_extra_version__  # xpx
-
-  from . import _ccallback_c
+    from . import _ccallback_c as _ccallback_c
+    from .array_api_compat import __version__ as __array_api_compat_version__  # xpc
+    from .array_api_compat.numpy import __array_api_version__
+    from .array_api_extra import __version__ as __array_api_extra_version__  # xpx
 except:
-  __array_api_version__ = "2023.12"
-  __array_api_compat_version__ = '1.10.1.dev0'
-  __array_api_extra_version__ = '0.5.1.dev0'
+    __array_api_version__ = "2023.12"
+    __array_api_compat_version__ = "1.10.1.dev0"
+    __array_api_extra_version__ = "0.5.1.dev0"
 
 from ._testutils import PytestTester
-test = PytestTester(__name__); del PytestTester
+
+test = PytestTester(__name__)
+del PytestTester

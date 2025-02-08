@@ -2,7 +2,7 @@ Tag Glossary
 ============
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 .. contents::

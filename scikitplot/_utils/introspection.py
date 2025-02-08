@@ -17,13 +17,13 @@ if TYPE_CHECKING:
     from typing import Literal
 
 __all__ = [
-  "minversion",
-  # "find_current_module",
-  # "isinstancemethod",
+    "minversion",
+    # "find_current_module",
+    # "isinstancemethod",
 ]
 
 __doctest_skip__ = [
-  "find_current_module",
+    "find_current_module",
 ]
 
 

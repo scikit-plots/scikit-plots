@@ -1,10 +1,10 @@
 import numpy as np
-from numpy import abs, sum, sin, cos, pi, exp, arange, prod, sqrt
+from numpy import abs, arange, cos, exp, pi, prod, sin, sqrt, sum
+
 from .go_benchmark import Benchmark
 
 
 class XinSheYang01(Benchmark):
-
     r"""
     Xin-She Yang 1 objective function.
 
@@ -13,7 +13,7 @@ class XinSheYang01(Benchmark):
 
     .. math::
 
-        f_{\text{XinSheYang01}}(x) = \sum_{i=1}^{n} \epsilon_i \lvert x_i 
+        f_{\text{XinSheYang01}}(x) = \sum_{i=1}^{n} \epsilon_i \lvert x_i
                                      \rvert^i
 
 
@@ -49,7 +49,6 @@ class XinSheYang01(Benchmark):
 
 
 class XinSheYang02(Benchmark):
-
     r"""
     Xin-She Yang 2 objective function.
 
@@ -76,8 +75,7 @@ class XinSheYang02(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([-2 * pi] * self.N,
-                           [2 * pi] * self.N))
+        self._bounds = list(zip([-2 * pi] * self.N, [2 * pi] * self.N))
 
         self.global_optimum = [[0 for _ in range(self.N)]]
         self.fglob = 0.0
@@ -86,11 +84,10 @@ class XinSheYang02(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return sum(abs(x)) * exp(-sum(sin(x ** 2.0)))
+        return sum(abs(x)) * exp(-sum(sin(x**2.0)))
 
 
 class XinSheYang03(Benchmark):
-
     r"""
     Xin-She Yang 3 objective function.
 
@@ -131,14 +128,13 @@ class XinSheYang03(Benchmark):
 
         beta, m = 15.0, 5.0
         u = sum((x / beta) ** (2 * m))
-        v = sum(x ** 2)
+        v = sum(x**2)
         w = prod(cos(x) ** 2)
 
         return exp(-u) - 2 * exp(-v) * w
 
 
 class XinSheYang04(Benchmark):
-
     r"""
     Xin-She Yang 4 objective function.
 
@@ -176,13 +172,12 @@ class XinSheYang04(Benchmark):
         self.nfev += 1
 
         u = sum(sin(x) ** 2)
-        v = sum(x ** 2)
+        v = sum(x**2)
         w = sum(sin(sqrt(abs(x))) ** 2)
         return (u - exp(-v)) * exp(-w)
 
 
 class Xor(Benchmark):
-
     r"""
     Xor objective function.
 
@@ -217,8 +212,7 @@ class Xor(Benchmark):
 
         self._bounds = list(zip([-1.0] * self.N, [1.0] * self.N))
 
-        self.global_optimum = [[1.0, -1.0, 1.0,
-                               -1.0, -1.0, 1.0, 1.0, -1.0, 0.421134]]
+        self.global_optimum = [[1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 0.421134]]
         self.fglob = 0.9597588
 
     def fun(self, x, *args):

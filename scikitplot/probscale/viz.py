@@ -1,18 +1,17 @@
 import copy
+
 import numpy
 
+from . import algo, validate
 from .probscale import _minimal_norm
-from . import validate
-from . import algo
-
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
 __all__ = [
-  '_set_prob_limits',
-  'probplot',
-  'plot_pos',
-  'fit_line',
+    "_set_prob_limits",
+    "probplot",
+    "plot_pos",
+    "fit_line",
 ]
 
 
@@ -32,7 +31,7 @@ def probplot(
     pp_kws=None,
     scatter_kws=None,
     line_kws=None,
-    **fgkwargs
+    **fgkwargs,
 ):
     """
     Probability, percentile, and quantile plots.
@@ -402,9 +401,7 @@ def plot_pos(data, postype=None, alpha=None, beta=None, exceedance=False):
     pos[n:] = 0
 
     sorted_index = data.argsort()
-    pos[sorted_index[:n]] = (numpy.arange(1.0, n + 1.0) - alpha) / (
-        n + 1.0 - alpha - beta
-    )
+    pos[sorted_index[:n]] = (numpy.arange(1.0, n + 1.0) - alpha) / (n + 1.0 - alpha - beta)
 
     if exceedance:
         return pos[sorted_index[::-1]], data[sorted_index]
@@ -541,9 +538,7 @@ def fit_line(
     yhat, results = algo._fit_simple(x, y, xhat, fitlogs=fitlogs)
 
     if estimate_ci:
-        yhat_lo, yhat_hi = algo._bs_fit(
-            x, y, xhat, fitlogs=fitlogs, niter=niter, alpha=alpha
-        )
+        yhat_lo, yhat_hi = algo._bs_fit(x, y, xhat, fitlogs=fitlogs, niter=niter, alpha=alpha)
     else:
         yhat_lo, yhat_hi = None, None
 

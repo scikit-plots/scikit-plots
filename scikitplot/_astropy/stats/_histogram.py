@@ -6,29 +6,29 @@ Ported from the astroML project: https://www.astroml.org/
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike, NDArray
     from typing import Literal
+
+    from numpy.typing import ArrayLike, NDArray
 
 from ._bayesian_blocks import bayesian_blocks
 
 __all__ = [
-  "calculate_bin_edges",
-  "freedman_bin_width",
-  "histogram",
-  "knuth_bin_width",
-  "scott_bin_width",
+    "calculate_bin_edges",
+    "freedman_bin_width",
+    "histogram",
+    "knuth_bin_width",
+    "scott_bin_width",
 ]
+
 
 def calculate_bin_edges(
     a: ArrayLike,
-    bins: int
-    | list[float]
-    | Literal["blocks", "knuth", "scott", "freedman"]
-    | None = 10,
+    bins: int | list[float] | Literal["blocks", "knuth", "scott", "freedman"] | None = 10,
     range: tuple[float, float] | None = None,
     weights: ArrayLike | None = None,
 ) -> NDArray[float]:
@@ -74,9 +74,7 @@ def calculate_bin_edges(
         # TODO: if weights is specified, we need to modify things.
         #       e.g. we could use point measures fitness for Bayesian blocks
         if weights is not None:
-            raise NotImplementedError(
-                "weights are not yet supported for the enhanced histogram"
-            )
+            raise NotImplementedError("weights are not yet supported for the enhanced histogram")
 
         if bins == "blocks":
             bins = bayesian_blocks(a)
@@ -104,6 +102,7 @@ def calculate_bin_edges(
         bins = np.histogram_bin_edges(a, bins, range=range, weights=weights)
 
     return bins
+
 
 def freedman_bin_width(
     data: ArrayLike,
@@ -182,12 +181,10 @@ def freedman_bin_width(
     else:
         return dx
 
+
 def histogram(
     a: ArrayLike,
-    bins: int
-    | list[float]
-    | Literal["blocks", "knuth", "scott", "freedman"]
-    | None = 10,
+    bins: int | list[float] | Literal["blocks", "knuth", "scott", "freedman"] | None = 10,
     range: tuple[float, float] | None = None,
     weights: ArrayLike | None = None,
     **kwargs,
@@ -243,6 +240,7 @@ def histogram(
     bins = calculate_bin_edges(a, bins=bins, range=range, weights=weights)
     # Now we call numpy's histogram with the resulting bin edges
     return np.histogram(a, bins=bins, range=range, weights=weights, **kwargs)
+
 
 class _KnuthF:
     r"""Class which implements the function minimized by knuth_bin_width.
@@ -324,6 +322,7 @@ class _KnuthF:
             + np.sum(self.gammaln(nk + 0.5))
         )
 
+
 def knuth_bin_width(
     data: ArrayLike,
     return_bins: bool | None = False,
@@ -389,6 +388,7 @@ def knuth_bin_width(
         return dx, bins
     else:
         return dx
+
 
 def scott_bin_width(
     data: ArrayLike,

@@ -2,7 +2,7 @@ Tagging guidelines
 ==================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 Why do we need tags?

@@ -3,20 +3,15 @@
 # Authors: The scikit-learn developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-import numbers
-import operator
-import sys
 import warnings
-from contextlib import suppress
-from functools import reduce, wraps
-from inspect import Parameter, isclass, signature
+from functools import wraps
+from inspect import Parameter, signature
 
-import joblib
 import numpy as np
 import scipy.sparse as sp
+
 # import scipy.special as special
 
-from .deprecation import _deprecate_force_all_finite
 
 FLOAT_DTYPES = (np.float64, np.float32, np.float16)
 

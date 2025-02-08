@@ -4,11 +4,11 @@ description: Report a bug or issue with scikit-plots.
 title: "[Bug]: "
 
 body:
-- type: markdown
-  attributes:
-    value: >
-      #### Before submitting a bug, please make sure the issue hasn't been already
-      addressed by searching through [the past issues](https://github.com/scikit-plots/scikit-plots/issues).
+  - type: markdown
+    attributes:
+      value: >
+        #### Before submitting a bug, please make sure the issue hasn't been already
+        addressed by searching through [the past issues](https://github.com/scikit-plots/scikit-plots/issues).
   - type: textarea
     id: summary
     attributes:

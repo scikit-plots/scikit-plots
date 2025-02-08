@@ -7,7 +7,7 @@
 
 if not fs.exists('array-api-compat/README.md')
   error(
-  'Missing the `array-api-compat` submodule! ' + 
+  'Missing the `array-api-compat` submodule! ' +
   'Run `git submodule update --init` to fix this.')
 endif
 
@@ -33,7 +33,7 @@ message(
 
 if not fs.exists('array-api-extra/README.md')
   error(
-  'Missing the `array-api-extra` submodule! ' + 
+  'Missing the `array-api-extra` submodule! ' +
   'Run `git submodule update --init` to fix this.')
 endif
 
@@ -53,5 +53,5 @@ message(
 )
 
 ######################################################################
-## 
+##
 ######################################################################

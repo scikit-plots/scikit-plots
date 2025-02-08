@@ -5,18 +5,17 @@ adapted from :func:`pandas.show_versions`
 
 import platform
 import sys
-from threadpoolctl import threadpool_info
-from pprint import pprint
 
+from threadpoolctl import threadpool_info
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all belove func
 __all__ = [
-    '_get_sys_info',
-    '_get_deps_info',
-    'show_versions',
+    "_get_sys_info",
+    "_get_deps_info",
+    "show_versions",
 ]
-_all_ignore = ['platform', 'sys', 'threadpool_info']
+_all_ignore = ["platform", "sys", "threadpool_info"]
 
 
 def _get_sys_info():

@@ -11,15 +11,20 @@ To generate a report for Matplotlib 3.0.0, run:
 # -----------------------------------------------------------------------------
 
 import sys
-
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from subprocess import check_output
 
 from gh_api import (
-    get_paged_request, make_auth_header, get_pull_request, is_pull_request,
-    get_milestone_id, get_issues_list, get_authors,
+    get_authors,
+    get_issues_list,
+    get_milestone_id,
+    get_paged_request,
+    get_pull_request,
+    is_pull_request,
+    make_auth_header,
 )
+
 # -----------------------------------------------------------------------------
 # Globals
 # -----------------------------------------------------------------------------
@@ -54,8 +59,9 @@ Previous GitHub statistics
 
     prev_whats_new/github_stats_*"""
 MILESTONE_TEMPLATE = (
-    'The full list can be seen `on GitHub '
-    '<https://github.com/{project}/milestone/{milestone_id}?closed=1>`__\n')
+    "The full list can be seen `on GitHub "
+    "<https://github.com/{project}/milestone/{milestone_id}?closed=1>`__\n"
+)
 LINKS_TEMPLATE = """
 GitHub issues and pull requests:
 
@@ -84,7 +90,7 @@ def _parse_datetime(s):
 
 def issues2dict(issues):
     """Convert a list of issues to a dict, keyed by issue number."""
-    return {i['number']: i for i in issues}
+    return {i["number"]: i for i in issues}
 
 
 def split_pulls(all_issues, project="matplotlib/matplotlib"):
@@ -93,15 +99,14 @@ def split_pulls(all_issues, project="matplotlib/matplotlib"):
     issues = []
     for i in all_issues:
         if is_pull_request(i):
-            pull = get_pull_request(project, i['number'], auth=True)
+            pull = get_pull_request(project, i["number"], auth=True)
             pulls.append(pull)
         else:
             issues.append(i)
     return issues, pulls
 
 
-def issues_closed_since(period=timedelta(days=365),
-                        project='matplotlib/matplotlib', pulls=False):
+def issues_closed_since(period=timedelta(days=365), project="matplotlib/matplotlib", pulls=False):
     """
     Get all issues closed since a particular point in time.
 
@@ -109,34 +114,33 @@ def issues_closed_since(period=timedelta(days=365),
     latter case, it is used as a time before the present.
     """
 
-    which = 'pulls' if pulls else 'issues'
+    which = "pulls" if pulls else "issues"
 
     if isinstance(period, timedelta):
         since = round_hour(datetime.utcnow() - period)
     else:
         since = period
     url = (
-        f'https://api.github.com/repos/{project}/{which}'
-        f'?state=closed'
-        f'&sort=updated'
-        f'&since={since.strftime(ISO8601)}'
-        f'&per_page={PER_PAGE}')
+        f"https://api.github.com/repos/{project}/{which}"
+        f"?state=closed"
+        f"&sort=updated"
+        f"&since={since.strftime(ISO8601)}"
+        f"&per_page={PER_PAGE}"
+    )
     allclosed = get_paged_request(url, headers=make_auth_header())
 
-    filtered = (i for i in allclosed
-                if _parse_datetime(i['closed_at']) > since)
+    filtered = (i for i in allclosed if _parse_datetime(i["closed_at"]) > since)
     if pulls:
-        filtered = (i for i in filtered
-                    if _parse_datetime(i['merged_at']) > since)
+        filtered = (i for i in filtered if _parse_datetime(i["merged_at"]) > since)
         # filter out PRs not against main (backports)
-        filtered = (i for i in filtered if i['base']['ref'] == 'main')
+        filtered = (i for i in filtered if i["base"]["ref"] == "main")
     else:
         filtered = (i for i in filtered if not is_pull_request(i))
 
     return list(filtered)
 
 
-def sorted_by_field(issues, field='closed_at', reverse=False):
+def sorted_by_field(issues, field="closed_at", reverse=False):
     """Return a list of issues sorted by closing date."""
     return sorted(issues, key=lambda i: i[field], reverse=reverse)
 
@@ -146,16 +150,17 @@ def report(issues, show_urls=False):
     lines = []
     if show_urls:
         for i in issues:
-            role = 'ghpull' if 'merged_at' in i else 'ghissue'
-            number = i['number']
-            title = i['title'].replace('`', '``').strip()
-            lines.append(f'* :{role}:`{number}`: {title}')
+            role = "ghpull" if "merged_at" in i else "ghissue"
+            number = i["number"]
+            title = i["title"].replace("`", "``").strip()
+            lines.append(f"* :{role}:`{number}`: {title}")
     else:
         for i in issues:
-            number = i['number']
-            title = i['title'].replace('`', '``').strip()
-            lines.append('* {number}: {title}')
-    return '\n'.join(lines)
+            number = i["number"]
+            title = i["title"].replace("`", "``").strip()
+            lines.append("* {number}: {title}")
+    return "\n".join(lines)
+
 
 # -----------------------------------------------------------------------------
 # Main script
@@ -167,21 +172,27 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser.add_argument(
-        '--since-tag', type=str,
-        help='The git tag to use for the starting point '
-             '(typically the last macro release).')
+        "--since-tag",
+        type=str,
+        help="The git tag to use for the starting point " "(typically the last macro release).",
+    )
     parser.add_argument(
-        '--milestone', type=str,
-        help='The GitHub milestone to use for filtering issues [optional].')
+        "--milestone", type=str, help="The GitHub milestone to use for filtering issues [optional]."
+    )
     parser.add_argument(
-        '--days', type=int,
-        help='The number of days of data to summarize (use this or --since-tag).')
+        "--days",
+        type=int,
+        help="The number of days of data to summarize (use this or --since-tag).",
+    )
     parser.add_argument(
-        '--project', type=str, default='matplotlib/matplotlib',
-        help='The project to summarize.')
+        "--project", type=str, default="matplotlib/matplotlib", help="The project to summarize."
+    )
     parser.add_argument(
-        '--links', action='store_true', default=False,
-        help='Include links to all closed Issues and PRs in the output.')
+        "--links",
+        action="store_true",
+        default=False,
+        help="Include links to all closed Issues and PRs in the output.",
+    )
 
     opts = parser.parse_args()
     tag = opts.since_tag
@@ -191,15 +202,14 @@ if __name__ == "__main__":
         since = datetime.utcnow() - timedelta(days=opts.days)
     else:
         if not tag:
-            tag = check_output(['git', 'describe', '--abbrev=0'],
-                               encoding='utf8').strip()
-        cmd = ['git', 'log', '-1', '--format=%ai', tag]
-        tagday, tz = check_output(cmd, encoding='utf8').strip().rsplit(' ', 1)
+            tag = check_output(["git", "describe", "--abbrev=0"], encoding="utf8").strip()
+        cmd = ["git", "log", "-1", "--format=%ai", tag]
+        tagday, tz = check_output(cmd, encoding="utf8").strip().rsplit(" ", 1)
         since = datetime.strptime(tagday, "%Y-%m-%d %H:%M:%S")
         h = int(tz[1:3])
         m = int(tz[3:])
         td = timedelta(hours=h, minutes=m)
-        if tz[0] == '-':
+        if tz[0] == "-":
             since += td
         else:
             since -= td
@@ -209,13 +219,14 @@ if __name__ == "__main__":
     milestone = opts.milestone
     project = opts.project
 
-    print(f'fetching GitHub stats since {since} (tag: {tag}, milestone: {milestone})',
-          file=sys.stderr)
+    print(
+        f"fetching GitHub stats since {since} (tag: {tag}, milestone: {milestone})", file=sys.stderr
+    )
     if milestone:
-        milestone_id = get_milestone_id(project=project, milestone=milestone,
-                                        auth=True)
-        issues_and_pulls = get_issues_list(project=project, milestone=milestone_id,
-                                           state='closed', auth=True)
+        milestone_id = get_milestone_id(project=project, milestone=milestone, auth=True)
+        issues_and_pulls = get_issues_list(
+            project=project, milestone=milestone_id, state="closed", auth=True
+        )
         issues, pulls = split_pulls(issues_and_pulls, project=project)
     else:
         issues = issues_closed_since(since, project=project, pulls=False)
@@ -230,50 +241,59 @@ if __name__ == "__main__":
     since_day = since.strftime("%Y/%m/%d")
     today = datetime.today()
 
-    title = (f'GitHub statistics for {milestone.lstrip("v")} '
-             f'{today.strftime("(%b %d, %Y)")}')
+    title = f'GitHub statistics for {milestone.lstrip("v")} ' f'{today.strftime("(%b %d, %Y)")}'
 
     ncommits = 0
     all_authors = []
     if tag:
         # print git info, in addition to GitHub info:
-        since_tag = f'{tag}..'
-        cmd = ['git', 'log', '--oneline', since_tag]
+        since_tag = f"{tag}.."
+        cmd = ["git", "log", "--oneline", since_tag]
         ncommits += len(check_output(cmd).splitlines())
 
-        author_cmd = ['git', 'log', '--use-mailmap', '--format=* %aN', since_tag]
+        author_cmd = ["git", "log", "--use-mailmap", "--format=* %aN", since_tag]
         all_authors.extend(
-            check_output(author_cmd, encoding='utf-8', errors='replace').splitlines())
+            check_output(author_cmd, encoding="utf-8", errors="replace").splitlines()
+        )
 
     pr_authors = []
     for pr in pulls:
         pr_authors.extend(get_authors(pr))
     ncommits = len(pr_authors) + ncommits - len(pulls)
-    author_cmd = ['git', 'check-mailmap'] + pr_authors
-    with_email = check_output(author_cmd,
-                              encoding='utf-8', errors='replace').splitlines()
-    all_authors.extend(['* ' + a.split(' <')[0] for a in with_email])
+    author_cmd = ["git", "check-mailmap"] + pr_authors
+    with_email = check_output(author_cmd, encoding="utf-8", errors="replace").splitlines()
+    all_authors.extend(["* " + a.split(" <")[0] for a in with_email])
     unique_authors = sorted(set(all_authors), key=lambda s: s.lower())
 
     if milestone:
-        milestone_str = MILESTONE_TEMPLATE.format(project=project,
-                                                  milestone_id=milestone_id)
+        milestone_str = MILESTONE_TEMPLATE.format(project=project, milestone_id=milestone_id)
     else:
-        milestone_str = ''
+        milestone_str = ""
 
     if opts.links:
-        links = LINKS_TEMPLATE.format(n_pulls=n_pulls,
-                                      pull_request_report=report(pulls, show_urls),
-                                      n_issues=n_issues,
-                                      issue_report=report(issues, show_urls))
+        links = LINKS_TEMPLATE.format(
+            n_pulls=n_pulls,
+            pull_request_report=report(pulls, show_urls),
+            n_issues=n_issues,
+            issue_report=report(issues, show_urls),
+        )
     else:
-        links = ''
+        links = ""
 
     # Print summary report we can directly include into release notes.
-    print(REPORT_TEMPLATE.format(title=title, title_underline='=' * len(title),
-                                 since_day=since_day, tag=tag,
-                                 today=today.strftime('%Y/%m/%d'),
-                                 n_issues=n_issues, n_pulls=n_pulls,
-                                 milestone=milestone_str,
-                                 nauthors=len(unique_authors), ncommits=ncommits,
-                                 unique_authors='\n'.join(unique_authors), links=links))
+    print(
+        REPORT_TEMPLATE.format(
+            title=title,
+            title_underline="=" * len(title),
+            since_day=since_day,
+            tag=tag,
+            today=today.strftime("%Y/%m/%d"),
+            n_issues=n_issues,
+            n_pulls=n_pulls,
+            milestone=milestone_str,
+            nauthors=len(unique_authors),
+            ncommits=ncommits,
+            unique_authors="\n".join(unique_authors),
+            links=links,
+        )
+    )

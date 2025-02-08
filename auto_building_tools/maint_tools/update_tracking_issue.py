@@ -1,4 +1,5 @@
-"""Creates or updates an issue if the CI fails. This is useful to keep track of
+"""
+Creates or updates an issue if the CI fails. This is useful to keep track of
 scheduled jobs that are failing repeatedly.
 
 This script depends on:
@@ -22,9 +23,7 @@ from github import Github
 parser = argparse.ArgumentParser(
     description="Create or update issue from JUnit test results from pytest"
 )
-parser.add_argument(
-    "bot_github_token", help="Github token for creating or updating an issue"
-)
+parser.add_argument("bot_github_token", help="Github token for creating or updating an issue")
 parser.add_argument("ci_name", help="Name of CI run instance")
 parser.add_argument("issue_repo", help="Repo to track issues")
 parser.add_argument("link_to_ci_run", help="URL to link to")
@@ -38,10 +37,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--auto-close",
-    help=(
-        "If --auto-close is false, then issues will not auto close even if the tests"
-        " pass."
-    ),
+    help=("If --auto-close is false, then issues will not auto close even if the tests" " pass."),
     default="true",
 )
 
@@ -106,9 +102,7 @@ def close_issue_if_opened():
     issue = get_issue()
     if issue is not None:
         header_str = "## CI is no longer failing!"
-        comment_str = (
-            f"{header_str} ✅\n\n[Successful run]({args.link_to_ci_run}) on {date_str}"
-        )
+        comment_str = f"{header_str} ✅\n\n[Successful run]({args.link_to_ci_run}) on {date_str}"
 
         print(f"Commented on issue #{issue.number}")
         # New comment if "## CI is no longer failing!" comment does not exist

@@ -51,8 +51,8 @@ option('test-simd-args', type: 'string', value: '',
         description: 'Extra args to be passed to the `_simd` module that is used for testing the NumPy SIMD interface')
 # scipy
 option('pythran', type: 'feature', value: 'auto',
-        description: 'Enable Pythran support (default: "disabled")' + 
-                     'If set to "disabled", disables using Pythran (it falls back ' + 
-                     'to either pure Python code or Cython code, depending on ' + 
-                     'the implementation). ' + 
+        description: 'Enable Pythran support (default: "disabled")' +
+                     'If set to "disabled", disables using Pythran (it falls back ' +
+                     'to either pure Python code or Cython code, depending on ' +
+                     'the implementation). ' +
                      'A feature option has three states: "enabled", "disabled" or "auto".')

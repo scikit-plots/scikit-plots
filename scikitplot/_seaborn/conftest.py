@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-
 import pytest
 
 
@@ -8,6 +7,7 @@ import pytest
 def close_figs():
     yield
     import matplotlib.pyplot as plt
+
     plt.close("all")
 
 
@@ -75,8 +75,10 @@ def flat_data(rng, request):
 @pytest.fixture
 def wide_list_of_series(rng):
 
-    return [pd.Series(rng.normal(size=20), np.arange(20), name="a"),
-            pd.Series(rng.normal(size=10), np.arange(5, 15), name="b")]
+    return [
+        pd.Series(rng.normal(size=20), np.arange(20), name="a"),
+        pd.Series(rng.normal(size=10), np.arange(5, 15), name="b"),
+    ]
 
 
 @pytest.fixture
@@ -113,18 +115,20 @@ def wide_dict_of_lists(wide_list_of_series):
 def long_df(rng):
 
     n = 100
-    df = pd.DataFrame(dict(
-        x=rng.uniform(0, 20, n).round().astype("int"),
-        y=rng.normal(size=n),
-        z=rng.lognormal(size=n),
-        a=rng.choice(list("abc"), n),
-        b=rng.choice(list("mnop"), n),
-        c=rng.choice([0, 1], n, [.3, .7]),
-        d=rng.choice(np.arange("2004-07-30", "2007-07-30", dtype="datetime64[Y]"), n),
-        t=rng.choice(np.arange("2004-07-30", "2004-07-31", dtype="datetime64[m]"), n),
-        s=rng.choice([2, 4, 8], n),
-        f=rng.choice([0.2, 0.3], n),
-    ))
+    df = pd.DataFrame(
+        dict(
+            x=rng.uniform(0, 20, n).round().astype("int"),
+            y=rng.normal(size=n),
+            z=rng.lognormal(size=n),
+            a=rng.choice(list("abc"), n),
+            b=rng.choice(list("mnop"), n),
+            c=rng.choice([0, 1], n, [0.3, 0.7]),
+            d=rng.choice(np.arange("2004-07-30", "2007-07-30", dtype="datetime64[Y]"), n),
+            t=rng.choice(np.arange("2004-07-30", "2004-07-31", dtype="datetime64[m]"), n),
+            s=rng.choice([2, 4, 8], n),
+            f=rng.choice([0.2, 0.3], n),
+        )
+    )
 
     a_cat = df["a"].astype("category")
     new_categories = np.roll(a_cat.cat.categories, 1)
@@ -146,12 +150,14 @@ def long_dict(long_df):
 def repeated_df(rng):
 
     n = 100
-    return pd.DataFrame(dict(
-        x=np.tile(np.arange(n // 2), 2),
-        y=rng.normal(size=n),
-        a=rng.choice(list("abc"), n),
-        u=np.repeat(np.arange(2), n // 2),
-    ))
+    return pd.DataFrame(
+        dict(
+            x=np.tile(np.arange(n // 2), 2),
+            y=rng.normal(size=n),
+            a=rng.choice(list("abc"), n),
+            u=np.repeat(np.arange(2), n // 2),
+        )
+    )
 
 
 @pytest.fixture
@@ -179,7 +185,7 @@ def object_df(rng, long_df):
 @pytest.fixture
 def null_series(flat_series):
 
-    return pd.Series(index=flat_series.index, dtype='float64')
+    return pd.Series(index=flat_series.index, dtype="float64")
 
 
 class MockInterchangeableDataFrame:

@@ -153,9 +153,7 @@ def test_fitness_function_results():
 
     # Optional arguments are passed (ncp_prior)
     ncp_prior_sel = 4 - np.log(73.53 * p0_sel * (len(t) ** -0.478))
-    edges = bayesian_blocks(
-        t, x_obs, sigma, fitness="measures", ncp_prior=ncp_prior_sel
-    )
+    edges = bayesian_blocks(t, x_obs, sigma, fitness="measures", ncp_prior=ncp_prior_sel)
     assert_allclose(edges, expected)
 
     # Optional arguments are passed (gamma)

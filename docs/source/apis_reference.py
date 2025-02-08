@@ -2,6 +2,7 @@
 Configuration for the APIs reference documentation.
 """
 
+
 def _get_guide(*refs, is_developer=False):
     """Get the rst to refer to user/developer guide.
 
@@ -87,420 +88,408 @@ under `sklearn.datasets`.
 """
 
 APIS_REFERENCE = {
-  "scikitplot": {
-    "short_summary": "Settings and information visualization tools.",
-    "description": None,
-    "sections": [
-      {
-        "title": "Configure global settings and get information about the working environment.",
-        "autosummary": [
-          "config_context",
-          "get_config",
-          "set_config",
-          "show_config",
-          "show_versions",
-          "online_help",
+    "scikitplot": {
+        "short_summary": "Settings and information visualization tools.",
+        "description": None,
+        "sections": [
+            {
+                "title": (
+                    "Configure global settings and get information about the working environment."
+                ),
+                "autosummary": [
+                    "config_context",
+                    "get_config",
+                    "set_config",
+                    "show_config",
+                    "show_versions",
+                    "online_help",
+                ],
+            },
         ],
-      },
-    ],
-  },
-  "scikitplot.api": {
-    "short_summary": "Functional Api for Visualizations (function-based, implicit)",
-    "description": (
-      _get_guide("api-index")
-    ),
-    "sections": [
-      {
-        "title": "Plot a PCA representation",
-        "description": (
-          _get_submodule("scikitplot.api", "decomposition")
-          + "\n\n"
-          + _get_guide("decomposition-index")
+    },
+    "scikitplot.api": {
+        "short_summary": "Functional Api for Visualizations (function-based, implicit)",
+        "description": _get_guide("api-index"),
+        "sections": [
+            {
+                "title": "Plot a PCA representation",
+                "description": (
+                    _get_submodule("scikitplot.api", "decomposition")
+                    + "\n\n"
+                    + _get_guide("decomposition-index")
+                ),
+                "autosummary": [
+                    "decomposition.plot_pca_2d_projection",
+                    "decomposition.plot_pca_component_variance",
+                ],
+            },
+            {
+                "title": "Plot Estimators (model) object instances",
+                "description": (
+                    _get_submodule("scikitplot.api", "estimators")
+                    + "\n\n"
+                    + _get_guide("estimators-index")
+                ),
+                "autosummary": [
+                    # Regressor estimators
+                    # Classifier estimators
+                    "estimators.plot_feature_importances",
+                    # Classifier models scalability
+                    "estimators.plot_learning_curve",
+                    # Cluster estimators
+                    "estimators.plot_elbow",
+                ],
+            },
+            {
+                "title": "Plot model evaluation metrics",
+                "description": (
+                    _get_submodule("scikitplot.api", "metrics")
+                    + "\n\n"
+                    + _get_guide("metrics-index")
+                ),
+                "autosummary": [
+                    # Regression metrics
+                    "metrics.plot_residuals_distribution",
+                    # Classification metrics
+                    "metrics.plot_classifier_eval",
+                    "metrics.plot_confusion_matrix",
+                    "metrics.plot_precision_recall",
+                    "metrics.plot_roc",
+                    # Classification models scalability
+                    "metrics.plot_calibration",
+                    # Clustering metrics
+                    "metrics.plot_silhouette",
+                ],
+            },
+            {
+                "title": "API Development Utilities",
+                "description": (
+                    _get_guide("developers-guide-index", is_developer=True)
+                    # _get_submodule("scikitplot.api", "utils")
+                    # + "\n\n"
+                    # + _get_guide("utils-index")
+                ),
+                "autosummary": [
+                    # _helper
+                    "_utils.validate_labels",
+                    "_utils.cumulative_gain_curve",
+                    "_utils.binary_ks_curve",
+                    # validation
+                    "_utils.validate_plotting_kwargs",
+                    # figures
+                    "_utils.save_figure",
+                    "_utils.save_plot",
+                ],
+            },
+        ],
+    },
+    "scikitplot.experimental": {
+        "short_summary": "Experimental Python module based on C/CPP.",
+        "description": _get_guide("experimental-index"),
+        "sections": [
+            {
+                "title": "Cython Bindings samples",
+                # "description": (
+                #   _get_submodule("scikitplot.kds", "_kds")
+                #   + "\n\n"
+                #   + _get_guide("kds-index")
+                # ),
+                "autosummary": [
+                    "_cy_experimental.expit",
+                    "_cy_experimental.log_expit",
+                    "_cy_experimental.logit",
+                ],
+            },
+            {
+                "title": "Pybind11 Bindings samples",
+                # "description": (
+                #   _get_submodule("scikitplot.kds", "_kds")
+                #   + "\n\n"
+                #   + _get_guide("kds-index")
+                # ),
+                "autosummary": [
+                    "_py_experimental.py_print",
+                ],
+            },
+            {
+                "title": "Python samples",
+                # "description": (
+                #   _get_submodule("scikitplot.kds", "_kds")
+                #   + "\n\n"
+                #   + _get_guide("kds-index")
+                # ),
+                "autosummary": [
+                    "_logsumexp.sigmoid",
+                    "_logsumexp.softmax",
+                    "_logsumexp.logsumexp",
+                    "_logsumexp.log_softmax",
+                ],
+            },
+        ],
+    },
+    "scikitplot.kds": {
+        "short_summary": "KeyToDataScience",
+        "description": _get_guide("kds-index"),
+        "sections": [
+            {
+                "title": "Key To DataScience",
+                # "description": (
+                #   _get_submodule("scikitplot.kds", "_kds")
+                #   + "\n\n"
+                #   + _get_guide("kds-index")
+                # ),
+                "autosummary": [
+                    "print_labels",
+                    "decile_table",
+                    "plot_cumulative_gain",
+                    "plot_lift",
+                    "plot_lift_decile_wise",
+                    "plot_ks_statistic",
+                    "report",
+                ],
+            },
+        ],
+    },
+    "scikitplot.modelplotpy": {
+        "short_summary": "Predictive model insights",
+        "description": _get_guide("modelplotpy-index", "modelplotpy_financial-index"),
+        "sections": [
+            {
+                "title": "Initializer ModelPlotPy object",
+                # "description": (
+                #   _get_submodule("scikitplot.modelplotpy", "_modelplotpy")
+                #   + "\n\n"
+                #   + _get_guide("modelplotpy-index")
+                # ),
+                "autosummary": [
+                    # Initialize modelplotpy object
+                    "ModelPlotPy",
+                ],
+            },
+            {
+                "title": "Gains, Lift and (cumulative) Response Plots",
+                "description": None,
+                "autosummary": [
+                    # Gains, Lift and (cumulative) Response plots
+                    "plot_response",
+                    "plot_cumresponse",
+                    "plot_cumlift",
+                    "plot_cumgains",
+                    "plot_all",
+                ],
+            },
+            {
+                "title": "Business-savvy Financial Insight Plots",
+                "description": None,
+                "autosummary": [
+                    # Business-savvy financial plots
+                    "plot_costsrevs",
+                    "plot_profit",
+                    "plot_roi",
+                ],
+            },
+        ],
+    },
+    "scikitplot.probscale": {
+        "short_summary": "Real probability scales for matplotlib.",
+        "description": _get_guide("probscale-index"),
+        "sections": [
+            {
+                "title": "probscale",
+                # "description": (
+                #   _get_submodule("scikitplot.probscale", "Probscale")
+                #   + "\n\n"
+                #   + _get_guide("probscale-index")
+                # ),
+                "autosummary": [
+                    "ProbScale",
+                    "probplot",
+                    "plot_pos",
+                    "fit_line",
+                ],
+            },
+        ],
+    },
+    "scikitplot.sp_logging": {
+        "short_summary": "Scikit-plots Logging.",
+        "description": _get_guide("sp_logging-index"),
+        "sections": [
+            {
+                "title": "Logging Levels",
+                "description": None,
+                "autosummary": [
+                    "CRITICAL",
+                    "DEBUG",
+                    "ERROR",
+                    "FATAL",
+                    "INFO",
+                    "NOTSET",
+                    "WARN",
+                    "WARNING",
+                ],
+            },
+            {
+                "title": "Functional Interface - get_logger",
+                # "description": (
+                #   _get_submodule("scikitplot.sp_logging", "SpLogger")
+                #   + "\n\n"
+                #   + _get_guide("sp_logging-index")
+                # ),
+                "autosummary": [
+                    "AlwaysStdErrHandler",
+                    "GoogleLogFormatter",
+                    "critical",
+                    "debug",
+                    "error",
+                    "error_log",
+                    "fatal",
+                    "getEffectiveLevel",
+                    "get_logger",
+                    "log_if",
+                    "setLevel",
+                    "vlog",
+                    "warn",
+                    "warning",
+                ],
+            },
+            {
+                "title": "Class Interface - SpLogger",
+                "description": None,
+                "autosummary": [
+                    "SpLogger",
+                    "sp_logger",
+                ],
+            },
+        ],
+    },
+    "scikitplot.stats": {
+        "short_summary": "Statistical tools for data visualization and interpretation.",
+        "description": _get_guide("stats-index"),
+        "sections": [
+            {
+                "title": "Astrostatistics: Bayesian Blocks for Time Series Analysis",
+                "description": _get_submodule("scikitplot._astropy.stats", "_bayesian_blocks"),
+                "autosummary": [
+                    "Events",
+                    "FitnessFunc",
+                    "PointMeasures",
+                    "RegularEvents",
+                    "bayesian_blocks",
+                ],
+            },
+            {
+                "title": "Astrostatistics Tools",
+                "description": _get_submodule("scikitplot._astropy.stats", "funcs"),
+                "autosummary": [
+                    "binned_binom_proportion",
+                    "binom_conf_interval",
+                    "bootstrap",
+                    "cdf_from_intervals",
+                    "fold_intervals",
+                    "gaussian_fwhm_to_sigma",
+                    "gaussian_sigma_to_fwhm",
+                    "histogram_intervals",
+                    "interval_overlap_length",
+                    "kuiper",
+                    "kuiper_false_positive_probability",
+                    "kuiper_two",
+                    "mad_std",
+                    "median_absolute_deviation",
+                    "poisson_conf_interval",
+                    "signal_to_noise_oir_ccd",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Selecting the bin width of histograms",
+                "description": _get_submodule("scikitplot._astropy.stats", "_histogram"),
+                "autosummary": [
+                    "calculate_bin_edges",
+                    "freedman_bin_width",
+                    "histogram",
+                    "knuth_bin_width",
+                    "scott_bin_width",
+                ],
+            },
+            {
+                "title": "Astrostatistics: Model Selection",
+                "description": _get_submodule("scikitplot._astropy.stats", "info_theory"),
+                "autosummary": [
+                    "akaike_info_criterion",
+                    "akaike_info_criterion_lsq",
+                    "bayesian_info_criterion",
+                    "bayesian_info_criterion_lsq",
+                ],
+            },
+            {
+                "title": "Discrete Distributions Tools",
+                "description": _get_submodule("scikitplot._tweedie", "_tweedie_dist"),
+                "autosummary": [
+                    "tweedie_gen",
+                    "tweedie",
+                ],
+            },
+        ],
+    },
+    # "scikitplot.utils": {
+    #   "short_summary": "Development Utilities",
+    #   "description": (
+    #     _get_guide("developers-guide-index", is_developer=True)
+    #   ),
+    #   "sections": [
+    #     {
+    #       "title": "Optimal matplotlib operations",
+    #       "description": _get_submodule("scikitplot.utils", "_figures"),
+    #       "autosummary": [
+    #         '_figures.save_figure',
+    #       ],
+    #     },
+    #     {
+    #       "title": "Optimal mathematical operations",
+    #       "description": _get_submodule("scikitplot.utils", "_helpers"),
+    #       "autosummary": [
+    #         '_helpers.validate_labels',
+    #         '_helpers.cumulative_gain_curve',
+    #         '_helpers.binary_ks_curve',
+    #       ],
+    #     },
+    #     {
+    #       "title": "Input and parameter validation",
+    #       "description": _get_submodule("scikitplot.utils", "validation"),
+    #       "autosummary": [
+    #         'validation.validate_plotting_kwargs',
+    #       ],
+    #     },
+    #   ],
+    # },
+    "scikitplot.visualkeras": {
+        "short_summary": (
+            "Visualization of Neural Network Architectures Keras (either standalone or included in tensorflow)."
         ),
-        "autosummary": [
-          "decomposition.plot_pca_2d_projection",
-          "decomposition.plot_pca_component_variance",
+        "description": _get_guide("visualkeras-index"),
+        "sections": [
+            {
+                "title": "Graphical Visualization",
+                "description": _get_submodule("scikitplot.visualkeras", "graph"),
+                "autosummary": [
+                    "graph_view",
+                ],
+            },
+            {
+                "title": "Layered Visualization",
+                "description": _get_submodule("scikitplot.visualkeras", "layered"),
+                "autosummary": [
+                    "layered_view",
+                ],
+            },
+            {
+                "title": "Visualization Helper",
+                "description": None,
+                "autosummary": [
+                    "SpacingDummyLayer",
+                ],
+            },
         ],
-      },
-      {
-        "title": "Plot Estimators (model) object instances",
-        "description": (
-          _get_submodule("scikitplot.api", "estimators")
-          + "\n\n"
-          + _get_guide("estimators-index")
-        ),
-        "autosummary": [
-          # Regressor estimators
-          # Classifier estimators
-          "estimators.plot_feature_importances",
-          # Classifier models scalability
-          "estimators.plot_learning_curve",
-          # Cluster estimators
-          "estimators.plot_elbow",
-        ],
-      },
-      {
-        "title": "Plot model evaluation metrics",
-        "description": (
-          _get_submodule("scikitplot.api", "metrics")
-          + "\n\n"
-          + _get_guide("metrics-index")
-        ),
-        "autosummary": [
-          # Regression metrics
-          "metrics.plot_residuals_distribution",
-          # Classification metrics
-          "metrics.plot_classifier_eval",
-          "metrics.plot_confusion_matrix",
-          "metrics.plot_precision_recall",
-          "metrics.plot_roc",
-          # Classification models scalability
-          "metrics.plot_calibration",
-          # Clustering metrics
-          "metrics.plot_silhouette",
-        ],
-      },
-      {
-        "title": "API Development Utilities",
-        "description": (          
-          _get_guide("developers-guide-index", is_developer=True)
-          # _get_submodule("scikitplot.api", "utils")
-          # + "\n\n"
-          # + _get_guide("utils-index")
-        ),
-        "autosummary": [
-          # _helper
-          '_utils.validate_labels',
-          '_utils.cumulative_gain_curve',
-          '_utils.binary_ks_curve',
-          # validation
-          '_utils.validate_plotting_kwargs',
-          # figures
-          '_utils.save_figure',
-          '_utils.save_plot',
-        ],
-      },
-    ],
-  },
-  "scikitplot.experimental": {
-    "short_summary": "Experimental Python module based on C/CPP.",
-    "description": (
-      _get_guide("experimental-index")
-    ),
-    "sections": [
-      {
-        "title": "Cython Bindings samples",
-        # "description": (
-        #   _get_submodule("scikitplot.kds", "_kds")
-        #   + "\n\n"
-        #   + _get_guide("kds-index")
-        # ),
-        "autosummary": [
-          '_cy_experimental.expit',
-          '_cy_experimental.log_expit',
-          '_cy_experimental.logit',
-        ],
-      },
-      {
-        "title": "Pybind11 Bindings samples",
-        # "description": (
-        #   _get_submodule("scikitplot.kds", "_kds")
-        #   + "\n\n"
-        #   + _get_guide("kds-index")
-        # ),
-        "autosummary": [
-          '_py_experimental.py_print',
-        ],
-      },
-      {
-        "title": "Python samples",
-        # "description": (
-        #   _get_submodule("scikitplot.kds", "_kds")
-        #   + "\n\n"
-        #   + _get_guide("kds-index")
-        # ),
-        "autosummary": [
-          '_logsumexp.sigmoid',
-          '_logsumexp.softmax',
-          '_logsumexp.logsumexp',
-          '_logsumexp.log_softmax',
-        ],
-      },
-    ],
-  },
-  "scikitplot.kds": {
-    "short_summary": "KeyToDataScience",
-    "description": (
-      _get_guide("kds-index")
-    ),
-    "sections": [
-      {
-        "title": "Key To DataScience",
-        # "description": (
-        #   _get_submodule("scikitplot.kds", "_kds")
-        #   + "\n\n"
-        #   + _get_guide("kds-index")
-        # ),
-        "autosummary": [
-          'print_labels',
-          'decile_table',
-          'plot_cumulative_gain',
-          'plot_lift',
-          'plot_lift_decile_wise',
-          'plot_ks_statistic',
-          'report',
-        ],
-      },
-    ],
-  },
-  "scikitplot.modelplotpy": {
-    "short_summary": "Predictive model insights",
-    "description": (
-        _get_guide("modelplotpy-index", "modelplotpy_financial-index")
-    ),
-    "sections": [
-      {
-        "title": "Initializer ModelPlotPy object",
-        # "description": (
-        #   _get_submodule("scikitplot.modelplotpy", "_modelplotpy")
-        #   + "\n\n"
-        #   + _get_guide("modelplotpy-index")
-        # ),
-        "autosummary": [
-          # Initialize modelplotpy object
-          'ModelPlotPy',
-        ],
-      },
-      {
-        "title": "Gains, Lift and (cumulative) Response Plots",
-        "description": None,
-        "autosummary": [
-          # Gains, Lift and (cumulative) Response plots
-          'plot_response',
-          'plot_cumresponse',
-          'plot_cumlift',
-          'plot_cumgains',
-          'plot_all',
-        ],
-      },
-      {
-        "title": "Business-savvy Financial Insight Plots",
-        "description": None,
-        "autosummary": [
-          # Business-savvy financial plots
-          'plot_costsrevs',
-          'plot_profit',
-          'plot_roi',
-        ],
-      },
-    ],
-  },
-  "scikitplot.probscale": {
-    "short_summary": "Real probability scales for matplotlib.",
-    "description": (
-      _get_guide("probscale-index")
-    ),
-    "sections": [
-      {
-        "title": "probscale",
-        # "description": (
-        #   _get_submodule("scikitplot.probscale", "Probscale")
-        #   + "\n\n"
-        #   + _get_guide("probscale-index")
-        # ),
-        "autosummary": [
-          'ProbScale',
-          'probplot',
-          'plot_pos',
-          'fit_line',
-        ],
-      },
-    ],
-  },
-  "scikitplot.sp_logging": {
-    "short_summary": "Scikit-plots Logging.",
-    "description": (
-      _get_guide("sp_logging-index")
-    ),
-    "sections": [
-      {
-        "title": "Logging Levels",
-        "description": None,
-        "autosummary": [
-          'CRITICAL',
-          'DEBUG',
-          'ERROR',
-          'FATAL',
-          'INFO',
-          'NOTSET',
-          'WARN',
-          'WARNING',
-        ],
-      },
-      {
-        "title": "Functional Interface - get_logger",
-        # "description": (
-        #   _get_submodule("scikitplot.sp_logging", "SpLogger")
-        #   + "\n\n"
-        #   + _get_guide("sp_logging-index")
-        # ),
-        "autosummary": [
-          'AlwaysStdErrHandler',
-          'GoogleLogFormatter',
-          'critical',
-          'debug',
-          'error',
-          'error_log',
-          'fatal',
-          'getEffectiveLevel',
-          'get_logger',
-          'log_if',
-          'setLevel',
-          'vlog',
-          'warn',
-          'warning',
-        ],
-      },
-      {
-        "title": "Class Interface - SpLogger",
-        "description": None,
-        "autosummary": [
-          'SpLogger',
-          'sp_logger',
-        ],
-      },
-    ],
-  },
-  "scikitplot.stats": {
-    "short_summary": "Statistical tools for data visualization and interpretation.",
-    "description": (
-      _get_guide("stats-index")
-    ),
-    "sections": [
-      {
-        "title": "Astrostatistics: Bayesian Blocks for Time Series Analysis",
-        "description": _get_submodule("scikitplot._astropy.stats", "_bayesian_blocks"),
-        "autosummary": [
-          'Events',
-          'FitnessFunc',
-          'PointMeasures',
-          'RegularEvents',
-          'bayesian_blocks',
-        ],
-      },
-      {
-        "title": "Astrostatistics Tools",
-        "description": _get_submodule("scikitplot._astropy.stats", "funcs"),
-        "autosummary": [
-          "binned_binom_proportion",
-          "binom_conf_interval",
-          "bootstrap",
-          "cdf_from_intervals",
-          "fold_intervals",
-          "gaussian_fwhm_to_sigma",
-          "gaussian_sigma_to_fwhm",
-          "histogram_intervals",
-          "interval_overlap_length",
-          "kuiper",
-          "kuiper_false_positive_probability",
-          "kuiper_two",
-          "mad_std",
-          "median_absolute_deviation",
-          "poisson_conf_interval",
-          "signal_to_noise_oir_ccd",
-        ],
-      },
-      {
-        "title": "Astrostatistics: Selecting the bin width of histograms",
-        "description": _get_submodule("scikitplot._astropy.stats", "_histogram"),
-        "autosummary": [
-          "calculate_bin_edges",
-          "freedman_bin_width",
-          "histogram",
-          "knuth_bin_width",
-          "scott_bin_width",
-        ],
-      },
-      {
-        "title": "Astrostatistics: Model Selection",
-        "description": _get_submodule("scikitplot._astropy.stats", "info_theory"),
-        "autosummary": [
-          "akaike_info_criterion",
-          "akaike_info_criterion_lsq",
-          "bayesian_info_criterion",
-          "bayesian_info_criterion_lsq",
-        ],
-      },
-      {
-        "title": "Discrete Distributions Tools",
-        "description": _get_submodule("scikitplot._tweedie", "_tweedie_dist"),
-        "autosummary": [
-          'tweedie_gen',
-          'tweedie',
-        ],
-      },
-    ],
-  },
-  # "scikitplot.utils": {
-  #   "short_summary": "Development Utilities",
-  #   "description": (
-  #     _get_guide("developers-guide-index", is_developer=True)
-  #   ),
-  #   "sections": [
-  #     {
-  #       "title": "Optimal matplotlib operations",
-  #       "description": _get_submodule("scikitplot.utils", "_figures"),
-  #       "autosummary": [
-  #         '_figures.save_figure',
-  #       ],
-  #     },
-  #     {
-  #       "title": "Optimal mathematical operations",
-  #       "description": _get_submodule("scikitplot.utils", "_helpers"),
-  #       "autosummary": [
-  #         '_helpers.validate_labels',
-  #         '_helpers.cumulative_gain_curve',
-  #         '_helpers.binary_ks_curve',
-  #       ],
-  #     },
-  #     {
-  #       "title": "Input and parameter validation",
-  #       "description": _get_submodule("scikitplot.utils", "validation"),
-  #       "autosummary": [
-  #         'validation.validate_plotting_kwargs',
-  #       ],
-  #     },
-  #   ],
-  # },
-  "scikitplot.visualkeras": {
-    "short_summary": "Visualization of Neural Network Architectures Keras (either standalone or included in tensorflow).",
-    "description": (
-      _get_guide("visualkeras-index")
-    ),
-    "sections": [
-      {
-        "title": "Graphical Visualization",
-        "description": _get_submodule("scikitplot.visualkeras", "graph"),
-        "autosummary": [
-          "graph_view",
-        ],
-      },
-      {
-        "title": "Layered Visualization",
-        "description": _get_submodule("scikitplot.visualkeras", "layered"),
-        "autosummary": [
-          "layered_view",
-        ],
-      },
-      {
-        "title": "Visualization Helper",
-        "description": None,
-        "autosummary": [
-          "SpacingDummyLayer",
-        ],
-      },
-    ],
-  },
+    },
 }
 
 

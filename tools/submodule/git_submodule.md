@@ -112,7 +112,7 @@ Remove the Submodule Follow the steps to remove the submodule entirely:
     # Remove Submodule Metadata
     # rm -rf .git/modules/<path/to/submodule>
     rm -rf .git/modules/vendored_numcpp/NumCpp
-    
+
     git submodule status
     ```
 

@@ -15,22 +15,22 @@ The module leverages Cython's fused types to handle different numeric types
 making the code both efficient and flexible.
 """
 
-cimport cython
-from cython cimport nogil
+# cimport cython  # noqa: F401
+# from cython cimport nogil  # noqa: F401
 
 from libc.math cimport (
-    NAN,
+    # NAN,
     exp,
     log
-)
-from numpy cimport (
-    npy_float,
-    npy_double,
-    npy_longdouble,
-    npy_cdouble,
-    npy_int, 
-    npy_long
-)
+)  # noqa: F401
+# from numpy cimport (
+#     npy_float,
+#     npy_double,
+#     npy_longdouble,
+#     npy_cdouble,
+#     npy_int,
+#     npy_long
+# )  # noqa: F401
 
 # Implement functions
 
@@ -39,9 +39,9 @@ cpdef dfg_number_t expit(dfg_number_t x0) noexcept nogil:
     Compute the expit (sigmoid) function of the input value `x0`.
 
     The expit function is defined as::
-    
+
         expit(x) = 1 / (1 + exp(-x))
-    
+
     This function is widely used in logistic regression models and other
     areas of machine learning and statistics.
 
@@ -70,9 +70,9 @@ cpdef dfg_number_t log_expit(dfg_number_t x0) noexcept nogil:
     Compute the logarithm of the expit (sigmoid) function for the input value `x0`.
 
     The log-expit function is defined as::
-    
+
         log_expit(x) = -log(1 + exp(-x))
-    
+
     This function is useful in scenarios where the log-sigmoid is preferred
     for numerical stability or when working with log-probabilities.
 
@@ -99,16 +99,16 @@ cpdef dfg_number_t logit(dfg_number_t x0) noexcept nogil:
     Compute the logit function, which is the inverse of the sigmoid function, for the input value `x0`.
 
     The logit function is defined as::
-    
+
         logit(x) = log(x / (1 - x))
-    
+
     It is commonly used in logistic regression and other statistical models to
     transform probabilities (ranging from 0 to 1) into real-valued numbers.
 
     Parameters:
     -----------
     x0 : dfg_number_t
-        The input value, which should be in the range (0, 1) and can be a 
+        The input value, which should be in the range (0, 1) and can be a
         `double`, `float`, or `long double`.
 
     Returns:

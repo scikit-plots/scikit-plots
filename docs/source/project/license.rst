@@ -116,25 +116,25 @@ Third Party Licenses
 
    .. dropdown:: appdirs
       :class-container: sdd
-   
+
       .. literalinclude:: ../../../LICENSES/LICENSE_appdirs
          :language: none
-   
+
    .. dropdown:: husl
       :class-container: sdd
-   
+
       .. literalinclude:: ../../../LICENSES/LICENSE_husl
          :language: none
-   
+
    .. dropdown:: numpydoc
       :class-container: sdd
-   
+
       .. literalinclude:: ../../../LICENSES/LICENSE_numpydoc
          :language: none
-   
+
    .. dropdown:: packaging
       :class-container: sdd
-   
+
       .. literalinclude:: ../../../LICENSES/LICENSE_packaging
          :language: none
 

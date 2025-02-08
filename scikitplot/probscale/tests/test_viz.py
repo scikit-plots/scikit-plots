@@ -1,6 +1,6 @@
-import numpy
 import matplotlib.lines
 import matplotlib.pyplot as plt
+import numpy
 
 try:
     from scipy import stats
@@ -12,15 +12,14 @@ try:
 except ImportError:  # pragma: no cover
     seaborn = None
 
+from unittest import mock
+
+import numpy.testing as nptest
+import pytest
+
 from .. import viz
 from ..probscale import _minimal_norm
 from .helpers import seed
-
-import pytest
-import numpy.testing as nptest
-
-from unittest import mock
-
 
 TIGHT_TOLERANCE = 13
 LOOSE_TOLERANCE = 18
@@ -199,9 +198,7 @@ class Test_fit_line(object):
         self.known_y_linlin = numpy.array([-0.8965, 6.4370, 9.7360, 12.8837, 17.7706])
         self.known_y_linlog = numpy.array([2.8019, 6.0052, 8.4619, 11.7375, 19.5072])
         self.known_y_linprob = numpy.array([8.4762, 23.0079, 40.0813, 57.6156, 94.6629])
-        self.known_y_loglin = numpy.array(
-            [-2.576205, -0.74020, -0.034269, 0.426663, 1.395386]
-        )
+        self.known_y_loglin = numpy.array([-2.576205, -0.74020, -0.034269, 0.426663, 1.395386])
         self.known_y_loglog = numpy.array(
             [0.0468154, 0.37470676, 0.83369069, 1.40533704, 4.21100704]
         )
@@ -214,9 +211,7 @@ class Test_fit_line(object):
         self.known_y_problog = numpy.array(
             [2.80190754, 6.00524156, 8.46190468, 11.73746612, 19.50723532]
         )
-        self.known_y_probprob = numpy.array(
-            [2.106935, 24.925853, 47.268638, 69.562842, 92.127085]
-        )
+        self.known_y_probprob = numpy.array([2.106935, 24.925853, 47.268638, 69.562842, 92.127085])
 
         self.custom_xhat = [-2, -1, 0, 1, 2]
         self.known_custom_yhat = numpy.array(
@@ -337,12 +332,8 @@ class Test_fit_line(object):
         known_res = {
             "slope": 1.7385543724819053,
             "intercept": -3.7812786758946122,
-            "yhat_lo": numpy.array(
-                [-2.889480, -0.846565, -0.093696, 0.360738, 1.255963]
-            ),
-            "yhat_hi": numpy.array(
-                [-2.310246, -0.637950, 0.024143, 0.494404, 1.561183]
-            ),
+            "yhat_lo": numpy.array([-2.889480, -0.846565, -0.093696, 0.360738, 1.255963]),
+            "yhat_hi": numpy.array([-2.310246, -0.637950, 0.024143, 0.494404, 1.561183]),
         }
         self.check_res(res, known_res)
 
@@ -369,12 +360,8 @@ class Test_fit_line(object):
         known_res = {
             "slope": 1.7385543724819046,
             "intercept": -3.7812786758946113,
-            "yhat_lo": numpy.array(
-                [0.187555, 19.859832, 46.267537, 64.085292, 89.551801]
-            ),
-            "yhat_hi": numpy.array(
-                [1.030230, 26.174702, 50.963065, 68.949137, 94.089655]
-            ),
+            "yhat_lo": numpy.array([0.187555, 19.859832, 46.267537, 64.085292, 89.551801]),
+            "yhat_hi": numpy.array([1.030230, 26.174702, 50.963065, 68.949137, 94.089655]),
         }
         self.check_res(res, known_res)
 
@@ -387,12 +374,8 @@ class Test_fit_line(object):
         known_res = {
             "slope": 5.3404377026700995,
             "intercept": 10.114857142857147,
-            "yhat_lo": numpy.array(
-                [-2.92233134, 5.48065673, 9.10901980, 12.01977856, 16.23762957]
-            ),
-            "yhat_hi": numpy.array(
-                [0.49826723, 7.04480065, 10.27146083, 13.48770383, 18.83061329]
-            ),
+            "yhat_lo": numpy.array([-2.92233134, 5.48065673, 9.10901980, 12.01977856, 16.23762957]),
+            "yhat_hi": numpy.array([0.49826723, 7.04480065, 10.27146083, 13.48770383, 18.83061329]),
         }
         self.check_res(res, known_res)
 
@@ -405,12 +388,8 @@ class Test_fit_line(object):
         known_res = {
             "intercept": 2.1749556618678434,
             "slope": 0.55515014824534525,
-            "yhat_lo": numpy.array(
-                [2.43550106, 5.64362030, 8.16525601, 11.31358231, 18.09998664]
-            ),
-            "yhat_hi": numpy.array(
-                [3.13484803, 6.30722509, 8.74945323, 12.23244498, 21.28240831]
-            ),
+            "yhat_lo": numpy.array([2.43550106, 5.64362030, 8.16525601, 11.31358231, 18.09998664]),
+            "yhat_hi": numpy.array([3.13484803, 6.30722509, 8.74945323, 12.23244498, 21.28240831]),
         }
         self.check_res(res, known_res)
 
@@ -763,9 +742,7 @@ def test_probplot_qq_dist(plot_data):
     plt.close("all")
     fig, ax = plt.subplots()
     norm = stats.norm(*stats.norm.fit(plot_data))
-    fig = viz.probplot(
-        plot_data, ax=ax, plottype="qq", dist=norm, datalabel="Test label"
-    )
+    fig = viz.probplot(plot_data, ax=ax, plottype="qq", dist=norm, datalabel="Test label")
     return fig
 
 
@@ -773,9 +750,7 @@ def test_probplot_qq_dist(plot_data):
 def test_probplot_pp(plot_data):
     plt.close("all")
     fig, ax = plt.subplots()
-    scatter_kws = dict(
-        color="b", linestyle="--", markeredgecolor="g", markerfacecolor="none"
-    )
+    scatter_kws = dict(color="b", linestyle="--", markeredgecolor="g", markerfacecolor="none")
     fig = viz.probplot(
         plot_data,
         ax=ax,
@@ -866,9 +841,7 @@ def test_probplot_pp_bestfit(plot_data):
 def test_probplot_prob_probax_y(plot_data):
     plt.close("all")
     fig, ax = plt.subplots()
-    fig = viz.probplot(
-        plot_data, ax=ax, datalabel="Test xlabel", datascale="log", probax="y"
-    )
+    fig = viz.probplot(plot_data, ax=ax, datalabel="Test xlabel", datascale="log", probax="y")
     assert isinstance(fig, plt.Figure)
     return fig
 
@@ -893,9 +866,7 @@ def test_probplot_qq_probax_y(plot_data):
 def test_probplot_pp_probax_y(plot_data):
     plt.close("all")
     fig, ax = plt.subplots()
-    scatter_kws = dict(
-        color="b", linestyle="--", markeredgecolor="g", markerfacecolor="none"
-    )
+    scatter_kws = dict(color="b", linestyle="--", markeredgecolor="g", markerfacecolor="none")
     fig = viz.probplot(
         plot_data,
         ax=ax,
@@ -1088,9 +1059,7 @@ def test_probplot_with_FacetGrid_with_markers(usemarkers):
         .add_legend()
     )
 
-    _lines = filter(
-        lambda x: isinstance(x, matplotlib.lines.Line2D), fg.ax.get_children()
-    )
+    _lines = filter(lambda x: isinstance(x, matplotlib.lines.Line2D), fg.ax.get_children())
     result_markers = {line.get_label(): line.get_marker() for line in _lines}
     expected_markers = dict(zip(species, markers))
     assert expected_markers == result_markers

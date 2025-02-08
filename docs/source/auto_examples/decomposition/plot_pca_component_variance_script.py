@@ -9,21 +9,14 @@ used by a scikit-learn PCA object.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+import numpy as np
 from sklearn.datasets import (
-    make_classification,
-    load_breast_cancer as data_2_classes,
     load_iris as data_3_classes,
-    load_digits as data_10_classes,
 )
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_predict
 from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
 
-import numpy as np; np.random.seed(0)  # reproducibility
+np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
@@ -38,9 +31,7 @@ X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_st
 pca = PCA(random_state=0).fit(X_train)
 
 # Plot!
-ax = sp.decomposition.plot_pca_component_variance(
-    pca, figsize=(9,5)
-);
+ax = sp.decomposition.plot_pca_component_variance(pca, figsize=(9, 5))
 
 # Adjust layout to make sure everything fits
 plt.tight_layout()

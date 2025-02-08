@@ -9,17 +9,14 @@ used by a scikit-learn clusterer.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+import numpy as np
+from sklearn.cluster import KMeans
 from sklearn.datasets import (
-    make_classification,
-    load_breast_cancer as data_2_classes,
     load_iris as data_3_classes,
-    load_digits as data_10_classes,
 )
 from sklearn.model_selection import train_test_split
-from sklearn.cluster import KMeans
-from sklearn.model_selection import cross_val_predict
 
-import numpy as np; np.random.seed(0)  # reproducibility
+np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
@@ -36,9 +33,7 @@ model = KMeans(n_clusters=4, random_state=0)
 cluster_labels = model.fit_predict(X_train)
 
 # Plot!
-ax = sp.metrics.plot_silhouette(
-    X_train, cluster_labels
-);
+ax = sp.metrics.plot_silhouette(X_train, cluster_labels)
 
 # Adjust layout to make sure everything fits
 plt.tight_layout()

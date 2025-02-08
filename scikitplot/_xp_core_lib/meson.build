@@ -26,7 +26,7 @@ _xp_core_lib_cython_tree = [
 #   fs.copyfile('ccallback.pxd'),
 #   fs.copyfile('messagestream.pxd'),
 # ]
-# 
+#
 # # Cython pyx -> c generator with _lib_pxd dependency
 # lib_cython_gen = generator(cython,
 #   arguments : cython_args,

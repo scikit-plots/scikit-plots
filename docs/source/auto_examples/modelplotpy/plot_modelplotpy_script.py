@@ -54,34 +54,38 @@ Let's load the data and have a quick look at it:
 
 import io
 import os
-import zipfile
-import requests
 import warnings
-warnings.filterwarnings('ignore')
+import zipfile
 
-import numpy as np; np.random.seed(0)  # reproducibility
+import requests
+
+warnings.filterwarnings("ignore")
+
+import numpy as np
+
+np.random.seed(0)  # reproducibility
 import pandas as pd
 
-#r = requests.get("https://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank-additional.zip")
+# r = requests.get("https://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank-additional.zip")
 # we encountered that the source at uci.edu is not always available,
 # therefore we made a copy to our repos.
-r = requests.get('https://modelplot.github.io/img/bank-additional.zip')
+r = requests.get("https://modelplot.github.io/img/bank-additional.zip")
 z = zipfile.ZipFile(io.BytesIO(r.content))
 # You can change the path, currently the data is written to the working directory
 path = os.getcwd()
 z.extractall(path)
 # Define the directory to be removed
-dir_to_remove = os.path.join(path, 'bank-additional/__MACOSX')
+dir_to_remove = os.path.join(path, "bank-additional/__MACOSX")
 # Check if the directory exists before attempting to remove it
 if os.path.exists(dir_to_remove):
     os.remove(dir_to_remove)
 # Load csv data
-bank = pd.read_csv(path + "/bank-additional/bank-additional-full.csv", sep = ';')
+bank = pd.read_csv(path + "/bank-additional/bank-additional-full.csv", sep=";")
 
 # select the 6 columns
-bank = bank[['y', 'duration', 'campaign', 'pdays', 'previous', 'euribor3m']]
+bank = bank[["y", "duration", "campaign", "pdays", "previous", "euribor3m"]]
 # rename target class value 'yes' for better interpretation
-bank.y[bank.y == 'yes'] = 'term deposit'
+bank.y[bank.y == "yes"] = "term deposit"
 
 # dimensions of the data
 print(bank.shape)
@@ -99,23 +103,21 @@ print(bank.head())
 # Lets train a few models to evaluate with our plots.
 
 # to create predictive models
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
 
 # define target vector y
 y = bank.y
 # define feature matrix X
-X = bank.drop('y', axis = 1)
+X = bank.drop("y", axis=1)
 
 # Create the necessary datasets to build models
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size = 0.3, random_state = 2018
-)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=2018)
 
 # Instantiate a few classification models
 clf_rf = RandomForestClassifier().fit(X_train, y_train)
-clf_mult = LogisticRegression(multi_class='multinomial', solver='newton-cg').fit(X_train, y_train)
+clf_mult = LogisticRegression(multi_class="multinomial", solver="newton-cg").fit(X_train, y_train)
 
 
 # %%
@@ -126,19 +128,20 @@ clf_mult = LogisticRegression(multi_class='multinomial', solver='newton-cg').fit
 
 # from scikitplot import modelplotpy as mp
 import scikitplot.modelplotpy as mp
+
 obj = mp.ModelPlotPy(
-    feature_data   = [X_train, X_test],
-    label_data     = [y_train, y_test],
-    dataset_labels = ['train_data', 'test_data'],
-    models         = [clf_rf, clf_mult],
-    model_labels   = ['random_forest', 'multinomial_logit'],
-    ntiles = 10
+    feature_data=[X_train, X_test],
+    label_data=[y_train, y_test],
+    dataset_labels=["train_data", "test_data"],
+    models=[clf_rf, clf_mult],
+    model_labels=["random_forest", "multinomial_logit"],
+    ntiles=10,
 )
 
 # transform data generated with prepare_scores_and_deciles into aggregated data for chosen plotting scope
 ps = obj.plotting_scope(
-    select_model_label   = ['random_forest'],
-    select_dataset_label = ['test_data'],
+    select_model_label=["random_forest"],
+    select_dataset_label=["test_data"],
 )
 
 
@@ -192,9 +195,9 @@ ps = obj.plotting_scope(
 # plot the cumulative gains plot and annotate the plot at decile = 3
 mp.plot_cumgains(
     ps,
-    highlight_ntile = 3,
-    save_fig = False,
-);
+    highlight_ntile=3,
+    save_fig=False,
+)
 
 # %%
 #
@@ -219,9 +222,9 @@ mp.plot_cumgains(
 # plot the cumulative lift plot and annotate the plot at decile = 3
 mp.plot_cumlift(
     ps,
-    highlight_ntile = 3,
-    save_fig = False,
-);
+    highlight_ntile=3,
+    save_fig=False,
+)
 
 # %%
 #
@@ -249,9 +252,9 @@ mp.plot_cumlift(
 # plot the response plot and annotate the plot at decile = 3
 mp.plot_response(
     ps,
-    highlight_ntile = 3,
-    save_fig = False,
-);
+    highlight_ntile=3,
+    save_fig=False,
+)
 
 
 # %%
@@ -266,9 +269,9 @@ mp.plot_response(
 # plot the cumulative response plot and annotate the plot at decile = 3
 mp.plot_cumresponse(
     ps,
-    highlight_ntile = 3,
-    save_fig = False,
-);
+    highlight_ntile=3,
+    save_fig=False,
+)
 
 
 # %%
@@ -280,9 +283,9 @@ mp.plot_cumresponse(
 # plot all four evaluation plots and save to file
 mp.plot_all(
     ps,
-    save_fig = False,
+    save_fig=False,
     # save_fig_filename = 'Selection model Term Deposits'
-);
+)
 
 
 # %%
@@ -314,13 +317,12 @@ mp.plot_all(
 # Return on Investment (ROI) plot
 mp.plot_roi(
     ps,
-    fixed_costs = 1000,
-    variable_costs_per_unit = 10,
-    profit_per_unit = 50,
-    highlight_ntile = 3,
-    save_fig = False,
+    fixed_costs=1000,
+    variable_costs_per_unit=10,
+    profit_per_unit=50,
+    highlight_ntile=3,
+    save_fig=False,
 )
-
 
 
 # %%
@@ -336,12 +338,12 @@ mp.plot_roi(
 # Costs & Revenues plot, highlighted at max roi instead of max profit
 mp.plot_costsrevs(
     ps,
-    fixed_costs = 1000,
-    variable_costs_per_unit = 10,
-    profit_per_unit = 50,
-    highlight_ntile = 3,
+    fixed_costs=1000,
+    variable_costs_per_unit=10,
+    profit_per_unit=50,
+    highlight_ntile=3,
     # highlight_ntile = "max_roi",
-    save_fig = False,
+    save_fig=False,
 )
 
 
@@ -358,11 +360,11 @@ mp.plot_costsrevs(
 # Profit plot , highlighted at custom ntile instead of at max profit
 mp.plot_profit(
     ps,
-    fixed_costs = 1000,
-    variable_costs_per_unit = 10,
-    profit_per_unit = 50,
-    highlight_ntile = 3,
-    save_fig = False,
+    fixed_costs=1000,
+    variable_costs_per_unit=10,
+    profit_per_unit=50,
+    highlight_ntile=3,
+    save_fig=False,
 )
 
 
@@ -381,16 +383,16 @@ mp.plot_profit(
 # was indeed the best choice to select the top-30% customers for a term deposit offer:
 
 ps2 = obj.plotting_scope(
-    scope                = "compare_models",
-    select_dataset_label = ['test_data'],
+    scope="compare_models",
+    select_dataset_label=["test_data"],
 )
 
 # plot the cumulative response plot and annotate the plot at decile = 3
 mp.plot_cumresponse(
     ps2,
-    highlight_ntile = 3,
-    save_fig = False,
-);
+    highlight_ntile=3,
+    save_fig=False,
+)
 
 
 # %%

@@ -1,30 +1,41 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# mypy: ignore-errors
 import os
 import sys
 import pathlib
 import warnings
+
 # https://abseil.io/docs/python/quickstart.html
 # https://abseil.io/docs/python/guides/logging
 from absl import logging
-import logging; _log=logging.getLogger(__name__); del logging;
+import logging
+
+_log = logging.getLogger(__name__)
+del logging
 
 from typing import TypeAlias, Final, LiteralString
 from typing_extensions import LiteralString
 
 # Only imports when type checking, not at runtime
 from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
     # Heavy import, only for type checking
     import tensorflow as tf  # Usege as str type 'tf'
 
-import scikitplot.sp_logging as logging                              # module logger
-from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure python logger, not have direct log level
-from scikitplot import SpLogger; logging=SpLogger()                  # class logger
-from scikitplot import sp_logger as logging                          # class instance logger
+import scikitplot.sp_logging as logging  # module logger
+from scikitplot import sp_logging, get_logger
+
+logging = get_logger()  # pure python logger, not have direct log level
+from scikitplot import SpLogger
+
+logging = SpLogger()  # class logger
+from scikitplot import sp_logger as logging  # class instance logger
 
 logging.setLevel(level=logging.INFO)  # default WARNING
-logging.warning('scikitplot warning!!!')
+logging.warning("scikitplot warning!!!")
 logging.info("This is a info message from the sp logger.")
 
 ######################################################################
@@ -56,11 +67,11 @@ logging.info("This is a info message from the sp logger.")
 #   X.Y.Z        # Final release
 #   X.Y.Z.postM  # Post release
 ## https://libraries.io/pypi/scikit-plots
-__version__           : Final[LiteralString]
-__git_hash__          : Final[LiteralString]
-__array_api_version__ : Final[LiteralString]
+__version__: Final[LiteralString]
+__git_hash__: Final[LiteralString]
+__array_api_version__: Final[LiteralString]
 
-__bibtex__   : Final[LiteralString]
-__citation__ : Final[LiteralString]
+__bibtex__: Final[LiteralString]
+__citation__: Final[LiteralString]
 
-_BUILT_WITH_MESON : Final[bool]
+_BUILT_WITH_MESON: Final[bool]

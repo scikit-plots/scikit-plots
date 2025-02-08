@@ -2,14 +2,16 @@
 # modified from https://github.com/CamDavidsonPilon/lifelines/
 
 import pandas as pd
-from .. import utils
 from pkg_resources import resource_filename
+
+from .. import utils
 
 __all__ = [
     "load_cdnow_summary",
     "load_transaction_data",
     "load_cdnow_summary_data_with_monetary_value",
     "load_donations",
+    "utils",
 ]
 
 

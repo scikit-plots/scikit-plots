@@ -1,21 +1,21 @@
-import aggdraw  # Anti-Grain Geometry (AGG) graphics library
 from typing import Any
 
-from PIL import Image, ImageFont, ImageColor, ImageDraw
+import aggdraw  # Anti-Grain Geometry (AGG) graphics library
+from PIL import Image, ImageColor, ImageDraw
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
-  'RectShape',
-  'Box',
-  'Circle',
-  'Ellipses',
-  'ColorWheel',
-  'fade_color',
-  'get_rgba_tuple',
-  'get_keys_by_value',
-  'self_multiply',
-  'vertical_image_concat',
-  'linear_layout',
+    "RectShape",
+    "Box",
+    "Circle",
+    "Ellipses",
+    "ColorWheel",
+    "fade_color",
+    "get_rgba_tuple",
+    "get_keys_by_value",
+    "self_multiply",
+    "vertical_image_concat",
+    "linear_layout",
 ]
 
 
@@ -56,42 +56,90 @@ class Box(RectShape):
     def draw(self, draw: ImageDraw, draw_reversed: bool = False):
         pen, brush = self._get_pen_brush()
 
-        if hasattr(self, 'de') and self.de > 0:
+        if hasattr(self, "de") and self.de > 0:
             brush_s1 = aggdraw.Brush(fade_color(self.fill, self.shade))
             brush_s2 = aggdraw.Brush(fade_color(self.fill, 2 * self.shade))
 
             if draw_reversed:
-                draw.line([self.x2 - self.de, self.y1 - self.de, self.x2 - self.de, self.y2 - self.de], pen)
+                draw.line(
+                    [self.x2 - self.de, self.y1 - self.de, self.x2 - self.de, self.y2 - self.de],
+                    pen,
+                )
                 draw.line([self.x2 - self.de, self.y2 - self.de, self.x2, self.y2], pen)
-                draw.line([self.x1 - self.de, self.y2 - self.de, self.x2 - self.de, self.y2 - self.de], pen)
+                draw.line(
+                    [self.x1 - self.de, self.y2 - self.de, self.x2 - self.de, self.y2 - self.de],
+                    pen,
+                )
 
-                draw.polygon([self.x1, self.y1,
-                              self.x1 - self.de, self.y1 - self.de,
-                              self.x2 - self.de, self.y1 - self.de,
-                              self.x2, self.y1
-                              ], pen, brush_s1)
+                draw.polygon(
+                    [
+                        self.x1,
+                        self.y1,
+                        self.x1 - self.de,
+                        self.y1 - self.de,
+                        self.x2 - self.de,
+                        self.y1 - self.de,
+                        self.x2,
+                        self.y1,
+                    ],
+                    pen,
+                    brush_s1,
+                )
 
-                draw.polygon([self.x1 - self.de, self.y1 - self.de,
-                              self.x1, self.y1,
-                              self.x1, self.y2,
-                              self.x1 - self.de, self.y2 - self.de
-                              ], pen, brush_s2)
+                draw.polygon(
+                    [
+                        self.x1 - self.de,
+                        self.y1 - self.de,
+                        self.x1,
+                        self.y1,
+                        self.x1,
+                        self.y2,
+                        self.x1 - self.de,
+                        self.y2 - self.de,
+                    ],
+                    pen,
+                    brush_s2,
+                )
             else:
-                draw.line([self.x1 + self.de, self.y1 - self.de, self.x1 + self.de, self.y2 - self.de], pen)
+                draw.line(
+                    [self.x1 + self.de, self.y1 - self.de, self.x1 + self.de, self.y2 - self.de],
+                    pen,
+                )
                 draw.line([self.x1 + self.de, self.y2 - self.de, self.x1, self.y2], pen)
-                draw.line([self.x1 + self.de, self.y2 - self.de, self.x2 + self.de, self.y2 - self.de], pen)
+                draw.line(
+                    [self.x1 + self.de, self.y2 - self.de, self.x2 + self.de, self.y2 - self.de],
+                    pen,
+                )
 
-                draw.polygon([self.x1, self.y1,
-                              self.x1 + self.de, self.y1 - self.de,
-                              self.x2 + self.de, self.y1 - self.de,
-                              self.x2, self.y1
-                              ], pen, brush_s1)
+                draw.polygon(
+                    [
+                        self.x1,
+                        self.y1,
+                        self.x1 + self.de,
+                        self.y1 - self.de,
+                        self.x2 + self.de,
+                        self.y1 - self.de,
+                        self.x2,
+                        self.y1,
+                    ],
+                    pen,
+                    brush_s1,
+                )
 
-                draw.polygon([self.x2 + self.de, self.y1 - self.de,
-                              self.x2, self.y1,
-                              self.x2, self.y2,
-                              self.x2 + self.de, self.y2 - self.de
-                              ], pen, brush_s2)
+                draw.polygon(
+                    [
+                        self.x2 + self.de,
+                        self.y1 - self.de,
+                        self.x2,
+                        self.y1,
+                        self.x2,
+                        self.y2,
+                        self.x2 + self.de,
+                        self.y2 - self.de,
+                    ],
+                    pen,
+                    brush_s2,
+                )
 
         draw.rectangle([self.x1, self.y1, self.x2, self.y2], pen, brush)
 
@@ -109,9 +157,21 @@ class Ellipses(RectShape):
         pen, brush = self._get_pen_brush()
         w = self.x2 - self.x1
         d = int(w / 7)
-        draw.ellipse([self.x1 + (w - d) / 2, self.y1 + 1 * d, self.x1 + (w + d) / 2, self.y1 + 2 * d], pen, brush)
-        draw.ellipse([self.x1 + (w - d) / 2, self.y1 + 3 * d, self.x1 + (w + d) / 2, self.y1 + 4 * d], pen, brush)
-        draw.ellipse([self.x1 + (w - d) / 2, self.y1 + 5 * d, self.x1 + (w + d) / 2, self.y1 + 6 * d], pen, brush)
+        draw.ellipse(
+            [self.x1 + (w - d) / 2, self.y1 + 1 * d, self.x1 + (w + d) / 2, self.y1 + 2 * d],
+            pen,
+            brush,
+        )
+        draw.ellipse(
+            [self.x1 + (w - d) / 2, self.y1 + 3 * d, self.x1 + (w + d) / 2, self.y1 + 4 * d],
+            pen,
+            brush,
+        )
+        draw.ellipse(
+            [self.x1 + (w - d) / 2, self.y1 + 5 * d, self.x1 + (w + d) / 2, self.y1 + 6 * d],
+            pen,
+            brush,
+        )
 
 
 class ColorWheel:
@@ -122,9 +182,25 @@ class ColorWheel:
         # self.colors = colors if colors is not None else [
         #   "#ffd166", "#ef476f", "#118ab2", "#073b4c", "#842da1", "#ffbad4", "#fe9775", "#83d483", "#06d6a0", "#0cb0a9"
         # ]
-        self.colors = colors if colors is not None else [
-          'gray', 'orange', 'red', 'pink', 'salmon', 'olive', 'limegreen', 'green', 'dodgerblue', 'cyan', 'blue', 'purple', 'brown'
-        ]
+        self.colors = (
+            colors
+            if colors is not None
+            else [
+                "gray",
+                "orange",
+                "red",
+                "pink",
+                "salmon",
+                "olive",
+                "limegreen",
+                "green",
+                "dodgerblue",
+                "cyan",
+                "blue",
+                "purple",
+                "brown",
+            ]
+        )
 
     def get_color(self, class_type: type):
         if class_type not in self._cache.keys():
@@ -149,7 +225,7 @@ def get_rgba_tuple(color: Any) -> tuple:
     if isinstance(color, tuple):
         rgba = color
     elif isinstance(color, int):
-        rgba = (color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff, color >> 24 & 0xff)
+        rgba = (color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF, color >> 24 & 0xFF)
     else:
         rgba = ImageColor.getrgb(color)
 
@@ -181,7 +257,7 @@ def self_multiply(tensor_tuple: tuple):
     return s
 
 
-def vertical_image_concat(im1: Image, im2: Image, background_fill: Any = 'white'):
+def vertical_image_concat(im1: Image, im2: Image, background_fill: Any = "white"):
     """
     Vertical concatenation of two PIL images.
 
@@ -190,14 +266,21 @@ def vertical_image_concat(im1: Image, im2: Image, background_fill: Any = 'white'
     :param background_fill: Color for the image background. Can be str or (R,G,B,A).
     :return: concatenated image
     """
-    dst = Image.new('RGBA', (max(im1.width, im2.width), im1.height + im2.height), background_fill)
+    dst = Image.new("RGBA", (max(im1.width, im2.width), im1.height + im2.height), background_fill)
     dst.paste(im1, (0, 0))
     dst.paste(im2, (0, im1.height))
     return dst
 
 
-def linear_layout(images: list, max_width: int = -1, max_height: int = -1, horizontal: bool = True, padding: int = 0,
-                  spacing: int = 0, background_fill: Any = 'white'):
+def linear_layout(
+    images: list,
+    max_width: int = -1,
+    max_height: int = -1,
+    horizontal: bool = True,
+    padding: int = 0,
+    spacing: int = 0,
+    background_fill: Any = "white",
+):
     """
     Creates a linear layout of a passed list of images in horizontal or vertical orientation. The layout will wrap in x
     or y dimension if a maximum value is exceeded.
@@ -241,7 +324,7 @@ def linear_layout(images: list, max_width: int = -1, max_height: int = -1, horiz
 
             y += img.height + spacing
 
-    layout = Image.new('RGBA', (width, height), background_fill)
+    layout = Image.new("RGBA", (width, height), background_fill)
     for img, coord in zip(images, coords):
         layout.paste(img, coord)
 

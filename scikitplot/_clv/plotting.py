@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
+from btyd.utils import calculate_alive_path, expected_cumulative_transactions
 from scipy import stats
 
-from btyd.utils import calculate_alive_path, expected_cumulative_transactions
-
 __all__ = [
-  "plot_frequency_recency_matrix",
-  "plot_probability_alive_matrix",
-  "plot_period_transactions",
-  "plot_calibration_purchases_vs_holdout_purchases",
-  "plot_expected_repeat_purchases",
-  "plot_history_alive",
-  "plot_cumulative_transactions",
-  "plot_incremental_transactions",
-  "plot_transaction_rate_heterogeneity",
-  "plot_dropout_rate_heterogeneity",
+    "plot_frequency_recency_matrix",
+    "plot_probability_alive_matrix",
+    "plot_period_transactions",
+    "plot_calibration_purchases_vs_holdout_purchases",
+    "plot_expected_repeat_purchases",
+    "plot_history_alive",
+    "plot_cumulative_transactions",
+    "plot_incremental_transactions",
+    "plot_transaction_rate_heterogeneity",
+    "plot_dropout_rate_heterogeneity",
 ]
 
 
@@ -29,7 +28,7 @@ def plot_period_transactions(
     title="Frequency of Repeat Transactions",
     xlabel="Number of Calibration Period Transactions",
     ylabel="Customers",
-    **kwargs
+    **kwargs,
 ):
     """
     Plot a figure with period actual and predicted transactions.
@@ -61,9 +60,15 @@ def plot_period_transactions(
     n = model.data.shape[0]
     simulated_data = model.generate_new_data(size=n)
 
-    model_counts = pd.DataFrame(model.data["frequency"].value_counts().sort_index().iloc[:max_frequency])
-    simulated_counts = pd.DataFrame(simulated_data["frequency"].value_counts().sort_index().iloc[:max_frequency])
-    combined_counts = model_counts.merge(simulated_counts, how="outer", left_index=True, right_index=True).fillna(0)
+    model_counts = pd.DataFrame(
+        model.data["frequency"].value_counts().sort_index().iloc[:max_frequency]
+    )
+    simulated_counts = pd.DataFrame(
+        simulated_data["frequency"].value_counts().sort_index().iloc[:max_frequency]
+    )
+    combined_counts = model_counts.merge(
+        simulated_counts, how="outer", left_index=True, right_index=True
+    ).fillna(0)
     combined_counts.columns = labels
 
     ax = combined_counts.plot(kind="bar", **kwargs)
@@ -113,18 +118,26 @@ def plot_calibration_purchases_vs_holdout_purchases(
     duration_holdout = summary.iloc[0]["duration_holdout"]
 
     summary["model_predictions"] = model.conditional_expected_number_of_purchases_up_to_time(
-            duration_holdout, summary["frequency_cal"], summary["recency_cal"], summary["T_cal"])
+        duration_holdout, summary["frequency_cal"], summary["recency_cal"], summary["T_cal"]
+    )
 
     if kind == "time_since_last_purchase":
         summary["time_since_last_purchase"] = summary["T_cal"] - summary["recency_cal"]
         ax = (
-            summary.groupby(["time_since_last_purchase"])[["frequency_holdout", "model_predictions"]]
+            summary.groupby(["time_since_last_purchase"])[
+                ["frequency_holdout", "model_predictions"]
+            ]
             .mean()
             .iloc[:n]
             .plot(**kwargs)
         )
     else:
-        ax = summary.groupby(kind)[["frequency_holdout", "model_predictions"]].mean().iloc[:n].plot(**kwargs)
+        ax = (
+            summary.groupby(kind)[["frequency_holdout", "model_predictions"]]
+            .mean()
+            .iloc[:n]
+            .plot(**kwargs)
+        )
 
     plt.title("Actual Purchases in Holdout Period vs Predicted Purchases")
     plt.xlabel(x_labels[kind])
@@ -142,7 +155,7 @@ def plot_frequency_recency_matrix(
     title=None,
     xlabel="Customer's Historical Frequency",
     ylabel="Customer's Recency",
-    **kwargs
+    **kwargs,
 ):
     """
     Plot recency frequecy matrix as heatmap.
@@ -185,7 +198,9 @@ def plot_frequency_recency_matrix(
     Z = np.zeros((max_recency + 1, max_frequency + 1))
     for i, recency in enumerate(np.arange(max_recency + 1)):
         for j, frequency in enumerate(np.arange(max_frequency + 1)):
-            Z[i, j] = model.conditional_expected_number_of_purchases_up_to_time(T, frequency, recency, max_recency)
+            Z[i, j] = model.conditional_expected_number_of_purchases_up_to_time(
+                T, frequency, recency, max_recency
+            )
 
     interpolation = kwargs.pop("interpolation", "none")
 
@@ -216,7 +231,7 @@ def plot_probability_alive_matrix(
     title="Probability Customer is Alive,\nby Frequency and Recency of a Customer",
     xlabel="Customer's Historical Frequency",
     ylabel="Customer's Recency",
-    **kwargs
+    **kwargs,
 ):
     """
     Plot probability alive matrix as heatmap.
@@ -274,7 +289,7 @@ def plot_expected_repeat_purchases(
     xlabel="Time Since First Purchase",
     ax=None,
     label=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Plot expected repeat purchases on calibration period .
@@ -308,7 +323,9 @@ def plot_expected_repeat_purchases(
 
     if plt.matplotlib.__version__ >= "1.5":
         color_cycle = ax._get_lines.prop_cycler
-        color = coalesce(kwargs.pop("c", None), kwargs.pop("color", None), next(color_cycle)["color"])
+        color = coalesce(
+            kwargs.pop("c", None), kwargs.pop("color", None), next(color_cycle)["color"]
+        )
     else:
         color_cycle = ax._get_lines.color_cycle
         color = coalesce(kwargs.pop("c", None), kwargs.pop("color", None), next(color_cycle))
@@ -316,10 +333,18 @@ def plot_expected_repeat_purchases(
     max_T = model.data["T"].max()
 
     times = np.linspace(0, max_T, 100)
-    ax.plot(times, model.expected_number_of_purchases_up_to_time(times), color=color, label=label, **kwargs)
+    ax.plot(
+        times,
+        model.expected_number_of_purchases_up_to_time(times),
+        color=color,
+        label=label,
+        **kwargs,
+    )
 
     times = np.linspace(max_T, 1.5 * max_T, 100)
-    ax.plot(times, model.expected_number_of_purchases_up_to_time(times), color=color, ls="--", **kwargs)
+    ax.plot(
+        times, model.expected_number_of_purchases_up_to_time(times), color=color, ls="--", **kwargs
+    )
 
     plt.title(title)
     plt.xlabel(xlabel)
@@ -327,7 +352,9 @@ def plot_expected_repeat_purchases(
     return ax
 
 
-def plot_history_alive(model, t, transactions, datetime_col, freq="D", start_date=None, ax=None, **kwargs):
+def plot_history_alive(
+    model, t, transactions, datetime_col, freq="D", start_date=None, ax=None, **kwargs
+):
     """
     Draw a graph showing the probability of being alive for a customer in time.
 
@@ -378,7 +405,9 @@ def plot_history_alive(model, t, transactions, datetime_col, freq="D", start_dat
 
     # plot buying dates
     payment_dates = customer_history[customer_history["transactions"] >= 1].index
-    plt.vlines(payment_dates.values, ymin=0, ymax=1, colors="r", linestyles="dashed", label="purchases")
+    plt.vlines(
+        payment_dates.values, ymin=0, ymax=1, colors="r", linestyles="dashed", label="purchases"
+    )
 
     plt.ylim(0, 1.0)
     plt.yticks(np.arange(0, 1.1, 0.1))
@@ -404,7 +433,7 @@ def plot_cumulative_transactions(
     xlabel="day",
     ylabel="Cumulative Transactions",
     ax=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Plot a figure of the predicted and actual cumulative transactions of users.
@@ -492,7 +521,7 @@ def plot_incremental_transactions(
     xlabel="day",
     ylabel="Transactions",
     ax=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Plot a figure of the predicted and actual incremental transactions of users.
@@ -574,7 +603,7 @@ def plot_transaction_rate_heterogeneity(
     xlabel="Transaction Rate",
     ylabel="Density",
     suptitle_fontsize=14,
-    **kwargs
+    **kwargs,
 ):
     """
     Plot the estimated gamma distribution of lambda (customers' propensities to purchase).
@@ -601,7 +630,7 @@ def plot_transaction_rate_heterogeneity(
 
     r, alpha = model._unload_params("r", "alpha")
     rate_mean = r / alpha
-    rate_var = r / alpha ** 2
+    rate_var = r / alpha**2
 
     rv = stats.gamma(r, scale=1 / alpha)
     lim = rv.ppf(0.99)
@@ -625,7 +654,7 @@ def plot_dropout_rate_heterogeneity(
     xlabel="Dropout Probability p",
     ylabel="Density",
     suptitle_fontsize=14,
-    **kwargs
+    **kwargs,
 ):
     """
     Plot the estimated beta distribution of p.

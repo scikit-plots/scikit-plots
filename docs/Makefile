@@ -56,7 +56,7 @@ clean_basic:
 	@# Command Substitution "$(...)" "(`...`)" (its output in place of the backticks):
 	@rm -rf `find -L -type d -name .ipynb_checkpoints`
 	@echo "Removed all '.ipynb_checkpoints'"
-	@rm -rf `find -L -type d -name __pycache__` 
+	@rm -rf `find -L -type d -name __pycache__`
 	@echo "Removed all '__pycache__'"
 	@rm -rf `find -L -type d -name .pytest_cache`
 	@echo "Removed all '.pytest_cache'"

@@ -140,7 +140,7 @@ services:
         # sudo -u jovyan
         # gosu jovyan
         start-notebook.py
-  
+
   ## docker-compose up --build app_nvidia_internal_gpu_driver
   ## docker exec -it CONTAINER_ID_OR_NAME bash
   "app_nvidia_internal_gpu_driver":
@@ -182,7 +182,7 @@ services:
       - "back_tier"
       - "front_tier"
     ## default only work entrypoint if both provided
-    entrypoint:  # first unmutuble 
+    entrypoint:  # first unmutuble
       - "/bin/bash"
       - "-c"
       - |-
@@ -194,7 +194,7 @@ services:
         . ~/venv/bin/activate  # source or . (dot Works in both bash and sh)
         ## If a command is provided → runs that command or run default below
         exec /bin/bash -c "$@"
-    command:  # as arg mutuble 
+    command:  # as arg mutuble
       - "/bin/bash"
       - "-c"
       - |-

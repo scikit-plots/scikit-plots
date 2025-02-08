@@ -189,7 +189,14 @@ resulting in lost time (yours and CI resources).
 
 Installation is straightforward. From the root of the ``scikit-plots`` repository, run::
 
+    >>> # triggered when committing if pass then pushing changes
     >>> pre-commit install
+
+    >>> # (Optionally) update and reinstall pre-commit hooks, If Needed
+    >>> pre-commit clean
+    >>> pre-commit autoupdate
+    >>> pre-commit install
+    >>> # pre-commit run --all-files
 
 Now all of the styling checks will be run each time you commit changes, ensuring that
 the CI formatting checks for your :ref:`pull request <quickstart-pull-request>` will
@@ -219,7 +226,19 @@ Your local ``main`` branch should always reflect the current state of ``scikit-p
 First ensure it's up-to-date with the main ``scikit-plots`` repository::
 
     >>> git switch main
-    >>> git pull upstream main --ff-only
+    >>> ## Download & Fast-Forward If Possible
+    >>> git pull --ff-only upstream main
+
+..
+    >>> ## Download Updates Only: forked a repository and want to fetch the latest changes
+    >>> ## from the original repository (upstream) into your local copy.
+    >>> git fetch upstream main
+
+    >>> ## merge or rebase to apply those updates.
+    >>> ## Does not modify existing commits.
+    >>> git merge upstream/main
+    >>> ## Rewrites commit history. Avoids unnecessary merge commits.
+    >>> # git rebase upstream/main
 
 Now create a development branch for making your changes. For example::
 

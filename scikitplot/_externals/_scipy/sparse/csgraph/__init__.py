@@ -1,1 +1,1 @@
-from ._laplacian import laplacian
+from ._laplacian import laplacian as laplacian

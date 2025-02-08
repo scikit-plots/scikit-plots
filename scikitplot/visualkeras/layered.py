@@ -1,74 +1,81 @@
 import warnings
-import aggdraw
 from math import ceil
 from typing import Any, Callable
 
-from PIL import Image, ImageFont, ImageColor, ImageDraw
+import aggdraw
+from PIL import Image, ImageDraw, ImageFont
+
 
 def _lazy_import_tensorflow():
     try:
-      from tensorflow.keras.layers import Layer
-      return Layer
-    except ModuleNotFoundError:
-      try:
-        # from keras.src.layers.layer import Layer
-        from keras.layers import Layer
-        return Layer
-      except ModuleNotFoundError:
-          try:
-            # module is primarily for TensorFlow's internal use during development and testing
-            from tensorflow.python.keras.layers import Layer
-            return Layer
-          except ImportError as e: 
-            # raise ImportError(
-            #   "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
-            # ) from e
-            warnings.warn(
-              "Could not import the 'layers' module from TensorFlow-Keras. "
-              "'text_callable' will not work."
-            )
-            
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:  # Only imported during type checking
-  Layer = _lazy_import_tensorflow()
+        from tensorflow.keras.layers import Layer
 
-from .utils import *
+        return Layer
+    except ModuleNotFoundError:
+        try:
+            # from keras.src.layers.layer import Layer
+            from keras.layers import Layer
+
+            return Layer
+        except ModuleNotFoundError:
+            try:
+                # module is primarily for TensorFlow's internal use during development and testing
+                from tensorflow.python.keras.layers import Layer
+
+                return Layer
+            except ImportError:
+                # raise ImportError(
+                #   "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
+                # ) from e
+                warnings.warn(
+                    "Could not import the 'layers' module from TensorFlow-Keras. "
+                    "'text_callable' will not work."
+                )
+
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # Only imported during type checking
+    Layer = _lazy_import_tensorflow()
+
 from .layer_utils import *
+from .utils import *
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
-  'layered_view',
+    "layered_view",
 ]
 
+
 def layered_view(
-  model, 
-  to_file: str = None, 
-  min_z: int = 20, 
-  min_xy: int = 20, 
-  max_z: int = 400,
-  max_xy: int = 2000,
-  scale_z: float = 0.1, 
-  scale_xy: float = 4, 
-  type_ignore: list = None, 
-  index_ignore: list = None,
-  color_map: dict = None, 
-  one_dim_orientation: str = 'z', 
-  index_2d: list = None,
-  background_fill: Any = 'white', 
-  draw_volume: bool = True,
-  draw_reversed: bool = False, 
-  padding: int = 10,
-  # Python understands it as a forward declaration and resolves it later when the 'Layer' type is available.
-  text_callable: Callable[[int, 'Layer'], tuple] = None,
-  text_vspacing: int = 4,
-  spacing: int = 10, 
-  draw_funnel: bool = True, 
-  shade_step=10, 
-  legend: bool = False,
-  legend_text_spacing_offset = 15,
-  font: ImageFont = None, 
-  font_color: Any = 'black', 
-  show_dimension=False,
+    model,
+    to_file: str = None,
+    min_z: int = 20,
+    min_xy: int = 20,
+    max_z: int = 400,
+    max_xy: int = 2000,
+    scale_z: float = 0.1,
+    scale_xy: float = 4,
+    type_ignore: list = None,
+    index_ignore: list = None,
+    color_map: dict = None,
+    one_dim_orientation: str = "z",
+    index_2d: list = None,
+    background_fill: Any = "white",
+    draw_volume: bool = True,
+    draw_reversed: bool = False,
+    padding: int = 10,
+    # Python understands it as a forward declaration and resolves it later when the 'Layer' type is available.
+    text_callable: Callable[[int, "Layer"], tuple] = None,
+    text_vspacing: int = 4,
+    spacing: int = 10,
+    draw_funnel: bool = True,
+    shade_step=10,
+    legend: bool = False,
+    legend_text_spacing_offset=15,
+    font: ImageFont = None,
+    font_color: Any = "black",
+    show_dimension=False,
 ) -> Image:
     """
     Generates an architectural visualization for a given linear Keras
@@ -83,7 +90,7 @@ def layered_view(
     to_file : str or None
         Path to the file where the generated image will be saved.
         If the image does not exist yet it will be created, else overwritten.
-        The file type is inferred from the file extension. 
+        The file type is inferred from the file extension.
         If None, no file is created.
     min_z : int
         Minimum z-dimension size (in pixels) for a layer.
@@ -153,7 +160,9 @@ def layered_view(
 
     # Deprecation warning for legend_text_spacing_offset
     if legend_text_spacing_offset != 0:
-        warnings.warn("The legend_text_spacing_offset parameter is deprecated and will be removed in a future release.")
+        warnings.warn(
+            "The legend_text_spacing_offset parameter is deprecated and will be removed in a future release."
+        )
 
     boxes = list()
     layer_y = list()
@@ -184,8 +193,9 @@ def layered_view(
 
         # Do no render the SpacingDummyLayer, just increase the pointer
         if (
-              # Check if the layer is an instance of the dynamically created class
-              type(layer) == SpacingDummyLayer or is_spacing_dummy_layer(layer)
+            # Check if the layer is an instance of the dynamically created class
+            type(layer) == SpacingDummyLayer
+            or is_spacing_dummy_layer(layer)
         ):
             current_z += layer.spacing
             continue
@@ -201,14 +211,16 @@ def layered_view(
         y = min_xy
         z = min_z
 
-        if hasattr(layer, 'output_shape'):
+        if hasattr(layer, "output_shape"):
             output_shape = layer.output_shape
         else:
             output_shape = layer.output.shape
 
         if isinstance(output_shape, tuple):
             shape = output_shape
-        elif isinstance(output_shape, list) and len(output_shape) == 1:  # drop dimension for non seq. models
+        elif (
+            isinstance(output_shape, list) and len(output_shape) == 1
+        ):  # drop dimension for non seq. models
             shape = output_shape[0]
         else:
             raise RuntimeError(f"not supported tensor shape {output_shape}")
@@ -222,20 +234,20 @@ def layered_view(
             y = min(max(shape[2] * scale_xy, y), max_xy)
             z = min(max(self_multiply(shape[2:]) * scale_z, z), max_z)
         elif len(shape) == 2:
-            if one_dim_orientation == 'x':
+            if one_dim_orientation == "x":
                 x = min(max(shape[1] * scale_xy, x), max_xy)
-            elif one_dim_orientation == 'y':
+            elif one_dim_orientation == "y":
                 y = min(max(shape[1] * scale_xy, y), max_xy)
-            elif one_dim_orientation == 'z':
+            elif one_dim_orientation == "z":
                 z = min(max(shape[1] * scale_z, z), max_z)
             else:
                 raise ValueError(f"unsupported orientation {one_dim_orientation}")
         else:
             raise RuntimeError(f"not supported tensor shape {layer.output_shape}")
-        
+
         if legend and show_dimension:
             dimension_string = str(shape)
-            dimension_string = dimension_string[1:len(dimension_string)-1].split(", ")
+            dimension_string = dimension_string[1 : len(dimension_string) - 1].split(", ")
             dimension = []
             for i in range(0, len(dimension_string)):
                 if dimension_string[i].isnumeric():
@@ -259,9 +271,9 @@ def layered_view(
         box.x2 = box.x1 + z
         box.y2 = box.y1 + y
 
-        box.fill = color_map.get(layer_type, {}).get('fill', color_wheel.get_color(layer_type))
-        box.outline = color_map.get(layer_type, {}).get('outline', 'black')
-        color_map[layer_type] = {'fill': box.fill, 'outline': box.outline}
+        box.fill = color_map.get(layer_type, {}).get("fill", color_wheel.get_color(layer_type))
+        box.outline = color_map.get(layer_type, {}).get("outline", "black")
+        color_map[layer_type] = {"fill": box.fill, "outline": box.outline}
 
         box.shade = shade_step
         boxes.append(box)
@@ -283,7 +295,7 @@ def layered_view(
     # Check if any text will be written above or below and save the maximum text height for adjusting the image height
     is_any_text_above = False
     is_any_text_below = False
-    max_box_with_text_height=0
+    max_box_with_text_height = 0
     max_box_height = 0
     if text_callable is not None:
         if font is None:
@@ -291,10 +303,13 @@ def layered_view(
         i = -1
         for index, layer in enumerate(model.layers):
             if (
-              # Check if the layer is an instance of the dynamically created class
-              type(layer) == SpacingDummyLayer or is_spacing_dummy_layer(layer) or
-              # by ignore list
-              type(layer) in type_ignore or index in index_ignore
+                # Check if the layer is an instance of the dynamically created class
+                type(layer) == SpacingDummyLayer
+                or is_spacing_dummy_layer(layer)
+                or
+                # by ignore list
+                type(layer) in type_ignore
+                or index in index_ignore
             ):
                 continue
             i += 1
@@ -303,26 +318,26 @@ def layered_view(
                 is_any_text_above = True
             else:
                 is_any_text_below = True
-            
+
             text_height = 0
-            for line in text.split('\n'):
-                if hasattr(font, 'getsize'):
+            for line in text.split("\n"):
+                if hasattr(font, "getsize"):
                     line_height = font.getsize(line)[1]
                 else:
                     line_height = font.getbbox(line)[3]
                 text_height += line_height
-            text_height += (len(text.split('\n'))-1)*text_vspacing
-            box_height = abs(boxes[i].y2-boxes[i].y1)-boxes[i].de
+            text_height += (len(text.split("\n")) - 1) * text_vspacing
+            box_height = abs(boxes[i].y2 - boxes[i].y1) - boxes[i].de
             box_with_text_height = box_height + text_height
             if box_with_text_height > max_box_with_text_height:
                 max_box_with_text_height = box_with_text_height
             if box_height > max_box_height:
                 max_box_height = box_height
-    
+
     if is_any_text_above:
-        img_height += abs(max_box_height - max_box_with_text_height)*2
-    
-    img = Image.new('RGBA', (int(ceil(img_width)), int(ceil(img_height))), background_fill)
+        img_height += abs(max_box_height - max_box_with_text_height) * 2
+
+    img = Image.new("RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill)
 
     # x, y correction (centering)
     for i, node in enumerate(boxes):
@@ -332,16 +347,14 @@ def layered_view(
 
         node.x1 += x_off
         node.x2 += x_off
-    
 
-    
     if is_any_text_above:
         img_height -= abs(max_box_height - max_box_with_text_height)
-        img = Image.new('RGBA', (int(ceil(img_width)), int(ceil(img_height))), background_fill)
+        img = Image.new("RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill)
     if is_any_text_below:
         img_height += abs(max_box_height - max_box_with_text_height)
-        img = Image.new('RGBA', (int(ceil(img_width)), int(ceil(img_height))), background_fill)
-    
+        img = Image.new("RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill)
+
     draw = aggdraw.Draw(img)
 
     # Correct x positions of reversed boxes
@@ -362,11 +375,25 @@ def layered_view(
 
             if last_box is not None and draw_funnel:
                 # Top connection back
-                draw.line([last_box.x2 - last_box.de, last_box.y1 - last_box.de,
-                           box.x1 - box.de, box.y1 - box.de], pen)
+                draw.line(
+                    [
+                        last_box.x2 - last_box.de,
+                        last_box.y1 - last_box.de,
+                        box.x1 - box.de,
+                        box.y1 - box.de,
+                    ],
+                    pen,
+                )
                 # Bottom connection back
-                draw.line([last_box.x2 - last_box.de, last_box.y2 - last_box.de,
-                           box.x1 - box.de, box.y2 - box.de], pen)
+                draw.line(
+                    [
+                        last_box.x2 - last_box.de,
+                        last_box.y2 - last_box.de,
+                        box.x1 - box.de,
+                        box.y2 - box.de,
+                    ],
+                    pen,
+                )
 
             last_box = box
 
@@ -377,12 +404,10 @@ def layered_view(
 
             if last_box is not None and draw_funnel:
                 # Top connection front
-                draw.line([last_box.x1, last_box.y1,
-                           box.x2, box.y1], pen)
+                draw.line([last_box.x1, last_box.y1, box.x2, box.y1], pen)
 
                 # Bottom connection front
-                draw.line([last_box.x1, last_box.y2,
-                           box.x2, box.y2], pen)
+                draw.line([last_box.x1, last_box.y2, box.x2, box.y2], pen)
 
             box.draw(draw, draw_reversed=True)
 
@@ -392,16 +417,28 @@ def layered_view(
             pen = aggdraw.Pen(get_rgba_tuple(box.outline))
 
             if last_box is not None and draw_funnel:
-                draw.line([last_box.x2 + last_box.de, last_box.y1 - last_box.de,
-                           box.x1 + box.de, box.y1 - box.de], pen)
-                draw.line([last_box.x2 + last_box.de, last_box.y2 - last_box.de,
-                           box.x1 + box.de, box.y2 - box.de], pen)
+                draw.line(
+                    [
+                        last_box.x2 + last_box.de,
+                        last_box.y1 - last_box.de,
+                        box.x1 + box.de,
+                        box.y1 - box.de,
+                    ],
+                    pen,
+                )
+                draw.line(
+                    [
+                        last_box.x2 + last_box.de,
+                        last_box.y2 - last_box.de,
+                        box.x1 + box.de,
+                        box.y2 - box.de,
+                    ],
+                    pen,
+                )
 
-                draw.line([last_box.x2, last_box.y2,
-                           box.x1, box.y2], pen)
+                draw.line([last_box.x2, last_box.y2, box.x1, box.y2], pen)
 
-                draw.line([last_box.x2, last_box.y1,
-                           box.x1, box.y1], pen)
+                draw.line([last_box.x2, last_box.y1, box.x1, box.y1], pen)
 
             box.draw(draw, draw_reversed=False)
 
@@ -414,29 +451,32 @@ def layered_view(
         i = -1
         for index, layer in enumerate(model.layers):
             if (
-              # Check if the layer is an instance of the dynamically created class
-              type(layer) == SpacingDummyLayer or is_spacing_dummy_layer(layer) or
-              # by ignore list
-              type(layer) in type_ignore or index in index_ignore
+                # Check if the layer is an instance of the dynamically created class
+                type(layer) == SpacingDummyLayer
+                or is_spacing_dummy_layer(layer)
+                or
+                # by ignore list
+                type(layer) in type_ignore
+                or index in index_ignore
             ):
                 continue
             i += 1
             text, above = text_callable(i, layer)
             text_height = 0
             text_x_adjust = []
-            for line in text.split('\n'):
-                if hasattr(font, 'getsize'):
+            for line in text.split("\n"):
+                if hasattr(font, "getsize"):
                     line_height = font.getsize(line)[1]
                 else:
                     line_height = font.getbbox(line)[3]
-                
+
                 text_height += line_height
 
-                if hasattr(font, 'getsize'):
+                if hasattr(font, "getsize"):
                     text_x_adjust.append(font.getsize(line)[0])
                 else:
                     text_x_adjust.append(font.getbbox(line)[2])
-            text_height += (len(text.split('\n'))-1)*text_vspacing
+            text_height += (len(text.split("\n")) - 1) * text_vspacing
 
             box = boxes[i]
             text_x = box.x1 + (box.x2 - box.x1) / 2
@@ -444,23 +484,31 @@ def layered_view(
             if above:
                 text_x = box.x1 + box.de + (box.x2 - box.x1) / 2
                 text_y = box.y1 - box.de - text_height
-            
-            text_x -= max(text_x_adjust)/2  # Shift text to the left by half of the text width, so that it is centered
+
+            text_x -= (
+                max(text_x_adjust) / 2
+            )  # Shift text to the left by half of the text width, so that it is centered
             # Centering with middle text anchor 'm' does not work with align center
-            anchor = 'la'
+            anchor = "la"
             if above:
-                anchor = 'la'
-        
-            draw_text.multiline_text((text_x, text_y), text, font=font, fill=font_color,
-                                     anchor=anchor, align='center',
-                                     spacing=text_vspacing)
+                anchor = "la"
+
+            draw_text.multiline_text(
+                (text_x, text_y),
+                text,
+                font=font,
+                fill=font_color,
+                anchor=anchor,
+                align="center",
+                spacing=text_vspacing,
+            )
 
     # Create layer color legend
     if legend:
         if font is None:
             font = ImageFont.load_default()
 
-        if hasattr(font, 'getsize'):
+        if hasattr(font, "getsize"):
             text_height = font.getsize("Ag")[1]
         else:
             text_height = font.getbbox("Ag")[3]
@@ -482,20 +530,19 @@ def layered_view(
             else:
                 label = layer_type.__name__
 
-            
-            if hasattr(font, 'getsize'):
+            if hasattr(font, "getsize"):
                 text_size = font.getsize(label)
             else:
                 # Get last two values of the bounding box
-                # getbbox returns 4 dimensions in total, where the first two are always zero, 
+                # getbbox returns 4 dimensions in total, where the first two are always zero,
                 # So we fetch the last two dimensions to match the behavior of getsize
                 text_size = font.getbbox(label)[2:]
             label_patch_size = (2 * cube_size + de + spacing + text_size[0], cube_size + de)
 
             # this only works if cube_size is bigger than text height
 
-            img_box = Image.new('RGBA', label_patch_size, background_fill)
-            img_text = Image.new('RGBA', label_patch_size, (0, 0, 0, 0))
+            img_box = Image.new("RGBA", label_patch_size, background_fill)
+            img_text = Image.new("RGBA", label_patch_size, (0, 0, 0, 0))
             draw_box = aggdraw.Draw(img_box)
             draw_text = ImageDraw.Draw(img_text)
 
@@ -506,21 +553,29 @@ def layered_view(
             box.y2 = box.y1 + cube_size
             box.de = de
             box.shade = shade_step
-            box.fill = color_map.get(layer_type, {}).get('fill', "#000000")
-            box.outline = color_map.get(layer_type, {}).get('outline', "#000000")
+            box.fill = color_map.get(layer_type, {}).get("fill", "#000000")
+            box.outline = color_map.get(layer_type, {}).get("outline", "#000000")
             box.draw(draw_box, draw_reversed)
 
             text_x = box.x2 + box.de + spacing
-            text_y = (label_patch_size[1] - text_height) / 2  # 2D center; use text_height and not the current label!
+            text_y = (
+                label_patch_size[1] - text_height
+            ) / 2  # 2D center; use text_height and not the current label!
             draw_text.text((text_x, text_y), label, font=font, fill=font_color)
 
             draw_box.flush()
             img_box.paste(img_text, mask=img_text)
             patches.append(img_box)
 
-        legend_image = linear_layout(patches, max_width=img.width, max_height=img.height, padding=padding,
-                                     spacing=spacing,
-                                     background_fill=background_fill, horizontal=True)
+        legend_image = linear_layout(
+            patches,
+            max_width=img.width,
+            max_height=img.height,
+            padding=padding,
+            spacing=spacing,
+            background_fill=background_fill,
+            horizontal=True,
+        )
         img = vertical_image_concat(img, legend_image, background_fill=background_fill)
 
     if to_file is not None:

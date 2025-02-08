@@ -25,43 +25,21 @@ Among other things, the module includes the following:
 Any name not present in __all__ is an implementation detail
 that may be changed without notice. Use at your own risk!
 """
+
 from __future__ import annotations
 
-import abc
-import numbers
-
-from collections.abc import Iterable, Mapping, Sequence
-from collections.abc import Hashable, Sequence
-from datetime import date, datetime, timedelta
-from fractions import Fraction
+from collections.abc import Hashable
+from typing import (
+    TypeVar,
+)
 
 import numpy as np
-from numpy import ndarray  # TODO use ArrayLike?
-from pandas import Series, Index, Timestamp, Timedelta
-from matplotlib.colors import Colormap, Normalize
-
-import numpy.typing as np_typing
-from numpy.typing import NDArray
-
-from types import GenericAlias, NoneType, ModuleType
-from types import DynamicClassAttribute, LambdaType
-
-from typing import TYPE_CHECKING
-from typing import TypeVar, TypeAlias, Generic, Any
-from typing import Callable, Literal, Optional, Union
-from typing import List, Tuple, Dict, NamedTuple, TypedDict
 
 # Allows for the creation of enumerated constants
-# Enum values are immutable after definition. 
-from enum import Enum
+# Enum values are immutable after definition.
 
 _HT = TypeVar("_HT", bound=Hashable)
 DT = TypeVar("DT", bound=np.generic)
 
-from .._globals import (
-  _DefaultType as Default,
-  _NoValueType,
-  _DeprecatedType as Deprecated,
-)
 
 __all__ = []

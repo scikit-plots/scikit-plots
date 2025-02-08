@@ -5,7 +5,7 @@ Getting Started Guide to Contributing
 =====================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 You've discovered a bug or something else you want to change

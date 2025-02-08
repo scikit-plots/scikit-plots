@@ -1,12 +1,9 @@
-
 import matplotlib as mpl
 from matplotlib.colors import to_rgba, to_rgba_array
-
 from numpy.testing import assert_array_equal
 
-from ..area import Area, Band
-
 from ..._core.plot import Plot
+from ..area import Area, Band
 
 
 class TestArea:
@@ -27,7 +24,7 @@ class TestArea:
         assert_array_equal(verts[1], expected_y)
 
         fc = poly.get_facecolor()
-        assert_array_equal(fc, to_rgba(colors[0], .2))
+        assert_array_equal(fc, to_rgba(colors[0], 0.2))
 
         ec = poly.get_edgecolor()
         assert_array_equal(ec, to_rgba(colors[0], 1))
@@ -40,9 +37,9 @@ class TestArea:
         x, y = [1, 2, 3], [1, 2, 1]
         mark = Area(
             color=".33",
-            alpha=.3,
+            alpha=0.3,
             edgecolor=".88",
-            edgealpha=.8,
+            edgealpha=0.8,
             edgewidth=2,
             edgestyle=(0, (2, 1)),
         )
@@ -81,7 +78,7 @@ class TestArea:
             assert_array_equal(verts[1], expected_y[i])
 
         fcs = [p.get_facecolor() for p in ax.patches]
-        assert_array_equal(fcs, to_rgba_array(cs, .2))
+        assert_array_equal(fcs, to_rgba_array(cs, 0.2))
 
         ecs = [p.get_edgecolor() for p in ax.patches]
         assert_array_equal(ecs, to_rgba_array(cs, 1))

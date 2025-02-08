@@ -5,23 +5,18 @@ plot_classifier_eval with examples
 An example showing the :py:func:`~scikitplot.api.metrics.plot_classifier_eval` function
 used by a scikit-learn classifier.
 """
+
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+import numpy as np
 from sklearn.datasets import (
-  make_classification,
-  load_breast_cancer as data_2_classes,
-  load_iris as data_3_classes,
-  load_digits as data_10_classes,
+    load_iris as data_3_classes,
 )
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import train_test_split
 
-import numpy as np; np.random.seed(0)  # reproducibility
+np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 # import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -41,24 +36,23 @@ y_val_pred = model.predict(X_val)
 y_train_pred = model.predict(X_train)
 
 fig1 = sp.metrics.plot_classifier_eval(
-    y_val, y_val_pred,
+    y_val,
+    y_val_pred,
     labels=np.unique(y_train),
     figsize=(8, 2),
-    title='Val',
-);
+    title="Val",
+)
 # plt.show(block=True)
 fig2 = sp.metrics.plot_classifier_eval(
-    y_train, y_train_pred,
+    y_train,
+    y_train_pred,
     labels=np.unique(y_train),
     figsize=(8, 2),
-    title='Train',
-);
+    title="Train",
+)
 
 # Save the combined figures as an simple image file
-figs = sp.api._utils.save_figure(
-    (fig1, fig2),
-    to_save=False
-);
+figs = sp.api._utils.save_figure((fig1, fig2), to_save=False)
 
 # Adjust layout to make sure everything fits
 plt.tight_layout()

@@ -8,7 +8,7 @@
 # at tools/wheels/
 # Alternatively, you can add labels to the pull request in order to trigger wheel
 # builds.
-# 
+#
 # The labels that trigger builds are:
 # 36 - Build(for changes to the building process,
 # 14 - Release(ensure wheels build before release)
@@ -58,7 +58,7 @@ permissions: # Grants read-only permission to repository contents
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
-      
+
 # https://learn.microsoft.com/en-us/azure/devops/pipelines/process/expressions
 # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/evaluate-expressions-in-workflows-and-actions#example-of-literals
 # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#default-environment-variables
@@ -103,7 +103,7 @@ jobs:
     # ${{ matrix.buildplat[4] && format('-{0}', matrix.buildplat[4]) || '' }}
     # ${{ matrix.buildplat[1] != '' && '-' || '' }}${{ matrix.buildplat[1] }}
     # Wheel-cp310-macosx-arm64-accelerate-14.0
-    if: >- 
+    if: >-
       contains(needs.get_commit_message.outputs.message, '[wheel build]') ||
       contains(needs.get_commit_message.outputs.message, '1') ||
       github.event_name == 'schedule' ||
@@ -154,8 +154,8 @@ jobs:
       # Triggered for specific branches (e.g., main, maintenance/**)
       # Triggered for tags starting with 'v'
       IS_PUSH: >-
-        ${{ 
-          github.event_name == 'push' && 
+        ${{
+          github.event_name == 'push' &&
           (startsWith(github.ref, 'refs/heads/main') ||
            contains( github.ref,  'maintenance') ||
            startsWith(github.ref, 'refs/tags/v') ) &&
@@ -175,11 +175,11 @@ jobs:
           # Fetches all nested submodules or  submodules: true
           submodules: recursive
           fetch-tags: true
-      
+
       - name: Python Setup  # Used to push the built wheels
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
-          python-version: "3.x"          
+          python-version: "3.x"
 
       - name: Windows Setup MSVC (32|64-bit)
         if: ${{ runner.os == 'Windows' }}
@@ -398,7 +398,7 @@ jobs:
           #
           # The tokens were originally generated at anaconda.org
           upload_wheels  # Required WHEEL_FILE_PATH
-        env: 
+        env:
           # ${{ secrets.<SECRET_NAME> }} retrieves the value of a secret stored securely
           # in the Repository's Secrets or  Enviroments Secrets settings on GitHub.
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
@@ -425,8 +425,8 @@ jobs:
       # Triggered for specific branches (e.g., main, maintenance/**)
       # Triggered for tags starting with 'v'
       IS_PUSH: >-
-        ${{ 
-          github.event_name == 'push' && 
+        ${{
+          github.event_name == 'push' &&
           (startsWith(github.ref, 'refs/heads/main') ||
            contains( github.ref,  'maintenance') ||
            startsWith(github.ref, 'refs/tags/v') ) &&
@@ -513,7 +513,7 @@ jobs:
           #
           # The tokens were originally generated at anaconda.org
           upload_wheels  # Required WHEEL_FILE_PATH
-        env: 
+        env:
           # ${{ secrets.<SECRET_NAME> }} retrieves the value of a secret stored securely
           # in the Repository's Secrets or  Enviroments Secrets settings on GitHub.
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN

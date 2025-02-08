@@ -1,3 +1,1 @@
-.. _contributor-experience-team-emeritus:
-
-- muhammed çelik
+- muhammed celik

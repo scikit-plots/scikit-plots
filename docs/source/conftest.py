@@ -5,7 +5,6 @@ from os.path import exists, join
 
 import pytest
 from _pytest.doctest import DoctestItem
-
 from sklearn.datasets import get_data_home
 from sklearn.datasets._base import _pkl_filepath
 from sklearn.datasets._twenty_newsgroups import CACHE_NAME
@@ -92,9 +91,7 @@ def setup_unsupervised_learning():
     except ImportError:
         raise SkipTest("Skipping unsupervised_learning.rst, scikit-image not installed")
     # ignore deprecation warnings from scipy.misc.face
-    warnings.filterwarnings(
-        "ignore", "The binary mode of fromstring", DeprecationWarning
-    )
+    warnings.filterwarnings("ignore", "The binary mode of fromstring", DeprecationWarning)
 
 
 def skip_if_matplotlib_not_installed(fname):

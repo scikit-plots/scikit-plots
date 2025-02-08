@@ -11,7 +11,7 @@ The quickest and easiest way to go from analysis...
 
 ### Install|Try Scikit-plots - Doc: https://scikit-plots.github.io/
 
-## User Installation: 
+## User Installation:
 
 ### Installing using pip
 
@@ -33,7 +33,7 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
     # Pure Python
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
-    ```    
+    ```
   <br>
 
   - Tags:
@@ -205,7 +205,7 @@ Pretty.
 
 ## Maximum flexibility. Compatibility with non-scikit-learn objects.
 
-Although Scikit-plot is loosely based around the scikit-learn interface, you don't actually need scikit-learn objects to use the available functions. 
+Although Scikit-plot is loosely based around the scikit-learn interface, you don't actually need scikit-learn objects to use the available functions.
 As long as you provide the functions what they're asking for, they'll happily draw the plots for you.
 
 The possibilities are endless.

@@ -1,14 +1,14 @@
 import itertools
 import warnings
 
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.colors import to_rgb, to_rgba
-
+import numpy as np
 import pytest
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from matplotlib.colors import to_rgb, to_rgba
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+from .. import distributions as dist
 from .._base import (
     categorical_order,
 )
@@ -18,17 +18,17 @@ from .._statistics import (
     _no_scipy,
 )
 from .._testing import (
-    assert_plots_equal,
-    assert_legends_equal,
     assert_colors_equal,
+    assert_legends_equal,
+    assert_plots_equal,
 )
 from ..axisgrid import FacetGrid
 from ..distributions import (
     _DistributionPlotter,
     displot,
     distplot,
-    histplot,
     ecdfplot,
+    histplot,
     kdeplot,
     rugplot,
 )
@@ -37,7 +37,6 @@ from ..palettes import (
     light_palette,
 )
 from ..utils import _version_predates
-from .. import distributions as dist
 
 
 def get_contour_coords(c, filter_empty=False):
@@ -47,7 +46,8 @@ def get_contour_coords(c, filter_empty=False):
         return c.get_segments()
     elif isinstance(c, (mpl.collections.PathCollection, mpl.contour.QuadContourSet)):
         return [
-            p.vertices[:np.argmax(p.codes) + 1] for p in c.get_paths()
+            p.vertices[: np.argmax(p.codes) + 1]
+            for p in c.get_paths()
             if len(p) or not filter_empty
         ]
 
@@ -90,28 +90,26 @@ class TestDistPlot:
         with pytest.warns(UserWarning):
 
             n = 10
-            ax = distplot(self.x, bins=n,
-                          hist=True, kde=False, rug=False, fit=None)
+            ax = distplot(self.x, bins=n, hist=True, kde=False, rug=False, fit=None)
             assert len(ax.patches) == 10
             assert len(ax.lines) == 0
             assert len(ax.collections) == 0
 
             plt.close(ax.figure)
-            ax = distplot(self.x,
-                          hist=False, kde=True, rug=False, fit=None)
+            ax = distplot(self.x, hist=False, kde=True, rug=False, fit=None)
             assert len(ax.patches) == 0
             assert len(ax.lines) == 1
             assert len(ax.collections) == 0
 
             plt.close(ax.figure)
-            ax = distplot(self.x,
-                          hist=False, kde=False, rug=True, fit=None)
+            ax = distplot(self.x, hist=False, kde=False, rug=True, fit=None)
             assert len(ax.patches) == 0
             assert len(ax.lines) == 0
             assert len(ax.collections) == 1
 
             class Norm:
                 """Dummy object that looks like a scipy RV"""
+
                 def fit(self, x):
                     return ()
 
@@ -119,8 +117,7 @@ class TestDistPlot:
                     return np.zeros_like(x)
 
             plt.close(ax.figure)
-            ax = distplot(
-                self.x, hist=False, kde=False, rug=False, fit=Norm())
+            ax = distplot(self.x, hist=False, kde=False, rug=False, fit=Norm())
             assert len(ax.patches) == 0
             assert len(ax.lines) == 1
             assert len(ax.collections) == 0
@@ -178,7 +175,10 @@ class TestRugPlot(SharedAxesLevelTests):
 
         vector = long_df[variable]
         vectors = [
-            variable, vector, np.asarray(vector), vector.to_list(),
+            variable,
+            vector,
+            np.asarray(vector),
+            vector.to_list(),
         ]
 
         f, ax = plt.subplots()
@@ -206,12 +206,8 @@ class TestRugPlot(SharedAxesLevelTests):
         for col in wide_df:
             rugplot(data=wide_df, x=col, ax=ax2)
 
-        wide_segments = np.sort(
-            np.array(ax1.collections[0].get_segments())
-        )
-        long_segments = np.sort(
-            np.concatenate([c.get_segments() for c in ax2.collections])
-        )
+        wide_segments = np.sort(np.array(ax1.collections[0].get_segments()))
+        long_segments = np.sort(np.concatenate([c.get_segments() for c in ax2.collections]))
 
         assert_array_equal(wide_segments, long_segments)
 
@@ -266,7 +262,7 @@ class TestRugPlot(SharedAxesLevelTests):
 
     def test_rug_data(self, flat_array):
 
-        height = .05
+        height = 0.05
         ax = rugplot(x=flat_array, height=height)
         segments = np.stack(ax.collections[0].get_segments())
 
@@ -299,7 +295,7 @@ class TestRugPlot(SharedAxesLevelTests):
 
         f, ax = plt.subplots()
         x1, y1 = ax.margins()
-        height = .05
+        height = 0.05
         rugplot(x=flat_array, height=height)
         x2, y2 = ax.margins()
         assert x1 == x2
@@ -318,7 +314,7 @@ class TestRugPlot(SharedAxesLevelTests):
     def test_matplotlib_kwargs(self, flat_series):
 
         lw = 2
-        alpha = .2
+        alpha = 0.2
         ax = rugplot(y=flat_series, linewidth=lw, alpha=alpha)
         rug = ax.collections[0]
         assert np.all(rug.get_alpha() == alpha)
@@ -372,13 +368,17 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
             assert_colors_equal(self.get_last_color(ax), "C4", check_alpha=False)
 
     @pytest.mark.parametrize(
-        "variable", ["x", "y"],
+        "variable",
+        ["x", "y"],
     )
     def test_long_vectors(self, long_df, variable):
 
         vector = long_df[variable]
         vectors = [
-            variable, vector, vector.to_numpy(), vector.to_list(),
+            variable,
+            vector,
+            vector.to_numpy(),
+            vector.to_list(),
         ]
 
         f, ax = plt.subplots()
@@ -483,18 +483,12 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
             kdeplot(data=long_df, x="x", shade=True)
         kdeplot(data=long_df, x="x", fill=True)
         fill1, fill2 = ax.collections
-        assert_array_equal(
-            fill1.get_paths()[0].vertices, fill2.get_paths()[0].vertices
-        )
+        assert_array_equal(fill1.get_paths()[0].vertices, fill2.get_paths()[0].vertices)
 
     @pytest.mark.parametrize("multiple", ["layer", "stack", "fill"])
     def test_hue_colors(self, long_df, multiple):
 
-        ax = kdeplot(
-            data=long_df, x="x", hue="a",
-            multiple=multiple,
-            fill=True, legend=False
-        )
+        ax = kdeplot(data=long_df, x="x", hue="a", multiple=multiple, fill=True, legend=False)
 
         # Note that hue order is reversed in the plot
         lines = ax.lines[::-1]
@@ -504,29 +498,33 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
 
         for line, fill, color in zip(lines, fills, palette):
             assert_colors_equal(line.get_color(), color)
-            assert_colors_equal(fill.get_facecolor(), to_rgba(color, .25))
+            assert_colors_equal(fill.get_facecolor(), to_rgba(color, 0.25))
 
     def test_hue_stacking(self, long_df):
 
         f, (ax1, ax2) = plt.subplots(ncols=2)
 
         kdeplot(
-            data=long_df, x="x", hue="a",
-            multiple="layer", common_grid=True,
-            legend=False, ax=ax1,
+            data=long_df,
+            x="x",
+            hue="a",
+            multiple="layer",
+            common_grid=True,
+            legend=False,
+            ax=ax1,
         )
         kdeplot(
-            data=long_df, x="x", hue="a",
-            multiple="stack", fill=False,
-            legend=False, ax=ax2,
+            data=long_df,
+            x="x",
+            hue="a",
+            multiple="stack",
+            fill=False,
+            legend=False,
+            ax=ax2,
         )
 
-        layered_densities = np.stack([
-            l.get_ydata() for l in ax1.lines
-        ])
-        stacked_densities = np.stack([
-            l.get_ydata() for l in ax2.lines
-        ])
+        layered_densities = np.stack([l.get_ydata() for l in ax1.lines])
+        stacked_densities = np.stack([l.get_ydata() for l in ax2.lines])
 
         assert_array_equal(layered_densities.cumsum(axis=0), stacked_densities)
 
@@ -535,14 +533,22 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
         f, (ax1, ax2) = plt.subplots(ncols=2)
 
         kdeplot(
-            data=long_df, x="x", hue="a",
-            multiple="layer", common_grid=True,
-            legend=False, ax=ax1,
+            data=long_df,
+            x="x",
+            hue="a",
+            multiple="layer",
+            common_grid=True,
+            legend=False,
+            ax=ax1,
         )
         kdeplot(
-            data=long_df, x="x", hue="a",
-            multiple="fill", fill=False,
-            legend=False, ax=ax2,
+            data=long_df,
+            x="x",
+            hue="a",
+            multiple="fill",
+            fill=False,
+            legend=False,
+            ax=ax2,
         )
 
         layered = np.stack([l.get_ydata() for l in ax1.lines])
@@ -556,9 +562,7 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
     @pytest.mark.parametrize("multiple", ["stack", "fill"])
     def test_fill_default(self, long_df, multiple):
 
-        ax = kdeplot(
-            data=long_df, x="x", hue="a", multiple=multiple, fill=None
-        )
+        ax = kdeplot(data=long_df, x="x", hue="a", multiple=multiple, fill=None)
 
         assert len(ax.collections) > 0
 
@@ -576,7 +580,7 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
 
     def test_color_cycle_interaction(self, flat_series):
 
-        color = (.2, 1, .6)
+        color = (0.2, 1, 0.6)
 
         f, ax = plt.subplots()
         kdeplot(flat_series)
@@ -595,15 +599,15 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
         f, ax = plt.subplots()
         kdeplot(flat_series, fill=True)
         kdeplot(flat_series, fill=True)
-        assert_colors_equal(ax.collections[0].get_facecolor(), to_rgba("C0", .25))
-        assert_colors_equal(ax.collections[1].get_facecolor(), to_rgba("C1", .25))
+        assert_colors_equal(ax.collections[0].get_facecolor(), to_rgba("C0", 0.25))
+        assert_colors_equal(ax.collections[1].get_facecolor(), to_rgba("C1", 0.25))
         plt.close(f)
 
     @pytest.mark.parametrize("fill", [True, False])
     def test_artist_color(self, long_df, fill):
 
-        color = (.2, 1, .6)
-        alpha = .5
+        color = (0.2, 1, 0.6)
+        alpha = 0.5
 
         f, ax = plt.subplots()
 
@@ -612,7 +616,7 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
             artist_color = ax.collections[-1].get_facecolor().squeeze()
         else:
             artist_color = ax.lines[-1].get_color()
-        default_alpha = .25 if fill else 1
+        default_alpha = 0.25 if fill else 1
         assert_colors_equal(artist_color, to_rgba(color, default_alpha))
 
         kdeplot(long_df["x"], fill=fill, color=color, alpha=alpha)
@@ -689,12 +693,8 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
 
         f, (ax1, ax2) = plt.subplots(ncols=2)
 
-        kdeplot(
-            data=long_df, x="x", hue="c", common_norm=True, cut=10, ax=ax1
-        )
-        kdeplot(
-            data=long_df, x="x", hue="c", common_norm=False, cut=10, ax=ax2
-        )
+        kdeplot(data=long_df, x="x", hue="c", common_norm=True, cut=10, ax=ax1)
+        kdeplot(data=long_df, x="x", hue="c", common_norm=False, cut=10, ax=ax2)
 
         total_area = 0
         for line in ax1.lines:
@@ -713,12 +713,22 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
         order = "a", "b", "c"
 
         kdeplot(
-            data=long_df, x="x", hue="a", hue_order=order,
-            common_grid=False, cut=0, ax=ax1,
+            data=long_df,
+            x="x",
+            hue="a",
+            hue_order=order,
+            common_grid=False,
+            cut=0,
+            ax=ax1,
         )
         kdeplot(
-            data=long_df, x="x", hue="a", hue_order=order,
-            common_grid=True, cut=0, ax=ax2,
+            data=long_df,
+            x="x",
+            hue="a",
+            hue_order=order,
+            common_grid=True,
+            cut=0,
+            ax=ax2,
         )
 
         for line, level in zip(ax1.lines[::-1], order):
@@ -740,15 +750,9 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
 
         l1, l2, l3 = ax.lines
 
-        assert (
-            np.abs(np.diff(l1.get_ydata())).mean()
-            > np.abs(np.diff(l2.get_ydata())).mean()
-        )
+        assert np.abs(np.diff(l1.get_ydata())).mean() > np.abs(np.diff(l2.get_ydata())).mean()
 
-        assert (
-            np.abs(np.diff(l2.get_ydata())).mean()
-            > np.abs(np.diff(l3.get_ydata())).mean()
-        )
+        assert np.abs(np.diff(l2.get_ydata())).mean() > np.abs(np.diff(l3.get_ydata())).mean()
 
     def test_bw_adjust(self, long_df):
 
@@ -759,15 +763,9 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
 
         l1, l2, l3 = ax.lines
 
-        assert (
-            np.abs(np.diff(l1.get_ydata())).mean()
-            > np.abs(np.diff(l2.get_ydata())).mean()
-        )
+        assert np.abs(np.diff(l1.get_ydata())).mean() > np.abs(np.diff(l2.get_ydata())).mean()
 
-        assert (
-            np.abs(np.diff(l2.get_ydata())).mean()
-            > np.abs(np.diff(l3.get_ydata())).mean()
-        )
+        assert np.abs(np.diff(l2.get_ydata())).mean() > np.abs(np.diff(l3.get_ydata())).mean()
 
     def test_log_scale_implicit(self, rng):
 
@@ -834,7 +832,7 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
         x = [1, 2]
         weights = [2, 1]
 
-        ax = kdeplot(x=x, weights=weights, bw_method=.1)
+        ax = kdeplot(x=x, weights=weights, bw_method=0.1)
 
         xdata, ydata = ax.lines[0].get_xydata().T
 
@@ -863,17 +861,15 @@ class TestKDEPlotUnivariate(SharedAxesLevelTests):
         kdeplot(data=long_df, x="x", fill=True, ax=ax1)
         assert ax1.collections[0].sticky_edges.y[:] == [0, np.inf]
 
-        kdeplot(
-            data=long_df, x="x", hue="a", multiple="fill", fill=True, ax=ax2
-        )
+        kdeplot(data=long_df, x="x", hue="a", multiple="fill", fill=True, ax=ax2)
         assert ax2.collections[0].sticky_edges.y[:] == [0, 1]
 
     def test_line_kws(self, flat_array):
 
         lw = 3
-        color = (.2, .5, .8)
+        color = (0.2, 0.5, 0.8)
         ax = kdeplot(x=flat_array, linewidth=lw, color=color)
-        line, = ax.lines
+        (line,) = ax.lines
         assert line.get_linewidth() == lw
         assert_colors_equal(line.get_color(), color)
 
@@ -979,7 +975,7 @@ class TestKDEPlotBivariate:
     def test_common_norm(self, rng):
 
         hue = np.repeat(["a", "a", "a", "b"], 40)
-        x, y = rng.multivariate_normal([0, 0], [(.2, .5), (.5, 2)], len(hue)).T
+        x, y = rng.multivariate_normal([0, 0], [(0.2, 0.5), (0.5, 2)], len(hue)).T
         x[hue == "a"] -= 2
         x[hue == "b"] += 2
 
@@ -996,7 +992,7 @@ class TestKDEPlotBivariate:
         x = rng.lognormal(0, 1, 100)
         y = rng.uniform(0, 1, 100)
 
-        levels = .2, .5, 1
+        levels = 0.2, 0.5, 1
 
         f, ax = plt.subplots()
         kdeplot(x=x, y=y, log_scale=True, levels=levels, ax=ax)
@@ -1012,7 +1008,7 @@ class TestKDEPlotBivariate:
         kde = KDE()
         density, (xx, yy) = kde(np.log10(x), y)
         levels = p._quantile_to_level(density, levels)
-        ax2.contour(10 ** xx, yy, density, levels=levels)
+        ax2.contour(10**xx, yy, density, levels=levels)
 
         for c1, c2 in zip(ax1.collections, ax2.collections):
             assert len(get_contour_coords(c1)) == len(get_contour_coords(c2))
@@ -1022,7 +1018,7 @@ class TestKDEPlotBivariate:
     def test_bandwidth(self, rng):
 
         n = 100
-        x, y = rng.multivariate_normal([0, 0], [(.2, .5), (.5, 2)], n).T
+        x, y = rng.multivariate_normal([0, 0], [(0.2, 0.5), (0.5, 2)], n).T
 
         f, (ax1, ax2) = plt.subplots(ncols=2)
 
@@ -1039,7 +1035,7 @@ class TestKDEPlotBivariate:
     def test_weights(self, rng):
 
         n = 100
-        x, y = rng.multivariate_normal([1, 3], [(.2, .5), (.5, 2)], n).T
+        x, y = rng.multivariate_normal([1, 3], [(0.2, 0.5), (0.5, 2)], n).T
         hue = np.repeat([0, 1], n // 2)
         weights = rng.uniform(0, 1, n)
 
@@ -1062,7 +1058,7 @@ class TestKDEPlotBivariate:
 
     def test_contour_line_colors(self, long_df):
 
-        color = (.2, .9, .8, 1)
+        color = (0.2, 0.9, 0.8, 1)
         ax = kdeplot(data=long_df, x="x", y="y", color=color)
 
         for c in ax.collections:
@@ -1080,9 +1076,14 @@ class TestKDEPlotBivariate:
     def test_contour_fill_colors(self, long_df):
 
         n = 6
-        color = (.2, .9, .8, 1)
+        color = (0.2, 0.9, 0.8, 1)
         ax = kdeplot(
-            data=long_df, x="x", y="y", fill=True, color=color, levels=n,
+            data=long_df,
+            x="x",
+            y="y",
+            fill=True,
+            color=color,
+            levels=n,
         )
 
         cmap = light_palette(color, reverse=True, as_cmap=True)
@@ -1101,7 +1102,7 @@ class TestKDEPlotBivariate:
         f, (ax1, ax2) = plt.subplots(ncols=2)
 
         n = 8
-        thresh = .1
+        thresh = 0.1
         plot_kws = dict(data=long_df, x="x", y="y")
         kdeplot(**plot_kws, levels=n, thresh=thresh, ax=ax1)
         kdeplot(**plot_kws, levels=np.linspace(thresh, 1, n), ax=ax2)
@@ -1131,7 +1132,7 @@ class TestKDEPlotBivariate:
     def test_quantile_to_level(self, rng):
 
         x = rng.uniform(0, 1, 100000)
-        isoprop = np.linspace(.1, 1, 6)
+        isoprop = np.linspace(0.1, 1, 6)
 
         levels = _DistributionPlotter()._quantile_to_level(x, isoprop)
         for h, p in zip(levels, isoprop):
@@ -1173,13 +1174,17 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
         super().test_color(long_df, element=element, fill=fill)
 
     @pytest.mark.parametrize(
-        "variable", ["x", "y"],
+        "variable",
+        ["x", "y"],
     )
     def test_long_vectors(self, long_df, variable):
 
         vector = long_df[variable]
         vectors = [
-            variable, vector, vector.to_numpy(), vector.to_list(),
+            variable,
+            vector,
+            vector.to_numpy(),
+            vector.to_list(),
         ]
 
         f, axs = plt.subplots(3)
@@ -1236,20 +1241,25 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
     def test_hue_fill_colors(self, long_df, multiple, element):
 
         ax = histplot(
-            data=long_df, x="x", hue="a",
-            multiple=multiple, bins=1,
-            fill=True, element=element, legend=False,
+            data=long_df,
+            x="x",
+            hue="a",
+            multiple=multiple,
+            bins=1,
+            fill=True,
+            element=element,
+            legend=False,
         )
 
         palette = color_palette()
 
         if multiple == "layer":
             if element == "bars":
-                a = .5
+                a = 0.5
             else:
-                a = .25
+                a = 0.25
         else:
-            a = .75
+            a = 0.75
 
         for bar, color in zip(ax.patches[::-1], palette):
             assert_colors_equal(bar.get_facecolor(), to_rgba(color, a))
@@ -1291,9 +1301,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
 
         layer_heights = np.reshape([b.get_height() for b in ax1.patches], (-1, n))
         stack_heights = np.reshape([b.get_height() for b in ax2.patches], (-1, n))
-        assert_array_almost_equal(
-            layer_heights / layer_heights.sum(axis=0), stack_heights
-        )
+        assert_array_almost_equal(layer_heights / layer_heights.sum(axis=0), stack_heights)
 
         stack_xys = np.reshape([b.get_xy() for b in ax2.patches], (-1, n, 2))
         assert_array_almost_equal(
@@ -1326,8 +1334,10 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
 
         ax = histplot(
             long_df,
-            x="y", hue=long_df["a"].to_numpy(),
-            multiple="dodge", bins=1,
+            x="y",
+            hue=long_df["a"].to_numpy(),
+            multiple="dodge",
+            bins=1,
         )
         # Note hue order reversal
         assert ax.patches[1].get_x() < ax.patches[0].get_x()
@@ -1358,8 +1368,12 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
     def test_density_stat_common_norm(self, long_df):
 
         ax = histplot(
-            data=long_df, x="x", hue="a",
-            stat="density", common_norm=True, element="bars",
+            data=long_df,
+            x="x",
+            hue="a",
+            stat="density",
+            common_norm=True,
+            element="bars",
         )
         bar_heights = [b.get_height() for b in ax.patches]
         bar_widths = [b.get_width() for b in ax.patches]
@@ -1369,8 +1383,13 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
 
         n = 10
         ax = histplot(
-            data=long_df, x="x", hue="a",
-            stat="density", bins=n, common_norm=False, element="bars",
+            data=long_df,
+            x="x",
+            hue="a",
+            stat="density",
+            bins=n,
+            common_norm=False,
+            element="bars",
         )
 
         bar_groups = ax.patches[:n], ax.patches[-n:]
@@ -1394,8 +1413,12 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
     def test_probability_stat_common_norm(self, long_df, height_norm_arg):
 
         ax = histplot(
-            data=long_df, x="x", hue="a",
-            stat=height_norm_arg, common_norm=True, element="bars",
+            data=long_df,
+            x="x",
+            hue="a",
+            stat=height_norm_arg,
+            common_norm=True,
+            element="bars",
         )
         bar_heights = [b.get_height() for b in ax.patches]
         assert sum(bar_heights) == pytest.approx(1)
@@ -1404,8 +1427,13 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
 
         n = 10
         ax = histplot(
-            data=long_df, x="x", hue="a",
-            stat=height_norm_arg, bins=n, common_norm=False, element="bars",
+            data=long_df,
+            x="x",
+            hue="a",
+            stat=height_norm_arg,
+            bins=n,
+            common_norm=False,
+            element="bars",
         )
 
         bar_groups = ax.patches[:n], ax.patches[-n:]
@@ -1424,14 +1452,16 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
 
         n = 10
         ax = histplot(
-            long_df, x="x", hue="a", common_bins=True, bins=n, element="bars",
+            long_df,
+            x="x",
+            hue="a",
+            common_bins=True,
+            bins=n,
+            element="bars",
         )
 
         bar_groups = ax.patches[:n], ax.patches[-n:]
-        assert_array_equal(
-            [b.get_xy() for b in bar_groups[0]],
-            [b.get_xy() for b in bar_groups[1]]
-        )
+        assert_array_equal([b.get_xy() for b in bar_groups[0]], [b.get_xy() for b in bar_groups[1]])
 
     def test_unique_bins(self, wide_df):
 
@@ -1466,9 +1496,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
         vals = rng.normal(0, 1, 50)
         x = np.concatenate([vals, vals])
         w = np.repeat([1, 2], 50)
-        ax = histplot(
-            x=x, weights=w, hue=w, common_norm=True, stat="density", bins=5
-        )
+        ax = histplot(x=x, weights=w, hue=w, common_norm=True, stat="density", bins=5)
 
         # Recall that artists are added in reverse of hue order
         y1 = [bar.get_height() for bar in ax.patches[:5]]
@@ -1486,7 +1514,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
 
         for i, bar in enumerate(ax.patches):
             assert bar.get_width() == 1
-            assert bar.get_x() == (data_min + i - .5)
+            assert bar.get_x() == (data_min + i - 0.5)
 
     def test_discrete_categorical_default(self, long_df):
 
@@ -1510,15 +1538,13 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
     @pytest.mark.parametrize("stat", ["count", "density", "probability"])
     def test_kde(self, flat_series, stat):
 
-        ax = histplot(
-            flat_series, kde=True, stat=stat, kde_kws={"cut": 10}
-        )
+        ax = histplot(flat_series, kde=True, stat=stat, kde_kws={"cut": 10})
 
         bar_widths = [b.get_width() for b in ax.patches]
         bar_heights = [b.get_height() for b in ax.patches]
         hist_area = np.multiply(bar_widths, bar_heights).sum()
 
-        density, = ax.lines
+        (density,) = ax.lines
         kde_area = integrate(density.get_ydata(), density.get_xdata())
 
         assert kde_area == pytest.approx(hist_area)
@@ -1529,9 +1555,15 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
 
         n = 10
         ax = histplot(
-            long_df, x="x", hue="c", multiple=multiple,
-            kde=True, stat=stat, element="bars",
-            kde_kws={"cut": 10}, bins=n,
+            long_df,
+            x="x",
+            hue="c",
+            multiple=multiple,
+            kde=True,
+            stat=stat,
+            element="bars",
+            kde_kws={"cut": 10},
+            bins=n,
         )
 
         bar_groups = ax.patches[:n], ax.patches[-n:]
@@ -1562,9 +1594,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
         ax = histplot(data=long_df, x="x", hue="a", kde=True, bins=n)
 
         for bar, line in zip(ax.patches[::n], ax.lines):
-            assert_colors_equal(
-                bar.get_facecolor(), line.get_color(), check_alpha=False
-            )
+            assert_colors_equal(bar.get_facecolor(), line.get_color(), check_alpha=False)
 
     def test_kde_yaxis(self, flat_series):
 
@@ -1608,7 +1638,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
 
     def test_bars_no_fill(self, flat_series):
 
-        alpha = .5
+        alpha = 0.5
         ax = histplot(flat_series, element="bars", fill=False, alpha=alpha)
         for bar in ax.patches:
             assert bar.get_facecolor() == (0, 0, 0, 0)
@@ -1629,8 +1659,8 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
         fill = ax2.collections[0]
         x, y = fill.get_paths()[0].vertices[::-1].T
 
-        assert_array_equal(x[1:2 * n:2], bar_edges)
-        assert_array_equal(y[1:2 * n:2], bar_heights)
+        assert_array_equal(x[1 : 2 * n : 2], bar_edges)
+        assert_array_equal(y[1 : 2 * n : 2], bar_heights)
 
         assert x[n * 2] == bar_edges[-1] + bar_widths[-1]
         assert y[n * 2] == bar_heights[-1]
@@ -1650,8 +1680,8 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
         fill = ax2.collections[0]
         x, y = fill.get_paths()[0].vertices[::-1].T
 
-        assert_array_equal(x[1:n + 1], bar_edges + bar_widths / 2)
-        assert_array_equal(y[1:n + 1], bar_heights)
+        assert_array_equal(x[1 : n + 1], bar_edges + bar_widths / 2)
+        assert_array_equal(y[1 : n + 1], bar_heights)
 
     def test_poly_no_fill(self, flat_series):
 
@@ -1730,7 +1760,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
         f, (ax1, ax2) = plt.subplots(2)
 
         bw = 2
-        shrink = .4
+        shrink = 0.4
 
         histplot(long_df, x="x", binwidth=bw, ax=ax1)
         histplot(long_df, x="x", binwidth=bw, shrink=shrink, ax=ax2)
@@ -1779,10 +1809,11 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
         ax = histplot(x=x, log_scale=True, kde=True, bins=20)
         bar_height = max(p.get_height() for p in ax.patches)
         kde_height = max(ax.lines[0].get_ydata())
-        assert bar_height == pytest.approx(kde_height, rel=.1)
+        assert bar_height == pytest.approx(kde_height, rel=0.1)
 
     @pytest.mark.parametrize(
-        "fill", [True, False],
+        "fill",
+        [True, False],
     )
     def test_auto_linewidth(self, flat_series, fill):
 
@@ -1804,7 +1835,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
         f, ax1 = plt.subplots(figsize=(4, 5))
         f, ax2 = plt.subplots(figsize=(4, 5))
         histplot(flat_series, **kws, bins=30, ax=ax1)
-        histplot(10 ** flat_series, **kws, bins=30, log_scale=True, ax=ax2)
+        histplot(10**flat_series, **kws, bins=30, log_scale=True, ax=ax2)
         assert get_lw(ax1) == pytest.approx(get_lw(ax2))
 
         f, ax1 = plt.subplots(figsize=(4, 5))
@@ -1816,7 +1847,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
     def test_bar_kwargs(self, flat_series):
 
         lw = 2
-        ec = (1, .2, .9, .5)
+        ec = (1, 0.2, 0.9, 0.5)
         ax = histplot(flat_series, binwidth=1, ec=ec, lw=lw)
         for bar in ax.patches:
             assert_colors_equal(bar.get_edgecolor(), ec)
@@ -1825,7 +1856,7 @@ class TestHistPlotUnivariate(SharedAxesLevelTests):
     def test_step_fill_kwargs(self, flat_series):
 
         lw = 2
-        ec = (1, .2, .9, .5)
+        ec = (1, 0.2, 0.9, 0.5)
         ax = histplot(flat_series, element="step", ec=ec, lw=lw)
         poly = ax.collections[0]
         assert_colors_equal(poly.get_edgecolor(), ec)
@@ -1955,8 +1986,8 @@ class TestHistPlotBivariate:
         edges = itertools.product(y_edges[:-1], x_edges[:-1])
         for i, (y_i, x_i) in enumerate(edges):
             path = mesh.get_paths()[i]
-            assert path.vertices[0, 0] == pytest.approx(10 ** x_i)
-            assert path.vertices[0, 1] == pytest.approx(10 ** y_i)
+            assert path.vertices[0, 0] == pytest.approx(10**x_i)
+            assert path.vertices[0, 1] == pytest.approx(10**y_i)
 
     def test_mesh_thresh(self, long_df):
 
@@ -1988,7 +2019,12 @@ class TestHistPlotBivariate:
 
         stat = "density"
         ax = histplot(
-            long_df, x="x", y="y", hue="c", common_norm=True, stat=stat,
+            long_df,
+            x="x",
+            y="y",
+            hue="c",
+            common_norm=True,
+            stat=stat,
         )
 
         hist = Histogram(stat="density")
@@ -2008,7 +2044,12 @@ class TestHistPlotBivariate:
 
         stat = "density"
         ax = histplot(
-            long_df, x="x", y="y", hue="c", common_norm=False, stat=stat,
+            long_df,
+            x="x",
+            y="y",
+            hue="c",
+            common_norm=False,
+            stat=stat,
         )
 
         hist = Histogram()
@@ -2028,7 +2069,10 @@ class TestHistPlotBivariate:
     def test_mesh_normalization(self, long_df, stat):
 
         ax = histplot(
-            long_df, x="x", y="y", stat=stat,
+            long_df,
+            x="x",
+            y="y",
+            stat=stat,
         )
 
         mesh_data = ax.collections[0].get_array()
@@ -2040,7 +2084,10 @@ class TestHistPlotBivariate:
         color = "r"
         f, ax = plt.subplots()
         histplot(
-            long_df, x="x", y="y", color=color,
+            long_df,
+            x="x",
+            y="y",
+            color=color,
         )
         mesh = ax.collections[0]
         assert_array_equal(
@@ -2050,7 +2097,10 @@ class TestHistPlotBivariate:
 
         f, ax = plt.subplots()
         histplot(
-            long_df, x="x", y="y", hue="c",
+            long_df,
+            x="x",
+            y="y",
+            hue="c",
         )
         colors = color_palette()
         for i, mesh in enumerate(ax.collections):
@@ -2074,8 +2124,8 @@ class TestHistPlotBivariate:
         counts, _ = hist(long_df["x"], long_df["y"])
         assert ax2.collections[0].get_clim() == (0, vmax)
 
-        pmax = .8
-        pthresh = .1
+        pmax = 0.8
+        pthresh = 0.1
         f = _DistributionPlotter()._quantile_to_level
 
         histplot(**kws, pmax=pmax, pthresh=pthresh, ax=ax3)
@@ -2101,8 +2151,8 @@ class TestHistPlotBivariate:
             c, _ = hist(sub_df["x"], sub_df["y"])
             sub_counts.append(c)
 
-        pmax = .8
-        pthresh = .05
+        pmax = 0.8
+        pthresh = 0.05
         f = _DistributionPlotter()._quantile_to_level
 
         histplot(**kws, common_norm=True, ax=ax1)
@@ -2153,7 +2203,10 @@ class TestECDFPlotUnivariate(SharedAxesLevelTests):
 
         vector = long_df[variable]
         vectors = [
-            variable, vector, vector.to_numpy(), vector.to_list(),
+            variable,
+            vector,
+            vector.to_numpy(),
+            vector.to_list(),
         ]
 
         f, ax = plt.subplots()
@@ -2195,7 +2248,8 @@ class TestECDFPlotUnivariate(SharedAxesLevelTests):
         assert ax.lines[0].get_drawstyle() == drawstyles[data_var]
 
     @pytest.mark.parametrize(
-        "data_var,stat_var", [["x", "y"], ["y", "x"]],
+        "data_var,stat_var",
+        [["x", "y"], ["y", "x"]],
     )
     def test_proportion_limits(self, flat_series, data_var, stat_var):
 
@@ -2207,7 +2261,8 @@ class TestECDFPlotUnivariate(SharedAxesLevelTests):
         assert sticky_edges[:] == [0, 1]
 
     @pytest.mark.parametrize(
-        "data_var,stat_var", [["x", "y"], ["y", "x"]],
+        "data_var,stat_var",
+        [["x", "y"], ["y", "x"]],
     )
     def test_proportion_limits_complementary(self, flat_series, data_var, stat_var):
 
@@ -2219,7 +2274,8 @@ class TestECDFPlotUnivariate(SharedAxesLevelTests):
         assert sticky_edges[:] == [0, 1]
 
     @pytest.mark.parametrize(
-        "data_var,stat_var", [["x", "y"], ["y", "x"]],
+        "data_var,stat_var",
+        [["x", "y"], ["y", "x"]],
     )
     def test_proportion_count(self, flat_series, data_var, stat_var):
 
@@ -2235,7 +2291,7 @@ class TestECDFPlotUnivariate(SharedAxesLevelTests):
 
         ax = ecdfplot(x=[1, 2, 3], weights=[1, 1, 2])
         y = ax.lines[0].get_ydata()
-        assert_array_equal(y, [0, .25, .5, 1])
+        assert_array_equal(y, [0, 0.25, 0.5, 1])
 
     def test_bivariate_error(self, long_df):
 
@@ -2260,7 +2316,8 @@ class TestDisPlot:
 
     # TODO probably good to move these utility attributes/methods somewhere else
     @pytest.mark.parametrize(
-        "kwargs", [
+        "kwargs",
+        [
             dict(),
             dict(x="x"),
             dict(x="t"),
@@ -2294,12 +2351,13 @@ class TestDisPlot:
             assert_plots_equal(ax, g2.ax)
 
     @pytest.mark.parametrize(
-        "kwargs", [
+        "kwargs",
+        [
             dict(),
             dict(x="x"),
             dict(x="t"),
             dict(x="z", log_scale=True),
-            dict(x="x", bw_adjust=.5),
+            dict(x="x", bw_adjust=0.5),
             dict(x="x", weights="f"),
             dict(x="x", color="green", linewidth=2),
             dict(x="x", hue="a", multiple="stack"),
@@ -2324,7 +2382,8 @@ class TestDisPlot:
             assert_plots_equal(ax, g2.ax)
 
     @pytest.mark.parametrize(
-        "kwargs", [
+        "kwargs",
+        [
             dict(),
             dict(x="x"),
             dict(x="t"),
@@ -2352,11 +2411,12 @@ class TestDisPlot:
             assert_plots_equal(ax, g2.ax)
 
     @pytest.mark.parametrize(
-        "kwargs", [
+        "kwargs",
+        [
             dict(x="x"),
             dict(x="x", y="y"),
             dict(x="x", hue="a"),
-        ]
+        ],
     )
     def test_with_rug(self, long_df, kwargs):
 
@@ -2374,7 +2434,8 @@ class TestDisPlot:
         assert_plots_equal(ax, g2.ax, labels=False)
 
     @pytest.mark.parametrize(
-        "facet_var", ["col", "row"],
+        "facet_var",
+        ["col", "row"],
     )
     def test_facets(self, long_df, facet_var):
 
@@ -2398,13 +2459,21 @@ class TestDisPlot:
         bins = np.linspace(0, 20, 5)
         ax = histplot(
             data=long_df[long_df["c"] == 0],
-            x="x", hue="a", hue_order=["a", "b", "c"],
-            multiple=multiple, bins=bins,
+            x="x",
+            hue="a",
+            hue_order=["a", "b", "c"],
+            multiple=multiple,
+            bins=bins,
         )
 
         g = displot(
-            data=long_df, x="x", hue="a", col="c", hue_order=["a", "b", "c"],
-            multiple=multiple, bins=bins,
+            data=long_df,
+            x="x",
+            hue="a",
+            col="c",
+            hue_order=["a", "b", "c"],
+            multiple=multiple,
+            bins=bins,
         )
 
         assert_plots_equal(ax, g.axes_dict[0])
@@ -2491,7 +2560,7 @@ class TestDisPlot:
 
 
 def integrate(y, x):
-    """"Simple numerical integration for testing KDE code."""
+    """ "Simple numerical integration for testing KDE code."""
     y = np.asarray(y)
     x = np.asarray(x)
     dx = np.diff(x)

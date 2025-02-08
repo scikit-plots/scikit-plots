@@ -3,7 +3,7 @@ SEP21: color and cm refactor
 ==============================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

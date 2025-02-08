@@ -67,9 +67,7 @@ def override_pst_pagetoc(app, pagename, templatename, context, doctree):
 
         except Exception as e:
             # Upon any failure we return the original pagetoc
-            logger.warning(
-                f"Failed to generate API pagetoc for {pagename}: {e}; falling back"
-            )
+            logger.warning(f"Failed to generate API pagetoc for {pagename}: {e}; falling back")
             return context["pst_generate_toc_html"](kind=kind)
 
     # Override the pydata-sphinx-theme implementation for generate API pages

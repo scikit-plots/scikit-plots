@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 def make_clv_dataset(model: str, size=1, **kwargs) -> pd.DataFrame:
     """
     Generate synthetic customer lifetime value (CLV) data for various models including:
@@ -36,13 +37,13 @@ def make_clv_dataset(model: str, size=1, **kwargs) -> pd.DataFrame:
     ------
     ValueError
         If an invalid model type is provided.
-        
+
     References
     ----------
-    .. [1]: 
-    .. [2]: 
-    .. [3]: 
-    .. [4]: 
+    .. [1]:
+    .. [2]:
+    .. [3]:
+    .. [4]:
 
     Examples
     --------
@@ -54,17 +55,18 @@ def make_clv_dataset(model: str, size=1, **kwargs) -> pd.DataFrame:
     """
     # Dispatch to the appropriate model function
     model_funcs = {
-        'bg_nbd': beta_geometric_nbd_model,
-        'pareto_nbd': pareto_nbd_model,
-        'mbg_nbd': modified_beta_geometric_nbd_model,
-        'bg_bb': beta_geometric_beta_binom_model
+        "bg_nbd": beta_geometric_nbd_model,
+        "pareto_nbd": pareto_nbd_model,
+        "mbg_nbd": modified_beta_geometric_nbd_model,
+        "bg_bb": beta_geometric_beta_binom_model,
     }
 
     if model not in model_funcs:
         raise ValueError(f"Invalid model type: {model}. Must be one of {list(model_funcs.keys())}.")
-    
+
     model_func = model_funcs[model]
     return model_func(size=size, **kwargs)
+
 
 def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
     """
@@ -120,6 +122,7 @@ def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
 
     return df.set_index("customer_id")
 
+
 def pareto_nbd_model(T, r, alpha, s, beta, size=1):
     """
     Generate customer data using the Pareto-NBD model.
@@ -170,10 +173,11 @@ def pareto_nbd_model(T, r, alpha, s, beta, size=1):
 
     return df.set_index("customer_id")
 
+
 def modified_beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
     """
     Generate customer data using the Modified Beta-Geometric NBD model.
-    
+
     Parameters
     ----------
     T : array_like
@@ -220,6 +224,7 @@ def modified_beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
         )
 
     return df.set_index("customer_id")
+
 
 def beta_geometric_beta_binom_model(N, alpha, beta, gamma, delta, size=1):
     """

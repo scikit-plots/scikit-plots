@@ -1,27 +1,27 @@
 import math
+
 import numpy as np
 
 from scikitplot._xp_core_lib import array_api_extra as xpx
-
-from scikitplot._xp_core_lib.validation import (
-  _asarray_validated,
-)
-
 from scikitplot._xp_core_lib._array_api import (
-  array_namespace,
-  xp_size,
-  xp_broadcast_promote,
-  xp_real,
-  xp_copy,
-  xp_float_to_complex,
+    array_namespace,
+    xp_broadcast_promote,
+    xp_copy,
+    xp_float_to_complex,
+    xp_real,
+    xp_size,
+)
+from scikitplot._xp_core_lib.validation import (
+    _asarray_validated,
 )
 
 __all__ = [
-  'sigmoid',
-  'softmax',
-  'logsumexp',
-  'log_softmax',
+    "sigmoid",
+    "softmax",
+    "logsumexp",
+    "log_softmax",
 ]
+
 
 def sigmoid(x, axis=None):
     r"""
@@ -30,15 +30,15 @@ def sigmoid(x, axis=None):
     The sigmoid function is defined as::
 
         sigmoid(x) = 1 / (1 + exp(-x))
-        
+
     .. math:: \text{sigmoid}(x) = \frac{1}{1 + e^{-x}}
-    
+
     .. versionadded:: 0.3.9
 
     Parameters
     ----------
     x : array-like
-        Input array for which to compute the sigmoid. This can be a list, 
+        Input array for which to compute the sigmoid. This can be a list,
         numpy array, or any array-like structure.
 
     axis : int or None, optional
@@ -161,7 +161,7 @@ def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
     axis = tuple(range(a.ndim)) if axis is None else axis
 
     if xp_size(a) != 0:
-        with np.errstate(divide='ignore', invalid='ignore'):  # log of zero is OK
+        with np.errstate(divide="ignore", invalid="ignore"):  # log of zero is OK
             out, sgn = _logsumexp(a, b, axis=axis, return_sign=return_sign, xp=xp)
     else:
         shape = np.asarray(a.shape)  # NumPy is convenient for shape manipulation
@@ -169,15 +169,15 @@ def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
         out = xp.full(tuple(shape), -xp.inf, dtype=a.dtype)
         sgn = xp.sign(out)
 
-    if xp.isdtype(out.dtype, 'complex floating'):
+    if xp.isdtype(out.dtype, "complex floating"):
         if return_sign:
             real = xp.real(sgn)
             imag = xp_float_to_complex(_wrap_radians(xp.imag(sgn), xp))
-            sgn = real + imag*1j
+            sgn = real + imag * 1j
         else:
             real = xp.real(out)
             imag = xp_float_to_complex(_wrap_radians(xp.imag(out), xp))
-            out = real + imag*1j
+            out = real + imag * 1j
 
     # Deal with shape details - reducing dimensions and convert 0-D to scalar for NumPy
     out = xp.squeeze(out, axis=axis) if not keepdims else out
@@ -253,8 +253,11 @@ def _logsumexp(a, b, axis, return_sign, xp):
     i_max_dt = xp.astype(i_max, a.dtype)
     # This is an inefficient way of getting `m` because it is the sum of a sparse
     # array; however, this is the simplest way I can think of to get the right shape.
-    m = (xp.sum(i_max_dt, axis=axis, keepdims=True, dtype=a.dtype) if b is None
-         else xp.sum(b * i_max_dt, axis=axis, keepdims=True, dtype=a.dtype))
+    m = (
+        xp.sum(i_max_dt, axis=axis, keepdims=True, dtype=a.dtype)
+        if b is None
+        else xp.sum(b * i_max_dt, axis=axis, keepdims=True, dtype=a.dtype)
+    )
 
     # Arithmetic between infinities will introduce NaNs.
     # `+ a_max` at the end naturally corrects for removing them here.
@@ -263,7 +266,7 @@ def _logsumexp(a, b, axis, return_sign, xp):
     # Shift, exponentiate, scale, and sum
     exp = b * xp.exp(a - shift) if b is not None else xp.exp(a - shift)
     s = xp.sum(exp, axis=axis, keepdims=True, dtype=exp.dtype)
-    s = xp.where(s == 0, s, s/m)
+    s = xp.where(s == 0, s, s / m)
 
     # Separate sign/magnitude information
     sgn = None
@@ -451,7 +454,7 @@ def log_softmax(x, axis=None):
     exp_tmp = np.exp(tmp)
 
     # suppress warnings about log of zero
-    with np.errstate(divide='ignore'):
+    with np.errstate(divide="ignore"):
         s = np.sum(exp_tmp, axis=axis, keepdims=True)
         out = np.log(s)
 

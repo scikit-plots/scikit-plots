@@ -1,12 +1,7 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn.datasets import load_iris as load_data
 from sklearn.decomposition import PCA
 
@@ -27,7 +22,9 @@ class TestPlotPCAComponentVariance(unittest.TestCase):
         plt.close("all")
 
     def test_fitted(self):
-        self.assertRaises(TypeError, sp.api.plotters.plot_pca_component_variance, self.clf_not_fitted)
+        self.assertRaises(
+            TypeError, sp.api.plotters.plot_pca_component_variance, self.clf_not_fitted
+        )
 
     def test_target_explained_variance(self):
         ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=0)
@@ -60,12 +57,12 @@ class TestPlotPCA2DProjection(unittest.TestCase):
         fig, ax = plt.subplots(1, 1)
         out_ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y)
         assert ax is not out_ax
-        out_ax =sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, ax=ax)
+        out_ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, ax=ax)
         assert ax is out_ax
 
     def test_cmap(self):
         fig, ax = plt.subplots(1, 1)
-        ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, cmap='Spectral')
+        ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, cmap="Spectral")
         ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, cmap=plt.cm.Spectral)
 
 
@@ -128,7 +125,9 @@ class TestValidateLabels(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
 
-        msg = "The following labels were passed into true_labels, but were not found in labels: E, D"
+        msg = (
+            "The following labels were passed into true_labels, but were not found in labels: E, D"
+        )
         self.assertEqual(msg, str(context.exception))
 
     def test_numerical_labels(self):
@@ -162,5 +161,5 @@ class TestValidateLabels(unittest.TestCase):
         self.assertEqual(msg, str(context.exception))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

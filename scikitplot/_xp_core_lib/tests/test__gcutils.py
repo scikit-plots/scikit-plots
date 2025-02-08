@@ -1,13 +1,18 @@
-""" Test for assert_deallocated context manager and gc utilities
-"""
-import pytest
-from numpy.testing import assert_equal
+"""Test for assert_deallocated context manager and gc utilities"""
 
 import gc
 from threading import Lock
 
-from .._gcutils import (set_gc_state, gc_state, assert_deallocated,
-                       ReferenceError, IS_PYPY)
+import pytest
+from numpy.testing import assert_equal
+
+from .._gcutils import (
+    IS_PYPY,
+    ReferenceError,
+    assert_deallocated,
+    gc_state,
+    set_gc_state,
+)
 
 
 @pytest.fixture
@@ -58,17 +63,18 @@ def test_gc_state(gc_lock):
 def test_assert_deallocated(gc_lock):
     # Ordinary use
     class C:
-        def __init__(self, arg0, arg1, name='myname'):
+        def __init__(self, arg0, arg1, name="myname"):
             self.name = name
+
     with gc_lock:
         for gc_current in (True, False):
             with gc_state(gc_current):
                 # We are deleting from with-block context, so that's OK
-                with assert_deallocated(C, 0, 2, 'another name') as c:
-                    assert_equal(c.name, 'another name')
+                with assert_deallocated(C, 0, 2, "another name") as c:
+                    assert_equal(c.name, "another name")
                     del c
                 # Or not using the thing in with-block context, also OK
-                with assert_deallocated(C, 0, 2, name='third name'):
+                with assert_deallocated(C, 0, 2, name="third name"):
                     pass
                 assert_equal(gc.isenabled(), gc_current)
 
@@ -77,6 +83,7 @@ def test_assert_deallocated(gc_lock):
 def test_assert_deallocated_nodel():
     class C:
         pass
+
     with pytest.raises(ReferenceError):
         # Need to delete after using if in with-block context
         # Note: assert_deallocated(C) needs to be assigned for the test
@@ -92,6 +99,7 @@ def test_assert_deallocated_circular():
     class C:
         def __init__(self):
             self._circular = self
+
     with pytest.raises(ReferenceError):
         # Circular reference, no automatic garbage collection
         with assert_deallocated(C) as c:
@@ -103,6 +111,7 @@ def test_assert_deallocated_circular2():
     class C:
         def __init__(self):
             self._circular = self
+
     with pytest.raises(ReferenceError):
         # Still circular reference, no automatic garbage collection
         with assert_deallocated(C):

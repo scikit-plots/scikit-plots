@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3  # noqa: CPY001
 
 # Write the available versions page (--rst) and the version switcher JSON (--json).
 # Version switcher see:
@@ -71,9 +71,7 @@ rst_content = [
     "Web-based documentation is available for versions listed below:\n",
 ]
 
-ROOT_URL = (
-    "https://api.github.com/repos/scikit-learn/scikit-learn.github.io/contents/"  # noqa
-)
+ROOT_URL = "https://api.github.com/repos/scikit-learn/scikit-learn.github.io/contents/"  # noqa
 RAW_FMT = "https://raw.githubusercontent.com/scikit-learn/scikit-learn.github.io/master/%s/index.html"  # noqa
 VERSION_RE = re.compile(r"scikit-learn ([\w\.\-]+) documentation</title>")
 NAMED_DIRS = ["dev", "stable"]
@@ -104,8 +102,7 @@ for src, dst in symlinks.items():
 # Output in order: dev, stable, decreasing other version
 seen = set()
 for i, name in enumerate(
-    NAMED_DIRS
-    + sorted((k for k in dirs if k[:1].isdigit()), key=parse_version, reverse=True)
+    NAMED_DIRS + sorted((k for k in dirs if k[:1].isdigit()), key=parse_version, reverse=True)
 ):
     version_num, file_size = dirs[name]
     if version_num in seen:

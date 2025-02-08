@@ -1,36 +1,36 @@
-import io
-import xml
 import functools
+import io
 import itertools
 import warnings
+import xml
 
-import numpy as np
-import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pytest
+from numpy.testing import assert_array_almost_equal, assert_array_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 from PIL import Image
 
-import pytest
-from pandas.testing import assert_frame_equal, assert_series_equal
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-
-from ..plot import Plot, PlotConfig, Default
-from ..scales import Continuous, Nominal, Temporal
-from ..moves import Move, Shift, Dodge
-from ..rules import categorical_order
-from ..exceptions import PlotSpecError
-
 from ..._marks.base import Mark
-from ..._stats.base import Stat
 from ..._marks.dot import Dot
 from ..._stats.aggregation import Agg
+from ..._stats.base import Stat
 from ...utils import _version_predates
+from ..exceptions import PlotSpecError
+from ..moves import Dodge, Move, Shift
+from ..plot import Default, Plot, PlotConfig
+from ..rules import categorical_order
+from ..scales import Continuous, Nominal, Temporal
 
 assert_vector_equal = functools.partial(
     # TODO do we care about int/float dtype consistency?
     # Eventually most variables become floats ... but does it matter when?
     # (Or rather, does it matter if it happens too early?)
-    assert_series_equal, check_names=False, check_dtype=False,
+    assert_series_equal,
+    check_names=False,
+    check_dtype=False,
 )
 
 
@@ -173,7 +173,7 @@ class TestInit:
 
     @pytest.mark.skipif(
         condition=not hasattr(pd.api, "interchange"),
-        reason="Tests behavior assuming support for dataframe interchange"
+        reason="Tests behavior assuming support for dataframe interchange",
     )
     def test_positional_interchangeable_dataframe(self, mock_long_df, long_df):
 
@@ -198,13 +198,13 @@ class TestLayerAddition:
     def test_without_data(self, long_df):
 
         p = Plot(long_df, x="x", y="y").add(MockMark()).plot()
-        layer, = p._layers
+        (layer,) = p._layers
         assert_frame_equal(p._data.frame, layer["data"].frame, check_dtype=False)
 
     def test_with_new_variable_by_name(self, long_df):
 
         p = Plot(long_df, x="x").add(MockMark(), y="y").plot()
-        layer, = p._layers
+        (layer,) = p._layers
         assert layer["data"].frame.columns.to_list() == ["x", "y"]
         for var in "xy":
             assert_vector_equal(layer["data"].frame[var], long_df[var])
@@ -212,7 +212,7 @@ class TestLayerAddition:
     def test_with_new_variable_by_vector(self, long_df):
 
         p = Plot(long_df, x="x").add(MockMark(), y=long_df["y"]).plot()
-        layer, = p._layers
+        (layer,) = p._layers
         assert layer["data"].frame.columns.to_list() == ["x", "y"]
         for var in "xy":
             assert_vector_equal(layer["data"].frame[var], long_df[var])
@@ -220,27 +220,25 @@ class TestLayerAddition:
     def test_with_late_data_definition(self, long_df):
 
         p = Plot().add(MockMark(), data=long_df, x="x", y="y").plot()
-        layer, = p._layers
+        (layer,) = p._layers
         assert layer["data"].frame.columns.to_list() == ["x", "y"]
         for var in "xy":
             assert_vector_equal(layer["data"].frame[var], long_df[var])
 
     def test_with_new_data_definition(self, long_df):
 
-        long_df_sub = long_df.sample(frac=.5)
+        long_df_sub = long_df.sample(frac=0.5)
 
         p = Plot(long_df, x="x", y="y").add(MockMark(), data=long_df_sub).plot()
-        layer, = p._layers
+        (layer,) = p._layers
         assert layer["data"].frame.columns.to_list() == ["x", "y"]
         for var in "xy":
-            assert_vector_equal(
-                layer["data"].frame[var], long_df_sub[var].reindex(long_df.index)
-            )
+            assert_vector_equal(layer["data"].frame[var], long_df_sub[var].reindex(long_df.index))
 
     def test_drop_variable(self, long_df):
 
         p = Plot(long_df, x="x", y="y").add(MockMark(), y=None).plot()
-        layer, = p._layers
+        (layer,) = p._layers
         assert layer["data"].frame.columns.to_list() == ["x"]
         assert_vector_equal(layer["data"].frame["x"], long_df["x"], check_dtype=False)
 
@@ -251,7 +249,7 @@ class TestLayerAddition:
             default_stat = Stat
 
         p = Plot().add(MarkWithDefaultStat())
-        layer, = p._layers
+        (layer,) = p._layers
         assert layer["stat"].__class__ is Stat
 
     def test_stat_nondefault(self):
@@ -263,7 +261,7 @@ class TestLayerAddition:
             pass
 
         p = Plot().add(MarkWithDefaultStat(), OtherMockStat())
-        layer, = p._layers
+        (layer,) = p._layers
         assert layer["stat"].__class__ is OtherMockStat
 
     @pytest.mark.parametrize(
@@ -303,11 +301,7 @@ class TestLayerAddition:
         p = Plot(long_df, x="x", y="y", color="a").add(MockMark(), color=None)
         assert p._variables == ["x", "y", "color"]
 
-        p = (
-            Plot(long_df, x="x", y="y")
-            .add(MockMark(), color="a")
-            .add(MockMark(), alpha="s")
-        )
+        p = Plot(long_df, x="x", y="y").add(MockMark(), color="a").add(MockMark(), alpha="s")
         assert p._variables == ["x", "y", "color", "alpha"]
 
         p = Plot(long_df, y="x").pair(x=["a", "b"])
@@ -512,7 +506,7 @@ class TestScaling:
 
         m = MockMark()
         Plot(x, y).add(m, AddOne()).scale(y="log").plot()
-        assert_vector_equal(m.passed_data[0]["ymax"], pd.Series([10., 100., 1000.]))
+        assert_vector_equal(m.passed_data[0]["ymax"], pd.Series([10.0, 100.0, 1000.0]))
 
     def test_facet_categories(self):
 
@@ -521,8 +515,8 @@ class TestScaling:
         ax1, ax2 = p._figure.axes
         assert len(ax1.get_xticks()) == 3
         assert len(ax2.get_xticks()) == 3
-        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0., 1.], [0, 1]))
-        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0., 2.], [2, 3]))
+        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0.0, 1.0], [0, 1]))
+        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0.0, 2.0], [2, 3]))
 
     def test_facet_categories_unshared(self):
 
@@ -537,35 +531,33 @@ class TestScaling:
         ax1, ax2 = p._figure.axes
         assert len(ax1.get_xticks()) == 2
         assert len(ax2.get_xticks()) == 2
-        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0., 1.], [0, 1]))
-        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0., 1.], [2, 3]))
+        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0.0, 1.0], [0, 1]))
+        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0.0, 1.0], [2, 3]))
 
     def test_facet_categories_single_dim_shared(self):
 
         data = [
-            ("a", 1, 1), ("b", 1, 1),
-            ("a", 1, 2), ("c", 1, 2),
-            ("b", 2, 1), ("d", 2, 1),
-            ("e", 2, 2), ("e", 2, 1),
+            ("a", 1, 1),
+            ("b", 1, 1),
+            ("a", 1, 2),
+            ("c", 1, 2),
+            ("b", 2, 1),
+            ("d", 2, 1),
+            ("e", 2, 2),
+            ("e", 2, 1),
         ]
         df = pd.DataFrame(data, columns=["x", "row", "col"]).assign(y=1)
         m = MockMark()
-        p = (
-            Plot(df, x="x")
-            .facet(row="row", col="col")
-            .add(m)
-            .share(x="row")
-            .plot()
-        )
+        p = Plot(df, x="x").facet(row="row", col="col").add(m).share(x="row").plot()
 
         axs = p._figure.axes
         for ax in axs:
             assert ax.get_xticks() == [0, 1, 2]
 
-        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0., 1.], [0, 1]))
-        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0., 2.], [2, 3]))
-        assert_vector_equal(m.passed_data[2]["x"], pd.Series([0., 1., 2.], [4, 5, 7]))
-        assert_vector_equal(m.passed_data[3]["x"], pd.Series([2.], [6]))
+        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0.0, 1.0], [0, 1]))
+        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0.0, 2.0], [2, 3]))
+        assert_vector_equal(m.passed_data[2]["x"], pd.Series([0.0, 1.0, 2.0], [4, 5, 7]))
+        assert_vector_equal(m.passed_data[3]["x"], pd.Series([2.0], [6]))
 
     def test_pair_categories(self):
 
@@ -577,8 +569,8 @@ class TestScaling:
         ax1, ax2 = p._figure.axes
         assert ax1.get_xticks() == [0, 1]
         assert ax2.get_xticks() == [0, 1]
-        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0., 1.], [0, 1]))
-        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0., 1.], [0, 1]))
+        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0.0, 1.0], [0, 1]))
+        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0.0, 1.0], [0, 1]))
 
     def test_pair_categories_shared(self):
 
@@ -590,14 +582,14 @@ class TestScaling:
         for ax in p._figure.axes:
             assert ax.get_xticks() == [0, 1, 2]
         print(m.passed_data)
-        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0., 1.], [0, 1]))
-        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0., 2.], [0, 1]))
+        assert_vector_equal(m.passed_data[0]["x"], pd.Series([0.0, 1.0], [0, 1]))
+        assert_vector_equal(m.passed_data[1]["x"], pd.Series([0.0, 2.0], [0, 1]))
 
     def test_identity_mapping_linewidth(self):
 
         m = MockMark()
         x = y = [1, 2, 3, 4, 5]
-        lw = pd.Series([.5, .1, .1, .9, 3])
+        lw = pd.Series([0.5, 0.1, 0.1, 0.9, 3])
         Plot(x=x, y=y, linewidth=lw).scale(linewidth=None).add(m).plot()
         assert_vector_equal(m.passed_scales["linewidth"](lw), lw)
 
@@ -646,9 +638,7 @@ class TestScaling:
         expected = mpl.colors.to_rgba_array(c)[:, :3]
         assert_array_equal(m.passed_scales["color"](c), expected)
 
-    @pytest.mark.xfail(
-        reason="Need decision on what to do with scale defined for unused variable"
-    )
+    @pytest.mark.xfail(reason="Need decision on what to do with scale defined for unused variable")
     def test_undefined_variable_raises(self):
 
         p = Plot(x=[1, 2, 3], color=["a", "b", "c"]).scale(y=Continuous())
@@ -660,7 +650,7 @@ class TestScaling:
 
         p = Plot(x=["a", "b", "c"], y=[1, 2, 3])
         ax1 = p.plot()._figure.axes[0]
-        assert ax1.get_xlim() == (-.5, 2.5)
+        assert ax1.get_xlim() == (-0.5, 2.5)
         assert not any(x.get_visible() for x in ax1.xaxis.get_gridlines())
 
         lim = (-1, 2.1)
@@ -671,7 +661,7 @@ class TestScaling:
 
         p = Plot(x=[1, 2, 3], y=["a", "b", "c"])
         ax1 = p.plot()._figure.axes[0]
-        assert ax1.get_ylim() == (2.5, -.5)
+        assert ax1.get_ylim() == (2.5, -0.5)
         assert not any(y.get_visible() for y in ax1.yaxis.get_gridlines())
 
         lim = (-1, 2.1)
@@ -728,9 +718,7 @@ class TestPlotting:
             for var, col in v.items():
                 assert_vector_equal(m.passed_data[0][var], long_df[col])
 
-    def check_splits_single_var(
-        self, data, mark, data_vars, split_var, split_col, split_keys
-    ):
+    def check_splits_single_var(self, data, mark, data_vars, split_var, split_col, split_keys):
 
         assert mark.n_splits == len(split_keys)
         assert mark.passed_keys == [{split_var: key} for key in split_keys]
@@ -741,15 +729,12 @@ class TestPlotting:
             for var, col in data_vars.items():
                 assert_array_equal(mark.passed_data[i][var], split_data[col])
 
-    def check_splits_multi_vars(
-        self, data, mark, data_vars, split_vars, split_cols, split_keys
-    ):
+    def check_splits_multi_vars(self, data, mark, data_vars, split_vars, split_cols, split_keys):
 
         assert mark.n_splits == np.prod([len(ks) for ks in split_keys])
 
         expected_keys = [
-            dict(zip(split_vars, level_keys))
-            for level_keys in itertools.product(*split_keys)
+            dict(zip(split_vars, level_keys)) for level_keys in itertools.product(*split_keys)
         ]
         assert mark.passed_keys == expected_keys
 
@@ -763,10 +748,12 @@ class TestPlotting:
                 assert_array_equal(mark.passed_data[i][var], split_data[col])
 
     @pytest.mark.parametrize(
-        "split_var", [
+        "split_var",
+        [
             "color",  # explicitly declared on the Mark
             "group",  # implicitly used for all Mark classes
-        ])
+        ],
+    )
     def test_one_grouping_variable(self, long_df, split_var):
 
         split_col = "a"
@@ -778,9 +765,7 @@ class TestPlotting:
         split_keys = categorical_order(long_df[split_col])
         sub, *_ = p._subplots
         assert m.passed_axes == [sub["ax"] for _ in split_keys]
-        self.check_splits_single_var(
-            long_df, m, data_vars, split_var, split_col, split_keys
-        )
+        self.check_splits_single_var(long_df, m, data_vars, split_var, split_col, split_keys)
 
     def test_two_grouping_variables(self, long_df):
 
@@ -793,12 +778,8 @@ class TestPlotting:
 
         split_keys = [categorical_order(long_df[col]) for col in split_cols]
         sub, *_ = p._subplots
-        assert m.passed_axes == [
-            sub["ax"] for _ in itertools.product(*split_keys)
-        ]
-        self.check_splits_multi_vars(
-            long_df, m, data_vars, split_vars, split_cols, split_keys
-        )
+        assert m.passed_axes == [sub["ax"] for _ in itertools.product(*split_keys)]
+        self.check_splits_multi_vars(long_df, m, data_vars, split_vars, split_cols, split_keys)
 
     def test_specified_width(self, long_df):
 
@@ -817,9 +798,7 @@ class TestPlotting:
 
         split_keys = categorical_order(long_df[split_col])
         assert m.passed_axes == list(p._figure.axes)
-        self.check_splits_single_var(
-            long_df, m, data_vars, split_var, split_col, split_keys
-        )
+        self.check_splits_single_var(long_df, m, data_vars, split_var, split_col, split_keys)
 
     def test_facets_one_subgroup(self, long_df):
 
@@ -829,22 +808,13 @@ class TestPlotting:
         data_vars = {"x": "f", "y": "z", group_var: group_col}
 
         m = MockMark()
-        p = (
-            Plot(long_df, **data_vars)
-            .facet(**{facet_var: facet_col})
-            .add(m)
-            .plot()
-        )
+        p = Plot(long_df, **data_vars).facet(**{facet_var: facet_col}).add(m).plot()
 
         split_keys = [categorical_order(long_df[col]) for col in [facet_col, group_col]]
         assert m.passed_axes == [
-            ax
-            for ax in list(p._figure.axes)
-            for _ in categorical_order(long_df[group_col])
+            ax for ax in list(p._figure.axes) for _ in categorical_order(long_df[group_col])
         ]
-        self.check_splits_multi_vars(
-            long_df, m, data_vars, split_vars, split_cols, split_keys
-        )
+        self.check_splits_multi_vars(long_df, m, data_vars, split_vars, split_cols, split_keys)
 
     def test_layer_specific_facet_disabling(self, long_df):
 
@@ -958,7 +928,7 @@ class TestPlotting:
         expected = long_df.groupby("a", sort=False)["z"].mean().reset_index(drop=True)
         assert_vector_equal(m.passed_data[0]["y"], expected)
 
-        assert_frame_equal(long_df, orig_df)   # Test data was not mutated
+        assert_frame_equal(long_df, orig_df)  # Test data was not mutated
 
     def test_move(self, long_df):
 
@@ -969,7 +939,7 @@ class TestPlotting:
         assert_vector_equal(m.passed_data[0]["x"], long_df["z"] + 1)
         assert_vector_equal(m.passed_data[0]["y"], long_df["z"])
 
-        assert_frame_equal(long_df, orig_df)   # Test data was not mutated
+        assert_frame_equal(long_df, orig_df)  # Test data was not mutated
 
     def test_stat_and_move(self, long_df):
 
@@ -989,16 +959,14 @@ class TestPlotting:
         x = long_df["a"]
         y = np.log10(long_df["z"])
         expected = y.groupby(x, sort=False).mean().reset_index(drop=True)
-        assert_vector_equal(m.passed_data[0]["y"], 10 ** expected)
+        assert_vector_equal(m.passed_data[0]["y"], 10**expected)
 
-        assert_frame_equal(long_df, orig_df)   # Test data was not mutated
+        assert_frame_equal(long_df, orig_df)  # Test data was not mutated
 
     def test_move_log_scale(self, long_df):
 
         m = MockMark()
-        Plot(
-            long_df, x="z", y="z"
-        ).scale(x="log").add(m, Shift(x=-1)).plot()
+        Plot(long_df, x="z", y="z").scale(x="log").add(m, Shift(x=-1)).plot()
         assert_vector_equal(m.passed_data[0]["x"], long_df["z"] / 10)
 
     def test_multi_move(self, long_df):
@@ -1067,7 +1035,8 @@ class TestPlotting:
 
         gui_backend = (
             # From https://github.com/matplotlib/matplotlib/issues/20281
-            fig.canvas.manager.show != mpl.backend_bases.FigureManagerBase.show
+            fig.canvas.manager.show
+            != mpl.backend_bases.FigureManagerBase.show
         )
         if not gui_backend:
             assert msg
@@ -1098,8 +1067,8 @@ class TestPlotting:
     )
     def test_layout_extent(self):
 
-        p = Plot().layout(extent=(.1, .2, .6, 1)).plot()
-        assert p._figure.get_layout_engine().get()["rect"] == [.1, .2, .5, .8]
+        p = Plot().layout(extent=(0.1, 0.2, 0.6, 1)).plot()
+        assert p._figure.get_layout_engine().get()["rect"] == [0.1, 0.2, 0.5, 0.8]
 
     @pytest.mark.skipif(
         _version_predates(mpl, "3.6"),
@@ -1107,12 +1076,12 @@ class TestPlotting:
     )
     def test_constrained_layout_extent(self):
 
-        p = Plot().layout(engine="constrained", extent=(.1, .2, .6, 1)).plot()
-        assert p._figure.get_layout_engine().get()["rect"] == [.1, .2, .5, .8]
+        p = Plot().layout(engine="constrained", extent=(0.1, 0.2, 0.6, 1)).plot()
+        assert p._figure.get_layout_engine().get()["rect"] == [0.1, 0.2, 0.5, 0.8]
 
     def test_base_layout_extent(self):
 
-        p = Plot().layout(engine=None, extent=(.1, .2, .6, 1)).plot()
+        p = Plot().layout(engine=None, extent=(0.1, 0.2, 0.6, 1)).plot()
         assert p._figure.subplotpars.left == 0.1
         assert p._figure.subplotpars.right == 0.6
         assert p._figure.subplotpars.bottom == 0.2
@@ -1170,13 +1139,11 @@ class TestPlotting:
             p2.plot()
 
     @pytest.mark.skipif(
-        _version_predates(mpl, "3.6"),
-        reason="Requires newer matplotlib layout engine API"
+        _version_predates(mpl, "3.6"), reason="Requires newer matplotlib layout engine API"
     )
     def test_on_layout_algo_default(self):
 
-        class MockEngine(mpl.layout_engine.ConstrainedLayoutEngine):
-            ...
+        class MockEngine(mpl.layout_engine.ConstrainedLayoutEngine): ...
 
         f = mpl.figure.Figure(layout=MockEngine())
         p = Plot().on(f).plot()
@@ -1184,8 +1151,7 @@ class TestPlotting:
         assert layout_engine.__class__.__name__ == "MockEngine"
 
     @pytest.mark.skipif(
-        _version_predates(mpl, "3.6"),
-        reason="Requires newer matplotlib layout engine API"
+        _version_predates(mpl, "3.6"), reason="Requires newer matplotlib layout engine API"
     )
     def test_on_layout_algo_spec(self):
 
@@ -1196,11 +1162,11 @@ class TestPlotting:
 
     def test_axis_labels_from_constructor(self, long_df):
 
-        ax, = Plot(long_df, x="a", y="b").plot()._figure.axes
+        (ax,) = Plot(long_df, x="a", y="b").plot()._figure.axes
         assert ax.get_xlabel() == "a"
         assert ax.get_ylabel() == "b"
 
-        ax, = Plot(x=long_df["a"], y=long_df["b"].to_numpy()).plot()._figure.axes
+        (ax,) = Plot(x=long_df["a"], y=long_df["b"].to_numpy()).plot()._figure.axes
         assert ax.get_xlabel() == "a"
         assert ax.get_ylabel() == ""
 
@@ -1208,24 +1174,20 @@ class TestPlotting:
 
         m = MockMark()
 
-        ax, = Plot(long_df).add(m, x="a", y="b").plot()._figure.axes
+        (ax,) = Plot(long_df).add(m, x="a", y="b").plot()._figure.axes
         assert ax.get_xlabel() == "a"
         assert ax.get_ylabel() == "b"
 
         p = Plot().add(m, x=long_df["a"], y=long_df["b"].to_list())
-        ax, = p.plot()._figure.axes
+        (ax,) = p.plot()._figure.axes
         assert ax.get_xlabel() == "a"
         assert ax.get_ylabel() == ""
 
     def test_axis_labels_are_first_name(self, long_df):
 
         m = MockMark()
-        p = (
-            Plot(long_df, x=long_df["z"].to_list(), y="b")
-            .add(m, x="a")
-            .add(m, x="x", y="y")
-        )
-        ax, = p.plot()._figure.axes
+        p = Plot(long_df, x=long_df["z"].to_list(), y="b").add(m, x="a").add(m, x="x", y="y")
+        (ax,) = p.plot()._figure.axes
         assert ax.get_xlabel() == "a"
         assert ax.get_ylabel() == "b"
 
@@ -1408,12 +1370,8 @@ class TestFacetInterface:
         for subplot, (row_level, col_level) in zip(p._subplots, levels):
             assert subplot["row"] == row_level
             assert subplot["col"] == col_level
-            assert subplot["axes"].get_title() == (
-                f"{col_level} | {row_level}"
-            )
-            assert_gridspec_shape(
-                subplot["axes"], len(levels["row"]), len(levels["col"])
-            )
+            assert subplot["axes"].get_title() == (f"{col_level} | {row_level}")
+            assert_gridspec_shape(subplot["axes"], len(levels["row"]), len(levels["col"]))
 
     def test_2d(self, long_df):
 
@@ -1424,10 +1382,7 @@ class TestFacetInterface:
     def test_2d_with_order(self, long_df, reorder):
 
         variables = {"row": "a", "col": "c"}
-        order = {
-            dim: reorder(categorical_order(long_df[key]))
-            for dim, key in variables.items()
-        }
+        order = {dim: reorder(categorical_order(long_df[key])) for dim, key in variables.items()}
 
         p = Plot(long_df).facet(**variables, order=order)
         self.check_facet_results_2d(p, long_df, variables, order)
@@ -1435,7 +1390,7 @@ class TestFacetInterface:
     @pytest.mark.parametrize("algo", ["tight", "constrained"])
     def test_layout_algo(self, algo):
 
-        p = Plot().facet(["a", "b"]).limit(x=(.1, .9))
+        p = Plot().facet(["a", "b"]).limit(x=(0.1, 0.9))
 
         p1 = p.layout(engine=algo).plot()
         p2 = p.layout(engine="none").plot()
@@ -1476,13 +1431,9 @@ class TestFacetInterface:
         )
         axes_matrix = np.reshape(p3._figure.axes, shape)
 
-        for (shared, unshared), vectors in zip(
-            ["yx", "xy"], [axes_matrix, axes_matrix.T]
-        ):
+        for (shared, unshared), vectors in zip(["yx", "xy"], [axes_matrix, axes_matrix.T]):
             for root, *other in vectors:
-                shareset = {
-                    axis: getattr(root, f"get_shared_{axis}_axes")() for axis in "xy"
-                }
+                shareset = {axis: getattr(root, f"get_shared_{axis}_axes")() for axis in "xy"}
                 assert all(shareset[shared].joined(root, ax) for ax in other)
                 assert not any(shareset[unshared].joined(root, ax) for ax in other)
 
@@ -1619,11 +1570,7 @@ class TestPairInterface:
     def test_error_on_wrap_overlap(self, long_df, variables):
 
         facet_dim, pair_axis = variables
-        p = (
-            Plot(long_df)
-            .facet(wrap=2, **{facet_dim[:3]: "a"})
-            .pair(**{pair_axis: ["x", "y"]})
-        )
+        p = Plot(long_df).facet(wrap=2, **{facet_dim[:3]: "a"}).pair(**{pair_axis: ["x", "y"]})
         expected = f"Cannot wrap the {facet_dim} while pairing on `{pair_axis}``."
         with pytest.raises(RuntimeError, match=expected):
             p.plot()
@@ -1696,7 +1643,7 @@ class TestPairInterface:
         assert_gridspec_shape(p._figure.axes[0], n_row, n_col)
         assert len(p._figure.axes) == len(y_vars)
         label_array = np.empty(n_row * n_col, object)
-        label_array[:len(y_vars)] = y_vars
+        label_array[: len(y_vars)] = y_vars
         label_array = label_array.reshape((n_row, n_col), order="F")
         label_array = [y for y in label_array.flat if y is not None]
         for i, ax in enumerate(p._figure.axes):
@@ -1710,11 +1657,7 @@ class TestPairInterface:
         y_vars = ["f", "x", "y", "z"]
         wrap = 3
 
-        p = (
-            Plot(long_df, x="x")
-            .pair(x=x_vars, y=y_vars, wrap=wrap, cross=False)
-            .plot()
-        )
+        p = Plot(long_df, x="x").pair(x=x_vars, y=y_vars, wrap=wrap, cross=False).plot()
 
         assert_gridspec_shape(p._figure.axes[0], len(x_vars) // wrap + 1, wrap)
         assert len(p._figure.axes) == len(x_vars)
@@ -1734,12 +1677,7 @@ class TestPairInterface:
                 orient_list.append(orient)
                 return data
 
-        (
-            Plot(long_df, x="x")
-            .pair(y=["b", "z"])
-            .add(MockMark(), CaptureOrientMove())
-            .plot()
-        )
+        (Plot(long_df, x="x").pair(y=["b", "z"]).add(MockMark(), CaptureOrientMove()).plot())
 
         assert orient_list == ["y", "x"]
 
@@ -1771,11 +1709,7 @@ class TestPairInterface:
     def test_labels(self, long_df):
 
         label = "zed"
-        p = (
-            Plot(long_df, y="y")
-            .pair(x=["x", "z"])
-            .label(x=str.capitalize, x1=label)
-        )
+        p = Plot(long_df, y="y").pair(x=["x", "z"]).label(x=str.capitalize, x1=label)
         ax0, ax1 = p.plot()._figure.axes
         assert ax0.get_xlabel() == "X"
         assert ax1.get_xlabel() == label
@@ -1903,11 +1837,7 @@ class TestLabelVisibility:
 
     def test_1d_column_wrapped_non_cross(self, long_df):
 
-        p = (
-            Plot(long_df)
-            .pair(x=["a", "b", "c"], y=["x", "y", "z"], wrap=2, cross=False)
-            .plot()
-        )
+        p = Plot(long_df).pair(x=["a", "b", "c"], y=["x", "y", "z"], wrap=2, cross=False).plot()
         for s in p._subplots:
             ax = s["ax"]
             assert ax.xaxis.get_label().get_visible()
@@ -1942,12 +1872,7 @@ class TestLabelVisibility:
 
     def test_2d_unshared(self):
 
-        p = (
-            Plot()
-            .facet(col=["a", "b"], row=["x", "y"])
-            .share(x=False, y=False)
-            .plot()
-        )
+        p = Plot().facet(col=["a", "b"], row=["x", "y"]).share(x=False, y=False).plot()
         subplots = list(p._subplots)
 
         for s in subplots[:2]:
@@ -1981,7 +1906,7 @@ class TestLegend:
 
         s = pd.Series(["a", "b", "a", "c"], name="s")
         p = Plot(**xy).add(MockMark(), color=s).plot()
-        e, = p._legend_contents
+        (e,) = p._legend_contents
 
         labels = categorical_order(s)
 
@@ -2000,7 +1925,7 @@ class TestLegend:
         s = pd.Series(["a", "b", "a", "c"], name="s")
         sem = dict(color=s, marker=s)
         p = Plot(**xy).add(MockMark(), **sem).plot()
-        e, = p._legend_contents
+        (e,) = p._legend_contents
 
         labels = categorical_order(s)
 
@@ -2020,7 +1945,7 @@ class TestLegend:
         sem = dict(color=s, marker=s)
         p = Plot(**xy).add(MockMark(), **sem).plot()
 
-        e, = p._legend_contents
+        (e,) = p._legend_contents
 
         labels = list(np.unique(s))  # assumes sorted order
 
@@ -2113,7 +2038,7 @@ class TestLegend:
         s = pd.Series(["a", "b", "a", "c"], name="s")
         p = Plot(**xy, color=s).add(MockMark1()).add(MockMark2()).plot()
 
-        legend, = p._figure.legends
+        (legend,) = p._figure.legends
 
         names = categorical_order(s)
         labels = [t.get_text() for t in legend.get_texts()]
@@ -2153,7 +2078,7 @@ class TestLegend:
     def test_anonymous_title(self, xy):
 
         p = Plot(**xy, color=["a", "b", "c", "d"]).add(MockMark()).plot()
-        legend, = p._figure.legends
+        (legend,) = p._figure.legends
         assert legend.get_title().get_text() == ""
 
     def test_legendless_mark(self, xy):
@@ -2303,10 +2228,10 @@ class TestDisplayConfig:
 
     def test_png_scaling(self):
 
-        Plot.config.display["scaling"] = 1.
+        Plot.config.display["scaling"] = 1.0
         res1, meta1 = Plot()._repr_png_()
 
-        Plot.config.display["scaling"] = .5
+        Plot.config.display["scaling"] = 0.5
         res2, meta2 = Plot()._repr_png_()
 
         assert meta1["width"] / 2 == meta2["width"]
@@ -2320,10 +2245,10 @@ class TestDisplayConfig:
 
         Plot.config.display["format"] = "svg"
 
-        Plot.config.display["scaling"] = 1.
+        Plot.config.display["scaling"] = 1.0
         res1 = Plot()._repr_svg_()
 
-        Plot.config.display["scaling"] = .5
+        Plot.config.display["scaling"] = 0.5
         res2 = Plot()._repr_svg_()
 
         root1 = xml.etree.ElementTree.fromstring(res1)

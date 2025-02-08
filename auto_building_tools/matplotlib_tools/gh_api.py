@@ -17,10 +17,12 @@ else:
 
 # Keyring stores passwords by a 'username', but we're not storing a username and
 # password
-fake_username = 'ipython_tools'
+fake_username = "ipython_tools"
+
 
 class Obj(dict):
     """Dictionary with attribute access to names."""
+
     def __getattr__(self, name):
         try:
             return self[name]
@@ -30,7 +32,10 @@ class Obj(dict):
     def __setattr__(self, name, val):
         self[name] = val
 
+
 token = None
+
+
 def get_auth_token():
     global token
 
@@ -38,63 +43,62 @@ def get_auth_token():
         return token
 
     try:
-        with open(os.path.join(os.path.expanduser('~'), '.ghoauth')) as f:
-            token, = f
+        with open(os.path.join(os.path.expanduser("~"), ".ghoauth")) as f:
+            (token,) = f
             return token
     except Exception:
         pass
 
     import keyring
-    token = keyring.get_password('github', fake_username)
+
+    token = keyring.get_password("github", fake_username)
     if token is not None:
         return token
 
-    print("Please enter your github username and password. These are not "
-           "stored, only used to get an oAuth token. You can revoke this at "
-           "any time on GitHub.")
+    print(
+        "Please enter your github username and password. These are not "
+        "stored, only used to get an oAuth token. You can revoke this at "
+        "any time on GitHub."
+    )
     user = input("Username: ")
     pw = getpass.getpass("Password: ")
 
     auth_request = {
-      "scopes": [
-        "public_repo",
-        "gist"
-      ],
-      "note": "IPython tools",
-      "note_url": "https://github.com/ipython/ipython/tree/master/tools",
+        "scopes": ["public_repo", "gist"],
+        "note": "IPython tools",
+        "note_url": "https://github.com/ipython/ipython/tree/master/tools",
     }
-    response = requests.post('https://api.github.com/authorizations',
-                            auth=(user, pw), data=json.dumps(auth_request))
+    response = requests.post(
+        "https://api.github.com/authorizations", auth=(user, pw), data=json.dumps(auth_request)
+    )
     response.raise_for_status()
-    token = json.loads(response.text)['token']
-    keyring.set_password('github', fake_username, token)
+    token = json.loads(response.text)["token"]
+    keyring.set_password("github", fake_username, token)
     return token
 
+
 def make_auth_header():
-    return {'Authorization': 'token ' + get_auth_token().replace("\n","")}
+    return {"Authorization": "token " + get_auth_token().replace("\n", "")}
+
 
 def post_issue_comment(project, num, body):
-    url = f'https://api.github.com/repos/{project}/issues/{num}/comments'
-    payload = json.dumps({'body': body})
+    url = f"https://api.github.com/repos/{project}/issues/{num}/comments"
+    payload = json.dumps({"body": body})
     requests.post(url, data=payload, headers=make_auth_header())
 
-def post_gist(content, description='', filename='file', auth=False):
+
+def post_gist(content, description="", filename="file", auth=False):
     """Post some text to a Gist, and return the URL."""
-    post_data = json.dumps({
-      "description": description,
-      "public": True,
-      "files": {
-        filename: {
-          "content": content
-        }
-      }
-    }).encode('utf-8')
+    post_data = json.dumps(
+        {"description": description, "public": True, "files": {filename: {"content": content}}}
+    ).encode("utf-8")
 
     headers = make_auth_header() if auth else {}
     response = requests.post("https://api.github.com/gists", data=post_data, headers=headers)
     response.raise_for_status()
     response_data = json.loads(response.text)
-    return response_data['html_url']
+    return response_data["html_url"]
+
 
 def get_pull_request(project, num, auth=False):
     """Return the pull request info for a given PR number."""
@@ -108,6 +112,7 @@ def get_pull_request(project, num, auth=False):
     response.raise_for_status()
     return json.loads(response.text, object_hook=Obj)
 
+
 def get_pull_request_files(project, num, auth=False):
     """get list of files in a pull request"""
     url = f"https://api.github.com/repos/{project}/pulls/{num}/files"
@@ -117,15 +122,17 @@ def get_pull_request_files(project, num, auth=False):
         header = None
     return get_paged_request(url, headers=header)
 
-element_pat = re.compile(r'<(.+?)>')
+
+element_pat = re.compile(r"<(.+?)>")
 rel_pat = re.compile(r'rel=[\'"](\w+)[\'"]')
+
 
 def get_paged_request(url, headers=None, **params):
     """get a full list, handling APIv3's paging"""
     results = []
     params.setdefault("per_page", 100)
     while True:
-        if '?' in url:
+        if "?" in url:
             params = None
             print(f"fetching {url}", file=sys.stderr)
         else:
@@ -133,11 +140,12 @@ def get_paged_request(url, headers=None, **params):
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         results.extend(response.json())
-        if 'next' in response.links:
-            url = response.links['next']['url']
+        if "next" in response.links:
+            url = response.links["next"]["url"]
         else:
             break
     return results
+
 
 def get_pulls_list(project, auth=False, **params):
     """get pull request list"""
@@ -150,6 +158,7 @@ def get_pulls_list(project, auth=False, **params):
     pages = get_paged_request(url, headers=headers, **params)
     return pages
 
+
 def get_issues_list(project, auth=False, **params):
     """get issues list"""
     params.setdefault("state", "closed")
@@ -161,8 +170,9 @@ def get_issues_list(project, auth=False, **params):
     pages = get_paged_request(url, headers=headers, **params)
     return pages
 
+
 def get_milestones(project, auth=False, **params):
-    params.setdefault('state', 'all')
+    params.setdefault("state", "all")
     url = f"https://api.github.com/repos/{project}/milestones"
     if auth:
         headers = make_auth_header()
@@ -171,39 +181,53 @@ def get_milestones(project, auth=False, **params):
     milestones = get_paged_request(url, headers=headers, **params)
     return milestones
 
+
 def get_milestone_id(project, milestone, auth=False, **params):
     milestones = get_milestones(project, auth=auth, **params)
     for mstone in milestones:
-        if mstone['title'] == milestone:
-            return mstone['number']
+        if mstone["title"] == milestone:
+            return mstone["number"]
     raise ValueError("milestone %s not found" % milestone)
+
 
 def is_pull_request(issue):
     """Return True if the given issue is a pull request."""
-    return bool(issue.get('pull_request', {}).get('html_url', None))
+    return bool(issue.get("pull_request", {}).get("html_url", None))
+
 
 def get_authors(pr):
-    print("getting authors for #%i" % pr['number'], file=sys.stderr)
+    print("getting authors for #%i" % pr["number"], file=sys.stderr)
     h = make_auth_header()
-    r = requests.get(pr['commits_url'], headers=h)
+    r = requests.get(pr["commits_url"], headers=h)
     r.raise_for_status()
     commits = r.json()
     authors = []
     for commit in commits:
-        author = commit['commit']['author']
+        author = commit["commit"]["author"]
         authors.append(f"{author['name']} <{author['email']}>")
     return authors
+
 
 # encode_multipart_formdata is from urllib3.filepost
 # The only change is to iter_fields, to enforce S3's required key ordering
 
+
 def iter_fields(fields):
     fields = fields.copy()
     for key in [
-            'key', 'acl', 'Filename', 'success_action_status',
-            'AWSAccessKeyId', 'Policy', 'Signature', 'Content-Type', 'file']:
+        "key",
+        "acl",
+        "Filename",
+        "success_action_status",
+        "AWSAccessKeyId",
+        "Policy",
+        "Signature",
+        "Content-Type",
+        "file",
+    ]:
         yield key, fields.pop(key)
     yield from fields.items()
+
 
 def encode_multipart_formdata(fields, boundary=None):
     """
@@ -223,27 +247,32 @@ def encode_multipart_formdata(fields, boundary=None):
     """
     # copy requests imports in here:
     from io import BytesIO
+
     from requests.packages.urllib3.filepost import (
-        choose_boundary, writer, b, get_content_type
+        b,
+        choose_boundary,
+        get_content_type,
+        writer,
     )
+
     body = BytesIO()
     if boundary is None:
         boundary = choose_boundary()
 
     for fieldname, value in iter_fields(fields):
-        body.write(b('--%s\r\n' % (boundary)))
+        body.write(b("--%s\r\n" % (boundary)))
 
         if isinstance(value, tuple):
             filename, data = value
-            writer(body).write('Content-Disposition: form-data; name="%s"; '
-                               'filename="%s"\r\n' % (fieldname, filename))
-            body.write(b('Content-Type: %s\r\n\r\n' %
-                       (get_content_type(filename))))
+            writer(body).write(
+                'Content-Disposition: form-data; name="%s"; '
+                'filename="%s"\r\n' % (fieldname, filename)
+            )
+            body.write(b("Content-Type: %s\r\n\r\n" % (get_content_type(filename))))
         else:
             data = value
-            writer(body).write('Content-Disposition: form-data; name="%s"\r\n'
-                               % (fieldname))
-            body.write(b'Content-Type: text/plain\r\n\r\n')
+            writer(body).write('Content-Disposition: form-data; name="%s"\r\n' % (fieldname))
+            body.write(b"Content-Type: text/plain\r\n\r\n")
 
         if isinstance(data, int):
             data = str(data)  # Backwards compatibility
@@ -252,11 +281,11 @@ def encode_multipart_formdata(fields, boundary=None):
         else:
             body.write(data)
 
-        body.write(b'\r\n')
+        body.write(b"\r\n")
 
-    body.write(b('--%s--\r\n' % (boundary)))
+    body.write(b("--%s--\r\n" % (boundary)))
 
-    content_type = b('multipart/form-data; boundary=%s' % boundary)
+    content_type = b("multipart/form-data; boundary=%s" % boundary)
 
     return body.getvalue(), content_type
 
@@ -265,29 +294,28 @@ def post_download(project, filename, name=None, description=""):
     """Upload a file to the GitHub downloads area"""
     if name is None:
         name = os.path.basename(filename)
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         filedata = f.read()
 
     url = f"https://api.github.com/repos/{project}/downloads"
 
-    payload = json.dumps(dict(name=name, size=len(filedata),
-                    description=description))
+    payload = json.dumps(dict(name=name, size=len(filedata), description=description))
     response = requests.post(url, data=payload, headers=make_auth_header())
     response.raise_for_status()
     reply = json.loads(response.content)
-    s3_url = reply['s3_url']
+    s3_url = reply["s3_url"]
 
     fields = dict(
-        key=reply['path'],
-        acl=reply['acl'],
+        key=reply["path"],
+        acl=reply["acl"],
         success_action_status=201,
-        Filename=reply['name'],
-        AWSAccessKeyId=reply['accesskeyid'],
-        Policy=reply['policy'],
-        Signature=reply['signature'],
-        file=(reply['name'], filedata),
+        Filename=reply["name"],
+        AWSAccessKeyId=reply["accesskeyid"],
+        Policy=reply["policy"],
+        Signature=reply["signature"],
+        file=(reply["name"], filedata),
     )
-    fields['Content-Type'] = reply['mime_type']
+    fields["Content-Type"] = reply["mime_type"]
     data, content_type = encode_multipart_formdata(fields)
-    s3r = requests.post(s3_url, data=data, headers={'Content-Type': content_type})
+    s3r = requests.post(s3_url, data=data, headers={"Content-Type": content_type})
     return s3r

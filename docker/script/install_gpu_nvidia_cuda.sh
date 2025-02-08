@@ -54,7 +54,7 @@ elif [ "$ENABLE_GPU" = "true" ]; then
     cuda-toolkit
     ## Install only the NVIDIA CUDA drivers "nvidia-smi" using the variable, it will default to 565
     "nvidia-driver-${NVIDIA_DRIVER_VERSION:-565}"
-    ## Install the latest full NVIDIA CUDA drivers environment 
+    ## Install the latest full NVIDIA CUDA drivers environment
     # cuda
     libcudnn8
     libcudnn8-dev

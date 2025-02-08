@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Generate requirements/*.txt files from pyproject.toml."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -13,7 +14,8 @@ except ImportError:
         sys.exit("Please install `tomli` first: `{mamba, pip} install tomli`")
 
 script_pth = Path(__file__)
-repo_dir = script_pth.parent.parent
+repo_dir = script_pth.parent.parent.parent
+print(repo_dir)
 script_relpth = script_pth.relative_to(repo_dir)
 header = [
     f"# Generated via {script_relpth.as_posix()}.",
@@ -24,10 +26,19 @@ header = [
 
 def generate_requirement_file(name, req_list, *, extra_list=None):
     req_fname = repo_dir / "requirements" / f"{name}.txt"
+    os.makedirs(os.path.dirname(req_fname), exist_ok=True)
 
-    # remove once scikit-umfpack issues are resolved
-    comment = "# scikit-umfpack  # circular dependency issues"
-    req_list = [comment if x == "scikit-umfpack" else x for x in req_list]
+    comment = {
+        # remove once scikit-umfpack issues are resolved
+        "scikit-umfpack": "# scikit-umfpack  # circular dependency issues",
+        "scikit-plots[core]": "-r core.txt",
+        "scikit-plots[cpu]": "-r cpu.txt",
+    }
+
+    req_list = [
+        comment[x] if x in ["scikit-umfpack", "scikit-plots[core]", "scikit-plots[cpu]"] else x
+        for x in req_list
+    ]
 
     if name == "build":
         req_list = [x for x in req_list if "numpy" not in x]
@@ -44,15 +55,14 @@ def main():
     pyproject = toml.loads((repo_dir / "pyproject.toml").read_text())
 
     default = generate_requirement_file("default", pyproject["project"]["dependencies"])
-    generate_requirement_file("build", pyproject["build-system"]["requires"],
-                              extra_list=default)
+    generate_requirement_file("build", pyproject["build-system"]["requires"], extra_list=default)
 
     for key, opt_list in pyproject["project"]["optional-dependencies"].items():
         generate_requirement_file(key, opt_list)
 
     # generate requirements/all.txt
     all_path = repo_dir / "requirements" / "all.txt"
-    files = ["build", "dev", "doc", "test"]
+    files = ["build", "dev", "docs", "test"]
     reqs = [f"-r {x}.txt" for x in files]
     all_path.write_text("\n".join(header + reqs) + "\n")
 

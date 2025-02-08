@@ -18,11 +18,16 @@ import sys
 import warnings
 
 from .deprecation import (  # noqa: F401
-    deprecated, warn_deprecated,
-    rename_parameter, delete_parameter, make_keyword_only,
-    deprecate_method_override, deprecate_privatize_attribute,
+    MatplotlibDeprecationWarning,
+    delete_parameter,
+    deprecate_method_override,
+    deprecate_privatize_attribute,
+    deprecated,
+    make_keyword_only,
+    rename_parameter,
     suppress_matplotlib_deprecation_warning,
-    MatplotlibDeprecationWarning)
+    warn_deprecated,
+)
 
 
 class classproperty:
@@ -45,7 +50,7 @@ class classproperty:
     def __init__(self, fget, fset=None, fdel=None, doc=None):
         self._fget = fget
         if fset is not None or fdel is not None:
-            raise ValueError('classproperty only implements fget.')
+            raise ValueError("classproperty only implements fget.")
         self.fset = fset
         self.fdel = fdel
         # docs are ignored for now
@@ -62,6 +67,7 @@ class classproperty:
 # In the following check_foo() functions, the first parameter is positional-only to make
 # e.g. `_api.check_isinstance([...], types=foo)` work.
 
+
 def check_isinstance(types, /, **kwargs):
     """
     For each *key, value* pair in *kwargs*, check that *value* is an instance
@@ -74,14 +80,26 @@ def check_isinstance(types, /, **kwargs):
     >>> _api.check_isinstance((SomeClass, None), arg=arg)
     """
     none_type = type(None)
-    types = ((types,) if isinstance(types, type) else
-             (none_type,) if types is None else
-             tuple(none_type if tp is None else tp for tp in types))
+    types = (
+        (types,)
+        if isinstance(types, type)
+        else (
+            (none_type,)
+            if types is None
+            else tuple(none_type if tp is None else tp for tp in types)
+        )
+    )
 
     def type_name(tp):
-        return ("None" if tp is none_type
-                else tp.__qualname__ if tp.__module__ == "builtins"
-                else f"{tp.__module__}.{tp.__qualname__}")
+        return (
+            "None"
+            if tp is none_type
+            else (
+                tp.__qualname__
+                if tp.__module__ == "builtins"
+                else f"{tp.__module__}.{tp.__qualname__}"
+            )
+        )
 
     for k, v in kwargs.items():
         if not isinstance(v, types):
@@ -92,9 +110,10 @@ def check_isinstance(types, /, **kwargs):
             raise TypeError(
                 "{!r} must be an instance of {}, not a {}".format(
                     k,
-                    ", ".join(names[:-1]) + " or " + names[-1]
-                    if len(names) > 1 else names[0],
-                    type_name(type(v))))
+                    ", ".join(names[:-1]) + " or " + names[-1] if len(names) > 1 else names[0],
+                    type_name(type(v)),
+                )
+            )
 
 
 def check_in_list(values, /, *, _print_supported_values=True, **kwargs):
@@ -149,13 +168,13 @@ def check_shape(shape, /, **kwargs):
     for k, v in kwargs.items():
         data_shape = v.shape
 
-        if (len(data_shape) != len(shape)
-                or any(s != t and t is not None for s, t in zip(data_shape, shape))):
-            dim_labels = iter(itertools.chain(
-                'NMLKJIH',
-                (f"D{i}" for i in itertools.count())))
-            text_shape = ", ".join([str(n) if n is not None else next(dim_labels)
-                                    for n in shape[::-1]][::-1])
+        if len(data_shape) != len(shape) or any(
+            s != t and t is not None for s, t in zip(data_shape, shape)
+        ):
+            dim_labels = iter(itertools.chain("NMLKJIH", (f"D{i}" for i in itertools.count())))
+            text_shape = ", ".join(
+                [str(n) if n is not None else next(dim_labels) for n in shape[::-1]][::-1]
+            )
             if len(shape) == 1:
                 text_shape += ","
 
@@ -177,13 +196,14 @@ def check_getitem(mapping, /, **kwargs):
     """
     if len(kwargs) != 1:
         raise ValueError("check_getitem takes a single keyword argument")
-    (k, v), = kwargs.items()
+    ((k, v),) = kwargs.items()
     try:
         return mapping[v]
     except KeyError:
         raise ValueError(
             f"{v!r} is not a valid value for {k}; supported values are "
-            f"{', '.join(map(repr, mapping))}") from None
+            f"{', '.join(map(repr, mapping))}"
+        ) from None
 
 
 def caching_module_getattr(cls):
@@ -207,16 +227,14 @@ def caching_module_getattr(cls):
 
     assert cls.__name__ == "__getattr__"
     # Don't accidentally export cls dunders.
-    props = {name: prop for name, prop in vars(cls).items()
-             if isinstance(prop, property)}
+    props = {name: prop for name, prop in vars(cls).items() if isinstance(prop, property)}
     instance = cls()
 
     @functools.cache
     def __getattr__(name):
         if name in props:
             return props[name].__get__(instance)
-        raise AttributeError(
-            f"module {cls.__module__!r} has no attribute {name!r}")
+        raise AttributeError(f"module {cls.__module__!r} has no attribute {name!r}")
 
     return __getattr__
 
@@ -246,6 +264,7 @@ def define_aliases(alias_d, cls=None):
         @functools.wraps(getattr(cls, name))
         def method(self, *args, **kwargs):
             return getattr(self, name)(*args, **kwargs)
+
         return method
 
     for prop, aliases in alias_d.items():
@@ -259,19 +278,18 @@ def define_aliases(alias_d, cls=None):
                     method.__doc__ = f"Alias for `{prefix + prop}`."
                     setattr(cls, prefix + alias, method)
         if not exists:
-            raise ValueError(
-                f"Neither getter nor setter exists for {prop!r}")
+            raise ValueError(f"Neither getter nor setter exists for {prop!r}")
 
     def get_aliased_and_aliases(d):
         return {*d, *(alias for aliases in d.values() for alias in aliases)}
 
     preexisting_aliases = getattr(cls, "_alias_map", {})
-    conflicting = (get_aliased_and_aliases(preexisting_aliases)
-                   & get_aliased_and_aliases(alias_d))
+    conflicting = get_aliased_and_aliases(preexisting_aliases) & get_aliased_and_aliases(alias_d)
     if conflicting:
         # Need to decide on conflict resolution policy.
         raise NotImplementedError(
-            f"Parent class already defines conflicting aliases: {conflicting}")
+            f"Parent class already defines conflicting aliases: {conflicting}"
+        )
     cls._alias_map = {**preexisting_aliases, **alias_d}
     return cls
 
@@ -330,8 +348,7 @@ def select_matching_signature(funcs, *args, **kwargs):
 
 def nargs_error(name, takes, given):
     """Generate a TypeError to be raised by function calls with wrong arity."""
-    return TypeError(f"{name}() takes {takes} positional arguments but "
-                     f"{given} were given")
+    return TypeError(f"{name}() takes {takes} positional arguments but " f"{given} were given")
 
 
 def kwarg_error(name, kw):
@@ -371,19 +388,20 @@ def warn_external(message, category=None):
     if sys.version_info[:2] >= (3, 12):
         # Go to Python's `site-packages` or `lib` from an editable install.
         basedir = pathlib.Path(__file__).parents[2]
-        kwargs['skip_file_prefixes'] = (str(basedir / 'matplotlib'),
-                                        str(basedir / 'mpl_toolkits'))
+        kwargs["skip_file_prefixes"] = (str(basedir / "matplotlib"), str(basedir / "mpl_toolkits"))
     else:
         frame = sys._getframe()
         for stacklevel in itertools.count(1):
             if frame is None:
                 # when called in embedded context may hit frame is None
-                kwargs['stacklevel'] = stacklevel
+                kwargs["stacklevel"] = stacklevel
                 break
-            if not re.match(r"\A(matplotlib|mpl_toolkits)(\Z|\.(?!tests\.))",
-                            # Work around sphinx-gallery not setting __name__.
-                            frame.f_globals.get("__name__", "")):
-                kwargs['stacklevel'] = stacklevel
+            if not re.match(
+                r"\A(matplotlib|mpl_toolkits)(\Z|\.(?!tests\.))",
+                # Work around sphinx-gallery not setting __name__.
+                frame.f_globals.get("__name__", ""),
+            ):
+                kwargs["stacklevel"] = stacklevel
                 break
             frame = frame.f_back
         # preemptively break reference cycle between locals and the frame

@@ -202,7 +202,7 @@ if [ "$(uname)" == "Darwin" ]; then
     function install_gfortran {
         hdiutil attach -mountpoint /Volumes/gfortran $GFORTRAN_DMG
         sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
-        
+
         # download_and_unpack_gfortran $(uname -m) native
         check_gfortran
         if [[ "${PLAT:-}" == "universal2" || "${PLAT:-}" == "arm64" ]]; then

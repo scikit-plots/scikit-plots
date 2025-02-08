@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
 
-from .. import funcs
 # from astropy import units as u
-
-from scikitplot._compat.optional_deps import HAS_BOTTLENECK, HAS_SCIPY, HAS_MPMATH
+from scikitplot._compat.optional_deps import HAS_BOTTLENECK, HAS_MPMATH, HAS_SCIPY
 from scikitplot._utils.misc import NumpyRNGContext
+
+from .. import funcs
 
 
 def test_median_absolute_deviation():
@@ -87,19 +87,13 @@ def test_median_absolute_deviation_masked():
     assert funcs.median_absolute_deviation(array.data) == 0.5
 
     # And check if they are also broadcasted correctly
-    np.testing.assert_array_equal(
-        funcs.median_absolute_deviation(array, axis=0).data, [0, 1]
-    )
-    np.testing.assert_array_equal(
-        funcs.median_absolute_deviation(array, axis=1).data, [0, 0]
-    )
+    np.testing.assert_array_equal(funcs.median_absolute_deviation(array, axis=0).data, [0, 1])
+    np.testing.assert_array_equal(funcs.median_absolute_deviation(array, axis=1).data, [0, 0])
 
 
 def test_median_absolute_deviation_nans():
     array = np.array([[1, 4, 3, np.nan], [2, 5, np.nan, 4]])
-    assert_equal(
-        funcs.median_absolute_deviation(array, func=np.nanmedian, axis=1), [1, 1]
-    )
+    assert_equal(funcs.median_absolute_deviation(array, func=np.nanmedian, axis=1), [1, 1])
 
     array = np.ma.masked_invalid(array)
     assert funcs.median_absolute_deviation(array) == 1
@@ -136,7 +130,7 @@ def test_median_absolute_deviation_quantity():
     # Just a small test that this function accepts Quantities and returns a
     # quantity
     a = np.array([1, 16, 5]) * u.m
-  
+
     mad = funcs.median_absolute_deviation(a)
     # Check for the correct unit and that the result is identical to the
     # result without units.
@@ -153,9 +147,7 @@ def test_binom_conf_interval():
     for conf in [0.0, 0.5, 1.0]:
         res = funcs.binom_conf_interval(k, n, confidence_level=conf, interval="wilson")
         assert ((res >= 0.0) & (res <= 1.0)).all()
-        res = funcs.binom_conf_interval(
-            k, n, confidence_level=conf, interval="jeffreys"
-        )
+        res = funcs.binom_conf_interval(k, n, confidence_level=conf, interval="jeffreys")
         assert ((res >= 0.0) & (res <= 1.0)).all()
 
     # Test Jeffreys interval accuracy against table in Brown et al. (2001).
@@ -164,17 +156,13 @@ def test_binom_conf_interval():
     n = 7
     conf = 0.95
     result = funcs.binom_conf_interval(k, n, confidence_level=conf, interval="jeffreys")
-    table = np.array(
-        [[0.000, 0.016, 0.065, 0.139, 0.234], [0.292, 0.501, 0.648, 0.766, 0.861]]
-    )
+    table = np.array([[0.000, 0.016, 0.065, 0.139, 0.234], [0.292, 0.501, 0.648, 0.766, 0.861]])
     assert_allclose(result, table, atol=1.0e-3, rtol=0.0)
 
     # Test scalar version
     result = np.array(
         [
-            funcs.binom_conf_interval(
-                kval, n, confidence_level=conf, interval="jeffreys"
-            )
+            funcs.binom_conf_interval(kval, n, confidence_level=conf, interval="jeffreys")
             for kval in k
         ]
     ).transpose()
@@ -195,9 +183,7 @@ def test_binom_conf_interval():
     assert_allclose(result, 0.0)  # conf interval is [0, 0] when k = 0
     result = funcs.binom_conf_interval(5, 5, interval="wald")
     assert_allclose(result, 1.0)  # conf interval is [1, 1] when k = n
-    result = funcs.binom_conf_interval(
-        500, 1000, confidence_level=0.68269, interval="wald"
-    )
+    result = funcs.binom_conf_interval(500, 1000, confidence_level=0.68269, interval="wald")
     assert_allclose(result[0], 0.5 - 0.5 / np.sqrt(1000.0))
     assert_allclose(result[1], 0.5 + 0.5 / np.sqrt(1000.0))
 
@@ -298,9 +284,7 @@ def test_bootstrap_multiple_outputs():
     # test a bootfunc with several output values
     # return just bootstrapping with one output from bootfunc
     with NumpyRNGContext(42):
-        bootarr = np.array(
-            [[1, 2, 3, 4, 5, 6, 7, 8, 9, 0], [4, 8, 8, 3, 6, 5, 2, 8, 6, 2]]
-        ).T
+        bootarr = np.array([[1, 2, 3, 4, 5, 6, 7, 8, 9, 0], [4, 8, 8, 3, 6, 5, 2, 8, 6, 2]]).T
 
         answer = np.array((0.19425, 0.02094))
 
@@ -314,9 +298,7 @@ def test_bootstrap_multiple_outputs():
     # test a bootfunc with several output values
     # return just bootstrapping with the second output from bootfunc
     with NumpyRNGContext(42):
-        bootarr = np.array(
-            [[1, 2, 3, 4, 5, 6, 7, 8, 9, 0], [4, 8, 8, 3, 6, 5, 2, 8, 6, 2]]
-        ).T
+        bootarr = np.array([[1, 2, 3, 4, 5, 6, 7, 8, 9, 0], [4, 8, 8, 3, 6, 5, 2, 8, 6, 2]]).T
 
         answer = np.array((0.5907, 0.9541))
 
@@ -381,9 +363,7 @@ def test_mad_std_withnan():
         assert_allclose(funcs.mad_std(data, ignore_nan=True), 2.0, rtol=0.05)
 
     assert np.isnan(funcs.mad_std([1, 2, 3, 4, 5, np.nan]))
-    assert_allclose(
-        funcs.mad_std([1, 2, 3, 4, 5, np.nan], ignore_nan=True), 1.482602218505602
-    )
+    assert_allclose(funcs.mad_std([1, 2, 3, 4, 5, np.nan], ignore_nan=True), 1.482602218505602)
 
 
 def test_mad_std_with_axis():
@@ -462,9 +442,7 @@ def test_poisson_conf_array_rootn0_zero():
     n = np.zeros((3, 4, 5))
     assert_allclose(
         funcs.poisson_conf_interval(n, interval="root-n-0"),
-        funcs.poisson_conf_interval(n[0, 0, 0], interval="root-n-0")[
-            :, None, None, None
-        ]
+        funcs.poisson_conf_interval(n[0, 0, 0], interval="root-n-0")[:, None, None, None]
         * np.ones_like(n),
     )
 
@@ -487,9 +465,7 @@ def test_poisson_conf_array_frequentist_confidence_zero():
 
 def test_poisson_conf_list_rootn0_zero():
     n = [0, 0, 0]
-    assert_allclose(
-        funcs.poisson_conf_interval(n, interval="root-n-0"), [[0, 0, 0], [1, 1, 1]]
-    )
+    assert_allclose(funcs.poisson_conf_interval(n, interval="root-n-0"), [[0, 0, 0], [1, 1, 1]])
 
     assert not np.any(np.isnan(funcs.poisson_conf_interval(n, interval="root-n-0")))
 
@@ -498,9 +474,7 @@ def test_poisson_conf_array_rootn0():
     n = 7 * np.ones((3, 4, 5))
     assert_allclose(
         funcs.poisson_conf_interval(n, interval="root-n-0"),
-        funcs.poisson_conf_interval(n[0, 0, 0], interval="root-n-0")[
-            :, None, None, None
-        ]
+        funcs.poisson_conf_interval(n[0, 0, 0], interval="root-n-0")[:, None, None, None]
         * np.ones_like(n),
     )
 
@@ -520,9 +494,7 @@ def test_poisson_conf_array_fc():
     )
 
     n[1, 2, 3] = 0
-    assert not np.any(
-        np.isnan(funcs.poisson_conf_interval(n, interval="frequentist-confidence"))
-    )
+    assert not np.any(np.isnan(funcs.poisson_conf_interval(n, interval="frequentist-confidence")))
 
 
 @pytest.mark.skipif(not HAS_SCIPY, reason="requires scipy")
@@ -576,9 +548,7 @@ def test_poisson_conf_frequentist_confidence_gehrels_2sigma():
         ]
     )
     assert_allclose(
-        funcs.poisson_conf_interval(
-            nlh[:, 0], sigma=2, interval="frequentist-confidence"
-        ).T,
+        funcs.poisson_conf_interval(nlh[:, 0], sigma=2, interval="frequentist-confidence").T,
         nlh[:, 2:],
         rtol=0.01,
     )
@@ -603,9 +573,7 @@ def test_poisson_conf_frequentist_confidence_gehrels_3sigma():
         ]
     )
     assert_allclose(
-        funcs.poisson_conf_interval(
-            nlh[:, 0], sigma=3, interval="frequentist-confidence"
-        ).T,
+        funcs.poisson_conf_interval(nlh[:, 0], sigma=3, interval="frequentist-confidence").T,
         nlh[:, 2:],
         rtol=0.01,
         verbose=True,
@@ -630,9 +598,7 @@ def test_scipy_poisson_limit():
     Kraft, Burrows and Nousek in
     `ApJ 374, 344 (1991) <https://ui.adsabs.harvard.edu/abs/1991ApJ...374..344K>`_
     """
-    assert_allclose(
-        funcs._scipy_kraft_burrows_nousek(5, 2.5, 0.99), (0, 10.67), rtol=1e-3
-    )
+    assert_allclose(funcs._scipy_kraft_burrows_nousek(5, 2.5, 0.99), (0, 10.67), rtol=1e-3)
     assert_allclose(
         funcs._scipy_kraft_burrows_nousek(np.int32(5.0), 2.5, 0.99),
         (0, 10.67),
@@ -675,18 +641,10 @@ def test_scipy_poisson_limit():
 
 @pytest.mark.skipif(not HAS_MPMATH, reason="requires mpmath")
 def test_mpmath_poisson_limit():
-    assert_allclose(
-        funcs._mpmath_kraft_burrows_nousek(1.0, 0.1, 0.99), (0.00, 6.54), rtol=5e-3
-    )
-    assert_allclose(
-        funcs._mpmath_kraft_burrows_nousek(1.0, 0.5, 0.95), (0.00, 4.36), rtol=5e-3
-    )
-    assert_allclose(
-        funcs._mpmath_kraft_burrows_nousek(5.0, 0.0, 0.99), (1.17, 13.32), rtol=5e-3
-    )
-    assert_allclose(
-        funcs._mpmath_kraft_burrows_nousek(5.0, 2.5, 0.99), (0, 10.67), rtol=1e-3
-    )
+    assert_allclose(funcs._mpmath_kraft_burrows_nousek(1.0, 0.1, 0.99), (0.00, 6.54), rtol=5e-3)
+    assert_allclose(funcs._mpmath_kraft_burrows_nousek(1.0, 0.5, 0.95), (0.00, 4.36), rtol=5e-3)
+    assert_allclose(funcs._mpmath_kraft_burrows_nousek(5.0, 0.0, 0.99), (1.17, 13.32), rtol=5e-3)
+    assert_allclose(funcs._mpmath_kraft_burrows_nousek(5.0, 2.5, 0.99), (0, 10.67), rtol=1e-3)
     assert_allclose(
         funcs._mpmath_kraft_burrows_nousek(np.int32(6), 2.0, 0.9),
         (0.81, 8.99),
@@ -717,9 +675,7 @@ def test_mpmath_poisson_limit():
         (0.81, 8.99),
         rtol=5e-3,
     )
-    assert_allclose(
-        funcs._mpmath_kraft_burrows_nousek(5.0, 2.5, 0.99), (0, 10.67), rtol=1e-3
-    )
+    assert_allclose(funcs._mpmath_kraft_burrows_nousek(5.0, 2.5, 0.99), (0, 10.67), rtol=1e-3)
 
     assert_allclose(
         funcs.poisson_conf_interval(
@@ -745,9 +701,7 @@ def test_poisson_conf_value_errors():
         funcs.poisson_conf_interval([5, 6], "pearson", background=[2.5, 2.0])
 
     with pytest.raises(ValueError, match="confidence_level not supported"):
-        funcs.poisson_conf_interval(
-            [5, 6], "sherpagehrels", confidence_level=[2.5, 2.0]
-        )
+        funcs.poisson_conf_interval([5, 6], "sherpagehrels", confidence_level=[2.5, 2.0])
 
     with pytest.raises(ValueError, match="Invalid method"):
         funcs.poisson_conf_interval(1, "foo")
@@ -756,9 +710,7 @@ def test_poisson_conf_value_errors():
 @pytest.mark.skipif(not HAS_SCIPY, reason="requires scipy")
 def test_poisson_conf_kbn_value_errors():
     with pytest.raises(ValueError, match="number between 0 and 1"):
-        funcs.poisson_conf_interval(
-            5, "kraft-burrows-nousek", background=2.5, confidence_level=99
-        )
+        funcs.poisson_conf_interval(5, "kraft-burrows-nousek", background=2.5, confidence_level=99)
 
     with pytest.raises(ValueError, match="Set confidence_level for method"):
         funcs.poisson_conf_interval(5, "kraft-burrows-nousek", background=2.5)
@@ -798,24 +750,17 @@ def test_uniform(N):
 
 
 @pytest.mark.skipif(not HAS_SCIPY, reason="requires scipy")
-@pytest.mark.parametrize(
-    "N,M", [(100, 100), (20, 100), (100, 20), (10, 20), (5, 5), (1000, 100)]
-)
+@pytest.mark.parametrize("N,M", [(100, 100), (20, 100), (100, 20), (10, 20), (5, 5), (1000, 100)])
 def test_kuiper_two_uniform(N, M):
     with NumpyRNGContext(12345):
         assert funcs.kuiper_two(np.random.random(N), np.random.random(M))[1] > 0.01
 
 
 @pytest.mark.skipif(not HAS_SCIPY, reason="requires scipy")
-@pytest.mark.parametrize(
-    "N,M", [(100, 100), (20, 100), (100, 20), (10, 20), (5, 5), (1000, 100)]
-)
+@pytest.mark.parametrize("N,M", [(100, 100), (20, 100), (100, 20), (10, 20), (5, 5), (1000, 100)])
 def test_kuiper_two_nonuniform(N, M):
     with NumpyRNGContext(12345):
-        assert (
-            funcs.kuiper_two(np.random.random(N) ** 2, np.random.random(M) ** 2)[1]
-            > 0.01
-        )
+        assert funcs.kuiper_two(np.random.random(N) ** 2, np.random.random(M) ** 2)[1] > 0.01
 
 
 @pytest.mark.skipif(not HAS_SCIPY, reason="requires scipy")
@@ -826,9 +771,7 @@ def test_detect_kuiper_two_different():
 
 
 @pytest.mark.skipif(not HAS_SCIPY, reason="requires scipy")
-@pytest.mark.parametrize(
-    "N,M", [(100, 100), (20, 100), (100, 20), (10, 20), (5, 5), (1000, 100)]
-)
+@pytest.mark.parametrize("N,M", [(100, 100), (20, 100), (100, 20), (10, 20), (5, 5), (1000, 100)])
 def test_fpp_kuiper_two(N, M):
     from scipy.stats import binom
 

@@ -1,44 +1,47 @@
-import warnings
 from collections.abc import Iterable
 
 import numpy as np
 
+
 def _lazy_import_tensorflow():
     try:
-      from tensorflow.keras.layers import Layer
-      return Layer
-    except ModuleNotFoundError:
-      try:
-        # from keras.src.layers.layer import Layer
-        from keras.layers import Layer
+        from tensorflow.keras.layers import Layer
+
         return Layer
-      except ImportError as e:
-        raise ImportError(
-          "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
-        ) from e
-        
-from typing import Union
+    except ModuleNotFoundError:
+        try:
+            # from keras.src.layers.layer import Layer
+            from keras.layers import Layer
+
+            return Layer
+        except ImportError as e:
+            raise ImportError(
+                "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
+            ) from e
+
+
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:  # Only imported during type checking
-  Layer = _lazy_import_tensorflow()
-    
+    Layer = _lazy_import_tensorflow()
+
 from .utils import get_keys_by_value
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
-  '_DummyLayer',
-  'SpacingDummyLayer',
-  'is_spacing_dummy_layer',
-  'get_incoming_layers',
-  'get_outgoing_layers',
-  'model_to_adj_matrix',
-  'find_layer_by_id',
-  'find_layer_by_name',
-  'find_input_layers',
-  'find_output_layers',
-  'model_to_hierarchy_lists',
-  'augment_output_layers',
-  'is_internal_input',
+    "_DummyLayer",
+    "SpacingDummyLayer",
+    "is_spacing_dummy_layer",
+    "get_incoming_layers",
+    "get_outgoing_layers",
+    "model_to_adj_matrix",
+    "find_layer_by_id",
+    "find_layer_by_name",
+    "find_input_layers",
+    "find_output_layers",
+    "model_to_hierarchy_lists",
+    "augment_output_layers",
+    "is_internal_input",
 ]
 
 
@@ -46,6 +49,7 @@ class _DummyLayer:
     """
     A simple densely-connected neural network layer.
     """
+
     def __init__(self, name, units=None, **kwargs):
         """
         Initialize the dynamic layer with spacing and additional arguments.
@@ -89,6 +93,7 @@ class SpacingDummyLayer:
     This class dynamically inherits from TensorFlow's :py:class:`~tensorflow.keras.layers.Layer`
     class, ensuring that TensorFlow is only imported when this class is instantiated.
     """
+
     # Custom behavior when creating an instance, if needed
     def __new__(cls, *args, spacing: int = 50, **kwargs):
         Layer = _lazy_import_tensorflow()  # Import the Layer class dynamically
@@ -128,26 +133,26 @@ class SpacingDummyLayer:
                     The input tensor, unchanged.
                 """
                 return inputs
-        
+
             # def build(self, input_shape):
             #     """
             #     Builds the layer based on the input shape.
-        
+
             #     Parameters
             #     ----------
             #     input_shape : tuple
             #         Shape of the input tensor.
-        
+
             #     Notes
             #     -----
             #     This layer does not have any weights to initialize.
             #     """
             #     pass
-        
+
             # def get_config(self):
             #     """
             #     Returns the configuration of the layer for serialization.
-        
+
             #     Returns
             #     -------
             #     dict
@@ -157,22 +162,22 @@ class SpacingDummyLayer:
             #     config = super().get_config()
             #     config.update({"spacing": self.spacing})
             #     return config
-        
+
             # def __repr__(self):
             #     """
             #     Returns a detailed, unambiguous string representation of the object.
-        
+
             #     Returns
             #     -------
             #     str
             #         Detailed string representation of the layer.
             #     """
             #     return f"<{self.__class__.__name__} name={self.name}, spacing={self.spacing}, built={self.built}>"
-        
+
             # def __str__(self):
             #     """
             #     Returns a human-readable string representation of the object.
-        
+
             #     Returns
             #     -------
             #     str
@@ -182,6 +187,7 @@ class SpacingDummyLayer:
 
         # Return an instance of the dynamically created class
         return DynamicSpacingDummyLayer(spacing=spacing, **kwargs)
+
 
 def is_spacing_dummy_layer(layer: object) -> bool:
     """
@@ -213,14 +219,15 @@ def is_spacing_dummy_layer(layer: object) -> bool:
     """
     # Check if the class of the layer is SpacingDummyLayer or its dynamically created subclass (DynamicSpacingDummyLayer)
     return (
-      isinstance(layer, SpacingDummyLayer) or isinstance(layer.__class__, type) and
-      layer.__class__.__name__ == "DynamicSpacingDummyLayer"
+        isinstance(layer, SpacingDummyLayer)
+        or isinstance(layer.__class__, type)
+        and layer.__class__.__name__ == "DynamicSpacingDummyLayer"
     )
 
 
 def get_incoming_layers(layer):
     for i, node in enumerate(layer._inbound_nodes):
-        if hasattr(node, 'inbound_layers'):
+        if hasattr(node, "inbound_layers"):
             # Old Node class (TF 2.15 & Keras 2.15 and under)
             if isinstance(node.inbound_layers, Iterable):
                 for inbound_layer in node.inbound_layers:
@@ -253,14 +260,14 @@ def get_outgoing_layers(layer):
     # Iterate through each node in the outbound nodes of the given layer
     for i, node in enumerate(layer._outbound_nodes):
         # If the node has multiple outbound layers, yield each one
-        if hasattr(node, 'outbound_layers'):
+        if hasattr(node, "outbound_layers"):
             # Old Node class (TF 2.15 & Keras 2.15 and under)
             if isinstance(node.outbound_layers, Iterable):
                 for outbound_layer in node.outbound_layers:
                     yield outbound_layer
             else:  # For older versions like TF 2.3
                 yield node.outbound_layers
-        elif hasattr(node, 'operation'):
+        elif hasattr(node, "operation"):
             # New Node class (TF 2.16 and Keras 3 and up)
             outbound_layers = [node.operation]
             print(outbound_layers)
@@ -276,14 +283,14 @@ def get_outgoing_layers(layer):
 
 
 def model_to_adj_matrix(model):
-    if hasattr(model, 'built'):
+    if hasattr(model, "built"):
         if not model.built:
             model.build()
-            
+
     layers = []
-    if hasattr(model, '_layers'):
+    if hasattr(model, "_layers"):
         layers = model._layers
-    elif hasattr(model, '_self_tracked_trackables'):
+    elif hasattr(model, "_self_tracked_trackables"):
         layers = model._self_tracked_trackables
 
     adj_matrix = np.zeros((len(layers), len(layers)))
@@ -309,24 +316,24 @@ def model_to_adj_matrix(model):
 
 def find_layer_by_id(model, _id):
     layers = []
-    if hasattr(model, '_layers'):
+    if hasattr(model, "_layers"):
         layers = model._layers
-    elif hasattr(model, '_self_tracked_trackables'):
+    elif hasattr(model, "_self_tracked_trackables"):
         layers = model._self_tracked_trackables
-    
-    for layer in layers: # manually because get_layer does not access model._layers
-            if id(layer) == _id:
-                return layer
+
+    for layer in layers:  # manually because get_layer does not access model._layers
+        if id(layer) == _id:
+            return layer
     return None
 
 
 def find_layer_by_name(model, name):
     layers = []
-    if hasattr(model, '_layers'):
+    if hasattr(model, "_layers"):
         layers = model._layers
-    elif hasattr(model, '_self_tracked_trackables'):
+    elif hasattr(model, "_self_tracked_trackables"):
         layers = model._self_tracked_trackables
-    
+
     for layer in layers:
         if layer.name == name:
             return layer
@@ -342,14 +349,14 @@ def find_input_layers(model, id_to_num_mapping=None, adj_matrix=None):
 
 
 def find_output_layers(model):
-    if hasattr(model, 'output_names'):
+    if hasattr(model, "output_names"):
         # For older Keras versions (<3)
         for name in model.output_names:
             yield model.get_layer(name=name)
     else:
         # For newer Keras versions (>=3)
         for output in model.outputs:
-            if hasattr(output, '_keras_history'):
+            if hasattr(output, "_keras_history"):
                 # Get the layer that produced the output
                 layer = output._keras_history[0]
                 yield layer
@@ -385,7 +392,12 @@ def model_to_hierarchy_lists(model, id_to_num_mapping=None, adj_matrix=None):
 
 def augment_output_layers(model, output_layers, id_to_num_mapping, adj_matrix):
 
-    adj_matrix = np.pad(adj_matrix, ((0, len(output_layers)), (0, len(output_layers))), mode='constant', constant_values=0)
+    adj_matrix = np.pad(
+        adj_matrix,
+        ((0, len(output_layers)), (0, len(output_layers))),
+        mode="constant",
+        constant_values=0,
+    )
 
     for dummy_output in output_layers:
         id_to_num_mapping[id(dummy_output)] = len(id_to_num_mapping.keys())
@@ -399,18 +411,19 @@ def augment_output_layers(model, output_layers, id_to_num_mapping, adj_matrix):
     return id_to_num_mapping, adj_matrix
 
 
-def is_internal_input(layer):    
+def is_internal_input(layer):
     try:
         # Check if the module name of the layer's class starts with 'tensorflow.python'
         # From versions Keras 2.13+ the Keras module may store all its code in a src subfolder
         # import tensorflow.python as tf_python
-        if (layer.__class__.__module__.startswith('tensorflow.python') or
-            layer.__class__.__module__.startswith('keras.engine') or
-            layer.__class__.__module__.startswith('keras.src.engine')
-            ) and (
-              layer.__class__.__module__.endswith('input_layer') or
-              layer.__class__.__name__.endswith('InputLayer')
-            ):
+        if (
+            layer.__class__.__module__.startswith("tensorflow.python")
+            or layer.__class__.__module__.startswith("keras.engine")
+            or layer.__class__.__module__.startswith("keras.src.engine")
+        ) and (
+            layer.__class__.__module__.endswith("input_layer")
+            or layer.__class__.__name__.endswith("InputLayer")
+        ):
             return True
     except (ModuleNotFoundError, AttributeError):
         pass

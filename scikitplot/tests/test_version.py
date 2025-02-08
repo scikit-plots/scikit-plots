@@ -24,5 +24,5 @@ def test_version_submodule_members():
 
     So check that we don't silently change its contents.
     """
-    for attr in ('version', 'full_version', 'short_version', 'git_revision', 'release'):
+    for attr in ("version", "full_version", "short_version", "git_revision", "release"):
         assert hasattr(scikitplot.version, attr)

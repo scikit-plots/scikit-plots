@@ -1,5 +1,6 @@
-import re
 import pydoc
+import re
+
 from .external.docscrape import NumpyDocString
 
 
@@ -135,7 +136,6 @@ _core_returns = dict(
 
 
 _seealso_blurbs = dict(
-
     # Relational plots
     scatterplot="""
 scatterplot : Plot data using points.
@@ -143,7 +143,6 @@ scatterplot : Plot data using points.
     lineplot="""
 lineplot : Plot data using lines.
     """,
-
     # Distribution plots
     displot="""
 displot : Figure-level interface to distribution plot functions.
@@ -160,7 +159,6 @@ ecdfplot : Plot empirical cumulative distribution functions.
     rugplot="""
 rugplot : Plot a tick at each observation value along the x and/or y axes.
     """,
-
     # Categorical plots
     stripplot="""
 stripplot : Plot a categorical scatter with jitter.
@@ -174,7 +172,6 @@ violinplot : Draw an enhanced boxplot using kernel density estimation.
     pointplot="""
 pointplot : Plot point estimates and CIs using markers and lines.
     """,
-
     # Multiples
     jointplot="""
 jointplot : Draw a bivariate plot with univariate marginal distributions.

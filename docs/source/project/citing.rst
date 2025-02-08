@@ -4,7 +4,7 @@ Citing scikit-plots
 ======================================================================
 
 If Matplotlib contributes to a project that leads to a scientific publication,
-please acknowledge this fact by citing `[1]scikit-plots, "scikit-plots: v0.3.8dev0". 
+please acknowledge this fact by citing `[1]scikit-plots, "scikit-plots: v0.3.8dev0".
 Zenodo, Ağu. 23, 2024. doi: 10.5281/zenodo.13367001. <https://doi.org/10.5281/zenodo.13367001>`_.
 
 .. literalinclude:: ../../../CITATION.bib

@@ -1,26 +1,29 @@
 from __future__ import annotations
-from dataclasses import dataclass
 
-import numpy as np
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
 import matplotlib as mpl
+import numpy as np
 
 from .base import (
-    Mark,
     Mappable,
     MappableBool,
+    MappableColor,
     MappableFloat,
     MappableString,
-    MappableColor,
     MappableStyle,
-    resolve_properties,
-    resolve_color,
+    Mark,
     document_properties,
+    resolve_color,
+    resolve_properties,
 )
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any
+
     from matplotlib.artist import Artist
+
     from .._core.scales import Scale
 
 
@@ -85,7 +88,10 @@ class DotBase(Mark):
             ax.add_collection(points)
 
     def _legend_artist(
-        self, variables: list[str], value: Any, scales: dict[str, Scale],
+        self,
+        variables: list[str],
+        value: Any,
+        scales: dict[str, Scale],
     ) -> Artist:
 
         key = {v: value for v in variables}
@@ -118,15 +124,16 @@ class Dot(DotBase):
     .. include:: ../docstrings/objects.Dot.rst
 
     """
+
     marker: MappableString = Mappable("o", grouping=False)
     pointsize: MappableFloat = Mappable(6, grouping=False)  # TODO rcParam?
-    stroke: MappableFloat = Mappable(.75, grouping=False)  # TODO rcParam?
+    stroke: MappableFloat = Mappable(0.75, grouping=False)  # TODO rcParam?
     color: MappableColor = Mappable("C0", grouping=False)
     alpha: MappableFloat = Mappable(1, grouping=False)
     fill: MappableBool = Mappable(True, grouping=False)
     edgecolor: MappableColor = Mappable(depend="color", grouping=False)
     edgealpha: MappableFloat = Mappable(depend="alpha", grouping=False)
-    edgewidth: MappableFloat = Mappable(.5, grouping=False)  # TODO rcParam?
+    edgewidth: MappableFloat = Mappable(0.5, grouping=False)  # TODO rcParam?
     edgestyle: MappableStyle = Mappable("-", grouping=False)
 
     def _resolve_properties(self, data, scales):
@@ -172,15 +179,16 @@ class Dots(DotBase):
     .. include:: ../docstrings/objects.Dots.rst
 
     """
+
     # TODO retype marker as MappableMarker
     marker: MappableString = Mappable(rc="scatter.marker", grouping=False)
     pointsize: MappableFloat = Mappable(4, grouping=False)  # TODO rcParam?
-    stroke: MappableFloat = Mappable(.75, grouping=False)  # TODO rcParam?
+    stroke: MappableFloat = Mappable(0.75, grouping=False)  # TODO rcParam?
     color: MappableColor = Mappable("C0", grouping=False)
     alpha: MappableFloat = Mappable(1, grouping=False)  # TODO auto alpha?
     fill: MappableBool = Mappable(True, grouping=False)
     fillcolor: MappableColor = Mappable(depend="color", grouping=False)
-    fillalpha: MappableFloat = Mappable(.2, grouping=False)
+    fillalpha: MappableFloat = Mappable(0.2, grouping=False)
 
     def _resolve_properties(self, data, scales):
 

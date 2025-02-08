@@ -3,7 +3,7 @@ SEP11: Third-party dependencies
 =================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

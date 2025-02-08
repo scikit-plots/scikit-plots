@@ -1,13 +1,13 @@
 import matplotlib.pyplot as plt
 
-from .test_utils import _network
-
-from ..palettes import color_palette
 from .. import miscplot as misc
+from ..palettes import color_palette
+from .test_utils import _network
 
 
 class TestPalPlot:
     """Test the function that visualizes a color palette."""
+
     def test_palplot_size(self):
 
         pal4 = color_palette("husl", 4)

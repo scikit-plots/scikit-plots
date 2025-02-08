@@ -1,9 +1,7 @@
+import pytest
 from matplotlib import pyplot
 
-import pytest
-
-from .. import validate
-from .. import algo
+from .. import algo, validate
 
 
 def test_axes_object_invalid():
@@ -49,9 +47,7 @@ def test_fit_arguments_invalid(kwarg):
         validate.fit_argument("junk", kwarg)
 
 
-@pytest.mark.parametrize(
-    ("value", "error"), [("x", None), ("y", None), ("junk", ValueError)]
-)
+@pytest.mark.parametrize(("value", "error"), [("x", None), ("y", None), ("junk", ValueError)])
 def test_axis_name(value, error):
     if error is not None:
         with pytest.raises(error):

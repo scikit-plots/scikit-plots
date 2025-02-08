@@ -26,7 +26,7 @@ for f in $(find ./scikit_plots* -name '*.pyd'); do strip $f; done
 
 
 # now repack the wheel and overwrite the original
-wheel pack . 
+wheel pack .
 mv -fv *.whl $WHEEL
 
 cd $DEST_DIR

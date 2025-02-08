@@ -404,16 +404,13 @@ class NumpyDocString(Mapping):
                 section = " ".join(section)
                 if self.get(section):
                     self._error_location(
-                        "The section %s appears twice in  %s"
-                        % (section, "\n".join(self._doc._str))
+                        "The section %s appears twice in  %s" % (section, "\n".join(self._doc._str))
                     )
 
             if section in ("Parameters", "Other Parameters", "Attributes", "Methods"):
                 self[section] = self._parse_param_list(content)
             elif section in ("Returns", "Yields", "Raises", "Warns", "Receives"):
-                self[section] = self._parse_param_list(
-                    content, single_element_is_type=True
-                )
+                self[section] = self._parse_param_list(content, single_element_is_type=True)
             elif section.startswith(".. index::"):
                 self["index"] = self._parse_index(section, content)
             elif section == "See Also":

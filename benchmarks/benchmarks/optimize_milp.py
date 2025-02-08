@@ -22,13 +22,12 @@ milp_problems = ["piperout-27"]
 
 class MilpMiplibBenchmarks(Benchmark):
     params = [milp_problems]
-    param_names = ['problem']
+    param_names = ["problem"]
 
     def setup(self, prob):
-        if not hasattr(self, 'data'):
+        if not hasattr(self, "data"):
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            datafile = os.path.join(dir_path, "linprog_benchmark_files",
-                                    "milp_benchmarks.npz")
+            datafile = os.path.join(dir_path, "linprog_benchmark_files", "milp_benchmarks.npz")
             self.data = np.load(datafile, allow_pickle=True)
 
         c, A_ub, b_ub, A_eq, b_eq, bounds, integrality = self.data[prob]
@@ -60,15 +59,14 @@ class MilpMagicSquare(Benchmark):
     # TODO: look at 5,6 - timing out and disabled in Apr'24 (5) and Aug'23 (6)
     #       see gh-19389 for details
     params = [[3, 4]]
-    param_names = ['size']
+    param_names = ["size"]
 
     def setup(self, n):
         A_eq, b_eq, self.c, self.numbers, self.M = magic_square(n)
         self.constraints = (A_eq, b_eq, b_eq)
 
     def time_magic_square(self, n):
-        res = milp(c=self.c*0, constraints=self.constraints,
-                   bounds=(0, 1), integrality=True)
+        res = milp(c=self.c * 0, constraints=self.constraints, bounds=(0, 1), integrality=True)
         assert res.status == 0
         x = np.round(res.x)
         s = (self.numbers.flatten() * x).reshape(n**2, n, n)

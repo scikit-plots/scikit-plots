@@ -1,51 +1,50 @@
 from __future__ import annotations
+
 import re
-from copy import copy
 from collections.abc import Sequence
+from copy import copy
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Tuple, Optional, ClassVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional, Tuple
 
-import numpy as np
 import matplotlib as mpl
-from matplotlib.ticker import (
-    Locator,
-    Formatter,
-    AutoLocator,
-    AutoMinorLocator,
-    FixedLocator,
-    LinearLocator,
-    LogLocator,
-    SymmetricalLogLocator,
-    MaxNLocator,
-    MultipleLocator,
-    EngFormatter,
-    FuncFormatter,
-    LogFormatterSciNotation,
-    ScalarFormatter,
-    StrMethodFormatter,
-)
+import numpy as np
+from matplotlib.axis import Axis
 from matplotlib.dates import (
-    AutoDateLocator,
     AutoDateFormatter,
+    AutoDateLocator,
     ConciseDateFormatter,
 )
-from matplotlib.axis import Axis
 from matplotlib.scale import ScaleBase
+from matplotlib.ticker import (
+    AutoLocator,
+    AutoMinorLocator,
+    EngFormatter,
+    FixedLocator,
+    Formatter,
+    FuncFormatter,
+    LinearLocator,
+    Locator,
+    LogFormatterSciNotation,
+    LogLocator,
+    MaxNLocator,
+    MultipleLocator,
+    ScalarFormatter,
+    StrMethodFormatter,
+    SymmetricalLogLocator,
+)
 from pandas import Series
 
 from .rules import categorical_order
 from .typing import Default, default
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .plot import Plot
-    from .properties import Property
     from numpy.typing import ArrayLike, NDArray
 
-    TransFuncs = Tuple[
-        Callable[[ArrayLike], ArrayLike], Callable[[ArrayLike], ArrayLike]
-    ]
+    from .plot import Plot
+    from .properties import Property
+
+    TransFuncs = Tuple[Callable[[ArrayLike], ArrayLike], Callable[[ArrayLike], ArrayLike]]
 
     # TODO Reverting typing to Any as it was proving too complicated to
     # work out the right way to communicate the types to mypy. Revisit!
@@ -104,7 +103,10 @@ class Scale:
         return space
 
     def _setup(
-        self, data: Series, prop: Property, axis: Axis | None = None,
+        self,
+        data: Series,
+        prop: Property,
+        axis: Axis | None = None,
     ) -> Scale:
         raise NotImplementedError()
 
@@ -157,12 +159,16 @@ class Boolean(Scale):
     Input data are cast to boolean values, respecting missing data.
 
     """
+
     values: tuple | list | dict | None = None
 
     _priority: ClassVar[int] = 3
 
     def _setup(
-        self, data: Series, prop: Property, axis: Axis | None = None,
+        self,
+        data: Series,
+        prop: Property,
+        axis: Axis | None = None,
     ) -> Scale:
 
         new = copy(self)
@@ -211,7 +217,7 @@ class Boolean(Scale):
         axis.grid(False, which="both")
         if name not in p._limits:
             nticks = len(axis.get_major_ticks())
-            lo, hi = -.5, nticks - .5
+            lo, hi = -0.5, nticks - 0.5
             if name == "x":
                 lo, hi = hi, lo
             set_lim = getattr(ax, f"set_{name}lim")
@@ -243,6 +249,7 @@ class Nominal(Scale):
     """
     A categorical scale without relative importance / magnitude.
     """
+
     # Categorical (convert to strings), un-sortable
 
     values: tuple | str | list | dict | None = None
@@ -251,7 +258,10 @@ class Nominal(Scale):
     _priority: ClassVar[int] = 4
 
     def _setup(
-        self, data: Series, prop: Property, axis: Axis | None = None,
+        self,
+        data: Series,
+        prop: Property,
+        axis: Axis | None = None,
     ) -> Scale:
 
         new = copy(self)
@@ -328,7 +338,7 @@ class Nominal(Scale):
         axis.grid(False, which="both")
         if name not in p._limits:
             nticks = len(axis.get_major_ticks())
-            lo, hi = -.5, nticks - .5
+            lo, hi = -0.5, nticks - 0.5
             if name == "y":
                 lo, hi = hi, lo
             set_lim = getattr(ax, f"set_{name}lim")
@@ -417,7 +427,10 @@ class ContinuousBase(Scale):
     norm: tuple | None = None
 
     def _setup(
-        self, data: Series, prop: Property, axis: Axis | None = None,
+        self,
+        data: Series,
+        prop: Property,
+        axis: Axis | None = None,
     ) -> Scale:
 
         new = copy(self)
@@ -453,18 +466,14 @@ class ContinuousBase(Scale):
         else:
             normalize = vmin = vmax = None
 
-        new._pipeline = [
-            axis.convert_units,
-            forward,
-            normalize,
-            prop.get_mapping(new, data)
-        ]
+        new._pipeline = [axis.convert_units, forward, normalize, prop.get_mapping(new, data)]
 
         def spacer(x):
             x = x.dropna().unique()
             if len(x) < 2:
                 return np.nan
             return np.min(np.diff(np.sort(x)))
+
         new._spacer = spacer
 
         # TODO How to allow disabling of legend for all uses of property?
@@ -495,7 +504,7 @@ class ContinuousBase(Scale):
         def get_param(method, default):
             if arg == method:
                 return default
-            return float(arg[len(method):])
+            return float(arg[len(method) :])
 
         if arg is None:
             return _make_identity_transforms()
@@ -527,6 +536,7 @@ class Continuous(ContinuousBase):
     """
     A numeric scale supporting norms and functional transforms.
     """
+
     values: tuple | str | None = None
     trans: str | TransFuncs | None = None
 
@@ -537,7 +547,8 @@ class Continuous(ContinuousBase):
 
     def tick(
         self,
-        locator: Locator | None = None, *,
+        locator: Locator | None = None,
+        *,
         at: Sequence[float] | None = None,
         upto: int | None = None,
         count: int | None = None,
@@ -574,8 +585,7 @@ class Continuous(ContinuousBase):
         # Input checks
         if locator is not None and not isinstance(locator, Locator):
             raise TypeError(
-                f"Tick locator must be an instance of {Locator!r}, "
-                f"not {type(locator)!r}."
+                f"Tick locator must be an instance of {Locator!r}, " f"not {type(locator)!r}."
             )
         log_base, symlog_thresh = self._parse_for_log_params(self.trans)
         if log_base or symlog_thresh:
@@ -598,7 +608,8 @@ class Continuous(ContinuousBase):
 
     def label(
         self,
-        formatter: Formatter | None = None, *,
+        formatter: Formatter | None = None,
+        *,
         like: str | Callable | None = None,
         base: int | None | Default = default,
         unit: str | None = None,
@@ -632,8 +643,7 @@ class Continuous(ContinuousBase):
         # Input checks
         if formatter is not None and not isinstance(formatter, Formatter):
             raise TypeError(
-                f"Label formatter must be an instance of {Formatter!r}, "
-                f"not {type(formatter)!r}"
+                f"Label formatter must be an instance of {Formatter!r}, " f"not {type(formatter)!r}"
             )
         if like is not None and not (isinstance(like, str) or callable(like)):
             msg = f"`like` must be a string or callable, not {type(like).__name__}."
@@ -763,6 +773,7 @@ class Temporal(ContinuousBase):
     """
     A scale for date/time data.
     """
+
     # TODO date: bool?
     # For when we only care about the time component, would affect
     # default formatter and norm conversion. Should also happen in
@@ -778,7 +789,9 @@ class Temporal(ContinuousBase):
     _priority: ClassVar[int] = 2
 
     def tick(
-        self, locator: Locator | None = None, *,
+        self,
+        locator: Locator | None = None,
+        *,
         upto: int | None = None,
     ) -> Temporal:
         """
@@ -801,10 +814,7 @@ class Temporal(ContinuousBase):
 
         """
         if locator is not None and not isinstance(locator, Locator):
-            err = (
-                f"Tick locator must be an instance of {Locator!r}, "
-                f"not {type(locator)!r}."
-            )
+            err = f"Tick locator must be an instance of {Locator!r}, " f"not {type(locator)!r}."
             raise TypeError(err)
 
         new = copy(self)
@@ -813,7 +823,8 @@ class Temporal(ContinuousBase):
 
     def label(
         self,
-        formatter: Formatter | None = None, *,
+        formatter: Formatter | None = None,
+        *,
         concise: bool = False,
     ) -> Temporal:
         """
@@ -896,6 +907,7 @@ class PseudoAxis:
     code, this object acts like an Axis and can be used to scale other variables.
 
     """
+
     axis_name = ""  # Matplotlib requirement but not actually used
 
     def __init__(self, scale):
@@ -1029,8 +1041,10 @@ def _make_log_transforms(base: float | None = None) -> TransFuncs:
     elif base == 10:
         fs = np.log10, partial(np.power, 10)
     else:
+
         def forward(x):
             return np.log(x) / np.log(base)
+
         fs = forward, partial(np.power, base)
 
     def log(x: ArrayLike) -> ArrayLike:

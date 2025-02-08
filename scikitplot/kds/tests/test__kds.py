@@ -1,23 +1,15 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
-from sklearn.datasets import load_iris as load_data
+import numpy as np
 from sklearn.datasets import load_breast_cancer
+from sklearn.datasets import load_iris as load_data
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.cluster import KMeans
 
 from .._kds import (
     plot_cumulative_gain,
-    plot_lift,
     plot_ks_statistic,
+    plot_lift,
 )
 
 
@@ -66,20 +58,20 @@ class TestPlotLift(unittest.TestCase):
         clf = LogisticRegression()
         clf.fit(self.X, self.y)
         probas = clf.predict_proba(self.X)
-    
+
         # Case 1: When ax is not passed, plot_cumulative_gain should return a new Axes object
         fig, ax = plt.subplots(1, 1)
         out_ax = plot_lift(self.y, probas)
         assert ax is not out_ax  # They should not be the same because ax was not passed
-    
+
         # Case 2: When ax is passed, plot_cumulative_gain should return the same Axes object
         out_ax = plot_lift(self.y, probas, ax=ax)
         assert ax is out_ax  # They should be the same because ax was passed
 
     def test_array_like(self):
         plot_lift([0, 1], [[0.8, 0.2], [0.2, 0.8]])
-        plot_lift([0, 'a'], [[0.8, 0.2], [0.2, 0.8]])
-        plot_lift(['b', 'a'], [[0.8, 0.2], [0.2, 0.8]])
+        plot_lift([0, "a"], [[0.8, 0.2], [0.2, 0.8]])
+        plot_lift(["b", "a"], [[0.8, 0.2], [0.2, 0.8]])
 
         # # Optionally, you could also add cases for invalid inputs
         # with pytest.raises(ValueError):
@@ -118,20 +110,20 @@ class TestPlotCumulativeGain(unittest.TestCase):
         clf = LogisticRegression()
         clf.fit(self.X, self.y)
         probas = clf.predict_proba(self.X)
-    
+
         # Case 1: When ax is not passed, plot_cumulative_gain should return a new Axes object
         fig, ax = plt.subplots(1, 1)
         out_ax = plot_cumulative_gain(self.y, probas)
         assert ax is not out_ax  # They should not be the same because ax was not passed
-    
+
         # Case 2: When ax is passed, plot_cumulative_gain should return the same Axes object
         out_ax = plot_cumulative_gain(self.y, probas, ax=ax)
         assert ax is out_ax  # They should be the same because ax was passed
 
     def test_array_like(self):
         plot_cumulative_gain([0, 1], [[0.8, 0.2], [0.2, 0.8]])
-        plot_cumulative_gain([0, 'a'], [[0.8, 0.2], [0.2, 0.8]])
-        plot_cumulative_gain(['b', 'a'], [[0.8, 0.2], [0.2, 0.8]])
+        plot_cumulative_gain([0, "a"], [[0.8, 0.2], [0.2, 0.8]])
+        plot_cumulative_gain(["b", "a"], [[0.8, 0.2], [0.2, 0.8]])
 
         # Optionally, you could also add cases for invalid inputs
         # with pytest.raises(ValueError):
@@ -169,20 +161,20 @@ class TestPlotKSStatistic(unittest.TestCase):
         clf = LogisticRegression()
         clf.fit(self.X, self.y)
         probas = clf.predict_proba(self.X)
-    
+
         # Case 1: When ax is not passed, plot_cumulative_gain should return a new Axes object
         fig, ax = plt.subplots(1, 1)
         out_ax = plot_ks_statistic(self.y, probas)
         assert ax is not out_ax  # They should not be the same because ax was not passed
-    
+
         # Case 2: When ax is passed, plot_cumulative_gain should return the same Axes object
         out_ax = plot_ks_statistic(self.y, probas, ax=ax)
         assert ax is out_ax  # They should be the same because ax was passed
 
     def test_array_like(self):
         plot_ks_statistic([0, 1], [[0.8, 0.2], [0.2, 0.8]])
-        plot_ks_statistic([0, 'a'], [[0.8, 0.2], [0.2, 0.8]])
-        plot_ks_statistic(['b', 'a'], [[0.8, 0.2], [0.2, 0.8]])
+        plot_ks_statistic([0, "a"], [[0.8, 0.2], [0.2, 0.8]])
+        plot_ks_statistic(["b", "a"], [[0.8, 0.2], [0.2, 0.8]])
 
         # Optionally, you could also add cases for invalid inputs
         # with pytest.raises(ValueError):

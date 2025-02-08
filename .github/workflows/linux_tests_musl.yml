@@ -34,12 +34,12 @@ jobs:
         # using git commands to clone because versioneer doesn't work when
         # actions/checkout is used for the clone step in a container
 
-        git config --global --add safe.directory $PWD 
-        
+        git config --global --add safe.directory $PWD
+
         if [ $GITHUB_EVENT_NAME != pull_request ]; then
             git clone --recursive --branch=$GITHUB_REF_NAME https://github.com/${GITHUB_REPOSITORY}.git $GITHUB_WORKSPACE
             git reset --hard $GITHUB_SHA
-        else        
+        else
             git clone --recursive https://github.com/${GITHUB_REPOSITORY}.git $GITHUB_WORKSPACE
             git fetch origin $GITHUB_REF:my_ref_name
             git checkout $GITHUB_BASE_REF
@@ -60,7 +60,7 @@ jobs:
 
         pip install -r build_requirements.txt -r test_requirements.txt
 
-        # use meson to build and test 
+        # use meson to build and test
         spin build --with-scipy-openblas=64 -- -Duse-ilp64=true
         spin test -j auto
 

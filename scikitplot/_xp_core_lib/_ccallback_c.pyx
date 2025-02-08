@@ -10,7 +10,7 @@ from libc.string cimport strdup
 from libc.math cimport sin
 
 from ._ccallback cimport (ccallback_t, ccallback_prepare, ccallback_release, CCALLBACK_DEFAULTS,
-                         ccallback_signature_t)
+                          ccallback_signature_t)
 
 
 #
@@ -212,7 +212,7 @@ plus1b_t = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_double,
 plus1b_ctypes = ctypes.cast(<size_t>&plus1b_cython, plus1b_t)
 
 plus1bc_t = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                            ctypes.POINTER(ctypes.c_int), ctypes.c_void_p)
+                             ctypes.POINTER(ctypes.c_int), ctypes.c_void_p)
 plus1bc_ctypes = ctypes.cast(<size_t>&plus1bc_cython, plus1bc_t)
 
 sine_t = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_double, ctypes.c_void_p)

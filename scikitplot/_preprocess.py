@@ -1,30 +1,17 @@
-import atexit
-from collections import namedtuple
-from collections.abc import MutableMapping
-import contextlib
 import functools
-import importlib
 import inspect
 from inspect import Parameter
-import locale
-import os
-from pathlib import Path
-import pprint
-import re
-import shutil
-import subprocess
-import sys
-import tempfile
 
 import scikitplot.sp_logging as logging  # module logger
 
 # cbook must import matplotlib only within function
 # definitions, so it is safe to import from it here.
-from . import _api, cbook, _docstring
+from . import cbook
 
 ######################################################################
 ## matplotlib like wrapper
 ######################################################################
+
 
 def _replacer(data, value):
     """
@@ -69,19 +56,21 @@ def _add_data_doc(docstring, replace_names):
     str
         The augmented docstring.
     """
-    if (docstring is None
-            or replace_names is not None and len(replace_names) == 0):
+    if docstring is None or replace_names is not None and len(replace_names) == 0:
         return docstring
     docstring = inspect.cleandoc(docstring)
 
-    data_doc = ("""\
+    data_doc = (
+        """\
     If given, all parameters also accept a string ``s``, which is
     interpreted as ``data[s]`` if ``s`` is a key in ``data``."""
-                if replace_names is None else f"""\
+        if replace_names is None
+        else f"""\
     If given, the following parameters also accept a string ``s``, which is
     interpreted as ``data[s]`` if ``s`` is a key in ``data``:
 
-    {', '.join(map('*{}*'.format, replace_names))}""")
+    {', '.join(map('*{}*'.format, replace_names))}"""
+    )
     # using string replacement instead of formatting has the advantages
     # 1) simpler indent handling
     # 2) prevent problems with formatting characters '{', '%' in the docstring
@@ -90,9 +79,9 @@ def _add_data_doc(docstring, replace_names):
         # make sure to keep message and test in sync
         if "data : indexable object, optional" not in docstring:
             logging.debug("data parameter docstring error: no data parameter")
-        if 'DATA_PARAMETER_PLACEHOLDER' not in docstring:
+        if "DATA_PARAMETER_PLACEHOLDER" not in docstring:
             logging.debug("data parameter docstring error: missing placeholder")
-    return docstring.replace('    DATA_PARAMETER_PLACEHOLDER', data_doc)
+    return docstring.replace("    DATA_PARAMETER_PLACEHOLDER", data_doc)
 
 
 # The decorator modifies how arguments are passed to `func`
@@ -140,8 +129,8 @@ def _preprocess_data(func=None, *, replace_names=None, label_namer=None):
 
     if func is None:  # Return the actual decorator.
         return functools.partial(
-            _preprocess_data,
-            replace_names=replace_names, label_namer=label_namer)
+            _preprocess_data, replace_names=replace_names, label_namer=label_namer
+        )
 
     sig = inspect.signature(func)
     varargs_name = None
@@ -165,10 +154,11 @@ def _preprocess_data(func=None, *, replace_names=None, label_namer=None):
 
     assert {*arg_names}.issuperset(replace_names or []) or varkwargs_name, (
         "Matplotlib internal error: invalid replace_names "
-        f"({replace_names!r}) for {func.__name__!r}")
+        f"({replace_names!r}) for {func.__name__!r}"
+    )
     assert label_namer is None or label_namer in arg_names, (
-        "Matplotlib internal error: invalid label_namer "
-        f"({label_namer!r}) for {func.__name__!r}")
+        "Matplotlib internal error: invalid label_namer " f"({label_namer!r}) for {func.__name__!r}"
+    )
 
     @functools.wraps(func)
     def inner(*args, data=None, **kwargs):
@@ -176,16 +166,15 @@ def _preprocess_data(func=None, *, replace_names=None, label_namer=None):
             return func(
                 # ax,
                 *map(cbook.sanitize_sequence, args),
-                **{k: cbook.sanitize_sequence(v) for k, v in kwargs.items()})
+                **{k: cbook.sanitize_sequence(v) for k, v in kwargs.items()},
+            )
 
         bound = new_sig.bind(
             # ax,
             *args,
             **kwargs,
         )
-        auto_label = (
-            bound.arguments.get(label_namer) or bound.kwargs.get(label_namer)
-        )
+        auto_label = bound.arguments.get(label_namer) or bound.kwargs.get(label_namer)
 
         for k, v in bound.arguments.items():
             if k == varkwargs_name:
@@ -204,8 +193,7 @@ def _preprocess_data(func=None, *, replace_names=None, label_namer=None):
 
         args_and_kwargs = {**bound.arguments, **bound.kwargs}
         if label_namer and "label" not in args_and_kwargs:
-            new_kwargs["label"] = _label_from_arg(
-                args_and_kwargs.get(label_namer), auto_label)
+            new_kwargs["label"] = _label_from_arg(args_and_kwargs.get(label_namer), auto_label)
 
         return func(*new_args, **new_kwargs)
 

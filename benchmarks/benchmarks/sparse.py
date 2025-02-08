@@ -1,31 +1,38 @@
 """
 Simple benchmarks for the sparse module
 """
-import warnings
+
+import pickle
 import time
 import timeit
-import pickle
+import warnings
 
 import numpy as np
-from numpy import ones, array, asarray, empty
+from numpy import array, asarray, empty, ones
 
 from .common import Benchmark, safe_import
 
 with safe_import():
     from scipy import sparse
-    from scipy.sparse import (coo_matrix, dia_matrix, lil_matrix,
-                              dok_matrix, rand, SparseEfficiencyWarning)
+    from scipy.sparse import (
+        SparseEfficiencyWarning,
+        coo_matrix,
+        dia_matrix,
+        dok_matrix,
+        lil_matrix,
+        rand,
+    )
 
 
 def random_sparse(m, n, nnz_per_row):
     rows = np.arange(m).repeat(nnz_per_row)
-    cols = np.random.randint(0, n, size=nnz_per_row*m)
-    vals = np.random.random_sample(m*nnz_per_row)
+    cols = np.random.randint(0, n, size=nnz_per_row * m)
+    vals = np.random.random_sample(m * nnz_per_row)
     return coo_matrix((vals, (rows, cols)), (m, n)).tocsr()
 
 
 # TODO move this to a matrix gallery and add unittests
-def poisson2d(N, dtype='d', format=None):
+def poisson2d(N, dtype="d", format=None):
     """
     Return a sparse matrix for the 2D Poisson problem
     with standard 5-point finite difference stencil on a
@@ -42,23 +49,23 @@ def poisson2d(N, dtype='d', format=None):
     diags[0] = 4  # main diagonal
     diags[1:] = -1  # all offdiagonals
 
-    diags[3, N-1::N] = 0  # first lower diagonal
+    diags[3, N - 1 :: N] = 0  # first lower diagonal
     diags[4, N::N] = 0  # first upper diagonal
 
     return dia_matrix((diags, offsets), shape=(N**2, N**2)).asformat(format)
 
 
 class Arithmetic(Benchmark):
-    param_names = ['format', 'XY', 'op']
+    param_names = ["format", "XY", "op"]
     params = [
-        ['csr', 'csc', 'coo', 'dia'],
-        ['AA', 'AB', 'BA', 'BB'],
-        ['__add__', '__sub__', 'multiply', '__mul__']
+        ["csr", "csc", "coo", "dia"],
+        ["AA", "AB", "BA", "BB"],
+        ["__add__", "__sub__", "multiply", "__mul__"],
     ]
 
     def setup(self, format, XY, op):
         matrices = dict(A=poisson2d(250, format=format))
-        matrices['B'] = (matrices['A']**2).asformat(format)
+        matrices["B"] = (matrices["A"] ** 2).asformat(format)
 
         x = matrices[XY[0]]
         self.y = matrices[XY[1]]
@@ -70,12 +77,12 @@ class Arithmetic(Benchmark):
 
 
 class Sort(Benchmark):
-    params = ['Rand10', 'Rand25', 'Rand50', 'Rand100', 'Rand200']
-    param_names = ['matrix']
+    params = ["Rand10", "Rand25", "Rand50", "Rand100", "Rand200"]
+    param_names = ["matrix"]
 
     def setup(self, matrix):
         n = 10000
-        if matrix.startswith('Rand'):
+        if matrix.startswith("Rand"):
             k = int(matrix[4:])
             self.A = random_sparse(n, n, k)
             self.A.has_sorted_indices = False
@@ -90,30 +97,28 @@ class Sort(Benchmark):
 
 class Matvec(Benchmark):
     params = [
-        ['Identity', 'Poisson5pt', 'Block2x2', 'Block3x3'],
-        ['dia', 'csr', 'csc', 'dok', 'lil', 'coo', 'bsr']
+        ["Identity", "Poisson5pt", "Block2x2", "Block3x3"],
+        ["dia", "csr", "csc", "dok", "lil", "coo", "bsr"],
     ]
-    param_names = ['matrix', 'format']
+    param_names = ["matrix", "format"]
 
     def setup(self, matrix, format):
-        if matrix == 'Identity':
-            if format in ('lil', 'dok'):
+        if matrix == "Identity":
+            if format in ("lil", "dok"):
                 raise NotImplementedError()
             self.A = sparse.eye(10000, 10000, format=format)
-        elif matrix == 'Poisson5pt':
+        elif matrix == "Poisson5pt":
             self.A = poisson2d(300, format=format)
-        elif matrix == 'Block2x2':
-            if format not in ('csr', 'bsr'):
+        elif matrix == "Block2x2":
+            if format not in ("csr", "bsr"):
                 raise NotImplementedError()
             b = (2, 2)
-            self.A = sparse.kron(poisson2d(150),
-                                 ones(b)).tobsr(blocksize=b).asformat(format)
-        elif matrix == 'Block3x3':
-            if format not in ('csr', 'bsr'):
+            self.A = sparse.kron(poisson2d(150), ones(b)).tobsr(blocksize=b).asformat(format)
+        elif matrix == "Block3x3":
+            if format not in ("csr", "bsr"):
                 raise NotImplementedError()
             b = (3, 3)
-            self.A = sparse.kron(poisson2d(100),
-                                 ones(b)).tobsr(blocksize=b).asformat(format)
+            self.A = sparse.kron(poisson2d(100), ones(b)).tobsr(blocksize=b).asformat(format)
         else:
             raise NotImplementedError()
 
@@ -124,7 +129,7 @@ class Matvec(Benchmark):
 
 
 class Matvecs(Benchmark):
-    params = ['dia', 'coo', 'csr', 'csc', 'bsr']
+    params = ["dia", "coo", "csr", "csc", "bsr"]
     param_names = ["format"]
 
     def setup(self, format):
@@ -159,27 +164,22 @@ class Matmul(Benchmark):
             self.matrix1 * self.matrix2
 
     # Retain old benchmark results (remove this if changing the benchmark)
-    time_large.version = (
-        "33aee08539377a7cb0fabaf0d9ff9d6d80079a428873f451b378c39f6ead48cb"
-    )
+    time_large.version = "33aee08539377a7cb0fabaf0d9ff9d6d80079a428873f451b378c39f6ead48cb"
 
 
 class Construction(Benchmark):
-    params = [
-        ['Empty', 'Identity', 'Poisson5pt'],
-        ['lil', 'dok']
-    ]
-    param_names = ['matrix', 'format']
+    params = [["Empty", "Identity", "Poisson5pt"], ["lil", "dok"]]
+    param_names = ["matrix", "format"]
 
     def setup(self, name, format):
-        if name == 'Empty':
+        if name == "Empty":
             self.A = coo_matrix((10000, 10000))
-        elif name == 'Identity':
-            self.A = sparse.eye(10000, format='coo')
+        elif name == "Identity":
+            self.A = sparse.eye(10000, format="coo")
         else:
-            self.A = poisson2d(100, format='coo')
+            self.A = poisson2d(100, format="coo")
 
-        formats = {'lil': lil_matrix, 'dok': dok_matrix}
+        formats = {"lil": lil_matrix, "dok": dok_matrix}
         self.cls = formats[format]
 
     def time_construction(self, name, format):
@@ -189,7 +189,7 @@ class Construction(Benchmark):
 
 
 class BlockDiagDenseConstruction(Benchmark):
-    param_names = ['num_matrices']
+    param_names = ["num_matrices"]
     params = [1000, 5000, 10000, 15000, 20000]
 
     def setup(self, num_matrices):
@@ -205,7 +205,7 @@ class BlockDiagDenseConstruction(Benchmark):
 
 
 class BlockDiagSparseConstruction(Benchmark):
-    param_names = ['num_matrices']
+    param_names = ["num_matrices"]
     params = [1000, 5000, 10000, 15000, 20000]
 
     def setup(self, num_matrices):
@@ -214,7 +214,7 @@ class BlockDiagSparseConstruction(Benchmark):
             rows = np.random.randint(1, 20)
             columns = np.random.randint(1, 20)
             density = 2e-3
-            nnz_per_row = int(density*columns)
+            nnz_per_row = int(density * columns)
 
             mat = random_sparse(rows, columns, nnz_per_row)
             self.matrices.append(mat)
@@ -224,13 +224,13 @@ class BlockDiagSparseConstruction(Benchmark):
 
 
 class CsrHstack(Benchmark):
-    param_names = ['num_rows']
+    param_names = ["num_rows"]
     params = [10000, 25000, 50000, 100000, 250000]
 
     def setup(self, num_rows):
         num_cols = int(1e5)
         density = 2e-3
-        nnz_per_row = int(density*num_cols)
+        nnz_per_row = int(density * num_cols)
         self.mat = random_sparse(num_rows, num_cols, nnz_per_row)
 
     def time_csr_hstack(self, num_rows):
@@ -239,19 +239,21 @@ class CsrHstack(Benchmark):
 
 class Conversion(Benchmark):
     params = [
-        ['csr', 'csc', 'coo', 'dia', 'lil', 'dok', 'bsr'],
-        ['csr', 'csc', 'coo', 'dia', 'lil', 'dok', 'bsr'],
+        ["csr", "csc", "coo", "dia", "lil", "dok", "bsr"],
+        ["csr", "csc", "coo", "dia", "lil", "dok", "bsr"],
     ]
-    param_names = ['from_format', 'to_format']
+    param_names = ["from_format", "to_format"]
 
     def setup(self, fromfmt, tofmt):
         base = poisson2d(100, format=fromfmt)
 
         try:
-            self.fn = getattr(base, 'to' + tofmt)
+            self.fn = getattr(base, "to" + tofmt)
         except Exception:
+
             def fn():
                 raise RuntimeError()
+
             self.fn = fn
 
     def time_conversion(self, fromfmt, tofmt):
@@ -259,16 +261,12 @@ class Conversion(Benchmark):
 
 
 class Getset(Benchmark):
-    params = [
-        [1, 10, 100, 1000, 10000],
-        ['different', 'same'],
-        ['csr', 'csc', 'lil', 'dok']
-    ]
-    param_names = ['N', 'sparsity pattern', 'format']
+    params = [[1, 10, 100, 1000, 10000], ["different", "same"], ["csr", "csc", "lil", "dok"]]
+    param_names = ["N", "sparsity pattern", "format"]
     unit = "seconds"
 
     def setup(self, N, sparsity_pattern, format):
-        if format == 'dok' and N > 500:
+        if format == "dok" and N > 500:
             raise NotImplementedError()
 
         self.A = rand(1000, 1000, density=1e-5)
@@ -311,13 +309,12 @@ class Getset(Benchmark):
             else:
                 m = self.m
             while True:
-                duration = timeit.timeit(
-                    lambda: kernel(m, self.i, self.j, self.v), number=number)
+                duration = timeit.timeit(lambda: kernel(m, self.i, self.j, self.v), number=number)
                 if duration > 1e-5:
                     break
                 else:
                     number *= 10
-            min_time = min(min_time, duration/number)
+            min_time = min(min_time, duration / number)
         return min_time
 
     def track_fancy_setitem(self, N, sparsity_pattern, format):
@@ -325,16 +322,16 @@ class Getset(Benchmark):
             A[i, j] = v
 
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore', SparseEfficiencyWarning)
-            return self._timeit(kernel, sparsity_pattern == 'different')
+            warnings.simplefilter("ignore", SparseEfficiencyWarning)
+            return self._timeit(kernel, sparsity_pattern == "different")
 
     def time_fancy_getitem(self, N, sparsity_pattern, format):
         self.m[self.i, self.j]
 
 
 class NullSlice(Benchmark):
-    params = [[0.05, 0.01], ['csr', 'csc', 'lil']]
-    param_names = ['density', 'format']
+    params = [[0.05, 0.01], ["csr", "csc", "lil"]]
+    param_names = ["density", "format"]
 
     def _setup(self, density, format):
         n = 100000
@@ -342,14 +339,14 @@ class NullSlice(Benchmark):
 
         # faster version of rand(n, k, format=format, density=density),
         # with non-exact nnz
-        nz = int(n*k * density)
+        nz = int(n * k * density)
         row = np.random.randint(0, n, size=nz)
         col = np.random.randint(0, k, size=nz)
         data = np.ones(nz, dtype=np.float64)
         X = coo_matrix((data, (row, col)), shape=(n, k))
         X.sum_duplicates()
         X = X.asformat(format)
-        with open(f'{density}-{format}.pck', 'wb') as f:
+        with open(f"{density}-{format}.pck", "wb") as f:
             pickle.dump(X, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def setup_cache(self):
@@ -361,7 +358,7 @@ class NullSlice(Benchmark):
 
     def setup(self, density, format):
         # Unpickling is faster than computing the random matrix...
-        with open(f'{density}-{format}.pck', 'rb') as f:
+        with open(f"{density}-{format}.pck", "rb") as f:
             self.X = pickle.load(f)
 
     def time_getrow(self, density, format):
@@ -383,36 +380,24 @@ class NullSlice(Benchmark):
         self.X[:, np.arange(100)]
 
     # Retain old benchmark results (remove this if changing the benchmark)
-    time_10000_rows.version = (
-        "dc19210b894d5fd41d4563f85b7459ef5836cddaf77154b539df3ea91c5d5c1c"
-    )
-    time_100_cols.version = (
-        "8d43ed52084cdab150018eedb289a749a39f35d4dfa31f53280f1ef286a23046"
-    )
-    time_3_cols.version = (
-        "93e5123910772d62b3f72abff56c2732f83d217221bce409b70e77b89c311d26"
-    )
-    time_3_rows.version = (
-        "a9eac80863a0b2f4b510269955041930e5fdd15607238257eb78244f891ebfe6"
-    )
-    time_getcol.version = (
-        "291388763b355f0f3935db9272a29965d14fa3f305d3306059381e15300e638b"
-    )
-    time_getrow.version = (
-        "edb9e4291560d6ba8dd58ef371b3a343a333bc10744496adb3ff964762d33c68"
-    )
+    time_10000_rows.version = "dc19210b894d5fd41d4563f85b7459ef5836cddaf77154b539df3ea91c5d5c1c"
+    time_100_cols.version = "8d43ed52084cdab150018eedb289a749a39f35d4dfa31f53280f1ef286a23046"
+    time_3_cols.version = "93e5123910772d62b3f72abff56c2732f83d217221bce409b70e77b89c311d26"
+    time_3_rows.version = "a9eac80863a0b2f4b510269955041930e5fdd15607238257eb78244f891ebfe6"
+    time_getcol.version = "291388763b355f0f3935db9272a29965d14fa3f305d3306059381e15300e638b"
+    time_getrow.version = "edb9e4291560d6ba8dd58ef371b3a343a333bc10744496adb3ff964762d33c68"
 
 
 class Diagonal(Benchmark):
-    params = [[0.01, 0.1, 0.5], ['csr', 'csc', 'coo', 'lil', 'dok', 'dia']]
-    param_names = ['density', 'format']
+    params = [[0.01, 0.1, 0.5], ["csr", "csc", "coo", "lil", "dok", "dia"]]
+    param_names = ["density", "format"]
 
     def setup(self, density, format):
         n = 1000
-        if format == 'dok' and n * density >= 500:
+        if format == "dok" and n * density >= 500:
             raise NotImplementedError()
 
-        warnings.simplefilter('ignore', SparseEfficiencyWarning)
+        warnings.simplefilter("ignore", SparseEfficiencyWarning)
 
         self.X = sparse.rand(n, n, format=format, density=density)
 
@@ -420,21 +405,19 @@ class Diagonal(Benchmark):
         self.X.diagonal()
 
     # Retain old benchmark results (remove this if changing the benchmark)
-    time_diagonal.version = (
-        "d84f53fdc6abc208136c8ce48ca156370f6803562f6908eb6bd1424f50310cf1"
-    )
+    time_diagonal.version = "d84f53fdc6abc208136c8ce48ca156370f6803562f6908eb6bd1424f50310cf1"
 
 
 class Sum(Benchmark):
-    params = [[0.01, 0.1, 0.5], ['csr', 'csc', 'coo', 'lil', 'dok', 'dia']]
-    param_names = ['density', 'format']
+    params = [[0.01, 0.1, 0.5], ["csr", "csc", "coo", "lil", "dok", "dia"]]
+    param_names = ["density", "format"]
 
     def setup(self, density, format):
         n = 1000
-        if format == 'dok' and n * density >= 500:
+        if format == "dok" and n * density >= 500:
             raise NotImplementedError()
 
-        warnings.simplefilter('ignore', SparseEfficiencyWarning)
+        warnings.simplefilter("ignore", SparseEfficiencyWarning)
         self.X = sparse.rand(n, n, format=format, density=density)
 
     def time_sum(self, density, format):
@@ -447,20 +430,14 @@ class Sum(Benchmark):
         self.X.sum(axis=1)
 
     # Retain old benchmark results (remove this if changing the benchmark)
-    time_sum.version = (
-        "05c305857e771024535e546360203b17f5aca2b39b023a49ab296bd746d6cdd3"
-    )
-    time_sum_axis0.version = (
-        "8aca682fd69aa140c69c028679826bdf43c717589b1961b4702d744ed72effc6"
-    )
-    time_sum_axis1.version = (
-        "1a6e05244b77f857c61f8ee09ca3abd006a10ba07eff10b1c5f9e0ac20f331b2"
-    )
+    time_sum.version = "05c305857e771024535e546360203b17f5aca2b39b023a49ab296bd746d6cdd3"
+    time_sum_axis0.version = "8aca682fd69aa140c69c028679826bdf43c717589b1961b4702d744ed72effc6"
+    time_sum_axis1.version = "1a6e05244b77f857c61f8ee09ca3abd006a10ba07eff10b1c5f9e0ac20f331b2"
 
 
 class Iteration(Benchmark):
-    params = [[0.05, 0.01], ['csr', 'csc', 'lil']]
-    param_names = ['density', 'format']
+    params = [[0.05, 0.01], ["csr", "csc", "lil"]]
+    param_names = ["density", "format"]
 
     def setup(self, density, format):
         n = 500
@@ -474,49 +451,44 @@ class Iteration(Benchmark):
 
 class Densify(Benchmark):
     params = [
-        ['dia', 'csr', 'csc', 'dok', 'lil', 'coo', 'bsr'],
-        ['C', 'F'],
+        ["dia", "csr", "csc", "dok", "lil", "coo", "bsr"],
+        ["C", "F"],
     ]
-    param_names = ['format', 'order']
+    param_names = ["format", "order"]
 
     def setup(self, format, order):
-        warnings.simplefilter('ignore', SparseEfficiencyWarning)
+        warnings.simplefilter("ignore", SparseEfficiencyWarning)
         self.X = sparse.rand(1000, 1000, format=format, density=0.01)
 
     def time_toarray(self, format, order):
         self.X.toarray(order=order)
 
     # Retain old benchmark results (remove this if changing the benchmark)
-    time_toarray.version = (
-        "2fbf492ec800b982946a62785beda803460b913cc80080043a5d407025893b2b"
-    )
+    time_toarray.version = "2fbf492ec800b982946a62785beda803460b913cc80080043a5d407025893b2b"
 
 
 class Random(Benchmark):
-    params = [
-        np.arange(0, 1.1, 0.1).tolist()
-    ]
-    param_names = ['density']
+    params = [np.arange(0, 1.1, 0.1).tolist()]
+    param_names = ["density"]
 
     def setup(self, density):
-        warnings.simplefilter('ignore', SparseEfficiencyWarning)
+        warnings.simplefilter("ignore", SparseEfficiencyWarning)
         self.nrows = 1000
         self.ncols = 1000
-        self.format = 'csr'
+        self.format = "csr"
 
     def time_rand(self, density):
-        sparse.rand(self.nrows, self.ncols,
-                    format=self.format, density=density)
+        sparse.rand(self.nrows, self.ncols, format=self.format, density=density)
 
 
 class Argmax(Benchmark):
-    params = [[0.01, 0.1, 0.5], ['csr', 'csc', 'coo'], [True, False]]
-    param_names = ['density', 'format', 'explicit']
+    params = [[0.01, 0.1, 0.5], ["csr", "csc", "coo"], [True, False]]
+    param_names = ["density", "format", "explicit"]
 
     def setup(self, density, format, explicit):
         n = 1000
 
-        warnings.simplefilter('ignore', SparseEfficiencyWarning)
+        warnings.simplefilter("ignore", SparseEfficiencyWarning)
 
         self.X = sparse.rand(n, n, format=format, density=density)
 

@@ -341,17 +341,14 @@ def laplacian(
         raise ValueError("csgraph must be a square matrix or array")
 
     if normed and (
-        np.issubdtype(csgraph.dtype, np.signedinteger)
-        or np.issubdtype(csgraph.dtype, np.uint)
+        np.issubdtype(csgraph.dtype, np.signedinteger) or np.issubdtype(csgraph.dtype, np.uint)
     ):
         csgraph = csgraph.astype(np.float64)
 
     if form == "array":
         create_lap = _laplacian_sparse if issparse(csgraph) else _laplacian_dense
     else:
-        create_lap = (
-            _laplacian_sparse_flo if issparse(csgraph) else _laplacian_dense_flo
-        )
+        create_lap = _laplacian_sparse_flo if issparse(csgraph) else _laplacian_dense_flo
 
     degree_axis = 1 if use_out_degree else 0
 

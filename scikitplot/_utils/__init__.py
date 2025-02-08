@@ -3,11 +3,11 @@
 The :py:mod:`~scikitplot._utils` module contains a number of utility functions
 to work with the scikitplot library.
 """
+
 # scikitplot/_utils/__init__.py
 
+from . import (
+    _wasm as _wasm,
+)
 from ._inspect import *
 from .introspection import *
-
-from . import (
-  _wasm,
-)

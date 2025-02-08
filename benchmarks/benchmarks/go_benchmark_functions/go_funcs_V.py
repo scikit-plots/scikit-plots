@@ -1,9 +1,9 @@
-from numpy import sum, cos, sin, log
+from numpy import cos, log, sin, sum
+
 from .go_benchmark import Benchmark
 
 
 class VenterSobiezcczanskiSobieski(Benchmark):
-
     r"""
     Venter Sobiezcczanski-Sobieski objective function.
 
@@ -44,12 +44,11 @@ class VenterSobiezcczanskiSobieski(Benchmark):
 
         u = x[0] ** 2.0 - 100.0 * cos(x[0]) ** 2.0
         v = -100.0 * cos(x[0] ** 2.0 / 30.0) + x[1] ** 2.0
-        w = - 100.0 * cos(x[1]) ** 2.0 - 100.0 * cos(x[1] ** 2.0 / 30.0)
+        w = -100.0 * cos(x[1]) ** 2.0 - 100.0 * cos(x[1] ** 2.0 / 30.0)
         return u + v + w
 
 
 class Vincent(Benchmark):
-
     r"""
     Vincent objective function.
 

@@ -1,14 +1,14 @@
 import colorsys
-import numpy as np
+
 import matplotlib as mpl
-
-import pytest
+import numpy as np
 import numpy.testing as npt
+import pytest
 
+from .. import palettes, rcmod, utils
 from .._compat import get_colormap
-from ..colors import xkcd_rgb, crayons
+from ..colors import crayons, xkcd_rgb
 from ..external import husl
-from .. import palettes, utils, rcmod
 
 
 class TestColorPalettes:
@@ -78,7 +78,7 @@ class TestColorPalettes:
 
         cmap1 = palettes.hls_palette(as_cmap=True)
         cmap2 = palettes.color_palette("hls", as_cmap=True)
-        npt.assert_array_equal(cmap1([.2, .8]), cmap2([.2, .8]))
+        npt.assert_array_equal(cmap1([0.2, 0.8]), cmap2([0.2, 0.8]))
 
     def test_husl_palette(self):
 
@@ -88,7 +88,7 @@ class TestColorPalettes:
 
         cmap1 = palettes.husl_palette(as_cmap=True)
         cmap2 = palettes.color_palette("husl", as_cmap=True)
-        npt.assert_array_equal(cmap1([.2, .8]), cmap2([.2, .8]))
+        npt.assert_array_equal(cmap1([0.2, 0.8]), cmap2([0.2, 0.8]))
 
     def test_mpl_palette(self):
 
@@ -131,8 +131,8 @@ class TestColorPalettes:
     def test_palette_desat(self):
 
         pal1 = palettes.husl_palette(6)
-        pal1 = [utils.desaturate(c, .5) for c in pal1]
-        pal2 = palettes.color_palette("husl", desat=.5)
+        pal1 = [utils.desaturate(c, 0.5) for c in pal1]
+        pal2 = palettes.color_palette("husl", desat=0.5)
         npt.assert_array_equal(pal1, pal2)
 
     def test_palette_is_list_of_tuples(self):
@@ -154,36 +154,32 @@ class TestColorPalettes:
     def test_hls_values(self):
 
         pal1 = palettes.hls_palette(6, h=0)
-        pal2 = palettes.hls_palette(6, h=.5)
+        pal2 = palettes.hls_palette(6, h=0.5)
         pal2 = pal2[3:] + pal2[:3]
         npt.assert_array_almost_equal(pal1, pal2)
 
-        pal_dark = palettes.hls_palette(5, l=.2)  # noqa
-        pal_bright = palettes.hls_palette(5, l=.8)  # noqa
-        npt.assert_array_less(list(map(sum, pal_dark)),
-                              list(map(sum, pal_bright)))
+        pal_dark = palettes.hls_palette(5, l=0.2)  # noqa
+        pal_bright = palettes.hls_palette(5, l=0.8)  # noqa
+        npt.assert_array_less(list(map(sum, pal_dark)), list(map(sum, pal_bright)))
 
-        pal_flat = palettes.hls_palette(5, s=.1)
-        pal_bold = palettes.hls_palette(5, s=.9)
-        npt.assert_array_less(list(map(np.std, pal_flat)),
-                              list(map(np.std, pal_bold)))
+        pal_flat = palettes.hls_palette(5, s=0.1)
+        pal_bold = palettes.hls_palette(5, s=0.9)
+        npt.assert_array_less(list(map(np.std, pal_flat)), list(map(np.std, pal_bold)))
 
     def test_husl_values(self):
 
         pal1 = palettes.husl_palette(6, h=0)
-        pal2 = palettes.husl_palette(6, h=.5)
+        pal2 = palettes.husl_palette(6, h=0.5)
         pal2 = pal2[3:] + pal2[:3]
         npt.assert_array_almost_equal(pal1, pal2)
 
-        pal_dark = palettes.husl_palette(5, l=.2)  # noqa
-        pal_bright = palettes.husl_palette(5, l=.8)  # noqa
-        npt.assert_array_less(list(map(sum, pal_dark)),
-                              list(map(sum, pal_bright)))
+        pal_dark = palettes.husl_palette(5, l=0.2)  # noqa
+        pal_bright = palettes.husl_palette(5, l=0.8)  # noqa
+        npt.assert_array_less(list(map(sum, pal_dark)), list(map(sum, pal_bright)))
 
-        pal_flat = palettes.husl_palette(5, s=.1)
-        pal_bold = palettes.husl_palette(5, s=.9)
-        npt.assert_array_less(list(map(np.std, pal_flat)),
-                              list(map(np.std, pal_bold)))
+        pal_flat = palettes.husl_palette(5, s=0.1)
+        pal_bold = palettes.husl_palette(5, s=0.9)
+        npt.assert_array_less(list(map(np.std, pal_flat)), list(map(np.std, pal_bold)))
 
     def test_cbrewer_qual(self):
 
@@ -203,7 +199,7 @@ class TestColorPalettes:
 
     def test_rgb_from_hls(self):
 
-        color = .5, .8, .4
+        color = 0.5, 0.8, 0.4
         rgb_got = palettes._color_to_rgb(color, "hls")
         rgb_want = colorsys.hls_to_rgb(*color)
         assert rgb_got == rgb_want
@@ -248,11 +244,11 @@ class TestColorPalettes:
         assert isinstance(pal_cmap, mpl.colors.LinearSegmentedColormap)
 
         pal_cmap_from_string = palettes.color_palette("light:blue", as_cmap=True)
-        assert pal_cmap(.8) == pal_cmap_from_string(.8)
+        assert pal_cmap(0.8) == pal_cmap_from_string(0.8)
 
         pal_cmap = palettes.light_palette("blue", as_cmap=True, reverse=True)
         pal_cmap_from_string = palettes.color_palette("light:blue_r", as_cmap=True)
-        assert pal_cmap(.8) == pal_cmap_from_string(.8)
+        assert pal_cmap(0.8) == pal_cmap_from_string(0.8)
 
     def test_dark_palette(self):
 
@@ -274,11 +270,11 @@ class TestColorPalettes:
         assert isinstance(pal_cmap, mpl.colors.LinearSegmentedColormap)
 
         pal_cmap_from_string = palettes.color_palette("dark:blue", as_cmap=True)
-        assert pal_cmap(.8) == pal_cmap_from_string(.8)
+        assert pal_cmap(0.8) == pal_cmap_from_string(0.8)
 
         pal_cmap = palettes.dark_palette("blue", as_cmap=True, reverse=True)
         pal_cmap_from_string = palettes.color_palette("dark:blue_r", as_cmap=True)
-        assert pal_cmap(.8) == pal_cmap_from_string(.8)
+        assert pal_cmap(0.8) == pal_cmap_from_string(0.8)
 
     def test_diverging_palette(self):
 
@@ -288,10 +284,8 @@ class TestColorPalettes:
 
         n = 12
         pal = palettes.diverging_palette(*args, n=n)
-        neg_pal = palettes.light_palette((h_neg, sat, lum), int(n // 2),
-                                         input="husl")
-        pos_pal = palettes.light_palette((h_pos, sat, lum), int(n // 2),
-                                         input="husl")
+        neg_pal = palettes.light_palette((h_neg, sat, lum), int(n // 2), input="husl")
+        pos_pal = palettes.light_palette((h_pos, sat, lum), int(n // 2), input="husl")
         assert len(pal) == n
         assert pal[0] == neg_pal[-1]
         assert pal[-1] == pos_pal[-1]
@@ -319,8 +313,9 @@ class TestColorPalettes:
         x = np.linspace(0, 1, 8)
         mpl_pal = mpl.cm.cubehelix(x)[:, :3].tolist()
 
-        sns_pal = palettes.cubehelix_palette(8, start=0.5, rot=-1.5, hue=1,
-                                             dark=0, light=1, reverse=True)
+        sns_pal = palettes.cubehelix_palette(
+            8, start=0.5, rot=-1.5, hue=1, dark=0, light=1, reverse=True
+        )
 
         assert sns_pal == mpl_pal
 
@@ -360,11 +355,11 @@ class TestColorPalettes:
         assert pal1 == pal2
 
         pal1 = color_palette("ch:.5, -.25,hue = .5,light=.75", 8)
-        pal2 = color_palette(cubehelix_palette(8, .5, -.25, hue=.5, light=.75))
+        pal2 = color_palette(cubehelix_palette(8, 0.5, -0.25, hue=0.5, light=0.75))
         assert pal1 == pal2
 
         pal1 = color_palette("ch:h=1,r=.5", 9)
-        pal2 = color_palette(cubehelix_palette(9, hue=1, rot=.5))
+        pal2 = color_palette(cubehelix_palette(9, hue=1, rot=0.5))
         assert pal1 == pal2
 
         pal1 = color_palette("ch:_r", 6)
@@ -373,7 +368,7 @@ class TestColorPalettes:
 
         pal1 = color_palette("ch:_r", as_cmap=True)
         pal2 = cubehelix_palette(6, reverse=True, as_cmap=True)
-        assert pal1(.5) == pal2(.5)
+        assert pal1(0.5) == pal2(0.5)
 
     def test_xkcd_palette(self):
 

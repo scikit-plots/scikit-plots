@@ -16,14 +16,14 @@ cff-version: 1.2.0  {# The version of the CFF format used. #}
 message: "{{ message | trim }}"  {# Optional message to users. #}
 authors:  {# Authors and contributors of the software project. #}
 - family-names: "{{ author | trim }}"
-  {#- given-names: "{{ given_names | trim }}" -#} 
+  {#- given-names: "{{ given_names | trim }}" -#}
   {#- orcid: "{{ orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
   {#- affiliation: "{{ affiliation | trim }}" -#}  {#- Optional, but recommended, Contributor Organization. #}
 title: "{{ title | trim }}"  {# The name of your software. #}
 version: "{{ version | trim }}"  {# The current version of your software. #}
 doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
 date-released: {{ date_released | trim }}  {# Date when this version was released. #}
-url:  "{{ url | trim }}"
+url:  "{{ doc_url | trim }}"
 preferred-citation:
   type: {{ type | trim }}
   authors:  {# Authors and contributors of the software project. #}
@@ -32,7 +32,7 @@ preferred-citation:
   version: "{{ version | trim }}"  {# The current version of your software. #}
   doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
   date-released: {{ date_released | trim }}  {# Date when this version was released. #}
-  url:  "{{ url | trim }}"
+  url:  "{{ doc_url | trim }}"
 
 {#-
 # Optionally, add references to any related articles or papers
@@ -55,7 +55,7 @@ preferred-citation:
 #       name: IEEE Computer Society
 #       website: ''
 #     abstract: ''
-# 
+#
 #   - type: book
 #     authors:
 #       - family-names: AuthorLastName

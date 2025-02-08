@@ -1,11 +1,11 @@
-from pytest import raises as assert_raises
-from numpy.testing import assert_
-
-import time
 import threading
+import time
 import traceback
 
-from .._threadsafety import ReentrancyLock, non_reentrant, ReentrancyError
+from numpy.testing import assert_
+from pytest import raises as assert_raises
+
+from .._threadsafety import ReentrancyError, ReentrancyLock, non_reentrant
 
 
 def test_parallel_threads():
@@ -30,8 +30,7 @@ def test_parallel_threads():
         except Exception:
             exceptions_raised.append(traceback.format_exc(2))
 
-    threads = [threading.Thread(target=lambda k=k: worker(k))
-               for k in range(3)]
+    threads = [threading.Thread(target=lambda k=k: worker(k)) for k in range(3)]
     for t in threads:
         t.start()
     for t in threads:

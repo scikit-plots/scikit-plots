@@ -235,7 +235,7 @@ configure_file(
 _root_cython_tree = [
   fs.copyfile('__init__.py'),       # Ensure __init__.py is copied early
   fs.copyfile('experimental.pxd'),  # Cython definition file for C/C++ code
-  
+
   # Pure Python types.
   fs.copyfile('__init__.pyi'),
   fs.copyfile('_c_internal_utils.pyi'),

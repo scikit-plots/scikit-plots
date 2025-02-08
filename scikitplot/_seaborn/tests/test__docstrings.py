@@ -1,6 +1,5 @@
 from .._docstrings import DocstringComponents
 
-
 EXAMPLE_DICT = dict(
     param_a="""
 a : str
@@ -52,7 +51,5 @@ class TestDocstringComponents:
 
     def test_from_method(self):
 
-        obj = DocstringComponents.from_function_params(
-            ExampleClass.example_method
-        )
+        obj = DocstringComponents.from_function_params(ExampleClass.example_method)
         assert obj.a == "a : str\n    A method parameter."

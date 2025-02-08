@@ -22,19 +22,19 @@ Let's start with a basic example where we use a Random Forest classifier to eval
 
 A common way to assess a classifier's performance is through its confusion matrix. Here’s how we can do it:
 
-1. **Load the Dataset**: 
+1. **Load the Dataset**:
    We'll use the digits dataset, which contains features and labels for classification.
-   
-2. **Initialize the Classifier**: 
+
+2. **Initialize the Classifier**:
    Create a :class:`~sklearn.ensemble.RandomForestClassifier` with specified parameters.
-   
-3. **Generate Predictions**: 
+
+3. **Generate Predictions**:
    Use :func:`~sklearn.model_selection.cross_val_predict` to obtain predicted labels through cross-validation. This function provides cross-validated estimates for each sample point, which helps in evaluating metrics like accuracy, precision, recall, and the confusion matrix.
 
-4. **Plot the Confusion Matrix**: 
+4. **Plot the Confusion Matrix**:
    Use :py:func:`~scikitplot.api.metrics.plot_classifier_eval` to visualize the confusion matrix.
 
-5. **Display the Plot**: 
+5. **Display the Plot**:
    Optionally, use :py:func:`~matplotlib.pyplot.show` to display the plot.
 
 Here’s the code to illustrate the process:

@@ -5,7 +5,7 @@ Community management guide
 ==========================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 These guidelines are applicable when **acting as a representative** of Matplotlib,

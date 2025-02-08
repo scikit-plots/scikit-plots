@@ -5,7 +5,7 @@ Dependency version policy
 =========================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 For the purpose of this document, 'minor version' is in the sense of SemVer

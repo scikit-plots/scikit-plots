@@ -1,7 +1,8 @@
-import pytest
-import sys
 import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
+
+import pytest
 
 from .test_public_api import PUBLIC_MODULES
 
@@ -9,9 +10,11 @@ from .test_public_api import PUBLIC_MODULES
 # Check that all modules are importable in a new Python process.
 # This is not necessarily true if there are import cycles present.
 
+
 def import_module(module):
-    with subprocess.Popen([sys.executable, '-c', f'import {module}']) as process:
+    with subprocess.Popen([sys.executable, "-c", f"import {module}"]) as process:
         return module, process.wait()
+
 
 @pytest.mark.fail_slow(99)  # 99s
 @pytest.mark.slow

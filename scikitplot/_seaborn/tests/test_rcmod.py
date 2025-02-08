@@ -1,10 +1,10 @@
-import pytest
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
 import numpy.testing as npt
+import pytest
 
-from .. import rcmod, palettes, utils
+from .. import palettes, rcmod, utils
 
 
 def has_verdana():
@@ -13,16 +13,16 @@ def has_verdana():
     # testing other tests in this module not requiring this knowledge,
     # import font_manager here
     import matplotlib.font_manager as mplfm
+
     try:
-        verdana_font = mplfm.findfont('Verdana', fallback_to_default=False)
+        verdana_font = mplfm.findfont("Verdana", fallback_to_default=False)
     except:  # noqa
         # if https://github.com/matplotlib/matplotlib/pull/3435
         # gets accepted
         return False
     # otherwise check if not matching the logic for a 'default' one
     try:
-        unlikely_font = mplfm.findfont("very_unlikely_to_exist1234",
-                                       fallback_to_default=False)
+        unlikely_font = mplfm.findfont("very_unlikely_to_exist1234", fallback_to_default=False)
     except:  # noqa
         # if matched verdana but not unlikely, Verdana must exist
         return True
@@ -118,6 +118,7 @@ class TestAxesStyle(RCParamFixtures):
         @rcmod.axes_style("whitegrid")
         def func():
             self.assert_rc_params(context_params)
+
         func()
         self.assert_rc_params(orig_params)
 
@@ -208,9 +209,12 @@ class TestPlottingContext(RCParamFixtures):
 
         font_keys = [
             "font.size",
-            "axes.labelsize", "axes.titlesize",
-            "xtick.labelsize", "ytick.labelsize",
-            "legend.fontsize", "legend.title_fontsize",
+            "axes.labelsize",
+            "axes.titlesize",
+            "xtick.labelsize",
+            "ytick.labelsize",
+            "legend.fontsize",
+            "legend.title_fontsize",
         ]
 
         for k in font_keys:
@@ -245,6 +249,7 @@ class TestPlottingContext(RCParamFixtures):
         @rcmod.plotting_context("paper")
         def func():
             self.assert_rc_params(context_params)
+
         func()
         self.assert_rc_params(orig_params)
 
@@ -265,9 +270,7 @@ class TestPalette(RCParamFixtures):
         rcmod.set_palette("Set2", color_codes=True)
         assert utils.get_color_cycle() == palettes.color_palette("Set2", 8)
 
-        assert mpl.colors.same_color(
-            mpl.rcParams["patch.facecolor"], palettes.color_palette()[0]
-        )
+        assert mpl.colors.same_color(mpl.rcParams["patch.facecolor"], palettes.color_palette()[0])
 
 
 class TestFonts(RCParamFixtures):

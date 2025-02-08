@@ -1,14 +1,11 @@
-
 import numpy as np
 import pandas as pd
-from matplotlib.colors import to_rgba, to_rgba_array
-
 import pytest
+from matplotlib.colors import to_rgba, to_rgba_array
 from numpy.testing import assert_array_equal
 
-from ..bar import Bar, Bars
-
 from ..._core.plot import Plot
+from ..bar import Bar, Bars
 
 
 class TestBar:
@@ -30,7 +27,7 @@ class TestBar:
 
         x = ["a", "b"]
         y = [1, 2]
-        w = .8
+        w = 0.8
         bars = self.plot_bars({"x": x, "y": y}, {}, {})
         for i, bar in enumerate(bars):
             self.check_bar(bar, i - w / 2, 0, w, y[i])
@@ -39,7 +36,7 @@ class TestBar:
 
         x = [1, 2]
         y = ["a", "b"]
-        w = .8
+        w = 0.8
         bars = self.plot_bars({"x": x, "y": y}, {}, {})
         for i, bar in enumerate(bars):
             self.check_bar(bar, 0, i - w / 2, x[i], w)
@@ -48,7 +45,7 @@ class TestBar:
 
         x = [1, 2]
         y = [3, 4]
-        w = .8
+        w = 0.8
         bars = self.plot_bars({"x": x, "y": y}, {}, {})
         for i, bar in enumerate(bars):
             self.check_bar(bar, x[i] - w / 2, 0, w, y[i])
@@ -57,7 +54,7 @@ class TestBar:
 
         x = [1, 2]
         y = [3, 4]
-        w = .8
+        w = 0.8
         bars = self.plot_bars({"x": x, "y": y}, {}, {"orient": "h"})
         for i, bar in enumerate(bars):
             self.check_bar(bar, 0, y[i] - w / 2, x[i], w)
@@ -69,9 +66,9 @@ class TestBar:
 
         mark = Bar(
             color=".8",
-            alpha=.5,
+            alpha=0.5,
             edgecolor=".3",
-            edgealpha=.9,
+            edgealpha=0.9,
             edgestyle=(2, 1),
             edgewidth=1.5,
         )
@@ -90,7 +87,7 @@ class TestBar:
 
         x = ["a", "b"]
         y = [1, 2]
-        mark = Bar(alpha=.2)
+        mark = Bar(alpha=0.2)
         p = Plot(x, y, color=x, edgewidth=y).add(mark).plot()
         ax = p._figure.axes[0]
         colors = p._theme["axes.prop_cycle"].by_key()["color"]
@@ -134,8 +131,8 @@ class TestBars:
         assert len(paths) == len(x)
         for i, path in enumerate(paths):
             verts = path.vertices
-            assert verts[0, 0] == pytest.approx(x[i] - .5)
-            assert verts[1, 0] == pytest.approx(x[i] + .5)
+            assert verts[0, 0] == pytest.approx(x[i] - 0.5)
+            assert verts[1, 0] == pytest.approx(x[i] + 0.5)
             assert verts[0, 1] == 0
             assert verts[3, 1] == y[i]
 
@@ -147,24 +144,24 @@ class TestBars:
         assert len(paths) == len(x)
         for i, path in enumerate(paths):
             verts = path.vertices
-            assert verts[0, 1] == pytest.approx(x[i] - .5)
-            assert verts[3, 1] == pytest.approx(x[i] + .5)
+            assert verts[0, 1] == pytest.approx(x[i] - 0.5)
+            assert verts[3, 1] == pytest.approx(x[i] + 0.5)
             assert verts[0, 0] == 0
             assert verts[1, 0] == y[i]
 
     def test_width(self, x, y):
 
-        p = Plot(x, y).add(Bars(width=.4)).plot()
+        p = Plot(x, y).add(Bars(width=0.4)).plot()
         ax = p._figure.axes[0]
         paths = ax.collections[0].get_paths()
         for i, path in enumerate(paths):
             verts = path.vertices
-            assert verts[0, 0] == pytest.approx(x[i] - .2)
-            assert verts[1, 0] == pytest.approx(x[i] + .2)
+            assert verts[0, 0] == pytest.approx(x[i] - 0.2)
+            assert verts[1, 0] == pytest.approx(x[i] + 0.2)
 
     def test_mapped_color_direct_alpha(self, x, y, color):
 
-        alpha = .5
+        alpha = 0.5
         p = Plot(x, y, color=color).add(Bars(alpha=alpha)).plot()
         ax = p._figure.axes[0]
         fcs = ax.collections[0].get_facecolors()

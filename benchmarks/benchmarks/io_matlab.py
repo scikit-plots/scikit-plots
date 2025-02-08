@@ -1,19 +1,18 @@
-from .common import set_mem_rlimit, run_monitored, get_mem_info
-
 import os
 import tempfile
 from io import BytesIO
 
 import numpy as np
-from .common import Benchmark, safe_import
+
+from .common import Benchmark, get_mem_info, run_monitored, safe_import, set_mem_rlimit
 
 with safe_import():
-    from scipy.io import savemat, loadmat
+    from scipy.io import loadmat, savemat
 
 
 class MemUsage(Benchmark):
-    param_names = ['size', 'compressed']
-    timeout = 4*60
+    param_names = ["size", "compressed"]
+    timeout = 4 * 60
     unit = "actual/optimal memory usage ratio"
 
     @property
@@ -22,10 +21,10 @@ class MemUsage(Benchmark):
 
     def _get_sizes(self):
         sizes = {
-            '1M': 1e6,
-            '10M': 10e6,
-            '100M': 100e6,
-            '300M': 300e6,
+            "1M": 1e6,
+            "10M": 10e6,
+            "100M": 100e6,
+            "300M": 300e6,
             # '500M': 500e6,
             # '1000M': 1000e6,
         }
@@ -38,17 +37,17 @@ class MemUsage(Benchmark):
 
         mem_info = get_mem_info()
         try:
-            mem_available = mem_info['memavailable']
+            mem_available = mem_info["memavailable"]
         except KeyError:
-            mem_available = mem_info['memtotal']
+            mem_available = mem_info["memtotal"]
 
-        max_size = int(mem_available * 0.7)//4
+        max_size = int(mem_available * 0.7) // 4
 
         if size > max_size:
             raise NotImplementedError()
 
         # Setup temp file
-        f = tempfile.NamedTemporaryFile(delete=False, suffix='.mat')
+        f = tempfile.NamedTemporaryFile(delete=False, suffix=".mat")
         f.close()
         self.filename = f.name
 
@@ -58,8 +57,8 @@ class MemUsage(Benchmark):
     def track_loadmat(self, size, compressed):
         size = int(self.sizes[size])
 
-        x = np.random.rand(size//8).view(dtype=np.uint8)
-        savemat(self.filename, dict(x=x), do_compression=compressed, oned_as='row')
+        x = np.random.rand(size // 8).view(dtype=np.uint8)
+        savemat(self.filename, dict(x=x), do_compression=compressed, oned_as="row")
         del x
 
         code = f"""
@@ -78,24 +77,25 @@ class MemUsage(Benchmark):
         from scipy.io import savemat
         x = np.random.rand(%d//8).view(dtype=np.uint8)
         savemat('%s', dict(x=x), do_compression=%r, oned_as='row')
-        """ % (size, self.filename, compressed)
+        """ % (
+            size,
+            self.filename,
+            compressed,
+        )
         time, peak_mem = run_monitored(code)
         return peak_mem / size
 
 
 class StructArr(Benchmark):
-    params = [
-        [(10, 10, 20), (20, 20, 40), (30, 30, 50)],
-        [False, True]
-    ]
-    param_names = ['(vars, fields, structs)', 'compression']
+    params = [[(10, 10, 20), (20, 20, 40), (30, 30, 50)], [False, True]]
+    param_names = ["(vars, fields, structs)", "compression"]
 
     @staticmethod
     def make_structarr(n_vars, n_fields, n_structs):
         var_dict = {}
         for vno in range(n_vars):
-            vname = 'var%00d' % vno
-            end_dtype = [('f%d' % d, 'i4', 10) for d in range(n_fields)]
+            vname = "var%00d" % vno
+            end_dtype = [("f%d" % d, "i4", 10) for d in range(n_fields)]
             s_arrs = np.zeros((n_structs,), dtype=end_dtype)
             var_dict[vname] = s_arrs
         return var_dict

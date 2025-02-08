@@ -1,21 +1,21 @@
-from numpy.testing import assert_equal, assert_
-from pytest import raises as assert_raises
-
-import time
-import pytest
 import ctypes
 import threading
+import time
+
+import pytest
+from numpy.testing import assert_, assert_equal
+from pytest import raises as assert_raises
 
 try:
     import cffi
+
     HAVE_CFFI = True
 except ImportError:
     HAVE_CFFI = False
 
 from .. import _ccallback_c as _test_ccallback_cython
-from .._ccallback import LowLevelCallable
 from .. import _test_ccallback
-
+from .._ccallback import LowLevelCallable
 
 ERROR_VALUE = 2.0
 
@@ -28,6 +28,7 @@ def callback_python(a, user_data=None):
         return a + 1
     else:
         return a + user_data
+
 
 def _get_cffi_func(base, signature):
     if not HAVE_CFFI:
@@ -52,49 +53,47 @@ def _get_cffi_data():
     if not HAVE_CFFI:
         pytest.skip("cffi not installed")
     ffi = cffi.FFI()
-    return ffi.new('double *', 2.0)
+    return ffi.new("double *", 2.0)
 
 
 CALLERS = {
-    'simple': _test_ccallback.test_call_simple,
-    'nodata': _test_ccallback.test_call_nodata,
-    'nonlocal': _test_ccallback.test_call_nonlocal,
-    'cython': _test_ccallback_cython.test_call_cython,
+    "simple": _test_ccallback.test_call_simple,
+    "nodata": _test_ccallback.test_call_nodata,
+    "nonlocal": _test_ccallback.test_call_nonlocal,
+    "cython": _test_ccallback_cython.test_call_cython,
 }
 
 # These functions have signatures known to the callers
 FUNCS = {
-    'python': lambda: callback_python,
-    'capsule': lambda: _test_ccallback.test_get_plus1_capsule(),
-    'cython': lambda: LowLevelCallable.from_cython(_test_ccallback_cython,
-                                                   "plus1_cython"),
-    'ctypes': lambda: _test_ccallback_cython.plus1_ctypes,
-    'cffi': lambda: _get_cffi_func(_test_ccallback_cython.plus1_ctypes,
-                                   'double (*)(double, int *, void *)'),
-    'capsule_b': lambda: _test_ccallback.test_get_plus1b_capsule(),
-    'cython_b': lambda: LowLevelCallable.from_cython(_test_ccallback_cython,
-                                                     "plus1b_cython"),
-    'ctypes_b': lambda: _test_ccallback_cython.plus1b_ctypes,
-    'cffi_b': lambda: _get_cffi_func(_test_ccallback_cython.plus1b_ctypes,
-                                     'double (*)(double, double, int *, void *)'),
+    "python": lambda: callback_python,
+    "capsule": lambda: _test_ccallback.test_get_plus1_capsule(),
+    "cython": lambda: LowLevelCallable.from_cython(_test_ccallback_cython, "plus1_cython"),
+    "ctypes": lambda: _test_ccallback_cython.plus1_ctypes,
+    "cffi": lambda: _get_cffi_func(
+        _test_ccallback_cython.plus1_ctypes, "double (*)(double, int *, void *)"
+    ),
+    "capsule_b": lambda: _test_ccallback.test_get_plus1b_capsule(),
+    "cython_b": lambda: LowLevelCallable.from_cython(_test_ccallback_cython, "plus1b_cython"),
+    "ctypes_b": lambda: _test_ccallback_cython.plus1b_ctypes,
+    "cffi_b": lambda: _get_cffi_func(
+        _test_ccallback_cython.plus1b_ctypes, "double (*)(double, double, int *, void *)"
+    ),
 }
 
 # These functions have signatures the callers don't know
 BAD_FUNCS = {
-    'capsule_bc': lambda: _test_ccallback.test_get_plus1bc_capsule(),
-    'cython_bc': lambda: LowLevelCallable.from_cython(_test_ccallback_cython,
-                                                      "plus1bc_cython"),
-    'ctypes_bc': lambda: _test_ccallback_cython.plus1bc_ctypes,
-    'cffi_bc': lambda: _get_cffi_func(
-        _test_ccallback_cython.plus1bc_ctypes,
-        'double (*)(double, double, double, int *, void *)'
+    "capsule_bc": lambda: _test_ccallback.test_get_plus1bc_capsule(),
+    "cython_bc": lambda: LowLevelCallable.from_cython(_test_ccallback_cython, "plus1bc_cython"),
+    "ctypes_bc": lambda: _test_ccallback_cython.plus1bc_ctypes,
+    "cffi_bc": lambda: _get_cffi_func(
+        _test_ccallback_cython.plus1bc_ctypes, "double (*)(double, double, double, int *, void *)"
     ),
 }
 
 USER_DATAS = {
-    'ctypes': _get_ctypes_data,
-    'cffi': _get_cffi_data,
-    'capsule': _test_ccallback.test_get_data_capsule,
+    "ctypes": _get_ctypes_data,
+    "cffi": _get_cffi_data,
+    "capsule": _test_ccallback.test_get_data_capsule,
 }
 
 
@@ -105,8 +104,10 @@ def test_callbacks():
         user_data = USER_DATAS[user_data]()
 
         if func is callback_python:
+
             def func2(x):
                 return func(x, 2.0)
+
         else:
             func2 = LowLevelCallable(func, user_data)
             func = LowLevelCallable(func)
@@ -133,8 +134,10 @@ def test_bad_callbacks():
         func = BAD_FUNCS[func]()
 
         if func is callback_python:
+
             def func2(x):
                 return func(x, 2.0)
+
         else:
             func2 = LowLevelCallable(func, user_data)
             func = LowLevelCallable(func)
@@ -152,7 +155,7 @@ def test_bad_callbacks():
         except ValueError as err:
             msg = str(err)
             assert_(llfunc.signature in msg, msg)
-            assert_('double (double, double, int *, void *)' in msg, msg)
+            assert_("double (double, double, int *, void *)" in msg, msg)
 
     for caller in sorted(CALLERS.keys()):
         for func in sorted(BAD_FUNCS.keys()):
@@ -179,7 +182,7 @@ def test_threadsafety():
             return 1
         else:
             res = caller(lambda x: callback(x, caller), a - 1)
-            return 2*res
+            return 2 * res
 
     def check(caller):
         caller = CALLERS[caller]
@@ -199,7 +202,7 @@ def test_threadsafety():
         for thread in threads:
             thread.join()
 
-        assert_equal(results, [2.0**count]*len(threads))
+        assert_equal(results, [2.0**count] * len(threads))
 
     for caller in CALLERS.keys():
         check(caller)

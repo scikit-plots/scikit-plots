@@ -3,7 +3,7 @@
 .. _xp_core_lib-index:
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to Scikit-learn.
 
 .. _array_api-index:

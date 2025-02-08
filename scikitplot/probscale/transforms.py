@@ -2,12 +2,13 @@ import numpy
 from matplotlib.transforms import Transform
 
 __all__ = [
-  '_mask_out_of_bounds',
-  '_clip_out_of_bounds',
-  '_ProbTransformMixin',
-  'ProbTransform',
-  'QuantileTransform',
+    "_mask_out_of_bounds",
+    "_clip_out_of_bounds",
+    "_ProbTransformMixin",
+    "ProbTransform",
+    "QuantileTransform",
 ]
+
 
 def _mask_out_of_bounds(a):
     """
@@ -92,9 +93,7 @@ class ProbTransform(_ProbTransformMixin):
         return q
 
     def inverted(self):
-        return QuantileTransform(
-            self.dist, as_pct=self.as_pct, out_of_bounds=self.out_of_bounds
-        )
+        return QuantileTransform(self.dist, as_pct=self.as_pct, out_of_bounds=self.out_of_bounds)
 
 
 class QuantileTransform(_ProbTransformMixin):
@@ -124,6 +123,4 @@ class QuantileTransform(_ProbTransformMixin):
         return prob
 
     def inverted(self):
-        return ProbTransform(
-            self.dist, as_pct=self.as_pct, out_of_bounds=self.out_of_bounds
-        )
+        return ProbTransform(self.dist, as_pct=self.as_pct, out_of_bounds=self.out_of_bounds)

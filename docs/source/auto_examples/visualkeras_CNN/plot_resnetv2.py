@@ -5,12 +5,16 @@ visualkeras ResNetV2 example
 An example showing the :py:func:`~scikitplot.visualkeras` function
 used by a :py:class:`~tensorflow.keras.Model` model.
 """
+
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Force garbage collection
-import gc; gc.collect()
+import gc
+
+gc.collect()
 import tensorflow as tf
+
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
 
@@ -27,15 +31,16 @@ model = tf.keras.applications.ResNet50V2(
     name="resnet50v2",
 )
 img_resnet50v2 = visualkeras.layered_view(
-  model,
-  legend=True,
-  show_dimension=True,
-  to_file='../result_images/resnet50v2.png',
+    model,
+    legend=True,
+    show_dimension=True,
+    to_file="../result_images/resnet50v2.png",
 )
 try:
     import matplotlib.pyplot as plt
+
     plt.imshow(img_resnet50v2)
-    plt.axis('off')
+    plt.axis("off")
     plt.show()
 except:
     pass

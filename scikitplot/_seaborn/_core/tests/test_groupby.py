@@ -1,7 +1,5 @@
-
 import numpy as np
 import pandas as pd
-
 import pytest
 from numpy.testing import assert_array_equal
 
@@ -14,12 +12,12 @@ def df():
     return pd.DataFrame(
         columns=["a", "b", "x", "y"],
         data=[
-            ["a", "g", 1, .2],
-            ["b", "h", 3, .5],
-            ["a", "f", 2, .8],
-            ["a", "h", 1, .3],
-            ["b", "f", 2, .4],
-        ]
+            ["a", "g", 1, 0.2],
+            ["b", "h", 3, 0.5],
+            ["a", "f", 2, 0.8],
+            ["a", "h", 1, 0.3],
+            ["b", "f", 2, 0.4],
+        ],
     )
 
 
@@ -52,7 +50,7 @@ def test_agg_one_grouper(df):
     assert_array_equal(res.index, [0, 1])
     assert_array_equal(res.columns, ["a", "y"])
     assert_array_equal(res["a"], ["a", "b"])
-    assert_array_equal(res["y"], [.8, .5])
+    assert_array_equal(res["y"], [0.8, 0.5])
 
 
 def test_agg_two_groupers(df):
@@ -62,7 +60,7 @@ def test_agg_two_groupers(df):
     assert_array_equal(res.columns, ["a", "x", "y"])
     assert_array_equal(res["a"], ["a", "a", "a", "b", "b", "b"])
     assert_array_equal(res["x"], [1, 2, 3, 1, 2, 3])
-    assert_array_equal(res["y"], [.2, .8, np.nan, np.nan, .4, .5])
+    assert_array_equal(res["y"], [0.2, 0.8, np.nan, np.nan, 0.4, 0.5])
 
 
 def test_agg_two_groupers_ordered(df):
@@ -77,7 +75,7 @@ def test_agg_two_groupers_ordered(df):
     T, F = True, False
     assert_array_equal(res["a"].isna(), [F, T, F, T, T, F, T, F, T])
     assert_array_equal(res["a"].dropna(), ["b", "a", "a", "a"])
-    assert_array_equal(res["y"].dropna(), [.5, .3, .2, .8])
+    assert_array_equal(res["y"].dropna(), [0.5, 0.3, 0.2, 0.8])
 
 
 def test_apply_no_grouper(df):
@@ -131,4 +129,4 @@ def test_apply_replace_columns(df):
     assert_array_equal(res.columns, ["a", "x", "z"])
     assert_array_equal(res["a"], ["a", "a", "a", "b", "b"])
     assert_array_equal(res["x"], [1, 1, 2, 2, 3])
-    assert_array_equal(res["z"], [.2, .5, 1.3, .4, .9])
+    assert_array_equal(res["z"], [0.2, 0.5, 1.3, 0.4, 0.9])

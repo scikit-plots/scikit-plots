@@ -1,24 +1,20 @@
 import unittest
 
 from ..utils import (
-  get_rgba_tuple,
-  self_multiply,
-  get_keys_by_value,
-  fade_color,
+    fade_color,
+    get_keys_by_value,
+    get_rgba_tuple,
+    self_multiply,
 )
 
 
 class UtilMethods(unittest.TestCase):
 
     def test_get_keys_by_value(self):
-        d = {
-            'a': 1,
-            'aa': 1,
-            'b': 2
-        }
+        d = {"a": 1, "aa": 1, "b": 2}
 
-        self.assertEqual(list(get_keys_by_value(d, 1)), ['a', 'aa'])
-        self.assertEqual(list(get_keys_by_value(d, 2)), ['b'])
+        self.assertEqual(list(get_keys_by_value(d, 1)), ["a", "aa"])
+        self.assertEqual(list(get_keys_by_value(d, 2)), ["b"])
         self.assertEqual(list(get_keys_by_value(d, 99)), [])
 
     def test_self_multiply(self):
@@ -41,7 +37,7 @@ class UtilMethods(unittest.TestCase):
         self.assertEqual(x, 0)
 
     def test_get_rgba_tuples_by_name(self):
-        x = get_rgba_tuple('red')
+        x = get_rgba_tuple("red")
         y = (255, 0, 0, 255)
         self.assertEqual(x, y)
 
@@ -86,5 +82,5 @@ class UtilMethods(unittest.TestCase):
         self.assertEqual(fade_color((0, 10, 30, 200), 20), (0, 0, 10, 200))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

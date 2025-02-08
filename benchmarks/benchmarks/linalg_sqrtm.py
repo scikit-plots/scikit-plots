@@ -1,6 +1,5 @@
-""" Benchmark linalg.sqrtm for various blocksizes.
+"""Benchmark linalg.sqrtm for various blocksizes."""
 
-"""
 import numpy as np
 
 from .common import Benchmark, safe_import
@@ -10,12 +9,8 @@ with safe_import():
 
 
 class Sqrtm(Benchmark):
-    params = [
-        ['float64', 'complex128'],
-        [64, 256],
-        [32, 64, 256]
-    ]
-    param_names = ['dtype', 'n', 'blocksize']
+    params = [["float64", "complex128"], [64, 256], [32, 64, 256]]
+    param_names = ["dtype", "n", "blocksize"]
 
     def setup(self, dtype, n, blocksize):
         n = int(n)
@@ -23,7 +18,7 @@ class Sqrtm(Benchmark):
         blocksize = int(blocksize)
         A = np.random.rand(n, n)
         if dtype == np.complex128:
-            A = A + 1j*np.random.rand(n, n)
+            A = A + 1j * np.random.rand(n, n)
         self.A = A
 
         if blocksize > n:

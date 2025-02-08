@@ -1,0 +1,14 @@
+exclude = [
+  "**/0yanked/",
+  "auto_building_tools",
+  "benchmarks",
+  "galleries/",
+  "docs/source/auto_examples",
+  "docs/source/jupyterlite_contents/auto_examples",
+  "scikitplot/",
+  "docs/source/introduction/quick_start.py",
+  "docs/source/introduction/quick_start_tf.py",
+  "docs/source/_sphinx_ext",
+  "docs/source/conf.py",
+  "dev.py",
+]

@@ -4,7 +4,7 @@ API guidelines
 ==============
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 API consistency and stability are of great value; Therefore, API changes
@@ -151,7 +151,7 @@ When adding or changing the API in a backward in-compatible way, please add the
 appropriate :ref:`versioning directive <versioning-directives>` and document it
 for the release notes and add the entry to the appropriate folder:
 
-.. 
+..
   +-------------------+-----------------------------+----------------------------------------------+
   |                   |   versioning directive      |  announcement folder                         |
   +===================+=============================+==============================================+
@@ -240,7 +240,7 @@ API change notes
 
 What's new notes
 """"""""""""""""
-..  
+..
     .. include:: ../users/next_whats_new/README.rst
       :start-after: whats-new-guide-start
       :end-before: whats-new-guide-end

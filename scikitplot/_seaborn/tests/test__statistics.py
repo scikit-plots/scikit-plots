@@ -7,17 +7,17 @@ except ImportError:
     smdist = None
 
 import pytest
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from .._statistics import (
-    KDE,
-    Histogram,
     ECDF,
+    KDE,
     EstimateAggregator,
+    Histogram,
     LetterValues,
     WeightedAggregator,
-    _validate_errorbar_arg,
     _no_scipy,
+    _validate_errorbar_arg,
 )
 
 
@@ -68,7 +68,7 @@ class TestKDE:
         assert support.max() == x.max()
 
         cut = 2
-        bw_scale = .5
+        bw_scale = 0.5
         bw = x.std() * bw_scale
         kde = KDE(cut=cut, bw_method=bw_scale, gridsize=1000)
         _, support = kde(x)
@@ -112,7 +112,7 @@ class TestKDE:
     def test_bw_method(self, rng):
 
         x = rng.normal(0, 3, 100)
-        kde1 = KDE(bw_method=.2)
+        kde1 = KDE(bw_method=0.2)
         kde2 = KDE(bw_method=2)
 
         d1, _ = kde1(x)
@@ -123,7 +123,7 @@ class TestKDE:
     def test_bw_adjust(self, rng):
 
         x = rng.normal(0, 3, 100)
-        kde1 = KDE(bw_adjust=.2)
+        kde1 = KDE(bw_adjust=0.2)
         kde2 = KDE(bw_adjust=2)
 
         d1, _ = kde1(x)
@@ -234,7 +234,7 @@ class TestHistogram(DistributionFixtures):
 
     def test_binwidth(self, x):
 
-        binwidth = .5
+        binwidth = 0.5
         h = Histogram(binwidth=binwidth)
         bin_kws = h.define_bin_params(x)
         n_bins = bin_kws["bins"]
@@ -243,7 +243,7 @@ class TestHistogram(DistributionFixtures):
 
     def test_bivariate_binwidth(self, x, y):
 
-        w1, w2 = .5, 1
+        w1, w2 = 0.5, 1
 
         h = Histogram(binwidth=w1)
         e1, e2 = h.define_bin_params(x, y)["bins"]
@@ -282,10 +282,10 @@ class TestHistogram(DistributionFixtures):
 
     def test_discrete_bins(self, rng):
 
-        x = rng.binomial(20, .5, 100)
+        x = rng.binomial(20, 0.5, 100)
         h = Histogram(discrete=True)
         bin_kws = h.define_bin_params(x)
-        assert bin_kws["range"] == (x.min() - .5, x.max() + .5)
+        assert bin_kws["range"] == (x.min() - 0.5, x.max() + 0.5)
         assert bin_kws["bins"] == (x.max() - x.min() + 1)
 
     def test_odd_single_observation(self):
@@ -293,7 +293,7 @@ class TestHistogram(DistributionFixtures):
         x = np.array([0.49928])
         h, e = Histogram(binwidth=0.03)(x)
         assert len(h) == 1
-        assert (e[1] - e[0]) == pytest.approx(.03)
+        assert (e[1] - e[0]) == pytest.approx(0.03)
 
     def test_binwidth_roundoff(self):
         # GH2785
@@ -704,12 +704,12 @@ class TestLetterValues:
 
     def test_trust_alpha(self, x):
 
-        res1 = LetterValues(k_depth="trustworthy", outlier_prop=0, trust_alpha=.1)(x)
-        res2 = LetterValues(k_depth="trustworthy", outlier_prop=0, trust_alpha=.001)(x)
+        res1 = LetterValues(k_depth="trustworthy", outlier_prop=0, trust_alpha=0.1)(x)
+        res2 = LetterValues(k_depth="trustworthy", outlier_prop=0, trust_alpha=0.001)(x)
         assert res1["k"] > res2["k"]
 
     def test_outlier_prop(self, x):
 
-        res1 = LetterValues(k_depth="proportion", outlier_prop=.001, trust_alpha=0)(x)
-        res2 = LetterValues(k_depth="proportion", outlier_prop=.1, trust_alpha=0)(x)
+        res1 = LetterValues(k_depth="proportion", outlier_prop=0.001, trust_alpha=0)(x)
+        res2 = LetterValues(k_depth="proportion", outlier_prop=0.1, trust_alpha=0)(x)
         assert res1["k"] > res2["k"]

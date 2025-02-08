@@ -11,56 +11,56 @@ This package/module is designed to be compatible with both Python 2 and Python 3
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-  division,         # Changes the division operator `/` to always perform true division.
-  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,  # Changes the division operator `/` to always perform true division.
+    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
-import warnings
-import numpy as np
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
 
 from .._utils.validation import (
-  validate_plotting_kwargs_decorator,
-  # validate_shapes_decorator,
-  # validate_y_true_decorator,
-  # validate_y_probas_decorator,
-  # validate_y_probas_bounds_decorator,
+    validate_plotting_kwargs_decorator,
+    # validate_shapes_decorator,
+    # validate_y_true_decorator,
+    # validate_y_probas_decorator,
+    # validate_y_probas_bounds_decorator,
 )
-
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all above func
 __all__ = [
-  'plot_pca_2d_projection',
+    "plot_pca_2d_projection",
 ]
 
 
 @validate_plotting_kwargs_decorator
 # @validate_y_true_decorator
 def plot_pca_2d_projection(
-  clf, 
-  X, 
-  y,
-  *,
-  biplot=False, 
-  feature_labels=None,
-  dimensions=[0, 1], 
-  label_dots=False,   
-  model_type = None, # 'PCA' or 'LDA'
-  ## plotting params
-  title='PCA 2-D Projection',
-  ax=None,
-  fig=None,
-  figsize=None,
-  title_fontsize="large",
-  text_fontsize="medium", 
-  cmap='nipy_spectral', # 'Spectral'
-  ## additional params
-  **kwargs,
+    clf,
+    X,
+    y,
+    *,
+    biplot=False,
+    feature_labels=None,
+    dimensions=[0, 1],
+    label_dots=False,
+    model_type=None,  # 'PCA' or 'LDA'
+    ## plotting params
+    title="PCA 2-D Projection",
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+    cmap="nipy_spectral",  # 'Spectral'
+    ## additional params
+    **kwargs,
 ):
     """
     Plots the 2-dimensional projection of PCA on a given dataset.
@@ -118,19 +118,19 @@ def plot_pca_2d_projection(
        :context: close-figs
        :align: center
        :alt: PCA 2D Projection
-    
+
         >>> from sklearn.decomposition import PCA
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> import scikitplot as skplt
         >>> X, y = data_3_classes(return_X_y=True, as_frame=True)
         >>> pca = PCA(random_state=0).fit(X)
         >>> skplt.decomposition.plot_pca_2d_projection(pca, X, y, biplot=True, feature_labels=X.columns.tolist());
-        
+
     .. plot::
        :context: close-figs
        :align: center
        :alt: LDA 2D Projection
-    
+
         >>> from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> import scikitplot as skplt
@@ -146,7 +146,7 @@ def plot_pca_2d_projection(
     # Get unique classes from y, preserving order of class occurence in y (pd.unique)
     _, class_indexes = np.unique(np.array(y), return_index=True)
     classes = np.array(y)[np.sort(class_indexes)]
-    
+
     ##################################################################
     ## Plotting
     ##################################################################
@@ -156,66 +156,81 @@ def plot_pca_2d_projection(
     # Proceed with your plotting logic here
     colors = plt.get_cmap(cmap)(np.linspace(0, 1, len(classes)))
     for label, color in zip(classes, colors):
-        ax.scatter(transformed_X[y == label, dimensions[0]], transformed_X[y == label, dimensions[1]],
-                   alpha=0.8, lw=2, label=label, color=color)
+        ax.scatter(
+            transformed_X[y == label, dimensions[0]],
+            transformed_X[y == label, dimensions[1]],
+            alpha=0.8,
+            lw=2,
+            label=label,
+            color=color,
+        )
 
         if label_dots:
             for dot in transformed_X[y == label][:, dimensions]:
                 ax.text(*dot, label)
 
     # PCA
-    if hasattr(clf, 'components_'):
+    if hasattr(clf, "components_"):
         # model_type = 'Principal Components' #'PCA'
-        model_type = 'PCA'
+        model_type = "PCA"
         components = clf.components_
     # LDA Scalings (Eigenvectors for transformation) (similar to PCA)
-    elif hasattr(clf, 'scalings_'):
-        model_type = 'LDA'
+    elif hasattr(clf, "scalings_"):
+        model_type = "LDA"
         components = clf.scalings_.T
-        components = (components - np.min(components)) / (np.max(components)-np.min(components))
+        components = (components - np.min(components)) / (np.max(components) - np.min(components))
     else:
         pass
     if biplot:
         xs = transformed_X[:, dimensions[0]]
-        ys = transformed_X[:, dimensions[1]]            
+        ys = transformed_X[:, dimensions[1]]
         vectors = np.transpose(components[dimensions, :])
         vectors_scaled = vectors * [xs.max(), ys.max()]
         for i in range(vectors.shape[0]):
-            ax.annotate("", xy=(vectors_scaled[i, dimensions[0]], vectors_scaled[i, dimensions[1]]),
-                        xycoords='data', xytext=(0, 0), textcoords='data',
-                        arrowprops={'arrowstyle': '-|>', 'ec': 'r'})
+            ax.annotate(
+                "",
+                xy=(vectors_scaled[i, dimensions[0]], vectors_scaled[i, dimensions[1]]),
+                xycoords="data",
+                xytext=(0, 0),
+                textcoords="data",
+                arrowprops={"arrowstyle": "-|>", "ec": "r"},
+            )
 
-            ax.text(vectors_scaled[i, 0] * 1.05, vectors_scaled[i, 1] * 1.05,
-                    feature_labels[i] if feature_labels else "Variable" + str(i),
-                    color='b', fontsize=text_fontsize)
+            ax.text(
+                vectors_scaled[i, 0] * 1.05,
+                vectors_scaled[i, 1] * 1.05,
+                feature_labels[i] if feature_labels else "Variable" + str(i),
+                color="b",
+                fontsize=text_fontsize,
+            )
 
     # Set title, labels, and formatting
-    ax.set_title(title.replace('PCA', model_type), fontsize=title_fontsize)
-    ax.set_xlabel(f'{model_type} Component {dimensions[0]+1}', fontsize=text_fontsize)
-    ax.set_ylabel(f'{model_type} Component {dimensions[1]+1}', fontsize=text_fontsize)
+    ax.set_title(title.replace("PCA", model_type), fontsize=title_fontsize)
+    ax.set_xlabel(f"{model_type} Component {dimensions[0]+1}", fontsize=text_fontsize)
+    ax.set_ylabel(f"{model_type} Component {dimensions[1]+1}", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
-    
+
     # ax.set_xlim([-0.02, ax.get_xlim()[1]])
     # ax.set_ylim([-0.01, 1.01])
 
     # Define the desired number of ticks
     num_ticks = 11
     # Set x-axis ticks and labels
-    ax.xaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False) )
-    ax.yaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False) )
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False))
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False))
     # ax.xaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
     # ax.yaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
-    
-    # Display legend    
+
+    # Display legend
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(
-            loc='best',
+            loc="best",
             shadow=False,
             scatterpoints=1,
             fontsize=text_fontsize,
-            title=f'Classes',
-            alignment='left',
+            title="Classes",
+            alignment="left",
         )
     # plt.tight_layout()
     return ax

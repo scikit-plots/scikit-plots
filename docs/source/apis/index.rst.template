@@ -24,7 +24,7 @@ reference on concepts repeated across the APIs, see :ref:`glossary-index`.
 .. list-table::
   :header-rows: 1
   :class: apis-search-table
-  
+
   * - Object
     - Description
 {%- for module, module_info in APIS_REFERENCE -%}
@@ -39,11 +39,11 @@ reference on concepts repeated across the APIs, see :ref:`glossary-index`.
 
   * - :obj:`~.{{ obj }}` {# * - :obj:`~{{ module }}.{{ obj }}` #}
     - .. div:: sk-apis-search-desc
-    
-        .. currentmodule:: {{ full_module }}    
-        .. autoshortsummary:: {{ module }}.{{ obj }}    
+
+        .. currentmodule:: {{ full_module }}
+        .. autoshortsummary:: {{ module }}.{{ obj }}
         .. div:: caption
-    
+
           :mod:`{{ full_module }}`
 {%- endfor -%}
 {%- endfor -%}
@@ -60,11 +60,11 @@ reference on concepts repeated across the APIs, see :ref:`glossary-index`.
 
   * - :obj:`~scikitplot.{{ obj }}`
     - .. div:: sk-apis-search-desc
-  
-        .. currentmodule:: {{ full_module }}  
-        .. autoshortsummary:: scikitplot.{{ obj }}  
+
+        .. currentmodule:: {{ full_module }}
+        .. autoshortsummary:: scikitplot.{{ obj }}
         .. div:: caption
-  
+
           :mod:`{{ full_module }}`
           :bdg-ref-danger-line:`Deprecated in version {{ ver }} <apis_depr_ref-{{ ver|replace(".", "-") }}>`
 {%- endfor -%}

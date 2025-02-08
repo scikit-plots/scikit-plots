@@ -1,11 +1,25 @@
-from numpy import (abs, asarray, cos, floor, arange, pi, prod, roll, sin,
-                   sqrt, sum, repeat, atleast_2d, tril)
+from numpy import (
+    abs,
+    arange,
+    asarray,
+    atleast_2d,
+    cos,
+    floor,
+    pi,
+    prod,
+    repeat,
+    roll,
+    sin,
+    sqrt,
+    sum,
+    tril,
+)
 from numpy.random import uniform
+
 from .go_benchmark import Benchmark
 
 
 class Salomon(Benchmark):
-
     r"""
     Salomon objective function.
 
@@ -30,8 +44,7 @@ class Salomon(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = [(-50, 50), (-50, 50)]
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
@@ -41,12 +54,11 @@ class Salomon(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        u = sqrt(sum(x ** 2))
+        u = sqrt(sum(x**2))
         return 1 - cos(2 * pi * u) + 0.1 * u
 
 
 class Sargan(Benchmark):
-
     r"""
     Sargan objective function.
 
@@ -72,8 +84,7 @@ class Sargan(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = [(-5, 5), (-5, 5)]
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
@@ -86,11 +97,10 @@ class Sargan(Benchmark):
         x0 = x[:-1]
         x1 = roll(x, -1)[:-1]
 
-        return sum(self.N * (x ** 2 + 0.4 * sum(x0 * x1)))
+        return sum(self.N * (x**2 + 0.4 * sum(x0 * x1)))
 
 
 class Schaffer01(Benchmark):
-
     r"""
     Schaffer 1 objective function.
 
@@ -115,8 +125,7 @@ class Schaffer01(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = [(-10, 10), (-10, 10)]
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
@@ -125,14 +134,13 @@ class Schaffer01(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        u = (x[0] ** 2 + x[1] ** 2)
+        u = x[0] ** 2 + x[1] ** 2
         num = sin(u) ** 2 - 0.5
         den = (1 + 0.001 * u) ** 2
         return 0.5 + num / den
 
 
 class Schaffer02(Benchmark):
-
     r"""
     Schaffer 2 objective function.
 
@@ -157,8 +165,7 @@ class Schaffer02(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = [(-10, 10), (-10, 10)]
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
@@ -173,7 +180,6 @@ class Schaffer02(Benchmark):
 
 
 class Schaffer03(Benchmark):
-
     r"""
     Schaffer 3 objective function.
 
@@ -197,8 +203,7 @@ class Schaffer03(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = [(-10, 10), (-10, 10)]
 
         self.global_optimum = [[0.0, 1.253115]]
@@ -213,7 +218,6 @@ class Schaffer03(Benchmark):
 
 
 class Schaffer04(Benchmark):
-
     r"""
     Schaffer 4 objective function.
 
@@ -237,8 +241,7 @@ class Schaffer04(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = [(-10, 10), (-10, 10)]
 
         self.global_optimum = [[0.0, 1.253115]]
@@ -290,7 +293,6 @@ class Schaffer04(Benchmark):
 
 
 class Schwefel01(Benchmark):
-
     r"""
     Schwefel 1 objective function.
 
@@ -317,8 +319,7 @@ class Schwefel01(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = ([-4.0, 4.0], [-4.0, 4.0])
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
@@ -329,11 +330,10 @@ class Schwefel01(Benchmark):
         self.nfev += 1
 
         alpha = sqrt(pi)
-        return (sum(x ** 2.0)) ** alpha
+        return (sum(x**2.0)) ** alpha
 
 
 class Schwefel02(Benchmark):
-
     r"""
     Schwefel 2 objective function.
 
@@ -342,7 +342,7 @@ class Schwefel02(Benchmark):
 
     .. math::
 
-        f_{\text{Schwefel02}}(x) = \sum_{i=1}^n \left(\sum_{j=1}^i 
+        f_{\text{Schwefel02}}(x) = \sum_{i=1}^n \left(\sum_{j=1}^i
         x_i \right)^2
 
 
@@ -359,8 +359,7 @@ class Schwefel02(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = ([-4.0, 4.0], [-4.0, 4.0])
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
@@ -372,11 +371,10 @@ class Schwefel02(Benchmark):
 
         mat = repeat(atleast_2d(x), self.N, axis=0)
         inner = sum(tril(mat), axis=1)
-        return sum(inner ** 2)
+        return sum(inner**2)
 
 
 class Schwefel04(Benchmark):
-
     r"""
     Schwefel 4 objective function.
 
@@ -412,11 +410,10 @@ class Schwefel04(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return sum((x - 1.0) ** 2.0 + (x[0] - x ** 2.0) ** 2.0)
+        return sum((x - 1.0) ** 2.0 + (x[0] - x**2.0) ** 2.0)
 
 
 class Schwefel06(Benchmark):
-
     r"""
     Schwefel 6 objective function.
 
@@ -440,8 +437,7 @@ class Schwefel06(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = ([-10.0, 10.0], [-10.0, 10.0])
 
         self.global_optimum = [[1.0, 3.0]]
@@ -454,7 +450,6 @@ class Schwefel06(Benchmark):
 
 
 class Schwefel20(Benchmark):
-
     r"""
     Schwefel 20 objective function.
 
@@ -481,8 +476,7 @@ class Schwefel20(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
         self.fglob = 0.0
@@ -495,7 +489,6 @@ class Schwefel20(Benchmark):
 
 
 class Schwefel21(Benchmark):
-
     r"""
     Schwefel 21 objective function.
 
@@ -521,8 +514,7 @@ class Schwefel21(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
         self.fglob = 0.0
@@ -535,7 +527,6 @@ class Schwefel21(Benchmark):
 
 
 class Schwefel22(Benchmark):
-
     r"""
     Schwefel 22 objective function.
 
@@ -561,8 +552,7 @@ class Schwefel22(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = ([-10.0, 10.0], [-10.0, 10.0])
 
         self.global_optimum = [[0.0 for _ in range(self.N)]]
@@ -576,7 +566,6 @@ class Schwefel22(Benchmark):
 
 
 class Schwefel26(Benchmark):
-
     r"""
     Schwefel 26 objective function.
 
@@ -599,8 +588,7 @@ class Schwefel26(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-500.0] * self.N,
-                           [500.0] * self.N))
+        self._bounds = list(zip([-500.0] * self.N, [500.0] * self.N))
 
         self.global_optimum = [[420.968746 for _ in range(self.N)]]
         self.fglob = 0.0
@@ -613,7 +601,6 @@ class Schwefel26(Benchmark):
 
 
 class Schwefel36(Benchmark):
-
     r"""
     Schwefel 36 objective function.
 
@@ -649,7 +636,6 @@ class Schwefel36(Benchmark):
 
 
 class Shekel05(Benchmark):
-
     r"""
     Shekel 5 objective function.
 
@@ -665,11 +651,11 @@ class Shekel05(Benchmark):
 
     .. math::
 
-        a = 
+        a =
         \begin{bmatrix}
         4.0 & 4.0 & 4.0 & 4.0 \\ 1.0 & 1.0 & 1.0 & 1.0 \\
         8.0 & 8.0 & 8.0 & 8.0 \\ 6.0 & 6.0 & 6.0 & 6.0 \\
-        3.0 & 7.0 & 3.0 & 7.0 
+        3.0 & 7.0 & 3.0 & 7.0
         \end{bmatrix}
     .. math::
 
@@ -695,16 +681,17 @@ class Shekel05(Benchmark):
 
         self._bounds = list(zip([0.0] * self.N, [10.0] * self.N))
 
-        self.global_optimum = [[4.00003715092,
-                                4.00013327435,
-                                4.00003714871,
-                                4.0001332742]]
+        self.global_optimum = [[4.00003715092, 4.00013327435, 4.00003714871, 4.0001332742]]
         self.fglob = -10.1531996791
-        self.A = asarray([[4.0, 4.0, 4.0, 4.0],
-                          [1.0, 1.0, 1.0, 1.0],
-                          [8.0, 8.0, 8.0, 8.0],
-                          [6.0, 6.0, 6.0, 6.0],
-                          [3.0, 7.0, 3.0, 7.0]])
+        self.A = asarray(
+            [
+                [4.0, 4.0, 4.0, 4.0],
+                [1.0, 1.0, 1.0, 1.0],
+                [8.0, 8.0, 8.0, 8.0],
+                [6.0, 6.0, 6.0, 6.0],
+                [3.0, 7.0, 3.0, 7.0],
+            ]
+        )
 
         self.C = asarray([0.1, 0.2, 0.2, 0.4, 0.4])
 
@@ -715,7 +702,6 @@ class Shekel05(Benchmark):
 
 
 class Shekel07(Benchmark):
-
     r"""
     Shekel 7 objective function.
 
@@ -744,7 +730,7 @@ class Shekel07(Benchmark):
 
         c =
         \begin{bmatrix}
-        0.1 \\ 0.2 \\ 0.2 \\ 0.4 \\ 0.4 \\ 0.6 \\ 0.3 
+        0.1 \\ 0.2 \\ 0.2 \\ 0.4 \\ 0.4 \\ 0.6 \\ 0.3
         \end{bmatrix}
 
 
@@ -767,18 +753,19 @@ class Shekel07(Benchmark):
 
         self._bounds = list(zip([0.0] * self.N, [10.0] * self.N))
 
-        self.global_optimum = [[4.00057291078,
-                                4.0006893679,
-                                3.99948971076,
-                                3.99960615785]]
+        self.global_optimum = [[4.00057291078, 4.0006893679, 3.99948971076, 3.99960615785]]
         self.fglob = -10.4029405668
-        self.A = asarray([[4.0, 4.0, 4.0, 4.0],
-                          [1.0, 1.0, 1.0, 1.0],
-                          [8.0, 8.0, 8.0, 8.0],
-                          [6.0, 6.0, 6.0, 6.0],
-                          [3.0, 7.0, 3.0, 7.0],
-                          [2.0, 9.0, 2.0, 9.0],
-                          [5.0, 5.0, 3.0, 3.0]])
+        self.A = asarray(
+            [
+                [4.0, 4.0, 4.0, 4.0],
+                [1.0, 1.0, 1.0, 1.0],
+                [8.0, 8.0, 8.0, 8.0],
+                [6.0, 6.0, 6.0, 6.0],
+                [3.0, 7.0, 3.0, 7.0],
+                [2.0, 9.0, 2.0, 9.0],
+                [5.0, 5.0, 3.0, 3.0],
+            ]
+        )
 
         self.C = asarray([0.1, 0.2, 0.2, 0.4, 0.4, 0.6, 0.3])
 
@@ -789,7 +776,6 @@ class Shekel07(Benchmark):
 
 
 class Shekel10(Benchmark):
-
     r"""
     Shekel 10 objective function.
 
@@ -798,7 +784,7 @@ class Shekel10(Benchmark):
 
     .. math::
 
-       f_{\text{Shekel10}}(x) = \sum_{i=1}^{m} \frac{1}{c_{i} 
+       f_{\text{Shekel10}}(x) = \sum_{i=1}^{m} \frac{1}{c_{i}
                                 + \sum_{j=1}^{n} (x_{j} - a_{ij})^2 }`
 
     Where, in this exercise:
@@ -840,21 +826,24 @@ class Shekel10(Benchmark):
 
         self._bounds = list(zip([0.0] * self.N, [10.0] * self.N))
 
-        self.global_optimum = [[4.0007465377266271,
-                                4.0005929234621407,
-                                3.9996633941680968,
-                                3.9995098017834123]]
+        self.global_optimum = [
+            [4.0007465377266271, 4.0005929234621407, 3.9996633941680968, 3.9995098017834123]
+        ]
         self.fglob = -10.536409816692023
-        self.A = asarray([[4.0, 4.0, 4.0, 4.0],
-                          [1.0, 1.0, 1.0, 1.0],
-                          [8.0, 8.0, 8.0, 8.0],
-                          [6.0, 6.0, 6.0, 6.0],
-                          [3.0, 7.0, 3.0, 7.0],
-                          [2.0, 9.0, 2.0, 9.0],
-                          [5.0, 5.0, 3.0, 3.0],
-                          [8.0, 1.0, 8.0, 1.0],
-                          [6.0, 2.0, 6.0, 2.0],
-                          [7.0, 3.6, 7.0, 3.6]])
+        self.A = asarray(
+            [
+                [4.0, 4.0, 4.0, 4.0],
+                [1.0, 1.0, 1.0, 1.0],
+                [8.0, 8.0, 8.0, 8.0],
+                [6.0, 6.0, 6.0, 6.0],
+                [3.0, 7.0, 3.0, 7.0],
+                [2.0, 9.0, 2.0, 9.0],
+                [5.0, 5.0, 3.0, 3.0],
+                [8.0, 1.0, 8.0, 1.0],
+                [6.0, 2.0, 6.0, 2.0],
+                [7.0, 3.6, 7.0, 3.6],
+            ]
+        )
 
         self.C = asarray([0.1, 0.2, 0.2, 0.4, 0.4, 0.6, 0.3, 0.7, 0.5, 0.5])
 
@@ -865,7 +854,6 @@ class Shekel10(Benchmark):
 
 
 class Shubert01(Benchmark):
-
     r"""
     Shubert 1 objective function.
 
@@ -907,7 +895,6 @@ class Shubert01(Benchmark):
 
 
 class Shubert03(Benchmark):
-
     r"""
     Shubert 3 objective function.
 
@@ -916,7 +903,7 @@ class Shubert03(Benchmark):
 
     .. math::
 
-        f_{\text{Shubert03}}(x) = \sum_{i=1}^n \sum_{j=1}^5 -j 
+        f_{\text{Shubert03}}(x) = \sum_{i=1}^n \sum_{j=1}^5 -j
                                   \sin((j+1)x_i + j)
 
     Here, :math:`n` represents the number of dimensions and
@@ -950,7 +937,6 @@ class Shubert03(Benchmark):
 
 
 class Shubert04(Benchmark):
-
     r"""
     Shubert 4 objective function.
 
@@ -993,7 +979,6 @@ class Shubert04(Benchmark):
 
 
 class SineEnvelope(Benchmark):
-
     r"""
     SineEnvelope objective function.
 
@@ -1021,8 +1006,7 @@ class SineEnvelope(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = [(-20, 20), (-20, 20)]
 
         self.global_optimum = [[0 for _ in range(self.N)]]
@@ -1034,13 +1018,11 @@ class SineEnvelope(Benchmark):
 
         X0 = x[:-1]
         X1 = x[1:]
-        X02X12 = X0 ** 2 + X1 ** 2
-        return sum((sin(sqrt(X02X12)) ** 2 - 0.5) / (1 + 0.001 * X02X12) ** 2
-                   + 0.5)
+        X02X12 = X0**2 + X1**2
+        return sum((sin(sqrt(X02X12)) ** 2 - 0.5) / (1 + 0.001 * X02X12) ** 2 + 0.5)
 
 
 class SixHumpCamel(Benchmark):
-
     r"""
     Six Hump Camel objective function.
 
@@ -1055,7 +1037,7 @@ class SixHumpCamel(Benchmark):
     with :math:`x_i \in [-5, 5]` for :math:`i = 1, 2`.
 
     *Global optimum*: :math:`f(x) = -1.031628453489877` for
-    :math:`x = [0.08984201368301331 , -0.7126564032704135]` or 
+    :math:`x = [0.08984201368301331 , -0.7126564032704135]` or
     :math:`x = [-0.08984201368301331, 0.7126564032704135]`
 
     .. [1] Jamil, M. & Yang, X.-S. A Literature Survey of Benchmark Functions
@@ -1069,18 +1051,22 @@ class SixHumpCamel(Benchmark):
         self._bounds = list(zip([-5.0] * self.N, [5.0] * self.N))
         self.custom_bounds = [(-2, 2), (-1.5, 1.5)]
 
-        self.global_optimum = [(0.08984201368301331, -0.7126564032704135),
-                               (-0.08984201368301331, 0.7126564032704135)]
+        self.global_optimum = [
+            (0.08984201368301331, -0.7126564032704135),
+            (-0.08984201368301331, 0.7126564032704135),
+        ]
         self.fglob = -1.031628
 
     def fun(self, x, *args):
         self.nfev += 1
-        return ((4 - 2.1 * x[0] ** 2 + x[0] ** 4 / 3) * x[0] ** 2 + x[0] * x[1]
-                + (4 * x[1] ** 2 - 4) * x[1] ** 2)
+        return (
+            (4 - 2.1 * x[0] ** 2 + x[0] ** 4 / 3) * x[0] ** 2
+            + x[0] * x[1]
+            + (4 * x[1] ** 2 - 4) * x[1] ** 2
+        )
 
 
 class Sodp(Benchmark):
-
     r"""
     Sodp objective function.
 
@@ -1117,7 +1103,6 @@ class Sodp(Benchmark):
 
 
 class Sphere(Benchmark):
-
     r"""
     Sphere objective function.
 
@@ -1152,11 +1137,10 @@ class Sphere(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return sum(x ** 2)
+        return sum(x**2)
 
 
 class Step(Benchmark):
-
     r"""
     Step objective function.
 
@@ -1181,11 +1165,10 @@ class Step(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = ([-5, 5], [-5, 5])
 
-        self.global_optimum = [[0. for _ in range(self.N)]]
+        self.global_optimum = [[0.0 for _ in range(self.N)]]
         self.fglob = 0.0
         self.change_dimensionality = True
 
@@ -1196,7 +1179,6 @@ class Step(Benchmark):
 
 
 class Step2(Benchmark):
-
     r"""
     Step objective function.
 
@@ -1219,8 +1201,7 @@ class Step2(Benchmark):
 
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
-        self._bounds = list(zip([-100.0] * self.N,
-                           [100.0] * self.N))
+        self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
         self.custom_bounds = ([-5, 5], [-5, 5])
 
         self.global_optimum = [[0.5 for _ in range(self.N)]]
@@ -1234,7 +1215,6 @@ class Step2(Benchmark):
 
 
 class Stochastic(Benchmark):
-
     r"""
     Stochastic objective function.
 
@@ -1243,7 +1223,7 @@ class Stochastic(Benchmark):
 
     .. math::
 
-        f_{\text{Stochastic}}(x) = \sum_{i=1}^{n} \epsilon_i 
+        f_{\text{Stochastic}}(x) = \sum_{i=1}^{n} \epsilon_i
                                     \left | {x_i - \frac{1}{i}} \right |
 
     The variable :math:`\epsilon_i, (i=1,...,n)` is a random variable uniformly
@@ -1270,14 +1250,13 @@ class Stochastic(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        rnd = uniform(0.0, 1.0, size=(self.N, ))
+        rnd = uniform(0.0, 1.0, size=(self.N,))
         i = arange(1, self.N + 1)
 
         return sum(rnd * abs(x - 1.0 / i))
 
 
 class StretchedV(Benchmark):
-
     r"""
     StretchedV objective function.
 
@@ -1322,12 +1301,11 @@ class StretchedV(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        t = x[1:] ** 2 + x[: -1] ** 2
-        return sum(t ** 0.25 * (sin(50.0 * t ** 0.1 + 1) ** 2))
+        t = x[1:] ** 2 + x[:-1] ** 2
+        return sum(t**0.25 * (sin(50.0 * t**0.1 + 1) ** 2))
 
 
 class StyblinskiTang(Benchmark):
-
     r"""
     StyblinskiTang objective function.
 
@@ -1362,4 +1340,4 @@ class StyblinskiTang(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return sum(x ** 4 - 16 * x ** 2 + 5 * x) / 2
+        return sum(x**4 - 16 * x**2 + 5 * x) / 2

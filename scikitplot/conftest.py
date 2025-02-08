@@ -1,27 +1,20 @@
 # Pytest customization conftest.py
-import pytest
-import unittest
-
-import hypothesis
-import hypothesis.extra.numpy as npst
-
-import numpy as np
-import numpy.testing as np_testing
-
-import pandas as pd
-import pandas.testing as pd_testing
-
-import os
 import gc
 import json
-import warnings
+import os
 import tempfile
-import contextlib
+import warnings
+
+import hypothesis
+import numpy as np
+import numpy.testing as np_testing
+import pandas as pd
+import pytest
 
 from ._xp_core_lib import _pep440
 from ._xp_core_lib._array_api import (
-  SKPLT_ARRAY_API,
-  SKPLT_DEVICE,
+    SKPLT_ARRAY_API,
+    SKPLT_DEVICE,
 )
 
 ######################################################################
@@ -31,38 +24,47 @@ from ._xp_core_lib._array_api import (
 # Following the approach of Scipy's conftest.py...
 try:
     import pytest_run_parallel  # noqa:F401
+
     PARALLEL_RUN_AVAILABLE = True
 except Exception:
     PARALLEL_RUN_AVAILABLE = False
+
 
 def pytest_configure(config):
     try:
         import pytest_timeout  # noqa:F401
     except Exception:
-        config.addinivalue_line("markers",
-            'timeout: mark a test for a non-default timeout')
+        config.addinivalue_line("markers", "timeout: mark a test for a non-default timeout")
     try:
         # This is a more reliable test of whether pytest_fail_slow is installed
         # When I uninstalled it, `import pytest_fail_slow` didn't fail!
-        from pytest_fail_slow import parse_duration  # type: ignore[import-not-found] # noqa:F401,E501
+        from pytest_fail_slow import (
+            parse_duration,  # type: ignore[import-not-found] # noqa:F401,E501
+        )
     except Exception:
-        config.addinivalue_line("markers",
-            'fail_slow: mark a test for a non-default timeout failure')
-    
+        config.addinivalue_line(
+            "markers", "fail_slow: mark a test for a non-default timeout failure"
+        )
+
     if not PARALLEL_RUN_AVAILABLE:
-        config.addinivalue_line('markers',
-            'parallel_threads(n): run the given test function in parallel '
-            'using `n` threads.')
-        config.addinivalue_line("markers",
+        config.addinivalue_line(
+            "markers",
+            "parallel_threads(n): run the given test function in parallel " "using `n` threads.",
+        )
+        config.addinivalue_line(
+            "markers",
             "thread_unsafe: mark the test function as single-threaded",
         )
-        config.addinivalue_line("markers",
+        config.addinivalue_line(
+            "markers",
             "iterations(n): run the given test function `n` times in each thread",
         )
+
 
 ######################################################################
 ## globally for all tests
 ######################################################################
+
 
 def pytest_runtest_setup(item):
     # Before each test
@@ -72,15 +74,14 @@ def pytest_runtest_setup(item):
     mark = item.get_closest_marker("xslow")
     if mark is not None:
         try:
-            v = int(os.environ.get('SKPLT_XSLOW', '0'))
+            v = int(os.environ.get("SKPLT_XSLOW", "0"))
         except ValueError:
             v = False
         if not v:
-            pytest.skip("very slow test; "
-                        "set environment variable SKPLT_XSLOW=1 to run it")
+            pytest.skip("very slow test; " "set environment variable SKPLT_XSLOW=1 to run it")
     mark = item.get_closest_marker("xfail_on_32bit")
     if mark is not None and np.intp(0).itemsize < 8:
-        pytest.xfail(f'Fails on our 32-bit test platform(s): {mark.args[0]}')
+        pytest.xfail(f"Fails on our 32-bit test platform(s): {mark.args[0]}")
 
     # Older versions of threadpoolctl have an issue that may lead to this
     # warning being emitted, see gh-14441
@@ -101,25 +102,27 @@ def pytest_runtest_setup(item):
             # sklearn does (it can rely on threadpoolctl and its builtin OpenMP helper
             # functions)
             try:
-                xdist_worker_count = int(os.environ['PYTEST_XDIST_WORKER_COUNT'])
+                xdist_worker_count = int(os.environ["PYTEST_XDIST_WORKER_COUNT"])
             except KeyError:
                 # raises when pytest-xdist is not installed
                 return
 
-            if not os.getenv('OMP_NUM_THREADS'):
+            if not os.getenv("OMP_NUM_THREADS"):
                 max_openmp_threads = os.cpu_count() // 2  # use nr of physical cores
                 threads_per_worker = max(max_openmp_threads // xdist_worker_count, 1)
                 try:
-                    threadpool_limits(threads_per_worker, user_api='blas')
+                    threadpool_limits(threads_per_worker, user_api="blas")
                 except Exception:
                     # May raise AttributeError for older versions of OpenBLAS.
                     # Catch any error for robustness.
                     return
 
+
 def pytest_runtest_teardown(item, nextitem):
     # After each test
     # Trigger garbage collection
     gc.collect()
+
 
 ######################################################################
 ## pytest: run_gc
@@ -138,34 +141,42 @@ def pytest_runtest_teardown(item, nextitem):
 ######################################################################
 
 if not PARALLEL_RUN_AVAILABLE:
+
     @pytest.fixture
     def num_parallel_threads():
         return 1
 
+
 ######################################################################
 ## pytest fixture: plotting
 ######################################################################
+
 
 # Following the approach of Seaborn's conftest.py...
 @pytest.fixture(autouse=True)
 def close_figs():
     yield
     import matplotlib.pyplot as plt
+
     plt.close("all")
+
 
 @pytest.fixture(autouse=True)
 def random_seed():
     # seed = sum(map(ord, "seaborn random global"))
     np.random.seed(0)
 
+
 @pytest.fixture()
 def rng():
     # seed = sum(map(ord, "seaborn random object"))
     return np.random.RandomState(0)
 
+
 ######################################################################
 ## pytest fixture: xarray
 ######################################################################
+
 
 @pytest.fixture
 def xr():
@@ -183,7 +194,8 @@ def xr():
             im = plt.figure().subplots().imshow(ds)
             np.testing.assert_array_equal(im.get_array(), ds)
     """
-    return pytest.importorskip('xarray')
+    return pytest.importorskip("xarray")
+
 
 ######################################################################
 ## if not import skip pandas
@@ -218,7 +230,8 @@ def xr():
 ######################################################################
 ## pytest fixture: numpy, pandas dataset
 ######################################################################
-  
+
+
 @pytest.fixture
 def wide_df(rng):
     columns = list("abc")
@@ -226,9 +239,11 @@ def wide_df(rng):
     values = rng.normal(size=(len(index), len(columns)))
     return pd.DataFrame(values, index=index, columns=columns)
 
+
 @pytest.fixture
 def wide_array(wide_df):
     return wide_df.to_numpy()
+
 
 # TODO s/flat/thin?
 @pytest.fixture
@@ -236,19 +251,22 @@ def flat_series(rng):
     index = pd.RangeIndex(10, 30, name="t")
     return pd.Series(rng.normal(size=20), index, name="s")
 
+
 @pytest.fixture
 def flat_array(flat_series):
     return flat_series.to_numpy()
+
 
 @pytest.fixture
 def flat_list(flat_series):
     return flat_series.to_list()
 
+
 @pytest.fixture(params=["series", "array", "list"])
 def flat_data(rng, request):
     index = pd.RangeIndex(10, 30, name="t")
     series = pd.Series(rng.normal(size=20), index, name="s")
-  
+
     if request.param == "series":
         data = series
     elif request.param == "array":
@@ -257,46 +275,57 @@ def flat_data(rng, request):
         data = series.to_list()
     return data
 
+
 @pytest.fixture
 def wide_list_of_series(rng):
-    return [pd.Series(rng.normal(size=20), np.arange(20), name="a"),
-            pd.Series(rng.normal(size=10), np.arange(5, 15), name="b")]
+    return [
+        pd.Series(rng.normal(size=20), np.arange(20), name="a"),
+        pd.Series(rng.normal(size=10), np.arange(5, 15), name="b"),
+    ]
+
 
 @pytest.fixture
 def wide_list_of_arrays(wide_list_of_series):
     return [s.to_numpy() for s in wide_list_of_series]
 
+
 @pytest.fixture
 def wide_list_of_lists(wide_list_of_series):
     return [s.to_list() for s in wide_list_of_series]
+
 
 @pytest.fixture
 def wide_dict_of_series(wide_list_of_series):
     return {s.name: s for s in wide_list_of_series}
 
+
 @pytest.fixture
 def wide_dict_of_arrays(wide_list_of_series):
     return {s.name: s.to_numpy() for s in wide_list_of_series}
+
 
 @pytest.fixture
 def wide_dict_of_lists(wide_list_of_series):
     return {s.name: s.to_list() for s in wide_list_of_series}
 
+
 @pytest.fixture
 def long_df(rng):
     n = 100
-    df = pd.DataFrame(dict(
-        x=rng.uniform(0, 20, n).round().astype("int"),
-        y=rng.normal(size=n),
-        z=rng.lognormal(size=n),
-        a=rng.choice(list("abc"), n),
-        b=rng.choice(list("mnop"), n),
-        c=rng.choice([0, 1], n, [.3, .7]),
-        d=rng.choice(np.arange("2004-07-30", "2007-07-30", dtype="datetime64[Y]"), n),
-        t=rng.choice(np.arange("2004-07-30", "2004-07-31", dtype="datetime64[m]"), n),
-        s=rng.choice([2, 4, 8], n),
-        f=rng.choice([0.2, 0.3], n),
-    ))
+    df = pd.DataFrame(
+        dict(
+            x=rng.uniform(0, 20, n).round().astype("int"),
+            y=rng.normal(size=n),
+            z=rng.lognormal(size=n),
+            a=rng.choice(list("abc"), n),
+            b=rng.choice(list("mnop"), n),
+            c=rng.choice([0, 1], n, [0.3, 0.7]),
+            d=rng.choice(np.arange("2004-07-30", "2007-07-30", dtype="datetime64[Y]"), n),
+            t=rng.choice(np.arange("2004-07-30", "2004-07-31", dtype="datetime64[m]"), n),
+            s=rng.choice([2, 4, 8], n),
+            f=rng.choice([0.2, 0.3], n),
+        )
+    )
     a_cat = df["a"].astype("category")
     new_categories = np.roll(a_cat.cat.categories, 1)
     df["a_cat"] = a_cat.cat.reorder_categories(new_categories)
@@ -306,19 +335,24 @@ def long_df(rng):
 
     return df
 
+
 @pytest.fixture
 def long_dict(long_df):
     return long_df.to_dict()
 
+
 @pytest.fixture
 def repeated_df(rng):
     n = 100
-    return pd.DataFrame(dict(
-        x=np.tile(np.arange(n // 2), 2),
-        y=rng.normal(size=n),
-        a=rng.choice(list("abc"), n),
-        u=np.repeat(np.arange(2), n // 2),
-    ))
+    return pd.DataFrame(
+        dict(
+            x=np.tile(np.arange(n // 2), 2),
+            y=rng.normal(size=n),
+            a=rng.choice(list("abc"), n),
+            u=np.repeat(np.arange(2), n // 2),
+        )
+    )
+
 
 @pytest.fixture
 def null_df(rng, long_df):
@@ -330,6 +364,7 @@ def null_df(rng, long_df):
         df.loc[idx, col] = np.nan
     return df
 
+
 @pytest.fixture
 def object_df(rng, long_df):
     df = long_df.copy()
@@ -338,9 +373,11 @@ def object_df(rng, long_df):
         df[col] = df[col].astype(object)
     return df
 
+
 @pytest.fixture
 def null_series(flat_series):
-    return pd.Series(index=flat_series.index, dtype='float64')
+    return pd.Series(index=flat_series.index, dtype="float64")
+
 
 class MockInterchangeableDataFrame:
     # Mock object that is not a pandas.DataFrame but that can
@@ -351,57 +388,61 @@ class MockInterchangeableDataFrame:
     def __dataframe__(self, *args, **kwargs):
         return self._data.__dataframe__(*args, **kwargs)
 
+
 @pytest.fixture
 def mock_long_df(long_df):
     return MockInterchangeableDataFrame(long_df)
+
 
 ######################################################################
 ## Array API xp backend from scipy
 ######################################################################
 
 # Array API backend handling
-xp_available_backends = {'numpy': np}
+xp_available_backends = {"numpy": np}
 
 if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
     # fill the dict of backends with available libraries
     try:
         from ._xp_core_lib import array_api_strict
-        xp_available_backends.update({'array_api_strict': array_api_strict})
-        if _pep440.parse(array_api_strict.__version__) < _pep440.Version('2.0'):
+
+        xp_available_backends.update({"array_api_strict": array_api_strict})
+        if _pep440.parse(array_api_strict.__version__) < _pep440.Version("2.0"):
             raise ImportError("array-api-strict must be >= version 2.0")
-        array_api_strict.set_array_api_strict_flags(
-            api_version='2023.12'
-        )
+        array_api_strict.set_array_api_strict_flags(api_version="2023.12")
     except ImportError:
         pass
 
     try:
         import torch  # type: ignore[import-not-found]
-        xp_available_backends.update({'torch': torch})
+
+        xp_available_backends.update({"torch": torch})
         # can use `mps` or `cpu`
         torch.set_default_device(SKPLT_DEVICE)
 
         # default to float64 unless explicitly requested
-        default = os.getenv('SKPLT_DEFAULT_DTYPE', default='float64')
-        if default == 'float64':
+        default = os.getenv("SKPLT_DEFAULT_DTYPE", default="float64")
+        if default == "float64":
             torch.set_default_dtype(torch.float64)
         elif default != "float32":
             raise ValueError(
                 "SKPLT_DEFAULT_DTYPE env var, if set, can only be either 'float64' "
-               f"or 'float32'. Got '{default}' instead."
+                f"or 'float32'. Got '{default}' instead."
             )
     except ImportError:
         pass
 
     try:
         import cupy  # type: ignore[import-not-found]
-        xp_available_backends.update({'cupy': cupy})
+
+        xp_available_backends.update({"cupy": cupy})
     except ImportError:
         pass
 
     try:
         import jax.numpy  # type: ignore[import-not-found]
-        xp_available_backends.update({'jax.numpy': jax.numpy})
+
+        xp_available_backends.update({"jax.numpy": jax.numpy})
         jax.config.update("jax_enable_x64", True)
         jax.config.update("jax_default_device", jax.devices(SKPLT_DEVICE)[0])
     except ImportError:
@@ -411,34 +452,35 @@ if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
     if SKPLT_ARRAY_API.lower() not in ("1", "true"):
         SKPLT_ARRAY_API_ = json.loads(SKPLT_ARRAY_API)
 
-        if 'all' in SKPLT_ARRAY_API_:
+        if "all" in SKPLT_ARRAY_API_:
             pass  # same as True
         else:
             # only select a subset of backend by filtering out the dict
             try:
                 xp_available_backends = {
-                    backend: xp_available_backends[backend]
-                    for backend in SKPLT_ARRAY_API_
+                    backend: xp_available_backends[backend] for backend in SKPLT_ARRAY_API_
                 }
             except KeyError:
                 msg = f"'--array-api-backend' must be in {xp_available_backends.keys()}"
                 raise ValueError(msg)
 
 
-if 'cupy' in xp_available_backends:
-    SKPLT_DEVICE = 'cuda'
+if "cupy" in xp_available_backends:
+    SKPLT_DEVICE = "cuda"
 
     # this is annoying in CuPy 13.x
-    warnings.filterwarnings(
-        'ignore', 'cupyx.jit.rawkernel is experimental', category=FutureWarning
-    )
-    from cupyx.scipy import signal; del signal
+    warnings.filterwarnings("ignore", "cupyx.jit.rawkernel is experimental", category=FutureWarning)
+    from cupyx.scipy import signal
+
+    del signal
 
 
-@pytest.fixture(params=[
-    pytest.param(v, id=k, marks=pytest.mark.array_api_backends)
-    for k, v in xp_available_backends.items()
-])
+@pytest.fixture(
+    params=[
+        pytest.param(v, id=k, marks=pytest.mark.array_api_backends)
+        for k, v in xp_available_backends.items()
+    ]
+)
 def xp(request):
     """Run the test that uses this fixture on each available array API library.
 
@@ -459,42 +501,48 @@ def xp(request):
     else:
         yield request.param
 
+
 # array_api_compatible = (
 #   pytest.mark.parametrize("xp", xp_available_backends.values())
 # )
 array_api_compatible = pytest.mark.array_api_compatible
 
-skip_xp_invalid_arg = pytest.mark.skipif(SKPLT_ARRAY_API,
-  reason = ('Test involves masked arrays, object arrays, or other types '
-            'that are not valid input when `SKPLT_ARRAY_API` is used.'), )
+skip_xp_invalid_arg = pytest.mark.skipif(
+    SKPLT_ARRAY_API,
+    reason=(
+        "Test involves masked arrays, object arrays, or other types "
+        "that are not valid input when `SKPLT_ARRAY_API` is used."
+    ),
+)
 
 ######################################################################
 ## array API xp backends
 ######################################################################
 
+
 def _backends_kwargs_from_request(request, skip_or_xfail):
     """A helper for {skip,xfail}_xp_backends"""
     # do not allow multiple backends
-    args_ = request.keywords[f'{skip_or_xfail}_xp_backends'].args
+    args_ = request.keywords[f"{skip_or_xfail}_xp_backends"].args
     if len(args_) > 1:
         # np_only / cpu_only has args=(), otherwise it's ('numpy',)
         # and we do not allow ('numpy', 'cupy')
         raise ValueError(f"multiple backends: {args_}")
 
-    markers = list(request.node.iter_markers(f'{skip_or_xfail}_xp_backends'))
+    markers = list(request.node.iter_markers(f"{skip_or_xfail}_xp_backends"))
     backends = []
     kwargs = {}
     for marker in markers:
-        if marker.kwargs.get('np_only'):
-            kwargs['np_only'] = True
-            kwargs['exceptions'] = marker.kwargs.get('exceptions', [])
-            kwargs['reason'] = marker.kwargs.get('reason', None)
-        elif marker.kwargs.get('cpu_only'):
-            if not kwargs.get('np_only'):
+        if marker.kwargs.get("np_only"):
+            kwargs["np_only"] = True
+            kwargs["exceptions"] = marker.kwargs.get("exceptions", [])
+            kwargs["reason"] = marker.kwargs.get("reason", None)
+        elif marker.kwargs.get("cpu_only"):
+            if not kwargs.get("np_only"):
                 # if np_only is given, it is certainly cpu only
-                kwargs['cpu_only'] = True
-                kwargs['exceptions'] = marker.kwargs.get('exceptions', [])
-                kwargs['reason'] = marker.kwargs.get('reason', None)
+                kwargs["cpu_only"] = True
+                kwargs["exceptions"] = marker.kwargs.get("exceptions", [])
+                kwargs["reason"] = marker.kwargs.get("reason", None)
 
         # add backends, if any
         if len(marker.args) > 0:
@@ -519,8 +567,8 @@ def skip_xp_backends(xp, request):
     if "skip_xp_backends" not in request.keywords:
         return
 
-    backends, kwargs = _backends_kwargs_from_request(request, skip_or_xfail='skip')
-    skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip')
+    backends, kwargs = _backends_kwargs_from_request(request, skip_or_xfail="skip")
+    skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="skip")
 
 
 @pytest.fixture
@@ -536,11 +584,11 @@ def xfail_xp_backends(xp, request):
     """  # noqa: E501
     if "xfail_xp_backends" not in request.keywords:
         return
-    backends, kwargs = _backends_kwargs_from_request(request, skip_or_xfail='xfail')
-    skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='xfail')
-    
+    backends, kwargs = _backends_kwargs_from_request(request, skip_or_xfail="xfail")
+    skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="xfail")
 
-def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
+
+def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="skip"):
     """
     Skip based on the ``skip_xp_backends`` or ``xfail_xp_backends`` marker.
 
@@ -593,7 +641,7 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
     if backends is not None:
         for i, backend in enumerate(backends):
             if xp.__name__ == backend:
-                reason = kwargs[backend].get('reason')
+                reason = kwargs[backend].get("reason")
                 if not reason:
                     reason = f"do not run with array API backend: {backend}"
 
@@ -604,27 +652,30 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
         if not reason:
             reason = "do not run with non-NumPy backends"
 
-        if xp.__name__ != 'numpy' and xp.__name__ not in exceptions:
+        if xp.__name__ != "numpy" and xp.__name__ not in exceptions:
             skip_or_xfail(reason=reason)
         return
 
     if cpu_only:
         reason = kwargs.get("reason")
         if not reason:
-            reason = ("no array-agnostic implementation or delegation available "
-                      "for this backend and device")
+            reason = (
+                "no array-agnostic implementation or delegation available "
+                "for this backend and device"
+            )
 
         exceptions = [] if exceptions is None else exceptions
-        if SKPLT_ARRAY_API and SKPLT_DEVICE != 'cpu':
-            if xp.__name__ == 'cupy' and 'cupy' not in exceptions:
+        if SKPLT_ARRAY_API and SKPLT_DEVICE != "cpu":
+            if xp.__name__ == "cupy" and "cupy" not in exceptions:
                 skip_or_xfail(reason=reason)
-            elif xp.__name__ == 'torch' and 'torch' not in exceptions:
-                if 'cpu' not in xp.empty(0).device.type:
+            elif xp.__name__ == "torch" and "torch" not in exceptions:
+                if "cpu" not in xp.empty(0).device.type:
                     skip_or_xfail(reason=reason)
-            elif xp.__name__ == 'jax.numpy' and 'jax.numpy' not in exceptions:
+            elif xp.__name__ == "jax.numpy" and "jax.numpy" not in exceptions:
                 for d in xp.empty(0).devices():
-                    if 'cpu' not in d.device_kind:
+                    if "cpu" not in d.device_kind:
                         skip_or_xfail(reason=reason)
+
 
 ######################################################################
 ## hypothesis profiles
@@ -633,25 +684,27 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
 # Following the approach of NumPy's conftest.py...
 # Use a known and persistent tmpdir for hypothesis' caches, which
 # can be automatically cleared by the OS or user.
-hypothesis.configuration.set_hypothesis_home_dir(
-    os.path.join(tempfile.gettempdir(), ".hypothesis")
-)
+hypothesis.configuration.set_hypothesis_home_dir(os.path.join(tempfile.gettempdir(), ".hypothesis"))
 # We register two custom profiles for SciPy - for details see
 # https://hypothesis.readthedocs.io/en/latest/settings.html
 # The first is designed for our own CI runs; the latter also
 # forces determinism and is designed for use via scipy.test()
 hypothesis.settings.register_profile(
-    name="nondeterministic", deadline=None, print_blob=True,
+    name="nondeterministic",
+    deadline=None,
+    print_blob=True,
 )
 hypothesis.settings.register_profile(
     name="deterministic",
-    deadline=None, print_blob=True, database=None, derandomize=True,
+    deadline=None,
+    print_blob=True,
+    database=None,
+    derandomize=True,
     suppress_health_check=list(hypothesis.HealthCheck),
 )
 # Profile is currently set by environment variable `SKPLT_HYPOTHESIS_PROFILE`
 # In the future, it would be good to work the choice into dev.py.
-SKPLT_HYPOTHESIS_PROFILE = os.environ.get("SKPLT_HYPOTHESIS_PROFILE",
-                                          "deterministic")
+SKPLT_HYPOTHESIS_PROFILE = os.environ.get("SKPLT_HYPOTHESIS_PROFILE", "deterministic")
 hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 
 ######################################################################

@@ -1,26 +1,28 @@
 """
 Airspeed Velocity benchmark utilities
 """
-import sys
-import os
-import re
-import time
-import textwrap
-import subprocess
+
 import itertools
+import os
 import random
+import re
+import subprocess
+import sys
+import textwrap
+import time
 
 
 class Benchmark:
     """
     Base class with sensible options
     """
+
     pass
 
 
 def is_xslow():
     try:
-        return int(os.environ.get('SCIPY_XSLOW', '0'))
+        return int(os.environ.get("SCIPY_XSLOW", "0"))
     except ValueError:
         return False
 
@@ -31,6 +33,7 @@ class LimitedParamBenchmark(Benchmark):
     pseudo-randomly with fixed seed.
     Raises NotImplementedError (skip) if not in active set.
     """
+
     num_param_combinations = 0
 
     def setup(self, *args, **kwargs):
@@ -40,15 +43,15 @@ class LimitedParamBenchmark(Benchmark):
             # no need to skip
             return
 
-        param_seed = kwargs.pop('param_seed', None)
+        param_seed = kwargs.pop("param_seed", None)
         if param_seed is None:
             param_seed = 1
 
-        params = kwargs.pop('params', None)
+        params = kwargs.pop("params", None)
         if params is None:
             params = self.params
 
-        num_param_combinations = kwargs.pop('num_param_combinations', None)
+        num_param_combinations = kwargs.pop("num_param_combinations", None)
         if num_param_combinations is None:
             num_param_combinations = self.num_param_combinations
 
@@ -69,7 +72,7 @@ def get_max_rss_bytes(rusage):
     if not rusage:
         return None
 
-    if sys.platform.startswith('linux'):
+    if sys.platform.startswith("linux"):
         # On Linux getrusage() returns ru_maxrss in kilobytes
         # https://man7.org/linux/man-pages/man2/getrusage.2.html
         return rusage.ru_maxrss * 1024
@@ -99,7 +102,7 @@ def run_monitored_wait4(code):
     code = textwrap.dedent(code)
 
     start = time.time()
-    process = subprocess.Popen([sys.executable, '-c', code])
+    process = subprocess.Popen([sys.executable, "-c", code])
     pid, returncode, rusage = os.wait4(process.pid, 0)
     duration = time.time() - start
     max_rss_bytes = get_max_rss_bytes(rusage)
@@ -122,11 +125,11 @@ def run_monitored_proc(code):
         Peak memory usage (rough estimate only) in bytes
 
     """
-    if not sys.platform.startswith('linux'):
+    if not sys.platform.startswith("linux"):
         raise RuntimeError("Peak memory monitoring only works on Linux")
 
     code = textwrap.dedent(code)
-    process = subprocess.Popen([sys.executable, '-c', code])
+    process = subprocess.Popen([sys.executable, "-c", code])
 
     peak_memusage = -1
 
@@ -136,10 +139,10 @@ def run_monitored_proc(code):
         if ret is not None:
             break
 
-        with open('/proc/%d/status' % process.pid) as f:
+        with open("/proc/%d/status" % process.pid) as f:
             procdata = f.read()
 
-        m = re.search(r'VmRSS:\s*(\d+)\s*kB', procdata, re.S | re.I)
+        m = re.search(r"VmRSS:\s*(\d+)\s*kB", procdata, re.S | re.I)
         if m is not None:
             memusage = float(m.group(1)) * 1e3
             peak_memusage = max(memusage, peak_memusage)
@@ -169,7 +172,7 @@ def run_monitored(code):
 
     """
 
-    if hasattr(os, 'wait4'):
+    if hasattr(os, "wait4"):
         return run_monitored_wait4(code)
     else:
         return run_monitored_proc(code)
@@ -178,6 +181,7 @@ def run_monitored(code):
 def get_mem_info():
     """Get information about available memory"""
     import psutil
+
     vm = psutil.virtual_memory()
     return {
         "memtotal": vm.total,
@@ -190,9 +194,10 @@ def set_mem_rlimit(max_mem=None):
     Set address space rlimit
     """
     import resource
+
     if max_mem is None:
         mem_info = get_mem_info()
-        max_mem = int(mem_info['memtotal'] * 0.7)
+        max_mem = int(mem_info["memtotal"] * 0.7)
     cur_limit = resource.getrlimit(resource.RLIMIT_AS)
     if cur_limit[0] > 0:
         max_mem = min(max_mem, cur_limit[0])
@@ -209,6 +214,7 @@ def with_attributes(**attrs):
         for key, value in attrs.items():
             setattr(func, key, value)
         return func
+
     return decorator
 
 
@@ -222,6 +228,7 @@ class safe_import:
         if type_ is not None:
             self.error = True
             suppress = not (
-                os.getenv('SCIPY_ALLOW_BENCH_IMPORT_ERRORS', '1').lower() in
-                ('0', 'false') or not issubclass(type_, ImportError))
+                os.getenv("SCIPY_ALLOW_BENCH_IMPORT_ERRORS", "1").lower() in ("0", "false")
+                or not issubclass(type_, ImportError)
+            )
             return suppress

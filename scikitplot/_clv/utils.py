@@ -1,12 +1,9 @@
 from __future__ import division
 
-import autograd.numpy as np
-import pandas as pd
 import pickle
 
-import numpy
-import numpy.typing as npt
-
+import autograd.numpy as np
+import pandas as pd
 
 pd.options.mode.chained_assignment = None
 
@@ -15,7 +12,7 @@ __all__ = [
     "summary_data_from_transaction_data",
     "calculate_alive_path",
     "expected_cumulative_transactions",
-    ]
+]
 
 
 class ConvergenceError(ValueError):
@@ -101,7 +98,9 @@ def calibration_and_holdout_data(
     calibration_period_end = pd.to_datetime(calibration_period_end, format=datetime_format)
 
     # create calibration dataset
-    calibration_transactions = transactions.loc[transactions[datetime_col] <= calibration_period_end]
+    calibration_transactions = transactions.loc[
+        transactions[datetime_col] <= calibration_period_end
+    ]
     calibration_summary_data = summary_data_from_transaction_data(
         calibration_transactions,
         customer_id_col,
@@ -117,7 +116,8 @@ def calibration_and_holdout_data(
 
     # create holdout dataset
     holdout_transactions = transactions.loc[
-        (observation_period_end >= transactions[datetime_col]) & (transactions[datetime_col] > calibration_period_end)
+        (observation_period_end >= transactions[datetime_col])
+        & (transactions[datetime_col] > calibration_period_end)
     ]
 
     if holdout_transactions.empty:
@@ -134,9 +134,9 @@ def calibration_and_holdout_data(
     )
     holdout_summary_data.columns = ["frequency_holdout"]
     if monetary_value_col:
-        holdout_summary_data["monetary_value_holdout"] = holdout_transactions.groupby(customer_id_col)[
-            monetary_value_col
-        ].mean()
+        holdout_summary_data["monetary_value_holdout"] = holdout_transactions.groupby(
+            customer_id_col
+        )[monetary_value_col].mean()
 
     combined_data = calibration_summary_data.join(holdout_summary_data, how="left")
     combined_data.fillna(0, inplace=True)
@@ -206,7 +206,9 @@ def _find_first_transactions(
 
     transactions = transactions.loc[(transactions.index <= observation_period_end)].reset_index()
 
-    period_groupby = transactions.groupby([datetime_col, customer_id_col], sort=False, as_index=False)
+    period_groupby = transactions.groupby(
+        [datetime_col, customer_id_col], sort=False, as_index=False
+    )
 
     if monetary_value_col:
         # when we have a monetary column, make sure to sum together any values in the same period
@@ -219,7 +221,9 @@ def _find_first_transactions(
     # initialize a new column where we will indicate which are the first transactions
     period_transactions["first"] = False
     # find all of the initial transactions and store as an index
-    first_transactions = period_transactions.groupby(customer_id_col, sort=True, as_index=False).head(1).index
+    first_transactions = (
+        period_transactions.groupby(customer_id_col, sort=True, as_index=False).head(1).index
+    )
     # mark the initial transactions as True
     period_transactions.loc[first_transactions, "first"] = True
     select_columns.append("first")
@@ -286,22 +290,36 @@ def summary_data_from_transaction_data(
 
     if observation_period_end is None:
         observation_period_end = (
-            pd.to_datetime(transactions[datetime_col].max(), format=datetime_format).to_period(freq).to_timestamp()
+            pd.to_datetime(transactions[datetime_col].max(), format=datetime_format)
+            .to_period(freq)
+            .to_timestamp()
         )
     else:
         observation_period_end = (
-            pd.to_datetime(observation_period_end, format=datetime_format).to_period(freq).to_timestamp()
+            pd.to_datetime(observation_period_end, format=datetime_format)
+            .to_period(freq)
+            .to_timestamp()
         )
 
     # label all of the repeated transactions
     repeated_transactions = _find_first_transactions(
-        transactions, customer_id_col, datetime_col, monetary_value_col, datetime_format, observation_period_end, freq
+        transactions,
+        customer_id_col,
+        datetime_col,
+        monetary_value_col,
+        datetime_format,
+        observation_period_end,
+        freq,
     )
     # reset datetime_col to timestamp
-    repeated_transactions[datetime_col] = pd.Index(repeated_transactions[datetime_col]).to_timestamp()
+    repeated_transactions[datetime_col] = pd.Index(
+        repeated_transactions[datetime_col]
+    ).to_timestamp()
 
     # count all orders by customer.
-    customers = repeated_transactions.groupby(customer_id_col, sort=False)[datetime_col].agg(["min", "max", "count"])
+    customers = repeated_transactions.groupby(customer_id_col, sort=False)[datetime_col].agg(
+        ["min", "max", "count"]
+    )
 
     if not include_first_transaction:
         # subtract 1 from count, as we ignore their first order.
@@ -309,8 +327,12 @@ def summary_data_from_transaction_data(
     else:
         customers["frequency"] = customers["count"]
 
-    customers["T"] = (observation_period_end - customers["min"]) / np.timedelta64(1, freq) / freq_multiplier
-    customers["recency"] = (customers["max"] - customers["min"]) / np.timedelta64(1, freq) / freq_multiplier
+    customers["T"] = (
+        (observation_period_end - customers["min"]) / np.timedelta64(1, freq) / freq_multiplier
+    )
+    customers["recency"] = (
+        (customers["max"] - customers["min"]) / np.timedelta64(1, freq) / freq_multiplier
+    )
 
     summary_columns = ["frequency", "recency", "T"]
 
@@ -329,13 +351,7 @@ def summary_data_from_transaction_data(
     return customers[summary_columns].astype(float)
 
 
-def calculate_alive_path(
-    model,
-    transactions,
-    datetime_col,
-    t,
-    freq="D"
-):
+def calculate_alive_path(model, transactions, datetime_col, t, freq="D"):
     """
     Calculate alive path for plotting alive history of user.
 
@@ -369,15 +385,21 @@ def calculate_alive_path(
 
     # for some reason fillna(0) not working for resample in pandas with python 3.x,
     # changed to replace
-    purchase_history = customer_history.resample(freq).sum().replace(np.nan, 0)["transactions"].values
+    purchase_history = (
+        customer_history.resample(freq).sum().replace(np.nan, 0)["transactions"].values
+    )
 
     extra_columns = t + 1 - len(purchase_history)
-    customer_history = pd.DataFrame(np.append(purchase_history, [0] * extra_columns), columns=["transactions"])
+    customer_history = pd.DataFrame(
+        np.append(purchase_history, [0] * extra_columns), columns=["transactions"]
+    )
     # add T column
     customer_history["T"] = np.arange(customer_history.shape[0])
     # add cumulative transactions column
     customer_history["transactions"] = customer_history["transactions"].apply(lambda t: int(t > 0))
-    customer_history["frequency"] = customer_history["transactions"].cumsum() - 1  # first purchase is ignored
+    customer_history["frequency"] = (
+        customer_history["transactions"].cumsum() - 1
+    )  # first purchase is ignored
     # Add t_x column
     customer_history["recency"] = customer_history.apply(
         lambda row: row["T"] if row["transactions"] != 0 else np.nan, axis=1
@@ -385,13 +407,12 @@ def calculate_alive_path(
     customer_history["recency"] = customer_history["recency"].fillna(method="ffill").fillna(0)
 
     return customer_history.apply(
-        lambda row: model.conditional_probability_alive(row["frequency"], row["recency"], row["T"]), axis=1
+        lambda row: model.conditional_probability_alive(row["frequency"], row["recency"], row["T"]),
+        axis=1,
     )
 
 
-def _scale_time(
-    age
-):
+def _scale_time(age):
     """
     Create a scalar such that the maximum age is 1.
     """
@@ -399,12 +420,7 @@ def _scale_time(
     return 1.0 / age.max()
 
 
-def _check_inputs(
-    frequency,
-    recency=None,
-    T=None,
-    monetary_value=None
-):
+def _check_inputs(frequency, recency=None, T=None, monetary_value=None):
     """
     Check validity of inputs.
 
@@ -456,7 +472,7 @@ def _customer_lifetime_value(
     monetary_value,
     time=12,
     discount_rate=0.01,
-    freq="D"
+    freq="D",
 ):
     """
     Compute the average lifetime value for a group of one or more customers.
@@ -500,9 +516,11 @@ def _customer_lifetime_value(
             i, frequency, recency, T
         ) - transaction_prediction_model.predict(i - factor, frequency, recency, T)
         # sum up the CLV estimates of all of the periods and apply discounted cash flow
-        df["clv"] += (monetary_value * expected_number_of_transactions) / (1 + discount_rate) ** (i / factor)
+        df["clv"] += (monetary_value * expected_number_of_transactions) / (1 + discount_rate) ** (
+            i / factor
+        )
 
-    return df["clv"] # return as a series
+    return df["clv"]  # return as a series
 
 
 def expected_cumulative_transactions(
@@ -566,7 +584,7 @@ def expected_cumulative_transactions(
     .. [1] Fader, Peter S., Bruce G.S. Hardie, and Ka Lok Lee (2005),
     A Note on Implementing the Pareto/NBD Model in MATLAB.
     http://brucehardie.com/notes/008/
-    
+
     """
 
     start_date = pd.to_datetime(transactions[datetime_col], format=datetime_format).min()
@@ -601,7 +619,7 @@ def expected_cumulative_transactions(
     # customers who have made their first purchases on a date before the one being
     # evaluated.
     # Then we sum them to get the cumulative sum up to the specific period.
-    for i, period in enumerate(date_periods): # index of period and its date
+    for i, period in enumerate(date_periods):  # index of period and its date
 
         if i % freq_multiplier == 0 and i > 0:
 
@@ -640,12 +658,7 @@ def expected_cumulative_transactions(
     return df_cum_transactions
 
 
-def _save_obj_without_attr(
-    obj,
-    attr_list,
-    path,
-    values_to_save=None
-):
+def _save_obj_without_attr(obj, attr_list, path, values_to_save=None):
     """
     Save object with attributes from attr_list.
 
@@ -687,5 +700,5 @@ def _concat2(*arrays):
     :return:
     """
     arrays = [np.array(ar) for ar in arrays]
-    arrays = [ar.reshape((-1,1)) if ar.ndim < 2 else ar for ar in arrays]
+    arrays = [ar.reshape((-1, 1)) if ar.ndim < 2 else ar for ar in arrays]
     return np.concatenate(arrays, axis=-1)

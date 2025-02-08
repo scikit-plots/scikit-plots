@@ -1,21 +1,14 @@
-import pytest
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 
 from ..validation import (
-  validate_plotting_decorator,
-  validate_plotting_kwargs,
-  validate_plotting_kwargs_decorator,
-  validate_shapes,
-  validate_shapes_decorator,
-  validate_y_true,
-  validate_y_true_decorator,
-  validate_y_probas,
-  validate_y_probas_decorator,
-  validate_y_probas_bounds,
-  validate_y_probas_bounds_decorator,
-  validate_inputs,
+    validate_plotting_kwargs_decorator,
+    validate_shapes_decorator,
+    validate_y_probas_bounds_decorator,
+    validate_y_probas_decorator,
+    validate_y_true_decorator,
 )
 
 
@@ -33,41 +26,43 @@ class TestValidatePlottingKwargs:
     def tearDown(self):
         """Set up the test environment."""
         plt.close("all")
-        
+
     def dummy_function(self, *args, **kwargs):
         """
         A method that demonstrates the use of the validate_plotting_kwargs_decorator.
-        
+
         This method wraps another function in the validate_plotting_kwargs_decorator
         to validate the (fig, ax) before returning them.
-        
+
         Parameters:
         - fig: The figure object to be validated (optional).
         - ax: The axes object to be validated (optional).
         - figsize: The size of the figure (optional).
-    
+
         Returns:
         - Tuple of (fig, ax) if the inputs are valid.
         """
-        
+
         @validate_plotting_kwargs_decorator
-        def inner_dummy_function(*args, fig=None, ax=None, figsize=None, nrows=1, ncols=1, index=1, **kwargs):
+        def inner_dummy_function(
+            *args, fig=None, ax=None, figsize=None, nrows=1, ncols=1, index=1, **kwargs
+        ):
             """
-            A dummy plotting function that demonstrates the use of the validate_plotting_kwargs_decorator.
-            
-            This function is decorated to validate its inputs before execution.
-            
-            Parameters:
-          - fig: The figure object to be validated (optional).
-          - ax: The axes object to be validated (optional).
-          - figsize: The size of the figure (optional).
-            
-            Returns:
-            - Tuple of (fig, ax) if the inputs are valid.
+              A dummy plotting function that demonstrates the use of the validate_plotting_kwargs_decorator.
+
+              This function is decorated to validate its inputs before execution.
+
+              Parameters:
+            - fig: The figure object to be validated (optional).
+            - ax: The axes object to be validated (optional).
+            - figsize: The size of the figure (optional).
+
+              Returns:
+              - Tuple of (fig, ax) if the inputs are valid.
             """
             # Return the provided figure and axes objects
             return fig, ax
-        
+
         # Call the inner function with the provided arguments
         return inner_dummy_function(*args, **kwargs)
 
@@ -104,21 +99,29 @@ class TestValidatePlottingKwargs:
     # Test case 5: Invalid ax type (should raise ValueError)
     def test_invalid_ax(self):
         """Test case: Invalid ax type (should raise ValueError)."""
-        with pytest.raises(ValueError, match="Provided ax must be an instance of matplotlib.axes.Axes"):
+        with pytest.raises(
+            ValueError, match="Provided ax must be an instance of matplotlib.axes.Axes"
+        ):
             self.dummy_function(ax="invalid_ax")
 
     # Test case 6: Invalid fig type (should raise ValueError)
     def test_invalid_fig(self):
         """Test case: Invalid fig type (should raise ValueError)."""
-        with pytest.raises(ValueError, match="Provided fig must be an instance of matplotlib.figure.Figure"):
+        with pytest.raises(
+            ValueError, match="Provided fig must be an instance of matplotlib.figure.Figure"
+        ):
             self.dummy_function(fig="invalid_fig")
 
     # Test case 7: Decorator test (valid case)
     def test_decorator_creates_fig_and_ax(self):
         """Test case: Decorator creates fig and ax (valid case)."""
         fig, ax = self.dummy_function()
-        assert isinstance(fig, mpl.figure.Figure), "Expected a Figure object to be created by the decorator"
-        assert isinstance(ax, mpl.axes.Axes), "Expected an Axes object to be created by the decorator"
+        assert isinstance(
+            fig, mpl.figure.Figure
+        ), "Expected a Figure object to be created by the decorator"
+        assert isinstance(
+            ax, mpl.axes.Axes
+        ), "Expected an Axes object to be created by the decorator"
 
     # Test case 8: Decorator with provided fig and ax
     def test_decorator_with_fig_and_ax(self):
@@ -138,38 +141,38 @@ class TestValidateShapes:
 
     def tearDown(self):
         plt.close("all")
-        
+
     def dummy_function(self, *args, **kwargs):
         """
         A method that demonstrates the use of the validate_shapes_decorator.
-        
+
         This method wraps another function in the validate_shapes_decorator
         to validate the shapes of y_true and y_probas before returning them.
-        
+
         Parameters:
         - y_true: The true labels (1D or 2D array-like).
         - y_probas: The predicted probabilities (1D or 2D array-like).
-    
+
         Returns:
         - Tuple of y_true and y_probas if shapes are valid.
         """
-        
+
         @validate_shapes_decorator
         def inner_dummy_function(y_true, y_probas, *args, **kwargs):
             """
             Inner function that simply returns y_true and y_probas.
-            
+
             This function is decorated to validate its inputs before execution.
-            
+
             Parameters:
             - y_true: The true labels (1D or 2D array-like).
             - y_probas: The predicted probabilities (1D or 2D array-like).
-            
+
             Returns:
             - Tuple of y_true and y_probas.
             """
             return y_true, y_probas
-        
+
         # Call the inner function with the provided arguments
         return inner_dummy_function(*args, **kwargs)
 
@@ -197,13 +200,13 @@ class TestValidateShapes:
     def test_valid_multiclass(self):
         """Test case: Valid multi-class case, 2D y_true and y_probas."""
         y_probas = [[0.8, 0.1, 0.1], [0.2, 0.6, 0.2], [0.1, 0.3, 0.6]]
-        
+
         y_true = [0, 1, 2]
         try:
             self.dummy_function(y_true, y_probas)
         except ValueError as e:
             pytest.fail(f"Unexpected ValueError: {str(e)}")
-            
+
         y_true_bin = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
         try:
             self.dummy_function(y_true_bin, y_probas)
@@ -270,22 +273,22 @@ class TestValidateYTrue:
 
     def tearDown(self):
         plt.close("all")
-        
+
     def dummy_function(self, *args, **kwargs):
         """A dummy function to test the decorator."""
-        
+
         @validate_y_true_decorator
         def inner_dummy_function(y_true, *args, pos_label=None, class_index=None, **kwargs):
             """A dummy function to test the decorator."""
             return y_true  # Simply return y_true after validation
-        
+
         # Call the inner function with the provided arguments
         return inner_dummy_function(*args, **kwargs)
 
     # Test case 1: Valid binary case with default pos_label
     def test_valid_binary_default_pos_label(self):
         y_true = [0, 1, 1, 0]
-        expected_output = np.array([False,  True,  True, False])
+        expected_output = np.array([False, True, True, False])
         result = self.dummy_function(y_true)
         np.testing.assert_array_equal(result, expected_output)
 
@@ -298,14 +301,16 @@ class TestValidateYTrue:
 
     # Test case 3: Valid multi-class case
     def test_valid_multiclass(self):
-        y_true = ['class_0', 'class_1', 'class_2', 'class_0']
+        y_true = ["class_0", "class_1", "class_2", "class_0"]
         expected_output = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 0, 0]])  # One-hot encoded
         result = self.dummy_function(y_true)
         np.testing.assert_array_equal(result, expected_output)
 
     # Test case 4: Invalid y_true (non-iterable)
     def test_invalid_y_true_non_iterable(self):
-        with pytest.raises(ValueError, match="`y_true` must be of type bool, str, numeric, or a mix"):
+        with pytest.raises(
+            ValueError, match="`y_true` must be of type bool, str, numeric, or a mix"
+        ):
             self.dummy_function(12345)  # Invalid input
 
     # Test case 5: Invalid y_true (not enough distinct classes)
@@ -321,8 +326,11 @@ class TestValidateYTrue:
 
     # Test case 7: Invalid class_index
     def test_invalid_class_index(self):
-        y_true = ['class_0', 'class_1', 'class_2', 'class_0']
-        with pytest.raises(ValueError, match="class_index 5 out of bounds for `y_true`. It must be between 0 and 2."):
+        y_true = ["class_0", "class_1", "class_2", "class_0"]
+        with pytest.raises(
+            ValueError,
+            match="class_index 5 out of bounds for `y_true`. It must be between 0 and 2.",
+        ):
             self.dummy_function(y_true, class_index=5)  # Invalid class index
 
     # Test case 8: Decorator test (valid case)
@@ -334,7 +342,9 @@ class TestValidateYTrue:
 
     # Test case 9: Decorator test (invalid case)
     def test_decorator_invalid_case(self):
-        with pytest.raises(ValueError, match="`y_true` must be of type bool, str, numeric, or a mix"):
+        with pytest.raises(
+            ValueError, match="`y_true` must be of type bool, str, numeric, or a mix"
+        ):
             self.dummy_function(12345)  # Invalid input
 
 
@@ -349,14 +359,14 @@ class TestValidateYProbas:
 
     def dummy_function(self, *args, **kwargs):
         """A dummy function to test the decorator."""
-        
+
         @validate_y_probas_decorator
         def inner_dummy_function(y_true, y_probas, *args, class_index=None, **kwargs):
             """A dummy function to test the decorator."""
             # This function should do something with y_true and the validated y_probas
             # For testing, we can just return y_probas to see what we get
             return y_probas  # Simply return y_probas after validation
-        
+
         # Call the inner function with the provided arguments
         return inner_dummy_function(*args, **kwargs)
 
@@ -394,7 +404,10 @@ class TestValidateYProbas:
     def test_invalid_class_index(self):
         y_true = [0, 1]
         y_probas = [[0.8, 0.2], [0.2, 0.8]]
-        with pytest.raises(ValueError, match="class_index 5 out of bounds for `y_probas`. It must be between 0 and 1."):
+        with pytest.raises(
+            ValueError,
+            match="class_index 5 out of bounds for `y_probas`. It must be between 0 and 1.",
+        ):
             self.dummy_function(y_true, y_probas, class_index=5)  # Invalid class index
 
     # Test case 6: Decorator test (valid case)
@@ -423,12 +436,12 @@ class TestValidateYProbasBounds:
 
     def dummy_function(self, *args, **kwargs):
         """A dummy function to test the decorator"""
-        
+
         @validate_y_probas_bounds_decorator
         def inner_dummy_function(y_probas, *args, method="minmax", axis=0, **kwargs):
             """Returns the validated y_probas"""
             return y_probas  # Return y_probas after validation
-        
+
         # Call the inner function with the provided arguments
         return inner_dummy_function(*args, **kwargs)
 

@@ -3,35 +3,27 @@
 A "grab bag" of relatively small general-purpose utilities that don't have
 a clear module/package to live in.
 """
-import os
-import sys
-import re
-import inspect
-import pkgutil
-import difflib
-import importlib
 import contextlib
+import difflib
+import inspect
 import json
 import locale
+import re
+import sys
 import threading
-import traceback
 import unicodedata
 
-from pprint import pprint
-
-
 __all__ = [
-  "isiterable",
-  "silence",
-  "NumpyRNGContext",
-  "find_api_page",
-  "JsonCustomEncoder",
-  "dtype_bytes_or_chars",
+    "isiterable",
+    "silence",
+    "NumpyRNGContext",
+    "find_api_page",
+    "JsonCustomEncoder",
+    "dtype_bytes_or_chars",
 ]
 
 NOT_OVERWRITING_MSG = (
-    "File {} already exists. If you mean to replace it "
-    'then use the argument "overwrite=True".'
+    "File {} already exists. If you mean to replace it " 'then use the argument "overwrite=True".'
 )
 # A useful regex for tests.
 _NOT_OVERWRITING_MSG_MATCH = (
@@ -103,6 +95,7 @@ class _DummyFile:
     def write(self, s):
         pass
 
+
 @contextlib.contextmanager
 def silence():
     """A context manager that silences sys.stdout and sys.stderr."""
@@ -160,11 +153,7 @@ def find_api_page(obj, version=None, openinbrowser=True, timeout=None):
 
     from astropy.utils.data import get_readable_fileobj
 
-    if (
-        not isinstance(obj, str)
-        and hasattr(obj, "__module__")
-        and hasattr(obj, "__name__")
-    ):
+    if not isinstance(obj, str) and hasattr(obj, "__module__") and hasattr(obj, "__name__"):
         obj = obj.__module__ + "." + obj.__name__
     elif inspect.ismodule(obj):
         obj = obj.__name__
@@ -266,7 +255,6 @@ class JsonCustomEncoder(json.JSONEncoder):
 
     def default(self, obj):
         import numpy as np
-
         from astropy import units as u
 
         if isinstance(obj, u.Quantity):
@@ -294,9 +282,7 @@ def strip_accents(s):
 
     This helps with matching "ångström" to "angstrom", for example.
     """
-    return "".join(
-        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
-    )
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
 
 
 def did_you_mean(s, candidates, n=3, cutoff=0.8, fix=None):
@@ -349,9 +335,7 @@ def did_you_mean(s, candidates, n=3, cutoff=0.8, fix=None):
     if s_lower.endswith("s") and s_lower[:-1] in candidates_lower:
         matches = [s_lower[:-1]]
     else:
-        matches = difflib.get_close_matches(
-            s_lower, candidates_lower, n=n, cutoff=cutoff
-        )
+        matches = difflib.get_close_matches(s_lower, candidates_lower, n=n, cutoff=cutoff)
 
     if len(matches):
         capitalized_matches = set()
@@ -468,6 +452,7 @@ def coffee(is_adam=False, is_brigitta=False):  # pragma: no cover
         option = "coffee"
     _hungry_for(option)
 
+
 ######################################################################
-## 
+##
 ######################################################################

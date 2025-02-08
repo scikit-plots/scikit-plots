@@ -37,9 +37,8 @@ To fix this, you can add this module as extension to your sphinx :file:`conf.py`
 
 from urllib.parse import urlsplit, urlunsplit
 
-from docutils import nodes
-
 import matplotlib
+from docutils import nodes
 from matplotlib import rcParamsDefault
 
 
@@ -54,7 +53,7 @@ class _QueryReference(nodes.Inline, nodes.TextElement):
 
     def to_query_string(self):
         """Generate query string from node attributes."""
-        return '&'.join(f'{name}={value}' for name, value in self.attlist())
+        return "&".join(f"{name}={value}" for name, value in self.attlist())
 
 
 def _visit_query_reference_node(self, node):
@@ -65,8 +64,8 @@ def _visit_query_reference_node(self, node):
     """
     query = node.to_query_string()
     for refnode in node.findall(nodes.reference):
-        uri = urlsplit(refnode['refuri'])._replace(query=query)
-        refnode['refuri'] = urlunsplit(uri)
+        uri = urlsplit(refnode["refuri"])._replace(query=query)
+        refnode["refuri"] = urlunsplit(uri)
 
     self.visit_literal(node)
 
@@ -89,9 +88,8 @@ def _rcparam_role(name, rawtext, text, lineno, inliner, options=None, content=No
     # Generate a pending cross-reference so that Sphinx will ensure this link
     # isn't broken at some point in the future.
     title = f'rcParams["{text}"]'
-    target = 'matplotlibrc-sample'
-    ref_nodes, messages = inliner.interpreted(title, f'{title} <{target}>',
-                                              'ref', lineno)
+    target = "matplotlibrc-sample"
+    ref_nodes, messages = inliner.interpreted(title, f"{title} <{target}>", "ref", lineno)
 
     qr = _QueryReference(rawtext, highlight=text)
     qr += ref_nodes
@@ -100,11 +98,13 @@ def _rcparam_role(name, rawtext, text, lineno, inliner, options=None, content=No
     # The default backend would be printed as "agg", but that's not correct (as
     # the default is actually determined by fallback).
     if text in rcParamsDefault and text != "backend":
-        node_list.extend([
-            nodes.Text(' (default: '),
-            nodes.literal('', repr(rcParamsDefault[text])),
-            nodes.Text(')'),
-            ])
+        node_list.extend(
+            [
+                nodes.Text(" (default: "),
+                nodes.literal("", repr(rcParamsDefault[text])),
+                nodes.Text(")"),
+            ]
+        )
 
     return node_list, messages
 
@@ -124,13 +124,14 @@ def _mpltype_role(name, rawtext, text, lineno, inliner, options=None, content=No
     """
     mpltype = text
     type_to_link_target = {
-        'color': 'colors_def',
+        "color": "colors_def",
     }
     if mpltype not in type_to_link_target:
         raise ValueError(f"Unknown mpltype: {mpltype!r}")
 
     node_list, messages = inliner.interpreted(
-        mpltype, f'{mpltype} <{type_to_link_target[mpltype]}>', 'ref', lineno)
+        mpltype, f"{mpltype} <{type_to_link_target[mpltype]}>", "ref", lineno
+    )
     return node_list, messages
 
 
@@ -143,5 +144,8 @@ def setup(app):
         latex=(_visit_query_reference_node, _depart_query_reference_node),
         text=(_visit_query_reference_node, _depart_query_reference_node),
     )
-    return {"version": matplotlib.__version__,
-            "parallel_read_safe": True, "parallel_write_safe": True}
+    return {
+        "version": matplotlib.__version__,
+        "parallel_read_safe": True,
+        "parallel_write_safe": True,
+    }

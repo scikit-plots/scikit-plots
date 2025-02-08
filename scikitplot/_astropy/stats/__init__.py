@@ -9,14 +9,18 @@ astronomy. This package is intended to provide such functionality, but
 astronomers' needs.
 """
 from . import (
-  _bayesian_blocks as _bb,
-  funcs,
-  _histogram as _hist,
-  info_theory,
+    _bayesian_blocks as _bb,
+)
+from . import (
+    _histogram as _hist,
+)
+from . import (
+    funcs,
+    info_theory,
 )
 from ._bayesian_blocks import *
-from .funcs import *
 from ._histogram import *
+from .funcs import *
 from .info_theory import *
 
 __all__ = []

@@ -1,39 +1,39 @@
 """Tests for seaborn utility functions."""
+
 import re
 import tempfile
+from http.client import HTTPException
 from types import ModuleType
 from urllib.request import urlopen
-from http.client import HTTPException
 
-import numpy as np
-import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from cycler import cycler
-
+import numpy as np
+import pandas as pd
 import pytest
+from cycler import cycler
 from numpy.testing import (
     assert_array_equal,
 )
 from pandas.testing import (
-    assert_series_equal,
     assert_frame_equal,
+    assert_series_equal,
 )
 
+from .. import rcmod, scatterplot, utils
 from .._compat import get_legend_handles
 from ..utils import (
-    get_dataset_names,
-    get_color_cycle,
-    remove_na,
-    load_dataset,
+    DATASET_NAMES_URL,
     _assign_default_kwargs,
     _check_argument,
-    _draw_figure,
     _deprecate_ci,
-    _version_predates, DATASET_NAMES_URL,
+    _draw_figure,
+    _version_predates,
+    get_color_cycle,
+    get_dataset_names,
+    load_dataset,
+    remove_na,
 )
-from .. import utils, rcmod, scatterplot
-
 
 a_norm = np.random.randn(100)
 
@@ -60,18 +60,17 @@ def _network(t=None, url="https://github.com"):
         else:
             f.close()
             return t(*args, **kwargs)
+
     return wrapper
 
 
 def test_ci_to_errsize():
     """Test behavior of ci_to_errsize."""
-    cis = [[.5, .5],
-           [1.25, 1.5]]
+    cis = [[0.5, 0.5], [1.25, 1.5]]
 
     heights = [1, 1.5]
 
-    actual_errsize = np.array([[.5, 1],
-                               [.25, 0]])
+    actual_errsize = np.array([[0.5, 1], [0.25, 0]])
 
     test_errsize = utils.ci_to_errsize(cis, heights)
     assert_array_equal(actual_errsize, test_errsize)
@@ -79,17 +78,17 @@ def test_ci_to_errsize():
 
 def test_desaturate():
     """Test color desaturation."""
-    out1 = utils.desaturate("red", .5)
-    assert out1 == (.75, .25, .25)
+    out1 = utils.desaturate("red", 0.5)
+    assert out1 == (0.75, 0.25, 0.25)
 
-    out2 = utils.desaturate("#00FF00", .5)
-    assert out2 == (.25, .75, .25)
+    out2 = utils.desaturate("#00FF00", 0.5)
+    assert out2 == (0.25, 0.75, 0.25)
 
-    out3 = utils.desaturate((0, 0, 1), .5)
-    assert out3 == (.25, .25, .75)
+    out3 = utils.desaturate((0, 0, 1), 0.5)
+    assert out3 == (0.25, 0.25, 0.75)
 
-    out4 = utils.desaturate("red", .5)
-    assert out4 == (.75, .25, .25)
+    out4 = utils.desaturate("red", 0.5)
+    assert out4 == (0.75, 0.25, 0.25)
 
     out5 = utils.desaturate("lightblue", 1)
     assert out5 == mpl.colors.to_rgb("lightblue")
@@ -103,7 +102,7 @@ def test_desaturation_prop():
 
 def test_saturate():
     """Test performance of saturation function."""
-    out = utils.saturate((.75, .25, .25))
+    out = utils.saturate((0.75, 0.25, 0.25))
     assert out == (1, 0, 0)
 
 
@@ -214,7 +213,7 @@ class TestSpineUtils:
 
         f, ax = plt.subplots()
         ax.plot([1, 2, 3], [1, 2, 3])
-        ax.set_xlim(.75, 3.25)
+        ax.set_xlim(0.75, 3.25)
 
         utils.despine(trim=True)
         for side in self.inner_sides:
@@ -225,7 +224,7 @@ class TestSpineUtils:
 
         f, ax = plt.subplots()
         ax.plot([1, 2, 3], [1, 2, 3])
-        ax.set_ylim(.85, 3.15)
+        ax.set_ylim(0.85, 3.15)
         ax.invert_yaxis()
 
         utils.despine(trim=True)
@@ -298,7 +297,7 @@ def test_ticklabels_overlap():
     assert not utils.axis_ticklabels_overlap(ax.get_xticklabels())
 
     big_strings = "abcdefgh", "ijklmnop"
-    ax.set_xlim(-.5, 1.5)
+    ax.set_xlim(-0.5, 1.5)
     ax.set_xticks([0, 1])
     ax.set_xticklabels(big_strings)
 
@@ -313,15 +312,11 @@ def test_locator_to_legend_entries():
 
     locator = mpl.ticker.MaxNLocator(nbins=3)
     limits = (0.09, 0.4)
-    levels, str_levels = utils.locator_to_legend_entries(
-        locator, limits, float
-    )
+    levels, str_levels = utils.locator_to_legend_entries(locator, limits, float)
     assert str_levels == ["0.15", "0.30"]
 
     limits = (0.8, 0.9)
-    levels, str_levels = utils.locator_to_legend_entries(
-        locator, limits, float
-    )
+    levels, str_levels = utils.locator_to_legend_entries(locator, limits, float)
     assert str_levels == ["0.80", "0.84", "0.88"]
 
     limits = (1, 6)
@@ -331,7 +326,7 @@ def test_locator_to_legend_entries():
     locator = mpl.ticker.LogLocator(numticks=5)
     limits = (5, 1425)
     levels, str_levels = utils.locator_to_legend_entries(locator, limits, int)
-    assert str_levels == ['10', '100', '1000']
+    assert str_levels == ["10", "100", "1000"]
 
     limits = (0.00003, 0.02)
     _, str_levels = utils.locator_to_legend_entries(locator, limits, float)
@@ -522,7 +517,7 @@ def test_relative_luminance():
     out2 = utils.relative_luminance("#000000")
     assert out2 == 0
 
-    out3 = utils.relative_luminance((.25, .5, .75))
+    out3 = utils.relative_luminance((0.25, 0.5, 0.75))
     assert out3 == pytest.approx(0.201624536)
 
     rgbs = mpl.cm.RdBu(np.linspace(0, 1, 10))
@@ -558,7 +553,7 @@ def test_remove_na():
 
     a_series = pd.Series([1, 2, np.nan, 3])
     a_series_rm = remove_na(a_series)
-    assert_series_equal(a_series_rm, pd.Series([1., 2, 3], [0, 1, 3]))
+    assert_series_equal(a_series_rm, pd.Series([1.0, 2, 3], [0, 1, 3]))
 
 
 def test_assign_default_kwargs():

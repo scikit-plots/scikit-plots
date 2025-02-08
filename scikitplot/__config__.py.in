@@ -132,7 +132,7 @@ class DisplayModes(Enum):
   # Boolean Logic: You need to check if a variable is a valid member of the enumeration.
   stdout = "stdout"  # Output to standard output
   dicts  = "dicts"   # Output as dictionaries
-  
+
   def describe(self):
     if self == DisplayModes.stdout:
       return "Displays output to the terminal."
@@ -160,7 +160,7 @@ def _set_display_mode(mode:str = 'stdout'):
   else:
     print("Invalid type. Mode must be a string or a DisplayModes Enum member.")
     return
-        
+
 def show(mode=DisplayModes.stdout.value): # Value of the enum member
   """
   Show libraries and system information on which SciPy was built
@@ -182,7 +182,7 @@ def show(mode=DisplayModes.stdout.value): # Value of the enum member
   -----
   1. The `'stdout'` mode will give more readable
      output if ``pyyaml`` is installed
-     
+
   Examples
   --------
   .. jupyter-execute::

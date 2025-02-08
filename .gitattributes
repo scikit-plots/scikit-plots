@@ -61,7 +61,7 @@
 # *.xml merge=union
 # *.txt merge=union
 
-## Attributes for Export 
+## Attributes for Export
 ## export-subst: (Version: $Version$) dynamically update version information
 # version: export-subst
 
