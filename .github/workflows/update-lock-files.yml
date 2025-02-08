@@ -6,6 +6,9 @@ on:
   # schedule:
   #   - cron: '0 5 * * 1'
 
+permissions:
+  contents: read
+
 jobs:
   update_lock_files:
     if: github.repository == 'scikit-plots/scikit-plots'
