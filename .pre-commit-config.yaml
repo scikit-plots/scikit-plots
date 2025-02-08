@@ -3,12 +3,37 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-yaml
+      - id: check-toml
       - id: end-of-file-fixer
+        exclude_types: [svg]
+      - id: trailing-whitespace
         exclude_types: [svg]
       - id: mixed-line-ending
       - id: no-commit-to-branch  # Default is master and main.
-      - id: trailing-whitespace
-        exclude_types: [svg]
+  # - repo: https://github.com/asottile/reorder-python-imports
+  #   rev: v3.12.0
+  #   hooks:
+  #     - id: reorder-python-imports
+  #       args: [
+  #         --application-directories, '.:src',
+  #         --py38-plus,
+  #         --add-import, 'from __future__ import annotations',
+  #       ]
+  # - repo: https://github.com/psf/black
+  #   rev: 23.12.1
+  #   hooks:
+  #     - id: black
+  #       args: [--line-length=79]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.5
+    hooks:
+      - id: ruff
+        args: ["--fix", "--output-format=full"]
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        args: ["--target-version=py312"]  # Change py314 → py312 (or the Python version you're using)
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:
@@ -17,12 +42,23 @@ repos:
           - pydocstyle>5.1.0
           - flake8-docstrings>1.4.0
           - flake8-force
-        args: ["--docstring-convention=all"]
-        exclude: scikitplot/_seaborn/(cm\.py|external/)
+        args: [--config=.flake8, --docstring-convention=all, '--exit-zero']
+        # exclude: ^scikitplot/(_externals/|_seaborn/)
         types: [file, python]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.1
+    rev: v1.15.0
     hooks:
       - id: mypy
-        args: [--follow-imports=skip]
+        # https://github.com/python/mypy/issues/13916
+        pass_filenames: false  # Prevent passing filenames to the hook
+        args: [--config-file=.mypy.ini, --follow-imports=skip]
+        # args: [--follow-imports=skip]
+        # Use regex to specify the files to check
         files: scikitplot/_seaborn/_(core|marks|stats)/
+        # additional_dependencies: [pytest==6.2.4]
+  - repo: https://github.com/MarcoGorelli/cython-lint
+    rev: v0.16.6
+    hooks:
+      # TODO: add the double-quote-cython-strings hook when it's usability has improved:
+      # possibility to pass a directory and use it as a check instead of auto-formatter.
+      - id: cython-lint

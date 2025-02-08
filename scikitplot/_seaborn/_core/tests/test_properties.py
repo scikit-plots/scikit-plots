@@ -1,15 +1,13 @@
-
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
+import pytest
 from matplotlib.colors import same_color, to_rgb, to_rgba
 from matplotlib.markers import MarkerStyle
-
-import pytest
 from numpy.testing import assert_array_equal
 
-from ..rules import categorical_order
-from ..scales import Nominal, Continuous, Boolean
+from ..._compat import get_colormap
+from ...palettes import color_palette
 from ..properties import (
     Alpha,
     Color,
@@ -21,9 +19,8 @@ from ..properties import (
     Marker,
     PointSize,
 )
-
-from ..._compat import get_colormap
-from ...palettes import color_palette
+from ..rules import categorical_order
+from ..scales import Boolean, Continuous, Nominal
 
 
 class DataFixtures:
@@ -199,8 +196,7 @@ class TestColor(DataFixtures):
             Color().infer_scale(123, cat_vector)
 
     @pytest.mark.parametrize(
-        "data_type,scale_class",
-        [("cat", Nominal), ("num", Continuous), ("bool", Boolean)]
+        "data_type,scale_class", [("cat", Nominal), ("num", Continuous), ("bool", Boolean)]
     )
     def test_default(self, data_type, scale_class, vectors):
 
@@ -231,7 +227,7 @@ class TestColor(DataFixtures):
             (("g", "m"), "cat", Nominal),  # Based on tuple / variable type
             (("c", "y"), "bool", Boolean),  # Based on tuple / variable type
             (get_colormap("inferno"), "num", Continuous),  # Based on callable
-        ]
+        ],
     )
     def test_inference(self, values, data_type, scale_class, vectors):
 
@@ -245,8 +241,8 @@ class TestColor(DataFixtures):
         assert f("C3") == to_rgb("C3")
         assert f("dodgerblue") == to_rgb("dodgerblue")
 
-        assert f((.1, .2, .3)) == (.1, .2, .3)
-        assert f((.1, .2, .3, .4)) == (.1, .2, .3, .4)
+        assert f((0.1, 0.2, 0.3)) == (0.1, 0.2, 0.3)
+        assert f((0.1, 0.2, 0.3, 0.4)) == (0.1, 0.2, 0.3, 0.4)
 
         assert f("#123456") == to_rgb("#123456")
         assert f("#12345678") == to_rgba("#12345678")
@@ -303,7 +299,7 @@ class ObjectPropertyBase(DataFixtures):
         mapping = self.prop().get_mapping(Nominal(), x)
         n = x.nunique()
         for i, expected in enumerate(self.prop()._default_values(n)):
-            actual, = mapping([i])
+            (actual,) = mapping([i])
             self.assert_equal(actual, expected)
 
     @pytest.mark.parametrize("data_type", ["cat", "num"])
@@ -313,7 +309,7 @@ class ObjectPropertyBase(DataFixtures):
         scale = Nominal(self.values)
         mapping = self.prop().get_mapping(scale, x)
         for i, expected in enumerate(self.standardized_values):
-            actual, = mapping([i])
+            (actual,) = mapping([i])
             self.assert_equal(actual, expected)
 
     @pytest.mark.parametrize("data_type", ["cat", "num"])
@@ -327,7 +323,7 @@ class ObjectPropertyBase(DataFixtures):
         scale = Nominal(values)
         mapping = self.prop().get_mapping(scale, x)
         for i, level in enumerate(levels):
-            actual, = mapping([i])
+            (actual,) = mapping([i])
             expected = standardized_values[level]
             self.assert_equal(actual, expected)
 
@@ -383,7 +379,7 @@ class TestMarker(ObjectPropertyBase):
 class TestLineStyle(ObjectPropertyBase):
 
     prop = LineStyle
-    values = ["solid", "--", (1, .5)]
+    values = ["solid", "--", (1, 0.5)]
     standardized_values = [LineStyle._get_dash_pattern(x) for x in values]
 
     def test_bad_type(self):
@@ -413,7 +409,7 @@ class TestFill(DataFixtures):
         return {
             "cat": pd.Series(["a", "a", "b"]),
             "num": pd.Series([1, 1, 2]),
-            "bool": pd.Series([True, True, False])
+            "bool": pd.Series([True, True, False]),
         }
 
     @pytest.fixture
@@ -492,28 +488,34 @@ class IntervalBase(DataFixtures):
     def norm(self, x):
         return (x - x.min()) / (x.max() - x.min())
 
-    @pytest.mark.parametrize("data_type,scale_class", [
-        ("cat", Nominal),
-        ("num", Continuous),
-        ("bool", Boolean),
-    ])
+    @pytest.mark.parametrize(
+        "data_type,scale_class",
+        [
+            ("cat", Nominal),
+            ("num", Continuous),
+            ("bool", Boolean),
+        ],
+    )
     def test_default(self, data_type, scale_class, vectors):
 
         x = vectors[data_type]
         scale = self.prop().default_scale(x)
         assert isinstance(scale, scale_class)
 
-    @pytest.mark.parametrize("arg,data_type,scale_class", [
-        ((1, 3), "cat", Nominal),
-        ((1, 3), "num", Continuous),
-        ((1, 3), "bool", Boolean),
-        ([1, 2, 3], "cat", Nominal),
-        ([1, 2, 3], "num", Nominal),
-        ([1, 3], "bool", Boolean),
-        ({"a": 1, "b": 3, "c": 2}, "cat", Nominal),
-        ({2: 1, 4: 3, 8: 2}, "num", Nominal),
-        ({True: 4, False: 2}, "bool", Boolean),
-    ])
+    @pytest.mark.parametrize(
+        "arg,data_type,scale_class",
+        [
+            ((1, 3), "cat", Nominal),
+            ((1, 3), "num", Continuous),
+            ((1, 3), "bool", Boolean),
+            ([1, 2, 3], "cat", Nominal),
+            ([1, 2, 3], "num", Nominal),
+            ([1, 3], "bool", Boolean),
+            ({"a": 1, "b": 3, "c": 2}, "cat", Nominal),
+            ({2: 1, 4: 3, 8: 2}, "num", Nominal),
+            ({True: 4, False: 2}, "bool", Boolean),
+        ],
+    )
     def test_inference(self, arg, data_type, scale_class, vectors):
 
         x = vectors[data_type]
@@ -535,9 +537,7 @@ class IntervalBase(DataFixtures):
     def test_bad_scale_values_numeric_data(self, num_vector):
 
         prop_name = self.prop.__name__.lower()
-        err_stem = (
-            f"Values for {prop_name} variables with Continuous scale must be 2-tuple"
-        )
+        err_stem = f"Values for {prop_name} variables with Continuous scale must be 2-tuple"
 
         with pytest.raises(TypeError, match=f"{err_stem}; not <class 'str'>."):
             self.prop().get_mapping(Continuous("abc"), num_vector)

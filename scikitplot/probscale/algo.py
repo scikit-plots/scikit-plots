@@ -1,11 +1,12 @@
 import numpy
 
 __all__ = [
-  '_make_boot_index',
-  '_fit_simple',
-  '_bs_fit',
-  '_estimate_from_fit',
+    "_make_boot_index",
+    "_fit_simple",
+    "_bs_fit",
+    "_estimate_from_fit",
 ]
+
 
 def _make_boot_index(elements, niter):
     """Generate an array of bootstrap sample sets
@@ -98,9 +99,7 @@ def _bs_fit(x, y, xhat, fitlogs=None, niter=10000, alpha=0.05):
     """
 
     index = _make_boot_index(len(x), niter)
-    yhat_array = numpy.array(
-        [_fit_simple(x[ii], y[ii], xhat, fitlogs=fitlogs)[0] for ii in index]
-    )
+    yhat_array = numpy.array([_fit_simple(x[ii], y[ii], xhat, fitlogs=fitlogs)[0] for ii in index])
 
     percentiles = 100 * numpy.array([alpha * 0.5, 1 - alpha * 0.5])
     yhat_lo, yhat_hi = numpy.percentile(yhat_array, percentiles, axis=0)

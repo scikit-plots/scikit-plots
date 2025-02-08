@@ -3,7 +3,7 @@ SEP23: Multiple Figures per GUI window
 ========================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

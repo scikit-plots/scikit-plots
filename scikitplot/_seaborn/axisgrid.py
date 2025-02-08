@@ -1,29 +1,30 @@
 from __future__ import annotations
-from itertools import product
-from inspect import signature
+
 import warnings
+from inspect import signature
+from itertools import product
 from textwrap import dedent
 
-import numpy as np
-import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
-from ._base import VectorPlotter, variable_type, categorical_order
-from ._core.data import handle_data_source
-from ._compat import share_axis, get_legend_handles
 from . import utils
-from .utils import (
-    adjust_legend_subtitles,
-    set_hls_values,
-    _check_argument,
-    _draw_figure,
-    _disable_autolayout
-)
-from .palettes import color_palette, blend_palette
+from ._base import VectorPlotter, categorical_order, variable_type
+from ._compat import get_legend_handles, share_axis
+from ._core.data import handle_data_source
 from ._docstrings import (
     DocstringComponents,
     _core_docs,
+)
+from .palettes import blend_palette, color_palette
+from .utils import (
+    _check_argument,
+    _disable_autolayout,
+    _draw_figure,
+    adjust_legend_subtitles,
+    set_hls_values,
 )
 
 __all__ = ["FacetGrid", "PairGrid", "JointGrid", "pairplot", "jointplot"]
@@ -102,6 +103,7 @@ class _BaseGrid:
 
 class Grid(_BaseGrid):
     """A grid that can have multiple subplots and an external legend."""
+
     _margin_titles = False
     _legend_out = True
 
@@ -123,8 +125,9 @@ class Grid(_BaseGrid):
         self._figure.tight_layout(*args, **kwargs)
         return self
 
-    def add_legend(self, legend_data=None, title=None, label_order=None,
-                   adjust_subtitles=False, **kwargs):
+    def add_legend(
+        self, legend_data=None, title=None, label_order=None, adjust_subtitles=False, **kwargs
+    ):
         """Draw a legend, maybe placing it outside axes and resizing the figure.
 
         Parameters
@@ -205,7 +208,7 @@ class Grid(_BaseGrid):
             # Now calculate how much space we need on the right side
             legend_width = figlegend.get_window_extent().width / self._figure.dpi
             space_needed = legend_width / (fig_width + legend_width)
-            margin = .04 if self._margin_titles else .01
+            margin = 0.04 if self._margin_titles else 0.01
             self._space_needed = margin + space_needed
             right = 1 - self._space_needed
 
@@ -284,7 +287,7 @@ class Grid(_BaseGrid):
         except AttributeError:
             return None
 
-    def tick_params(self, axis='both', **kwargs):
+    def tick_params(self, axis="both", **kwargs):
         """Modify the ticks, tick labels, and gridlines.
 
         Parameters
@@ -307,61 +310,82 @@ class Grid(_BaseGrid):
 
 
 _facet_docs = dict(
-
-    data=dedent("""\
+    data=dedent(
+        """\
     data : DataFrame
         Tidy ("long-form") dataframe where each column is a variable and each
         row is an observation.\
-    """),
-    rowcol=dedent("""\
+    """
+    ),
+    rowcol=dedent(
+        """\
     row, col : vectors or keys in ``data``
         Variables that define subsets to plot on different facets.\
-    """),
-    rowcol_order=dedent("""\
+    """
+    ),
+    rowcol_order=dedent(
+        """\
     {row,col}_order : vector of strings
         Specify the order in which levels of the ``row`` and/or ``col`` variables
         appear in the grid of subplots.\
-    """),
-    col_wrap=dedent("""\
+    """
+    ),
+    col_wrap=dedent(
+        """\
     col_wrap : int
         "Wrap" the column variable at this width, so that the column facets
         span multiple rows. Incompatible with a ``row`` facet.\
-    """),
-    share_xy=dedent("""\
+    """
+    ),
+    share_xy=dedent(
+        """\
     share{x,y} : bool, 'col', or 'row' optional
         If true, the facets will share y axes across columns and/or x axes
         across rows.\
-    """),
-    height=dedent("""\
+    """
+    ),
+    height=dedent(
+        """\
     height : scalar
         Height (in inches) of each facet. See also: ``aspect``.\
-    """),
-    aspect=dedent("""\
+    """
+    ),
+    aspect=dedent(
+        """\
     aspect : scalar
         Aspect ratio of each facet, so that ``aspect * height`` gives the width
         of each facet in inches.\
-    """),
-    palette=dedent("""\
+    """
+    ),
+    palette=dedent(
+        """\
     palette : palette name, list, or dict
         Colors to use for the different levels of the ``hue`` variable. Should
         be something that can be interpreted by :func:`color_palette`, or a
         dictionary mapping hue levels to matplotlib colors.\
-    """),
-    legend_out=dedent("""\
+    """
+    ),
+    legend_out=dedent(
+        """\
     legend_out : bool
         If ``True``, the figure size will be extended, and the legend will be
         drawn outside the plot on the center right.\
-    """),
-    margin_titles=dedent("""\
+    """
+    ),
+    margin_titles=dedent(
+        """\
     margin_titles : bool
         If ``True``, the titles for the row variable are drawn to the right of
         the last column. This option is experimental and may not work in all
         cases.\
-    """),
-    facet_kws=dedent("""\
+    """
+    ),
+    facet_kws=dedent(
+        """\
     facet_kws : dict
         Additional parameters passed to :class:`FacetGrid`.
-    """),
+    """
+    ),
 )
 
 
@@ -369,12 +393,29 @@ class FacetGrid(Grid):
     """Multi-plot grid for plotting conditional relationships."""
 
     def __init__(
-        self, data, *,
-        row=None, col=None, hue=None, col_wrap=None,
-        sharex=True, sharey=True, height=3, aspect=1, palette=None,
-        row_order=None, col_order=None, hue_order=None, hue_kws=None,
-        dropna=False, legend_out=True, despine=True,
-        margin_titles=False, xlim=None, ylim=None, subplot_kws=None,
+        self,
+        data,
+        *,
+        row=None,
+        col=None,
+        hue=None,
+        col_wrap=None,
+        sharex=True,
+        sharey=True,
+        height=3,
+        aspect=1,
+        palette=None,
+        row_order=None,
+        col_order=None,
+        hue_order=None,
+        hue_kws=None,
+        dropna=False,
+        legend_out=True,
+        despine=True,
+        margin_titles=False,
+        xlim=None,
+        ylim=None,
+        subplot_kws=None,
         gridspec_kws=None,
     ):
 
@@ -454,10 +495,13 @@ class FacetGrid(Grid):
 
         if col_wrap is None:
 
-            kwargs = dict(squeeze=False,
-                          sharex=sharex, sharey=sharey,
-                          subplot_kw=subplot_kws,
-                          gridspec_kw=gridspec_kws)
+            kwargs = dict(
+                squeeze=False,
+                sharex=sharex,
+                sharey=sharey,
+                subplot_kw=subplot_kws,
+                gridspec_kw=gridspec_kws,
+            )
 
             axes = fig.subplots(nrow, ncol, **kwargs)
 
@@ -534,21 +578,22 @@ class FacetGrid(Grid):
         if despine:
             self.despine()
 
-        if sharex in [True, 'col']:
+        if sharex in [True, "col"]:
             for ax in self._not_bottom_axes:
                 for label in ax.get_xticklabels():
                     label.set_visible(False)
                 ax.xaxis.offsetText.set_visible(False)
                 ax.xaxis.label.set_visible(False)
 
-        if sharey in [True, 'row']:
+        if sharey in [True, "row"]:
             for ax in self._not_left_axes:
                 for label in ax.get_yticklabels():
                     label.set_visible(False)
                 ax.yaxis.offsetText.set_visible(False)
                 ax.yaxis.label.set_visible(False)
 
-    __init__.__doc__ = dedent("""\
+    __init__.__doc__ = dedent(
+        """\
         Initialize the matplotlib figure and FacetGrid object.
 
         This class maps a dataset onto multiple axes arrayed in a grid of rows
@@ -638,7 +683,8 @@ class FacetGrid(Grid):
 
         .. include:: ../docstrings/FacetGrid.rst
 
-        """).format(**_facet_docs)
+        """
+    ).format(**_facet_docs)
 
     def facet_data(self):
         """Generator for name indices and data subsets for each facet.
@@ -674,9 +720,9 @@ class FacetGrid(Grid):
             hue_masks = [np.repeat(True, len(self.data))]
 
         # Here is the main generator loop
-        for (i, row), (j, col), (k, hue) in product(enumerate(row_masks),
-                                                    enumerate(col_masks),
-                                                    enumerate(hue_masks)):
+        for (i, row), (j, col), (k, hue) in product(
+            enumerate(row_masks), enumerate(col_masks), enumerate(hue_masks)
+        ):
             data_ijk = data[row & col & hue & self._not_na]
             yield (i, j, k), data_ijk
 
@@ -712,14 +758,18 @@ class FacetGrid(Grid):
         # Check for categorical plots without order information
         if func_module == f"{_MODULE_NAME}.categorical":
             if "order" not in kwargs:
-                warning = ("Using the {} function without specifying "
-                           "`order` is likely to produce an incorrect "
-                           "plot.".format(func.__name__))
+                warning = (
+                    "Using the {} function without specifying "
+                    "`order` is likely to produce an incorrect "
+                    "plot.".format(func.__name__)
+                )
                 warnings.warn(warning)
             if len(args) == 3 and "hue_order" not in kwargs:
-                warning = ("Using the {} function without specifying "
-                           "`hue_order` is likely to produce an incorrect "
-                           "plot.".format(func.__name__))
+                warning = (
+                    "Using the {} function without specifying "
+                    "`hue_order` is likely to produce an incorrect "
+                    "plot.".format(func.__name__)
+                )
                 warnings.warn(warning)
 
         # Iterate over the data subsets
@@ -997,9 +1047,13 @@ class FacetGrid(Grid):
                     args.update(dict(row_name=row_name))
                     title = row_template.format(**args)
                     text = ax.annotate(
-                        title, xy=(1.02, .5), xycoords="axes fraction",
-                        rotation=270, ha="left", va="center",
-                        **kwargs
+                        title,
+                        xy=(1.02, 0.5),
+                        xycoords="axes fraction",
+                        rotation=270,
+                        ha="left",
+                        va="center",
+                        **kwargs,
                     )
                     self._margin_titles_texts.append(text)
 
@@ -1032,7 +1086,7 @@ class FacetGrid(Grid):
                 self.axes.flat[i].set_title(title, **kwargs)
         return self
 
-    def refline(self, *, x=None, y=None, color='.5', linestyle='--', **line_kws):
+    def refline(self, *, x=None, y=None, color=".5", linestyle="--", **line_kws):
         """Add a reference line(s) to each facet.
 
         Parameters
@@ -1055,8 +1109,8 @@ class FacetGrid(Grid):
             Returns ``self`` for easy method chaining.
 
         """
-        line_kws['color'] = color
-        line_kws['linestyle'] = linestyle
+        line_kws["color"] = color
+        line_kws["linestyle"] = linestyle
 
         if x is not None:
             self.map(plt.axvline, x=x, **line_kws)
@@ -1079,9 +1133,7 @@ class FacetGrid(Grid):
         if self.axes.shape == (1, 1):
             return self.axes[0, 0]
         else:
-            err = (
-                "Use the `.axes` attribute when facet variables are assigned."
-            )
+            err = "Use the `.axes` attribute when facet variables are assigned."
             raise AttributeError(err)
 
     @property
@@ -1148,9 +1200,8 @@ class FacetGrid(Grid):
             axes = []
             n_empty = self._nrow * self._ncol - self._n_facets
             for i, ax in enumerate(self.axes):
-                append = (
-                    i >= (self._ncol * (self._nrow - 1))
-                    or i >= (self._ncol * (self._nrow - 1) - n_empty)
+                append = i >= (self._ncol * (self._nrow - 1)) or i >= (
+                    self._ncol * (self._nrow - 1) - n_empty
                 )
                 if append:
                     axes.append(ax)
@@ -1165,9 +1216,8 @@ class FacetGrid(Grid):
             axes = []
             n_empty = self._nrow * self._ncol - self._n_facets
             for i, ax in enumerate(self.axes):
-                append = (
-                    i < (self._ncol * (self._nrow - 1))
-                    and i < (self._ncol * (self._nrow - 1) - n_empty)
+                append = i < (self._ncol * (self._nrow - 1)) and i < (
+                    self._ncol * (self._nrow - 1) - n_empty
                 )
                 if append:
                     axes.append(ax)
@@ -1188,10 +1238,25 @@ class PairGrid(Grid):
     See the :ref:`tutorial <grid_tutorial>` for more information.
 
     """
+
     def __init__(
-        self, data, *, hue=None, vars=None, x_vars=None, y_vars=None,
-        hue_order=None, palette=None, hue_kws=None, corner=False, diag_sharey=True,
-        height=2.5, aspect=1, layout_pad=.5, despine=True, dropna=False,
+        self,
+        data,
+        *,
+        hue=None,
+        vars=None,
+        x_vars=None,
+        y_vars=None,
+        hue_order=None,
+        palette=None,
+        hue_kws=None,
+        corner=False,
+        diag_sharey=True,
+        height=2.5,
+        aspect=1,
+        layout_pad=0.5,
+        despine=True,
+        dropna=False,
     ):
         """Initialize the plot figure and PairGrid object.
 
@@ -1279,9 +1344,7 @@ class PairGrid(Grid):
         with _disable_autolayout():
             fig = plt.figure(figsize=figsize)
 
-        axes = fig.subplots(len(y_vars), len(x_vars),
-                            sharex="col", sharey="row",
-                            squeeze=False)
+        axes = fig.subplots(len(y_vars), len(x_vars), sharex="col", sharey="row", squeeze=False)
 
         # Possibly remove upper axes to make a corner grid
         # Note: setting up the axes is usually the most time-intensive part
@@ -1313,8 +1376,7 @@ class PairGrid(Grid):
         self._hue_var = hue
         if hue is None:
             self.hue_names = hue_order = ["_nolegend_"]
-            self.hue_vals = pd.Series(["_nolegend_"] * len(data),
-                                      index=data.index)
+            self.hue_vals = pd.Series(["_nolegend_"] * len(data), index=data.index)
         else:
             # We need hue_order and hue_names because the former is used to control
             # the order of drawing and the latter is used to control the order of
@@ -1356,7 +1418,7 @@ class PairGrid(Grid):
             ax.yaxis.offsetText.set_visible(False)
             ax.yaxis.label.set_visible(False)
 
-        self._tight_layout_rect = [.01, .01, .99, .99]
+        self._tight_layout_rect = [0.01, 0.01, 0.99, 0.99]
         self._tight_layout_pad = layout_pad
         self._despine = despine
         if despine:
@@ -1561,6 +1623,7 @@ class PairGrid(Grid):
         # their artists onto the axes. This is probably superior in general, but
         # we'll need a better way to handle it in the axisgrid functions.
         from .distributions import histplot, kdeplot
+
         if func is histplot or func is kdeplot:
             self._extract_legend_handles = True
 
@@ -1609,9 +1672,13 @@ class PairGrid(Grid):
             hue = data.get(self._hue_var)
 
         if "hue" not in kwargs:
-            kwargs.update({
-                "hue": hue, "hue_order": self._hue_order, "palette": self._orig_palette,
-            })
+            kwargs.update(
+                {
+                    "hue": hue,
+                    "hue_order": self._hue_order,
+                    "palette": self._orig_palette,
+                }
+            )
         func(x=x, y=y, **kwargs)
 
         self._update_legend_data(ax)
@@ -1638,8 +1705,7 @@ class PairGrid(Grid):
             try:
                 data_k = hue_grouped.get_group(label_k)
             except KeyError:
-                data_k = pd.DataFrame(columns=axes_vars,
-                                      dtype=float)
+                data_k = pd.DataFrame(columns=axes_vars, dtype=float)
 
             if self._dropna:
                 data_k = data_k[axes_vars].dropna()
@@ -1685,11 +1751,22 @@ class JointGrid(_BaseGrid):
     """
 
     def __init__(
-        self, data=None, *,
-        x=None, y=None, hue=None,
-        height=6, ratio=5, space=.2,
-        palette=None, hue_order=None, hue_norm=None,
-        dropna=False, xlim=None, ylim=None, marginal_ticks=False,
+        self,
+        data=None,
+        *,
+        x=None,
+        y=None,
+        hue=None,
+        height=6,
+        ratio=5,
+        space=0.2,
+        palette=None,
+        hue_order=None,
+        hue_norm=None,
+        dropna=False,
+        xlim=None,
+        ylim=None,
+        marginal_ticks=False,
     ):
 
         # Set up the subplot grid
@@ -1897,8 +1974,7 @@ class JointGrid(_BaseGrid):
         return self
 
     def refline(
-        self, *, x=None, y=None, joint=True, marginal=True,
-        color='.5', linestyle='--', **line_kws
+        self, *, x=None, y=None, joint=True, marginal=True, color=".5", linestyle="--", **line_kws
     ):
         """Add a reference line(s) to joint and/or marginal axes.
 
@@ -1923,8 +1999,8 @@ class JointGrid(_BaseGrid):
             Returns ``self`` for easy method chaining.
 
         """
-        line_kws['color'] = color
-        line_kws['linestyle'] = linestyle
+        line_kws["color"] = color
+        line_kws["linestyle"] = linestyle
 
         if x is not None:
             if joint:
@@ -2008,12 +2084,25 @@ Examples
 
 
 def pairplot(
-    data, *,
-    hue=None, hue_order=None, palette=None,
-    vars=None, x_vars=None, y_vars=None,
-    kind="scatter", diag_kind="auto", markers=None,
-    height=2.5, aspect=1, corner=False, dropna=False,
-    plot_kws=None, diag_kws=None, grid_kws=None, size=None,
+    data,
+    *,
+    hue=None,
+    hue_order=None,
+    palette=None,
+    vars=None,
+    x_vars=None,
+    y_vars=None,
+    kind="scatter",
+    diag_kind="auto",
+    markers=None,
+    height=2.5,
+    aspect=1,
+    corner=False,
+    dropna=False,
+    plot_kws=None,
+    diag_kws=None,
+    grid_kws=None,
+    size=None,
 ):
     """Plot pairwise relationships in a dataset.
 
@@ -2095,13 +2184,11 @@ def pairplot(
     # Handle deprecations
     if size is not None:
         height = size
-        msg = ("The `size` parameter has been renamed to `height`; "
-               "please update your code.")
+        msg = "The `size` parameter has been renamed to `height`; " "please update your code."
         warnings.warn(msg, UserWarning)
 
     if not isinstance(data, pd.DataFrame):
-        raise TypeError(
-            f"'data' must be pandas DataFrame object, not: {type(data)}")
+        raise TypeError(f"'data' must be pandas DataFrame object, not: {type(data)}")
 
     plot_kws = {} if plot_kws is None else plot_kws.copy()
     diag_kws = {} if diag_kws is None else diag_kws.copy()
@@ -2116,9 +2203,20 @@ def pairplot(
 
     # Set up the PairGrid
     grid_kws.setdefault("diag_sharey", diag_kind == "hist")
-    grid = PairGrid(data, vars=vars, x_vars=x_vars, y_vars=y_vars, hue=hue,
-                    hue_order=hue_order, palette=palette, corner=corner,
-                    height=height, aspect=aspect, dropna=dropna, **grid_kws)
+    grid = PairGrid(
+        data,
+        vars=vars,
+        x_vars=x_vars,
+        y_vars=y_vars,
+        hue=hue,
+        hue_order=hue_order,
+        palette=palette,
+        corner=corner,
+        height=height,
+        aspect=aspect,
+        dropna=dropna,
+        **grid_kws,
+    )
 
     # Add the markers here as PairGrid has figured out how many levels of the
     # hue variable are needed and we don't want to duplicate that process
@@ -2132,8 +2230,10 @@ def pairplot(
             if not isinstance(markers, list):
                 markers = [markers] * n_markers
             if len(markers) != n_markers:
-                raise ValueError("markers must be a singleton or a list of "
-                                 "markers for each level of the hue variable")
+                raise ValueError(
+                    "markers must be a singleton or a list of "
+                    "markers for each level of the hue variable"
+                )
             grid.hue_kws = {"marker": markers}
         elif kind == "scatter":
             if isinstance(markers, str):
@@ -2160,16 +2260,20 @@ def pairplot(
 
     if kind == "scatter":
         from .relational import scatterplot  # Avoid circular import
+
         plotter(scatterplot, **plot_kws)
     elif kind == "reg":
         from .regression import regplot  # Avoid circular import
+
         plotter(regplot, **plot_kws)
     elif kind == "kde":
         from .distributions import kdeplot  # Avoid circular import
+
         plot_kws.setdefault("warn_singular", False)
         plotter(kdeplot, **plot_kws)
     elif kind == "hist":
         from .distributions import histplot  # Avoid circular import
+
         plotter(histplot, **plot_kws)
 
     # Add a legend
@@ -2182,16 +2286,31 @@ def pairplot(
 
 
 def jointplot(
-    data=None, *, x=None, y=None, hue=None, kind="scatter",
-    height=6, ratio=5, space=.2, dropna=False, xlim=None, ylim=None,
-    color=None, palette=None, hue_order=None, hue_norm=None, marginal_ticks=False,
-    joint_kws=None, marginal_kws=None,
-    **kwargs
+    data=None,
+    *,
+    x=None,
+    y=None,
+    hue=None,
+    kind="scatter",
+    height=6,
+    ratio=5,
+    space=0.2,
+    dropna=False,
+    xlim=None,
+    ylim=None,
+    color=None,
+    palette=None,
+    hue_order=None,
+    hue_norm=None,
+    marginal_ticks=False,
+    joint_kws=None,
+    marginal_kws=None,
+    **kwargs,
 ):
     # Avoid circular imports
-    from .relational import scatterplot
+    from .distributions import _freedman_diaconis_bins, histplot, kdeplot
     from .regression import regplot, residplot
-    from .distributions import histplot, kdeplot, _freedman_diaconis_bins
+    from .relational import scatterplot
 
     if kwargs.pop("ax", None) is not None:
         msg = "Ignoring `ax`; jointplot is a figure-level function."
@@ -2204,7 +2323,11 @@ def jointplot(
 
     # Handle deprecations of distplot-specific kwargs
     distplot_keys = [
-        "rug", "fit", "hist_kws", "norm_hist" "hist_kws", "rug_kws",
+        "rug",
+        "fit",
+        "hist_kws",
+        "norm_hist" "hist_kws",
+        "rug_kws",
     ]
     unused_keys = []
     for key in distplot_keys:
@@ -2241,10 +2364,20 @@ def jointplot(
 
     # Initialize the JointGrid object
     grid = JointGrid(
-        data=data, x=x, y=y, hue=hue,
-        palette=palette, hue_order=hue_order, hue_norm=hue_norm,
-        dropna=dropna, height=height, ratio=ratio, space=space,
-        xlim=xlim, ylim=ylim, marginal_ticks=marginal_ticks,
+        data=data,
+        x=x,
+        y=y,
+        hue=hue,
+        palette=palette,
+        hue_order=hue_order,
+        hue_norm=hue_norm,
+        dropna=dropna,
+        height=height,
+        ratio=ratio,
+        space=space,
+        xlim=xlim,
+        ylim=ylim,
+        marginal_ticks=marginal_ticks,
     )
 
     if grid.hue is not None:

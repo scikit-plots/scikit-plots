@@ -28,7 +28,7 @@ updates:
       prefix: "MAINT"
     reviewers:
       - "scikit-plots/core-devs"
-      
+
   - package-ecosystem: pip
     directory: /
     schedule:

@@ -9,8 +9,8 @@ The :py:mod:`~.modelplotpy` module to build nice plots to explain
 your modelling efforts easily to business colleages.
 
 .. seealso::
-  
-   * https://github.com/modelplot/modelplotpy/blob/master/modelplotpy/functions.py 
+
+   * https://github.com/modelplot/modelplotpy/blob/master/modelplotpy/functions.py
    * https://modelplot.github.io/intro_modelplotpy.html
 
 

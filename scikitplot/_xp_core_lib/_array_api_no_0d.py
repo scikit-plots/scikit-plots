@@ -25,12 +25,22 @@ However, when scalars are not generally the expected NumPy return type,
 it remains preferable to use the assert functions from
 the `scipy._lib._array_api` module, which have less surprising behaviour.
 """
-from ._array_api import ( array_namespace, is_numpy,
-                          xp_assert_close as xp_assert_close_base,
-                          xp_assert_equal as xp_assert_equal_base,
-                          xp_assert_less  as xp_assert_less_base,)
+from ._array_api import (
+    array_namespace,
+    is_numpy,
+)
+from ._array_api import (
+    xp_assert_close as xp_assert_close_base,
+)
+from ._array_api import (
+    xp_assert_equal as xp_assert_equal_base,
+)
+from ._array_api import (
+    xp_assert_less as xp_assert_less_base,
+)
 
 __all__: list[str] = []
+
 
 def _check_scalar(actual, desired, *, xp=None, **kwargs):
     __tracebackhide__ = True  # Hide traceback for py.test
@@ -46,13 +56,15 @@ def _check_scalar(actual, desired, *, xp=None, **kwargs):
     if not (is_numpy(xp) and desired.shape == ()):
         return
 
-    _msg = ("Result is a NumPy 0d-array. Many SciPy functions intend to follow "
-            "the convention of many NumPy functions, returning a scalar when a "
-            "0d-array would be correct. The specialized `xp_assert_*` functions "
-            "in the `scipy._lib._array_api_no_0d` module err on the side of "
-            "caution and do not accept 0d-arrays by default. If the correct "
-            "result may legitimately be a 0d-array, pass `check_0d=True`, "
-            "or use the `xp_assert_*` functions from `scipy._lib._array_api`.")
+    _msg = (
+        "Result is a NumPy 0d-array. Many SciPy functions intend to follow "
+        "the convention of many NumPy functions, returning a scalar when a "
+        "0d-array would be correct. The specialized `xp_assert_*` functions "
+        "in the `scipy._lib._array_api_no_0d` module err on the side of "
+        "caution and do not accept 0d-arrays by default. If the correct "
+        "result may legitimately be a 0d-array, pass `check_0d=True`, "
+        "or use the `xp_assert_*` functions from `scipy._lib._array_api`."
+    )
     assert xp.isscalar(actual), _msg
 
 
@@ -86,18 +98,16 @@ def xp_assert_less(actual, desired, *, check_0d=False, **kwargs):
 
 
 def assert_array_almost_equal(actual, desired, decimal=6, *args, **kwds):
-    """Backwards compatible replacement. In new code, use xp_assert_close instead.
-    """
-    rtol, atol = 0, 1.5*10**(-decimal)
-    return xp_assert_close(actual, desired,
-                           atol=atol, rtol=rtol, check_dtype=False, check_shape=False,
-                           *args, **kwds)
+    """Backwards compatible replacement. In new code, use xp_assert_close instead."""
+    rtol, atol = 0, 1.5 * 10 ** (-decimal)
+    return xp_assert_close(
+        actual, desired, atol=atol, rtol=rtol, check_dtype=False, check_shape=False, *args, **kwds
+    )
 
 
 def assert_almost_equal(actual, desired, decimal=7, *args, **kwds):
-    """Backwards compatible replacement. In new code, use xp_assert_close instead.
-    """
-    rtol, atol = 0, 1.5*10**(-decimal)
-    return xp_assert_close(actual, desired,
-                           atol=atol, rtol=rtol, check_dtype=False, check_shape=False,
-                           *args, **kwds)
+    """Backwards compatible replacement. In new code, use xp_assert_close instead."""
+    rtol, atol = 0, 1.5 * 10 ** (-decimal)
+    return xp_assert_close(
+        actual, desired, atol=atol, rtol=rtol, check_dtype=False, check_shape=False, *args, **kwds
+    )

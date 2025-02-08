@@ -1,32 +1,30 @@
 import re
 
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-
 import pytest
 from numpy.testing import assert_array_equal
 from pandas.testing import assert_series_equal
 
-from ..plot import Plot
-from ..scales import (
-    Nominal,
-    Continuous,
-    Boolean,
-    Temporal,
-    PseudoAxis,
-)
-from ..properties import (
-    IntervalProperty,
-    ObjectProperty,
-    Coordinate,
-    Alpha,
-    Color,
-    Fill,
-)
-
 from ...palettes import color_palette
 from ...utils import _version_predates
+from ..plot import Plot
+from ..properties import (
+    Alpha,
+    Color,
+    Coordinate,
+    Fill,
+    IntervalProperty,
+    ObjectProperty,
+)
+from ..scales import (
+    Boolean,
+    Continuous,
+    Nominal,
+    PseudoAxis,
+    Temporal,
+)
 
 
 class TestContinuous:
@@ -74,7 +72,7 @@ class TestContinuous:
     def test_interval_defaults(self, x):
 
         s = Continuous()._setup(x, IntervalProperty())
-        assert_array_equal(s(x), [0, .25, 1])
+        assert_array_equal(s(x), [0, 0.25, 1])
 
     def test_interval_with_range(self, x):
 
@@ -84,7 +82,7 @@ class TestContinuous:
     def test_interval_with_norm(self, x):
 
         s = Continuous(norm=(3, 7))._setup(x, IntervalProperty())
-        assert_array_equal(s(x), [-.5, 0, 1.5])
+        assert_array_equal(s(x), [-0.5, 0, 1.5])
 
     def test_interval_with_range_norm_and_transform(self, x):
 
@@ -103,42 +101,42 @@ class TestContinuous:
 
         cmap = color_palette("ch:", as_cmap=True)
         s = Continuous()._setup(x, Color())
-        assert_array_equal(s(x), cmap([0, .25, 1])[:, :3])  # FIXME RGBA
+        assert_array_equal(s(x), cmap([0, 0.25, 1])[:, :3])  # FIXME RGBA
 
     def test_color_named_values(self, x):
 
         cmap = color_palette("viridis", as_cmap=True)
         s = Continuous("viridis")._setup(x, Color())
-        assert_array_equal(s(x), cmap([0, .25, 1])[:, :3])  # FIXME RGBA
+        assert_array_equal(s(x), cmap([0, 0.25, 1])[:, :3])  # FIXME RGBA
 
     def test_color_tuple_values(self, x):
 
         cmap = color_palette("blend:b,g", as_cmap=True)
         s = Continuous(("b", "g"))._setup(x, Color())
-        assert_array_equal(s(x), cmap([0, .25, 1])[:, :3])  # FIXME RGBA
+        assert_array_equal(s(x), cmap([0, 0.25, 1])[:, :3])  # FIXME RGBA
 
     def test_color_callable_values(self, x):
 
         cmap = color_palette("light:r", as_cmap=True)
         s = Continuous(cmap)._setup(x, Color())
-        assert_array_equal(s(x), cmap([0, .25, 1])[:, :3])  # FIXME RGBA
+        assert_array_equal(s(x), cmap([0, 0.25, 1])[:, :3])  # FIXME RGBA
 
     def test_color_with_norm(self, x):
 
         cmap = color_palette("ch:", as_cmap=True)
         s = Continuous(norm=(3, 7))._setup(x, Color())
-        assert_array_equal(s(x), cmap([-.5, 0, 1.5])[:, :3])  # FIXME RGBA
+        assert_array_equal(s(x), cmap([-0.5, 0, 1.5])[:, :3])  # FIXME RGBA
 
     def test_color_with_transform(self, x):
 
         x = pd.Series([1, 10, 100], name="x", dtype=float)
         cmap = color_palette("ch:", as_cmap=True)
         s = Continuous(trans="log")._setup(x, Color())
-        assert_array_equal(s(x), cmap([0, .5, 1])[:, :3])  # FIXME RGBA
+        assert_array_equal(s(x), cmap([0, 0.5, 1])[:, :3])  # FIXME RGBA
 
     def test_tick_locator(self, x):
 
-        locs = [.2, .5, .8]
+        locs = [0.2, 0.5, 0.8]
         locator = mpl.ticker.FixedLocator(locs)
         a = self.setup_ticks(x, locator)
         assert_array_equal(a.major.locator(), locs)
@@ -157,21 +155,21 @@ class TestContinuous:
 
     def test_tick_every(self, x):
 
-        for d in [.05, .2, .5]:
+        for d in [0.05, 0.2, 0.5]:
             a = self.setup_ticks(x, every=d)
             assert np.allclose(np.diff(a.major.locator()), d)
 
     def test_tick_every_between(self, x):
 
-        lo, hi = .2, .8
-        for d in [.05, .2, .5]:
+        lo, hi = 0.2, 0.8
+        for d in [0.05, 0.2, 0.5]:
             a = self.setup_ticks(x, every=d, between=(lo, hi))
             expected = np.arange(lo, hi + d, d)
             assert_array_equal(a.major.locator(), expected)
 
     def test_tick_at(self, x):
 
-        locs = [.2, .5, .9]
+        locs = [0.2, 0.5, 0.9]
         a = self.setup_ticks(x, at=locs)
         assert_array_equal(a.major.locator(), locs)
 
@@ -184,7 +182,7 @@ class TestContinuous:
     def test_tick_count_between(self, x):
 
         n = 5
-        lo, hi = .2, .7
+        lo, hi = 0.2, 0.7
         a = self.setup_ticks(x, count=n, between=(lo, hi))
         assert_array_equal(a.major.locator(), np.linspace(lo, hi, n))
 
@@ -203,7 +201,7 @@ class TestContinuous:
 
         s = Continuous(trans="log")._setup(x, Coordinate())
         a = PseudoAxis(s._matplotlib_scale)
-        a.set_view_interval(.5, 1050)
+        a.set_view_interval(0.5, 1050)
         ticks = a.major.locator()
         assert np.allclose(np.diff(np.log10(ticks)), 1)
 
@@ -221,7 +219,7 @@ class TestContinuous:
 
         s = Continuous(trans="log").tick(count=4, between=(1, 1000))
         a = PseudoAxis(s._setup(x, Coordinate())._matplotlib_scale)
-        a.set_view_interval(.5, 1050)
+        a.set_view_interval(0.5, 1050)
         assert_array_equal(a.major.locator(), [1, 10, 100, 1000])
 
     def test_log_tick_format_disabled(self, x):
@@ -311,7 +309,7 @@ class TestContinuous:
         s = Continuous(trans="log")
         a = PseudoAxis(s._setup(x, Coordinate())._matplotlib_scale)
         a.set_view_interval(10, 1000)
-        label, = a.major.formatter.format_ticks([100])
+        (label,) = a.major.formatter.format_ticks([100])
         assert r"10^{2}" in label
 
     def test_label_type_checks(self):
@@ -452,7 +450,7 @@ class TestNominal:
 
     def test_color_alpha_in_palette(self, x):
 
-        cs = [(.2, .2, .3, .5), (.1, .2, .3, 1), (.5, .6, .2, 0)]
+        cs = [(0.2, 0.2, 0.3, 0.5), (0.1, 0.2, 0.3, 1), (0.5, 0.6, 0.2, 0)]
         s = Nominal(cs)._setup(x, Color())
         assert_array_equal(s(x), [cs[0], cs[1], cs[2], cs[1]])
 
@@ -505,7 +503,7 @@ class TestNominal:
     def test_alpha_default(self, x):
 
         s = Nominal()._setup(x, Alpha())
-        assert_array_equal(s(x), [.95, .625, .3, .625])
+        assert_array_equal(s(x), [0.95, 0.625, 0.3, 0.625])
 
     def test_fill(self):
 
@@ -579,7 +577,7 @@ class TestNominal:
         s._finalize(Plot(), ax.yaxis)
 
         levels = x.unique()
-        assert ax.get_ylim() == (len(levels) - .5, -.5)
+        assert ax.get_ylim() == (len(levels) - 0.5, -0.5)
         assert_array_equal(ax.get_yticks(), list(range(len(levels))))
         for i, expected in enumerate(levels):
             assert ax.yaxis.major.formatter(i) == expected
@@ -670,7 +668,7 @@ class TestTemporal:
         s = Temporal().label(formatter)
         a = PseudoAxis(s._setup(t, Coordinate())._matplotlib_scale)
         a.set_view_interval(10, 1000)
-        label, = a.major.formatter.format_ticks([100])
+        (label,) = a.major.formatter.format_ticks([100])
         assert label == "1970"
 
     def test_label_concise(self, t, x):
@@ -706,7 +704,7 @@ class TestBoolean:
             (object, np.nan),
             (object, None),
             ("boolean", pd.NA),
-        ]
+        ],
     )
     def test_coordinate_missing(self, x, dtype, value):
 
@@ -798,7 +796,7 @@ class TestBoolean:
         ax = mpl.figure.Figure().subplots()
         s = Boolean()._setup(x, Coordinate(), ax.xaxis)
         s._finalize(Plot(), ax.xaxis)
-        assert ax.get_xlim() == (1.5, -.5)
+        assert ax.get_xlim() == (1.5, -0.5)
         assert_array_equal(ax.get_xticks(), [0, 1])
         assert ax.xaxis.major.formatter(0) == "False"
         assert ax.xaxis.major.formatter(1) == "True"

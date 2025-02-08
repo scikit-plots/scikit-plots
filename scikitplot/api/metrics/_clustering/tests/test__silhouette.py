@@ -1,22 +1,14 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
-from sklearn.datasets import load_iris as load_data
-from sklearn.datasets import load_breast_cancer
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
+import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.datasets import load_iris as load_data
 
 from scikitplot.api.metrics import (
-  plot_silhouette,
+    plot_silhouette,
 )
+
 
 def convert_labels_into_string(y_true):
     return ["A" if x == 0 else x for x in y_true]
@@ -48,7 +40,7 @@ class TestPlotSilhouette(unittest.TestCase):
         np.random.seed(0)
         clf = KMeans()
         cluster_labels = clf.fit_predict(self.X)
-        plot_silhouette(self.X, cluster_labels, cmap='Spectral')
+        plot_silhouette(self.X, cluster_labels, cmap="Spectral")
         plot_silhouette(self.X, cluster_labels, cmap=plt.cm.Spectral)
 
     def test_ax(self):

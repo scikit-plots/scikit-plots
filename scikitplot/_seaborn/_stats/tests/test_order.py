@@ -1,14 +1,11 @@
-
 import numpy as np
 import pandas as pd
-
 import pytest
 from numpy.testing import assert_array_equal
 
-from ..order import Perc
-
 from ..._core.groupby import GroupBy
 from ...utils import _version_predates
+from ..order import Perc
 
 
 class Fixtures:

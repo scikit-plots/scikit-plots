@@ -1,19 +1,35 @@
 from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
 from typing import Any, TypeVar, overload
-from typing_extensions import Self  # < Py 3.11
 
 from numpy.typing import NDArray
+from typing_extensions import Self  # < Py 3.11
 
+from .deprecation import (
+    MatplotlibDeprecationWarning as MatplotlibDeprecationWarning,
+)
+from .deprecation import (
+    delete_parameter as delete_parameter,
+)
+from .deprecation import (
+    deprecate_method_override as deprecate_method_override,
+)
+from .deprecation import (
+    deprecate_privatize_attribute as deprecate_privatize_attribute,
+)
 from .deprecation import (  # noqa: F401, re-exported API
     deprecated as deprecated,
-    warn_deprecated as warn_deprecated,
-    rename_parameter as rename_parameter,
-    delete_parameter as delete_parameter,
+)
+from .deprecation import (
     make_keyword_only as make_keyword_only,
-    deprecate_method_override as deprecate_method_override,
-    deprecate_privatize_attribute as deprecate_privatize_attribute,
+)
+from .deprecation import (
+    rename_parameter as rename_parameter,
+)
+from .deprecation import (
     suppress_matplotlib_deprecation_warning as suppress_matplotlib_deprecation_warning,
-    MatplotlibDeprecationWarning as MatplotlibDeprecationWarning,
+)
+from .deprecation import (
+    warn_deprecated as warn_deprecated,
 )
 
 _T = TypeVar("_T")
@@ -33,9 +49,7 @@ class classproperty(Any):
     @property
     def fget(self) -> Callable[[_T], Any]: ...
 
-def check_isinstance(
-    types: type | tuple[type | None, ...], /, **kwargs: Any
-) -> None: ...
+def check_isinstance(types: type | tuple[type | None, ...], /, **kwargs: Any) -> None: ...
 def check_in_list(
     values: Sequence[Any], /, *, _print_supported_values: bool = ..., **kwargs: Any
 ) -> None: ...
@@ -48,12 +62,8 @@ def define_aliases(
 ) -> Callable[[type[_T]], type[_T]]: ...
 @overload
 def define_aliases(alias_d: dict[str, list[str]], cls: type[_T]) -> type[_T]: ...
-def select_matching_signature(
-    funcs: list[Callable], *args: Any, **kwargs: Any
-) -> Any: ...
+def select_matching_signature(funcs: list[Callable], *args: Any, **kwargs: Any) -> Any: ...
 def nargs_error(name: str, takes: int | str, given: int) -> TypeError: ...
 def kwarg_error(name: str, kw: str | Iterable[str]) -> TypeError: ...
 def recursive_subclasses(cls: type) -> Generator[type, None, None]: ...
-def warn_external(
-    message: str | Warning, category: type[Warning] | None = ...
-) -> None: ...
+def warn_external(message: str | Warning, category: type[Warning] | None = ...) -> None: ...

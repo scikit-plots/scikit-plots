@@ -1,25 +1,20 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
-import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
-
-import matplotlib.pyplot as plt
-
 import logging
+import unittest
 import warnings
 
-from sklearn.datasets import load_iris as load_data
+import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.datasets import load_breast_cancer
-from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import load_iris as load_data
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.exceptions import NotFittedError
+from sklearn.linear_model import LogisticRegression
 
 import scikitplot as skplt
 
+
 def convert_labels_into_string(y_true):
-    return ["A" if x==0 else x for x in y_true]
+    return ["A" if x == 0 else x for x in y_true]
 
 
 class TestClassifierFactory(unittest.TestCase):
@@ -72,7 +67,7 @@ class TestClassifierFactory(unittest.TestCase):
 
         partial_clf = self.PartialClassifier()
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+            warnings.simplefilter("always")
             skplt._factory_api.classifier_factory(partial_clf)
             assert len(w) == 2
             assert issubclass(w[-1].category, UserWarning)
@@ -82,23 +77,25 @@ class TestClassifierFactory(unittest.TestCase):
 
         clf = self.Classifier()
         skplt._factory_api.classifier_factory(clf)
-        assert hasattr(clf, 'plot_learning_curve')
-        assert hasattr(clf, 'plot_confusion_matrix')
-        assert hasattr(clf, 'plot_roc_curve')
-        assert hasattr(clf, 'plot_ks_statistic')
-        assert hasattr(clf, 'plot_precision_recall_curve')
-        assert hasattr(clf, 'plot_feature_importances')
+        assert hasattr(clf, "plot_learning_curve")
+        assert hasattr(clf, "plot_confusion_matrix")
+        assert hasattr(clf, "plot_roc_curve")
+        assert hasattr(clf, "plot_ks_statistic")
+        assert hasattr(clf, "plot_precision_recall_curve")
+        assert hasattr(clf, "plot_feature_importances")
 
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+            warnings.simplefilter("always")
             skplt._factory_api.classifier_factory(clf)
 
             assert len(w) == 7
             for warning in w[1:]:
                 assert issubclass(warning.category, UserWarning)
-                assert ' method already in clf. ' \
-                       'Overriding anyway. This may ' \
-                       'result in unintended behavior.' in str(warning.message)
+                assert (
+                    " method already in clf. "
+                    "Overriding anyway. This may "
+                    "result in unintended behavior." in str(warning.message)
+                )
 
 
 class TestPlotLearningCurve(unittest.TestCase):
@@ -139,9 +136,11 @@ class TestPlotLearningCurve(unittest.TestCase):
         try:
             ax = clf.plot_learning_curve(self.X, self.y, n_jobs=-1)
         except Exception as e:
-            logging.warning(f"Parallel processing failed with n_jobs=-1: {e}. Falling back to n_jobs=1.")
+            logging.warning(
+                f"Parallel processing failed with n_jobs=-1: {e}. Falling back to n_jobs=1."
+            )
             ax = clf.plot_learning_curve(self.X, self.y, n_jobs=1)
-        
+
         # Further assertions can be added here to validate the plot or results
         self.assertIsNotNone(ax)
 
@@ -200,14 +199,15 @@ class TestPlotConfusionMatrix(unittest.TestCase):
         true_labels = [0, 1]
         pred_labels = [0, 2]
 
-        ax = clf.plot_confusion_matrix(self.X, self.y, true_labels=true_labels,
-                pred_labels=pred_labels)
+        ax = clf.plot_confusion_matrix(
+            self.X, self.y, true_labels=true_labels, pred_labels=pred_labels
+        )
 
     def test_cmap(self):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        ax = clf.plot_confusion_matrix(self.X, self.y, cmap='nipy_spectral')
+        ax = clf.plot_confusion_matrix(self.X, self.y, cmap="nipy_spectral")
         ax = clf.plot_confusion_matrix(self.X, self.y, cmap=plt.cm.nipy_spectral)
 
     def test_do_cv(self):
@@ -282,8 +282,7 @@ class TestPlotROCCurve(unittest.TestCase):
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
         ax = clf.plot_roc_curve(self.X, self.y)
-        self.assertRaises(AttributeError, clf.plot_roc_curve, self.X, self.y,
-                          do_cv=False)
+        self.assertRaises(AttributeError, clf.plot_roc_curve, self.X, self.y, do_cv=False)
 
     def test_ax(self):
         np.random.seed(0)
@@ -299,24 +298,23 @@ class TestPlotROCCurve(unittest.TestCase):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        ax = clf.plot_roc_curve(self.X, self.y, cmap='nipy_spectral')
+        ax = clf.plot_roc_curve(self.X, self.y, cmap="nipy_spectral")
         ax = clf.plot_roc_curve(self.X, self.y, cmap=plt.cm.nipy_spectral)
 
     def test_curve_diffs(self):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        ax_macro = clf.plot_roc_curve(self.X, self.y, curves='macro')
-        ax_micro = clf.plot_roc_curve(self.X, self.y, curves='micro')
-        ax_class = clf.plot_roc_curve(self.X, self.y, curves='each_class')
+        ax_macro = clf.plot_roc_curve(self.X, self.y, curves="macro")
+        ax_micro = clf.plot_roc_curve(self.X, self.y, curves="micro")
+        ax_class = clf.plot_roc_curve(self.X, self.y, curves="each_class")
         self.assertNotEqual(ax_macro, ax_micro, ax_class)
 
     def test_invalid_curve_arg(self):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        self.assertRaises(ValueError, clf.plot_roc_curve, self.X, self.y,
-                          curves='zzz')
+        self.assertRaises(ValueError, clf.plot_roc_curve, self.X, self.y, curves="zzz")
 
     def test_array_like(self):
         ax = skplt.api.plotters.plot_roc_curve([0, 1], [[0.8, 0.2], [0.2, 0.8]])
@@ -372,8 +370,7 @@ class TestPlotKSStatistic(unittest.TestCase):
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
         ax = clf.plot_ks_statistic(self.X, self.y)
-        self.assertRaises(AttributeError, clf.plot_ks_statistic, self.X, self.y,
-                          do_cv=False)
+        self.assertRaises(AttributeError, clf.plot_ks_statistic, self.X, self.y, do_cv=False)
 
     def test_ax(self):
         np.random.seed(0)
@@ -433,8 +430,9 @@ class TestPlotPrecisionRecall(unittest.TestCase):
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
         ax = clf.plot_precision_recall_curve(self.X, self.y)
-        self.assertRaises(AttributeError, clf.plot_precision_recall_curve, self.X, self.y,
-                          do_cv=False)
+        self.assertRaises(
+            AttributeError, clf.plot_precision_recall_curve, self.X, self.y, do_cv=False
+        )
 
     def test_ax(self):
         np.random.seed(0)
@@ -450,23 +448,22 @@ class TestPlotPrecisionRecall(unittest.TestCase):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        ax_micro = clf.plot_precision_recall_curve(self.X, self.y, curves='micro')
-        ax_class = clf.plot_precision_recall_curve(self.X, self.y, curves='each_class')
+        ax_micro = clf.plot_precision_recall_curve(self.X, self.y, curves="micro")
+        ax_class = clf.plot_precision_recall_curve(self.X, self.y, curves="each_class")
         self.assertNotEqual(ax_micro, ax_class)
 
     def test_cmap(self):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        ax = clf.plot_precision_recall_curve(self.X, self.y, cmap='nipy_spectral')
+        ax = clf.plot_precision_recall_curve(self.X, self.y, cmap="nipy_spectral")
         ax = clf.plot_precision_recall_curve(self.X, self.y, cmap=plt.cm.nipy_spectral)
 
     def test_invalid_curve_arg(self):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        self.assertRaises(ValueError, clf.plot_precision_recall_curve, self.X, self.y,
-                          curves='zzz')
+        self.assertRaises(ValueError, clf.plot_precision_recall_curve, self.X, self.y, curves="zzz")
 
     def test_array_like(self):
         ax = skplt.api.plotters.plot_precision_recall_curve([0, 1], [[0.8, 0.2], [0.2, 0.8]])
@@ -517,8 +514,8 @@ class TestFeatureImportances(unittest.TestCase):
         clf = RandomForestClassifier()
         skplt._factory_api.classifier_factory(clf)
         clf.fit(self.X, self.y)
-        ax = clf.plot_feature_importances(order='ascending')
-        ax = clf.plot_feature_importances(order='descending')
+        ax = clf.plot_feature_importances(order="ascending")
+        ax = clf.plot_feature_importances(order="descending")
         ax = clf.plot_feature_importances(order=None)
 
     def test_ax(self):
@@ -533,5 +530,5 @@ class TestFeatureImportances(unittest.TestCase):
         assert ax is out_ax
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

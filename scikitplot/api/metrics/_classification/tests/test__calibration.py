@@ -1,22 +1,16 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
-from sklearn.datasets import load_iris as load_data
+import numpy as np
 from sklearn.datasets import load_breast_cancer
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.cluster import KMeans
 
 from scikitplot.api.metrics import (
-  plot_calibration,
+    plot_calibration,
 )
+
 
 def convert_labels_into_string(y_true):
     return ["A" if x == 0 else x for x in y_true]
@@ -33,8 +27,7 @@ class TestPlotCalibration(unittest.TestCase):
         self.svc = LinearSVC()
         self.lr_probas = self.lr.fit(self.X, self.y).predict_proba(self.X)
         self.rf_probas = self.rf.fit(self.X, self.y).predict_proba(self.X)
-        self.svc_scores = self.svc.fit(self.X, self.y).\
-            decision_function(self.X)
+        self.svc_scores = self.svc.fit(self.X, self.y).decision_function(self.X)
 
     def tearDown(self):
         plt.close("all")
@@ -47,7 +40,7 @@ class TestPlotCalibration(unittest.TestCase):
 
     def test_plot_calibration(self):
         plot_calibration(
-            self.y, 
+            self.y,
             [self.lr_probas, self.rf_probas],
         )
 
@@ -58,16 +51,8 @@ class TestPlotCalibration(unittest.TestCase):
         )
 
     def test_cmap(self):
-        plot_calibration(
-            self.y,
-            [self.lr_probas, self.rf_probas],
-            cmap='Spectral'
-        )
-        plot_calibration(
-            self.y, 
-            [self.lr_probas, self.rf_probas],
-            cmap=plt.cm.Spectral
-        )
+        plot_calibration(self.y, [self.lr_probas, self.rf_probas], cmap="Spectral")
+        plot_calibration(self.y, [self.lr_probas, self.rf_probas], cmap=plt.cm.Spectral)
 
     def test_ax(self):
         plot_calibration(
@@ -80,16 +65,12 @@ class TestPlotCalibration(unittest.TestCase):
             [self.lr_probas, self.rf_probas],
         )
         assert ax is not out_ax
-        out_ax = plot_calibration(
-            self.y,
-            [self.lr_probas, self.rf_probas],
-            ax=ax
-        )
+        out_ax = plot_calibration(self.y, [self.lr_probas, self.rf_probas], ax=ax)
         assert ax is out_ax
 
     def test_array_like(self):
         plot_calibration(
-            self.y, 
+            self.y,
             [self.lr_probas.tolist(), self.rf_probas.tolist()],
         )
         plot_calibration(
@@ -99,11 +80,10 @@ class TestPlotCalibration(unittest.TestCase):
 
     def test_invalid_probas_list(self):
         self.assertRaises(
-            ValueError, 
+            ValueError,
             plot_calibration,
-            self.y, 
-            'notalist',
-            
+            self.y,
+            "notalist",
         )
 
     # def test_not_binary(self):
@@ -122,7 +102,7 @@ class TestPlotCalibration(unittest.TestCase):
             plot_calibration,
             self.y,
             [self.lr_probas, self.rf_probas],
-            estimator_names=['One']
+            estimator_names=["One"],
         )
 
     def test_wrong_probas_shape(self):

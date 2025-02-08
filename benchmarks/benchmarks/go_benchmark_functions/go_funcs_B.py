@@ -1,9 +1,9 @@
-from numpy import abs, cos, exp, log, arange, pi, sin, sqrt, sum
+from numpy import abs, arange, cos, exp, log, pi, sin, sqrt, sum
+
 from .go_benchmark import Benchmark
 
 
 class BartelsConn(Benchmark):
-
     r"""
     Bartels-Conn objective function.
 
@@ -29,19 +29,17 @@ class BartelsConn(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([-500.] * self.N, [500.] * self.N))
+        self._bounds = list(zip([-500.0] * self.N, [500.0] * self.N))
         self.global_optimum = [[0 for _ in range(self.N)]]
         self.fglob = 1.0
 
     def fun(self, x, *args):
         self.nfev += 1
 
-        return (abs(x[0] ** 2.0 + x[1] ** 2.0 + x[0] * x[1]) + abs(sin(x[0]))
-                + abs(cos(x[1])))
+        return abs(x[0] ** 2.0 + x[1] ** 2.0 + x[0] * x[1]) + abs(sin(x[0])) + abs(cos(x[1]))
 
 
 class Beale(Benchmark):
-
     r"""
     Beale objective function.
 
@@ -74,13 +72,14 @@ class Beale(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return ((1.5 - x[0] + x[0] * x[1]) ** 2
-                + (2.25 - x[0] + x[0] * x[1] ** 2) ** 2
-                + (2.625 - x[0] + x[0] * x[1] ** 3) ** 2)
+        return (
+            (1.5 - x[0] + x[0] * x[1]) ** 2
+            + (2.25 - x[0] + x[0] * x[1] ** 2) ** 2
+            + (2.625 - x[0] + x[0] * x[1] ** 3) ** 2
+        )
 
 
 class BiggsExp02(Benchmark):
-
     r"""
     BiggsExp02 objective function.
 
@@ -110,15 +109,14 @@ class BiggsExp02(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([0] * 2,
-                                [20] * 2))
-        self.global_optimum = [[1., 10.]]
+        self._bounds = list(zip([0] * 2, [20] * 2))
+        self.global_optimum = [[1.0, 10.0]]
         self.fglob = 0
 
     def fun(self, x, *args):
         self.nfev += 1
 
-        t = arange(1, 11.) * 0.1
+        t = arange(1, 11.0) * 0.1
         y = exp(-t) - 5 * exp(-10 * t)
         vec = (exp(-t * x[0]) - 5 * exp(-t * x[1]) - y) ** 2
 
@@ -126,7 +124,6 @@ class BiggsExp02(Benchmark):
 
 
 class BiggsExp03(Benchmark):
-
     r"""
     BiggsExp03 objective function.
 
@@ -155,15 +152,14 @@ class BiggsExp03(Benchmark):
     def __init__(self, dimensions=3):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([0] * 3,
-                                [20] * 3))
-        self.global_optimum = [[1., 10., 5.]]
+        self._bounds = list(zip([0] * 3, [20] * 3))
+        self.global_optimum = [[1.0, 10.0, 5.0]]
         self.fglob = 0
 
     def fun(self, x, *args):
         self.nfev += 1
 
-        t = arange(1., 11.) * 0.1
+        t = arange(1.0, 11.0) * 0.1
         y = exp(-t) - 5 * exp(-10 * t)
         vec = (exp(-t * x[0]) - x[2] * exp(-t * x[1]) - y) ** 2
 
@@ -171,7 +167,6 @@ class BiggsExp03(Benchmark):
 
 
 class BiggsExp04(Benchmark):
-
     r"""
     BiggsExp04 objective function.
 
@@ -200,15 +195,14 @@ class BiggsExp04(Benchmark):
     def __init__(self, dimensions=4):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([0.] * 4,
-                                [20.] * 4))
-        self.global_optimum = [[1., 10., 1., 5.]]
+        self._bounds = list(zip([0.0] * 4, [20.0] * 4))
+        self.global_optimum = [[1.0, 10.0, 1.0, 5.0]]
         self.fglob = 0
 
     def fun(self, x, *args):
         self.nfev += 1
 
-        t = arange(1, 11.) * 0.1
+        t = arange(1, 11.0) * 0.1
         y = exp(-t) - 5 * exp(-10 * t)
         vec = (x[2] * exp(-t * x[0]) - x[3] * exp(-t * x[1]) - y) ** 2
 
@@ -216,7 +210,6 @@ class BiggsExp04(Benchmark):
 
 
 class BiggsExp05(Benchmark):
-
     r"""
     BiggsExp05 objective function.
 
@@ -245,23 +238,20 @@ class BiggsExp05(Benchmark):
     def __init__(self, dimensions=5):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([0.] * 5,
-                                [20.] * 5))
-        self.global_optimum = [[1., 10., 1., 5., 4.]]
+        self._bounds = list(zip([0.0] * 5, [20.0] * 5))
+        self.global_optimum = [[1.0, 10.0, 1.0, 5.0, 4.0]]
         self.fglob = 0
 
     def fun(self, x, *args):
         self.nfev += 1
-        t = arange(1, 12.) * 0.1
+        t = arange(1, 12.0) * 0.1
         y = exp(-t) - 5 * exp(-10 * t) + 3 * exp(-4 * t)
-        vec = (x[2] * exp(-t * x[0]) - x[3] * exp(-t * x[1])
-               + 3 * exp(-t * x[4]) - y) ** 2
+        vec = (x[2] * exp(-t * x[0]) - x[3] * exp(-t * x[1]) + 3 * exp(-t * x[4]) - y) ** 2
 
         return sum(vec)
 
 
 class Bird(Benchmark):
-
     r"""
     Bird objective function.
 
@@ -289,21 +279,24 @@ class Bird(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = list(zip([-2.0 * pi] * self.N,
-                                [2.0 * pi] * self.N))
-        self.global_optimum = [[4.701055751981055, 3.152946019601391],
-                               [-1.582142172055011, -3.130246799635430]]
+        self._bounds = list(zip([-2.0 * pi] * self.N, [2.0 * pi] * self.N))
+        self.global_optimum = [
+            [4.701055751981055, 3.152946019601391],
+            [-1.582142172055011, -3.130246799635430],
+        ]
         self.fglob = -106.7645367198034
 
     def fun(self, x, *args):
         self.nfev += 1
 
-        return (sin(x[0]) * exp((1 - cos(x[1])) ** 2)
-                + cos(x[1]) * exp((1 - sin(x[0])) ** 2) + (x[0] - x[1]) ** 2)
+        return (
+            sin(x[0]) * exp((1 - cos(x[1])) ** 2)
+            + cos(x[1]) * exp((1 - sin(x[0])) ** 2)
+            + (x[0] - x[1]) ** 2
+        )
 
 
 class Bohachevsky1(Benchmark):
-
     r"""
     Bohachevsky 1 objective function.
 
@@ -339,12 +332,10 @@ class Bohachevsky1(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return (x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0])
-                - 0.4 * cos(4 * pi * x[1]) + 0.7)
+        return x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0]) - 0.4 * cos(4 * pi * x[1]) + 0.7
 
 
 class Bohachevsky2(Benchmark):
-
     r"""
     Bohachevsky 2 objective function.
 
@@ -381,12 +372,10 @@ class Bohachevsky2(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return (x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0])
-                 * cos(4 * pi * x[1]) + 0.3)
+        return x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0]) * cos(4 * pi * x[1]) + 0.3
 
 
 class Bohachevsky3(Benchmark):
-
     r"""
     Bohachevsky 3 objective function.
 
@@ -422,12 +411,10 @@ class Bohachevsky3(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return (x[0] ** 2 + 2 * x[1] ** 2
-                - 0.3 * cos(3 * pi * x[0] + 4 * pi * x[1]) + 0.3)
+        return x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0] + 4 * pi * x[1]) + 0.3
 
 
 class BoxBetts(Benchmark):
-
     r"""
     BoxBetts objective function.
 
@@ -469,13 +456,11 @@ class BoxBetts(Benchmark):
         self.nfev += 1
 
         i = arange(1, 11)
-        g = (exp(-0.1 * i * x[0]) - exp(-0.1 * i * x[1])
-             - (exp(-0.1 * i) - exp(-i)) * x[2])
+        g = exp(-0.1 * i * x[0]) - exp(-0.1 * i * x[1]) - (exp(-0.1 * i) - exp(-i)) * x[2]
         return sum(g**2)
 
 
 class Branin01(Benchmark):
-
     r"""
     Branin01  objective function.
 
@@ -504,7 +489,7 @@ class Branin01(Benchmark):
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = [(-5., 10.), (0., 15.)]
+        self._bounds = [(-5.0, 10.0), (0.0, 15.0)]
 
         self.global_optimum = [[-pi, 12.275], [pi, 2.275], [3 * pi, 2.475]]
         self.fglob = 0.39788735772973816
@@ -512,13 +497,14 @@ class Branin01(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return ((x[1] - (5.1 / (4 * pi ** 2)) * x[0] ** 2
-                + 5 * x[0] / pi - 6) ** 2
-                + 10 * (1 - 1 / (8 * pi)) * cos(x[0]) + 10)
+        return (
+            (x[1] - (5.1 / (4 * pi**2)) * x[0] ** 2 + 5 * x[0] / pi - 6) ** 2
+            + 10 * (1 - 1 / (8 * pi)) * cos(x[0])
+            + 10
+        )
 
 
 class Branin02(Benchmark):
-
     r"""
     Branin02 objective function.
 
@@ -551,14 +537,15 @@ class Branin02(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return ((x[1] - (5.1 / (4 * pi ** 2)) * x[0] ** 2
-                + 5 * x[0] / pi - 6) ** 2
-                + 10 * (1 - 1 / (8 * pi)) * cos(x[0]) * cos(x[1])
-                + log(x[0] ** 2.0 + x[1] ** 2.0 + 1.0) + 10)
+        return (
+            (x[1] - (5.1 / (4 * pi**2)) * x[0] ** 2 + 5 * x[0] / pi - 6) ** 2
+            + 10 * (1 - 1 / (8 * pi)) * cos(x[0]) * cos(x[1])
+            + log(x[0] ** 2.0 + x[1] ** 2.0 + 1.0)
+            + 10
+        )
 
 
 class Brent(Benchmark):
-
     r"""
     Brent objective function.
 
@@ -592,12 +579,10 @@ class Brent(Benchmark):
 
     def fun(self, x, *args):
         self.nfev += 1
-        return ((x[0] + 10.0) ** 2.0 + (x[1] + 10.0) ** 2.0
-                + exp(-x[0] ** 2.0 - x[1] ** 2.0))
+        return (x[0] + 10.0) ** 2.0 + (x[1] + 10.0) ** 2.0 + exp(-x[0] ** 2.0 - x[1] ** 2.0)
 
 
 class Brown(Benchmark):
-
     r"""
     Brown objective function.
 
@@ -637,12 +622,10 @@ class Brown(Benchmark):
 
         x0 = x[:-1]
         x1 = x[1:]
-        return sum((x0 ** 2.0) ** (x1 ** 2.0 + 1.0)
-                   + (x1 ** 2.0) ** (x0 ** 2.0 + 1.0))
+        return sum((x0**2.0) ** (x1**2.0 + 1.0) + (x1**2.0) ** (x0**2.0 + 1.0))
 
 
 class Bukin02(Benchmark):
-
     r"""
     Bukin02 objective function.
 
@@ -679,12 +662,10 @@ class Bukin02(Benchmark):
     def fun(self, x, *args):
 
         self.nfev += 1
-        return (100 * (x[1] ** 2 - 0.01 * x[0] ** 2 + 1.0)
-                + 0.01 * (x[0] + 10.0) ** 2.0)
+        return 100 * (x[1] ** 2 - 0.01 * x[0] ** 2 + 1.0) + 0.01 * (x[0] + 10.0) ** 2.0
 
 
 class Bukin04(Benchmark):
-
     r"""
     Bukin04 objective function.
 
@@ -722,7 +703,6 @@ class Bukin04(Benchmark):
 
 
 class Bukin06(Benchmark):
-
     r"""
     Bukin06 objective function.
 

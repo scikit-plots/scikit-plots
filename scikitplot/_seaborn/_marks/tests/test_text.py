@@ -1,13 +1,10 @@
-
 import numpy as np
 from matplotlib.colors import to_rgba
 from matplotlib.text import Text as MPLText
-
 from numpy.testing import assert_array_almost_equal
 
-from ..text import Text
-
 from ..._core.plot import Plot
+from ..text import Text
 
 
 class TestText:
@@ -39,7 +36,7 @@ class TestText:
         x = y = [1, 2, 3]
         s = list("abc")
         color = "red"
-        alpha = .6
+        alpha = 0.6
         fontsize = 6
         valign = "bottom"
 
@@ -64,11 +61,7 @@ class TestText:
         texts = self.get_texts(ax)
         assert texts[0].get_color() == texts[1].get_color()
         assert texts[0].get_color() != texts[2].get_color()
-        assert (
-            texts[0].get_fontsize()
-            < texts[1].get_fontsize()
-            < texts[2].get_fontsize()
-        )
+        assert texts[0].get_fontsize() < texts[1].get_fontsize() < texts[2].get_fontsize()
 
     def test_mapped_alignment(self):
 
@@ -105,7 +98,7 @@ class TestText:
 
         x = y = [1, 2, 3]
         s = list("abc")
-        m = Text(valign="bottom", fontsize=5, offset=.1)
+        m = Text(valign="bottom", fontsize=5, offset=0.1)
         p = Plot(x, y, text=s).add(m).plot()
         ax = p._figure.axes[0]
         expected_shift_matrix = np.zeros((3, 3))
@@ -119,7 +112,7 @@ class TestText:
 
         x = y = [1, 2, 3]
         s = list("abc")
-        m = Text(halign="right", fontsize=10, offset=.5)
+        m = Text(halign="right", fontsize=10, offset=0.5)
         p = Plot(x, y, text=s).add(m).plot()
         ax = p._figure.axes[0]
         expected_shift_matrix = np.zeros((3, 3))

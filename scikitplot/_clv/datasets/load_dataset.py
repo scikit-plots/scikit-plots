@@ -2,7 +2,6 @@
 # modified from https://github.com/CamDavidsonPilon/lifelines/
 
 import pandas as pd
-from .. import utils
 from pkg_resources import resource_filename
 
 __all__ = [

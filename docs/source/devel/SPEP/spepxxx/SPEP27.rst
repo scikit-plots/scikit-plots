@@ -3,7 +3,7 @@ SEP27: Decouple pyplot from backends
 ======================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

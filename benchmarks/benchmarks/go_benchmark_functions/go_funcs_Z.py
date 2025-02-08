@@ -1,9 +1,9 @@
-from numpy import abs, sum, sign, arange
+from numpy import abs, arange, sign, sum
+
 from .go_benchmark import Benchmark
 
 
 class Zacharov(Benchmark):
-
     r"""
     Zacharov objective function.
 
@@ -14,7 +14,7 @@ class Zacharov(Benchmark):
 
         f_{\text{Zacharov}}(x) = \sum_{i=1}^{n} x_i^2 + \left ( \frac{1}{2}
                                  \sum_{i=1}^{n} i x_i \right )^2
-                                 + \left ( \frac{1}{2} \sum_{i=1}^{n} i x_i 
+                                 + \left ( \frac{1}{2} \sum_{i=1}^{n} i x_i
                                  \right )^4
 
     Here, :math:`n` represents the number of dimensions and
@@ -41,13 +41,12 @@ class Zacharov(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        u = sum(x ** 2)
+        u = sum(x**2)
         v = sum(arange(1, self.N + 1) * x)
         return u + (0.5 * v) ** 2 + (0.5 * v) ** 4
 
 
 class ZeroSum(Benchmark):
-
     r"""
     ZeroSum objective function.
 
@@ -88,7 +87,6 @@ class ZeroSum(Benchmark):
 
 
 class Zettl(Benchmark):
-
     r"""
     Zettl objective function.
 
@@ -125,7 +123,6 @@ class Zettl(Benchmark):
 
 
 class Zimmerman(Benchmark):
-
     r"""
     Zimmerman objective function.
 
@@ -188,15 +185,16 @@ class Zimmerman(Benchmark):
 
         self.nfev += 1
 
-        return max(Zh1(x),
-                   Zp(Zh2(x)) * sign(Zh2(x)),
-                   Zp(Zh3(x)) * sign(Zh3(x)),
-                   Zp(-x[0]) * sign(x[0]),
-                   Zp(-x[1]) * sign(x[1]))
+        return max(
+            Zh1(x),
+            Zp(Zh2(x)) * sign(Zh2(x)),
+            Zp(Zh3(x)) * sign(Zh3(x)),
+            Zp(-x[0]) * sign(x[0]),
+            Zp(-x[1]) * sign(x[1]),
+        )
 
 
 class Zirilli(Benchmark):
-
     r"""
     Zettl objective function.
 

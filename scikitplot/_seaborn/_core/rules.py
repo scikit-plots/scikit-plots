@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import warnings
 from collections import UserString
-from numbers import Number
 from datetime import datetime
+from numbers import Number
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal
+
     from pandas import Series
 
 
@@ -22,6 +23,7 @@ class VarType(UserString):
     them. If that changes, they should be more verbose.
 
     """
+
     # TODO VarType is an awfully overloaded name, but so is DataType ...
     # TODO adding unknown because we are using this in for scales, is that right?
     allowed = "numeric", "datetime", "categorical", "boolean", "unknown"
@@ -67,7 +69,7 @@ def variable_type(
     """
 
     # If a categorical dtype is set, infer categorical
-    if isinstance(getattr(vector, 'dtype', None), pd.CategoricalDtype):
+    if isinstance(getattr(vector, "dtype", None), pd.CategoricalDtype):
         return VarType("categorical")
 
     # Special-case all-na data, which is always "numeric"
@@ -87,8 +89,8 @@ def variable_type(
     # This is considered a bug by numpy and will likely go away.
     with warnings.catch_warnings():
         warnings.simplefilter(
-            action='ignore',
-            category=(FutureWarning, DeprecationWarning)  # type: ignore  # mypy bug?
+            action="ignore",
+            category=(FutureWarning, DeprecationWarning),  # type: ignore  # mypy bug?
         )
         if strict_boolean:
             if isinstance(vector.dtype, pd.core.dtypes.base.ExtensionDtype):

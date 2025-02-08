@@ -1,23 +1,15 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn.datasets import load_iris as load_data
-from sklearn.datasets import load_breast_cancer
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.cluster import KMeans
 
 from scikitplot.api.metrics import (
-  plot_precision_recall_curve,
-  plot_precision_recall,
+    plot_precision_recall,
+    plot_precision_recall_curve,
 )
+
 
 def convert_labels_into_string(y_true):
     return ["A" if x == 0 else x for x in y_true]
@@ -56,9 +48,8 @@ class TestPlotPrecisionRecallCurve(unittest.TestCase):
         clf = LogisticRegression(max_iter=int(1e5))
         clf.fit(self.X, self.y)
         probas = clf.predict_proba(self.X)
-        ax_micro = plot_precision_recall_curve(self.y, probas, curves='micro')
-        ax_class = plot_precision_recall_curve(self.y, probas,
-                                               curves='each_class')
+        ax_micro = plot_precision_recall_curve(self.y, probas, curves="micro")
+        ax_class = plot_precision_recall_curve(self.y, probas, curves="each_class")
         self.assertNotEqual(ax_micro, ax_class)
 
     def test_cmap(self):
@@ -66,7 +57,7 @@ class TestPlotPrecisionRecallCurve(unittest.TestCase):
         clf = LogisticRegression(max_iter=int(1e5))
         clf.fit(self.X, self.y)
         probas = clf.predict_proba(self.X)
-        plot_precision_recall_curve(self.y, probas, cmap='nipy_spectral')
+        plot_precision_recall_curve(self.y, probas, cmap="nipy_spectral")
         plot_precision_recall_curve(self.y, probas, cmap=plt.cm.nipy_spectral)
 
     def test_invalid_curve_arg(self):
@@ -74,13 +65,12 @@ class TestPlotPrecisionRecallCurve(unittest.TestCase):
         clf = LogisticRegression(max_iter=int(1e5))
         clf.fit(self.X, self.y)
         probas = clf.predict_proba(self.X)
-        self.assertRaises(ValueError, plot_precision_recall_curve, self.y,
-                          probas, curves='zzz')
+        self.assertRaises(ValueError, plot_precision_recall_curve, self.y, probas, curves="zzz")
 
     def test_array_like(self):
         plot_precision_recall_curve([0, 1], [[0.8, 0.2], [0.2, 0.8]])
-        plot_precision_recall_curve([0, 'a'], [[0.8, 0.2], [0.2, 0.8]])
-        plot_precision_recall_curve(['b', 'a'], [[0.8, 0.2], [0.2, 0.8]])
+        plot_precision_recall_curve([0, "a"], [[0.8, 0.2], [0.2, 0.8]])
+        plot_precision_recall_curve(["b", "a"], [[0.8, 0.2], [0.2, 0.8]])
 
 
 class TestPlotPrecisionRecall(unittest.TestCase):
@@ -124,7 +114,7 @@ class TestPlotPrecisionRecall(unittest.TestCase):
         clf = LogisticRegression(max_iter=int(1e5))
         clf.fit(self.X, self.y)
         probas = clf.predict_proba(self.X)
-        plot_precision_recall(self.y, probas, cmap='nipy_spectral')
+        plot_precision_recall(self.y, probas, cmap="nipy_spectral")
         plot_precision_recall(self.y, probas, cmap=plt.cm.nipy_spectral)
 
     def test_classes_to_plot(self):
@@ -137,5 +127,5 @@ class TestPlotPrecisionRecall(unittest.TestCase):
 
     def test_array_like(self):
         plot_precision_recall([0, 1], [[0.8, 0.2], [0.2, 0.8]])
-        plot_precision_recall([0, 'a'], [[0.8, 0.2], [0.2, 0.8]])
-        plot_precision_recall(['b', 'a'], [[0.8, 0.2], [0.2, 0.8]])
+        plot_precision_recall([0, "a"], [[0.8, 0.2], [0.2, 0.8]])
+        plot_precision_recall(["b", "a"], [[0.8, 0.2], [0.2, 0.8]])

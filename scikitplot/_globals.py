@@ -16,35 +16,35 @@ That was not the case when the singleton classes were defined in the scikitplot
 motivated this module.
 """
 from __future__ import (
-  division,
-  absolute_import,
-  print_function,
+    absolute_import,
+    division,
+    print_function,
 )
 
-import enum
-from typing import Any, Type, Optional
+from typing import Optional, Type
 
 __all__ = [
-  '_Default',
-  '_Deprecated',
-  '_NoValue',
-  'ModuleDeprecationWarning',
-  'VisibleDeprecationWarning',
+    "_Default",
+    "_Deprecated",
+    "_NoValue",
+    "ModuleDeprecationWarning",
+    "VisibleDeprecationWarning",
 ]
 
 ######################################################################
-## Disallow Reloading Module 
+## Disallow Reloading Module
 ######################################################################
 
 # Disallow reloading this module so as to preserve the identities of the
 # classes defined here.
-if '_is_loaded' in globals():
-  raise RuntimeError('Reloading scikitplot._globals is not allowed')
+if "_is_loaded" in globals():
+    raise RuntimeError("Reloading scikitplot._globals is not allowed")
 _is_loaded = True
 
 ######################################################################
 ## ModuleDeprecationWarning class
 ######################################################################
+
 
 class ModuleDeprecationWarning(DeprecationWarning):
     """
@@ -69,15 +69,17 @@ class ModuleDeprecationWarning(DeprecationWarning):
     __module__
         A string representing the module that contains this warning.
     """
-    
+
     # Set the module for the warning to 'scikitplot'
-    __module__: str = 'scikitplot'
-  
+    __module__: str = "scikitplot"
+
+
 # ModuleDeprecationWarning.__module__ = 'scikitplot'
 
 ######################################################################
 ## VisibleDeprecationWarning class
 ######################################################################
+
 
 class VisibleDeprecationWarning(UserWarning):
     """
@@ -103,7 +105,8 @@ class VisibleDeprecationWarning(UserWarning):
     """
 
     # Set the module for the warning to 'scikitplot'
-    __module__: str = 'scikitplot'
+    __module__: str = "scikitplot"
+
 
 # VisibleDeprecationWarning.__module__ = 'scikitplot'
 
@@ -122,6 +125,7 @@ class VisibleDeprecationWarning(UserWarning):
 # where you don’t require predefined values or enum-like behavior.
 # It’s simple, flexible, and easy to implement.
 ######################################################################
+
 
 class SingletonBase:
     """
@@ -143,6 +147,7 @@ class SingletonBase:
     __reduce__(self) -> tuple
         Ensures that the singleton instance is preserved during pickling and unpickling.
     """
+
     # Class attribute to hold the single instance of the class.
     _instance: Optional["SingletonBase"] = None
 
@@ -177,7 +182,7 @@ class SingletonBase:
         Ensures the singleton instance is correctly restored during object serialization
         (i.e., pickling and unpickling).
 
-        This method ensures that the singleton behavior is maintained during 
+        This method ensures that the singleton behavior is maintained during
         serialization.
 
         Returns
@@ -186,6 +191,7 @@ class SingletonBase:
             A tuple of (class, args) used to restore the singleton instance during unpickling.
         """
         return (self.__class__, ())
+
 
 ######################################################################
 ## SingletonBaseEnum class
@@ -222,7 +228,7 @@ class SingletonBase:
 #     __new__(cls) -> SingletonBaseEnum
 #         Overrides the default object creation to implement the singleton pattern.
 #         Ensures that only one instance of the enum value is created (singleton behavior).
-#     """    
+#     """
 #     _instance: Optional["SingletonBaseEnum"] = None
 
 #     def __new__(cls: Type["SingletonBaseEnum"], value: Any) -> "SingletonBaseEnum":
@@ -257,12 +263,13 @@ class SingletonBase:
 ## _DefaultType class
 ######################################################################
 
+
 class _DefaultType(SingletonBase):
     """
     A marker representing the use of a default value.
 
     This class is used to indicate that a parameter is set to its default value.
-    It helps to distinguish between cases where the user intentionally provided 
+    It helps to distinguish between cases where the user intentionally provided
     a value and cases where the default behavior is used.
 
     Examples
@@ -275,11 +282,12 @@ class _DefaultType(SingletonBase):
     >>> default is another_default  # Singleton behavior ensures one instance
     True
     """
+
     # print our string object
     def __repr__(self) -> str:
         """
         Returns a string representation of the object.
-        
+
         Printing <default> makes it easy to spot when the default value is used.
 
         Returns
@@ -289,19 +297,21 @@ class _DefaultType(SingletonBase):
         """
         return "<default>"
 
+
 # Create class instance to direct use
 _Default = _DefaultType()
-      
+
 ######################################################################
 ## Singleton Marker Types
 ## _DeprecatedType class
 ######################################################################
 
+
 class _DeprecatedType(SingletonBase):
     """
     A marker indicating that a value or feature is deprecated.
 
-    This class is useful to signal that a parameter or feature is no longer recommended 
+    This class is useful to signal that a parameter or feature is no longer recommended
     for use and may be removed in future versions of code or APIs.
 
     Examples
@@ -318,7 +328,7 @@ class _DeprecatedType(SingletonBase):
     def __repr__(self) -> str:
         """
         Returns a string representation of the object.
-        
+
         Printing <deprecated> makes it easy to identify deprecated values or features.
 
         Returns
@@ -328,19 +338,21 @@ class _DeprecatedType(SingletonBase):
         """
         return "<deprecated>"
 
+
 # Create class instance to direct use
 _Deprecated = _DeprecatedType()
-      
+
 ######################################################################
 ## Singleton Marker Types
 ## _NoValueType class
 ######################################################################
 
+
 class _NoValueType(SingletonBase):
     """
     A special value indicating no user-defined input.
 
-    This class provides a unique marker to detect whether a user has provided 
+    This class provides a unique marker to detect whether a user has provided
     a value to a function or if a default behavior should be applied.
 
     The instance of this class may be used as the default value assigned to a
@@ -372,7 +384,7 @@ class _NoValueType(SingletonBase):
     def __repr__(self) -> str:
         """
         Returns a string representation of the object.
-        
+
         This helps in debugging and makes it clear when <no value> is printed.
 
         Returns
@@ -382,6 +394,7 @@ class _NoValueType(SingletonBase):
         """
         return "<no value>"
 
+
 # Create class instance to direct use
 _NoValue = _NoValueType()
 
@@ -389,16 +402,20 @@ _NoValue = _NoValueType()
 ## Singleton for Resource Management
 ######################################################################
 
+
 class ThreadPool(SingletonBase):
     """Singleton for managing a thread pool."""
+
     def __init__(self):
         import concurrent.futures
+
         if not hasattr(self, "executor"):
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
     def submit_task(self, fn, *args, **kwargs):
         """Submit a task to the thread pool."""
         return self.executor.submit(fn, *args, **kwargs)
+
 
 # # Usage:
 # thread_pool = ThreadPool()
@@ -413,9 +430,10 @@ class ThreadPool(SingletonBase):
 ## Singleton for DatabaseConnection
 ######################################################################
 
+
 class DatabaseConnection(SingletonBase):
     """Singleton class for managing a database connection."""
-    
+
     def __init__(self):
         """Initialize the database connection."""
         if not hasattr(self, "connection"):
@@ -429,9 +447,10 @@ class DatabaseConnection(SingletonBase):
         """Return the single database connection."""
         return self.connection
 
+
 # Usage:
 # db1 = DatabaseConnection()
 
 ######################################################################
-## 
+##
 ######################################################################

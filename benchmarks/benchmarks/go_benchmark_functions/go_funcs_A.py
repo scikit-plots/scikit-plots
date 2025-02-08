@@ -1,9 +1,9 @@
 from numpy import abs, cos, exp, pi, prod, sin, sqrt, sum
+
 from .go_benchmark import Benchmark
 
 
 class Ackley01(Benchmark):
-
     r"""
     Ackley01 objective function.
 
@@ -39,14 +39,12 @@ class Ackley01(Benchmark):
 
     def fun(self, x, *args):
         self.nfev += 1
-        u = sum(x ** 2)
+        u = sum(x**2)
         v = sum(cos(2 * pi * x))
-        return (-20. * exp(-0.2 * sqrt(u / self.N))
-                - exp(v / self.N) + 20. + exp(1.))
+        return -20.0 * exp(-0.2 * sqrt(u / self.N)) - exp(v / self.N) + 20.0 + exp(1.0)
 
 
 class Ackley02(Benchmark):
-
     r"""
     Ackley02 objective function.
 
@@ -67,12 +65,13 @@ class Ackley02(Benchmark):
     and Numerical Optimisation, 2013, 4, 150-194.
 
     """
+
     def __init__(self, dimensions=2):
         Benchmark.__init__(self, dimensions)
 
         self._bounds = list(zip([-32.0] * self.N, [32.0] * self.N))
         self.global_optimum = [[0 for _ in range(self.N)]]
-        self.fglob = -200.
+        self.fglob = -200.0
 
     def fun(self, x, *args):
         self.nfev += 1
@@ -80,7 +79,6 @@ class Ackley02(Benchmark):
 
 
 class Ackley03(Benchmark):
-
     r"""
     Ackley03 [1]_ objective function.
 
@@ -121,7 +119,6 @@ class Ackley03(Benchmark):
 
 
 class Adjiman(Benchmark):
-
     r"""
     Adjiman objective function.
 
@@ -155,7 +152,6 @@ class Adjiman(Benchmark):
 
 
 class Alpine01(Benchmark):
-
     r"""
     Alpine01 objective function.
 
@@ -194,7 +190,6 @@ class Alpine01(Benchmark):
 
 
 class Alpine02(Benchmark):
-
     r"""
     Alpine02 objective function.
 
@@ -234,7 +229,6 @@ class Alpine02(Benchmark):
 
 
 class AMGM(Benchmark):
-
     r"""
     AMGM objective function.
 

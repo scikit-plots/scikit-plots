@@ -2,7 +2,9 @@
 
 from sphinx.application import Sphinx
 from sphinx.util.logging import getLogger
+
 logger = getLogger(__name__)
+
 
 def autodoc_process_bases(app, name, obj, options, bases):
     """
@@ -13,8 +15,9 @@ def autodoc_process_bases(app, name, obj, options, bases):
     for cls in bases[:]:
         if not isinstance(cls, type):
             continue
-        if cls.__module__ == 'pybind11_builtins' and cls.__name__ == 'pybind11_object':
+        if cls.__module__ == "pybind11_builtins" and cls.__name__ == "pybind11_object":
             bases.remove(cls)
+
 
 # def add_html_cache_busting(app, pagename, templatename, context, doctree):
 #     """
@@ -87,25 +90,26 @@ def autodoc_process_bases(app, name, obj, options, bases):
 # # triggered via make html-skip-subdirs
 # if 'skip_sub_dirs=1' in sys.argv:
 #     skip_subdirs = _parse_skip_subdirs_file()
-  
+
+
 def setup(app: Sphinx):
     """Setup the Sphinx extension."""
     logger.info("Setting up Sphinx application")
     try:
-        app.connect('autodoc-process-bases', autodoc_process_bases)
+        app.connect("autodoc-process-bases", autodoc_process_bases)
         logger.info("Connected 'autodoc_process_bases' function to 'autodoc-process-bases' event")
 
         # Connect the `add_html_cache_busting` function to ensure templates are rendered
         if sphinx.version_info[:2] < (7, 1):
-            app.connect('html-page-context', add_html_cache_busting, priority=1000)
+            app.connect("html-page-context", add_html_cache_busting, priority=1000)
             logger.info("Connected 'add_html_cache_busting' function to 'html-page-context' event")
-          
+
         # app.add_config_value('skip_sub_dirs', 0, '')
     except Exception as e:
         logger.error(f"Failed to set up Sphinx extension: {e}")
 
     # Return the extension metadata
     return {
-        'version': '0.1',
-        'parallel_read_safe': True,
+        "version": "0.1",
+        "parallel_read_safe": True,
     }

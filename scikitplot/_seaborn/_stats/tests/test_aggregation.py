@@ -1,13 +1,10 @@
-
 import numpy as np
 import pandas as pd
-
 import pytest
 from pandas.testing import assert_frame_equal
 
-from ..aggregation import Agg, Est
-
 from ..._core.groupby import GroupBy
+from ..aggregation import Agg, Est
 
 
 class AggregationFixtures:
@@ -16,12 +13,14 @@ class AggregationFixtures:
     def df(self, rng):
 
         n = 30
-        return pd.DataFrame(dict(
-            x=rng.uniform(0, 7, n).round(),
-            y=rng.normal(size=n),
-            color=rng.choice(["a", "b", "c"], n),
-            group=rng.choice(["x", "y"], n),
-        ))
+        return pd.DataFrame(
+            dict(
+                x=rng.uniform(0, 7, n).round(),
+                y=rng.normal(size=n),
+                color=rng.choice(["a", "b", "c"], n),
+                group=rng.choice(["x", "y"], n),
+            )
+        )
 
     def get_groupby(self, df, orient):
 
@@ -51,11 +50,10 @@ class TestAgg(AggregationFixtures):
         grp = ["x", "color", "group"]
         index = pd.MultiIndex.from_product(
             [sorted(df["x"].unique()), df["color"].unique(), df["group"].unique()],
-            names=["x", "color", "group"]
+            names=["x", "color", "group"],
         )
         expected = (
-            df
-            .groupby(grp)
+            df.groupby(grp)
             .agg("mean")
             .reindex(index=index)
             .dropna()

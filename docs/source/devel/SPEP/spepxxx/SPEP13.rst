@@ -3,7 +3,7 @@ SEP13: Use properties for Artists
 =================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

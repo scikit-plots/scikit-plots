@@ -12,37 +12,41 @@ from __future__ import annotations
 
 import math
 from functools import partial
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike, NDArray
     from collections.abc import Callable
     from typing import Literal, SupportsFloat, TypeVar
+
+    from numpy.typing import ArrayLike, NDArray
+
     # type for variables generated with the mpmath library
     FloatLike = TypeVar("FloatLike", bound=SupportsFloat)
 
-from . import _stats
 # from astropy.utils.compat.optional_deps import HAS_BOTTLENECK, HAS_SCIPY
 from scikitplot._compat.optional_deps import HAS_BOTTLENECK, HAS_SCIPY
 
+from . import _stats
+
 __all__ = [
-  "binned_binom_proportion",
-  "binom_conf_interval",
-  "bootstrap",
-  "cdf_from_intervals",
-  "fold_intervals",
-  "gaussian_fwhm_to_sigma",
-  "gaussian_sigma_to_fwhm",
-  "histogram_intervals",
-  "interval_overlap_length",
-  "kuiper",
-  "kuiper_false_positive_probability",
-  "kuiper_two",
-  "mad_std",
-  "median_absolute_deviation",
-  "poisson_conf_interval",
-  "signal_to_noise_oir_ccd",
+    "binned_binom_proportion",
+    "binom_conf_interval",
+    "bootstrap",
+    "cdf_from_intervals",
+    "fold_intervals",
+    "gaussian_fwhm_to_sigma",
+    "gaussian_sigma_to_fwhm",
+    "histogram_intervals",
+    "interval_overlap_length",
+    "kuiper",
+    "kuiper_false_positive_probability",
+    "kuiper_two",
+    "mad_std",
+    "median_absolute_deviation",
+    "poisson_conf_interval",
+    "signal_to_noise_oir_ccd",
 ]
 
 __doctest_skip__ = ["binned_binom_proportion"]
@@ -256,9 +260,7 @@ def binom_conf_interval(
         if interval == "wilson":
             midpoint = (k + kappa**2 / 2.0) / (n + kappa**2)
             halflength = (
-                (kappa * np.sqrt(n))
-                / (n + kappa**2)
-                * np.sqrt(p * (1 - p) + kappa**2 / (4 * n))
+                (kappa * np.sqrt(n)) / (n + kappa**2) * np.sqrt(p * (1 - p) + kappa**2 / (4 * n))
             )
             conf_interval = np.array([midpoint - halflength, midpoint + halflength])
 
@@ -297,6 +299,7 @@ def binom_conf_interval(
         raise ValueError(f"Unrecognized interval: {interval:s}")
 
     return conf_interval
+
 
 def binned_binom_proportion(
     x: ArrayLike,
@@ -480,12 +483,11 @@ def binned_binom_proportion(
     k = k[valid]
 
     p = k / n
-    bounds = binom_conf_interval(
-        k, n, confidence_level=confidence_level, interval=interval
-    )
+    bounds = binom_conf_interval(k, n, confidence_level=confidence_level, interval=interval)
     perr = np.abs(bounds - p)
 
     return bin_ctr, bin_halfwidth, p, perr
+
 
 def _check_poisson_conf_inputs(
     sigma: float,
@@ -738,9 +740,7 @@ def poisson_conf_interval(
             conf_interval[1, n == 0] = 1
     elif interval == "pearson":
         _check_poisson_conf_inputs(sigma, background, confidence_level, interval)
-        conf_interval = np.array(
-            [n + 0.5 - np.sqrt(n + 0.25), n + 0.5 + np.sqrt(n + 0.25)]
-        )
+        conf_interval = np.array([n + 0.5 - np.sqrt(n + 0.25), n + 0.5 + np.sqrt(n + 0.25)])
     elif interval == "sherpagehrels":
         _check_poisson_conf_inputs(sigma, background, confidence_level, interval)
         conf_interval = np.array([n - 1 - np.sqrt(n + 0.75), n + 1 + np.sqrt(n + 0.75)])
@@ -770,9 +770,7 @@ def poisson_conf_interval(
             raise TypeError("Number of counts must be integer.")
 
         if confidence_level is None:
-            raise ValueError(
-                f"Set confidence_level for method {interval}. (sigma is ignored.)"
-            )
+            raise ValueError(f"Set confidence_level for method {interval}. (sigma is ignored.)")
         confidence_level = np.asanyarray(confidence_level)
         if np.any(confidence_level <= 0) or np.any(confidence_level >= 1):
             raise ValueError("confidence_level must be a number between 0 and 1.")
@@ -787,11 +785,13 @@ def poisson_conf_interval(
         raise ValueError(f"Invalid method for Poisson confidence intervals: {interval}")
     return conf_interval
 
+
 def median_absolute_deviation(
     data: ArrayLike,
     axis: int | tuple[int, ...] | None = None,
     func: Callable | None = None,
-    ignore_nan: bool | None = False, keepdims: bool | None = False,
+    ignore_nan: bool | None = False,
+    keepdims: bool | None = False,
 ) -> float | NDArray:
     """
     Calculate the median absolute deviation (MAD).
@@ -852,6 +852,7 @@ def median_absolute_deviation(
             # prevent circular import
             # from astropy.stats.nanfunctions import nanmedian
             from .nanfunctions import nanmedian
+
             is_masked = False
             func = nanmedian
         else:
@@ -883,6 +884,7 @@ def median_absolute_deviation(
         result = result.filled(fill_value=np.nan)
 
     return result
+
 
 def mad_std(
     data: ArrayLike,
@@ -991,10 +993,9 @@ def signal_to_noise_oir_ccd(
         Signal to noise ratio calculated from the inputs
     """
     signal = t * source_eps * gain
-    noise = np.sqrt(
-        t * (source_eps * gain + npix * (sky_eps * gain + dark_eps)) + npix * rd**2
-    )
+    noise = np.sqrt(t * (source_eps * gain + npix * (sky_eps * gain + dark_eps)) + npix * rd**2)
     return signal / noise
+
 
 def bootstrap(
     data: NDArray,
@@ -1191,6 +1192,7 @@ def _scipy_kraft_burrows_nousek(N: int, B: float, CL: float) -> tuple[float, flo
     S_min = find_s_min(S_max, N, B)
     return S_min, S_max
 
+
 def _mpmath_kraft_burrows_nousek(N: int, B: float, CL: float) -> tuple[float, float]:
     """Upper limit on a poisson count rate.
 
@@ -1239,9 +1241,7 @@ def _mpmath_kraft_burrows_nousek(N: int, B: float, CL: float) -> tuple[float, fl
         SpB = S + B
         return eqn8_res * (exp(-SpB) * SpB**N / factorial_N)
 
-    def eqn9_left(
-        S_min: FloatLike, S_max: FloatLike, N: FloatLike, B: FloatLike
-    ) -> FloatLike:
+    def eqn9_left(S_min: FloatLike, S_max: FloatLike, N: FloatLike, B: FloatLike) -> FloatLike:
         def eqn7NB(S: FloatLike) -> FloatLike:
             return eqn7(S, N, B)
 
@@ -1287,6 +1287,7 @@ def _mpmath_kraft_burrows_nousek(N: int, B: float, CL: float) -> tuple[float, fl
     S_min = find_s_min(S_max, N, B)
     return float(S_min), float(S_max)
 
+
 def _kraft_burrows_nousek(N: int, B: float, CL: float) -> tuple[float, float]:
     """Upper limit on a poisson count rate.
 
@@ -1316,6 +1317,7 @@ def _kraft_burrows_nousek(N: int, B: float, CL: float) -> tuple[float, float]:
     """
     # from astropy.utils.compat.optional_deps import HAS_MPMATH, HAS_SCIPY
     from scikitplot._compat.optional_deps import HAS_MPMATH, HAS_SCIPY
+
     if HAS_SCIPY and N <= 100:
         try:
             return _scipy_kraft_burrows_nousek(N, B, CL)
@@ -1326,6 +1328,7 @@ def _kraft_burrows_nousek(N: int, B: float, CL: float) -> tuple[float, float]:
         return _mpmath_kraft_burrows_nousek(N, B, CL)
 
     raise ImportError("Either scipy or mpmath are required.")
+
 
 def kuiper_false_positive_probability(D: float, N: float) -> float:
     """Compute the false positive probability for the Kuiper statistic.
@@ -1366,9 +1369,7 @@ def kuiper_false_positive_probability(D: float, N: float) -> float:
 
     """
     if not HAS_SCIPY:
-        raise ModuleNotFoundError(
-            "scipy is required for kuiper_false_positive_probability"
-        )
+        raise ModuleNotFoundError("scipy is required for kuiper_false_positive_probability")
     from scipy.special import comb, factorial
 
     if D < 0.0 or D > 2.0:
@@ -1413,6 +1414,7 @@ def kuiper_false_positive_probability(D: float, N: float) -> float:
         S1 = (2 * (4 * ms**2 * z**2 - 1) * np.exp(-2 * ms**2 * z**2)).sum()
         S2 = (ms**2 * (4 * ms**2 * z**2 - 3) * np.exp(-2 * ms**2 * z**2)).sum()
         return S1 - 8 * D / 3 * S2
+
 
 def kuiper(
     data: ArrayLike,
@@ -1486,11 +1488,10 @@ def kuiper(
     data = np.sort(data)
     cdfv = cdf(data, *args)
     N = len(data)
-    D = np.amax(cdfv - np.arange(N) / float(N)) + np.amax(
-        (np.arange(N) + 1) / float(N) - cdfv
-    )
+    D = np.amax(cdfv - np.arange(N) / float(N)) + np.amax((np.arange(N) + 1) / float(N) - cdfv)
 
     return D, kuiper_false_positive_probability(D, N)
+
 
 def kuiper_two(data1: ArrayLike, data2: ArrayLike) -> tuple[float, float]:
     """Compute the Kuiper statistic to compare two samples.
@@ -1520,8 +1521,7 @@ def kuiper_two(data1: ArrayLike, data2: ArrayLike) -> tuple[float, float]:
     (n2,) = data2.shape
     common_type = np.result_type(data1.dtype, data2.dtype)
     if not (
-        np.issubdtype(common_type, np.number)
-        and not np.issubdtype(common_type, np.complexfloating)
+        np.issubdtype(common_type, np.number) and not np.issubdtype(common_type, np.complexfloating)
     ):
         raise ValueError("kuiper_two only accepts real inputs")
     # nans, if any, are at the end after sorting.
@@ -1530,6 +1530,7 @@ def kuiper_two(data1: ArrayLike, data2: ArrayLike) -> tuple[float, float]:
     D = _stats.ks_2samp(np.asarray(data1, common_type), np.asarray(data2, common_type))
     Ne = len(data1) * len(data2) / float(len(data1) + len(data2))
     return D, kuiper_false_positive_probability(D, Ne)
+
 
 def fold_intervals(
     intervals: list[tuple[float, float, float]],
@@ -1584,6 +1585,7 @@ def fold_intervals(
         totals[breaks_map[a] : breaks_map[b]] += wt
     return np.array(breaks), totals
 
+
 def cdf_from_intervals(breaks: NDArray[float], totals: NDArray[float]) -> Callable:
     """Construct a callable piecewise-linear CDF from a pair of arrays.
 
@@ -1618,6 +1620,7 @@ def cdf_from_intervals(breaks: NDArray[float], totals: NDArray[float]) -> Callab
     c /= c[-1]
     return lambda x: np.interp(x, b, c, 0, 1)
 
+
 def interval_overlap_length(i1: tuple[float, float], i2: tuple[float, float]) -> float:
     """Compute the length of overlap of two intervals.
 
@@ -1649,9 +1652,8 @@ def interval_overlap_length(i1: tuple[float, float], i2: tuple[float, float]) ->
     else:
         return 0
 
-def histogram_intervals(
-    n: int, breaks: NDArray[float], totals: NDArray[float]
-) -> NDArray[float]:
+
+def histogram_intervals(n: int, breaks: NDArray[float], totals: NDArray[float]) -> NDArray[float]:
     """Histogram of a piecewise-constant weight function.
 
     This function takes a piecewise-constant weight function and

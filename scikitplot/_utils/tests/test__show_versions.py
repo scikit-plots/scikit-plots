@@ -1,12 +1,11 @@
 from threadpoolctl import threadpool_info
 
-from .._show_versions import (
-  _get_sys_info,
-  _get_deps_info,
-  show_versions,
-)
-
 from ..._testing import ignore_warnings
+from .._show_versions import (
+    _get_deps_info,
+    _get_sys_info,
+    show_versions,
+)
 
 
 def test_get_sys_info():

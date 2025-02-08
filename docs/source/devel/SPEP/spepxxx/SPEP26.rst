@@ -3,7 +3,7 @@ SEP26: Artist styling
 =======================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

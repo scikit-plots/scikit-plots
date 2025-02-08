@@ -79,7 +79,7 @@ experimental_extension_metadata = {
     'sources': [
       # gen_cython_cpp.process('_cy_experimental.pyx'),     #  manually call a generator, if Needed
       '_cy_experimental.pyx'
-    ],          
+    ],
     'dependencies': [
       dep_np,
     ],                                            # External libraries and dependencies
@@ -103,7 +103,7 @@ experimental_extension_metadata = {
   '_py_experimental':
   {
     # Pybind11 bindings source .cpp extension with C/C++ support
-    'sources': ['bindings/_py_experimental.cpp'], 
+    'sources': ['bindings/_py_experimental.cpp'],
     'dependencies': [
       dep_pybind11,
       dep_np,
@@ -148,5 +148,5 @@ foreach ext_name, ext_dict : experimental_extension_metadata
 endforeach
 
 ######################################################################
-## 
+##
 ######################################################################

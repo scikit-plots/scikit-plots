@@ -1,4 +1,4 @@
-# R code to dump fair test dataset to 
+# R code to dump fair test dataset to
 # checking compatibility.
 #
 # Usage:
@@ -31,7 +31,7 @@ pyprint <- function(arr, prefix=NULL, suffix=NULL) {
   } else {
     cat("np.array([")
     i <- 1
-    
+
     # for (val in arr) {
     #   cat(val)
     #   if (i %% 3 == 0) {

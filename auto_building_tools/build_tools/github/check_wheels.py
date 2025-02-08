@@ -1,5 +1,7 @@
-"""Checks that dist/* contains the number of wheels built from the
-.github/workflows/wheels.yml config."""
+"""
+Checks that dist/* contains the number of wheels built from the
+.github/workflows/wheels.yml config.
+"""  # noqa: CPY001
 
 import sys
 from pathlib import Path
@@ -16,21 +18,11 @@ n_wheels = len(build_matrix)
 # plus one more for the sdist
 n_wheels += 1
 
-# arm64 builds from cirrus
-cirrus_path = Path.cwd() / "build_tools" / "cirrus" / "arm_wheel.yml"
-with cirrus_path.open("r") as f:
-    cirrus_config = yaml.safe_load(f)
-
-n_wheels += len(cirrus_config["linux_arm64_wheel_task"]["matrix"])
-
 dist_files = list(Path("dist").glob("**/*"))
 n_dist_files = len(dist_files)
 
 if n_dist_files != n_wheels:
-    print(
-        f"Expected {n_wheels} wheels in dist/* but "
-        f"got {n_dist_files} artifacts instead."
-    )
+    print(f"Expected {n_wheels} wheels in dist/* but " f"got {n_dist_files} artifacts instead.")
     sys.exit(1)
 
 print(f"dist/* has the expected {n_wheels} wheels:")

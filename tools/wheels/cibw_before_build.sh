@@ -133,7 +133,7 @@ configure_openblas_pkg_config() {
         rm -rf "$PKG_CONFIG_PATH"  # Remove existing config directory
     else
         log "No existing OpenBLAS config directory to remove."
-    fi    
+    fi
     # Create a new OpenBLAS directory and log the success
     log "Creating OpenBLAS config directory..."
     mkdir -p "$PKG_CONFIG_PATH"
@@ -141,7 +141,7 @@ configure_openblas_pkg_config() {
     # Export PKG_CONFIG_PATH based on the OS and log
     case $RUNNER_OS in
         Linux|macOS) export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"  ;;
-        Windows) 
+        Windows)
             # Adjust the path format for Windows
             PKG_CONFIG_PATH=$(echo "$PKG_CONFIG_PATH" | sed 's/\//\\/g')
             export PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
@@ -153,7 +153,7 @@ configure_openblas_pkg_config() {
         Linux)
             export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$(LD_LIBRARY_PATH:-'')" ;;
         macOS) export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR" ;;
-        Windows) 
+        Windows)
             # Adjust the path format for Windows
             OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
             export PATH="$OPENBLAS_LIB_DIR:$PATH" ;;
@@ -220,7 +220,7 @@ setup_openblas() {
         log "INSTALL_OPENBLAS is not set. Setting INSTALL_OPENBLAS=true."
         INSTALL_OPENBLAS=true
         export INSTALL_OPENBLAS
-    else        
+    else
         # Log INSTALL_OPENBLAS is set or not
         log "INSTALL_OPENBLAS is already set: $INSTALL_OPENBLAS"
     fi

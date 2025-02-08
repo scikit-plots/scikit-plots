@@ -12,9 +12,8 @@ from numbers import Integral, Real
 
 import numpy as np
 import scipy.sparse as sp
-# import scipy.special as special
-from scipy.sparse import csr_matrix, issparse
 
+# import scipy.special as special
 from .._config import config_context, get_config
 from .sk_validation import _is_arraylike_not_scalar
 
@@ -85,16 +84,13 @@ def validate_parameter_constraints(parameter_constraints, params, caller_name):
 
             # Ignore constraints that we don't want to expose in the error message,
             # i.e. options that are for internal purpose or not officially supported.
-            constraints = [
-                constraint for constraint in constraints if not constraint.hidden
-            ]
+            constraints = [constraint for constraint in constraints if not constraint.hidden]
 
             if len(constraints) == 1:
                 constraints_str = f"{constraints[0]}"
             else:
                 constraints_str = (
-                    f"{', '.join([str(c) for c in constraints[:-1]])} or"
-                    f" {constraints[-1]}"
+                    f"{', '.join([str(c) for c in constraints[:-1]])} or" f" {constraints[-1]}"
                 )
 
             raise InvalidParameterError(
@@ -128,9 +124,7 @@ def make_constraint(constraint):
         return _NoneConstraint()
     if isinstance(constraint, type):
         return _InstancesOf(constraint)
-    if isinstance(
-        constraint, (Interval, StrOptions, Options, HasMethods, MissingValues)
-    ):
+    if isinstance(constraint, (Interval, StrOptions, Options, HasMethods, MissingValues)):
         return constraint
     if isinstance(constraint, str) and constraint == "boolean":
         return _Booleans()
@@ -318,9 +312,7 @@ class _NanConstraint(_Constraint):
     """Constraint representing the indicator `np.nan`."""
 
     def is_satisfied_by(self, val):
-        return (
-            not isinstance(val, Integral) and isinstance(val, Real) and math.isnan(val)
-        )
+        return not isinstance(val, Integral) and isinstance(val, Real) and math.isnan(val)
 
     def __str__(self):
         return "numpy.nan"
@@ -376,9 +368,7 @@ class Options(_Constraint):
         return option_str
 
     def __str__(self):
-        options_str = (
-            f"{', '.join([self._mark_if_deprecated(o) for o in self.options])}"
-        )
+        options_str = f"{', '.join([self._mark_if_deprecated(o) for o in self.options])}"
         return f"a {_type_name(self.type)} among {{{options_str}}}"
 
 
@@ -464,13 +454,9 @@ class Interval(_Constraint):
             if self.right is not None and not isinstance(self.right, Integral):
                 raise TypeError(f"Expecting right to be an int {suffix}")
             if self.left is None and self.closed in ("left", "both"):
-                raise ValueError(
-                    f"left can't be None when closed == {self.closed} {suffix}"
-                )
+                raise ValueError(f"left can't be None when closed == {self.closed} {suffix}")
             if self.right is None and self.closed in ("right", "both"):
-                raise ValueError(
-                    f"right can't be None when closed == {self.closed} {suffix}"
-                )
+                raise ValueError(f"right can't be None when closed == {self.closed} {suffix}")
         else:
             if self.left is not None and not isinstance(self.left, Real):
                 raise TypeError("Expecting left to be a real number.")
@@ -479,8 +465,7 @@ class Interval(_Constraint):
 
         if self.right is not None and self.left is not None and self.right <= self.left:
             raise ValueError(
-                f"right can't be less than left. Got left={self.left} and "
-                f"right={self.right}"
+                f"right can't be less than left. Got left={self.left} and " f"right={self.right}"
             )
 
     def __contains__(self, val):
@@ -519,8 +504,7 @@ class Interval(_Constraint):
             right_bound = float(right_bound)
 
         return (
-            f"{type_str} in the range "
-            f"{left_bracket}{left_bound}, {right_bound}{right_bracket}"
+            f"{type_str} in the range " f"{left_bracket}{left_bound}, {right_bound}{right_bracket}"
         )
 
 
@@ -574,8 +558,7 @@ class _RandomStates(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or"
-            f" {self._constraints[-1]}"
+            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
         )
 
 
@@ -598,8 +581,7 @@ class _Booleans(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or"
-            f" {self._constraints[-1]}"
+            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
         )
 
 
@@ -623,8 +605,7 @@ class _VerboseHelper(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or"
-            f" {self._constraints[-1]}"
+            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
         )
 
 
@@ -668,8 +649,7 @@ class MissingValues(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or"
-            f" {self._constraints[-1]}"
+            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
         )
 
 
@@ -703,8 +683,7 @@ class HasMethods(_Constraint):
             methods = f"{self.methods[0]!r}"
         else:
             methods = (
-                f"{', '.join([repr(m) for m in self.methods[:-1]])} and"
-                f" {self.methods[-1]!r}"
+                f"{', '.join([repr(m) for m in self.methods[:-1]])} and" f" {self.methods[-1]!r}"
             )
         return f"an object implementing {methods}"
 
@@ -745,8 +724,7 @@ class _CVObjects(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or"
-            f" {self._constraints[-1]}"
+            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
         )
 
 
@@ -879,9 +857,7 @@ def generate_valid_param(constraint):
         return "missing"
 
     if isinstance(constraint, HasMethods):
-        return type(
-            "ValidHasMethods", (), {m: lambda self: None for m in constraint.methods}
-        )()
+        return type("ValidHasMethods", (), {m: lambda self: None for m in constraint.methods})()
 
     if isinstance(constraint, _IterablesNotString):
         return [1, 2, 3]

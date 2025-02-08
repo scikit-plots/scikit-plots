@@ -3,7 +3,7 @@ SEP14: Text handling
 ====================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

@@ -1,30 +1,41 @@
+import math
+import re
+from fractions import Fraction
 from multiprocessing import Pool
 from multiprocessing.pool import Pool as PWL
-import re
-import math
-from fractions import Fraction
 
-import numpy as np
-from numpy.testing import assert_equal, assert_
-import pytest
-from pytest import raises as assert_raises
 import hypothesis.extra.numpy as npst
-from hypothesis import given, strategies, reproduce_failure  # noqa: F401
-
+import numpy as np
+import pytest
+from hypothesis import given, reproduce_failure, strategies  # noqa: F401
+from numpy.testing import assert_, assert_equal
+from pytest import raises as assert_raises
 from scipy import cluster, interpolate, linalg, optimize, sparse, spatial, stats
 
 from ...conftest import array_api_compatible, skip_xp_invalid_arg
-
 from .. import array_api_extra as xpx
-
-from .._array_api import (xp_assert_equal, xp_assert_close, is_numpy,
-                          xp_copy, is_array_api_strict)
-from .._util import (_aligned_zeros, check_random_state, MapWrapper,
-                     getfullargspec_no_self, FullArgSpec,
-                     rng_integers, _validate_int, _rename_parameter,
-                     _contains_nan, _rng_html_rewrite, _lazywhere)
+from .._array_api import (
+    is_array_api_strict,
+    is_numpy,
+    xp_assert_close,
+    xp_assert_equal,
+)
+from .._util import (
+    FullArgSpec,
+    MapWrapper,
+    _aligned_zeros,
+    _contains_nan,
+    _lazywhere,
+    _rename_parameter,
+    _rng_html_rewrite,
+    _validate_int,
+    check_random_state,
+    getfullargspec_no_self,
+    rng_integers,
+)
 
 skip_xp_backends = pytest.mark.skip_xp_backends
+
 
 @pytest.mark.slow
 def test__aligned_zeros():
@@ -35,8 +46,8 @@ def test__aligned_zeros():
         x = _aligned_zeros(shape, dtype, order, align=align)
         if align is None:
             align = np.dtype(dtype).alignment
-        assert_equal(x.__array_interface__['data'][0] % align, 0)
-        if hasattr(shape, '__len__'):
+        assert_equal(x.__array_interface__["data"][0] % align, 0)
+        if hasattr(shape, "__len__"):
             assert_equal(x.shape, shape, err_msg)
         else:
             assert_equal(x.shape, (shape,), err_msg)
@@ -73,7 +84,7 @@ def test_check_random_state():
     assert_equal(type(rsi), np.random.RandomState)
     rsi = check_random_state(None)
     assert_equal(type(rsi), np.random.RandomState)
-    assert_raises(ValueError, check_random_state, 'a')
+    assert_raises(ValueError, check_random_state, "a")
     rg = np.random.Generator(np.random.PCG64())
     rsi = check_random_state(rg)
     assert_equal(type(rsi), np.random.Generator)
@@ -82,11 +93,9 @@ def test_check_random_state():
 def test_getfullargspec_no_self():
     p = MapWrapper(1)
     argspec = getfullargspec_no_self(p.__init__)
-    assert_equal(argspec, FullArgSpec(['pool'], None, None, (1,), [],
-                                      None, {}))
+    assert_equal(argspec, FullArgSpec(["pool"], None, None, (1,), [], None, {}))
     argspec = getfullargspec_no_self(p.__call__)
-    assert_equal(argspec, FullArgSpec(['func', 'iterable'], None, None, None,
-                                      [], None, {}))
+    assert_equal(argspec, FullArgSpec(["func", "iterable"], None, None, None, [], None, {}))
 
     class _rv_generic:
         def _rvs(self, a, b=2, c=3, *args, size=None, **kwargs):
@@ -94,12 +103,14 @@ def test_getfullargspec_no_self():
 
     rv_obj = _rv_generic()
     argspec = getfullargspec_no_self(rv_obj._rvs)
-    assert_equal(argspec, FullArgSpec(['a', 'b', 'c'], 'args', 'kwargs',
-                                      (2, 3), ['size'], {'size': None}, {}))
+    assert_equal(
+        argspec,
+        FullArgSpec(["a", "b", "c"], "args", "kwargs", (2, 3), ["size"], {"size": None}, {}),
+    )
 
 
 def test_mapwrapper_serial():
-    in_arg = np.arange(10.)
+    in_arg = np.arange(10.0)
     out_arg = np.sin(in_arg)
 
     p = MapWrapper(1)
@@ -119,7 +130,7 @@ def test_pool():
 
 
 def test_mapwrapper_parallel():
-    in_arg = np.arange(10.)
+    in_arg = np.arange(10.0)
     out_arg = np.sin(in_arg)
 
     with MapWrapper(2) as p:
@@ -157,25 +168,25 @@ def test_rng_integers():
     arr = rng_integers(rng, low=2, high=5, size=100, endpoint=True)
     assert np.max(arr) == 5
     assert np.min(arr) == 2
-    assert arr.shape == (100, )
+    assert arr.shape == (100,)
 
     # test that numbers are inclusive of high point
     arr = rng_integers(rng, low=5, size=100, endpoint=True)
     assert np.max(arr) == 5
     assert np.min(arr) == 0
-    assert arr.shape == (100, )
+    assert arr.shape == (100,)
 
     # test that numbers are exclusive of high point
     arr = rng_integers(rng, low=2, high=5, size=100, endpoint=False)
     assert np.max(arr) == 4
     assert np.min(arr) == 2
-    assert arr.shape == (100, )
+    assert arr.shape == (100,)
 
     # test that numbers are exclusive of high point
     arr = rng_integers(rng, low=5, size=100, endpoint=False)
     assert np.max(arr) == 4
     assert np.min(arr) == 0
-    assert arr.shape == (100, )
+    assert arr.shape == (100,)
 
     # now try with np.random.Generator
     try:
@@ -187,43 +198,42 @@ def test_rng_integers():
     arr = rng_integers(rng, low=2, high=5, size=100, endpoint=True)
     assert np.max(arr) == 5
     assert np.min(arr) == 2
-    assert arr.shape == (100, )
+    assert arr.shape == (100,)
 
     # test that numbers are inclusive of high point
     arr = rng_integers(rng, low=5, size=100, endpoint=True)
     assert np.max(arr) == 5
     assert np.min(arr) == 0
-    assert arr.shape == (100, )
+    assert arr.shape == (100,)
 
     # test that numbers are exclusive of high point
     arr = rng_integers(rng, low=2, high=5, size=100, endpoint=False)
     assert np.max(arr) == 4
     assert np.min(arr) == 2
-    assert arr.shape == (100, )
+    assert arr.shape == (100,)
 
     # test that numbers are exclusive of high point
     arr = rng_integers(rng, low=5, size=100, endpoint=False)
     assert np.max(arr) == 4
     assert np.min(arr) == 0
-    assert arr.shape == (100, )
+    assert arr.shape == (100,)
 
 
 class TestValidateInt:
 
-    @pytest.mark.parametrize('n', [4, np.uint8(4), np.int16(4), np.array(4)])
+    @pytest.mark.parametrize("n", [4, np.uint8(4), np.int16(4), np.array(4)])
     def test_validate_int(self, n):
-        n = _validate_int(n, 'n')
+        n = _validate_int(n, "n")
         assert n == 4
 
-    @pytest.mark.parametrize('n', [4.0, np.array([4]), Fraction(4, 1)])
+    @pytest.mark.parametrize("n", [4.0, np.array([4]), Fraction(4, 1)])
     def test_validate_int_bad(self, n):
-        with pytest.raises(TypeError, match='n must be an integer'):
-            _validate_int(n, 'n')
+        with pytest.raises(TypeError, match="n must be an integer"):
+            _validate_int(n, "n")
 
     def test_validate_int_below_min(self):
-        with pytest.raises(ValueError, match='n must be an integer not '
-                                             'less than 0'):
-            _validate_int(-1, 'n', 0)
+        with pytest.raises(ValueError, match="n must be an integer not " "less than 0"):
+            _validate_int(-1, "n", 0)
 
 
 class TestRenameParameter:
@@ -264,6 +274,7 @@ class TestRenameParameter:
     @pytest.fixture
     def kwarg_lock(self):
         from threading import Lock
+
         return Lock()
 
     def test_old_keyword_deprecated(self, kwarg_lock):
@@ -275,7 +286,7 @@ class TestRenameParameter:
         # pytest warning filter is not thread-safe, enforce serialization
         with kwarg_lock:
             with pytest.warns(DeprecationWarning, match=dep_msg):
-                    res3 = self.old_keyword_deprecated(old=10)
+                res3 = self.old_keyword_deprecated(old=10)
         assert res1 == res2 == res3 == 10
 
         # unexpected keyword raises an error
@@ -289,14 +300,18 @@ class TestRenameParameter:
         with pytest.raises(TypeError, match=message):
             self.old_keyword_deprecated(10, new=10)
         with kwarg_lock:
-            with pytest.raises(TypeError, match=message), \
-                    pytest.warns(DeprecationWarning, match=dep_msg):
-                    # breakpoint()
-                    self.old_keyword_deprecated(10, old=10)
+            with (
+                pytest.raises(TypeError, match=message),
+                pytest.warns(DeprecationWarning, match=dep_msg),
+            ):
+                # breakpoint()
+                self.old_keyword_deprecated(10, old=10)
         with kwarg_lock:
-            with pytest.raises(TypeError, match=message), \
-                    pytest.warns(DeprecationWarning, match=dep_msg):
-                    self.old_keyword_deprecated(new=10, old=10)
+            with (
+                pytest.raises(TypeError, match=message),
+                pytest.warns(DeprecationWarning, match=dep_msg),
+            ):
+                self.old_keyword_deprecated(new=10, old=10)
 
 
 class TestContainsNaNTest:
@@ -341,17 +356,17 @@ class TestContainsNaNTest:
         data1 = np.array([1, 2, "3", np.nan])  # converted to string "nan"
         assert not _contains_nan(data1)[0]
 
-        data2 = np.array([1, 2, "3", np.nan], dtype='object')
+        data2 = np.array([1, 2, "3", np.nan], dtype="object")
         assert _contains_nan(data2)[0]
 
         data3 = np.array([["1", 2], [3, np.nan]])  # converted to string "nan"
         assert not _contains_nan(data3)[0]
-        
-        data4 = np.array([["1", 2], [3, np.nan]], dtype='object')
+
+        data4 = np.array([["1", 2], [3, np.nan]], dtype="object")
         assert _contains_nan(data4)[0]
 
     @array_api_compatible
-    @pytest.mark.parametrize("nan_policy", ['propagate', 'omit', 'raise'])
+    @pytest.mark.parametrize("nan_policy", ["propagate", "omit", "raise"])
     def test_array_api(self, xp, nan_policy):
         rng = np.random.default_rng(932347235892482)
         x0 = rng.random(size=(2, 3, 4))
@@ -362,17 +377,16 @@ class TestContainsNaNTest:
         assert not contains_nan
         assert nan_policy_out == nan_policy
 
-        if nan_policy == 'raise':
-            message = 'The input contains...'
+        if nan_policy == "raise":
+            message = "The input contains..."
             with pytest.raises(ValueError, match=message):
                 _contains_nan(x_nan, nan_policy=nan_policy)
-        elif nan_policy == 'omit' and not is_numpy(xp):
+        elif nan_policy == "omit" and not is_numpy(xp):
             message = "`nan_policy='omit' is incompatible..."
             with pytest.raises(ValueError, match=message):
                 _contains_nan(x_nan, nan_policy=nan_policy)
-        elif nan_policy == 'propagate':
-            contains_nan, nan_policy_out = _contains_nan(
-                x_nan, nan_policy=nan_policy)
+        elif nan_policy == "propagate":
+            contains_nan, nan_policy_out = _contains_nan(x_nan, nan_policy=nan_policy)
             assert contains_nan
             assert nan_policy_out == nan_policy
 
@@ -380,19 +394,19 @@ class TestContainsNaNTest:
 def test__rng_html_rewrite():
     def mock_str():
         lines = [
-            'np.random.default_rng(8989843)',
-            'np.random.default_rng(seed)',
-            'np.random.default_rng(0x9a71b21474694f919882289dc1559ca)',
-            ' bob ',
+            "np.random.default_rng(8989843)",
+            "np.random.default_rng(seed)",
+            "np.random.default_rng(0x9a71b21474694f919882289dc1559ca)",
+            " bob ",
         ]
         return lines
 
     res = _rng_html_rewrite(mock_str)()
     ref = [
-        'np.random.default_rng()',
-        'np.random.default_rng(seed)',
-        'np.random.default_rng()',
-        ' bob ',
+        "np.random.default_rng()",
+        "np.random.default_rng(seed)",
+        "np.random.default_rng()",
+        " bob ",
     ]
 
     assert res == ref
@@ -435,8 +449,9 @@ class TestTransitionToRNG:
     def check_grad(self, **kwargs):
         rng = np.random.default_rng(3458934594269824562)
         x = rng.random(3)
-        return optimize.check_grad(optimize.rosen, optimize.rosen_der, x,
-                                   direction='random', **kwargs)
+        return optimize.check_grad(
+            optimize.rosen, optimize.rosen_der, x, direction="random", **kwargs
+        )
 
     def random_array(self, **kwargs):
         return sparse.random_array((10, 10), density=1.0, **kwargs).toarray()
@@ -463,7 +478,10 @@ class TestTransitionToRNG:
     def permutation_test(self, **kwargs):
         rng = np.random.default_rng(3458934594269824562)
         data = tuple(rng.random((2, 100)))
-        def statistic(x, y, axis): return np.mean(x, axis=axis) - np.mean(y, axis=axis)
+
+        def statistic(x, y, axis):
+            return np.mean(x, axis=axis) - np.mean(y, axis=axis)
+
         return stats.permutation_test(data, statistic, **kwargs).pvalue
 
     def bootstrap(self, **kwargs):
@@ -477,11 +495,14 @@ class TestTransitionToRNG:
         return stats.dunnett(x, y, control=control, **kwargs).pvalue
 
     def sobol_indices(self, **kwargs):
-        def f_ishigami(x): return (np.sin(x[0]) + 7 * np.sin(x[1]) ** 2
-                                   + 0.1 * (x[2] ** 4) * np.sin(x[0]))
-        dists = [stats.uniform(loc=-np.pi, scale=2 * np.pi),
-                 stats.uniform(loc=-np.pi, scale=2 * np.pi),
-                 stats.uniform(loc=-np.pi, scale=2 * np.pi)]
+        def f_ishigami(x):
+            return np.sin(x[0]) + 7 * np.sin(x[1]) ** 2 + 0.1 * (x[2] ** 4) * np.sin(x[0])
+
+        dists = [
+            stats.uniform(loc=-np.pi, scale=2 * np.pi),
+            stats.uniform(loc=-np.pi, scale=2 * np.pi),
+            stats.uniform(loc=-np.pi, scale=2 * np.pi),
+        ]
         res = stats.sobol_indices(func=f_ishigami, n=1024, dists=dists, **kwargs)
         return res.first_order
 
@@ -600,20 +621,20 @@ class TestLazywhere:
     data = strategies.data()
 
     @pytest.mark.fail_slow(10)
-    @pytest.mark.filterwarnings('ignore::RuntimeWarning')  # overflows, etc.
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")  # overflows, etc.
     @array_api_compatible
     @given(n_arrays=n_arrays, rng_seed=rng_seed, dtype=dtype, p=p, data=data)
     @pytest.mark.thread_unsafe
     def test_basic(self, n_arrays, rng_seed, dtype, p, data, xp):
-        mbs = npst.mutually_broadcastable_shapes(num_shapes=n_arrays+1, min_side=0)
+        mbs = npst.mutually_broadcastable_shapes(num_shapes=n_arrays + 1, min_side=0)
         input_shapes, result_shape = data.draw(mbs)
         cond_shape, *shapes = input_shapes
-        elements = {'allow_subnormal': False}  # cupy/cupy#8382
-        fillvalue = xp.asarray(data.draw(npst.arrays(dtype=dtype, shape=tuple(),
-                                                     elements=elements)))
+        elements = {"allow_subnormal": False}  # cupy/cupy#8382
+        fillvalue = xp.asarray(
+            data.draw(npst.arrays(dtype=dtype, shape=tuple(), elements=elements))
+        )
         float_fillvalue = float(fillvalue)
-        arrays = [xp.asarray(data.draw(npst.arrays(dtype=dtype, shape=shape)))
-                  for shape in shapes]
+        arrays = [xp.asarray(data.draw(npst.arrays(dtype=dtype, shape=shape))) for shape in shapes]
 
         def f(*args):
             return sum(arg for arg in args)

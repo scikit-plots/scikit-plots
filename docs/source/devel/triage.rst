@@ -6,7 +6,7 @@ Bug triaging and issue curation
 *******************************
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 The `issue tracker <https://github.com/matplotlib/matplotlib/issues>`_

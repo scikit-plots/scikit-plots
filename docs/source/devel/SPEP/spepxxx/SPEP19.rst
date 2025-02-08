@@ -3,7 +3,7 @@ SEP19: Continuous Integration
 ===============================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 Status

@@ -1,10 +1,4 @@
-
-from collections.abc import Sequence
-import functools
-import sys
-from typing import Any, NamedTuple, Optional, Protocol, TypeVar
-
-SKPLT_API_NAME = 'scikitplot'
+SKPLT_API_NAME = "scikitplot"
 
 # class ExportType(Protocol):
 

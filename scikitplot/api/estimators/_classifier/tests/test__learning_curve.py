@@ -1,15 +1,9 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn.datasets import load_iris as load_data
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 
 from scikitplot.api.estimators import plot_learning_curve
 
@@ -43,8 +37,7 @@ class TestPlotLearningCurve(unittest.TestCase):
     def test_train_sizes(self):
         np.random.seed(0)
         clf = LogisticRegression(max_iter=int(1e5))
-        plot_learning_curve(clf, self.X, self.y,
-                            train_sizes=np.linspace(0.1, 1.0, 8))
+        plot_learning_curve(clf, self.X, self.y, train_sizes=np.linspace(0.1, 1.0, 8))
 
     def test_n_jobs(self):
         np.random.seed(0)

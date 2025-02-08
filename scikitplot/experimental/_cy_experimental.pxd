@@ -1,7 +1,7 @@
 """
-This module provides efficient implementations of mathematical functions 
-using fused types for high precision and performance. It includes functions 
-for calculating the expit (logistic sigmoid) function, its logarithm, 
+This module provides efficient implementations of mathematical functions
+using fused types for high precision and performance. It includes functions
+for calculating the expit (logistic sigmoid) function, its logarithm,
 and the logit function.
 
 Fused types are utilized here to allow the same function to be used with

@@ -1,22 +1,20 @@
 import collections.abc
-from collections.abc import Callable, Collection, Generator, Iterable, Iterator
 import contextlib
 import os
+from collections.abc import Callable, Collection, Generator, Iterable, Iterator
 from pathlib import Path
-
-from matplotlib.artist import Artist
-
-import numpy as np
-from numpy.typing import ArrayLike
-
 from typing import (
+    IO,
     Any,
     Generic,
-    IO,
     Literal,
     TypeVar,
     overload,
 )
+
+import numpy as np
+from matplotlib.artist import Artist
+from numpy.typing import ArrayLike
 
 _T = TypeVar("_T")
 
@@ -34,9 +32,7 @@ class CallbackRegistry:
     def connect(self, signal: Any, func: Callable) -> int: ...
     def disconnect(self, cid: int) -> None: ...
     def process(self, s: Any, *args, **kwargs) -> None: ...
-    def blocked(
-        self, *, signal: Any | None = ...
-    ) -> contextlib.AbstractContextManager[None]: ...
+    def blocked(self, *, signal: Any | None = ...) -> contextlib.AbstractContextManager[None]: ...
 
 class silent_list(list[_T]):
     type: str | None

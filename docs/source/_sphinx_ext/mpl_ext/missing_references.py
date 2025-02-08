@@ -15,14 +15,13 @@ The basic operation is:
 
 """
 
-from collections import defaultdict
 import json
+from collections import defaultdict
 from pathlib import Path
 
+import matplotlib
 from docutils.utils import get_source_line
 from sphinx.util import logging as sphinx_logging
-
-import matplotlib
 
 logger = sphinx_logging.getLogger(__name__)
 
@@ -44,12 +43,12 @@ def get_location(node, app):
     if source:
         # 'source' can have the form '/some/path:docstring of some.api' but the
         # colons are forbidden on windows, but on posix just passes through.
-        if ':docstring of' in source:
-            path, *post = source.rpartition(':docstring of')
-            post = ''.join(post)
+        if ":docstring of" in source:
+            path, *post = source.rpartition(":docstring of")
+            post = "".join(post)
         else:
             path = source
-            post = ''
+            post = ""
         # We locate references relative to the parent of the doc
         # directory, which for matplotlib, will be the root of the
         # matplotlib repo. When matplotlib is not an editable install
@@ -74,7 +73,7 @@ def get_location(node, app):
 
     else:
         path = "<unknown>"
-        post = ''
+        post = ""
     if not line:
         line = ""
 
@@ -111,8 +110,7 @@ def handle_missing_reference(app, domain, node):
     # If we're ignoring this event, return True so that Sphinx thinks we handled it,
     # even though we didn't print or warn. If we aren't ignoring it, Sphinx will print a
     # warning about the missing reference.
-    if location in app.env.missing_references_ignored_references.get(
-            (domain_type, target), []):
+    if location in app.env.missing_references_ignored_references.get((domain_type, target), []):
         return True
 
 
@@ -136,21 +134,23 @@ def warn_unused_missing_references(app, exc):
     for (domain_type, target), locations in references_ignored.items():
         missing_reference_locations = [
             _truncate_location(location)
-            for location in references_events.get((domain_type, target), [])]
+            for location in references_events.get((domain_type, target), [])
+        ]
 
         # For each ignored reference location, ensure a missing reference
         # was observed. If it wasn't observed, issue a warning.
         for ignored_reference_location in locations:
             short_location = _truncate_location(ignored_reference_location)
             if short_location not in missing_reference_locations:
-                msg = (f"Reference {domain_type} {target} for "
-                       f"{ignored_reference_location} can be removed"
-                       f" from {app.config.missing_references_filename}."
-                        " It is no longer a missing reference in the docs.")
-                logger.warning(msg,
-                               location=ignored_reference_location,
-                               type='ref',
-                               subtype=domain_type)
+                msg = (
+                    f"Reference {domain_type} {target} for "
+                    f"{ignored_reference_location} can be removed"
+                    f" from {app.config.missing_references_filename}."
+                    " It is no longer a missing reference in the docs."
+                )
+                logger.warning(
+                    msg, location=ignored_reference_location, type="ref", subtype=domain_type
+                )
 
 
 def save_missing_references(app, exc):
@@ -224,9 +224,8 @@ def setup(app):
     app.add_config_value("missing_references_enabled", True, "env")
     app.add_config_value("missing_references_write_json", False, "env")
     app.add_config_value("missing_references_warn_unused_ignores", True, "env")
-    app.add_config_value("missing_references_filename",
-                         "missing-references.json", "env")
+    app.add_config_value("missing_references_filename", "missing-references.json", "env")
 
     app.connect("builder-inited", prepare_missing_references_setup)
 
-    return {'parallel_read_safe': True}
+    return {"parallel_read_safe": True}

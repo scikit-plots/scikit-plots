@@ -1,13 +1,11 @@
-
 import numpy as np
 import pandas as pd
-
 import pytest
 
 from ..rules import (
     VarType,
-    variable_type,
     categorical_order,
+    variable_type,
 )
 
 
@@ -24,7 +22,7 @@ def test_vartype_object():
 
 def test_variable_type():
 
-    s = pd.Series([1., 2., 3.])
+    s = pd.Series([1.0, 2.0, 3.0])
     assert variable_type(s) == "numeric"
     assert variable_type(s.astype(int)) == "numeric"
     assert variable_type(s.astype(object)) == "numeric"

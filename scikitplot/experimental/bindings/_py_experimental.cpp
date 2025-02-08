@@ -22,15 +22,15 @@ PYBIND11_MODULE(_py_experimental, m) {
       Experimental API Python module that uses C/C++ for numerical computations.
       Created by Pybind11 bindings.
     )"; // optional module docstring
-  
-    // Add bindings here  
+
+    // Add bindings here
     // Define module functions using a Lambda Function and a docstring
-    m.def("py_print", 
-        [](std::string message = 
+    m.def("py_print",
+        [](std::string message =
            "Hello, from Pybind11 C++!") {
             print_message(message);
-        }, 
-        py::arg("message") = 
-           "Hello, from Pybind11 C++!", 
+        },
+        py::arg("message") =
+           "Hello, from Pybind11 C++!",
         "Prints a Unicode message. Default: 'Hello, from Pybind11 C++!'");
 }

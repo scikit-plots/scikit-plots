@@ -5,12 +5,16 @@ Visualkeras Spam Classification Conv1D Dense Example
 An example showing Spam the :py:func:`~scikitplot.visualkeras` function
 used by a :py:class:`~tensorflow.keras.Model` model.
 """
+
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Force garbage collection
-import gc; gc.collect()
+import gc
+
+gc.collect()
 import tensorflow as tf
+
 # Clear the GPU memory cache
 tf.keras.backend.clear_session()
 
@@ -31,25 +35,29 @@ model.add(tf.keras.layers.MaxPooling1D(pool_size=2))
 
 # Flatten and add Dense layers
 model.add(tf.keras.layers.Flatten())
-model.add(tf.keras.layers.Dense(64, activation='relu'))
-model.add(tf.keras.layers.Dense(32, activation='relu'))
-model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+model.add(tf.keras.layers.Dense(64, activation="relu"))
+model.add(tf.keras.layers.Dense(32, activation="relu"))
+model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
 
 # Compile the model
-model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer="rmsprop", loss="binary_crossentropy", metrics=["accuracy"])
 
 from scikitplot import visualkeras
 
 img_spam = visualkeras.layered_view(
-  model,
-  to_file='../result_images/spam_conv.png',
-  min_xy=10, min_z=10, scale_xy=10, scale_z=10,
-  one_dim_orientation='x',
+    model,
+    to_file="../result_images/spam_conv.png",
+    min_xy=10,
+    min_z=10,
+    scale_xy=10,
+    scale_z=10,
+    one_dim_orientation="x",
 )
 try:
     import matplotlib.pyplot as plt
+
     plt.imshow(img_spam)
-    plt.axis('off')
+    plt.axis("off")
     plt.show()
 except:
     pass

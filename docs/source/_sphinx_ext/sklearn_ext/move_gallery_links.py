@@ -13,8 +13,8 @@ https://github.com/sphinx-gallery/sphinx-gallery/issues/1258
 """
 
 from pathlib import Path
-from bs4 import BeautifulSoup
 
+from bs4 import BeautifulSoup
 from sphinx.util.display import status_iterator
 from sphinx.util.logging import getLogger
 
@@ -128,9 +128,7 @@ def move_gallery_links(app, exception):
                 # image and limit the height to 20px (fixed) so that the secondary
                 # sidebar will appear neater
                 badge_img = link.find("img")
-                new_img = soup.new_tag(
-                    "img", src=badge_img["src"], alt=badge_img["alt"], height=20
-                )
+                new_img = soup.new_tag("img", src=badge_img["src"], alt=badge_img["alt"], height=20)
                 new_link.append(new_img)
 
                 return {"element": new_link, "title": None}

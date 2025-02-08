@@ -1,9 +1,9 @@
 """Utilities to allow inserting docstring fragments for common
 parameters into function and method docstrings."""
 
+import sys
 from collections.abc import Callable, Iterable, Mapping
 from typing import Protocol, TypeVar
-import sys
 
 __all__ = [
     "docformat",
@@ -175,9 +175,7 @@ def extend_notes_in_docstring(cls: object, notes: str) -> Decorator:
             end_of_notes = cls_docstring.find("        Examples\n")
             if end_of_notes == -1:
                 end_of_notes = len(cls_docstring)
-        func.__doc__ = (
-            cls_docstring[:end_of_notes] + notes + cls_docstring[end_of_notes:]
-        )
+        func.__doc__ = cls_docstring[:end_of_notes] + notes + cls_docstring[end_of_notes:]
         return func
 
     return _doc

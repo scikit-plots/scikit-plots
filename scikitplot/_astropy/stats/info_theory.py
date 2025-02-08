@@ -7,16 +7,17 @@ from __future__ import annotations
 import numpy as np
 
 __all__ = [
-  "akaike_info_criterion",
-  "akaike_info_criterion_lsq",
-  "bayesian_info_criterion",
-  "bayesian_info_criterion_lsq",
+    "akaike_info_criterion",
+    "akaike_info_criterion_lsq",
+    "bayesian_info_criterion",
+    "bayesian_info_criterion_lsq",
 ]
 
 __doctest_requires__ = {
-  "bayesian_info_criterion_lsq": ["scipy"],
-  "akaike_info_criterion_lsq": ["scipy"],
+    "bayesian_info_criterion_lsq": ["scipy"],
+    "akaike_info_criterion_lsq": ["scipy"],
 }
+
 
 def akaike_info_criterion(
     log_likelihood: float,
@@ -126,6 +127,7 @@ def akaike_info_criterion(
         )
     return aic
 
+
 def akaike_info_criterion_lsq(
     ssr: float,
     n_params: int,
@@ -224,9 +226,8 @@ def akaike_info_criterion_lsq(
     .. [2] Origin Lab. Comparing Two Fitting Functions.
        <https://www.originlab.com/doc/Origin-Help/PostFit-CompareFitFunc>
     """
-    return akaike_info_criterion(
-        -0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples
-    )
+    return akaike_info_criterion(-0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples)
+
 
 def bayesian_info_criterion(
     log_likelihood: float,
@@ -329,6 +330,7 @@ def bayesian_info_criterion(
     """
     return n_params * np.log(n_samples) - 2.0 * log_likelihood
 
+
 # NOTE: bic_t - bic_g doctest is skipped because it produced slightly
 # different result in arm64 and big-endian s390x CI jobs.
 def bayesian_info_criterion_lsq(
@@ -418,6 +420,4 @@ def bayesian_info_criterion_lsq(
     .. [3] Astropy Models and Fitting
        <https://docs.astropy.org/en/stable/modeling>
     """
-    return bayesian_info_criterion(
-        -0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples
-    )
+    return bayesian_info_criterion(-0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples)

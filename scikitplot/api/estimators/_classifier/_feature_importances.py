@@ -11,59 +11,57 @@ This package/module is designed to be compatible with both Python 2 and Python 3
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-  division,         # Changes the division operator `/` to always perform true division.
-  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,  # Changes the division operator `/` to always perform true division.
+    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 
-from sklearn.inspection import permutation_importance
+import matplotlib.pyplot as plt
+import numpy as np
 
 from ..._utils.validation import (
-  validate_plotting_kwargs_decorator,
-  # validate_shapes_decorator,
-  # validate_y_true_decorator,
-  # validate_y_probas_decorator,
-  # validate_y_probas_bounds_decorator,
+    validate_plotting_kwargs_decorator,
+    # validate_shapes_decorator,
+    # validate_y_true_decorator,
+    # validate_y_probas_decorator,
+    # validate_y_probas_bounds_decorator,
 )
-
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
-  'plot_feature_importances',
+    "plot_feature_importances",
 ]
 
 
 @validate_plotting_kwargs_decorator
 def plot_feature_importances(
-  ## default params
-  estimator,
-  *,
-  feature_names=None,
-  class_index=None,
-  threshold=None,
-  ## plotting params
-  title='Feature Importances',
-  ax=None,
-  fig=None,
-  figsize=None,
-  title_fontsize="large",
-  text_fontsize="medium",
-  cmap='PiYG',
-  # bar plot
-  order=None,
-  orientation='vertical',
-  x_tick_rotation=None,
-  bar_padding=11,
-  display_bar_label=True,
-  digits=4,
-  ## additional params
-  **kwargs,
+    ## default params
+    estimator,
+    *,
+    feature_names=None,
+    class_index=None,
+    threshold=None,
+    ## plotting params
+    title="Feature Importances",
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+    cmap="PiYG",
+    # bar plot
+    order=None,
+    orientation="vertical",
+    x_tick_rotation=None,
+    bar_padding=11,
+    display_bar_label=True,
+    digits=4,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates a plot of a sklearn model's feature importances.
@@ -74,7 +72,7 @@ def plot_feature_importances(
     It supports models wrapped in pipelines.
 
     Supports models like:
-    
+
     - :py:class:`~sklearn.linear_model.LinearRegression`
     - :py:class:`~sklearn.linear_model.LogisticRegression`
     - :py:class:`~sklearn.neighbors.KNeighborsClassifier`
@@ -88,7 +86,7 @@ def plot_feature_importances(
 
     Parameters
     ----------
-    estimator : estimator object        
+    estimator : estimator object
         Fitted classifier or a fitted :class:`~sklearn.pipeline.Pipeline`
         in which the last estimator is a classifier.
 
@@ -162,12 +160,12 @@ def plot_feature_importances(
 
     Examples
     --------
-    
+
     .. plot::
        :context: close-figs
        :align: center
        :alt: Feature Importances
-    
+
        >>> from sklearn.datasets import load_digits as data_10_classes
        >>> from sklearn.model_selection import train_test_split
        >>> from sklearn.ensemble import RandomForestClassifier
@@ -180,21 +178,21 @@ def plot_feature_importances(
        >>>     orientation='y',
        >>>     figsize=(11, 5),
        >>> );
-    """    
+    """
     #################################################
     ## Preprocessing
     #################################################
     # Proceed with your preprocess logic here
-    
+
     # Handle pipelines
-    if hasattr(estimator, 'named_steps'):
+    if hasattr(estimator, "named_steps"):
         estimator = estimator.named_steps[next(reversed(estimator.named_steps))]
 
     # Determine the appropriate attribute for feature importances or coefficients
-    if hasattr(estimator, 'feature_importances_'):
+    if hasattr(estimator, "feature_importances_"):
         importances = np.asarray(estimator.feature_importances_)
     # LDA (scikit-learn < 0.24)
-    elif hasattr(estimator, 'coef_'):
+    elif hasattr(estimator, "coef_"):
         if estimator.coef_.ndim > 1:  # Multi-class case
             if class_index is None:
                 importances = np.mean(np.abs(estimator.coef_), axis=0)
@@ -203,20 +201,19 @@ def plot_feature_importances(
         else:
             importances = np.asarray(estimator.coef_).ravel()
     # PCA
-    elif hasattr(estimator, 'explained_variance_ratio_'):
+    elif hasattr(estimator, "explained_variance_ratio_"):
         importances = np.asarray(estimator.explained_variance_ratio_)
     else:
         raise TypeError(
-            'The estimator does not have an attribute for feature '
-            'importances or coefficients.'
+            "The estimator does not have an attribute for feature " "importances or coefficients."
         )
     # Obtain feature names
     if feature_names is None:
         # sklearn models
-        if hasattr(estimator, 'feature_names_in_'):
+        if hasattr(estimator, "feature_names_in_"):
             feature_names = np.asarray(estimator.feature_names_in_, dtype=object)
         # catboost
-        elif hasattr(estimator, 'feature_names_'):
+        elif hasattr(estimator, "feature_names_"):
             feature_names = np.asarray(estimator.feature_names_, dtype=object)
         else:
             # Ensure feature_names are strings
@@ -234,13 +231,13 @@ def plot_feature_importances(
 
     # Apply ordering based on orientation
     if order is None:
-        order = 'ascending' if orientation in ['horizontal', 'h', 'x'] else 'descending'
-    
-    if order == 'descending':
+        order = "ascending" if orientation in ["horizontal", "h", "x"] else "descending"
+
+    if order == "descending":
         # Sort the indices based on the importances in descending order
         sorted_indices = np.argsort(importances[indices])[::-1]
         indices = indices[sorted_indices].copy()
-    elif order == 'ascending':
+    elif order == "ascending":
         # Sort the indices based on the importances in ascending order
         sorted_indices = np.argsort(importances[indices])
         indices = indices[sorted_indices].copy()
@@ -251,8 +248,8 @@ def plot_feature_importances(
     feature_names = feature_names[indices].copy()
 
     # Get model name if available
-    model_name = f'{estimator.__class__.__name__} ' if hasattr(estimator, '__class__') else ''
-    
+    model_name = f"{estimator.__class__.__name__} " if hasattr(estimator, "__class__") else ""
+
     ##################################################################
     ## Plotting
     ##################################################################
@@ -263,10 +260,10 @@ def plot_feature_importances(
     # Plot bars based on orientation
     for idx, (col, imp) in enumerate(zip(feature_names, importances)):
         # Default colormap if not provided, 'viridis'
-        color = plt.get_cmap(cmap)( float(idx) / len(importances) )
-        if orientation in ['vertical', 'v', 'y']:
+        color = plt.get_cmap(cmap)(float(idx) / len(importances))
+        if orientation in ["vertical", "v", "y"]:
             bar = ax.bar(x=str(col), height=imp, color=color)
-        elif orientation in ['horizontal', 'h', 'x']:
+        elif orientation in ["horizontal", "h", "x"]:
             bar = ax.barh(y=str(col), width=imp, color=color)
         else:
             raise ValueError(
@@ -276,32 +273,30 @@ def plot_feature_importances(
 
     # Set default x_tick_rotation based on orientation
     if x_tick_rotation is None:
-        x_tick_rotation = (
-            0 if orientation in ['horizontal', 'h', 'x'] else 90
-        )
+        x_tick_rotation = 0 if orientation in ["horizontal", "h", "x"] else 90
 
     if display_bar_label:
         for bars in ax.containers:
             ax.bar_label(
                 bars,
-                fmt=lambda x:'{:0>{digits}.{digits}f}'.format(x, digits=digits),
-                fontsize=text_fontsize, 
+                fmt=lambda x: "{:0>{digits}.{digits}f}".format(x, digits=digits),
+                fontsize=text_fontsize,
                 rotation=x_tick_rotation,
                 padding=bar_padding,
             )
     ax.set_title(model_name + title, fontsize=title_fontsize)
-    if orientation in ['vertical', 'v', 'y']:
+    if orientation in ["vertical", "v", "y"]:
         # Set x-ticks positions and labels
         ax.set_xticks(np.arange(len(feature_names)))
         # ax.set_xticklabels(feature_names, rotation=x_tick_rotation, fontsize=text_fontsize)
-        ax.tick_params(axis='x', rotation=x_tick_rotation, labelsize=text_fontsize)
+        ax.tick_params(axis="x", rotation=x_tick_rotation, labelsize=text_fontsize)
         ax.set_xlabel("Features | Index", fontsize=text_fontsize)
         ax.set_ylabel("Importance", fontsize=text_fontsize)
-    elif orientation in ['horizontal', 'h', 'x']:
+    elif orientation in ["horizontal", "h", "x"]:
         # Set y-ticks positions and labels
         ax.set_yticks(np.arange(len(feature_names)))
         # ax.set_yticklabels(feature_names, rotation=x_tick_rotation, fontsize=text_fontsize)
-        ax.tick_params(axis='y', rotation=x_tick_rotation, labelsize=text_fontsize)
+        ax.tick_params(axis="y", rotation=x_tick_rotation, labelsize=text_fontsize)
         ax.set_xlabel("Importance", fontsize=text_fontsize)
         ax.set_ylabel("Features | Index", fontsize=text_fontsize)
     else:
@@ -309,15 +304,15 @@ def plot_feature_importances(
             "Invalid value for orientation: must be "
             "must be ['vertical', 'v', 'y'] or ['horizontal', 'h', 'x']."
         )
-    
+
     # Adjust plot limits if needed
-    if orientation in ['vertical', 'v', 'y']:
+    if orientation in ["vertical", "v", "y"]:
         # Increase the upper limit by 15%
         ax.set_ylim([ax.get_ylim()[0], ax.get_ylim()[1] * 1.2])
-    elif orientation in ['horizontal', 'h', 'x']:
+    elif orientation in ["horizontal", "h", "x"]:
         # Increase the upper limit by 15%
         ax.set_xlim([ax.get_xlim()[0], ax.get_xlim()[1] * 1.2])
-    
-    plt.legend([f'n_features_out_: {len(importances)}'])
+
+    plt.legend([f"n_features_out_: {len(importances)}"])
     plt.tight_layout()
     return ax, feature_names

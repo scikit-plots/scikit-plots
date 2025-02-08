@@ -1,10 +1,9 @@
 import numpy
-
-import pytest
 import numpy.testing as nptest
+import pytest
 
-from ..probscale import _minimal_norm
 from .. import transforms
+from ..probscale import _minimal_norm
 
 
 def test__mask_out_of_bounds():
@@ -104,17 +103,13 @@ def test_transform_inverted(trans, inver_cls):
     assert trans.out_of_bounds == t_inv.out_of_bounds
 
 
-@pytest.mark.parametrize(
-    "cls", [transforms.ProbTransform, transforms.QuantileTransform]
-)
+@pytest.mark.parametrize("cls", [transforms.ProbTransform, transforms.QuantileTransform])
 def test_bad_out_of_bounds(cls):
     with pytest.raises(ValueError):
         cls(_minimal_norm, out_of_bounds="junk")
 
 
-@pytest.mark.parametrize(
-    "cls", [transforms.ProbTransform, transforms.QuantileTransform]
-)
+@pytest.mark.parametrize("cls", [transforms.ProbTransform, transforms.QuantileTransform])
 @pytest.mark.parametrize(
     ("method", "func"),
     [

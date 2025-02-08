@@ -3,7 +3,7 @@ SEP22: Toolbar rewrite
 ========================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

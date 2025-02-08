@@ -6,90 +6,123 @@ enforcing Python 3-like behavior in Python 2.
 This module contains a more flexible API for Scikit-plot users, exposing
 simple functions to generate plots.
 """
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-  division,         # Changes the division operator `/` to always perform true division.
-  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,  # Changes the division operator `/` to always perform true division.
+    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
-import warnings
+
 import itertools
-import numpy as np
+import warnings
+
 import matplotlib.pyplot as plt
-
-from sklearn.metrics import confusion_matrix
-from sklearn.preprocessing import label_binarize
-from sklearn.metrics import roc_curve
-from sklearn.metrics import auc
-from sklearn.metrics import precision_recall_curve
-from sklearn.metrics import average_precision_score
-from sklearn.utils.multiclass import unique_labels
-from sklearn.model_selection import learning_curve
+import numpy as np
 from sklearn.base import clone
-from sklearn.metrics import silhouette_score
-from sklearn.metrics import silhouette_samples
+from sklearn.metrics import (
+    auc,
+    average_precision_score,
+    confusion_matrix,
+    precision_recall_curve,
+    roc_curve,
+    silhouette_samples,
+    silhouette_score,
+)
+from sklearn.model_selection import learning_curve
+from sklearn.preprocessing import label_binarize
 from sklearn.utils import deprecated
-
+from sklearn.utils.multiclass import unique_labels
 
 from ._utils._helpers import (
-  validate_labels,
-  cumulative_gain_curve,
-  binary_ks_curve,
+    binary_ks_curve,
+    validate_labels,
 )
 
 __all__ = [
-  'plot_confusion_matrix',
-  'plot_roc_curve',
-  'plot_ks_statistic',
-  'plot_precision_recall_curve',
-  'plot_feature_importances',
-  'plot_learning_curve',
-  'plot_silhouette',
-  'plot_elbow_curve',
-  'plot_pca_component_variance',
-  'plot_pca_2d_projection',
+    "plot_confusion_matrix",
+    "plot_roc_curve",
+    "plot_ks_statistic",
+    "plot_precision_recall_curve",
+    "plot_feature_importances",
+    "plot_learning_curve",
+    "plot_silhouette",
+    "plot_elbow_curve",
+    "plot_pca_component_variance",
+    "plot_pca_2d_projection",
 ]
 
 ######################################################################
 ## Module Deprecation
 ######################################################################
 
-warnings.warn("This module was deprecated in version 0.3.0 and its functions "
-              "are spread throughout different modules. Please check the "
-              "documentation and update your function calls as soon as "
-              "possible. This module will be removed in 0.4.0",
-              DeprecationWarning)
+warnings.warn(
+    "This module was deprecated in version 0.3.0 and its functions "
+    "are spread throughout different modules. Please check the "
+    "documentation and update your function calls as soon as "
+    "possible. This module will be removed in 0.4.0",
+    DeprecationWarning,
+)
 
 from .._xp_core_lib.deprecation import _sub_module_deprecation
+
 
 def __dir__():
     return __all__
 
+
 def __getattr__(name):
-    return _sub_module_deprecation(sub_package="api", module="plotters",
-                                   private_modules=['decomposition', 'estimators', 'metrics',], all=__all__,
-                                   attribute=name)
+    return _sub_module_deprecation(
+        sub_package="api",
+        module="plotters",
+        private_modules=[
+            "decomposition",
+            "estimators",
+            "metrics",
+        ],
+        all=__all__,
+        attribute=name,
+    )
+
 
 ######################################################################
 ## Module Attr Deprecation
 ######################################################################
 
-from .._xp_core_lib.deprecation import _deprecated, __DEPRECATION_MSG, deprecated as deprecated_test
+from .._xp_core_lib.deprecation import __DEPRECATION_MSG, _deprecated
+from .._xp_core_lib.deprecation import deprecated as deprecated_test
+
+
 @_deprecated(
-  __DEPRECATION_MSG.format(
-    "api.plotters.plot_confusion_matrix",
-    "0.4.0", "0.5.0",
-    "metrics.plot_confusion_matrix"))
-@deprecated_test('This will be removed in v0.4.0. Please use '
-            'scikitplot.metrics.plot_confusion_matrix instead.')
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.metrics.plot_confusion_matrix instead.')
-def plot_confusion_matrix(y_true, y_pred, labels=None, true_labels=None,
-                          pred_labels=None, title=None, normalize=False,
-                          hide_zeros=False, x_tick_rotation=0, ax=None,
-                          figsize=None, cmap='Blues', title_fontsize="large",
-                          text_fontsize="medium"):
+    __DEPRECATION_MSG.format(
+        "api.plotters.plot_confusion_matrix", "0.4.0", "0.5.0", "metrics.plot_confusion_matrix"
+    )
+)
+@deprecated_test(
+    "This will be removed in v0.4.0. Please use "
+    "scikitplot.metrics.plot_confusion_matrix instead."
+)
+@deprecated(
+    "This will be removed in v0.4.0. Please use "
+    "scikitplot.metrics.plot_confusion_matrix instead."
+)
+def plot_confusion_matrix(
+    y_true,
+    y_pred,
+    labels=None,
+    true_labels=None,
+    pred_labels=None,
+    title=None,
+    normalize=False,
+    hide_zeros=False,
+    x_tick_rotation=0,
+    ax=None,
+    figsize=None,
+    cmap="Blues",
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Generates confusion matrix plot from predictions and true labels
 
     Args:
@@ -170,7 +203,7 @@ def plot_confusion_matrix(y_true, y_pred, labels=None, true_labels=None,
         classes = np.asarray(labels)
 
     if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
         cm = np.around(cm, decimals=2)
         cm[np.isnan(cm)] = 0.0
 
@@ -197,43 +230,54 @@ def plot_confusion_matrix(y_true, y_pred, labels=None, true_labels=None,
     if title:
         ax.set_title(title, fontsize=title_fontsize)
     elif normalize:
-        ax.set_title('Normalized Confusion Matrix', fontsize=title_fontsize)
+        ax.set_title("Normalized Confusion Matrix", fontsize=title_fontsize)
     else:
-        ax.set_title('Confusion Matrix', fontsize=title_fontsize)
+        ax.set_title("Confusion Matrix", fontsize=title_fontsize)
 
-    image = ax.imshow(cm, interpolation='nearest', cmap=plt.get_cmap(cmap))
+    image = ax.imshow(cm, interpolation="nearest", cmap=plt.get_cmap(cmap))
     plt.gcf().colorbar(mappable=image, ax=ax)
-  
+
     x_tick_marks = np.arange(len(pred_classes))
     y_tick_marks = np.arange(len(true_classes))
     ax.set_xticks(x_tick_marks)
-    ax.set_xticklabels(pred_classes, fontsize=text_fontsize,
-                       rotation=x_tick_rotation)
+    ax.set_xticklabels(pred_classes, fontsize=text_fontsize, rotation=x_tick_rotation)
     ax.set_yticks(y_tick_marks)
     ax.set_yticklabels(true_classes, fontsize=text_fontsize)
 
-    thresh = cm.max() / 2.
+    thresh = cm.max() / 2.0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         if not (hide_zeros and cm[i, j] == 0):
-            ax.text(j, i, cm[i, j],
-                    horizontalalignment="center",
-                    verticalalignment="center",
-                    fontsize=text_fontsize,
-                    color="white" if cm[i, j] > thresh else "black")
+            ax.text(
+                j,
+                i,
+                cm[i, j],
+                horizontalalignment="center",
+                verticalalignment="center",
+                fontsize=text_fontsize,
+                color="white" if cm[i, j] > thresh else "black",
+            )
 
-    ax.set_ylabel('True label', fontsize=text_fontsize)
-    ax.set_xlabel('Predicted label', fontsize=text_fontsize)
-    ax.grid('off')
+    ax.set_ylabel("True label", fontsize=text_fontsize)
+    ax.set_xlabel("Predicted label", fontsize=text_fontsize)
+    ax.grid("off")
 
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.metrics.plot_roc_curve instead.')
-def plot_roc_curve(y_true, y_probas, title='ROC Curves',
-                   curves=('micro', 'macro', 'each_class'),
-                   ax=None, figsize=None, cmap='nipy_spectral',
-                   title_fontsize="large", text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use " "scikitplot.metrics.plot_roc_curve instead."
+)
+def plot_roc_curve(
+    y_true,
+    y_probas,
+    title="ROC Curves",
+    curves=("micro", "macro", "each_class"),
+    ax=None,
+    figsize=None,
+    cmap="nipy_spectral",
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Generates the ROC curves from labels and predicted scores/probabilities
 
     Args:
@@ -290,10 +334,10 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
     y_true = np.array(y_true)
     y_probas = np.array(y_probas)
 
-    if 'micro' not in curves and 'macro' not in curves and \
-            'each_class' not in curves:
-        raise ValueError('Invalid argument for curves as it '
-                         'only takes "micro", "macro", or "each_class"')
+    if "micro" not in curves and "macro" not in curves and "each_class" not in curves:
+        raise ValueError(
+            "Invalid argument for curves as it " 'only takes "micro", "macro", or "each_class"'
+        )
 
     classes = np.unique(y_true)
     probas = y_probas
@@ -302,12 +346,11 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
     tpr = dict()
     roc_auc = dict()
     for i in range(len(classes)):
-        fpr[i], tpr[i], _ = roc_curve(y_true, probas[:, i],
-                                      pos_label=classes[i])
+        fpr[i], tpr[i], _ = roc_curve(y_true, probas[:, i], pos_label=classes[i])
         roc_auc[i] = auc(fpr[i], tpr[i])
 
     # Compute micro-average ROC curve and ROC area
-    micro_key = 'micro'
+    micro_key = "micro"
     i = 0
     while micro_key in fpr:
         i += 1
@@ -317,8 +360,7 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
     if len(classes) == 2:
         y_true = np.hstack((1 - y_true, y_true))
 
-    fpr[micro_key], tpr[micro_key], _ = roc_curve(y_true.ravel(),
-                                                  probas.ravel())
+    fpr[micro_key], tpr[micro_key], _ = roc_curve(y_true.ravel(), probas.ravel())
     roc_auc[micro_key] = auc(fpr[micro_key], tpr[micro_key])
 
     # Compute macro-average ROC curve and ROC area
@@ -334,7 +376,7 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
     # Finally average it and compute AUC
     mean_tpr /= len(classes)
 
-    macro_key = 'macro'
+    macro_key = "macro"
     i = 0
     while macro_key in fpr:
         i += 1
@@ -348,43 +390,62 @@ def plot_roc_curve(y_true, y_probas, title='ROC Curves',
 
     ax.set_title(title, fontsize=title_fontsize)
 
-    if 'each_class' in curves:
+    if "each_class" in curves:
         for i in range(len(classes)):
             color = plt.get_cmap(cmap)(float(i) / len(classes))
-            ax.plot(fpr[i], tpr[i], lw=2, color=color,
-                    label='ROC curve of class {0} (area = {1:0.2f})'
-                    ''.format(classes[i], roc_auc[i]))
+            ax.plot(
+                fpr[i],
+                tpr[i],
+                lw=2,
+                color=color,
+                label="ROC curve of class {0} (area = {1:0.2f})" "".format(classes[i], roc_auc[i]),
+            )
 
-    if 'micro' in curves:
-        ax.plot(fpr[micro_key], tpr[micro_key],
-                label='micro-average ROC curve '
-                      '(area = {0:0.2f})'.format(roc_auc[micro_key]),
-                color='deeppink', linestyle=':', linewidth=4)
+    if "micro" in curves:
+        ax.plot(
+            fpr[micro_key],
+            tpr[micro_key],
+            label="micro-average ROC curve " "(area = {0:0.2f})".format(roc_auc[micro_key]),
+            color="deeppink",
+            linestyle=":",
+            linewidth=4,
+        )
 
-    if 'macro' in curves:
-        ax.plot(fpr[macro_key], tpr[macro_key],
-                label='macro-average ROC curve '
-                      '(area = {0:0.2f})'.format(roc_auc[macro_key]),
-                color='navy', linestyle=':', linewidth=4)
+    if "macro" in curves:
+        ax.plot(
+            fpr[macro_key],
+            tpr[macro_key],
+            label="macro-average ROC curve " "(area = {0:0.2f})".format(roc_auc[macro_key]),
+            color="navy",
+            linestyle=":",
+            linewidth=4,
+        )
 
-    ax.plot([0, 1], [0, 1], 'k--', lw=2)
+    ax.plot([0, 1], [0, 1], "k--", lw=2)
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate', fontsize=text_fontsize)
-    ax.set_ylabel('True Positive Rate', fontsize=text_fontsize)
+    ax.set_xlabel("False Positive Rate", fontsize=text_fontsize)
+    ax.set_ylabel("True Positive Rate", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
-    
+
     handles, labels = ax.get_legend_handles_labels()
     if handles:
-        ax.legend(loc='lower right', fontsize=text_fontsize)
+        ax.legend(loc="lower right", fontsize=text_fontsize)
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.metrics.plot_ks_statistic instead.')
-def plot_ks_statistic(y_true, y_probas, title='KS Statistic Plot',
-                      ax=None, figsize=None, title_fontsize="large",
-                      text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use " "scikitplot.metrics.plot_ks_statistic instead."
+)
+def plot_ks_statistic(
+    y_true,
+    y_probas,
+    title="KS Statistic Plot",
+    ax=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Generates the KS Statistic plot from labels and scores/probabilities
 
     Args:
@@ -434,50 +495,62 @@ def plot_ks_statistic(y_true, y_probas, title='KS Statistic Plot',
 
     classes = np.unique(y_true)
     if len(classes) != 2:
-        raise ValueError('Cannot calculate KS statistic for data with '
-                         '{} category/ies'.format(len(classes)))
+        raise ValueError(
+            "Cannot calculate KS statistic for data with " "{} category/ies".format(len(classes))
+        )
     probas = y_probas
 
     # Compute KS Statistic curves
-    thresholds, pct1, pct2, ks_statistic, \
-        max_distance_at, classes = binary_ks_curve(y_true,
-                                                   probas[:, 1].ravel())
+    thresholds, pct1, pct2, ks_statistic, max_distance_at, classes = binary_ks_curve(
+        y_true, probas[:, 1].ravel()
+    )
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     ax.set_title(title, fontsize=title_fontsize)
 
-    ax.plot(thresholds, pct1, lw=3, label='Class {}'.format(classes[0]))
-    ax.plot(thresholds, pct2, lw=3, label='Class {}'.format(classes[1]))
+    ax.plot(thresholds, pct1, lw=3, label="Class {}".format(classes[0]))
+    ax.plot(thresholds, pct2, lw=3, label="Class {}".format(classes[1]))
     idx = np.where(thresholds == max_distance_at)[0][0]
-    ax.axvline(max_distance_at, *sorted([pct1[idx], pct2[idx]]),
-               label='KS Statistic: {:.3f} at {:.3f}'.format(ks_statistic,
-                                                             max_distance_at),
-               linestyle=':', lw=3, color='black')
+    ax.axvline(
+        max_distance_at,
+        *sorted([pct1[idx], pct2[idx]]),
+        label="KS Statistic: {:.3f} at {:.3f}".format(ks_statistic, max_distance_at),
+        linestyle=":",
+        lw=3,
+        color="black",
+    )
 
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.0])
 
-    ax.set_xlabel('Threshold', fontsize=text_fontsize)
-    ax.set_ylabel('Percentage below threshold', fontsize=text_fontsize)
+    ax.set_xlabel("Threshold", fontsize=text_fontsize)
+    ax.set_ylabel("Percentage below threshold", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
-    
+
     handles, labels = ax.get_legend_handles_labels()
     if handles:
-        ax.legend(loc='lower right', fontsize=text_fontsize)
+        ax.legend(loc="lower right", fontsize=text_fontsize)
 
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.metrics.plot_precision_recall_curve instead.')
-def plot_precision_recall_curve(y_true, y_probas,
-                                title='Precision-Recall Curve',
-                                curves=('micro', 'each_class'), ax=None,
-                                figsize=None, cmap='nipy_spectral',
-                                title_fontsize="large",
-                                text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use "
+    "scikitplot.metrics.plot_precision_recall_curve instead."
+)
+def plot_precision_recall_curve(
+    y_true,
+    y_probas,
+    title="Precision-Recall Curve",
+    curves=("micro", "each_class"),
+    ax=None,
+    figsize=None,
+    cmap="nipy_spectral",
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Generates the Precision Recall Curve from labels and probabilities
 
     Args:
@@ -533,9 +606,8 @@ def plot_precision_recall_curve(y_true, y_probas,
     classes = np.unique(y_true)
     probas = y_probas
 
-    if 'micro' not in curves and 'each_class' not in curves:
-        raise ValueError('Invalid argument for curves as it '
-                         'only takes "micro" or "each_class"')
+    if "micro" not in curves and "each_class" not in curves:
+        raise ValueError("Invalid argument for curves as it " 'only takes "micro" or "each_class"')
 
     # Compute Precision-Recall curve and area for each class
     precision = dict()
@@ -543,67 +615,84 @@ def plot_precision_recall_curve(y_true, y_probas,
     average_precision = dict()
     for i in range(len(classes)):
         precision[i], recall[i], _ = precision_recall_curve(
-            y_true, probas[:, i], pos_label=classes[i])
+            y_true, probas[:, i], pos_label=classes[i]
+        )
 
     y_true = label_binarize(y_true, classes=classes)
     if len(classes) == 2:
         y_true = np.hstack((1 - y_true, y_true))
 
     for i in range(len(classes)):
-        average_precision[i] = average_precision_score(y_true[:, i],
-                                                       probas[:, i])
+        average_precision[i] = average_precision_score(y_true[:, i], probas[:, i])
 
     # Compute micro-average ROC curve and ROC area
-    micro_key = 'micro'
+    micro_key = "micro"
     i = 0
     while micro_key in precision:
         i += 1
         micro_key += str(i)
 
     precision[micro_key], recall[micro_key], _ = precision_recall_curve(
-        y_true.ravel(), probas.ravel())
-    average_precision[micro_key] = average_precision_score(y_true, probas,
-                                                           average='micro')
+        y_true.ravel(), probas.ravel()
+    )
+    average_precision[micro_key] = average_precision_score(y_true, probas, average="micro")
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     ax.set_title(title, fontsize=title_fontsize)
 
-    if 'each_class' in curves:
+    if "each_class" in curves:
         for i in range(len(classes)):
             color = plt.get_cmap(cmap)(float(i) / len(classes))
-            ax.plot(recall[i], precision[i], lw=2,
-                    label='Precision-recall curve of class {0} '
-                          '(area = {1:0.3f})'.format(classes[i],
-                                                     average_precision[i]),
-                    color=color)
+            ax.plot(
+                recall[i],
+                precision[i],
+                lw=2,
+                label="Precision-recall curve of class {0} "
+                "(area = {1:0.3f})".format(classes[i], average_precision[i]),
+                color=color,
+            )
 
-    if 'micro' in curves:
-        ax.plot(recall[micro_key], precision[micro_key],
-                label='micro-average Precision-recall curve '
-                      '(area = {0:0.3f})'.format(average_precision[micro_key]),
-                color='navy', linestyle=':', linewidth=4)
+    if "micro" in curves:
+        ax.plot(
+            recall[micro_key],
+            precision[micro_key],
+            label="micro-average Precision-recall curve "
+            "(area = {0:0.3f})".format(average_precision[micro_key]),
+            color="navy",
+            linestyle=":",
+            linewidth=4,
+        )
 
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('Recall')
-    ax.set_ylabel('Precision')
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
     ax.tick_params(labelsize=text_fontsize)
-    
+
     handles, labels = ax.get_legend_handles_labels()
     if handles:
-        ax.legend(loc='best', fontsize=text_fontsize)
+        ax.legend(loc="best", fontsize=text_fontsize)
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.estimators.plot_feature_importances instead.')
-def plot_feature_importances(clf, title='Feature Importances',
-                             feature_names=None, max_num_features=20,
-                             order='descending', x_tick_rotation=0, ax=None,
-                             figsize=None, title_fontsize="large",
-                             text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use "
+    "scikitplot.estimators.plot_feature_importances instead."
+)
+def plot_feature_importances(
+    clf,
+    title="Feature Importances",
+    feature_names=None,
+    max_num_features=20,
+    order="descending",
+    x_tick_rotation=0,
+    ax=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Generates a plot of a classifier's feature importances.
 
     Args:
@@ -661,25 +750,28 @@ def plot_feature_importances(clf, title='Feature Importances',
            :align: center
            :alt: Feature Importances
     """
-    if not hasattr(clf, 'feature_importances_'):
-        raise TypeError('"feature_importances_" attribute not in classifier. '
-                        'Cannot plot feature importances.')
+    if not hasattr(clf, "feature_importances_"):
+        raise TypeError(
+            '"feature_importances_" attribute not in classifier. '
+            "Cannot plot feature importances."
+        )
 
     importances = clf.feature_importances_
 
-    if hasattr(clf, 'estimators_')\
-            and isinstance(clf.estimators_, list)\
-            and hasattr(clf.estimators_[0], 'feature_importances_'):
-        std = np.std([tree.feature_importances_ for tree in clf.estimators_],
-                     axis=0)
+    if (
+        hasattr(clf, "estimators_")
+        and isinstance(clf.estimators_, list)
+        and hasattr(clf.estimators_[0], "feature_importances_")
+    ):
+        std = np.std([tree.feature_importances_ for tree in clf.estimators_], axis=0)
 
     else:
         std = None
 
-    if order == 'descending':
+    if order == "descending":
         indices = np.argsort(importances)[::-1]
 
-    elif order == 'ascending':
+    elif order == "ascending":
         indices = np.argsort(importances)
 
     elif order is None:
@@ -701,28 +793,46 @@ def plot_feature_importances(clf, title='Feature Importances',
     ax.set_title(title, fontsize=title_fontsize)
 
     if std is not None:
-        ax.bar(range(max_num_features),
-               importances[indices][:max_num_features], color='r',
-               yerr=std[indices][:max_num_features], align='center')
+        ax.bar(
+            range(max_num_features),
+            importances[indices][:max_num_features],
+            color="r",
+            yerr=std[indices][:max_num_features],
+            align="center",
+        )
     else:
-        ax.bar(range(max_num_features),
-               importances[indices][:max_num_features],
-               color='r', align='center')
+        ax.bar(
+            range(max_num_features),
+            importances[indices][:max_num_features],
+            color="r",
+            align="center",
+        )
 
     ax.set_xticks(range(max_num_features))
-    ax.set_xticklabels(feature_names[:max_num_features],
-                       rotation=x_tick_rotation)
+    ax.set_xticklabels(feature_names[:max_num_features], rotation=x_tick_rotation)
     ax.set_xlim([-1, max_num_features])
     ax.tick_params(labelsize=text_fontsize)
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.estimators.plot_learning_curve instead.')
-def plot_learning_curve(clf, X, y, title='Learning Curve', cv=None,
-                        train_sizes=None, n_jobs=1, scoring=None,
-                        ax=None, figsize=None, title_fontsize="large",
-                        text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use "
+    "scikitplot.estimators.plot_learning_curve instead."
+)
+def plot_learning_curve(
+    clf,
+    X,
+    y,
+    title="Learning Curve",
+    cv=None,
+    train_sizes=None,
+    n_jobs=1,
+    scoring=None,
+    ax=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Generates a plot of the train and test learning curves for a classifier.
 
     Args:
@@ -760,7 +870,7 @@ def plot_learning_curve(clf, X, y, title='Learning Curve', cv=None,
 
         n_jobs (int, optional): Number of jobs to run in parallel. Defaults to
             1.
-            
+
         scoring (string, callable or None, optional): default: None
             A string (see scikit-learn model evaluation documentation) or a
             scorerbcallable object / function with signature
@@ -799,29 +909,37 @@ def plot_learning_curve(clf, X, y, title='Learning Curve', cv=None,
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     if train_sizes is None:
-        train_sizes = np.linspace(.1, 1.0, 5)
+        train_sizes = np.linspace(0.1, 1.0, 5)
 
     ax.set_title(title, fontsize=title_fontsize)
     ax.set_xlabel("Training examples", fontsize=text_fontsize)
     ax.set_ylabel("Score", fontsize=text_fontsize)
     train_sizes, train_scores, test_scores = learning_curve(
-        clf, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes,
-        scoring=scoring)
+        clf, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes, scoring=scoring
+    )
     train_scores_mean = np.mean(train_scores, axis=1)
     train_scores_std = np.std(train_scores, axis=1)
     test_scores_mean = np.mean(test_scores, axis=1)
     test_scores_std = np.std(test_scores, axis=1)
     ax.grid()
-    ax.fill_between(train_sizes, train_scores_mean - train_scores_std,
-                    train_scores_mean + train_scores_std, alpha=0.1, color="r")
-    ax.fill_between(train_sizes, test_scores_mean - test_scores_std,
-                    test_scores_mean + test_scores_std, alpha=0.1, color="g")
-    ax.plot(train_sizes, train_scores_mean, 'o-', color="r",
-            label="Training score")
-    ax.plot(train_sizes, test_scores_mean, 'o-', color="g",
-            label="Cross-validation score")
+    ax.fill_between(
+        train_sizes,
+        train_scores_mean - train_scores_std,
+        train_scores_mean + train_scores_std,
+        alpha=0.1,
+        color="r",
+    )
+    ax.fill_between(
+        train_sizes,
+        test_scores_mean - test_scores_std,
+        test_scores_mean + test_scores_std,
+        alpha=0.1,
+        color="g",
+    )
+    ax.plot(train_sizes, train_scores_mean, "o-", color="r", label="Training score")
+    ax.plot(train_sizes, test_scores_mean, "o-", color="g", label="Cross-validation score")
     ax.tick_params(labelsize=text_fontsize)
-    
+
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(loc="best", fontsize=text_fontsize)
@@ -829,11 +947,21 @@ def plot_learning_curve(clf, X, y, title='Learning Curve', cv=None,
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.metrics.plot_silhouette instead.')
-def plot_silhouette(clf, X, title='Silhouette Analysis', metric='euclidean',
-                    copy=True, ax=None, figsize=None, cmap='nipy_spectral',
-                    title_fontsize="large", text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use " "scikitplot.metrics.plot_silhouette instead."
+)
+def plot_silhouette(
+    clf,
+    X,
+    title="Silhouette Analysis",
+    metric="euclidean",
+    copy=True,
+    ax=None,
+    figsize=None,
+    cmap="nipy_spectral",
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Plots silhouette analysis of clusters using fit_predict.
 
     Args:
@@ -899,8 +1027,7 @@ def plot_silhouette(clf, X, title='Silhouette Analysis', metric='euclidean',
 
     silhouette_avg = silhouette_score(X, cluster_labels, metric=metric)
 
-    sample_silhouette_values = silhouette_samples(X, cluster_labels,
-                                                  metric=metric)
+    sample_silhouette_values = silhouette_samples(X, cluster_labels, metric=metric)
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -910,14 +1037,13 @@ def plot_silhouette(clf, X, title='Silhouette Analysis', metric='euclidean',
 
     ax.set_ylim([0, len(X) + (n_clusters + 1) * 10 + 10])
 
-    ax.set_xlabel('Silhouette coefficient values', fontsize=text_fontsize)
-    ax.set_ylabel('Cluster label', fontsize=text_fontsize)
+    ax.set_xlabel("Silhouette coefficient values", fontsize=text_fontsize)
+    ax.set_ylabel("Cluster label", fontsize=text_fontsize)
 
     y_lower = 10
 
     for i in range(n_clusters):
-        ith_cluster_silhouette_values = sample_silhouette_values[
-            cluster_labels == i]
+        ith_cluster_silhouette_values = sample_silhouette_values[cluster_labels == i]
 
         ith_cluster_silhouette_values.sort()
 
@@ -926,35 +1052,51 @@ def plot_silhouette(clf, X, title='Silhouette Analysis', metric='euclidean',
 
         color = plt.get_cmap(cmap)(float(i) / n_clusters)
 
-        ax.fill_betweenx(np.arange(y_lower, y_upper),
-                         0, ith_cluster_silhouette_values,
-                         facecolor=color, edgecolor=color, alpha=0.7)
+        ax.fill_betweenx(
+            np.arange(y_lower, y_upper),
+            0,
+            ith_cluster_silhouette_values,
+            facecolor=color,
+            edgecolor=color,
+            alpha=0.7,
+        )
 
-        ax.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i),
-                fontsize=text_fontsize)
+        ax.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i), fontsize=text_fontsize)
 
         y_lower = y_upper + 10
 
-    ax.axvline(x=silhouette_avg, color="red", linestyle="--",
-               label='Silhouette score: {0:0.3f}'.format(silhouette_avg))
+    ax.axvline(
+        x=silhouette_avg,
+        color="red",
+        linestyle="--",
+        label="Silhouette score: {0:0.3f}".format(silhouette_avg),
+    )
 
     ax.set_yticks([])  # Clear the y-axis labels / ticks
     ax.set_xticks(np.arange(-0.1, 1.0, 0.2))
 
     ax.tick_params(labelsize=text_fontsize)
-    
+
     handles, labels = ax.get_legend_handles_labels()
     if handles:
-        ax.legend(loc='best', fontsize=text_fontsize)
+        ax.legend(loc="best", fontsize=text_fontsize)
 
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.cluster.plot_elbow_curve instead.')
-def plot_elbow_curve(clf, X, title='Elbow Plot', cluster_ranges=None,
-                     ax=None, figsize=None, title_fontsize="large",
-                     text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use " "scikitplot.cluster.plot_elbow_curve instead."
+)
+def plot_elbow_curve(
+    clf,
+    X,
+    title="Elbow Plot",
+    cluster_ranges=None,
+    ax=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Plots elbow curve of different values of K for KMeans clustering.
 
     Args:
@@ -1009,9 +1151,8 @@ def plot_elbow_curve(clf, X, title='Elbow Plot', cluster_ranges=None,
     else:
         cluster_ranges = sorted(cluster_ranges)
 
-    if not hasattr(clf, 'n_clusters'):
-        raise TypeError('"n_clusters" attribute not in classifier. '
-                        'Cannot plot elbow method.')
+    if not hasattr(clf, "n_clusters"):
+        raise TypeError('"n_clusters" attribute not in classifier. ' "Cannot plot elbow method.")
 
     clfs = []
     for i in cluster_ranges:
@@ -1023,21 +1164,28 @@ def plot_elbow_curve(clf, X, title='Elbow Plot', cluster_ranges=None,
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     ax.set_title(title, fontsize=title_fontsize)
-    ax.plot(cluster_ranges, np.absolute(clfs), 'b*-')
+    ax.plot(cluster_ranges, np.absolute(clfs), "b*-")
     ax.grid(True)
-    ax.set_xlabel('Number of clusters', fontsize=text_fontsize)
-    ax.set_ylabel('Sum of Squared Errors', fontsize=text_fontsize)
+    ax.set_xlabel("Number of clusters", fontsize=text_fontsize)
+    ax.set_ylabel("Sum of Squared Errors", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
 
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.decomposition.plot_pca_component_variance instead.')
-def plot_pca_component_variance(clf, title='PCA Component Explained Variances',
-                                target_explained_variance=0.75, ax=None,
-                                figsize=None, title_fontsize="large",
-                                text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use "
+    "scikitplot.decomposition.plot_pca_component_variance instead."
+)
+def plot_pca_component_variance(
+    clf,
+    title="PCA Component Explained Variances",
+    target_explained_variance=0.75,
+    ax=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Plots PCA components' explained variance ratios. (new in v0.2.2)
 
     Args:
@@ -1080,9 +1228,10 @@ def plot_pca_component_variance(clf, title='PCA Component Explained Variances',
            :align: center
            :alt: PCA Component variances
     """
-    if not hasattr(clf, 'explained_variance_ratio_'):
-        raise TypeError('"clf" does not have explained_variance_ratio_ '
-                        'attribute. Has the PCA been fitted?')
+    if not hasattr(clf, "explained_variance_ratio_"):
+        raise TypeError(
+            '"clf" does not have explained_variance_ratio_ ' "attribute. Has the PCA been fitted?"
+        )
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -1094,24 +1243,28 @@ def plot_pca_component_variance(clf, title='PCA Component Explained Variances',
     # Magic code for figuring out closest value to target_explained_variance
     idx = np.searchsorted(cumulative_sum_ratios, target_explained_variance)
 
-    ax.plot(range(len(clf.explained_variance_ratio_) + 1),
-            np.concatenate(([0], np.cumsum(clf.explained_variance_ratio_))),
-            '*-')
+    ax.plot(
+        range(len(clf.explained_variance_ratio_) + 1),
+        np.concatenate(([0], np.cumsum(clf.explained_variance_ratio_))),
+        "*-",
+    )
     ax.grid(True)
-    ax.set_xlabel('First n principal components', fontsize=text_fontsize)
-    ax.set_ylabel('Explained variance ratio of first n components',
-                  fontsize=text_fontsize)
+    ax.set_xlabel("First n principal components", fontsize=text_fontsize)
+    ax.set_ylabel("Explained variance ratio of first n components", fontsize=text_fontsize)
     ax.set_ylim([-0.02, 1.02])
     if idx < len(cumulative_sum_ratios):
-        ax.plot(idx+1, cumulative_sum_ratios[idx], 'ro',
-                label='{0:0.3f} Explained variance ratio for '
-                'first {1} components'.format(cumulative_sum_ratios[idx],
-                                              idx+1),
-                markersize=4, markeredgewidth=4)
-        ax.axhline(cumulative_sum_ratios[idx],
-                   linestyle=':', lw=3, color='black')
+        ax.plot(
+            idx + 1,
+            cumulative_sum_ratios[idx],
+            "ro",
+            label="{0:0.3f} Explained variance ratio for "
+            "first {1} components".format(cumulative_sum_ratios[idx], idx + 1),
+            markersize=4,
+            markeredgewidth=4,
+        )
+        ax.axhline(cumulative_sum_ratios[idx], linestyle=":", lw=3, color="black")
     ax.tick_params(labelsize=text_fontsize)
-    
+
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(loc="best", fontsize=text_fontsize)
@@ -1119,11 +1272,21 @@ def plot_pca_component_variance(clf, title='PCA Component Explained Variances',
     return ax
 
 
-@deprecated('This will be removed in v0.4.0. Please use '
-            'scikitplot.decomposition.plot_pca_component_variance instead.')
-def plot_pca_2d_projection(clf, X, y, title='PCA 2-D Projection', ax=None,
-                           figsize=None, cmap='Spectral',
-                           title_fontsize="large", text_fontsize="medium"):
+@deprecated(
+    "This will be removed in v0.4.0. Please use "
+    "scikitplot.decomposition.plot_pca_component_variance instead."
+)
+def plot_pca_2d_projection(
+    clf,
+    X,
+    y,
+    title="PCA 2-D Projection",
+    ax=None,
+    figsize=None,
+    cmap="Spectral",
+    title_fontsize="large",
+    text_fontsize="medium",
+):
     """Plots the 2-dimensional projection of PCA on a given dataset.
 
     Args:
@@ -1185,15 +1348,20 @@ def plot_pca_2d_projection(clf, X, y, title='PCA 2-D Projection', ax=None,
     colors = plt.get_cmap(cmap)(np.linspace(0, 1, len(classes)))
 
     for label, color in zip(classes, colors):
-        ax.scatter(transformed_X[y == label, 0], transformed_X[y == label, 1],
-                   alpha=0.8, lw=2, label=label, color=color)
-    
+        ax.scatter(
+            transformed_X[y == label, 0],
+            transformed_X[y == label, 1],
+            alpha=0.8,
+            lw=2,
+            label=label,
+            color=color,
+        )
+
     handles, labels = ax.get_legend_handles_labels()
     if handles:
-        ax.legend(loc='best', shadow=False, scatterpoints=1,
-              fontsize=text_fontsize)
-    ax.set_xlabel('First Principal Component', fontsize=text_fontsize)
-    ax.set_ylabel('Second Principal Component', fontsize=text_fontsize)
+        ax.legend(loc="best", shadow=False, scatterpoints=1, fontsize=text_fontsize)
+    ax.set_xlabel("First Principal Component", fontsize=text_fontsize)
+    ax.set_ylabel("Second Principal Component", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
 
     return ax

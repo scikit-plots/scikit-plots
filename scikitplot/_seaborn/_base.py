@@ -1,15 +1,16 @@
 from __future__ import annotations
-import warnings
-import itertools
-from copy import copy
-from collections import UserString
-from collections.abc import Iterable, Sequence, Mapping
-from numbers import Number
-from datetime import datetime
 
+import itertools
+import warnings
+from collections import UserString
+from collections.abc import Iterable, Mapping, Sequence
+from copy import copy
+from datetime import datetime
+from numbers import Number
+
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
 
 from ._core.data import PlotData
 from .palettes import (
@@ -20,8 +21,8 @@ from .utils import (
     _check_argument,
     _version_predates,
     desaturate,
-    locator_to_legend_entries,
     get_color_cycle,
+    locator_to_legend_entries,
     remove_na,
 )
 
@@ -54,19 +55,23 @@ class SemanticMapping:
         # Copied from _core/properties; eventually will be replaced for that.
         message = ""
         if len(levels) > len(values):
-            message = " ".join([
-                f"\nThe {variable} list has fewer values ({len(values)})",
-                f"than needed ({len(levels)}) and will cycle, which may",
-                "produce an uninterpretable plot."
-            ])
+            message = " ".join(
+                [
+                    f"\nThe {variable} list has fewer values ({len(values)})",
+                    f"than needed ({len(levels)}) and will cycle, which may",
+                    "produce an uninterpretable plot.",
+                ]
+            )
             values = [x for _, x in zip(levels, itertools.cycle(values))]
 
         elif len(values) > len(levels):
-            message = " ".join([
-                f"The {variable} list has more values ({len(values)})",
-                f"than needed ({len(levels)}), which may not be intended.",
-            ])
-            values = values[:len(levels)]
+            message = " ".join(
+                [
+                    f"The {variable} list has more values ({len(values)})",
+                    f"than needed ({len(levels)}), which may not be intended.",
+                ]
+            )
+            values = values[: len(levels)]
 
         if message:
             warnings.warn(message, UserWarning, stacklevel=6)
@@ -87,6 +92,7 @@ class SemanticMapping:
 
 class HueMapping(SemanticMapping):
     """Mapping that sets artist colors according to data values."""
+
     # A specification of the colors that should appear in the plot
     palette = None
 
@@ -97,7 +103,12 @@ class HueMapping(SemanticMapping):
     cmap = None
 
     def __init__(
-        self, plotter, palette=None, order=None, norm=None, saturation=1,
+        self,
+        plotter,
+        palette=None,
+        order=None,
+        norm=None,
+        saturation=1,
     ):
         """Map the levels of the `hue` variable to distinct colors.
 
@@ -139,7 +150,9 @@ class HueMapping(SemanticMapping):
 
                 data = pd.to_numeric(data)
                 levels, lookup_table, norm, cmap = self.numeric_mapping(
-                    data, palette, norm,
+                    data,
+                    palette,
+                    norm,
                 )
 
             # --- Option 2: categorical mapping using seaborn palette
@@ -148,7 +161,9 @@ class HueMapping(SemanticMapping):
 
                 cmap = norm = None
                 levels, lookup_table = self.categorical_mapping(
-                    data, palette, order,
+                    data,
+                    palette,
+                    order,
                 )
 
             # --- Option 3: datetime mapping
@@ -159,7 +174,9 @@ class HueMapping(SemanticMapping):
                 levels, lookup_table = self.categorical_mapping(
                     # Casting data to list to handle differences in the way
                     # pandas and numpy represent datetime64 data
-                    list(data), palette, order,
+                    list(data),
+                    palette,
+                    order,
                 )
 
             self.saturation = saturation
@@ -297,11 +314,16 @@ class HueMapping(SemanticMapping):
 
 class SizeMapping(SemanticMapping):
     """Mapping that sets artist sizes according to data values."""
+
     # An object that normalizes data values to [0, 1] range
     norm = None
 
     def __init__(
-        self, plotter, sizes=None, order=None, norm=None,
+        self,
+        plotter,
+        sizes=None,
+        order=None,
+        norm=None,
     ):
         """Map the levels of the `size` variable to distinct values.
 
@@ -316,16 +338,16 @@ class SizeMapping(SemanticMapping):
 
         if data.notna().any():
 
-            map_type = self.infer_map_type(
-                norm, sizes, plotter.var_types["size"]
-            )
+            map_type = self.infer_map_type(norm, sizes, plotter.var_types["size"])
 
             # --- Option 1: numeric mapping
 
             if map_type == "numeric":
 
                 levels, lookup_table, norm, size_range = self.numeric_mapping(
-                    data, sizes, norm,
+                    data,
+                    sizes,
+                    norm,
                 )
 
             # --- Option 2: categorical mapping
@@ -333,7 +355,9 @@ class SizeMapping(SemanticMapping):
             elif map_type == "categorical":
 
                 levels, lookup_table = self.categorical_mapping(
-                    data, sizes, order,
+                    data,
+                    sizes,
+                    order,
                 )
                 size_range = None
 
@@ -345,7 +369,9 @@ class SizeMapping(SemanticMapping):
                 levels, lookup_table = self.categorical_mapping(
                     # Casting data to list to handle differences in the way
                     # pandas and numpy represent datetime64 data
-                    list(data), sizes, order,
+                    list(data),
+                    sizes,
+                    order,
                 )
                 size_range = None
 
@@ -544,10 +570,16 @@ class StyleMapping(SemanticMapping):
             levels = categorical_order(data, order)
 
             markers = self._map_attributes(
-                markers, levels, unique_markers(len(levels)), "markers",
+                markers,
+                levels,
+                unique_markers(len(levels)),
+                "markers",
             )
             dashes = self._map_attributes(
-                dashes, levels, unique_dashes(len(levels)), "dashes",
+                dashes,
+                levels,
+                unique_dashes(len(levels)),
+                "dashes",
             )
 
             # Build the paths matplotlib will use to draw the markers
@@ -617,7 +649,10 @@ class VectorPlotter:
     """Base class for objects underlying *plot functions."""
 
     wide_structure = {
-        "x": "@index", "y": "@values", "hue": "@columns", "style": "@columns",
+        "x": "@index",
+        "y": "@values",
+        "hue": "@columns",
+        "style": "@columns",
     }
     flat_structure = {"x": "@index", "y": "@values"}
 
@@ -683,10 +718,7 @@ class VectorPlotter:
         self.plot_data = frame
         self.variables = names
         self.var_types = {
-            v: variable_type(
-                frame[v],
-                boolean_type="numeric" if v in "xy" else "categorical"
-            )
+            v: variable_type(frame[v], boolean_type="numeric" if v in "xy" else "categorical")
             for v in names
         }
 
@@ -730,10 +762,7 @@ class VectorPlotter:
             values = data.values()
         else:
             values = np.atleast_1d(np.asarray(data, dtype=object))
-        flat = not any(
-            isinstance(v, Iterable) and not isinstance(v, (str, bytes))
-            for v in values
-        )
+        flat = not any(isinstance(v, Iterable) and not isinstance(v, (str, bytes)) for v in values)
 
         if empty:
 
@@ -747,10 +776,7 @@ class VectorPlotter:
             # index and/or values to define x and/or y
             # (Could be accomplished with a more general to_series() interface)
             flat_data = pd.Series(data).copy()
-            names = {
-                "@values": flat_data.name,
-                "@index": flat_data.index.name
-            }
+            names = {"@values": flat_data.name, "@index": flat_data.index.name}
 
             plot_data = {}
             variables = {}
@@ -792,9 +818,7 @@ class VectorPlotter:
             wide_data = pd.DataFrame(data, copy=True)
 
             # At this point we should reduce the dataframe to numeric cols
-            numeric_cols = [
-                k for k, v in wide_data.items() if variable_type(v) == "numeric"
-            ]
+            numeric_cols = [k for k, v in wide_data.items() if variable_type(v) == "numeric"]
             wide_data = wide_data[numeric_cols]
 
             # Now melt the data to long form
@@ -815,9 +839,9 @@ class VectorPlotter:
             plot_data = wide_data.melt(**melt_kws)
 
             if use_index and category_columns:
-                plot_data["@columns"] = pd.Categorical(plot_data["@columns"],
-                                                       orig_categories,
-                                                       orig_ordered)
+                plot_data["@columns"] = pd.Categorical(
+                    plot_data["@columns"], orig_categories, orig_ordered
+                )
 
             # Assign names corresponding to plot semantics
             for var, attr in self.wide_structure.items():
@@ -847,9 +871,14 @@ class VectorPlotter:
         self._style_map = mapping
 
     def iter_data(
-        self, grouping_vars=None, *,
-        reverse=False, from_comp_data=False,
-        by_facet=True, allow_empty=False, dropna=True,
+        self,
+        grouping_vars=None,
+        *,
+        reverse=False,
+        from_comp_data=False,
+        by_facet=True,
+        allow_empty=False,
+        dropna=True,
     ):
         """Generator for getting subsets of data defined by semantic variables.
 
@@ -891,9 +920,7 @@ class VectorPlotter:
         # Always insert faceting variables
         if by_facet:
             facet_vars = {"col", "row"}
-            grouping_vars.extend(
-                facet_vars & set(self.variables) - set(grouping_vars)
-            )
+            grouping_vars.extend(facet_vars & set(self.variables) - set(grouping_vars))
 
         # Reduce to the semantics used in this plot
         grouping_vars = [var for var in grouping_vars if var in self.variables]
@@ -928,7 +955,10 @@ class VectorPlotter:
         if grouping_vars:
 
             grouped_data = data.groupby(
-                grouping_vars, sort=False, as_index=False, observed=False,
+                grouping_vars,
+                sort=False,
+                as_index=False,
+                observed=False,
             )
 
             grouping_keys = []
@@ -942,9 +972,7 @@ class VectorPlotter:
 
             for key in iter_keys:
 
-                pd_key = (
-                    key[0] if len(key) == 1 and _version_predates(pd, "2.2.0") else key
-                )
+                pd_key = key[0] if len(key) == 1 and _version_predates(pd, "2.2.0") else key
                 try:
                     data_subset = grouped_data.get_group(pd_key)
                 except KeyError:
@@ -977,11 +1005,7 @@ class VectorPlotter:
 
         if not hasattr(self, "_comp_data"):
 
-            comp_data = (
-                self.plot_data
-                .copy(deep=False)
-                .drop(["x", "y"], axis=1, errors="ignore")
-            )
+            comp_data = self.plot_data.copy(deep=False).drop(["x", "y"], axis=1, errors="ignore")
 
             for var in "yx":
                 if var not in self.variables:
@@ -1047,6 +1071,7 @@ class VectorPlotter:
 
         """
         from .axisgrid import FacetGrid
+
         if isinstance(obj, FacetGrid):
             self.ax = None
             self.facets = obj
@@ -1078,8 +1103,7 @@ class VectorPlotter:
             var_type = self.var_types[var]
             if var_type not in allowed_types:
                 err = (
-                    f"The {var} variable is {var_type}, but one of "
-                    f"{allowed_types} is required"
+                    f"The {var} variable is {var_type}, but one of " f"{allowed_types} is required"
                 )
                 raise TypeError(err)
 
@@ -1200,7 +1224,12 @@ class VectorPlotter:
             ax.set_ylabel(self.variables.get("y", default_y), visible=y_visible)
 
     def add_legend_data(
-        self, ax, func, common_kws=None, attrs=None, semantic_kws=None,
+        self,
+        ax,
+        func,
+        common_kws=None,
+        attrs=None,
+        semantic_kws=None,
     ):
         """Add labeled artists to represent the different plot semantics."""
         verbosity = self.legend
@@ -1219,14 +1248,12 @@ class VectorPlotter:
         # otherwise, subtitles will be inserted into the texts list with an
         # invisible handle (which is a hack)
         titles = {
-            title for title in
-            (self.variables.get(v, None) for v in ["hue", "size", "style"])
+            title
+            for title in (self.variables.get(v, None) for v in ["hue", "size", "style"])
             if title is not None
         }
         title = "" if len(titles) != 1 else titles.pop()
-        title_kws = dict(
-            visible=False, color="w", s=0, linewidth=0, marker="", dashes=""
-        )
+        title_kws = dict(visible=False, color="w", s=0, linewidth=0, marker="", dashes="")
 
         def update(var_name, val_name, **kws):
 
@@ -1241,7 +1268,13 @@ class VectorPlotter:
             attrs = {"hue": "color", "size": ["linewidth", "s"], "style": None}
         for var, names in attrs.items():
             self._update_legend_data(
-                update, var, verbosity, title, title_kws, names, semantic_kws.get(var),
+                update,
+                var,
+                verbosity,
+                title,
+                title_kws,
+                names,
+                semantic_kws.get(var),
             )
 
         legend_data = {}
@@ -1298,8 +1331,7 @@ class VectorPlotter:
             return
 
         brief = mapper.map_type == "numeric" and (
-            verbosity == "brief"
-            or (verbosity == "auto" and len(mapper.levels) > brief_ticks)
+            verbosity == "brief" or (verbosity == "auto" and len(mapper.levels) > brief_ticks)
         )
         if brief:
             if isinstance(mapper.norm, mpl.colors.LogNorm):
@@ -1457,6 +1489,7 @@ class VariableType(UserString):
     them. If that changes, they should be more verbose.
 
     """
+
     # TODO we can replace this with typing.Literal on Python 3.8+
     allowed = "numeric", "datetime", "categorical"
 
@@ -1514,9 +1547,7 @@ def variable_type(vector, boolean_type="numeric"):
     # https://github.com/numpy/numpy/issues/13548
     # This is considered a bug by numpy and will likely go away.
     with warnings.catch_warnings():
-        warnings.simplefilter(
-            action='ignore', category=(FutureWarning, DeprecationWarning)
-        )
+        warnings.simplefilter(action="ignore", category=(FutureWarning, DeprecationWarning))
         try:
             if np.isin(vector, [0, 1]).all():
                 return VariableType(boolean_type)
@@ -1621,10 +1652,7 @@ def infer_orient(x=None, y=None, orient=None, require_numeric=True):
         return "y"
 
     elif orient is not None:
-        err = (
-            "`orient` must start with 'v' or 'h' or be None, "
-            f"but `{repr(orient)}` was passed."
-        )
+        err = "`orient` must start with 'v' or 'h' or be None, " f"but `{repr(orient)}` was passed."
         raise ValueError(err)
 
     elif x_type != "categorical" and y_type == "categorical":
@@ -1679,10 +1707,7 @@ def unique_dashes(n):
         b = itertools.combinations_with_replacement([4, 1], p)
 
         # Interleave the combinations, reversing one of the streams
-        segment_list = itertools.chain(*zip(
-            list(a)[1:-1][::-1],
-            list(b)[1:-1]
-        ))
+        segment_list = itertools.chain(*zip(list(a)[1:-1][::-1], list(b)[1:-1]))
 
         # Now insert the gaps
         for segments in segment_list:
@@ -1727,12 +1752,14 @@ def unique_markers(n):
     s = 5
     while len(markers) < n:
         a = 360 / (s + 1) / 2
-        markers.extend([
-            (s + 1, 1, a),
-            (s + 1, 0, a),
-            (s, 1, 0),
-            (s, 0, 0),
-        ])
+        markers.extend(
+            [
+                (s + 1, 1, a),
+                (s + 1, 0, a),
+                (s, 1, 0),
+                (s, 0, 0),
+            ]
+        )
         s += 1
 
     # Convert to MarkerStyle object, using only exactly what we need

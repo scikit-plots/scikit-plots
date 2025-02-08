@@ -1,12 +1,7 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn.datasets import load_iris as load_data
 from sklearn.decomposition import PCA
 
@@ -38,20 +33,21 @@ class TestPlotPCA2DProjection(unittest.TestCase):
         np.random.seed(0)
         clf = PCA()
         clf.fit(self.X)
-        plot_pca_2d_projection(clf, self.X, self.y, cmap='Spectral')
+        plot_pca_2d_projection(clf, self.X, self.y, cmap="Spectral")
         plot_pca_2d_projection(clf, self.X, self.y, cmap=plt.cm.Spectral)
 
     def test_biplot(self):
         np.random.seed(0)
         clf = PCA()
         clf.fit(self.X)
-        ax = plot_pca_2d_projection(clf, self.X, self.y, biplot=True,
-                                    feature_labels=load_data().feature_names)
+        ax = plot_pca_2d_projection(
+            clf, self.X, self.y, biplot=True, feature_labels=load_data().feature_names
+        )
 
     def test_label_order(self):
-        '''
+        """
         Plot labels should be in the same order as the classes in the provided y-array
-        '''
+        """
         np.random.seed(0)
         clf = PCA()
         clf.fit(self.X)
@@ -61,13 +57,13 @@ class TestPlotPCA2DProjection(unittest.TestCase):
         y[0] = 1  # load_iris is be default orderer (i.e.: 0 0 0 ... 1 1 1 ... 2 2 2)
 
         # test with len(y) == X.shape[0] with multiple rows belonging to the same class
-        ax = plot_pca_2d_projection(clf, self.X, y, cmap='Spectral')
+        ax = plot_pca_2d_projection(clf, self.X, y, cmap="Spectral")
         legend_labels = ax.get_legend_handles_labels()[1]
-        self.assertListEqual(['1', '0', '2'], legend_labels)
+        self.assertListEqual(["1", "0", "2"], legend_labels)
 
         # test with len(y) == #classes with each row belonging to an individual class
         y = list(range(len(y)))
         np.random.shuffle(y)
-        ax = plot_pca_2d_projection(clf, self.X, y, cmap='Spectral')
+        ax = plot_pca_2d_projection(clf, self.X, y, cmap="Spectral")
         legend_labels = ax.get_legend_handles_labels()[1]
         self.assertListEqual([str(v) for v in y], legend_labels)

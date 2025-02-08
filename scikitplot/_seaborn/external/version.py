@@ -15,7 +15,6 @@ Vendored from:
 - commit ba07d8287b4554754ac7178d177033ea3f75d489 (09/09/2021)
 """
 
-
 # This file is dual licensed under the terms of the Apache License, Version
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
@@ -30,6 +29,7 @@ __all__ = ["Version", "InvalidVersion", "VERSION_PATTERN"]
 
 
 # Vendored from https://github.com/pypa/packaging/blob/main/packaging/_structures.py
+
 
 class InfinityType:
     def __repr__(self) -> str:
@@ -111,18 +111,11 @@ LocalType = Union[
         ...,
     ],
 ]
-CmpKey = Tuple[
-    int, Tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType
-]
+CmpKey = Tuple[int, Tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType]
 LegacyCmpKey = Tuple[int, Tuple[str, ...]]
-VersionComparisonMethod = Callable[
-    [Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool
-]
+VersionComparisonMethod = Callable[[Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool]
 
-_Version = collections.namedtuple(
-    "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
-)
-
+_Version = collections.namedtuple("_Version", ["epoch", "release", "dev", "pre", "post", "local"])
 
 
 class InvalidVersion(ValueError):
@@ -412,9 +405,7 @@ def _cmpkey(
     # leading zeros until we come to something non zero, then take the rest
     # re-reverse it back into the correct order and make it a tuple and use
     # that for our sorting key.
-    _release = tuple(
-        reversed(list(itertools.dropwhile(lambda x: x == 0, reversed(release))))
-    )
+    _release = tuple(reversed(list(itertools.dropwhile(lambda x: x == 0, reversed(release)))))
 
     # We need to "trick" the sorting algorithm to put 1.0.dev0 before 1.0a0.
     # We'll do this by abusing the pre segment, but we _only_ want to do this
@@ -454,8 +445,6 @@ def _cmpkey(
         # - Numeric segments sort numerically
         # - Shorter versions sort before longer versions when the prefixes
         #   match exactly
-        _local = tuple(
-            (i, "") if isinstance(i, int) else (NegativeInfinity, i) for i in local
-        )
+        _local = tuple((i, "") if isinstance(i, int) else (NegativeInfinity, i) for i in local)
 
     return epoch, _release, _pre, _post, _dev, _local

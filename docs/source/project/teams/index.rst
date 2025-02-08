@@ -25,6 +25,8 @@ The people behind Scikit-plots
     however a more complete list of contributors can be found
     `on github <https://github.com/scikit-plots/scikit-plots/graphs/contributors>`_.
 
+.. _maintainers:
+
 Maintainers Team
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -44,12 +46,16 @@ consolidating scikit-plots's development and maintenance:
 
   How you can :ref:`contribute to the project <contributing>`.
 
+.. _documentation-team:
+
 Documentation Team
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following people help with documenting the project:
 
 .. include:: documentation_team.rst
+
+.. _contributor-experience-team:
 
 Contributor Experience Team
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -60,6 +66,8 @@ maintenance:
 
 .. include:: contributor_experience_team.rst
 
+.. _communication-team:
+
 Communication Team
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -67,6 +75,8 @@ The following people help with :ref:`communication around scikit-plots
 <communication_team>`.
 
 .. include:: communication_team.rst
+
+.. _maintainers-emeritus:
 
 Emeritus Core Developers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,6 +86,8 @@ longer active in the project:
 
 .. include:: maintainers_emeritus.rst
 
+.. _communication-team-emeritus:
+
 Emeritus Communication Team
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -83,6 +95,8 @@ The following people have been active in the communication team in the
 past, but no longer have communication responsibilities:
 
 .. include:: communication_team_emeritus.rst
+
+.. _contributor-experience-team-emeritus:
 
 Emeritus Contributor Experience Team
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

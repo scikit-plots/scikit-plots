@@ -1,21 +1,22 @@
 import warnings
-import numpy
 
+import numpy
 from matplotlib.scale import ScaleBase
 from matplotlib.ticker import (
     FixedLocator,
-    NullLocator,
-    NullFormatter,
     FuncFormatter,
+    NullFormatter,
+    NullLocator,
 )
 
-from .transforms import ProbTransform
 from .formatters import PctFormatter, ProbFormatter
+from .transforms import ProbTransform
 
 __all__ = [
-  '_minimal_norm',
-  'ProbScale',
+    "_minimal_norm",
+    "ProbScale",
 ]
+
 
 class _minimal_norm(object):
     """

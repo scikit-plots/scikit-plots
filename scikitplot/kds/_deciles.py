@@ -10,35 +10,22 @@ References
 ----------
 [1] https://github.com/tensorbored/kds
 """
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-  division,         # Changes the division operator `/` to always perform true division.
-  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,  # Changes the division operator `/` to always perform true division.
+    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
-import warnings
-import numpy as np
-import pandas as pd
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 
-from sklearn.preprocessing import (
-  label_binarize, LabelEncoder
-)
 # from sklearn.utils import deprecated
-from sklearn.utils.multiclass import unique_labels
 
-from ..api._utils._helpers import (
-  validate_labels,
-  cumulative_gain_curve,
-  binary_ks_curve,
-)
 
 __all__ = [
-  'plot_cumulative_gain',
-  'plot_lift',
-  'plot_ks_statistic',
+    "plot_cumulative_gain",
+    "plot_lift",
+    "plot_ks_statistic",
 ]
 
 ######################################################################
@@ -47,13 +34,16 @@ __all__ = [
 
 from .._xp_core_lib.deprecation import _sub_module_deprecation
 
+
 def __dir__():
     return __all__
 
+
 def __getattr__(name):
-    return _sub_module_deprecation(sub_package="kds", module="_deciles",
-                                   private_modules=[], all=__all__,
-                                   attribute=name)
+    return _sub_module_deprecation(
+        sub_package="kds", module="_deciles", private_modules=[], all=__all__, attribute=name
+    )
+
 
 ######################################################################
 ## Module Attr Deprecation
@@ -90,36 +80,36 @@ def __getattr__(name):
 # ):
 #     """
 #     Generates the Cumulative Gains Plot from labels and scores/probabilities.
-    
+
 #     The cumulative gains chart is used to determine the effectiveness of a
 #     binary classifier. It compares the model's performance with random guessing.
-    
+
 #     Parameters
 #     ----------
 #     y_true : array-like of shape (n_samples,)
 #         Ground truth (correct) target values.
-    
+
 #     y_probas : array-like of shape (n_samples,) or (n_samples, n_classes)
-#         Predicted probabilities for each class or only target class probabilities. 
-#         If 1D, it is treated as probabilities for the positive class in binary 
+#         Predicted probabilities for each class or only target class probabilities.
+#         If 1D, it is treated as probabilities for the positive class in binary
 #         or multiclass classification with the `class_index`.
-    
+
 #     class_names : list of str, optional, default=None
 #         List of class names for the legend. Order should match the order of classes in `y_probas`.
-    
+
 #     multi_class : {'ovr', 'multinomial', None}, optional, default=None
 #         Strategy for handling multiclass classification:
 #         - 'ovr': One-vs-Rest, plotting binary problems for each class.
 #         - 'multinomial' or None: Multinomial plot for the entire probability distribution.
-    
+
 #     class_index : int, optional, default=1
 #         Index of the class of interest for multi-class classification. Ignored for
 #         binary classification.
-    
+
 #     to_plot_class_index : list-like, optional, default=None
-#         Specific classes to plot. If a given class does not exist, it will be ignored. 
+#         Specific classes to plot. If a given class does not exist, it will be ignored.
 #         If None, all classes are plotted. e.g. [0, 'cold']
-    
+
 #     title : str, optional, default='Cumulative Gain Curves'
 #         Title of the generated plot.
 
@@ -133,13 +123,13 @@ def __getattr__(name):
 #         plot will be used (or generated if required).
 
 #         .. versionadded:: 0.3.9
-    
+
 #     figsize : tuple of int, optional, default=None
 #         Size of the figure (width, height) in inches.
-    
+
 #     title_fontsize : str or int, optional, default='large'
 #         Font size for the plot title.
-    
+
 #     text_fontsize : str or int, optional, default='medium'
 #         Font size for the text in the plot.
 
@@ -150,45 +140,45 @@ def __getattr__(name):
 #         - https://matplotlib.org/stable/users/explain/colors/index.html
 #         - plt.colormaps()
 #         - plt.get_cmap()  # None == 'viridis'
-    
+
 #     show_labels : bool, optional, default=True
 #         Whether to display the legend labels.
 
 #         .. versionadded:: 0.3.9
-    
+
 #     plot_micro : bool, optional, default=True
 #         Whether to plot the micro-average Cumulative Gain curve.
 
 #         .. versionadded:: 0.3.9
-    
+
 #     plot_macro : bool, optional, default=True
 #         Whether to plot the macro-average Cumulative Gain curve.
 
 #         .. versionadded:: 0.3.9
-    
+
 #     Returns
 #     -------
 #     matplotlib.axes.Axes
 #         The axes with the plotted cumulative gain curves.
-    
+
 #     Notes
 #     -----
-#     The implementation is specific to binary classification. For multiclass 
-#     problems, the 'ovr' or 'multinomial' strategies can be used. When 
+#     The implementation is specific to binary classification. For multiclass
+#     problems, the 'ovr' or 'multinomial' strategies can be used. When
 #     `multi_class='ovr'`, the plot focuses on the specified class (`class_index`).
-    
+
 #     References
 #     ----------
 #     [1] http://mlwiki.org/index.php/Cumulative_Gain_Chart
-    
+
 #     Examples
 #     --------
-    
+
 #     .. plot::
 #        :context: close-figs
 #        :align: center
 #        :alt: Cumulative Gain Curves
-    
+
 #         >>> from sklearn.datasets import load_iris as data_3_classes
 #         >>> from sklearn.model_selection import train_test_split
 #         >>> from sklearn.linear_model import LogisticRegression
@@ -203,7 +193,7 @@ def __getattr__(name):
 #     """
 #     #################################################
 #     ## Preprocessing
-#     #################################################    
+#     #################################################
 #     # Proceed with your preprocess logic here
 
 #     y_true = np.array(y_true)
@@ -217,7 +207,7 @@ def __getattr__(name):
 #             y_probas = np.column_stack(
 #                 [1 - y_probas, y_probas]
 #             )
-#     # Handle multi-class classification    
+#     # Handle multi-class classification
 #     elif len(np.unique(y_true)) > 2:
 #         if multi_class == 'ovr':
 #             # Binarize y_true for multiclass classification
@@ -255,7 +245,7 @@ def __getattr__(name):
 #         )
 #     to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
 #     indices_to_plot = np.isin(classes, to_plot_class_index)
-    
+
 #     # Binarize y_true for multiclass classification, for micro
 #     y_true_bin = label_binarize(y_true, classes=classes)
 #     if len(classes) == 2:
@@ -270,11 +260,11 @@ def __getattr__(name):
 #     if ax is not None and not isinstance(ax, mpl.axes.Axes):
 #         raise ValueError(
 #             "Provided ax must be an instance of matplotlib.axes.Axes"
-#         )    
+#         )
 #     if fig is not None and not isinstance(fig, mpl.figure.Figure):
 #         raise ValueError(
 #             "Provided fig must be an instance of matplotlib.figure.Figure"
-#         )        
+#         )
 #     # Neither ax nor fig is provided.
 #     # Create a new figure and a single subplot (ax) with the specified figsize.
 #     if ax is None and fig is None:
@@ -287,7 +277,7 @@ def __getattr__(name):
 #     # ax is provided (whether fig is provided or not).
 #     # Use the provided ax for plotting. No new figure or subplot is created.
 #     else:
-#         pass        
+#         pass
 #     # Proceed with your plotting logic here
 
 #     # Initialize dictionaries to store cumulative percentages and gains
@@ -297,10 +287,10 @@ def __getattr__(name):
 #     for i, to_plot in enumerate(indices_to_plot):
 #         percentages_dict[i], gains_dict[i] = cumulative_gain_curve(
 #             y_true_bin[:, i], y_probas[:, i], #pos_label=classes[i],
-#         )    
+#         )
 #         if to_plot:
 #             if class_names is None:
-#                 class_names = classes            
+#                 class_names = classes
 #             color = plt.get_cmap(cmap)( float(i) / len(classes) )
 #             # to plot
 #             ax.plot(
@@ -348,7 +338,7 @@ def __getattr__(name):
 #     ax.set_ylabel('Gain', fontsize=text_fontsize)
 #     ax.set_xlabel('Percentage of sample', fontsize=text_fontsize)
 #     ax.tick_params(labelsize=text_fontsize)
-    
+
 #     ax.set_xlim([-0.0225, 1.00])
 #     ax.set_ylim([-0.0000, 1.05])
 
@@ -366,7 +356,7 @@ def __getattr__(name):
 #     ax.grid(True)
 #     if show_labels:
 #         ax.legend(
-#             loc='lower right', 
+#             loc='lower right',
 #             fontsize=text_fontsize,
 #             title=f'Cumulative Gain Curves' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
 #             alignment='left'
@@ -403,8 +393,8 @@ def __getattr__(name):
 #     Generate a Lift Curve from true labels and predicted probabilities.
 
 #     The lift curve evaluates the performance of a classifier by comparing
-#     the lift (or improvement) achieved by using the model compared to random 
-#     guessing. The implementation supports binary classification directly and 
+#     the lift (or improvement) achieved by using the model compared to random
+#     guessing. The implementation supports binary classification directly and
 #     multiclass classification through One-vs-Rest (OVR) or multinomial strategies.
 
 #     Parameters
@@ -413,8 +403,8 @@ def __getattr__(name):
 #         Ground truth (correct) target values.
 
 #     y_probas : array-like of shape (n_samples,) or (n_samples, n_classes)
-#         Predicted probabilities for each class or only target class probabilities. 
-#         If 1D, it is treated as probabilities for the positive class in binary 
+#         Predicted probabilities for each class or only target class probabilities.
+#         If 1D, it is treated as probabilities for the positive class in binary
 #         or multiclass classification with the `class_index`.
 
 #     class_names : list of str, optional, default=None
@@ -430,7 +420,7 @@ def __getattr__(name):
 #         binary classification.
 
 #     to_plot_class_index : list-like, optional, default=None
-#         Specific classes to plot. If a given class does not exist, it will be ignored. 
+#         Specific classes to plot. If a given class does not exist, it will be ignored.
 #         If None, all classes are plotted. e.g. [0, 'cold']
 
 #     title : str, default='Lift Curves'
@@ -463,7 +453,7 @@ def __getattr__(name):
 #         - https://matplotlib.org/stable/users/explain/colors/index.html
 #         - plt.colormaps()
 #         - plt.get_cmap()  # None == 'viridis'
-    
+
 #     show_labels : bool, optional, default=True
 #         Whether to display the legend labels.
 
@@ -487,10 +477,10 @@ def __getattr__(name):
 
 #     Notes
 #     -----
-#     The implementation is specific to binary classification. For multiclass 
-#     problems, the 'ovr' or 'multinomial' strategies can be used. When 
+#     The implementation is specific to binary classification. For multiclass
+#     problems, the 'ovr' or 'multinomial' strategies can be used. When
 #     `multi_class='ovr'`, the plot focuses on the specified class (`class_index`).
-        
+
 #     See Also
 #     --------
 #     plot_lift_decile_wise : Generates the Decile-wise Lift Plot from labels and probabilities.
@@ -501,12 +491,12 @@ def __getattr__(name):
 
 #     Examples
 #     --------
-    
+
 #     .. plot::
 #        :context: close-figs
 #        :align: center
 #        :alt: Lift Curves
-    
+
 #         >>> from sklearn.datasets import load_iris as data_3_classes
 #         >>> from sklearn.model_selection import train_test_split
 #         >>> from sklearn.linear_model import LogisticRegression
@@ -521,11 +511,11 @@ def __getattr__(name):
 #     """
 #     #################################################
 #     ## Preprocessing
-#     #################################################    
+#     #################################################
 #     # Proceed with your preprocess logic here
 
 #     y_true = np.array(y_true)
-#     y_probas = np.array(y_probas)    
+#     y_probas = np.array(y_probas)
 
 #     # Handle binary classification
 #     if len(np.unique(y_true)) == 2:
@@ -535,7 +525,7 @@ def __getattr__(name):
 #             y_probas = np.column_stack(
 #                 [1 - y_probas, y_probas]
 #             )
-#     # Handle multi-class classification    
+#     # Handle multi-class classification
 #     elif len(np.unique(y_true)) > 2:
 #         if multi_class == 'ovr':
 #             # Binarize y_true for multiclass classification
@@ -573,7 +563,7 @@ def __getattr__(name):
 #         )
 #     to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
 #     indices_to_plot = np.isin(classes, to_plot_class_index)
-    
+
 #     # Binarize y_true for multiclass classification, for micro
 #     y_true_bin = label_binarize(y_true, classes=classes)
 #     if len(classes) == 2:
@@ -583,16 +573,16 @@ def __getattr__(name):
 
 #     #################################################
 #     ## Plotting
-#     #################################################    
+#     #################################################
 #     # Validate the types of ax and fig if they are provided
 #     if ax is not None and not isinstance(ax, mpl.axes.Axes):
 #         raise ValueError(
 #             "Provided ax must be an instance of matplotlib.axes.Axes"
-#         )    
+#         )
 #     if fig is not None and not isinstance(fig, mpl.figure.Figure):
 #         raise ValueError(
 #             "Provided fig must be an instance of matplotlib.figure.Figure"
-#         )        
+#         )
 #     # Neither ax nor fig is provided.
 #     # Create a new figure and a single subplot (ax) with the specified figsize.
 #     if ax is None and fig is None:
@@ -605,7 +595,7 @@ def __getattr__(name):
 #     # ax is provided (whether fig is provided or not).
 #     # Use the provided ax for plotting. No new figure or subplot is created.
 #     else:
-#         pass        
+#         pass
 #     # Proceed with your plotting logic here
 
 #     # Initialize dictionaries to store cumulative percentages and gains
@@ -617,12 +607,12 @@ def __getattr__(name):
 #             y_true_bin[:, i], y_probas[:, i], #pos_label=classes[i],
 #         )
 #         percentages = percentages_dict[i][1:]
-#         gains = gains_dict[i][1:]    
+#         gains = gains_dict[i][1:]
 #         gains /= percentages
-        
+
 #         if to_plot:
 #             if class_names is None:
-#                 class_names = classes            
+#                 class_names = classes
 #             color = plt.get_cmap(cmap)( float(i) / len(classes) )
 #             # to plot
 #             ax.plot(
@@ -671,7 +661,7 @@ def __getattr__(name):
 #     ax.set_ylabel('Lift', fontsize=text_fontsize)
 #     ax.set_xlabel('Percentage of sample', fontsize=text_fontsize)
 #     ax.tick_params(labelsize=text_fontsize)
-    
+
 #     ax.set_xlim([-0.01, 1.01])
 #     # ax.set_ylim([-0.0, 1.05])
 
@@ -689,7 +679,7 @@ def __getattr__(name):
 #     ax.grid(True)
 #     if show_labels:
 #         ax.legend(
-#             loc='upper right', 
+#             loc='upper right',
 #             fontsize=text_fontsize,
 #             title=f'Lift Curves' + (' One-vs-Rest (OVR)' if multi_class == 'ovr' else ''),
 #             alignment='left'
@@ -722,10 +712,10 @@ def __getattr__(name):
 #     """
 #     Generates the KS Statistic plot from labels and scores/probabilities.
 
-#     Kolmogorov-Smirnov (KS) statistic is used to measure how well the 
-#     binary classifier model separates the Responder class (Yes) from 
-#     Non-Responder class (No). The range of K-S statistic is between 0 and 1. 
-#     Higher the KS statistic value better the model in separating the 
+#     Kolmogorov-Smirnov (KS) statistic is used to measure how well the
+#     binary classifier model separates the Responder class (Yes) from
+#     Non-Responder class (No). The range of K-S statistic is between 0 and 1.
+#     Higher the KS statistic value better the model in separating the
 #     Responder class from Non-Responder class.
 
 #     Parameters
@@ -771,12 +761,12 @@ def __getattr__(name):
 
 #     Examples
 #     --------
-    
+
 #     .. plot::
 #        :context: close-figs
 #        :align: center
 #        :alt: KS Statistic Plot
-    
+
 #         >>> from sklearn.datasets import load_breast_cancer as data_2_classes
 #         >>> from sklearn.model_selection import train_test_split
 #         >>> from sklearn.linear_model import LogisticRegression
@@ -791,9 +781,9 @@ def __getattr__(name):
 #     """
 #     #################################################
 #     ## Preprocessing
-#     #################################################    
+#     #################################################
 #     # Proceed with your preprocess logic here
-    
+
 #     y_true = np.asarray(y_true)
 #     y_probas = np.asarray(y_probas)
 
@@ -816,16 +806,16 @@ def __getattr__(name):
 
 #     #################################################
 #     ## Plotting
-#     #################################################    
+#     #################################################
 #     # Validate the types of ax and fig if they are provided
 #     if ax is not None and not isinstance(ax, mpl.axes.Axes):
 #         raise ValueError(
 #             "Provided ax must be an instance of matplotlib.axes.Axes"
-#         )    
+#         )
 #     if fig is not None and not isinstance(fig, mpl.figure.Figure):
 #         raise ValueError(
 #             "Provided fig must be an instance of matplotlib.figure.Figure"
-#         )        
+#         )
 #     # Neither ax nor fig is provided.
 #     # Create a new figure and a single subplot (ax) with the specified figsize.
 #     if ax is None and fig is None:
@@ -838,13 +828,13 @@ def __getattr__(name):
 #     # ax is provided (whether fig is provided or not).
 #     # Use the provided ax for plotting. No new figure or subplot is created.
 #     else:
-#         pass        
+#         pass
 #     # Proceed with your plotting logic here
 
 #     # KS Statistic Plot
 #     ax.plot(thresholds, pct1, lw=2, marker='o', label='Class {}'.format(classes[0]))
 #     ax.plot(thresholds, pct2, lw=2, marker='o', label='Class {}'.format(classes[1]))
-    
+
 #     # KS Statistic max distance
 #     idx = np.where(thresholds == max_distance_at)[0][0]
 #     ax.axvline(
@@ -862,7 +852,7 @@ def __getattr__(name):
 #     ax.set_xlabel('Threshold', fontsize=text_fontsize)
 #     ax.set_ylabel('Percentage below threshold', fontsize=text_fontsize)
 #     ax.tick_params(labelsize=text_fontsize)
-    
+
 #     ax.set_xlim([0.0, 1.0])
 #     ax.set_ylim([0.0, 1.0])
 

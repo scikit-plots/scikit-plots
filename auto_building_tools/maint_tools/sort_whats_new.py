@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python  # noqa: CPY001
 # Sorts what's new entries with per-module headings.
 # Pass what's new entries on stdin.
 

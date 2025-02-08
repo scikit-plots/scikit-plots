@@ -30,7 +30,7 @@ First, import the logger, Get a root logger by module:
 Get a root logger by func:
 
 .. jupyter-execute::
-    
+
     >>> from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure python logger, not have direct log level
     >>> logging.setLevel(sp_logging.INFO)                                    # default WARNING
     >>> logging.info("This is a info message from the sp logger.")
@@ -38,7 +38,7 @@ Get a root logger by func:
 Get a root logger by class:
 
 .. jupyter-execute::
-    
+
     >>> from scikitplot import SpLogger; logging=SpLogger()  # class logger
     >>> logging.setLevel(logging.INFO)                       # default WARNING
     >>> logging.info("This is a info message from the sp logger.")
@@ -46,7 +46,7 @@ Get a root logger by class:
 Get a root logger by class instance:
 
 .. jupyter-execute::
-    
+
     >>> from scikitplot import sp_logger as logging  # class instance logger
     >>> logging.setLevel(logging.INFO)               # default WARNING
     >>> logging.info("This is a info message from the sp logger.")
@@ -61,7 +61,7 @@ Get a root logger by class instance:
       >>> import logging
       >>> logger = logging.getLogger(__name__)
       >>> logger.setLevel(logging.DEBUG)
-    
+
     Logging Levels:
 
     * `NOTSET` (0)  : NOTSET

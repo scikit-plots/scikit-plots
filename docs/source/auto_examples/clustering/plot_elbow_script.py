@@ -14,17 +14,14 @@ used by a scikit-learn clusterer.
 # ----------------
 #
 # We will start by loading the ``iris`` dataset.
+import numpy as np
+from sklearn.cluster import KMeans
 from sklearn.datasets import (
-    make_classification,
-    load_breast_cancer as data_2_classes,
     load_iris as data_3_classes,
-    load_digits as data_10_classes,
 )
 from sklearn.model_selection import train_test_split
-from sklearn.cluster import KMeans
-from sklearn.model_selection import cross_val_predict
 
-import numpy as np; np.random.seed(0)  # reproducibility
+np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
@@ -48,11 +45,7 @@ model = KMeans(n_clusters=4, random_state=1)
 # ---------------------
 #
 # Plot!
-ax = sp.estimators.plot_elbow(
-    model,
-    X_train,
-    cluster_ranges=range(1, 11)
-);
+ax = sp.estimators.plot_elbow(model, X_train, cluster_ranges=range(1, 11))
 
 # Adjust layout to make sure everything fits
 plt.tight_layout()

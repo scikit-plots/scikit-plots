@@ -3,7 +3,7 @@ SEP10: Docstring consistency
 ==============================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

@@ -2,16 +2,15 @@
 Run and time some or all examples.
 """
 
-from argparse import ArgumentParser
-from contextlib import ExitStack
 import os
-from pathlib import Path
 import subprocess
 import sys
-from tempfile import TemporaryDirectory
 import time
 import tokenize
-
+from argparse import ArgumentParser
+from contextlib import ExitStack
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 _preamble = """\
 from matplotlib import pyplot as plt
@@ -44,19 +43,24 @@ class RunInfo:
 def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--backend", action="append",
-        help=("backend to test; can be passed multiple times; defaults to the "
-              "default backend"))
+        "--backend",
+        action="append",
+        help=("backend to test; can be passed multiple times; defaults to the " "default backend"),
+    )
     parser.add_argument(
-        "--include-sgskip", action="store_true",
-        help="do not filter out *_sgskip.py examples")
+        "--include-sgskip", action="store_true", help="do not filter out *_sgskip.py examples"
+    )
     parser.add_argument(
-        "--rundir", type=Path,
-        help=("directory from where the tests are run; defaults to a "
-              "temporary directory"))
+        "--rundir",
+        type=Path,
+        help=("directory from where the tests are run; defaults to a " "temporary directory"),
+    )
     parser.add_argument(
-        "paths", nargs="*", type=Path,
-        help="examples to run; defaults to all examples (except *_sgskip.py)")
+        "paths",
+        nargs="*",
+        type=Path,
+        help="examples to run; defaults to all examples (except *_sgskip.py)",
+    )
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parent.parent / "examples"
@@ -75,15 +79,13 @@ def main():
             else:
                 cwd = stack.enter_context(TemporaryDirectory())
             with tokenize.open(root / relpath) as src:
-                Path(cwd, relpath.name).write_text(
-                    _preamble + src.read(), encoding="utf-8")
+                Path(cwd, relpath.name).write_text(_preamble + src.read(), encoding="utf-8")
             for backend in args.backend or [None]:
                 env = {**os.environ}
                 if backend is not None:
                     env["MPLBACKEND"] = backend
                 start = time.perf_counter()
-                proc = subprocess.run([sys.executable, relpath.name],
-                                      cwd=cwd, env=env)
+                proc = subprocess.run([sys.executable, relpath.name], cwd=cwd, env=env)
                 elapsed = round(1000 * (time.perf_counter() - start))
                 runinfos.append(RunInfo(backend, elapsed, proc.returncode))
         print("\t".join(map(str, runinfos)))

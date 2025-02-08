@@ -50,14 +50,16 @@ from __future__ import annotations
 
 import warnings
 from inspect import signature
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike, NDArray
     from collections.abc import KeysView
     from typing import Literal
-  
+
+    from numpy.typing import ArrayLike, NDArray
+
 # from astropy.utils.exceptions import AstropyUserWarning
 from scikitplot._utils.exceptions import ScikitplotUserWarning as AstropyUserWarning
 
@@ -66,12 +68,13 @@ from scikitplot._utils.exceptions import ScikitplotUserWarning as AstropyUserWar
 # TODO: implement other fitness functions from appendix C of Scargle 2013
 
 __all__ = [
-  "Events",
-  "FitnessFunc",
-  "PointMeasures",
-  "RegularEvents",
-  "bayesian_blocks",
+    "Events",
+    "FitnessFunc",
+    "PointMeasures",
+    "RegularEvents",
+    "bayesian_blocks",
 ]
+
 
 def bayesian_blocks(
     t: ArrayLike,
@@ -164,11 +167,11 @@ def bayesian_blocks(
     References
     ----------
     Scargle, J et al. (2013), `https://ui.adsabs.harvard.edu/abs/2013ApJ...764..167S/`
-    
-    Bellman, R.E., Dreyfus, S.E., 1962, *Applied Dynamic Programming*, Princeton University Press, Princeton, 
+
+    Bellman, R.E., Dreyfus, S.E., 1962, *Applied Dynamic Programming*, Princeton University Press, Princeton,
     `https://press.princeton.edu/books/hardcover/9780691651873/applied-dynamic-programming`
-    
-    Bellman, R., Roth, R., 1969, *Curve fitting by segmented straight lines*, J. Amer. Statist. Assoc. 64, 1079–1084, 
+
+    Bellman, R., Roth, R., 1969, *Curve fitting by segmented straight lines*, J. Amer. Statist. Assoc. 64, 1079–1084,
     `https://www.tandfonline.com/doi/abs/10.1080/01621459.1969.10501038`
 
     See Also
@@ -294,9 +297,7 @@ class FitnessFunc:
             x += np.zeros_like(t)
 
             if len(unq_t) != len(t):
-                raise ValueError(
-                    "Repeated values in t not supported when x is specified"
-                )
+                raise ValueError("Repeated values in t not supported when x is specified")
             t = unq_t
             x = x[unq_ind]
 
@@ -341,8 +342,7 @@ class FitnessFunc:
             return self.p0_prior(N)
         else:
             raise ValueError(
-                "``ncp_prior`` cannot be computed as neither "
-                "``gamma`` nor ``p0`` is defined."
+                "``ncp_prior`` cannot be computed as neither " "``gamma`` nor ``p0`` is defined."
             )
 
     def fit(

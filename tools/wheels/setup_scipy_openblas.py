@@ -1,9 +1,9 @@
+import argparse
 import os
-import subprocess
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Optional
-import argparse
 
 
 def log(message: str) -> None:
@@ -42,7 +42,9 @@ def success(message: str) -> None:
     print(f"[SUCCESS] {message}")
 
 
-def run_command(command: list[str], check: bool = True, capture_output: bool = False) -> Optional[str]:
+def run_command(
+    command: list[str], check: bool = True, capture_output: bool = False
+) -> Optional[str]:
     """
     Executes a shell command using subprocess.
 
@@ -61,9 +63,7 @@ def run_command(command: list[str], check: bool = True, capture_output: bool = F
         The command output if `capture_output` is True, otherwise None.
     """
     try:
-        result = subprocess.run(
-            command, check=check, text=True, capture_output=capture_output
-        )
+        result = subprocess.run(command, check=check, text=True, capture_output=capture_output)
         if capture_output:
             return result.stdout.strip()
     except subprocess.CalledProcessError as e:
@@ -95,12 +95,14 @@ def configure_openblas_pkg_config(project_dir: str) -> None:
         if "darwin" in os.uname().sysname.lower():
             os.environ["DYLD_LIBRARY_PATH"] = str(openblas_lib_dir)
         else:
-            os.environ["LD_LIBRARY_PATH"] = f"{openblas_lib_dir}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+            os.environ["LD_LIBRARY_PATH"] = (
+                f"{openblas_lib_dir}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+            )
     elif os.name == "nt":
         os.environ["PATH"] = f"{openblas_lib_dir};{os.environ['PATH']}"
     else:
         error("Unsupported operating system.")
-    
+
     success(f"PKG_CONFIG_PATH set to {os.environ['PKG_CONFIG_PATH']}")
 
 
@@ -131,7 +133,11 @@ def generate_openblas_pkgconfig(openblas_module: str, pkg_config_path: str) -> N
     log(f"Generating OpenBLAS pkg-config file using {openblas_module}...")
     try:
         output = run_command(
-            ["python", "-c", f"import {openblas_module}; print({openblas_module}.get_pkg_config())"],
+            [
+                "python",
+                "-c",
+                f"import {openblas_module}; print({openblas_module}.get_pkg_config())",
+            ],
             capture_output=True,
         )
         if output:

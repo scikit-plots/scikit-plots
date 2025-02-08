@@ -108,18 +108,18 @@
 
 #         # Adjust tolerance for float32
 #         rtol = 1e-5 if dtype == np.float32 else 2e-16
-      
+
 #         # Assert results with adjusted tolerance
 #         xp_assert_close(res1, ref1, rtol=rtol)
 #         xp_assert_equal(res2, ref2)
-      
+
 #         if not is_array_api_strict(xp):
 #             res3 = _lazywhere(cond, arrays, f, float_fillvalue)
-      
+
 #             # Array API standard doesn't currently define behavior when fillvalue is a
 #             # Python scalar. When it does, test can be run with array_api_strict, too.
 #             ref3 = xp.where(cond, f(*arrays), float_fillvalue)
-      
+
 #             xp_assert_equal(res3, ref3)
 
 
@@ -139,59 +139,59 @@
 #         rg = np.random.Generator(np.random.PCG64())
 #         rsi = check_random_state(rg)
 #         np_testing.assert_equal(type(rsi), np.random.Generator)
-    
-    
+
+
 #     def test_rng_integers(self):
 #         rng = np.random.RandomState()
-    
+
 #         # test that numbers are inclusive of high point
 #         arr = rng_integers(rng, low=2, high=5, size=100, endpoint=True)
 #         assert np.max(arr) == 5
 #         assert np.min(arr) == 2
 #         assert arr.shape == (100, )
-    
+
 #         # test that numbers are inclusive of high point
 #         arr = rng_integers(rng, low=5, size=100, endpoint=True)
 #         assert np.max(arr) == 5
 #         assert np.min(arr) == 0
 #         assert arr.shape == (100, )
-    
+
 #         # test that numbers are exclusive of high point
 #         arr = rng_integers(rng, low=2, high=5, size=100, endpoint=False)
 #         assert np.max(arr) == 4
 #         assert np.min(arr) == 2
 #         assert arr.shape == (100, )
-    
+
 #         # test that numbers are exclusive of high point
 #         arr = rng_integers(rng, low=5, size=100, endpoint=False)
 #         assert np.max(arr) == 4
 #         assert np.min(arr) == 0
 #         assert arr.shape == (100, )
-    
+
 #         # now try with np.random.Generator
 #         try:
 #             rng = np.random.default_rng()
 #         except AttributeError:
 #             return
-    
+
 #         # test that numbers are inclusive of high point
 #         arr = rng_integers(rng, low=2, high=5, size=100, endpoint=True)
 #         assert np.max(arr) == 5
 #         assert np.min(arr) == 2
 #         assert arr.shape == (100, )
-    
+
 #         # test that numbers are inclusive of high point
 #         arr = rng_integers(rng, low=5, size=100, endpoint=True)
 #         assert np.max(arr) == 5
 #         assert np.min(arr) == 0
 #         assert arr.shape == (100, )
-    
+
 #         # test that numbers are exclusive of high point
 #         arr = rng_integers(rng, low=2, high=5, size=100, endpoint=False)
 #         assert np.max(arr) == 4
 #         assert np.min(arr) == 2
 #         assert arr.shape == (100, )
-    
+
 #         # test that numbers are exclusive of high point
 #         arr = rng_integers(rng, low=5, size=100, endpoint=False)
 #         assert np.max(arr) == 4
@@ -220,17 +220,17 @@
 #     def test_mapwrapper_serial(self):
 #         in_arg = np.arange(10.)
 #         out_arg = np.sin(in_arg)
-    
+
 #         p = MapWrapper(1)
 #         np_testing.assert_(p._mapfunc is map)
 #         np_testing.assert_(p.pool is None)
 #         np_testing.assert_(p._own_pool is False)
 #         out = list(p(np.sin, in_arg))
 #         np_testing.assert_equal(out, out_arg)
-    
+
 #         with pytest.raises(RuntimeError):
 #             p = MapWrapper(0)
-    
+
 #     def test_pool(self):
 #         with multiprocessing.Pool(2) as p:
 #             p.map(math.sin, [1, 2, 3, 4])
@@ -238,29 +238,29 @@
 #     def test_mapwrapper_parallel(self):
 #         in_arg = np.arange(10.)
 #         out_arg = np.sin(in_arg)
-    
+
 #         with MapWrapper(2) as p:
 #             out = p(np.sin, in_arg)
 #             np_testing.assert_equal(list(out), out_arg)
-    
+
 #             np_testing.assert_(p._own_pool is True)
 #             np_testing.assert_(isinstance(p.pool, multiprocessing.pool.Pool))
 #             np_testing.assert_(p._mapfunc is not None)
-    
+
 #         # the context manager should've closed the internal pool
 #         # check that it has by asking it to calculate again.
 #         with pytest.raises(Exception) as excinfo:
 #             p(np.sin, in_arg)
-    
+
 #         np_testing.assert_(excinfo.type is ValueError)
-    
+
 #         # can also set a PoolWrapper up with a map-like callable instance
 #         with multiprocessing.Pool(2) as p:
 #             q = MapWrapper(p.map)
-    
+
 #             np_testing.assert_(q._own_pool is False)
 #             q.close()
-    
+
 #             # closing the PoolWrapper shouldn't close the internal pool
 #             # because it didn't create it
 #             out = p.map(np.sin, in_arg)
@@ -274,11 +274,11 @@
 #         argspec = getfullargspec_no_self(p.__call__)
 #         np_testing.assert_equal(argspec, FullArgSpec(['func', 'iterable'], None, None, None,
 #                                           [], None, {}))
-    
+
 #         class _rv_generic:
 #             def _rvs(self, a, b=2, c=3, *args, size=None, **kwargs):
 #                 return None
-    
+
 #         rv_obj = _rv_generic()
 #         argspec = getfullargspec_no_self(rv_obj._rvs)
 #         np_testing.assert_equal(argspec, FullArgSpec(['a', 'b', 'c'], 'args', 'kwargs',

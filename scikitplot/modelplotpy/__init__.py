@@ -11,6 +11,7 @@ online at https://modelplot.github.io/.
 
    * https://www.kdnuggets.com/2018/10/evaluating-business-value-predictive-models-modelplotpy.html
 """
+
 # scikitplot/modelplotpy/__init__.py
 
 # Your package/module initialization code goes here
@@ -24,4 +25,4 @@ __author_email__ = "pb.marcus@hotmail.com"
 
 # Define the modelplotpy git hash
 # scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/modelplot/modelplotpy')[0]
-__git_hash__ = '83ca84e67c357ee3bd98e296b94219c1a0863f68'
+__git_hash__ = "83ca84e67c357ee3bd98e296b94219c1a0863f68"

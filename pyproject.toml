@@ -480,6 +480,10 @@ ignore = [
   'W503',
   # line break after binary operator
   'W504',
+  # expected 2 blank lines
+  'E302',
+  # imported but unused
+  # 'F401',
 ]
 # Exclude files are generated from tempita templates
 exclude= '''

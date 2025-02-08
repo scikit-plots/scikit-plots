@@ -57,7 +57,7 @@
 .. autosummary::
   :nosignatures:
   :toctree: ../modules/generated/
-  :template: base.rst  
+  :template: base.rst
   {% for obj in section["autosummary"] %}
   {{ obj }}
   {%- endfor %}

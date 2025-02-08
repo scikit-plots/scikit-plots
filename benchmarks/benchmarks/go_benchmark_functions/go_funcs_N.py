@@ -1,9 +1,9 @@
-from numpy import cos, sqrt, sin, abs
+from numpy import abs, cos, sin, sqrt
+
 from .go_benchmark import Benchmark
 
 
 class NeedleEye(Benchmark):
-
     r"""
     NeedleEye objective function.
 
@@ -62,7 +62,6 @@ class NeedleEye(Benchmark):
 
 
 class NewFunction01(Benchmark):
-
     r"""
     NewFunction01 objective function.
 
@@ -98,12 +97,10 @@ class NewFunction01(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return ((abs(cos(sqrt(abs(x[0] ** 2 + x[1]))))) ** 0.5
-                + 0.01 * (x[0] + x[1]))
+        return (abs(cos(sqrt(abs(x[0] ** 2 + x[1]))))) ** 0.5 + 0.01 * (x[0] + x[1])
 
 
 class NewFunction02(Benchmark):
-
     r"""
     NewFunction02 objective function.
 
@@ -141,8 +138,7 @@ class NewFunction02(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return ((abs(sin(sqrt(abs(x[0] ** 2 + x[1]))))) ** 0.5
-                + 0.01 * (x[0] + x[1]))
+        return (abs(sin(sqrt(abs(x[0] ** 2 + x[1]))))) ** 0.5 + 0.01 * (x[0] + x[1])
 
 
-#Newfunction 3 from Gavana is entered as Mishra05.
+# Newfunction 3 from Gavana is entered as Mishra05.

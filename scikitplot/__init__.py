@@ -6,6 +6,9 @@ An intuitive library to add plotting functionality to scikit-learn objects
 Documentation is available in the docstrings and
 online at https://scikit-plots.github.io.
 """
+
+# mypy: disallow-any-generics
+
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,35 +23,73 @@ import builtins
 ## scikit-plots modules and objects
 ######################################################################
 
-__version__ = '0.5.dev0'
+__version__ = "0.5.dev0"
 
 # import logging
-from .sp_logging import get_logger, SpLogger, sp_logger
+from .sp_logging import SpLogger, get_logger, sp_logger
 
 try:  # Trt to import meson builded files, modules (etc. *.in)
-  # If a version with git hash was stored, use that instead.
-  from .version import __git_hash__, __version__  # Override version if any.
-  # Configuration helper
-  from .__config__ import show as show_config
-  # Citations helper
-  from ._citation import __citation__, __bibtex__
-  # Low-level callback function
-  from ._xp_core_lib._ccallback import LowLevelCallable
-except (ImportError, ModuleNotFoundError) as e:
-  msg = (
-    "Error importing scikitplot: you cannot import scikitplot while "
-    "being in scikitplot source directory; please exit the scikitplot source "
-    "tree first and relaunch your Python interpreter."
-  )
-  # raise ImportError(msg) from e
-  get_logger().warning('BOOM! :: %s', msg); del msg;
-  _BUILT_WITH_MESON = show_config = None
-else:
-  _BUILT_WITH_MESON = True
+    # If a version with git hash was stored, use that instead.
+    # Configuration helper
+    from .__config__ import show as show_config
 
+    # Citations helper
+    from ._citation import __bibtex__, __citation__
+
+    # Low-level callback function
+    from ._xp_core_lib._ccallback import LowLevelCallable
+    from .version import __git_hash__, __version__  # Override version if any.
+except (ImportError, ModuleNotFoundError):
+    msg = (
+        "Error importing scikitplot: you cannot import scikitplot while "
+        "being in scikitplot source directory; please exit the scikitplot source "
+        "tree first and relaunch your Python interpreter."
+    )
+    # raise ImportError(msg) from e
+    get_logger().warning("BOOM! :: %s", msg)
+    del msg
+    _BUILT_WITH_MESON = show_config = None
+else:
+    _BUILT_WITH_MESON = True
+
+# Sub-modules:
+from . import (
+    __config__,
+    _api,
+    _astropy,
+    _build_utils,
+    _citation,
+    _compat,
+    _config,
+    _docstring,
+    _externals,
+    _factory_api,
+    _globals,
+    _preprocess,
+    _seaborn,  # Experimental, we keep transform api module to compatibility seaborn core.
+    _testing,
+    _tweedie,
+    _utils,
+    _xp_core_lib,
+    api,
+    cbook,
+    experimental,
+    kds,
+    misc,
+    modelplotpy,
+    probscale,
+    sp_logging,
+    stats,
+    typing,
+    version,
+    visualkeras,
+)
 from ._config import config_context, get_config, set_config
 from ._globals import _Default, _Deprecated, _NoValue
 from ._seaborn import _orig_rc_params
+
+# Pytest testing
+from ._testing._pytesttester import PytestTester
 from ._utils._show_versions import show_versions  # noqa: E402
 from ._xp_core_lib import __array_api_version__
 from ._xp_core_lib._array_api import gpu_libraries
@@ -56,42 +97,8 @@ from ._xp_core_lib._array_api import gpu_libraries
 # Export api modules
 from .api import *
 
-# Sub-modules:
-from . import (
-  _api,
-  _astropy,
-  _build_utils,
-  _compat,
-  _externals,
-  _factory_api,
-  _seaborn,  # Experimental, we keep transform api module to compatibility seaborn core.
-  _testing,
-  _tweedie,
-  _utils,
-  _xp_core_lib,
-  api,
-  experimental,
-  kds,
-  misc,
-  modelplotpy,
-  probscale,
-  stats,
-  typing,
-  visualkeras,
-  __config__,
-  _citation,
-  _config,
-  _docstring,
-  _globals,
-  _preprocess,
-  cbook,
-  sp_logging,
-  version,
-)
-
-# Pytest testing
-from ._testing._pytesttester import PytestTester
-test = PytestTester(__name__); del PytestTester
+test = PytestTester(__name__)
+del PytestTester
 
 ######################################################################
 ## Public Interface define explicitly `__all__`
@@ -103,50 +110,50 @@ test = PytestTester(__name__); del PytestTester
 # public submodules are imported lazily, therefore are accessible from
 # __getattr__.
 _submodules = {
-  # Sub-modules:
-  '_api',
-  '_astropy',
-  '_build_utils',
-  '_compat',
-  '_externals',
-  '_factory_api',
-  '_seaborn',
-  '_testing',
-  '_tweedie',
-  '_utils',
-  '_xp_core_lib',
-  'api',
-  'experimental',
-  'kds',
-  'misc',
-  'modelplotpy',
-  'probscale',
-  'stats',
-  'typing',
-  'utils',
-  'visualkeras',
-  '__config__',
-  '_citation',
-  '_config',
-  '_docstring',
-  '_globals',
-  '_preprocess',
-  'cbook',
-  'sp_logging',
-  'version',
-  # Non-modules:
-  "show_versions",
-  'test',
-  '__dir__',
-  '__getattr__',
-  'online_help',
-  'setup_module',
+    # Sub-modules:
+    "_api",
+    "_astropy",
+    "_build_utils",
+    "_compat",
+    "_externals",
+    "_factory_api",
+    "_seaborn",
+    "_testing",
+    "_tweedie",
+    "_utils",
+    "_xp_core_lib",
+    "api",
+    "experimental",
+    "kds",
+    "misc",
+    "modelplotpy",
+    "probscale",
+    "stats",
+    "typing",
+    "utils",
+    "visualkeras",
+    "__config__",
+    "_citation",
+    "_config",
+    "_docstring",
+    "_globals",
+    "_preprocess",
+    "cbook",
+    "sp_logging",
+    "version",
+    # Non-modules:
+    "show_versions",
+    "test",
+    "__dir__",
+    "__getattr__",
+    "online_help",
+    "setup_module",
 }
 _discard = {
-  '_discard',
-  '_submodules',
-  'py_set',
-  'builtins',
+    "_discard",
+    "_submodules",
+    "py_set",
+    "builtins",
 }
 ## Define __all__ to control what gets imported with 'from module import *'.
 ## If __all__ is not defined, Python falls back to using the module's global namespace
@@ -154,15 +161,19 @@ _discard = {
 ## This means that all names in the global namespace, except those starting with '_',
 ## will be imported by default.
 ## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
-__all__ = sorted([
-  name for name in builtins.set(globals()).union(_submodules).difference(_discard)
-  # Exclude private/internal names (those starting with '_')
-  if not ( (name.startswith('...') and not name.endswith('...')) )
-])
+__all__ = sorted(
+    [
+        name
+        for name in builtins.set(globals()).union(_submodules).difference(_discard)
+        # Exclude private/internal names (those starting with '_')
+        if not ((name.startswith("...") and not name.endswith("...")))
+    ]
+)
 
 ######################################################################
 ## Customize lazy-loading mechanism `__dir__` with `__getattr__`
 ######################################################################
+
 
 ## Customize dir(object) behavior to control what attributes are displayed.
 ## By default, dir() lists all names in the module's global namespace,
@@ -188,15 +199,9 @@ def __dir__():
     >>> __dir__()
     ['attribute1', 'attribute2', 'attribute3']  # Example output
     """
-    from . import api
-    return sorted(
-      builtins
-      .set(globals())
-      .union(_submodules)
-      .union(dir(api))
-      .difference(_discard)
-    )
-  
+    return sorted(builtins.set(globals()).union(_submodules).union(dir(api)).difference(_discard))
+
+
 ## Dynamically import submodules only when they are accessed (lazy-loading mechanism).
 ## Avoid loading unnecessary submodules, reducing initial import overhead.
 ## Provide clear error handling and suggestions for unresolved attributes.
@@ -205,7 +210,7 @@ def __getattr__(name):
     Dynamically handle undefined attributes in the module.
 
     This function is called when an attribute is accessed but not found in the module's
-    global namespace. It allows for dynamic imports of submodules or the generation of 
+    global namespace. It allows for dynamic imports of submodules or the generation of
     attributes at runtime. If the attribute cannot be resolved, it raises an AttributeError.
 
     Parameters
@@ -227,27 +232,31 @@ def __getattr__(name):
         if name in dir():
             # return __import__(f'{__name__}.{name}')
             import importlib
-            return importlib.import_module(f'.{name}', package=__name__)          
+
+            return importlib.import_module(f".{name}", package=__name__)
         return globals()[name]
-    except (ModuleNotFoundError,KeyError):
+    except (ModuleNotFoundError, KeyError):
         pass  # Submodule not found; proceed to error handling.
 
     import difflib
+
     # Generate suggestions for mistyped names.
     all_names = dir()
-    suggestions = difflib.get_close_matches(name, all_names)    
+    suggestions = difflib.get_close_matches(name, all_names)
     # Raise an error indicating the attribute could not be found, with suggestions if any.
     suggestion_msg = f" Did you mean: {', '.join(suggestions)}?" if suggestions else ""
     raise AttributeError(f"Module '{__name__}' has no attribute '{name}'.{suggestion_msg}")
+
 
 ######################################################################
 ## online search helper scikit-plots
 ######################################################################
 
+
 def online_help(
-    query: str = '',
-    docs_root_url: str = 'https://scikit-plots.github.io/',
-    search_page: str = 'search.html',
+    query: str = "",
+    docs_root_url: str = "https://scikit-plots.github.io/",
+    search_page: str = "search.html",
     new_window: int = 0,
 ) -> bool:
     """\
@@ -272,7 +281,7 @@ def online_help(
         Defaults to `search.html`.
     new_window : int, optional
         Controls how the URL is opened in the browser:
-        
+
         - 0: Open in the same browser window.
         - 1: Open in a new browser window.
         - 2: Open in a new browser tab.
@@ -293,26 +302,27 @@ def online_help(
     Examples
     --------
     .. jupyter-execute::
-    
+
         >>> import scikitplot
         >>> scikitplot.online_help('installation')
     """
     try:
         import os
         import webbrowser
-        from urllib.parse import urlparse, urlencode
+        from urllib.parse import urlencode, urlparse
+
         # from scikitplot import __version__
 
         # Determine if the current version is in development or stable
-        version_type = 'dev' if 'dev' in __version__ else 'stable'
+        version_type = "dev" if "dev" in __version__ else "stable"
 
         # Construct the base documentation URL, appending the version type
-        docs_root_url = os.getenv('DOCS_ROOT_URL', docs_root_url).strip().strip('/')
+        docs_root_url = os.getenv("DOCS_ROOT_URL", docs_root_url).strip().strip("/")
         docs_root_url = f"{docs_root_url}/{version_type}"
 
         # Build the search URL with query parameters
         search_url = f"{docs_root_url}/{search_page}"
-        params = {'q': query}
+        params = {"q": query}
         full_url = f"{search_url}{('&' if urlparse(search_url).query else '?')}{urlencode(params)}"
 
         # Open the URL in the browser
@@ -321,14 +331,17 @@ def online_help(
         print(f"Error opening documentation: {e}")
         return False
 
+
 ######################################################################
 ## globally seeding
 ######################################################################
+
 
 def setup_module(module):
     """Fixture for the tests to assure globally controllable seeding of RNGs"""
     import os
     import random
+
     import numpy as np
 
     # Check if a random seed exists in the environment, if not create one.
@@ -339,6 +352,7 @@ def setup_module(module):
     print("I: Seeding RNGs with %r" % _random_seed)
     np.random.seed(_random_seed)
     random.seed(_random_seed)
+
 
 ######################################################################
 ##

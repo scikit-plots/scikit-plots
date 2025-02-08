@@ -42,10 +42,10 @@ release_version = meson.project_version()
 
 # Get the directory relative to the top-level project directory
 # project_root = meson.project_source_root()
-# 
+#
 # Get the directory relative to the current meson.build file
 # current_dir = meson.current_source_dir()
-# 
+#
 # Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
 
@@ -419,7 +419,7 @@ if host_machine.system() == 'linux' or host_machine.system() == 'darwin'
 endif
 
 # Enable multithreading if std::thread is supported
-if (cpp.has_function('std::thread') or 
+if (cpp.has_function('std::thread') or
     cpp.compiles('#include <thread>\nint main() { std::thread t; return 0; }', name: 'std::thread support'))
   # Enable multithreading with STL parallel execution policies
   _global_cpp_args += ['-DNUMCPP_USE_MULTITHREAD']
@@ -494,9 +494,9 @@ add_project_arguments(_intel_fflags, language: 'fortran')
 ######################################################################
 
 # Hide symbols when building on Linux with GCC. For Python extension modules,
-# we only need `PyInit_*` to be public; anything else may cause problems. 
-# So we use a linker script to avoid exporting those symbols (this is in addition 
-# to Meson using `-fvisibility=hidden` for C and `-fvisibility-inlines-hidden` for C++ code). 
+# we only need `PyInit_*` to be public; anything else may cause problems.
+# So we use a linker script to avoid exporting those symbols (this is in addition
+# to Meson using `-fvisibility=hidden` for C and `-fvisibility-inlines-hidden` for C++ code).
 # See gh-15996 for details.
 
 _linker_script = meson.project_source_root() / 'scikitplot/_build_utils/link-version-pyinit.map'
@@ -505,7 +505,7 @@ version_link_args = [
 ]
 
 # Note that FreeBSD only accepts version scripts when -shared is passed,
-# hence we need to pass that to `cc.links` explicitly (the flag is already present 
+# hence we need to pass that to `cc.links` explicitly (the flag is already present
 # for `extension_module` invocations).
 if not cc.links('', name: '-Wl,--version-script', args: ['-shared'] + version_link_args)
   version_link_args = []
@@ -737,7 +737,7 @@ print(os.path.dirname(pythran.__file__))
       ],
       check: true
     ).stdout().strip()
-  endif  
+  endif
   inc_dir_pythran = include_directories(_pythran_inc_dir)
 
   message(
@@ -1045,7 +1045,7 @@ gen_tempita = generator(cli_tempita,
 ## Installation tags
 ## https://mesonbuild.com/Installing.html#installing
 ## https://mesonbuild.com/Installing.html#installation-tags
-## 
+##
 ## It is possible to install only a subset of the installable files using
 ## meson install --tags tag1,tag2 command line. When --tags is specified,
 ## only files that have been tagged with one of the tags are going to be installed.

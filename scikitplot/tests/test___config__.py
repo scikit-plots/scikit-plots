@@ -1,13 +1,19 @@
 """
 Check the SciPy config is valid.
 """
-import pytest
+
 from unittest.mock import patch
 
+import pytest
+
 import scikitplot
+
 pytestmark = pytest.mark.skipif(
-  not hasattr( scikitplot.__config__, "_built_with_meson", ),
-  reason="Requires Meson builds",
+    not hasattr(
+        scikitplot.__config__,
+        "_built_with_meson",
+    ),
+    reason="Requires Meson builds",
 )
 
 
@@ -40,6 +46,5 @@ class TestScikitPlotsConfigs:
 
     def test_warn_to_add_tests(self):
         assert len(scikitplot.__config__.DisplayModes) == 2, (
-            "New mode detected,"
-            " please add UT if applicable and increment this count"
+            "New mode detected," " please add UT if applicable and increment this count"
         )

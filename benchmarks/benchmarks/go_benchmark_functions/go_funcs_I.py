@@ -1,9 +1,9 @@
 from numpy import sin, sum
+
 from .go_benchmark import Benchmark
 
 
 class Infinity(Benchmark):
-
     r"""
     Infinity objective function.
 
@@ -12,7 +12,7 @@ class Infinity(Benchmark):
 
     .. math::
 
-        f_{\text{Infinity}}(x) = \sum_{i=1}^{n} x_i^{6} 
+        f_{\text{Infinity}}(x) = \sum_{i=1}^{n} x_i^{6}
         \left [ \sin\left ( \frac{1}{x_i} \right ) + 2 \right ]
 
 
@@ -37,4 +37,4 @@ class Infinity(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return sum(x ** 6.0 * (sin(1.0 / x) + 2.0))
+        return sum(x**6.0 * (sin(1.0 / x) + 2.0))

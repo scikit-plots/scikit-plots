@@ -1,24 +1,24 @@
 from __future__ import annotations
-from dataclasses import dataclass, fields, field
-import textwrap
-from typing import Any, Callable, Union
-from collections.abc import Generator
 
+import textwrap
+from collections.abc import Generator
+from dataclasses import dataclass, field, fields
+from typing import Any, Callable, Union
+
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-
+from matplotlib.artist import Artist
 from numpy import ndarray
 from pandas import DataFrame
-from matplotlib.artist import Artist
 
 from .._core.exceptions import PlotSpecError
 from .._core.properties import (
     PROPERTIES,
-    Property,
-    RGBATuple,
     DashPattern,
     DashPatternWithOffset,
+    Property,
+    RGBATuple,
 )
 from .._core.scales import Scale
 
@@ -110,8 +110,7 @@ class Mark:
     @property
     def _mappable_props(self):
         return {
-            f.name: getattr(self, f.name) for f in fields(self)
-            if isinstance(f.default, Mappable)
+            f.name: getattr(self, f.name) for f in fields(self) if isinstance(f.default, Mappable)
         }
 
     @property
@@ -119,8 +118,7 @@ class Mark:
         # TODO does it make sense to have variation within a Mark's
         # properties about whether they are grouping?
         return [
-            f.name for f in fields(self)
-            if isinstance(f.default, Mappable) and f.default.grouping
+            f.name for f in fields(self) if isinstance(f.default, Mappable) and f.default.grouping
         ]
 
     # TODO make this method private? Would extender every need to call directly?
@@ -223,19 +221,18 @@ class Mark:
         raise NotImplementedError()
 
     def _legend_artist(
-        self, variables: list[str], value: Any, scales: dict[str, Scale],
+        self,
+        variables: list[str],
+        value: Any,
+        scales: dict[str, Scale],
     ) -> Artist | None:
 
         return None
 
 
-def resolve_properties(
-    mark: Mark, data: DataFrame, scales: dict[str, Scale]
-) -> dict[str, Any]:
+def resolve_properties(mark: Mark, data: DataFrame, scales: dict[str, Scale]) -> dict[str, Any]:
 
-    props = {
-        name: mark._resolve(data, name, scales) for name in mark._mappable_props
-    }
+    props = {name: mark._resolve(data, name, scales) for name in mark._mappable_props}
     return props
 
 
@@ -303,15 +300,19 @@ def document_properties(mark):
         "    This mark defines the following properties:",
         textwrap.fill(
             ", ".join([f"|{p}|" for p in properties]),
-            width=78, initial_indent=" " * 8, subsequent_indent=" " * 8,
+            width=78,
+            initial_indent=" " * 8,
+            subsequent_indent=" " * 8,
         ),
     ]
 
     docstring_lines = mark.__doc__.split("\n")
-    new_docstring = "\n".join([
-        *docstring_lines[:2],
-        *text,
-        *docstring_lines[2:],
-    ])
+    new_docstring = "\n".join(
+        [
+            *docstring_lines[:2],
+            *text,
+            *docstring_lines[2:],
+        ]
+    )
     mark.__doc__ = new_docstring
     return mark

@@ -1,8 +1,10 @@
 import os
 import warnings
+
 import numpy as np
-from .common import Benchmark, safe_import
 from asv_runner.benchmarks.mark import SkipNotImplemented
+
+from .common import Benchmark, safe_import
 
 with safe_import():
     from scipy.linalg import svd
@@ -38,18 +40,17 @@ class BenchSVDS(Benchmark):
         ],
         ["propack", "arpack", "lobpcg", "svd"],
     ]
-    param_names = ['k', 'problem', 'solver']
+    param_names = ["k", "problem", "solver"]
 
     def __init__(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        datafile = os.path.join(dir_path, "svds_benchmark_files",
-                                "svds_benchmark_files.npz")
+        datafile = os.path.join(dir_path, "svds_benchmark_files", "svds_benchmark_files.npz")
         self.matrices = np.load(datafile, allow_pickle=True)
 
     def setup(self, k, problem, solver):
         self.A = self.matrices[problem][()]
         _, s, _ = svd(self.A.toarray(), full_matrices=False)
-        self.top_singular_values = np.flip(s[:int(k/2)])
+        self.top_singular_values = np.flip(s[: int(k / 2)])
         self.tol = k * np.max(self.A.shape) * np.finfo(float).eps
         self.rng = np.random.default_rng(98360967947894649386)
 
@@ -58,15 +59,16 @@ class BenchSVDS(Benchmark):
         # singular pairs but may still be expected to outperform
         # the sparse solvers benchmarked here if m is small enough.
         # It is commonly thus used as a baseline for comparisons.
-        if solver == 'svd':
+        if solver == "svd":
             svd(self.A.toarray(), full_matrices=False)
         else:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 # parameters `maxiter` and `tol` are tuned for fair comparison
-                _, s, _ = svds(self.A, k=k, solver=solver, random_state=self.rng,
-                               maxiter = 200, tol=1e-6)
-            accuracy = np.sum(np.abs(1 - s[int(k/2):] / self.top_singular_values))
+                _, s, _ = svds(
+                    self.A, k=k, solver=solver, random_state=self.rng, maxiter=200, tol=1e-6
+                )
+            accuracy = np.sum(np.abs(1 - s[int(k / 2) :] / self.top_singular_values))
             # ensure that we are benchmarking a consistent outcome;
             # (e.g. if the code wasn't able to find a solution accurately
             # enough the timing of the benchmark would become useless).

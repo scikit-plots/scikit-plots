@@ -1,20 +1,21 @@
 from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 from .base import (
-    Mark,
     Mappable,
     MappableBool,
-    MappableFloat,
     MappableColor,
+    MappableFloat,
     MappableStyle,
-    resolve_properties,
-    resolve_color,
+    Mark,
     document_properties,
+    resolve_color,
+    resolve_properties,
 )
 
 
@@ -60,10 +61,12 @@ class AreaBase:
 
         dv = {"x": "y", "y": "x"}[orient]
         data = data.sort_values(orient, kind="mergesort")
-        verts = np.concatenate([
-            data[[orient, f"{dv}min"]].to_numpy(),
-            data[[orient, f"{dv}max"]].to_numpy()[::-1],
-        ])
+        verts = np.concatenate(
+            [
+                data[[orient, f"{dv}min"]].to_numpy(),
+                data[[orient, f"{dv}max"]].to_numpy()[::-1],
+            ]
+        )
         if orient == "y":
             verts = verts[:, ::-1]
         return verts
@@ -101,13 +104,26 @@ class Area(AreaBase, Mark):
     .. include:: ../docstrings/objects.Area.rst
 
     """
-    color: MappableColor = Mappable("C0", )
-    alpha: MappableFloat = Mappable(.2, )
-    fill: MappableBool = Mappable(True, )
+
+    color: MappableColor = Mappable(
+        "C0",
+    )
+    alpha: MappableFloat = Mappable(
+        0.2,
+    )
+    fill: MappableBool = Mappable(
+        True,
+    )
     edgecolor: MappableColor = Mappable(depend="color")
-    edgealpha: MappableFloat = Mappable(1, )
-    edgewidth: MappableFloat = Mappable(rc="patch.linewidth", )
-    edgestyle: MappableStyle = Mappable("-", )
+    edgealpha: MappableFloat = Mappable(
+        1,
+    )
+    edgewidth: MappableFloat = Mappable(
+        rc="patch.linewidth",
+    )
+    edgestyle: MappableStyle = Mappable(
+        "-",
+    )
 
     # TODO should this be settable / mappable?
     baseline: MappableFloat = Mappable(0, grouping=False)
@@ -151,13 +167,28 @@ class Band(AreaBase, Mark):
     .. include:: ../docstrings/objects.Band.rst
 
     """
-    color: MappableColor = Mappable("C0", )
-    alpha: MappableFloat = Mappable(.2, )
-    fill: MappableBool = Mappable(True, )
-    edgecolor: MappableColor = Mappable(depend="color", )
-    edgealpha: MappableFloat = Mappable(1, )
-    edgewidth: MappableFloat = Mappable(0, )
-    edgestyle: MappableFloat = Mappable("-", )
+
+    color: MappableColor = Mappable(
+        "C0",
+    )
+    alpha: MappableFloat = Mappable(
+        0.2,
+    )
+    fill: MappableBool = Mappable(
+        True,
+    )
+    edgecolor: MappableColor = Mappable(
+        depend="color",
+    )
+    edgealpha: MappableFloat = Mappable(
+        1,
+    )
+    edgewidth: MappableFloat = Mappable(
+        0,
+    )
+    edgestyle: MappableFloat = Mappable(
+        "-",
+    )
 
     def _standardize_coordinate_parameters(self, data, orient):
         # dv = {"x": "y", "y": "x"}[orient]

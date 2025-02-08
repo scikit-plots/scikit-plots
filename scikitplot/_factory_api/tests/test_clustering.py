@@ -1,16 +1,10 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
-
-import matplotlib.pyplot as plt
-
 import warnings
 
-from sklearn.datasets import load_iris as load_data
+import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.datasets import load_iris as load_data
 
 import scikitplot as skplt
 
@@ -47,19 +41,21 @@ class TestClassifierFactory(unittest.TestCase):
 
         clf = self.Clusterer()
         skplt._factory_api.clustering_factory(clf)
-        assert hasattr(clf, 'plot_silhouette')
-        assert hasattr(clf, 'plot_elbow_curve')
+        assert hasattr(clf, "plot_silhouette")
+        assert hasattr(clf, "plot_elbow_curve")
 
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+            warnings.simplefilter("always")
             skplt._factory_api.clustering_factory(clf)
 
             assert len(w) >= 2
             for warning in w[1:]:
                 assert issubclass(warning.category, UserWarning)
-                assert ' method already in clf. ' \
-                       'Overriding anyway. This may ' \
-                       'result in unintended behavior.' in str(warning.message)
+                assert (
+                    " method already in clf. "
+                    "Overriding anyway. This may "
+                    "result in unintended behavior." in str(warning.message)
+                )
 
 
 class TestPlotSilhouette(unittest.TestCase):
@@ -85,7 +81,7 @@ class TestPlotSilhouette(unittest.TestCase):
         np.random.seed(0)
         clf = KMeans()
         skplt._factory_api.clustering_factory(clf)
-        ax = clf.plot_silhouette(self.X, cmap='Spectral')
+        ax = clf.plot_silhouette(self.X, cmap="Spectral")
         ax = clf.plot_silhouette(self.X, cmap=plt.cm.Spectral)
 
     def test_ax(self):
@@ -143,5 +139,6 @@ class TestPlotElbow(unittest.TestCase):
         out_ax = clf.plot_elbow_curve(self.X, ax=ax)
         assert ax is out_ax
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

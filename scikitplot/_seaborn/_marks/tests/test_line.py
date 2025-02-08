@@ -1,14 +1,11 @@
-
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 from matplotlib.colors import same_color, to_rgba
-
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-
-from ..line import Dash, Line, Path, Lines, Paths, Range
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from ..._core.moves import Dodge
 from ..._core.plot import Plot
+from ..line import Dash, Line, Lines, Path, Paths, Range
 
 
 class TestPath:
@@ -32,7 +29,7 @@ class TestPath:
         color = ".44"
         m = Path(color=color)
         p = Plot(x=x, y=y).add(m).plot()
-        line, = p._figure.axes[0].get_lines()
+        (line,) = p._figure.axes[0].get_lines()
         assert same_color(line.get_color(), color)
         assert same_color(line.get_markeredgecolor(), color)
         assert same_color(line.get_markerfacecolor(), color)
@@ -43,7 +40,7 @@ class TestPath:
         y = [1, 2, 3]
         m = Path(color=".22", edgecolor=".55", fillcolor=".77")
         p = Plot(x=x, y=y).add(m).plot()
-        line, = p._figure.axes[0].get_lines()
+        (line,) = p._figure.axes[0].get_lines()
         assert same_color(line.get_color(), m.color)
         assert same_color(line.get_markeredgecolor(), m.edgecolor)
         assert same_color(line.get_markerfacecolor(), m.fillcolor)
@@ -78,9 +75,9 @@ class TestPath:
     def test_color_with_alpha(self):
 
         x = y = [1, 2, 3]
-        m = Path(color=(.4, .9, .2, .5), fillcolor=(.2, .2, .3, .9))
+        m = Path(color=(0.4, 0.9, 0.2, 0.5), fillcolor=(0.2, 0.2, 0.3, 0.9))
         p = Plot(x=x, y=y).add(m).plot()
-        line, = p._figure.axes[0].get_lines()
+        (line,) = p._figure.axes[0].get_lines()
         assert same_color(line.get_color(), m.color)
         assert same_color(line.get_markeredgecolor(), m.color)
         assert same_color(line.get_markerfacecolor(), m.fillcolor)
@@ -88,9 +85,9 @@ class TestPath:
     def test_color_and_alpha(self):
 
         x = y = [1, 2, 3]
-        m = Path(color=(.4, .9, .2), fillcolor=(.2, .2, .3), alpha=.5)
+        m = Path(color=(0.4, 0.9, 0.2), fillcolor=(0.2, 0.2, 0.3), alpha=0.5)
         p = Plot(x=x, y=y).add(m).plot()
-        line, = p._figure.axes[0].get_lines()
+        (line,) = p._figure.axes[0].get_lines()
         assert same_color(line.get_color(), to_rgba(m.color, m.alpha))
         assert same_color(line.get_markeredgecolor(), to_rgba(m.color, m.alpha))
         assert same_color(line.get_markerfacecolor(), to_rgba(m.fillcolor, m.alpha))
@@ -100,7 +97,7 @@ class TestPath:
         x = y = [1, 2, 3]
         m = Path(marker="s", linestyle="--", linewidth=3, pointsize=10, edgewidth=1)
         p = Plot(x=x, y=y).add(m).plot()
-        line, = p._figure.axes[0].get_lines()
+        (line,) = p._figure.axes[0].get_lines()
         assert line.get_marker() == m.marker
         assert line.get_linestyle() == m.linestyle
         assert line.get_linewidth() == m.linewidth
@@ -125,15 +122,15 @@ class TestPath:
         rc = {"lines.solid_capstyle": "projecting", "lines.dash_capstyle": "round"}
 
         p = Plot(x, y).add(Path()).theme(rc).plot()
-        line, = p._figure.axes[0].get_lines()
+        (line,) = p._figure.axes[0].get_lines()
         assert line.get_dash_capstyle() == "projecting"
 
         p = Plot(x, y).add(Path(linestyle="--")).theme(rc).plot()
-        line, = p._figure.axes[0].get_lines()
+        (line,) = p._figure.axes[0].get_lines()
         assert line.get_dash_capstyle() == "round"
 
         p = Plot(x, y).add(Path({"solid_capstyle": "butt"})).theme(rc).plot()
-        line, = p._figure.axes[0].get_lines()
+        (line,) = p._figure.axes[0].get_lines()
         assert line.get_solid_capstyle() == "butt"
 
 
@@ -163,7 +160,7 @@ class TestPaths:
         y = [1, 4, 2, 5, 3]
         g = [1, 2, 1, 1, 2]
         p = Plot(x=x, y=y, group=g).add(Paths()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         verts = lines.get_paths()[0].vertices.T
         assert_array_equal(verts[0], [1, 3, np.nan])
@@ -178,7 +175,7 @@ class TestPaths:
         x = y = [1, 2, 3]
         m = Paths(color=".737", linewidth=1, linestyle=(3, 1))
         p = Plot(x=x, y=y).add(m).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         assert same_color(lines.get_color().squeeze(), m.color)
         assert lines.get_linewidth().item() == m.linewidth
@@ -189,7 +186,7 @@ class TestPaths:
         x = y = [1, 2, 3, 4]
         g = ["a", "a", "b", "b"]
         p = Plot(x=x, y=y, color=g, linewidth=g, linestyle=g).add(Paths()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         assert not np.array_equal(lines.get_colors()[0], lines.get_colors()[1])
         assert lines.get_linewidths()[0] != lines.get_linewidth()[1]
@@ -198,17 +195,17 @@ class TestPaths:
     def test_color_with_alpha(self):
 
         x = y = [1, 2, 3]
-        m = Paths(color=(.2, .6, .9, .5))
+        m = Paths(color=(0.2, 0.6, 0.9, 0.5))
         p = Plot(x=x, y=y).add(m).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
         assert same_color(lines.get_colors().squeeze(), m.color)
 
     def test_color_and_alpha(self):
 
         x = y = [1, 2, 3]
-        m = Paths(color=(.2, .6, .9), alpha=.5)
+        m = Paths(color=(0.2, 0.6, 0.9), alpha=0.5)
         p = Plot(x=x, y=y).add(m).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
         assert same_color(lines.get_colors().squeeze(), to_rgba(m.color, m.alpha))
 
     def test_capstyle(self):
@@ -238,7 +235,7 @@ class TestLines:
         y = [1, 4, 2, 5, 3]
         g = [1, 2, 1, 1, 2]
         p = Plot(x=x, y=y, group=g).add(Lines()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         verts = lines.get_paths()[0].vertices.T
         assert_array_equal(verts[0], [1, 3])
@@ -253,7 +250,7 @@ class TestLines:
         x = [1, 1, 1]
         y = [1, 2, 3]
         p = Plot(x, y).add(Lines()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
         verts = lines.get_paths()[0].vertices.T
         assert_array_equal(verts[0], x)
         assert_array_equal(verts[1], y)
@@ -268,7 +265,7 @@ class TestRange:
         ymax = [2, 3]
 
         p = Plot(x=x, ymin=ymin, ymax=ymax).add(Range()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         for i, path in enumerate(lines.get_paths()):
             verts = path.vertices.T
@@ -281,7 +278,7 @@ class TestRange:
         y = [1, 2, 3, 4, 5]
 
         p = Plot(x=x, y=y).add(Range()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
         paths = lines.get_paths()
         assert_array_equal(paths[0].vertices, [(1, 1), (1, 2)])
         assert_array_equal(paths[1].vertices, [(2, 3), (2, 5)])
@@ -294,7 +291,7 @@ class TestRange:
         group = ["a", "a", "b", "b"]
 
         p = Plot(x=x, ymin=ymin, ymax=ymax, color=group).add(Range()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
         colors = p._theme["axes.prop_cycle"].by_key()["color"]
 
         for i, path in enumerate(lines.get_paths()):
@@ -311,7 +308,7 @@ class TestRange:
 
         m = Range(color=".654", linewidth=4)
         p = Plot(x=x, ymin=ymin, ymax=ymax).add(m).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         for i, path in enumerate(lines.get_paths()):
             assert same_color(lines.get_colors()[i], m.color)
@@ -326,11 +323,11 @@ class TestDash:
         y = [1, 2, 3, 4]
 
         p = Plot(x=x, y=y).add(Dash()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         for i, path in enumerate(lines.get_paths()):
             verts = path.vertices.T
-            assert_array_almost_equal(verts[0], [x[i] - .4, x[i] + .4])
+            assert_array_almost_equal(verts[0], [x[i] - 0.4, x[i] + 0.4])
             assert_array_equal(verts[1], [y[i], y[i]])
 
     def test_xy_data_grouped(self):
@@ -340,12 +337,12 @@ class TestDash:
         color = ["a", "b", "a", "b"]
 
         p = Plot(x=x, y=y, color=color).add(Dash()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         idx = [0, 2, 1, 3]
         for i, path in zip(idx, lines.get_paths()):
             verts = path.vertices.T
-            assert_array_almost_equal(verts[0], [x[i] - .4, x[i] + .4])
+            assert_array_almost_equal(verts[0], [x[i] - 0.4, x[i] + 0.4])
             assert_array_equal(verts[1], [y[i], y[i]])
 
     def test_set_properties(self):
@@ -355,7 +352,7 @@ class TestDash:
 
         m = Dash(color=".8", linewidth=4)
         p = Plot(x=x, y=y).add(m).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         for color in lines.get_color():
             assert same_color(color, m.color)
@@ -370,7 +367,7 @@ class TestDash:
         linewidth = [1, 2]
 
         p = Plot(x=x, y=y, color=color, linewidth=linewidth).add(Dash()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
         palette = p._theme["axes.prop_cycle"].by_key()["color"]
 
         for color, line_color in zip(palette, lines.get_color()):
@@ -384,12 +381,12 @@ class TestDash:
         x = [0, 0, 1, 2]
         y = [1, 2, 3, 4]
 
-        p = Plot(x=x, y=y).add(Dash(width=.4)).plot()
-        lines, = p._figure.axes[0].collections
+        p = Plot(x=x, y=y).add(Dash(width=0.4)).plot()
+        (lines,) = p._figure.axes[0].collections
 
         for i, path in enumerate(lines.get_paths()):
             verts = path.vertices.T
-            assert_array_almost_equal(verts[0], [x[i] - .2, x[i] + .2])
+            assert_array_almost_equal(verts[0], [x[i] - 0.2, x[i] + 0.2])
             assert_array_equal(verts[1], [y[i], y[i]])
 
     def test_dodge(self):
@@ -399,12 +396,12 @@ class TestDash:
         group = ["a", "b"]
 
         p = Plot(x=x, y=y, group=group).add(Dash(), Dodge()).plot()
-        lines, = p._figure.axes[0].collections
+        (lines,) = p._figure.axes[0].collections
 
         paths = lines.get_paths()
 
         v0 = paths[0].vertices.T
-        assert_array_almost_equal(v0[0], [-.4, 0])
+        assert_array_almost_equal(v0[0], [-0.4, 0])
         assert_array_equal(v0[1], [y[0], y[0]])
 
         v1 = paths[1].vertices.T

@@ -1,5 +1,6 @@
 # copied from scipy/_lib/_finite_differences.py
-from numpy import arange, newaxis, hstack, prod, array
+from numpy import arange, array, hstack, newaxis, prod
+
 
 def _central_diff_weights(Np, ndiv=1):
     """
@@ -49,9 +50,7 @@ def _central_diff_weights(Np, ndiv=1):
 
     """
     if Np < ndiv + 1:
-        raise ValueError(
-            "Number of points must be at least the derivative order + 1."
-        )
+        raise ValueError("Number of points must be at least the derivative order + 1.")
     if Np % 2 == 0:
         raise ValueError("The number of points must be odd.")
     from scipy import linalg
@@ -107,8 +106,7 @@ def _derivative(func, x0, dx=1.0, n=1, args=(), order=3):
         )
     if order % 2 == 0:
         raise ValueError(
-            "'order' (the number of points used to compute the derivative) "
-            "must be odd."
+            "'order' (the number of points used to compute the derivative) " "must be odd."
         )
     # pre-computed for n=1 and 2 and low-order for speed.
     if n == 1:
@@ -130,10 +128,7 @@ def _derivative(func, x0, dx=1.0, n=1, args=(), order=3):
         elif order == 7:
             weights = array([2, -27, 270, -490, 270, -27, 2]) / 180.0
         elif order == 9:
-            weights = (
-                array([-9, 128, -1008, 8064, -14350, 8064, -1008, 128, -9])
-                / 5040.0
-            )
+            weights = array([-9, 128, -1008, 8064, -14350, 8064, -1008, 128, -9]) / 5040.0
         else:
             weights = _central_diff_weights(order, 2)
     else:

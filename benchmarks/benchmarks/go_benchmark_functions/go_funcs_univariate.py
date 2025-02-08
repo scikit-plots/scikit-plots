@@ -3,11 +3,10 @@ from numpy import cos, exp, log, pi, sin, sqrt
 from .go_benchmark import Benchmark
 
 
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 #                 UNIVARIATE SINGLE-OBJECTIVE PROBLEMS
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 class Problem02(Benchmark):
-
     """
     Univariate Problem02 objective function.
 
@@ -46,7 +45,6 @@ class Problem02(Benchmark):
 
 
 class Problem03(Benchmark):
-
     """
     Univariate Problem03 objective function.
 
@@ -89,7 +87,6 @@ class Problem03(Benchmark):
 
 
 class Problem04(Benchmark):
-
     """
     Univariate Problem04 objective function.
 
@@ -124,11 +121,10 @@ class Problem04(Benchmark):
         self.nfev += 1
 
         x = x[0]
-        return -(16 * x ** 2 - 24 * x + 5) * exp(-x)
+        return -(16 * x**2 - 24 * x + 5) * exp(-x)
 
 
 class Problem05(Benchmark):
-
     """
     Univariate Problem05 objective function.
 
@@ -167,7 +163,6 @@ class Problem05(Benchmark):
 
 
 class Problem06(Benchmark):
-
     """
     Univariate Problem06 objective function.
 
@@ -202,11 +197,10 @@ class Problem06(Benchmark):
         self.nfev += 1
 
         x = x[0]
-        return -(x + sin(x)) * exp(-x ** 2.0)
+        return -(x + sin(x)) * exp(-(x**2.0))
 
 
 class Problem07(Benchmark):
-
     """
     Univariate Problem07 objective function.
 
@@ -246,7 +240,6 @@ class Problem07(Benchmark):
 
 
 class Problem08(Benchmark):
-
     """
     Univariate Problem08 objective function.
 
@@ -290,7 +283,6 @@ class Problem08(Benchmark):
 
 
 class Problem09(Benchmark):
-
     """
     Univariate Problem09 objective function.
 
@@ -329,7 +321,6 @@ class Problem09(Benchmark):
 
 
 class Problem10(Benchmark):
-
     """
     Univariate Problem10 objective function.
 
@@ -368,7 +359,6 @@ class Problem10(Benchmark):
 
 
 class Problem11(Benchmark):
-
     """
     Univariate Problem11 objective function.
 
@@ -407,7 +397,6 @@ class Problem11(Benchmark):
 
 
 class Problem12(Benchmark):
-
     """
     Univariate Problem12 objective function.
 
@@ -446,7 +435,6 @@ class Problem12(Benchmark):
 
 
 class Problem13(Benchmark):
-
     """
     Univariate Problem13 objective function.
 
@@ -481,11 +469,10 @@ class Problem13(Benchmark):
         self.nfev += 1
 
         x = x[0]
-        return -x ** (2.0 / 3.0) - (1.0 - x ** 2) ** (1.0 / 3.0)
+        return -(x ** (2.0 / 3.0)) - (1.0 - x**2) ** (1.0 / 3.0)
 
 
 class Problem14(Benchmark):
-
     """
     Univariate Problem14 objective function.
 
@@ -524,7 +511,6 @@ class Problem14(Benchmark):
 
 
 class Problem15(Benchmark):
-
     """
     Univariate Problem15 objective function.
 
@@ -559,11 +545,10 @@ class Problem15(Benchmark):
         self.nfev += 1
 
         x = x[0]
-        return -(-x ** 2.0 + 5 * x - 6) / (x ** 2 + 1)
+        return -(-(x**2.0) + 5 * x - 6) / (x**2 + 1)
 
 
 class Problem18(Benchmark):
-
     """
     Univariate Problem18 objective function.
 
@@ -608,7 +593,6 @@ class Problem18(Benchmark):
 
 
 class Problem20(Benchmark):
-
     """
     Univariate Problem20 objective function.
 
@@ -643,11 +627,10 @@ class Problem20(Benchmark):
         self.nfev += 1
 
         x = x[0]
-        return -(x - sin(x)) * exp(-x ** 2.0)
+        return -(x - sin(x)) * exp(-(x**2.0))
 
 
 class Problem21(Benchmark):
-
     """
     Univariate Problem21 objective function.
 
@@ -686,7 +669,6 @@ class Problem21(Benchmark):
 
 
 class Problem22(Benchmark):
-
     """
     Univariate Problem22 objective function.
 

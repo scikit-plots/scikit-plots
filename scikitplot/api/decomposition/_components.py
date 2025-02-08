@@ -11,45 +11,45 @@ This package/module is designed to be compatible with both Python 2 and Python 3
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-  division,         # Changes the division operator `/` to always perform true division.
-  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,  # Changes the division operator `/` to always perform true division.
+    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
-import warnings
-import numpy as np
+
 import matplotlib as mpl
-import matplotlib.pyplot as plt
+import numpy as np
 
 from .._utils.validation import (
-  validate_plotting_kwargs_decorator,
+    validate_plotting_kwargs_decorator,
 )
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all above func
 __all__ = [
-  'plot_pca_component_variance',
+    "plot_pca_component_variance",
 ]
 
 
 @validate_plotting_kwargs_decorator
 def plot_pca_component_variance(
-  clf, 
-  *args,
-  target_explained_variance=0.75,
-  model_type = None, # 'PCA' or 'LDA'
-  ## plotting params
-  title='Cumulative Explained Variance Ratio by Principal Components',
-  ax=None,
-  fig=None,
-  figsize=None,
-  title_fontsize="large",
-  text_fontsize="medium",
-  x_tick_rotation=0,
-  ## additional params
-  **kwargs,
+    clf,
+    *args,
+    target_explained_variance=0.75,
+    model_type=None,  # 'PCA' or 'LDA'
+    ## plotting params
+    title="Cumulative Explained Variance Ratio by Principal Components",
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+    x_tick_rotation=0,
+    ## additional params
+    **kwargs,
 ):
     """
     Plots PCA components' explained variance ratios. (new in v0.2.2)
@@ -65,7 +65,7 @@ def plot_pca_component_variance(
         Title of the generated plot.
 
     target_explained_variance : float, optional, default=0.75
-        Looks for the minimum number of principal components that satisfies this 
+        Looks for the minimum number of principal components that satisfies this
         value and emphasizes it on the plot.
 
     ax : matplotlib.axes.Axes, optional, default=None
@@ -96,19 +96,19 @@ def plot_pca_component_variance(
        :context: close-figs
        :align: center
        :alt: PCA Components Variances
-    
+
         >>> from sklearn.decomposition import PCA
         >>> from sklearn.datasets import load_digits as data_10_classes
         >>> import scikitplot as skplt
         >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
         >>> pca = PCA(random_state=0).fit(X)
         >>> skplt.decomposition.plot_pca_component_variance(pca, target_explained_variance=0.95);
-        
+
     .. plot::
        :context: close-figs
        :align: center
        :alt: LDA Components Variances
-    
+
         >>> from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
         >>> from sklearn.datasets import load_digits as data_10_classes
         >>> import scikitplot as skplt
@@ -121,28 +121,29 @@ def plot_pca_component_variance(
     ##################################################################
     # Proceed with your preprocess logic here
     # from numpy.linalg import eig
-    if hasattr(clf, 'explained_variance_ratio_'):
-        exp_var_ratio = clf.explained_variance_ratio_  
-    else: #not hasattr(clf, 'explained_variance_ratio_'):
-        raise TypeError('"clf" does not have explained_variance_ratio_ '
-                        'attribute. Has the PCA been fitted?')
+    if hasattr(clf, "explained_variance_ratio_"):
+        exp_var_ratio = clf.explained_variance_ratio_
+    else:  # not hasattr(clf, 'explained_variance_ratio_'):
+        raise TypeError(
+            '"clf" does not have explained_variance_ratio_ ' "attribute. Has the PCA been fitted?"
+        )
 
     exp_var_ratio_padded = np.concatenate(([0], exp_var_ratio))
     cumulative_sum_ratios = np.cumsum(exp_var_ratio_padded)
     size = len(cumulative_sum_ratios)
 
     # Magic code for figuring out closest value to target_explained_variance
-    idx = np.searchsorted(cumulative_sum_ratios, target_explained_variance)-1
+    idx = np.searchsorted(cumulative_sum_ratios, target_explained_variance) - 1
 
     # PCA
-    if hasattr(clf, 'components_'):
-        model_type = 'Principal' #'PCA'
+    if hasattr(clf, "components_"):
+        model_type = "Principal"  #'PCA'
     # LDA Scalings (Eigenvectors for transformation) (similar to PCA)
-    elif hasattr(clf, 'scalings_'):
-        model_type = 'LDA'
+    elif hasattr(clf, "scalings_"):
+        model_type = "LDA"
     else:
         pass
-    
+
     ##################################################################
     ## Plotting
     ##################################################################
@@ -150,62 +151,69 @@ def plot_pca_component_variance(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
-    ax.plot(range(0, size), cumulative_sum_ratios, '*-')
+    ax.plot(range(0, size), cumulative_sum_ratios, "*-")
     if idx < len(cumulative_sum_ratios):
         ax.plot(
-            idx, cumulative_sum_ratios[idx],
+            idx,
+            cumulative_sum_ratios[idx],
             # fmt = '[marker][line][color]'
-            marker='o', ls=':', color='r',
-            label='{0:0.2f} for first {1} components\n({2:0.2f} cut-off threshold)'.format(
-                cumulative_sum_ratios[idx],
-                idx,
-                target_explained_variance
+            marker="o",
+            ls=":",
+            color="r",
+            label="{0:0.2f} for first {1} components\n({2:0.2f} cut-off threshold)".format(
+                cumulative_sum_ratios[idx], idx, target_explained_variance
             ),
             markersize=3,
             markeredgewidth=3,
         )
-        ax.axhline(y=cumulative_sum_ratios[idx], linestyle=':', color='r', lw=1)
-        ax.text(x=0.5, y=cumulative_sum_ratios[idx]+0.03,
-                s=f'{target_explained_variance:0.2f} cut-off threshold',
-                color = 'black', fontsize=text_fontsize
-               )
-        
-    ax.step(range(0, size), cumulative_sum_ratios, where='mid', label='Cumulative Exp Var Ratio')
-    ax.bar( range(0, size), exp_var_ratio_padded, alpha=0.5, align='center', label='Individual Exp Var Ratio')
+        ax.axhline(y=cumulative_sum_ratios[idx], linestyle=":", color="r", lw=1)
+        ax.text(
+            x=0.5,
+            y=cumulative_sum_ratios[idx] + 0.03,
+            s=f"{target_explained_variance:0.2f} cut-off threshold",
+            color="black",
+            fontsize=text_fontsize,
+        )
+
+    ax.step(range(0, size), cumulative_sum_ratios, where="mid", label="Cumulative Exp Var Ratio")
+    ax.bar(
+        range(0, size),
+        exp_var_ratio_padded,
+        alpha=0.5,
+        align="center",
+        label="Individual Exp Var Ratio",
+    )
 
     # Set title, labels, and formatting
-    ax.set_title(title.replace('Principal', model_type), fontsize=title_fontsize)
-    ax.set_xlabel(
-        f'First n {model_type} Components', 
-        fontsize=text_fontsize
-    )
+    ax.set_title(title.replace("Principal", model_type), fontsize=title_fontsize)
+    ax.set_xlabel(f"First n {model_type} Components", fontsize=text_fontsize)
     ax.set_ylabel(
-        f'Cumulative Explained Variance Ratio\nof First n {model_type} Components',
-        fontsize=text_fontsize
+        f"Cumulative Explained Variance Ratio\nof First n {model_type} Components",
+        fontsize=text_fontsize,
     )
     ax.tick_params(labelsize=text_fontsize)
-    ax.tick_params(axis='x', rotation=x_tick_rotation)
-    
+    ax.tick_params(axis="x", rotation=x_tick_rotation)
+
     ax.set_xlim([-0.02, ax.get_xlim()[1]])
     # ax.set_ylim([-0.01, 1.01])
 
     # Define the desired number of ticks
     num_ticks = 11
     # Set x-axis ticks and labels
-    ax.xaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False) )
-    ax.yaxis.set_major_locator( mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False) )
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False))
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=num_ticks, integer=False))
     # ax.xaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
     # ax.yaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
-    
+
     # Enable grid and display legend
-    ax.grid(True)    
+    ax.grid(True)
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(
-            loc='lower right',
+            loc="lower right",
             fontsize=text_fontsize,
-            title=f'Components',
-            alignment='left',
+            title="Components",
+            alignment="left",
         )
     # plt.tight_layout()
     return ax

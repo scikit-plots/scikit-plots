@@ -1,12 +1,14 @@
-import numpy as np
 import warnings
-from .common import Benchmark, safe_import
+
+import numpy as np
 from asv_runner.benchmarks.mark import SkipNotImplemented
 
+from .common import Benchmark, safe_import
+
 with safe_import():
-    from scipy.linalg import eigh, cholesky_banded, cho_solve_banded, eig_banded
-    from scipy.sparse.linalg import lobpcg, eigsh, LinearOperator
-    from scipy.sparse.linalg._special_sparse_arrays import Sakurai, MikotaPair
+    from scipy.linalg import cho_solve_banded, cholesky_banded, eig_banded, eigh
+    from scipy.sparse.linalg import LinearOperator, eigsh, lobpcg
+    from scipy.sparse.linalg._special_sparse_arrays import MikotaPair, Sakurai
 
 
 class Bench(Benchmark):
@@ -19,11 +21,8 @@ class Bench(Benchmark):
     # all the benchmark tests are repeated in the unit test suite
     # `scipy/sparse/linalg/_eigen/lobpcg/tests/test_lobpcg.py`
 
-    params = [
-        [],
-        ['lobpcg', 'eigsh', 'lapack']
-    ]
-    param_names = ['n', 'solver']
+    params = [[], ["lobpcg", "eigsh", "lapack"]]
+    param_names = ["n", "solver"]
 
     def __init__(self):
         self.time_mikota.__func__.params = list(self.params)
@@ -38,7 +37,6 @@ class Bench(Benchmark):
         self.time_sakurai_inverse.__func__.params[0] = [500, 1000]
         self.time_sakurai_inverse.__func__.setup = self.setup_sakurai_inverse
 
-
     def setup_mikota(self, n, solver):
         self.shape = (n, n)
         mik = MikotaPair(n)
@@ -51,13 +49,13 @@ class Bench(Benchmark):
         self.Ab = mik_k.tobanded()
         self.eigenvalues = mik.eigenvalues
 
-        if solver == 'lapack' and n > 512:
+        if solver == "lapack" and n > 512:
             # skip: slow, and not useful to benchmark
             raise SkipNotImplemented(f"{solver} too slow to benchmark with {n=}.")
 
     def setup_sakurai(self, n, solver):
         self.shape = (n, n)
-        sakurai_obj = Sakurai(n, dtype='int')
+        sakurai_obj = Sakurai(n, dtype="int")
         self.A = sakurai_obj
         self.Aa = sakurai_obj.toarray()
         self.eigenvalues = sakurai_obj.eigenvalues
@@ -74,10 +72,10 @@ class Bench(Benchmark):
 
         m = 10
         ee = self.eigenvalues(m)
-        tol = m * n * n * n* np.finfo(float).eps
+        tol = m * n * n * n * np.finfo(float).eps
         rng = np.random.default_rng(0)
         X = rng.normal(size=(n, m))
-        if solver == 'lobpcg':
+        if solver == "lobpcg":
             # `lobpcg` allows callable parameters `Ac` and `Bc` directly
             # `lobpcg` solves ``Ax = lambda Bx`` and applies here a preconditioner
             # given by the matrix inverse in `np.float32` of 'Ab` that itself
@@ -85,23 +83,23 @@ class Bench(Benchmark):
             c = cholesky_banded(self.Ab.astype(np.float32))
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                el, _ = lobpcg(self.Ac, X, self.Bc, M=a, tol=1e-4,
-                               maxiter=40, largest=False)
+                el, _ = lobpcg(self.Ac, X, self.Bc, M=a, tol=1e-4, maxiter=40, largest=False)
             accuracy = max(abs(ee - el) / ee)
-        elif solver == 'eigsh':
+        elif solver == "eigsh":
             # `eigsh` ARPACK here is called on ``Bx = 1/lambda Ax``
             # to get fast convergence speed similar to that of `lobpcg` above
             # requiring the inverse of the matrix ``A`` given by Cholesky on
             # the banded form `Ab` of ``A`` in full `np.float64` precision.
             # `eigsh` ARPACK does not allow the callable parameter `Bc` directly
             # requiring `LinearOperator` format for input in contrast to `lobpcg`
-            B = LinearOperator((n, n), matvec=self.Bc, matmat=self.Bc, dtype='float64')
-            A = LinearOperator((n, n), matvec=self.Ac, matmat=self.Ac, dtype='float64')
+            B = LinearOperator((n, n), matvec=self.Bc, matmat=self.Bc, dtype="float64")
+            A = LinearOperator((n, n), matvec=self.Ac, matmat=self.Ac, dtype="float64")
             c = cholesky_banded(self.Ab)
-            a_l = LinearOperator((n, n), matvec=a, matmat=a, dtype='float64')
-            ea, _ = eigsh(B, k=m, M=A, Minv=a_l, which='LA', tol=1e-4, maxiter=50,
-                          v0 = rng.normal(size=(n, 1)))
-            accuracy = max(abs(ee - np.sort(1./ea)) / ee)
+            a_l = LinearOperator((n, n), matvec=a, matmat=a, dtype="float64")
+            ea, _ = eigsh(
+                B, k=m, M=A, Minv=a_l, which="LA", tol=1e-4, maxiter=50, v0=rng.normal(size=(n, 1))
+            )
+            accuracy = max(abs(ee - np.sort(1.0 / ea)) / ee)
         else:
             # `eigh` is the only dense eigensolver for generalized eigenproblems
             # ``Ax = lambda Bx`` and needs both matrices as dense arrays
@@ -120,18 +118,17 @@ class Bench(Benchmark):
         # requiring enormous numbers of iterations
         m = 3
         ee = self.eigenvalues(m)
-        tol = 100 * n * n * n* np.finfo(float).eps
+        tol = 100 * n * n * n * np.finfo(float).eps
         rng = np.random.default_rng(0)
         X = rng.normal(size=(n, m))
-        if solver == 'lobpcg':
+        if solver == "lobpcg":
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 el, _ = lobpcg(self.A, X, tol=1e-9, maxiter=5000, largest=False)
             accuracy = max(abs(ee - el) / ee)
-        elif solver == 'eigsh':
-            a_l = LinearOperator((n, n), matvec=self.A, matmat=self.A, dtype='float64')
-            ea, _ = eigsh(a_l, k=m, which='SA', tol=1e-9, maxiter=15000,
-                          v0 = rng.normal(size=(n, 1)))
+        elif solver == "eigsh":
+            a_l = LinearOperator((n, n), matvec=self.A, matmat=self.A, dtype="float64")
+            ea, _ = eigsh(a_l, k=m, which="SA", tol=1e-9, maxiter=15000, v0=rng.normal(size=(n, 1)))
             accuracy = max(abs(ee - ea) / ee)
         else:
             ed, _ = eigh(self.Aa, subset_by_index=(0, m - 1))
@@ -147,25 +144,25 @@ class Bench(Benchmark):
         # for fast convergence and compare to dense banded eigensolver `eig_banded`
         def a(x):
             return cho_solve_banded((c, False), x)
+
         m = 3
         ee = self.eigenvalues(m)
-        tol = 10 * n * n * n* np.finfo(float).eps
+        tol = 10 * n * n * n * np.finfo(float).eps
         rng = np.random.default_rng(0)
         X = rng.normal(size=(n, m))
-        if solver == 'lobpcg':
+        if solver == "lobpcg":
             c = cholesky_banded(self.A)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 el, _ = lobpcg(a, X, tol=1e-9, maxiter=8)
-            accuracy = max(abs(ee - 1. / el) / ee)
-        elif solver == 'eigsh':
+            accuracy = max(abs(ee - 1.0 / el) / ee)
+        elif solver == "eigsh":
             c = cholesky_banded(self.A)
-            a_l = LinearOperator((n, n), matvec=a, matmat=a, dtype='float64')
-            ea, _ = eigsh(a_l, k=m, which='LA', tol=1e-9, maxiter=8,
-                          v0 = rng.normal(size=(n, 1)))
-            accuracy = max(abs(ee - np.sort(1. / ea)) / ee)
+            a_l = LinearOperator((n, n), matvec=a, matmat=a, dtype="float64")
+            ea, _ = eigsh(a_l, k=m, which="LA", tol=1e-9, maxiter=8, v0=rng.normal(size=(n, 1)))
+            accuracy = max(abs(ee - np.sort(1.0 / ea)) / ee)
         else:
-            ed, _ = eig_banded(self.A, select='i', select_range=[0, m-1])
+            ed, _ = eig_banded(self.A, select="i", select_range=[0, m - 1])
             accuracy = max(abs(ee - ed) / ee)
 
         if accuracy > tol:

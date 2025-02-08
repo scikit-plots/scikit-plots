@@ -1,17 +1,18 @@
 from __future__ import annotations
-from collections.abc import Generator
 
-import numpy as np
+from collections.abc import Generator
+from typing import TYPE_CHECKING
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
+import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:  # TODO move to seaborn._core.typing?
-    from .plot import FacetSpec, PairSpec
     from matplotlib.figure import SubFigure
+
+    from .plot import FacetSpec, PairSpec
 
 
 class Subplots:
@@ -30,6 +31,7 @@ class Subplots:
         Data used to define figure setup.
 
     """
+
     def __init__(
         self,
         subplot_spec: dict,  # TODO define as TypedDict
@@ -44,9 +46,7 @@ class Subplots:
         self._handle_wrapping(facet_spec, pair_spec)
         self._determine_axis_sharing(pair_spec)
 
-    def _check_dimension_uniqueness(
-        self, facet_spec: FacetSpec, pair_spec: PairSpec
-    ) -> None:
+    def _check_dimension_uniqueness(self, facet_spec: FacetSpec, pair_spec: PairSpec) -> None:
         """Reject specs that pair and facet on (or wrap to) same figure dimension."""
         err = None
 
@@ -76,9 +76,7 @@ class Subplots:
         if err is not None:
             raise RuntimeError(err)  # TODO what err class? Define PlotSpecError?
 
-    def _determine_grid_dimensions(
-        self, facet_spec: FacetSpec, pair_spec: PairSpec
-    ) -> None:
+    def _determine_grid_dimensions(self, facet_spec: FacetSpec, pair_spec: PairSpec) -> None:
         """Parse faceting and pairing information to define figure structure."""
         self.grid_dimensions: dict[str, list] = {}
         for dim, axis in zip(["col", "row"], ["x", "y"]):
@@ -87,9 +85,7 @@ class Subplots:
             if dim in facet_vars:
                 self.grid_dimensions[dim] = facet_spec["structure"][dim]
             elif axis in pair_spec.get("structure", {}):
-                self.grid_dimensions[dim] = [
-                    None for _ in pair_spec.get("structure", {})[axis]
-                ]
+                self.grid_dimensions[dim] = [None for _ in pair_spec.get("structure", {})[axis]]
             else:
                 self.grid_dimensions[dim] = [None]
 
@@ -100,9 +96,7 @@ class Subplots:
 
         self.n_subplots = self.subplot_spec["ncols"] * self.subplot_spec["nrows"]
 
-    def _handle_wrapping(
-        self, facet_spec: FacetSpec, pair_spec: PairSpec
-    ) -> None:
+    def _handle_wrapping(self, facet_spec: FacetSpec, pair_spec: PairSpec) -> None:
         """Update figure structure parameters based on facet/pair wrapping."""
         self.wrap = wrap = facet_spec.get("wrap") or pair_spec.get("wrap")
         if not wrap:
@@ -156,24 +150,28 @@ class Subplots:
         if isinstance(target, mpl.axes.Axes):
 
             if max(self.subplot_spec["nrows"], self.subplot_spec["ncols"]) > 1:
-                err = " ".join([
-                    "Cannot create multiple subplots after calling `Plot.on` with",
-                    f"a {mpl.axes.Axes} object.",
-                    f" You may want to use a {mpl.figure.SubFigure} instead.",
-                ])
+                err = " ".join(
+                    [
+                        "Cannot create multiple subplots after calling `Plot.on` with",
+                        f"a {mpl.axes.Axes} object.",
+                        f" You may want to use a {mpl.figure.SubFigure} instead.",
+                    ]
+                )
                 raise RuntimeError(err)
 
-            self._subplot_list = [{
-                "ax": target,
-                "left": True,
-                "right": True,
-                "top": True,
-                "bottom": True,
-                "col": None,
-                "row": None,
-                "x": "x",
-                "y": "y",
-            }]
+            self._subplot_list = [
+                {
+                    "ax": target,
+                    "left": True,
+                    "right": True,
+                    "top": True,
+                    "bottom": True,
+                    "col": None,
+                    "row": None,
+                    "x": "x",
+                    "y": "y",
+                }
+            ]
             self._figure = target.figure
             return self._figure
 

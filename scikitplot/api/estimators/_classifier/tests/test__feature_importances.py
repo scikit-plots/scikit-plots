@@ -1,15 +1,10 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn.datasets import load_iris as load_data
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
 from scikitplot.api.estimators import plot_feature_importances
 
@@ -59,8 +54,8 @@ class TestFeatureImportances(unittest.TestCase):
         np.random.seed(0)
         clf = RandomForestClassifier()
         clf.fit(self.X, self.y)
-        plot_feature_importances(clf, order='ascending')
-        plot_feature_importances(clf, order='descending')
+        plot_feature_importances(clf, order="ascending")
+        plot_feature_importances(clf, order="descending")
         plot_feature_importances(clf, order=None)
 
     # def test_ax(self):

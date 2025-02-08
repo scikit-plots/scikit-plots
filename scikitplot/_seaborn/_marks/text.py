@@ -1,20 +1,21 @@
 from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 from matplotlib.transforms import ScaledTranslation
 
 from .base import (
-    Mark,
     Mappable,
+    MappableColor,
     MappableFloat,
     MappableString,
-    MappableColor,
-    resolve_properties,
-    resolve_color,
+    Mark,
     document_properties,
+    resolve_color,
+    resolve_properties,
 )
 
 
@@ -29,6 +30,7 @@ class Text(Mark):
     .. include:: ../docstrings/objects.Text.rst
 
     """
+
     text: MappableString = Mappable("")
     color: MappableColor = Mappable("k")
     alpha: MappableFloat = Mappable(1)

@@ -2,6 +2,7 @@ import os
 import re
 
 from sphinx.util.logging import getLogger
+
 logger = getLogger(__name__)
 
 

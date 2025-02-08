@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-
 import pytest
 from numpy.testing import assert_array_equal
 
-from ..base import Mark, Mappable, resolve_color
+from ..base import Mappable, Mark, resolve_color
 
 
 class TestMappable:
@@ -28,7 +27,7 @@ class TestMappable:
 
     def test_repr(self):
 
-        assert str(Mappable(.5)) == "<0.5>"
+        assert str(Mappable(0.5)) == "<0.5>"
         assert str(Mappable("CO")) == "<'CO'>"
         assert str(Mappable(rc="lines.linewidth")) == "<rc:lines.linewidth>"
         assert str(Mappable(depend="color")) == "<depend:color>"
@@ -101,7 +100,7 @@ class TestMappable:
 
     def test_color(self):
 
-        c, a = "C1", .5
+        c, a = "C1", 0.5
         m = self.mark(color=c, alpha=a)
 
         assert resolve_color(m, {}) == mpl.colors.to_rgba(c, a)
@@ -113,12 +112,12 @@ class TestMappable:
     def test_color_mapped_alpha(self):
 
         c = "r"
-        values = {"a": .2, "b": .5, "c": .8}
+        values = {"a": 0.2, "b": 0.5, "c": 0.8}
 
         m = self.mark(color=c, alpha=Mappable(1))
         scales = {"alpha": lambda s: np.array([values[s_i] for s_i in s])}
 
-        assert resolve_color(m, {"alpha": "b"}, "", scales) == mpl.colors.to_rgba(c, .5)
+        assert resolve_color(m, {"alpha": "b"}, "", scales) == mpl.colors.to_rgba(c, 0.5)
 
         df = pd.DataFrame({"alpha": list(values.keys())})
 
@@ -140,11 +139,13 @@ class TestMappable:
 
     def test_fillcolor(self):
 
-        c, a = "green", .8
-        fa = .2
+        c, a = "green", 0.8
+        fa = 0.2
         m = self.mark(
-            color=c, alpha=a,
-            fillcolor=Mappable(depend="color"), fillalpha=Mappable(fa),
+            color=c,
+            alpha=a,
+            fillcolor=Mappable(depend="color"),
+            fillalpha=Mappable(fa),
         )
 
         assert resolve_color(m, {}) == mpl.colors.to_rgba(c, a)
@@ -153,6 +154,4 @@ class TestMappable:
         df = pd.DataFrame(index=pd.RangeIndex(10))
         cs = [c] * len(df)
         assert_array_equal(resolve_color(m, df), mpl.colors.to_rgba_array(cs, a))
-        assert_array_equal(
-            resolve_color(m, df, "fill"), mpl.colors.to_rgba_array(cs, fa)
-        )
+        assert_array_equal(resolve_color(m, df, "fill"), mpl.colors.to_rgba_array(cs, fa))

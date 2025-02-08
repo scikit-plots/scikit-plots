@@ -1,5 +1,6 @@
 import inspect
-from sphinx.ext.autodoc import Documenter, ModuleLevelDocumenter
+
+from sphinx.ext.autodoc import ModuleLevelDocumenter
 
 
 class ShortSummaryDocumenter(ModuleLevelDocumenter):
@@ -18,7 +19,7 @@ class ShortSummaryDocumenter(ModuleLevelDocumenter):
     @classmethod
     def can_document_member(cls, member, membername, isattr, parent):
         """Allow documenting any object.
-        
+
         Dynamically checks if an object can be documented based on its type.
         This checks if the member is a function, class, data, module, etc.
         """
@@ -74,9 +75,7 @@ class ShortSummaryDocumenter(ModuleLevelDocumenter):
                 docstrings.append([])
             # Get the first non-empty line of the processed docstring; this could lead
             # to unexpected results if the object does not have a short summary line.
-            short_summary = next(
-                (s for s in self.process_doc(docstrings) if s), "<no summary>"
-            )
+            short_summary = next((s for s in self.process_doc(docstrings) if s), "<no summary>")
             self.add_line(short_summary, sourcename, 0)
 
 

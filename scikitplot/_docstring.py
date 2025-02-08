@@ -25,9 +25,11 @@ def kwarg_doc(text):
     matplotlib.artist.kwdoc
 
     """
+
     def decorator(func):
         func._kwarg_doc = text
         return func
+
     return decorator
 
 
@@ -58,6 +60,7 @@ class Substitution:
         def some_function(x):
             "%s %s wrote the Raven"
     """
+
     def __init__(self, *args, **kwargs):
         if args and kwargs:
             raise TypeError("Only positional or keyword args are allowed")
@@ -73,11 +76,11 @@ class _ArtistKwdocLoader(dict):
     def __missing__(self, key):
         if not key.endswith(":kwdoc"):
             raise KeyError(key)
-        name = key[:-len(":kwdoc")]
+        name = key[: -len(":kwdoc")]
         from matplotlib.artist import Artist, kwdoc
+
         try:
-            cls, = (cls for cls in _api.recursive_subclasses(Artist)
-                    if cls.__name__ == name)
+            (cls,) = (cls for cls in _api.recursive_subclasses(Artist) if cls.__name__ == name)
         except ValueError as e:
             raise KeyError(key) from e
         return self.setdefault(key, kwdoc(cls))
@@ -129,10 +132,12 @@ class _ArtistPropertiesSubstitution:
 
 def copy(source):
     """Copy a docstring from another source function (if present)."""
+
     def do_copy(target):
         if source.__doc__:
             target.__doc__ = source.__doc__
         return target
+
     return do_copy
 
 

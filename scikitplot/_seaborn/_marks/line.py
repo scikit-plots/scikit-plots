@@ -1,19 +1,20 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import ClassVar
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 from .base import (
-    Mark,
     Mappable,
+    MappableColor,
     MappableFloat,
     MappableString,
-    MappableColor,
-    resolve_properties,
-    resolve_color,
+    Mark,
     document_properties,
+    resolve_color,
+    resolve_properties,
 )
 
 
@@ -33,6 +34,7 @@ class Path(Mark):
     .. include:: ../docstrings/objects.Path.rst
 
     """
+
     color: MappableColor = Mappable("C0")
     alpha: MappableFloat = Mappable(1)
     linewidth: MappableFloat = Mappable(rc="lines.linewidth")
@@ -87,7 +89,8 @@ class Path(Mark):
         self._handle_capstyle(artist_kws, vals)
 
         return mpl.lines.Line2D(
-            [], [],
+            [],
+            [],
             color=vals["color"],
             linewidth=vals["linewidth"],
             linestyle=vals["linestyle"],
@@ -124,6 +127,7 @@ class Line(Path):
     .. include:: ../docstrings/objects.Line.rst
 
     """
+
     _sort: ClassVar[bool] = True
 
 
@@ -142,6 +146,7 @@ class Paths(Mark):
     .. include:: ../docstrings/objects.Paths.rst
 
     """
+
     color: MappableColor = Mappable("C0")
     alpha: MappableFloat = Mappable(1)
     linewidth: MappableFloat = Mappable(rc="lines.linewidth")
@@ -200,7 +205,8 @@ class Paths(Mark):
         artist_kws["dash_capstyle"] = capstyle
 
         return mpl.lines.Line2D(
-            [], [],
+            [],
+            [],
             color=key["color"],
             linewidth=key["linewidth"],
             linestyle=key["linestyle"],
@@ -233,6 +239,7 @@ class Lines(Paths):
     .. include:: ../docstrings/objects.Lines.rst
 
     """
+
     _sort: ClassVar[bool] = True
 
 
@@ -247,6 +254,7 @@ class Range(Paths):
     .. include:: ../docstrings/objects.Range.rst
 
     """
+
     def _setup_segments(self, data, orient):
 
         # TODO better checks on what variables we have
@@ -273,7 +281,8 @@ class Dash(Paths):
     .. include:: ../docstrings/objects.Dash.rst
 
     """
-    width: MappableFloat = Mappable(.8, grouping=False)
+
+    width: MappableFloat = Mappable(0.8, grouping=False)
 
     def _setup_segments(self, data, orient):
 

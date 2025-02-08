@@ -5,12 +5,16 @@ visualkeras custom VGG example
 An example showing the :py:func:`~scikitplot.visualkeras` function
 used by a :py:class:`~tensorflow.keras.Model` model.
 """
+
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Force garbage collection
-import gc; gc.collect()
+import gc
+
+gc.collect()
 import tensorflow as tf
+
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
 
@@ -44,15 +48,16 @@ model = tf.keras.applications.VGG19(
     name="vgg19",
 )
 img_vgg19 = visualkeras.layered_view(
-  model,
-  legend=True,
-  show_dimension=True,
-  to_file='../result_images/vgg19.png',
+    model,
+    legend=True,
+    show_dimension=True,
+    to_file="../result_images/vgg19.png",
 )
 try:
     import matplotlib.pyplot as plt
+
     plt.imshow(img_vgg19)
-    plt.axis('off')
+    plt.axis("off")
     plt.show()
 except:
     pass

@@ -1,7 +1,8 @@
-
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import ClassVar, cast
+
 try:
     from typing import Literal
 except ImportError:
@@ -10,12 +11,10 @@ except ImportError:
 import numpy as np
 from pandas import DataFrame
 
-from .base import Stat
-
 from .._core.groupby import GroupBy
 from .._core.scales import Scale
 from ..utils import _version_predates
-
+from .base import Stat
 
 # From https://github.com/numpy/numpy/blob/main/numpy/lib/function_base.pyi
 _MethodKind = Literal[
@@ -55,6 +54,7 @@ class Perc(Stat):
     .. include:: ../docstrings/objects.Perc.rst
 
     """
+
     k: int | list[float] = 5
     method: str = "linear"
 
@@ -72,7 +72,11 @@ class Perc(Stat):
         return DataFrame({var: res, "percentile": k})
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
 
         var = {"x": "y", "y": "x"}[orient]

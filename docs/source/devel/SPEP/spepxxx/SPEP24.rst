@@ -3,7 +3,7 @@ SEP24: Negative radius in polar plots
 =======================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

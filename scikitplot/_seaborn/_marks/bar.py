@@ -1,26 +1,29 @@
 from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 from .base import (
-    Mark,
     Mappable,
     MappableBool,
     MappableColor,
     MappableFloat,
     MappableStyle,
-    resolve_properties,
+    Mark,
+    document_properties,
     resolve_color,
-    document_properties
+    resolve_properties,
 )
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any
+
     from matplotlib.artist import Artist
+
     from .._core.scales import Scale
 
 
@@ -94,7 +97,10 @@ class BarBase(Mark):
         return resolved
 
     def _legend_artist(
-        self, variables: list[str], value: Any, scales: dict[str, Scale],
+        self,
+        variables: list[str],
+        value: Any,
+        scales: dict[str, Scale],
     ) -> Artist:
         # TODO return some sensible default?
         key = {v: value for v in variables}
@@ -123,8 +129,9 @@ class Bar(BarBase):
     .. include:: ../docstrings/objects.Bar.rst
 
     """
+
     color: MappableColor = Mappable("C0", grouping=False)
-    alpha: MappableFloat = Mappable(.7, grouping=False)
+    alpha: MappableFloat = Mappable(0.7, grouping=False)
     fill: MappableBool = Mappable(True, grouping=False)
     edgecolor: MappableColor = Mappable(depend="color", grouping=False)
     edgealpha: MappableFloat = Mappable(1, grouping=False)
@@ -132,7 +139,7 @@ class Bar(BarBase):
     edgestyle: MappableStyle = Mappable("-", grouping=False)
     # pattern: MappableString = Mappable(None)  # TODO no Property yet
 
-    width: MappableFloat = Mappable(.8, grouping=False)
+    width: MappableFloat = Mappable(0.8, grouping=False)
     baseline: MappableFloat = Mappable(0, grouping=False)  # TODO *is* this mappable?
 
     def _plot(self, split_gen, scales, orient):
@@ -190,8 +197,9 @@ class Bars(BarBase):
     .. include:: ../docstrings/objects.Bars.rst
 
     """
+
     color: MappableColor = Mappable("C0", grouping=False)
-    alpha: MappableFloat = Mappable(.7, grouping=False)
+    alpha: MappableFloat = Mappable(0.7, grouping=False)
     fill: MappableBool = Mappable(True, grouping=False)
     edgecolor: MappableColor = Mappable(rc="patch.edgecolor", grouping=False)
     edgealpha: MappableFloat = Mappable(1, grouping=False)
@@ -241,12 +249,16 @@ class Bars(BarBase):
             min_width = np.inf
             for ax, col in collections.items():
                 edges, widths = get_dimensions(col)
-                points = 72 / ax.figure.dpi * abs(
-                    ax.transData.transform([edges + widths] * 2)
-                    - ax.transData.transform([edges] * 2)
+                points = (
+                    72
+                    / ax.figure.dpi
+                    * abs(
+                        ax.transData.transform([edges + widths] * 2)
+                        - ax.transData.transform([edges] * 2)
+                    )
                 )
                 min_width = min(min_width, min(points[:, ori_idx]))
 
-            linewidth = min(.1 * min_width, mpl.rcParams["patch.linewidth"])
+            linewidth = min(0.1 * min_width, mpl.rcParams["patch.linewidth"])
             for _, col in collections.items():
                 col.set_linewidth(linewidth)

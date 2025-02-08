@@ -1,16 +1,16 @@
-import aggdraw
 from math import ceil
 from typing import Any
 
+import aggdraw
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 
-from .utils import *
 from .layer_utils import *
+from .utils import *
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
-  'graph_view',
+    "graph_view",
 ]
 
 
@@ -24,23 +24,23 @@ def _draw_connector(draw, start_node, end_node, color, width):
 
 
 def graph_view(
-  model,
-  to_file: str = None,
-  color_map: dict = None,
-  node_size: int = 50,
-  background_fill: Any = 'white',
-  padding: int = 10,
-  layer_spacing: int = 250,
-  node_spacing: int = 10,
-  connector_fill: Any = 'gray',
-  connector_width: int = 1,
-  ellipsize_after: int = 10,
-  inout_as_tensor: bool = True,
-  show_neurons: bool = True,
+    model,
+    to_file: str = None,
+    color_map: dict = None,
+    node_size: int = 50,
+    background_fill: Any = "white",
+    padding: int = 10,
+    layer_spacing: int = 250,
+    node_spacing: int = 10,
+    connector_fill: Any = "gray",
+    connector_width: int = 1,
+    ellipsize_after: int = 10,
+    inout_as_tensor: bool = True,
+    show_neurons: bool = True,
 ) -> Image:
     """
-    Generates an architectural visualization for a given linear Keras 
-    :py:class:`~tensorflow.keras.Model` model 
+    Generates an architectural visualization for a given linear Keras
+    :py:class:`~tensorflow.keras.Model` model
     (i.e., one input and output tensor for each layer) in graph style.
 
     Parameters
@@ -94,21 +94,21 @@ def graph_view(
     layer_y = list()
 
     # Determine output names compatible with both Keras versions
-    if hasattr(model, 'output_names'):
+    if hasattr(model, "output_names"):
         # Older versions of Keras
         output_names = model.output_names
     else:
         # Newer versions of Keras
         output_names = []
         for output in model.outputs:
-            if hasattr(output, '_keras_history'):
+            if hasattr(output, "_keras_history"):
                 # Get the layer that produced the output
                 layer = output._keras_history[0]
                 output_names.append(layer.name)
             else:
                 # Fallback
                 # Use the tensor's name or a default name if keras_history is not available
-                output_names.append(getattr(output, 'name', f'output_{len(output_names)}'))
+                output_names.append(getattr(output, "name", f"output_{len(output_names)}"))
 
     # Attach helper layers
 
@@ -116,14 +116,17 @@ def graph_view(
     model_layers = model_to_hierarchy_lists(model, id_to_num_mapping, adj_matrix)
 
     # Add fake output layers
-    model_layers.append([
-        _DummyLayer(
-            output_names[i],
-            None if inout_as_tensor else self_multiply(model.output_shape[i])
-        )
-        for i in range(len(model.outputs))
-    ])
-    id_to_num_mapping, adj_matrix = augment_output_layers(model, model_layers[-1], id_to_num_mapping, adj_matrix)
+    model_layers.append(
+        [
+            _DummyLayer(
+                output_names[i], None if inout_as_tensor else self_multiply(model.output_shape[i])
+            )
+            for i in range(len(model.outputs))
+        ]
+    )
+    id_to_num_mapping, adj_matrix = augment_output_layers(
+        model, model_layers[-1], id_to_num_mapping, adj_matrix
+    )
 
     # Create architecture
 
@@ -140,10 +143,10 @@ def graph_view(
             units = 1
 
             if show_neurons:
-                if hasattr(layer, 'units'):
+                if hasattr(layer, "units"):
                     is_box = False
                     units = layer.units
-                elif hasattr(layer, 'filters'):
+                elif hasattr(layer, "filters"):
                     is_box = False
                     units = layer.filters
                 elif is_internal_input(layer) and not inout_as_tensor:
@@ -171,8 +174,8 @@ def graph_view(
 
                 current_y = c.y2 + node_spacing
 
-                c.fill = color_map.get(type(layer), {}).get('fill', 'orange')
-                c.outline = color_map.get(type(layer), {}).get('outline', 'black')
+                c.fill = color_map.get(type(layer), {}).get("fill", "orange")
+                c.outline = color_map.get(type(layer), {}).get("outline", "black")
 
                 layer_nodes.append(c)
 
@@ -188,7 +191,7 @@ def graph_view(
 
     img_width = len(layers) * node_size + (len(layers) - 1) * layer_spacing + 2 * padding
     img_height = max(*layer_y) + 2 * padding
-    img = Image.new('RGBA', (int(ceil(img_width)), int(ceil(img_height))), background_fill)
+    img = Image.new("RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill)
 
     draw = aggdraw.Draw(img)
 
@@ -210,7 +213,9 @@ def graph_view(
         for start_node_idx, start_node in enumerate(start_layer_list):
             for end_node in end_layer_list:
                 if not isinstance(start_node, Ellipses) and not isinstance(end_node, Ellipses):
-                    _draw_connector(draw, start_node, end_node, color=connector_fill, width=connector_width)
+                    _draw_connector(
+                        draw, start_node, end_node, color=connector_fill, width=connector_width
+                    )
 
     for i, layer in enumerate(layers):
         for node_index, node in enumerate(layer):

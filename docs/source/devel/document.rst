@@ -5,7 +5,7 @@ Write documentation
 ===================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 .. design: https://sphinx-design.readthedocs.io/en/latest/index.html

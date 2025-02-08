@@ -1,15 +1,19 @@
 """
 Utilities for building docs.
 """
+
 from sphinx_gallery.notebook import add_code_cell, add_markdown_cell
+
 try:
     import sklearn
+
     default_global_config = sklearn.get_config()
 
     # https://github.com/sphinx-gallery/sphinx-gallery/blob/master/sphinx_gallery/scrapers.py#L562
-    def _reset_sklearn (gallery_conf, fname):
+    def _reset_sklearn(gallery_conf, fname):
         """Reset sklearn config to default values."""
         sklearn.set_config(**default_global_config)
+
 except Exception:
     pass
 
@@ -70,16 +74,14 @@ def notebook_modification_function(notebook_content, notebook_filename):
         code = "\n".join(code_lines)
         add_code_cell(dummy_notebook_content, code)
 
-    notebook_content["cells"] = (
-        dummy_notebook_content["cells"] + notebook_content["cells"]
-    )
+    notebook_content["cells"] = dummy_notebook_content["cells"] + notebook_content["cells"]
 
 
 def reset_others(gallery_conf, fname):
     """Reset plotting functions."""
     # sklearn
     try:
-        import sklearn        
+        pass
     except Exception:
         pass
     else:

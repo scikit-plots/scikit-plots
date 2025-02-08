@@ -24,20 +24,19 @@ import numpy as np
 import pandas as pd
 
 __all__ = [
-  "make_clv_dataset",
-  "beta_geometric_nbd_model",
-  "beta_geometric_nbd_model_transactional_data",
-  "pareto_nbd_model",
-  "modified_beta_geometric_nbd_model",
-  
-  "beta_geometric_beta_binom_model",
+    "make_clv_dataset",
+    "beta_geometric_nbd_model",
+    "beta_geometric_nbd_model_transactional_data",
+    "pareto_nbd_model",
+    "modified_beta_geometric_nbd_model",
+    "beta_geometric_beta_binom_model",
 ]
 
 
 def make_clv_dataset(model: str, size=1, **kwargs) -> pd.DataFrame:
     """
     Generate synthetic customer lifetime value (CLV) data for various models including:
-    
+
     * BG/BB      : BetaGeoBetaBinom Beta-Geometric/Beta-Binomial model data [1]_
     * MBG/NBD    : Modified Beta-Geometric/NBD model data [2]_
     * Pareto/NBD : ParetoNBD model data [3]_
@@ -71,7 +70,7 @@ def make_clv_dataset(model: str, size=1, **kwargs) -> pd.DataFrame:
     ------
     ValueError
         If an invalid model type is provided.
-        
+
     References
     ----------
     .. [1]: "Counting Your Customers" the Easy Way: An Alternative to the Pareto/NBD Model
@@ -90,37 +89,38 @@ def make_clv_dataset(model: str, size=1, **kwargs) -> pd.DataFrame:
     """
     # Dispatch to the appropriate model function
     model_funcs = {
-        'bg_nbd': beta_geometric_nbd_model,
-        'pareto_nbd': pareto_nbd_model,
-        'mbg_nbd': modified_beta_geometric_nbd_model,
-        'bg_bb': beta_geometric_beta_binom_model,
+        "bg_nbd": beta_geometric_nbd_model,
+        "pareto_nbd": pareto_nbd_model,
+        "mbg_nbd": modified_beta_geometric_nbd_model,
+        "bg_bb": beta_geometric_beta_binom_model,
     }
 
     if model not in model_funcs:
         raise ValueError(f"Invalid model type: {model}. Must be one of {list(model_funcs.keys())}.")
-    
+
     model_func = model_funcs[model]
     return model_func(size=size, **kwargs)
+
 
 def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
     """
     Generate artificial data according to the population-level distribution class
     for a discrete, non-contractual, Beta-Geometric/Beta-Binomial process.
 
-    The BG/NBD model simulates customer behavior over time, including 
-    purchase frequency and recency, as well as the probability of customer 
+    The BG/NBD model simulates customer behavior over time, including
+    purchase frequency and recency, as well as the probability of customer
     death (discontinuation of purchases).
-    
+
     See [1] for model details
 
     Parameters
     ----------
     T: array_like
-        The length of time observing new customers. If a scalar is provided, 
-        all customers will be observed for the same period. 
+        The length of time observing new customers. If a scalar is provided,
+        all customers will be observed for the same period.
     r, alpha, a, b: float
-        Parameters for the BG/NBD model. 'r' and 'alpha' relate to the 
-        Poisson-gamma distribution for purchase rates, and 'a' and 'b' 
+        Parameters for the BG/NBD model. 'r' and 'alpha' relate to the
+        Poisson-gamma distribution for purchase rates, and 'a' and 'b'
         are the parameters for the Beta distribution for customer death. See [1]_
     size: int, optional
         The number of customers to generate. Default is 1.
@@ -129,8 +129,8 @@ def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
     -------
     pandas.DataFrame
         DataFrame with customer-level data, indexed by customer_id and containing
-        'frequency' (number of purchases), 'recency' (time of last purchase), 
-        'T' (observation period), 'lambda' (purchase rate), 'p' (probability of death), 
+        'frequency' (number of purchases), 'recency' (time of last purchase),
+        'T' (observation period), 'lambda' (purchase rate), 'p' (probability of death),
         'alive' (whether the customer is alive), and 'customer_id' (ID of the customer).
 
 
@@ -150,7 +150,7 @@ def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
 
     # Generate random probabilities of post-purchase death (Beta distribution)
     probability_of_post_purchase_death = np.random.beta(a, b, size=size)
-  
+
     # Generate random purchase rate lambdas (Gamma distribution)
     lambda_ = np.random.gamma(r, scale=1.0 / alpha, size=size)
 
@@ -168,7 +168,7 @@ def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
         times = []
         next_purchase_in = np.random.exponential(scale=1.0 / l)
         alive = True
-      
+
         # Simulate the purchase process until the customer is either dead or the observation period ends
         while (np.sum(times) + next_purchase_in < T[i]) and alive:
             times.append(next_purchase_in)
@@ -188,27 +188,29 @@ def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
         )
 
     return df.set_index("customer_id")  # Return the DataFrame with customer IDs as the index
-  
 
-def beta_geometric_nbd_model_transactional_data(T, r, alpha, a, b, observation_period_end="2019-1-1", freq="D", size=1):
+
+def beta_geometric_nbd_model_transactional_data(
+    T, r, alpha, a, b, observation_period_end="2019-1-1", freq="D", size=1
+):
     """
     Generate artificial transactional data according to the BG/NBD ... model.
 
-    This function simulates the individual transactions of customers, not just 
-    their aggregate behavior. The simulated transactions include the date and 
+    This function simulates the individual transactions of customers, not just
+    their aggregate behavior. The simulated transactions include the date and
     customer information.
-    
+
     See [1] for model details
 
     Parameters
     ----------
     T: int, float or array_like
-        The length of time observing new customers. If a scalar is provided, 
-        all customers will be observed for the same period. 
+        The length of time observing new customers. If a scalar is provided,
+        all customers will be observed for the same period.
     r, alpha, a, b: float
         Parameters for the BG/NBD model, as described in the first function. See [1]_
     observation_period_end: date_like
-        The date the observation period ends. The observation starts from the 
+        The date the observation period ends. The observation starts from the
         calculated start date for each customer.
     freq: string, optional
         The frequency of transactions. Default is 'D' for days, but could be 'W' for weeks, 'h' for hours, etc.
@@ -218,7 +220,7 @@ def beta_geometric_nbd_model_transactional_data(T, r, alpha, a, b, observation_p
     Returns
     -------
     pandas.DataFrame
-        A DataFrame with 'customer_id' and 'date' columns, representing individual 
+        A DataFrame with 'customer_id' and 'date' columns, representing individual
         transactions for each customer.
 
     References
@@ -227,19 +229,23 @@ def beta_geometric_nbd_model_transactional_data(T, r, alpha, a, b, observation_p
        (http://brucehardie.com/papers/bgnbd_2004-04-20.pdf)
 
     """
-    observation_period_end = pd.to_datetime(observation_period_end)  # Convert observation end date to datetime
+    observation_period_end = pd.to_datetime(
+        observation_period_end
+    )  # Convert observation end date to datetime
 
     # Handle the case where T is a scalar or an array
     if type(T) in [float, int]:
         start_date = [observation_period_end - pd.Timedelta(T - 1, unit=freq)] * size
         T = T * np.ones(size)
     else:
-        start_date = [observation_period_end - pd.Timedelta(T[i] - 1, unit=freq) for i in range(size)]
+        start_date = [
+            observation_period_end - pd.Timedelta(T[i] - 1, unit=freq) for i in range(size)
+        ]
         T = np.asarray(T)
 
     # Generate random probabilities of post-purchase death (Beta distribution)
     probability_of_post_purchase_death = np.random.beta(a, b, size=size)
-    
+
     # Generate random purchase rate lambdas (Gamma distribution)
     lambda_ = np.random.gamma(r, scale=1.0 / alpha, size=size)
 
@@ -277,8 +283,8 @@ def pareto_nbd_model(T, r, alpha, s, beta, size=1):
     for a continuous, non-contractual, Pareto/NBD process.
 
     It is based on Schmittlein, et al. in [2].
-    
-    The Pareto/NBD model is similar to BG/NBD but introduces a different model 
+
+    The Pareto/NBD model is similar to BG/NBD but introduces a different model
     for customer death, using a gamma distribution for the customer lifetime.
 
     See [2]_ for model details.
@@ -316,7 +322,7 @@ def pareto_nbd_model(T, r, alpha, s, beta, size=1):
 
     # Generate random purchase rates (Gamma distribution)
     lambda_ = np.random.gamma(r, scale=1.0 / alpha, size=size)
-  
+
     # Generate random customer lifetimes (Gamma distribution)
     mus = np.random.gamma(s, scale=1.0 / beta, size=size)
 
@@ -350,7 +356,8 @@ def pareto_nbd_model(T, r, alpha, s, beta, size=1):
         )
 
     return df.set_index("customer_id")  # Return the DataFrame with customer IDs as the index
-  
+
+
 def modified_beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
     """
     Generate artificial data according to the MBG/NBD model.
@@ -399,7 +406,9 @@ def modified_beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
         # hacky until I can find something better
         times = []
         next_purchase_in = np.random.exponential(scale=1.0 / l)
-        alive = np.random.np.random() > p  # essentially the difference between this model and BG/NBD
+        alive = (
+            np.random.np.random() > p
+        )  # essentially the difference between this model and BG/NBD
         while (np.sum(times) + next_purchase_in < T[i]) and alive:
             times.append(next_purchase_in)
             next_purchase_in = np.random.exponential(scale=1.0 / l)

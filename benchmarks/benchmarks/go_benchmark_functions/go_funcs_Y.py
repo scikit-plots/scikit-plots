@@ -1,9 +1,9 @@
-from numpy import abs, sum, cos, pi
+from numpy import abs, cos, pi, sum
+
 from .go_benchmark import Benchmark
 
 
 class YaoLiu04(Benchmark):
-
     r"""
     Yao-Liu 4 objective function.
 
@@ -50,7 +50,6 @@ class YaoLiu04(Benchmark):
 
 
 class YaoLiu09(Benchmark):
-
     r"""
     Yao-Liu 9 objective function.
 
@@ -88,4 +87,4 @@ class YaoLiu09(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return sum(x ** 2.0 - 10.0 * cos(2 * pi * x) + 10)
+        return sum(x**2.0 - 10.0 * cos(2 * pi * x) + 10)

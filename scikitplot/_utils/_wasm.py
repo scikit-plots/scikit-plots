@@ -1,13 +1,13 @@
 """
-WebAssembly (Wasm) is a binary instruction format designed as a portable 
-target for high-performance web applications. It enables code to be run 
-at near-native speed by taking advantage of common hardware capabilities. 
-Wasm is designed to be fast, efficient, and safe, running in a sandboxed 
+WebAssembly (Wasm) is a binary instruction format designed as a portable
+target for high-performance web applications. It enables code to be run
+at near-native speed by taking advantage of common hardware capabilities.
+Wasm is designed to be fast, efficient, and safe, running in a sandboxed
 environment that doesn't have direct access to the underlying system.
 
-It is widely used in web development to run code (e.g., C, C++, Rust) 
-within web browsers, enabling applications like games, image/video editors, 
-and scientific simulations to be executed directly in the browser with 
+It is widely used in web development to run code (e.g., C, C++, Rust)
+within web browsers, enabling applications like games, image/video editors,
+and scientific simulations to be executed directly in the browser with
 improved performance compared to JavaScript.
 """
 
@@ -17,10 +17,11 @@ improved performance compared to JavaScript.
 import importlib.metadata
 
 __all__ = [
-  "_clear_console",
-  "_pkg_list",
-  "pyodide_env",
+    "_clear_console",
+    "_pkg_list",
+    "pyodide_env",
 ]
+
 
 def _display_msg(message, level="h4"):
     """
@@ -37,8 +38,10 @@ def _display_msg(message, level="h4"):
     --------
     >>> _display_msg("Processing complete.", level="h3")
     """
-    from IPython.display import display, HTML, Javascript
+    from IPython.display import HTML, display
+
     display(HTML(f"<{level}>{message}</{level}>"))
+
 
 def _clear_console(delay=1000):
     """
@@ -53,8 +56,11 @@ def _clear_console(delay=1000):
     --------
     >>> _clear_console(delay=5000)  # Clears the console after 5 seconds.
     """
-    from IPython.display import display, HTML, Javascript
-    display(Javascript(f"""
+    from IPython.display import Javascript, display
+
+    display(
+        Javascript(
+            f"""
         function clearConsole() {{
             const consoleContent = document.querySelector('.jp-CodeConsole-content');
             if (consoleContent) {{
@@ -65,7 +71,10 @@ def _clear_console(delay=1000):
             }}
         }}
         setTimeout(clearConsole, {delay});  // Delay before clearing
-    """))
+    """
+        )
+    )
+
 
 def _add_new_cell(content="micropip.list()"):
     """
@@ -80,14 +89,20 @@ def _add_new_cell(content="micropip.list()"):
     --------
     >>> _add_new_cell("print('Hello, world!')")
     """
-    from IPython.display import display, HTML, Javascript
-    display(Javascript(f"""
+    from IPython.display import Javascript, display
+
+    display(
+        Javascript(
+            f"""
         const code = `{content}`;
         const kernel = Jupyter.notebook.kernel;
         Jupyter.notebook.insert_cell_below('code').set_text(code);
         Jupyter.notebook.select_next();
-    """))
+    """
+        )
+    )
     _display_msg("A new cell has been created with the specified content.", level="p")
+
 
 async def _install_wasm_pkgs(packages):
     """
@@ -107,6 +122,7 @@ async def _install_wasm_pkgs(packages):
     for pkg in packages:
         try:
             import micropip
+
             await micropip.install(pkg, keep_going=True, index_urls=None)
             print(f"Successfully installed {pkg}")
         except Exception as e:
@@ -114,6 +130,7 @@ async def _install_wasm_pkgs(packages):
                 print(f"Can't find a pure Python 3 wheel for: '{pkg}'")
             else:
                 print(f"Error installing {pkg}: {e}")
+
 
 def _pkg_list():
     """
@@ -127,11 +144,12 @@ def _pkg_list():
     for dist in importlib.metadata.distributions():
         print(f"{dist.metadata['Name']:<20} == {dist.metadata['Version']}")
 
+
 async def pyodide_env(packages=None):
     """
-    Prepare the Pyodide environment by installing packages, clearing the console, 
+    Prepare the Pyodide environment by installing packages, clearing the console,
     and creating a new cell.
-    
+
     Install packages using micropip (WebAssembly-wasm packages).
 
     Parameters
@@ -155,14 +173,14 @@ async def pyodide_env(packages=None):
     """
     if packages is None:
         packages = [
-            'numpy',
-            'scipy',
-            'pyarrow',
-            'fastparquet',
-            'pandas',
-            'matplotlib',
-            'scikit-learn',
-            'scikit-plots',
+            "numpy",
+            "scipy",
+            "pyarrow",
+            "fastparquet",
+            "pandas",
+            "matplotlib",
+            "scikit-learn",
+            "scikit-plots",
         ]
     _display_msg("Pyodide Environment preparing...", level="h4")
     # Pyodide Environment preparing...

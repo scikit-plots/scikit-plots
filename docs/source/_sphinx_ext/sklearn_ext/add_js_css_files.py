@@ -1,9 +1,9 @@
 import os
-import re
 
 import sphinx_gallery
 from sphinx.application import Sphinx
 from sphinx.util.logging import getLogger
+
 logger = getLogger(__name__)
 
 
@@ -16,7 +16,10 @@ def disable_plot_gallery_for_linkcheck(app: Sphinx):
     # Check if the current builder is 'linkcheck'
     if app.builder.name == "linkcheck":
         # Ensure sphinx_gallery_conf exists in app.config
-        if hasattr(app.config, "sphinx_gallery_conf") and "plot_gallery" in app.config.sphinx_gallery_conf:
+        if (
+            hasattr(app.config, "sphinx_gallery_conf")
+            and "plot_gallery" in app.config.sphinx_gallery_conf
+        ):
             # Set plot_gallery to False for linkcheck builds
             app.config.sphinx_gallery_conf["plot_gallery"] = False
             logger.info("Plot gallery disabled for linkcheck builder")
@@ -31,83 +34,83 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
 
     JavaScript files must always be loaded before the related CSS
     for dependent features to work.
-    
+
     JavaScript Files (add_js_file):
-    
+
     Default priority for built-in JavaScript files: 200
     Default priority for extensions: 500
     Default priority for files in html_js_files: 800
-    
+
     CSS Files (add_css_file):
-    
+
     Default priority for built-in CSS files: 200
     Default priority for extensions: 500
     Default priority for files in html_css_files: 800
     """
     # Adding a custom variable to the context dictionary for every page
-    apis_search_js_path  = "scripts/apis-search.js"
+    apis_search_js_path = "scripts/apis-search.js"
     apis_search_css_path = "styles/apis-search.css"
-  
-    index_css_path      = "styles/index.css"
-    apis_css_path        = "styles/apis.css"
-  
-    shell_js_path       = "shell_scripts.js"
-    shell_css_path      = "shell_styles.css"
+
+    index_css_path = "styles/index.css"
+    apis_css_path = "styles/apis.css"
+
+    shell_js_path = "shell_scripts.js"
+    shell_css_path = "shell_styles.css"
     shell_code_css_path = "shell_code_styles.css"
 
     # missing_file = []
-    # for file in [apis_search_js_path, api_search_css_path, index_css_path, apis_css_path]:        
+    # for file in [apis_search_js_path, api_search_css_path, index_css_path, apis_css_path]:
     #     if not os.path.exists(os.path.join(app.builder.outdir, "_static", file)):
     #         missing_file.append(file)
     #         logger.warning("File does not exist: %s", file)
-            
+
     # if len(missing_file):
     #     logger.warning("File does not exist here: %s", app.builder.outdir)
     #     return
-    
+
     if pagename == "apis/index":  # "apis/index"
         # External: jQuery (highest priority, must load first)
         app.add_js_file(
-          "https://code.jquery.com/jquery-3.7.1.js",
-          priority=200,  # Load before other JS files
+            "https://code.jquery.com/jquery-3.7.1.js",
+            priority=200,  # Load before other JS files
         )
         # External: DataTables JS (depends on jQuery)
         app.add_js_file(
-          "https://cdn.datatables.net/2.2.1/js/dataTables.min.js",
-          priority=400,  # Load after jQuery
+            "https://cdn.datatables.net/2.2.1/js/dataTables.min.js",
+            priority=400,  # Load after jQuery
         )
         # External: DataTables CSS
         app.add_css_file(
-          "https://cdn.datatables.net/2.2.1/css/dataTables.dataTables.min.css",
-          priority=400,  # Load before custom CSS
+            "https://cdn.datatables.net/2.2.1/css/dataTables.dataTables.min.css",
+            priority=400,  # Load before custom CSS
         )
         # Internal: APIs search initialization and styling
         app.add_js_file(
-          apis_search_js_path,          
-          priority=500,  # Custom JS
+            apis_search_js_path,
+            priority=500,  # Custom JS
         )
         app.add_css_file(
-          apis_search_css_path,
-          priority=500,  # Custom CSS
+            apis_search_css_path,
+            priority=500,  # Custom CSS
         )
         # logger.info("Adding JS and CSS files for page: %s", pagename)
     elif pagename == "index":
         # External: Include Prism.js for syntax highlighting
         app.add_js_file("https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js")
         app.add_js_file(
-          "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js"
+            "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js"
         )
         # Internal: Include the modular JavaScript file
-        app.add_js_file(shell_js_path)      
+        app.add_js_file(shell_js_path)
         # External: Link to Prism.js CSS for syntax highlighting
         app.add_css_file(
-          "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css",
-          # priority=500,  # Load befor
+            "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css",
+            # priority=500,  # Load befor
         )
         # Internal: Link to custom CSS for styling
         app.add_css_file(index_css_path)
         app.add_css_file(shell_css_path)
-        app.add_css_file(shell_code_css_path)      
+        app.add_css_file(shell_code_css_path)
         # logger.info("Adding JS and CSS files for page: %s", pagename)
     elif pagename.startswith("modules/generated/"):
         app.add_css_file(apis_css_path)

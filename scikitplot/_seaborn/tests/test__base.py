@@ -1,24 +1,24 @@
 import itertools
-import numpy as np
-import pandas as pd
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
+import numpy as np
+import pandas as pd
 import pytest
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from pandas.testing import assert_frame_equal
 
 from .._base import (
-    SemanticMapping,
     HueMapping,
+    SemanticMapping,
     SizeMapping,
     StyleMapping,
     VectorPlotter,
-    variable_type,
+    categorical_order,
     infer_orient,
     unique_dashes,
     unique_markers,
-    categorical_order,
+    variable_type,
 )
 from .._compat import get_colormap
 from ..axisgrid import FacetGrid
@@ -26,20 +26,22 @@ from ..palettes import color_palette
 from ..utils import desaturate
 
 
-@pytest.fixture(params=[
-    dict(x="x", y="y"),
-    dict(x="t", y="y"),
-    dict(x="a", y="y"),
-    dict(x="x", y="y", hue="y"),
-    dict(x="x", y="y", hue="a"),
-    dict(x="x", y="y", size="a"),
-    dict(x="x", y="y", style="a"),
-    dict(x="x", y="y", hue="s"),
-    dict(x="x", y="y", size="s"),
-    dict(x="x", y="y", style="s"),
-    dict(x="x", y="y", hue="a", style="a"),
-    dict(x="x", y="y", hue="a", size="b", style="b"),
-])
+@pytest.fixture(
+    params=[
+        dict(x="x", y="y"),
+        dict(x="t", y="y"),
+        dict(x="a", y="y"),
+        dict(x="x", y="y", hue="y"),
+        dict(x="x", y="y", hue="a"),
+        dict(x="x", y="y", size="a"),
+        dict(x="x", y="y", style="a"),
+        dict(x="x", y="y", hue="s"),
+        dict(x="x", y="y", size="s"),
+        dict(x="x", y="y", style="s"),
+        dict(x="x", y="y", hue="a", style="a"),
+        dict(x="x", y="y", hue="a", size="b", style="b"),
+    ]
+)
 def long_variables(request):
     return request.param
 
@@ -195,20 +197,14 @@ class TestHueMapping:
         assert m.map_type == "categorical"
 
         # Test numeric data with category type
-        p = VectorPlotter(
-            data=long_df,
-            variables=dict(x="x", y="y", hue="s_cat")
-        )
+        p = VectorPlotter(data=long_df, variables=dict(x="x", y="y", hue="s_cat"))
         m = HueMapping(p)
         assert m.levels == categorical_order(long_df["s_cat"])
         assert m.map_type == "categorical"
         assert m.cmap is None
 
         # Test categorical palette specified for numeric data
-        p = VectorPlotter(
-            data=long_df,
-            variables=dict(x="x", y="y", hue="s")
-        )
+        p = VectorPlotter(data=long_df, variables=dict(x="x", y="y", hue="s"))
         palette = "deep"
         levels = categorical_order(long_df["s"])
         expected_colors = color_palette(palette, n_colors=len(levels))
@@ -219,13 +215,10 @@ class TestHueMapping:
 
     def test_hue_map_numeric(self, long_df):
 
-        vals = np.concatenate([np.linspace(0, 1, 256), [-.1, 1.1, np.nan]])
+        vals = np.concatenate([np.linspace(0, 1, 256), [-0.1, 1.1, np.nan]])
 
         # Test default colormap
-        p = VectorPlotter(
-            data=long_df,
-            variables=dict(x="x", y="y", hue="s")
-        )
+        p = VectorPlotter(data=long_df, variables=dict(x="x", y="y", hue="s"))
         hue_levels = list(np.sort(long_df["s"].unique()))
         m = HueMapping(p)
         assert m.levels == hue_levels
@@ -513,12 +506,10 @@ class TestStyleMapping:
             assert m(key, "dashes") == dashes
 
         actual_marker_paths = {
-            k: mpl.markers.MarkerStyle(m(k, "marker")).get_path()
-            for k in m.levels
+            k: mpl.markers.MarkerStyle(m(k, "marker")).get_path() for k in m.levels
         }
         expected_marker_paths = {
-            k: mpl.markers.MarkerStyle(m).get_path()
-            for k, m in zip(m.levels, unique_markers(n))
+            k: mpl.markers.MarkerStyle(m).get_path() for k, m in zip(m.levels, unique_markers(n))
         }
         assert actual_marker_paths == expected_marker_paths
 
@@ -682,21 +673,25 @@ class TestVectorPlotter:
 
         with pytest.raises(ValueError):
             p.assign_variables(
-                data=long_df, variables=dict(x="not_in_df"),
+                data=long_df,
+                variables=dict(x="not_in_df"),
             )
 
         with pytest.raises(ValueError):
             p.assign_variables(
-                data=long_df, variables=dict(x="x", y="not_in_df"),
+                data=long_df,
+                variables=dict(x="x", y="not_in_df"),
             )
 
         with pytest.raises(ValueError):
             p.assign_variables(
-                data=long_df, variables=dict(x="x", y="y", hue="not_in_df"),
+                data=long_df,
+                variables=dict(x="x", y="y", hue="not_in_df"),
             )
 
     @pytest.mark.parametrize(
-        "arg", [[], np.array([]), pd.DataFrame()],
+        "arg",
+        [[], np.array([]), pd.DataFrame()],
     )
     def test_empty_data_input(self, arg):
 
@@ -958,20 +953,14 @@ class TestVectorPlotter:
     def test_iter_data_reverse(self, long_df):
 
         reversed_order = categorical_order(long_df["a"])[::-1]
-        p = VectorPlotter(
-            data=long_df,
-            variables=dict(x="x", y="y", hue="a")
-        )
+        p = VectorPlotter(data=long_df, variables=dict(x="x", y="y", hue="a"))
         iterator = p.iter_data("hue", reverse=True)
         for i, (sub_vars, _) in enumerate(iterator):
             assert sub_vars["hue"] == reversed_order[i]
 
     def test_iter_data_dropna(self, null_df):
 
-        p = VectorPlotter(
-            data=null_df,
-            variables=dict(x="x", y="y", hue="a")
-        )
+        p = VectorPlotter(data=null_df, variables=dict(x="x", y="y", hue="a"))
         p.map_hue()
         for _, sub_df in p.iter_data("hue"):
             assert not sub_df.isna().any().any()
@@ -1039,7 +1028,7 @@ class TestVectorPlotter:
             dict(y="y"),
             dict(x="t", y="y"),
             dict(x="x", y="a"),
-        ]
+        ],
     )
     def test_attach_basics(self, long_df, variables):
 
@@ -1181,7 +1170,7 @@ class TestVectorPlotter:
         fwd, inv = p._get_scale_transforms("x")
         x = np.arange(1, 4)
         assert_array_almost_equal(fwd(x), np.log10(x))
-        assert_array_almost_equal(inv(x), 10 ** x)
+        assert_array_almost_equal(inv(x), 10**x)
 
     def test_scale_transform_facets(self, long_df):
 
@@ -1233,7 +1222,8 @@ class TestVectorPlotter:
 
         g = FacetGrid(long_df, col="a", row="b")
         p = VectorPlotter(
-            data=long_df, variables={"x": "x", "y": "y", "col": "a", "row": "b"},
+            data=long_df,
+            variables={"x": "x", "y": "y", "col": "a", "row": "b"},
         )
         p._attach(g)
         assert p.converters["x"].nunique() == 1
@@ -1241,7 +1231,8 @@ class TestVectorPlotter:
 
         g = FacetGrid(long_df, col="a", row="b", sharex=False)
         p = VectorPlotter(
-            data=long_df, variables={"x": "x", "y": "y", "col": "a", "row": "b"},
+            data=long_df,
+            variables={"x": "x", "y": "y", "col": "a", "row": "b"},
         )
         p._attach(g)
         assert p.converters["x"].nunique() == len(g.axes.flat)
@@ -1249,7 +1240,8 @@ class TestVectorPlotter:
 
         g = FacetGrid(long_df, col="a", row="b", sharex="col")
         p = VectorPlotter(
-            data=long_df, variables={"x": "x", "y": "y", "col": "a", "row": "b"},
+            data=long_df,
+            variables={"x": "x", "y": "y", "col": "a", "row": "b"},
         )
         p._attach(g)
         assert p.converters["x"].nunique() == p.plot_data["col"].nunique()
@@ -1258,7 +1250,8 @@ class TestVectorPlotter:
 
         g = FacetGrid(long_df, col="a", row="b", sharey="row")
         p = VectorPlotter(
-            data=long_df, variables={"x": "x", "y": "y", "col": "a", "row": "b"},
+            data=long_df,
+            variables={"x": "x", "y": "y", "col": "a", "row": "b"},
         )
         p._attach(g)
         assert p.converters["x"].nunique() == 1
@@ -1280,9 +1273,7 @@ class TestVectorPlotter:
         assert p._get_axes({"col": "b"}) is g.axes_dict["b"]
 
         g = FacetGrid(long_df, col="a", row="c")
-        p = VectorPlotter(
-            data=long_df, variables={"x": "x", "col": "a", "row": "c"}
-        )
+        p = VectorPlotter(data=long_df, variables={"x": "x", "col": "a", "row": "c"})
         p._attach(g)
         assert p._get_axes({"row": 1, "col": "b"}) is g.axes_dict[(1, "b")]
 
@@ -1299,18 +1290,14 @@ class TestVectorPlotter:
         p._attach(ax)
 
         assert_array_equal(p.comp_data["x"], p.plot_data["x"])
-        assert_array_equal(
-            p.comp_data["y"], ax.yaxis.convert_units(p.plot_data["y"])
-        )
+        assert_array_equal(p.comp_data["y"], ax.yaxis.convert_units(p.plot_data["y"]))
 
         p = VectorPlotter(data=long_df, variables={"x": "a"})
 
         _, ax = plt.subplots()
         p._attach(ax)
 
-        assert_array_equal(
-            p.comp_data["x"], ax.xaxis.convert_units(p.plot_data["x"])
-        )
+        assert_array_equal(p.comp_data["x"], ax.xaxis.convert_units(p.plot_data["x"]))
 
     def test_comp_data_log(self, long_df):
 
@@ -1318,15 +1305,14 @@ class TestVectorPlotter:
         _, ax = plt.subplots()
         p._attach(ax, log_scale=(True, False))
 
-        assert_array_equal(
-            p.comp_data["x"], np.log10(p.plot_data["x"])
-        )
+        assert_array_equal(p.comp_data["x"], np.log10(p.plot_data["x"]))
         assert_array_equal(p.comp_data["y"], p.plot_data["y"])
 
     def test_comp_data_category_order(self):
 
-        s = (pd.Series(["a", "b", "c", "a"], dtype="category")
-             .cat.set_categories(["b", "c", "a"], ordered=True))
+        s = pd.Series(["a", "b", "c", "a"], dtype="category").cat.set_categories(
+            ["b", "c", "a"], ordered=True
+        )
 
         p = VectorPlotter(variables={"x": s})
         _, ax = plt.subplots()
@@ -1492,7 +1478,7 @@ class TestCoreFunc:
 
     def test_variable_type(self):
 
-        s = pd.Series([1., 2., 3.])
+        s = pd.Series([1.0, 2.0, 3.0])
         assert variable_type(s) == "numeric"
         assert variable_type(s.astype(int)) == "numeric"
         assert variable_type(s.astype(object)) == "numeric"

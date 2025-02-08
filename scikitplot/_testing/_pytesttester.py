@@ -28,13 +28,13 @@ This module is imported by every numpy subpackage, so lies at the top level to
 simplify circular import issues. For the same reason, it contains no numpy
 imports at module scope, instead importing numpy within function calls.
 """
-from __future__ import division, absolute_import, print_function
 
-import sys
+from __future__ import absolute_import, division, print_function
+
 import os
+import sys
 
-__all__ = ['PytestTester']
-
+__all__ = ["PytestTester"]
 
 
 def _show_numpy_info():
@@ -70,11 +70,20 @@ class PytestTester(object):
         The name of the module to test.
 
     """
+
     def __init__(self, module_name):
         self.module_name = module_name
 
-    def __call__(self, label='fast', verbose=1, extra_argv=None,
-                 doctests=False, coverage=False, durations=-1, tests=None):
+    def __call__(
+        self,
+        label="fast",
+        verbose=1,
+        extra_argv=None,
+        doctests=False,
+        coverage=False,
+        durations=-1,
+        tests=None,
+    ):
         """
         Run tests for module using pytest.
 
@@ -120,14 +129,15 @@ class PytestTester(object):
         True
 
         """
-        import pytest
         import warnings
 
-        #FIXME This is no longer needed? Assume it was for use in tests.
+        import pytest
+
+        # FIXME This is no longer needed? Assume it was for use in tests.
         # cap verbosity at 3, which is equivalent to the pytest '-vv' option
-        #from . import utils
-        #verbose = min(int(verbose), 3)
-        #utils.verbose = verbose
+        # from . import utils
+        # verbose = min(int(verbose), 3)
+        # utils.verbose = verbose
         #
 
         module = sys.modules[self.module_name]
@@ -144,7 +154,6 @@ class PytestTester(object):
         # so fetch module for suppression here.
         with warnings.catch_warnings():
             warnings.simplefilter("always")
-            from numpy.distutils import cpuinfo
 
         # Filter out annoying import messages. Want these in both develop and
         # release mode.
@@ -153,12 +162,12 @@ class PytestTester(object):
             "-W ignore:numpy.dtype size changed",
             "-W ignore:numpy.ufunc size changed",
             "-W ignore::UserWarning:cpuinfo",
-            ]
+        ]
 
         # When testing matrices, ignore their PendingDeprecationWarnings
         pytest_args += [
             "-W ignore:the matrix subclass is not",
-            ]
+        ]
 
         # Ignore python2.7 -3 warnings
         pytest_args += [
@@ -170,8 +179,7 @@ class PytestTester(object):
             r"-W ignore:comparing unequal types not supported in 3\.x:DeprecationWarning",
             r"-W ignore:the commands module has been removed in Python 3\.0:DeprecationWarning",
             r"-W ignore:The 'new' module has been removed in Python 3\.0:DeprecationWarning",
-            ]
-
+        ]
 
         if doctests:
             raise ValueError("Doctests not supported")
@@ -180,7 +188,7 @@ class PytestTester(object):
             pytest_args += list(extra_argv)
 
         if verbose > 1:
-            pytest_args += ["-" + "v"*(verbose - 1)]
+            pytest_args += ["-" + "v" * (verbose - 1)]
 
         if coverage:
             pytest_args += ["--cov=" + module_path]
@@ -197,7 +205,6 @@ class PytestTester(object):
             tests = [self.module_name]
 
         pytest_args += ["--pyargs"] + list(tests)
-
 
         # run tests.
         _show_numpy_info()

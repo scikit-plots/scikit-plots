@@ -7,7 +7,7 @@ Setting up scikit-plots for development
 =======================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 To set up scikit-plots for development follow these steps:

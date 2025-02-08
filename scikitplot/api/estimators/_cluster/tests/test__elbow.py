@@ -1,14 +1,9 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
-from sklearn.datasets import load_iris as load_data
+import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.datasets import load_iris as load_data
 
 from scikitplot.api.estimators import plot_elbow
 

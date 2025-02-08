@@ -24,11 +24,23 @@
 #     return module
 
 from . import (
-  copyfiles,
-  cythoner,
-  gcc_build_bitness,
-  gitversion,
-  system_info,
-  tempita,
-  version,
+    copyfiles as copyfiles,
+)
+from . import (
+    cythoner as cythoner,
+)
+from . import (
+    gcc_build_bitness as gcc_build_bitness,
+)
+from . import (
+    gitversion as gitversion,
+)
+from . import (
+    system_info as system_info,
+)
+from . import (
+    tempita as tempita,
+)
+from . import (
+    version as version,
 )

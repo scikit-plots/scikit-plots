@@ -207,7 +207,7 @@ RUN mamba install --yes \
 ENV JUPYTER_PORT=${JUPYTER_PORT:-8888}
 ## Expose the Jupyter notebook's default port
 ## Default value is 8888, can be overridden
-EXPOSE ${JUPYTER_PORT:-8888}  
+EXPOSE ${JUPYTER_PORT:-8888}
 EXPOSE 8888-8890
 EXPOSE 5000-5001
 EXPOSE 9000-9001

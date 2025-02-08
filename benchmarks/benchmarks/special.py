@@ -1,6 +1,6 @@
 import numpy as np
 
-from .common import Benchmark, with_attributes, safe_import
+from .common import Benchmark, safe_import, with_attributes
 
 with safe_import():
     from scipy.special import ai_zeros, bi_zeros, erf, expn
@@ -27,7 +27,7 @@ class Erf(Benchmark):
         erf(self.rand + offset)
 
     time_real.params = [0.0, 2.0]
-    time_real.param_names = ['offset']
+    time_real.param_names = ["offset"]
 
 
 class Comb(Benchmark):
@@ -36,13 +36,12 @@ class Comb(Benchmark):
         self.N = np.arange(1, 1000, 50)
         self.k = np.arange(1, 1000, 50)
 
-    @with_attributes(params=[(10, 100, 1000, 10000), (1, 10, 100)],
-                     param_names=['N', 'k'])
+    @with_attributes(params=[(10, 100, 1000, 10000), (1, 10, 100)], param_names=["N", "k"])
     def time_comb_exact(self, N, k):
         comb(N, k, exact=True)
 
     def time_comb_float(self):
-        comb(self.N[:,None], self.k[None,:])
+        comb(self.N[:, None], self.k[None, :])
 
 
 class Loggamma(Benchmark):
@@ -50,7 +49,7 @@ class Loggamma(Benchmark):
     def setup(self):
         x, y = np.logspace(3, 5, 10), np.logspace(3, 5, 10)
         x, y = np.meshgrid(x, y)
-        self.large_z = x + 1j*y
+        self.large_z = x + 1j * y
 
     def time_loggamma_asymptotic(self):
         loggamma(self.large_z)

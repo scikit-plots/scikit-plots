@@ -4,7 +4,7 @@ Documentation style guide
 =========================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 This guide contains best practices for the language and formatting of Matplotlib

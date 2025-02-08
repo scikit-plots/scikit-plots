@@ -10,39 +10,38 @@ This package/module is designed to be compatible with both Python 2 and Python 3
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-  division,         # Changes the division operator `/` to always perform true division.
-  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,  # Changes the division operator `/` to always perform true division.
+    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 
-from ..api._utils.validation import (
-  validate_plotting_kwargs_decorator,
-  validate_shapes_decorator,
-  validate_y_true_decorator,
-  validate_y_probas_decorator,
-  validate_y_probas_bounds_decorator,
-)
-
+from .. import _docstring, _preprocess
 from .._seaborn._compat import groupby_apply_include_groups
-from .. import _api, _docstring, _preprocess
-
+from ..api._utils.validation import (
+    validate_plotting_kwargs_decorator,
+    validate_shapes_decorator,
+    validate_y_probas_bounds_decorator,
+    validate_y_probas_decorator,
+    validate_y_true_decorator,
+)
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
-  'print_labels',
-  'decile_table',
-  'plot_cumulative_gain',
-  'plot_lift',
-  'plot_lift_decile_wise',
-  'plot_ks_statistic',
-  'report',
+    "print_labels",
+    "decile_table",
+    "plot_cumulative_gain",
+    "plot_lift",
+    "plot_lift_decile_wise",
+    "plot_ks_statistic",
+    "report",
 ]
 
 
@@ -97,17 +96,17 @@ def print_labels(**kwargs):
 @validate_y_probas_decorator
 @validate_y_probas_bounds_decorator
 def decile_table(
-  ## default params
-  y_true,
-  y_probas,
-  *args,
-  pos_label=None,      # for y_true
-  class_index=1,       # for y_probas
-  change_deciles=10,
-  digits=3,
-  labels=True,
-  ## additional params
-  **kwargs,
+    ## default params
+    y_true,
+    y_probas,
+    *args,
+    pos_label=None,  # for y_true
+    class_index=1,  # for y_probas
+    change_deciles=10,
+    digits=3,
+    labels=True,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the Decile Table from labels and probabilities
@@ -189,63 +188,70 @@ def decile_table(
 
     # Create DataFrame
     df = pd.DataFrame()
-    df['y_true'] = y_true
-    df['y_prob'] = y_probas
+    df["y_true"] = y_true
+    df["y_prob"] = y_probas
 
     # df['decile']=pd.qcut(df['y_prob'], 10, labels=list(np.arange(10,0,-1)))
     # ValueError: Bin edges must be unique
     # Sort by probabilities
-    df = df.sort_values(by=['y_prob'], ascending=False)
-    df['decile'] = np.linspace(1, change_deciles+1, len(df), False, dtype=int)
+    df = df.sort_values(by=["y_prob"], ascending=False)
+    df["decile"] = np.linspace(1, change_deciles + 1, len(df), False, dtype=int)
 
     # Apply the groupby operation
     # dt abbreviation for decile_table
-    dt = df.groupby('decile', group_keys=False).apply(
-        lambda x: pd.Series(
-            [
-                np.min(x['y_prob']),
-                np.max(x['y_prob']),
-                np.mean(x['y_prob']),
-                np.size(x['y_prob']),
-                np.sum(x['y_true']),
-                np.size(x['y_true'][x['y_true'] == 0]),
-            ],
-            index=(
-                ["prob_min", "prob_max", "prob_avg", "cnt_cust", "cnt_resp", "cnt_non_resp"]
+    dt = (
+        df.groupby("decile", group_keys=False)
+        .apply(
+            lambda x: pd.Series(
+                [
+                    np.min(x["y_prob"]),
+                    np.max(x["y_prob"]),
+                    np.mean(x["y_prob"]),
+                    np.size(x["y_prob"]),
+                    np.sum(x["y_true"]),
+                    np.size(x["y_true"][x["y_true"] == 0]),
+                ],
+                index=(
+                    ["prob_min", "prob_max", "prob_avg", "cnt_cust", "cnt_resp", "cnt_non_resp"]
+                ),
             ),
-        ),
-        **groupby_apply_include_groups(False),  # Deprecated since version 2.2.0: Setting include_groups to True is deprecated.
-    ).reset_index()
+            **groupby_apply_include_groups(
+                False
+            ),  # Deprecated since version 2.2.0: Setting include_groups to True is deprecated.
+        )
+        .reset_index()
+    )
 
     # Round the results
-    dt['prob_min']=dt['prob_min'].round(digits)
-    dt['prob_max']=dt['prob_max'].round(digits)
-    dt['prob_avg']=round(dt['prob_avg'],digits)
+    dt["prob_min"] = dt["prob_min"].round(digits)
+    dt["prob_max"] = dt["prob_max"].round(digits)
+    dt["prob_avg"] = round(dt["prob_avg"], digits)
     # dt=dt.sort_values(by='decile',ascending=False).reset_index(drop=True)
 
     # Calculate additional columns
-    tmp = df[['y_true']].sort_values('y_true', ascending=False)
-    tmp['decile'] = np.linspace(1, change_deciles+1, len(tmp), False, dtype=int)
+    tmp = df[["y_true"]].sort_values("y_true", ascending=False)
+    tmp["decile"] = np.linspace(1, change_deciles + 1, len(tmp), False, dtype=int)
 
-    dt['cnt_resp_rndm'] = np.sum(df['y_true']) / change_deciles
-    dt['cnt_resp_wiz'] = tmp.groupby(
-      'decile',
-      group_keys=False,  # Changed in version 2.0.0: group_keys now defaults to True.
-      as_index=True,
-    )['y_true'].sum()#['y_true']
+    dt["cnt_resp_rndm"] = np.sum(df["y_true"]) / change_deciles
+    dt["cnt_resp_wiz"] = tmp.groupby(
+        "decile",
+        group_keys=False,  # Changed in version 2.0.0: group_keys now defaults to True.
+        as_index=True,
+    )[
+        "y_true"
+    ].sum()  # ['y_true']
 
-    dt['resp_rate'] = round(dt['cnt_resp'] * 100 / dt['cnt_cust'], digits)
-    dt['cum_cust'] = np.cumsum(dt['cnt_cust'])
-    dt['cum_resp'] = np.cumsum(dt['cnt_resp'])
-    dt['cum_resp_wiz'] = np.cumsum(dt['cnt_resp_wiz'])
-    dt['cum_non_resp'] = np.cumsum(dt['cnt_non_resp'])
-    dt['cum_cust_pct'] = round(dt['cum_cust'] * 100 / np.sum(dt['cnt_cust']), digits)
-    dt['cum_resp_pct'] = round(dt['cum_resp'] * 100 / np.sum(dt['cnt_resp']), digits)
-    dt['cum_resp_pct_wiz'] = round(dt['cum_resp_wiz'] * 100 / np.sum(dt['cnt_resp_wiz']), digits)
-    dt['cum_non_resp_pct'] = round(
-        dt['cum_non_resp'] * 100 / np.sum(dt['cnt_non_resp']), digits)
-    dt['KS'] = round(dt['cum_resp_pct'] - dt['cum_non_resp_pct'], digits)
-    dt['lift'] = round(dt['cum_resp_pct'] / dt['cum_cust_pct'], digits)
+    dt["resp_rate"] = round(dt["cnt_resp"] * 100 / dt["cnt_cust"], digits)
+    dt["cum_cust"] = np.cumsum(dt["cnt_cust"])
+    dt["cum_resp"] = np.cumsum(dt["cnt_resp"])
+    dt["cum_resp_wiz"] = np.cumsum(dt["cnt_resp_wiz"])
+    dt["cum_non_resp"] = np.cumsum(dt["cnt_non_resp"])
+    dt["cum_cust_pct"] = round(dt["cum_cust"] * 100 / np.sum(dt["cnt_cust"]), digits)
+    dt["cum_resp_pct"] = round(dt["cum_resp"] * 100 / np.sum(dt["cnt_resp"]), digits)
+    dt["cum_resp_pct_wiz"] = round(dt["cum_resp_wiz"] * 100 / np.sum(dt["cnt_resp_wiz"]), digits)
+    dt["cum_non_resp_pct"] = round(dt["cum_non_resp"] * 100 / np.sum(dt["cnt_non_resp"]), digits)
+    dt["KS"] = round(dt["cum_resp_pct"] - dt["cum_non_resp_pct"], digits)
+    dt["lift"] = round(dt["cum_resp_pct"] / dt["cum_cust_pct"], digits)
 
     if labels is True:
         print_labels()
@@ -254,34 +260,37 @@ def decile_table(
 
 
 @_preprocess._preprocess_data(
-  replace_names=["y_true", "y_probas",],
-  # label_namer="y",  # for label params
+    replace_names=[
+        "y_true",
+        "y_probas",
+    ],
+    # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
 @_docstring.interpd
 def plot_lift(
-  ## default params
-  y_true,
-  y_probas,
-  *args,
-  pos_label=None,      # for y_true
-  class_index=1,       # for y_probas
-  # class_names=None,
-  # multi_class=None,
-  # to_plot_class_index=None,
-  ## plotting params
-  title='Lift Curves',
-  ax=None,
-  fig=None,
-  figsize=None,
-  title_fontsize="large",
-  text_fontsize="medium",
-  # cmap=None,
-  # show_labels=True,
-  # plot_micro=False,
-  # plot_macro=False,
-  ## additional params
-  **kwargs,
+    ## default params
+    y_true,
+    y_probas,
+    *args,
+    pos_label=None,  # for y_true
+    class_index=1,  # for y_probas
+    # class_names=None,
+    # multi_class=None,
+    # to_plot_class_index=None,
+    ## plotting params
+    title="Lift Curves",
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+    # cmap=None,
+    # show_labels=True,
+    # plot_micro=False,
+    # plot_macro=False,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the Decile based cumulative Lift Plot from labels and probabilities.
@@ -373,13 +382,13 @@ def plot_lift(
     # )
 
     # Proceed with your plotting logic here, e.g.:
-    ax.plot(pl.decile.values, pl.lift.values, marker='o', label='Model')
+    ax.plot(pl.decile.values, pl.lift.values, marker="o", label="Model")
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
-    ax.plot([1, 10], [1, 1], 'k--', marker='o', label='Random')
+    ax.plot([1, 10], [1, 1], "k--", marker="o", label="Random")
 
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Deciles', fontsize=text_fontsize)
-    plt.ylabel('Lift', fontsize=text_fontsize)
+    plt.xlabel("Deciles", fontsize=text_fontsize)
+    plt.ylabel("Lift", fontsize=text_fontsize)
     plt.legend()
     plt.grid(True)
     # plt.show()
@@ -387,34 +396,37 @@ def plot_lift(
 
 
 @_preprocess._preprocess_data(
-  replace_names=["y_true", "y_probas",],
-  # label_namer="y",  # for label params
+    replace_names=[
+        "y_true",
+        "y_probas",
+    ],
+    # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
 @_docstring.interpd
 def plot_lift_decile_wise(
-  ## default params
-  y_true,
-  y_probas,
-  *,
-  pos_label=None,      # for y_true
-  class_index=1,       # for y_probas
-  # class_names=None,
-  # multi_class=None,
-  # to_plot_class_index=None,
-  ## plotting params
-  title='Decile-wise Lift Plot',
-  ax=None,
-  fig=None,
-  figsize=None,
-  title_fontsize="large",
-  text_fontsize="medium",
-  # cmap=None,
-  # show_labels=True,
-  # plot_micro=False,
-  # plot_macro=False,
-  ## additional params
-  **kwargs,
+    ## default params
+    y_true,
+    y_probas,
+    *,
+    pos_label=None,  # for y_true
+    class_index=1,  # for y_probas
+    # class_names=None,
+    # multi_class=None,
+    # to_plot_class_index=None,
+    ## plotting params
+    title="Decile-wise Lift Plot",
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+    # cmap=None,
+    # show_labels=True,
+    # plot_micro=False,
+    # plot_macro=False,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the Decile-wise Lift Plot from labels and probabilities
@@ -492,13 +504,18 @@ def plot_lift_decile_wise(
     # )
 
     # Proceed with your plotting logic here, e.g.:
-    ax.plot(pldw.decile.values, pldw.cnt_resp.values / pldw.cnt_resp_rndm.values, marker='o', label='Model')
+    ax.plot(
+        pldw.decile.values,
+        pldw.cnt_resp.values / pldw.cnt_resp_rndm.values,
+        marker="o",
+        label="Model",
+    )
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
-    ax.plot([1, 10], [1, 1], 'k--', marker='o', label='Random')
+    ax.plot([1, 10], [1, 1], "k--", marker="o", label="Random")
 
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Deciles', fontsize=text_fontsize)
-    plt.ylabel('Lift @ Decile', fontsize=text_fontsize)
+    plt.xlabel("Deciles", fontsize=text_fontsize)
+    plt.ylabel("Lift @ Decile", fontsize=text_fontsize)
     plt.legend()
     plt.grid(True)
     # plt.show()
@@ -506,34 +523,37 @@ def plot_lift_decile_wise(
 
 
 @_preprocess._preprocess_data(
-  replace_names=["y_true", "y_probas",],
-  # label_namer="y",  # for label params
+    replace_names=[
+        "y_true",
+        "y_probas",
+    ],
+    # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
 @_docstring.interpd
 def plot_cumulative_gain(
-  ## default params
-  y_true,
-  y_probas,
-  *,
-  pos_label=None,      # for y_true
-  class_index=1,       # for y_probas
-  # class_names=None,
-  # multi_class=None,
-  # to_plot_class_index=None,
-  ## plotting params
-  title='Cumulative Gain Plot',
-  ax=None,
-  fig=None,
-  figsize=None,
-  title_fontsize="large",
-  text_fontsize="medium",
-  # cmap=None,
-  # show_labels=True,
-  # plot_micro=False,
-  # plot_macro=False,
-  ## additional params
-  **kwargs,
+    ## default params
+    y_true,
+    y_probas,
+    *,
+    pos_label=None,  # for y_true
+    class_index=1,  # for y_probas
+    # class_names=None,
+    # multi_class=None,
+    # to_plot_class_index=None,
+    ## plotting params
+    title="Cumulative Gain Plot",
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+    # cmap=None,
+    # show_labels=True,
+    # plot_micro=False,
+    # plot_macro=False,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the Decile-wise Lift Plot from labels and probabilities
@@ -625,14 +645,24 @@ def plot_cumulative_gain(
     # )
 
     # Proceed with your plotting logic here, e.g.:
-    ax.plot(np.append(0, pcg.decile.values), np.append(0, pcg.cum_resp_pct.values), marker='o', label='Model')
-    ax.plot(np.append(0, pcg.decile.values), np.append(0, pcg.cum_resp_pct_wiz.values), 'c--', label='Wizard')
+    ax.plot(
+        np.append(0, pcg.decile.values),
+        np.append(0, pcg.cum_resp_pct.values),
+        marker="o",
+        label="Model",
+    )
+    ax.plot(
+        np.append(0, pcg.decile.values),
+        np.append(0, pcg.cum_resp_pct_wiz.values),
+        "c--",
+        label="Wizard",
+    )
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
-    ax.plot([0, 10], [0, 100], 'k--', marker='o', label='Random')
+    ax.plot([0, 10], [0, 100], "k--", marker="o", label="Random")
 
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Deciles', fontsize=text_fontsize)
-    plt.ylabel('% Resonders', fontsize=text_fontsize)
+    plt.xlabel("Deciles", fontsize=text_fontsize)
+    plt.ylabel("% Resonders", fontsize=text_fontsize)
     plt.legend()
     plt.grid(True)
     # plt.show()
@@ -640,31 +670,34 @@ def plot_cumulative_gain(
 
 
 @_preprocess._preprocess_data(
-  replace_names=["y_true", "y_probas",],
-  # label_namer="y",  # for label params
+    replace_names=[
+        "y_true",
+        "y_probas",
+    ],
+    # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
 @_docstring.interpd
 def plot_ks_statistic(
-  ## default params
-  y_true,
-  y_probas,
-  *,
-  pos_label=None,      # for y_true
-  class_index=1,       # for y_probas
-  # class_names=None,
-  # multi_class=None,
-  # to_plot_class_index=None,
-  ## plotting params
-  title='KS Statistic Plot',
-  ax=None,
-  fig=None,
-  figsize=None,
-  title_fontsize="large",
-  text_fontsize="medium",
-  digits=2,
-  ## additional params
-  **kwargs,
+    ## default params
+    y_true,
+    y_probas,
+    *,
+    pos_label=None,  # for y_true
+    class_index=1,  # for y_probas
+    # class_names=None,
+    # multi_class=None,
+    # to_plot_class_index=None,
+    ## plotting params
+    title="KS Statistic Plot",
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+    digits=2,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates the KS Statistic Plot from labels and probabilities
@@ -752,21 +785,32 @@ def plot_ks_statistic(
     # )
 
     # Proceed with your plotting logic here, e.g.:
-    ax.plot(np.append(0, pks.decile.values), np.append(0, pks.cum_resp_pct.values),
-             marker='o', label='Responders')
-    ax.plot(np.append(0, pks.decile.values), np.append(0, pks.cum_non_resp_pct.values),
-             marker='o', label='Non-Responders')
+    ax.plot(
+        np.append(0, pks.decile.values),
+        np.append(0, pks.cum_resp_pct.values),
+        marker="o",
+        label="Responders",
+    )
+    ax.plot(
+        np.append(0, pks.decile.values),
+        np.append(0, pks.cum_non_resp_pct.values),
+        marker="o",
+        label="Non-Responders",
+    )
     # ax.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
     ksmx = pks.KS.max()
     ksdcl = pks[pks.KS == ksmx].decile.values
-    ax.plot([ksdcl, ksdcl],
-             [pks[pks.KS == ksmx].cum_resp_pct.values,
-              pks[pks.KS == ksmx].cum_non_resp_pct.values],
-             'g--', marker='o', label='KS Statisic: ' + str(ksmx) + ' at decile ' + str(list(ksdcl)[0]))
+    ax.plot(
+        [ksdcl, ksdcl],
+        [pks[pks.KS == ksmx].cum_resp_pct.values, pks[pks.KS == ksmx].cum_non_resp_pct.values],
+        "g--",
+        marker="o",
+        label="KS Statisic: " + str(ksmx) + " at decile " + str(list(ksdcl)[0]),
+    )
 
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Deciles', fontsize=text_fontsize)
-    plt.ylabel('% Resonders', fontsize=text_fontsize)
+    plt.xlabel("Deciles", fontsize=text_fontsize)
+    plt.ylabel("% Resonders", fontsize=text_fontsize)
     plt.legend()
     plt.grid(True)
     # plt.show()
@@ -774,30 +818,33 @@ def plot_ks_statistic(
 
 
 @_preprocess._preprocess_data(
-  replace_names=["y_true", "y_probas",],
-  # label_namer="y",  # for label params
+    replace_names=[
+        "y_true",
+        "y_probas",
+    ],
+    # label_namer="y",  # for label params
 )
 @_docstring.interpd
 def report(
-  ## default params
-  y_true,
-  y_probas,
-  *,
-  pos_label=None,      # for y_true
-  class_index=1,       # for y_probas
-  # class_names=None,
-  # multi_class=None,
-  display_term_tables=True,
-  digits=3,
-  ## plotting params
-  ax=None,
-  fig=None,
-  figsize=(12, 7),
-  title_fontsize="large",
-  text_fontsize="medium",
-  plot_style = None,
-  ## additional params
-  **kwargs,
+    ## default params
+    y_true,
+    y_probas,
+    *,
+    pos_label=None,  # for y_true
+    class_index=1,  # for y_probas
+    # class_names=None,
+    # multi_class=None,
+    display_term_tables=True,
+    digits=3,
+    ## plotting params
+    ax=None,
+    fig=None,
+    figsize=(12, 7),
+    title_fontsize="large",
+    text_fontsize="medium",
+    plot_style=None,
+    ## additional params
+    **kwargs,
 ):
     """
     Generates a decile table and four plots:
@@ -900,12 +947,7 @@ def report(
         >>> dt
     """
     # Convert input to numpy arrays for efficient processing
-    dc = decile_table(
-        y_true,
-        y_probas,
-        labels=display_term_tables,
-        round_decimal=digits
-    )
+    dc = decile_table(y_true, y_probas, labels=display_term_tables, round_decimal=digits)
 
     ##################################################################
     ## Plotting
@@ -934,4 +976,4 @@ def report(
     plot_ks_statistic(y_true, y_probas, fig=fig, ax=ax)
 
     fig.tight_layout()
-    return (dc)
+    return dc

@@ -3,7 +3,7 @@ SEP15: Fix axis autoscaling when limits are specified for one axis only
 =========================================================================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib MEPs.
 
 .. contents::

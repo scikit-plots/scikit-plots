@@ -33,12 +33,12 @@ The Tweedie distribution is undefined for values of `p` in the range `(0, 1)`.
 References
 ----------
 [1] Jørgensen, B. (1987). "Exponential dispersion models".
-    Journal of the Royal Statistical Society, Series B. 49 (2): 127–162.    
+    Journal of the Royal Statistical Society, Series B. 49 (2): 127–162.
 [2] Tweedie, M. C. K. (1984). "An index which distinguishes between some important exponential families".
     In Statistics: Applications and New Directions.
-    Proceedings of the Indian Statistical Institute Golden Jubilee International Conference.    
+    Proceedings of the Indian Statistical Institute Golden Jubilee International Conference.
 [3] [YouTube]
-    Statistical Methods Series: Zero-Inflated GLM and GLMM. 
+    Statistical Methods Series: Zero-Inflated GLM and GLMM.
 [4] [Google]
     https://www.statisticshowto.com/tweedie-distribution/
 
@@ -48,22 +48,23 @@ See Also
 * https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution
 * https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood
 """
+
 from __future__ import division
 
 import numpy as np
-from scipy.stats import rv_continuous, poisson, gamma, invgauss, norm
-from scipy.special import gammaln, gammainc
 from scipy import optimize
+from scipy.special import gammainc, gammaln
+from scipy.stats import gamma, invgauss, norm, poisson, rv_continuous
 
 __all__ = [
-  'tweedie_gen',
-  'tweedie',
+    "tweedie_gen",
+    "tweedie",
 ]
 
 
 class tweedie_gen(rv_continuous):
     r"""A Tweedie continuous random variable inherited :py:class:`scipy.stats.rv_continuous`.
-    
+
     See Also
     --------
     tweedie :
@@ -116,7 +117,7 @@ class tweedie_gen(rv_continuous):
     0.603...
 
     The ppf can be found using the ppf method.
-    
+
     >>> tweedie(p=1.5, mu=1, phi=1).ppf(0.603) # doctest:+ELLIPSIS
     0.998...
 
@@ -128,6 +129,7 @@ class tweedie_gen(rv_continuous):
     Dunn, Peter K. and Smyth, Gordon K. 2005, Series evaluation of Tweedie
     exponential dispersion model densities
     """
+
     def _pdf(self, x, p, mu, phi):
         return np.exp(self._logpdf(x, p, mu, phi))
 
@@ -153,7 +155,7 @@ class tweedie_gen(rv_continuous):
             random_state = self._random_state
         p = np.array(p, ndmin=1)
         if not (p > 1).all() & (p < 2).all():
-            raise ValueError('p only valid for 1 < p < 2')
+            raise ValueError("p only valid for 1 < p < 2")
         rate = est_kappa(mu, p) / phi
         scale = est_gamma(phi, p, mu)
         shape = -est_alpha(p)
@@ -164,9 +166,9 @@ class tweedie_gen(rv_continuous):
         if not np.isscalar(shape) and len(shape) == len(mask):
             shape = shape[mask]
 
-        rvs = gamma(
-                a=N[mask] * shape,
-            scale=scale).rvs(size=np.sum(mask), random_state=random_state)
+        rvs = gamma(a=N[mask] * shape, scale=scale).rvs(
+            size=np.sum(mask), random_state=random_state
+        )
         rvs2 = np.zeros(N.shape, dtype=rvs.dtype)
         rvs2[mask] = rvs
         return rvs2
@@ -174,34 +176,32 @@ class tweedie_gen(rv_continuous):
     def _ppf_single1to2(self, q, p, mu, phi, left, right):
         args = p, mu, phi
 
-        factor = 10.
-        while self._ppf_to_solve(left, q, *args) > 0.:
+        factor = 10.0
+        while self._ppf_to_solve(left, q, *args) > 0.0:
             right = left
             left /= factor
             # left is now such that cdf(left) < q
 
-        while self._ppf_to_solve(right, q, *args) < 0.:
+        while self._ppf_to_solve(right, q, *args) < 0.0:
             left = right
             right *= factor
             # right is now such that cdf(right) > q
 
-        return optimize.brentq(self._ppf_to_solve,
-                               left, right, args=(q,)+args, xtol=self.xtol)
+        return optimize.brentq(self._ppf_to_solve, left, right, args=(q,) + args, xtol=self.xtol)
 
     def _ppf(self, q, p, mu, phi):
         p = np.broadcast_to(p, q.shape)
         mu = np.broadcast_to(mu, q.shape)
         phi = np.broadcast_to(phi, q.shape)
 
-        single1to2v = np.vectorize(self._ppf_single1to2, otypes='d')
+        single1to2v = np.vectorize(self._ppf_single1to2, otypes="d")
 
         ppf = np.zeros(q.shape, dtype=float)
 
         # Gaussian
         mask = p == 0
         if np.sum(mask) > 0:
-            ppf[mask] = norm(loc=mu[mask],
-                             scale=np.sqrt(phi[mask])).ppf(q[mask])
+            ppf[mask] = norm(loc=mu[mask], scale=np.sqrt(phi[mask])).ppf(q[mask])
 
         # Poisson
         mask = p == 1
@@ -213,31 +213,28 @@ class tweedie_gen(rv_continuous):
         if np.sum(mask) > 0:
             zero_mass = np.zeros_like(ppf)
             zeros = np.zeros_like(ppf)
-            zero_mass[mask] = self._cdf(zeros[mask], p[mask], mu[mask],
-                                        phi[mask])
-            right = 10 * mu * phi ** p
+            zero_mass[mask] = self._cdf(zeros[mask], p[mask], mu[mask], phi[mask])
+            right = 10 * mu * phi**p
             cond1 = mask
             cond2 = q > zero_mass
             if np.sum(cond1 & ~cond2) > 0:
                 ppf[cond1 & ~cond2] = zeros[cond1 & ~cond2]
             if np.sum(cond1 & cond2) > 0:
-                single1to2v = np.vectorize(self._ppf_single1to2, otypes='d')
+                single1to2v = np.vectorize(self._ppf_single1to2, otypes="d")
                 mask = cond1 & cond2
-                ppf[mask] = single1to2v(q[mask], p[mask], mu[mask],
-                                        phi[mask], zero_mass[mask],
-                                        right[mask])
+                ppf[mask] = single1to2v(
+                    q[mask], p[mask], mu[mask], phi[mask], zero_mass[mask], right[mask]
+                )
 
         # Gamma
         mask = p == 2
         if np.sum(mask) > 0:
-            ppf[mask] = gamma(a=1/phi[mask],
-                              scale=phi[mask] * mu[mask]).ppf(q[mask])
+            ppf[mask] = gamma(a=1 / phi[mask], scale=phi[mask] * mu[mask]).ppf(q[mask])
 
         # Inverse Gamma
         mask = p == 3
         if np.sum(mask) > 0:
-            ppf[mask] = invgauss(mu=mu[mask] * phi[mask],
-                                 scale=1 / phi[mask]).ppf(q[mask])
+            ppf[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1 / phi[mask]).ppf(q[mask])
         return ppf
 
     def _argcheck(self, p, mu, phi):
@@ -249,10 +246,10 @@ class tweedie_gen(rv_continuous):
     # def _argcheck(self, arg):
     #     return True
 
+
 almost_zero = np.nextafter(0, -1)
 
-tweedie = tweedie_gen(name='tweedie', a=almost_zero, b=np.inf,
-                      shapes='p, mu, phi')
+tweedie = tweedie_gen(name="tweedie", a=almost_zero, b=np.inf, shapes="p, mu, phi")
 tweedie.__doc__ = """\
 An instance of :py:class:`tweedie_gen`, providing Tweedie distribution functionality.
 
@@ -315,7 +312,7 @@ Plot the pdf over a range:
 .. plot::
 
     >>> import numpy as np
-    >>> from scikitplot.stats import tweedie    
+    >>> from scikitplot.stats import tweedie
     >>> import matplotlib.pyplot as plt
     >>> x = np.linspace(0, 5, 100)
     >>> y = tweedie.pdf(x, p=1.5, mu=1, phi=1)
@@ -325,6 +322,7 @@ Plot the pdf over a range:
     >>> plt.legend()
     >>> plt.show()
 """
+
 
 def est_alpha(p):
     return (2 - p) / (1 - p)
@@ -339,20 +337,12 @@ def est_kmax(x, p, phi):
 
 
 def est_theta(mu, p):
-    theta = np.where(
-        p == 1,
-        np.log(mu),
-        mu ** (1 - p) / (1 - p)
-    )
+    theta = np.where(p == 1, np.log(mu), mu ** (1 - p) / (1 - p))
     return theta
 
 
 def est_kappa(mu, p):
-    kappa = np.where(
-        p == 2,
-        np.log(mu),
-        mu ** (2 - p) / (2 - p)
-    )
+    kappa = np.where(p == 2, np.log(mu), mu ** (2 - p) / (2 - p))
     return kappa
 
 
@@ -388,19 +378,22 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
     ll = np.ones_like(x) * -np.inf
 
     # Gaussian (Normal)
-    gaussian_mask = p == 0.
+    gaussian_mask = p == 0.0
     if np.sum(gaussian_mask) > 0:
-        ll[gaussian_mask] = norm(
-                loc=mu[gaussian_mask],
-                scale=np.sqrt(phi[gaussian_mask])).logpdf(x[gaussian_mask])
+        ll[gaussian_mask] = norm(loc=mu[gaussian_mask], scale=np.sqrt(phi[gaussian_mask])).logpdf(
+            x[gaussian_mask]
+        )
 
     # Poisson
-    poisson_mask = p == 1.
+    poisson_mask = p == 1.0
     if np.sum(poisson_mask) > 0:
-        poisson_pdf = poisson(
-                mu=mu[poisson_mask] / phi[poisson_mask]).pmf(
-                x[poisson_mask] / phi[poisson_mask]) / phi[poisson_mask]
-        zero_mask = poisson_pdf != 0.
+        poisson_pdf = (
+            poisson(mu=mu[poisson_mask] / phi[poisson_mask]).pmf(
+                x[poisson_mask] / phi[poisson_mask]
+            )
+            / phi[poisson_mask]
+        )
+        zero_mask = poisson_pdf != 0.0
         poisson_logpdf = ll[poisson_mask]
         poisson_logpdf[zero_mask] = np.log(poisson_pdf[zero_mask])
         ll[poisson_mask] = poisson_logpdf
@@ -418,7 +411,7 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
     # Gamma
     gamma_mask = p == 2
     if np.sum(gamma_mask) > 0:
-        ll[gamma_mask] = gamma(a=1/phi, scale=phi * mu).logpdf(x[gamma_mask])
+        ll[gamma_mask] = gamma(a=1 / phi, scale=phi * mu).logpdf(x[gamma_mask])
 
     # (2 < p < 3) or (p > 3)
     ll_2plus_mask = ((2 < p) & (p < 3)) | (p > 3)
@@ -435,9 +428,7 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
         cond1 = invgauss_mask
         cond2 = x > 0
         mask = cond1 & cond2
-        ll[mask] = invgauss(
-                mu=mu[mask] * phi[mask],
-                scale=1. / phi[mask]).logpdf(x[mask])
+        ll[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1.0 / phi[mask]).logpdf(x[mask])
     return ll
 
 
@@ -463,13 +454,16 @@ def ll_1to2(x, mu, phi, p):
 
     def _logW(alpha, j, constant_logW):
         # Is the 1 - alpha backwards in the paper? I think so.
-        logW = (j * (constant_logW - (1 - alpha) * np.log(j)) -
-                np.log(2 * np.pi) - 0.5 * np.log(-alpha) - np.log(j))
+        logW = (
+            j * (constant_logW - (1 - alpha) * np.log(j))
+            - np.log(2 * np.pi)
+            - 0.5 * np.log(-alpha)
+            - np.log(j)
+        )
         return logW
 
     def _logWmax(alpha, j):
-        logWmax = (j * (1 - alpha) - np.log(2 * np.pi) -
-                   0.5 * np.log(-alpha) - np.log(j))
+        logWmax = j * (1 - alpha) - np.log(2 * np.pi) - 0.5 * np.log(-alpha) - np.log(j)
         return logWmax
 
     # e ** -37 is approxmiately the double precision on 64-bit systems.
@@ -482,8 +476,7 @@ def ll_1to2(x, mu, phi, p):
     j = max(1, jmax.min())
     logWmax = _logWmax(alpha, j)
 
-    while (np.any(logWmax - _logW(alpha, j, constant_logW) < 37) and
-           np.all(j > 1)):
+    while np.any(logWmax - _logW(alpha, j, constant_logW) < 37) and np.all(j > 1):
         j -= 1
     j_low = np.ceil(j)
 
@@ -497,7 +490,7 @@ def ll_1to2(x, mu, phi, p):
     logWmax = np.max(logW, axis=1)
     w = np.exp(logW - logWmax[:, np.newaxis]).sum(axis=1)
 
-    return (logWmax + np.log(w) - np.log(x) + (((x * theta) - kappa) / phi))
+    return logWmax + np.log(w) - np.log(x) + (((x * theta) - kappa) / phi)
 
 
 def ll_2orMore(x, mu, phi, p):
@@ -508,13 +501,14 @@ def ll_2orMore(x, mu, phi, p):
     def est_z(x, phi, p):
         alpha = est_alpha(p)
         numerator = (p - 1) ** alpha * phi ** (alpha - 1)
-        denominator = phi ** alpha * (p - 2)
+        denominator = phi**alpha * (p - 2)
         return numerator / denominator
 
     def _logVenv(z, p, k):
         alpha = est_alpha(p)
-        logVenv = (k * (np.log(z) + (1 - alpha) - np.log(k) + alpha *
-                        np.log(alpha * k)) + 0.5 * np.log(alpha))
+        logVenv = k * (
+            np.log(z) + (1 - alpha) - np.log(k) + alpha * np.log(alpha * k)
+        ) + 0.5 * np.log(alpha)
         return logVenv
 
     def _logVmax(p, k):
@@ -555,8 +549,7 @@ def ll_2orMore(x, mu, phi, p):
     v = (np.exp(logV - logVmax[:, np.newaxis]) * v2).sum(axis=1)
     V = np.exp(logVmax + np.log(v))
 
-    return (np.log(V / (np.pi * x)) +
-            ((x * theta - kappa) / phi))
+    return np.log(V / (np.pi * x)) + ((x * theta - kappa) / phi)
 
 
 def estimate_tweeide_logcdf_series(x, mu, phi, p):
@@ -588,11 +581,10 @@ def estimate_tweeide_logcdf_series(x, mu, phi, p):
     # Gaussian (Normal)
     mask = p == 0
     if np.sum(mask) > 0:
-        logcdf[mask] = norm(loc=mu[mask],
-                            scale=np.sqrt(phi[mask])).logcdf(x[mask])
+        logcdf[mask] = norm(loc=mu[mask], scale=np.sqrt(phi[mask])).logcdf(x[mask])
 
     # Poisson
-    mask = p == 1.
+    mask = p == 1.0
     if np.sum(mask) > 0:
         logcdf[mask] = np.log(poisson(mu=mu[mask] / phi[mask]).cdf(x[mask]))
 
@@ -604,20 +596,17 @@ def estimate_tweeide_logcdf_series(x, mu, phi, p):
         mask = cond1 & cond2
         logcdf[mask] = logcdf_1to2(x[mask], mu[mask], phi[mask], p[mask])
         mask = cond1 & ~cond2
-        logcdf[mask] = -(mu[mask] ** (2 - p[mask]) /
-                         (phi[mask] * (2 - p[mask])))
+        logcdf[mask] = -(mu[mask] ** (2 - p[mask]) / (phi[mask] * (2 - p[mask])))
 
     # Gamma
     mask = p == 2
     if np.sum(mask) > 0:
-        logcdf[mask] = gamma(a=1/phi[mask],
-                             scale=phi[mask] * mu[mask]).logcdf(x[mask])
+        logcdf[mask] = gamma(a=1 / phi[mask], scale=phi[mask] * mu[mask]).logcdf(x[mask])
 
     # Inverse Gaussian (Normal)
     mask = p == 3
     if np.sum(mask) > 0:
-        logcdf[mask] = invgauss(mu=mu[mask] * phi[mask],
-                                scale=1 / phi[mask]).logcdf(x[mask])
+        logcdf[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1 / phi[mask]).logcdf(x[mask])
 
     return logcdf
 
@@ -647,8 +636,7 @@ def logcdf_1to2(x, mu, phi, p):
         trial += np.log(gammainc(i * shape, x / scale))
         W = np.hstack((W, trial.reshape(-1, 1)))
 
-        if (np.all(W[:, :-1].max(axis=1) - W[:, -1] > 37) &
-                np.all(W[:, -2] > W[:, -1])):
+        if np.all(W[:, :-1].max(axis=1) - W[:, -1] > 37) & np.all(W[:, -2] > W[:, -1]):
             break
     logcdf = np.log(np.exp(W).sum(axis=1))
     return logcdf

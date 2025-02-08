@@ -29,7 +29,8 @@ class DropdownAnchorAdder(SphinxPostTransform):
             # Grab the summary text node
             sd_summary_text = sd_dropdown.next_node(
                 # lambda node: "sd-summary-text" in node.get("classes", [])
-                lambda node: isinstance(node, nodes.Element) and "sd-summary-text" in node.get("classes", [])
+                lambda node: isinstance(node, nodes.Element)
+                and "sd-summary-text" in node.get("classes", [])
             )
 
             # Concatenate the text of relevant nodes as the title text
@@ -48,8 +49,7 @@ class DropdownAnchorAdder(SphinxPostTransform):
             # Create the anchor element and insert after the title text; we do this
             # directly with raw HTML
             anchor_html = (
-                f'<a class="headerlink" href="#{anchor_id}" '
-                'title="Link to this dropdown">#</a>'
+                f'<a class="headerlink" href="#{anchor_id}" ' 'title="Link to this dropdown">#</a>'
             )
             anchor_node = nodes.raw("", anchor_html, format="html")
             sd_summary_text.append(anchor_node)

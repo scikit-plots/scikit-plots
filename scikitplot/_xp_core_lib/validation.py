@@ -1,11 +1,11 @@
 """
 scikitplot._xp_core_lib.validation - Utility Functions for Validation
 
-This module provides utility functions designed to validate inputs and 
-parameters within the scikit-plot library. These functions assist in ensuring 
-that inputs conform to expected formats and constraints, and support various 
-data handling tasks. The utilities in this module are essential for robust 
-data validation and manipulation, enhancing the reliability and usability 
+This module provides utility functions designed to validate inputs and
+parameters within the scikit-plot library. These functions assist in ensuring
+that inputs conform to expected formats and constraints, and support various
+data handling tasks. The utilities in this module are essential for robust
+data validation and manipulation, enhancing the reliability and usability
 of the library.
 
 Functions and classes provided include:
@@ -14,82 +14,87 @@ Functions and classes provided include:
 - Decorators for managing deprecated or positional arguments
 - Utilities for inspecting function signatures
 
-This module is part of the scikit-plot library and is intended for internal use 
+This module is part of the scikit-plot library and is intended for internal use
 to facilitate the validation and processing of inputs.
 """
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-  division,         # Changes the division operator `/` to always perform true division.
-  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,  # Changes the division operator `/` to always perform true division.
+    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
-import warnings
-import re
+
+import functools
+import inspect
 import math
 import numbers
-import inspect
 import operator
-import functools
-
+import re
+import warnings
 from collections import namedtuple
 from contextlib import contextmanager
 from typing import (
-  TYPE_CHECKING,
-  TypeVar,
-  Callable,
-  Iterator,
-  Optional,
-  Tuple,
-  Union,
-  List,
+    TYPE_CHECKING,
+    Callable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
 )
 
 import numpy as np
 import numpy.ma as npma
-
 import scipy.sparse
 
 from ._array_api import array_namespace
 
 __all__ = [
-  '_lazywhere',
-  '_lazyselect',
-  '_prune_array',
-  'float_factorial',
-  'check_random_state',
-  'rng_integers',
-  '_fixed_default_rng',
-  '_rng_html_rewrite',
-  '_asarray_validated',
-  '_validate_int',
-  'FullArgSpec',
-  'getfullargspec_no_self',
-  '_FunctionWrapper',
-  '_PythonFuncWrapper',
-  '_python_func_wrapper',
-  'MapWrapper',
-  '_argmin',
-  '_first_nonnan',
-  '_nan_allsame',
-  '_get_nan',
-  '_rename_parameter',
+    "_lazywhere",
+    "_lazyselect",
+    "_prune_array",
+    "float_factorial",
+    "check_random_state",
+    "rng_integers",
+    "_fixed_default_rng",
+    "_rng_html_rewrite",
+    "_asarray_validated",
+    "_validate_int",
+    "FullArgSpec",
+    "getfullargspec_no_self",
+    "_FunctionWrapper",
+    "_PythonFuncWrapper",
+    "_python_func_wrapper",
+    "MapWrapper",
+    "_argmin",
+    "_first_nonnan",
+    "_nan_allsame",
+    "_get_nan",
+    "_rename_parameter",
 ]
 _all_ignore = [
-  'absolute_import', 'division', 'print_function', 'unicode_literals', 'mpl',
+    "absolute_import",
+    "division",
+    "print_function",
+    "unicode_literals",
+    "mpl",
 ]
 
 
 # Determine numpy exception classes
-if np.lib.NumpyVersion(np.__version__) >= '1.25.0':
+if np.lib.NumpyVersion(np.__version__) >= "1.25.0":
     from numpy.exceptions import (
-        AxisError, ComplexWarning, VisibleDeprecationWarning,
-        DTypePromotionError
+        AxisError,
+        DTypePromotionError,
     )
 else:
     from numpy import (  # type: ignore[attr-defined, no-redef]
-        AxisError, ComplexWarning, VisibleDeprecationWarning  # noqa: F401
+        AxisError,  # noqa: F401
     )
+
     DTypePromotionError = TypeError  # type: ignore
 
 
@@ -132,19 +137,21 @@ else:
 # Define random number generator types
 if TYPE_CHECKING:
     SeedType = Union[IntNumber, np.random.Generator, np.random.RandomState, None]
-    GeneratorType = TypeVar("GeneratorType", bound=Union[np.random.Generator, np.random.RandomState])
+    GeneratorType = TypeVar(
+        "GeneratorType", bound=Union[np.random.Generator, np.random.RandomState]
+    )
 
 
 def _lazywhere(
-  cond: np.ndarray,
-  arrays: Tuple[np.ndarray],
-  f: Callable,
-  fillvalue: Optional[object] = None,
-  f2: Optional[Callable] = None
+    cond: np.ndarray,
+    arrays: Tuple[np.ndarray],
+    f: Callable,
+    fillvalue: Optional[object] = None,
+    f2: Optional[Callable] = None,
 ) -> np.ndarray:
     """
     Return elements chosen from two possibilities depending on a condition.
-    
+
     Equivalent to ``f(*arrays) if cond else fillvalue`` performed elementwise.
 
     Parameters
@@ -180,12 +187,11 @@ def _lazywhere(
 
     if f2 is None:
         if isinstance(fillvalue, (bool, int, float, complex)):
-            with np.errstate(invalid='ignore'):
+            with np.errstate(invalid="ignore"):
                 dtype = (temp1 * fillvalue).dtype
         else:
             dtype = xp.result_type(temp1.dtype, fillvalue)
-        out = xp.full(cond.shape, dtype=dtype,
-                      fill_value=xp.asarray(fillvalue, dtype=dtype))
+        out = xp.full(cond.shape, dtype=dtype, fill_value=xp.asarray(fillvalue, dtype=dtype))
     else:
         ncond = ~cond
         temp2 = xp.asarray(f2(*(arr[ncond] for arr in arrays)))
@@ -199,10 +205,7 @@ def _lazywhere(
 
 
 def _lazyselect(
-  condlist: list,
-  choicelist: list,
-  arrays: Tuple[np.ndarray],
-  default: object = 0
+    condlist: list, choicelist: list, arrays: Tuple[np.ndarray], default: object = 0
 ) -> np.ndarray:
     """
     Mimic `np.select(condlist, choicelist)`.
@@ -237,14 +240,12 @@ def _lazyselect(
     return out
 
 
-def _prune_array(
-  array: np.ndarray
-) -> np.ndarray:
+def _prune_array(array: np.ndarray) -> np.ndarray:
     """
     Return an array equivalent to the input array. If the input
     array is a view of a much larger array, copy its contents to a
     newly allocated array. Otherwise, return the input unchanged.
-    
+
     Parameters
     ----------
     array : np.ndarray
@@ -265,7 +266,7 @@ def float_factorial(n: int) -> float:
     Compute the factorial and return as a float.
 
     Returns infinity when result is too large for a double.
-    
+
     Parameters
     ----------
     n : int
@@ -280,7 +281,7 @@ def float_factorial(n: int) -> float:
 
 
 def check_random_state(
-  seed: Optional[Union[int, np.random.Generator, np.random.RandomState]]
+    seed: Optional[Union[int, np.random.Generator, np.random.RandomState]],
 ) -> Union[np.random.Generator, np.random.RandomState]:
     """
     Turn `seed` into a `np.random.RandomState` instance.
@@ -320,15 +321,15 @@ def rng_integers(
     low: Union[int, np.ndarray],
     high: Optional[Union[int, np.ndarray]] = None,
     size: Optional[Union[int, tuple]] = None,
-    dtype: str = 'int64',
-    endpoint: bool = False
+    dtype: str = "int64",
+    endpoint: bool = False,
 ) -> Union[int, np.ndarray]:
     """
     Draw random integers from a specified range.
 
-    This function generates random integers from a discrete uniform distribution 
+    This function generates random integers from a discrete uniform distribution
     defined by the range `[low, high)` or `[low, high]` if `endpoint=True`. It
-    serves as a replacement for `RandomState.randint` (with `endpoint=False`) 
+    serves as a replacement for `RandomState.randint` (with `endpoint=False`)
     and `RandomState.random_integers` (with `endpoint=True`).
 
     Parameters
@@ -372,14 +373,12 @@ def rng_integers(
 
 
 @contextmanager
-def _fixed_default_rng(
-  seed: int = 1638083107694713882823079058616272161
-) -> Iterator[None]:
+def _fixed_default_rng(seed: int = 1638083107694713882823079058616272161) -> Iterator[None]:
     """
     Context manager to fix the seed of `np.random.default_rng`.
 
     This context manager temporarily overrides `np.random.default_rng` to use
-    a fixed seed for reproducibility. The original function is restored after 
+    a fixed seed for reproducibility. The original function is restored after
     the context exits.
 
     Parameters
@@ -399,9 +398,7 @@ def _fixed_default_rng(
         np.random.default_rng = orig_fun
 
 
-def _rng_html_rewrite(
-  func: Callable[..., List[str]]
-) -> Callable[..., List[str]]:
+def _rng_html_rewrite(func: Callable[..., List[str]]) -> Callable[..., List[str]]:
     """
     Decorator to modify the HTML rendering of `np.random.default_rng`.
     This is intended to decorate
@@ -424,27 +421,22 @@ def _rng_html_rewrite(
     Callable[..., List[str]]
         Wrapped function with modified HTML rendering for `np.random.default_rng`.
     """
-    pattern = re.compile(r'np.random.default_rng\((0x[0-9A-F]+|\d+)\)', re.I)
+    pattern = re.compile(r"np.random.default_rng\((0x[0-9A-F]+|\d+)\)", re.I)
 
     def _wrapped(*args, **kwargs) -> List[str]:
         res = func(*args, **kwargs)
-        lines = [re.sub(pattern, 'np.random.default_rng()', line) for line in res]
+        lines = [re.sub(pattern, "np.random.default_rng()", line) for line in res]
         return lines
 
     return _wrapped
 
 
 def _asarray_validated(
-  a,
-  check_finite=True,
-  sparse_ok=False,
-  objects_ok=False,
-  mask_ok=False,
-  as_inexact=False
+    a, check_finite=True, sparse_ok=False, objects_ok=False, mask_ok=False, as_inexact=False
 ) -> np.ndarray:
     """
     Helper function for validating and converting input arrays.
-    
+
     Parameters
     ----------
     a : array_like
@@ -459,7 +451,7 @@ def _asarray_validated(
         If True, allows masked arrays.
     as_inexact : bool, optional
         If True, converts the array to an inexact dtype (e.g., float64).
-    
+
     Returns
     -------
     np.ndarray
@@ -478,7 +470,7 @@ def _asarray_validated(
 
     a = np.asarray(a)
 
-    if not objects_ok and a.dtype == np.dtype('O'):
+    if not objects_ok and a.dtype == np.dtype("O"):
         raise TypeError("object arrays are not supported")
 
     if as_inexact and not np.issubdtype(a.dtype, np.inexact):
@@ -495,7 +487,7 @@ def _validate_int(k: int, name: str, minimum: Optional[int] = None) -> int:
     """
     Validate a scalar integer.
 
-    This function checks whether the input is a valid integer and optionally 
+    This function checks whether the input is a valid integer and optionally
     whether it meets a minimum value requirement.
 
     Parameters
@@ -522,9 +514,9 @@ def _validate_int(k: int, name: str, minimum: Optional[int] = None) -> int:
     try:
         k = operator.index(k)
     except TypeError:
-        raise TypeError(f'{name} must be an integer.') from None
+        raise TypeError(f"{name} must be an integer.") from None
     if minimum is not None and k < minimum:
-        raise ValueError(f'{name} must be an integer not less than {minimum}') from None
+        raise ValueError(f"{name} must be an integer not less than {minimum}") from None
     return k
 
 
@@ -541,14 +533,15 @@ def _validate_int(k: int, name: str, minimum: Optional[int] = None) -> int:
 # This way, the caller code does not need to know whether it uses a legacy
 # .getfullargspec or a bright and shiny .signature.
 
-FullArgSpec = namedtuple('FullArgSpec',
-                         ['args', 'varargs', 'varkw', 'defaults',
-                          'kwonlyargs', 'kwonlydefaults', 'annotations'])
+FullArgSpec = namedtuple(
+    "FullArgSpec",
+    ["args", "varargs", "varkw", "defaults", "kwonlyargs", "kwonlydefaults", "annotations"],
+)
 
 
 def getfullargspec_no_self(func: Callable) -> FullArgSpec:
     """
-    Replacement for `inspect.getfullargspec` that omits the 'self' parameter 
+    Replacement for `inspect.getfullargspec` that omits the 'self' parameter
     if `func` is a bound method.
 
     Parameters
@@ -571,46 +564,46 @@ def getfullargspec_no_self(func: Callable) -> FullArgSpec:
     """
     sig = inspect.signature(func)
     args = [
-        p.name for p in sig.parameters.values()
-        if p.kind in [inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                      inspect.Parameter.POSITIONAL_ONLY]
+        p.name
+        for p in sig.parameters.values()
+        if p.kind in [inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.POSITIONAL_ONLY]
     ]
     varargs = [
-        p.name for p in sig.parameters.values()
-        if p.kind == inspect.Parameter.VAR_POSITIONAL
+        p.name for p in sig.parameters.values() if p.kind == inspect.Parameter.VAR_POSITIONAL
     ]
     varargs = varargs[0] if varargs else None
-    varkw = [
-        p.name for p in sig.parameters.values()
-        if p.kind == inspect.Parameter.VAR_KEYWORD
-    ]
+    varkw = [p.name for p in sig.parameters.values() if p.kind == inspect.Parameter.VAR_KEYWORD]
     varkw = varkw[0] if varkw else None
-    defaults = tuple(
-        p.default for p in sig.parameters.values()
-        if (p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD and
-            p.default is not p.empty)
-    ) or None
+    defaults = (
+        tuple(
+            p.default
+            for p in sig.parameters.values()
+            if (p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD and p.default is not p.empty)
+        )
+        or None
+    )
     kwonlyargs = [
-        p.name for p in sig.parameters.values()
-        if p.kind == inspect.Parameter.KEYWORD_ONLY
+        p.name for p in sig.parameters.values() if p.kind == inspect.Parameter.KEYWORD_ONLY
     ]
-    kwdefaults = {p.name: p.default for p in sig.parameters.values()
-                  if p.kind == inspect.Parameter.KEYWORD_ONLY and
-                  p.default is not p.empty}
-    annotations = {p.name: p.annotation for p in sig.parameters.values()
-                   if p.annotation is not p.empty}
-    return FullArgSpec(args, varargs, varkw, defaults, kwonlyargs,
-                       kwdefaults or None, annotations)
-
+    kwdefaults = {
+        p.name: p.default
+        for p in sig.parameters.values()
+        if p.kind == inspect.Parameter.KEYWORD_ONLY and p.default is not p.empty
+    }
+    annotations = {
+        p.name: p.annotation for p in sig.parameters.values() if p.annotation is not p.empty
+    }
+    return FullArgSpec(args, varargs, varkw, defaults, kwonlyargs, kwdefaults or None, annotations)
 
 
 class _FunctionWrapper:
     """
     Wraps a function to enable pickling.
 
-    This class allows a function to be stored and called later with the same 
+    This class allows a function to be stored and called later with the same
     arguments, while ensuring it can be pickled.
     """
+
     def __init__(self, f: Callable, args: Optional[list] = None):
         self.f = f
         self.args = [] if args is None else args
@@ -626,13 +619,14 @@ class _PythonFuncWrapper:
     This class allows a function to be stored and called later with the same
     arguments, while ensuring it can be pickled.
     """
+
     def __init__(self, f: Callable, args: Optional[list] = None):
         self.f = f
         self.args = [] if args is None else args
 
     def __call__(self, *args, **kwargs):
         return self.f(*args, *self.args, **kwargs)
-    
+
     def __reduce__(self):
         # This is required for pickling to work properly
         return (self.__class__, (self.f, self.args))
@@ -652,8 +646,10 @@ def _python_func_wrapper(f: Callable):
     Callable
         The wrapped function that can be pickled.
     """
+
     def wrapper(*args, **kwargs):
         return _PythonFuncWrapper(f)(*args, **kwargs)
+
     return wrapper
 
 
@@ -673,6 +669,7 @@ class MapWrapper:
         calling sequence as the built-in map function, then this callable is
         used for parallelization.
     """
+
     def __init__(self, pool=1):
         self.pool = None
         self._mapfunc = map
@@ -683,6 +680,7 @@ class MapWrapper:
             self._mapfunc = self.pool
         else:
             from multiprocessing import Pool
+
             # user supplies a number
             if int(pool) == -1:
                 # use as many processors as possible
@@ -697,9 +695,11 @@ class MapWrapper:
                 self._mapfunc = self.pool.map
                 self._own_pool = True
             else:
-                raise RuntimeError("Number of workers specified must be -1,"
-                                   " an int >= 1, or an object with a 'map' "
-                                   "method")
+                raise RuntimeError(
+                    "Number of workers specified must be -1,"
+                    " an int >= 1, or an object with a 'map' "
+                    "method"
+                )
 
     def __enter__(self):
         return self
@@ -727,15 +727,10 @@ class MapWrapper:
             return self._mapfunc(func, iterable)
         except TypeError as e:
             # wrong number of arguments
-            raise TypeError("The map-like callable must be of the"
-                            " form f(func, iterable)") from e
+            raise TypeError("The map-like callable must be of the" " form f(func, iterable)") from e
 
 
-def _argmin(
-  a: np.ndarray,
-  keepdims: bool = False,
-  axis: Optional[int] = None
-) -> np.ndarray:
+def _argmin(a: np.ndarray, keepdims: bool = False, axis: Optional[int] = None) -> np.ndarray:
     """
     Compute the index of the minimum value along an axis with optional `keepdims` parameter.
 
@@ -806,11 +801,7 @@ def _first_nonnan(a: np.ndarray, axis: int) -> np.ndarray:
     return np.take_along_axis(a, k, axis=axis)
 
 
-def _nan_allsame(
-  a: np.ndarray,
-  axis: Optional[int] = None,
-  keepdims: bool = False
-) -> np.ndarray:
+def _nan_allsame(a: np.ndarray, axis: Optional[int] = None, keepdims: bool = False) -> np.ndarray:
     """
     Determine if the values along an axis are all the same.
     nan values are ignored.
@@ -863,7 +854,7 @@ def _nan_allsame(
     else:
         shp = a.shape
         if shp[axis] == 0:
-            shp = shp[:axis] + (1,)*keepdims + shp[axis + 1:]
+            shp = shp[:axis] + (1,) * keepdims + shp[axis + 1 :]
             return np.full(shp, fill_value=True, dtype=bool)
     a0 = _first_nonnan(a, axis=axis)
     return ((a0 == a) | np.isnan(a)).all(axis=axis, keepdims=keepdims)
@@ -889,7 +880,7 @@ def _get_nan(*data, xp=None) -> np.ndarray:
     # Get NaN of appropriate dtype for data
     data = [xp.asarray(item) for item in data]
     try:
-        min_float = getattr(xp, 'float16', xp.float32)
+        min_float = getattr(xp, "float16", xp.float32)
         dtype = xp.result_type(*data, min_float)  # must be at least a float
     except DTypePromotionError:
         # fallback to float64
@@ -897,11 +888,7 @@ def _get_nan(*data, xp=None) -> np.ndarray:
     return xp.asarray(xp.nan, dtype=dtype)[()]
 
 
-def _rename_parameter(
-  old_name: str,
-  new_name: str,
-  dep_version: Optional[str] = None
-) -> Callable:
+def _rename_parameter(old_name: str, new_name: str, dep_version: Optional[str] = None) -> Callable:
     """
     Generate Decorator for maintaining backward compatibility with renamed parameters.
 
@@ -938,24 +925,31 @@ def _rename_parameter(
     Untested with functions that accept *args. Probably won't work as written.
 
     """
+
     def decorator(fun: Callable) -> Callable:
         @functools.wraps(fun)
         def wrapper(*args, **kwargs):
             if old_name in kwargs:
                 if dep_version:
-                    end_version = dep_version.split('.')
+                    end_version = dep_version.split(".")
                     end_version[1] = str(int(end_version[1]) + 2)
-                    end_version = '.'.join(end_version)
-                    message = (f"Use of keyword argument `{old_name}` is "
-                               f"deprecated and replaced by `{new_name}`.  "
-                               f"Support for `{old_name}` will be removed "
-                               f"in version {end_version}.")
+                    end_version = ".".join(end_version)
+                    message = (
+                        f"Use of keyword argument `{old_name}` is "
+                        f"deprecated and replaced by `{new_name}`.  "
+                        f"Support for `{old_name}` will be removed "
+                        f"in version {end_version}."
+                    )
                     warnings.warn(message, DeprecationWarning, stacklevel=2)
                 if new_name in kwargs:
-                    message = (f"{fun.__name__}() got multiple values for "
-                               f"argument now known as `{new_name}`")
+                    message = (
+                        f"{fun.__name__}() got multiple values for "
+                        f"argument now known as `{new_name}`"
+                    )
                     raise TypeError(message)
                 kwargs[new_name] = kwargs.pop(old_name)
             return fun(*args, **kwargs)
+
         return wrapper
+
     return decorator

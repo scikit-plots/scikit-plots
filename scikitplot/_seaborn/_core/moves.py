@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import ClassVar, Callable, Optional, Union, cast
+from typing import Callable, ClassVar, Optional, Union, cast
 
 import numpy as np
 from pandas import DataFrame
@@ -19,7 +20,11 @@ class Move:
     group_by_orient: ClassVar[bool] = True
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
         raise NotImplementedError
 
@@ -45,20 +50,25 @@ class Jitter(Move):
     .. include:: ../docstrings/objects.Jitter.rst
 
     """
+
     width: float | Default = default
     x: float = 0
     y: float = 0
     seed: int | None = None
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
 
         data = data.copy()
         rng = np.random.default_rng(self.seed)
 
         def jitter(data, col, scale):
-            noise = rng.uniform(-.5, +.5, len(data))
+            noise = rng.uniform(-0.5, +0.5, len(data))
             offsets = noise * scale
             return data[col] + offsets
 
@@ -95,6 +105,7 @@ class Dodge(Move):
     .. include:: ../docstrings/objects.Dodge.rst
 
     """
+
     empty: str = "keep"  # Options: keep, drop, fill
     gap: float = 0
 
@@ -104,7 +115,11 @@ class Dodge(Move):
     by: Optional[list[str]] = None
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
 
         grouping_vars = [v for v in groupby.order if v in data]
@@ -140,8 +155,7 @@ class Dodge(Move):
         groups["width"] = new_widths
 
         out = (
-            data
-            .drop("width", axis=1)
+            data.drop("width", axis=1)
             .merge(groups, on=grouping_vars, how="left")
             .drop(orient, axis=1)
             .rename(columns={"_dodged": orient})
@@ -160,6 +174,7 @@ class Stack(Move):
     .. include:: ../docstrings/objects.Stack.rst
 
     """
+
     # TODO center? (or should this be a different move, eg. Stream())
 
     def _stack(self, df, orient):
@@ -181,7 +196,11 @@ class Stack(Move):
         return df
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
 
         # TODO where to ensure that other semantic variables are sorted properly?
@@ -205,11 +224,16 @@ class Shift(Move):
     .. include:: ../docstrings/objects.Shift.rst
 
     """
+
     x: float = 0
     y: float = 0
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
 
         data = data.copy(deep=False)
@@ -261,7 +285,11 @@ class Norm(Move):
         return df
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
 
         other = {"x": "y", "y": "x"}[orient]

@@ -7,7 +7,7 @@ Development Workflow
 ====================
 
 .. admonition:: Template
-   
+
    Template for further usage, template belong to matplotlib.
 
 Workflow summary

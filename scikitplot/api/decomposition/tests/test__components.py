@@ -1,12 +1,7 @@
-import numpy as np
-import numpy.testing as np_testing
-import pytest
 import unittest
-import hypothesis
-import hypothesis.extra.numpy as npst
 
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn.datasets import load_iris as load_data
 from sklearn.decomposition import PCA
 

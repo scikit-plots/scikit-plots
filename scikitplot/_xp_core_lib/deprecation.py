@@ -1,18 +1,17 @@
 # copied from scipy/_lib/deprecation.py
-import warnings
 import functools
 
-import inspect
 # from inspect import Parameter, signature
-
 import importlib
-# from importlib import import_module
+import inspect
+import warnings
 
+# from importlib import import_module
 from ._docscrape import FunctionDoc
 
 __all__ = [
-  "_deprecated",
-  "deprecated",
+    "_deprecated",
+    "deprecated",
 ]
 
 # Object to use as default value for arguments to be deprecated. This should
@@ -23,8 +22,17 @@ _NoValue = object()
 ## Deprecation: Module
 ######################################################################
 
-def _sub_module_deprecation(*, sub_package, module, private_modules, all,
-                            attribute, correct_module=None, dep_version="1.16.0"):
+
+def _sub_module_deprecation(
+    *,
+    sub_package,
+    module,
+    private_modules,
+    all,
+    attribute,
+    correct_module=None,
+    dep_version="1.16.0",
+):
     """Helper function for deprecating modules that are public but were
     intended to be private.
 
@@ -88,6 +96,7 @@ def _sub_module_deprecation(*, sub_package, module, private_modules, all,
                 raise e
             continue
 
+
 ######################################################################
 ## Deprecation: Module Attr
 ######################################################################
@@ -97,33 +106,36 @@ __DEPRECATION_MSG = (
     "removed in Scikit-plots {}. Please use `scikitplot.{}` instead."
 )
 
+
 def _deprecated(msg, stacklevel=2):
     """Deprecate a function by emitting a warning on use."""
+
     def wrap(fun):
         if isinstance(fun, type):
             warnings.warn(
-                f"Trying to deprecate class {fun!r}",
-                category=RuntimeWarning, stacklevel=2)
+                f"Trying to deprecate class {fun!r}", category=RuntimeWarning, stacklevel=2
+            )
             return fun
 
         @functools.wraps(fun)
         def call(*args, **kwargs):
-            warnings.warn(msg, category=DeprecationWarning,
-                          stacklevel=stacklevel)
+            warnings.warn(msg, category=DeprecationWarning, stacklevel=stacklevel)
             return fun(*args, **kwargs)
+
         call.__doc__ = fun.__doc__
         return call
 
     return wrap
 
+
 ######################################################################
 ## Deprecation: Positional Arguments
 ######################################################################
 
+
 # taken from scikit-learn, see
 # https://github.com/scikit-learn/scikit-learn/blob/1.3.0/sklearn/utils/validation.py#L38
-def _deprecate_positional_args(func=None, *, version=None,
-                               deprecated_args=None, custom_message=""):
+def _deprecate_positional_args(func=None, *, version=None, deprecated_args=None, custom_message=""):
     """Decorator for methods that issues warnings for positional arguments.
 
     Using the keyword-only argument syntax in pep 3102, arguments after the
@@ -160,9 +172,11 @@ def _deprecate_positional_args(func=None, *, version=None,
         def warn_deprecated_args(kwargs):
             intersection = deprecated_args.intersection(kwargs)
             if intersection:
-                message = (f"Arguments {intersection} are deprecated, whether passed "
-                           "by position or keyword. They will be removed in scikitplot "
-                           f"{version}. ")
+                message = (
+                    f"Arguments {intersection} are deprecated, whether passed "
+                    "by position or keyword. They will be removed in scikitplot "
+                    f"{version}. "
+                )
                 message += custom_message
                 warnings.warn(message, category=DeprecationWarning, stacklevel=3)
 
@@ -195,14 +209,16 @@ def _deprecate_positional_args(func=None, *, version=None,
         kwonly_extra_args = set(kwonly_args) - deprecated_args
         admonition = f"""
 .. deprecated:: {version}
-    Use of argument(s) ``{kwonly_extra_args}`` by position is deprecated; beginning in 
+    Use of argument(s) ``{kwonly_extra_args}`` by position is deprecated; beginning in
     scikitplot {version}, these will be keyword-only. """
         if deprecated_args:
-            admonition += (f"Argument(s) ``{deprecated_args}`` are deprecated, whether "
-                           "passed by position or keyword; they will be removed in "
-                           f"scikitplot {version}. ")
+            admonition += (
+                f"Argument(s) ``{deprecated_args}`` are deprecated, whether "
+                "passed by position or keyword; they will be removed in "
+                f"scikitplot {version}. "
+            )
         admonition += custom_message
-        doc['Extended Summary'] += [admonition]
+        doc["Extended Summary"] += [admonition]
 
         doc = str(doc).split("\n", 1)[1]  # remove signature
         inner_f.__doc__ = str(doc)
@@ -214,14 +230,17 @@ def _deprecate_positional_args(func=None, *, version=None,
 
     return _inner_deprecate_positional_args
 
+
 ######################################################################
 ## Deprecation: Cython API Helper
 ######################################################################
+
 
 class _DeprecationHelperStr:
     """
     Helper class used by deprecate_cython_api
     """
+
     def __init__(self, content, message):
         self._content = content
         self._message = message
@@ -230,10 +249,9 @@ class _DeprecationHelperStr:
         return hash(self._content)
 
     def __eq__(self, other):
-        res = (self._content == other)
+        res = self._content == other
         if res:
-            warnings.warn(self._message, category=DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(self._message, category=DeprecationWarning, stacklevel=2)
         return res
 
 
@@ -298,9 +316,11 @@ def deprecate_cython_api(module, routine_name, new_name=None, message=None):
     if not has_fused:
         d[_DeprecationHelperStr(routine_name, depdoc)] = d.pop(routine_name)
 
+
 ######################################################################
 ## Deprecation: Class from sklearn
 ######################################################################
+
 
 class deprecated:
     """Decorator to mark a function or class as deprecated.
@@ -406,6 +426,7 @@ class deprecated:
 
         return wrapped
 
+
 def _is_deprecated(func):
     """Helper to check if func is wrapped by our deprecated decorator"""
     closures = getattr(func, "__closure__", [])
@@ -415,6 +436,7 @@ def _is_deprecated(func):
         [c.cell_contents for c in closures if isinstance(c.cell_contents, str)]
     )
     return is_deprecated
+
 
 # # TODO: remove in 1.7
 # def _deprecate_Xt_in_inverse_transform(X, Xt):

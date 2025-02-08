@@ -11,63 +11,61 @@ This package/module is designed to be compatible with both Python 2 and Python 3
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
-  absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-  division,         # Changes the division operator `/` to always perform true division.
-  print_function,   # Treats `print` as a function, consistent with Python 3 syntax.
-  unicode_literals  # Makes all string literals Unicode by default, similar to Python 3.
+    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+    division,  # Changes the division operator `/` to always perform true division.
+    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 
+import numpy as np
 from sklearn.model_selection import learning_curve
 
 from ..._utils.validation import (
-  validate_plotting_kwargs_decorator,
-  # validate_shapes_decorator,
-  # validate_y_true_decorator,
-  # validate_y_probas_decorator,
-  # validate_y_probas_bounds_decorator,
+    validate_plotting_kwargs_decorator,
+    # validate_shapes_decorator,
+    # validate_y_true_decorator,
+    # validate_y_probas_decorator,
+    # validate_y_probas_bounds_decorator,
 )
-
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
-  'plot_learning_curve',
+    "plot_learning_curve",
 ]
 
 
 @validate_plotting_kwargs_decorator
 def plot_learning_curve(
-  ## default params
-  estimator,
-  X,
-  y,
-  *,
-  # groups=None,
-  train_sizes=None,
-  cv=None,
-  scoring=None,
-  # exploit_incremental_learning=False,
-  n_jobs=None,
-  # pre_dispatch="all",
-  verbose=0,
-  shuffle=False,
-  random_state=None,
-  # error_score=np.nan,
-  # return_times=False,
-  fit_params=None,
-  ## plotting params
-  title='Learning Curves',
-  ax=None,
-  fig=None,
-  figsize=None,
-  title_fontsize="large",
-  text_fontsize="medium",
-  ## additional params
-  **kwargs,
+    ## default params
+    estimator,
+    X,
+    y,
+    *,
+    # groups=None,
+    train_sizes=None,
+    cv=None,
+    scoring=None,
+    # exploit_incremental_learning=False,
+    n_jobs=None,
+    # pre_dispatch="all",
+    verbose=0,
+    shuffle=False,
+    random_state=None,
+    # error_score=np.nan,
+    # return_times=False,
+    fit_params=None,
+    ## plotting params
+    title="Learning Curves",
+    ax=None,
+    fig=None,
+    figsize=None,
+    title_fontsize="large",
+    text_fontsize="medium",
+    ## additional params
+    **kwargs,
 ):
     """
     Generates a plot of the train and test learning curves for a classifier.
@@ -94,7 +92,7 @@ def plot_learning_curve(
     train_sizes : iterable, optional
         Determines the training sizes used to plot the learning curve.
         If None, `np.linspace(.1, 1.0, 5)` is used.
-        
+
     cv : int, cross-validation generator, iterable or None, default=5
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
@@ -169,14 +167,14 @@ def plot_learning_curve(
 
 
     .. dropdown:: References
-    
+
       * `"scikit-learn learning_curve"
         <https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.learning_curve.html#>`_.
 
 
     Examples
     --------
-    
+
     .. plot::
        :context: close-figs
        :align: center
@@ -197,9 +195,9 @@ def plot_learning_curve(
     """
     #################################################
     ## Preprocessing
-    #################################################    
+    #################################################
     # Proceed with your preprocess logic here
-    
+
     if train_sizes is None:
         train_sizes = np.linspace(0.1, 1.0, 5)
 
@@ -209,7 +207,7 @@ def plot_learning_curve(
         X,
         y,
         # groups=None,
-        train_sizes=train_sizes, 
+        train_sizes=train_sizes,
         cv=cv,
         scoring=scoring,
         # exploit_incremental_learning=False,
@@ -221,15 +219,15 @@ def plot_learning_curve(
         # error_score=np.nan,
         # return_times=False,
         fit_params=fit_params,
-    )    
+    )
     train_scores_mean = np.mean(train_scores, axis=1)
     train_scores_std = np.std(train_scores, axis=1)
     test_scores_mean = np.mean(test_scores, axis=1)
     test_scores_std = np.std(test_scores, axis=1)
 
     # Get model name if available
-    model_name = f'{estimator.__class__.__name__} ' if hasattr(estimator, '__class__') else ''
-    
+    model_name = f"{estimator.__class__.__name__} " if hasattr(estimator, "__class__") else ""
+
     ##################################################################
     ## Plotting
     ##################################################################
@@ -238,27 +236,27 @@ def plot_learning_curve(
     # )
     # Proceed with your plotting logic here
     ax.fill_between(
-        train_sizes, train_scores_mean - train_scores_std,
-        train_scores_mean + train_scores_std, alpha=0.1, color="r"
+        train_sizes,
+        train_scores_mean - train_scores_std,
+        train_scores_mean + train_scores_std,
+        alpha=0.1,
+        color="r",
     )
     ax.fill_between(
-        train_sizes, test_scores_mean - test_scores_std,
-        test_scores_mean + test_scores_std, alpha=0.1, color="g"
+        train_sizes,
+        test_scores_mean - test_scores_std,
+        test_scores_mean + test_scores_std,
+        alpha=0.1,
+        color="g",
     )
-    ax.plot(
-        train_sizes, train_scores_mean, 'o-', color="r",
-        label="Training score"
-    )
-    ax.plot(
-        train_sizes, test_scores_mean, 'o-', color="g",
-        label="Cross-validation score"
-    )
+    ax.plot(train_sizes, train_scores_mean, "o-", color="r", label="Training score")
+    ax.plot(train_sizes, test_scores_mean, "o-", color="g", label="Cross-validation score")
     ax.set_title(model_name + title, fontsize=title_fontsize)
     ax.set_xlabel("Training examples", fontsize=text_fontsize)
     ax.set_ylabel("Score", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
     ax.grid()
-    
+
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(loc="best", fontsize=text_fontsize)

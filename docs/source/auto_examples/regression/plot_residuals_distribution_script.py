@@ -9,23 +9,19 @@ used by a scikit-learn regressor.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+import numpy as np
 from sklearn.datasets import (
-    make_classification,
     load_diabetes as load_data,
 )
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.svm import LinearSVR
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import train_test_split
 
-import numpy as np; np.random.seed(0)  # reproducibility
+np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
 
 # Import scikit-plot
 import scikitplot as sp
-import scikitplot.probscale as probscale
 
 # Load the data
 X, y = load_data(return_X_y=True, as_frame=True)
@@ -38,9 +34,7 @@ model = LinearRegression().fit(X_train, y_train)
 y_val_pred = model.predict(X_val)
 
 # Plot!
-ax = sp.metrics.plot_residuals_distribution(
-    y_val, y_val_pred, dist_type='normal'
-);
+ax = sp.metrics.plot_residuals_distribution(y_val, y_val_pred, dist_type="normal")
 
 # Adjust layout to make sure everything fits
 plt.tight_layout()

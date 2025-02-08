@@ -9,12 +9,12 @@ import threading
 from contextlib import contextmanager as contextmanager
 
 _global_config = {
-  "assume_finite"            : bool(os.environ.get("SKPLT_ASSUME_FINITE", False)),
-  "working_memory"           : int(os.environ.get("SKPLT_WORKING_MEMORY", 1024)),
-  "display"                  : "diagram",
-  "array_api_dispatch"       : False,
-  "transform_output"         : "default",
-  "skip_parameter_validation": False,
+    "assume_finite": bool(os.environ.get("SKPLT_ASSUME_FINITE", False)),
+    "working_memory": int(os.environ.get("SKPLT_WORKING_MEMORY", 1024)),
+    "display": "diagram",
+    "array_api_dispatch": False,
+    "transform_output": "default",
+    "skip_parameter_validation": False,
 }
 _threadlocal = threading.local()
 
@@ -53,12 +53,12 @@ def get_config():
 
 
 def set_config(
-  assume_finite=None,
-  working_memory=None,
-  display=None,
-  array_api_dispatch=None,
-  transform_output=None,
-  skip_parameter_validation=None,
+    assume_finite=None,
+    working_memory=None,
+    display=None,
+    array_api_dispatch=None,
+    transform_output=None,
+    skip_parameter_validation=None,
 ):
     """Set global scikit-plots configuration.
 
@@ -152,13 +152,13 @@ def set_config(
 
 @contextmanager
 def config_context(
-  *,
-  assume_finite=None,
-  working_memory=None,
-  display=None,
-  array_api_dispatch=None,
-  transform_output=None,
-  skip_parameter_validation=None,
+    *,
+    assume_finite=None,
+    working_memory=None,
+    display=None,
+    array_api_dispatch=None,
+    transform_output=None,
+    skip_parameter_validation=None,
 ):
     """Context manager for global scikit-plots configuration.
 

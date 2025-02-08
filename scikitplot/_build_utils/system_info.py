@@ -27,9 +27,7 @@ def combine_dict(*dicts, **kwargs):
                         continue
                 elif value == old_value:
                     continue
-                raise ValueError(
-                  f"Conflicting configuration dicts: {new_dict!r} {d!r}"
-                )
+                raise ValueError(f"Conflicting configuration dicts: {new_dict!r} {d!r}")
             else:
                 new_dict[key] = value
     return new_dict

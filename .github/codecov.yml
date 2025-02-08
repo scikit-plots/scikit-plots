@@ -31,4 +31,3 @@ coverage:
         if_ci_failed: error
         paths:
           - 'lib/.*/tests/.*'
----

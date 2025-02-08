@@ -6,28 +6,29 @@ bottleneck is not installed, then the np.nan* functions are used.
 """
 from __future__ import annotations
 
-import functools
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike, NDArray
-    from collections.abc import Callable
 
-from .funcs import mad_std  # astropy.stats.funcs
+    from numpy.typing import ArrayLike, NDArray
+
 # from astropy.units import Quantity  # astropy.units
 # from astropy.utils.compat.optional_deps import HAS_BOTTLENECK
 from scikitplot._compat.optional_deps import HAS_BOTTLENECK
 
+from .funcs import mad_std  # astropy.stats.funcs
+
 __all__ = [
-  "nansum",
-  "nanmin",
-  "nanmax",
-  "nanmean",
-  "nanmedian",
-  "nanstd",
-  "nanvar",
-  "nanmadstd",
+    "nansum",
+    "nanmin",
+    "nanmax",
+    "nanmean",
+    "nanmedian",
+    "nanstd",
+    "nanvar",
+    "nanmadstd",
 ]
 
 
@@ -98,13 +99,13 @@ if HAS_BOTTLENECK:
     #         return result
 
     bn_funcs = dict(
-        nansum=bottleneck.nansum,        # functools.partial(_apply_bottleneck, bottleneck.nansum),
-        nanmin=bottleneck.nanmin,        # functools.partial(_apply_bottleneck, bottleneck.nanmin),
-        nanmax=bottleneck.nanmax,        # functools.partial(_apply_bottleneck, bottleneck.nanmax),
-        nanmean=bottleneck.nanmean,      # functools.partial(_apply_bottleneck, bottleneck.nanmean),
+        nansum=bottleneck.nansum,  # functools.partial(_apply_bottleneck, bottleneck.nansum),
+        nanmin=bottleneck.nanmin,  # functools.partial(_apply_bottleneck, bottleneck.nanmin),
+        nanmax=bottleneck.nanmax,  # functools.partial(_apply_bottleneck, bottleneck.nanmax),
+        nanmean=bottleneck.nanmean,  # functools.partial(_apply_bottleneck, bottleneck.nanmean),
         nanmedian=bottleneck.nanmedian,  # functools.partial(_apply_bottleneck, bottleneck.nanmedian),
-        nanstd=bottleneck.nanmedian,     # functools.partial(_apply_bottleneck, bottleneck.nanstd),
-        nanvar=bottleneck.nanvar,        # functools.partial(_apply_bottleneck, bottleneck.nanvar),
+        nanstd=bottleneck.nanmedian,  # functools.partial(_apply_bottleneck, bottleneck.nanstd),
+        nanvar=bottleneck.nanvar,  # functools.partial(_apply_bottleneck, bottleneck.nanvar),
     )
 
     np_funcs = dict(

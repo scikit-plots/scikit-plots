@@ -1,13 +1,10 @@
-
 import numpy as np
 import pandas as pd
-
 import pytest
 from numpy.testing import assert_array_equal
 
-from ..counting import Hist, Count
-
 from ..._core.groupby import GroupBy
+from ..counting import Count, Hist
 
 
 class TestCount:
@@ -16,12 +13,14 @@ class TestCount:
     def df(self, rng):
 
         n = 30
-        return pd.DataFrame(dict(
-            x=rng.uniform(0, 7, n).round(),
-            y=rng.normal(size=n),
-            color=rng.choice(["a", "b", "c"], n),
-            group=rng.choice(["x", "y"], n),
-        ))
+        return pd.DataFrame(
+            dict(
+                x=rng.uniform(0, 7, n).round(),
+                y=rng.normal(size=n),
+                color=rng.choice(["a", "b", "c"], n),
+                group=rng.choice(["x", "y"], n),
+            )
+        )
 
     def get_groupby(self, df, orient):
 
@@ -94,7 +93,7 @@ class TestHist:
 
     def test_binwidth(self, long_df):
 
-        binwidth = .5
+        binwidth = 0.5
         h = Hist(binwidth=binwidth)
         bin_kws = h._define_bin_params(long_df, "x", "continuous")
         n_bins = bin_kws["bins"]
@@ -113,7 +112,7 @@ class TestHist:
         h = Hist(discrete=True)
         x = long_df["x"].astype(int)
         bin_kws = h._define_bin_params(long_df.assign(x=x), "x", "continuous")
-        assert bin_kws["range"] == (x.min() - .5, x.max() + .5)
+        assert bin_kws["range"] == (x.min() - 0.5, x.max() + 0.5)
         assert bin_kws["bins"] == (x.max() - x.min() + 1)
 
     def test_discrete_bins_from_nominal_scale(self, rng):
@@ -122,7 +121,7 @@ class TestHist:
         x = rng.randint(0, 5, 10)
         df = pd.DataFrame({"x": x})
         bin_kws = h._define_bin_params(df, "x", "nominal")
-        assert bin_kws["range"] == (x.min() - .5, x.max() + .5)
+        assert bin_kws["range"] == (x.min() - 0.5, x.max() + 0.5)
         assert bin_kws["bins"] == (x.max() - x.min() + 1)
 
     def test_count_stat(self, long_df, single_args):
