@@ -1042,7 +1042,7 @@ gen_tempita = generator(cli_tempita,
 
 ## Try using system 'cp' first
 ## If 'cp' is not found, try executing Python script directly
-cli_copier = find_program(['cpx', 'scikitplot/_build_utils/copyfiles.py'], required: false)
+cli_copier = find_program(['cp', 'scikitplot/_build_utils/copyfiles.py'], required: false)
 
 ######################################################################
 ## Installation tags

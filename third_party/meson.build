@@ -75,34 +75,6 @@ if not fs.exists('seaborn/README.md')
   'Run `git submodule update --init` to fix this.')
 endif
 
-## `seaborn` install to simplify import path;
-## should be updated whenever new files are added to `_seaborn`
-## Copy all the source files to the under `_seaborn`
-src_dir = meson.current_source_dir() / 'seaborn/seaborn'
-dest_dir = meson.current_source_dir() / '../scikitplot/_seaborn'
-
-## Add -r for recursive copying
-r = run_command(
-  cli_copier, '-r',
-  src_dir, dest_dir,
-  check: true
-)
-if r.returncode() != 0
-    error('Copying failed: ' + r.stderr().strip())
-endif
-
-## Add -r for recursive copying
-r = run_command(
-  cli_copier, '-r',
-  meson.current_source_dir() / '../scikitplot/_build_utils/vendored_seaborn',
-  meson.current_source_dir() / '../scikitplot/_seaborn',
-  check: true
-)
-if r.returncode() != 0
-    error('Copying failed: ' + r.stderr().strip())
-endif
-
-
 ## `seaborn` currently not support vendoring
 # install_subdir(
 #   'seaborn/seaborn',
@@ -112,11 +84,37 @@ endif
 #   strip_directory : true,
 #   install_tag: 'python-runtime',
 # )
+
+## `seaborn` install to simplify import path;
+## should be updated whenever new files are added to `_seaborn`
+## Copy all the source files to the under `_seaborn`
+# src_dir = meson.current_source_dir() / 'seaborn/seaborn'
+# dest_dir = meson.current_source_dir() / '../scikitplot/_seaborn'
+## Add -r for recursive copying
+# r = run_command(
+#   cli_copier, '-r',
+#   src_dir, dest_dir,
+#   check: true
+# )
+# if r.returncode() != 0
+#     error('Copying failed: ' + r.stderr().strip())
+# endif
+## Add -r for recursive copying
+# r = run_command(
+#   cli_copier, '-r',
+#   meson.current_source_dir() / '../scikitplot/_build_utils/vendored_seaborn',
+#   meson.current_source_dir() / '../scikitplot/_seaborn',
+#   check: true
+# )
+# if r.returncode() != 0
+#     error('Copying failed: ' + r.stderr().strip())
+# endif
+
 ## Optionally add a message to confirm the installation
-message(
-  '\n`seaborn` compatibility files installed successfully: ' +
-  '@0@'.format( meson.project_source_root() / 'scikitplot/_seaborn' )
-)
+# message(
+#   '\n`seaborn` compatibility files installed successfully: ' +
+#   '@0@'.format( meson.project_source_root() / 'scikitplot/_seaborn' )
+# )
 
 ######################################################################
 ## Submodule `astropy`
@@ -130,35 +128,6 @@ if not fs.exists('astropy/README.rst')
   'Run `git submodule update --init` to fix this.')
 endif
 
-## `astropy` install to simplify import path;
-## should be updated whenever new files are added to `_astropy`
-## Copy all the source files to the under `_astropy`
-src_dir = meson.current_source_dir() / 'astropy/astropy/stats'
-dest_dir = meson.current_source_dir() / '../scikitplot/_astropy/stats'
-
-## Add -r for recursive copying
-r = run_command(
-  cli_copier, '-r',
-  src_dir,
-  dest_dir,
-  check: true
-)
-if r.returncode() != 0
-    error('Copying failed: ' + r.stderr().strip())
-endif
-
-## Add -r for recursive copying
-r = run_command(
-  cli_copier, '-r',
-  meson.current_source_dir() / '../scikitplot/_build_utils/vendored_astropy',
-  meson.current_source_dir() / '../scikitplot/_astropy',
-  check: true
-)
-if r.returncode() != 0
-    error('Copying failed: ' + r.stderr().strip())
-endif
-
-
 ## `astropy` currently not support vendoring
 # install_subdir(
 #   'astropy/astropy/stats',
@@ -168,11 +137,38 @@ endif
 #   # strip_directory : true,
 #   install_tag: 'python-runtime',
 # )
+
+## `astropy` install to simplify import path;
+## should be updated whenever new files are added to `_astropy`
+## Copy all the source files to the under `_astropy`
+# src_dir = meson.current_source_dir() / 'astropy/astropy/stats'
+# dest_dir = meson.current_source_dir() / '../scikitplot/_astropy/stats'
+## Add -r for recursive copying
+# r = run_command(
+#   cli_copier, '-r',
+#   src_dir,
+#   dest_dir,
+#   check: true
+# )
+# if r.returncode() != 0
+#     error('Copying failed: ' + r.stderr().strip())
+# endif
+## Add -r for recursive copying
+# r = run_command(
+#   cli_copier, '-r',
+#   meson.current_source_dir() / '../scikitplot/_build_utils/vendored_astropy',
+#   meson.current_source_dir() / '../scikitplot/_astropy',
+#   check: true
+# )
+# if r.returncode() != 0
+#     error('Copying failed: ' + r.stderr().strip())
+# endif
+
 ## Optionally add a message to confirm the installation
-message(
-  '\n`astropy` compatibility files installed successfully: ' +
-  '@0@'.format( meson.project_source_root()/'scikitplot/_astropy/stats' )
-)
+# message(
+#   '\n`astropy` compatibility files installed successfully: ' +
+#   '@0@'.format( meson.project_source_root()/'scikitplot/_astropy/stats' )
+# )
 
 ######################################################################
 ##
