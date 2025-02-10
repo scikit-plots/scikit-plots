@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import warnings
 from collections import UserString
-from datetime import datetime
 from numbers import Number
-from typing import TYPE_CHECKING
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
 
+from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from typing import Literal
-
     from pandas import Series
 
 

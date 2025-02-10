@@ -1,9 +1,9 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
 try:
-    from ipywidgets import FloatSlider, IntSlider, interact
+    from ipywidgets import interact, FloatSlider, IntSlider
 except ImportError:
 
     def interact(f):
@@ -14,10 +14,10 @@ except ImportError:
 from .miscplot import palplot
 from .palettes import (
     color_palette,
-    cubehelix_palette,
     dark_palette,
-    diverging_palette,
     light_palette,
+    diverging_palette,
+    cubehelix_palette,
 )
 
 __all__ = [

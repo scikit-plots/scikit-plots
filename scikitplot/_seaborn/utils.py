@@ -1,23 +1,23 @@
 """Utility functions, mostly for internal use."""
 
-import colorsys
-import inspect
 import os
+import inspect
 import warnings
+import colorsys
 from contextlib import contextmanager
-from types import ModuleType
 from urllib.request import urlopen, urlretrieve
+from types import ModuleType
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.cbook import normalize_kwargs
+import matplotlib as mpl
 from matplotlib.colors import to_rgb
+import matplotlib.pyplot as plt
+from matplotlib.cbook import normalize_kwargs
 
 from ._core.typing import deprecated
-from .external.appdirs import user_cache_dir
 from .external.version import Version
+from .external.appdirs import user_cache_dir
 
 __all__ = [
     "desaturate",

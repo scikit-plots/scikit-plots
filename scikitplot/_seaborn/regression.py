@@ -1,13 +1,12 @@
 """Plotting functions for linear models (broadly construed)."""
 
 import copy
-import warnings
 from textwrap import dedent
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+import warnings
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 try:
     import statsmodels
@@ -17,8 +16,8 @@ try:
 except ImportError:
     _has_statsmodels = False
 
-from . import algorithms as algo
 from . import utils
+from . import algorithms as algo
 from .axisgrid import FacetGrid, _facet_docs
 
 __all__ = ["lmplot", "regplot", "residplot"]
@@ -238,8 +237,8 @@ class _RegressionPlotter(_LinearPlotter):
         if self.order > 1:
             yhat, yhat_boots = self.fit_poly(grid, self.order)
         elif self.logistic:
-            from statsmodels.genmod.families import Binomial
             from statsmodels.genmod.generalized_linear_model import GLM
+            from statsmodels.genmod.families import Binomial
 
             yhat, yhat_boots = self.fit_statsmodels(grid, GLM, family=Binomial())
         elif self.lowess:

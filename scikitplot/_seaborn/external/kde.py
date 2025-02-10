@@ -72,21 +72,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import numpy as np
 from numpy import (
     asarray,
-    atleast_1d,
     atleast_2d,
-    cov,
+    reshape,
+    zeros,
+    newaxis,
     dot,
     exp,
-    linalg,
-    newaxis,
-    ones,
     pi,
-    power,
-    reshape,
     sqrt,
+    power,
+    atleast_1d,
     sum,
-    zeros,
+    ones,
+    cov,
 )
+from numpy import linalg
 
 __all__ = ["gaussian_kde"]
 

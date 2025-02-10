@@ -27,7 +27,6 @@ The classes should behave roughly in the style of scikit-learn.
 
 from numbers import Number
 from statistics import NormalDist
-
 import numpy as np
 import pandas as pd
 

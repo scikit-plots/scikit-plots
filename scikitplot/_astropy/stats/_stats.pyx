@@ -1,8 +1,7 @@
 # cython: language_level=3
-
 cimport cython
 cimport numpy as np
-# from libc cimport math  # noqa: F401
+# from libc cimport math
 
 np.import_array()
 

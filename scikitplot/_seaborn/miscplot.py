@@ -1,7 +1,7 @@
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import numpy as np
 
 __all__ = ["palplot", "dogplot"]
 
@@ -35,8 +35,8 @@ def palplot(pal, size=1):
 
 def dogplot(*_, **__):
     """Who's a good boy?"""
-    from io import BytesIO
     from urllib.request import urlopen
+    from io import BytesIO
 
     url = "https://github.com/mwaskom/seaborn-data/raw/master/png/img{}.png"
     pic = np.random.randint(2, 7)

@@ -1,13 +1,14 @@
 import colorsys
 from itertools import cycle
 
-import matplotlib as mpl
 import numpy as np
+import matplotlib as mpl
 
-from ._compat import get_colormap
-from .colors import crayons, xkcd_rgb
 from .external import husl
+
 from .utils import desaturate, get_color_cycle
+from .colors import xkcd_rgb, crayons
+from ._compat import get_colormap
 
 __all__ = [
     "color_palette",
@@ -170,9 +171,8 @@ def _patch_colormap_display():
     def _repr_png_(self):
         """Generate a PNG representation of the Colormap."""
         import io
-
-        import numpy as np
         from PIL import Image
+        import numpy as np
 
         IMAGE_SIZE = (400, 50)
         X = np.tile(np.linspace(0, 1, IMAGE_SIZE[0]), (IMAGE_SIZE[1], 1))

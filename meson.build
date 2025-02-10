@@ -40,13 +40,13 @@ project(
 )
 release_version = meson.project_version()
 
-# Get the directory relative to the top-level project directory
+## Get the directory relative to the top-level project directory
 # project_root = meson.project_source_root()
-#
-# Get the directory relative to the current meson.build file
+
+## Get the directory relative to the current meson.build file
 # current_dir = meson.current_source_dir()
-#
-# Get the directory relative to the build directory
+
+## Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
 
 ######################################################################
@@ -612,7 +612,8 @@ endif
 mod_py = import('python')
 # NOTE: with Meson >=0.64.0 we can add `pure: false` here and remove that line
 # everywhere else, see https://github.com/mesonbuild/meson/pull/10783.
-py = mod_py.find_installation(pure: false)
+# py = find_program('python3', 'python', required: true)  # Find Python cross-platform
+py = mod_py.find_installation(pure: false)  # Find system Python
 
 # Get the Python Dependencies
 dep_py = py.dependency()
@@ -1021,12 +1022,6 @@ dep_np = declare_dependency(
 )
 
 ######################################################################
-## py copier
-######################################################################
-
-cli_copier = find_program(['cp', 'scikitplot/_build_utils/copyfiles.py'])
-
-######################################################################
 ## py tempita
 ######################################################################
 
@@ -1040,6 +1035,14 @@ gen_tempita = generator(cli_tempita,
   arguments : ['@INPUT@', '-o', '@OUTPUT@'],
   output : '@BASENAME@',
 )
+
+######################################################################
+## py copier
+######################################################################
+
+## Try using system 'cp' first
+## If 'cp' is not found, try executing Python script directly
+cli_copier = find_program(['cpx', 'scikitplot/_build_utils/copyfiles.py'], required: false)
 
 ######################################################################
 ## Installation tags

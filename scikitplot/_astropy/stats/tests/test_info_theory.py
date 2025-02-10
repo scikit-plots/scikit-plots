@@ -1,6 +1,6 @@
 from numpy.testing import assert_allclose
 
-from ..info_theory import (
+from ...stats.info_theory import (
     akaike_info_criterion,
     akaike_info_criterion_lsq,
     bayesian_info_criterion,

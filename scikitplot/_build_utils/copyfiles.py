@@ -1,19 +1,56 @@
+#!/usr/bin/env python3
 """
-Platform independent file copier script
+Platform-independent file and folder copier script
 """
-
-#!/usr/bin/env python
-import argparse
+import os
+import sys
 import shutil
+import argparse
+
+
+def copy_item(src, dest, recursive=False):
+    """Copy a file or directory to the destination."""
+    if not os.path.exists(src):
+        print(f"Error: Source '{src}' does not exist.", file=sys.stderr)
+        sys.exit(1)
+
+    if os.path.isdir(src):
+        if not recursive:
+            print(
+                f"Error: '{src}', '{dest}' are a directory. Use '-r' flag to copy recursively.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        # if os.path.exists(dest):
+        #     shutil.rmtree(dest)  # Remove existing directory to avoid copy errors
+        # Ensure destination directory exists before copying
+        os.makedirs(dest, exist_ok=True)
+        shutil.copytree(src, dest, dirs_exist_ok=True)
+    else:
+        # Ensure parent directory of dest exists
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        shutil.copy2(src, dest)
+
+    # ## Create a dummy file for Meson tracking
+    # meson_done_file = os.path.join(dest, "meson_copy_done.txt")
+    # ## Ensure the parent directory exists
+    # os.makedirs(os.path.dirname(meson_done_file), exist_ok=True)
+    # with open(meson_done_file, "w") as f:
+    #     f.write(f"Copy completed: '{src}' to '{dest}'")
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("infiles", nargs="+", help="Paths to the input files")
-    parser.add_argument("outdir", help="Path to the output directory")
+    parser = argparse.ArgumentParser(
+        description="Copy files or directories to an output directory."
+    )
+    parser.add_argument(
+        "-r", "--recursive", action="store_true", help="Enable recursive copying for directories"
+    )
+    parser.add_argument("src", help="Path to the source file or directory")
+    parser.add_argument("dest", help="Path to the destination directory")
     args = parser.parse_args()
-    for infile in args.infiles:
-        shutil.copy2(infile, args.outdir)
+
+    copy_item(args.src, args.dest, recursive=args.recursive)
 
 
 if __name__ == "__main__":

@@ -1,21 +1,21 @@
 from __future__ import annotations
-
 import itertools
 import warnings
-from typing import Any, Callable, List, Optional, Tuple, Union
 
-import matplotlib as mpl
 import numpy as np
+from numpy.typing import ArrayLike
+from pandas import Series
+import matplotlib as mpl
 from matplotlib.colors import to_rgb, to_rgba, to_rgba_array
 from matplotlib.markers import MarkerStyle
 from matplotlib.path import Path
-from numpy.typing import ArrayLike
-from pandas import Series
 
-from ..palettes import QUAL_PALETTES, blend_palette, color_palette
+from .._core.scales import Scale, Boolean, Continuous, Nominal, Temporal
+from .._core.rules import categorical_order, variable_type
+from ..palettes import QUAL_PALETTES, color_palette, blend_palette
 from ..utils import get_color_cycle
-from .rules import categorical_order, variable_type
-from .scales import Boolean, Continuous, Nominal, Scale, Temporal
+
+from typing import Any, Callable, Tuple, List, Union, Optional
 
 RGBTuple = Tuple[float, float, float]
 RGBATuple = Tuple[float, float, float, float]

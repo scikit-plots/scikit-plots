@@ -1,16 +1,11 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, Callable
 
 import numpy as np
-import pandas as pd
 from numpy import ndarray
+import pandas as pd
 from pandas import DataFrame
-
-from .._core.groupby import GroupBy
-from .._core.scales import Scale
-from .base import Stat
 
 try:
     from scipy.stats import gaussian_kde
@@ -20,6 +15,10 @@ except ImportError:
     from ..external.kde import gaussian_kde
 
     _no_scipy = True
+
+from .._core.groupby import GroupBy
+from .._core.scales import Scale
+from .._stats.base import Stat
 
 
 @dataclass

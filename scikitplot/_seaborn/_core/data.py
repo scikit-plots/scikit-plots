@@ -4,15 +4,15 @@ Components for parsing variable assignments and internally representing plot dat
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Mapping, Sized
 from typing import cast
+import warnings
 
 import pandas as pd
 from pandas import DataFrame
 
+from .._core.typing import DataSource, VariableSpec, ColumnName
 from ..utils import _version_predates
-from .typing import ColumnName, DataSource, VariableSpec
 
 
 class PlotData:

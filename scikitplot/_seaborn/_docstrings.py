@@ -1,6 +1,5 @@
-import pydoc
 import re
-
+import pydoc
 from .external.docscrape import NumpyDocString
 
 

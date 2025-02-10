@@ -1,15 +1,15 @@
 """Base module for statistical transformations."""
 
 from __future__ import annotations
-
-import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import ClassVar, Any
+import warnings
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pandas import DataFrame
-
     from .._core.groupby import GroupBy
     from .._core.scales import Scale
 

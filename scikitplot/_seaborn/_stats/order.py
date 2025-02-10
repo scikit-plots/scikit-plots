@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import ClassVar, cast
 
@@ -11,10 +10,10 @@ except ImportError:
 import numpy as np
 from pandas import DataFrame
 
-from .._core.groupby import GroupBy
 from .._core.scales import Scale
+from .._core.groupby import GroupBy
+from .._stats.base import Stat
 from ..utils import _version_predates
-from .base import Stat
 
 # From https://github.com/numpy/numpy/blob/main/numpy/lib/function_base.pyi
 _MethodKind = Literal[
