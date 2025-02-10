@@ -42,7 +42,7 @@ repos:
           - pydocstyle>5.1.0
           - flake8-docstrings>1.4.0
           - flake8-force
-        args: [--config=.flake8, --docstring-convention=all, '--exit-zero']
+        args: [--config=.flake8, --docstring-convention=all, '--exit-zero'] # currently not support
         # exclude: ^scikitplot/(_externals/|_seaborn/)
         types: [file, python]
   - repo: https://github.com/pre-commit/mirrors-mypy

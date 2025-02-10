@@ -393,9 +393,9 @@ The additional Python packages required to build the
 
     pip install -r requirements/doc/doc-requirements.txt
 
-The content of :file:`doc-requirements.txt` is also shown below:
+The content of :file:`docs.txt` is also shown below:
 
-.. include:: ../../../requirements/doc/doc-requirements.txt
+.. include:: ../../../requirements/docs.txt
    :literal:
 
 

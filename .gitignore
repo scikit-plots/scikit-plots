@@ -48,6 +48,8 @@ var/
 
 # PyTest
 **.pytest_cache
+**.mypy_cache
+**.ruff_cache
 
 # Unit test / coverage reports
 htmlcov/
