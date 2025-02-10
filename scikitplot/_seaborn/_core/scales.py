@@ -1,48 +1,48 @@
 from __future__ import annotations
-
 import re
-from collections.abc import Sequence
 from copy import copy
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional, Tuple
+from typing import Any, Callable, Tuple, Optional, ClassVar
 
-import matplotlib as mpl
 import numpy as np
-from matplotlib.axis import Axis
-from matplotlib.dates import (
-    AutoDateFormatter,
-    AutoDateLocator,
-    ConciseDateFormatter,
-)
-from matplotlib.scale import ScaleBase
+import matplotlib as mpl
 from matplotlib.ticker import (
+    Locator,
+    Formatter,
     AutoLocator,
     AutoMinorLocator,
-    EngFormatter,
     FixedLocator,
-    Formatter,
-    FuncFormatter,
     LinearLocator,
-    Locator,
-    LogFormatterSciNotation,
     LogLocator,
+    SymmetricalLogLocator,
     MaxNLocator,
     MultipleLocator,
+    EngFormatter,
+    FuncFormatter,
+    LogFormatterSciNotation,
     ScalarFormatter,
     StrMethodFormatter,
-    SymmetricalLogLocator,
 )
+from matplotlib.dates import (
+    AutoDateLocator,
+    AutoDateFormatter,
+    ConciseDateFormatter,
+)
+from matplotlib.axis import Axis
+from matplotlib.scale import ScaleBase
 from pandas import Series
 
-from .rules import categorical_order
-from .typing import Default, default
+from .._core.rules import categorical_order
+from .._core.typing import Default, default
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from .._core.plot import Plot
+    from .._core.properties import Property
     from numpy.typing import ArrayLike, NDArray
-
-    from .plot import Plot
-    from .properties import Property
 
     TransFuncs = Tuple[Callable[[ArrayLike], ArrayLike], Callable[[ArrayLike], ArrayLike]]
 

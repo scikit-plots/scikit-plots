@@ -1,29 +1,27 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-import matplotlib as mpl
 import numpy as np
+import matplotlib as mpl
 
-from .base import (
+from .._marks.base import (
+    Mark,
     Mappable,
     MappableBool,
-    MappableColor,
     MappableFloat,
     MappableString,
+    MappableColor,
     MappableStyle,
-    Mark,
-    document_properties,
-    resolve_color,
     resolve_properties,
+    resolve_color,
+    document_properties,
 )
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
-
     from matplotlib.artist import Artist
-
     from .._core.scales import Scale
 
 

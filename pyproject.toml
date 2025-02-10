@@ -509,6 +509,7 @@ exclude= '''
 # [tool.meson-python.args]
 # install = ['--tags=runtime,python-runtime,tests,devel']
 
+## https://github.com/scientific-python/spin
 # [tool.spin]
 # package = 'numpy'
 

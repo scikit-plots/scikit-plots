@@ -1,44 +1,45 @@
 """Plotting functions for visualizing distributions."""
 
+from numbers import Number
+from functools import partial
 import math
 import textwrap
 import warnings
-from functools import partial
-from numbers import Number
 
+import numpy as np
+import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.transforms as tx
-import numpy as np
-import pandas as pd
 from matplotlib.cbook import normalize_kwargs
-from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgba
+from matplotlib.collections import LineCollection
 
 from ._base import VectorPlotter
-from ._docstrings import (
-    DocstringComponents,
-    _core_docs,
-)
 
 # We have moved univariate histogram computation over to the new Hist class,
 # but still use the older Histogram for bivariate computation.
-from ._statistics import ECDF, KDE, Histogram
+from ._statistics import ECDF, Histogram, KDE
 from ._stats.counting import Hist
+
 from .axisgrid import (
     FacetGrid,
     _facet_docs,
 )
-from .external import husl
-from .external.kde import gaussian_kde
-from .palettes import color_palette
 from .utils import (
-    _assign_default_kwargs,
-    _check_argument,
-    _default_color,
+    remove_na,
     _get_transform_functions,
     _kde_support,
-    remove_na,
+    _check_argument,
+    _assign_default_kwargs,
+    _default_color,
+)
+from .palettes import color_palette
+from .external import husl
+from .external.kde import gaussian_kde
+from ._docstrings import (
+    DocstringComponents,
+    _core_docs,
 )
 
 __all__ = ["displot", "histplot", "kdeplot", "ecdfplot", "rugplot", "distplot"]

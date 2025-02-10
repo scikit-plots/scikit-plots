@@ -368,7 +368,7 @@ APIS_REFERENCE = {
         "sections": [
             {
                 "title": "Astrostatistics: Bayesian Blocks for Time Series Analysis",
-                "description": _get_submodule("scikitplot._astropy.stats", "_bayesian_blocks"),
+                # "description": _get_submodule("scikitplot._astropy.stats", "bayesian_blocks"),
                 "autosummary": [
                     "Events",
                     "FitnessFunc",
@@ -401,7 +401,7 @@ APIS_REFERENCE = {
             },
             {
                 "title": "Astrostatistics: Selecting the bin width of histograms",
-                "description": _get_submodule("scikitplot._astropy.stats", "_histogram"),
+                # "description": _get_submodule("scikitplot._astropy.stats", "histogram"),
                 "autosummary": [
                     "calculate_bin_edges",
                     "freedman_bin_width",

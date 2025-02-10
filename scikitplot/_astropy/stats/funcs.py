@@ -8,13 +8,17 @@ This module should generally not be used directly.  Everything in
 `__all__` is imported into `astropy.stats`, and hence that package
 should be used for access.
 """
+
 from __future__ import annotations
 
 import math
-from functools import partial
 from typing import TYPE_CHECKING
 
 import numpy as np
+
+from ..utils.compat.optional_deps import HAS_BOTTLENECK, HAS_SCIPY
+
+from . import _stats
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -24,11 +28,6 @@ if TYPE_CHECKING:
 
     # type for variables generated with the mpmath library
     FloatLike = TypeVar("FloatLike", bound=SupportsFloat)
-
-# from astropy.utils.compat.optional_deps import HAS_BOTTLENECK, HAS_SCIPY
-from scikitplot._compat.optional_deps import HAS_BOTTLENECK, HAS_SCIPY
-
-from . import _stats
 
 __all__ = [
     "binned_binom_proportion",
@@ -401,8 +400,7 @@ def binned_binom_proportion(
        from scipy.special import erf
        from scipy.stats.distributions import binom
        import matplotlib.pyplot as plt
-       # from astropy.stats import binned_binom_proportion
-       from scikitplot.stats import binned_binom_proportion
+       from ..stats import binned_binom_proportion
        def true_efficiency(x):
            return 0.5 - 0.5 * erf((x - 25.) / 2.)
        np.random.seed(400)
@@ -441,8 +439,7 @@ def binned_binom_proportion(
        from scipy.special import erf
        from scipy.stats.distributions import binom
        import matplotlib.pyplot as plt
-       # from astropy.stats import binned_binom_proportion
-       from scikitplot.stats import binned_binom_proportion
+       from ..stats import binned_binom_proportion
        def true_efficiency(x):
            return 0.5 - 0.5 * erf((x - 25.) / 2.)
        np.random.seed(400)
@@ -791,7 +788,6 @@ def median_absolute_deviation(
     axis: int | tuple[int, ...] | None = None,
     func: Callable | None = None,
     ignore_nan: bool | None = False,
-    keepdims: bool | None = False,
 ) -> float | NDArray:
     """
     Calculate the median absolute deviation (MAD).
@@ -850,14 +846,13 @@ def median_absolute_deviation(
                 data = np.ma.masked_where(np.isnan(data), data, copy=True)
         elif ignore_nan:
             # prevent circular import
-            # from astropy.stats.nanfunctions import nanmedian
-            from .nanfunctions import nanmedian
+            from ..stats.nanfunctions import nanmedian
 
             is_masked = False
             func = nanmedian
         else:
             is_masked = False
-            func = partial(np.median, keepdims=keepdims)  # drops units if result is NaN
+            func = np.median  # drops units if result is NaN
     else:
         is_masked = None
 
@@ -892,9 +887,10 @@ def mad_std(
     func: Callable | None = None,
     ignore_nan: bool | None = False,
 ) -> float | NDArray:
-    r"""\
+    r"""
     Calculate a robust standard deviation using the `median absolute
-    deviation (MAD) <https://en.wikipedia.org/wiki/Median_absolute_deviation>`_.
+    deviation (MAD)
+    <https://en.wikipedia.org/wiki/Median_absolute_deviation>`_.
 
     The standard deviation estimator is given by:
 
@@ -1315,8 +1311,7 @@ def _kraft_burrows_nousek(N: int, B: float, CL: float) -> tuple[float, float]:
     <https://mpmath.org/>`_  need to be available. (Scipy only works for
     N < 100).
     """
-    # from astropy.utils.compat.optional_deps import HAS_MPMATH, HAS_SCIPY
-    from scikitplot._compat.optional_deps import HAS_MPMATH, HAS_SCIPY
+    from ..utils.compat.optional_deps import HAS_MPMATH, HAS_SCIPY
 
     if HAS_SCIPY and N <= 100:
         try:
@@ -1337,8 +1332,6 @@ def kuiper_false_positive_probability(D: float, N: float) -> float:
     the resulting function never underestimates the false positive
     probability but can be a bit high in the N=40..50 range.
     (They quote a factor 1.5 at the 1e-7 level.)
-
-    For detailed explanations see [1]_-[2]_.
 
     Parameters
     ----------
@@ -1426,8 +1419,6 @@ def kuiper(
     Use the Kuiper statistic version of the Kolmogorov-Smirnov test to
     find the probability that a sample like ``data`` was drawn from the
     distribution whose CDF is given as ``cdf``.
-
-    For detailed explanations see [1]_.
 
     .. warning::
         This will not work correctly for distributions that are actually

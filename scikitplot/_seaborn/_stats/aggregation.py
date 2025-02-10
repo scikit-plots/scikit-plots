@@ -1,19 +1,18 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Callable, ClassVar
+from typing import ClassVar, Callable
 
 import pandas as pd
 from pandas import DataFrame
 
-from .._core.groupby import GroupBy
 from .._core.scales import Scale
-from .._core.typing import Vector
+from .._core.groupby import GroupBy
+from .._stats.base import Stat
 from .._statistics import (
     EstimateAggregator,
     WeightedAggregator,
 )
-from .base import Stat
+from .._core.typing import Vector
 
 
 @dataclass

@@ -63,6 +63,7 @@
       "extensions": [
         "ms-python.python",
         "ms-toolsai.jupyter",
+        "ms-vscode.makefile-tools",
         "ms-python.black-formatter",
         "ms-vscode.live-server",
         "ritwickdey.liveserver",

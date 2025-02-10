@@ -1,18 +1,17 @@
 from __future__ import annotations
-
 from collections.abc import Generator
-from typing import TYPE_CHECKING
 
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
+
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # TODO move to seaborn._core.typing?
+    from .._core.plot import FacetSpec, PairSpec
     from matplotlib.figure import SubFigure
-
-    from .plot import FacetSpec, PairSpec
 
 
 class Subplots:

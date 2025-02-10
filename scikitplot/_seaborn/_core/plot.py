@@ -2,49 +2,51 @@
 
 from __future__ import annotations
 
-import inspect
 import io
-import itertools
 import os
 import re
+import inspect
+import itertools
 import textwrap
+from contextlib import contextmanager
 from collections import abc
 from collections.abc import Callable, Generator, Mapping
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, List, Literal, Optional, TypedDict, cast
+from typing import Any, List, Literal, Optional, cast
 from xml.etree import ElementTree
 
-import matplotlib as mpl
-import numpy as np
-import pandas as pd
 from cycler import cycler
-from matplotlib.artist import Artist
+import pandas as pd
+from pandas import DataFrame, Series, Index
+import matplotlib as mpl
 from matplotlib.axes import Axes
+from matplotlib.artist import Artist
 from matplotlib.figure import Figure
-from pandas import DataFrame, Index, Series
+import numpy as np
 from PIL import Image
 
-from .._compat import get_layout_engine, set_layout_engine
 from .._marks.base import Mark
 from .._stats.base import Stat
-from ..palettes import color_palette
-from ..rcmod import axes_style, plotting_context
-from ..utils import _version_predates
-from .data import PlotData
-from .exceptions import PlotSpecError
-from .groupby import GroupBy
-from .moves import Move
-from .properties import PROPERTIES, Property
-from .rules import categorical_order
-from .scales import Scale
-from .subplots import Subplots
-from .typing import (
+from .._core.data import PlotData
+from .._core.moves import Move
+from .._core.scales import Scale
+from .._core.subplots import Subplots
+from .._core.groupby import GroupBy
+from .._core.properties import PROPERTIES, Property
+from .._core.typing import (
     DataSource,
-    Default,
-    OrderSpec,
     VariableSpec,
     VariableSpecList,
+    OrderSpec,
+    Default,
 )
+from .._core.exceptions import PlotSpecError
+from .._core.rules import categorical_order
+from .._compat import get_layout_engine, set_layout_engine
+from ..utils import _version_predates
+from ..rcmod import axes_style, plotting_context
+from ..palettes import color_palette
+
+from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
     from matplotlib.figure import SubFigure

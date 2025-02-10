@@ -1,7 +1,6 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 import numpy as np
 import pandas as pd
@@ -9,7 +8,9 @@ from pandas import DataFrame
 
 from .._core.groupby import GroupBy
 from .._core.scales import Scale
-from .base import Stat
+from .._stats.base import Stat
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike

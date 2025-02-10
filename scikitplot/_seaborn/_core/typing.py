@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union, Tuple, List, Dict
 
-from matplotlib.colors import Colormap, Normalize
 from numpy import ndarray  # TODO use ArrayLike?
-from pandas import Index, Series, Timedelta, Timestamp
+from pandas import Series, Index, Timestamp, Timedelta
+from matplotlib.colors import Colormap, Normalize
 
 ColumnName = Union[str, bytes, date, datetime, timedelta, bool, complex, Timestamp, Timedelta]
 Vector = Union[Series, Index, ndarray]

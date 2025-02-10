@@ -1,16 +1,15 @@
 from __future__ import annotations
-
-import itertools
 import warnings
-from collections import UserString
-from collections.abc import Iterable, Mapping, Sequence
+import itertools
 from copy import copy
-from datetime import datetime
+from collections import UserString
+from collections.abc import Iterable, Sequence, Mapping
 from numbers import Number
+from datetime import datetime
 
-import matplotlib as mpl
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 
 from ._core.data import PlotData
 from .palettes import (
@@ -21,8 +20,8 @@ from .utils import (
     _check_argument,
     _version_predates,
     desaturate,
-    get_color_cycle,
     locator_to_legend_entries,
+    get_color_cycle,
     remove_na,
 )
 

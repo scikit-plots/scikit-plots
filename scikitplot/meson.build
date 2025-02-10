@@ -256,5 +256,7 @@ _root_cython_tree = [
 # (that parallelizes better)
 # belows can be needs to be to be before ... since ... cimport *.pxd
 subdir('_xp_core_lib')
+# submodules
+subdir('_seaborn')
 subdir('_astropy')
 subdir('experimental')

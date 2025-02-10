@@ -1,21 +1,20 @@
 from __future__ import annotations
-
 from collections import defaultdict
 from dataclasses import dataclass
 
-import matplotlib as mpl
 import numpy as np
+import matplotlib as mpl
 
-from .base import (
+from .._marks.base import (
+    Mark,
     Mappable,
     MappableBool,
-    MappableColor,
     MappableFloat,
+    MappableColor,
     MappableStyle,
-    Mark,
-    document_properties,
-    resolve_color,
     resolve_properties,
+    resolve_color,
+    document_properties,
 )
 
 

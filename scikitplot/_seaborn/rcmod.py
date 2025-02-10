@@ -1,10 +1,8 @@
 """Control plot style and scaling using the matplotlib rcParams interface."""
 
 import functools
-
 import matplotlib as mpl
 from cycler import cycler
-
 from . import palettes
 
 __all__ = [

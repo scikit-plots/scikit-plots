@@ -1,26 +1,26 @@
-import warnings
 from functools import partial
+import warnings
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.cbook import normalize_kwargs
 
 from ._base import (
     VectorPlotter,
 )
-from ._compat import groupby_apply_include_groups
-from ._docstrings import DocstringComponents, _core_docs
-from ._statistics import EstimateAggregator, WeightedAggregator
-from .axisgrid import FacetGrid, _facet_docs
 from .utils import (
+    adjust_legend_subtitles,
     _default_color,
     _deprecate_ci,
     _get_transform_functions,
     _scatter_legend_artist,
-    adjust_legend_subtitles,
 )
+from ._compat import groupby_apply_include_groups
+from ._statistics import EstimateAggregator, WeightedAggregator
+from .axisgrid import FacetGrid, _facet_docs
+from ._docstrings import DocstringComponents, _core_docs
 
 __all__ = ["relplot", "scatterplot", "lineplot"]
 

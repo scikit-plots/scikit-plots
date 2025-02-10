@@ -1,26 +1,26 @@
 from __future__ import annotations
-
+from dataclasses import dataclass, fields, field
 import textwrap
-from collections.abc import Generator
-from dataclasses import dataclass, field, fields
 from typing import Any, Callable, Union
+from collections.abc import Generator
 
-import matplotlib as mpl
 import numpy as np
 import pandas as pd
-from matplotlib.artist import Artist
+import matplotlib as mpl
+
 from numpy import ndarray
 from pandas import DataFrame
+from matplotlib.artist import Artist
 
-from .._core.exceptions import PlotSpecError
+from .._core.scales import Scale
 from .._core.properties import (
     PROPERTIES,
-    DashPattern,
-    DashPatternWithOffset,
     Property,
     RGBATuple,
+    DashPattern,
+    DashPatternWithOffset,
 )
-from .._core.scales import Scale
+from .._core.exceptions import PlotSpecError
 
 
 class Mappable:

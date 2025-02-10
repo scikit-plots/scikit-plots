@@ -4,11 +4,10 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
 
-# from astropy import units as u
-from scikitplot._compat.optional_deps import HAS_BOTTLENECK, HAS_MPMATH, HAS_SCIPY
-from scikitplot._utils.misc import NumpyRNGContext
-
-from .. import funcs
+from ... import units as u
+from ...stats import funcs
+from ...utils.compat.optional_deps import HAS_BOTTLENECK, HAS_MPMATH, HAS_SCIPY
+from ...utils.misc import NumpyRNGContext
 
 
 def test_median_absolute_deviation():
@@ -20,7 +19,6 @@ def test_median_absolute_deviation():
         # test whether an array is returned if an axis is used
         randvar = randvar.reshape((10, 1000))
         mad = funcs.median_absolute_deviation(randvar, axis=1)
-        print("MAD shape:", mad.shape)
         assert len(mad) == 10
         assert mad.size < randvar.size
         mad = funcs.median_absolute_deviation(randvar, axis=0)
@@ -123,14 +121,12 @@ def test_median_absolute_deviation_multidim_axis():
     assert_equal(mad1, mad2)
 
 
-@pytest.mark.skipif(True, reason="requires astropy")
 def test_median_absolute_deviation_quantity():
     # Based on the changes introduces in #4658
 
     # Just a small test that this function accepts Quantities and returns a
     # quantity
     a = np.array([1, 16, 5]) * u.m
-
     mad = funcs.median_absolute_deviation(a)
     # Check for the correct unit and that the result is identical to the
     # result without units.
@@ -375,7 +371,6 @@ def test_mad_std_with_axis():
     assert_allclose(funcs.mad_std(data, axis=1), result_axis1)
 
 
-@pytest.mark.filterwarnings("ignore:All-NaN slice encountered:RuntimeWarning")
 def test_mad_std_with_axis_and_nan():
     data = np.array([[1, 2, 3, 4, np.nan], [4, 3, 2, 1, np.nan]])
     # results follow data symmetry

@@ -1,21 +1,20 @@
 from __future__ import annotations
-
 from collections import defaultdict
 from dataclasses import dataclass
 
-import matplotlib as mpl
 import numpy as np
+import matplotlib as mpl
 from matplotlib.transforms import ScaledTranslation
 
-from .base import (
+from .._marks.base import (
+    Mark,
     Mappable,
-    MappableColor,
     MappableFloat,
     MappableString,
-    Mark,
-    document_properties,
-    resolve_color,
+    MappableColor,
     resolve_properties,
+    resolve_color,
+    document_properties,
 )
 
 

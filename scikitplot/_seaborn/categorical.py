@@ -1,40 +1,41 @@
-import warnings
 from collections import namedtuple
+from textwrap import dedent
+import warnings
 from colorsys import rgb_to_hls
 from functools import partial
-from textwrap import dedent
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+import matplotlib as mpl
 from matplotlib.cbook import normalize_kwargs
 from matplotlib.collections import PatchCollection
 from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
 
-from . import utils
-from ._base import VectorPlotter, categorical_order, infer_orient
-from ._compat import groupby_apply_include_groups
 from ._core.typing import default, deprecated
+from ._base import VectorPlotter, infer_orient, categorical_order
+from ._stats.density import KDE
+from . import utils
+from .utils import (
+    desaturate,
+    _check_argument,
+    _draw_figure,
+    _default_color,
+    _get_patch_legend_artist,
+    _get_transform_functions,
+    _scatter_legend_artist,
+    _version_predates,
+)
+from ._compat import groupby_apply_include_groups
 from ._statistics import (
     EstimateAggregator,
     LetterValues,
     WeightedAggregator,
 )
-from ._stats.density import KDE
-from .axisgrid import FacetGrid, _facet_docs
 from .palettes import light_palette
-from .utils import (
-    _check_argument,
-    _default_color,
-    _draw_figure,
-    _get_patch_legend_artist,
-    _get_transform_functions,
-    _scatter_legend_artist,
-    _version_predates,
-    desaturate,
-)
+from .axisgrid import FacetGrid, _facet_docs
 
 __all__ = [
     "catplot",
@@ -619,6 +620,8 @@ class _CategoricalPlotter(VectorPlotter):
         props["whisker"].setdefault("solid_capstyle", "butt")
         props["flier"].setdefault("markersize", fliersize)
 
+        orientation = {"x": "vertical", "y": "horizontal"}[self.orient]
+
         ax = self.ax
 
         for sub_vars, sub_data in self.iter_data(iter_vars, from_comp_data=True, allow_empty=False):
@@ -672,14 +675,20 @@ class _CategoricalPlotter(VectorPlotter):
                 # Set width to 0 to avoid going out of domain
                 widths=data["width"] if linear_orient_scale else 0,
                 patch_artist=fill,
-                vert=self.orient == "x",
                 manage_ticks=False,
                 boxprops=boxprops,
                 medianprops=medianprops,
                 whiskerprops=whiskerprops,
                 flierprops=flierprops,
                 capprops=capprops,
-                # Added in matplotlib 3.6.0; see below
+                # Added in matplotlib 3.10; see below
+                # orientation=orientation
+                **(
+                    {"vert": orientation == "vertical"}
+                    if _version_predates(mpl, "3.10.0")
+                    else {"orientation": orientation}
+                ),
+                # added in matplotlib 3.6.0; see below
                 # capwidths=capwidth,
                 **({} if _version_predates(mpl, "3.6.0") else {"capwidths": capwidth}),
             )

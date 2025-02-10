@@ -1,7 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+
 """
 This module contains simple functions for model selection.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -17,6 +19,198 @@ __doctest_requires__ = {
     "bayesian_info_criterion_lsq": ["scipy"],
     "akaike_info_criterion_lsq": ["scipy"],
 }
+
+
+def bayesian_info_criterion(
+    log_likelihood: float,
+    n_params: int,
+    n_samples: int,
+) -> float:
+    r"""Computes the Bayesian Information Criterion (BIC) given the log of the
+    likelihood function evaluated at the estimated (or analytically derived)
+    parameters, the number of parameters, and the number of samples.
+
+    The BIC is usually applied to decide whether increasing the number of free
+    parameters (hence, increasing the model complexity) yields significantly
+    better fittings. The decision is in favor of the model with the lowest
+    BIC.
+
+    BIC is given as
+
+    .. math::
+
+        \mathrm{BIC} = k \ln(n) - 2L,
+
+    in which :math:`n` is the sample size, :math:`k` is the number of free
+    parameters, and :math:`L` is the log likelihood function of the model
+    evaluated at the maximum likelihood estimate (i. e., the parameters for
+    which L is maximized).
+
+    When comparing two models define
+    :math:`\Delta \mathrm{BIC} = \mathrm{BIC}_h - \mathrm{BIC}_l`, in which
+    :math:`\mathrm{BIC}_h` is the higher BIC, and :math:`\mathrm{BIC}_l` is
+    the lower BIC. The higher is :math:`\Delta \mathrm{BIC}` the stronger is
+    the evidence against the model with higher BIC.
+
+    The general rule of thumb is:
+
+    :math:`0 < \Delta\mathrm{BIC} \leq 2`: weak evidence that model low is
+    better
+
+    :math:`2 < \Delta\mathrm{BIC} \leq 6`: moderate evidence that model low is
+    better
+
+    :math:`6 < \Delta\mathrm{BIC} \leq 10`: strong evidence that model low is
+    better
+
+    :math:`\Delta\mathrm{BIC} > 10`: very strong evidence that model low is
+    better
+
+    For a detailed explanation, see [1]_ - [5]_.
+
+    Parameters
+    ----------
+    log_likelihood : float
+        Logarithm of the likelihood function of the model evaluated at the
+        point of maxima (with respect to the parameter space).
+    n_params : int
+        Number of free parameters of the model, i.e., dimension of the
+        parameter space.
+    n_samples : int
+        Number of observations.
+
+    Returns
+    -------
+    bic : float
+        Bayesian Information Criterion.
+
+    Examples
+    --------
+    The following example was originally presented in [1]_. Consider a
+    Gaussian model (mu, sigma) and a t-Student model (mu, sigma, delta).
+    In addition, assume that the t model has presented a higher likelihood.
+    The question that the BIC is proposed to answer is: "Is the increase in
+    likelihood due to larger number of parameters?"
+
+    >>> from astropy.stats.info_theory import bayesian_info_criterion
+    >>> lnL_g = -176.4
+    >>> lnL_t = -173.0
+    >>> n_params_g = 2
+    >>> n_params_t = 3
+    >>> n_samples = 100
+    >>> bic_g = bayesian_info_criterion(lnL_g, n_params_g, n_samples)
+    >>> bic_t = bayesian_info_criterion(lnL_t, n_params_t, n_samples)
+    >>> bic_g - bic_t # doctest: +FLOAT_CMP
+    np.float64(2.1948298140119391)
+
+    Therefore, there exist a moderate evidence that the increasing in
+    likelihood for t-Student model is due to the larger number of parameters.
+
+    References
+    ----------
+    .. [1] Richards, D. Maximum Likelihood Estimation and the Bayesian
+       Information Criterion.
+       <https://hea-www.harvard.edu/astrostat/Stat310_0910/dr_20100323_mle.pdf>
+    .. [2] Wikipedia. Bayesian Information Criterion.
+       <https://en.wikipedia.org/wiki/Bayesian_information_criterion>
+    .. [3] Origin Lab. Comparing Two Fitting Functions.
+       <https://www.originlab.com/doc/Origin-Help/PostFit-CompareFitFunc>
+    .. [4] Liddle, A. R. Information Criteria for Astrophysical Model
+       Selection. 2008. <https://arxiv.org/pdf/astro-ph/0701113v2.pdf>
+    .. [5] Liddle, A. R. How many cosmological parameters? 2008.
+       <https://arxiv.org/pdf/astro-ph/0401198v3.pdf>
+    """
+    return n_params * np.log(n_samples) - 2.0 * log_likelihood
+
+
+# NOTE: bic_t - bic_g doctest is skipped because it produced slightly
+# different result in arm64 and big-endian s390x CI jobs.
+def bayesian_info_criterion_lsq(
+    ssr: float,
+    n_params: int,
+    n_samples: int,
+) -> float:
+    r"""
+    Computes the Bayesian Information Criterion (BIC) assuming that the
+    observations come from a Gaussian distribution.
+
+    In this case, BIC is given as
+
+    .. math::
+
+        \mathrm{BIC} = n\ln\left(\dfrac{\mathrm{SSR}}{n}\right) + k\ln(n)
+
+    in which :math:`n` is the sample size, :math:`k` is the number of free
+    parameters and :math:`\mathrm{SSR}` stands for the sum of squared residuals
+    between model and data.
+
+    This is applicable, for instance, when the parameters of a model are
+    estimated using the least squares statistic. See [1]_ and [2]_.
+
+    Parameters
+    ----------
+    ssr : float
+        Sum of squared residuals (SSR) between model and data.
+    n_params : int
+        Number of free parameters of the model, i.e., dimension of the
+        parameter space.
+    n_samples : int
+        Number of observations.
+
+    Returns
+    -------
+    bic : float
+
+    Examples
+    --------
+    Consider the simple 1-D fitting example presented in the Astropy
+    modeling webpage [3]_. There, two models (Box and Gaussian) were fitted to
+    a source flux using the least squares statistic. However, the fittings
+    themselves do not tell much about which model better represents this
+    hypothetical source. Therefore, we are going to apply to BIC in order to
+    decide in favor of a model.
+
+    >>> import numpy as np
+    >>> from astropy.modeling import models, fitting
+    >>> from astropy.stats.info_theory import bayesian_info_criterion_lsq
+    >>> # Generate fake data
+    >>> np.random.seed(0)
+    >>> x = np.linspace(-5., 5., 200)
+    >>> y = 3 * np.exp(-0.5 * (x - 1.3)**2 / 0.8**2)
+    >>> y += np.random.normal(0., 0.2, x.shape)
+    >>> # Fit the data using a Box model.
+    >>> # Bounds are not really needed but included here to demonstrate usage.
+    >>> t_init = models.Trapezoid1D(amplitude=1., x_0=0., width=1., slope=0.5,
+    ...                             bounds={"x_0": (-5., 5.)})
+    >>> fit_t = fitting.LevMarLSQFitter()
+    >>> t = fit_t(t_init, x, y)
+    >>> # Fit the data using a Gaussian
+    >>> g_init = models.Gaussian1D(amplitude=1., mean=0, stddev=1.)
+    >>> fit_g = fitting.LevMarLSQFitter()
+    >>> g = fit_g(g_init, x, y)
+    >>> # Compute the mean squared errors
+    >>> ssr_t = np.sum((t(x) - y)*(t(x) - y))
+    >>> ssr_g = np.sum((g(x) - y)*(g(x) - y))
+    >>> # Compute the bics
+    >>> bic_t = bayesian_info_criterion_lsq(ssr_t, 4, x.shape[0])
+    >>> bic_g = bayesian_info_criterion_lsq(ssr_g, 3, x.shape[0])
+    >>> bic_t - bic_g  # doctest: +SKIP
+    30.644474706065466
+
+    Hence, there is a very strong evidence that the Gaussian model has a
+    significantly better representation of the data than the Box model. This
+    is, obviously, expected since the true model is Gaussian.
+
+    References
+    ----------
+    .. [1] Wikipedia. Bayesian Information Criterion.
+       <https://en.wikipedia.org/wiki/Bayesian_information_criterion>
+    .. [2] Origin Lab. Comparing Two Fitting Functions.
+       <https://www.originlab.com/doc/Origin-Help/PostFit-CompareFitFunc>
+    .. [3] Astropy Models and Fitting
+        <https://docs.astropy.org/en/stable/modeling>
+    """
+    return bayesian_info_criterion(-0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples)
 
 
 def akaike_info_criterion(
@@ -62,7 +256,7 @@ def akaike_info_criterion(
     in which :math:`\mathrm{AIC}_{min}` stands for the lower AIC among the
     models which are being compared.
 
-    For detailed explanations see [1]_-[2]_-[3]_-[4]_-[5]_-[6]_.
+    For detailed explanations see [1]_-[6]_.
 
     Parameters
     ----------
@@ -159,8 +353,6 @@ def akaike_info_criterion_lsq(
     This is applicable, for instance, when the parameters of a model are
     estimated using the least squares statistic.
 
-    For detailed explanations see [1]_-[2]_.
-
     Parameters
     ----------
     ssr : float
@@ -227,197 +419,3 @@ def akaike_info_criterion_lsq(
        <https://www.originlab.com/doc/Origin-Help/PostFit-CompareFitFunc>
     """
     return akaike_info_criterion(-0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples)
-
-
-def bayesian_info_criterion(
-    log_likelihood: float,
-    n_params: int,
-    n_samples: int,
-) -> float:
-    r"""Computes the Bayesian Information Criterion (BIC) given the log of the
-    likelihood function evaluated at the estimated (or analytically derived)
-    parameters, the number of parameters, and the number of samples.
-
-    The BIC is usually applied to decide whether increasing the number of free
-    parameters (hence, increasing the model complexity) yields significantly
-    better fittings. The decision is in favor of the model with the lowest
-    BIC.
-
-    BIC is given as
-
-    .. math::
-
-        \mathrm{BIC} = k \ln(n) - 2L,
-
-    in which :math:`n` is the sample size, :math:`k` is the number of free
-    parameters, and :math:`L` is the log likelihood function of the model
-    evaluated at the maximum likelihood estimate (i. e., the parameters for
-    which L is maximized).
-
-    When comparing two models define
-    :math:`\Delta \mathrm{BIC} = \mathrm{BIC}_h - \mathrm{BIC}_l`, in which
-    :math:`\mathrm{BIC}_h` is the higher BIC, and :math:`\mathrm{BIC}_l` is
-    the lower BIC. The higher is :math:`\Delta \mathrm{BIC}` the stronger is
-    the evidence against the model with higher BIC.
-
-    The general rule of thumb is:
-
-    :math:`0 < \Delta\mathrm{BIC} \leq 2`: weak evidence that model low is
-    better
-
-    :math:`2 < \Delta\mathrm{BIC} \leq 6`: moderate evidence that model low is
-    better
-
-    :math:`6 < \Delta\mathrm{BIC} \leq 10`: strong evidence that model low is
-    better
-
-    :math:`\Delta\mathrm{BIC} > 10`: very strong evidence that model low is
-    better
-
-    For detailed explanations see [1]_-[2]_-[3]_-[4]_-[5]_.
-
-    Parameters
-    ----------
-    log_likelihood : float
-        Logarithm of the likelihood function of the model evaluated at the
-        point of maxima (with respect to the parameter space).
-    n_params : int
-        Number of free parameters of the model, i.e., dimension of the
-        parameter space.
-    n_samples : int
-        Number of observations.
-
-    Returns
-    -------
-    bic : float
-        Bayesian Information Criterion.
-
-    Examples
-    --------
-    The following example was originally presented in [1]_. Consider a
-    Gaussian model (mu, sigma) and a t-Student model (mu, sigma, delta).
-    In addition, assume that the t model has presented a higher likelihood.
-    The question that the BIC is proposed to answer is: "Is the increase in
-    likelihood due to larger number of parameters?"
-
-    >>> from astropy.stats.info_theory import bayesian_info_criterion
-    >>> lnL_g = -176.4
-    >>> lnL_t = -173.0
-    >>> n_params_g = 2
-    >>> n_params_t = 3
-    >>> n_samples = 100
-    >>> bic_g = bayesian_info_criterion(lnL_g, n_params_g, n_samples)
-    >>> bic_t = bayesian_info_criterion(lnL_t, n_params_t, n_samples)
-    >>> bic_g - bic_t # doctest: +FLOAT_CMP
-    np.float64(2.1948298140119391)
-
-    Therefore, there exist a moderate evidence that the increasing in
-    likelihood for t-Student model is due to the larger number of parameters.
-
-    References
-    ----------
-    .. [1] Richards, D. Maximum Likelihood Estimation and the Bayesian
-       Information Criterion.
-       <https://hea-www.harvard.edu/astrostat/Stat310_0910/dr_20100323_mle.pdf>
-    .. [2] Wikipedia. Bayesian Information Criterion.
-       <https://en.wikipedia.org/wiki/Bayesian_information_criterion>
-    .. [3] Origin Lab. Comparing Two Fitting Functions.
-       <https://www.originlab.com/doc/Origin-Help/PostFit-CompareFitFunc>
-    .. [4] Liddle, A. R. Information Criteria for Astrophysical Model
-       Selection. 2008. <https://arxiv.org/pdf/astro-ph/0701113v2.pdf>
-    .. [5] Liddle, A. R. How many cosmological parameters? 2008.
-       <https://arxiv.org/pdf/astro-ph/0401198v3.pdf>
-    """
-    return n_params * np.log(n_samples) - 2.0 * log_likelihood
-
-
-# NOTE: bic_t - bic_g doctest is skipped because it produced slightly
-# different result in arm64 and big-endian s390x CI jobs.
-def bayesian_info_criterion_lsq(
-    ssr: float,
-    n_params: int,
-    n_samples: int,
-) -> float:
-    r"""
-    Computes the Bayesian Information Criterion (BIC) assuming that the
-    observations come from a Gaussian distribution.
-
-    In this case, BIC is given as
-
-    .. math::
-
-        \mathrm{BIC} = n\ln\left(\dfrac{\mathrm{SSR}}{n}\right) + k\ln(n)
-
-    in which :math:`n` is the sample size, :math:`k` is the number of free
-    parameters and :math:`\mathrm{SSR}` stands for the sum of squared residuals
-    between model and data.
-
-    This is applicable, for instance, when the parameters of a model are
-    estimated using the least squares statistic.
-
-    For detailed explanations see [1]_-[2]_-[3]_.
-
-    Parameters
-    ----------
-    ssr : float
-        Sum of squared residuals (SSR) between model and data.
-    n_params : int
-        Number of free parameters of the model, i.e., dimension of the
-        parameter space.
-    n_samples : int
-        Number of observations.
-
-    Returns
-    -------
-    bic : float
-
-    Examples
-    --------
-    Consider the simple 1-D fitting example presented in the Astropy
-    modeling webpage [3]_. There, two models (Box and Gaussian) were fitted to
-    a source flux using the least squares statistic. However, the fittings
-    themselves do not tell much about which model better represents this
-    hypothetical source. Therefore, we are going to apply to BIC in order to
-    decide in favor of a model.
-
-    >>> import numpy as np
-    >>> from astropy.modeling import models, fitting
-    >>> from astropy.stats.info_theory import bayesian_info_criterion_lsq
-    >>> # Generate fake data
-    >>> np.random.seed(0)
-    >>> x = np.linspace(-5., 5., 200)
-    >>> y = 3 * np.exp(-0.5 * (x - 1.3)**2 / 0.8**2)
-    >>> y += np.random.normal(0., 0.2, x.shape)
-    >>> # Fit the data using a Box model.
-    >>> # Bounds are not really needed but included here to demonstrate usage.
-    >>> t_init = models.Trapezoid1D(amplitude=1., x_0=0., width=1., slope=0.5,
-    ...                             bounds={"x_0": (-5., 5.)})
-    >>> fit_t = fitting.LevMarLSQFitter()
-    >>> t = fit_t(t_init, x, y)
-    >>> # Fit the data using a Gaussian
-    >>> g_init = models.Gaussian1D(amplitude=1., mean=0, stddev=1.)
-    >>> fit_g = fitting.LevMarLSQFitter()
-    >>> g = fit_g(g_init, x, y)
-    >>> # Compute the mean squared errors
-    >>> ssr_t = np.sum((t(x) - y)*(t(x) - y))
-    >>> ssr_g = np.sum((g(x) - y)*(g(x) - y))
-    >>> # Compute the bics
-    >>> bic_t = bayesian_info_criterion_lsq(ssr_t, 4, x.shape[0])
-    >>> bic_g = bayesian_info_criterion_lsq(ssr_g, 3, x.shape[0])
-    >>> bic_t - bic_g  # doctest: +SKIP
-    30.644474706065466
-
-    Hence, there is a very strong evidence that the Gaussian model has a
-    significantly better representation of the data than the Box model. This
-    is, obviously, expected since the true model is Gaussian.
-
-    References
-    ----------
-    .. [1] Wikipedia. Bayesian Information Criterion.
-       <https://en.wikipedia.org/wiki/Bayesian_information_criterion>
-    .. [2] Origin Lab. Comparing Two Fitting Functions.
-       <https://www.originlab.com/doc/Origin-Help/PostFit-CompareFitFunc>
-    .. [3] Astropy Models and Fitting
-       <https://docs.astropy.org/en/stable/modeling>
-    """
-    return bayesian_info_criterion(-0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples)

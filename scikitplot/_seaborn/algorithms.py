@@ -1,8 +1,7 @@
 """Algorithms to support fitting routines in seaborn plotting functions."""
 
-import warnings
-
 import numpy as np
+import warnings
 
 
 def bootstrap(*args, **kwargs):

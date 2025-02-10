@@ -10,6 +10,8 @@ git config --global --add safe.directory <path>
 # scikit-plots
 git submodule add -b "main" "https://github.com/scikit-plots/array-api-compat.git" "third_party/array-api-compat"
 git submodule add -b "main" "https://github.com/scikit-plots/array-api-extra.git" "third_party/array-api-extra"
+git submodule add -b "master" "https://github.com/scikit-plots/seaborn.git" "third_party/seaborn"
+git submodule add -b "main" "https://github.com/scikit-plots/astropy.git" "third_party/astropy"
 
 # lightnumpy
 git submodule add -b "gh_boost_math" "https://github.com/scikit-plots/math.git" "third_party/math"

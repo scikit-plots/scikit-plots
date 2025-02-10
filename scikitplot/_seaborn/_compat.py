@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from typing import Literal
 
-import matplotlib as mpl
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 from matplotlib.figure import Figure
-
 from .utils import _version_predates
 
 
@@ -123,3 +121,9 @@ def groupby_apply_include_groups(val):
     if _version_predates(pd, "2.2.0"):
         return {}
     return {"include_groups": val}
+
+
+def get_converter(axis):
+    if _version_predates(mpl, "3.10.0"):
+        return axis.converter
+    return axis.get_converter()

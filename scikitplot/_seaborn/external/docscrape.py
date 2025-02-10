@@ -27,15 +27,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 """
 
-import copy
 import inspect
-import pydoc
-import re
-import sys
 import textwrap
+import re
+import pydoc
+from warnings import warn
 from collections import namedtuple
 from collections.abc import Callable, Mapping
-from warnings import warn
+import copy
+import sys
 
 
 def strip_blank_lines(l):
