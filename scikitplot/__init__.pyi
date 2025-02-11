@@ -75,3 +75,6 @@ __bibtex__: Final[LiteralString]
 __citation__: Final[LiteralString]
 
 _BUILT_WITH_MESON: Final[bool]
+
+# Without __all__: All public names (not starting with _) are importedto supmodule.
+# {'_base', '_core', '_docstrings', '_orig_rc_params', '_statistics', '_stats'}

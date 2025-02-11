@@ -89,9 +89,10 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
     # to initialise local config file and fetch + checkout submodule (not needed every time)
     git submodule update --init --recursive  # download submodules
-    # pulls changes from the upstream remote repo and merges them
+
+    # (Optionally) pulls changes from the upstream remote repo and merges them
     git submodule update --recursive --remote --merge
-    # Updating your submodule to the latest commit
+    # (Optionally) Updating your submodule to the latest commit
     git submodule update --remote
 
     git remote add upstream https://github.com/scikit-plots/scikit-plots.git

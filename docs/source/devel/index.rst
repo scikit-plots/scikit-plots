@@ -59,7 +59,7 @@ Here you'll find all the guidance and resources you need to quickly start contri
 
       **Docker Desktop or Github Codespaces**
       ^^^
-      Fast launch by predefined Docker Env:
+      Fast launch by `pre-installed` Docker Env:
 
       .. toctree::
          :maxdepth: 2

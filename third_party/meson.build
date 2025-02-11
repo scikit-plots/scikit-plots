@@ -2,10 +2,8 @@
 
 ## Get the directory relative to the top-level project directory
 # project_root = meson.project_source_root()
-
 ## Get the directory relative to the current meson.build file
 # current_dir = meson.current_source_dir()
-
 ## Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
 
@@ -76,6 +74,12 @@ if not fs.exists('seaborn/README.md')
 endif
 
 ## `seaborn` currently not support vendoring
+## Check tools/submodules for updating `seaborn`
+## make copy
+######################################################################
+
+## `seaborn` install to simplify import path;
+## should be updated whenever new files are added to `_seaborn`
 # install_subdir(
 #   'seaborn/seaborn',
 #   ## Load before local then load modified compatipable version
@@ -85,8 +89,6 @@ endif
 #   install_tag: 'python-runtime',
 # )
 
-## `seaborn` install to simplify import path;
-## should be updated whenever new files are added to `_seaborn`
 ## Copy all the source files to the under `_seaborn`
 # src_dir = meson.current_source_dir() / 'seaborn/seaborn'
 # dest_dir = meson.current_source_dir() / '../scikitplot/_seaborn'
@@ -129,6 +131,12 @@ if not fs.exists('astropy/README.rst')
 endif
 
 ## `astropy` currently not support vendoring
+## Check tools/submodules for updating `astropy`
+## make copy
+######################################################################
+
+## `astropy` install to simplify import path;
+## should be updated whenever new files are added to `_astropy`
 # install_subdir(
 #   'astropy/astropy/stats',
 #   ## Load before local then load modified compatipable version
@@ -138,8 +146,6 @@ endif
 #   install_tag: 'python-runtime',
 # )
 
-## `astropy` install to simplify import path;
-## should be updated whenever new files are added to `_astropy`
 ## Copy all the source files to the under `_astropy`
 # src_dir = meson.current_source_dir() / 'astropy/astropy/stats'
 # dest_dir = meson.current_source_dir() / '../scikitplot/_astropy/stats'

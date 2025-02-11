@@ -28,8 +28,9 @@ all: clean publish
 ## helper for defined targets in Makefile
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  clean-basic     to remove 'jupyter' artifacts and 'testing' artifacts files"
-	@echo "  clean           to remove package 'build' artifacts and temporary files"
+	@echo "  clean-basic     to remove 'jupyter' artifacts and 'testing' artifacts files."
+	@echo "  clean           to remove package 'build' artifacts and temporary files."
+	@echo "  reset           to discarding any local uncommitted changes in tracked files."
 	@echo "  pkg-setup       Packaging: 'setup.py' build the pypi Packages, depends on 'clean'"
 	@echo "  pkg-build       Packaging: 'build' library by 'setup.py' or 'pyproject.toml' for pypi Packages, depends on 'clean'"
 	@echo "  comp-meson      Compiling: 'meson' library for step-by-step compiling, depends on 'clean'"
@@ -94,6 +95,11 @@ clean: clean-basic
 	@find -L -type f -name "*.so" -path "*/build*" -exec rm -rf {} +
 	@echo "Removed all '*.so' files in 'build dirs'"
 	@echo "pypi cleaning completed."
+
+reset:
+	## to discarding any local uncommitted changes in tracked files.
+	## Warning: -f is destructive—any unsaved changes will be lost.
+	git checkout -f
 
 ######################################################################
 ## Packaging

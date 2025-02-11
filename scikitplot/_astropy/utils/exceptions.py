@@ -1,3 +1,3 @@
-from scikitplot._utils.exceptions import *
+from scikitplot._utils.exceptions import *  # noqa: F403
 
-AstropyUserWarning = ScikitplotUserWarning
+AstropyUserWarning = ScikitplotUserWarning  # noqa: F405

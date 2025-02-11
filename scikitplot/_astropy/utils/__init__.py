@@ -1,1 +1,1 @@
-from scikitplot._utils.misc import *
+from scikitplot._utils.misc import *  # noqa: F403
