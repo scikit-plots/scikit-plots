@@ -31,11 +31,11 @@
     // Provides a lightweight desktop environment (e.g., for GUI applications)
     // "ghcr.io/devcontainers/features/desktop-lite:1": {},
     // Enables SSH access to the container
-    "ghcr.io/devcontainers/features/sshd:1": {},
+    // "ghcr.io/devcontainers/features/sshd:1": {},
     // Common utilities like zsh, bash-completion, etc.
-    "ghcr.io/devcontainers/features/common-utils:2.5.2": {},
+    // "ghcr.io/devcontainers/features/common-utils:2.5.2": {},
     // GitHub CLI for interacting with GitHub from the terminal
-    "ghcr.io/devcontainers/features/github-cli:1": {},
+    // "ghcr.io/devcontainers/features/github-cli:1": {},
     // Installs various APT packages required for development
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": [
