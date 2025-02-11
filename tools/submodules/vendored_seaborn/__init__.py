@@ -25,19 +25,22 @@ from .widgets import *  # noqa: F401,F403
 from .colors import xkcd_rgb, crayons  # noqa: F401
 from . import cm  # noqa: F401
 
+from .._build_utils.gitversion import git_remote_version
+
 # Capture the original matplotlib rcParams
 import matplotlib as mpl
 
 _orig_rc_params = mpl.rcParams.copy()
 del mpl
 
-# Define the seaborn version
-# https://github.com/mwaskom/seaborn/blob/master/seaborn/__init__.py
-__version__ = "0.14.0.dev0"
+__author__ = "Michael Waskom"
+__author_email__ = "mwaskom@gmail.com"
 
 # Define the seaborn git hash
 # scikitplot._build_utils.gitversion.git_remote_version(url='https://github.com/mwaskom/seaborn')[0]
-__git_hash__ = "385e54676ca16d0132434bc9df6bc41ea8b2a0d4"
+__git_hash__ = git_remote_version(url="https://github.com/scikit-plots/seaborn")[0]
+del git_remote_version
 
-# Without __all__: All public names (not starting with _) are importedto supmodule.
-# {'_base', '_core', '_docstrings', '_orig_rc_params', '_statistics', '_stats'}
+# Define the seaborn version
+# https://github.com/mwaskom/seaborn/blob/master/seaborn/__init__.py
+# __version__ = "0.14.0.dev0"

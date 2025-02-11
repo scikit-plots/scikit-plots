@@ -1,1 +1,1 @@
-from scikitplot._compat.numpycompat import *
+from scikitplot._compat.numpycompat import *  # noqa: F403

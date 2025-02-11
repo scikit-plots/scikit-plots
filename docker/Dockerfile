@@ -69,12 +69,15 @@ RUN apt-get update --yes \
     # zsh \
     # lsb-core \
     # lsb-release \
+    ## Text editors and utilities
     vim \
     nano \
     wget \
     curl \
+    ## Git and related tools
     git \
     git-lfs \
+    ## Archive utilities
     unzip \
     gzip \
     ## bzip2 is necessary to extract the micromamba executable.
@@ -83,12 +86,16 @@ RUN apt-get update --yes \
     p7zip-rar \
     unrar \
     tar \
+    ## Documentation tools
     ## pandoc is used to convert notebooks to html files
     pandoc \
+    ## File and directory utilities
     ## Command-line utility for displaying directory structure
     tree \
+    ## Graph visualization software
     ## Graph visualization software: dot -V
     graphviz \
+    ## Build tools
     ## Utility for building and compiling software projects
     make \
     ## Cross-platform build system generator
@@ -97,12 +104,14 @@ RUN apt-get update --yes \
     ninja-build \
     ## Tool for configuring compile-time flags for libraries
     pkg-config \
+    ## Python-related tools
     ## Python package installer for Python 3
     python3-pip \
     ## Python 3 virtual environments
     python3-venv \
     # Python development headers, useful for compiling certain packages
     python3-dev \
+    ## Compilers and build dependencies
     ## GNU Fortran compiler (required for some scientific libraries)
     gfortran\
     ## GNU C compiler, c/cpp 11.4.0 compiler version
@@ -116,25 +125,31 @@ RUN apt-get update --yes \
     clang-format \
     ## static analysis of C++ code
     clang-tidy \
+    ## Linear algebra and numerical libraries
     ## Basic Linear Algebra Subprograms (BLAS)
     libblas-dev \
     ## OpenBLAS (OpenBLAS Linear Algebra Library) - optimized BLAS library
     libopenblas-dev \
-    # BLIS (BLAS-like Library Instantiation Software) - an optimized BLAS library
+    ## BLIS (BLAS-like Library Instantiation Software) - an optimized BLAS library
     libblis-dev \
     ## LAPACK (Linear Algebra PACKage) - library for linear algebra operations
     liblapack-dev \
-    # OpenMP development libraries
+    ## Parallel computing libraries
+    ## OpenMP development libraries
     libomp-dev \
-    # TBB (Threading Building Blocks) - Intel’s C++ library for parallelism
+    ## TBB (Threading Building Blocks) - Intel’s C++ library for parallelism
     libtbb-dev \
-    # MKL (Intel Math Kernel Library) - Intel's high-performance library for math and linear algebra
+    ## MKL (Intel Math Kernel Library) - Intel's high-performance library for math and linear algebra
     libmkl-dev \
-    # Boost (Boost C++ Libraries) - a set of portable C++ source libraries
+    ## Boost C++ Libraries
+    ## Boost (Boost C++ Libraries) - a set of portable C++ source libraries
     libboost-all-dev \
-    # for matplotlib anim
+    ## Multimedia tools
+    ## for matplotlib anim
     ffmpeg \
-    # newlines equivalent to single semicolon ; on terminal or in shell script.
+    ## Vector graphics editor
+    inkscape \
+    ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; } \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \

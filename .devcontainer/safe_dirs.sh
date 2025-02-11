@@ -1,4 +1,9 @@
-#!/bin/bash
+#!/bin/sh
+
+## Runs on bash or sh
+# sh ./safe_dirs.sh   # (Run in a New Shell)
+# bash ./safe_dirs.sh   # (Run in a New Shell)
+# . ./safe_dirs.sh   # or `source ./script2.sh` (Run in the Same Shell)
 
 # git config --global --unset-all safe.directory
 # git config --global --get-all safe.directory
@@ -23,22 +28,3 @@ if [ "$FALLBACK" = "1" ]; then
 fi
 
 echo "Safe directory configuration complete."
-
-# to initialise local config file and fetch + checkout submodule (not needed every time)
-git submodule update --init --recursive  # download submodules
-
-git remote add upstream https://github.com/scikit-plots/scikit-plots.git || true
-
-git fetch upstream --tags
-
-# Install the development version of scikit-plots
-pip install -r ./requirements/build.txt
-pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs,gpu] -v
-
-pip install pre-commit
-
-( cd /workspaces/scikit-plots/ && pre-commit install)
-
-echo "Continue to below section: Creating a branch"
-
-echo "https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch"

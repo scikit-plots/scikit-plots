@@ -3,7 +3,7 @@
 #   $ conda env create -f environment.yml  # `mamba` works too for this command
 #   $ conda activate scipy-dev
 #
-name: scipy-dev
+name: skplt-dev
 channels:
   - conda-forge
 dependencies:

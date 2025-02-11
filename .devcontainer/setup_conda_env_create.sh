@@ -10,12 +10,10 @@ micromamba env create -f environment.yml --yes
 # Note that `micromamba activate scipy-dev` doesn't work, it must be run by the
 # user (same applies to `conda activate`)
 
-git submodule update --init
-
 # Enables users to activate environment without having to specify the full path
 echo "envs_dirs:
   - /home/codespace/micromamba/envs" > /opt/conda/.condarc
 
-sudo apt-get clean
-rm -rf ~/.cache/*
 pip cache purge
+rm -rf ~/.cache/* || true
+sudo apt-get clean || true
