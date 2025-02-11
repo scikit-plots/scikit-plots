@@ -3,32 +3,104 @@
 {
   // More info about Features: https://containers.dev/features
   "hostRequirements": {
+    // free limit 1 core 120 hours
     "cpus": 2,
     "memory": "8gb",
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "Skplt Dev Env (default)",
+  "name": "Custom DevContainer (codespaces default)",
+  // Use a basic Ubuntu-based image
+  // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "image": "mcr.microsoft.com/devcontainers/universal:2",
+  // runArgs only for github Desktop
   // "runArgs": ["--gpus","all"],
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "remoteUser": "root"
   "features": {
-    "ghcr.io/devcontainers/features/common-utils:1": {},
+    // Common utilities like zsh, bash-completion, etc.
+    "ghcr.io/devcontainers/features/common-utils:2.5.2": {},
+    // Enable Docker-in-Docker to allow running Docker inside the container
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    // Provides a lightweight desktop environment (e.g., for GUI applications)
     "ghcr.io/devcontainers/features/desktop-lite:1": {},
+    // GitHub CLI for interacting with GitHub from the terminal
     "ghcr.io/devcontainers/features/github-cli:1": {},
+    // Enables SSH access to the container
     "ghcr.io/devcontainers/features/sshd:1": {},
+    // Installs various APT packages required for development
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": [
-        "inkscape",
-        "ffmpeg"
+        // Text editors and utilities
+        "vim",
+        "nano",
+        "wget",
+        "curl",
+
+        // Git and related tools
+        "git",
+        "git-lfs",
+
+        // Archive utilities
+        "unzip",
+        "gzip",
+        "bzip2",
+        "p7zip-full",
+        "p7zip-rar",
+        "unrar",
+        "tar",
+
+        // Documentation tools
+        "pandoc",  // Converts notebooks to HTML
+
+        // File and directory utilities
+        "tree",
+
+        // Graph visualization software
+        "graphviz",
+
+        // Build tools
+        "make",
+        "cmake",
+        "ninja-build",
+        "pkg-config",
+
+        // Python-related tools
+        "python3-pip",
+        "python3-venv",
+        "python3-dev",
+
+        // Compilers and build dependencies
+        "gfortran",
+        "gcc",
+        "g++",
+        "clang",
+        "clang-format",  // Formats C++ and other languages
+        "clang-tidy",    // Static analysis for C++
+
+        // Linear algebra and numerical libraries
+        "libblas-dev",
+        "libopenblas-dev",
+        "libblis-dev",
+        "liblapack-dev",
+
+        // Parallel computing libraries
+        "libomp-dev",
+        "libtbb-dev",
+        "libmkl-dev",
+
+        // Boost C++ Libraries
+        "libboost-all-dev",
+
+        // Multimedia tools
+        "ffmpeg",  // Needed for matplotlib animations
+        "inkscape" // Vector graphics editor
       ]
     }
   },
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   // If this is a single string, it will be run in a shell.
-  // If this is an array of strings, it will be run as a single command without shell. Use script file.
+  // If this is an array of strings, it will be run as a single command without shell. Can be useful script file.
   // If this is an object, each provided command will be run in parallel.
   "onCreateCommand": {
     "message": "bash -c 'sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'",
@@ -50,14 +122,38 @@
     "vscode": {
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
-        "ms-python.python",
-        "ms-toolsai.jupyter",
-        "ms-vscode.makefile-tools",
-        "ms-python.black-formatter",
-        "ms-vscode.live-server",
-        "ritwickdey.liveserver",
-        "charliermarsh.ruff",
-        "stkb.rewrap"
+        // === Python Development ===
+        "ms-python.python",            // Python language support
+        "ms-toolsai.jupyter",          // Jupyter Notebook support
+        "charliermarsh.ruff",          // Ruff linter
+        "ms-python.black-formatter",   // Black code formatter
+
+        // === C/C++ Development ===
+        "ms-vscode.cpptools",          // C/C++ IntelliSense, debugging, etc.
+        "llvm-vs-code-extensions.vscode-clangd",  // Clang language server
+        "jeff-hykin.better-cpp-syntax", // Better syntax highlighting
+        "twxs.cmake",                   // CMake support
+        "ms-vscode.makefile-tools",      // Makefile support
+
+        // === Web Development ===
+        "ms-vscode.live-server",        // Live Server
+        "ritwickdey.liveserver",        // Alternative Live Server
+        "esbenp.prettier-vscode",       // Prettier formatter for JS, HTML, etc.
+
+        // === Shell & Terminal ===
+        "timonwong.shellcheck",         // Shell script linting
+        "foxundermoon.shell-format",    // Shell script formatting
+
+        // === Markdown & Docs ===
+        "yzhang.markdown-all-in-one",   // Markdown enhancements
+        "stkb.rewrap",                  // Auto-wrap text and comments
+        "bierner.markdown-mermaid",     // Support for Mermaid diagrams in Markdown
+
+        // === Git & Productivity ===
+        "eamodio.gitlens",              // Git supercharged
+        "donjayamanne.githistory",      // View git history
+        "github.vscode-pull-request-github", // GitHub PRs and Issues
+        "mhutchie.git-graph"            // Interactive Git graph
       ],
       "settings": {
         "terminal.integrated.shell.linux": "/bin/bash",

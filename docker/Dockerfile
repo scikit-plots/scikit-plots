@@ -162,26 +162,33 @@ RUN mamba install --yes \
     -c conda-forge \
     # -c nvidia \
     # cuda \
+    ## jupyter extensions
     'jupyterlab-git' \
+    'ipympl'\
+    'ipywidgets' \
+    'widgetsnbextension'\
+    ## data manuplation
+    'scipy' \
     'pandas' \
     'xlrd' \
     'openpyxl' \
     'pyarrow' \
-    'joblib' \
+    ## data visualiation
     'matplotlib-base' \
-    'ipympl'\
-    'ipywidgets' \
-    'widgetsnbextension'\
     'seaborn' \
-    'scipy' \
+    ## models
     'statsmodels' \
     'scikit-learn' \
     'catboost' \
     'xgboost' \
+    ## model optimizations
     'optuna' \
     'hyperopt' \
-    'mlflow' \
+    ## model saving
+    'joblib' \
     'h5py' \
+    ## model tracking
+    'mlflow' \
     # testing
     'pytest' \
     'hypothesis' \
@@ -190,9 +197,9 @@ RUN mamba install --yes \
     'wheel' \
     'build' \
     # C/C++ development
-    'meson-python' \
     'meson' \
     'ninja' \
+    'meson-python' \
     'cython' \
     'pybind11' \
   ## Clean mamba and fix permissions
