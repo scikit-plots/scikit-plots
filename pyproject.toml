@@ -725,18 +725,21 @@ exclude= '''
 [tool.codespell]
 skip = """
     *.cff,
-    */data/*,
-    *extern/*,
-    astropy/CITATION,
     docs/credits.rst,
-    *_lextab.py,
-    *_parsetab.py,
+    galleries/*,
+    scikitplot/_astropy/*,
+    scikitplot/_seaborn/*,
+    third_party/*,
+    tools/*,
+    *_externals/*,
 """
+count = true
+# quiet-level = 3
+
 # The following list of words for codespell to ignore may contain some
 # misspellings that should be revisited and fixed in the future.
-# ignore-words-list = """
-#     as,
-# """
+# ignore-words-list = """ """
+ignore-words-list = "./.codespell-ignore-words"
 
 ######################################################################
 ## repo-review

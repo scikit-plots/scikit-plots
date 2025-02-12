@@ -1,26 +1,28 @@
-import warnings
 from functools import partial
+import warnings
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.cbook import normalize_kwargs
 
-from ._base import VectorPlotter
-from ._compat import groupby_apply_include_groups
-from ._docstrings import DocstringComponents, _core_docs
-from ._statistics import EstimateAggregator, WeightedAggregator
-from .axisgrid import FacetGrid, _facet_docs
+from ._base import (
+    VectorPlotter,
+)
 from .utils import (
+    adjust_legend_subtitles,
     _default_color,
     _deprecate_ci,
     _get_transform_functions,
     _scatter_legend_artist,
-    adjust_legend_subtitles,
 )
+from ._compat import groupby_apply_include_groups
+from ._statistics import EstimateAggregator, WeightedAggregator
+from .axisgrid import FacetGrid, _facet_docs
+from ._docstrings import DocstringComponents, _core_docs
 
-__all__ = ["lineplot", "relplot", "scatterplot"]
+__all__ = ["relplot", "scatterplot", "lineplot"]
 
 
 _relational_narrative = DocstringComponents(
@@ -181,6 +183,7 @@ _param_docs = DocstringComponents.from_nested_components(
 
 
 class _RelationalPlotter(VectorPlotter):
+
     wide_structure = {
         "x": "@index",
         "y": "@values",
@@ -193,6 +196,7 @@ class _RelationalPlotter(VectorPlotter):
 
 
 class _LinePlotter(_RelationalPlotter):
+
     _legend_attributes = ["color", "linewidth", "marker", "dashes"]
 
     def __init__(
@@ -210,6 +214,7 @@ class _LinePlotter(_RelationalPlotter):
         err_kws=None,
         legend=None,
     ):
+
         # TODO this is messy, we want the mapping to be agnostic about
         # the kind of plot to draw, but for the time being we need to set
         # this information so the SizeMapping can use it
@@ -230,6 +235,7 @@ class _LinePlotter(_RelationalPlotter):
 
     def plot(self, ax, kws):
         """Draw the plot onto an axes, passing matplotlib kwargs."""
+
         # Draw a test plot, using the passed in kwargs. The goal here is to
         # honor both (a) the current state of the plot cycler and (b) the
         # specified kwargs on all the lines we will draw, overriding when
@@ -256,7 +262,10 @@ class _LinePlotter(_RelationalPlotter):
         # Initialize the aggregation object
         weighted = "weight" in self.plot_data
         agg = (WeightedAggregator if weighted else EstimateAggregator)(
-            self.estimator, self.errorbar, n_boot=self.n_boot, seed=self.seed
+            self.estimator,
+            self.errorbar,
+            n_boot=self.n_boot,
+            seed=self.seed,
         )
 
         # TODO abstract variable to aggregate over here-ish. Better name?
@@ -275,6 +284,7 @@ class _LinePlotter(_RelationalPlotter):
         # Loop over the semantic subsets and add to the plot
         grouping_vars = "hue", "size", "style"
         for sub_vars, sub_data in self.iter_data(grouping_vars, from_comp_data=True):
+
             if self.sort:
                 sort_vars = ["units", orient, other]
                 sort_cols = [var for var in sort_vars if var in self.variables]
@@ -311,6 +321,7 @@ class _LinePlotter(_RelationalPlotter):
                 lines = ax.plot(sub_data["x"], sub_data["y"], **kws)
 
             for line in lines:
+
                 if "hue" in sub_vars:
                     line.set_color(self._hue_map(sub_vars["hue"]))
 
@@ -331,9 +342,11 @@ class _LinePlotter(_RelationalPlotter):
             # --- Draw the confidence intervals
 
             if self.estimator is not None and self.errorbar is not None:
+
                 # TODO handling of orientation will need to happen here
 
                 if self.err_style == "band":
+
                     func = {"x": ax.fill_between, "y": ax.fill_betweenx}[orient]
                     func(
                         sub_data[orient],
@@ -344,6 +357,7 @@ class _LinePlotter(_RelationalPlotter):
                     )
 
                 elif self.err_style == "bars":
+
                     error_param = {
                         f"{other}err": (
                             sub_data[other] - sub_data[f"{other}min"],
@@ -378,9 +392,11 @@ class _LinePlotter(_RelationalPlotter):
 
 
 class _ScatterPlotter(_RelationalPlotter):
+
     _legend_attributes = ["color", "s", "marker"]
 
     def __init__(self, *, data=None, variables={}, legend=None):
+
         # TODO this is messy, we want the mapping to be agnostic about
         # the kind of plot to draw, but for the time being we need to set
         # this information so the SizeMapping can use it
@@ -393,6 +409,7 @@ class _ScatterPlotter(_RelationalPlotter):
         self.legend = legend
 
     def plot(self, ax, kws):
+
         # --- Determine the visual attributes of the plot
 
         data = self.comp_data.dropna()
@@ -494,6 +511,7 @@ def lineplot(
     ax=None,
     **kwargs,
 ):
+
     # Handle deprecation of ci parameter
     errorbar = _deprecate_ci(errorbar, ci)
 
@@ -644,6 +662,7 @@ def scatterplot(
     ax=None,
     **kwargs,
 ):
+
     p = _ScatterPlotter(
         data=data,
         variables=dict(x=x, y=y, hue=hue, size=size, style=style),
@@ -760,12 +779,15 @@ def relplot(
     facet_kws=None,
     **kwargs,
 ):
+
     if kind == "scatter":
+
         Plotter = _ScatterPlotter
         func = scatterplot
         markers = True if markers is None else markers
 
     elif kind == "line":
+
         Plotter = _LinePlotter
         func = lineplot
         dashes = True if dashes is None else dashes
@@ -795,7 +817,11 @@ def relplot(
         if weights is not None:
             msg = "The `weights` parameter has no effect with kind='scatter'."
             warnings.warn(msg, stacklevel=2)
-    p = Plotter(data=data, variables=variables, legend=legend)
+    p = Plotter(
+        data=data,
+        variables=variables,
+        legend=legend,
+    )
     p.map_hue(palette=palette, order=hue_order, norm=hue_norm)
     p.map_size(sizes=sizes, order=size_order, norm=size_norm)
     p.map_style(markers=markers, dashes=dashes, order=style_order)
@@ -848,7 +874,15 @@ def relplot(
         plot_kws.pop("dashes")
 
     # Add the grid semantics onto the plotter
-    grid_variables = dict(x=x, y=y, row=row, col=col, hue=hue, size=size, style=style)
+    grid_variables = dict(
+        x=x,
+        y=y,
+        row=row,
+        col=col,
+        hue=hue,
+        size=size,
+        style=style,
+    )
     if kind == "line":
         grid_variables.update(units=units, weights=weights)
     p.assign_variables(data, grid_variables)
@@ -1035,5 +1069,7 @@ Examples
 .. include:: ../docstrings/relplot.rst
 
 """.format(
-    narrative=_relational_narrative, params=_param_docs, returns=_core_docs["returns"]
+    narrative=_relational_narrative,
+    params=_param_docs,
+    returns=_core_docs["returns"],
 )

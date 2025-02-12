@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import ClassVar, cast
 
@@ -11,8 +10,8 @@ except ImportError:
 import numpy as np
 from pandas import DataFrame
 
-from .._core.groupby import GroupBy
 from .._core.scales import Scale
+from .._core.groupby import GroupBy
 from .._stats.base import Stat
 from ..utils import _version_predates
 
@@ -61,6 +60,7 @@ class Perc(Stat):
     group_by_orient: ClassVar[bool] = True
 
     def _percentile(self, data: DataFrame, var: str) -> DataFrame:
+
         k = list(np.linspace(0, 100, self.k)) if isinstance(self.k, int) else self.k
         method = cast(_MethodKind, self.method)
         values = data[var].dropna()
@@ -71,7 +71,12 @@ class Perc(Stat):
         return DataFrame({var: res, "percentile": k})
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
+
         var = {"x": "y", "y": "x"}[orient]
         return groupby.apply(data, self._percentile, var)

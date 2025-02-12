@@ -1,5 +1,5 @@
-import math
 import operator
+import math
 
 __version__ = "2.1.0"
 
@@ -79,7 +79,7 @@ def max_chroma(L, H):
 
         for t in (0.0, 1.0):
             C = L * (top - 1.05122 * t) / (bottom + 0.17266 * sinH * t)
-            if C > 0.0 and result > C:
+            if C > 0.0 and C < result:
                 result = C
     return result
 
@@ -121,19 +121,22 @@ def dot_product(a, b):
 def f(t):
     if t > lab_e:
         return math.pow(t, 1.0 / 3.0)
-    return 7.787 * t + 16.0 / 116.0
+    else:
+        return 7.787 * t + 16.0 / 116.0
 
 
 def f_inv(t):
     if math.pow(t, 3.0) > lab_e:
         return math.pow(t, 3.0)
-    return (116.0 * t - 16.0) / lab_k
+    else:
+        return (116.0 * t - 16.0) / lab_k
 
 
 def from_linear(c):
     if c <= 0.0031308:
         return 12.92 * c
-    return 1.055 * math.pow(c, 1.0 / 2.4) - 0.055
+    else:
+        return 1.055 * math.pow(c, 1.0 / 2.4) - 0.055
 
 
 def to_linear(c):
@@ -141,7 +144,8 @@ def to_linear(c):
 
     if c > 0.04045:
         return math.pow((c + a) / (1.0 + a), 2.4)
-    return c / 12.92
+    else:
+        return c / 12.92
 
 
 def rgb_prepare(triple):
@@ -152,8 +156,10 @@ def rgb_prepare(triple):
         if ch < -0.0001 or ch > 1.0001:
             raise Exception(f"Illegal RGB value {ch:f}")
 
-        ch = max(ch, 0)
-        ch = min(ch, 1)
+        if ch < 0:
+            ch = 0
+        if ch > 1:
+            ch = 1
 
         # Fix for Python 3 which by default rounds 4.5 down to 4.0
         # instead of Python 2 which is rounded to 5.0 which caused
@@ -165,7 +171,8 @@ def rgb_prepare(triple):
 
 
 def hex_to_rgb(hex):
-    hex = hex.removeprefix("#")
+    if hex.startswith("#"):
+        hex = hex[1:]
     r = int(hex[0:2], 16) / 255.0
     g = int(hex[2:4], 16) / 255.0
     b = int(hex[4:6], 16) / 255.0

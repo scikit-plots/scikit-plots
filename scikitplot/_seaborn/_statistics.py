@@ -1,5 +1,4 @@
-"""
-Statistical transformations for visualization.
+"""Statistical transformations for visualization.
 
 This module is currently private, but is being written to eventually form part
 of the public API.
@@ -28,7 +27,6 @@ The classes should behave roughly in the style of scikit-learn.
 
 from numbers import Number
 from statistics import NormalDist
-
 import numpy as np
 import pandas as pd
 
@@ -58,8 +56,7 @@ class KDE:
         clip=None,
         cumulative=False,
     ):
-        """
-        Initialize the estimator with its parameters.
+        """Initialize the estimator with its parameters.
 
         Parameters
         ----------
@@ -173,6 +170,7 @@ class KDE:
         kde = self._fit([x1, x2], weights)
 
         if self.cumulative:
+
             grid1, grid2 = support
             density = np.zeros((grid1.size, grid2.size))
             p0 = grid1.min(), grid2.min()
@@ -181,6 +179,7 @@ class KDE:
                     density[i, j] = kde.integrate_box(p0, (xi, xj))
 
         else:
+
             xx1, xx2 = np.meshgrid(*support)
             density = kde([xx1.ravel(), xx2.ravel()]).reshape(xx1.shape)
 
@@ -190,7 +189,8 @@ class KDE:
         """Fit and evaluate on univariate or bivariate data."""
         if x2 is None:
             return self._eval_univariate(x1, weights)
-        return self._eval_bivariate(x1, x2, weights)
+        else:
+            return self._eval_bivariate(x1, x2, weights)
 
 
 # Note: we no longer use this for univariate histograms in histplot,
@@ -207,8 +207,7 @@ class Histogram:
         discrete=False,
         cumulative=False,
     ):
-        """
-        Initialize the estimator with its parameters.
+        """Initialize the estimator with its parameters.
 
         Parameters
         ----------
@@ -273,14 +272,25 @@ class Histogram:
             if bin_edges.max() < stop or len(bin_edges) < 2:
                 bin_edges = np.append(bin_edges, bin_edges.max() + step)
         else:
-            bin_edges = np.histogram_bin_edges(x, bins, binrange, weights)
+            bin_edges = np.histogram_bin_edges(
+                x,
+                bins,
+                binrange,
+                weights,
+            )
         return bin_edges
 
     def define_bin_params(self, x1, x2=None, weights=None, cache=True):
         """Given data, return numpy.histogram parameters to define bins."""
         if x2 is None:
+
             bin_edges = self._define_bin_edges(
-                x1, weights, self.bins, self.binwidth, self.binrange, self.discrete
+                x1,
+                weights,
+                self.bins,
+                self.binwidth,
+                self.binrange,
+                self.discrete,
             )
 
             if isinstance(self.bins, (str, Number)):
@@ -291,15 +301,19 @@ class Histogram:
                 bin_kws = dict(bins=bin_edges)
 
         else:
+
             bin_edges = []
             for i, x in enumerate([x1, x2]):
+
                 # Resolve out whether bin parameters are shared
                 # or specific to each variable
 
                 bins = self.bins
                 if not bins or isinstance(bins, (str, Number)):
                     pass
-                elif isinstance(bins[i], str) or len(bins) == 2:
+                elif isinstance(bins[i], str):
+                    bins = bins[i]
+                elif len(bins) == 2:
                     bins = bins[i]
 
                 binwidth = self.binwidth
@@ -322,7 +336,12 @@ class Histogram:
 
                 bin_edges.append(
                     self._define_bin_edges(
-                        x, weights, bins, binwidth, binrange, discrete
+                        x,
+                        weights,
+                        bins,
+                        binwidth,
+                        binrange,
+                        discrete,
                     )
                 )
 
@@ -345,7 +364,10 @@ class Histogram:
             x1, x2, **bin_kws, weights=weights, density=density
         )
 
-        area = np.outer(np.diff(bin_edges[0]), np.diff(bin_edges[1]))
+        area = np.outer(
+            np.diff(bin_edges[0]),
+            np.diff(bin_edges[1]),
+        )
 
         if self.stat == "probability" or self.stat == "proportion":
             hist = hist.astype(float) / hist.sum()
@@ -369,7 +391,12 @@ class Histogram:
             bin_kws = self.define_bin_params(x, weights=weights, cache=False)
 
         density = self.stat == "density"
-        hist, bin_edges = np.histogram(x, **bin_kws, weights=weights, density=density)
+        hist, bin_edges = np.histogram(
+            x,
+            **bin_kws,
+            weights=weights,
+            density=density,
+        )
 
         if self.stat == "probability" or self.stat == "proportion":
             hist = hist.astype(float) / hist.sum()
@@ -390,15 +417,15 @@ class Histogram:
         """Count the occurrences in each bin, maybe normalize."""
         if x2 is None:
             return self._eval_univariate(x1, weights)
-        return self._eval_bivariate(x1, x2, weights)
+        else:
+            return self._eval_bivariate(x1, x2, weights)
 
 
 class ECDF:
     """Univariate empirical cumulative distribution estimator."""
 
     def __init__(self, stat="proportion", complementary=False):
-        """
-        Initialize the class with its parameters
+        """Initialize the class with its parameters
 
         Parameters
         ----------
@@ -446,10 +473,12 @@ class ECDF:
 
         if x2 is None:
             return self._eval_univariate(x1, weights)
-        return self._eval_bivariate(x1, x2, weights)
+        else:
+            return self._eval_bivariate(x1, x2, weights)
 
 
 class EstimateAggregator:
+
     def __init__(self, estimator, errorbar=None, **boot_kws):
         """
         Data aggregator that produces an estimate and error bar interval.
@@ -486,7 +515,9 @@ class EstimateAggregator:
             estimate = vals.agg(self.estimator)
 
         # Options that produce no error bars
-        if self.error_method is None or len(data) <= 1:
+        if self.error_method is None:
+            err_min = err_max = np.nan
+        elif len(data) <= 1:
             err_min = err_max = np.nan
 
         # Generic errorbars from user-supplied function
@@ -513,6 +544,7 @@ class EstimateAggregator:
 
 
 class WeightedAggregator:
+
     def __init__(self, estimator, errorbar=None, **boot_kws):
         """
         Data aggregator that produces a weighted estimate and error bar interval.
@@ -568,6 +600,7 @@ class WeightedAggregator:
 
 
 class LetterValues:
+
     def __init__(self, k_depth, outlier_prop, trust_alpha):
         """
         Compute percentiles of a distribution using various tail stopping rules.
@@ -607,6 +640,7 @@ class LetterValues:
         self.trust_alpha = trust_alpha
 
     def _compute_k(self, n):
+
         # Select the depth, i.e. number of boxes to draw, based on the method
         if self.k_depth == "full":
             # extend boxes to 100% of the data
@@ -658,17 +692,22 @@ def _percentile_interval(data, width):
 
 def _validate_errorbar_arg(arg):
     """Check type and value of errorbar argument and assign default level."""
-    DEFAULT_LEVELS = {"ci": 95, "pi": 95, "se": 1, "sd": 1}
+    DEFAULT_LEVELS = {
+        "ci": 95,
+        "pi": 95,
+        "se": 1,
+        "sd": 1,
+    }
 
     usage = "`errorbar` must be a callable, string, or (string, number) tuple"
 
     if arg is None:
         return None, None
-    if callable(arg):
+    elif callable(arg):
         return arg, None
-    if isinstance(arg, str):
+    elif isinstance(arg, str):
         method = arg
-        level = DEFAULT_LEVELS.get(method)
+        level = DEFAULT_LEVELS.get(method, None)
     else:
         try:
             method, level = arg

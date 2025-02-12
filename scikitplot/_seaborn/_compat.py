@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from typing import Literal
 
-import matplotlib as mpl
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 from matplotlib.figure import Figure
-
 from .utils import _version_predates
 
 
@@ -27,6 +25,7 @@ def norm_from_scale(scale, norm):
         vmin, vmax = norm  # TODO more helpful error if this fails?
 
     class ScaledNorm(mpl.colors.Normalize):
+
         def __call__(self, value, clip=None):
             # From github.com/matplotlib/matplotlib/blob/v3.4.2/lib/matplotlib/colors.py
             # See github.com/matplotlib/matplotlib/tree/v3.4.2/LICENSE
@@ -75,27 +74,30 @@ def register_colormap(name, cmap):
 
 
 def set_layout_engine(
-    fig: Figure, engine: Literal["constrained", "compressed", "tight", "none"]
+    fig: Figure,
+    engine: Literal["constrained", "compressed", "tight", "none"],
 ) -> None:
     """Handle changes to auto layout engine interface in 3.6"""
     if hasattr(fig, "set_layout_engine"):
         fig.set_layout_engine(engine)
-    # _version_predates(mpl, 3.6)
-    elif engine == "tight":
-        fig.set_tight_layout(True)  # type: ignore  # predates typing
-    elif engine == "constrained":
-        fig.set_constrained_layout(True)  # type: ignore
-    elif engine == "none":
-        fig.set_tight_layout(False)  # type: ignore
-        fig.set_constrained_layout(False)  # type: ignore
+    else:
+        # _version_predates(mpl, 3.6)
+        if engine == "tight":
+            fig.set_tight_layout(True)  # type: ignore  # predates typing
+        elif engine == "constrained":
+            fig.set_constrained_layout(True)  # type: ignore
+        elif engine == "none":
+            fig.set_tight_layout(False)  # type: ignore
+            fig.set_constrained_layout(False)  # type: ignore
 
 
 def get_layout_engine(fig: Figure) -> mpl.layout_engine.LayoutEngine | None:
     """Handle changes to auto layout engine interface in 3.6"""
     if hasattr(fig, "get_layout_engine"):
         return fig.get_layout_engine()
-    # _version_predates(mpl, 3.6)
-    return None
+    else:
+        # _version_predates(mpl, 3.6)
+        return None
 
 
 def share_axis(ax0, ax1, which):
@@ -111,7 +113,8 @@ def get_legend_handles(legend):
     """Handle legendHandles attribute rename."""
     if _version_predates(mpl, "3.7"):
         return legend.legendHandles
-    return legend.legend_handles
+    else:
+        return legend.legend_handles
 
 
 def groupby_apply_include_groups(val):

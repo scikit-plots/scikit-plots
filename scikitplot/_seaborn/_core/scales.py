@@ -1,44 +1,48 @@
 from __future__ import annotations
-
 import re
-from collections.abc import Sequence
 from copy import copy
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional, Tuple
+from typing import Any, Callable, Tuple, Optional, ClassVar
 
-import matplotlib as mpl
 import numpy as np
-from matplotlib.axis import Axis
-from matplotlib.dates import AutoDateFormatter, AutoDateLocator, ConciseDateFormatter
-from matplotlib.scale import ScaleBase
+import matplotlib as mpl
 from matplotlib.ticker import (
+    Locator,
+    Formatter,
     AutoLocator,
     AutoMinorLocator,
-    EngFormatter,
     FixedLocator,
-    Formatter,
-    FuncFormatter,
     LinearLocator,
-    Locator,
-    LogFormatterSciNotation,
     LogLocator,
+    SymmetricalLogLocator,
     MaxNLocator,
     MultipleLocator,
+    EngFormatter,
+    FuncFormatter,
+    LogFormatterSciNotation,
     ScalarFormatter,
     StrMethodFormatter,
-    SymmetricalLogLocator,
 )
+from matplotlib.dates import (
+    AutoDateLocator,
+    AutoDateFormatter,
+    ConciseDateFormatter,
+)
+from matplotlib.axis import Axis
+from matplotlib.scale import ScaleBase
 from pandas import Series
 
 from .._core.rules import categorical_order
 from .._core.typing import Default, default
 
-if TYPE_CHECKING:
-    from numpy.typing import ArrayLike, NDArray
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
     from .._core.plot import Plot
     from .._core.properties import Property
+    from numpy.typing import ArrayLike, NDArray
 
     TransFuncs = Tuple[
         Callable[[ArrayLike], ArrayLike], Callable[[ArrayLike], ArrayLike]
@@ -61,6 +65,7 @@ class Scale:
     _legend: tuple[list[Any], list[str]] | None
 
     def __post_init__(self):
+
         self._tick_params = None
         self._label_params = None
         self._legend = None
@@ -78,6 +83,7 @@ class Scale:
         raise NotImplementedError()
 
     def _get_scale(self, name: str, forward: Callable, inverse: Callable):
+
         major_locator, minor_locator = self._get_locators(**self._tick_params)
         major_formatter = self._get_formatter(major_locator, **self._label_params)
 
@@ -98,13 +104,20 @@ class Scale:
             return 1
         return space
 
-    def _setup(self, data: Series, prop: Property, axis: Axis | None = None) -> Scale:
+    def _setup(
+        self,
+        data: Series,
+        prop: Property,
+        axis: Axis | None = None,
+    ) -> Scale:
         raise NotImplementedError()
 
     def _finalize(self, p: Plot, axis: Axis) -> None:
         """Perform scale-specific axis tweaks after adding artists."""
+        pass
 
     def __call__(self, data: Series) -> ArrayLike:
+
         trans_data: Series | NDArray | list
 
         # TODO sometimes we need to handle scalars (e.g. for Line)
@@ -121,10 +134,12 @@ class Scale:
 
         if scalar_data:
             return trans_data[0]
-        return trans_data
+        else:
+            return trans_data
 
     @staticmethod
     def _identity():
+
         class Identity(Scale):
             _pipeline = []
             _spacer = None
@@ -151,7 +166,13 @@ class Boolean(Scale):
 
     _priority: ClassVar[int] = 3
 
-    def _setup(self, data: Series, prop: Property, axis: Axis | None = None) -> Scale:
+    def _setup(
+        self,
+        data: Series,
+        prop: Property,
+        axis: Axis | None = None,
+    ) -> Scale:
+
         new = copy(self)
         if new._tick_params is None:
             new = new.tick()
@@ -162,14 +183,15 @@ class Boolean(Scale):
             # TODO this doesn't actually need to be a closure
             if np.isscalar(x):
                 return float(bool(x))
-            if hasattr(x, "notna"):
-                # Handle pd.NA; np<>pd interop with NA is tricky
-                use = x.notna().to_numpy()
             else:
-                use = np.isfinite(x)
-            out = np.full(len(x), np.nan, dtype=float)
-            out[use] = x[use].astype(bool).astype(float)
-            return out
+                if hasattr(x, "notna"):
+                    # Handle pd.NA; np<>pd interop with NA is tricky
+                    use = x.notna().to_numpy()
+                else:
+                    use = np.isfinite(x)
+                out = np.full(len(x), np.nan, dtype=float)
+                out[use] = x[use].astype(bool).astype(float)
+                return out
 
         new._pipeline = [na_safe_cast, prop.get_mapping(new, data)]
         new._spacer = _default_spacer
@@ -186,6 +208,7 @@ class Boolean(Scale):
         return new
 
     def _finalize(self, p: Plot, axis: Axis) -> None:
+
         # We want values to appear in a True, False order but also want
         # True/False to be drawn at 1/0 positions respectively to avoid nasty
         # surprises if additional artists are added through the matplotlib API.
@@ -225,7 +248,9 @@ class Boolean(Scale):
 
 @dataclass
 class Nominal(Scale):
-    """A categorical scale without relative importance / magnitude."""
+    """
+    A categorical scale without relative importance / magnitude.
+    """
 
     # Categorical (convert to strings), un-sortable
 
@@ -234,7 +259,13 @@ class Nominal(Scale):
 
     _priority: ClassVar[int] = 4
 
-    def _setup(self, data: Series, prop: Property, axis: Axis | None = None) -> Scale:
+    def _setup(
+        self,
+        data: Series,
+        prop: Property,
+        axis: Axis | None = None,
+    ) -> Scale:
+
         new = copy(self)
         if new._tick_params is None:
             new = new.tick()
@@ -303,6 +334,7 @@ class Nominal(Scale):
         return new
 
     def _finalize(self, p: Plot, axis: Axis) -> None:
+
         ax = axis.axes
         name = axis.axis_name
         axis.grid(False, which="both")
@@ -360,6 +392,7 @@ class Nominal(Scale):
         return new
 
     def _get_locators(self, locator):
+
         if locator is not None:
             return locator, None
 
@@ -368,6 +401,7 @@ class Nominal(Scale):
         return locator, None
 
     def _get_formatter(self, locator, formatter):
+
         if formatter is not None:
             return formatter
 
@@ -390,10 +424,17 @@ class Discrete(Scale):
 
 @dataclass
 class ContinuousBase(Scale):
+
     values: tuple | str | None = None
     norm: tuple | None = None
 
-    def _setup(self, data: Series, prop: Property, axis: Axis | None = None) -> Scale:
+    def _setup(
+        self,
+        data: Series,
+        prop: Property,
+        axis: Axis | None = None,
+    ) -> Scale:
+
         new = copy(self)
         if new._tick_params is None:
             new = new.tick()
@@ -464,6 +505,7 @@ class ContinuousBase(Scale):
         return new
 
     def _get_transform(self):
+
         arg = self.trans
 
         def get_param(method, default):
@@ -473,31 +515,34 @@ class ContinuousBase(Scale):
 
         if arg is None:
             return _make_identity_transforms()
-        if isinstance(arg, tuple):
+        elif isinstance(arg, tuple):
             return arg
-        if isinstance(arg, str):
+        elif isinstance(arg, str):
             if arg == "ln":
                 return _make_log_transforms()
-            if arg == "logit":
+            elif arg == "logit":
                 base = get_param("logit", 10)
                 return _make_logit_transforms(base)
-            if arg.startswith("log"):
+            elif arg.startswith("log"):
                 base = get_param("log", 10)
                 return _make_log_transforms(base)
-            if arg.startswith("symlog"):
+            elif arg.startswith("symlog"):
                 c = get_param("symlog", 1)
                 return _make_symlog_transforms(c)
-            if arg.startswith("pow"):
+            elif arg.startswith("pow"):
                 exp = get_param("pow", 2)
                 return _make_power_transforms(exp)
-            if arg == "sqrt":
+            elif arg == "sqrt":
                 return _make_sqrt_transforms()
-            raise ValueError(f"Unknown value provided for trans: {arg!r}")
+            else:
+                raise ValueError(f"Unknown value provided for trans: {arg!r}")
 
 
 @dataclass
 class Continuous(ContinuousBase):
-    """A numeric scale supporting norms and functional transforms."""
+    """
+    A numeric scale supporting norms and functional transforms.
+    """
 
     values: tuple | str | None = None
     trans: str | TransFuncs | None = None
@@ -625,6 +670,7 @@ class Continuous(ContinuousBase):
     def _parse_for_log_params(
         self, trans: str | TransFuncs | None
     ) -> tuple[float | None, float | None]:
+
         log_base = symlog_thresh = None
         if isinstance(trans, str):
             m = re.match(r"^log(\d*)", trans)
@@ -636,6 +682,7 @@ class Continuous(ContinuousBase):
         return log_base, symlog_thresh
 
     def _get_locators(self, locator, at, upto, count, every, between, minor):
+
         log_base, symlog_thresh = self._parse_for_log_params(self.trans)
 
         if locator is not None:
@@ -671,24 +718,27 @@ class Continuous(ContinuousBase):
         elif at is not None:
             major_locator = FixedLocator(at)
 
-        elif log_base:
-            major_locator = LogLocator(log_base)
-        elif symlog_thresh:
-            major_locator = SymmetricalLogLocator(linthresh=symlog_thresh, base=10)
         else:
-            major_locator = AutoLocator()
+            if log_base:
+                major_locator = LogLocator(log_base)
+            elif symlog_thresh:
+                major_locator = SymmetricalLogLocator(linthresh=symlog_thresh, base=10)
+            else:
+                major_locator = AutoLocator()
 
         if minor is None:
             minor_locator = LogLocator(log_base, subs=None) if log_base else None
-        elif log_base:
-            subs = np.linspace(0, log_base, minor + 2)[1:-1]
-            minor_locator = LogLocator(log_base, subs=subs)
         else:
-            minor_locator = AutoMinorLocator(minor + 1)
+            if log_base:
+                subs = np.linspace(0, log_base, minor + 2)[1:-1]
+                minor_locator = LogLocator(log_base, subs=subs)
+            else:
+                minor_locator = AutoMinorLocator(minor + 1)
 
         return major_locator, minor_locator
 
     def _get_formatter(self, locator, formatter, like, base, unit):
+
         log_base, symlog_thresh = self._parse_for_log_params(self.trans)
         if base is default:
             if symlog_thresh:
@@ -729,7 +779,9 @@ class Continuous(ContinuousBase):
 
 @dataclass
 class Temporal(ContinuousBase):
-    """A scale for date/time data."""
+    """
+    A scale for date/time data.
+    """
 
     # TODO date: bool?
     # For when we only care about the time component, would affect
@@ -746,7 +798,10 @@ class Temporal(ContinuousBase):
     _priority: ClassVar[int] = 2
 
     def tick(
-        self, locator: Locator | None = None, *, upto: int | None = None
+        self,
+        locator: Locator | None = None,
+        *,
+        upto: int | None = None,
     ) -> Temporal:
         """
         Configure the selection of ticks for the scale's axis or legend.
@@ -779,7 +834,10 @@ class Temporal(ContinuousBase):
         return new
 
     def label(
-        self, formatter: Formatter | None = None, *, concise: bool = False
+        self,
+        formatter: Formatter | None = None,
+        *,
+        concise: bool = False,
     ) -> Temporal:
         """
         Configure the appearance of tick labels for the scale's axis or legend.
@@ -806,6 +864,7 @@ class Temporal(ContinuousBase):
         return new
 
     def _get_locators(self, locator, upto):
+
         if locator is not None:
             major_locator = locator
         elif upto is not None:
@@ -818,6 +877,7 @@ class Temporal(ContinuousBase):
         return major_locator, minor_locator
 
     def _get_formatter(self, locator, formatter, concise):
+
         if formatter is not None:
             return formatter
 
@@ -863,6 +923,7 @@ class PseudoAxis:
     axis_name = ""  # Matplotlib requirement but not actually used
 
     def __init__(self, scale):
+
         self.converter = None
         self.units = None
         self.scale = scale
@@ -937,7 +998,9 @@ class PseudoAxis:
 
     def convert_units(self, x):
         """Return a numeric representation of the input data."""
-        if np.issubdtype(np.asarray(x).dtype, np.number) or self.converter is None:
+        if np.issubdtype(np.asarray(x).dtype, np.number):
+            return x
+        elif self.converter is None:
             return x
         return self.converter.convert(x, self.units, self)
 
@@ -958,6 +1021,7 @@ class PseudoAxis:
 
 
 def _make_identity_transforms() -> TransFuncs:
+
     def identity(x):
         return x
 
@@ -965,6 +1029,7 @@ def _make_identity_transforms() -> TransFuncs:
 
 
 def _make_logit_transforms(base: float | None = None) -> TransFuncs:
+
     log, exp = _make_log_transforms(base)
 
     def logit(x):
@@ -979,6 +1044,7 @@ def _make_logit_transforms(base: float | None = None) -> TransFuncs:
 
 
 def _make_log_transforms(base: float | None = None) -> TransFuncs:
+
     fs: TransFuncs
     if base is None:
         fs = np.log, np.exp
@@ -1005,6 +1071,7 @@ def _make_log_transforms(base: float | None = None) -> TransFuncs:
 
 
 def _make_symlog_transforms(c: float = 1, base: float = 10) -> TransFuncs:
+
     # From https://iopscience.iop.org/article/10.1088/0957-0233/24/2/027001
 
     # Note: currently not using base because we only get
@@ -1024,6 +1091,7 @@ def _make_symlog_transforms(c: float = 1, base: float = 10) -> TransFuncs:
 
 
 def _make_sqrt_transforms() -> TransFuncs:
+
     def sqrt(x):
         return np.sign(x) * np.sqrt(np.abs(x))
 
@@ -1034,6 +1102,7 @@ def _make_sqrt_transforms() -> TransFuncs:
 
 
 def _make_power_transforms(exp: float) -> TransFuncs:
+
     def forward(x):
         return np.sign(x) * np.power(np.abs(x), exp)
 

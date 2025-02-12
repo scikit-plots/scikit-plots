@@ -1,21 +1,21 @@
 from __future__ import annotations
-
 import itertools
 import warnings
-from typing import Any, Callable, List, Optional, Tuple, Union
 
-import matplotlib as mpl
 import numpy as np
+from numpy.typing import ArrayLike
+from pandas import Series
+import matplotlib as mpl
 from matplotlib.colors import to_rgb, to_rgba, to_rgba_array
 from matplotlib.markers import MarkerStyle
 from matplotlib.path import Path
-from numpy.typing import ArrayLike
-from pandas import Series
 
+from .._core.scales import Scale, Boolean, Continuous, Nominal, Temporal
 from .._core.rules import categorical_order, variable_type
-from .._core.scales import Boolean, Continuous, Nominal, Scale, Temporal
-from ..palettes import QUAL_PALETTES, blend_palette, color_palette
+from ..palettes import QUAL_PALETTES, color_palette, blend_palette
 from ..utils import get_color_cycle
+
+from typing import Any, Callable, Tuple, List, Union, Optional
 
 RGBTuple = Tuple[float, float, float]
 RGBATuple = Tuple[float, float, float, float]
@@ -25,7 +25,12 @@ DashPattern = Tuple[float, ...]
 DashPatternWithOffset = Tuple[float, Optional[DashPattern]]
 
 MarkerPattern = Union[
-    float, str, Tuple[int, int, float], List[Tuple[float, float]], Path, MarkerStyle
+    float,
+    str,
+    Tuple[int, int, float],
+    List[Tuple[float, float]],
+    Path,
+    MarkerStyle,
 ]
 
 Mapping = Callable[[ArrayLike], ArrayLike]
@@ -53,14 +58,16 @@ class Property:
 
     def default_scale(self, data: Series) -> Scale:
         """Given data, initialize appropriate scale class."""
+
         var_type = variable_type(data, boolean_type="boolean", strict_boolean=True)
         if var_type == "numeric":
             return Continuous()
-        if var_type == "datetime":
+        elif var_type == "datetime":
             return Temporal()
-        if var_type == "boolean":
+        elif var_type == "boolean":
             return Boolean()
-        return Nominal()
+        else:
+            return Nominal()
 
     def infer_scale(self, arg: Any, data: Series) -> Scale:
         """Given data and a scaling argument, initialize appropriate scale class."""
@@ -74,11 +81,13 @@ class Property:
             if any(arg.startswith(k) for k in trans_args):
                 # TODO validate numeric type? That should happen centrally somewhere
                 return Continuous(trans=arg)
-            msg = f"Unknown magic arg for {self.variable} scale: '{arg}'."
-            raise ValueError(msg)
-        arg_type = type(arg).__name__
-        msg = f"Magic arg for {self.variable} scale must be str, not {arg_type}."
-        raise TypeError(msg)
+            else:
+                msg = f"Unknown magic arg for {self.variable} scale: '{arg}'."
+                raise ValueError(msg)
+        else:
+            arg_type = type(arg).__name__
+            msg = f"Magic arg for {self.variable} scale must be str, not {arg_type}."
+            raise TypeError(msg)
 
     def get_mapping(self, scale: Scale, data: Series) -> Mapping:
         """Return a function that maps from data domain to property range."""
@@ -169,24 +178,28 @@ class IntervalProperty(Property):
 
     def infer_scale(self, arg: Any, data: Series) -> Scale:
         """Given data and a scaling argument, initialize appropriate scale class."""
+
         # TODO infer continuous based on log/sqrt etc?
 
         var_type = variable_type(data, boolean_type="boolean", strict_boolean=True)
 
         if var_type == "boolean":
             return Boolean(arg)
-        if isinstance(arg, (list, dict)) or var_type == "categorical":
+        elif isinstance(arg, (list, dict)):
             return Nominal(arg)
-        if var_type == "datetime":
+        elif var_type == "categorical":
+            return Nominal(arg)
+        elif var_type == "datetime":
             return Temporal(arg)
         # TODO other variable types
-        return Continuous(arg)
+        else:
+            return Continuous(arg)
 
     def get_mapping(self, scale: Scale, data: Series) -> Mapping:
         """Return a function that maps from data domain to property range."""
         if isinstance(scale, Nominal):
             return self._get_nominal_mapping(scale, data)
-        if isinstance(scale, Boolean):
+        elif isinstance(scale, Boolean):
             return self._get_boolean_mapping(scale, data)
 
         if scale.values is None:
@@ -414,8 +427,7 @@ class Marker(ObjectProperty):
         return MarkerStyle(val)
 
     def _default_values(self, n: int) -> list[MarkerStyle]:
-        """
-        Build an arbitrarily long list of unique marker styles.
+        """Build an arbitrarily long list of unique marker styles.
 
         Parameters
         ----------
@@ -463,8 +475,7 @@ class LineStyle(ObjectProperty):
         return self._get_dash_pattern(val)
 
     def _default_values(self, n: int) -> list[DashPatternWithOffset]:
-        """
-        Build an arbitrarily long list of unique dash styles for lines.
+        """Build an arbitrarily long list of unique dash styles for lines.
 
         Parameters
         ----------
@@ -492,6 +503,7 @@ class LineStyle(ObjectProperty):
         # Now programmatically build as many as we need
         p = 3
         while len(dashes) < n:
+
             # Take combinations of long and short dashes
             a = itertools.combinations_with_replacement([3, 1.25], p)
             b = itertools.combinations_with_replacement([4, 1], p)
@@ -527,13 +539,13 @@ class LineStyle(ObjectProperty):
                 dashes = tuple(mpl.rcParams[f"lines.{style}_pattern"])
             else:
                 options = [*ls_mapper.values(), *ls_mapper.keys()]
-                msg = f"Linestyle string must be one of {options}, not {style!r}."
+                msg = f"Linestyle string must be one of {options}, not {repr(style)}."
                 raise ValueError(msg)
 
         elif isinstance(style, tuple):
-            if (len(style) > 1 and isinstance(style[1], tuple)) or (
-                len(style) > 1 and style[1] is None
-            ):
+            if len(style) > 1 and isinstance(style[1], tuple):
+                offset, dashes = style
+            elif len(style) > 1 and style[1] is None:
                 offset, dashes = style
             else:
                 offset = 0
@@ -561,12 +573,14 @@ class TextAlignment(ObjectProperty):
 
 
 class HorizontalAlignment(TextAlignment):
+
     def _default_values(self, n: int) -> list:
         vals = itertools.cycle(["left", "right"])
         return [next(vals) for _ in range(n)]
 
 
 class VerticalAlignment(TextAlignment):
+
     def _default_values(self, n: int) -> list:
         vals = itertools.cycle(["top", "bottom"])
         return [next(vals) for _ in range(n)]
@@ -588,7 +602,8 @@ class Color(Property):
         # This is so that RGBA colors can override the Alpha property
         if to_rgba(val) != to_rgba(val, 1):
             return to_rgba(val)
-        return to_rgb(val)
+        else:
+            return to_rgb(val)
 
     def _standardize_color_sequence(self, colors: ArrayLike) -> ArrayLike:
         """Convert color sequence to RGB(A) array, preserving but not adding alpha."""
@@ -603,7 +618,8 @@ class Color(Property):
 
         if needs_alpha:
             return to_rgba_array(colors)
-        return to_rgba_array(colors)[:, :3]
+        else:
+            return to_rgba_array(colors)[:, :3]
 
     def infer_scale(self, arg: Any, data: Series) -> Scale:
         # TODO when inferring Continuous without data, verify type
@@ -642,10 +658,11 @@ class Color(Property):
 
         if arg in QUAL_PALETTES:
             return Nominal(arg)
-        if var_type == "numeric":
+        elif var_type == "numeric":
             return Continuous(arg)
         # TODO implement scales for date variables and any others.
-        return Nominal(arg)
+        else:
+            return Nominal(arg)
 
     def get_mapping(self, scale: Scale, data: Series) -> Mapping:
         """Return a function that maps from data domain to color values."""
@@ -653,7 +670,7 @@ class Color(Property):
         # Should it be class-based or should classes have behavioral attributes?
         if isinstance(scale, Nominal):
             return self._get_nominal_mapping(scale, data)
-        if isinstance(scale, Boolean):
+        elif isinstance(scale, Boolean):
             return self._get_boolean_mapping(scale, data)
 
         if scale.values is None:
@@ -691,6 +708,7 @@ class Color(Property):
         return _mapping
 
     def _get_nominal_mapping(self, scale: Nominal, data: Series) -> Mapping:
+
         levels = categorical_order(data, scale.order)
         colors = self._get_values(scale, levels)
 
@@ -704,9 +722,11 @@ class Color(Property):
         return mapping
 
     def _get_boolean_mapping(self, scale: Boolean, data: Series) -> Mapping:
+
         colors = self._get_values(scale, [True, False])
 
         def mapping(x):
+
             use = np.isfinite(x)
             x = np.asarray(np.nan_to_num(x)).astype(bool)
             out = np.full((len(x), colors.shape[1]), np.nan)

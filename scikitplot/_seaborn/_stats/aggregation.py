@@ -1,16 +1,18 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Callable, ClassVar
+from typing import ClassVar, Callable
 
 import pandas as pd
 from pandas import DataFrame
 
-from .._core.groupby import GroupBy
 from .._core.scales import Scale
-from .._core.typing import Vector
-from .._statistics import EstimateAggregator, WeightedAggregator
+from .._core.groupby import GroupBy
 from .._stats.base import Stat
+from .._statistics import (
+    EstimateAggregator,
+    WeightedAggregator,
+)
+from .._core.typing import Vector
 
 
 @dataclass
@@ -38,8 +40,13 @@ class Agg(Stat):
     group_by_orient: ClassVar[bool] = True
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
+
         var = {"x": "y", "y": "x"}.get(orient)
         res = (
             groupby.agg(data, {var: self.func})
@@ -98,8 +105,13 @@ class Est(Stat):
         return pd.DataFrame([res])
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
+
         boot_kws = {"n_boot": self.n_boot, "seed": self.seed}
         if "weight" in data:
             engine = WeightedAggregator(self.func, self.errorbar, **boot_kws)
@@ -120,4 +132,6 @@ class Est(Stat):
 
 @dataclass
 class Rolling(Stat):
+    ...
+
     def __call__(self, data, groupby, orient, scales): ...

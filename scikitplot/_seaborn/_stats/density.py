@@ -1,11 +1,10 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, Callable
 
 import numpy as np
-import pandas as pd
 from numpy import ndarray
+import pandas as pd
 from pandas import DataFrame
 
 try:
@@ -97,6 +96,7 @@ class KDE(Stat):
     cumulative: bool = False
 
     def __post_init__(self):
+
         if self.cumulative and _no_scipy:
             raise RuntimeError("Cumulative KDE evaluation requires scipy")
 
@@ -174,8 +174,13 @@ class KDE(Stat):
         return groupby.apply(data, self._fit_and_evaluate, orient, support)
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
+
         if "weight" not in data:
             data = data.assign(weight=1)
         data = data.dropna(subset=[orient, "weight"])

@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, cast
+from typing import cast, Iterable
 
 import pandas as pd
 
 from .._core.rules import categorical_order
 
+from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from typing import Callable
-
-    from pandas import DataFrame, Index, MultiIndex
+    from pandas import DataFrame, MultiIndex, Index
 
 
 class GroupBy:
@@ -105,7 +105,11 @@ class GroupBy:
         return res
 
     def apply(
-        self, data: DataFrame, func: Callable[..., DataFrame], *args, **kwargs
+        self,
+        data: DataFrame,
+        func: Callable[..., DataFrame],
+        *args,
+        **kwargs,
     ) -> DataFrame:
         """Apply a DataFrame -> DataFrame mapping to each group."""
         grouper, groups = self._get_groups(data)
