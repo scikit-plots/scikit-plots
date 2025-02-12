@@ -193,7 +193,7 @@ def binom_conf_interval(
        Statistical Association 22: 209-212.
 
     .. [3] Jeffreys, Harold (1946). "An Invariant Form for the Prior
-       Probability in Estimation Problems". Proc. R. Soc. Long.. A 24 186
+       Probability in Estimation Problems". Proc. R. Soc. Lond.. A 24 186
        (1007): 453-461. doi:10.1098/rspa.1946.0056
 
     .. [4] Jeffreys, Harold (1998). Theory of Probability. Oxford

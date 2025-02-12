@@ -91,7 +91,7 @@ class PairSpec(TypedDict, total=False):
 
 @contextmanager
 def theme_context(params: dict[str, Any]) -> Generator:
-    """Temporarily modify specific matplotlib rcParams."""
+    """Temporarily modify specifc matplotlib rcParams."""
     orig_params = {k: mpl.rcParams[k] for k in params}
     color_codes = "bgrmyck"
     nice_colors = [*color_palette("deep6"), (0.15, 0.15, 0.15)]
@@ -1686,7 +1686,7 @@ class Plotter:
                         df_subset = grouped_df.get_group(pd_key)
                     except KeyError:
                         # TODO (from initial work on categorical plots refactor)
-                        # We are adding this to allow backwards compatibility
+                        # We are adding this to allow backwards compatability
                         # with the empty artists that old categorical plots would
                         # add (before 0.12), which we may decide to break, in which
                         # case this option could be removed

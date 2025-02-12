@@ -244,8 +244,8 @@ class _HeatMapper:
             over_set = over != self.cmap(self.cmap.N - 1)
 
             vrange = max(vmax - center, center - vmin)
-            normalize = mpl.colors.Normalize(center - vrange, center + vrange)
-            cmin, cmax = normalize([vmin, vmax])
+            normlize = mpl.colors.Normalize(center - vrange, center + vrange)
+            cmin, cmax = normlize([vmin, vmax])
             cc = np.linspace(cmin, cmax, 256)
             self.cmap = mpl.colors.ListedColormap(self.cmap(cc))
             self.cmap.set_bad(bad)
@@ -902,7 +902,7 @@ class ClusterGrid(Grid):
 
     @staticmethod
     def z_score(data2d, axis=1):
-        """Standardize the mean and variance of the data axis
+        """Standarize the mean and variance of the data axis
 
         Parameters
         ----------
@@ -915,7 +915,7 @@ class ClusterGrid(Grid):
         Returns
         -------
         normalized : pandas.DataFrame
-            Normalized data with a mean of 0 and variance of 1 across the
+            Noramlized data with a mean of 0 and variance of 1 across the
             specified axis.
         """
         if axis == 1:
@@ -945,7 +945,7 @@ class ClusterGrid(Grid):
         Returns
         -------
         standardized : pandas.DataFrame
-            Normalized data with a mean of 0 and variance of 1 across the
+            Noramlized data with a mean of 0 and variance of 1 across the
             specified axis.
 
         """

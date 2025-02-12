@@ -723,6 +723,7 @@ exclude= '''
 ######################################################################
 
 [tool.codespell]
+# .codespellrc ini file
 skip = """
     *.cff,
     docs/credits.rst,

@@ -1812,7 +1812,7 @@ boxplot.__doc__ = dedent(
     {width}
     {gap}
     whis : float or pair of floats
-        Parameter that controls whisker length. If scalar, whiskers are drawn
+        Paramater that controls whisker length. If scalar, whiskers are drawn
         to the farthest datapoint within *whis * IQR* from the nearest hinge.
         If a tuple, it is interpreted as percentiles that whiskers represent.
     {linecolor}
@@ -2051,7 +2051,7 @@ violinplot.__doc__ = dedent(
         .. versionadded:: v0.13.0
     {ax_in}
     kwargs : key, value mappings
-        Keyword arguments for the violin patches, passed through to
+        Keyword arguments for the violin patches, passsed through to
         :meth:`matplotlib.axes.Axes.fill_between`.
 
     Returns
@@ -2247,7 +2247,7 @@ boxenplot.__doc__ = dedent(
     {ax_in}
     kwargs : key, value mappings
         Other keyword arguments are passed to :class:`matplotlib.patches.Rectangle`,
-        superseded by those in `box_kws`.
+        superceded by those in `box_kws`.
 
     Returns
     -------
@@ -3196,7 +3196,7 @@ def catplot(
     hue_order = p._palette_without_hue_backcompat(palette, hue_order)
     palette, hue_order = p._hue_backcompat(color, palette, hue_order)
 
-    # Other deprecations
+    # Othe deprecations
     errorbar = utils._deprecate_ci(errorbar, ci)
 
     saturation = kwargs.pop(

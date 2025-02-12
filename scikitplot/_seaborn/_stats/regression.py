@@ -14,7 +14,7 @@ class PolyFit(Stat):
     """
 
     # This is a provisional class that is useful for building out functionality.
-    # It may or may not change substantially in form or disappear as we think
+    # It may or may not change substantially in form or dissappear as we think
     # through the organization of the stats subpackage.
 
     order: int = 2

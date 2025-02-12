@@ -1699,7 +1699,7 @@ def kdeplot(
     **kwargs,
 ):
 
-    # --- Start with backwards compatibility for versions < 0.11.0 ----------------
+    # --- Start with backwards compatability for versions < 0.11.0 ----------------
 
     # Handle (past) deprecation of `data2`
     if "data2" in kwargs:
@@ -2126,7 +2126,7 @@ def rugplot(
     # A note, it would also be nice to offer some kind of histogram/density
     # rugplot, since alpha blending doesn't work great in the large n regime
 
-    # --- Start with backwards compatibility for versions < 0.11.0 ----------------
+    # --- Start with backwards compatability for versions < 0.11.0 ----------------
 
     a = kwargs.pop("a", None)
     axis = kwargs.pop("axis", None)
