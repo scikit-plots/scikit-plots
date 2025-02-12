@@ -11,7 +11,10 @@ def clean_up():
 
 def get_toml_file(build_system):
     """Copy the appropriate pyproject.toml file based on the build system."""
-    toml_files = {"meson": "pyproject.meson.toml", "setuptools": "pyproject.setuptools.toml"}
+    toml_files = {
+        "meson": "pyproject.meson.toml",
+        "setuptools": "pyproject.setuptools.toml",
+    }
 
     if build_system not in toml_files:
         print("Invalid option. Use 'meson' or 'setuptools'.")
@@ -27,7 +30,7 @@ def get_toml_file(build_system):
             import wheel
     except ImportError:
         os.system(
-            f"pip install {build_system} {'meson-python' if build_system == 'meson' else 'setuptools wheel'}"
+            f'pip install {build_system} {"meson-python" if build_system == "meson" else "setuptools wheel"}'
         )
 
     print(f"Using {build_system.capitalize()} pyproject.toml...")

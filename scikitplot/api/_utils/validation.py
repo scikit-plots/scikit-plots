@@ -1,4 +1,5 @@
-"""Utility Functions for Validation
+"""
+Utility Functions for Validation
 
 This module provides utility functions designed to validate inputs and
 parameters within the scikit-plots library. These functions assist in ensuring
@@ -19,12 +20,6 @@ to facilitate the validation and processing of inputs.
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import functools
 import importlib
@@ -38,18 +33,18 @@ from sklearn.preprocessing import label_binarize
 from ... import _docstring
 
 __all__ = [
+    "validate_inputs",
     "validate_plotting_decorator",
     "validate_plotting_kwargs",
     "validate_plotting_kwargs_decorator",
     "validate_shapes",
     "validate_shapes_decorator",
-    "validate_y_true",
-    "validate_y_true_decorator",
     "validate_y_probas",
-    "validate_y_probas_decorator",
     "validate_y_probas_bounds",
     "validate_y_probas_bounds_decorator",
-    "validate_inputs",
+    "validate_y_probas_decorator",
+    "validate_y_true",
+    "validate_y_true_decorator",
 ]
 _all_ignore = [
     "absolute_import",
@@ -93,6 +88,7 @@ def get_param_w_index(*args, func=None, params=None, **kwargs):
     ------
     ValueError
         If none of the specified parameters are found.
+
     """
     # Retrieve the signature of the wrapped function
     signature = inspect.signature(func)
@@ -129,7 +125,9 @@ def get_param_w_index(*args, func=None, params=None, **kwargs):
     return param, param_name, index
 
 
-def get_new_args_kwargs(*args, new_param=None, param_name=None, param_index=None, **kwargs):
+def get_new_args_kwargs(
+    *args, new_param=None, param_name=None, param_index=None, **kwargs
+):
     """
     Create new args and kwargs with the new parameter value.
 
@@ -161,6 +159,7 @@ def get_new_args_kwargs(*args, new_param=None, param_name=None, param_index=None
     ------
     ValueError
         If the parameter cannot be found in args or kwargs.
+
     """
     new_args = list(args)
 
@@ -203,6 +202,7 @@ def validate_plotting_decorator(func):
     ------
     ImportError
         If `matplotlib` is not installed.
+
     """
 
     # The wrapper function (adds behavior around `func`)
@@ -246,7 +246,7 @@ index : int or tuple, optional
 
 **kwargs : dict, optional
     :py:func:`~scikitplot.api.utils.validation.validate_plotting_kwargs` properties
-    Keyword arguments passed to the function.""",
+    Keyword arguments passed to the function."""
 )
 
 
@@ -294,6 +294,7 @@ def validate_plotting_kwargs(
 
     >>> fig, ax = plt.subplots()
     >>> fig, ax = validate_plotting_kwargs(ax=ax)
+
     """
     # Proceed with your plotting logic here, e.g.:
     # Validate the types of ax and fig if they are provided
@@ -307,7 +308,7 @@ def validate_plotting_kwargs(
         return fig, ax  # Return immediately for new figure/axes
 
     # If fig is provided but ax is not, create new subplots in the existing figure
-    elif ax is None and fig is not None:
+    if ax is None and fig is not None:
         # fig override subplot defined (nrows, ncols, index)
         ax = []  # Initialize list to hold axes
         for row in range(1, nrows + 1):
@@ -318,10 +319,9 @@ def validate_plotting_kwargs(
         return fig, ax[0] if len(ax) == 1 else ax
 
     # Use the provided ax for plotting if it is provided (whether fig is provided or not)
-    else:
-        # Use the provided ax and its figure for plotting. plt.gcf()
-        fig = ax[0].figure if isinstance(ax, (list, tuple)) == 1 else ax.figure
-        return fig, ax
+    # Use the provided ax and its figure for plotting. plt.gcf()
+    fig = ax[0].figure if isinstance(ax, (list, tuple)) == 1 else ax.figure
+    return fig, ax
 
 
 # Define the decorator to validate plotting arguments
@@ -329,9 +329,9 @@ def validate_plotting_kwargs_decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # Extract fig, ax, figsize from kwargs (if provided)
-        ax = kwargs.get("ax", None)
-        fig = kwargs.get("fig", None)
-        figsize = kwargs.get("figsize", None)
+        ax = kwargs.get("ax")
+        fig = kwargs.get("fig")
+        figsize = kwargs.get("figsize")
 
         # Call the validation function to ensure proper fig and ax are set
         fig, ax = validate_plotting_kwargs(ax=ax, fig=fig, figsize=figsize)
@@ -363,6 +363,7 @@ def validate_shapes(y_true, y_probas):
     ------
     ValueError
         If shapes of y_true and y_probas do not match or are not valid.
+
     """
     y_true = np.asarray(y_true)
     y_probas = np.asarray(y_probas)
@@ -387,7 +388,9 @@ def validate_shapes(y_true, y_probas):
     # Check for multi-class classification
     elif y_true.ndim == 2:
         if y_probas.ndim != 2:
-            raise ValueError("`y_probas` must be a 2D array for multi-class classification.")
+            raise ValueError(
+                "`y_probas` must be a 2D array for multi-class classification."
+            )
 
         if len(y_true) != y_probas.shape[0]:
             raise ValueError(
@@ -429,6 +432,7 @@ def validate_shapes_decorator(func):
     -------
     callable
         The wrapped function with validated shapes.
+
     """
 
     @functools.wraps(func)
@@ -495,10 +499,13 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
 
     >>> validate_y_true(['class_0', 'class_1', 'class_1', 'class_0'], None)
     array([False,  True,  True, False])
+
     """
     # Check if y_true is iterable
     if not hasattr(y_true, "__iter__") or isinstance(y_true, (str, bytes)):
-        raise ValueError("`y_true` must be of type bool, str, numeric, or a mix (object) type.")
+        raise ValueError(
+            "`y_true` must be of type bool, str, numeric, or a mix (object) type."
+        )
 
     y_true = np.asarray(y_true)
 
@@ -512,7 +519,9 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
             or np.issubdtype(y_true.dtype, np.bool_)
         )
     ):
-        raise ValueError("`y_true` must be of type bool, str, numeric, or a mix (object) type.")
+        raise ValueError(
+            "`y_true` must be of type bool, str, numeric, or a mix (object) type."
+        )
 
     # Identify unique classes in y_true
     classes = np.unique(y_true)
@@ -523,13 +532,15 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
             pos_label = classes[1]  # Default to the second class if pos_label is None
 
         if pos_label not in classes:
-            raise ValueError("`pos_label` must be one of label classes: " f"{list(classes)}")
+            raise ValueError(
+                f"`pos_label` must be one of label classes: {list(classes)}"
+            )
 
         y_true = y_true == pos_label
         return y_true
 
     # Handle multi-class classification, return 2D
-    elif len(classes) > 2:
+    if len(classes) > 2:
         y_true = label_binarize(y_true, classes=classes)
         if class_index is None:
             # Return all columns if class_index is None
@@ -544,8 +555,7 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
             )
         return y_true[:, class_index]
 
-    else:
-        raise ValueError("`y_true` must contain more than one distinct class.")
+    raise ValueError("`y_true` must contain more than one distinct class.")
 
 
 def validate_y_true_parameterized_decorator(
@@ -572,6 +582,7 @@ def validate_y_true_decorator(func):
     -------
     callable
         The wrapped function with validated `y_true`.
+
     """
 
     @functools.wraps(func)
@@ -585,8 +596,12 @@ def validate_y_true_decorator(func):
         )
 
         # Extract pos_label and class_index from kwargs (if provided)
-        pos_label, _, _ = get_param_w_index(func=func, params=["pos_label"], *args, **kwargs)
-        class_index, _, _ = get_param_w_index(func=func, params=["class_index"], *args, **kwargs)
+        pos_label, _, _ = get_param_w_index(
+            func=func, params=["pos_label"], *args, **kwargs
+        )
+        class_index, _, _ = get_param_w_index(
+            func=func, params=["class_index"], *args, **kwargs
+        )
 
         # Call the validate_y_true function to validate y_true
         validated_y_true = validate_y_true(y_true, pos_label, class_index)
@@ -646,6 +661,7 @@ def validate_y_probas(y_probas, class_index=None):
     >>> validate_y_probas([[0.6, 0.4], [0.3, 0.7]], class_index=None)
     array([[0.6, 0.4],
            [0.3, 0.7]])
+
     """
     # Check if y_probas is iterable
     if not hasattr(y_probas, "__iter__"):
@@ -699,6 +715,7 @@ def validate_y_probas_decorator(func):
     -------
     callable
         The wrapped function with validated `y_probas`.
+
     """
 
     @functools.wraps(func)
@@ -712,7 +729,9 @@ def validate_y_probas_decorator(func):
         )
 
         # Extract class_index from kwargs (default to 0 if not provided)
-        class_index, _, _ = get_param_w_index(func=func, params=["class_index"], *args, **kwargs)
+        class_index, _, _ = get_param_w_index(
+            func=func, params=["class_index"], *args, **kwargs
+        )
 
         # Call the validate_y_probas function to validate y_probas
         validated_y_probas = validate_y_probas(y_probas, class_index)
@@ -795,6 +814,7 @@ def validate_y_probas_bounds(y_probas, method="minmax", axis=0):
     >>> min_max_scaling(np.array([[-5, 0], [10, 15]]))
     array([[0.  , 0.25],
            [0.75, 1.  ]])
+
     """
 
     def is_continuous(y_probas):
@@ -815,10 +835,12 @@ def validate_y_probas_bounds(y_probas, method="minmax", axis=0):
         if np.any((y_probas < 0) | (y_probas > 1)):
             if method == "minmax":
                 y_probas = np.clip(
-                    (y_probas - y_probas.min()) / (y_probas.max() - y_probas.min()), 0, 1
+                    (y_probas - y_probas.min()) / (y_probas.max() - y_probas.min()),
+                    0,
+                    1,
                 )
                 return is_continuous(y_probas)
-            elif method == "sigmoid":
+            if method == "sigmoid":
                 y_probas = 1 / (1 + np.exp(-y_probas))
                 return is_continuous(y_probas)
 
@@ -830,8 +852,10 @@ def validate_y_probas_bounds(y_probas, method="minmax", axis=0):
                 scaled = (y_probas - min_val) / (max_val - min_val)
                 y_probas = np.clip(scaled, 0, 1)
                 return is_continuous(y_probas)
-            elif method == "sigmoid":
-                y_probas = 1 / (1 + np.exp(-y_probas))  # Applies sigmoid to each element
+            if method == "sigmoid":
+                y_probas = 1 / (
+                    1 + np.exp(-y_probas)
+                )  # Applies sigmoid to each element
                 return is_continuous(y_probas)
 
     return is_continuous(y_probas)  # Return unmodified if within valid range
@@ -853,6 +877,7 @@ def validate_y_probas_bounds_decorator(func):
     -------
     callable
         The wrapped function with validated and scaled `y_probas`.
+
     """
 
     @functools.wraps(func)
@@ -870,7 +895,9 @@ def validate_y_probas_bounds_decorator(func):
         axis, _, _ = get_param_w_index(func=func, params=["axis"], *args, **kwargs)
 
         # Validate y_probas and apply bounds scaling
-        validated_y_probas = validate_y_probas_bounds(y_probas, method=method, axis=axis)
+        validated_y_probas = validate_y_probas_bounds(
+            y_probas, method=method, axis=axis
+        )
 
         # Create new args and kwargs with validated y_probas
         new_args, new_kwargs = get_new_args_kwargs(
@@ -887,7 +914,9 @@ def validate_y_probas_bounds_decorator(func):
     return wrapper
 
 
-def validate_inputs(y_true, y_probas, pos_label=None, class_index=None, method="minmax", axis=0):
+def validate_inputs(
+    y_true, y_probas, pos_label=None, class_index=None, method="minmax", axis=0
+):
     """
     Validate the inputs for y_true and y_probas, and apply bounds validation if necessary.
 
@@ -917,6 +946,7 @@ def validate_inputs(y_true, y_probas, pos_label=None, class_index=None, method="
     ------
     ValueError
         If any of the validation checks fail.
+
     """
     # Validate shapes
     validate_shapes(y_true, y_probas)

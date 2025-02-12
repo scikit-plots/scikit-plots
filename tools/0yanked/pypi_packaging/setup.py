@@ -4,12 +4,8 @@ Setup script for installing scikit-plots
 For license information, see LICENSE and/or NOTICE.md
 """
 
-from __future__ import (
-    annotations,
-    print_function,
-)
+from __future__ import annotations
 
-import io
 import os
 import pathlib
 
@@ -20,7 +16,7 @@ from setuptools import (
     setup,
 )
 
-# from extension_helpers import get_extensions  # noqa: E402
+# from extension_helpers import get_extensions
 # EXT_MODULES = get_extensions()
 ## Specify the minimum version for the Numpy C-API
 # for ext in EXT_MODULES:
@@ -50,7 +46,9 @@ from setuptools import (
 HERE = pathlib.Path(__file__).parent  # os.path.abspath(os.path.dirname(__file__))
 NAME = "scikit-plots"
 VERSION_PATH = os.path.join(HERE, "scikitplot/__init__.py")
-DESCRIPTION = "An intuitive library to add plotting functionality to scikit-learn objects."
+DESCRIPTION = (
+    "An intuitive library to add plotting functionality to scikit-learn objects."
+)
 ## Read the contents of the README file
 README = "README.md"
 PKG_DESCRIBE = (HERE / README).read_text(encoding="utf-8")
@@ -125,7 +123,7 @@ def read(*filenames, **kwargs):
     sep = kwargs.get("sep", "\n")
     buf = []
     for filename in filenames:
-        with io.open(os.path.join(here, filename), encoding=encoding) as f:
+        with open(os.path.join(here, filename), encoding=encoding) as f:
             buf.append(f.read())
     return sep.join(buf)
 
@@ -219,11 +217,7 @@ config = {
     # https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#declaring-required-dependency
     "install_requires": list(get_requires()),
     # https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#optional-dependencies
-    "extras_require": {
-        "test": [
-            "pytest",
-        ],
-    },
+    "extras_require": {"test": ["pytest"]},
     # https://setuptools.pypa.io/en/latest/userguide/entry_point.html
     # 'entry_points': {"console_scripts": []},
     # ext_modules=EXT_MODULES,

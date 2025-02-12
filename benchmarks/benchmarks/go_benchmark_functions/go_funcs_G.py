@@ -36,7 +36,9 @@ class Gear(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return (1.0 / 6.931 - floor(x[0]) * floor(x[1]) / floor(x[2]) / floor(x[3])) ** 2
+        return (
+            1.0 / 6.931 - floor(x[0]) * floor(x[1]) / floor(x[2]) / floor(x[3])
+        ) ** 2
 
 
 class Giunta(Benchmark):
@@ -120,7 +122,12 @@ class GoldsteinPrice(Benchmark):
             19 - 14 * x[0] + 3 * x[0] ** 2 - 14 * x[1] + 6 * x[0] * x[1] + 3 * x[1] ** 2
         )
         b = 30 + (2 * x[0] - 3 * x[1]) ** 2 * (
-            18 - 32 * x[0] + 12 * x[0] ** 2 + 48 * x[1] - 36 * x[0] * x[1] + 27 * x[1] ** 2
+            18
+            - 32 * x[0]
+            + 12 * x[0] ** 2
+            + 48 * x[1]
+            - 36 * x[0] * x[1]
+            + 27 * x[1] ** 2
         )
         return a * b
 

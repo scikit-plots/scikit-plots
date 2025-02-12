@@ -3,11 +3,11 @@
 import warnings
 
 import matplotlib as mpl
-from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
-from matplotlib import gridspec
 import numpy as np
 import pandas as pd
+from matplotlib import gridspec
+from matplotlib.collections import LineCollection
 
 try:
     from scipy.cluster import hierarchy
@@ -17,33 +17,31 @@ except ImportError:
     _no_scipy = True
 
 from . import cm
-from .axisgrid import Grid
 from ._compat import get_colormap
+from .axisgrid import Grid
 from .utils import (
-    despine,
+    _draw_figure,
     axis_ticklabels_overlap,
+    despine,
     relative_luminance,
     to_utf8,
-    _draw_figure,
 )
 
-__all__ = ["heatmap", "clustermap"]
+__all__ = ["clustermap", "heatmap"]
 
 
 def _index_to_label(index):
     """Convert a pandas index or multiindex to an axis label."""
     if isinstance(index, pd.MultiIndex):
         return "-".join(map(to_utf8, index.names))
-    else:
-        return index.name
+    return index.name
 
 
 def _index_to_ticklabels(index):
     """Convert a pandas index or multiindex into ticklabels."""
     if isinstance(index, pd.MultiIndex):
         return ["-".join(map(to_utf8, i)) for i in index.values]
-    else:
-        return index.values
+    return index.values
 
 
 def _convert_colors(colors):
@@ -60,7 +58,8 @@ def _convert_colors(colors):
 
 
 def _matrix_mask(data, mask):
-    """Ensure that data and mask are compatible and add missing values.
+    """
+    Ensure that data and mask are compatible and add missing values.
 
     Values will be plotted for cells where ``mask`` is ``False``.
 
@@ -200,7 +199,6 @@ class _HeatMapper:
 
     def _determine_cmap_params(self, plot_data, vmin, vmax, cmap, center, robust):
         """Use some heuristics to set good defaults for colorbar and range."""
-
         # plot_data is a np.ma.array instance
         calc_data = plot_data.astype(float).filled(np.nan)
         if vmin is None:
@@ -230,7 +228,6 @@ class _HeatMapper:
 
         # Recenter a divergent colormap
         if center is not None:
-
             # Copy bad values
             # in mpl<3.2 only masked values are honored with "bad" color spec
             # (see https://github.com/matplotlib/matplotlib/pull/14257)
@@ -244,8 +241,8 @@ class _HeatMapper:
             over_set = over != self.cmap(self.cmap.N - 1)
 
             vrange = max(vmax - center, center - vmin)
-            normlize = mpl.colors.Normalize(center - vrange, center + vrange)
-            cmin, cmax = normlize([vmin, vmax])
+            normalize = mpl.colors.Normalize(center - vrange, center + vrange)
+            cmin, cmax = normalize([vmin, vmax])
             cc = np.linspace(cmin, cmax, 256)
             self.cmap = mpl.colors.ListedColormap(self.cmap(cc))
             self.cmap.set_bad(bad)
@@ -260,7 +257,11 @@ class _HeatMapper:
         height, width = self.annot_data.shape
         xpos, ypos = np.meshgrid(np.arange(width) + 0.5, np.arange(height) + 0.5)
         for x, y, m, color, val in zip(
-            xpos.flat, ypos.flat, mesh.get_array().flat, mesh.get_facecolors(), self.annot_data.flat
+            xpos.flat,
+            ypos.flat,
+            mesh.get_array().flat,
+            mesh.get_facecolors(),
+            self.annot_data.flat,
         ):
             if m is not np.ma.masked:
                 lum = relative_luminance(color)
@@ -383,7 +384,8 @@ def heatmap(
     ax=None,
     **kwargs,
 ):
-    """Plot rectangular data as a color-encoded matrix.
+    """
+    Plot rectangular data as a color-encoded matrix.
 
     This is an Axes-level function and will draw the heatmap into the
     currently-active Axes if none is provided to the ``ax`` argument.  Part of
@@ -498,12 +500,14 @@ class _DendrogramPlotter:
     """Object for drawing tree of similarities between data rows/columns"""
 
     def __init__(self, data, linkage, metric, method, axis, label, rotate):
-        """Plot a dendrogram of the relationships between the columns of data
+        """
+        Plot a dendrogram of the relationships between the columns of data
 
         Parameters
         ----------
         data : pandas.DataFrame
             Rectangular data
+
         """
         self.axis = axis
         if self.axis == 1:
@@ -573,14 +577,16 @@ class _DendrogramPlotter:
         euclidean_methods = ("centroid", "median", "ward")
         euclidean = self.metric == "euclidean" and self.method in euclidean_methods
         if euclidean or self.method == "single":
-            return fastcluster.linkage_vector(self.array, method=self.method, metric=self.metric)
-        else:
-            linkage = fastcluster.linkage(self.array, method=self.method, metric=self.metric)
-            return linkage
+            return fastcluster.linkage_vector(
+                self.array, method=self.method, metric=self.metric
+            )
+        linkage = fastcluster.linkage(
+            self.array, method=self.method, metric=self.metric
+        )
+        return linkage
 
     @property
     def calculated_linkage(self):
-
         try:
             return self._calculate_linkage_fastcluster()
         except ImportError:
@@ -594,7 +600,8 @@ class _DendrogramPlotter:
         return self._calculate_linkage_scipy()
 
     def calculate_dendrogram(self):
-        """Calculates a dendrogram based on the linkage matrix
+        """
+        Calculates a dendrogram based on the linkage matrix
 
         Made a separate function, not a property because don't want to
         recalculate the dendrogram every time it is accessed.
@@ -605,6 +612,7 @@ class _DendrogramPlotter:
             Dendrogram dictionary as returned by scipy.cluster.hierarchy
             .dendrogram. The important key-value pairing is
             "reordered_ind" which indicates the re-ordering of the matrix
+
         """
         return hierarchy.dendrogram(self.linkage, no_plot=True, color_threshold=-np.inf)
 
@@ -614,7 +622,8 @@ class _DendrogramPlotter:
         return self.dendrogram["leaves"]
 
     def plot(self, ax, tree_kws):
-        """Plots a dendrogram of the similarities between data on the axes
+        """
+        Plots a dendrogram of the similarities between data on the axes
 
         Parameters
         ----------
@@ -654,7 +663,12 @@ class _DendrogramPlotter:
 
         despine(ax=ax, bottom=True, left=True)
 
-        ax.set(xticks=self.xticks, yticks=self.yticks, xlabel=self.xlabel, ylabel=self.ylabel)
+        ax.set(
+            xticks=self.xticks,
+            yticks=self.yticks,
+            xlabel=self.xlabel,
+            ylabel=self.ylabel,
+        )
         xtl = ax.set_xticklabels(self.xticklabels)
         ytl = ax.set_yticklabels(self.yticklabels, rotation="vertical")
 
@@ -680,7 +694,8 @@ def dendrogram(
     tree_kws=None,
     ax=None,
 ):
-    """Draw a tree diagram of relationships within a matrix
+    """
+    Draw a tree diagram of relationships within a matrix
 
     Parameters
     ----------
@@ -721,7 +736,13 @@ def dendrogram(
         raise RuntimeError("dendrogram requires scipy to be installed")
 
     plotter = _DendrogramPlotter(
-        data, linkage=linkage, axis=axis, metric=metric, method=method, label=label, rotate=rotate
+        data,
+        linkage=linkage,
+        axis=axis,
+        metric=metric,
+        method=method,
+        label=label,
+        rotate=rotate,
     )
     if ax is None:
         ax = plt.gca()
@@ -730,7 +751,6 @@ def dendrogram(
 
 
 class ClusterGrid(Grid):
-
     def __init__(
         self,
         data,
@@ -760,8 +780,12 @@ class ClusterGrid(Grid):
 
         self._figure = plt.figure(figsize=figsize)
 
-        self.row_colors, self.row_color_labels = self._preprocess_colors(data, row_colors, axis=0)
-        self.col_colors, self.col_color_labels = self._preprocess_colors(data, col_colors, axis=1)
+        self.row_colors, self.row_color_labels = self._preprocess_colors(
+            data, row_colors, axis=0
+        )
+        self.col_colors, self.col_color_labels = self._preprocess_colors(
+            data, col_colors, axis=1
+        )
 
         try:
             row_dendrogram_ratio, col_dendrogram_ratio = dendrogram_ratio
@@ -773,8 +797,12 @@ class ClusterGrid(Grid):
         except TypeError:
             row_colors_ratio = col_colors_ratio = colors_ratio
 
-        width_ratios = self.dim_ratios(self.row_colors, row_dendrogram_ratio, row_colors_ratio)
-        height_ratios = self.dim_ratios(self.col_colors, col_dendrogram_ratio, col_colors_ratio)
+        width_ratios = self.dim_ratios(
+            self.row_colors, row_dendrogram_ratio, row_colors_ratio
+        )
+        height_ratios = self.dim_ratios(
+            self.col_colors, col_dendrogram_ratio, col_colors_ratio
+        )
 
         nrows = 2 if self.col_colors is None else 3
         ncols = 2 if self.row_colors is None else 3
@@ -815,7 +843,6 @@ class ClusterGrid(Grid):
 
         if colors is not None:
             if isinstance(colors, (pd.DataFrame, pd.Series)):
-
                 # If data is unindexed, raise
                 if (not hasattr(data, "index") and axis == 0) or (
                     not hasattr(data, "columns") and axis == 1
@@ -855,7 +882,6 @@ class ClusterGrid(Grid):
 
     def format_data(self, data, pivot_kws, z_score=None, standard_scale=None):
         """Extract variables from data or use directly."""
-
         # Either the data is already in 2d matrix format, or need to do a pivot
         if pivot_kws is not None:
             data2d = data.pivot(**pivot_kws)
@@ -863,7 +889,9 @@ class ClusterGrid(Grid):
             data2d = data
 
         if z_score is not None and standard_scale is not None:
-            raise ValueError("Cannot perform both z-scoring and standard-scaling on data")
+            raise ValueError(
+                "Cannot perform both z-scoring and standard-scaling on data"
+            )
 
         if z_score is not None:
             data2d = self.z_score(data2d, z_score)
@@ -873,7 +901,8 @@ class ClusterGrid(Grid):
 
     @staticmethod
     def z_score(data2d, axis=1):
-        """Standarize the mean and variance of the data axis
+        """
+        Standardize the mean and variance of the data axis
 
         Parameters
         ----------
@@ -886,8 +915,9 @@ class ClusterGrid(Grid):
         Returns
         -------
         normalized : pandas.DataFrame
-            Noramlized data with a mean of 0 and variance of 1 across the
+            Normalized data with a mean of 0 and variance of 1 across the
             specified axis.
+
         """
         if axis == 1:
             z_scored = data2d
@@ -898,12 +928,12 @@ class ClusterGrid(Grid):
 
         if axis == 1:
             return z_scored
-        else:
-            return z_scored.T
+        return z_scored.T
 
     @staticmethod
     def standard_scale(data2d, axis=1):
-        """Divide the data by the difference between the max and min
+        """
+        Divide the data by the difference between the max and min
 
         Parameters
         ----------
@@ -916,7 +946,7 @@ class ClusterGrid(Grid):
         Returns
         -------
         standardized : pandas.DataFrame
-            Noramlized data with a mean of 0 and variance of 1 across the
+            Normalized data with a mean of 0 and variance of 1 across the
             specified axis.
 
         """
@@ -927,12 +957,13 @@ class ClusterGrid(Grid):
             standardized = data2d.T
 
         subtract = standardized.min()
-        standardized = (standardized - subtract) / (standardized.max() - standardized.min())
+        standardized = (standardized - subtract) / (
+            standardized.max() - standardized.min()
+        )
 
         if axis == 1:
             return standardized
-        else:
-            return standardized.T
+        return standardized.T
 
     def dim_ratios(self, colors, dendrogram_ratio, colors_ratio):
         """Get the proportions of the figure taken up by each axes."""
@@ -954,7 +985,8 @@ class ClusterGrid(Grid):
 
     @staticmethod
     def color_list_to_matrix_and_cmap(colors, ind, axis=0):
-        """Turns a list of colors into a numpy matrix and matplotlib colormap
+        """
+        Turns a list of colors into a numpy matrix and matplotlib colormap
 
         These arguments can now be plotted using heatmap(matrix, cmap)
         and the provided colors will be plotted.
@@ -1005,7 +1037,14 @@ class ClusterGrid(Grid):
         return matrix, cmap
 
     def plot_dendrograms(
-        self, row_cluster, col_cluster, metric, method, row_linkage, col_linkage, tree_kws
+        self,
+        row_cluster,
+        col_cluster,
+        metric,
+        method,
+        row_linkage,
+        col_linkage,
+        tree_kws,
     ):
         # Plot the row dendrogram
         if row_cluster:
@@ -1042,7 +1081,8 @@ class ClusterGrid(Grid):
         despine(ax=self.ax_col_dendrogram, bottom=True, left=True)
 
     def plot_colors(self, xind, yind, **kws):
-        """Plots color labels between the dendrogram and the heatmap
+        """
+        Plots color labels between the dendrogram and the heatmap
 
         Parameters
         ----------
@@ -1067,7 +1107,9 @@ class ClusterGrid(Grid):
 
         # Plot the row colors
         if self.row_colors is not None:
-            matrix, cmap = self.color_list_to_matrix_and_cmap(self.row_colors, yind, axis=0)
+            matrix, cmap = self.color_list_to_matrix_and_cmap(
+                self.row_colors, yind, axis=0
+            )
 
             # Get row_color labels
             if self.row_color_labels is not None:
@@ -1093,7 +1135,9 @@ class ClusterGrid(Grid):
 
         # Plot the column colors
         if self.col_colors is not None:
-            matrix, cmap = self.color_list_to_matrix_and_cmap(self.col_colors, xind, axis=1)
+            matrix, cmap = self.color_list_to_matrix_and_cmap(
+                self.col_colors, xind, axis=1
+            )
 
             # Get col_color labels
             if self.col_color_labels is not None:
@@ -1195,7 +1239,6 @@ class ClusterGrid(Grid):
         tree_kws,
         **kws,
     ):
-
         # heatmap square=True sets the aspect ratio on the axes, but that is
         # not compatible with the multi-axes layout of clustergrid
         if kws.get("square", False):

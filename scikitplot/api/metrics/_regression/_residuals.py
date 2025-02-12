@@ -13,19 +13,13 @@ enforcing Python 3-like behavior in Python 2.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Sigmoid and Softmax functions
-import scipy.stats as stats
+from scipy import stats
 
 # from sklearn.metrics import (
 # )
@@ -47,9 +41,7 @@ from scikitplot.stats import tweedie
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
-__all__ = [
-    "plot_residuals_distribution",
-]
+__all__ = ["plot_residuals_distribution"]
 
 
 # @validate_plotting_kwargs_decorator
@@ -165,19 +157,26 @@ def plot_residuals_distribution(
        :align: center
        :alt: Residuals Distribution
 
-       >>> import numpy as np; np.random.seed(0)
-       >>> from sklearn.datasets import load_diabetes as data_regression
+       >>> import numpy as np
+       ...
+       ... np.random.seed(0)
+       >>> from sklearn.datasets import (
+       ...     load_diabetes as data_regression,
+       ... )
        >>> from sklearn.model_selection import train_test_split
        >>> from sklearn.linear_model import Ridge
        >>> import scikitplot as skplt
        >>>
        >>> X, y = data_regression(return_X_y=True, as_frame=False)
-       >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+       >>> X_train, X_val, y_train, y_val = train_test_split(
+       ...     X, y, test_size=0.5, random_state=0
+       ... )
        >>> model = Ridge(alpha=1.0).fit(X_train, y_train)
        >>> y_val_pred = model.predict(X_val)
        >>> skplt.metrics.plot_residuals_distribution(
        >>>     y_val, y_val_pred, dist_type='tweedie',
        >>> );
+
     """
     ##################################################################
     ## Preprocessing
@@ -214,7 +213,11 @@ def plot_residuals_distribution(
     elif ax is None:
         # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
         # fig = plt.gcf()
-        ax = [fig.add_subplot(1, 3, 1), fig.add_subplot(1, 3, 2), fig.add_subplot(1, 3, 3)]
+        ax = [
+            fig.add_subplot(1, 3, 1),
+            fig.add_subplot(1, 3, 2),
+            fig.add_subplot(1, 3, 3),
+        ]
     # ax is provided (whether fig is provided or not).
     # Use the provided ax for plotting. No new figure or subplot is created.
     else:
@@ -237,7 +240,12 @@ def plot_residuals_distribution(
         # sm.qqplot
         # probscale.probplot
         stats.probplot(
-            residuals, dist="norm", sparams=(mean, std), rvalue=True, fit=True, plot=ax[1]
+            residuals,
+            dist="norm",
+            sparams=(mean, std),
+            rvalue=True,
+            fit=True,
+            plot=ax[1],
         )
         ax[1].set_title(f"Q-Q Plot: Fitted Normal\nμ={mean:.2f}, σ={std:.2f}")
 
@@ -263,7 +271,12 @@ def plot_residuals_distribution(
 
         # Q-Q plot with standard Poisson distribution
         stats.probplot(
-            residuals, dist=stats.poisson, sparams=(1,), rvalue=True, fit=True, plot=ax[2]
+            residuals,
+            dist=stats.poisson,
+            sparams=(1,),
+            rvalue=True,
+            fit=True,
+            plot=ax[2],
         )
         ax[2].set_title("Q-Q Plot: Standard Poisson\nλ=1")
 
@@ -285,11 +298,18 @@ def plot_residuals_distribution(
             fit=True,
             plot=ax[1],
         )
-        ax[1].set_title(f"Q-Q Plot: Fitted Gamma\nk={shape:.2f}, loc={loc:.2f}, θ={scale:.2f}")
+        ax[1].set_title(
+            f"Q-Q Plot: Fitted Gamma\nk={shape:.2f}, loc={loc:.2f}, θ={scale:.2f}"
+        )
 
         # Q-Q plot with standard gamma distribution
         stats.probplot(
-            residuals, dist=stats.gamma, sparams=(1, 0, 1), rvalue=True, fit=True, plot=ax[2]
+            residuals,
+            dist=stats.gamma,
+            sparams=(1, 0, 1),
+            rvalue=True,
+            fit=True,
+            plot=ax[2],
         )
         ax[2].set_title("Q-Q Plot: Standard Gamma\nshape=1, location=0, scale=1")
 
@@ -315,9 +335,16 @@ def plot_residuals_distribution(
 
         # Q-Q plot with standard Inverse Gaussian distribution
         stats.probplot(
-            residuals, dist=stats.invgauss, sparams=(1, 0, 1), rvalue=True, fit=True, plot=ax[2]
+            residuals,
+            dist=stats.invgauss,
+            sparams=(1, 0, 1),
+            rvalue=True,
+            fit=True,
+            plot=ax[2],
         )
-        ax[2].set_title("Q-Q Plot: Standard Inverse Gaussian\nshape=1, location=0, scale=1")
+        ax[2].set_title(
+            "Q-Q Plot: Standard Inverse Gaussian\nshape=1, location=0, scale=1"
+        )
 
     elif dist_type == "tweedie":
         # Fit Tweedie distribution
@@ -335,7 +362,9 @@ def plot_residuals_distribution(
             fit=True,
             plot=ax[1],
         )
-        ax[1].set_title(f"Q-Q Plot: Fitted Tweedie\nμ={mean:.2f}, var_power={var_power:.2f}")
+        ax[1].set_title(
+            f"Q-Q Plot: Fitted Tweedie\nμ={mean:.2f}, var_power={var_power:.2f}"
+        )
 
         # Q-Q plot with standard Tweedie distribution
         stats.probplot(
@@ -355,12 +384,19 @@ def plot_residuals_distribution(
 
         # Q-Q plot with fitted exponential distribution
         stats.probplot(
-            residuals, dist=stats.expon, sparams=(scale,), rvalue=True, fit=True, plot=ax[1]
+            residuals,
+            dist=stats.expon,
+            sparams=(scale,),
+            rvalue=True,
+            fit=True,
+            plot=ax[1],
         )
         ax[1].set_title(f"Q-Q Plot: Fitted Exponential\nλ={scale:.2f}")
 
         # Q-Q plot with standard exponential distribution
-        stats.probplot(residuals, dist=stats.expon, sparams=(1,), rvalue=True, fit=True, plot=ax[2])
+        stats.probplot(
+            residuals, dist=stats.expon, sparams=(1,), rvalue=True, fit=True, plot=ax[2]
+        )
         ax[2].set_title("Q-Q Plot: Standard Exponential\nλ=1")
 
     elif dist_type == "lognormal":
@@ -381,11 +417,18 @@ def plot_residuals_distribution(
             fit=True,
             plot=ax[1],
         )
-        ax[1].set_title(f"Q-Q Plot: Fitted Log-Normal\nσ={shape:.2f}, scale={scale:.2f}")
+        ax[1].set_title(
+            f"Q-Q Plot: Fitted Log-Normal\nσ={shape:.2f}, scale={scale:.2f}"
+        )
 
         # Q-Q plot with standard log-normal distribution
         stats.probplot(
-            residuals, dist=stats.lognorm, sparams=(1, 0, 1), rvalue=True, fit=True, plot=ax[2]
+            residuals,
+            dist=stats.lognorm,
+            sparams=(1, 0, 1),
+            rvalue=True,
+            fit=True,
+            plot=ax[2],
         )
         ax[2].set_title("Q-Q Plot: Standard Log-Normal\nshape=1, location=0, scale=1")
 
@@ -401,7 +444,9 @@ def plot_residuals_distribution(
         if show_labels:
             handles, labels = axis.get_legend_handles_labels()
             if handles:
-                axis.legend(loc="lower left", fontsize=text_fontsize, title="", alignment="left")
+                axis.legend(
+                    loc="lower left", fontsize=text_fontsize, title="", alignment="left"
+                )
 
     # equalize the scales
     # plt.axis('equal')

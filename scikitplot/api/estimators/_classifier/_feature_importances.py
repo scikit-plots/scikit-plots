@@ -13,12 +13,6 @@ enforcing Python 3-like behavior in Python 2.
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,9 +26,7 @@ from ..._utils.validation import (
 )
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
-__all__ = [
-    "plot_feature_importances",
-]
+__all__ = ["plot_feature_importances"]
 
 
 @validate_plotting_kwargs_decorator
@@ -171,13 +163,16 @@ def plot_feature_importances(
        >>> from sklearn.ensemble import RandomForestClassifier
        >>> import scikitplot as skplt
        >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
-       >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+       >>> X_train, X_val, y_train, y_val = train_test_split(
+       ...     X, y, test_size=0.5, random_state=0
+       ... )
        >>> model = RandomForestClassifier(random_state=0).fit(X_train, y_train)
        >>> skplt.estimators.plot_feature_importances(
        >>>     model,
        >>>     orientation='y',
        >>>     figsize=(11, 5),
        >>> );
+
     """
     #################################################
     ## Preprocessing
@@ -205,7 +200,8 @@ def plot_feature_importances(
         importances = np.asarray(estimator.explained_variance_ratio_)
     else:
         raise TypeError(
-            "The estimator does not have an attribute for feature " "importances or coefficients."
+            "The estimator does not have an attribute for feature "
+            "importances or coefficients."
         )
     # Obtain feature names
     if feature_names is None:
@@ -217,7 +213,9 @@ def plot_feature_importances(
             feature_names = np.asarray(estimator.feature_names_, dtype=object)
         else:
             # Ensure feature_names are strings
-            feature_names = np.asarray(np.arange(len(importances), dtype=int), dtype=object)
+            feature_names = np.asarray(
+                np.arange(len(importances), dtype=int), dtype=object
+            )
     else:
         feature_names = np.asarray(feature_names, dtype=object)
 
@@ -248,7 +246,9 @@ def plot_feature_importances(
     feature_names = feature_names[indices].copy()
 
     # Get model name if available
-    model_name = f"{estimator.__class__.__name__} " if hasattr(estimator, "__class__") else ""
+    model_name = (
+        f"{estimator.__class__.__name__} " if hasattr(estimator, "__class__") else ""
+    )
 
     ##################################################################
     ## Plotting

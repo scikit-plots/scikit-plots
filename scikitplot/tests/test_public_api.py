@@ -1,6 +1,6 @@
 """
 This test script is adopted from:
-    https://github.com/numpy/numpy/blob/main/numpy/tests/test_public_api.py
+https://github.com/numpy/numpy/blob/main/numpy/tests/test_public_api.py
 """
 
 import importlib
@@ -18,8 +18,10 @@ from ..conftest import xp_available_backends
 
 
 def test_dir_testing():
-    """Assert that output of dir has only one "testing/tester"
-    attribute without duplicate"""
+    """
+    Assert that output of dir has only one "testing/tester"
+    attribute without duplicate
+    """
     assert len(dir(scikitplot)) == len(set(dir(scikitplot)))
 
 
@@ -71,12 +73,7 @@ PUBLIC_MODULES = [
 # public and private API" in the 1.8.0 release notes.
 # These private modules support will be removed in SciPy v2.0.0, as the
 # deprecation messages emitted by each of these modules say.
-PRIVATE_BUT_PRESENT_MODULES = [
-    "scikitplot." + s
-    for s in [
-        "_build_utils",
-    ]
-]
+PRIVATE_BUT_PRESENT_MODULES = ["scikitplot." + s for s in ["_build_utils"]]
 
 
 def is_unexpected(name):
@@ -93,10 +90,7 @@ def is_unexpected(name):
     return True
 
 
-SKIP_LIST = [
-    "scikitplot.conftest",
-    "scikitplot.version",
-]
+SKIP_LIST = ["scikitplot.conftest", "scikitplot.version"]
 
 
 # XXX: this test does more than it says on the tin - in using `pkgutil.walk_packages`,
@@ -128,7 +122,9 @@ def test_all_modules_are_expected():
     with np.testing.suppress_warnings() as sup:
         sup.filter(DeprecationWarning, "scikitplot._build_utils")
         for _, modname, _ in pkgutil.walk_packages(
-            path=scikitplot.__path__, prefix=scikitplot.__name__ + ".", onerror=ignore_errors
+            path=scikitplot.__path__,
+            prefix=scikitplot.__name__ + ".",
+            onerror=ignore_errors,
         ):
             if is_unexpected(modname) and modname not in SKIP_LIST:
                 # We have a name that is new.  If that's on purpose, add it to
@@ -202,7 +198,7 @@ def test_all_modules_are_expected_2():
 
     if unexpected_members:
         raise AssertionError(
-            "Found unexpected object(s) that look like " f"modules: {unexpected_members}"
+            f"Found unexpected object(s) that look like modules: {unexpected_members}"
         )
 
 
@@ -229,7 +225,7 @@ def test_api_importable():
 
     if module_names:
         raise AssertionError(
-            "Modules in the public API that cannot be " f"imported: {module_names}"
+            f"Modules in the public API that cannot be imported: {module_names}"
         )
 
     with warnings.catch_warnings(record=True):
@@ -251,7 +247,7 @@ def test_api_importable():
 @pytest.mark.parametrize(
     ("module_name", "correct_module"),
     [
-        ("scikitplot.kds._deciles", None),
+        ("scikitplot.kds._deciles", None)
         #    ('scikitplot.kds._deciles.', None),
     ],
 )
@@ -282,4 +278,4 @@ def test_private_but_present_deprecation(module_name, correct_module):
     # that the attribute is not in `module_name` and that `module_name` is deprecated.
     message = f"`{module_name}` is deprecated..."
     with pytest.raises(AttributeError, match=message):
-        getattr(module, "ekki")
+        module.ekki

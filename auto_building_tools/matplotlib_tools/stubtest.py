@@ -24,15 +24,23 @@ class Visitor(ast.NodeVisitor):
         for dec in node.decorator_list:
             if "delete_parameter" in ast.unparse(dec):
                 deprecated_arg = dec.args[1].value
-                if node.args.vararg is not None and node.args.vararg.arg == deprecated_arg:
+                if (
+                    node.args.vararg is not None
+                    and node.args.vararg.arg == deprecated_arg
+                ):
                     continue
-                if node.args.kwarg is not None and node.args.kwarg.arg == deprecated_arg:
+                if (
+                    node.args.kwarg is not None
+                    and node.args.kwarg.arg == deprecated_arg
+                ):
                     continue
 
                 parents = []
                 if hasattr(node, "parent"):
                     parent = node.parent
-                    while hasattr(parent, "parent") and not isinstance(parent, ast.Module):
+                    while hasattr(parent, "parent") and not isinstance(
+                        parent, ast.Module
+                    ):
                         parents.insert(0, parent.name)
                         parent = parent.parent
                 self.output.write(f"{'.'.join(self.context + parents)}.{node.name}\n")
@@ -44,7 +52,9 @@ class Visitor(ast.NodeVisitor):
                 parents = []
                 if hasattr(node, "parent"):
                     parent = node.parent
-                    while hasattr(parent, "parent") and not isinstance(parent, ast.Module):
+                    while hasattr(parent, "parent") and not isinstance(
+                        parent, ast.Module
+                    ):
                         parents.insert(0, parent.name)
                         parent = parent.parent
                 aliases = ast.literal_eval(dec.args[0])
@@ -53,7 +63,9 @@ class Visitor(ast.NodeVisitor):
                 for substitutions in aliases.values():
                     parts = self.context + parents + [node.name]
                     self.output.write(
-                        "\n".join(f"{'.'.join(parts)}.[gs]et_{a}\n" for a in substitutions)
+                        "\n".join(
+                            f"{'.'.join(parts)}.[gs]et_{a}\n" for a in substitutions
+                        )
                     )
         for child in ast.iter_child_nodes(node):
             self.visit(child)
@@ -82,6 +94,7 @@ with tempfile.TemporaryDirectory() as d:
         ],
         cwd=root,
         env=os.environ | {"MPLBACKEND": "agg"},
+        check=False,
     )
     try:
         os.unlink(f.name)

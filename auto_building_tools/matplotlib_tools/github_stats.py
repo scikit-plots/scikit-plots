@@ -106,14 +106,15 @@ def split_pulls(all_issues, project="matplotlib/matplotlib"):
     return issues, pulls
 
 
-def issues_closed_since(period=timedelta(days=365), project="matplotlib/matplotlib", pulls=False):
+def issues_closed_since(
+    period=timedelta(days=365), project="matplotlib/matplotlib", pulls=False
+):
     """
     Get all issues closed since a particular point in time.
 
     *period* can either be a datetime object, or a timedelta object. In the
     latter case, it is used as a time before the present.
     """
-
     which = "pulls" if pulls else "issues"
 
     if isinstance(period, timedelta):
@@ -174,10 +175,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--since-tag",
         type=str,
-        help="The git tag to use for the starting point " "(typically the last macro release).",
+        help="The git tag to use for the starting point "
+        "(typically the last macro release).",
     )
     parser.add_argument(
-        "--milestone", type=str, help="The GitHub milestone to use for filtering issues [optional]."
+        "--milestone",
+        type=str,
+        help="The GitHub milestone to use for filtering issues [optional].",
     )
     parser.add_argument(
         "--days",
@@ -185,7 +189,10 @@ if __name__ == "__main__":
         help="The number of days of data to summarize (use this or --since-tag).",
     )
     parser.add_argument(
-        "--project", type=str, default="matplotlib/matplotlib", help="The project to summarize."
+        "--project",
+        type=str,
+        default="matplotlib/matplotlib",
+        help="The project to summarize.",
     )
     parser.add_argument(
         "--links",
@@ -202,7 +209,9 @@ if __name__ == "__main__":
         since = datetime.utcnow() - timedelta(days=opts.days)
     else:
         if not tag:
-            tag = check_output(["git", "describe", "--abbrev=0"], encoding="utf8").strip()
+            tag = check_output(
+                ["git", "describe", "--abbrev=0"], encoding="utf8"
+            ).strip()
         cmd = ["git", "log", "-1", "--format=%ai", tag]
         tagday, tz = check_output(cmd, encoding="utf8").strip().rsplit(" ", 1)
         since = datetime.strptime(tagday, "%Y-%m-%d %H:%M:%S")
@@ -220,7 +229,8 @@ if __name__ == "__main__":
     project = opts.project
 
     print(
-        f"fetching GitHub stats since {since} (tag: {tag}, milestone: {milestone})", file=sys.stderr
+        f"fetching GitHub stats since {since} (tag: {tag}, milestone: {milestone})",
+        file=sys.stderr,
     )
     if milestone:
         milestone_id = get_milestone_id(project=project, milestone=milestone, auth=True)
@@ -241,7 +251,9 @@ if __name__ == "__main__":
     since_day = since.strftime("%Y/%m/%d")
     today = datetime.today()
 
-    title = f'GitHub statistics for {milestone.lstrip("v")} ' f'{today.strftime("(%b %d, %Y)")}'
+    title = (
+        f"GitHub statistics for {milestone.lstrip('v')} {today.strftime('(%b %d, %Y)')}"
+    )
 
     ncommits = 0
     all_authors = []
@@ -261,12 +273,16 @@ if __name__ == "__main__":
         pr_authors.extend(get_authors(pr))
     ncommits = len(pr_authors) + ncommits - len(pulls)
     author_cmd = ["git", "check-mailmap"] + pr_authors
-    with_email = check_output(author_cmd, encoding="utf-8", errors="replace").splitlines()
+    with_email = check_output(
+        author_cmd, encoding="utf-8", errors="replace"
+    ).splitlines()
     all_authors.extend(["* " + a.split(" <")[0] for a in with_email])
     unique_authors = sorted(set(all_authors), key=lambda s: s.lower())
 
     if milestone:
-        milestone_str = MILESTONE_TEMPLATE.format(project=project, milestone_id=milestone_id)
+        milestone_str = MILESTONE_TEMPLATE.format(
+            project=project, milestone_id=milestone_id
+        )
     else:
         milestone_str = ""
 

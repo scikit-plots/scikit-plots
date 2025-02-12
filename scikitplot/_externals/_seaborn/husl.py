@@ -79,7 +79,7 @@ def max_chroma(L, H):
 
         for t in (0.0, 1.0):
             C = L * (top - 1.05122 * t) / (bottom + 0.17266 * sinH * t)
-            if C > 0.0 and C < result:
+            if C > 0.0 and result > C:
                 result = C
     return result
 
@@ -93,7 +93,9 @@ def _hrad_extremum(L):
     for row in m:
         for limit in (0.0, 1.0):
             [m1, m2, m3] = row
-            top = -3015466475.0 * m3 * sub + 603093295.0 * m2 * sub - 603093295.0 * limit
+            top = (
+                -3015466475.0 * m3 * sub + 603093295.0 * m2 * sub - 603093295.0 * limit
+            )
             bottom = 1356959916.0 * m1 * sub - 452319972.0 * m3 * sub
             hrad = math.atan2(top, bottom)
             # This is a math hack to deal with tan quadrants, I'm too lazy to figure
@@ -119,22 +121,19 @@ def dot_product(a, b):
 def f(t):
     if t > lab_e:
         return math.pow(t, 1.0 / 3.0)
-    else:
-        return 7.787 * t + 16.0 / 116.0
+    return 7.787 * t + 16.0 / 116.0
 
 
 def f_inv(t):
     if math.pow(t, 3.0) > lab_e:
         return math.pow(t, 3.0)
-    else:
-        return (116.0 * t - 16.0) / lab_k
+    return (116.0 * t - 16.0) / lab_k
 
 
 def from_linear(c):
     if c <= 0.0031308:
         return 12.92 * c
-    else:
-        return 1.055 * math.pow(c, 1.0 / 2.4) - 0.055
+    return 1.055 * math.pow(c, 1.0 / 2.4) - 0.055
 
 
 def to_linear(c):
@@ -142,8 +141,7 @@ def to_linear(c):
 
     if c > 0.04045:
         return math.pow((c + a) / (1.0 + a), 2.4)
-    else:
-        return c / 12.92
+    return c / 12.92
 
 
 def rgb_prepare(triple):
@@ -154,10 +152,8 @@ def rgb_prepare(triple):
         if ch < -0.0001 or ch > 1.0001:
             raise Exception(f"Illegal RGB value {ch:f}")
 
-        if ch < 0:
-            ch = 0
-        if ch > 1:
-            ch = 1
+        ch = max(ch, 0)
+        ch = min(ch, 1)
 
         # Fix for Python 3 which by default rounds 4.5 down to 4.0
         # instead of Python 2 which is rounded to 5.0 which caused
@@ -169,8 +165,7 @@ def rgb_prepare(triple):
 
 
 def hex_to_rgb(hex):
-    if hex.startswith("#"):
-        hex = hex[1:]
+    hex = hex.removeprefix("#")
     r = int(hex[0:2], 16) / 255.0
     g = int(hex[2:4], 16) / 255.0
     b = int(hex[4:6], 16) / 255.0

@@ -1,16 +1,18 @@
 """Algorithms to support fitting routines in seaborn plotting functions."""
 
-import numpy as np
 import warnings
+
+import numpy as np
 
 
 def bootstrap(*args, **kwargs):
-    """Resample one or more arrays with replacement and store aggregate values.
+    """
+    Resample one or more arrays with replacement and store aggregate values.
 
     Positional arguments are a sequence of arrays to bootstrap along the first
     axis and pass to a summary function.
 
-    Keyword arguments:
+    Keyword Arguments:
         n_boot : int, default=10000
             Number of iterations
         axis : int, default=None
@@ -27,7 +29,7 @@ def bootstrap(*args, **kwargs):
             Seed for the random number generator; useful if you want
             reproducible resamples.
 
-    Returns
+    Returns:
     -------
     boot_dist: array
         array of bootstrapped statistic values
@@ -41,9 +43,9 @@ def bootstrap(*args, **kwargs):
     # Default keyword arguments
     n_boot = kwargs.get("n_boot", 10000)
     func = kwargs.get("func", "mean")
-    axis = kwargs.get("axis", None)
-    units = kwargs.get("units", None)
-    random_seed = kwargs.get("random_seed", None)
+    axis = kwargs.get("axis")
+    units = kwargs.get("units")
+    random_seed = kwargs.get("random_seed")
     if random_seed is not None:
         msg = "`random_seed` has been renamed to `seed` and will be removed"
         warnings.warn(msg)
@@ -65,7 +67,6 @@ def bootstrap(*args, **kwargs):
         units = np.asarray(units)
 
     if isinstance(func, str):
-
         # Allow named numpy functions
         f = getattr(np, func)
 

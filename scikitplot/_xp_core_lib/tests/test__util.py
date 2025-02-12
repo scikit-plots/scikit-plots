@@ -14,12 +14,7 @@ from scipy import cluster, interpolate, linalg, optimize, sparse, spatial, stats
 
 from ...conftest import array_api_compatible, skip_xp_invalid_arg
 from .. import array_api_extra as xpx
-from .._array_api import (
-    is_array_api_strict,
-    is_numpy,
-    xp_assert_close,
-    xp_assert_equal,
-)
+from .._array_api import is_array_api_strict, is_numpy, xp_assert_close, xp_assert_equal
 from .._util import (
     FullArgSpec,
     MapWrapper,
@@ -95,7 +90,9 @@ def test_getfullargspec_no_self():
     argspec = getfullargspec_no_self(p.__init__)
     assert_equal(argspec, FullArgSpec(["pool"], None, None, (1,), [], None, {}))
     argspec = getfullargspec_no_self(p.__call__)
-    assert_equal(argspec, FullArgSpec(["func", "iterable"], None, None, None, [], None, {}))
+    assert_equal(
+        argspec, FullArgSpec(["func", "iterable"], None, None, None, [], None, {})
+    )
 
     class _rv_generic:
         def _rvs(self, a, b=2, c=3, *args, size=None, **kwargs):
@@ -105,7 +102,9 @@ def test_getfullargspec_no_self():
     argspec = getfullargspec_no_self(rv_obj._rvs)
     assert_equal(
         argspec,
-        FullArgSpec(["a", "b", "c"], "args", "kwargs", (2, 3), ["size"], {"size": None}, {}),
+        FullArgSpec(
+            ["a", "b", "c"], "args", "kwargs", (2, 3), ["size"], {"size": None}, {}
+        ),
     )
 
 
@@ -220,7 +219,6 @@ def test_rng_integers():
 
 
 class TestValidateInt:
-
     @pytest.mark.parametrize("n", [4, np.uint8(4), np.int16(4), np.array(4)])
     def test_validate_int(self, n):
         n = _validate_int(n, "n")
@@ -232,7 +230,7 @@ class TestValidateInt:
             _validate_int(n, "n")
 
     def test_validate_int_below_min(self):
-        with pytest.raises(ValueError, match="n must be an integer not " "less than 0"):
+        with pytest.raises(ValueError, match="n must be an integer not less than 0"):
             _validate_int(-1, "n", 0)
 
 
@@ -315,7 +313,6 @@ class TestRenameParameter:
 
 
 class TestContainsNaNTest:
-
     def test_policy(self):
         data = np.array([1, 2, 3, np.nan])
 
@@ -496,7 +493,9 @@ class TestTransitionToRNG:
 
     def sobol_indices(self, **kwargs):
         def f_ishigami(x):
-            return np.sin(x[0]) + 7 * np.sin(x[1]) ** 2 + 0.1 * (x[2] ** 4) * np.sin(x[0])
+            return (
+                np.sin(x[0]) + 7 * np.sin(x[1]) ** 2 + 0.1 * (x[2] ** 4) * np.sin(x[0])
+            )
 
         dists = [
             stats.uniform(loc=-np.pi, scale=2 * np.pi),
@@ -634,7 +633,10 @@ class TestLazywhere:
             data.draw(npst.arrays(dtype=dtype, shape=tuple(), elements=elements))
         )
         float_fillvalue = float(fillvalue)
-        arrays = [xp.asarray(data.draw(npst.arrays(dtype=dtype, shape=shape))) for shape in shapes]
+        arrays = [
+            xp.asarray(data.draw(npst.arrays(dtype=dtype, shape=shape)))
+            for shape in shapes
+        ]
 
         def f(*args):
             return sum(arg for arg in args)

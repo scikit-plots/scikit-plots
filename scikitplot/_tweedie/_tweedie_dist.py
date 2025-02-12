@@ -47,23 +47,20 @@ See Also
 * https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html
 * https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution
 * https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood
-"""
 
-from __future__ import division
+"""
 
 import numpy as np
 from scipy import optimize
 from scipy.special import gammainc, gammaln
 from scipy.stats import gamma, invgauss, norm, poisson, rv_continuous
 
-__all__ = [
-    "tweedie_gen",
-    "tweedie",
-]
+__all__ = ["tweedie", "tweedie_gen"]
 
 
 class tweedie_gen(rv_continuous):
-    r"""A Tweedie continuous random variable inherited :py:class:`scipy.stats.rv_continuous`.
+    r"""
+    A Tweedie continuous random variable inherited :py:class:`scipy.stats.rv_continuous`.
 
     See Also
     --------
@@ -108,17 +105,17 @@ class tweedie_gen(rv_continuous):
     --------
     The density can be found using the pdf method.
 
-    >>> tweedie(p=1.5, mu=1, phi=1).pdf(1) # doctest:+ELLIPSIS
+    >>> tweedie(p=1.5, mu=1, phi=1).pdf(1)  # doctest:+ELLIPSIS
     0.357...
 
     The cdf can be found using the cdf method.
 
-    >>> tweedie(p=1.5, mu=1, phi=1).cdf(1) # doctest:+ELLIPSIS
+    >>> tweedie(p=1.5, mu=1, phi=1).cdf(1)  # doctest:+ELLIPSIS
     0.603...
 
     The ppf can be found using the ppf method.
 
-    >>> tweedie(p=1.5, mu=1, phi=1).ppf(0.603) # doctest:+ELLIPSIS
+    >>> tweedie(p=1.5, mu=1, phi=1).ppf(0.603)  # doctest:+ELLIPSIS
     0.998...
 
     References
@@ -128,6 +125,7 @@ class tweedie_gen(rv_continuous):
 
     Dunn, Peter K. and Smyth, Gordon K. 2005, Series evaluation of Tweedie
     exponential dispersion model densities
+
     """
 
     def _pdf(self, x, p, mu, phi):
@@ -187,7 +185,9 @@ class tweedie_gen(rv_continuous):
             right *= factor
             # right is now such that cdf(right) > q
 
-        return optimize.brentq(self._ppf_to_solve, left, right, args=(q,) + args, xtol=self.xtol)
+        return optimize.brentq(
+            self._ppf_to_solve, left, right, args=(q,) + args, xtol=self.xtol
+        )
 
     def _ppf(self, q, p, mu, phi):
         p = np.broadcast_to(p, q.shape)
@@ -209,7 +209,7 @@ class tweedie_gen(rv_continuous):
             ppf[mask] = poisson(mu=mu[mask] / phi[mask]).ppf(q[mask])
 
         # 1 < p < 2
-        mask = (1 < p) & (p < 2)
+        mask = (p > 1) & (p < 2)
         if np.sum(mask) > 0:
             zero_mass = np.zeros_like(ppf)
             zeros = np.zeros_like(ppf)
@@ -234,7 +234,9 @@ class tweedie_gen(rv_continuous):
         # Inverse Gamma
         mask = p == 3
         if np.sum(mask) > 0:
-            ppf[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1 / phi[mask]).ppf(q[mask])
+            ppf[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1 / phi[mask]).ppf(
+                q[mask]
+            )
         return ppf
 
     def _argcheck(self, p, mu, phi):
@@ -352,7 +354,8 @@ def est_gamma(phi, p, mu):
 
 
 def estimate_tweedie_loglike_series(x, mu, phi, p):
-    """Estimate the loglikihood of a given set of x, mu, phi, and p
+    """
+    Estimate the loglikihood of a given set of x, mu, phi, and p
 
     Parameters
     ----------
@@ -361,7 +364,7 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
     mu : array
         The fitted values. Must be positive.
     phi : array
-        The scale paramter. Must be positive.
+        The scale parameter. Must be positive.
     p : array
         The Tweedie variance power. Must equal 0 or must be greater than or
         equal to 1.
@@ -369,6 +372,7 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
     Returns
     -------
     estiate_tweedie_loglike_series : float
+
     """
     x = np.array(x, ndmin=1)
     mu = np.array(mu, ndmin=1)
@@ -380,9 +384,9 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
     # Gaussian (Normal)
     gaussian_mask = p == 0.0
     if np.sum(gaussian_mask) > 0:
-        ll[gaussian_mask] = norm(loc=mu[gaussian_mask], scale=np.sqrt(phi[gaussian_mask])).logpdf(
-            x[gaussian_mask]
-        )
+        ll[gaussian_mask] = norm(
+            loc=mu[gaussian_mask], scale=np.sqrt(phi[gaussian_mask])
+        ).logpdf(x[gaussian_mask])
 
     # Poisson
     poisson_mask = p == 1.0
@@ -399,7 +403,7 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
         ll[poisson_mask] = poisson_logpdf
 
     # 1 < p < 2
-    ll_1to_2_mask = (1 < p) & (p < 2)
+    ll_1to_2_mask = (p > 1) & (p < 2)
     if np.sum(ll_1to_2_mask) > 0:
         # Calculating logliklihood at x == 0 is pretty straightforward
         zeros = x == 0
@@ -414,7 +418,7 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
         ll[gamma_mask] = gamma(a=1 / phi, scale=phi * mu).logpdf(x[gamma_mask])
 
     # (2 < p < 3) or (p > 3)
-    ll_2plus_mask = ((2 < p) & (p < 3)) | (p > 3)
+    ll_2plus_mask = ((p > 2) & (p < 3)) | (p > 3)
     if np.sum(ll_2plus_mask) > 0:
         zeros = x == 0
         mask = zeros & ll_2plus_mask
@@ -428,7 +432,9 @@ def estimate_tweedie_loglike_series(x, mu, phi, p):
         cond1 = invgauss_mask
         cond2 = x > 0
         mask = cond1 & cond2
-        ll[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1.0 / phi[mask]).logpdf(x[mask])
+        ll[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1.0 / phi[mask]).logpdf(
+            x[mask]
+        )
     return ll
 
 
@@ -466,8 +472,8 @@ def ll_1to2(x, mu, phi, p):
         logWmax = j * (1 - alpha) - np.log(2 * np.pi) - 0.5 * np.log(-alpha) - np.log(j)
         return logWmax
 
-    # e ** -37 is approxmiately the double precision on 64-bit systems.
-    # So we just need to calcuate logW whenever its within 37 of logWmax.
+    # e ** -37 is approximately the double precision on 64-bit systems.
+    # So we just need to calculate logW whenever its within 37 of logWmax.
     logWmax = _logWmax(alpha, j)
     while np.any(logWmax - _logW(alpha, j, constant_logW) < 37):
         j += 1
@@ -519,8 +525,8 @@ def ll_2orMore(x, mu, phi, p):
     logVmax = _logVmax(p, kmax)
     z = est_z(x, phi, p)
 
-    # e ** -37 is approxmiately the double precision on 64-bit systems.
-    # So we just need to calcuate logVenv whenever its within 37 of logVmax.
+    # e ** -37 is approximately the double precision on 64-bit systems.
+    # So we just need to calculate logVenv whenever its within 37 of logVmax.
     k = max(1, kmax.max())
     while np.any(logVmax - _logVenv(z, p, k) < 37):
         k += 1
@@ -553,7 +559,8 @@ def ll_2orMore(x, mu, phi, p):
 
 
 def estimate_tweeide_logcdf_series(x, mu, phi, p):
-    """Estimate the logcdf of a given set of x, mu, phi, and p
+    """
+    Estimate the logcdf of a given set of x, mu, phi, and p
 
     Parameters
     ----------
@@ -562,7 +569,7 @@ def estimate_tweeide_logcdf_series(x, mu, phi, p):
     mu : array
         The fitted values. Must be positive.
     phi : array
-        The scale paramter. Must be positive.
+        The scale parameter. Must be positive.
     p : array
         The Tweedie variance power. Must equal 0 or must be greater than or
         equal to 1.
@@ -570,6 +577,7 @@ def estimate_tweeide_logcdf_series(x, mu, phi, p):
     Returns
     -------
     estiate_tweedie_loglike_series : float
+
     """
     x = np.array(x, ndmin=1)
     mu = np.array(mu, ndmin=1)
@@ -589,7 +597,7 @@ def estimate_tweeide_logcdf_series(x, mu, phi, p):
         logcdf[mask] = np.log(poisson(mu=mu[mask] / phi[mask]).cdf(x[mask]))
 
     # 1 < p < 2
-    mask = (1 < p) & (p < 2)
+    mask = (p > 1) & (p < 2)
     if np.sum(mask) > 0:
         cond1 = mask
         cond2 = x > 0
@@ -601,12 +609,16 @@ def estimate_tweeide_logcdf_series(x, mu, phi, p):
     # Gamma
     mask = p == 2
     if np.sum(mask) > 0:
-        logcdf[mask] = gamma(a=1 / phi[mask], scale=phi[mask] * mu[mask]).logcdf(x[mask])
+        logcdf[mask] = gamma(a=1 / phi[mask], scale=phi[mask] * mu[mask]).logcdf(
+            x[mask]
+        )
 
     # Inverse Gaussian (Normal)
     mask = p == 3
     if np.sum(mask) > 0:
-        logcdf[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1 / phi[mask]).logcdf(x[mask])
+        logcdf[mask] = invgauss(mu=mu[mask] * phi[mask], scale=1 / phi[mask]).logcdf(
+            x[mask]
+        )
 
     return logcdf
 
@@ -615,13 +627,13 @@ def logcdf_1to2(x, mu, phi, p):
     # I couldn't find a paper on this, so gonna be a little hacky until I
     # have a better idea. The strategy is to create a (n, 1) matrix where
     # n is the number of observations and the first column represents where
-    # there are 0 occurences. We'll add an additional column for 1 occurence,
+    # there are 0 occurrences. We'll add an additional column for 1 occurrence,
     # and test for whether the difference between the added's column value
     # and the max value is greater than 37. If not, add another column
     # until that's the case. Then, sum the columns to give a vector of length
     # n which *should* be the CDF. (I think).
 
-    # For very high rates, this funciton might not run well as it will
+    # For very high rates, this function might not run well as it will
     # create lots of (potentially meaningless) columns.
     rate = est_kappa(mu, p) / phi
     scale = est_gamma(phi, p, mu)

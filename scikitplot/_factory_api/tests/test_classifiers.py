@@ -18,7 +18,6 @@ def convert_labels_into_string(y_true):
 
 
 class TestClassifierFactory(unittest.TestCase):
-
     def setUp(self):
         class Classifier:
             def __init__(self):
@@ -58,7 +57,6 @@ class TestClassifierFactory(unittest.TestCase):
         self.NotClassifier = NotClassifier
 
     def test_instance_validation(self):
-
         clf = self.Classifier()
         skplt._factory_api.classifier_factory(clf)
 
@@ -71,10 +69,11 @@ class TestClassifierFactory(unittest.TestCase):
             skplt._factory_api.classifier_factory(partial_clf)
             assert len(w) == 2
             assert issubclass(w[-1].category, UserWarning)
-            assert " not in clf. Some plots may not be possible to generate." in str(w[-1].message)
+            assert " not in clf. Some plots may not be possible to generate." in str(
+                w[-1].message
+            )
 
     def test_method_insertion(self):
-
         clf = self.Classifier()
         skplt._factory_api.classifier_factory(clf)
         assert hasattr(clf, "plot_learning_curve")
@@ -99,7 +98,6 @@ class TestClassifierFactory(unittest.TestCase):
 
 
 class TestPlotLearningCurve(unittest.TestCase):
-
     def setUp(self):
         np.random.seed(0)
         self.X, self.y = load_data(return_X_y=True)
@@ -126,7 +124,9 @@ class TestPlotLearningCurve(unittest.TestCase):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        ax = clf.plot_learning_curve(self.X, self.y, train_sizes=np.linspace(0.1, 1.0, 8))
+        ax = clf.plot_learning_curve(
+            self.X, self.y, train_sizes=np.linspace(0.1, 1.0, 8)
+        )
 
     def test_n_jobs(self):
         np.random.seed(0)
@@ -215,7 +215,9 @@ class TestPlotConfusionMatrix(unittest.TestCase):
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
         ax = clf.plot_confusion_matrix(self.X, self.y)
-        self.assertRaises(NotFittedError, clf.plot_confusion_matrix, self.X, self.y, do_cv=False)
+        self.assertRaises(
+            NotFittedError, clf.plot_confusion_matrix, self.X, self.y, do_cv=False
+        )
 
     def test_shuffle(self):
         np.random.seed(0)
@@ -282,7 +284,9 @@ class TestPlotROCCurve(unittest.TestCase):
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
         ax = clf.plot_roc_curve(self.X, self.y)
-        self.assertRaises(AttributeError, clf.plot_roc_curve, self.X, self.y, do_cv=False)
+        self.assertRaises(
+            AttributeError, clf.plot_roc_curve, self.X, self.y, do_cv=False
+        )
 
     def test_ax(self):
         np.random.seed(0)
@@ -370,7 +374,9 @@ class TestPlotKSStatistic(unittest.TestCase):
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
         ax = clf.plot_ks_statistic(self.X, self.y)
-        self.assertRaises(AttributeError, clf.plot_ks_statistic, self.X, self.y, do_cv=False)
+        self.assertRaises(
+            AttributeError, clf.plot_ks_statistic, self.X, self.y, do_cv=False
+        )
 
     def test_ax(self):
         np.random.seed(0)
@@ -463,10 +469,14 @@ class TestPlotPrecisionRecall(unittest.TestCase):
         np.random.seed(0)
         clf = LogisticRegression()
         skplt._factory_api.classifier_factory(clf)
-        self.assertRaises(ValueError, clf.plot_precision_recall_curve, self.X, self.y, curves="zzz")
+        self.assertRaises(
+            ValueError, clf.plot_precision_recall_curve, self.X, self.y, curves="zzz"
+        )
 
     def test_array_like(self):
-        ax = skplt.api.plotters.plot_precision_recall_curve([0, 1], [[0.8, 0.2], [0.2, 0.8]])
+        ax = skplt.api.plotters.plot_precision_recall_curve(
+            [0, 1], [[0.8, 0.2], [0.2, 0.8]]
+        )
 
 
 class TestFeatureImportances(unittest.TestCase):

@@ -88,10 +88,20 @@ def infer_next_release_versions(app: Sphinx):
 
         # Try to find the stable and prev_version entries
         prev_entry = next(
-            (entry for entry in versions_json if "prev" in entry.get("name", "").lower()), None
+            (
+                entry
+                for entry in versions_json
+                if "prev" in entry.get("name", "").lower()
+            ),
+            None,
         )
         stable_entry = next(
-            (entry for entry in versions_json if "stable" in entry.get("name", "").lower()), None
+            (
+                entry
+                for entry in versions_json
+                if "stable" in entry.get("name", "").lower()
+            ),
+            None,
         )
 
         if stable_entry and prev_entry:
@@ -112,14 +122,18 @@ def infer_next_release_versions(app: Sphinx):
             # Update the short version information
             inferred["version_short"]["rc"] = next_major_minor
             inferred["version_short"]["final"] = next_major_minor
-            inferred["version_short"]["bf"] = f"{stable_version.major}.{stable_version.minor}"
+            inferred["version_short"][
+                "bf"
+            ] = f"{stable_version.major}.{stable_version.minor}"
         else:
             logger.warning(
                 "The versions JSON list is missing expected entries; skipping version inference"
             )
 
     except Exception as e:
-        logger.warning(f"Failed to infer next release versions: {type(e).__name__}: {e}")
+        logger.warning(
+            f"Failed to infer next release versions: {type(e).__name__}: {e}"
+        )
 
     finally:
         # Register inferred context value for access in templates
@@ -145,7 +159,9 @@ def preprocess_templates(app: Sphinx):
     # Step 1: Create a Jinja environment instance
     jinja_env = jinja2.Environment(extensions=["jinja2.ext.i18n"])
     # Step 2: Register constants and functions globally
-    jinja_env.globals["imp0rt"] = importlib.import_module  # Make available in all templates
+    jinja_env.globals["imp0rt"] = (
+        importlib.import_module
+    )  # Make available in all templates
 
     # Get the source directory of the Sphinx documentation project
     srcdir = Path(app.srcdir)
@@ -160,7 +176,9 @@ def preprocess_templates(app: Sphinx):
             # Load the .rst.template file and render it using Jinja2
             with template_path.open("r", encoding="utf-8") as f:
                 # t = jinja2.Template(f.read())  # Use jinja2.Template to create the template
-                t = jinja_env.from_string(f.read())  # Use "from_string" to create the template
+                t = jinja_env.from_string(
+                    f.read()
+                )  # Use "from_string" to create the template
 
             # Render the template with kwargs variables and write to the corresponding .rst file
             with target_path.open("w", encoding="utf-8") as f:
@@ -202,8 +220,12 @@ def setup(app: Sphinx):
     try:
         # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_config_value
         # Ensure that 'release_versions_rst_templates' has a default configuration value if it's not set in conf.py
-        app.add_config_value("release_versions_rst_templates", DEFAULT_VERSION_URL_TEMPLATES, "env")
-        logger.info("Added default/defined 'release_versions_rst_templates' configuration value.")
+        app.add_config_value(
+            "release_versions_rst_templates", DEFAULT_VERSION_URL_TEMPLATES, "env"
+        )
+        logger.info(
+            "Added default/defined 'release_versions_rst_templates' configuration value."
+        )
 
         # Connect the `infer_next_release_versions` function to the `builder-inited` event
         app.connect("builder-inited", infer_next_release_versions)
@@ -211,7 +233,9 @@ def setup(app: Sphinx):
 
         # Connect the `preprocess_templates` function to ensure templates are rendered after inference
         app.connect("builder-inited", preprocess_templates)
-        logger.info("Connected 'preprocess_templates' function to 'builder-inited' event")
+        logger.info(
+            "Connected 'preprocess_templates' function to 'builder-inited' event"
+        )
 
     except Exception as e:
         logger.error(f"Failed to set up Sphinx extension: {e}")

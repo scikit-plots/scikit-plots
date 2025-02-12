@@ -63,7 +63,9 @@ class NewtonArray(Benchmark):
                 ]
             elif meth == "halley":
                 self.fvec = lambda f, x0, args, fprime, fprime2: [
-                    newton(f, x, args=(a0, a1) + args[2:], fprime=fprime, fprime2=fprime2)
+                    newton(
+                        f, x, args=(a0, a1) + args[2:], fprime=fprime, fprime2=fprime2
+                    )
                     for (x, a0, a1) in zip(x0, args[0], args[1])
                 ]
             else:
@@ -71,18 +73,16 @@ class NewtonArray(Benchmark):
                     newton(f, x, args=(a0, a1) + args[2:])
                     for (x, a0, a1) in zip(x0, args[0], args[1])
                 ]
+        elif meth == "newton":
+            self.fvec = lambda f, x0, args, fprime, fprime2: newton(
+                f, x0, args=args, fprime=fprime
+            )
+        elif meth == "halley":
+            self.fvec = newton
         else:
-            if meth == "newton":
-                self.fvec = lambda f, x0, args, fprime, fprime2: newton(
-                    f, x0, args=args, fprime=fprime
-                )
-            elif meth == "halley":
-                self.fvec = newton
-            else:
-                self.fvec = lambda f, x0, args, fprime, fprime2: newton(f, x0, args=args)
+            self.fvec = lambda f, x0, args, fprime, fprime2: newton(f, x0, args=args)
 
     def time_array_newton(self, vec, meth):
-
         def f(x, *a):
             b = a[0] + x * a[3]
             return a[1] - a[2] * (np.exp(b / a[5]) - 1.0) - b / a[4] - x

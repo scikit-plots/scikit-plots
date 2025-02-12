@@ -681,7 +681,9 @@ class Shekel05(Benchmark):
 
         self._bounds = list(zip([0.0] * self.N, [10.0] * self.N))
 
-        self.global_optimum = [[4.00003715092, 4.00013327435, 4.00003714871, 4.0001332742]]
+        self.global_optimum = [
+            [4.00003715092, 4.00013327435, 4.00003714871, 4.0001332742]
+        ]
         self.fglob = -10.1531996791
         self.A = asarray(
             [
@@ -753,7 +755,9 @@ class Shekel07(Benchmark):
 
         self._bounds = list(zip([0.0] * self.N, [10.0] * self.N))
 
-        self.global_optimum = [[4.00057291078, 4.0006893679, 3.99948971076, 3.99960615785]]
+        self.global_optimum = [
+            [4.00057291078, 4.0006893679, 3.99948971076, 3.99960615785]
+        ]
         self.fglob = -10.4029405668
         self.A = asarray(
             [
@@ -827,7 +831,12 @@ class Shekel10(Benchmark):
         self._bounds = list(zip([0.0] * self.N, [10.0] * self.N))
 
         self.global_optimum = [
-            [4.0007465377266271, 4.0005929234621407, 3.9996633941680968, 3.9995098017834123]
+            [
+                4.0007465377266271,
+                4.0005929234621407,
+                3.9996633941680968,
+                3.9995098017834123,
+            ]
         ]
         self.fglob = -10.536409816692023
         self.A = asarray(

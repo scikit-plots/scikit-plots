@@ -101,7 +101,9 @@ _version_raw = sp.__version__
 _version_parsed = parse(_version_raw)
 _version_release = _version_parsed.release
 if _version_release is None:
-    raise ValueError("Ill-formed version: {!r}. Version should follow PEP440".format(_version_raw))
+    raise ValueError(
+        f"Ill-formed version: {_version_raw!r}. Version should follow PEP440"
+    )
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
@@ -115,7 +117,7 @@ version = ".".join(_version_parsed.base_version.split(".")[:2])
 is_postrelease = _version_parsed.is_postrelease
 release = _version_parsed.base_version if is_postrelease else _version_raw
 # Release mode enables optimizations and other related options.
-# is_release_build = tags.has('release')  # noqa
+# is_release_build = tags.has('release')
 
 # debug that building expected version
 logger.info("scikit-plots raw    : %s " % _version_raw)
@@ -131,7 +133,7 @@ if is_devrelease:
     gh_branch = "main"
 else:
     major, minor = _version_parsed.release[:2]
-    gh_branch = "maintenance/{}.{}.X".format(major, minor)
+    gh_branch = f"maintenance/{major}.{minor}.X"
 
 ##########################################################################
 ## General configuration
@@ -280,7 +282,7 @@ def _check_dependencies():
         except Exception as e:
             raise ImportError(
                 "The following dependencies are missing to build the "
-                f"documentation: { module_name }"
+                f"documentation: {module_name}"
             ) from e
 
     # debug sphinx-pydata-theme and mpl-theme-version
@@ -292,7 +294,8 @@ def _check_dependencies():
 
     if shutil.which("dot") is None:
         raise OSError(
-            "No binary named dot - graphviz must be installed to build the " "documentation"
+            "No binary named dot - graphviz must be installed to build the "
+            "documentation"
         )
     # if shutil.which('latex') is None:
     #     raise OSError(
@@ -318,7 +321,7 @@ _check_dependencies()
 # import subprocess import
 
 # -- Run JS Build if needed ------------------------------------------
-# Note: this will be a one off run on RTD but may be run mulitple times locally
+# Note: this will be a one off run on RTD but may be run multiple times locally
 # during development and testing
 # if os.environ.get('READ_THE_DOCS'):
 #     ## setup the build environment on RTD
@@ -361,7 +364,9 @@ today = datetime.datetime.today().strftime(today_fmt)
 # Use a browser-like user agent to avoid some "403 Client Error: Forbidden for
 # url" errors. This is taken from the variable navigator.userAgent inside a
 # browser console.
-user_agent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:100.0) Gecko/20100101 Firefox/100.0"
+user_agent = (
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:100.0) Gecko/20100101 Firefox/100.0"
+)
 
 ##########################################################################
 ## Options for internationalisation
@@ -977,7 +982,7 @@ tags_badge_colors = {
 # to external api docs.
 intersphinx_mapping = {
     # Build
-    "python": ("https://docs.python.org/{.major}".format(sys.version_info), None),
+    "python": (f"https://docs.python.org/{sys.version_info.major}", None),
     "pip": ("https://pip.pypa.io/en/stable/", None),
     "meson-python": ("https://mesonbuild.com/meson-python/", None),
     "setuptools": ("https://setuptools.pypa.io/en/stable", None),
@@ -1178,7 +1183,9 @@ plot_rcparams = {
 }
 # Code that should be executed before each plot.
 # Default also includes a numpy and matplotlib import
-plot_pre_code = "import numpy as np; np.random.seed(0)\n" "import matplotlib.pyplot as plt\n"
+plot_pre_code = (
+    "import numpy as np; np.random.seed(0)\nimport matplotlib.pyplot as plt\n"
+)
 
 ##########################################################################
 ### Extension: matplotlib GitHub extension
@@ -1193,7 +1200,8 @@ github_project_url = "https://github.com/scikit-plots/scikit-plots"
 # Compile scss files into css files using sphinxcontrib-sass
 sass_src_dir, sass_out_dir = "scss", "css/styles"
 sass_targets = {
-    f"{file.stem}.scss": f"{file.stem}.css" for file in Path(sass_src_dir).glob("*.scss")
+    f"{file.stem}.scss": f"{file.stem}.css"
+    for file in Path(sass_src_dir).glob("*.scss")
 }
 
 # --------------------------------------------------------------------
@@ -1288,7 +1296,9 @@ sphinx_gallery_conf = {
     # Linking to external packages for reference URLs
     "reference_url": {
         "scikitplot": None,  # Will link to local module documentation
-        "numpy": "https://numpy.org/doc/stable/",  # Example linking to external package docs
+        "numpy": (
+            "https://numpy.org/doc/stable/"
+        ),  # Example linking to external package docs
         "matplotlib": "https://matplotlib.org/stable/",
     },
     "show_memory": False,  # Set to True if memory_profiler is available and needed
@@ -1317,11 +1327,17 @@ sphinx_gallery_conf = {
     "inspect_global_variables": False,  # Avoid generating too many cross-links
     "remove_config_comments": True,
     "recommender": {"enable": True, "n_examples": 4, "min_df": 12},
-    "reset_modules": ("matplotlib", "seaborn", "_sphinx_ext.skplt_ext.sg_doc_build.reset_others"),
+    "reset_modules": (
+        "matplotlib",
+        "seaborn",
+        "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
+    ),
     # Optionally sort the examples within subsections (uncomment if needed)
     # Optional sorting: sorts subsections based on titles
     # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
-    "subsection_order": FileNameSortKey(examples_dirs),  # Use an instance of FileNameSortKey
+    "subsection_order": FileNameSortKey(
+        examples_dirs
+    ),  # Use an instance of FileNameSortKey
     # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
     "within_subsection_order": "FileNameSortKey",
 }
@@ -1348,7 +1364,7 @@ if with_jupyterlite:
 
 for examples_dir, gallery_dir in zip(examples_dirs, gallery_dirs):
     html_theme_options["secondary_sidebar_items"][f"{gallery_dir}/index"] = []
-    for sub_dir in (Path(".") / examples_dir).iterdir():
+    for sub_dir in (Path(examples_dir)).iterdir():
         if sub_dir.is_dir():
             html_theme_options["secondary_sidebar_items"][
                 f"{gallery_dir}/{sub_dir.name}/index"
@@ -1376,7 +1392,9 @@ issues_github_path = "scikit-plots/scikit-plots"
 ## Extension: extlinks
 ##########################################################################
 
-extlinks = {"issue": ("https://github.com/scikit-plots/scikit-plots/issues/%s", "issue %s")}
+extlinks = {
+    "issue": ("https://github.com/scikit-plots/scikit-plots/issues/%s", "issue %s")
+}
 
 ##########################################################################
 ## Extension: _sphinx_ext skplt_ext infer_next_release_versions
@@ -1410,7 +1428,9 @@ release_versions_rst_templates = [
 # If development build, link to local page in the top navbar; otherwise link to the
 # development version; see https://github.com/scikit-learn/scikit-learn/pull/22550
 development_link = (
-    "devel/index" if is_devrelease else "https://scikit-plots.github.io/dev/devel/index.html"
+    "devel/index"
+    if is_devrelease
+    else "https://scikit-plots.github.io/dev/devel/index.html"
 )
 
 url_rst_templates = [
@@ -1482,10 +1502,10 @@ jinja_env.globals["imp0rt"] = importlib.import_module  # Make available in all t
 # Load your template from a file
 for rst_template_name, rst_target_name, kwargs in rst_templates:
     # Read the corresponding template file into jinja2
-    with (Path(".") / f"{rst_template_name}.rst.template").open("r", encoding="utf-8") as f:
+    with (Path(f"{rst_template_name}.rst.template")).open("r", encoding="utf-8") as f:
         # t = jinja2.Template(f.read())
         t = jinja_env.from_string(f.read())  # Use from_string to create the template
 
     # Render the template with kwargs variables and write to the target
-    with (Path(".") / f"{rst_target_name}.rst").open("w", encoding="utf-8") as f:
+    with (Path(f"{rst_target_name}.rst")).open("w", encoding="utf-8") as f:
         f.write(t.render(**kwargs))

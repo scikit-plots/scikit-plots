@@ -42,9 +42,7 @@ from .layer_utils import *
 from .utils import *
 
 ## Define __all__ to specify the public interface of the module
-__all__ = [
-    "layered_view",
-]
+__all__ = ["layered_view"]
 
 
 def layered_view(
@@ -154,6 +152,7 @@ def layered_view(
     -------
     image
         The generated architecture visualization image.
+
     """
     index_2d = index_2D = [] if index_2d is None else index_2d
     # Iterate over the model to compute bounds and generate boxes
@@ -186,7 +185,6 @@ def layered_view(
         color_map = dict()
 
     for index, layer in enumerate(model.layers):
-
         # Ignore layers that the use has opted out to
         if type(layer) in type_ignore or index in index_ignore:
             continue
@@ -202,9 +200,7 @@ def layered_view(
 
         layer_type = type(layer)
 
-        if legend and show_dimension:
-            layer_types.append(layer_type)
-        elif layer_type not in layer_types:
+        if (legend and show_dimension) or layer_type not in layer_types:
             layer_types.append(layer_type)
 
         x = min_xy
@@ -247,9 +243,11 @@ def layered_view(
 
         if legend and show_dimension:
             dimension_string = str(shape)
-            dimension_string = dimension_string[1 : len(dimension_string) - 1].split(", ")
+            dimension_string = dimension_string[1 : len(dimension_string) - 1].split(
+                ", "
+            )
             dimension = []
-            for i in range(0, len(dimension_string)):
+            for i in range(len(dimension_string)):
                 if dimension_string[i].isnumeric():
                     dimension.append(dimension_string[i])
             dimension_list.append(dimension)
@@ -271,7 +269,9 @@ def layered_view(
         box.x2 = box.x1 + z
         box.y2 = box.y1 + y
 
-        box.fill = color_map.get(layer_type, {}).get("fill", color_wheel.get_color(layer_type))
+        box.fill = color_map.get(layer_type, {}).get(
+            "fill", color_wheel.get_color(layer_type)
+        )
         box.outline = color_map.get(layer_type, {}).get("outline", "black")
         color_map[layer_type] = {"fill": box.fill, "outline": box.outline}
 
@@ -281,11 +281,9 @@ def layered_view(
 
         # Update image bounds
         hh = box.y2 - (box.y1 - box.de)
-        if hh > img_height:
-            img_height = hh
+        img_height = max(img_height, hh)
 
-        if box.x2 + box.de > max_right:
-            max_right = box.x2 + box.de
+        max_right = max(max_right, box.x2 + box.de)
 
         current_z += z + spacing
 
@@ -329,15 +327,17 @@ def layered_view(
             text_height += (len(text.split("\n")) - 1) * text_vspacing
             box_height = abs(boxes[i].y2 - boxes[i].y1) - boxes[i].de
             box_with_text_height = box_height + text_height
-            if box_with_text_height > max_box_with_text_height:
-                max_box_with_text_height = box_with_text_height
-            if box_height > max_box_height:
-                max_box_height = box_height
+            max_box_with_text_height = max(
+                max_box_with_text_height, box_with_text_height
+            )
+            max_box_height = max(max_box_height, box_height)
 
     if is_any_text_above:
         img_height += abs(max_box_height - max_box_with_text_height) * 2
 
-    img = Image.new("RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill)
+    img = Image.new(
+        "RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill
+    )
 
     # x, y correction (centering)
     for i, node in enumerate(boxes):
@@ -350,10 +350,14 @@ def layered_view(
 
     if is_any_text_above:
         img_height -= abs(max_box_height - max_box_with_text_height)
-        img = Image.new("RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill)
+        img = Image.new(
+            "RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill
+        )
     if is_any_text_below:
         img_height += abs(max_box_height - max_box_with_text_height)
-        img = Image.new("RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill)
+        img = Image.new(
+            "RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill
+        )
 
     draw = aggdraw.Draw(img)
 
@@ -537,7 +541,10 @@ def layered_view(
                 # getbbox returns 4 dimensions in total, where the first two are always zero,
                 # So we fetch the last two dimensions to match the behavior of getsize
                 text_size = font.getbbox(label)[2:]
-            label_patch_size = (2 * cube_size + de + spacing + text_size[0], cube_size + de)
+            label_patch_size = (
+                2 * cube_size + de + spacing + text_size[0],
+                cube_size + de,
+            )
 
             # this only works if cube_size is bigger than text height
 

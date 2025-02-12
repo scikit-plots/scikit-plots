@@ -1,6 +1,6 @@
 """
 All minimum dependencies for scikit-learn.
-"""  # noqa: CPY001
+"""
 
 # Authors: The scikit-learn developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -64,7 +64,7 @@ dependent_packages = {
 tag_to_packages: dict = defaultdict(list)
 for package, (min_version, extras) in dependent_packages.items():
     for extra in extras.split(", "):
-        tag_to_packages[extra].append("{}>={}".format(package, min_version))
+        tag_to_packages[extra].append(f"{package}>={min_version}")
 
 
 # Used by CI to get the min dependencies

@@ -45,16 +45,19 @@ def test_ripley_K_implementation(points, x_min, x_max):
         +-+---------+---------+----------+---------+-+
          -3       -2.5       -2        -1.5       -1
     """
-
     area = 100
     r = np.linspace(0, 2.5, 5)
-    Kest = RipleysKEstimator(area=area, x_min=x_min, y_min=x_min, x_max=x_max, y_max=x_max)
+    Kest = RipleysKEstimator(
+        area=area, x_min=x_min, y_min=x_min, x_max=x_max, y_max=x_max
+    )
 
     ANS_NONE = np.array([0, 0, 0, 66.667, 66.667])
     assert_allclose(ANS_NONE, Kest(data=points, radii=r, mode="none"), atol=1e-3)
 
     ANS_TRANS = np.array([0, 0, 0, 82.304, 82.304])
-    assert_allclose(ANS_TRANS, Kest(data=points, radii=r, mode="translation"), atol=1e-3)
+    assert_allclose(
+        ANS_TRANS, Kest(data=points, radii=r, mode="translation"), atol=1e-3
+    )
 
 
 with NumpyRNGContext(123):

@@ -97,15 +97,16 @@ def get_font():
     try:
         if system_platform == "windows":
             return ImageFont.truetype("arial.ttf", 32)
-        elif system_platform == "darwin":  # macOS
+        if system_platform == "darwin":  # macOS
             return ImageFont.truetype(
                 "/Library/Fonts/Arial.ttf", 32
             )  # or "/System/Library/Fonts/Helvetica.ttc"
-        elif system_platform == "linux":
+        if system_platform == "linux":
             # Try a more common font path
-            return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
-        else:
-            raise ValueError("Unsupported platform")
+            return ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32
+            )
+        raise ValueError("Unsupported platform")
     except OSError:
         # Fallback font if the specified font is not found
         print("Font not found, using default font.")
@@ -116,7 +117,9 @@ def get_font():
 font = get_font()
 
 img_vgg16 = visualkeras.layered_view(
-    model, to_file="../result_images/vgg16.png", type_ignore=[visualkeras.SpacingDummyLayer]
+    model,
+    to_file="../result_images/vgg16.png",
+    type_ignore=[visualkeras.SpacingDummyLayer],
 )
 img_vgg16_legend = visualkeras.layered_view(
     model,
@@ -126,7 +129,10 @@ img_vgg16_legend = visualkeras.layered_view(
     font=font,
 )
 img_vgg16_spacing_layers = visualkeras.layered_view(
-    model, to_file="../result_images/vgg16_spacing_layers.png", type_ignore=[], spacing=0
+    model,
+    to_file="../result_images/vgg16_spacing_layers.png",
+    type_ignore=[],
+    spacing=0,
 )
 img_vgg16_type_ignore = visualkeras.layered_view(
     model,

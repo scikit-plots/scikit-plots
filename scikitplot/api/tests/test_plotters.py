@@ -9,7 +9,6 @@ import scikitplot as sp
 
 
 class TestPlotPCAComponentVariance(unittest.TestCase):
-
     def setUp(self):
         np.random.seed(0)
         self.X, self.y = load_data(return_X_y=True)
@@ -27,10 +26,18 @@ class TestPlotPCAComponentVariance(unittest.TestCase):
         )
 
     def test_target_explained_variance(self):
-        ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=0)
-        ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=0.5)
-        ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=1)
-        ax = sp.api.plotters.plot_pca_component_variance(self.clf, target_explained_variance=1.5)
+        ax = sp.api.plotters.plot_pca_component_variance(
+            self.clf, target_explained_variance=0
+        )
+        ax = sp.api.plotters.plot_pca_component_variance(
+            self.clf, target_explained_variance=0.5
+        )
+        ax = sp.api.plotters.plot_pca_component_variance(
+            self.clf, target_explained_variance=1
+        )
+        ax = sp.api.plotters.plot_pca_component_variance(
+            self.clf, target_explained_variance=1.5
+        )
 
     def test_ax(self):
         fig, ax = plt.subplots(1, 1)
@@ -41,7 +48,6 @@ class TestPlotPCAComponentVariance(unittest.TestCase):
 
 
 class TestPlotPCA2DProjection(unittest.TestCase):
-
     def setUp(self):
         np.random.seed(0)
         self.X, self.y = load_data(return_X_y=True)
@@ -62,18 +68,23 @@ class TestPlotPCA2DProjection(unittest.TestCase):
 
     def test_cmap(self):
         fig, ax = plt.subplots(1, 1)
-        ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, cmap="Spectral")
-        ax = sp.api.plotters.plot_pca_2d_projection(self.clf, self.X, self.y, cmap=plt.cm.Spectral)
+        ax = sp.api.plotters.plot_pca_2d_projection(
+            self.clf, self.X, self.y, cmap="Spectral"
+        )
+        ax = sp.api.plotters.plot_pca_2d_projection(
+            self.clf, self.X, self.y, cmap=plt.cm.Spectral
+        )
 
 
 class TestValidateLabels(unittest.TestCase):
-
     def test_valid_equal(self):
         known_labels = ["A", "B", "C"]
         passed_labels = ["A", "B", "C"]
         arg_name = "true_labels"
 
-        actual = sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api._utils._helpers.validate_labels(
+            known_labels, passed_labels, arg_name
+        )
         self.assertEqual(actual, None)
 
     def test_valid_subset(self):
@@ -81,7 +92,9 @@ class TestValidateLabels(unittest.TestCase):
         passed_labels = ["A", "B"]
         arg_name = "true_labels"
 
-        actual = sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api._utils._helpers.validate_labels(
+            known_labels, passed_labels, arg_name
+        )
         self.assertEqual(actual, None)
 
     def test_invalid_one_duplicate(self):
@@ -90,7 +103,9 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(
+                known_labels, passed_labels, arg_name
+            )
 
         msg = "The following duplicate labels were passed into true_labels: B"
         self.assertEqual(msg, str(context.exception))
@@ -101,7 +116,9 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(
+                known_labels, passed_labels, arg_name
+            )
 
         msg = "The following duplicate labels were passed into true_labels: A, B"
         self.assertEqual(msg, str(context.exception))
@@ -112,7 +129,9 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(
+                known_labels, passed_labels, arg_name
+            )
 
         msg = "The following labels were passed into true_labels, but were not found in labels: D"
         self.assertEqual(msg, str(context.exception))
@@ -123,11 +142,11 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(
+                known_labels, passed_labels, arg_name
+            )
 
-        msg = (
-            "The following labels were passed into true_labels, but were not found in labels: E, D"
-        )
+        msg = "The following labels were passed into true_labels, but were not found in labels: E, D"
         self.assertEqual(msg, str(context.exception))
 
     def test_numerical_labels(self):
@@ -135,7 +154,9 @@ class TestValidateLabels(unittest.TestCase):
         passed_labels = [0, 2]
         arg_name = "true_labels"
 
-        actual = sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+        actual = sp.api._utils._helpers.validate_labels(
+            known_labels, passed_labels, arg_name
+        )
         self.assertEqual(actual, None)
 
     def test_invalid_duplicate_numerical_labels(self):
@@ -144,7 +165,9 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(
+                known_labels, passed_labels, arg_name
+            )
 
         msg = "The following duplicate labels were passed into true_labels: 2"
         self.assertEqual(msg, str(context.exception))
@@ -155,7 +178,9 @@ class TestValidateLabels(unittest.TestCase):
         arg_name = "true_labels"
 
         with self.assertRaises(ValueError) as context:
-            sp.api._utils._helpers.validate_labels(known_labels, passed_labels, arg_name)
+            sp.api._utils._helpers.validate_labels(
+                known_labels, passed_labels, arg_name
+            )
 
         msg = "The following labels were passed into true_labels, but were not found in labels: 3"
         self.assertEqual(msg, str(context.exception))

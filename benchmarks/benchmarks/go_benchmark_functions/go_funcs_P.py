@@ -308,7 +308,7 @@ class PenHolder(Benchmark):
 
         a = abs(1.0 - (sqrt(x[0] ** 2 + x[1] ** 2) / pi))
         b = cos(x[0]) * cos(x[1]) * exp(a)
-        return -exp(-abs(b) ** -1)
+        return -exp(-(abs(b) ** -1))
 
 
 class PermFunction01(Benchmark):
@@ -645,7 +645,7 @@ class Price02(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return 1.0 + sum(sin(x) ** 2) - 0.1 * exp(-x[0] ** 2.0 - x[1] ** 2.0)
+        return 1.0 + sum(sin(x) ** 2) - 0.1 * exp(-(x[0] ** 2.0) - x[1] ** 2.0)
 
 
 class Price03(Benchmark):
@@ -683,7 +683,9 @@ class Price03(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return 100 * (x[1] - x[0] ** 2) ** 2 + (6.4 * (x[1] - 0.5) ** 2 - x[0] - 0.6) ** 2
+        return (
+            100 * (x[1] - x[0] ** 2) ** 2 + (6.4 * (x[1] - 0.5) ** 2 - x[0] - 0.6) ** 2
+        )
 
 
 class Price04(Benchmark):

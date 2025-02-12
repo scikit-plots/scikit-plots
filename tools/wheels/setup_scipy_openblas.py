@@ -14,6 +14,7 @@ def log(message: str) -> None:
     ----------
     message : str
         The message to be logged.
+
     """
     print(f"[INFO] {message}")
 
@@ -26,6 +27,7 @@ def error(message: str) -> None:
     ----------
     message : str
         The error message to be logged.
+
     """
     raise RuntimeError(f"[ERROR] {message}")
 
@@ -38,6 +40,7 @@ def success(message: str) -> None:
     ----------
     message : str
         The success message to be logged.
+
     """
     print(f"[SUCCESS] {message}")
 
@@ -61,9 +64,12 @@ def run_command(
     -------
     Optional[str]
         The command output if `capture_output` is True, otherwise None.
+
     """
     try:
-        result = subprocess.run(command, check=check, text=True, capture_output=capture_output)
+        result = subprocess.run(
+            command, check=check, text=True, capture_output=capture_output
+        )
         if capture_output:
             return result.stdout.strip()
     except subprocess.CalledProcessError as e:
@@ -79,6 +85,7 @@ def configure_openblas_pkg_config(project_dir: str) -> None:
     ----------
     project_dir : str
         Path to the project directory where OpenBLAS configuration will be set up.
+
     """
     pkg_config_path = Path(project_dir) / ".openblas"
     openblas_lib_dir = pkg_config_path / "lib"
@@ -96,14 +103,14 @@ def configure_openblas_pkg_config(project_dir: str) -> None:
             os.environ["DYLD_LIBRARY_PATH"] = str(openblas_lib_dir)
         else:
             os.environ["LD_LIBRARY_PATH"] = (
-                f"{openblas_lib_dir}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+                f'{openblas_lib_dir}:{os.environ.get("LD_LIBRARY_PATH", "")}'
             )
     elif os.name == "nt":
-        os.environ["PATH"] = f"{openblas_lib_dir};{os.environ['PATH']}"
+        os.environ["PATH"] = f'{openblas_lib_dir};{os.environ["PATH"]}'
     else:
         error("Unsupported operating system.")
 
-    success(f"PKG_CONFIG_PATH set to {os.environ['PKG_CONFIG_PATH']}")
+    success(f'PKG_CONFIG_PATH set to {os.environ["PKG_CONFIG_PATH"]}')
 
 
 def install_requirements(requirements_file: str) -> None:
@@ -114,9 +121,12 @@ def install_requirements(requirements_file: str) -> None:
     ----------
     requirements_file : str
         Path to the requirements.txt file.
+
     """
     log(f"Installing requirements from {requirements_file}...")
-    run_command(["python", "-m", "pip", "install", "-U", "pip", "-r", requirements_file])
+    run_command(
+        ["python", "-m", "pip", "install", "-U", "pip", "-r", requirements_file]
+    )
 
 
 def generate_openblas_pkgconfig(openblas_module: str, pkg_config_path: str) -> None:
@@ -129,6 +139,7 @@ def generate_openblas_pkgconfig(openblas_module: str, pkg_config_path: str) -> N
         The Python module to use for generating the pkg-config file.
     pkg_config_path : str
         Path to the directory where the pkg-config file will be generated.
+
     """
     log(f"Generating OpenBLAS pkg-config file using {openblas_module}...")
     try:
@@ -158,6 +169,7 @@ def copy_shared_libs(openblas_module: str, pkg_config_path: str) -> None:
         The Python module associated with OpenBLAS.
     pkg_config_path : str
         Path to the directory where shared libraries will be copied.
+
     """
     log(f"Copying shared libraries for {openblas_module}...")
     try:
@@ -182,6 +194,7 @@ def setup_openblas(project_dir: str) -> None:
     ----------
     project_dir : str
         Path to the project directory where OpenBLAS configuration will be set up.
+
     """
     configure_openblas_pkg_config(project_dir)
 
@@ -221,7 +234,9 @@ def main():
 
     RUN: python tools/wheels/setup_scipy_openblas.py --project_dir ./
     """
-    parser = argparse.ArgumentParser(description="Setup OpenBLAS for SciPy on any platform.")
+    parser = argparse.ArgumentParser(
+        description="Setup OpenBLAS for SciPy on any platform."
+    )
     parser.add_argument(
         "--project_dir", type=str, required=True, help="Path to the project directory"
     )

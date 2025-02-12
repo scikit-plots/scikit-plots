@@ -101,10 +101,10 @@ def laplacian(
     The constructed Laplacian doubles the memory use if ``copy=True`` and
     ``form="array"`` which is the default.
     Choosing ``copy=False`` has no effect unless ``form="array"``
-    or the matrix is sparse in the ``coo`` format, or dense array, except
+    or the matrix is sparse in the ``coup`` format, or dense array, except
     for the integer input with ``normed=True`` that forces the float output.
 
-    Sparse input is reformatted into ``coo`` if ``form="array"``,
+    Sparse input is reformatted into ``coup`` if ``form="array"``,
     which is the default.
 
     If the input adjacency matrix is not symmetric, the Laplacian is
@@ -206,7 +206,7 @@ def laplacian(
     >>> scaling = np.sqrt(d)
     >>> scaling
     array([1.41421356, 1.41421356, 1.41421356])
-    >>> (1/scaling)*L*(1/scaling)
+    >>> (1 / scaling) * L * (1 / scaling)
     array([[ 1. , -0.5, -0.5],
            [-0.5,  1. , -0.5],
            [-0.5, -0.5,  1. ]])
@@ -259,7 +259,7 @@ def laplacian(
 
     but can alternatively be generated matrix-free as a LinearOperator:
 
-    >>> L = csgraph.laplacian(G, form="lo")
+    >>> L = csgraph.laplacian(G, form='lo')
     >>> L
     <3x3 _CustomLinearOperator with dtype=float32>
     >>> L(np.eye(3))
@@ -269,7 +269,7 @@ def laplacian(
 
     or as a lambda-function:
 
-    >>> L = csgraph.laplacian(G, form="function")
+    >>> L = csgraph.laplacian(G, form='function')
     >>> L
     <function _laplace.<locals>.<lambda> at 0x0000012AE6F5A598>
     >>> L(np.eye(3))
@@ -290,7 +290,7 @@ def laplacian(
     using a sparse adjacency matrix ``G``:
 
     >>> N = 35
-    >>> G = diags(np.ones(N-1), 1, format="csr")
+    >>> G = diags(np.ones(N - 1), 1, format='csr')
 
     Fix a random seed ``rng`` and add a random sparse noise to the graph ``G``:
 
@@ -319,12 +319,12 @@ def laplacian(
     Since the sign in an eigenvector is not deterministic and can flip,
     we fix the sign of the first component to be always +1 in (4).
 
-    >>> for cut in ["max", "min"]:
+    >>> for cut in ['max', 'min']:
     ...     G = -G  # 1.
-    ...     L = csgraph.laplacian(G, symmetrized=True, form="lo")  # 2.
+    ...     L = csgraph.laplacian(G, symmetrized=True, form='lo')  # 2.
     ...     _, eves = lobpcg(L, X, Y=Y, largest=False, tol=1e-3)  # 3.
     ...     eves *= np.sign(eves[0, 0])  # 4.
-    ...     print(cut + "-cut labels:\\n", 1 * (eves[:, 0]>0))  # 5.
+    ...     print(cut + '-cut labels:\\n', 1 * (eves[:, 0] > 0))  # 5.
     max-cut labels:
     [1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1]
     min-cut labels:
@@ -336,19 +336,23 @@ def laplacian(
     while the balanced min-cut partitions the graph
     in the middle by deleting a single edge.
     Both determined partitions are optimal.
+
     """
     if csgraph.ndim != 2 or csgraph.shape[0] != csgraph.shape[1]:
         raise ValueError("csgraph must be a square matrix or array")
 
     if normed and (
-        np.issubdtype(csgraph.dtype, np.signedinteger) or np.issubdtype(csgraph.dtype, np.uint)
+        np.issubdtype(csgraph.dtype, np.signedinteger)
+        or np.issubdtype(csgraph.dtype, np.uint)
     ):
         csgraph = csgraph.astype(np.float64)
 
     if form == "array":
         create_lap = _laplacian_sparse if issparse(csgraph) else _laplacian_dense
     else:
-        create_lap = _laplacian_sparse_flo if issparse(csgraph) else _laplacian_dense_flo
+        create_lap = (
+            _laplacian_sparse_flo if issparse(csgraph) else _laplacian_dense_flo
+        )
 
     degree_axis = 1 if use_out_degree else 0
 
@@ -420,23 +424,20 @@ def _laplacian_sparse_flo(graph, normed, axis, copy, form, dtype, symmetrized):
             md = _laplace_normed(graph, graph_sum, 1.0 / w)
         if form == "function":
             return md, w.astype(dtype, copy=False)
-        elif form == "lo":
+        if form == "lo":
             m = _linearoperator(md, shape=graph.shape, dtype=dtype)
             return m, w.astype(dtype, copy=False)
-        else:
-            raise ValueError(f"Invalid form: {form!r}")
+        raise ValueError(f"Invalid form: {form!r}")
+    if symmetrized:
+        md = _laplace_sym(graph, graph_sum)
     else:
-        if symmetrized:
-            md = _laplace_sym(graph, graph_sum)
-        else:
-            md = _laplace(graph, graph_sum)
-        if form == "function":
-            return md, diag.astype(dtype, copy=False)
-        elif form == "lo":
-            m = _linearoperator(md, shape=graph.shape, dtype=dtype)
-            return m, diag.astype(dtype, copy=False)
-        else:
-            raise ValueError(f"Invalid form: {form!r}")
+        md = _laplace(graph, graph_sum)
+    if form == "function":
+        return md, diag.astype(dtype, copy=False)
+    if form == "lo":
+        m = _linearoperator(md, shape=graph.shape, dtype=dtype)
+        return m, diag.astype(dtype, copy=False)
+    raise ValueError(f"Invalid form: {form!r}")
 
 
 def _laplacian_sparse(graph, normed, axis, copy, form, dtype, symmetrized):
@@ -502,23 +503,20 @@ def _laplacian_dense_flo(graph, normed, axis, copy, form, dtype, symmetrized):
             md = _laplace_normed(m, graph_sum, 1.0 / w)
         if form == "function":
             return md, w.astype(dtype, copy=False)
-        elif form == "lo":
+        if form == "lo":
             m = _linearoperator(md, shape=graph.shape, dtype=dtype)
             return m, w.astype(dtype, copy=False)
-        else:
-            raise ValueError(f"Invalid form: {form!r}")
+        raise ValueError(f"Invalid form: {form!r}")
+    if symmetrized:
+        md = _laplace_sym(m, graph_sum)
     else:
-        if symmetrized:
-            md = _laplace_sym(m, graph_sum)
-        else:
-            md = _laplace(m, graph_sum)
-        if form == "function":
-            return md, diag.astype(dtype, copy=False)
-        elif form == "lo":
-            m = _linearoperator(md, shape=graph.shape, dtype=dtype)
-            return m, diag.astype(dtype, copy=False)
-        else:
-            raise ValueError(f"Invalid form: {form!r}")
+        md = _laplace(m, graph_sum)
+    if form == "function":
+        return md, diag.astype(dtype, copy=False)
+    if form == "lo":
+        m = _linearoperator(md, shape=graph.shape, dtype=dtype)
+        return m, diag.astype(dtype, copy=False)
+    raise ValueError(f"Invalid form: {form!r}")
 
 
 def _laplacian_dense(graph, normed, axis, copy, form, dtype, symmetrized):

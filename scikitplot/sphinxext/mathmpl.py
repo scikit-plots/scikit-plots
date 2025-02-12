@@ -105,9 +105,7 @@ math_role.options = {"fontset": fontset_choice, "fontsize": validate_float_or_No
 
 
 class MathDirective(Directive):
-    """
-    The ``.. mathmpl::`` directive, as documented in the module's docstring.
-    """
+    """The ``.. mathmpl::`` directive, as documented in the module's docstring."""
 
     has_content = True
     required_arguments = 0
@@ -120,7 +118,9 @@ class MathDirective(Directive):
         node = latex_math(self.block_text)
         node["latex"] = latex
         node["fontset"] = self.options.get("fontset", "cm")
-        node["fontsize"] = self.options.get("fontsize", setup.app.config.mathmpl_fontsize)
+        node["fontsize"] = self.options.get(
+            "fontsize", setup.app.config.mathmpl_fontsize
+        )
         return [node]
 
 
@@ -128,7 +128,9 @@ class MathDirective(Directive):
 def latex2png(latex, filename, fontset="cm", fontsize=10, dpi=100):
     with mpl.rc_context({"mathtext.fontset": fontset, "font.size": fontsize}):
         try:
-            depth = mathtext.math_to_image(f"${latex}$", filename, dpi=dpi, format="png")
+            depth = mathtext.math_to_image(
+                f"${latex}$", filename, dpi=dpi, format="png"
+            )
         except Exception:
             _api.warn_external(f"Could not render math expression {latex}")
             depth = 0
@@ -141,7 +143,9 @@ def latex2html(node, source):
     latex = node["latex"]
     fontset = node["fontset"]
     fontsize = node["fontsize"]
-    name = "math-{}".format(hashlib.md5(f"{latex}{fontset}{fontsize}".encode()).hexdigest()[-10:])
+    name = "math-{}".format(
+        hashlib.md5(f"{latex}{fontset}{fontsize}".encode()).hexdigest()[-10:]
+    )
 
     destdir = Path(setup.app.builder.outdir, "_images", "mathmpl")
     destdir.mkdir(parents=True, exist_ok=True)
@@ -152,11 +156,19 @@ def latex2html(node, source):
     srcset = []
     for size in setup.app.config.mathmpl_srcset:
         filename = f'{name}-{size.replace(".", "_")}.png'
-        latex2png(latex, destdir / filename, fontset, fontsize=fontsize, dpi=100 * float(size[:-1]))
+        latex2png(
+            latex,
+            destdir / filename,
+            fontset,
+            fontsize=fontsize,
+            dpi=100 * float(size[:-1]),
+        )
         srcset.append(f"{setup.app.builder.imgpath}/mathmpl/{filename} {size}")
     if srcset:
         srcset = (
-            f'srcset="{setup.app.builder.imgpath}/mathmpl/{name}.png, ' + ", ".join(srcset) + '" '
+            f'srcset="{setup.app.builder.imgpath}/mathmpl/{name}.png, '
+            + ", ".join(srcset)
+            + '" '
         )
 
     if inline:
@@ -168,7 +180,10 @@ def latex2html(node, source):
     else:
         style = ""
 
-    return f'<img src="{setup.app.builder.imgpath}/mathmpl/{name}.png"' f" {srcset}{cls}{style}/>"
+    return (
+        f'<img src="{setup.app.builder.imgpath}/mathmpl/{name}.png"'
+        f" {srcset}{cls}{style}/>"
+    )
 
 
 def _config_inited(app, config):

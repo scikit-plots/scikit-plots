@@ -28,18 +28,16 @@ FUNC_ARGS = {
 
 
 class _CythonSpecialMeta(type):
-    """
-    Add time_* benchmarks corresponding to cython_special._bench_*_cy
-    """
+    """Add time_* benchmarks corresponding to cython_special._bench_*_cy"""
 
     def __new__(cls, cls_name, bases, dct):
         params = [(10, 100, 1000), ("python", "numpy", "cython")]
         param_names = ["N", "api"]
 
         def get_time_func(name, args):
-
             @with_attributes(
-                params=[(name,), (args,)] + params, param_names=["name", "argument"] + param_names
+                params=[(name,), (args,)] + params,
+                param_names=["name", "argument"] + param_names,
             )
             def func(self, name, args, N, api):
                 if api == "python":
@@ -52,7 +50,7 @@ class _CythonSpecialMeta(type):
             func.__name__ = "time_" + name
             return func
 
-        for name in FUNC_ARGS.keys():
+        for name in FUNC_ARGS:
             func = get_time_func(name, FUNC_ARGS[name])
             dct[func.__name__] = func
 

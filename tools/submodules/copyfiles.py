@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-"""
-Platform-independent file and folder copier script
-"""
-import os
-import sys
-import shutil
+"""Platform-independent file and folder copier script"""
+
 import argparse
+import os
+import shutil
+import sys
 
 
 def copy_item(src, dest, recursive=False):
@@ -44,7 +43,10 @@ def main():
         description="Copy files or directories to an output directory."
     )
     parser.add_argument(
-        "-r", "--recursive", action="store_true", help="Enable recursive copying for directories"
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="Enable recursive copying for directories",
     )
     parser.add_argument("src", help="Path to the source file or directory")
     parser.add_argument("dest", help="Path to the destination directory")

@@ -14,7 +14,7 @@ from warnings import warn
 
 
 def strip_blank_lines(l):
-    "Remove leading and trailing blank lines from a list of lines"
+    """Remove leading and trailing blank lines from a list of lines"""
     while l and not l[0].strip():
         del l[0]
     while l and not l[-1].strip():
@@ -51,15 +51,13 @@ class Reader:
             out = self[self._l]
             self._l += 1
             return out
-        else:
-            return ""
+        return ""
 
     def seek_next_non_empty_line(self):
         for l in self[self._l :]:
             if l.strip():
                 break
-            else:
-                self._l += 1
+            self._l += 1
 
     def eof(self):
         return self._l >= len(self._str)
@@ -91,8 +89,7 @@ class Reader:
     def peek(self, n=0):
         if self._l + n < len(self._str):
             return self[self._l + n]
-        else:
-            return ""
+        return ""
 
     def is_empty(self):
         return not "".join(self._str).strip()
@@ -110,7 +107,8 @@ Parameter = namedtuple("Parameter", ["name", "type", "desc"])
 
 
 class NumpyDocString(Mapping):
-    """Parses a numpydoc string to an abstract representation
+    """
+    Parses a numpydoc string to an abstract representation
 
     Instances define a mapping from section title to structured data.
 
@@ -233,8 +231,7 @@ class NumpyDocString(Mapping):
                 # NOTE: param line with single element should never have a
                 # a " :" before the description line, so this should probably
                 # warn.
-                if header.endswith(" :"):
-                    header = header[:-2]
+                header = header.removesuffix(" :")
                 if single_element_is_type:
                     arg_name, arg_type = "", header
                 else:
@@ -295,7 +292,6 @@ class NumpyDocString(Mapping):
         func_name1, func_name2, :meth:`func_name`, func_name3
 
         """
-
         content = dedent_lines(content)
 
         items = []
@@ -346,7 +342,7 @@ class NumpyDocString(Mapping):
     def _parse_index(self, section, content):
         """
         .. index:: default
-           :refguide: something, else, and more
+        :refguide: something, else, and more
 
         """
 
@@ -404,13 +400,16 @@ class NumpyDocString(Mapping):
                 section = " ".join(section)
                 if self.get(section):
                     self._error_location(
-                        "The section %s appears twice in  %s" % (section, "\n".join(self._doc._str))
+                        "The section %s appears twice in  %s"
+                        % (section, "\n".join(self._doc._str))
                     )
 
             if section in ("Parameters", "Other Parameters", "Attributes", "Methods"):
                 self[section] = self._parse_param_list(content)
             elif section in ("Returns", "Yields", "Raises", "Warns", "Receives"):
-                self[section] = self._parse_param_list(content, single_element_is_type=True)
+                self[section] = self._parse_param_list(
+                    content, single_element_is_type=True
+                )
             elif section.startswith(".. index::"):
                 self["index"] = self._parse_index(section, content)
             elif section == "See Also":
@@ -422,7 +421,7 @@ class NumpyDocString(Mapping):
     def _obj(self):
         if hasattr(self, "_cls"):
             return self._cls
-        elif hasattr(self, "_f"):
+        if hasattr(self, "_f"):
             return self._f
         return None
 
@@ -443,8 +442,7 @@ class NumpyDocString(Mapping):
             msg += f" in {filename}." if filename else ""
         if error:
             raise ValueError(msg)
-        else:
-            warn(msg, stacklevel=3)
+        warn(msg, stacklevel=3)
 
     # string conversion routines
 
@@ -537,7 +535,7 @@ class NumpyDocString(Mapping):
             if section == "default":
                 continue
             output_index = True
-            out += [f"   :{section}: {', '.join(references)}"]
+            out += [f'   :{section}: {", ".join(references)}']
         if output_index:
             return out
         return ""
@@ -603,7 +601,7 @@ class FunctionDoc(NumpyDocString):
         if self._role:
             if self._role not in roles:
                 print(f"Warning: invalid role {self._role}")
-            out += f".. {roles.get(self._role, '')}:: {func_name}\n    \n\n"
+            out += f'.. {roles.get(self._role, "")}:: {func_name}\n    \n\n'
 
         out += super().__str__(func_role=self._role)
         return out
@@ -655,8 +653,7 @@ class ClassDoc(NumpyDocString):
             def splitlines_x(s):
                 if not s:
                     return []
-                else:
-                    return s.splitlines()
+                return s.splitlines()
 
             for field, items in [
                 ("Methods", self.methods),
@@ -750,9 +747,8 @@ def get_doc_object(
 
     if what == "class":
         return class_doc(obj, func_doc=func_doc, doc=doc, config=config)
-    elif what in ("function", "method"):
+    if what in ("function", "method"):
         return func_doc(obj, doc=doc, config=config)
-    else:
-        if doc is None:
-            doc = pydoc.getdoc(obj)
-        return obj_doc(obj, doc, config=config)
+    if doc is None:
+        doc = pydoc.getdoc(obj)
+    return obj_doc(obj, doc, config=config)

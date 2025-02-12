@@ -1,6 +1,4 @@
-"""
-Run and time some or all examples.
-"""
+"""Run and time some or all examples."""
 
 import os
 import subprocess
@@ -45,15 +43,22 @@ def main():
     parser.add_argument(
         "--backend",
         action="append",
-        help=("backend to test; can be passed multiple times; defaults to the " "default backend"),
+        help=(
+            "backend to test; can be passed multiple times; defaults to the "
+            "default backend"
+        ),
     )
     parser.add_argument(
-        "--include-sgskip", action="store_true", help="do not filter out *_sgskip.py examples"
+        "--include-sgskip",
+        action="store_true",
+        help="do not filter out *_sgskip.py examples",
     )
     parser.add_argument(
         "--rundir",
         type=Path,
-        help=("directory from where the tests are run; defaults to a " "temporary directory"),
+        help=(
+            "directory from where the tests are run; defaults to a temporary directory"
+        ),
     )
     parser.add_argument(
         "paths",
@@ -79,13 +84,17 @@ def main():
             else:
                 cwd = stack.enter_context(TemporaryDirectory())
             with tokenize.open(root / relpath) as src:
-                Path(cwd, relpath.name).write_text(_preamble + src.read(), encoding="utf-8")
+                Path(cwd, relpath.name).write_text(
+                    _preamble + src.read(), encoding="utf-8"
+                )
             for backend in args.backend or [None]:
                 env = {**os.environ}
                 if backend is not None:
                     env["MPLBACKEND"] = backend
                 start = time.perf_counter()
-                proc = subprocess.run([sys.executable, relpath.name], cwd=cwd, env=env)
+                proc = subprocess.run(
+                    [sys.executable, relpath.name], cwd=cwd, env=env, check=False
+                )
                 elapsed = round(1000 * (time.perf_counter() - start))
                 runinfos.append(RunInfo(backend, elapsed, proc.returncode))
         print("\t".join(map(str, runinfos)))

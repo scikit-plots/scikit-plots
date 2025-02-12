@@ -77,12 +77,14 @@ def test_decorator():
 
         @decorator
         def func():
-            """Docstring
+            """
+            Docstring
             %(strtest3)s
             """
 
         def expected():
-            """Docstring
+            """
+            Docstring
             Another test
                with some indent
             """
@@ -93,16 +95,20 @@ def test_decorator():
 
         # The docstring should be unindented for Python 3.13+
         # because of https://github.com/python/cpython/issues/81283
-        decorator = doccer.filldoc(doc_dict, False if sys.version_info < (3, 13) else True)
+        decorator = doccer.filldoc(
+            doc_dict, False if sys.version_info < (3, 13) else True
+        )
 
         @decorator
         def func():
-            """Docstring
+            """
+            Docstring
             %(strtest3)s
             """
 
         def expected():
-            """Docstring
+            """
+            Docstring
             Another test
                with some indent
             """
@@ -112,7 +118,6 @@ def test_decorator():
 
 @pytest.mark.skipif(DOCSTRINGS_STRIPPED, reason="docstrings stripped")
 def test_inherit_docstring_from():
-
     with suppress_warnings() as sup:
         sup.filter(category=DeprecationWarning)
 

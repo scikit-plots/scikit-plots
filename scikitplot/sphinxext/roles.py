@@ -25,7 +25,7 @@ roles, you'll see one of the following error messages:
 To fix this, you can add this module as extension to your sphinx :file:`conf.py`::
 
     extensions = [
-        'matplotlib.sphinxext.roles',
+        'matplotlib.sphinxext.roles'
         # Other extensions.
     ]
 
@@ -71,9 +71,7 @@ def _visit_query_reference_node(self, node):
 
 
 def _depart_query_reference_node(self, node):
-    """
-    Act as if this is a `~docutils.nodes.literal`.
-    """
+    """Act as if this is a `~docutils.nodes.literal`."""
     self.depart_literal(node)
 
 
@@ -89,7 +87,9 @@ def _rcparam_role(name, rawtext, text, lineno, inliner, options=None, content=No
     # isn't broken at some point in the future.
     title = f'rcParams["{text}"]'
     target = "matplotlibrc-sample"
-    ref_nodes, messages = inliner.interpreted(title, f"{title} <{target}>", "ref", lineno)
+    ref_nodes, messages = inliner.interpreted(
+        title, f"{title} <{target}>", "ref", lineno
+    )
 
     qr = _QueryReference(rawtext, highlight=text)
     qr += ref_nodes
@@ -123,9 +123,7 @@ def _mpltype_role(name, rawtext, text, lineno, inliner, options=None, content=No
 
     """
     mpltype = text
-    type_to_link_target = {
-        "color": "colors_def",
-    }
+    type_to_link_target = {"color": "colors_def"}
     if mpltype not in type_to_link_target:
         raise ValueError(f"Unknown mpltype: {mpltype!r}")
 

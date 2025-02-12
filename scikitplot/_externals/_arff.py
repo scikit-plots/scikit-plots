@@ -127,7 +127,7 @@ This module provides several features, including:
 
 - Read and write ARFF files using python built-in structures, such dictionaries
   and lists;
-- Supports `scipy.sparse.coo <http://docs.scipy
+- Supports `scipy.sparse.coup <http://docs.scipy
   .org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.html#scipy.sparse.coo_matrix>`_
   and lists of dictionaries as used by SVMLight
 - Supports the following attribute types: NUMERIC, REAL, INTEGER, STRING, and
@@ -141,15 +141,19 @@ This module provides several features, including:
 - Under `MIT License <http://opensource.org/licenses/MIT>`_
 
 """
+
 __author__ = "Renato de Pontes Pereira, Matthias Feurer, Joel Nothman"
 __author_email__ = (
-    "renato.ppontes@gmail.com, " "feurerm@informatik.uni-freiburg.de, " "joel.nothman@gmail.com"
+    "renato.ppontes@gmail.com, "
+    "feurerm@informatik.uni-freiburg.de, "
+    "joel.nothman@gmail.com"
 )
 __version__ = "2.4.0"
 
 import csv
 import re
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 # CONSTANTS ===================================================================
 _SIMPLE_TYPES = ["NUMERIC", "REAL", "INTEGER", "STRING"]
@@ -213,15 +217,13 @@ def _build_re_values():
     # we cannot just look for empty values to handle syntax errors.
     # We presume the line has had ',' prepended...
     dense = re.compile(
-        r"""(?x)
+        rf"""(?x)
         ,                # may follow ','
         \s*
         ((?=,)|$|{value_re})  # empty or value
         |
         (\S.*)           # error
-        """.format(
-            value_re=value_re
-        )
+        """
     )
 
     # This captures (key, value) groups and will have an empty key/value
@@ -273,17 +275,15 @@ def _escape_sub_callback(match):
             raise ValueError("Unsupported escape sequence: %s" % s)
     if s[1] == "u":
         return chr(int(s[2:], 16))
-    else:
-        return chr(int(s[1:], 8))
+    return chr(int(s[1:], 8))
 
 
 def _unquote(v):
     if v[:1] in ('"', "'"):
         return re.sub(r"\\([0-9]{1,3}|u[0-9a-f]{4}|.)", _escape_sub_callback, v[1:-1])
-    elif v in ("?", ""):
+    if v in ("?", ""):
         return None
-    else:
-        return v
+    return v
 
 
 def _parse_values(s):
@@ -315,12 +315,12 @@ def _parse_values(s):
 
 
 DENSE = 0  # Constant value representing a dense matrix
-COO = 1  # Constant value representing a sparse matrix in coordinate format
+COUP = 1  # Constant value representing a sparse matrix in coordinate format
 LOD = 2  # Constant value representing a sparse matrix in list of
 # dictionaries format
 DENSE_GEN = 3  # Generator of dictionaries
 LOD_GEN = 4  # Generator of dictionaries
-_SUPPORTED_DATA_STRUCTURES = [DENSE, COO, LOD, DENSE_GEN, LOD_GEN]
+_SUPPORTED_DATA_STRUCTURES = [DENSE, COUP, LOD, DENSE_GEN, LOD_GEN]
 
 
 # EXCEPTIONS ==================================================================
@@ -355,15 +355,19 @@ class BadDataFormat(ArffException):
 
 
 class BadAttributeType(ArffException):
-    """Error raised when some invalid type is provided into the attribute
-    declaration."""
+    """
+    Error raised when some invalid type is provided into the attribute
+    declaration.
+    """
 
     message = "Bad @ATTRIBUTE type, at line %d."
 
 
 class BadAttributeName(ArffException):
-    """Error raised when an attribute name is provided twice the attribute
-    declaration."""
+    """
+    Error raised when an attribute name is provided twice the attribute
+    declaration.
+    """
 
     def __init__(self, value, value2):
         super().__init__()
@@ -375,12 +379,16 @@ class BadAttributeName(ArffException):
 
 
 class BadNominalValue(ArffException):
-    """Error raised when a value in used in some data instance but is not
-    declared into it respective attribute declaration."""
+    """
+    Error raised when a value in used in some data instance but is not
+    declared into it respective attribute declaration.
+    """
 
     def __init__(self, value):
         super().__init__()
-        self.message = ("Data value %s not found in nominal declaration, " % value) + "at line %d."
+        self.message = (
+            "Data value %s not found in nominal declaration, " % value
+        ) + "at line %d."
 
 
 class BadNominalFormatting(ArffException):
@@ -388,12 +396,16 @@ class BadNominalFormatting(ArffException):
 
     def __init__(self, value):
         super().__init__()
-        self.message = ('Nominal data value "%s" not properly quoted in line ' % value) + "%d."
+        self.message = (
+            'Nominal data value "%s" not properly quoted in line ' % value
+        ) + "%d."
 
 
 class BadNumericalValue(ArffException):
-    """Error raised when and invalid numerical value is used in some data
-    instance."""
+    """
+    Error raised when and invalid numerical value is used in some data
+    instance.
+    """
 
     message = "Invalid numerical value, at line %d."
 
@@ -416,8 +428,10 @@ class BadLayout(ArffException):
 
 
 class BadObject(ArffException):
-    """Error raised when the object representing the ARFF file has something
-    wrong."""
+    """
+    Error raised when the object representing the ARFF file has something
+    wrong.
+    """
 
     def __init__(self, msg="Invalid object."):
         self.msg = msg
@@ -470,8 +484,10 @@ class NominalConversor:
 
 
 class DenseGeneratorData:
-    """Internal helper class to allow for different matrix types without
-    making the code a huge collection of if statements."""
+    """
+    Internal helper class to allow for different matrix types without
+    making the code a huge collection of if statements.
+    """
 
     def decode_rows(self, stream, conversors):
         for row in stream:
@@ -481,10 +497,11 @@ class DenseGeneratorData:
                 if values and max(values) >= len(conversors):
                     raise BadDataFormat(row)
                 # XXX: int 0 is used for implicit values, not '0'
-                values = [values[i] if i in values else 0 for i in range(len(conversors))]
-            else:
-                if len(values) != len(conversors):
-                    raise BadDataFormat(row)
+                values = [
+                    values[i] if i in values else 0 for i in range(len(conversors))
+                ]
+            elif len(values) != len(conversors):
+                raise BadDataFormat(row)
 
             yield self._decode_values(values, conversors)
 
@@ -501,7 +518,8 @@ class DenseGeneratorData:
         return values
 
     def encode_data(self, data, attributes):
-        """(INTERNAL) Encodes a line of data.
+        """
+        (INTERNAL) Encodes a line of data.
 
         Data instances follow the csv format, i.e, attribute values are
         delimited by commas. After converted from csv.
@@ -582,7 +600,9 @@ class COOData:
 
         # Check if the rows are sorted
         if not all(row[i] <= row[i + 1] for i in range(len(row) - 1)):
-            raise ValueError("liac-arff can only output COO matrices with " "sorted rows.")
+            raise ValueError(
+                "liac-arff can only output COUP matrices with sorted rows."
+            )
 
         for v, col, row in zip(data, col, row):
             if row > current_row:
@@ -659,29 +679,26 @@ class LODData(_DataListMixin, LODGeneratorData):
 def _get_data_object_for_decoding(matrix_type):
     if matrix_type == DENSE:
         return Data()
-    elif matrix_type == COO:
+    if matrix_type == COUP:
         return COOData()
-    elif matrix_type == LOD:
+    if matrix_type == LOD:
         return LODData()
-    elif matrix_type == DENSE_GEN:
+    if matrix_type == DENSE_GEN:
         return DenseGeneratorData()
-    elif matrix_type == LOD_GEN:
+    if matrix_type == LOD_GEN:
         return LODGeneratorData()
-    else:
-        raise ValueError("Matrix type %s not supported." % str(matrix_type))
+    raise ValueError("Matrix type %s not supported." % str(matrix_type))
 
 
 def _get_data_object_for_encoding(matrix):
     # Probably a scipy.sparse
     if hasattr(matrix, "format"):
-        if matrix.format == "coo":
+        if matrix.format == "coup":
             return COOData()
-        else:
-            raise ValueError("Cannot guess matrix format!")
-    elif isinstance(matrix[0], dict):
+        raise ValueError("Cannot guess matrix format!")
+    if isinstance(matrix[0], dict):
         return LODData()
-    else:
-        return Data()
+    return Data()
 
 
 # =============================================================================
@@ -697,7 +714,8 @@ class ArffDecoder:
         self._current_line = 0
 
     def _decode_comment(self, s):
-        """(INTERNAL) Decodes a comment line.
+        """
+        (INTERNAL) Decodes a comment line.
 
         Comments are single line strings starting, obligatorily, with the ``%``
         character, and can have any symbol, including whitespaces or special
@@ -713,7 +731,8 @@ class ArffDecoder:
         return res
 
     def _decode_relation(self, s):
-        """(INTERNAL) Decodes a relation line.
+        """
+        (INTERNAL) Decodes a relation line.
 
         The relation declaration is a line with the format ``@RELATION
         <relation-name>``, where ``relation-name`` is a string. The string must
@@ -736,7 +755,8 @@ class ArffDecoder:
         return res
 
     def _decode_attribute(self, s):
-        """(INTERNAL) Decodes an attribute line.
+        """
+        (INTERNAL) Decodes an attribute line.
 
         The attribute is the most complex declaration in an arff file. All
         attributes must follow the template::
@@ -795,7 +815,6 @@ class ArffDecoder:
 
     def _decode(self, s, encode_nominal=False, matrix_type=DENSE):
         """Do the job the ``encode``."""
-
         # Make sure this method is idempotent
         self._current_line = 0
 
@@ -804,7 +823,12 @@ class ArffDecoder:
             s = s.strip("\r\n ").replace("\r\n", "\n").split("\n")
 
         # Create the return object
-        obj: ArffContainerType = {"description": "", "relation": "", "attributes": [], "data": []}
+        obj: ArffContainerType = {
+            "description": "",
+            "relation": "",
+            "attributes": [],
+            "data": [],
+        }
         attribute_names = {}
 
         # Create the data helper object
@@ -846,8 +870,7 @@ class ArffDecoder:
                 attr = self._decode_attribute(row)
                 if attr[0] in attribute_names:
                     raise BadAttributeName(attr[0], attribute_names[attr[0]])
-                else:
-                    attribute_names[attr[0]] = self._current_line
+                attribute_names[attr[0]] = self._current_line
                 obj["attributes"].append(attr)
 
                 if isinstance(attr[1], (list, tuple)):
@@ -893,13 +916,13 @@ class ArffDecoder:
 
         # Alter the data object
         obj["data"] = data.decode_rows(stream(), self._conversors)
-        if obj["description"].endswith("\n"):
-            obj["description"] = obj["description"][:-1]
+        obj["description"] = obj["description"].removesuffix("\n")
 
         return obj
 
     def decode(self, s, encode_nominal=False, return_type=DENSE):
-        """Returns the Python representation of a given ARFF file.
+        """
+        Returns the Python representation of a given ARFF file.
 
         When a file object is passed as an argument, this method reads lines
         iteratively, avoiding to load unnecessary information to the memory.
@@ -908,13 +931,15 @@ class ArffDecoder:
         :param encode_nominal: boolean, if True perform a label encoding
             while reading the .arff file.
         :param return_type: determines the data structure used to store the
-            dataset. Can be one of `arff.DENSE`, `arff.COO`, `arff.LOD`,
+            dataset. Can be one of `arff.DENSE`, `arff.COUP`, `arff.LOD`,
             `arff.DENSE_GEN` or `arff.LOD_GEN`.
             Consult the sections on `working with sparse data`_ and `loading
             progressively`_.
         """
         try:
-            return self._decode(s, encode_nominal=encode_nominal, matrix_type=return_type)
+            return self._decode(
+                s, encode_nominal=encode_nominal, matrix_type=return_type
+            )
         except ArffException as e:
             e.line = self._current_line
             raise e
@@ -924,7 +949,8 @@ class ArffEncoder:
     """An ARFF encoder."""
 
     def _encode_comment(self, s=""):
-        """(INTERNAL) Encodes a comment line.
+        """
+        (INTERNAL) Encodes a comment line.
 
         Comments are single line strings starting, obligatorily, with the ``%``
         character, and can have any symbol, including whitespaces or special
@@ -937,11 +963,11 @@ class ArffEncoder:
         """
         if s:
             return "%s %s" % (_TK_COMMENT, s)
-        else:
-            return "%s" % _TK_COMMENT
+        return "%s" % _TK_COMMENT
 
     def _encode_relation(self, name):
-        """(INTERNAL) Decodes a relation line.
+        """
+        (INTERNAL) Decodes a relation line.
 
         The relation declaration is a line with the format ``@RELATION
         <relation-name>``, where ``relation-name`` is a string.
@@ -957,7 +983,8 @@ class ArffEncoder:
         return "%s %s" % (_TK_RELATION, name)
 
     def _encode_attribute(self, name, type_):
-        """(INTERNAL) Encodes an attribute line.
+        """
+        (INTERNAL) Encodes an attribute line.
 
         The attribute follow the template::
 
@@ -991,7 +1018,8 @@ class ArffEncoder:
         return "%s %s %s" % (_TK_ATTRIBUTE, name, type_)
 
     def encode(self, obj):
-        """Encodes a given object to an ARFF file.
+        """
+        Encodes a given object to an ARFF file.
 
         :param obj: the object containing the ARFF information.
         :return: the ARFF file as an string.
@@ -1001,7 +1029,8 @@ class ArffEncoder:
         return "\n".join(data)
 
     def iter_encode(self, obj):
-        """The iterative version of `arff.ArffEncoder.encode`.
+        """
+        The iterative version of `arff.ArffEncoder.encode`.
 
         This encodes iteratively a given object and return, one-by-one, the
         lines of the ARFF file.
@@ -1047,7 +1076,8 @@ class ArffEncoder:
             # Verify attribute name is not used twice
             if attr[0] in attribute_names:
                 raise BadObject(
-                    'Trying to use attribute name "%s" for the ' "second time." % str(attr[0])
+                    'Trying to use attribute name "%s" for the '
+                    "second time." % str(attr[0])
                 )
             else:
                 attribute_names.add(attr[0])
@@ -1070,14 +1100,15 @@ class ArffEncoder:
 
 # BASIC INTERFACE =============================================================
 def load(fp, encode_nominal=False, return_type=DENSE):
-    """Load a file-like object containing the ARFF document and convert it into
+    """
+    Load a file-like object containing the ARFF document and convert it into
     a Python object.
 
     :param fp: a file-like object.
     :param encode_nominal: boolean, if True perform a label encoding
         while reading the .arff file.
     :param return_type: determines the data structure used to store the
-        dataset. Can be one of `arff.DENSE`, `arff.COO`, `arff.LOD`,
+        dataset. Can be one of `arff.DENSE`, `arff.COUP`, `arff.LOD`,
         `arff.DENSE_GEN` or `arff.LOD_GEN`.
         Consult the sections on `working with sparse data`_ and `loading
         progressively`_.
@@ -1088,14 +1119,15 @@ def load(fp, encode_nominal=False, return_type=DENSE):
 
 
 def loads(s, encode_nominal=False, return_type=DENSE):
-    """Convert a string instance containing the ARFF document into a Python
+    """
+    Convert a string instance containing the ARFF document into a Python
     object.
 
     :param s: a string object.
     :param encode_nominal: boolean, if True perform a label encoding
         while reading the .arff file.
     :param return_type: determines the data structure used to store the
-        dataset. Can be one of `arff.DENSE`, `arff.COO`, `arff.LOD`,
+        dataset. Can be one of `arff.DENSE`, `arff.COUP`, `arff.LOD`,
         `arff.DENSE_GEN` or `arff.LOD_GEN`.
         Consult the sections on `working with sparse data`_ and `loading
         progressively`_.
@@ -1106,7 +1138,8 @@ def loads(s, encode_nominal=False, return_type=DENSE):
 
 
 def dump(obj, fp):
-    """Serialize an object representing the ARFF document to a given file-like
+    """
+    Serialize an object representing the ARFF document to a given file-like
     object.
 
     :param obj: a dictionary.
@@ -1125,7 +1158,8 @@ def dump(obj, fp):
 
 
 def dumps(obj):
-    """Serialize an object representing the ARFF document, returning a string.
+    """
+    Serialize an object representing the ARFF document, returning a string.
 
     :param obj: a dictionary.
     :return: a string with the ARFF document.

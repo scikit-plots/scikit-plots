@@ -190,7 +190,6 @@ def klee_minty(D):
 
 
 class MagicSquare(Benchmark):
-
     solutions = [
         (3, 1.7305505947214375),
         (4, 1.5485271031586025),
@@ -234,7 +233,6 @@ class MagicSquare(Benchmark):
 
 
 class KleeMinty(Benchmark):
-
     params = [methods, [3, 6, 9]]
     param_names = ["method", "dimensions"]
 
@@ -244,7 +242,9 @@ class KleeMinty(Benchmark):
 
     def time_klee_minty(self, meth, dims):
         method, options = meth
-        res = linprog(c=self.c, A_ub=self.A_ub, b_ub=self.b_ub, method=method, options=options)
+        res = linprog(
+            c=self.c, A_ub=self.A_ub, b_ub=self.b_ub, method=method, options=options
+        )
         self.fun = res.fun
         self.x = res.x
 
@@ -321,7 +321,9 @@ class Netlib_infeasible(Benchmark):
             raise NotImplementedError("skipped")
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        datafile = os.path.join(dir_path, "linprog_benchmark_files", "infeasible", prob + ".npz")
+        datafile = os.path.join(
+            dir_path, "linprog_benchmark_files", "infeasible", prob + ".npz"
+        )
         data = np.load(datafile, allow_pickle=True)
         self.c = data["c"]
         self.A_eq = data["A_eq"]

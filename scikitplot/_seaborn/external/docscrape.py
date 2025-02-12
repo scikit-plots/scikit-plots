@@ -1,4 +1,5 @@
-"""Extract reference documentation from the NumPy source tree.
+"""
+Extract reference documentation from the NumPy source tree.
 
 Copyright (C) 2008 Stefan van der Walt <stefan@mentat.za.net>, Pauli Virtanen <pav@iki.fi>
 
@@ -27,19 +28,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 """
 
+import copy
 import inspect
-import textwrap
-import re
 import pydoc
-from warnings import warn
+import re
+import sys
+import textwrap
 from collections import namedtuple
 from collections.abc import Callable, Mapping
-import copy
-import sys
+from warnings import warn
 
 
 def strip_blank_lines(l):
-    "Remove leading and trailing blank lines from a list of lines"
+    """Remove leading and trailing blank lines from a list of lines"""
     while l and not l[0].strip():
         del l[0]
     while l and not l[-1].strip():
@@ -76,15 +77,13 @@ class Reader:
             out = self[self._l]
             self._l += 1
             return out
-        else:
-            return ""
+        return ""
 
     def seek_next_non_empty_line(self):
         for l in self[self._l :]:
             if l.strip():
                 break
-            else:
-                self._l += 1
+            self._l += 1
 
     def eof(self):
         return self._l >= len(self._str)
@@ -116,8 +115,7 @@ class Reader:
     def peek(self, n=0):
         if self._l + n < len(self._str):
             return self[self._l + n]
-        else:
-            return ""
+        return ""
 
     def is_empty(self):
         return not "".join(self._str).strip()
@@ -135,7 +133,8 @@ Parameter = namedtuple("Parameter", ["name", "type", "desc"])
 
 
 class NumpyDocString(Mapping):
-    """Parses a numpydoc string to an abstract representation
+    """
+    Parses a numpydoc string to an abstract representation
 
     Instances define a mapping from section title to structured data.
 
@@ -247,11 +246,10 @@ class NumpyDocString(Mapping):
             header = r.read().strip()
             if " : " in header:
                 arg_name, arg_type = header.split(" : ")[:2]
+            elif single_element_is_type:
+                arg_name, arg_type = "", header
             else:
-                if single_element_is_type:
-                    arg_name, arg_type = "", header
-                else:
-                    arg_name, arg_type = header, ""
+                arg_name, arg_type = header, ""
 
             desc = r.read_to_next_unindented_line()
             desc = dedent_lines(desc)
@@ -308,7 +306,6 @@ class NumpyDocString(Mapping):
         func_name1, func_name2, :meth:`func_name`, func_name3
 
         """
-
         items = []
 
         def parse_item_name(text):
@@ -357,7 +354,7 @@ class NumpyDocString(Mapping):
     def _parse_index(self, section, content):
         """
         .. index: default
-           :refguide: something, else, and more
+        :refguide: something, else, and more
 
         """
 
@@ -423,7 +420,9 @@ class NumpyDocString(Mapping):
             if section in ("Parameters", "Other Parameters", "Attributes", "Methods"):
                 self[section] = self._parse_param_list(content)
             elif section in ("Returns", "Yields", "Raises", "Warns", "Receives"):
-                self[section] = self._parse_param_list(content, single_element_is_type=True)
+                self[section] = self._parse_param_list(
+                    content, single_element_is_type=True
+                )
             elif section.startswith(".. index::"):
                 self["index"] = self._parse_index(section, content)
             elif section == "See Also":
@@ -441,8 +440,7 @@ class NumpyDocString(Mapping):
             msg = msg + f" in the docstring of {self._obj} in {filename}."
         if error:
             raise ValueError(msg)
-        else:
-            warn(msg)
+        warn(msg)
 
     # string conversion routines
 
@@ -458,20 +456,17 @@ class NumpyDocString(Mapping):
     def _str_signature(self):
         if self["Signature"]:
             return [self["Signature"].replace("*", r"\*")] + [""]
-        else:
-            return [""]
+        return [""]
 
     def _str_summary(self):
         if self["Summary"]:
             return self["Summary"] + [""]
-        else:
-            return []
+        return []
 
     def _str_extended_summary(self):
         if self["Extended Summary"]:
             return self["Extended Summary"] + [""]
-        else:
-            return []
+        return []
 
     def _str_param_list(self, name):
         out = []
@@ -541,11 +536,10 @@ class NumpyDocString(Mapping):
             if section == "default":
                 continue
             output_index = True
-            out += [f"   :{section}: {', '.join(references)}"]
+            out += [f'   :{section}: {", ".join(references)}']
         if output_index:
             return out
-        else:
-            return ""
+        return ""
 
     def __str__(self, func_role=""):
         out = []
@@ -635,14 +629,13 @@ class FunctionDoc(NumpyDocString):
         if self._role:
             if self._role not in roles:
                 print(f"Warning: invalid role {self._role}")
-            out += f".. {roles.get(self._role, '')}:: {func_name}\n    \n\n"
+            out += f'.. {roles.get(self._role, "")}:: {func_name}\n    \n\n'
 
         out += super().__str__(func_role=self._role)
         return out
 
 
 class ClassDoc(NumpyDocString):
-
     extra_public_methods = ["__call__"]
 
     def __init__(self, cls, doc=None, modulename="", func_doc=FunctionDoc, config={}):
@@ -678,10 +671,12 @@ class ClassDoc(NumpyDocString):
             def splitlines_x(s):
                 if not s:
                     return []
-                else:
-                    return s.splitlines()
+                return s.splitlines()
 
-            for field, items in [("Methods", self.methods), ("Attributes", self.properties)]:
+            for field, items in [
+                ("Methods", self.methods),
+                ("Attributes", self.properties),
+            ]:
                 if not self[field]:
                     doc_list = []
                     for name in sorted(items):
@@ -717,7 +712,11 @@ class ClassDoc(NumpyDocString):
             for name, func in inspect.getmembers(self._cls)
             if (
                 not name.startswith("_")
-                and (func is None or isinstance(func, property) or inspect.isdatadescriptor(func))
+                and (
+                    func is None
+                    or isinstance(func, property)
+                    or inspect.isdatadescriptor(func)
+                )
                 and self._is_show_member(name)
             )
         ]

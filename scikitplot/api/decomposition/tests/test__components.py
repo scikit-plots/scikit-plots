@@ -9,7 +9,6 @@ from scikitplot.api.decomposition import plot_pca_component_variance
 
 
 class TestPlotPCAComponentVariance(unittest.TestCase):
-
     def setUp(self):
         np.random.seed(0)
         self.X, self.y = load_data(return_X_y=True)

@@ -69,7 +69,9 @@ def get_auth_token():
         "note_url": "https://github.com/ipython/ipython/tree/master/tools",
     }
     response = requests.post(
-        "https://api.github.com/authorizations", auth=(user, pw), data=json.dumps(auth_request)
+        "https://api.github.com/authorizations",
+        auth=(user, pw),
+        data=json.dumps(auth_request),
     )
     response.raise_for_status()
     token = json.loads(response.text)["token"]
@@ -90,11 +92,17 @@ def post_issue_comment(project, num, body):
 def post_gist(content, description="", filename="file", auth=False):
     """Post some text to a Gist, and return the URL."""
     post_data = json.dumps(
-        {"description": description, "public": True, "files": {filename: {"content": content}}}
+        {
+            "description": description,
+            "public": True,
+            "files": {filename: {"content": content}},
+        }
     ).encode("utf-8")
 
     headers = make_auth_header() if auth else {}
-    response = requests.post("https://api.github.com/gists", data=post_data, headers=headers)
+    response = requests.post(
+        "https://api.github.com/gists", data=post_data, headers=headers
+    )
     response.raise_for_status()
     response_data = json.loads(response.text)
     return response_data["html_url"]
@@ -114,7 +122,7 @@ def get_pull_request(project, num, auth=False):
 
 
 def get_pull_request_files(project, num, auth=False):
-    """get list of files in a pull request"""
+    """Get list of files in a pull request"""
     url = f"https://api.github.com/repos/{project}/pulls/{num}/files"
     if auth:
         header = make_auth_header()
@@ -128,7 +136,7 @@ rel_pat = re.compile(r'rel=[\'"](\w+)[\'"]')
 
 
 def get_paged_request(url, headers=None, **params):
-    """get a full list, handling APIv3's paging"""
+    """Get a full list, handling APIv3's paging"""
     results = []
     params.setdefault("per_page", 100)
     while True:
@@ -148,7 +156,7 @@ def get_paged_request(url, headers=None, **params):
 
 
 def get_pulls_list(project, auth=False, **params):
-    """get pull request list"""
+    """Get pull request list"""
     params.setdefault("state", "closed")
     url = f"https://api.github.com/repos/{project}/pulls"
     if auth:
@@ -160,7 +168,7 @@ def get_pulls_list(project, auth=False, **params):
 
 
 def get_issues_list(project, auth=False, **params):
-    """get issues list"""
+    """Get issues list"""
     params.setdefault("state", "closed")
     url = f"https://api.github.com/repos/{project}/issues"
     if auth:
@@ -271,7 +279,9 @@ def encode_multipart_formdata(fields, boundary=None):
             body.write(b("Content-Type: %s\r\n\r\n" % (get_content_type(filename))))
         else:
             data = value
-            writer(body).write('Content-Disposition: form-data; name="%s"\r\n' % (fieldname))
+            writer(body).write(
+                'Content-Disposition: form-data; name="%s"\r\n' % (fieldname)
+            )
             body.write(b"Content-Type: text/plain\r\n\r\n")
 
         if isinstance(data, int):

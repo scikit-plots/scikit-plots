@@ -1,6 +1,4 @@
-"""
-Unit tests for the global optimization benchmark functions
-"""
+"""Unit tests for the global optimization benchmark functions"""
 
 import inspect
 
@@ -10,7 +8,6 @@ from .. import go_benchmark_functions as gbf
 
 
 class TestGoBenchmarkFunctions:
-
     def setup_method(self):
         bench_members = inspect.getmembers(gbf, inspect.isclass)
         self.benchmark_functions = {

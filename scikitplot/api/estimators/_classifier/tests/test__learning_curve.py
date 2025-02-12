@@ -13,7 +13,6 @@ def convert_labels_into_string(y_true):
 
 
 class TestPlotLearningCurve(unittest.TestCase):
-
     def setUp(self):
         np.random.seed(0)
         self.X, self.y = load_data(return_X_y=True)

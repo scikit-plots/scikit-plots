@@ -5,7 +5,7 @@ import numpy as np
 from .common import Benchmark, is_xslow, safe_import
 
 with safe_import():
-    import scipy.stats as stats
+    from scipy import stats
 with safe_import():
     from scipy.stats._distr_params import distcont, distdiscrete
 
@@ -57,7 +57,11 @@ class ANOVAFunction(Benchmark):
 
 class Kendalltau(Benchmark):
     param_names = ["nan_policy", "method", "variant"]
-    params = [["propagate", "raise", "omit"], ["auto", "asymptotic", "exact"], ["b", "c"]]
+    params = [
+        ["propagate", "raise", "omit"],
+        ["auto", "asymptotic", "exact"],
+        ["b", "c"],
+    ]
 
     def setup(self, nan_policy, method, variant):
         rng = np.random.default_rng(12345678)
@@ -69,7 +73,9 @@ class Kendalltau(Benchmark):
         self.b = b
 
     def time_kendalltau(self, nan_policy, method, variant):
-        stats.kendalltau(self.a, self.b, nan_policy=nan_policy, method=method, variant=variant)
+        stats.kendalltau(
+            self.a, self.b, nan_policy=nan_policy, method=method, variant=variant
+        )
 
 
 class KS(Benchmark):
@@ -106,7 +112,11 @@ class RankSums(Benchmark):
 
 class BrunnerMunzel(Benchmark):
     param_names = ["alternative", "nan_policy", "distribution"]
-    params = [["two-sided", "less", "greater"], ["propagate", "raise", "omit"], ["t", "normal"]]
+    params = [
+        ["two-sided", "less", "greater"],
+        ["propagate", "raise", "omit"],
+        ["t", "normal"],
+    ]
 
     def setup(self, alternative, nan_policy, distribution):
         rng = np.random.default_rng(0xB82C4DB22B2818BDBC5DBE15AD7528FE)
@@ -159,10 +169,38 @@ class InferentialStats(Benchmark):
 #   a, b, mean, variance, skewness, excess kurtosis. Generated using
 # https://gist.github.com/WarrenWeckesser/636b537ee889679227d53543d333a720
 truncnorm_cases = [
-    [-20, -19, -19.052343945976656, 0.002725073018195613, -1.9838693623377885, 5.871801893091683],
-    [-30, -29, -29.034401237736176, 0.0011806604886186853, -1.9929615171469608, 5.943905539773037],
-    [-40, -39, -39.02560741993011, 0.0006548827702932775, -1.9960847672775606, 5.968744357649675],
-    [39, 40, 39.02560741993011, 0.0006548827702932775, 1.9960847672775606, 5.968744357649675],
+    [
+        -20,
+        -19,
+        -19.052343945976656,
+        0.002725073018195613,
+        -1.9838693623377885,
+        5.871801893091683,
+    ],
+    [
+        -30,
+        -29,
+        -29.034401237736176,
+        0.0011806604886186853,
+        -1.9929615171469608,
+        5.943905539773037,
+    ],
+    [
+        -40,
+        -39,
+        -39.02560741993011,
+        0.0006548827702932775,
+        -1.9960847672775606,
+        5.968744357649675,
+    ],
+    [
+        39,
+        40,
+        39.02560741993011,
+        0.0006548827702932775,
+        1.9960847672775606,
+        5.968744357649675,
+    ],
 ]
 truncnorm_cases = np.array(truncnorm_cases)
 
@@ -242,7 +280,9 @@ class DistributionsAll(Benchmark):
     slow_methods = ["moment"]
 
     def setup(self, dist_name, method):
-        if not is_xslow() and (dist_name in self.slow_dists or method in self.slow_methods):
+        if not is_xslow() and (
+            dist_name in self.slow_dists or method in self.slow_methods
+        ):
             raise NotImplementedError("Skipped")
 
         self.dist = getattr(stats, dist_name)
@@ -266,7 +306,9 @@ class DistributionsAll(Benchmark):
         if method == "fit":
             # there are no fit methods for discrete distributions
             if isinstance(self.dist, stats.rv_discrete):
-                raise NotImplementedError("This attribute is not a member " "of the distribution")
+                raise NotImplementedError(
+                    "This attribute is not a member of the distribution"
+                )
             if self.dist.name in {"irwinhall"}:
                 raise NotImplementedError("Fit is unreliable.")
             # the only positional argument is the data to be fitted
@@ -433,7 +475,9 @@ class Distribution(Benchmark):
                 stats.beta.fit(self.x, loc=4, scale=10)
 
     # Retain old benchmark results (remove this if changing the benchmark)
-    time_distribution.version = "fb22ae5386501008d945783921fe44aef3f82c1dafc40cddfaccaeec38b792b0"
+    time_distribution.version = (
+        "fb22ae5386501008d945783921fe44aef3f82c1dafc40cddfaccaeec38b792b0"
+    )
 
 
 class DescriptiveStats(Benchmark):
@@ -494,7 +538,6 @@ class GroupSampling(Benchmark):
 
 
 class BinnedStatisticDD(Benchmark):
-
     params = ["count", "sum", "mean", "min", "max", "median", "std", np.std]
 
     def setup(self, statistic):
@@ -562,7 +605,14 @@ class ContinuousFitAnalyticalMLEOverride(Benchmark):
     params = [dists, range(2), *[[True, False]] * 5]
 
     def setup(
-        self, dist_name, case, loc_fixed, scale_fixed, shape1_fixed, shape2_fixed, shape3_fixed
+        self,
+        dist_name,
+        case,
+        loc_fixed,
+        scale_fixed,
+        shape1_fixed,
+        shape2_fixed,
+        shape3_fixed,
     ):
         self.distn = eval("stats." + dist_name)
 
@@ -577,7 +627,13 @@ class ContinuousFitAnalyticalMLEOverride(Benchmark):
         # separate relevant and non-relevant parameters for this distribution
         # based on the number of shapes
         nparam = len(param_values)
-        all_parameters = [loc_fixed, scale_fixed, shape1_fixed, shape2_fixed, shape3_fixed]
+        all_parameters = [
+            loc_fixed,
+            scale_fixed,
+            shape1_fixed,
+            shape2_fixed,
+            shape3_fixed,
+        ]
         relevant_parameters = all_parameters[:nparam]
         nonrelevant_parameters = all_parameters[nparam:]
 
@@ -611,7 +667,14 @@ class ContinuousFitAnalyticalMLEOverride(Benchmark):
         )
 
     def time_fit(
-        self, dist_name, case, loc_fixed, scale_fixed, shape1_fixed, shape2_fixed, shape3_fixed
+        self,
+        dist_name,
+        case,
+        loc_fixed,
+        scale_fixed,
+        shape1_fixed,
+        shape2_fixed,
+        shape3_fixed,
     ):
         self.distn.fit(self.data, **self.fixed)
 
@@ -703,7 +766,9 @@ class BenchPoissonDisk(Benchmark):
         self.rng = np.random.default_rng(168525179735951991038384544)
 
     def time_poisson_disk(self, d, radius, ncandidates, n):
-        seq = stats.qmc.PoissonDisk(d, radius=radius, ncandidates=ncandidates, seed=self.rng)
+        seq = stats.qmc.PoissonDisk(
+            d, radius=radius, ncandidates=ncandidates, seed=self.rng
+        )
         seq.random(n)
 
 
@@ -719,10 +784,14 @@ class DistanceFunctions(Benchmark):
         self.v_weights = rng.random(n_size // 2) * 10
 
     def time_energy_distance(self, n_size):
-        stats.energy_distance(self.u_values, self.v_values, self.u_weights, self.v_weights)
+        stats.energy_distance(
+            self.u_values, self.v_values, self.u_weights, self.v_weights
+        )
 
     def time_wasserstein_distance(self, n_size):
-        stats.wasserstein_distance(self.u_values, self.v_values, self.u_weights, self.v_weights)
+        stats.wasserstein_distance(
+            self.u_values, self.v_values, self.u_weights, self.v_weights
+        )
 
 
 class Somersd(Benchmark):
@@ -741,7 +810,11 @@ class Somersd(Benchmark):
 class KolmogorovSmirnov(Benchmark):
     param_names = ["alternative", "mode", "size"]
     # No auto since it defaults to exact for 20 samples
-    params = [["two-sided", "less", "greater"], ["exact", "approx", "asymp"], [19, 20, 21]]
+    params = [
+        ["two-sided", "less", "greater"],
+        ["exact", "approx", "asymp"],
+        [19, 20, 21],
+    ]
 
     def setup(self, alternative, mode, size):
         np.random.seed(12345678)
@@ -755,7 +828,11 @@ class KolmogorovSmirnov(Benchmark):
 class KolmogorovSmirnovTwoSamples(Benchmark):
     param_names = ["alternative", "mode", "size"]
     # No auto since it defaults to exact for 20 samples
-    params = [["two-sided", "less", "greater"], ["exact", "asymp"], [(21, 20), (20, 20)]]
+    params = [
+        ["two-sided", "less", "greater"],
+        ["exact", "asymp"],
+        [(21, 20), (20, 20)],
+    ]
 
     def setup(self, alternative, mode, size):
         np.random.seed(12345678)

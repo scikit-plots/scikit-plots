@@ -44,17 +44,20 @@ class Substitution:
     suitable for performing substitution; then decorate a suitable function
     with the constructed object, e.g.::
 
-        sub_author_name = Substitution(author='Jason')
+        sub_author_name = Substitution(author="Jason")
+
 
         @sub_author_name
         def some_function(x):
             "%(author)s wrote this function"
 
+
         # note that some_function.__doc__ is now "Jason wrote this function"
 
     One can also use positional arguments::
 
-        sub_first_last_names = Substitution('Edgar Allen', 'Poe')
+        sub_first_last_names = Substitution("Edgar Allen", "Poe")
+
 
         @sub_first_last_names
         def some_function(x):
@@ -80,7 +83,9 @@ class _ArtistKwdocLoader(dict):
         from matplotlib.artist import Artist, kwdoc
 
         try:
-            (cls,) = (cls for cls in _api.recursive_subclasses(Artist) if cls.__name__ == name)
+            (cls,) = (
+                cls for cls in _api.recursive_subclasses(Artist) if cls.__name__ == name
+            )
         except ValueError as e:
             raise KeyError(key) from e
         return self.setdefault(key, kwdoc(cls))

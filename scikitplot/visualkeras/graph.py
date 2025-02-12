@@ -9,9 +9,7 @@ from .layer_utils import *
 from .utils import *
 
 ## Define __all__ to specify the public interface of the module
-__all__ = [
-    "graph_view",
-]
+__all__ = ["graph_view"]
 
 
 def _draw_connector(draw, start_node, end_node, color, width):
@@ -84,6 +82,7 @@ def graph_view(
     -------
     image
         The generated architecture visualization image.
+
     """
     if color_map is None:
         color_map = dict()
@@ -108,7 +107,9 @@ def graph_view(
             else:
                 # Fallback
                 # Use the tensor's name or a default name if keras_history is not available
-                output_names.append(getattr(output, "name", f"output_{len(output_names)}"))
+                output_names.append(
+                    getattr(output, "name", f"output_{len(output_names)}")
+                )
 
     # Attach helper layers
 
@@ -119,7 +120,8 @@ def graph_view(
     model_layers.append(
         [
             _DummyLayer(
-                output_names[i], None if inout_as_tensor else self_multiply(model.output_shape[i])
+                output_names[i],
+                None if inout_as_tensor else self_multiply(model.output_shape[i]),
             )
             for i in range(len(model.outputs))
         ]
@@ -138,7 +140,6 @@ def graph_view(
         current_y = 0
         nodes = []
         for layer in layer_list:
-
             is_box = True
             units = 1
 
@@ -189,9 +190,13 @@ def graph_view(
 
     # Generate image
 
-    img_width = len(layers) * node_size + (len(layers) - 1) * layer_spacing + 2 * padding
+    img_width = (
+        len(layers) * node_size + (len(layers) - 1) * layer_spacing + 2 * padding
+    )
     img_height = max(*layer_y) + 2 * padding
-    img = Image.new("RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill)
+    img = Image.new(
+        "RGBA", (int(ceil(img_width)), int(ceil(img_height))), background_fill
+    )
 
     draw = aggdraw.Draw(img)
 
@@ -212,9 +217,15 @@ def graph_view(
         # draw connectors
         for start_node_idx, start_node in enumerate(start_layer_list):
             for end_node in end_layer_list:
-                if not isinstance(start_node, Ellipses) and not isinstance(end_node, Ellipses):
+                if not isinstance(start_node, Ellipses) and not isinstance(
+                    end_node, Ellipses
+                ):
                     _draw_connector(
-                        draw, start_node, end_node, color=connector_fill, width=connector_width
+                        draw,
+                        start_node,
+                        end_node,
+                        color=connector_fill,
+                        width=connector_width,
                     )
 
     for i, layer in enumerate(layers):

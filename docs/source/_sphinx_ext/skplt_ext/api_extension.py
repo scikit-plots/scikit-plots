@@ -27,7 +27,9 @@ def preprocess_templates(app: Sphinx):
     # Step 1: Create a Jinja environment instance
     jinja_env = jinja2.Environment(extensions=["jinja2.ext.i18n"])
     # Step 2: Register constants and functions globally
-    jinja_env.globals["imp0rt"] = importlib.import_module  # Make available in all templates
+    jinja_env.globals["imp0rt"] = (
+        importlib.import_module
+    )  # Make available in all templates
 
     # Get the source directory of the Sphinx documentation project
     srcdir = Path(app.srcdir)
@@ -40,7 +42,9 @@ def preprocess_templates(app: Sphinx):
             # Load the .rst.template file and render it using Jinja2
             with template_path.open("r", encoding="utf-8") as f:
                 # t = jinja2.Template(f.read())  # Use jinja2.Template to create the template
-                t = jinja_env.from_string(f.read())  # Use "from_string" to create the template
+                t = jinja_env.from_string(
+                    f.read()
+                )  # Use "from_string" to create the template
 
             # Render the template with kwargs variables and write to the corresponding .rst file
             with target_path.open("w", encoding="utf-8") as f:
@@ -72,7 +76,9 @@ def setup(app: Sphinx):
                 {
                     "API_REFERENCE": sorted(API_REFERENCE.items(), key=lambda x: x[0]),
                     "DEPRECATED_API_REFERENCE": sorted(
-                        DEPRECATED_API_REFERENCE.items(), key=lambda x: x[0], reverse=True
+                        DEPRECATED_API_REFERENCE.items(),
+                        key=lambda x: x[0],
+                        reverse=True,
                     ),
                 },
             ),
@@ -96,7 +102,9 @@ def setup(app: Sphinx):
                     "api/deprecated",
                     {
                         "DEPRECATED_API_REFERENCE": sorted(
-                            DEPRECATED_API_REFERENCE.items(), key=lambda x: x[0], reverse=True
+                            DEPRECATED_API_REFERENCE.items(),
+                            key=lambda x: x[0],
+                            reverse=True,
                         )
                     },
                 )
@@ -108,7 +116,9 @@ def setup(app: Sphinx):
 
         # Connect the `preprocess_templates` function to ensure templates are rendered
         app.connect("builder-inited", preprocess_templates)
-        logger.info("Connected 'preprocess_templates' function to 'builder-inited' event")
+        logger.info(
+            "Connected 'preprocess_templates' function to 'builder-inited' event"
+        )
     except Exception as e:
         logger.error(f"Failed to set up Sphinx extension: {e}")
 

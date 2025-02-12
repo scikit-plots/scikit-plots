@@ -26,7 +26,8 @@ def disable_plot_gallery_for_linkcheck(app: Sphinx):
 
 
 def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
-    """Load additional JS and CSS files only for certain pages in a specific order.
+    """
+    Load additional JS and CSS files only for certain pages in a specific order.
 
     Note that `html_js_files` and `html_css_files` are included in all pages and
     should be used for the ones that are used by multiple pages. All page-specific
@@ -96,7 +97,9 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
         # logger.info("Adding JS and CSS files for page: %s", pagename)
     elif pagename == "index":
         # External: Include Prism.js for syntax highlighting
-        app.add_js_file("https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js")
+        app.add_js_file(
+            "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"
+        )
         app.add_js_file(
             "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js"
         )
@@ -105,7 +108,7 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
         # External: Link to Prism.js CSS for syntax highlighting
         app.add_css_file(
             "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css",
-            # priority=500,  # Load befor
+            # priority=500,  # Load before
         )
         # Internal: Link to custom CSS for styling
         app.add_css_file(index_css_path)
@@ -139,9 +142,7 @@ def make_carousel_thumbs(app: Sphinx, exception):
 
 
 def setup(app: Sphinx):
-    """
-    Set up the Sphinx application with custom event handlers and configuration.
-    """
+    """Set up the Sphinx application with custom event handlers and configuration."""
     logger.info("Setting up Sphinx application")
 
     try:
@@ -149,7 +150,9 @@ def setup(app: Sphinx):
         # do not run the examples when using linkcheck by using a small priority
         # (default priority is 500 and sphinx-gallery using builder-inited event too)
         app.connect("builder-inited", disable_plot_gallery_for_linkcheck, priority=50)
-        logger.info("Connected 'disable_plot_gallery_for_linkcheck' to 'builder-inited' event")
+        logger.info(
+            "Connected 'disable_plot_gallery_for_linkcheck' to 'builder-inited' event"
+        )
     except Exception as e:
         logger.error(f"Failed to connect 'disable_plot_gallery_for_linkcheck': {e}")
 

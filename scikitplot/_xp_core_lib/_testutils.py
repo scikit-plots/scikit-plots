@@ -1,7 +1,4 @@
-"""
-Generic test utilities.
-
-"""
+"""Generic test utilities."""
 
 import inspect
 import os
@@ -32,7 +29,7 @@ else:
         cython = None
 
 
-__all__ = ["PytestTester", "check_free_memory", "_TestPythranFunc", "IS_MUSL"]
+__all__ = ["IS_MUSL", "PytestTester", "_TestPythranFunc", "check_free_memory"]
 
 
 IS_MUSL = False
@@ -52,8 +49,6 @@ IS_EDITABLE = "editable" in scikitplot.__path__[0]
 
 class FPUModeChangeWarning(RuntimeWarning):
     """Warning about FPU mode change"""
-
-    pass
 
 
 class PytestTester:
@@ -184,8 +179,7 @@ class _TestPythranFunc:
         max_len = 0
         for arg_idx in self.arguments:
             cur_len = len(self.arguments[arg_idx][1])
-            if cur_len > max_len:
-                max_len = cur_len
+            max_len = max(max_len, cur_len)
         return max_len
 
     def get_dtype(self, dtype_list, dtype_idx):
@@ -193,8 +187,7 @@ class _TestPythranFunc:
         # if the index is out of range, then return the last dtype
         if dtype_idx > len(dtype_list) - 1:
             return dtype_list[-1]
-        else:
-            return dtype_list[dtype_idx]
+        return dtype_list[dtype_idx]
 
     def test_all_dtypes(self):
         for type_idx in range(self.get_max_dtype_list_length()):
@@ -218,9 +211,7 @@ class _TestPythranFunc:
 
 
 def _pytest_has_xdist():
-    """
-    Check if the pytest-xdist plugin is installed, providing parallel tests
-    """
+    """Check if the pytest-xdist plugin is installed, providing parallel tests"""
     # Check xdist exists without importing, otherwise pytests emits warnings
     from importlib.util import find_spec
 
@@ -228,9 +219,7 @@ def _pytest_has_xdist():
 
 
 def check_free_memory(free_mb):
-    """
-    Check *free_mb* of memory is available, otherwise do pytest.skip
-    """
+    """Check *free_mb* of memory is available, otherwise do pytest.skip"""
     import pytest
 
     try:
@@ -245,7 +234,7 @@ def check_free_memory(free_mb):
                 "Could not determine available memory; set SKPLT_AVAILABLE_MEM "
                 "variable to free memory in MB to run the test."
             )
-        msg = f"{free_mb} MB memory required, but {mem_free/1e6} MB available"
+        msg = f"{free_mb} MB memory required, but {mem_free / 1e6} MB available"
 
     if mem_free < free_mb * 1e6:
         pytest.skip(msg)
@@ -268,7 +257,11 @@ def _parse_size(size_str):
         "Gib": 1024.0**3,
         "Tib": 1024.0**4,
     }
-    m = re.match(r"^\s*(\d+)\s*({})\s*$".format("|".join(suffixes.keys())), size_str, re.I)
+    m = re.match(
+        r"^\s*(\d+)\s*({})\s*$".format("|".join(suffixes.keys())),
+        size_str,
+        re.IGNORECASE,
+    )
     if not m or m.group(2) not in suffixes:
         raise ValueError("Invalid size string")
 
@@ -276,9 +269,7 @@ def _parse_size(size_str):
 
 
 def _get_mem_available():
-    """
-    Get information about memory available, not counting swap.
-    """
+    """Get information about memory available, not counting swap."""
     try:
         import psutil
 
@@ -296,8 +287,7 @@ def _get_mem_available():
         if "memavailable" in info:
             # Linux >= 3.14
             return info["memavailable"]
-        else:
-            return info["memfree"] + info["cached"]
+        return info["memfree"] + info["cached"]
 
     return None
 
@@ -346,7 +336,8 @@ def _test_cython_extension(tmp_path, srcdir):
         )
     else:
         subprocess.check_call(
-            ["meson", "setup", "--native-file", native_file, str(build_dir)], cwd=target_dir
+            ["meson", "setup", "--native-file", native_file, str(build_dir)],
+            cwd=target_dir,
         )
     subprocess.check_call(["meson", "compile", "-vv"], cwd=target_dir)
 
@@ -373,7 +364,7 @@ def _run_concurrent_barrier(n_workers, fn, *args, **kwargs):
     parameter gets called concurrently by setting up a barrier before it gets
     called before any of the threads.
 
-    Arguments
+    Arguments:
     ---------
     n_workers: int
         Number of concurrent threads to spawn.
@@ -384,6 +375,7 @@ def _run_concurrent_barrier(n_workers, fn, *args, **kwargs):
         Variable number of positional arguments to pass to the function.
     **kwargs: dict
         Keyword arguments to pass to the function.
+
     """
     barrier = threading.Barrier(n_workers)
 
@@ -392,8 +384,10 @@ def _run_concurrent_barrier(n_workers, fn, *args, **kwargs):
         fn(i, *args, **kwargs)
 
     workers = []
-    for i in range(0, n_workers):
-        workers.append(threading.Thread(target=closure, args=(i,) + args, kwargs=kwargs))
+    for i in range(n_workers):
+        workers.append(
+            threading.Thread(target=closure, args=(i,) + args, kwargs=kwargs)
+        )
 
     for worker in workers:
         worker.start()

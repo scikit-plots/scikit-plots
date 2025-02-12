@@ -7,12 +7,6 @@ enforcing Python 3-like behavior in Python 2.
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import types
 import warnings
@@ -30,10 +24,10 @@ import scikitplot as skplt
 __all__ = [
     "classifier_factory",
     "plot_confusion_matrix_with_cv",
-    "plot_roc_curve_with_cv",
+    "plot_ks_statistic_with_cv",
+    "plot_ks_statistic_with_cv",
     "plot_precision_recall_curve_with_cv",
-    "plot_ks_statistic_with_cv",
-    "plot_ks_statistic_with_cv",
+    "plot_roc_curve_with_cv",
 ]
 
 
@@ -46,7 +40,8 @@ __all__ = [
     "different from that of the Factory API."
 )
 def classifier_factory(clf):
-    """Embeds scikit-plot instance methods in an sklearn classifier.
+    """
+    Embeds scikit-plot instance methods in an sklearn classifier.
 
     Args:
         clf: Scikit-learn classifier instance
@@ -58,13 +53,14 @@ def classifier_factory(clf):
     Raises:
         ValueError: If **clf** does not contain the instance methods
             necessary for scikit-plot instance methods.
+
     """
     required_methods = ["fit", "score", "predict"]
 
     for method in required_methods:
         if not hasattr(clf, method):
             raise TypeError(
-                '"{}" is not in clf. Did you pass a ' "classifier instance?".format(method)
+                f'"{method}" is not in clf. Did you pass a classifier instance?'
             )
 
     optional_methods = ["predict_proba"]
@@ -72,7 +68,7 @@ def classifier_factory(clf):
     for method in optional_methods:
         if not hasattr(clf, method):
             warnings.warn(
-                "{} not in clf. Some plots may " "not be possible to generate.".format(method)
+                f"{method} not in clf. Some plots may not be possible to generate."
             )
 
     additional_methods = {
@@ -87,9 +83,9 @@ def classifier_factory(clf):
     for key, fn in six.iteritems(additional_methods):
         if hasattr(clf, key):
             warnings.warn(
-                '"{}" method already in clf. '
+                f'"{key}" method already in clf. '
                 "Overriding anyway. This may "
-                "result in unintended behavior.".format(key)
+                "result in unintended behavior."
             )
         setattr(clf, key, types.MethodType(fn, clf))
     return clf
@@ -116,7 +112,8 @@ def plot_confusion_matrix_with_cv(
     title_fontsize="large",
     text_fontsize="medium",
 ):
-    """Generates the confusion matrix for a given classifier and dataset.
+    """
+    Generates the confusion matrix for a given classifier and dataset.
 
     Args:
         clf: Classifier instance that implements ``fit`` and ``predict``
@@ -217,6 +214,7 @@ def plot_confusion_matrix_with_cv(
         .. image:: /images/examples/plot_confusion_matrix.png
            :align: center
            :alt: Confusion matrix
+
     """
     y = np.array(y)
 
@@ -228,7 +226,9 @@ def plot_confusion_matrix_with_cv(
         if cv is None:
             cv = StratifiedKFold(shuffle=shuffle, random_state=random_state)
         elif isinstance(cv, int):
-            cv = StratifiedKFold(n_splits=cv, shuffle=shuffle, random_state=random_state)
+            cv = StratifiedKFold(
+                n_splits=cv, shuffle=shuffle, random_state=random_state
+            )
         else:
             pass
 
@@ -282,7 +282,8 @@ def plot_roc_curve_with_cv(
     title_fontsize="large",
     text_fontsize="medium",
 ):
-    """Generates the ROC curves for a given classifier and dataset.
+    """
+    Generates the ROC curves for a given classifier and dataset.
 
     Args:
         clf: Classifier instance that implements ``fit`` and ``predict``
@@ -364,11 +365,14 @@ def plot_roc_curve_with_cv(
         .. image:: /images/examples/plot_roc_curve.png
            :align: center
            :alt: ROC Curves
+
     """
     y = np.array(y)
 
     if not hasattr(clf, "predict_proba"):
-        raise TypeError('"predict_proba" method not in classifier. ' "Cannot calculate ROC Curve.")
+        raise TypeError(
+            '"predict_proba" method not in classifier. Cannot calculate ROC Curve.'
+        )
 
     if not do_cv:
         probas = clf.predict_proba(X)
@@ -378,7 +382,9 @@ def plot_roc_curve_with_cv(
         if cv is None:
             cv = StratifiedKFold(shuffle=shuffle, random_state=random_state)
         elif isinstance(cv, int):
-            cv = StratifiedKFold(n_splits=cv, shuffle=shuffle, random_state=random_state)
+            cv = StratifiedKFold(
+                n_splits=cv, shuffle=shuffle, random_state=random_state
+            )
         else:
             pass
 
@@ -426,7 +432,8 @@ def plot_ks_statistic_with_cv(
     title_fontsize="large",
     text_fontsize="medium",
 ):
-    """Generates the KS Statistic plot for a given classifier and dataset.
+    """
+    Generates the KS Statistic plot for a given classifier and dataset.
 
     Args:
         clf: Classifier instance that implements "fit" and "predict_proba"
@@ -498,11 +505,14 @@ def plot_ks_statistic_with_cv(
         .. image:: /images/examples/plot_ks_statistic.png
            :align: center
            :alt: KS Statistic
+
     """
     y = np.array(y)
 
     if not hasattr(clf, "predict_proba"):
-        raise TypeError('"predict_proba" method not in classifier. ' "Cannot calculate ROC Curve.")
+        raise TypeError(
+            '"predict_proba" method not in classifier. Cannot calculate ROC Curve.'
+        )
 
     if not do_cv:
         probas = clf.predict_proba(X)
@@ -512,7 +522,9 @@ def plot_ks_statistic_with_cv(
         if cv is None:
             cv = StratifiedKFold(shuffle=shuffle, random_state=random_state)
         elif isinstance(cv, int):
-            cv = StratifiedKFold(n_splits=cv, shuffle=shuffle, random_state=random_state)
+            cv = StratifiedKFold(
+                n_splits=cv, shuffle=shuffle, random_state=random_state
+            )
         else:
             pass
 
@@ -559,7 +571,8 @@ def plot_precision_recall_curve_with_cv(
     title_fontsize="large",
     text_fontsize="medium",
 ):
-    """Generates the Precision-Recall curve for a given classifier and dataset.
+    """
+    Generates the Precision-Recall curve for a given classifier and dataset.
 
     Args:
         clf: Classifier instance that implements "fit" and "predict_proba"
@@ -640,12 +653,14 @@ def plot_precision_recall_curve_with_cv(
         .. image:: /images/examples/plot_precision_recall_curve.png
            :align: center
            :alt: Precision Recall Curve
+
     """
     y = np.array(y)
 
     if not hasattr(clf, "predict_proba"):
         raise TypeError(
-            '"predict_proba" method not in classifier. ' "Cannot calculate Precision-Recall Curve."
+            '"predict_proba" method not in classifier. '
+            "Cannot calculate Precision-Recall Curve."
         )
 
     if not do_cv:
@@ -656,7 +671,9 @@ def plot_precision_recall_curve_with_cv(
         if cv is None:
             cv = StratifiedKFold(shuffle=shuffle, random_state=random_state)
         elif isinstance(cv, int):
-            cv = StratifiedKFold(n_splits=cv, shuffle=shuffle, random_state=random_state)
+            cv = StratifiedKFold(
+                n_splits=cv, shuffle=shuffle, random_state=random_state
+            )
         else:
             pass
 

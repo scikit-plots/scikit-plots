@@ -1,20 +1,22 @@
 """Control plot style and scaling using the matplotlib rcParams interface."""
 
 import functools
+
 import matplotlib as mpl
 from cycler import cycler
+
 from . import palettes
 
 __all__ = [
-    "set_theme",
-    "set",
+    "axes_style",
+    "plotting_context",
     "reset_defaults",
     "reset_orig",
-    "axes_style",
-    "set_style",
-    "plotting_context",
+    "set",
     "set_context",
     "set_palette",
+    "set_style",
+    "set_theme",
 ]
 
 
@@ -85,7 +87,7 @@ def set_theme(
     Set aspects of the visual theme for all matplotlib and seaborn plots.
 
     This function changes the global defaults for all plots using the
-    matplotlib rcParams system. The themeing is decomposed into several distinct
+    matplotlib rcParams system. The theming is decomposed into several distinct
     sets of parameter values.
 
     The options are illustrated in the :doc:`aesthetics <../tutorial/aesthetics>`
@@ -183,7 +185,7 @@ def axes_style(style=None, rc=None):
     else:
         styles = ["white", "dark", "whitegrid", "darkgrid", "ticks"]
         if style not in styles:
-            raise ValueError(f"style must be one of {', '.join(styles)}")
+            raise ValueError(f'style must be one of {", ".join(styles)}')
 
         # Define colors here
         dark_gray = ".15"
@@ -218,17 +220,9 @@ def axes_style(style=None, rc=None):
 
         # Set grid on or off
         if "grid" in style:
-            style_dict.update(
-                {
-                    "axes.grid": True,
-                }
-            )
+            style_dict.update({"axes.grid": True})
         else:
-            style_dict.update(
-                {
-                    "axes.grid": False,
-                }
-            )
+            style_dict.update({"axes.grid": False})
 
         # Set the color of the background, spines, and grids
         if style.startswith("dark"):
@@ -272,19 +266,9 @@ def axes_style(style=None, rc=None):
 
         # Show or hide the axes ticks
         if style == "ticks":
-            style_dict.update(
-                {
-                    "xtick.bottom": True,
-                    "ytick.left": True,
-                }
-            )
+            style_dict.update({"xtick.bottom": True, "ytick.left": True})
         else:
-            style_dict.update(
-                {
-                    "xtick.bottom": False,
-                    "ytick.left": False,
-                }
-            )
+            style_dict.update({"xtick.bottom": False, "ytick.left": False})
 
     # Remove entries that are not defined in the base list of valid keys
     # This lets us handle matplotlib <=/> 2.0
@@ -374,10 +358,9 @@ def plotting_context(context=None, font_scale=1, rc=None):
         context_dict = context
 
     else:
-
         contexts = ["paper", "notebook", "talk", "poster"]
         if context not in contexts:
-            raise ValueError(f"context must be in {', '.join(contexts)}")
+            raise ValueError(f'context must be in {", ".join(contexts)}')
 
         # Set up dictionary of default parameters
         texts_base_context = {
@@ -497,7 +480,8 @@ class _PlottingContext(_RCAesthetics):
 
 
 def set_palette(palette, n_colors=None, desat=None, color_codes=False):
-    """Set the matplotlib color cycle using a seaborn palette.
+    """
+    Set the matplotlib color cycle using a seaborn palette.
 
     Parameters
     ----------

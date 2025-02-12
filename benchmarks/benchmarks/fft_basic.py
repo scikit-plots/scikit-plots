@@ -26,7 +26,7 @@ with safe_import() as exc:
     pyfftw.interfaces.cache.enable()
     has_pyfftw = True
 if exc.error:
-    pyfftw_fft = {}  # noqa: F811
+    pyfftw_fft = {}
     has_pyfftw = False
 
 
@@ -68,7 +68,11 @@ def direct_idft(x):
 
 
 def get_module(mod_name):
-    module_map = {"scipy.fftpack": scipy.fftpack, "scipy.fft": scipy_fft, "numpy.fft": numpy.fft}
+    module_map = {
+        "scipy.fftpack": scipy.fftpack,
+        "scipy.fft": scipy_fft,
+        "numpy.fft": numpy.fft,
+    }
 
     if not has_scipy_fft and mod_name == "scipy.fft":
         raise NotImplementedError
@@ -86,13 +90,15 @@ class Fft(Benchmark):
 
     def setup(self, size, cmplx, module):
         if cmplx == "cmplx":
-            self.x = random([size]).astype(cdouble) + random([size]).astype(cdouble) * 1j
+            self.x = (
+                random([size]).astype(cdouble) + random([size]).astype(cdouble) * 1j
+            )
         else:
             self.x = random([size]).astype(double)
 
         module = get_module(module)
-        self.fft = getattr(module, "fft")
-        self.ifft = getattr(module, "ifft")
+        self.fft = module.fft
+        self.ifft = module.ifft
 
     def time_fft(self, size, cmplx, module):
         self.fft(self.x)
@@ -140,8 +146,8 @@ class RFft(Benchmark):
         self.x = random([size]).astype(double)
 
         module = get_module(module)
-        self.rfft = getattr(module, "rfft")
-        self.irfft = getattr(module, "irfft")
+        self.rfft = module.rfft
+        self.irfft = module.irfft
 
         self.y = self.rfft(self.x)
 
@@ -162,8 +168,8 @@ class RealTransforms1D(Benchmark):
 
     def setup(self, size, type, module):
         module = get_module(module)
-        self.dct = getattr(module, "dct")
-        self.dst = getattr(module, "dst")
+        self.dct = module.dct
+        self.dst = module.dst
         self.type = {"I": 1, "II": 2, "III": 3, "IV": 4}[type]
 
         # The "logical" transform size should be smooth, which for dct/dst
@@ -201,7 +207,7 @@ class Fftn(Benchmark):
         else:
             self.x = random(size).astype(cdouble) + random(size).astype(cdouble) * 1j
 
-        self.fftn = getattr(get_module(module), "fftn")
+        self.fftn = get_module(module).fftn
 
     def time_fftn(self, size, cmplx, module):
         self.fftn(self.x)
@@ -216,8 +222,8 @@ class RealTransformsND(Benchmark):
     param_names = ["size", "type", "module"]
 
     def setup(self, size, type, module):
-        self.dctn = getattr(get_module(module), "dctn")
-        self.dstn = getattr(get_module(module), "dstn")
+        self.dctn = get_module(module).dctn
+        self.dstn = get_module(module).dstn
         self.type = {"I": 1, "II": 2, "III": 3, "IV": 4}[type]
 
         # The "logical" transform size should be smooth, which for dct/dst
@@ -251,7 +257,9 @@ class FftBackends(Benchmark):
         import scipy.fft
 
         if cmplx == "cmplx":
-            self.x = random([size]).astype(cdouble) + random([size]).astype(cdouble) * 1j
+            self.x = (
+                random([size]).astype(cdouble) + random([size]).astype(cdouble) * 1j
+            )
         else:
             self.x = random([size]).astype(double)
 
@@ -339,7 +347,8 @@ class FftThreading(Benchmark):
 
         size = list(map(int, size.split("x")))
         self.xs = [
-            (random(size) + 1j * random(size)).astype(np.complex128) for _ in range(num_transforms)
+            (random(size) + 1j * random(size)).astype(np.complex128)
+            for _ in range(num_transforms)
         ]
 
         if method == "threading":

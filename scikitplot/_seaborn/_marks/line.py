@@ -1,19 +1,20 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import ClassVar
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 from .._marks.base import (
-    Mark,
     Mappable,
+    MappableColor,
     MappableFloat,
     MappableString,
-    MappableColor,
-    resolve_properties,
-    resolve_color,
+    Mark,
     document_properties,
+    resolve_color,
+    resolve_properties,
 )
 
 
@@ -23,7 +24,7 @@ class Path(Mark):
     """
     A mark connecting data points in the order they appear.
 
-    See also
+    See Also
     --------
     Line : A mark connecting data points with sorting along the orientation axis.
     Paths : A faster but less-flexible mark for drawing many paths.
@@ -47,9 +48,7 @@ class Path(Mark):
     _sort: ClassVar[bool] = False
 
     def _plot(self, split_gen, scales, orient):
-
         for keys, data, ax in split_gen(keep_na=not self._sort):
-
             vals = resolve_properties(self, keys, scales)
             vals["color"] = resolve_color(self, keys, scales=scales)
             vals["fillcolor"] = resolve_color(self, keys, prefix="fill", scales=scales)
@@ -77,7 +76,6 @@ class Path(Mark):
             ax.add_line(line)
 
     def _legend_artist(self, variables, value, scales):
-
         keys = {v: value for v in variables}
         vals = resolve_properties(self, keys, scales)
         vals["color"] = resolve_color(self, keys, scales=scales)
@@ -102,7 +100,6 @@ class Path(Mark):
         )
 
     def _handle_capstyle(self, kws, vals):
-
         # Work around for this matplotlib issue:
         # https://github.com/matplotlib/matplotlib/issues/23437
         if vals["linestyle"][1] is None:
@@ -116,7 +113,7 @@ class Line(Path):
     """
     A mark connecting data points with sorting along the orientation axis.
 
-    See also
+    See Also
     --------
     Path : A mark connecting data points in the order they appear.
     Lines : A faster but less-flexible mark for drawing many lines.
@@ -136,7 +133,7 @@ class Paths(Mark):
     """
     A faster but less-flexible mark for drawing many paths.
 
-    See also
+    See Also
     --------
     Path : A mark connecting data points in the order they appear.
 
@@ -154,7 +151,6 @@ class Paths(Mark):
     _sort: ClassVar[bool] = False
 
     def __post_init__(self):
-
         # LineCollection artists have a capstyle property but don't source its value
         # from the rc, so we do that manually here. Unfortunately, because we add
         # only one LineCollection, we have the use the same capstyle for all lines
@@ -162,10 +158,8 @@ class Paths(Mark):
         self.artist_kws.setdefault("capstyle", mpl.rcParams["lines.solid_capstyle"])
 
     def _plot(self, split_gen, scales, orient):
-
         line_data = {}
         for keys, data, ax in split_gen(keep_na=not self._sort):
-
             if ax not in line_data:
                 line_data[ax] = {
                     "segments": [],
@@ -195,7 +189,6 @@ class Paths(Mark):
                 ax.update_datalim(xy)
 
     def _legend_artist(self, variables, value, scales):
-
         key = resolve_properties(self, {v: value for v in variables}, scales)
 
         artist_kws = self.artist_kws.copy()
@@ -213,7 +206,6 @@ class Paths(Mark):
         )
 
     def _setup_segments(self, data, orient):
-
         if self._sort:
             data = data.sort_values(orient, kind="mergesort")
 
@@ -229,7 +221,7 @@ class Lines(Paths):
     """
     A faster but less-flexible mark for drawing many lines.
 
-    See also
+    See Also
     --------
     Line : A mark connecting data points with sorting along the orientation axis.
 
@@ -255,7 +247,6 @@ class Range(Paths):
     """
 
     def _setup_segments(self, data, orient):
-
         # TODO better checks on what variables we have
         # TODO what if only one exist?
         val = {"x": "y", "y": "x"}[orient]
@@ -284,7 +275,6 @@ class Dash(Paths):
     width: MappableFloat = Mappable(0.8, grouping=False)
 
     def _setup_segments(self, data, orient):
-
         ori = ["x", "y"].index(orient)
         xys = data[["x", "y"]].to_numpy().astype(float)
         segments = np.stack([xys, xys], axis=1)

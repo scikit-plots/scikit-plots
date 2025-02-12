@@ -47,12 +47,15 @@ def render_templates(template_dir, template_vars):
 
     This will generate `example` and `another` files in their respective directories
     with the variables replaced.
+
     """
     # Set up the Jinja2 environment to load templates from the specified directory
     env = Environment(loader=FileSystemLoader(template_dir))
 
     # Use glob to find all .template files in the directory and its subdirectories
-    template_files = glob.glob(os.path.join(template_dir, "**", "*.template"), recursive=True)
+    template_files = glob.glob(
+        os.path.join(template_dir, "**", "*.template"), recursive=True
+    )
 
     for template_path in template_files:
         # Load the template
@@ -64,7 +67,8 @@ def render_templates(template_dir, template_vars):
 
         # Determine the output filename by removing the .template extension
         output_filename = os.path.join(
-            os.path.dirname(template_path), os.path.basename(template_path).replace(".template", "")
+            os.path.dirname(template_path),
+            os.path.basename(template_path).replace(".template", ""),
         )
 
         # Write the rendered content to the output file

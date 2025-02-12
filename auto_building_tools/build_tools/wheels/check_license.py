@@ -1,4 +1,4 @@
-"""Checks the bundled license is installed with the wheel."""  # noqa: CPY001
+"""Checks the bundled license is installed with the wheel."""
 
 import platform
 import site
@@ -25,5 +25,6 @@ license_text = (distinfo_path / "COPYING").read_text()
 assert "Copyright (c)" in license_text
 
 assert (
-    "This binary distribution of scikit-learn also bundles the following software" in license_text
+    "This binary distribution of scikit-learn also bundles the following software"
+    in license_text
 ), f"Unable to find bundled license for {platform.system()}"

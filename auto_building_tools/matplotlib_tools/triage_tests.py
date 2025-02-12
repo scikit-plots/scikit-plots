@@ -48,9 +48,7 @@ exts = ["pdf", "svg", "eps"]
 
 
 class Thumbnail(QtWidgets.QFrame):
-    """
-    Represents one of the three thumbnails at the top of the window.
-    """
+    """Represents one of the three thumbnails at the top of the window."""
 
     def __init__(self, parent, index, name):
         super().__init__()
@@ -90,14 +88,11 @@ class EventFilter(QtCore.QObject):
         if event.type() == QtCore.QEvent.Type.KeyPress:
             self.window.keyPressEvent(event)
             return True
-        else:
-            return super().eventFilter(receiver, event)
+        return super().eventFilter(receiver, event)
 
 
 class Dialog(QtWidgets.QDialog):
-    """
-    The main dialog window.
-    """
+    """The main dialog window."""
 
     def __init__(self, entries):
         super().__init__()
@@ -179,13 +174,19 @@ class Dialog(QtWidgets.QDialog):
         self.filelist.setCurrentRow(self.current_entry)
 
     def set_large_image(self, index):
-        self.thumbnails[self.current_thumbnail].setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.thumbnails[self.current_thumbnail].setFrameShape(
+            QtWidgets.QFrame.Shape.NoFrame
+        )
         self.current_thumbnail = index
         pixmap = QtGui.QPixmap(
-            os.fspath(self.entries[self.current_entry].thumbnails[self.current_thumbnail])
+            os.fspath(
+                self.entries[self.current_entry].thumbnails[self.current_thumbnail]
+            )
         )
         self.image_display.setPixmap(pixmap)
-        self.thumbnails[self.current_thumbnail].setFrameShape(QtWidgets.QFrame.Shape.Box)
+        self.thumbnails[self.current_thumbnail].setFrameShape(
+            QtWidgets.QFrame.Shape.Box
+        )
 
     def accept_test(self):
         entry = self.entries[self.current_entry]
@@ -225,9 +226,7 @@ class Dialog(QtWidgets.QDialog):
 
 
 class Entry:
-    """
-    A model for a single image comparison test.
-    """
+    """A model for a single image comparison test."""
 
     def __init__(self, path, root, source):
         self.source = source
@@ -296,16 +295,12 @@ class Entry:
         return f"{box} {self.name} [{self.extension}]"
 
     def accept(self):
-        """
-        Accept this test by copying the generated result to the source tree.
-        """
+        """Accept this test by copying the generated result to the source tree."""
         copy_file(self.dir / self.generated, self.destdir / self.generated)
         self.status = "accept"
 
     def reject(self):
-        """
-        Reject this test by copying the expected result to the source tree.
-        """
+        """Reject this test by copying the expected result to the source tree."""
         expected = self.dir / self.expected
         if not expected.is_symlink():
             copy_file(expected, self.destdir / self.generated)
@@ -330,9 +325,7 @@ def find_failing_tests(result_images, source):
 
 
 def launch(result_images, source):
-    """
-    Launch the GUI.
-    """
+    """Launch the GUI."""
     entries = find_failing_tests(result_images, source)
 
     if len(entries) == 0:

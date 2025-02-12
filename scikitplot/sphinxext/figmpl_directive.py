@@ -88,7 +88,6 @@ class FigureMpl(Figure):
     }
 
     def run(self):
-
         image_node = figmplnode()
 
         imagenm = self.arguments[0]
@@ -111,9 +110,7 @@ class FigureMpl(Figure):
 
 
 def _parse_srcsetNodes(st):
-    """
-    parse srcset...
-    """
+    """Parse srcset..."""
     entries = st.split(",")
     srcset = {}
     for entry in entries:
@@ -129,7 +126,6 @@ def _parse_srcsetNodes(st):
 
 
 def _copy_images_figmpl(self, node):
-
     # these will be the temporary place the plot-directive put the images eg:
     # ../../../build/html/plot_directive/users/explain/artists/index-1.png
     if node["srcset"]:
@@ -168,7 +164,6 @@ def _copy_images_figmpl(self, node):
 
 
 def visit_figmpl_html(self, node):
-
     imagedir, srcset, rel = _copy_images_figmpl(self, node)
 
     # /doc/examples/subd/plot_1.rst
@@ -240,7 +235,8 @@ def visit_figmpl_html(self, node):
     # </figcaption>
     # </figure>
     img_block = (
-        f'<img src="{uri}" style="{stylest}" srcset="{srcsetst}" ' f'alt="{alt}" {classst}/>'
+        f'<img src="{uri}" style="{stylest}" srcset="{srcsetst}" '
+        f'alt="{alt}" {classst}/>'
     )
     html_block = f'<figure class="align-{figalign}">\n'
     html_block += f'  <a class="reference internal image-reference" href="{maxsrc}">\n'
@@ -254,7 +250,6 @@ def visit_figmpl_html(self, node):
 
 
 def visit_figmpl_latex(self, node):
-
     if node["srcset"] is not None:
         imagedir, srcset = _copy_images_figmpl(self, node)
         maxmult = -1

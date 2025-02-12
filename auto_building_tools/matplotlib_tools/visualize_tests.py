@@ -58,12 +58,12 @@ linked_image_template = '<a href="{0}"><img src="{0}"></a>'
 
 
 def run(show_browser=True):
-    """
-    Build a website for visual comparison
-    """
+    """Build a website for visual comparison"""
     image_dir = "result_images"
     _subdirs = (
-        name for name in os.listdir(image_dir) if os.path.isdir(os.path.join(image_dir, name))
+        name
+        for name in os.listdir(image_dir)
+        if os.path.isdir(os.path.join(image_dir, name))
     )
 
     failed_rows = []
@@ -112,21 +112,29 @@ def run(show_browser=True):
                 status = " (failed)"
                 failed = f'<a href="{test["diff"]}">diff</a>'
                 current = linked_image_template.format(actual_image)
-                failed_rows.append(row_template.format(name, "", current, expected_image, failed))
+                failed_rows.append(
+                    row_template.format(name, "", current, expected_image, failed)
+                )
             elif "actual" not in test:
                 # A failure in the test, resulting in no current image
                 status = " (failed)"
                 failed = "--"
                 current = "(Failure in test, no image produced)"
-                failed_rows.append(row_template.format(name, "", current, expected_image, failed))
+                failed_rows.append(
+                    row_template.format(name, "", current, expected_image, failed)
+                )
             else:
                 status = " (passed)"
                 failed = "--"
                 current = linked_image_template.format(actual_image)
 
-            subdir_rows.append(row_template.format(name, status, current, expected_image, failed))
+            subdir_rows.append(
+                row_template.format(name, status, current, expected_image, failed)
+            )
 
-        body_sections.append(subdir_template.format(subdir=subdir, rows="\n".join(subdir_rows)))
+        body_sections.append(
+            subdir_template.format(subdir=subdir, rows="\n".join(subdir_rows))
+        )
 
     if failed_rows:
         failed = failed_template.format(rows="\n".join(failed_rows))
@@ -154,7 +162,9 @@ def run(show_browser=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--no-browser", action="store_true", help="Don't show browser after creating index page."
+        "--no-browser",
+        action="store_true",
+        help="Don't show browser after creating index page.",
     )
     args = parser.parse_args()
     run(show_browser=not args.no_browser)

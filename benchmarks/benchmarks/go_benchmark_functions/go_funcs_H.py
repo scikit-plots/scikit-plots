@@ -97,7 +97,12 @@ class Hartmann3(Benchmark):
         self.fglob = -3.8627821478
 
         self.a = asarray(
-            [[3.0, 10.0, 30.0], [0.1, 10.0, 35.0], [3.0, 10.0, 30.0], [0.1, 10.0, 35.0]]
+            [
+                [3.0, 10.0, 30.0],
+                [0.1, 10.0, 35.0],
+                [3.0, 10.0, 30.0],
+                [0.1, 10.0, 35.0],
+            ]
         )
 
         self.p = asarray(
@@ -339,7 +344,9 @@ class HolderTable(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return -abs(sin(x[0]) * cos(x[1]) * exp(abs(1 - sqrt(x[0] ** 2 + x[1] ** 2) / pi)))
+        return -abs(
+            sin(x[0]) * cos(x[1]) * exp(abs(1 - sqrt(x[0] ** 2 + x[1] ** 2) / pi))
+        )
 
 
 class Hosaki(Benchmark):

@@ -18,12 +18,12 @@ class ShortSummaryDocumenter(ModuleLevelDocumenter):
 
     @classmethod
     def can_document_member(cls, member, membername, isattr, parent):
-        """Allow documenting any object.
+        """
+        Allow documenting any object.
 
         Dynamically checks if an object can be documented based on its type.
         This checks if the member is a function, class, data, module, etc.
         """
-
         # Check if it's a function
         if inspect.isfunction(member):
             cls.objtype = "function"  # Treat as a function
@@ -44,7 +44,9 @@ class ShortSummaryDocumenter(ModuleLevelDocumenter):
             cls.objtype = "data"  # Treat as data if it's an instance of a class
         # Check if the member is a constant or simple module-level variable (data)
         elif isinstance(member, (int, float, str, bool, complex, dict, list)):
-            cls.objtype = "data"  # Treat as data if it's a simple module-level constant or value
+            cls.objtype = (
+                "data"  # Treat as data if it's a simple module-level constant or value
+            )
         # Default fallback for unrecognized types
         else:
             cls.objtype = "shortsummary"  # Default to short summary for unknown types
@@ -57,10 +59,10 @@ class ShortSummaryDocumenter(ModuleLevelDocumenter):
 
     def add_directive_header(self, sig):
         """Override default behavior to add no directive header or options."""
-        pass
 
     def add_content(self, more_content):
-        """Override default behavior to add only the first line of the docstring.
+        """
+        Override default behavior to add only the first line of the docstring.
 
         Modified based on the part of processing docstrings in the original
         implementation of this method.
@@ -75,7 +77,9 @@ class ShortSummaryDocumenter(ModuleLevelDocumenter):
                 docstrings.append([])
             # Get the first non-empty line of the processed docstring; this could lead
             # to unexpected results if the object does not have a short summary line.
-            short_summary = next((s for s in self.process_doc(docstrings) if s), "<no summary>")
+            short_summary = next(
+                (s for s in self.process_doc(docstrings) if s), "<no summary>"
+            )
             self.add_line(short_summary, sourcename, 0)
 
 

@@ -10,15 +10,10 @@ References
 This package/module is designed to be compatible with both Python 2 and Python 3.
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
+
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import os
 
@@ -73,11 +68,7 @@ def _range01(x):
     return (x - np.min(x)) / (np.max(x) - np.min(x))
 
 
-def _check_input(
-    input_list,
-    check_list,
-    check="",
-):
+def _check_input(input_list, check_list, check=""):
     """
     Check if the input matches any of a complete list
 
@@ -122,7 +113,7 @@ def _check_input(
 
 
 # class ModelPlotPy(ABC):
-class ModelPlotPy(object):
+class ModelPlotPy:
     """\
     ModelPlotPy decile analysis.
 
@@ -156,6 +147,7 @@ class ModelPlotPy(object):
     ------
     ValueError :
         If there is no match with the complete list or the input list again
+
     """
 
     def __init__(
@@ -168,9 +160,7 @@ class ModelPlotPy(object):
         ntiles=10,
         seed=0,
     ):
-        """
-        Create a model_plots object
-        """
+        """Create a model_plots object"""
         super().__init__()
 
         self.feature_data = feature_data
@@ -265,6 +255,7 @@ class ModelPlotPy(object):
         ------
         ValueError :
             If there is no match with the complete list or the input list again
+
         """
         if (len(self.models) == len(self.model_labels)) == False:
             raise ValueError(
@@ -273,7 +264,9 @@ class ModelPlotPy(object):
                 % (len(self.model), len(self.model_name))
             )
 
-        if (len(self.feature_data) == len(self.label_data) == len(self.dataset_labels)) == False:
+        if (
+            len(self.feature_data) == len(self.label_data) == len(self.dataset_labels)
+        ) == False:
             raise ValueError(
                 "The number of datasets in feature_data and label_data and their description "
                 "pairs must be equal. The number of datasets in feature_data = "
@@ -289,10 +282,16 @@ class ModelPlotPy(object):
                 y_true = y_true.rename("target_class")
                 # probabilities and rename them
                 y_pred = self.models[i].predict_proba(self.feature_data[j])
-                probabilities = pd.DataFrame(data=y_pred, index=self.feature_data[j].index)
-                probabilities.columns = "prob_" + self.models[i].classes_.astype("str").astype("O")
+                probabilities = pd.DataFrame(
+                    data=y_pred, index=self.feature_data[j].index
+                )
+                probabilities.columns = "prob_" + self.models[i].classes_.astype(
+                    "str"
+                ).astype("O")
                 # combine the datasets
-                dataset = pd.concat([self.feature_data[j], probabilities, y_true], axis=1)
+                dataset = pd.concat(
+                    [self.feature_data[j], probabilities, y_true], axis=1
+                )
                 dataset["dataset_label"] = self.dataset_labels[j]
                 dataset["model_label"] = self.model_labels[i]
                 # remove the feature columns
@@ -305,29 +304,26 @@ class ModelPlotPy(object):
                     # and reset to 0-1 range (to prevent probs > 1.0)
                     np.random.seed(self.seed)
                     prob_plus_smallrandom = _range01(
-                        dataset[["prob_" + k]] + (np.random.uniform(size=(n, 1)) / 1000000)
+                        dataset[["prob_" + k]]
+                        + (np.random.uniform(size=(n, 1)) / 1000000)
                     )
                     prob_plus_smallrandom = np.array(
                         prob_plus_smallrandom["prob_" + k]
                     )  # cast to a 1 dimension thing
                     dataset["dec_" + k] = self.ntiles - (
                         pd.DataFrame(
-                            pd.qcut(
-                                prob_plus_smallrandom,
-                                self.ntiles,
-                                labels=False,
-                            ),
+                            pd.qcut(prob_plus_smallrandom, self.ntiles, labels=False),
                             index=self.feature_data[j].index,
                         )
                     )
                     # Use pd.concat to concatenate DataFrames
                 data_set = pd.concat(
-                    [data_set, dataset],
+                    [data_set, dataset]
                     # ignore_index=False,
                 )
             # If you have multiple DataFrames to concatenate, you can use a loop
             final = pd.concat(
-                [final, data_set],
+                [final, data_set]
                 # ignore_index=False,
             )
         return final
@@ -372,6 +368,7 @@ class ModelPlotPy(object):
         ------
         ValueError :
             If there is no match with the complete list or the input list again.
+
         """
         scores_and_ntiles = self.prepare_scores_and_ntiles()
         scores_and_ntiles["all"] = 1
@@ -457,22 +454,26 @@ class ModelPlotPy(object):
                     ntiles_agg["gain_ref"] = ntiles_agg.ntile / self.ntiles
                     ntiles_agg["pct_ref"] = ntiles_agg.postot / ntiles_agg.tottot
                     ntiles_agg["gain_opt"] = 1.0
-                    ntiles_agg.loc[(ntiles_agg.cumtot / ntiles_agg.postot) <= 1.0, "gain_opt"] = (
-                        ntiles_agg.cumtot / ntiles_agg.postot
+                    ntiles_agg.loc[
+                        (ntiles_agg.cumtot / ntiles_agg.postot) <= 1.0, "gain_opt"
+                    ] = (ntiles_agg.cumtot / ntiles_agg.postot)
+                    ntiles_agg["lift"] = ntiles_agg.pct / (
+                        ntiles_agg.postot / ntiles_agg.tottot
                     )
-                    ntiles_agg["lift"] = ntiles_agg.pct / (ntiles_agg.postot / ntiles_agg.tottot)
                     ntiles_agg["cumlift"] = ntiles_agg.cumpct / (
                         ntiles_agg.postot / ntiles_agg.tottot
                     )
                     ntiles_agg["cumlift_ref"] = 1
 
                     # Use pd.concat to concatenate DataFrames with ignore_index option
-                    ntiles_aggregate = pd.concat([ntiles_aggregate, ntiles_agg], ignore_index=True)
+                    ntiles_aggregate = pd.concat(
+                        [ntiles_aggregate, ntiles_agg], ignore_index=True
+                    )
                     add_origin = pd.concat([add_origin, add_origin_add], axis=0)
 
-        ntiles_aggregate = pd.concat([add_origin, ntiles_aggregate], axis=0).sort_values(
-            by=["model_label", "dataset_label", "target_class", "ntile"]
-        )
+        ntiles_aggregate = pd.concat(
+            [add_origin, ntiles_aggregate], axis=0
+        ).sort_values(by=["model_label", "dataset_label", "target_class", "ntile"])
         cols = ntiles_aggregate.columns
         return ntiles_aggregate[cols]
 
@@ -487,7 +488,7 @@ class ModelPlotPy(object):
         """
         Create plot_input
 
-        This function builds the pandas dataframe plot_input wich is a subset of scores_and_ntiles.
+        This function builds the pandas dataframe plot_input which is a subset of scores_and_ntiles.
         The dataset is the subset of scores_and_ntiles that is dependent of
         1 of the 4 evaluation types that a user can request.
 
@@ -496,7 +497,6 @@ class ModelPlotPy(object):
 
         Parameters
         ----------
-
         scope : {'no_comparison', 'compare_models', 'compare_datasets', \
                  'compare_targetclasses'}, default='no_comparison'
 
@@ -554,6 +554,7 @@ class ModelPlotPy(object):
         ------
         ValueError :
             If the wrong `scope` value is specified.
+
         """
         ntiles_aggregate = self.aggregate_over_ntiles()
         ntiles_aggregate["scope"] = scope
@@ -596,7 +597,9 @@ class ModelPlotPy(object):
             if len(select_targetclass) >= 1:
                 select_targetclass = select_targetclass
             elif select_smallest_targetclass == True:
-                select_targetclass = [self.label_data[0].value_counts(ascending=True).idxmin()]
+                select_targetclass = [
+                    self.label_data[0].value_counts(ascending=True).idxmin()
+                ]
                 print("The label with smallest class is %s" % select_targetclass[0])
             else:
                 select_targetvalue = list(self.models[0].classes_)
@@ -607,7 +610,11 @@ class ModelPlotPy(object):
             ]
             print(
                 "Target class %s, dataset %s and model %s."
-                % (select_targetclass[0], select_dataset_label[0], select_model_label[0])
+                % (
+                    select_targetclass[0],
+                    select_dataset_label[0],
+                    select_model_label[0],
+                )
             )
         elif scope == "compare_models":
             print("compare models")
@@ -622,7 +629,9 @@ class ModelPlotPy(object):
             if len(select_targetclass) >= 1:
                 select_targetclass = select_targetclass
             elif select_smallest_targetclass == True:
-                select_targetclass = [self.label_data[0].value_counts(ascending=True).idxmin()]
+                select_targetclass = [
+                    self.label_data[0].value_counts(ascending=True).idxmin()
+                ]
                 print("The label with smallest class is %s" % select_targetclass)
             else:
                 select_targetclass = list(self.models[0].classes_)
@@ -644,7 +653,9 @@ class ModelPlotPy(object):
             if len(select_targetclass) >= 1:
                 select_targetclass = select_targetclass
             elif select_smallest_targetclass == True:
-                select_targetclass = [self.label_data[0].value_counts(ascending=True).idxmin()]
+                select_targetclass = [
+                    self.label_data[0].value_counts(ascending=True).idxmin()
+                ]
                 print("The label with smallest class is %s" % select_targetclass)
             else:
                 select_targetclass = list(self.models[0].classes_)
@@ -730,8 +741,8 @@ def plot_response(
         If ``highlight_ntile`` is not specified as an int.
     ValueError :
         If the wrong ``highlight_how`` value is specified.
-    """
 
+    """
     models = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
     classes = plot_input.target_class.unique().tolist()
@@ -782,7 +793,8 @@ def plot_response(
 
     if scope == "no_comparison":
         ax.set_title(
-            "model: %s & dataset: %s & target class: %s" % (models[0], datasets[0], classes[0]),
+            "model: %s & dataset: %s & target class: %s"
+            % (models[0], datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.plot(plot_input.ntile, plot_input.pct, label=classes[0], color=colors[0])
@@ -810,7 +822,8 @@ def plot_response(
                 color=colors[col],
             )
         ax.set_title(
-            "scope: comparing datasets & model: %s & target class: %s" % (models[0], classes[0]),
+            "scope: comparing datasets & model: %s & target class: %s"
+            % (models[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -830,7 +843,8 @@ def plot_response(
                 color=colors[col],
             )
         ax.set_title(
-            "scope: comparing models & dataset: %s & target class: %s" % (datasets[0], classes[0]),
+            "scope: comparing models & dataset: %s & target class: %s"
+            % (datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -850,13 +864,13 @@ def plot_response(
                 color=colors[col],
             )
         ax.set_title(
-            "Scope: comparing target classes & dataset: %s & model: %s" % (datasets[0], models[0]),
+            "Scope: comparing target classes & dataset: %s & model: %s"
+            % (datasets[0], models[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
 
     if highlight_ntile is not None:
-
         if highlight_ntile not in np.linspace(1, ntiles, num=ntiles).tolist():
             raise TypeError(
                 "Invalid value for highlight_ntile parameter. "
@@ -869,22 +883,71 @@ def plot_response(
                 "it must be one of the following: plot, text or plot_text."
             )
 
-        else:
-            text = ""
-            if scope == "no_comparison":
-                cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "pct"].tolist()
+        text = ""
+        if scope == "no_comparison":
+            cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "pct"].tolist()
+            plt.plot(
+                [1, highlight_ntile],
+                [cumpct[0]] * 2,
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            plt.plot(
+                [highlight_ntile] * 2,
+                [0] + [cumpct[0]],
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            xy = tuple([highlight_ntile] + [cumpct[0]])
+            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.annotate(
+                str(int(cumpct[0] * 100)) + "%",
+                xy=xy,
+                xytext=(-30, -30),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                color="black",
+                bbox=dict(
+                    boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]
+                ),  # fc = 'yellow', alpha = 0.3),
+                arrowprops=dict(arrowstyle="->", color="black"),
+            )
+            text += (
+                "When we select %s %d from model %s in dataset "
+                "%s the percentage of %s cases in the selection is %d"
+            ) % (
+                description_label,
+                highlight_ntile,
+                models[0],
+                datasets[0],
+                classes[0],
+                int(cumpct[0] * 100),
+            ) + "%.\n"
+        elif scope == "compare_datasets":
+            for col, i in enumerate(datasets):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["dataset_label", "pct"]
+                ]
+                cumpct = cumpct.pct[cumpct.dataset_label == i].tolist()
                 plt.plot(
-                    [1, highlight_ntile], [cumpct[0]] * 2, linestyle="-.", color=colors[0], lw=1.5
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
                 )
                 plt.plot(
                     [highlight_ntile] * 2,
-                    [0] + [cumpct[0]],
+                    [0] + cumpct,
                     linestyle="-.",
-                    color=colors[0],
+                    color=colors[col],
                     lw=1.5,
                 )
-                xy = tuple([highlight_ntile] + [cumpct[0]])
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -894,7 +957,99 @@ def plot_response(
                     va="bottom",
                     color="black",
                     bbox=dict(
-                        boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
+                    ),  # fc = 'yellow', alpha = 0.3),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %s %d from model %s in dataset "
+                    "%s the percentage of %s cases in the selection is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    models[0],
+                    i,
+                    classes[0],
+                    int(cumpct[0] * 100),
+                ) + "%.\n"
+        elif scope == "compare_models":
+            for col, i in enumerate(models):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["model_label", "pct"]
+                ]
+                cumpct = cumpct.pct[cumpct.model_label == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
+                    ),  # fc = 'yellow', alpha = 0.3),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %s %d from model %s in dataset "
+                    "%s the percentage of %s cases in the selection is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    i,
+                    datasets[0],
+                    classes[0],
+                    int(cumpct[0] * 100),
+                ) + "%.\n"
+        else:  # compare targetvalues
+            for col, i in enumerate(classes):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["target_class", "pct"]
+                ]
+                cumpct = cumpct.pct[cumpct.target_class == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
                     ),  # fc = 'yellow', alpha = 0.3),
                     arrowprops=dict(arrowstyle="->", color="black"),
                 )
@@ -906,145 +1061,13 @@ def plot_response(
                     highlight_ntile,
                     models[0],
                     datasets[0],
-                    classes[0],
+                    i,
                     int(cumpct[0] * 100),
                 ) + "%.\n"
-            elif scope == "compare_datasets":
-                for col, i in enumerate(datasets):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["dataset_label", "pct"]
-                    ]
-                    cumpct = cumpct.pct[cumpct.dataset_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s %d from model %s in dataset "
-                        "%s the percentage of %s cases in the selection is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[col],
-                        classes[0],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
-            elif scope == "compare_models":
-                for col, i in enumerate(models):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["model_label", "pct"]
-                    ]
-                    cumpct = cumpct.pct[cumpct.model_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s %d from model %s in dataset "
-                        "%s the percentage of %s cases in the selection is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[col],
-                        datasets[0],
-                        classes[0],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
-            else:  # compare targetvalues
-                for col, i in enumerate(classes):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["target_class", "pct"]
-                    ]
-                    cumpct = cumpct.pct[cumpct.target_class == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s %d from model %s in dataset "
-                        "%s the percentage of %s cases in the selection is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[0],
-                        classes[col],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
-            if highlight_how in ("text", "plot_text"):
-                print(text[:-1])
-            if highlight_how in ("plot", "plot_text"):
-                fig.text(0.15, -0.001, text[:-1], ha="left")
+        if highlight_how in ("text", "plot_text"):
+            print(text[:-1])
+        if highlight_how in ("plot", "plot_text"):
+            fig.text(0.15, -0.001, text[:-1], ha="left")
 
     if save_fig == True:
         if not save_fig_filename:
@@ -1110,6 +1133,7 @@ def plot_cumresponse(
         If ``highlight_ntile`` is not specified as an int.
     ValueError :
         If the wrong ``highlight_how`` value is specified.
+
     """
     models = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
@@ -1158,7 +1182,8 @@ def plot_cumresponse(
 
     if scope == "no_comparison":
         ax.set_title(
-            "model: %s & dataset: %s & target class: %s" % (models[0], datasets[0], classes[0]),
+            "model: %s & dataset: %s & target class: %s"
+            % (models[0], datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.plot(plot_input.ntile, plot_input.cumpct, label=classes[0], color=colors[0])
@@ -1186,7 +1211,8 @@ def plot_cumresponse(
                 color=colors[col],
             )
         ax.set_title(
-            "scope: comparing datasets & model: %s & target class: %s" % (models[0], classes[0]),
+            "scope: comparing datasets & model: %s & target class: %s"
+            % (models[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -1206,7 +1232,8 @@ def plot_cumresponse(
                 color=colors[col],
             )
         ax.set_title(
-            "Scope: comparing models & dataset: %s & target class: %s" % (datasets[0], classes[0]),
+            "Scope: comparing models & dataset: %s & target class: %s"
+            % (datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -1226,13 +1253,13 @@ def plot_cumresponse(
                 color=colors[col],
             )
         ax.set_title(
-            "Comparing target classes & dataset: %s & model: %s" % (datasets[0], models[0]),
+            "Comparing target classes & dataset: %s & model: %s"
+            % (datasets[0], models[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
 
     if highlight_ntile is not None:
-
         if highlight_ntile not in np.linspace(1, ntiles, num=ntiles).tolist():
             raise TypeError(
                 "Invalid value for highlight_ntile parameter. "
@@ -1245,22 +1272,71 @@ def plot_cumresponse(
                 "it must be one of the following: plot, text or plot_text."
             )
 
-        else:
-            text = ""
-            if scope == "no_comparison":
-                cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "cumpct"].tolist()
+        text = ""
+        if scope == "no_comparison":
+            cumpct = plot_input.loc[
+                plot_input.ntile == highlight_ntile, "cumpct"
+            ].tolist()
+            plt.plot(
+                [1, highlight_ntile],
+                [cumpct[0]] * 2,
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            plt.plot(
+                [highlight_ntile] * 2,
+                [0] + [cumpct[0]],
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            xy = tuple([highlight_ntile] + [cumpct[0]])
+            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.annotate(
+                str(int(cumpct[0] * 100)) + "%",
+                xy=xy,
+                xytext=(-30, -30),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                color="black",
+                bbox=dict(boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]),
+                arrowprops=dict(arrowstyle="->", color="black"),
+            )
+            text += (
+                "When we select %ss 1 until %d according to model %s in dataset "
+                "%s the percentage of %s cases in the selection is %d"
+            ) % (
+                description_label,
+                highlight_ntile,
+                models[0],
+                datasets[0],
+                classes[0],
+                int(cumpct[0] * 100),
+            ) + "%.\n"
+        elif scope == "compare_datasets":
+            for col, i in enumerate(datasets):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["dataset_label", "cumpct"]
+                ]
+                cumpct = cumpct.cumpct[cumpct.dataset_label == i].tolist()
                 plt.plot(
-                    [1, highlight_ntile], [cumpct[0]] * 2, linestyle="-.", color=colors[0], lw=1.5
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
                 )
                 plt.plot(
                     [highlight_ntile] * 2,
-                    [0] + [cumpct[0]],
+                    [0] + cumpct,
                     linestyle="-.",
-                    color=colors[0],
+                    color=colors[col],
                     lw=1.5,
                 )
-                xy = tuple([highlight_ntile] + [cumpct[0]])
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1269,7 +1345,95 @@ def plot_cumresponse(
                     ha="center",
                     va="bottom",
                     color="black",
-                    bbox=dict(boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]),
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %ss 1 until %d according to model %s in dataset "
+                    "%s the percentage of %s cases in the selection is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    models[0],
+                    i,
+                    classes[0],
+                    int(cumpct[0] * 100),
+                ) + "%.\n"
+        elif scope == "compare_models":
+            for col, i in enumerate(models):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["model_label", "cumpct"]
+                ]
+                cumpct = cumpct.cumpct[cumpct.model_label == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %ss 1 until %d according to model %s in dataset "
+                    "%s the percentage of %s cases in the selection is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    i,
+                    datasets[0],
+                    classes[0],
+                    int(cumpct[0] * 100),
+                ) + "%.\n"
+        else:  # compare targetvalues
+            for col, i in enumerate(classes):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["target_class", "cumpct"]
+                ]
+                cumpct = cumpct.cumpct[cumpct.target_class == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
                     arrowprops=dict(arrowstyle="->", color="black"),
                 )
                 text += (
@@ -1280,146 +1444,14 @@ def plot_cumresponse(
                     highlight_ntile,
                     models[0],
                     datasets[0],
-                    classes[0],
+                    i,
                     int(cumpct[0] * 100),
                 ) + "%.\n"
-            elif scope == "compare_datasets":
-                for col, i in enumerate(datasets):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["dataset_label", "cumpct"]
-                    ]
-                    cumpct = cumpct.cumpct[cumpct.dataset_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %ss 1 until %d according to model %s in dataset "
-                        "%s the percentage of %s cases in the selection is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[col],
-                        classes[0],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
-            elif scope == "compare_models":
-                for col, i in enumerate(models):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["model_label", "cumpct"]
-                    ]
-                    cumpct = cumpct.cumpct[cumpct.model_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %ss 1 until %d according to model %s in dataset "
-                        "%s the percentage of %s cases in the selection is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[col],
-                        datasets[0],
-                        classes[0],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
-            else:  # compare targetvalues
-                for col, i in enumerate(classes):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["target_class", "cumpct"]
-                    ]
-                    cumpct = cumpct.cumpct[cumpct.target_class == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %ss 1 until %d according to model %s in dataset "
-                        "%s the percentage of %s cases in the selection is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[0],
-                        classes[col],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
 
-            if highlight_how in ("text", "plot_text"):
-                print(text[:-1])
-            if highlight_how in ("plot", "plot_text"):
-                fig.text(0.15, -0.001, text[:-1], ha="left")
+        if highlight_how in ("text", "plot_text"):
+            print(text[:-1])
+        if highlight_how in ("plot", "plot_text"):
+            fig.text(0.15, -0.001, text[:-1], ha="left")
 
     if save_fig == True:
         if not save_fig_filename:
@@ -1485,6 +1517,7 @@ def plot_cumlift(
         If ``highlight_ntile`` is not specified as an int.
     ValueError :
         If the wrong ``highlight_how`` value is specified.
+
     """
     models = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
@@ -1540,7 +1573,8 @@ def plot_cumlift(
 
     if scope == "no_comparison":
         ax.set_title(
-            "model: %s & dataset: %s & target class: %s" % (models[0], datasets[0], classes[0]),
+            "model: %s & dataset: %s & target class: %s"
+            % (models[0], datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.plot(plot_input.ntile, plot_input.cumlift, label=classes[0], color=colors[0])
@@ -1556,7 +1590,8 @@ def plot_cumlift(
             )
             # ax.plot(plot_input.ntile[plot_input.dataset_label == i], plot_input.cumlift_ref[plot_input.dataset_label == i], linestyle = 'dashed', label = "overall response (%s)" % i, color = colors[col])
         ax.set_title(
-            "scope: comparing datasets & model: %s & target class: %s" % (models[0], classes[0]),
+            "scope: comparing datasets & model: %s & target class: %s"
+            % (models[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -1570,7 +1605,8 @@ def plot_cumlift(
             )
             # ax.plot(plot_input.ntile[plot_input.model_label == i], plot_input.cumlift_ref[plot_input.model_label == i], linestyle = 'dashed', label = "overall response (%s)" % i, color = colors[col])
         ax.set_title(
-            "scope: comparing models & dataset: %s & target class: %s" % (datasets[0], classes[0]),
+            "scope: comparing models & dataset: %s & target class: %s"
+            % (datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -1584,13 +1620,13 @@ def plot_cumlift(
             )
             # ax.plot(plot_input.ntile[plot_input.target_class == i], plot_input.cumlift_ref[plot_input.target_class == i], linestyle = 'dashed', label = "overall response (%s)" % i, color = colors[col])
         ax.set_title(
-            "scope: comparing target classes & dataset: %s & model: %s" % (datasets[0], models[0]),
+            "scope: comparing target classes & dataset: %s & model: %s"
+            % (datasets[0], models[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
 
     if highlight_ntile is not None:
-
         if highlight_ntile not in np.linspace(1, ntiles, num=ntiles).tolist():
             raise TypeError(
                 "Invalid value for highlight_ntile parameter. "
@@ -1603,22 +1639,70 @@ def plot_cumlift(
                 "it must be one of the following: plot, text or plot_text."
             )
 
-        else:
-            text = ""
-            if scope == "no_comparison":
-                cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "cumlift"].tolist()
+        text = ""
+        if scope == "no_comparison":
+            cumpct = plot_input.loc[
+                plot_input.ntile == highlight_ntile, "cumlift"
+            ].tolist()
+            plt.plot(
+                [1, highlight_ntile],
+                [cumpct[0]] * 2,
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            plt.plot(
+                [highlight_ntile] * 2,
+                [0] + [cumpct[0]],
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            xy = tuple([highlight_ntile] + [cumpct[0]])
+            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.annotate(
+                str(int(cumpct[0] * 100)) + "%",
+                xy=xy,
+                xytext=(-30, -30),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                color="black",
+                bbox=dict(boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]),
+                arrowprops=dict(arrowstyle="->", color="black"),
+            )
+            text += (
+                "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
+                + "%"
+                + (
+                    " with the highest probability according to model %s in dataset %s, "
+                    "this selection for target class %s is %s times than selecting "
+                    "without a model.\n"
+                )
+                % (models[0], datasets[0], classes[0], str(round(cumpct[0], 2)))
+            )
+        elif scope == "compare_datasets":
+            for col, i in enumerate(datasets):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["dataset_label", "cumlift"]
+                ]
+                cumpct = cumpct.cumlift[cumpct.dataset_label == i].tolist()
                 plt.plot(
-                    [1, highlight_ntile], [cumpct[0]] * 2, linestyle="-.", color=colors[0], lw=1.5
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
                 )
                 plt.plot(
                     [highlight_ntile] * 2,
-                    [0] + [cumpct[0]],
+                    [0] + cumpct,
                     linestyle="-.",
-                    color=colors[0],
+                    color=colors[col],
                     lw=1.5,
                 )
-                xy = tuple([highlight_ntile] + [cumpct[0]])
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1627,7 +1711,7 @@ def plot_cumlift(
                     ha="center",
                     va="bottom",
                     color="black",
-                    bbox=dict(boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]),
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
                     arrowprops=dict(arrowstyle="->", color="black"),
                 )
                 text += (
@@ -1638,142 +1722,99 @@ def plot_cumlift(
                         "this selection for target class %s is %s times than selecting "
                         "without a model.\n"
                     )
-                    % (models[0], datasets[0], classes[0], str(round(cumpct[0], 2)))
+                    % (models[0], i, classes[0], str(round(cumpct[0], 2)))
                 )
-            elif scope == "compare_datasets":
-                for col, i in enumerate(datasets):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["dataset_label", "cumlift"]
-                    ]
-                    cumpct = cumpct.cumlift[cumpct.dataset_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
+        elif scope == "compare_models":
+            for col, i in enumerate(models):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["model_label", "cumlift"]
+                ]
+                cumpct = cumpct.cumlift[cumpct.model_label == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
+                    + "%"
+                    + (
+                        " with the highest probability according to model %s in dataset %s, "
+                        "this selection for target class %s is %s times than selecting "
+                        "without a model.\n"
                     )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
+                    % (i, datasets[0], classes[0], str(round(cumpct[0], 2)))
+                )
+        else:  # compare targetvalues
+            for col, i in enumerate(classes):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["target_class", "cumlift"]
+                ]
+                cumpct = cumpct.cumlift[cumpct.target_class == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
+                    + "%"
+                    + (
+                        " with the highest probability according to model %s in dataset %s, "
+                        "this selection for target class %s is %s times than selecting "
+                        "without a model.\n"
                     )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
-                        + "%"
-                        + (
-                            " with the highest probability according to model %s in dataset %s, "
-                            "this selection for target class %s is %s times than selecting "
-                            "without a model.\n"
-                        )
-                        % (models[0], datasets[col], classes[0], str(round(cumpct[0], 2)))
-                    )
-            elif scope == "compare_models":
-                for col, i in enumerate(models):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["model_label", "cumlift"]
-                    ]
-                    cumpct = cumpct.cumlift[cumpct.model_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
-                        + "%"
-                        + (
-                            " with the highest probability according to model %s in dataset %s, "
-                            "this selection for target class %s is %s times than selecting "
-                            "without a model.\n"
-                        )
-                        % (models[col], datasets[0], classes[0], str(round(cumpct[0], 2)))
-                    )
-            else:  # compare targetvalues
-                for col, i in enumerate(classes):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["target_class", "cumlift"]
-                    ]
-                    cumpct = cumpct.cumlift[cumpct.target_class == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
-                        + "%"
-                        + (
-                            " with the highest probability according to model %s in dataset %s, "
-                            "this selection for target class %s is %s times than selecting "
-                            "without a model.\n"
-                        )
-                        % (models[0], datasets[0], classes[col], str(round(cumpct[0], 2)))
-                    )
+                    % (models[0], datasets[0], i, str(round(cumpct[0], 2)))
+                )
 
-            if highlight_how in ("text", "plot_text"):
-                print(text[:-1])
-            if highlight_how in ("plot", "plot_text"):
-                fig.text(0.15, -0.001, text[:-1], ha="left")
+        if highlight_how in ("text", "plot_text"):
+            print(text[:-1])
+        if highlight_how in ("plot", "plot_text"):
+            fig.text(0.15, -0.001, text[:-1], ha="left")
 
     if save_fig == True:
         if not save_fig_filename:
@@ -1839,6 +1880,7 @@ def plot_cumgains(
         If ``highlight_ntile`` is not specified as an int.
     ValueError :
         If the wrong ``highlight_how`` value is specified.
+
     """
     models = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
@@ -1888,7 +1930,8 @@ def plot_cumgains(
 
     if scope == "no_comparison":
         ax.set_title(
-            "model: %s & dataset: %s & target class: %s" % (models[0], datasets[0], classes[0]),
+            "model: %s & dataset: %s & target class: %s"
+            % (models[0], datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.plot(plot_input.ntile, plot_input.cumgain, label=classes[0], color=colors[0])
@@ -1918,7 +1961,8 @@ def plot_cumgains(
                 linewidth=1.5,
             )
         ax.set_title(
-            "scope: comparing datasets & model: %s & target class: %s" % (models[0], classes[0]),
+            "scope: comparing datasets & model: %s & target class: %s"
+            % (models[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
@@ -1939,7 +1983,8 @@ def plot_cumgains(
                 linewidth=1.5,
             )
         ax.set_title(
-            "scope: comparing models & dataset: %s & target class: %s" % (datasets[0], classes[0]),
+            "scope: comparing models & dataset: %s & target class: %s"
+            % (datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
@@ -1960,13 +2005,13 @@ def plot_cumgains(
                 linewidth=1.5,
             )
         ax.set_title(
-            "scope: comparing target classes & dataset: %s & model: %s" % (datasets[0], models[0]),
+            "scope: comparing target classes & dataset: %s & model: %s"
+            % (datasets[0], models[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
 
     if highlight_ntile is not None:
-
         if highlight_ntile not in np.linspace(1, ntiles, num=ntiles).tolist():
             raise TypeError(
                 "Invalid value for highlight_ntile parameter. "
@@ -1979,22 +2024,71 @@ def plot_cumgains(
                 "it must be one of the following: plot, text or plot_text."
             )
 
-        else:
-            text = ""
-            if scope == "no_comparison":
-                cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "cumgain"].tolist()
+        text = ""
+        if scope == "no_comparison":
+            cumpct = plot_input.loc[
+                plot_input.ntile == highlight_ntile, "cumgain"
+            ].tolist()
+            plt.plot(
+                [0, highlight_ntile],
+                [cumpct[0]] * 2,
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            plt.plot(
+                [highlight_ntile] * 2,
+                [0] + [cumpct[0]],
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            xy = tuple([highlight_ntile] + [cumpct[0]])
+            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.annotate(
+                str(int(cumpct[0] * 100)) + "%",
+                xy=xy,
+                xytext=(-30, -30),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                color="black",
+                bbox=dict(boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]),
+                arrowprops=dict(arrowstyle="->", color="black"),
+            )
+            text += (
+                "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
+                + "%"
+                + (
+                    " with the highest probability according to model %s, "
+                    "this selection holds %d"
+                )
+                % (models[0], int(cumpct[0] * 100))
+                + "%"
+                + (" of all %s cases in dataset %s.\n") % (classes[0], datasets[0])
+            )
+        elif scope == "compare_datasets":
+            for col, i in enumerate(datasets):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["dataset_label", "cumgain"]
+                ]
+                cumpct = cumpct.cumgain[cumpct.dataset_label == i].tolist()
                 plt.plot(
-                    [0, highlight_ntile], [cumpct[0]] * 2, linestyle="-.", color=colors[0], lw=1.5
+                    [0, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
                 )
                 plt.plot(
                     [highlight_ntile] * 2,
-                    [0] + [cumpct[0]],
+                    [0] + cumpct,
                     linestyle="-.",
-                    color=colors[0],
+                    color=colors[col],
                     lw=1.5,
                 )
-                xy = tuple([highlight_ntile] + [cumpct[0]])
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -2003,7 +2097,7 @@ def plot_cumgains(
                     ha="center",
                     va="bottom",
                     color="black",
-                    bbox=dict(boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]),
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
                     arrowprops=dict(arrowstyle="->", color="black"),
                 )
                 text += (
@@ -2015,145 +2109,101 @@ def plot_cumgains(
                     )
                     % (models[0], int(cumpct[0] * 100))
                     + "%"
+                    + (" of all %s cases in dataset %s.\n") % (classes[0], i)
+                )
+        elif scope == "compare_models":
+            for col, i in enumerate(models):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["model_label", "cumgain"]
+                ]
+                cumpct = cumpct.cumgain[cumpct.model_label == i].tolist()
+                plt.plot(
+                    [0, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
+                    + "%"
+                    + (
+                        " with the highest probability according to model %s, "
+                        "this selection holds %d"
+                    )
+                    % (i, int(cumpct[0] * 100))
+                    + "%"
                     + (" of all %s cases in dataset %s.\n") % (classes[0], datasets[0])
                 )
-            elif scope == "compare_datasets":
-                for col, i in enumerate(datasets):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["dataset_label", "cumgain"]
-                    ]
-                    cumpct = cumpct.cumgain[cumpct.dataset_label == i].tolist()
-                    plt.plot(
-                        [0, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
+        else:  # compare targetvalues
+            for col, i in enumerate(classes):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["target_class", "cumgain"]
+                ]
+                cumpct = cumpct.cumgain[cumpct.target_class == i].tolist()
+                plt.plot(
+                    [0, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
+                    + "%"
+                    + (
+                        " with the highest probability according to model %s, "
+                        "this selection holds %d"
                     )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
-                        + "%"
-                        + (
-                            " with the highest probability according to model %s, "
-                            "this selection holds %d"
-                        )
-                        % (models[0], int(cumpct[0] * 100))
-                        + "%"
-                        + (" of all %s cases in dataset %s.\n") % (classes[0], datasets[col])
-                    )
-            elif scope == "compare_models":
-                for col, i in enumerate(models):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["model_label", "cumgain"]
-                    ]
-                    cumpct = cumpct.cumgain[cumpct.model_label == i].tolist()
-                    plt.plot(
-                        [0, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
-                        + "%"
-                        + (
-                            " with the highest probability according to model %s, "
-                            "this selection holds %d"
-                        )
-                        % (models[col], int(cumpct[0] * 100))
-                        + "%"
-                        + (" of all %s cases in dataset %s.\n") % (classes[0], datasets[0])
-                    )
-            else:  # compare targetvalues
-                for col, i in enumerate(classes):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["target_class", "cumgain"]
-                    ]
-                    cumpct = cumpct.cumgain[cumpct.target_class == i].tolist()
-                    plt.plot(
-                        [0, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %d" % int((float(highlight_ntile) / ntiles) * 100)
-                        + "%"
-                        + (
-                            " with the highest probability according to model %s, "
-                            "this selection holds %d"
-                        )
-                        % (models[0], int(cumpct[0] * 100))
-                        + "%"
-                        + (" of all %s cases in dataset %s.\n") % (classes[col], datasets[0])
-                    )
+                    % (models[0], int(cumpct[0] * 100))
+                    + "%"
+                    + (" of all %s cases in dataset %s.\n") % (i, datasets[0])
+                )
 
-            if highlight_how in ("text", "plot_text"):
-                print(text[:-1])
-            if highlight_how in ("plot", "plot_text"):
-                fig.text(0.15, -0.001, text[:-1], ha="left")
+        if highlight_how in ("text", "plot_text"):
+            print(text[:-1])
+        if highlight_how in ("plot", "plot_text"):
+            fig.text(0.15, -0.001, text[:-1], ha="left")
 
     if save_fig == True:
         if not save_fig_filename:
@@ -2169,11 +2219,7 @@ def plot_cumgains(
     return ax
 
 
-def plot_all(
-    plot_input: "pandas.DataFrame",
-    save_fig=True,
-    save_fig_filename="",
-):
+def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""):
     """
     Plotting cumulative gains curve
 
@@ -2200,6 +2246,7 @@ def plot_all(
         If the save_fig_filename parameter is empty (not specified),
         the plot will be written to the working directory as png.
         Otherwise the location and file type is specified by the user.
+
     """
     models = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
@@ -2232,7 +2279,9 @@ def plot_all(
     else:
         xlabper = 5
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex=False, sharey=False, figsize=(15, 10))
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(
+        2, 2, sharex=False, sharey=False, figsize=(15, 10)
+    )
     ax1.set_title("Cumulative gains", fontweight="bold")
     ax1.set_ylabel("cumulative gains")
     # ax1.set_xlabel('decile')
@@ -2300,8 +2349,14 @@ def plot_all(
     ax4.xaxis.set_ticks_position("bottom")
 
     if scope == "no_comparison":
-        title = "model: %s & dataset: %s & target class: %s" % (models[0], datasets[0], classes[0])
-        ax1.plot(plot_input.ntile, plot_input.cumgain, label=classes[0], color=colors[0])
+        title = "model: %s & dataset: %s & target class: %s" % (
+            models[0],
+            datasets[0],
+            classes[0],
+        )
+        ax1.plot(
+            plot_input.ntile, plot_input.cumgain, label=classes[0], color=colors[0]
+        )
         ax1.plot(
             plot_input.ntile,
             plot_input.gain_opt,
@@ -2310,7 +2365,9 @@ def plot_all(
             color=colors[0],
         )
         ax1.legend(loc="lower right", shadow=False, frameon=False)
-        ax2.plot(plot_input.ntile, plot_input.cumlift, label=classes[0], color=colors[0])
+        ax2.plot(
+            plot_input.ntile, plot_input.cumlift, label=classes[0], color=colors[0]
+        )
         ax2.legend(loc="upper right", shadow=False, frameon=False)
         ax3.plot(plot_input.ntile, plot_input.pct, label=classes[0], color=colors[0])
         ax3.plot(
@@ -2331,7 +2388,10 @@ def plot_all(
         )
         ax4.legend(loc="upper right", shadow=False, frameon=False)
     elif scope == "compare_datasets":
-        title = "scope: comparing datasets & model: %s & target class: %s" % (models[0], classes[0])
+        title = "scope: comparing datasets & model: %s & target class: %s" % (
+            models[0],
+            classes[0],
+        )
         for col, i in enumerate(datasets):
             ax1.plot(
                 plot_input.ntile[plot_input.dataset_label == i],
@@ -2576,8 +2636,8 @@ def plot_costsrevs(
         If ``highlight_ntile`` is not specified as an int.
     ValueError :
         If the wrong ``highlight_how`` value is specified.
-    """
 
+    """
     models = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
     classes = plot_input.target_class.unique().tolist()
@@ -2629,10 +2689,13 @@ def plot_costsrevs(
 
     if scope == "no_comparison":
         ax.set_title(
-            "model: %s & dataset: %s & target class: %s" % (models[0], datasets[0], classes[0]),
+            "model: %s & dataset: %s & target class: %s"
+            % (models[0], datasets[0], classes[0]),
             fontweight="bold",
         )
-        ax.plot(plot_input.ntile, plot_input.revenues, label=classes[0], color=colors[0])
+        ax.plot(
+            plot_input.ntile, plot_input.revenues, label=classes[0], color=colors[0]
+        )
         ax.plot(
             plot_input.ntile,
             plot_input.investments,
@@ -2657,7 +2720,8 @@ def plot_costsrevs(
                 color=colors[col],
             )
         ax.set_title(
-            "scope: comparing datasets & model: %s & target class: %s" % (models[0], classes[0]),
+            "scope: comparing datasets & model: %s & target class: %s"
+            % (models[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -2678,7 +2742,8 @@ def plot_costsrevs(
             )
         ax.legend(loc="lower right", shadow=False, frameon=False)
         ax.set_title(
-            "scope: comparing models & dataset: %s & target class: %s" % (datasets[0], classes[0]),
+            "scope: comparing models & dataset: %s & target class: %s"
+            % (datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
@@ -2698,13 +2763,13 @@ def plot_costsrevs(
                 color=colors[col],
             )
         ax.set_title(
-            "Scope: comparing target classes & dataset: %s & model: %s" % (datasets[0], models[0]),
+            "Scope: comparing target classes & dataset: %s & model: %s"
+            % (datasets[0], models[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
 
     if highlight_ntile is not None:
-
         if highlight_ntile not in np.linspace(1, ntiles, num=ntiles).tolist():
             raise TypeError(
                 "Invalid value for highlight_ntile parameter. "
@@ -2717,22 +2782,73 @@ def plot_costsrevs(
                 "it must be one of the following: plot, text or plot_text."
             )
 
-        else:
-            text = ""
-            if scope == "no_comparison":
-                cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "revenues"].tolist()
+        text = ""
+        if scope == "no_comparison":
+            cumpct = plot_input.loc[
+                plot_input.ntile == highlight_ntile, "revenues"
+            ].tolist()
+            plt.plot(
+                [1, highlight_ntile],
+                [cumpct[0]] * 2,
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            plt.plot(
+                [highlight_ntile] * 2,
+                [0] + [cumpct[0]],
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            xy = tuple([highlight_ntile] + [cumpct[0]])
+            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.annotate(
+                "€" + str(int(cumpct[0])),
+                xy=xy,
+                xytext=(-30, -30),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                color="black",
+                bbox=dict(
+                    boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]
+                ),  # fc = 'yellow', alpha = 0.3),
+                arrowprops=dict(arrowstyle="->", color="black"),
+            )
+            text += (
+                "When we select %s 1 until %d from model %s in dataset "
+                "%s the percentage of %s cases in the revenue is %d"
+            ) % (
+                description_label,
+                highlight_ntile,
+                models[0],
+                datasets[0],
+                classes[0],
+                int(cumpct[0]),
+            ) + ".\n"
+        elif scope == "compare_datasets":
+            for col, i in enumerate(datasets):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["dataset_label", "revenues"]
+                ]
+                cumpct = cumpct.revenues[cumpct.dataset_label == i].tolist()
                 plt.plot(
-                    [1, highlight_ntile], [cumpct[0]] * 2, linestyle="-.", color=colors[0], lw=1.5
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
                 )
                 plt.plot(
                     [highlight_ntile] * 2,
-                    [0] + [cumpct[0]],
+                    [0] + cumpct,
                     linestyle="-.",
-                    color=colors[0],
+                    color=colors[col],
                     lw=1.5,
                 )
-                xy = tuple([highlight_ntile] + [cumpct[0]])
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
                 ax.annotate(
                     "€" + str(int(cumpct[0])),
                     xy=xy,
@@ -2742,7 +2858,99 @@ def plot_costsrevs(
                     va="bottom",
                     color="black",
                     bbox=dict(
-                        boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
+                    ),  # fc = 'yellow', alpha = 0.3),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %s 1 until %d from model %s in dataset "
+                    "%s the percentage of %s cases in the revenue is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    models[0],
+                    i,
+                    classes[0],
+                    int(cumpct[0]),
+                ) + ".\n"
+        elif scope == "compare_models":
+            for col, i in enumerate(models):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["model_label", "revenues"]
+                ]
+                cumpct = cumpct.revenues[cumpct.model_label == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    "€" + str(int(cumpct[0])),
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
+                    ),  # fc = 'yellow', alpha = 0.3),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %s 1 until %d from model %s in dataset "
+                    "%s the percentage of %s cases in the revenue is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    i,
+                    datasets[0],
+                    classes[0],
+                    int(cumpct[0]),
+                ) + ".\n"
+        else:  # compare targetvalues
+            for col, i in enumerate(classes):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["target_class", "revenues"]
+                ]
+                cumpct = cumpct.revenues[cumpct.target_class == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    "€" + str(int(cumpct[0])),
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
                     ),  # fc = 'yellow', alpha = 0.3),
                     arrowprops=dict(arrowstyle="->", color="black"),
                 )
@@ -2754,145 +2962,13 @@ def plot_costsrevs(
                     highlight_ntile,
                     models[0],
                     datasets[0],
-                    classes[0],
+                    i,
                     int(cumpct[0]),
                 ) + ".\n"
-            elif scope == "compare_datasets":
-                for col, i in enumerate(datasets):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["dataset_label", "revenues"]
-                    ]
-                    cumpct = cumpct.revenues[cumpct.dataset_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        "€" + str(int(cumpct[0])),
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the revenue is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[col],
-                        classes[0],
-                        int(cumpct[0]),
-                    ) + ".\n"
-            elif scope == "compare_models":
-                for col, i in enumerate(models):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["model_label", "revenues"]
-                    ]
-                    cumpct = cumpct.revenues[cumpct.model_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        "€" + str(int(cumpct[0])),
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the revenue is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[col],
-                        datasets[0],
-                        classes[0],
-                        int(cumpct[0]),
-                    ) + ".\n"
-            else:  # compare targetvalues
-                for col, i in enumerate(classes):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["target_class", "revenues"]
-                    ]
-                    cumpct = cumpct.revenues[cumpct.target_class == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        "€" + str(int(cumpct[0])),
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the revenue is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[0],
-                        classes[col],
-                        int(cumpct[0]),
-                    ) + ".\n"
-            if highlight_how in ("text", "plot_text"):
-                print(text[:-1])
-            if highlight_how in ("plot", "plot_text"):
-                fig.text(0.15, -0.001, text[:-1], ha="left")
+        if highlight_how in ("text", "plot_text"):
+            print(text[:-1])
+        if highlight_how in ("plot", "plot_text"):
+            fig.text(0.15, -0.001, text[:-1], ha="left")
 
     if save_fig == True:
         if not save_fig_filename:
@@ -2971,8 +3047,8 @@ def plot_profit(
         If ``highlight_ntile`` is not specified as an int.
     ValueError :
         If the wrong ``highlight_how`` value is specified.
-    """
 
+    """
     models = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
     classes = plot_input.target_class.unique().tolist()
@@ -3033,7 +3109,8 @@ def plot_profit(
     if scope == "no_comparison":
         # ax.plot(list(range(0, ntiles + 1, 1)), fixed_costs + variable_costs_per_unit * plot_input.cumtot.unique(), linestyle = 'dashed', label = "total costs", color = 'grey')
         ax.set_title(
-            "model: %s & dataset: %s & target class: %s" % (models[0], datasets[0], classes[0]),
+            "model: %s & dataset: %s & target class: %s"
+            % (models[0], datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.plot(plot_input.ntile, plot_input.profit, label=classes[0], color=colors[0])
@@ -3049,7 +3126,8 @@ def plot_profit(
             )
             # ax.plot(plot_input.ntile[plot_input.dataset_label == i], plot_input.cumcosts[plot_input.dataset_label == i], linestyle = 'dashed', label = "total costs (%s)" % i, color = colors[col])
         ax.set_title(
-            "scope: comparing datasets & model: %s & target class: %s" % (models[0], classes[0]),
+            "scope: comparing datasets & model: %s & target class: %s"
+            % (models[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -3063,7 +3141,8 @@ def plot_profit(
             )
         ax.legend(loc="lower right", shadow=False, frameon=False)
         ax.set_title(
-            "scope: comparing models & dataset: %s & target class: %s" % (datasets[0], classes[0]),
+            "scope: comparing models & dataset: %s & target class: %s"
+            % (datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
@@ -3077,13 +3156,13 @@ def plot_profit(
             )
             # ax.plot(plot_input.ntile[plot_input.target_class == i], plot_input.cumcosts[plot_input.target_class == i], linestyle = 'dashed', label = "total costs (%s)" % i, color = colors[col])
         ax.set_title(
-            "Scope: comparing target classes & dataset: %s & model: %s" % (datasets[0], models[0]),
+            "Scope: comparing target classes & dataset: %s & model: %s"
+            % (datasets[0], models[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
 
     if highlight_ntile is not None:
-
         if highlight_ntile not in np.linspace(1, ntiles, num=ntiles).tolist():
             raise TypeError(
                 "Invalid value for highlight_ntile parameter. "
@@ -3096,22 +3175,73 @@ def plot_profit(
                 "it must be one of the following: plot, text or plot_text."
             )
 
-        else:
-            text = ""
-            if scope == "no_comparison":
-                cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "profit"].tolist()
+        text = ""
+        if scope == "no_comparison":
+            cumpct = plot_input.loc[
+                plot_input.ntile == highlight_ntile, "profit"
+            ].tolist()
+            plt.plot(
+                [1, highlight_ntile],
+                [cumpct[0]] * 2,
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            plt.plot(
+                [highlight_ntile] * 2,
+                [0] + [cumpct[0]],
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            xy = tuple([highlight_ntile] + [cumpct[0]])
+            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.annotate(
+                "€" + str(int(cumpct[0])),
+                xy=xy,
+                xytext=(-30, -30),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                color="black",
+                bbox=dict(
+                    boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]
+                ),  # fc = 'yellow', alpha = 0.3),
+                arrowprops=dict(arrowstyle="->", color="black"),
+            )
+            text += (
+                "When we select %s 1 until %d from model %s in dataset "
+                "%s the percentage of %s cases in the expected profit is %d"
+            ) % (
+                description_label,
+                highlight_ntile,
+                models[0],
+                datasets[0],
+                classes[0],
+                int(cumpct[0]),
+            ) + ".\n"
+        elif scope == "compare_datasets":
+            for col, i in enumerate(datasets):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["dataset_label", "profit"]
+                ]
+                cumpct = cumpct.profit[cumpct.dataset_label == i].tolist()
                 plt.plot(
-                    [1, highlight_ntile], [cumpct[0]] * 2, linestyle="-.", color=colors[0], lw=1.5
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
                 )
                 plt.plot(
                     [highlight_ntile] * 2,
-                    [0] + [cumpct[0]],
+                    [0] + cumpct,
                     linestyle="-.",
-                    color=colors[0],
+                    color=colors[col],
                     lw=1.5,
                 )
-                xy = tuple([highlight_ntile] + [cumpct[0]])
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
                 ax.annotate(
                     "€" + str(int(cumpct[0])),
                     xy=xy,
@@ -3121,7 +3251,99 @@ def plot_profit(
                     va="bottom",
                     color="black",
                     bbox=dict(
-                        boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
+                    ),  # fc = 'yellow', alpha = 0.3),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %s 1 until %d from model %s in dataset "
+                    "%s the percentage of %s cases in the expected profit is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    models[0],
+                    i,
+                    classes[0],
+                    int(cumpct[0]),
+                ) + ".\n"
+        elif scope == "compare_models":
+            for col, i in enumerate(models):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["model_label", "profit"]
+                ]
+                cumpct = cumpct.profit[cumpct.model_label == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    "€" + str(int(cumpct[0])),
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
+                    ),  # fc = 'yellow', alpha = 0.3),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %s 1 until %d from model %s in dataset "
+                    "%s the percentage of %s cases in the expected profit is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    i,
+                    datasets[0],
+                    classes[0],
+                    int(cumpct[0]),
+                ) + ".\n"
+        else:  # compare targetvalues
+            for col, i in enumerate(classes):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["target_class", "profit"]
+                ]
+                cumpct = cumpct.profit[cumpct.target_class == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    "€" + str(int(cumpct[0])),
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
                     ),  # fc = 'yellow', alpha = 0.3),
                     arrowprops=dict(arrowstyle="->", color="black"),
                 )
@@ -3133,145 +3355,13 @@ def plot_profit(
                     highlight_ntile,
                     models[0],
                     datasets[0],
-                    classes[0],
+                    i,
                     int(cumpct[0]),
                 ) + ".\n"
-            elif scope == "compare_datasets":
-                for col, i in enumerate(datasets):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["dataset_label", "profit"]
-                    ]
-                    cumpct = cumpct.profit[cumpct.dataset_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        "€" + str(int(cumpct[0])),
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the expected profit is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[col],
-                        classes[0],
-                        int(cumpct[0]),
-                    ) + ".\n"
-            elif scope == "compare_models":
-                for col, i in enumerate(models):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["model_label", "profit"]
-                    ]
-                    cumpct = cumpct.profit[cumpct.model_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        "€" + str(int(cumpct[0])),
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the expected profit is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[col],
-                        datasets[0],
-                        classes[0],
-                        int(cumpct[0]),
-                    ) + ".\n"
-            else:  # compare targetvalues
-                for col, i in enumerate(classes):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["target_class", "profit"]
-                    ]
-                    cumpct = cumpct.profit[cumpct.target_class == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        "€" + str(int(cumpct[0])),
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the expected profit is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[0],
-                        classes[col],
-                        int(cumpct[0]),
-                    ) + ".\n"
-            if highlight_how in ("text", "plot_text"):
-                print(text[:-1])
-            if highlight_how in ("plot", "plot_text"):
-                fig.text(0.15, -0.001, text[:-1], ha="left")
+        if highlight_how in ("text", "plot_text"):
+            print(text[:-1])
+        if highlight_how in ("plot", "plot_text"):
+            fig.text(0.15, -0.001, text[:-1], ha="left")
 
     if save_fig == True:
         if not save_fig_filename:
@@ -3351,8 +3441,8 @@ def plot_roi(
         If ``highlight_ntile`` is not specified as an int.
     ValueError :
         If the wrong ``highlight_how`` value is specified.
-    """
 
+    """
     models = plot_input.model_label.unique().tolist()
     datasets = plot_input.dataset_label.unique().tolist()
     classes = plot_input.target_class.unique().tolist()
@@ -3418,7 +3508,8 @@ def plot_roi(
 
     if scope == "no_comparison":
         ax.set_title(
-            "model: %s & dataset: %s & target class: %s" % (models[0], datasets[0], classes[0]),
+            "model: %s & dataset: %s & target class: %s"
+            % (models[0], datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.plot(plot_input.ntile, plot_input.roi, label=classes[0], color=colors[0])
@@ -3432,7 +3523,8 @@ def plot_roi(
                 color=colors[col],
             )
         ax.set_title(
-            "scope: comparing datasets & model: %s & target class: %s" % (models[0], classes[0]),
+            "scope: comparing datasets & model: %s & target class: %s"
+            % (models[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="upper right", shadow=False, frameon=False)
@@ -3446,7 +3538,8 @@ def plot_roi(
             )
         ax.legend(loc="lower right", shadow=False, frameon=False)
         ax.set_title(
-            "scope: comparing models & dataset: %s & target class: %s" % (datasets[0], classes[0]),
+            "scope: comparing models & dataset: %s & target class: %s"
+            % (datasets[0], classes[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
@@ -3459,13 +3552,13 @@ def plot_roi(
                 color=colors[col],
             )
         ax.set_title(
-            "Scope: comparing target classes & dataset: %s & model: %s" % (datasets[0], models[0]),
+            "Scope: comparing target classes & dataset: %s & model: %s"
+            % (datasets[0], models[0]),
             fontweight="bold",
         )
         ax.legend(loc="lower right", shadow=False, frameon=False)
 
     if highlight_ntile is not None:
-
         if highlight_ntile not in np.linspace(1, ntiles, num=ntiles).tolist():
             raise TypeError(
                 "Invalid value for highlight_ntile parameter. "
@@ -3478,22 +3571,72 @@ def plot_roi(
                 "it must be one of the following: plot, text or plot_text."
             )
 
-        else:
-            text = ""
-            if scope == "no_comparison":
-                cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "roi"].tolist()
+        text = ""
+        if scope == "no_comparison":
+            cumpct = plot_input.loc[plot_input.ntile == highlight_ntile, "roi"].tolist()
+            plt.plot(
+                [1, highlight_ntile],
+                [cumpct[0]] * 2,
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            plt.plot(
+                [highlight_ntile] * 2,
+                [0] + [cumpct[0]],
+                linestyle="-.",
+                color=colors[0],
+                lw=1.5,
+            )
+            xy = tuple([highlight_ntile] + [cumpct[0]])
+            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.annotate(
+                str(int(cumpct[0] * 100)) + "%",
+                xy=xy,
+                xytext=(-30, -30),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                color="black",
+                bbox=dict(
+                    boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]
+                ),  # fc = 'yellow', alpha = 0.3),
+                arrowprops=dict(arrowstyle="->", color="black"),
+            )
+            text += (
+                "When we select %s 1 until %d from model %s in dataset "
+                "%s the percentage of %s cases in the expected expected return on "
+                "investment is %d"
+            ) % (
+                description_label,
+                highlight_ntile,
+                models[0],
+                datasets[0],
+                classes[0],
+                int(cumpct[0] * 100),
+            ) + "%.\n"
+        elif scope == "compare_datasets":
+            for col, i in enumerate(datasets):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["dataset_label", "roi"]
+                ]
+                cumpct = cumpct.roi[cumpct.dataset_label == i].tolist()
                 plt.plot(
-                    [1, highlight_ntile], [cumpct[0]] * 2, linestyle="-.", color=colors[0], lw=1.5
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
                 )
                 plt.plot(
                     [highlight_ntile] * 2,
-                    [0] + [cumpct[0]],
+                    [0] + cumpct,
                     linestyle="-.",
-                    color=colors[0],
+                    color=colors[col],
                     lw=1.5,
                 )
-                xy = tuple([highlight_ntile] + [cumpct[0]])
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -3503,161 +3646,120 @@ def plot_roi(
                     va="bottom",
                     color="black",
                     bbox=dict(
-                        boxstyle="round, pad = 0.4", alpha=1, fc=colors[0]
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
                     ),  # fc = 'yellow', alpha = 0.3),
                     arrowprops=dict(arrowstyle="->", color="black"),
                 )
                 text += (
                     "When we select %s 1 until %d from model %s in dataset "
-                    "%s the percentage of %s cases in the expected expected return on "
+                    "%s the percentage of %s cases in the expected expected "
+                    "return on investment is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    models[0],
+                    i,
+                    classes[0],
+                    int(cumpct[0] * 100),
+                ) + "%.\n"
+        elif scope == "compare_models":
+            for col, i in enumerate(models):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["model_label", "roi"]
+                ]
+                cumpct = cumpct.roi[cumpct.model_label == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
+                    ),  # fc = 'yellow', alpha = 0.3),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %s 1 until %d from model %s in dataset "
+                    "%s the percentage of %s cases in the expected expected "
+                    "return on investment is %d"
+                ) % (
+                    description_label,
+                    highlight_ntile,
+                    i,
+                    datasets[0],
+                    classes[0],
+                    int(cumpct[0] * 100),
+                ) + "%.\n"
+        else:  # compare targetvalues
+            for col, i in enumerate(classes):
+                cumpct = plot_input.loc[
+                    plot_input.ntile == highlight_ntile, ["target_class", "roi"]
+                ]
+                cumpct = cumpct.roi[cumpct.target_class == i].tolist()
+                plt.plot(
+                    [1, highlight_ntile],
+                    cumpct * 2,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                plt.plot(
+                    [highlight_ntile] * 2,
+                    [0] + cumpct,
+                    linestyle="-.",
+                    color=colors[col],
+                    lw=1.5,
+                )
+                xy = tuple([highlight_ntile] + cumpct)
+                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.annotate(
+                    str(int(cumpct[0] * 100)) + "%",
+                    xy=xy,
+                    xytext=(-30, -30),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round, pad = 0.4", fc=colors[col], alpha=0.8
+                    ),  # fc = 'yellow', alpha = 0.3),
+                    arrowprops=dict(arrowstyle="->", color="black"),
+                )
+                text += (
+                    "When we select %s 1 until %d from model %s in dataset "
+                    "%s the percentage of %s cases in the expected return on "
                     "investment is %d"
                 ) % (
                     description_label,
                     highlight_ntile,
                     models[0],
                     datasets[0],
-                    classes[0],
+                    i,
                     int(cumpct[0] * 100),
                 ) + "%.\n"
-            elif scope == "compare_datasets":
-                for col, i in enumerate(datasets):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["dataset_label", "roi"]
-                    ]
-                    cumpct = cumpct.roi[cumpct.dataset_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the expected expected "
-                        "return on investment is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[col],
-                        classes[0],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
-            elif scope == "compare_models":
-                for col, i in enumerate(models):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["model_label", "roi"]
-                    ]
-                    cumpct = cumpct.roi[cumpct.model_label == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the expected expected "
-                        "return on investment is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[col],
-                        datasets[0],
-                        classes[0],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
-            else:  # compare targetvalues
-                for col, i in enumerate(classes):
-                    cumpct = plot_input.loc[
-                        plot_input.ntile == highlight_ntile, ["target_class", "roi"]
-                    ]
-                    cumpct = cumpct.roi[cumpct.target_class == i].tolist()
-                    plt.plot(
-                        [1, highlight_ntile], cumpct * 2, linestyle="-.", color=colors[col], lw=1.5
-                    )
-                    plt.plot(
-                        [highlight_ntile] * 2,
-                        [0] + cumpct,
-                        linestyle="-.",
-                        color=colors[col],
-                        lw=1.5,
-                    )
-                    xy = tuple([highlight_ntile] + cumpct)
-                    ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
-                    ax.annotate(
-                        str(int(cumpct[0] * 100)) + "%",
-                        xy=xy,
-                        xytext=(-30, -30),
-                        textcoords="offset points",
-                        ha="center",
-                        va="bottom",
-                        color="black",
-                        bbox=dict(
-                            boxstyle="round, pad = 0.4",
-                            fc=colors[col],
-                            alpha=0.8,
-                        ),  # fc = 'yellow', alpha = 0.3),
-                        arrowprops=dict(arrowstyle="->", color="black"),
-                    )
-                    text += (
-                        "When we select %s 1 until %d from model %s in dataset "
-                        "%s the percentage of %s cases in the expected return on "
-                        "investment is %d"
-                    ) % (
-                        description_label,
-                        highlight_ntile,
-                        models[0],
-                        datasets[0],
-                        classes[col],
-                        int(cumpct[0] * 100),
-                    ) + "%.\n"
-            if highlight_how in ("text", "plot_text"):
-                print(text[:-1])
-            if highlight_how in ("plot", "plot_text"):
-                fig.text(0.15, -0.001, text[:-1], ha="left")
+        if highlight_how in ("text", "plot_text"):
+            print(text[:-1])
+        if highlight_how in ("plot", "plot_text"):
+            fig.text(0.15, -0.001, text[:-1], ha="left")
 
     if save_fig == True:
         if not save_fig_filename:

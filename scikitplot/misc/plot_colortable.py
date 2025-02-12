@@ -1,12 +1,14 @@
-""" """
+"""
+misc
+"""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 import math
 from collections import OrderedDict
-from typing import List
 
+# from typing import List
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatch
 import matplotlib.pyplot as plt
@@ -14,22 +16,22 @@ import numpy as np
 from matplotlib.patches import Rectangle
 
 __all__ = [
-    "display_colors",
     "closest_color_name",
+    "display_colors",
     "plot_colortable",
     "plot_overlapping_colors",
 ]
 
 
 def display_colors(
-    colors: List[str], title: str = "Color Display (Order)", show_indices: bool = False
+    colors: list[str], title: str = "Color Display (Order)", show_indices: bool = False
 ) -> None:
     """
     Display a list of colors as horizontal bars, preserving the order of the colors.
 
     Parameters
     ----------
-    colors : List[str]
+    colors : list[str]
         A list of color names or color codes (e.g., ['red', 'blue', 'green']).
 
     title : str, optional, default="Color Display (Order)"
@@ -48,8 +50,8 @@ def display_colors(
     -------
     display_colors(['gray', 'orange', 'red', 'pink', 'salmon', 'olive', 'limegreen', 'green', 'dodgerblue', 'cyan', 'blue', 'purple', 'brown'])
     display_colors(['gray', 'orange', 'red', 'pink'], title="My Custom Color Display", show_indices=True)
-    """
 
+    """
     # Create a plot to display the colors, ensuring that order is preserved
     plt.figure(figsize=(8, 2))  # Adjust the figure size as needed
 
@@ -115,7 +117,7 @@ def closest_color_name(
 
     Returns
     -------
-    OrderedDict or List
+    OrderedDict or list
         - If `return_distances=True`, returns an ordered dictionary with color names as keys and their distances as values.
         - If `return_distances=False`, returns a list of the closest color names.
 
@@ -146,11 +148,13 @@ def closest_color_name(
 
     >>> closest_color_name("notacolor", return_distances=False)
     ValueError: Invalid color input
-    """
 
+    """
     # Validate the use_spec parameter
     if use_spec not in ["CSS4", "xkcd"]:
-        raise ValueError("Invalid value for use_spec. Accepted values are 'CSS4' or 'xkcd'.")
+        raise ValueError(
+            "Invalid value for use_spec. Accepted values are 'CSS4' or 'xkcd'."
+        )
 
     # Check if the input is a named color or a hex code
     if hex_color in mcolors.CSS4_COLORS or hex_color in mcolors.XKCD_COLORS:
@@ -172,8 +176,7 @@ def closest_color_name(
     def calculate_distance(color1, color2, use_lab=False):
         if use_lab:
             return np.linalg.norm(color1 - color2)
-        else:
-            return np.linalg.norm(np.array(color1) - np.array(color2))
+        return np.linalg.norm(np.array(color1) - np.array(color2))
 
     # Select the correct color palette (CSS4 or xkcd)
     color_palette = mcolors.CSS4_COLORS if use_spec == "CSS4" else mcolors.XKCD_COLORS
@@ -201,19 +204,14 @@ def closest_color_name(
     if return_distances:
         # Return an ordered dictionary with names and distances
         ordered_result = OrderedDict(color_distances[:top_n])
-        return ordered_result
-    else:
-        # Return a list of color names only
-        color_names = [color_name for color_name, _ in color_distances[:top_n]]
-        return color_names
+        return ordered_result  # noqa: RET504
+    # Return a list of color names only
+    color_names = [color_name for color_name, _ in color_distances[:top_n]]
+    return color_names  # noqa: RET504
 
 
 def plot_colortable(
-    colors: dict,
-    *,
-    ncols: int = 4,
-    sort_colors: bool = True,
-    display_hex: bool = True,
+    colors: dict, *, ncols: int = 4, sort_colors: bool = True, display_hex: bool = True
 ) -> plt.Figure:
     """
     Display a table of color swatches with corresponding names and optional hex values.
@@ -245,6 +243,7 @@ def plot_colortable(
     and optional hex codes in a tabular format. The colors can be sorted
     based on their HSV values if the `sort_colors` parameter is set to True.
     The swatch for each color is displayed alongside its name and hex code (if enabled).
+
     """
     cell_width = 248
     cell_height = 24
@@ -254,10 +253,13 @@ def plot_colortable(
     # Sort colors by hue, saturation, value and name.
     if sort_colors:
         try:
-            names = sorted(colors, key=lambda c: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(c))))
+            names = sorted(
+                colors, key=lambda c: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(c)))
+            )
         except:
             names = sorted(
-                colors, key=lambda k: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(colors.get(k))))
+                colors,
+                key=lambda k: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(colors.get(k)))),
             )
     else:
         names = list(colors)
@@ -271,7 +273,10 @@ def plot_colortable(
 
     fig, ax = plt.subplots(figsize=(width / dpi, height / dpi), dpi=dpi)
     fig.subplots_adjust(
-        margin / width, margin / height, (width - margin) / width, (height - margin) / height
+        margin / width,
+        margin / height,
+        (width - margin) / width,
+        (height - margin) / height,
     )
     ax.set_xlim(0, cell_width * ncols)
     ax.set_ylim(cell_height * (nrows - 0.5), -cell_height / 2.0)
@@ -288,7 +293,12 @@ def plot_colortable(
         text_pos_x = cell_width * col + swatch_width + 7
 
         ax.text(
-            text_pos_x, y, name, fontsize=14, horizontalalignment="left", verticalalignment="center"
+            text_pos_x,
+            y,
+            name,
+            fontsize=14,
+            horizontalalignment="left",
+            verticalalignment="center",
         )
 
         ax.add_patch(
@@ -305,10 +315,16 @@ def plot_colortable(
             # Pick text colour based on perceived luminance.
             rgba = mcolors.to_rgba_array([hex_color])
             luma = 0.299 * rgba[:, 0] + 0.587 * rgba[:, 1] + 0.114 * rgba[:, 2]
-            text_color = "k" if luma[0] > 0.5 else "w"
-            text_args = dict(fontsize=9)
+            thr = 0.5
+            text_color = "k" if luma[0] > thr else "w"
+            text_args = dict(fontsize=9)  # noqa: C408
             ax.text(
-                swatch_start_x + 23, y + 3, hex_color, color=text_color, ha="center", **text_args
+                swatch_start_x + 23,
+                y + 3,
+                hex_color,
+                color=text_color,
+                ha="center",
+                **text_args,
             )
 
     return fig
@@ -342,8 +358,11 @@ def plot_overlapping_colors():
     This function visualizes the overlapping colors between CSS4 and XKCD, making it easier to
     compare the color representations from both collections. Each color swatch is labeled with
     its respective name, and the layout adapts to the number of overlapping colors.
+
     """
-    overlap = {name for name in mcolors.CSS4_COLORS if f"xkcd:{name}" in mcolors.XKCD_COLORS}
+    overlap = {
+        name for name in mcolors.CSS4_COLORS if f"xkcd:{name}" in mcolors.XKCD_COLORS
+    }
 
     fig = plt.figure(figsize=[9, 5])
     ax = fig.add_axes([0, 0, 1, 1])
@@ -358,16 +377,31 @@ def plot_overlapping_colors():
         # Pick text colour based on perceived luminance.
         rgba = mcolors.to_rgba_array([css4, xkcd])
         luma = 0.299 * rgba[:, 0] + 0.587 * rgba[:, 1] + 0.114 * rgba[:, 2]
-        css4_text_color = "k" if luma[0] > 0.5 else "w"
-        xkcd_text_color = "k" if luma[1] > 0.5 else "w"
+        thr = 0.5
+        css4_text_color = "k" if luma[0] > thr else "w"
+        xkcd_text_color = "k" if luma[1] > thr else "w"
 
         col_shift = (j // n_rows) * 3
         y_pos = j % n_rows
-        text_args = dict(fontsize=10, weight="bold" if css4 == xkcd else None)
+        text_args = {"fontsize": 10, "weight": "bold"} if css4 == xkcd else {}
         ax.add_patch(mpatch.Rectangle((0 + col_shift, y_pos), 1, 1, color=css4))
         ax.add_patch(mpatch.Rectangle((1 + col_shift, y_pos), 1, 1, color=xkcd))
-        ax.text(0.5 + col_shift, y_pos + 0.7, css4, color=css4_text_color, ha="center", **text_args)
-        ax.text(1.5 + col_shift, y_pos + 0.7, xkcd, color=xkcd_text_color, ha="center", **text_args)
+        ax.text(
+            0.5 + col_shift,
+            y_pos + 0.7,
+            css4,
+            color=css4_text_color,
+            ha="center",
+            **text_args,
+        )
+        ax.text(
+            1.5 + col_shift,
+            y_pos + 0.7,
+            xkcd,
+            color=xkcd_text_color,
+            ha="center",
+            **text_args,
+        )
         ax.text(2 + col_shift, y_pos + 0.7, f"  {color_name}", **text_args)
 
     for g in range(n_groups):

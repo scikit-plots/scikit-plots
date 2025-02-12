@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Callable
 
 import numpy as np
-from numpy import ndarray
 import pandas as pd
+from numpy import ndarray
 from pandas import DataFrame
 
 try:
@@ -96,7 +97,6 @@ class KDE(Stat):
     cumulative: bool = False
 
     def __post_init__(self):
-
         if self.cumulative and _no_scipy:
             raise RuntimeError("Cumulative KDE evaluation requires scipy")
 
@@ -134,7 +134,9 @@ class KDE(Stat):
         gridmax = data[orient].max() + bw * self.cut
         return np.linspace(gridmin, gridmax, self.gridsize)
 
-    def _fit_and_evaluate(self, data: DataFrame, orient: str, support: ndarray) -> DataFrame:
+    def _fit_and_evaluate(
+        self, data: DataFrame, orient: str, support: ndarray
+    ) -> DataFrame:
         """Transform single group by fitting a KDE and evaluating on a support grid."""
         empty = pd.DataFrame(columns=[orient, "weight", "density"], dtype=float)
         if len(data) < 2:
@@ -153,7 +155,9 @@ class KDE(Stat):
         weight = data["weight"].sum()
         return pd.DataFrame({orient: support, "weight": weight, "density": density})
 
-    def _transform(self, data: DataFrame, orient: str, grouping_vars: list[str]) -> DataFrame:
+    def _transform(
+        self, data: DataFrame, orient: str, grouping_vars: list[str]
+    ) -> DataFrame:
         """Transform multiple groups by fitting KDEs and evaluating."""
         empty = pd.DataFrame(columns=[*data.columns, "density"], dtype=float)
         if len(data) < 2:
@@ -170,13 +174,8 @@ class KDE(Stat):
         return groupby.apply(data, self._fit_and_evaluate, orient, support)
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
-
         if "weight" not in data:
             data = data.assign(weight=1)
         data = data.dropna(subset=[orient, "weight"])

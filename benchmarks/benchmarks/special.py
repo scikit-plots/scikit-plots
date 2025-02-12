@@ -31,12 +31,13 @@ class Erf(Benchmark):
 
 
 class Comb(Benchmark):
-
     def setup(self, *args):
         self.N = np.arange(1, 1000, 50)
         self.k = np.arange(1, 1000, 50)
 
-    @with_attributes(params=[(10, 100, 1000, 10000), (1, 10, 100)], param_names=["N", "k"])
+    @with_attributes(
+        params=[(10, 100, 1000, 10000), (1, 10, 100)], param_names=["N", "k"]
+    )
     def time_comb_exact(self, N, k):
         comb(N, k, exact=True)
 
@@ -45,7 +46,6 @@ class Comb(Benchmark):
 
 
 class Loggamma(Benchmark):
-
     def setup(self):
         x, y = np.logspace(3, 5, 10), np.logspace(3, 5, 10)
         x, y = np.meshgrid(x, y)
@@ -56,7 +56,6 @@ class Loggamma(Benchmark):
 
 
 class Expn(Benchmark):
-
     def setup(self):
         n, x = np.arange(50, 500), np.logspace(0, 20, 100)
         n, x = np.meshgrid(n, x)

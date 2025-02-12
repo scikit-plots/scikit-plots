@@ -1,10 +1,9 @@
-"""
-Configuration for the APIs reference documentation.
-"""
+"""Configuration for the APIs reference documentation."""
 
 
 def _get_guide(*refs, is_developer=False):
-    """Get the rst to refer to user/developer guide.
+    """
+    Get the rst to refer to user/developer guide.
 
     `refs` is several references that can be used in the :ref:`...` directive.
     """
@@ -21,7 +20,8 @@ def _get_guide(*refs, is_developer=False):
 
 
 def _get_submodule(module_name, submodule_name):
-    """Get the submodule docstring and automatically add the hook.
+    """
+    Get the submodule docstring and automatically add the hook.
 
     `module_name` is e.g. `sklearn.feature_extraction`, and `submodule_name` is e.g.
     `image`, so we get the docstring and hook for `sklearn.feature_extraction.image`
@@ -412,7 +412,9 @@ APIS_REFERENCE = {
             },
             {
                 "title": "Astrostatistics: Model Selection",
-                "description": _get_submodule("scikitplot._astropy.stats", "info_theory"),
+                "description": _get_submodule(
+                    "scikitplot._astropy.stats", "info_theory"
+                ),
                 "autosummary": [
                     "akaike_info_criterion",
                     "akaike_info_criterion_lsq",

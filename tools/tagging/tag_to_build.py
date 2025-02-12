@@ -4,7 +4,9 @@ import subprocess
 import sys
 
 # Set up logging configuration
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger()
 
 
@@ -21,7 +23,9 @@ def run_command(command):
 def get_last_commit_info():
     # Get the short commit hash and the commit message
     last_commit_id = (
-        subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip().decode()
+        subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+        .strip()
+        .decode()
     )
     last_commit_message = (
         subprocess.check_output(["git", "log", "-1", "--pretty=%B"]).strip().decode()
@@ -73,7 +77,9 @@ def check_and_remove_tag(tag):
 
         # Step 4: If the tag exists remotely, delete it
         if remote_tag_exists.returncode == 0:
-            logger.info(f"Tag {tag} exists remotely. Checking GitHub token for remote deletion.")
+            logger.info(
+                f"Tag {tag} exists remotely. Checking GitHub token for remote deletion."
+            )
 
             # Check for GitHub token to ensure authorization for remote deletion
             github_token = os.getenv("GITHUB_TOKEN")
@@ -93,8 +99,7 @@ def check_and_remove_tag(tag):
 def remove_tag(tag):
     try:
         # Remove the 'r' prefix if it exists in the tag name
-        if tag.startswith("r"):
-            tag = tag[1:]
+        tag = tag.removeprefix("r")
 
         # Step 1: Delete the local tag
         local_tag_exists = subprocess.run(
@@ -138,7 +143,9 @@ def main():
         else:
             create_tag(tag_message)
     else:
-        logger.warning("No tag message provided. Please provide a tag to create or remove.")
+        logger.warning(
+            "No tag message provided. Please provide a tag to create or remove."
+        )
 
 
 if __name__ == "__main__":

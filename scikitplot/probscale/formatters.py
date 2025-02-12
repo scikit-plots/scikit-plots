@@ -1,11 +1,7 @@
 import numpy as numpy
 from matplotlib.ticker import Formatter
 
-__all__ = [
-    "_FormatterMixin",
-    "PctFormatter",
-    "ProbFormatter",
-]
+__all__ = ["PctFormatter", "ProbFormatter", "_FormatterMixin"]
 
 
 class _FormatterMixin(Formatter):
@@ -41,7 +37,6 @@ class _FormatterMixin(Formatter):
         '1247.150'
 
         """
-
         # return a string value unaltered
         if isinstance(x, str):
             out = cls._sig_figs(float(x), n, expthresh=expthresh, forceint=forceint)
@@ -53,10 +48,10 @@ class _FormatterMixin(Formatter):
         elif x is not None and numpy.isfinite(x):
             # check on the _sig_figs
             if n < 1:
-                raise ValueError("number of sig figs (n) must be greater " "than zero")
+                raise ValueError("number of sig figs (n) must be greater than zero")
 
-            elif forceint:
-                out = "{:,.0f}".format(x)
+            if forceint:
+                out = f"{x:,.0f}"
 
             # logic to do all of the rounding
             else:
@@ -66,7 +61,7 @@ class _FormatterMixin(Formatter):
                     decimal_places = int(n - 1 - order)
 
                     if decimal_places <= 0:
-                        out = "{0:,.0f}".format(round(x, decimal_places))
+                        out = f"{round(x, decimal_places):,.0f}"
 
                     else:
                         fmt = "{0:,.%df}" % decimal_places
@@ -92,7 +87,7 @@ class _FormatterMixin(Formatter):
             order = numpy.ceil(numpy.round(numpy.abs(numpy.log10(self.top - x)), 6))
             out = self._sig_figs(x, order + self.offset)
 
-        return "{}".format(out)
+        return f"{out}"
 
 
 class PctFormatter(_FormatterMixin):
@@ -130,10 +125,11 @@ class ProbFormatter(_FormatterMixin):
     >>> fmt(0.2)
     '0.20'
     >>> try:
-    ...    fmt(10.5)
-    ... except(ValueError):
+    ...     fmt(10.5)
+    ... except ValueError:
     ...     print('formatter out of bounds')
     formatter out of bounds
+
     """
 
     factor = 100.0

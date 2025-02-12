@@ -13,12 +13,6 @@ enforcing Python 3-like behavior in Python 2.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 from collections.abc import KeysView, ValuesView
 
@@ -29,16 +23,11 @@ import numpy as np
 # Sigmoid and Softmax functions
 from sklearn.calibration import calibration_curve
 
-from ..._utils.validation import (
-    validate_inputs,
-    validate_plotting_kwargs_decorator,
-)
+from ..._utils.validation import validate_inputs, validate_plotting_kwargs_decorator
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
-__all__ = [
-    "plot_calibration",
-]
+__all__ = ["plot_calibration"]
 
 
 @validate_plotting_kwargs_decorator
@@ -186,7 +175,9 @@ def plot_calibration(
         >>> from sklearn.calibration import CalibratedClassifierCV
         >>> from sklearn.ensemble import RandomForestClassifier
         >>> from sklearn.model_selection import cross_val_predict
-        >>> import numpy as np; np.random.seed(0)
+        >>> import numpy as np
+        ...
+        ... np.random.seed(0)
         >>> # importing pylab or pyplot
         >>> import matplotlib.pyplot as plt
         >>>
@@ -204,23 +195,44 @@ def plot_calibration(
         >>>     n_clusters_per_class=2,
         >>>     random_state=0
         >>> )
-        >>> X_train, y_train, X_val, y_val = X[:1000], y[:1000], X[1000:], y[1000:]
+        >>> X_train, y_train, X_val, y_val = (
+        ...     X[:1000],
+        ...     y[:1000],
+        ...     X[1000:],
+        ...     y[1000:],
+        ... )
         >>>
         >>> # Create an instance of the LogisticRegression
-        >>> lr_probas = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train).predict_proba(X_val)
+        >>> lr_probas = (
+        ...     LogisticRegression(max_iter=int(1e5), random_state=0)
+        ...     .fit(X_train, y_train)
+        ...     .predict_proba(X_val)
+        ... )
         >>> nb_probas = GaussianNB().fit(X_train, y_train).predict_proba(X_val)
         >>> svc_scores = LinearSVC().fit(X_train, y_train).decision_function(X_val)
-        >>> svc_isotonic = CalibratedClassifierCV(LinearSVC(), cv=2, method="isotonic").fit(X_train, y_train).predict_proba(X_val)
-        >>> svc_sigmoid = CalibratedClassifierCV(LinearSVC(), cv=2, method="sigmoid").fit(X_train, y_train).predict_proba(X_val)
-        >>> rf_probas = RandomForestClassifier(random_state=0).fit(X_train, y_train).predict_proba(X_val)
+        >>> svc_isotonic = (
+        ...     CalibratedClassifierCV(LinearSVC(), cv=2, method='isotonic')
+        ...     .fit(X_train, y_train)
+        ...     .predict_proba(X_val)
+        ... )
+        >>> svc_sigmoid = (
+        ...     CalibratedClassifierCV(LinearSVC(), cv=2, method='sigmoid')
+        ...     .fit(X_train, y_train)
+        ...     .predict_proba(X_val)
+        ... )
+        >>> rf_probas = (
+        ...     RandomForestClassifier(random_state=0)
+        ...     .fit(X_train, y_train)
+        ...     .predict_proba(X_val)
+        ... )
         >>>
         >>> probas_dict = {
         >>>     LogisticRegression(): lr_probas,
-        >>>     # GaussianNB(): nb_probas,
+        >>> # GaussianNB(): nb_probas,
         >>>     "LinearSVC() + MinMax": svc_scores,
         >>>     "LinearSVC() + Isotonic": svc_isotonic,
         >>>     "LinearSVC() + Sigmoid": svc_sigmoid,
-        >>>     # RandomForestClassifier(): rf_probas,
+        >>> # RandomForestClassifier(): rf_probas,
         >>> }
         >>> # Plot!
         >>> fig, ax = plt.subplots(figsize=(12, 6))
@@ -230,6 +242,7 @@ def plot_calibration(
         >>>     estimator_names=probas_dict.keys(),
         >>>     ax=ax,
         >>> );
+
     """
     ##################################################################
     ## Preprocessing
@@ -237,11 +250,11 @@ def plot_calibration(
     # Proceed with your preprocess logic here
     # Handle the case where estimator_names are not provided
     if estimator_names is None:
-        estimator_names = [f"Clf_{i+1}" for i, model in enumerate(y_probas_list)]
+        estimator_names = [f"Clf_{i + 1}" for i, model in enumerate(y_probas_list)]
 
-    if isinstance(estimator_names, (list, KeysView, ValuesView, np.ndarray)) and isinstance(
-        y_probas_list, (list, KeysView, ValuesView, np.ndarray)
-    ):
+    if isinstance(
+        estimator_names, (list, KeysView, ValuesView, np.ndarray)
+    ) and isinstance(y_probas_list, (list, KeysView, ValuesView, np.ndarray)):
         try:
             estimator_names = list(estimator_names)
             y_probas_list = list(map(np.asarray, y_probas_list))
@@ -268,10 +281,7 @@ def plot_calibration(
     for idx, y_probas in enumerate(y_probas_list):
         # Convert input to numpy arrays for efficient processing
         y_true_cur, y_probas = validate_inputs(
-            y_true,
-            y_probas,
-            pos_label=pos_label,
-            class_index=class_index,
+            y_true, y_probas, pos_label=pos_label, class_index=class_index
         )
         # equalize ndim for y_true and y_probas 2D
         if y_true_cur.ndim == 1:
@@ -293,7 +303,9 @@ def plot_calibration(
     y_true = y_true_cur
     # Get unique classes and filter the ones to plot
     classes = np.arange(y_true.shape[1])
-    to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
+    to_plot_class_index = (
+        classes if to_plot_class_index is None else to_plot_class_index
+    )
     indices_to_plot = np.isin(element=classes, test_elements=to_plot_class_index)
 
     ##################################################################
@@ -310,11 +322,10 @@ def plot_calibration(
     for i, to_plot in enumerate(indices_to_plot):
         for j, y_probas in enumerate(y_probas_list):
             # Calculate the calibration curve
-            fraction_of_positives_dict[i], mean_predicted_value_dict[i] = calibration_curve(
-                y_true[:, i],
-                y_probas[:, i],
-                n_bins=n_bins,
-                strategy=strategy,
+            fraction_of_positives_dict[i], mean_predicted_value_dict[i] = (
+                calibration_curve(
+                    y_true[:, i], y_probas[:, i], n_bins=n_bins, strategy=strategy
+                )
             )
             # Plot if the class is to be plotted
             if to_plot:
@@ -357,10 +368,6 @@ def plot_calibration(
     ax.grid(True)
     handles, labels = ax.get_legend_handles_labels()
     if handles:
-        ax.legend(
-            loc="lower right",
-            title="Classifier Model",
-            alignment="left",
-        )
+        ax.legend(loc="lower right", title="Classifier Model", alignment="left")
     plt.tight_layout()
     return ax

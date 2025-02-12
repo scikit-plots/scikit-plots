@@ -1,15 +1,9 @@
 import unittest
 
-from ..utils import (
-    fade_color,
-    get_keys_by_value,
-    get_rgba_tuple,
-    self_multiply,
-)
+from ..utils import fade_color, get_keys_by_value, get_rgba_tuple, self_multiply
 
 
 class UtilMethods(unittest.TestCase):
-
     def test_get_keys_by_value(self):
         d = {"a": 1, "aa": 1, "b": 2}
 

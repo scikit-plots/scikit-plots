@@ -1,4 +1,5 @@
-"""Vendoered from
+"""
+Vendoered from
 https://github.com/pypa/packaging/blob/main/packaging/version.py
 """
 
@@ -30,11 +31,12 @@ import collections
 import itertools
 import re
 import warnings
-from typing import Callable, Iterator, List, Optional, SupportsInt, Tuple, Union
+from collections.abc import Iterator
+from typing import Callable, List, Optional, SupportsInt, Tuple, Union
 
 from ._structures import Infinity, InfinityType, NegativeInfinity, NegativeInfinityType
 
-__all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
+__all__ = ["VERSION_PATTERN", "InvalidVersion", "LegacyVersion", "Version", "parse"]
 
 InfiniteTypes = Union[InfinityType, NegativeInfinityType]
 PrePostDevType = Union[InfiniteTypes, Tuple[str, int]]
@@ -50,15 +52,22 @@ LocalType = Union[
         ...,
     ],
 ]
-CmpKey = Tuple[int, Tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType]
+CmpKey = Tuple[
+    int, Tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType
+]
 LegacyCmpKey = Tuple[int, Tuple[str, ...]]
-VersionComparisonMethod = Callable[[Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool]
+VersionComparisonMethod = Callable[
+    [Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool
+]
 
-_Version = collections.namedtuple("_Version", ["epoch", "release", "dev", "pre", "post", "local"])
+_Version = collections.namedtuple(
+    "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
+)
 
 
 def parse(version: str) -> Union["LegacyVersion", "Version"]:
-    """Parse the given version from a string to an appropriate class.
+    """
+    Parse the given version from a string to an appropriate class.
 
     Parameters
     ----------
@@ -70,6 +79,7 @@ def parse(version: str) -> Union["LegacyVersion", "Version"]:
     version : :class:`Version` object or a :class:`LegacyVersion` object
         Returned class depends on the given version: if is a valid
         PEP 440 version or a legacy version.
+
     """
     try:
         return Version(version)
@@ -78,9 +88,7 @@ def parse(version: str) -> Union["LegacyVersion", "Version"]:
 
 
 class InvalidVersion(ValueError):
-    """
-    An invalid version was found, users should refer to PEP 440.
-    """
+    """An invalid version was found, users should refer to PEP 440."""
 
 
 class _BaseVersion:
@@ -220,7 +228,6 @@ def _parse_version_parts(s: str) -> Iterator[str]:
 
 
 def _legacy_cmpkey(version: str) -> LegacyCmpKey:
-
     # We hardcode an epoch of -1 here. A PEP 440 version can only have a epoch
     # greater than or equal to 0. This will effectively put the LegacyVersion,
     # which uses the defacto standard originally implemented by setuptools,
@@ -281,11 +288,9 @@ VERSION_PATTERN = r"""
 
 
 class Version(_BaseVersion):
-
     _regex = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
     def __init__(self, version: str) -> None:
-
         # Validate the version and parse it into pieces
         match = self._regex.search(version)
         if not match:
@@ -371,8 +376,7 @@ class Version(_BaseVersion):
     def local(self) -> Optional[str]:
         if self._version.local:
             return ".".join(str(x) for x in self._version.local)
-        else:
-            return None
+        return None
 
     @property
     def public(self) -> str:
@@ -419,7 +423,6 @@ class Version(_BaseVersion):
 def _parse_letter_version(
     letter: str, number: Union[str, bytes, SupportsInt]
 ) -> Optional[Tuple[str, int]]:
-
     if letter:
         # We consider there to be an implicit 0 in a pre-release if there is
         # not a numeral associated with it.
@@ -456,9 +459,7 @@ _local_version_separators = re.compile(r"[\._-]")
 
 
 def _parse_local_version(local: str) -> Optional[LocalType]:
-    """
-    Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve").
-    """
+    """Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve")."""
     if local is not None:
         return tuple(
             part.lower() if not part.isdigit() else int(part)
@@ -475,13 +476,14 @@ def _cmpkey(
     dev: Optional[Tuple[str, int]],
     local: Optional[Tuple[SubLocalType]],
 ) -> CmpKey:
-
     # When we compare a release version, we want to compare it with all of the
     # trailing zeros removed. So we'll use a reverse the list, drop all the now
     # leading zeros until we come to something non zero, then take the rest
     # re-reverse it back into the correct order and make it a tuple and use
     # that for our sorting key.
-    _release = tuple(reversed(list(itertools.dropwhile(lambda x: x == 0, reversed(release)))))
+    _release = tuple(
+        reversed(list(itertools.dropwhile(lambda x: x == 0, reversed(release))))
+    )
 
     # We need to "trick" the sorting algorithm to put 1.0.dev0 before 1.0a0.
     # We'll do this by abusing the pre segment, but we _only_ want to do this
@@ -521,6 +523,8 @@ def _cmpkey(
         # - Numeric segments sort numerically
         # - Shorter versions sort before longer versions when the prefixes
         #   match exactly
-        _local = tuple((i, "") if isinstance(i, int) else (NegativeInfinity, i) for i in local)
+        _local = tuple(
+            (i, "") if isinstance(i, int) else (NegativeInfinity, i) for i in local
+        )
 
     return epoch, _release, _pre, _post, _dev, _local

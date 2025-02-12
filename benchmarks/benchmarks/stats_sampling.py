@@ -94,9 +94,9 @@ class contdist4:
         return 0.2 * 0.45 * (2 * np.pi) * np.cos(2 * np.pi * x)
 
     def cdf(self, x):
-        return 0.05 * (x + 1) + 0.9 * (1.0 + 2.0 * np.pi * (1 + x) - np.cos(2.0 * np.pi * x)) / (
-            4.0 * np.pi
-        )
+        return 0.05 * (x + 1) + 0.9 * (
+            1.0 + 2.0 * np.pi * (1 + x) - np.cos(2.0 * np.pi * x)
+        ) / (4.0 * np.pi)
 
     def support(self):
         return -1, 1
@@ -121,7 +121,11 @@ class contdist5:
         return 0.2 * 0.45 * (2 * np.pi) * np.cos(2 * np.pi * x)
 
     def cdf(self, x):
-        return x / 10.0 + 0.5 + 0.09 / (2 * np.pi) * (np.cos(10 * np.pi) - np.cos(2 * np.pi * x))
+        return (
+            x / 10.0
+            + 0.5
+            + 0.09 / (2 * np.pi) * (np.cos(10 * np.pi) - np.cos(2 * np.pi * x))
+        )
 
     def support(self):
         return -5, 5
@@ -130,11 +134,17 @@ class contdist5:
         return "sin10"
 
 
-allcontdists = [contdist1(), contdist2(), contdist3(), contdist3(10000.0), contdist4(), contdist5()]
+allcontdists = [
+    contdist1(),
+    contdist2(),
+    contdist3(),
+    contdist3(10000.0),
+    contdist4(),
+    contdist5(),
+]
 
 
 class TransformedDensityRejection(Benchmark):
-
     param_names = ["dist", "c"]
 
     params = [allcontdists, [0.0, -0.5]]
@@ -144,7 +154,9 @@ class TransformedDensityRejection(Benchmark):
         with np.testing.suppress_warnings() as sup:
             sup.filter(RuntimeWarning)
             try:
-                self.rng = sampling.TransformedDensityRejection(dist, c=c, random_state=self.urng)
+                self.rng = sampling.TransformedDensityRejection(
+                    dist, c=c, random_state=self.urng
+                )
             except sampling.UNURANError:
                 # contdist3 is not T-concave for c=0. So, skip such test-cases
                 raise NotImplementedError(f"{dist} not T-concave for c={c}")
@@ -159,7 +171,6 @@ class TransformedDensityRejection(Benchmark):
 
 
 class SimpleRatioUniforms(Benchmark):
-
     param_names = ["dist", "cdf_at_mode"]
 
     params = [allcontdists, [0, 1]]
@@ -191,7 +202,6 @@ class SimpleRatioUniforms(Benchmark):
 
 
 class NumericalInversePolynomial(Benchmark):
-
     param_names = ["dist"]
 
     params = [allcontdists]
@@ -201,7 +211,9 @@ class NumericalInversePolynomial(Benchmark):
         with np.testing.suppress_warnings() as sup:
             sup.filter(RuntimeWarning)
             try:
-                self.rng = sampling.NumericalInversePolynomial(dist, random_state=self.urng)
+                self.rng = sampling.NumericalInversePolynomial(
+                    dist, random_state=self.urng
+                )
             except sampling.UNURANError:
                 raise NotImplementedError(f"setup failed for {dist}")
 
@@ -215,7 +227,6 @@ class NumericalInversePolynomial(Benchmark):
 
 
 class NumericalInverseHermite(Benchmark):
-
     param_names = ["dist", "order"]
     params = [allcontdists, [3, 5]]
 
@@ -240,7 +251,6 @@ class NumericalInverseHermite(Benchmark):
 
 
 class DiscreteAliasUrn(Benchmark):
-
     param_names = ["distribution"]
 
     params = [
@@ -270,7 +280,6 @@ class DiscreteAliasUrn(Benchmark):
 
 
 class DiscreteGuideTable(Benchmark):
-
     param_names = ["distribution"]
 
     params = [

@@ -25,17 +25,25 @@ integral_dtypes = ["int32", "int64"]
 
 @array_api_compatible
 @pytest.mark.usefixtures("skip_xp_backends")
-@pytest.mark.skip_xp_backends("jax.numpy", reason="JAX arrays do not support item assignment")
+@pytest.mark.skip_xp_backends(
+    "jax.numpy", reason="JAX arrays do not support item assignment"
+)
 def test_wrap_radians(xp):
-    x = xp.asarray([-math.pi - 1, -math.pi, -1, -1e-300, 0, 1e-300, 1, math.pi, math.pi + 1])
-    ref = xp.asarray([math.pi - 1, math.pi, -1, -1e-300, 0, 1e-300, 1, math.pi, -math.pi + 1])
+    x = xp.asarray(
+        [-math.pi - 1, -math.pi, -1, -1e-300, 0, 1e-300, 1, math.pi, math.pi + 1]
+    )
+    ref = xp.asarray(
+        [math.pi - 1, math.pi, -1, -1e-300, 0, 1e-300, 1, math.pi, -math.pi + 1]
+    )
     res = _wrap_radians(x, xp)
     xp_assert_close(res, ref, atol=0)
 
 
 @array_api_compatible
 @pytest.mark.usefixtures("skip_xp_backends")
-@pytest.mark.skip_xp_backends("jax.numpy", reason="JAX arrays do not support item assignment")
+@pytest.mark.skip_xp_backends(
+    "jax.numpy", reason="JAX arrays do not support item assignment"
+)
 class TestLogSumExp:
     def test_logsumexp(self, xp):
         # Test with zero-size array
@@ -175,7 +183,9 @@ class TestLogSumExp:
     def test_xp_invalid_input(self, arg, xp):
         assert logsumexp(arg) == logsumexp(np.asarray(np.atleast_1d(arg)))
 
-    @pytest.mark.skip_xp_backends(np_only=True, reason="Lists correspond with NumPy backend")
+    @pytest.mark.skip_xp_backends(
+        np_only=True, reason="Lists correspond with NumPy backend"
+    )
     def test_list(self, xp):
         a = [1000, 1000]
         desired = xp.asarray(1000.0 + math.log(2.0), dtype=np.float64)
@@ -267,15 +277,24 @@ class TestLogSumExp:
 
 class TestSoftmax:
     def test_softmax_fixtures(self):
-        np_testing.assert_allclose(softmax([1000, 0, 0, 0]), np.array([1, 0, 0, 0]), rtol=1e-13)
+        np_testing.assert_allclose(
+            softmax([1000, 0, 0, 0]), np.array([1, 0, 0, 0]), rtol=1e-13
+        )
         np_testing.assert_allclose(softmax([1, 1]), np.array([0.5, 0.5]), rtol=1e-13)
-        np_testing.assert_allclose(softmax([0, 1]), np.array([1, np.e]) / (1 + np.e), rtol=1e-13)
+        np_testing.assert_allclose(
+            softmax([0, 1]), np.array([1, np.e]) / (1 + np.e), rtol=1e-13
+        )
 
         # Expected value computed using mpmath (with mpmath.mp.dps = 200) and then
         # converted to float.
         x = np.arange(4)
         expected = np.array(
-            [0.03205860328008499, 0.08714431874203256, 0.23688281808991013, 0.6439142598879722]
+            [
+                0.03205860328008499,
+                0.08714431874203256,
+                0.23688281808991013,
+                0.6439142598879722,
+            ]
         )
 
         np_testing.assert_allclose(softmax(x), expected, rtol=1e-13)
@@ -286,14 +305,20 @@ class TestSoftmax:
 
         # When axis=None, softmax operates on the entire array, and preserves
         # the shape.
-        np_testing.assert_allclose(softmax(x.reshape(2, 2)), expected.reshape(2, 2), rtol=1e-13)
+        np_testing.assert_allclose(
+            softmax(x.reshape(2, 2)), expected.reshape(2, 2), rtol=1e-13
+        )
 
     def test_softmax_multi_axes(self):
         np_testing.assert_allclose(
-            softmax([[1000, 0], [1000, 0]], axis=0), np.array([[0.5, 0.5], [0.5, 0.5]]), rtol=1e-13
+            softmax([[1000, 0], [1000, 0]], axis=0),
+            np.array([[0.5, 0.5], [0.5, 0.5]]),
+            rtol=1e-13,
         )
         np_testing.assert_allclose(
-            softmax([[1000, 0], [1000, 0]], axis=1), np.array([[1, 0], [1, 0]]), rtol=1e-13
+            softmax([[1000, 0], [1000, 0]], axis=1),
+            np.array([[1, 0], [1, 0]]),
+            rtol=1e-13,
         )
 
         # Expected value computed using mpmath (with mpmath.mp.dps = 200) and then
@@ -315,4 +340,6 @@ class TestSoftmax:
 
         # 3-d input, with a tuple for the axis.
         x3d = x.reshape(2, 2, 2)
-        np_testing.assert_allclose(softmax(x3d, axis=(1, 2)), expected.reshape(2, 2, 2), rtol=1e-13)
+        np_testing.assert_allclose(
+            softmax(x3d, axis=(1, 2)), expected.reshape(2, 2, 2), rtol=1e-13
+        )

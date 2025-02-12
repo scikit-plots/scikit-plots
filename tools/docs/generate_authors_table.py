@@ -36,7 +36,8 @@ def get(url):
     for sleep_time in [10, 30, 0]:
         reply = requests.get(url, auth=auth)
         api_limit = (
-            "message" in reply.json() and "API rate limit exceeded" in reply.json()["message"]
+            "message" in reply.json()
+            and "API rate limit exceeded" in reply.json()["message"]
         )
         if not api_limit:
             break
@@ -93,34 +94,36 @@ def get_contributors():
     # members |= {"Angel Soler Gollonet"}
     # remove CI bots
     members -= {"sklearn-ci", "sklearn-wheels", "sklearn-lgtm"}
-    contributor_experience_team -= core_devs  # remove ogrisel from contributor_experience_team
+    contributor_experience_team -= (
+        core_devs  # remove ogrisel from contributor_experience_team
+    )
 
-    emeritus = members - comm_team - contributor_experience_team - core_devs - documentation_team
+    emeritus = (
+        members
+        - comm_team
+        - contributor_experience_team
+        - core_devs
+        - documentation_team
+    )
 
     # hard coded
     comm_team -= set(
         [
             # in the comm team but not on the web page
-            "muhammed celik",
+            "muhammed celik"
         ]
     )
-    emeritus_comm_team = set(
-        [
-            "muhammed celik",
-        ]
-    )
-    emeritus_contributor_experience_team = set(
-        [
-            "muhammed celik",
-        ]
-    )
+    emeritus_comm_team = set(["muhammed celik"])
+    emeritus_contributor_experience_team = set(["muhammed celik"])
     # Up-to-now, we can subtract the team emeritus from the original emeritus
     emeritus -= emeritus_comm_team | emeritus_contributor_experience_team
 
     # get profiles from GitHub
     comm_team = [get_profile(login) for login in comm_team]
     emeritus_comm_team = [get_profile(login) for login in emeritus_comm_team]
-    contributor_experience_team = [get_profile(login) for login in contributor_experience_team]
+    contributor_experience_team = [
+        get_profile(login) for login in contributor_experience_team
+    ]
     emeritus_contributor_experience_team = [
         get_profile(login) for login in emeritus_contributor_experience_team
     ]
@@ -132,7 +135,9 @@ def get_contributors():
     comm_team = sorted(comm_team, key=key)
     emeritus_comm_team = sorted(emeritus_comm_team, key=key)
     contributor_experience_team = sorted(contributor_experience_team, key=key)
-    emeritus_contributor_experience_team = sorted(emeritus_contributor_experience_team, key=key)
+    emeritus_contributor_experience_team = sorted(
+        emeritus_contributor_experience_team, key=key
+    )
     core_devs = sorted(core_devs, key=key)
     emeritus = sorted(emeritus, key=key)
     documentation_team = sorted(documentation_team, key=key)
@@ -219,7 +224,9 @@ if __name__ == "__main__":
     ) = get_contributors()
 
     with open(
-        REPO_FOLDER / "docs/source/project/teams" / "communication_team.rst", "w+", encoding="utf-8"
+        REPO_FOLDER / "docs/source/project/teams" / "communication_team.rst",
+        "w+",
+        encoding="utf-8",
     ) as rst_file:
         rst_file.write(generate_table(comm_team))
     with open(
@@ -236,14 +243,20 @@ if __name__ == "__main__":
     ) as rst_file:
         rst_file.write(generate_table(contributor_experience_team))
     with open(
-        (REPO_FOLDER / "docs/source/project/teams" / "contributor_experience_team_emeritus.rst"),
+        (
+            REPO_FOLDER
+            / "docs/source/project/teams"
+            / "contributor_experience_team_emeritus.rst"
+        ),
         "w+",
         encoding="utf-8",
     ) as rst_file:
         rst_file.write(generate_list(emeritus_contributor_experience_team))
 
     with open(
-        REPO_FOLDER / "docs/source/project/teams" / "maintainers.rst", "w+", encoding="utf-8"
+        REPO_FOLDER / "docs/source/project/teams" / "maintainers.rst",
+        "w+",
+        encoding="utf-8",
     ) as rst_file:
         rst_file.write(generate_table(core_devs))
     with open(
@@ -254,6 +267,8 @@ if __name__ == "__main__":
         rst_file.write(generate_list(emeritus))
 
     with open(
-        REPO_FOLDER / "docs/source/project/teams" / "documentation_team.rst", "w+", encoding="utf-8"
+        REPO_FOLDER / "docs/source/project/teams" / "documentation_team.rst",
+        "w+",
+        encoding="utf-8",
     ) as rst_file:
         rst_file.write(generate_table(documentation_team))

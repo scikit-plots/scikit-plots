@@ -92,7 +92,8 @@ __all__ = ["gaussian_kde"]
 
 
 class gaussian_kde:
-    """Representation of a kernel-density estimate using Gaussian kernels.
+    """
+    Representation of a kernel-density estimate using Gaussian kernels.
 
     Kernel density estimation is a way to estimate the probability density
     function (PDF) of a random variable in a non-parametric way.
@@ -161,12 +162,12 @@ class gaussian_kde:
 
     Scott's Rule [1]_, implemented as `scotts_factor`, is::
 
-        n**(-1./(d+4)),
+        (n ** (-1.0 / (d + 4)),)
 
     with ``n`` the number of data points and ``d`` the number of dimensions.
     In the case of unequally weighted points, `scotts_factor` becomes::
 
-        neff**(-1./(d+4)),
+        (neff ** (-1.0 / (d + 4)),)
 
     with ``neff`` the effective number of datapoints.
     Silverman's Rule [2]_, implemented as `silverman_factor`, is::
@@ -184,7 +185,7 @@ class gaussian_kde:
     With a set of weighted samples, the effective number of datapoints ``neff``
     is defined by::
 
-        neff = sum(weights)^2 / sum(weights^2)
+        neff = sum(weights) ^ 2 / sum(weights ^ 2)
 
     as detailed in [5]_.
 
@@ -224,7 +225,8 @@ class gaussian_kde:
         self.set_bandwidth(bw_method=bw_method)
 
     def evaluate(self, points):
-        """Evaluate the estimated pdf on a set of points.
+        """
+        Evaluate the estimated pdf on a set of points.
 
         Parameters
         ----------
@@ -282,22 +284,26 @@ class gaussian_kde:
     __call__ = evaluate
 
     def scotts_factor(self):
-        """Compute Scott's factor.
+        """
+        Compute Scott's factor.
 
         Returns
         -------
         s : float
             Scott's factor.
+
         """
         return power(self.neff, -1.0 / (self.d + 4))
 
     def silverman_factor(self):
-        """Compute the Silverman factor.
+        """
+        Compute the Silverman factor.
 
         Returns
         -------
         s : float
             The silverman factor.
+
         """
         return power(self.neff * (self.d + 2.0) / 4.0, -1.0 / (self.d + 4))
 
@@ -310,7 +316,8 @@ class gaussian_kde:
         `kde.set_bandwidth`."""
 
     def set_bandwidth(self, bw_method=None):
-        """Compute the estimator bandwidth with given method.
+        """
+        Compute the estimator bandwidth with given method.
 
         The new bandwidth calculated after a call to `set_bandwidth` is used
         for subsequent evaluations of the estimated density.
@@ -343,13 +350,14 @@ class gaussian_kde:
             self._bw_method = bw_method
             self.covariance_factor = lambda: self._bw_method(self)
         else:
-            msg = "`bw_method` should be 'scott', 'silverman', a scalar " "or a callable."
+            msg = "`bw_method` should be 'scott', 'silverman', a scalar or a callable."
             raise ValueError(msg)
 
         self._compute_covariance()
 
     def _compute_covariance(self):
-        """Computes the covariance matrix for each Gaussian kernel using
+        """
+        Computes the covariance matrix for each Gaussian kernel using
         covariance_factor().
         """
         self.factor = self.covariance_factor()

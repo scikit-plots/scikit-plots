@@ -63,7 +63,9 @@ def plot_data():
         ("x", numpy.array([0.2711, 1.2784, 1.5988, 1.7953, 1.9373, 2.0487])),
         (
             "y",
-            numpy.array([2.2006e00, 4.9139e01, 1.0972e03, 2.4501e04, 5.4711e05, 1.2217e07]),
+            numpy.array(
+                [2.2006e00, 4.9139e01, 1.0972e03, 2.4501e04, 5.4711e05, 1.2217e07]
+            ),
         ),
         ("both", numpy.array([1.3114, 3.5908, 4.9472, 6.0211, 6.9402, 7.7577])),
     ],
@@ -93,8 +95,12 @@ def test__fit_simple(plot_data, fitlogs, known_yhat):
         ),
         (
             "y",
-            numpy.array([4.5187e-01, 1.4956e01, 4.9145e02, 1.0522e04, 1.5299e05, 1.8468e06]),
-            numpy.array([8.5396e00, 1.2596e02, 2.2396e03, 5.2290e04, 1.3310e06, 3.7627e07]),
+            numpy.array(
+                [4.5187e-01, 1.4956e01, 4.9145e02, 1.0522e04, 1.5299e05, 1.8468e06]
+            ),
+            numpy.array(
+                [8.5396e00, 1.2596e02, 2.2396e03, 5.2290e04, 1.3310e06, 3.7627e07]
+            ),
         ),
         (
             "both",
@@ -113,7 +119,7 @@ def test__bs_fit(plot_data, fitlogs, known_lo, known_hi):
     nptest.assert_allclose(yhat_hi, known_hi, rtol=0.001)
 
 
-class Test__estimate_from_fit(object):
+class Test__estimate_from_fit:
     def setup_method(self):
         self.x = numpy.arange(1, 11, 0.5)
         self.slope = 2
@@ -226,14 +232,20 @@ class Test__estimate_from_fit(object):
         nptest.assert_array_almost_equal(ylinlin, self.known_ylinlin)
 
     def test_loglin(self):
-        yloglin = algo._estimate_from_fit(self.x, self.slope, self.intercept, xlog=True, ylog=False)
+        yloglin = algo._estimate_from_fit(
+            self.x, self.slope, self.intercept, xlog=True, ylog=False
+        )
         nptest.assert_array_almost_equal(yloglin, self.known_yloglin)
 
     def test_loglog(self):
-        yloglog = algo._estimate_from_fit(self.x, self.slope, self.intercept, xlog=True, ylog=True)
+        yloglog = algo._estimate_from_fit(
+            self.x, self.slope, self.intercept, xlog=True, ylog=True
+        )
         nptest.assert_array_almost_equal(yloglog, self.known_yloglog)
 
     def test_linlog(self):
-        ylinlog = algo._estimate_from_fit(self.x, self.slope, self.intercept, xlog=False, ylog=True)
+        ylinlog = algo._estimate_from_fit(
+            self.x, self.slope, self.intercept, xlog=False, ylog=True
+        )
         diff = numpy.abs(ylinlog - self.known_ylinlog) / self.known_ylinlog
         nptest.assert_array_almost_equal(diff, numpy.zeros(self.x.shape[0]), decimal=5)

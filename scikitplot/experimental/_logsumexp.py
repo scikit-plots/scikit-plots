@@ -11,16 +11,9 @@ from scikitplot._xp_core_lib._array_api import (
     xp_real,
     xp_size,
 )
-from scikitplot._xp_core_lib.validation import (
-    _asarray_validated,
-)
+from scikitplot._xp_core_lib.validation import _asarray_validated
 
-__all__ = [
-    "sigmoid",
-    "softmax",
-    "logsumexp",
-    "log_softmax",
-]
+__all__ = ["log_softmax", "logsumexp", "sigmoid", "softmax"]
 
 
 def sigmoid(x, axis=None):
@@ -57,12 +50,14 @@ def sigmoid(x, axis=None):
     >>> x = np.array([0, 1, 2])
     >>> sigmoid(x)
     array([0.5       , 0.7310586 , 0.88079708])
+
     """
     return 1 / (1 + np.exp(-x))
 
 
 def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
-    """Compute the log of the sum of exponentials of input elements.
+    """
+    Compute the log of the sum of exponentials of input elements.
 
     Parameters
     ----------
@@ -136,19 +131,18 @@ def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
     >>> b = np.arange(10, 0, -1)
     >>> logsumexp(a, b=b)
     9.9170178533034665
-    >>> np.log(np.sum(b*np.exp(a)))
+    >>> np.log(np.sum(b * np.exp(a)))
     9.9170178533034647
 
     Returning a sign flag
 
-    >>> logsumexp([1,2],b=[1,-1],return_sign=True)
+    >>> logsumexp([1, 2], b=[1, -1], return_sign=True)
     (1.5413248546129181, -1.0)
 
     Notice that `logsumexp` does not directly support masked arrays. To use it
     on a masked array, convert the mask into zero weights:
 
-    >>> a = np.ma.array([np.log(2), 2, np.log(3)],
-    ...                  mask=[False, True, False])
+    >>> a = np.ma.array([np.log(2), 2, np.log(3)], mask=[False, True, False])
     >>> b = (~a.mask).astype(int)
     >>> logsumexp(a.data, b=b), np.log(5)
     1.6094379124341005, 1.6094379124341005
@@ -237,7 +231,6 @@ def _sign(x, xp):
 
 
 def _logsumexp(a, b, axis, return_sign, xp):
-
     # This has been around for about a decade, so let's consider it a feature:
     # Even if element of `a` is infinite or NaN, it adds nothing to the sum if
     # the corresponding weight is zero.
@@ -293,7 +286,8 @@ def _logsumexp(a, b, axis, return_sign, xp):
 
 
 def softmax(x, axis=None):
-    r"""Compute the softmax function.
+    r"""
+    Compute the softmax function.
 
     The softmax function transforms each element of a collection by
     computing the exponential of each element divided by the sum of the
@@ -342,10 +336,7 @@ def softmax(x, axis=None):
     >>> from scipy.special import softmax
     >>> np.set_printoptions(precision=5)
 
-    >>> x = np.array([[1, 0.5, 0.2, 3],
-    ...               [1,  -1,   7, 3],
-    ...               [2,  12,  13, 3]])
-    ...
+    >>> x = np.array([[1, 0.5, 0.2, 3], [1, -1, 7, 3], [2, 12, 13, 3]])
 
     Compute the softmax transformation over the entire array.
 
@@ -390,7 +381,8 @@ def softmax(x, axis=None):
 
 
 def log_softmax(x, axis=None):
-    r"""Compute the logarithm of the softmax function.
+    r"""
+    Compute the logarithm of the softmax function.
 
     In principle::
 
@@ -434,13 +426,11 @@ def log_softmax(x, axis=None):
     array([   0., -999.])
 
     >>> with np.errstate(divide='ignore'):
-    ...   y = np.log(softmax(x))
-    ...
+    ...     y = np.log(softmax(x))
     >>> y
     array([  0., -inf])
 
     """
-
     x = _asarray_validated(x, check_finite=False)
 
     x_max = np.amax(x, axis=axis, keepdims=True)

@@ -8,10 +8,10 @@ from .dfovec import dfovec
 def norm(x, type=2):
     if type == 1:
         return np.sum(np.abs(x))
-    elif type == 2:
+    if type == 2:
         return np.sqrt(x**2)
-    else:  # type==np.inf:
-        return max(np.abs(x))
+    # type==np.inf:
+    return max(np.abs(x))
 
 
 def calfun(x, m, nprob, probtype="smooth", noise_level=1e-3):
@@ -20,7 +20,14 @@ def calfun(x, m, nprob, probtype="smooth", noise_level=1e-3):
     # Restrict domain for some nondiff problems
     xc = x
     if probtype == "nondiff":
-        if nprob == 8 or nprob == 9 or nprob == 13 or nprob == 16 or nprob == 17 or nprob == 18:
+        if (
+            nprob == 8
+            or nprob == 9
+            or nprob == 13
+            or nprob == 16
+            or nprob == 17
+            or nprob == 18
+        ):
             xc = max(x, 0)
 
     # Generate the vector
@@ -34,9 +41,9 @@ def calfun(x, m, nprob, probtype="smooth", noise_level=1e-3):
         y = np.sum(fvec**2)
     elif probtype == "wild3":
         sigma = noise_level
-        phi = 0.9 * np.sin(100 * norm(x, 1)) * np.cos(100 * norm(x, np.inf)) + 0.1 * np.cos(
-            norm(x, 2)
-        )
+        phi = 0.9 * np.sin(100 * norm(x, 1)) * np.cos(
+            100 * norm(x, np.inf)
+        ) + 0.1 * np.cos(norm(x, 2))
         phi = phi * (4 * phi**2 - 3)
         y = (1 + sigma * phi) * sum(fvec**2)
     elif probtype == "smooth":

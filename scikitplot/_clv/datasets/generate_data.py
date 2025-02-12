@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Distributions for the CLV module.
 
@@ -19,17 +18,16 @@ ParetoNBD(name, *args[, rng, dims, initval, ...]): Population-level distribution
 ParetoNBDRV([name, ndim_supp, ndims_params, ...])
 """
 
-
 import numpy as np
 import pandas as pd
 
 __all__ = [
-    "make_clv_dataset",
+    "beta_geometric_beta_binom_model",
     "beta_geometric_nbd_model",
     "beta_geometric_nbd_model_transactional_data",
-    "pareto_nbd_model",
+    "make_clv_dataset",
     "modified_beta_geometric_nbd_model",
-    "beta_geometric_beta_binom_model",
+    "pareto_nbd_model",
 ]
 
 
@@ -81,11 +79,20 @@ def make_clv_dataset(model: str, size=1, **kwargs) -> pd.DataFrame:
 
     Examples
     --------
-    >>> df = make_clv_dataset('bg_nbd', size=1000, T=10, r=0.5, alpha=1.0, a=0.5, b=0.5)
+    >>> df = make_clv_dataset(
+    ...     'bg_nbd',
+    ...     size=1000,
+    ...     T=10,
+    ...     r=0.5,
+    ...     alpha=1.0,
+    ...     a=0.5,
+    ...     b=0.5,
+    ... )
     >>> df.head()
        customer_id  frequency  recency   T   lambda     p  alive
     0            0          3      5.5  10  0.4325  0.57      1
     1            1          2      7.2  10  0.5234  0.62      0
+
     """
     # Dispatch to the appropriate model function
     model_funcs = {
@@ -96,7 +103,9 @@ def make_clv_dataset(model: str, size=1, **kwargs) -> pd.DataFrame:
     }
 
     if model not in model_funcs:
-        raise ValueError(f"Invalid model type: {model}. Must be one of {list(model_funcs.keys())}.")
+        raise ValueError(
+            f"Invalid model type: {model}. Must be one of {list(model_funcs.keys())}."
+        )
 
     model_func = model_funcs[model]
     return model_func(size=size, **kwargs)
@@ -176,9 +185,13 @@ def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
             alive = np.random.random() > p  # Customer death happens with probability p
 
         # Assign simulated data to the DataFrame
-        times = np.array(times).cumsum()  # Cumulative sum to get total time until each purchase
+        times = np.array(
+            times
+        ).cumsum()  # Cumulative sum to get total time until each purchase
         df.iloc[i] = (
-            np.unique(np.array(times).astype(int)).shape[0],  # Number of distinct purchases
+            np.unique(np.array(times).astype(int)).shape[
+                0
+            ],  # Number of distinct purchases
             np.max(times if times.shape[0] > 0 else 0),  # Recency (last purchase time)
             T[i],  # Total observation period
             l,  # Purchase rate (lambda)
@@ -187,7 +200,9 @@ def beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
             i,  # Customer ID
         )
 
-    return df.set_index("customer_id")  # Return the DataFrame with customer IDs as the index
+    return df.set_index(
+        "customer_id"
+    )  # Return the DataFrame with customer IDs as the index
 
 
 def beta_geometric_nbd_model_transactional_data(
@@ -239,7 +254,8 @@ def beta_geometric_nbd_model_transactional_data(
         T = T * np.ones(size)
     else:
         start_date = [
-            observation_period_end - pd.Timedelta(T[i] - 1, unit=freq) for i in range(size)
+            observation_period_end - pd.Timedelta(T[i] - 1, unit=freq)
+            for i in range(size)
         ]
         T = np.asarray(T)
 
@@ -351,11 +367,14 @@ def pareto_nbd_model(T, r, alpha, s, beta, size=1):
             T[i],
             l,
             mu,
-            time_of_death > T[i],  # Whether the customer survives the observation period
+            time_of_death
+            > T[i],  # Whether the customer survives the observation period
             i,
         )
 
-    return df.set_index("customer_id")  # Return the DataFrame with customer IDs as the index
+    return df.set_index(
+        "customer_id"
+    )  # Return the DataFrame with customer IDs as the index
 
 
 def modified_beta_geometric_nbd_model(T, r, alpha, a, b, size=1):
@@ -461,7 +480,6 @@ def beta_geometric_beta_binom_model(N, alpha, beta, gamma, delta, size=1):
         https://www.brucehardie.com/papers/020/fader_et_al_mksc_10.pdf
 
     """
-
     if type(N) in [float, int, np.int64]:
         N = N * np.ones(size)
     else:
@@ -470,7 +488,15 @@ def beta_geometric_beta_binom_model(N, alpha, beta, gamma, delta, size=1):
     probability_of_post_purchase_death = np.random.beta(a=alpha, b=beta, size=size)
     thetas = np.random.beta(a=gamma, b=delta, size=size)
 
-    columns = ["frequency", "recency", "n_periods", "p", "theta", "alive", "customer_id"]
+    columns = [
+        "frequency",
+        "recency",
+        "n_periods",
+        "p",
+        "theta",
+        "alive",
+        "customer_id",
+    ]
     df = pd.DataFrame(np.zeros((size, len(columns))), columns=columns)
     for i in range(size):
         p = probability_of_post_purchase_death[i]
@@ -488,5 +514,13 @@ def beta_geometric_beta_binom_model(N, alpha, beta, gamma, delta, size=1):
         # adding in final death opportunity to agree with [1]
         if alive:
             alive = np.random.binomial(1, theta) == 0
-        df.iloc[i] = len(times), times[-1] + 1 if len(times) != 0 else 0, N[i], p, theta, alive, i
+        df.iloc[i] = (
+            len(times),
+            times[-1] + 1 if len(times) != 0 else 0,
+            N[i],
+            p,
+            theta,
+            alive,
+            i,
+        )
     return df

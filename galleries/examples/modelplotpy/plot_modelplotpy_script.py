@@ -20,7 +20,7 @@ This example is based on a publicly available dataset, called the Bank Marketing
 It is one of the most popular datasets which is made available on the
 `UCI Machine Learning Repository <https://archive.ics.uci.edu/dataset/222/bank+marketing>`_.
 
-The data set comes from a Portugese bank and deals with a frequently-posed marketing question:
+The data set comes from a Portuguese bank and deals with a frequently-posed marketing question:
 whether a customer did or did not acquire a term deposit, a financial product.
 There are 4 datasets available and the bank-additional-full.csv is the one we use.
 It contains the information of 41.188 customers and 21 columns of information.
@@ -113,11 +113,15 @@ y = bank.y
 X = bank.drop("y", axis=1)
 
 # Create the necessary datasets to build models
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=2018)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=2018
+)
 
 # Instantiate a few classification models
 clf_rf = RandomForestClassifier().fit(X_train, y_train)
-clf_mult = LogisticRegression(multi_class="multinomial", solver="newton-cg").fit(X_train, y_train)
+clf_mult = LogisticRegression(multi_class="multinomial", solver="newton-cg").fit(
+    X_train, y_train
+)
 
 
 # %%
@@ -140,8 +144,7 @@ obj = mp.ModelPlotPy(
 
 # transform data generated with prepare_scores_and_deciles into aggregated data for chosen plotting scope
 ps = obj.plotting_scope(
-    select_model_label=["random_forest"],
-    select_dataset_label=["test_data"],
+    select_model_label=["random_forest"], select_dataset_label=["test_data"]
 )
 
 
@@ -193,11 +196,7 @@ ps = obj.plotting_scope(
 # what % of the actual target class observations can we expect to target?
 
 # plot the cumulative gains plot and annotate the plot at decile = 3
-mp.plot_cumgains(
-    ps,
-    highlight_ntile=3,
-    save_fig=False,
-)
+mp.plot_cumgains(ps, highlight_ntile=3, save_fig=False)
 
 # %%
 #
@@ -220,11 +219,7 @@ mp.plot_cumgains(
 # how many times better is that than using no model at all?
 
 # plot the cumulative lift plot and annotate the plot at decile = 3
-mp.plot_cumlift(
-    ps,
-    highlight_ntile=3,
-    save_fig=False,
-)
+mp.plot_cumlift(ps, highlight_ntile=3, save_fig=False)
 
 # %%
 #
@@ -250,11 +245,7 @@ mp.plot_cumlift(
 # what is the expected % of target class observations in that decile?
 
 # plot the response plot and annotate the plot at decile = 3
-mp.plot_response(
-    ps,
-    highlight_ntile=3,
-    save_fig=False,
-)
+mp.plot_response(ps, highlight_ntile=3, save_fig=False)
 
 
 # %%
@@ -267,11 +258,7 @@ mp.plot_response(
 # what is the expected % of target class observations in the selection?
 
 # plot the cumulative response plot and annotate the plot at decile = 3
-mp.plot_cumresponse(
-    ps,
-    highlight_ntile=3,
-    save_fig=False,
-)
+mp.plot_cumresponse(ps, highlight_ntile=3, save_fig=False)
 
 
 # %%
@@ -382,17 +369,10 @@ mp.plot_profit(
 # However, to give one example, we could compare whether random forest
 # was indeed the best choice to select the top-30% customers for a term deposit offer:
 
-ps2 = obj.plotting_scope(
-    scope="compare_models",
-    select_dataset_label=["test_data"],
-)
+ps2 = obj.plotting_scope(scope="compare_models", select_dataset_label=["test_data"])
 
 # plot the cumulative response plot and annotate the plot at decile = 3
-mp.plot_cumresponse(
-    ps2,
-    highlight_ntile=3,
-    save_fig=False,
-)
+mp.plot_cumresponse(ps2, highlight_ntile=3, save_fig=False)
 
 
 # %%

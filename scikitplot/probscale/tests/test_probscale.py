@@ -14,7 +14,7 @@ import pytest
 # import scikitplot.probscale as probscale
 from ..probscale import _minimal_norm
 
-# special toloerance for Github Action CI
+# special tolerance for Github Action CI
 TOLERANCE = int(os.environ.get("MPL_IMGCOMP_TOLERANCE", 15))
 BASELINE_DIR = "baseline_images/test_probscale"
 
@@ -133,7 +133,9 @@ def test_sign_with_nan_no_warning_inv(mn):
     assert numpy.isnan(res)
 
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance=TOLERANCE, remove_text=True)
+@pytest.mark.mpl_image_compare(
+    baseline_dir=BASELINE_DIR, tolerance=TOLERANCE, remove_text=True
+)
 def test_the_scale_default():
     fig, ax = plt.subplots(figsize=(4, 8))
     ax.set_yscale("prob")
@@ -150,7 +152,9 @@ def test_the_scale_not_as_pct():
     return fig
 
 
-@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance=TOLERANCE, remove_text=True)
+@pytest.mark.mpl_image_compare(
+    baseline_dir=BASELINE_DIR, tolerance=TOLERANCE, remove_text=True
+)
 @pytest.mark.skipif(stats is None, reason="scipy not installed")
 def test_the_scale_beta():
     fig, ax = plt.subplots(figsize=(4, 8))

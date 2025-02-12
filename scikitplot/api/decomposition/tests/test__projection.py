@@ -9,7 +9,6 @@ from scikitplot.api.decomposition import plot_pca_2d_projection
 
 
 class TestPlotPCA2DProjection(unittest.TestCase):
-
     def setUp(self):
         np.random.seed(0)
         self.X, self.y = load_data(return_X_y=True)
@@ -45,9 +44,7 @@ class TestPlotPCA2DProjection(unittest.TestCase):
         )
 
     def test_label_order(self):
-        """
-        Plot labels should be in the same order as the classes in the provided y-array
-        """
+        """Plot labels should be in the same order as the classes in the provided y-array"""
         np.random.seed(0)
         clf = PCA()
         clf.fit(self.X)

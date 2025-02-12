@@ -35,12 +35,12 @@ __doctest_requires__ = {"vtest": ["scipy"]}
 
 
 def _components(
-    data: NDArray | "Quantity",
+    data: NDArray | Quantity,
     p: float = 1.0,
-    phi: float | NDArray | "Quantity" = 0.0,
+    phi: float | NDArray | Quantity = 0.0,
     axis: int | None = None,
     weights: NDArray | None = None,
-) -> NDArray | "Quantity":
+) -> NDArray | Quantity:
     # Utility function for computing the generalized rectangular components
     # of the circular data.
     if weights is None:
@@ -57,12 +57,12 @@ def _components(
 
 
 def _angle(
-    data: NDArray | "Quantity",
+    data: NDArray | Quantity,
     p: float = 1.0,
-    phi: float | NDArray | "Quantity" = 0.0,
+    phi: float | NDArray | Quantity = 0.0,
     axis: int | None = None,
     weights: NDArray | None = None,
-) -> NDArray | "Quantity":
+) -> NDArray | Quantity:
     # Utility function for computing the generalized sample mean angle
     C, S = _components(data, p, phi, axis, weights)
 
@@ -77,23 +77,22 @@ def _angle(
 
 
 def _length(
-    data: NDArray | "Quantity",
+    data: NDArray | Quantity,
     p: float = 1.0,
-    phi: float | NDArray | "Quantity" = 0.0,
+    phi: float | NDArray | Quantity = 0.0,
     axis: int | None = None,
     weights: NDArray | None = None,
-) -> NDArray | "Quantity":
+) -> NDArray | Quantity:
     # Utility function for computing the generalized sample length
     C, S = _components(data, p, phi, axis, weights)
     return np.hypot(S, C)
 
 
 def circmean(
-    data: NDArray | "Quantity",
-    axis: int | None = None,
-    weights: NDArray | None = None,
-) -> NDArray | "Quantity":
-    """Computes the circular mean angle of an array of circular data.
+    data: NDArray | Quantity, axis: int | None = None, weights: NDArray | None = None
+) -> NDArray | Quantity:
+    """
+    Computes the circular mean angle of an array of circular data.
 
     Parameters
     ----------
@@ -119,8 +118,8 @@ def circmean(
     >>> import numpy as np
     >>> from astropy.stats import circmean
     >>> from astropy import units as u
-    >>> data = np.array([51, 67, 40, 109, 31, 358])*u.deg
-    >>> circmean(data) # doctest: +FLOAT_CMP
+    >>> data = np.array([51, 67, 40, 109, 31, 358]) * u.deg
+    >>> circmean(data)  # doctest: +FLOAT_CMP
     <'Quantity' 48.62718088722989 deg>
 
     References
@@ -130,16 +129,16 @@ def circmean(
     .. [2] C. Agostinelli, U. Lund. "Circular Statistics from 'Topics in
        Circular Statistics (2001)'". 2015.
        <https://cran.r-project.org/web/packages/CircStats/CircStats.pdf>
+
     """
     return _angle(data, 1.0, 0.0, axis, weights)
 
 
 def circvar(
-    data: NDArray | "Quantity",
-    axis: int | None = None,
-    weights: NDArray | None = None,
-) -> NDArray | "Quantity":
-    """Computes the circular variance of an array of circular data.
+    data: NDArray | Quantity, axis: int | None = None, weights: NDArray | None = None
+) -> NDArray | Quantity:
+    """
+    Computes the circular variance of an array of circular data.
 
     There are some concepts for defining measures of dispersion for circular
     data. The variance implemented here is based on the definition given by
@@ -170,8 +169,8 @@ def circvar(
     >>> import numpy as np
     >>> from astropy.stats import circvar
     >>> from astropy import units as u
-    >>> data = np.array([51, 67, 40, 109, 31, 358])*u.deg
-    >>> circvar(data) # doctest: +FLOAT_CMP
+    >>> data = np.array([51, 67, 40, 109, 31, 358]) * u.deg
+    >>> circvar(data)  # doctest: +FLOAT_CMP
     <'Quantity' 0.16356352748437508>
 
     References
@@ -189,17 +188,19 @@ def circvar(
     angles that approaches the linear variance. For Scipy >= 1.9.0,
     ``scipy.stats.cirvar`` uses a definition consistent with this
     implementation.
+
     """
     return 1.0 - _length(data, 1.0, 0.0, axis, weights)
 
 
 def circstd(
-    data: NDArray | "Quantity",
+    data: NDArray | Quantity,
     axis: int | None = None,
     weights: NDArray | None = None,
     method: str | None = "angular",
-) -> NDArray | "Quantity":
-    """Computes the circular standard deviation of an array of circular data.
+) -> NDArray | Quantity:
+    """
+    Computes the circular standard deviation of an array of circular data.
 
     The standard deviation implemented here is based on the definitions given
     by [1]_, which is also the same used by the R package 'CirStat' [2]_.
@@ -243,8 +244,8 @@ def circstd(
     >>> import numpy as np
     >>> from astropy.stats import circstd
     >>> from astropy import units as u
-    >>> data = np.array([51, 67, 40, 109, 31, 358])*u.deg
-    >>> circstd(data) # doctest: +FLOAT_CMP
+    >>> data = np.array([51, 67, 40, 109, 31, 358]) * u.deg
+    >>> circstd(data)  # doctest: +FLOAT_CMP
     <'Quantity' 0.57195022>
 
     Alternatively, using the 'circular' method:
@@ -252,8 +253,8 @@ def circstd(
     >>> import numpy as np
     >>> from astropy.stats import circstd
     >>> from astropy import units as u
-    >>> data = np.array([51, 67, 40, 109, 31, 358])*u.deg
-    >>> circstd(data, method='circular') # doctest: +FLOAT_CMP
+    >>> data = np.array([51, 67, 40, 109, 31, 358]) * u.deg
+    >>> circstd(data, method='circular')  # doctest: +FLOAT_CMP
     <'Quantity' 0.59766999>
 
     References
@@ -272,18 +273,18 @@ def circstd(
 
     if method == "angular":
         return np.sqrt(2.0 * (1.0 - _length(data, 1.0, 0.0, axis, weights)))
-    else:
-        return np.sqrt(-2.0 * np.log(_length(data, 1.0, 0.0, axis, weights)))
+    return np.sqrt(-2.0 * np.log(_length(data, 1.0, 0.0, axis, weights)))
 
 
 def circmoment(
-    data: NDArray | "Quantity",
+    data: NDArray | Quantity,
     p: float = 1.0,
     centered: bool | None = False,
     axis: int | None = None,
     weights: NDArray | None = None,
-) -> NDArray | "Quantity":
-    """Computes the ``p``-th trigonometric circular moment for an array
+) -> NDArray | Quantity:
+    """
+    Computes the ``p``-th trigonometric circular moment for an array
     of circular data.
 
     Parameters
@@ -316,8 +317,8 @@ def circmoment(
     >>> import numpy as np
     >>> from astropy.stats import circmoment
     >>> from astropy import units as u
-    >>> data = np.array([51, 67, 40, 109, 31, 358])*u.deg
-    >>> circmoment(data, p=2) # doctest: +FLOAT_CMP
+    >>> data = np.array([51, 67, 40, 109, 31, 358]) * u.deg
+    >>> circmoment(data, p=2)  # doctest: +FLOAT_CMP
     (<'Quantity' 90.99263082432564 deg>, <Quantity 0.48004283892950717>)
 
     References
@@ -327,6 +328,7 @@ def circmoment(
     .. [2] C. Agostinelli, U. Lund. "Circular Statistics from 'Topics in
        Circular Statistics (2001)'". 2015.
        <https://cran.r-project.org/web/packages/CircStats/CircStats.pdf>
+
     """
     if centered:
         phi = circmean(data, axis, weights)
@@ -337,13 +339,14 @@ def circmoment(
 
 
 def circcorrcoef(
-    alpha: NDArray | "Quantity",
-    beta: NDArray | "Quantity",
+    alpha: NDArray | Quantity,
+    beta: NDArray | Quantity,
     axis: int | None = None,
     weights_alpha: NDArray | None = None,
     weights_beta: NDArray | None = None,
-) -> NDArray | "Quantity":
-    """Computes the circular correlation coefficient between two array of
+) -> NDArray | Quantity:
+    """
+    Computes the circular correlation coefficient between two array of
     circular data.
 
     Parameters
@@ -376,12 +379,63 @@ def circcorrcoef(
     >>> import numpy as np
     >>> from astropy.stats import circcorrcoef
     >>> from astropy import units as u
-    >>> alpha = np.array([356, 97, 211, 232, 343, 292, 157, 302, 335, 302,
-    ...                   324, 85, 324, 340, 157, 238, 254, 146, 232, 122,
-    ...                   329])*u.deg
-    >>> beta = np.array([119, 162, 221, 259, 270, 29, 97, 292, 40, 313, 94,
-    ...                  45, 47, 108, 221, 270, 119, 248, 270, 45, 23])*u.deg
-    >>> circcorrcoef(alpha, beta) # doctest: +FLOAT_CMP
+    >>> alpha = (
+    ...     np.array(
+    ...         [
+    ...             356,
+    ...             97,
+    ...             211,
+    ...             232,
+    ...             343,
+    ...             292,
+    ...             157,
+    ...             302,
+    ...             335,
+    ...             302,
+    ...             324,
+    ...             85,
+    ...             324,
+    ...             340,
+    ...             157,
+    ...             238,
+    ...             254,
+    ...             146,
+    ...             232,
+    ...             122,
+    ...             329,
+    ...         ]
+    ...     )
+    ...     * u.deg
+    ... )
+    >>> beta = (
+    ...     np.array(
+    ...         [
+    ...             119,
+    ...             162,
+    ...             221,
+    ...             259,
+    ...             270,
+    ...             29,
+    ...             97,
+    ...             292,
+    ...             40,
+    ...             313,
+    ...             94,
+    ...             45,
+    ...             47,
+    ...             108,
+    ...             221,
+    ...             270,
+    ...             119,
+    ...             248,
+    ...             270,
+    ...             45,
+    ...             23,
+    ...         ]
+    ...     )
+    ...     * u.deg
+    ... )
+    >>> circcorrcoef(alpha, beta)  # doctest: +FLOAT_CMP
     <'Quantity' 0.2704648826748831>
 
     References
@@ -391,6 +445,7 @@ def circcorrcoef(
     .. [2] C. Agostinelli, U. Lund. "Circular Statistics from 'Topics in
        Circular Statistics (2001)'". 2015.
        <https://cran.r-project.org/web/packages/CircStats/CircStats.pdf>
+
     """
     if np.size(alpha, axis) != np.size(beta, axis):
         raise ValueError("alpha and beta must be arrays of the same size")
@@ -406,11 +461,10 @@ def circcorrcoef(
 
 
 def rayleightest(
-    data: NDArray | "Quantity",
-    axis: int | None = None,
-    weights: NDArray | None = None,
-) -> float | "Quantity":
-    """Performs the Rayleigh test of uniformity.
+    data: NDArray | Quantity, axis: int | None = None, weights: NDArray | None = None
+) -> float | Quantity:
+    """
+    Performs the Rayleigh test of uniformity.
 
     This test is  used to identify a non-uniform distribution, i.e. it is
     designed for detecting an unimodal deviation from uniformity. More
@@ -443,8 +497,8 @@ def rayleightest(
     >>> import numpy as np
     >>> from astropy.stats import rayleightest
     >>> from astropy import units as u
-    >>> data = np.array([130, 90, 0, 145])*u.deg
-    >>> rayleightest(data) # doctest: +FLOAT_CMP
+    >>> data = np.array([130, 90, 0, 145]) * u.deg
+    >>> rayleightest(data)  # doctest: +FLOAT_CMP
     <'Quantity' 0.2563487733797317>
 
     References
@@ -459,6 +513,7 @@ def rayleightest(
     .. [4] D. Wilkie. "Rayleigh Test for Randomness of Circular Data". Applied
        Statistics. 1983.
        <http://wexler.free.fr/library/files/wilkie%20(1983)%20rayleigh%20test%20for%20randomness%20of%20circular%20data.pdf>
+
     """
     n = np.size(data, axis=axis)
     Rbar = _length(data, 1.0, 0.0, axis, weights)
@@ -470,7 +525,8 @@ def rayleightest(
         tmp = (
             1.0
             + (2.0 * z - z * z) / (4.0 * n)
-            - (24.0 * z - 132.0 * z**2.0 + 76.0 * z**3.0 - 9.0 * z**4.0) / (288.0 * n * n)
+            - (24.0 * z - 132.0 * z**2.0 + 76.0 * z**3.0 - 9.0 * z**4.0)
+            / (288.0 * n * n)
         )
 
     p_value = np.exp(-z) * tmp
@@ -478,12 +534,13 @@ def rayleightest(
 
 
 def vtest(
-    data: NDArray | "Quantity",
-    mu: float | "Quantity" | None = 0.0,
+    data: NDArray | Quantity,
+    mu: float | Quantity | None = 0.0,
     axis: int | None = None,
     weights: NDArray | None = None,
-) -> float | "Quantity":
-    """Performs the Rayleigh test of uniformity where the alternative
+) -> float | Quantity:
+    """
+    Performs the Rayleigh test of uniformity where the alternative
     hypothesis H1 is assumed to have a known mean angle ``mu``.
 
     Parameters
@@ -510,8 +567,8 @@ def vtest(
     >>> import numpy as np
     >>> from astropy.stats import vtest
     >>> from astropy import units as u
-    >>> data = np.array([130, 90, 0, 145])*u.deg
-    >>> vtest(data) # doctest: +FLOAT_CMP
+    >>> data = np.array([130, 90, 0, 145]) * u.deg
+    >>> vtest(data)  # doctest: +FLOAT_CMP
     <'Quantity' 0.6223678199713766>
 
     References
@@ -523,6 +580,7 @@ def vtest(
        <https://cran.r-project.org/web/packages/CircStats/CircStats.pdf>
     .. [3] M. Chirstman., C. Miller. "Testing a Sample of Directions for
        Uniformity." Lecture Notes, STA 6934/5805. University of Florida, 2007.
+
     """
     from scipy.stats import norm
 
@@ -551,23 +609,28 @@ def vtest(
     return p_value
 
 
-def _A1inv(x: NDArray | "Quantity") -> NDArray | "Quantity":
+def _A1inv(x: NDArray | Quantity) -> NDArray | Quantity:
     # Approximation for _A1inv(x) according R Package 'CircStats'
     # See http://www.scienceasia.org/2012.38.n1/scias38_118.pdf, equation (4)
 
-    kappa1 = np.where(np.logical_and(0 <= x, x < 0.53), 2.0 * x + x * x * x + (5.0 * x**5) / 6.0, 0)
-    kappa2 = np.where(np.logical_and(0.53 <= x, x < 0.85), -0.4 + 1.39 * x + 0.43 / (1.0 - x), 0)
-    kappa3 = np.where(np.logical_or(x < 0, 0.85 <= x), 1.0 / (x * x * x - 4.0 * x * x + 3.0 * x), 0)
+    kappa1 = np.where(
+        np.logical_and(x >= 0, x < 0.53), 2.0 * x + x * x * x + (5.0 * x**5) / 6.0, 0
+    )
+    kappa2 = np.where(
+        np.logical_and(x >= 0.53, x < 0.85), -0.4 + 1.39 * x + 0.43 / (1.0 - x), 0
+    )
+    kappa3 = np.where(
+        np.logical_or(x < 0, x >= 0.85), 1.0 / (x * x * x - 4.0 * x * x + 3.0 * x), 0
+    )
 
     return kappa1 + kappa2 + kappa3
 
 
 def vonmisesmle(
-    data: NDArray | "Quantity",
-    axis: int | None = None,
-    weights: NDArray | None = None,
-) -> tuple[float | "Quantity", float | "Quantity"]:
-    """Computes the Maximum Likelihood Estimator (MLE) for the parameters of
+    data: NDArray | Quantity, axis: int | None = None, weights: NDArray | None = None
+) -> tuple[float | Quantity, float | Quantity]:
+    """
+    Computes the Maximum Likelihood Estimator (MLE) for the parameters of
     the von Mises distribution.
 
     Parameters
@@ -595,8 +658,8 @@ def vonmisesmle(
     >>> import numpy as np
     >>> from astropy.stats import vonmisesmle
     >>> from astropy import units as u
-    >>> data = np.array([130, 90, 0, 145])*u.deg
-    >>> vonmisesmle(data) # doctest: +FLOAT_CMP
+    >>> data = np.array([130, 90, 0, 145]) * u.deg
+    >>> vonmisesmle(data)  # doctest: +FLOAT_CMP
     (<'Quantity' 101.16894320013179 deg>, <Quantity 1.49358958737054>)
 
     References
@@ -606,6 +669,7 @@ def vonmisesmle(
     .. [2] C. Agostinelli, U. Lund. "Circular Statistics from 'Topics in
        Circular Statistics (2001)'". 2015.
        <https://cran.r-project.org/web/packages/CircStats/CircStats.pdf>
+
     """
     mu = circmean(data, axis=axis, weights=weights)
 

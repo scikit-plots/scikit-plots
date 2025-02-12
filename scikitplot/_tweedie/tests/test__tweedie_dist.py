@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sat Apr 22 15:10:39 2017
 
 @author: pquackenbush
 """
-from __future__ import division
 
 from unittest import mock
 
@@ -13,11 +11,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_equal
 
 from .._tweedie_dist import tweedie
-from .results import (
-    num_tests,
-    test_results,
-    test_ys,
-)
+from .results import num_tests, test_results, test_ys
 
 # __name__ stores the fully qualified name of a module,
 # and __package__ is used to support relative imports for main modules.
@@ -87,7 +81,9 @@ def test_rvs_smoke():
     # Just a smoke test for now.
     rvs = tweedie(mu=150, p=1.5, phi=500.0).rvs(10000)
     assert len(rvs) == 10000
-    rvs = tweedie(mu=np.repeat(150, 100), p=np.repeat(1.5, 100), phi=np.repeat(500, 100)).rvs(100)
+    rvs = tweedie(
+        mu=np.repeat(150, 100), p=np.repeat(1.5, 100), phi=np.repeat(500, 100)
+    ).rvs(100)
     assert len(rvs) == 100
     rvs1 = tweedie(mu=150, p=1.5, phi=500).rvs(100000, random_state=42)
     rvs2 = tweedie(mu=150, p=1.5, phi=500).rvs(100000, random_state=42)

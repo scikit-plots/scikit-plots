@@ -7,12 +7,7 @@ from .probscale import _minimal_norm
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
-__all__ = [
-    "_set_prob_limits",
-    "probplot",
-    "plot_pos",
-    "fit_line",
-]
+__all__ = ["_set_prob_limits", "fit_line", "plot_pos", "probplot"]
 
 
 def probplot(
@@ -131,7 +126,7 @@ def probplot(
            - xhat, yhat : arrays of modeled data plotted in best-fit line
            - res : array of coefficients of the best-fit line.
 
-    See also
+    See Also
     --------
     viz.plot_pos
     viz.fit_line
@@ -141,22 +136,28 @@ def probplot(
 
     Examples
     --------
-
     Probability plot with the probabilities on the y-axis
 
     .. plot::
         :context: close-figs
 
-        >>> import numpy; numpy.random.seed(0)
+        >>> import numpy
+        ...
+        ... numpy.random.seed(0)
         >>> from matplotlib import pyplot
         >>> from scipy import stats
         >>> import scikitplot.probscale as probscale
         >>> data = numpy.random.normal(loc=5, scale=1.25, size=37)
-        >>> fig = probscale.probplot(data, plottype='prob', probax='y',
-        ...          problabel='Non-exceedance probability',
-        ...          datalabel='Observed values', bestfit=True,
-        ...          line_kws=dict(linestyle='--', linewidth=2),
-        ...          scatter_kws=dict(marker='o', alpha=0.5))
+        >>> fig = probscale.probplot(
+        ...     data,
+        ...     plottype='prob',
+        ...     probax='y',
+        ...     problabel='Non-exceedance probability',
+        ...     datalabel='Observed values',
+        ...     bestfit=True,
+        ...     line_kws=dict(linestyle='--', linewidth=2),
+        ...     scatter_kws=dict(marker='o', alpha=0.5),
+        ... )
 
 
     Quantile plot with the quantiles on the x-axis
@@ -166,14 +167,18 @@ def probplot(
 
         >>> import scikitplot.probscale as probscale
         >>> data = numpy.random.normal(loc=5, scale=1.25, size=37)
-        >>> fig = probscale.probplot(data, plottype='qq', probax='x',
-        ...          problabel='Theoretical Quantiles',
-        ...          datalabel='Observed values', bestfit=True,
-        ...          line_kws=dict(linestyle='-', linewidth=2),
-        ...          scatter_kws=dict(marker='s', alpha=0.5))
+        >>> fig = probscale.probplot(
+        ...     data,
+        ...     plottype='qq',
+        ...     probax='x',
+        ...     problabel='Theoretical Quantiles',
+        ...     datalabel='Observed values',
+        ...     bestfit=True,
+        ...     line_kws=dict(linestyle='-', linewidth=2),
+        ...     scatter_kws=dict(marker='s', alpha=0.5),
+        ... )
 
     """
-
     if dist is None:
         dist = _minimal_norm
 
@@ -192,18 +197,18 @@ def probplot(
     plottype = validate.axis_type(plottype)
 
     # !-- kwarg that only seaborn should use --!
-    _color = fgkwargs.get("color", None)
+    _color = fgkwargs.get("color")
     if _color is not None:
         scatter_kws["color"] = _color
         line_kws["color"] = _color
 
     # !-- kwarg that only seaborn should use --!
-    _label = fgkwargs.get("label", None)
+    _label = fgkwargs.get("label")
     if _label is not None:
         scatter_kws["label"] = _label
 
     # !-- kwarg that only seaborn should use --!
-    _marker = fgkwargs.get("marker", None)
+    _marker = fgkwargs.get("marker")
     if _marker is not None:
         scatter_kws["marker"] = _marker
 
@@ -288,8 +293,7 @@ def probplot(
     if return_best_fit_results:
         results = dict(q=qntls, x=x, y=y, xhat=xhat, yhat=yhat, res=model)
         return fig, results
-    else:
-        return fig
+    return fig
 
 
 def plot_pos(data, postype=None, alpha=None, beta=None, exceedance=False):
@@ -373,7 +377,6 @@ def plot_pos(data, postype=None, alpha=None, beta=None, exceedance=False):
     http://docs.scipy.org/doc/scipy-0.17.0/reference/generated/scipy.stats.mstats.plotting_positions.html
 
     """
-
     pos_params = {
         "type 4": (0, 1),
         "type 5": (0.5, 0.5),
@@ -401,7 +404,9 @@ def plot_pos(data, postype=None, alpha=None, beta=None, exceedance=False):
     pos[n:] = 0
 
     sorted_index = data.argsort()
-    pos[sorted_index[:n]] = (numpy.arange(1.0, n + 1.0) - alpha) / (n + 1.0 - alpha - beta)
+    pos[sorted_index[:n]] = (numpy.arange(1.0, n + 1.0) - alpha) / (
+        n + 1.0 - alpha - beta
+    )
 
     if exceedance:
         return pos[sorted_index[::-1]], data[sorted_index]
@@ -410,7 +415,8 @@ def plot_pos(data, postype=None, alpha=None, beta=None, exceedance=False):
 
 
 def _set_prob_limits(ax, probax, N):
-    """Sets the limits of a probability axis based the number of point.
+    """
+    Sets the limits of a probability axis based the number of point.
 
     Parameters
     ----------
@@ -427,7 +433,6 @@ def _set_prob_limits(ax, probax, N):
     None
 
     """
-
     fig, ax = validate.axes_object(ax)
     which = validate.axis_name(probax, "probability axis")
 
@@ -506,7 +511,6 @@ def fit_line(
           - yhat_hi (upper confidence interval of the estimated y-vals)
 
     """
-
     fitprobs = validate.fit_argument(fitprobs, "fitprobs")
     fitlogs = validate.fit_argument(fitlogs, "fitlogs")
 
@@ -538,7 +542,9 @@ def fit_line(
     yhat, results = algo._fit_simple(x, y, xhat, fitlogs=fitlogs)
 
     if estimate_ci:
-        yhat_lo, yhat_hi = algo._bs_fit(x, y, xhat, fitlogs=fitlogs, niter=niter, alpha=alpha)
+        yhat_lo, yhat_hi = algo._bs_fit(
+            x, y, xhat, fitlogs=fitlogs, niter=niter, alpha=alpha
+        )
     else:
         yhat_lo, yhat_hi = None, None
 

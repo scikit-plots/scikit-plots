@@ -1,4 +1,5 @@
-"""Utility Functions for Figure Objects
+"""
+Utility Functions for Figure Objects
 
 :py:class:`~matplotlib.figure.Figure`
     Top level :py:class:`~matplotlib.artist.Artist`, which holds all plot elements.
@@ -14,10 +15,18 @@ Figures are typically created using pyplot methods :py:func:`~matplotlib.pyplot.
 .. plot::
 
    >>> import matplotlib.pyplot as plt
-   >>> fig, ax = plt.subplots(figsize=(2, 2), facecolor='lightskyblue',
-   ...                        layout='constrained')
+   >>> fig, ax = plt.subplots(
+   ...     figsize=(2, 2),
+   ...     facecolor='lightskyblue',
+   ...     layout='constrained',
+   ... )
    >>> fig.suptitle('Figure')
-   >>> ax.set_title('Axes', loc='left', fontstyle='oblique', fontsize='medium')
+   >>> ax.set_title(
+   ...     'Axes',
+   ...     loc='left',
+   ...     fontstyle='oblique',
+   ...     fontsize='medium',
+   ... )
 
 """
 
@@ -29,17 +38,16 @@ import matplotlib.pyplot as plt
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all belove func
-__all__ = [
-    "save_figure",
-    "save_plot",
-]
+__all__ = ["save_figure", "save_plot"]
 
 ######################################################################
 ## combine figures
 ######################################################################
 
 
-def save_figure(figs: tuple, save_path="figures.png", figsize=None, dpi=100, to_save=True):
+def save_figure(
+    figs: tuple, save_path="figures.png", figsize=None, dpi=100, to_save=True
+):
     """\
     Combine multiple figures into a single image,
     save it (if specified), and return the combined figure.
@@ -81,6 +89,7 @@ def save_figure(figs: tuple, save_path="figures.png", figsize=None, dpi=100, to_
     >>> combined_fig = sp.api._utils.save_figure((fig1, fig2), 'output.png', dpi=150, to_save=True)
     >>> # Combine figures without saving to a file and with custom figsize
     >>> combined_fig = sp.api._utils.save_figure((fig1, fig2), dpi=150, to_save=False, figsize=(14, 7))
+
     """
     num_figs = len(figs)
     if figsize is None:
@@ -163,20 +172,14 @@ def save_plot(suffix=False, save_plots=False, output="result_images", debug=Fals
     >>> import scikitplot as sp
     >>> # Save the custam plot
     >>> sp.api._utils.save_plot()
+
     """
     # Automatically get the name of the calling script using inspect.stack()
     caller_filename = inspect.stack()[1].filename
     script_name = os.path.basename(caller_filename).split(".")[0]
 
     # Check if SKPLT_SAVE_PLOTS environment variable is set (checking for '1' or 'true') or if save_plots flag is True
-    if (
-        os.getenv("SKPLT_SAVE_PLOT", "0").lower()
-        in [
-            "true",
-            "1",
-        ]
-        or save_plots
-    ):
+    if os.getenv("SKPLT_SAVE_PLOT", "0").lower() in ["true", "1"] or save_plots:
         # If suffix is True, add incremental suffix (_000, _001, etc.)
         if suffix:
             counter = 0

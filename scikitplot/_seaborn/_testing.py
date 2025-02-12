@@ -1,5 +1,5 @@
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 from matplotlib.colors import to_rgb, to_rgba
 from numpy.testing import assert_array_equal
 
@@ -21,7 +21,6 @@ USE_PROPS = [
 
 
 def assert_artists_equal(list1, list2):
-
     assert len(list1) == len(list2)
     for a1, a2 in zip(list1, list2):
         assert a1.__class__ == a2.__class__
@@ -47,23 +46,15 @@ def assert_artists_equal(list1, list2):
 
 
 def assert_legends_equal(leg1, leg2):
-
     assert leg1.get_title().get_text() == leg2.get_title().get_text()
     for t1, t2 in zip(leg1.get_texts(), leg2.get_texts()):
         assert t1.get_text() == t2.get_text()
 
-    assert_artists_equal(
-        leg1.get_patches(),
-        leg2.get_patches(),
-    )
-    assert_artists_equal(
-        leg1.get_lines(),
-        leg2.get_lines(),
-    )
+    assert_artists_equal(leg1.get_patches(), leg2.get_patches())
+    assert_artists_equal(leg1.get_lines(), leg2.get_lines())
 
 
 def assert_plots_equal(ax1, ax2, labels=True):
-
     assert_artists_equal(ax1.patches, ax2.patches)
     assert_artists_equal(ax1.lines, ax2.lines)
     assert_artists_equal(ax1.collections, ax2.collections)
@@ -74,9 +65,7 @@ def assert_plots_equal(ax1, ax2, labels=True):
 
 
 def assert_colors_equal(a, b, check_alpha=True):
-
     def handle_array(x):
-
         if isinstance(x, np.ndarray):
             if x.ndim > 1:
                 x = np.unique(x, axis=0).squeeze()

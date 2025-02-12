@@ -13,24 +13,13 @@ enforcing Python 3-like behavior in Python 2.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Sigmoid and Softmax functions
-from sklearn.metrics import (
-    auc,
-    roc_curve,
-)
-from sklearn.preprocessing import (
-    label_binarize,
-)
+from sklearn.metrics import auc, roc_curve
+from sklearn.preprocessing import label_binarize
 from sklearn.utils import deprecated
 
 from ..._utils.validation import (
@@ -43,13 +32,12 @@ from ..._utils.validation import (
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
-__all__ = [
-    "plot_roc_curve",
-    "plot_roc",
-]
+__all__ = ["plot_roc", "plot_roc_curve"]
 
 
-@deprecated("This will be removed in v0.5.0. Please use " "scikitplot.metrics.plot_roc instead.")
+@deprecated(
+    "This will be removed in v0.5.0. Please use scikitplot.metrics.plot_roc instead."
+)
 def plot_roc_curve(
     y_true,
     y_probas,
@@ -61,7 +49,8 @@ def plot_roc_curve(
     title_fontsize="large",
     text_fontsize="medium",
 ):
-    """Generates the ROC curves from labels and predicted scores/probabilities
+    """
+    Generates the ROC curves from labels and predicted scores/probabilities
 
     Args:
         y_true (array-like, shape (n_samples)):
@@ -111,13 +100,15 @@ def plot_roc_curve(
         .. image:: /_static/examples/plot_roc_curve.png
            :align: center
            :alt: ROC Curves
+
     """
     y_true = np.array(y_true)
     y_probas = np.array(y_probas)
 
     if "micro" not in curves and "macro" not in curves and "each_class" not in curves:
         raise ValueError(
-            "Invalid argument for curves as it " 'only takes "micro", "macro", or "each_class"'
+            "Invalid argument for curves as it "
+            'only takes "micro", "macro", or "each_class"'
         )
 
     classes = np.unique(y_true)
@@ -179,14 +170,14 @@ def plot_roc_curve(
                 tpr[i],
                 lw=2,
                 color=color,
-                label="ROC curve of class {0} (area = {1:0.2f})" "".format(classes[i], roc_auc[i]),
+                label=f"ROC curve of class {classes[i]} (area = {roc_auc[i]:0.2f})",
             )
 
     if "micro" in curves:
         ax.plot(
             fpr[micro_key],
             tpr[micro_key],
-            label="micro-average ROC curve " "(area = {0:0.2f})".format(roc_auc[micro_key]),
+            label=f"micro-average ROC curve (area = {roc_auc[micro_key]:0.2f})",
             color="deeppink",
             linestyle=":",
             linewidth=4,
@@ -196,7 +187,7 @@ def plot_roc_curve(
         ax.plot(
             fpr[macro_key],
             tpr[macro_key],
-            label="macro-average ROC curve " "(area = {0:0.2f})".format(roc_auc[macro_key]),
+            label=f"macro-average ROC curve (area = {roc_auc[macro_key]:0.2f})",
             color="navy",
             linestyle=":",
             linewidth=4,
@@ -356,13 +347,16 @@ def plot_roc(
         >>> from sklearn.naive_bayes import GaussianNB
         >>> import scikitplot as skplt
         >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
-        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> X_train, X_val, y_train, y_val = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
         >>> model = GaussianNB()
         >>> model.fit(X_train, y_train)
         >>> y_probas = model.predict_proba(X_val)
         >>> skplt.metrics.plot_roc(
         >>>     y_val, y_probas,
         >>> );
+
     """
     ##################################################################
     ## Preprocessing
@@ -380,12 +374,15 @@ def plot_roc(
         pass
     else:
         raise ValueError(
-            f"Shape mismatch `y_true` shape {y_true.shape}, " f"`y_probas` shape {y_probas.shape}"
+            f"Shape mismatch `y_true` shape {y_true.shape}, "
+            f"`y_probas` shape {y_probas.shape}"
         )
 
     # Get unique classes and filter the ones to plot
     classes = np.arange(y_true.shape[1])
-    to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
+    to_plot_class_index = (
+        classes if to_plot_class_index is None else to_plot_class_index
+    )
     indices_to_plot = np.isin(element=classes, test_elements=to_plot_class_index)
 
     ##################################################################
@@ -422,7 +419,10 @@ def plot_roc(
                 ls="-",
                 color=color,
                 lw=2,
-                label=(f"Class {classes[i]} " f"(area = {roc_auc_dict[i]:0>{digits}.{digits}f})"),
+                label=(
+                    f"Class {classes[i]} "
+                    f"(area = {roc_auc_dict[i]:0>{digits}.{digits}f})"
+                ),
             )
 
     # Whether or to plot macro or micro
@@ -438,7 +438,7 @@ def plot_roc(
             ls=":",
             color="deeppink",
             lw=3,
-            label=("micro-average " f"(area = {roc_auc:0>{digits}.{digits}f})"),
+            label=(f"micro-average (area = {roc_auc:0>{digits}.{digits}f})"),
         )
 
     if plot_macro:
@@ -462,7 +462,7 @@ def plot_roc(
             ls=":",
             color="navy",
             lw=3,
-            label=("macro-average " f"(area = {roc_auc:0>{digits}.{digits}f})"),
+            label=(f"macro-average (area = {roc_auc:0>{digits}.{digits}f})"),
         )
 
     # Plot the baseline, label='Baseline'
@@ -495,7 +495,8 @@ def plot_roc(
             ax.legend(
                 loc="lower right",
                 fontsize=text_fontsize,
-                title="ROC AUC" + (" One-vs-Rest (OVR)" if multi_class == "ovr" else ""),
+                title="ROC AUC"
+                + (" One-vs-Rest (OVR)" if multi_class == "ovr" else ""),
                 alignment="left",
             )
 

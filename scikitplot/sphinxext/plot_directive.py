@@ -201,12 +201,11 @@ def _option_boolean(arg):
     if not arg or not arg.strip():
         # no argument given, assume used as a flag
         return True
-    elif arg.strip().lower() in ("no", "0", "false"):
+    if arg.strip().lower() in ("no", "0", "false"):
         return False
-    elif arg.strip().lower() in ("yes", "1", "true"):
+    if arg.strip().lower() in ("yes", "1", "true"):
         return True
-    else:
-        raise ValueError(f"{arg!r} unknown boolean")
+    raise ValueError(f"{arg!r} unknown boolean")
 
 
 def _option_context(arg):
@@ -337,14 +336,13 @@ def contains_doctest(text):
         return False
     except SyntaxError:
         pass
-    r = re.compile(r"^\s*>>>", re.M)
+    r = re.compile(r"^\s*>>>", re.MULTILINE)
     m = r.search(text)
     return bool(m)
 
 
 def _split_code_at_show(text, function_name):
     """Split code at plt.show()."""
-
     is_doctest = contains_doctest(text)
     if function_name is None:
         parts = []
@@ -528,7 +526,6 @@ def _run_code(code, code_path, ns=None, function_name=None):
     Import a Python module from a path, and run the function given by
     name, if function_name is not None.
     """
-
     # Change the working directory to the directory of the example, so
     # it can get at its data files, if any.  Add its path to sys.path
     # so it can import any helper modules sitting beside it.
@@ -561,7 +558,9 @@ def _run_code(code, code_path, ns=None, function_name=None):
                 ns = {}
             if not ns:
                 if setup.config.plot_pre_code is None:
-                    exec("import numpy as np\n" "from matplotlib import pyplot as plt\n", ns)
+                    exec(
+                        "import numpy as np\nfrom matplotlib import pyplot as plt\n", ns
+                    )
                 else:
                     exec(str(setup.config.plot_pre_code), ns)
             if "__main__" in code:
@@ -606,9 +605,7 @@ def get_plot_formats(config):
 
 
 def _parse_srcset(entries):
-    """
-    Parse srcset for multiples...
-    """
+    """Parse srcset for multiples..."""
     srcset = {}
     for entry in entries:
         entry = entry.strip()
@@ -638,7 +635,6 @@ def render_figures(
     Save the images under *output_dir* with file names derived from
     *output_base*
     """
-
     if function_name is not None:
         output_base = f"{output_base}_{function_name}"
     formats = get_plot_formats(config)
@@ -649,7 +645,9 @@ def render_figures(
     # Look for single-figure output files first
     img = ImageFile(output_base, output_dir)
     for format, dpi in formats:
-        if context or out_of_date(code_path, img.filename(format), includes=code_includes):
+        if context or out_of_date(
+            code_path, img.filename(format), includes=code_includes
+        ):
             all_exists = False
             break
         img.formats.append(format)
@@ -669,7 +667,9 @@ def render_figures(
             else:
                 img = ImageFile("%s_%02d" % (output_base, j), output_dir)
             for fmt, dpi in formats:
-                if context or out_of_date(code_path, img.filename(fmt), includes=code_includes):
+                if context or out_of_date(
+                    code_path, img.filename(fmt), includes=code_includes
+                ):
                     all_exists = False
                     break
                 img.formats.append(fmt)
@@ -700,7 +700,6 @@ def render_figures(
     close_figs = not context or close_figs
 
     for i, code_piece in enumerate(code_pieces):
-
         if not context or config.plot_apply_rcparams:
             clear_state(config.plot_rcparams, close_figs)
         elif close_figs:
@@ -733,7 +732,9 @@ def render_figures(
                         for mult, suffix in srcset.items():
                             fm = f"{suffix}.{fmt}"
                             img.formats.append(fm)
-                            figman.canvas.figure.savefig(img.filename(fm), dpi=int(dpi * mult))
+                            figman.canvas.figure.savefig(
+                                img.filename(fm), dpi=int(dpi * mult)
+                            )
                 except Exception as err:
                     raise PlotError(traceback.format_exc()) from err
                 img.formats.append(fmt)
@@ -752,7 +753,9 @@ def run(arguments, content, options, state_machine, state, lineno):
     nofigs = "nofigs" in options
 
     if config.plot_srcset and setup.app.builder.name == "singlehtml":
-        raise ExtensionError("plot_srcset option not compatible with single HTML writer")
+        raise ExtensionError(
+            "plot_srcset option not compatible with single HTML writer"
+        )
 
     formats = get_plot_formats(config)
     default_fmt = formats[0][0]
@@ -775,7 +778,9 @@ def run(arguments, content, options, state_machine, state, lineno):
 
     if len(arguments):
         if not config.plot_basedir:
-            source_file_name = os.path.join(setup.app.builder.srcdir, directives.uri(arguments[0]))
+            source_file_name = os.path.join(
+                setup.app.builder.srcdir, directives.uri(arguments[0])
+            )
         else:
             source_file_name = os.path.join(
                 setup.confdir, config.plot_basedir, directives.uri(arguments[0])
@@ -787,7 +792,8 @@ def run(arguments, content, options, state_machine, state, lineno):
         if "caption" in options:
             if caption:
                 raise ValueError(
-                    "Caption specified in both content and options." " Please remove ambiguity."
+                    "Caption specified in both content and options."
+                    " Please remove ambiguity."
                 )
             # Use caption option
             caption = options["caption"]
@@ -853,7 +859,9 @@ def run(arguments, content, options, state_machine, state, lineno):
     # plots in the included files change. These attributes are modified by the
     # include directive (see the docutils.parsers.rst.directives.misc module).
     try:
-        source_file_includes = [os.path.join(os.getcwd(), t[0]) for t in state.document.include_log]
+        source_file_includes = [
+            os.path.join(os.getcwd(), t[0]) for t in state.document.include_log
+        ]
     except AttributeError:
         # the document.include_log attribute only exists in docutils >=0.17,
         # before that we need to inspect the state machine
@@ -897,9 +905,7 @@ def run(arguments, content, options, state_machine, state, lineno):
         reporter = state.memo.reporter
         sm = reporter.system_message(
             2,
-            "Exception occurred in plotting {}\n from {}:\n{}".format(
-                output_base, source_file_name, err
-            ),
+            f"Exception occurred in plotting {output_base}\n from {source_file_name}:\n{err}",
             line=lineno,
         )
         results = [(code, [])]
@@ -909,7 +915,9 @@ def run(arguments, content, options, state_machine, state, lineno):
     if caption and config.plot_srcset:
         caption = f":caption: {caption}"
     elif caption:
-        caption = "\n" + "\n".join("      " + line.strip() for line in caption.split("\n"))
+        caption = "\n" + "\n".join(
+            "      " + line.strip() for line in caption.split("\n")
+        )
     # generate output restructuredtext
     total_lines = []
     for j, (code_piece, images) in enumerate(results):

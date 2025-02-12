@@ -1,16 +1,16 @@
 from typing import Final, LiteralString
 
-from typing_extensions import LiteralString
+# from typing_extensions import LiteralString
 
 __all__ = (
-    "__version__",
-    "version",
-    "full_version",
-    "short_version",
     "__git_hash__",
+    "__version__",
+    "full_version",
     "git_revision",
-    "short_git_revision",
     "release",
+    "short_git_revision",
+    "short_version",
+    "version",
 )
 version: Final[LiteralString]
 __version__: Final[LiteralString]

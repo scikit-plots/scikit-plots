@@ -63,8 +63,7 @@ class MplExplicitOrder(ExplicitOrder):
         """Return a string determining the sort order."""
         if item in self.ordered_list:
             return f"{self.ordered_list.index(item):04d}"
-        else:
-            return f"{self.ordered_list.index(UNSORTED):04d}{item}"
+        return f"{self.ordered_list.index(UNSORTED):04d}{item}"
 
 
 # Subsection order:
@@ -149,9 +148,8 @@ class MplExplicitSubOrder(ExplicitOrder):
         """Return a string determining the sort order."""
         if item in self.ordered_list:
             return f"{self.ordered_list.index(item):04d}"
-        else:
-            # ensure not explicitly listed items come last.
-            return "zzz" + item
+        # ensure not explicitly listed items come last.
+        return "zzz" + item
 
 
 # Provide the above classes for use in conf.py

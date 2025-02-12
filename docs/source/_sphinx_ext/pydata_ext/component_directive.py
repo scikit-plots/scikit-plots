@@ -1,7 +1,8 @@
-"""A directive to generate the list of all the built-in components.
+"""
+A directive to generate the list of all the built-in components.
 
 Read the content of the component folder and generate a list of all the components.
-This list will display some informations about the component and a link to the
+This list will display some information about the component and a link to the
 GitHub file.
 """
 
@@ -18,10 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 class ComponentListDirective(SphinxDirective):
-    """A directive to generate the list of all the built-in components.
+    """
+    A directive to generate the list of all the built-in components.
 
     Read the content of the component folder and generate a list of all the components.
-    This list will display some informations about the component and a link to the
+    This list will display some information about the component and a link to the
     GitHub file.
     """
 
@@ -37,10 +39,17 @@ class ComponentListDirective(SphinxDirective):
         # not that to remain compatible with sphinx they are labeled as html files
         root = Path(__file__).parents[2]
         component_dir = (
-            root / "src" / "pydata_sphinx_theme" / "theme" / "pydata_sphinx_theme" / "components"
+            root
+            / "src"
+            / "pydata_sphinx_theme"
+            / "theme"
+            / "pydata_sphinx_theme"
+            / "components"
         )
         if not component_dir.is_dir():
-            raise FileNotFoundError(f"Could not find component folder at {component_dir}.")
+            raise FileNotFoundError(
+                f"Could not find component folder at {component_dir}."
+            )
         components = sorted(component_dir.glob("*.html"))
 
         # create the list of all the components description using bs4
@@ -53,7 +62,9 @@ class ComponentListDirective(SphinxDirective):
 
         # get the urls from the github repo latest branch
         github_url = "https://github.com/pydata/pydata-sphinx-theme/blob/main"
-        urls = [f"{github_url}/{component.relative_to(root)}" for component in components]
+        urls = [
+            f"{github_url}/{component.relative_to(root)}" for component in components
+        ]
 
         # build the list of all the components
         items = []
@@ -74,13 +85,15 @@ class ComponentListDirective(SphinxDirective):
 
 
 def setup(app: Sphinx) -> Dict[str, Any]:
-    """Add custom configuration to sphinx app.
+    """
+    Add custom configuration to sphinx app.
 
     Args:
         app: the Sphinx application
 
     Returns:
         the 2 parallel parameters set to ``True``.
+
     """
     app.add_directive("component-list", ComponentListDirective)
 

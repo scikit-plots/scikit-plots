@@ -9,24 +9,14 @@ evaluation decile analysis e.g. Gain, Lift and Decile charts, etc. [1]_.
 References
 ----------
 [1] https://github.com/tensorbored/kds
+
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 # from sklearn.utils import deprecated
 
-
-__all__ = [
-    "plot_cumulative_gain",
-    "plot_lift",
-    "plot_ks_statistic",
-]
+__all__ = ["plot_cumulative_gain", "plot_ks_statistic", "plot_lift"]
 
 ######################################################################
 ## Module Deprecation
@@ -41,7 +31,11 @@ def __dir__():
 
 def __getattr__(name):
     return _sub_module_deprecation(
-        sub_package="kds", module="_deciles", private_modules=[], all=__all__, attribute=name
+        sub_package="kds",
+        module="_deciles",
+        private_modules=[],
+        all=__all__,
+        attribute=name,
     )
 
 

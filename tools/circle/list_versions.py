@@ -31,10 +31,8 @@ def human_readable_data_quantity(quantity, multiple=1024):
         if quantity < multiple or suffix == SUFFIXES[-1]:
             if suffix == SUFFIXES[0]:
                 return "%d %s" % (quantity, suffix)
-            else:
-                return "%.1f %s" % (quantity, suffix)
-        else:
-            quantity /= multiple
+            return "%.1f %s" % (quantity, suffix)
+        quantity /= multiple
 
 
 def get_file_extension(version):
@@ -71,8 +69,8 @@ rst_content = [
     "Web-based documentation is available for versions listed below:\n",
 ]
 
-ROOT_URL = "https://api.github.com/repos/scikit-plots/scikit-plots.github.io/contents/"  # noqa
-RAW_FMT = "https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/master/%s/index.html"  # noqa
+ROOT_URL = "https://api.github.com/repos/scikit-plots/scikit-plots.github.io/contents/"
+RAW_FMT = "https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/master/%s/index.html"
 VERSION_RE = re.compile(r"scikit-plots ([\w\.\-]+) documentation</title>")
 NAMED_DIRS = ["dev", "stable"]
 
@@ -102,7 +100,8 @@ for src, dst in symlinks.items():
 # Output in order: dev, stable, decreasing other version
 seen = set()
 for i, name in enumerate(
-    NAMED_DIRS + sorted((k for k in dirs if k[:1].isdigit()), key=parse_version, reverse=True)
+    NAMED_DIRS
+    + sorted((k for k in dirs if k[:1].isdigit()), key=parse_version, reverse=True)
 ):
     version_num, file_size = dirs[name]
     if version_num in seen:

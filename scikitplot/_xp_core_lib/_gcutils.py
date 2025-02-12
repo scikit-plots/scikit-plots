@@ -10,12 +10,13 @@ Module for testing automatic garbage collection of objects
    assert_deallocated - context manager to check for circular references on object
 
 """
+
 import gc
 import weakref
 from contextlib import contextmanager
 from platform import python_implementation
 
-__all__ = ["set_gc_state", "gc_state", "assert_deallocated"]
+__all__ = ["assert_deallocated", "gc_state", "set_gc_state"]
 
 IS_PYPY = python_implementation() == "PyPy"
 
@@ -36,7 +37,8 @@ def set_gc_state(state):
 
 @contextmanager
 def gc_state(state):
-    """Context manager to set state of garbage collector to `state`
+    """
+    Context manager to set state of garbage collector to `state`
 
     Parameters
     ----------
@@ -49,6 +51,7 @@ def gc_state(state):
     ...     assert not gc.isenabled()
     >>> with gc_state(True):
     ...     assert gc.isenabled()
+
     """
     orig_state = gc.isenabled()
     set_gc_state(state)
@@ -58,7 +61,8 @@ def gc_state(state):
 
 @contextmanager
 def assert_deallocated(func, *args, **kwargs):
-    """Context manager to check that object is deallocated
+    """
+    Context manager to check that object is deallocated
 
     This is useful for checking that an object can be freed directly by
     reference counting, without requiring gc to break reference cycles.
@@ -77,20 +81,22 @@ def assert_deallocated(func, *args, **kwargs):
 
     Examples
     --------
-    >>> class C: pass
+    >>> class C:
+    ...     pass
     >>> with assert_deallocated(C) as c:
     ...     # do something
     ...     del c
 
     >>> class C:
     ...     def __init__(self):
-    ...         self._circular = self # Make circular reference
-    >>> with assert_deallocated(C) as c: #doctest: +IGNORE_EXCEPTION_DETAIL
+    ...         self._circular = self  # Make circular reference
+    >>> with assert_deallocated(C) as c:  # doctest: +IGNORE_EXCEPTION_DETAIL
     ...     # do something
     ...     del c
     Traceback (most recent call last):
         ...
     ReferenceError: Remaining reference(s) to object
+
     """
     if IS_PYPY:
         raise RuntimeError("assert_deallocated is unavailable on PyPy")

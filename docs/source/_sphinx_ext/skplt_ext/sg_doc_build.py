@@ -1,6 +1,4 @@
-"""
-Utilities for building docs.
-"""
+"""Utilities for building docs."""
 
 from sphinx_gallery.notebook import add_code_cell, add_markdown_cell
 
@@ -74,7 +72,9 @@ def notebook_modification_function(notebook_content, notebook_filename):
         code = "\n".join(code_lines)
         add_code_cell(dummy_notebook_content, code)
 
-    notebook_content["cells"] = dummy_notebook_content["cells"] + notebook_content["cells"]
+    notebook_content["cells"] = (
+        dummy_notebook_content["cells"] + notebook_content["cells"]
+    )
 
 
 def reset_others(gallery_conf, fname):

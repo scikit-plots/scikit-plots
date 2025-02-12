@@ -5,7 +5,7 @@ of hard-coded contributors.
 
 The table should be updated for each new inclusion in the teams.
 Generating the table requires admin rights.
-"""  # noqa: CPY001
+"""
 
 import getpass
 import sys
@@ -28,7 +28,8 @@ def get(url):
     for sleep_time in [10, 30, 0]:
         reply = requests.get(url, auth=auth)
         api_limit = (
-            "message" in reply.json() and "API rate limit exceeded" in reply.json()["message"]
+            "message" in reply.json()
+            and "API rate limit exceeded" in reply.json()["message"]
         )
         if not api_limit:
             break
@@ -87,9 +88,17 @@ def get_contributors():
     members |= {"Angel Soler Gollonet"}
     # remove CI bots
     members -= {"sklearn-ci", "sklearn-wheels", "sklearn-lgtm"}
-    contributor_experience_team -= core_devs  # remove ogrisel from contributor_experience_team
+    contributor_experience_team -= (
+        core_devs  # remove ogrisel from contributor_experience_team
+    )
 
-    emeritus = members - core_devs - contributor_experience_team - comm_team - documentation_team
+    emeritus = (
+        members
+        - core_devs
+        - contributor_experience_team
+        - comm_team
+        - documentation_team
+    )
 
     # hard coded
     emeritus_contributor_experience_team = {
@@ -105,7 +114,9 @@ def get_contributors():
     # get profiles from GitHub
     core_devs = [get_profile(login) for login in core_devs]
     emeritus = [get_profile(login) for login in emeritus]
-    contributor_experience_team = [get_profile(login) for login in contributor_experience_team]
+    contributor_experience_team = [
+        get_profile(login) for login in contributor_experience_team
+    ]
     emeritus_contributor_experience_team = [
         get_profile(login) for login in emeritus_contributor_experience_team
     ]
@@ -117,7 +128,9 @@ def get_contributors():
     core_devs = sorted(core_devs, key=key)
     emeritus = sorted(emeritus, key=key)
     contributor_experience_team = sorted(contributor_experience_team, key=key)
-    emeritus_contributor_experience_team = sorted(emeritus_contributor_experience_team, key=key)
+    emeritus_contributor_experience_team = sorted(
+        emeritus_contributor_experience_team, key=key
+    )
     documentation_team = sorted(documentation_team, key=key)
     comm_team = sorted(comm_team, key=key)
     emeritus_comm_team = sorted(emeritus_comm_team, key=key)
@@ -204,10 +217,14 @@ if __name__ == "__main__":
     ) = get_contributors()
 
     print("Generating rst files")
-    with open(REPO_FOLDER / "doc" / "maintainers.rst", "w+", encoding="utf-8") as rst_file:
+    with open(
+        REPO_FOLDER / "doc" / "maintainers.rst", "w+", encoding="utf-8"
+    ) as rst_file:
         rst_file.write(generate_table(core_devs))
 
-    with open(REPO_FOLDER / "doc" / "maintainers_emeritus.rst", "w+", encoding="utf-8") as rst_file:
+    with open(
+        REPO_FOLDER / "doc" / "maintainers_emeritus.rst", "w+", encoding="utf-8"
+    ) as rst_file:
         rst_file.write(generate_list(emeritus))
 
     with open(
@@ -222,7 +239,9 @@ if __name__ == "__main__":
     ) as rst_file:
         rst_file.write(generate_list(emeritus_contributor_experience_team))
 
-    with open(REPO_FOLDER / "doc" / "communication_team.rst", "w+", encoding="utf-8") as rst_file:
+    with open(
+        REPO_FOLDER / "doc" / "communication_team.rst", "w+", encoding="utf-8"
+    ) as rst_file:
         rst_file.write(generate_table(comm_team))
 
     with open(
@@ -230,5 +249,7 @@ if __name__ == "__main__":
     ) as rst_file:
         rst_file.write(generate_list(emeritus_comm_team))
 
-    with open(REPO_FOLDER / "doc" / "documentation_team.rst", "w+", encoding="utf-8") as rst_file:
+    with open(
+        REPO_FOLDER / "doc" / "documentation_team.rst", "w+", encoding="utf-8"
+    ) as rst_file:
         rst_file.write(generate_table(documentation_team))

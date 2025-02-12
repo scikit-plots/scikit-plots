@@ -149,11 +149,25 @@ class Kowalik(Benchmark):
             ]
         )
         self.b = asarray(
-            [0.1957, 0.1947, 0.1735, 0.1600, 0.0844, 0.0627, 0.0456, 0.0342, 0.0323, 0.0235, 0.0246]
+            [
+                0.1957,
+                0.1947,
+                0.1735,
+                0.1600,
+                0.0844,
+                0.0627,
+                0.0456,
+                0.0342,
+                0.0323,
+                0.0235,
+                0.0246,
+            ]
         )
 
     def fun(self, x, *args):
         self.nfev += 1
 
-        vec = self.b - (x[0] * (self.a**2 + self.a * x[1]) / (self.a**2 + self.a * x[2] + x[3]))
+        vec = self.b - (
+            x[0] * (self.a**2 + self.a * x[1]) / (self.a**2 + self.a * x[2] + x[3])
+        )
         return sum(vec**2)

@@ -13,25 +13,15 @@ enforcing Python 3-like behavior in Python 2.
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import matplotlib as mpl
 import numpy as np
 
-from .._utils.validation import (
-    validate_plotting_kwargs_decorator,
-)
+from .._utils.validation import validate_plotting_kwargs_decorator
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all above func
-__all__ = [
-    "plot_pca_component_variance",
-]
+__all__ = ["plot_pca_component_variance"]
 
 
 @validate_plotting_kwargs_decorator
@@ -102,19 +92,24 @@ def plot_pca_component_variance(
         >>> import scikitplot as skplt
         >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
         >>> pca = PCA(random_state=0).fit(X)
-        >>> skplt.decomposition.plot_pca_component_variance(pca, target_explained_variance=0.95);
+        >>> skplt.decomposition.plot_pca_component_variance(
+        ...     pca, target_explained_variance=0.95
+        ... )
 
     .. plot::
        :context: close-figs
        :align: center
        :alt: LDA Components Variances
 
-        >>> from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+        >>> from sklearn.discriminant_analysis import (
+        ...     LinearDiscriminantAnalysis,
+        ... )
         >>> from sklearn.datasets import load_digits as data_10_classes
         >>> import scikitplot as skplt
         >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
         >>> clf = LinearDiscriminantAnalysis().fit(X, y)
-        >>> skplt.decomposition.plot_pca_component_variance(clf);
+        >>> skplt.decomposition.plot_pca_component_variance(clf)
+
     """
     ##################################################################
     ## Preprocessing
@@ -125,7 +120,8 @@ def plot_pca_component_variance(
         exp_var_ratio = clf.explained_variance_ratio_
     else:  # not hasattr(clf, 'explained_variance_ratio_'):
         raise TypeError(
-            '"clf" does not have explained_variance_ratio_ ' "attribute. Has the PCA been fitted?"
+            '"clf" does not have explained_variance_ratio_ '
+            "attribute. Has the PCA been fitted?"
         )
 
     exp_var_ratio_padded = np.concatenate(([0], exp_var_ratio))
@@ -151,7 +147,7 @@ def plot_pca_component_variance(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
-    ax.plot(range(0, size), cumulative_sum_ratios, "*-")
+    ax.plot(range(size), cumulative_sum_ratios, "*-")
     if idx < len(cumulative_sum_ratios):
         ax.plot(
             idx,
@@ -160,9 +156,7 @@ def plot_pca_component_variance(
             marker="o",
             ls=":",
             color="r",
-            label="{0:0.2f} for first {1} components\n({2:0.2f} cut-off threshold)".format(
-                cumulative_sum_ratios[idx], idx, target_explained_variance
-            ),
+            label=f"{cumulative_sum_ratios[idx]:0.2f} for first {idx} components\n({target_explained_variance:0.2f} cut-off threshold)",
             markersize=3,
             markeredgewidth=3,
         )
@@ -175,9 +169,14 @@ def plot_pca_component_variance(
             fontsize=text_fontsize,
         )
 
-    ax.step(range(0, size), cumulative_sum_ratios, where="mid", label="Cumulative Exp Var Ratio")
+    ax.step(
+        range(size),
+        cumulative_sum_ratios,
+        where="mid",
+        label="Cumulative Exp Var Ratio",
+    )
     ax.bar(
-        range(0, size),
+        range(size),
         exp_var_ratio_padded,
         alpha=0.5,
         align="center",

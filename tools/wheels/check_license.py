@@ -6,6 +6,7 @@ Check the presence of a LICENSE.txt in the installed module directory,
 and that it appears to contain text prevalent for a scikitplot binary
 distribution.
 """
+
 import argparse
 import pathlib
 import re
@@ -17,7 +18,9 @@ import sys
 def check_text(text):
     # Define the expected text fragments you want to check
     ok = "Copyright (c)" in text and re.search(
-        r"This binary distribution of \w+ also bundles the following software", text, re.IGNORECASE
+        r"This binary distribution of \w+ also bundles the following software",
+        text,
+        re.IGNORECASE,
     )
     return ok
 
@@ -25,8 +28,12 @@ def check_text(text):
 def main():
     p = argparse.ArgumentParser(usage=__doc__.rstrip())
     p.add_argument("mod_name", nargs="?", default="scikitplot")  # import name format
-    p.add_argument("package_name", nargs="?", default="scikit-plots")  # Package name format
-    p.add_argument("license_name", nargs="?", default="LICENSE")  # LICENSE file name format
+    p.add_argument(
+        "package_name", nargs="?", default="scikit-plots"
+    )  # Package name format
+    p.add_argument(
+        "license_name", nargs="?", default="LICENSE"
+    )  # LICENSE file name format
     args = p.parse_args()
 
     # Drop '' from sys.path
@@ -56,7 +63,9 @@ def main():
     ).parent.parent  # This should give you the site-packages path
     print(f"Looking for .dist-info directory in: {sitepkgs}")
 
-    distinfo_path = f"{args.package_name.replace('-', '_')}-*.dist-info"  # Package name format
+    distinfo_path = (
+        f'{args.package_name.replace("-", "_")}-*.dist-info'  # Package name format
+    )
     distinfo_paths = list(sitepkgs.glob(distinfo_path))
     print(distinfo_paths)
 
@@ -86,8 +95,7 @@ def main():
     ok = check_text(text)
     if not ok:
         print(
-            "ERROR: License text {} does not contain expected "
-            "text fragments\n".format(license_txt)
+            f"ERROR: License text {license_txt} does not contain expected text fragments\n"
         )
         print(text)
         sys.exit(1)

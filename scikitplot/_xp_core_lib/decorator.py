@@ -31,6 +31,7 @@
 Decorator module, see https://pypi.python.org/pypi/decorator
 for the documentation.
 """
+
 import collections
 import inspect
 import itertools
@@ -91,7 +92,14 @@ class FunctionMaker:
             if inspect.isfunction(func):
                 argspec = getfullargspec(func)
                 self.annotations = getattr(func, "__annotations__", {})
-                for a in ("args", "varargs", "varkw", "defaults", "kwonlyargs", "kwonlydefaults"):
+                for a in (
+                    "args",
+                    "varargs",
+                    "varkw",
+                    "defaults",
+                    "kwonlyargs",
+                    "kwonlydefaults",
+                ):
                     setattr(self, a, getattr(argspec, a))
                 for i, arg in enumerate(self.args):
                     setattr(self, "arg%d" % i, arg)
@@ -130,7 +138,7 @@ class FunctionMaker:
             raise TypeError(f"You are decorating a non-function: {func}")
 
     def update(self, func, **kw):
-        "Update the signature of func with the data in self"
+        """Update the signature of func with the data in self"""
         func.__name__ = self.name
         func.__doc__ = getattr(self, "doc", None)
         func.__dict__ = getattr(self, "dict", {})
@@ -147,14 +155,16 @@ class FunctionMaker:
         func.__dict__.update(kw)
 
     def make(self, src_templ, evaldict=None, addsource=False, **attrs):
-        "Make a new function from a given template and update the signature"
+        """Make a new function from a given template and update the signature"""
         src = src_templ % vars(self)  # expand name and signature
         evaldict = evaldict or {}
         mo = DEF.match(src)
         if mo is None:
             raise SyntaxError(f"not a valid function template\n{src}")
         name = mo.group(1)  # extract the function name
-        names = set([name] + [arg.strip(" *") for arg in self.shortsignature.split(",")])
+        names = set(
+            [name] + [arg.strip(" *") for arg in self.shortsignature.split(",")]
+        )
         for n in names:
             if n in ("_func_", "_call_"):
                 raise NameError(f"{n} is overridden in\n{src}")
@@ -168,7 +178,7 @@ class FunctionMaker:
         try:
             code = compile(src, filename, "single")
             exec(code, evaldict)
-        except:  # noqa: E722
+        except:
             print("Error in generated code:", file=sys.stderr)
             print(src, file=sys.stderr)
             raise
@@ -180,7 +190,15 @@ class FunctionMaker:
 
     @classmethod
     def create(
-        cls, obj, body, evaldict, defaults=None, doc=None, module=None, addsource=True, **attrs
+        cls,
+        obj,
+        body,
+        evaldict,
+        defaults=None,
+        doc=None,
+        module=None,
+        addsource=True,
+        **attrs,
     ):
         """
         Create a function from the strings name, signature, and body.
@@ -198,7 +216,9 @@ class FunctionMaker:
             func = obj
         self = cls(func, name, signature, defaults, doc, module)
         ibody = "\n".join("    " + line for line in body.splitlines())
-        return self.make("def %(name)s(%(signature)s):\n" + ibody, evaldict, addsource, **attrs)
+        return self.make(
+            "def %(name)s(%(signature)s):\n" + ibody, evaldict, addsource, **attrs
+        )
 
 
 def decorate(func, caller):
@@ -319,7 +339,7 @@ def dispatch_on(*dispatch_args):
     dispatching on the given arguments.
     """
     assert dispatch_args, "No dispatch args passed"
-    dispatch_str = f"({', '.join(dispatch_args)},)"
+    dispatch_str = f'({", ".join(dispatch_args)},)'
 
     def check(arguments, wrong=operator.ne, msg=""):
         """Make sure one passes the expected number of arguments"""
@@ -330,7 +350,6 @@ def dispatch_on(*dispatch_args):
 
     def gen_func_dec(func):
         """Decorator turning a function into a generic function"""
-
         # first check the dispatch arguments
         argset = set(getfullargspec(func).args)
         if not set(dispatch_args) <= argset:
@@ -356,12 +375,12 @@ def dispatch_on(*dispatch_args):
             """
             check(types)
             lists = []
-            for t, vas in zip(types, vancestors(*types)):
-                n_vas = len(vas)
+            for t, was in zip(types, vancestors(*types)):
+                n_vas = len(was)
                 if n_vas > 1:
-                    raise RuntimeError(f"Ambiguous dispatch for {t}: {vas}")
-                elif n_vas == 1:
-                    (va,) = vas
+                    raise RuntimeError(f"Ambiguous dispatch for {t}: {was}")
+                if n_vas == 1:
+                    (va,) = was
                     mro = type("t", (t, va), {}).__mro__[1:]
                 else:
                     mro = t.__mro__
@@ -386,7 +405,10 @@ def dispatch_on(*dispatch_args):
             An utility to introspect the dispatch algorithm
             """
             check(types)
-            lst = [tuple(a.__name__ for a in anc) for anc in itertools.product(*ancestors(*types))]
+            lst = [
+                tuple(a.__name__ for a in anc)
+                for anc in itertools.product(*ancestors(*types))
+            ]
             return lst
 
         def _dispatch(dispatch_args, *args, **kw):

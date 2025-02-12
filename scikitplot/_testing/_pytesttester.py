@@ -1,4 +1,5 @@
-"""This module was copied from the numpy project.
+"""
+This module was copied from the numpy project.
 
 Pytest test running.
 
@@ -7,6 +8,7 @@ boiler plate for doing that is to put the following in the module
 ``__init__.py`` file::
 
     from numpy._pytesttester import PytestTester
+
     test = PytestTester(__name__).test
     del PytestTester
 
@@ -16,7 +18,7 @@ Warnings filtering and other runtime settings should be dealt with in the
 whether or not that file is found as follows:
 
 * ``pytest.ini`` is present (develop mode)
-    All warnings except those explicily filtered out are raised as error.
+    All warnings except those explicitly filtered out are raised as error.
 * ``pytest.ini`` is absent (release mode)
     DeprecationWarnings and PendingDeprecationWarnings are ignored, other
     warnings are passed through.
@@ -28,8 +30,6 @@ This module is imported by every numpy subpackage, so lies at the top level to
 simplify circular import issues. For the same reason, it contains no numpy
 imports at module scope, instead importing numpy within function calls.
 """
-
-from __future__ import absolute_import, division, print_function
 
 import os
 import sys
@@ -45,7 +45,7 @@ def _show_numpy_info():
     print("NumPy relaxed strides checking option:", relaxed_strides)
 
 
-class PytestTester(object):
+class PytestTester:
     """
     Pytest test runner.
 
@@ -53,6 +53,7 @@ class PytestTester(object):
     is typically added to a package's __init__.py like so::
 
       from numpy.testing import PytestTester
+
       test = PytestTester(__name__).test
       del PytestTester
 
@@ -118,12 +119,11 @@ class PytestTester(object):
         Each NumPy module exposes `test` in its namespace to run all tests for
         it. For example, to run all tests for numpy.lib:
 
-        >>> np.lib.test() #doctest: +SKIP
+        >>> np.lib.test()  # doctest: +SKIP
 
         Examples
         --------
-        >>> result = np.lib.test() #doctest: +SKIP
-        ...
+        >>> result = np.lib.test()  # doctest: +SKIP
         1023 passed, 2 skipped, 6 deselected, 1 xfailed in 10.39 seconds
         >>> result
         True
