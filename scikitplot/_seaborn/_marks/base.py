@@ -1,26 +1,26 @@
 from __future__ import annotations
-
+from dataclasses import dataclass, fields, field
 import textwrap
-from collections.abc import Generator
-from dataclasses import dataclass, field, fields
 from typing import Any, Callable, Union
+from collections.abc import Generator
 
-import matplotlib as mpl
 import numpy as np
 import pandas as pd
-from matplotlib.artist import Artist
+import matplotlib as mpl
+
 from numpy import ndarray
 from pandas import DataFrame
+from matplotlib.artist import Artist
 
-from .._core.exceptions import PlotSpecError
+from .._core.scales import Scale
 from .._core.properties import (
     PROPERTIES,
-    DashPattern,
-    DashPatternWithOffset,
     Property,
     RGBATuple,
+    DashPattern,
+    DashPatternWithOffset,
 )
-from .._core.scales import Scale
+from .._core.exceptions import PlotSpecError
 
 
 class Mappable:
@@ -63,7 +63,7 @@ class Mappable:
     def __repr__(self):
         """Nice formatting for when object appears in Mark init signature."""
         if self._val is not None:
-            s = f"<{self._val!r}>"
+            s = f"<{repr(self._val)}>"
         elif self._depend is not None:
             s = f"<depend:{self._depend}>"
         elif self._rc is not None:
@@ -88,7 +88,7 @@ class Mappable:
         """Get the default value for this feature, or access the relevant rcParam."""
         if self._val is not None:
             return self._val
-        if self._rc is not None:
+        elif self._rc is not None:
             return mpl.rcParams.get(self._rc)
 
 
@@ -132,8 +132,7 @@ class Mark:
         name: str,
         scales: dict[str, Scale] | None = None,
     ) -> Any:
-        """
-        Obtain default, specified, or mapped value for a named feature.
+        """Obtain default, specified, or mapped value for a named feature.
 
         Parameters
         ----------
@@ -201,6 +200,7 @@ class Mark:
         return default
 
     def _infer_orient(self, scales: dict) -> str:  # TODO type scales
+
         # TODO The original version of this (in seaborn._base) did more checking.
         # Paring that down here for the prototype to see what restrictions make sense.
 
@@ -212,7 +212,8 @@ class Mark:
 
         if y > x:
             return "y"
-        return "x"
+        else:
+            return "x"
 
     def _plot(
         self,
@@ -224,14 +225,19 @@ class Mark:
         raise NotImplementedError()
 
     def _legend_artist(
-        self, variables: list[str], value: Any, scales: dict[str, Scale]
+        self,
+        variables: list[str],
+        value: Any,
+        scales: dict[str, Scale],
     ) -> Artist | None:
+
         return None
 
 
 def resolve_properties(
     mark: Mark, data: DataFrame, scales: dict[str, Scale]
 ) -> dict[str, Any]:
+
     props = {name: mark._resolve(data, name, scales) for name in mark._mappable_props}
     return props
 
@@ -282,16 +288,18 @@ def resolve_color(
             return mpl.colors.to_rgba(color)
         alpha = alpha if visible(color) else np.nan
         return mpl.colors.to_rgba(color, alpha)
-    if np.ndim(color) == 2 and color.shape[1] == 4:
-        return mpl.colors.to_rgba_array(color)
-    alpha = np.where(visible(color, axis=1), alpha, np.nan)
-    return mpl.colors.to_rgba_array(color, alpha)
+    else:
+        if np.ndim(color) == 2 and color.shape[1] == 4:
+            return mpl.colors.to_rgba_array(color)
+        alpha = np.where(visible(color, axis=1), alpha, np.nan)
+        return mpl.colors.to_rgba_array(color, alpha)
 
     # TODO should we be implementing fill here too?
     # (i.e. set fillalpha to 0 when fill=False)
 
 
 def document_properties(mark):
+
     properties = [f.name for f in fields(mark) if isinstance(f.default, Mappable)]
     text = [
         "",
@@ -305,6 +313,12 @@ def document_properties(mark):
     ]
 
     docstring_lines = mark.__doc__.split("\n")
-    new_docstring = "\n".join([*docstring_lines[:2], *text, *docstring_lines[2:]])
+    new_docstring = "\n".join(
+        [
+            *docstring_lines[:2],
+            *text,
+            *docstring_lines[2:],
+        ]
+    )
     mark.__doc__ = new_docstring
     return mark

@@ -30,7 +30,8 @@ __all__ = [
 
 
 def _stat_functions(
-    data: ArrayLike, ignore_nan: bool | None = False
+    data: ArrayLike,
+    ignore_nan: bool | None = False,
 ) -> tuple[Callable[..., NDArray[float]], Callable[..., NDArray[float]]]:
     # TODO: typing: update return Callables with custom callback protocol (https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols)
     if isinstance(data, np.ma.MaskedArray):
@@ -128,9 +129,8 @@ def biweight_location(
     >>> from astropy.stats import biweight_location
     >>> rand = np.random.default_rng(12345)
     >>> biloc = biweight_location(rand.standard_normal(1000))
-    >>> print(biloc)  # doctest: +FLOAT_CMP
+    >>> print(biloc)    # doctest: +FLOAT_CMP
     0.01535330525461019
-
     """
     median_func, sum_func = _stat_functions(data, ignore_nan=ignore_nan)
 
@@ -298,7 +298,6 @@ def biweight_scale(
     >>> biscl = biweight_scale(rand.standard_normal(1000))
     >>> print(biscl)    # doctest: +FLOAT_CMP
     1.0239311812635818
-
     """
     return np.sqrt(
         biweight_midvariance(
@@ -424,7 +423,6 @@ def biweight_midvariance(
     >>> bivar = biweight_midvariance(rand.standard_normal(1000))
     >>> print(bivar)    # doctest: +FLOAT_CMP
     1.0484350639638342
-
     """
     median_func, sum_func = _stat_functions(data, ignore_nan=ignore_nan)
 
@@ -659,7 +657,6 @@ def biweight_midcovariance(
     >>> # Print standard deviation estimates
     >>> print(np.sqrt(bicov.diagonal()))  # doctest: +FLOAT_CMP
     [0.91343072 2.67519302]
-
     """
     data = np.asanyarray(data).astype(np.float64)
 
@@ -791,7 +788,6 @@ def biweight_midcorrelation(
     >>> bicorr = biweight_midcorrelation(x, y)
     >>> print(bicorr)  # doctest: +FLOAT_CMP
     -0.09203238319481295
-
     """
     x = np.asanyarray(x)
     y = np.asanyarray(y)

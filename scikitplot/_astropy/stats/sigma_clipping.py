@@ -70,7 +70,7 @@ class SigmaClip:
         function. The equivalent settings to `scipy.stats.sigmaclip`
         are::
 
-            sigclip = SigmaClip(sigma=4.0, cenfunc='mean', maxiters=None)
+            sigclip = SigmaClip(sigma=4., cenfunc='mean', maxiters=None)
             sigclip(data, axis=None, masked=False, return_bounds=True)
 
     Parameters
@@ -171,7 +171,6 @@ class SigmaClip:
 
     Note that along the other axis, no points would be clipped, as the
     standard deviation is higher.
-
     """
 
     def __init__(
@@ -223,7 +222,7 @@ class SigmaClip:
             "grow",
         ]
         for attr in attrs:
-            lines.append(f"    {attr}: {getattr(self, attr)!r}")
+            lines.append(f"    {attr}: {repr(getattr(self, attr))}")
         return "\n".join(lines)
 
     @staticmethod
@@ -257,7 +256,9 @@ class SigmaClip:
         return stdfunc
 
     def _compute_bounds(
-        self, data: ArrayLike, axis: int | tuple[int, ...] | None = None
+        self,
+        data: ArrayLike,
+        axis: int | tuple[int, ...] | None = None,
     ) -> None:
         # ignore RuntimeWarning if the array (or along an axis) has only
         # NaNs
@@ -281,7 +282,9 @@ class SigmaClip:
         | tuple[NDArray | np.ma.MaskedArray, float, float]
         | tuple[NDArray | np.ma.MaskedArray, NDArray, NDArray]
     ):
-        """Fast C implementation for simple use cases."""
+        """
+        Fast C implementation for simple use cases.
+        """
         if isinstance(data, Quantity):
             data, unit = data.value, data.unit
         else:
@@ -361,10 +364,11 @@ class SigmaClip:
             if data.dtype.kind != "f":
                 # float array type is needed to insert nans into the array
                 result = data.astype(np.float32)  # also makes a copy
-            elif copy:
-                result = data.copy()
             else:
-                result = data
+                if copy:
+                    result = data.copy()
+                else:
+                    result = data
             result[mask] = np.nan
 
         if unit is not None:
@@ -374,7 +378,8 @@ class SigmaClip:
 
         if return_bounds:
             return result, bound_lo, bound_hi
-        return result
+        else:
+            return result
 
     def _sigmaclip_noaxis(
         self,
@@ -431,7 +436,8 @@ class SigmaClip:
 
         if return_bounds:
             return filtered_data, self._min_value, self._max_value
-        return filtered_data
+        else:
+            return filtered_data
 
     def _sigmaclip_withaxis(
         self,
@@ -547,7 +553,8 @@ class SigmaClip:
 
         if return_bounds:
             return filtered_data, self._min_value, self._max_value
-        return filtered_data
+        else:
+            return filtered_data
 
     def __call__(
         self,
@@ -620,7 +627,6 @@ class SigmaClip:
             also contain ``np.nan`` where the input mask was `True`. If
             ``return_bounds=True`` then the returned minimum and maximum
             clipping thresholds will be be `~numpy.ndarray`\\s.
-
         """
         data = np.asanyarray(data)
 
@@ -632,7 +638,8 @@ class SigmaClip:
 
             if return_bounds:
                 return result, self._min_value, self._max_value
-            return result
+            else:
+                return result
 
         if isinstance(data, np.ma.MaskedArray) and data.mask.all():
             if masked:
@@ -642,7 +649,8 @@ class SigmaClip:
 
             if return_bounds:
                 return result, self._min_value, self._max_value
-            return result
+            else:
+                return result
 
         # Shortcut for common cases where a fast C implementation can be
         # used.
@@ -664,9 +672,10 @@ class SigmaClip:
             return self._sigmaclip_noaxis(
                 data, masked=masked, return_bounds=return_bounds, copy=copy
             )
-        return self._sigmaclip_withaxis(
-            data, axis=axis, masked=masked, return_bounds=return_bounds, copy=copy
-        )
+        else:
+            return self._sigmaclip_withaxis(
+                data, axis=axis, masked=masked, return_bounds=return_bounds, copy=copy
+            )
 
 
 def sigma_clip(
@@ -865,7 +874,6 @@ def sigma_clip(
 
     Note that along the other axis, no points would be clipped, as the
     standard deviation is higher.
-
     """
     sigclip = SigmaClip(
         sigma=sigma,
@@ -967,7 +975,6 @@ class SigmaClippedStats:
     See Also
     --------
     sigma_clipped_stats, SigmaClip, sigma_clip
-
     """
 
     def __init__(
@@ -1018,7 +1025,6 @@ class SigmaClippedStats:
         -------
         min : float or `~numpy.ndarray`
             The minimum of the data.
-
         """
         return nanmin(self.data, axis=self.axis)
 
@@ -1032,7 +1038,6 @@ class SigmaClippedStats:
         -------
         max : float or `~numpy.ndarray`
             The maximum of the data.
-
         """
         return nanmax(self.data, axis=self.axis)
 
@@ -1046,7 +1051,6 @@ class SigmaClippedStats:
         -------
         sum : float or `~numpy.ndarray`
             The sum of the data.
-
         """
         return nansum(self.data, axis=self.axis)
 
@@ -1060,7 +1064,6 @@ class SigmaClippedStats:
         -------
         mean : float or `~numpy.ndarray`
             The mean of the data.
-
         """
         return nanmean(self.data, axis=self.axis)
 
@@ -1074,7 +1077,6 @@ class SigmaClippedStats:
         -------
         median : float or `~numpy.ndarray`
             The median of the data.
-
         """
         return nanmedian(self.data, axis=self.axis)
 
@@ -1099,7 +1101,6 @@ class SigmaClippedStats:
         -------
         mode : float or `~numpy.ndarray`
             The estimated mode of the data.
-
         """
         return (median_factor * self.median()) - (mean_factor * self.mean())
 
@@ -1124,7 +1125,6 @@ class SigmaClippedStats:
         -------
         std : float or `~numpy.ndarray`
             The standard deviation of the data.
-
         """
         return nanstd(self.data, axis=self.axis, ddof=ddof)
 
@@ -1148,7 +1148,6 @@ class SigmaClippedStats:
         -------
         var : float or `~numpy.ndarray`
             The variance of the data.
-
         """
         return nanvar(self.data, axis=self.axis, ddof=ddof)
 
@@ -1174,7 +1173,6 @@ class SigmaClippedStats:
         -------
         biweight_location : float or `~numpy.ndarray`
             The biweight location of the data.
-
         """
         return biweight_location(self.data, c=c, M=M, axis=self.axis, ignore_nan=True)
 
@@ -1198,7 +1196,6 @@ class SigmaClippedStats:
         -------
         biweight_scale : float or `~numpy.ndarray`
             The biweight scale of the data.
-
         """
         return biweight_scale(self.data, c=c, M=M, axis=self.axis, ignore_nan=True)
 
@@ -1213,7 +1210,6 @@ class SigmaClippedStats:
         -------
         mad_std : float or `~numpy.ndarray`
             The MAD-based standard deviation of the data.
-
         """
         return mad_std(self.data, axis=self.axis, ignore_nan=True)
 
@@ -1330,7 +1326,6 @@ def sigma_clipped_stats(
     See Also
     --------
     SigmaClippedStats, SigmaClip, sigma_clip
-
     """
     if mask is not None:
         data = np.ma.MaskedArray(data, mask)

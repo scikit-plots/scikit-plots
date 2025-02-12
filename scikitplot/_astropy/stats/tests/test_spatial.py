@@ -45,6 +45,7 @@ def test_ripley_K_implementation(points, x_min, x_max):
         +-+---------+---------+----------+---------+-+
          -3       -2.5       -2        -1.5       -1
     """
+
     area = 100
     r = np.linspace(0, 2.5, 5)
     Kest = RipleysKEstimator(

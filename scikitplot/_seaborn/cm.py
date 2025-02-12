@@ -1,5 +1,4 @@
 from matplotlib import colors
-
 from ._compat import register_colormap
 
 _rocket_lut = [
@@ -1572,6 +1571,7 @@ _lut_dict = dict(
 )
 
 for _name, _lut in _lut_dict.items():
+
     _cmap = colors.ListedColormap(_lut, _name)
     locals()[_name] = _cmap
 

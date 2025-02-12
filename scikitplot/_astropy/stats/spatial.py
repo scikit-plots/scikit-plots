@@ -1,5 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""This module implements functions and classes for spatial statistics."""
+"""
+This module implements functions and classes for spatial statistics.
+"""
 
 from __future__ import annotations
 
@@ -39,17 +41,18 @@ class RipleysKEstimator:
     Examples
     --------
     >>> import numpy as np
-    >>> from matplotlib import pyplot as plt  # doctest: +SKIP
+    >>> from matplotlib import pyplot as plt # doctest: +SKIP
     >>> from astropy.stats import RipleysKEstimator
     >>> z = np.random.uniform(low=5, high=10, size=(100, 2))
-    >>> Kest = RipleysKEstimator(area=25, x_max=10, y_max=10, x_min=5, y_min=5)
+    >>> Kest = RipleysKEstimator(area=25, x_max=10, y_max=10,
+    ... x_min=5, y_min=5)
     >>> r = np.linspace(0, 2.5, 100)
-    >>> plt.plot(r, Kest.poisson(r))  # doctest: +SKIP
-    >>> plt.plot(r, Kest(data=z, radii=r, mode='none'))  # doctest: +SKIP
-    >>> plt.plot(r, Kest(data=z, radii=r, mode='translation'))  # doctest: +SKIP
-    >>> plt.plot(r, Kest(data=z, radii=r, mode='ohser'))  # doctest: +SKIP
-    >>> plt.plot(r, Kest(data=z, radii=r, mode='var-width'))  # doctest: +SKIP
-    >>> plt.plot(r, Kest(data=z, radii=r, mode='ripley'))  # doctest: +SKIP
+    >>> plt.plot(r, Kest.poisson(r)) # doctest: +SKIP
+    >>> plt.plot(r, Kest(data=z, radii=r, mode='none')) # doctest: +SKIP
+    >>> plt.plot(r, Kest(data=z, radii=r, mode='translation')) # doctest: +SKIP
+    >>> plt.plot(r, Kest(data=z, radii=r, mode='ohser')) # doctest: +SKIP
+    >>> plt.plot(r, Kest(data=z, radii=r, mode='var-width')) # doctest: +SKIP
+    >>> plt.plot(r, Kest(data=z, radii=r, mode='ripley')) # doctest: +SKIP
 
     References
     ----------
@@ -63,7 +66,6 @@ class RipleysKEstimator:
        Wiley, New York.
     .. [5] Stoyan, D., Stoyan, H. (1992). Fractals, Random Shapes and
        Point Fields, Akademie Verlag GmbH, Chichester.
-
     """
 
     def __init__(
@@ -140,7 +142,10 @@ class RipleysKEstimator:
             raise ValueError(f"x_min is expected to be a real number. Got {value}.")
 
     def __call__(
-        self, data: NDArray[float], radii: NDArray[float], mode: _ModeOps = "none"
+        self,
+        data: NDArray[float],
+        radii: NDArray[float],
+        mode: _ModeOps = "none",
     ) -> NDArray[float]:
         return self.evaluate(data=data, radii=radii, mode=mode)
 
@@ -169,12 +174,14 @@ class RipleysKEstimator:
         -------
         output : 1D array
             Ripley's K function evaluated at ``radii``.
-
         """
         return np.pi * radii * radii
 
     def Lfunction(
-        self, data: NDArray[float], radii: NDArray[float], mode: _ModeOps = "none"
+        self,
+        data: NDArray[float],
+        radii: NDArray[float],
+        mode: _ModeOps = "none",
     ) -> NDArray[float]:
         """
         Evaluates the L function at ``radii``. For parameter description
@@ -183,7 +190,10 @@ class RipleysKEstimator:
         return np.sqrt(self.evaluate(data, radii, mode=mode) / np.pi)
 
     def Hfunction(
-        self, data: NDArray[float], radii: NDArray[float], mode: _ModeOps = "none"
+        self,
+        data: NDArray[float],
+        radii: NDArray[float],
+        mode: _ModeOps = "none",
     ) -> NDArray[float]:
         """
         Evaluates the H function at ``radii``. For parameter description
@@ -192,7 +202,10 @@ class RipleysKEstimator:
         return self.Lfunction(data, radii, mode=mode) - radii
 
     def evaluate(
-        self, data: NDArray[float], radii: NDArray[float], mode: _ModeOps = "none"
+        self,
+        data: NDArray[float],
+        radii: NDArray[float],
+        mode: _ModeOps = "none",
     ) -> NDArray[float]:
         """
         Evaluates the Ripley K estimator for a given set of values ``radii``.
@@ -241,7 +254,6 @@ class RipleysKEstimator:
         -------
         ripley : 1D array
             Ripley's K function estimator evaluated at ``radii``.
-
         """
         data = np.asarray(data)
 

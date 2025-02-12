@@ -1,6 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-"""This module contains simple functions for model selection."""
+"""
+This module contains simple functions for model selection.
+"""
 
 from __future__ import annotations
 
@@ -20,10 +22,11 @@ __doctest_requires__ = {
 
 
 def bayesian_info_criterion(
-    log_likelihood: float, n_params: int, n_samples: int
+    log_likelihood: float,
+    n_params: int,
+    n_samples: int,
 ) -> float:
-    r"""
-    Computes the Bayesian Information Criterion (BIC) given the log of the
+    r"""Computes the Bayesian Information Criterion (BIC) given the log of the
     likelihood function evaluated at the estimated (or analytically derived)
     parameters, the number of parameters, and the number of samples.
 
@@ -89,9 +92,7 @@ def bayesian_info_criterion(
     The question that the BIC is proposed to answer is: "Is the increase in
     likelihood due to larger number of parameters?"
 
-    >>> from astropy.stats.info_theory import (
-    ...     bayesian_info_criterion,
-    ... )
+    >>> from astropy.stats.info_theory import bayesian_info_criterion
     >>> lnL_g = -176.4
     >>> lnL_t = -173.0
     >>> n_params_g = 2
@@ -99,7 +100,7 @@ def bayesian_info_criterion(
     >>> n_samples = 100
     >>> bic_g = bayesian_info_criterion(lnL_g, n_params_g, n_samples)
     >>> bic_t = bayesian_info_criterion(lnL_t, n_params_t, n_samples)
-    >>> bic_g - bic_t  # doctest: +FLOAT_CMP
+    >>> bic_g - bic_t # doctest: +FLOAT_CMP
     np.float64(2.1948298140119391)
 
     Therefore, there exist a moderate evidence that the increasing in
@@ -118,14 +119,17 @@ def bayesian_info_criterion(
        Selection. 2008. <https://arxiv.org/pdf/astro-ph/0701113v2.pdf>
     .. [5] Liddle, A. R. How many cosmological parameters? 2008.
        <https://arxiv.org/pdf/astro-ph/0401198v3.pdf>
-
     """
     return n_params * np.log(n_samples) - 2.0 * log_likelihood
 
 
 # NOTE: bic_t - bic_g doctest is skipped because it produced slightly
 # different result in arm64 and big-endian s390x CI jobs.
-def bayesian_info_criterion_lsq(ssr: float, n_params: int, n_samples: int) -> float:
+def bayesian_info_criterion_lsq(
+    ssr: float,
+    n_params: int,
+    n_samples: int,
+) -> float:
     r"""
     Computes the Bayesian Information Criterion (BIC) assuming that the
     observations come from a Gaussian distribution.
@@ -168,32 +172,25 @@ def bayesian_info_criterion_lsq(ssr: float, n_params: int, n_samples: int) -> fl
 
     >>> import numpy as np
     >>> from astropy.modeling import models, fitting
-    >>> from astropy.stats.info_theory import (
-    ...     bayesian_info_criterion_lsq,
-    ... )
+    >>> from astropy.stats.info_theory import bayesian_info_criterion_lsq
     >>> # Generate fake data
     >>> np.random.seed(0)
-    >>> x = np.linspace(-5.0, 5.0, 200)
-    >>> y = 3 * np.exp(-0.5 * (x - 1.3) ** 2 / 0.8**2)
-    >>> y += np.random.normal(0.0, 0.2, x.shape)
+    >>> x = np.linspace(-5., 5., 200)
+    >>> y = 3 * np.exp(-0.5 * (x - 1.3)**2 / 0.8**2)
+    >>> y += np.random.normal(0., 0.2, x.shape)
     >>> # Fit the data using a Box model.
     >>> # Bounds are not really needed but included here to demonstrate usage.
-    >>> t_init = models.Trapezoid1D(
-    ...     amplitude=1.0,
-    ...     x_0=0.0,
-    ...     width=1.0,
-    ...     slope=0.5,
-    ...     bounds={'x_0': (-5.0, 5.0)},
-    ... )
+    >>> t_init = models.Trapezoid1D(amplitude=1., x_0=0., width=1., slope=0.5,
+    ...                             bounds={"x_0": (-5., 5.)})
     >>> fit_t = fitting.LevMarLSQFitter()
     >>> t = fit_t(t_init, x, y)
     >>> # Fit the data using a Gaussian
-    >>> g_init = models.Gaussian1D(amplitude=1.0, mean=0, stddev=1.0)
+    >>> g_init = models.Gaussian1D(amplitude=1., mean=0, stddev=1.)
     >>> fit_g = fitting.LevMarLSQFitter()
     >>> g = fit_g(g_init, x, y)
     >>> # Compute the mean squared errors
-    >>> ssr_t = np.sum((t(x) - y) * (t(x) - y))
-    >>> ssr_g = np.sum((g(x) - y) * (g(x) - y))
+    >>> ssr_t = np.sum((t(x) - y)*(t(x) - y))
+    >>> ssr_g = np.sum((g(x) - y)*(g(x) - y))
     >>> # Compute the bics
     >>> bic_t = bayesian_info_criterion_lsq(ssr_t, 4, x.shape[0])
     >>> bic_g = bayesian_info_criterion_lsq(ssr_g, 3, x.shape[0])
@@ -212,7 +209,6 @@ def bayesian_info_criterion_lsq(ssr: float, n_params: int, n_samples: int) -> fl
        <https://www.originlab.com/doc/Origin-Help/PostFit-CompareFitFunc>
     .. [3] Astropy Models and Fitting
         <https://docs.astropy.org/en/stable/modeling>
-
     """
     return bayesian_info_criterion(
         -0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples
@@ -220,7 +216,9 @@ def bayesian_info_criterion_lsq(ssr: float, n_params: int, n_samples: int) -> fl
 
 
 def akaike_info_criterion(
-    log_likelihood: float, n_params: int, n_samples: int
+    log_likelihood: float,
+    n_params: int,
+    n_samples: int,
 ) -> float:
     r"""
     Computes the Akaike Information Criterion (AIC).
@@ -293,7 +291,7 @@ def akaike_info_criterion(
     >>> n2_params = 5
     >>> aic1 = akaike_info_criterion(lnL1, n1_params, n_samples)
     >>> aic2 = akaike_info_criterion(lnL2, n2_params, n_samples)
-    >>> aic1 - aic2  # doctest: +FLOAT_CMP
+    >>> aic1 - aic2 # doctest: +FLOAT_CMP
     0.9551029748283746
 
     Therefore, we can strongly support the model 1 with the advantage that
@@ -315,7 +313,6 @@ def akaike_info_criterion(
        Selection. 2008. <https://arxiv.org/pdf/astro-ph/0701113v2.pdf>
     .. [6] Liddle, A. R. How many cosmological parameters? 2008.
        <https://arxiv.org/pdf/astro-ph/0401198v3.pdf>
-
     """
     # Correction in case of small number of observations
     if n_samples / float(n_params) >= 40.0:
@@ -327,7 +324,11 @@ def akaike_info_criterion(
     return aic
 
 
-def akaike_info_criterion_lsq(ssr: float, n_params: int, n_samples: int) -> float:
+def akaike_info_criterion_lsq(
+    ssr: float,
+    n_params: int,
+    n_samples: int,
+) -> float:
     r"""
     Computes the Akaike Information Criterion assuming that the observations
     are Gaussian distributed.
@@ -376,39 +377,36 @@ def akaike_info_criterion_lsq(ssr: float, n_params: int, n_samples: int) -> floa
 
     >>> import numpy as np
     >>> from astropy.modeling import models, fitting
-    >>> from astropy.stats.info_theory import (
-    ...     akaike_info_criterion_lsq,
-    ... )
+    >>> from astropy.stats.info_theory import akaike_info_criterion_lsq
     >>> np.random.seed(42)
     >>> # Generate fake data
-    >>> g1 = models.Gaussian1D(0.1, 0, 0.2)  # changed this to noise level
-    >>> g2 = models.Gaussian1D(0.1, 0.3, 0.2)  # and added another Gaussian
+    >>> g1 = models.Gaussian1D(.1, 0, 0.2) # changed this to noise level
+    >>> g2 = models.Gaussian1D(.1, 0.3, 0.2) # and added another Gaussian
     >>> g3 = models.Gaussian1D(2.5, 0.5, 0.1)
     >>> x = np.linspace(-1, 1, 200)
-    >>> y = g1(x) + g2(x) + g3(x) + np.random.normal(0.0, 0.2, x.shape)
+    >>> y = g1(x) + g2(x) + g3(x) + np.random.normal(0., 0.2, x.shape)
     >>> # Fit with three Gaussians
-    >>> g3_init = (
-    ...     models.Gaussian1D(0.1, 0, 0.1)
-    ...     + models.Gaussian1D(0.1, 0.2, 0.15)
-    ...     + models.Gaussian1D(2.4, 0.4, 0.1)
-    ... )
+    >>> g3_init = (models.Gaussian1D(.1, 0, 0.1)
+    ...            + models.Gaussian1D(.1, 0.2, 0.15)
+    ...            + models.Gaussian1D(2.4, .4, 0.1))
     >>> fitter = fitting.LevMarLSQFitter()
     >>> g3_fit = fitter(g3_init, x, y)
     >>> # Fit with two Gaussians
-    >>> g2_init = models.Gaussian1D(0.1, 0, 0.1) + models.Gaussian1D(2, 0.5, 0.1)
+    >>> g2_init = (models.Gaussian1D(.1, 0, 0.1) +
+    ...            models.Gaussian1D(2, 0.5, 0.1))
     >>> g2_fit = fitter(g2_init, x, y)
     >>> # Fit with only one Gaussian
-    >>> g1_init = models.Gaussian1D(amplitude=2.0, mean=0.3, stddev=0.5)
+    >>> g1_init = models.Gaussian1D(amplitude=2., mean=0.3, stddev=.5)
     >>> g1_fit = fitter(g1_init, x, y)
     >>> # Compute the mean squared errors
-    >>> ssr_g3 = np.sum((g3_fit(x) - y) ** 2.0)
-    >>> ssr_g2 = np.sum((g2_fit(x) - y) ** 2.0)
-    >>> ssr_g1 = np.sum((g1_fit(x) - y) ** 2.0)
-    >>> akaike_info_criterion_lsq(ssr_g3, 9, x.shape[0])  # doctest: +FLOAT_CMP
+    >>> ssr_g3 = np.sum((g3_fit(x) - y)**2.0)
+    >>> ssr_g2 = np.sum((g2_fit(x) - y)**2.0)
+    >>> ssr_g1 = np.sum((g1_fit(x) - y)**2.0)
+    >>> akaike_info_criterion_lsq(ssr_g3, 9, x.shape[0]) # doctest: +FLOAT_CMP
     np.float64(-634.5257517810961)
-    >>> akaike_info_criterion_lsq(ssr_g2, 6, x.shape[0])  # doctest: +FLOAT_CMP
+    >>> akaike_info_criterion_lsq(ssr_g2, 6, x.shape[0]) # doctest: +FLOAT_CMP
     np.float64(-662.83834510232043)
-    >>> akaike_info_criterion_lsq(ssr_g1, 3, x.shape[0])  # doctest: +FLOAT_CMP
+    >>> akaike_info_criterion_lsq(ssr_g1, 3, x.shape[0]) # doctest: +FLOAT_CMP
     np.float64(-647.47312032659499)
 
     Hence, from the AIC values, we would prefer to choose the model g2_fit.
@@ -421,7 +419,6 @@ def akaike_info_criterion_lsq(ssr: float, n_params: int, n_samples: int) -> floa
        <https://en.wikipedia.org/wiki/Akaike_information_criterion>
     .. [2] Origin Lab. Comparing Two Fitting Functions.
        <https://www.originlab.com/doc/Origin-Help/PostFit-CompareFitFunc>
-
     """
     return akaike_info_criterion(
         -0.5 * n_samples * np.log(ssr / n_samples), n_params, n_samples

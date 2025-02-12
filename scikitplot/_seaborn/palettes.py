@@ -1,27 +1,28 @@
 import colorsys
 from itertools import cycle
 
-import matplotlib as mpl
 import numpy as np
+import matplotlib as mpl
 
-from ._compat import get_colormap
-from .colors import crayons, xkcd_rgb
 from .external import husl
+
 from .utils import desaturate, get_color_cycle
+from .colors import xkcd_rgb, crayons
+from ._compat import get_colormap
 
 __all__ = [
-    "blend_palette",
     "color_palette",
-    "crayon_palette",
-    "cubehelix_palette",
-    "dark_palette",
-    "diverging_palette",
     "hls_palette",
     "husl_palette",
-    "light_palette",
     "mpl_palette",
-    "set_color_codes",
+    "dark_palette",
+    "light_palette",
+    "diverging_palette",
+    "blend_palette",
     "xkcd_palette",
+    "crayon_palette",
+    "cubehelix_palette",
+    "set_color_codes",
 ]
 
 
@@ -170,9 +171,8 @@ def _patch_colormap_display():
     def _repr_png_(self):
         """Generate a PNG representation of the Colormap."""
         import io
-
-        import numpy as np
         from PIL import Image
+        import numpy as np
 
         IMAGE_SIZE = (400, 50)
         X = np.tile(np.linspace(0, 1, IMAGE_SIZE[0]), (IMAGE_SIZE[1], 1))
@@ -205,8 +205,7 @@ def _patch_colormap_display():
 
 
 def color_palette(palette=None, n_colors=None, desat=None, as_cmap=False):
-    """
-    Return a list of colors or continuous colormap defining a palette.
+    """Return a list of colors or continuous colormap defining a palette.
 
     Possible ``palette`` values include:
         - Name of a seaborn palette (deep, muted, bright, pastel, dark, colorblind)
@@ -267,6 +266,7 @@ def color_palette(palette=None, n_colors=None, desat=None, as_cmap=False):
         if n_colors is None:
             n_colors = len(palette)
     else:
+
         if n_colors is None:
             # Use all colors in a qualitative palette or 6 of another kind
             n_colors = QUAL_PALETTE_SIZES.get(palette, 6)
@@ -325,6 +325,7 @@ def color_palette(palette=None, n_colors=None, desat=None, as_cmap=False):
         palette = [desaturate(c, desat) for c in palette]
 
     if not as_cmap:
+
         # Always return as many colors as we asked for
         pal_cycle = cycle(palette)
         palette = [next(pal_cycle) for _ in range(n_colors)]
@@ -339,7 +340,7 @@ def color_palette(palette=None, n_colors=None, desat=None, as_cmap=False):
     return palette
 
 
-def hls_palette(n_colors=6, h=0.01, l=0.6, s=0.65, as_cmap=False):
+def hls_palette(n_colors=6, h=0.01, l=0.6, s=0.65, as_cmap=False):  # noqa
     """
     Return hues with constant lightness and saturation in the HLS system.
 
@@ -389,10 +390,11 @@ def hls_palette(n_colors=6, h=0.01, l=0.6, s=0.65, as_cmap=False):
     palette = [colorsys.hls_to_rgb(h_i, l, s) for h_i in hues]
     if as_cmap:
         return mpl.colors.ListedColormap(palette, "hls")
-    return _ColorPalette(palette)
+    else:
+        return _ColorPalette(palette)
 
 
-def husl_palette(n_colors=6, h=0.01, s=0.9, l=0.65, as_cmap=False):
+def husl_palette(n_colors=6, h=0.01, s=0.9, l=0.65, as_cmap=False):  # noqa
     """
     Return hues with constant lightness and saturation in the HUSL system.
 
@@ -438,11 +440,12 @@ def husl_palette(n_colors=6, h=0.01, s=0.9, l=0.65, as_cmap=False):
     hues %= 1
     hues *= 359
     s *= 99
-    l *= 99
+    l *= 99  # noqa
     palette = [_color_to_rgb((h_i, s, l), input="husl") for h_i in hues]
     if as_cmap:
         return mpl.colors.ListedColormap(palette, "hsl")
-    return _ColorPalette(palette)
+    else:
+        return _ColorPalette(palette)
 
 
 def mpl_palette(name, n_colors=6, as_cmap=False):
@@ -495,7 +498,8 @@ def mpl_palette(name, n_colors=6, as_cmap=False):
 
     if as_cmap:
         return cmap
-    return _ColorPalette(palette)
+    else:
+        return _ColorPalette(palette)
 
 
 def _color_to_rgb(color, input):
@@ -512,8 +516,7 @@ def _color_to_rgb(color, input):
 
 
 def dark_palette(color, n_colors=6, reverse=False, as_cmap=False, input="rgb"):
-    """
-    Make a sequential palette that blends from dark to ``color``.
+    """Make a sequential palette that blends from dark to ``color``.
 
     This kind of palette is good for data that range between relatively
     uninteresting low values and interesting high values.
@@ -564,8 +567,7 @@ def dark_palette(color, n_colors=6, reverse=False, as_cmap=False, input="rgb"):
 
 
 def light_palette(color, n_colors=6, reverse=False, as_cmap=False, input="rgb"):
-    """
-    Make a sequential palette that blends from light to ``color``.
+    """Make a sequential palette that blends from light to ``color``.
 
     The ``color`` parameter can be specified in a number of ways, including
     all options for defining a color in matplotlib and several additional
@@ -613,10 +615,9 @@ def light_palette(color, n_colors=6, reverse=False, as_cmap=False, input="rgb"):
 
 
 def diverging_palette(
-    h_neg, h_pos, s=75, l=50, sep=1, n=6, center="light", as_cmap=False
+    h_neg, h_pos, s=75, l=50, sep=1, n=6, center="light", as_cmap=False  # noqa
 ):
-    """
-    Make a diverging palette between two HUSL colors.
+    """Make a diverging palette between two HUSL colors.
 
     If you are using the IPython notebook, you can also choose this palette
     interactively with the :func:`choose_diverging_palette` function.
@@ -664,8 +665,7 @@ def diverging_palette(
 
 
 def blend_palette(colors, n_colors=6, as_cmap=False, input="rgb"):
-    """
-    Make a palette that blends between a list of colors.
+    """Make a palette that blends between a list of colors.
 
     Parameters
     ----------
@@ -696,8 +696,7 @@ def blend_palette(colors, n_colors=6, as_cmap=False, input="rgb"):
 
 
 def xkcd_palette(colors):
-    """
-    Make a palette with color names from the xkcd color survey.
+    """Make a palette with color names from the xkcd color survey.
 
     See xkcd for the full list of colors: https://xkcd.com/color/rgb/
 
@@ -723,8 +722,7 @@ def xkcd_palette(colors):
 
 
 def crayon_palette(colors):
-    """
-    Make a palette with color names from Crayola crayons.
+    """Make a palette with color names from Crayola crayons.
 
     Colors are taken from here:
     https://en.wikipedia.org/wiki/List_of_Crayola_crayon_colors
@@ -761,8 +759,7 @@ def cubehelix_palette(
     reverse=False,
     as_cmap=False,
 ):
-    """
-    Make a sequential palette from the cubehelix system.
+    """Make a sequential palette from the cubehelix system.
 
     This produces a colormap with linearly-decreasing (or increasing)
     brightness. That means that information will be preserved if printed to
@@ -857,12 +854,15 @@ def cubehelix_palette(
         pal_256 = cmap(x_256)
         cmap = mpl.colors.ListedColormap(pal_256, "seaborn_cubehelix")
         return cmap
-    return _ColorPalette(pal)
+    else:
+        return _ColorPalette(pal)
 
 
 def _parse_cubehelix_args(argstr):
     """Turn stringified cubehelix params into args/kwargs."""
-    argstr = argstr.removeprefix("ch:")
+
+    if argstr.startswith("ch:"):
+        argstr = argstr[3:]
 
     if argstr.endswith("_r"):
         reverse = True
@@ -880,7 +880,14 @@ def _parse_cubehelix_args(argstr):
     kwargs = [a.split("=") for a in all_args if "=" in a]
     kwargs = {k.strip(" "): float(v.strip(" ")) for k, v in kwargs}
 
-    kwarg_map = dict(s="start", r="rot", g="gamma", h="hue", l="light", d="dark")
+    kwarg_map = dict(
+        s="start",
+        r="rot",
+        g="gamma",
+        h="hue",
+        l="light",
+        d="dark",  # noqa: E741
+    )
 
     kwargs = {kwarg_map.get(k, k): v for k, v in kwargs.items()}
 
@@ -891,8 +898,7 @@ def _parse_cubehelix_args(argstr):
 
 
 def set_color_codes(palette="deep"):
-    """
-    Change how matplotlib color shorthands are interpreted.
+    """Change how matplotlib color shorthands are interpreted.
 
     Calling this will change how shorthand codes like "b" or "g"
     are interpreted by matplotlib in subsequent plots.

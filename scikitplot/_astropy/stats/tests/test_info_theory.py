@@ -49,13 +49,13 @@ def test_akaike_info_criterion_lsq():
 
 
 def test_bayesian_info_criterion_lsq():
-    """
-    This test is from:
+    """This test is from:
     http://www.statoek.wiso.uni-goettingen.de/veranstaltungen/non_semi_models/
     AkaikeLsg.pdf
     Note that in there, they compute a "normalized BIC". Therefore, the
     answers presented here are recalculated versions based on their values.
     """
+
     n_samples = 25
     n_params = (1, 2, 1)
     ssr = (48959, 32512, 37980)

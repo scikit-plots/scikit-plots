@@ -79,9 +79,11 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
-  'License :: OSI Approved :: BSD License',
-  'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-  "License :: OSI Approved :: MIT License",
+  ## If defined required to fully compatible with SPDX license expression by license-files
+  ## or use test or file license = {file = "LICENSE"}
+  # 'License :: OSI Approved :: BSD License',
+  # 'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+  # "License :: OSI Approved :: MIT License",
   "Natural Language :: English",
   "Operating System :: OS Independent",
   'Programming Language :: C',
@@ -99,6 +101,18 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 
+## License information is critical. It's recommended to specify the license file.
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license
+## https://packaging.python.org/en/latest/specifications/core-metadata/#license-file-multiple-use
+## TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
+## at that point, no longer include them in `py3.install_sources()`
+## [[project.license]]  # Usage individually, If Needed
+## If defined required to fully compatible with SPDX license expression by license-files
+## or use test or file license = {file = "LICENSE"}
+# license = {file = "LICENSE"}  # Primary license file
+## https://spdx.org/licenses/BSD-3-Clause.html
+license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later',
+
 ## The readme file this is what users will see on your project's PyPI page.
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#readme
 ## [[project.readme]]  # Usage individually, If Needed
@@ -107,19 +121,9 @@ classifiers = [
 ## readme = "README.md"
 readme = {file = "README.md", content-type = "text/markdown"}
 
-## License information is critical. It's recommended to specify the license file.
-## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license
-## https://packaging.python.org/en/latest/specifications/core-metadata/#license-file-multiple-use
-## TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
-## at that point, no longer include them in `py3.install_sources()`
-## [[project.license]]  # Usage individually, If Needed
-license = {file = "LICENSE"}  # Primary license file
-
 ## [tool.meson-python]
 ## license-files field to be used only if the license field contains a valid SPDX license expression.
-## license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later',
-## license-files = ['LICEN[CS]E*', 'LICENSE']  # must valid glob patterns
-license-files = ["LICENSE", "LICENSES/*"]
+license-files = ["LICENSE", "LICENSES/*", "LICEN[CS]E*/*"]
 
 ## List the authors of the project
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
@@ -723,20 +727,24 @@ exclude= '''
 ######################################################################
 
 [tool.codespell]
+# .codespellrc ini file
 skip = """
     *.cff,
-    */data/*,
-    *extern/*,
-    astropy/CITATION,
     docs/credits.rst,
-    *_lextab.py,
-    *_parsetab.py,
+    galleries/*,
+    scikitplot/_astropy/*,
+    scikitplot/_seaborn/*,
+    third_party/*,
+    tools/*,
+    *_externals/*,
 """
+count = true
+# quiet-level = 3
+
 # The following list of words for codespell to ignore may contain some
 # misspellings that should be revisited and fixed in the future.
-# ignore-words-list = """
-#     as,
-# """
+# ignore-words-list = """ """
+ignore-words-list = "./.codespell-ignore-words"
 
 ######################################################################
 ## repo-review

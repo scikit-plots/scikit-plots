@@ -1,21 +1,20 @@
 from __future__ import annotations
-
 from collections import defaultdict
 from dataclasses import dataclass
 
-import matplotlib as mpl
 import numpy as np
+import matplotlib as mpl
 from matplotlib.transforms import ScaledTranslation
 
 from .._marks.base import (
+    Mark,
     Mappable,
-    MappableColor,
     MappableFloat,
     MappableString,
-    Mark,
-    document_properties,
-    resolve_color,
+    MappableColor,
     resolve_properties,
+    resolve_color,
+    document_properties,
 )
 
 
@@ -40,9 +39,11 @@ class Text(Mark):
     offset: MappableFloat = Mappable(4)
 
     def _plot(self, split_gen, scales, orient):
+
         ax_data = defaultdict(list)
 
         for keys, data, ax in split_gen():
+
             vals = resolve_properties(self, keys, scales)
             color = resolve_color(self, keys, "", scales)
 

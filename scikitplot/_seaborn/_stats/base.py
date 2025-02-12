@@ -1,15 +1,15 @@
 """Base module for statistical transformations."""
 
 from __future__ import annotations
-
-import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import ClassVar, Any
+import warnings
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pandas import DataFrame
-
     from .._core.groupby import GroupBy
     from .._core.scales import Scale
 
@@ -47,7 +47,10 @@ class Stat:
             raise ValueError(err)
 
     def _check_grouping_vars(
-        self, param: str, data_vars: list[str], stacklevel: int = 2
+        self,
+        param: str,
+        data_vars: list[str],
+        stacklevel: int = 2,
     ) -> None:
         """Warn if vars are named in parameter without being present in the data."""
         param_vars = getattr(self, param)
@@ -59,7 +62,11 @@ class Stat:
             warnings.warn(msg, stacklevel=stacklevel)
 
     def __call__(
-        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
+        self,
+        data: DataFrame,
+        groupby: GroupBy,
+        orient: str,
+        scales: dict[str, Scale],
     ) -> DataFrame:
         """Apply statistical transform to data subgroups and return combined result."""
         return data

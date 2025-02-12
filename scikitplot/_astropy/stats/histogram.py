@@ -65,7 +65,6 @@ def calculate_bin_edges(
     -------
     bins : ndarray
         Histogram bin edges
-
     """
     # if range is specified, we need to truncate the data for
     # the bin-finding routines
@@ -120,8 +119,7 @@ def histogram(
     weights: ArrayLike | None = None,
     **kwargs,
 ) -> tuple[NDArray, NDArray]:
-    """
-    Enhanced histogram function, providing adaptive binnings.
+    """Enhanced histogram function, providing adaptive binnings.
 
     This is a histogram function that enables the use of more sophisticated
     algorithms for determining bins.  Aside from the ``bins`` argument allowing
@@ -168,7 +166,6 @@ def histogram(
     See Also
     --------
     numpy.histogram
-
     """
     bins = calculate_bin_edges(a, bins=bins, range=range, weights=weights)
     # Now we call numpy's histogram with the resulting bin edges
@@ -176,10 +173,10 @@ def histogram(
 
 
 def scott_bin_width(
-    data: ArrayLike, return_bins: bool | None = False
+    data: ArrayLike,
+    return_bins: bool | None = False,
 ) -> float | tuple[float, NDArray]:
-    r"""
-    Return the optimal histogram bin width using Scott's rule.
+    r"""Return the optimal histogram bin width using Scott's rule.
 
     Scott's rule is a normal reference rule: it minimizes the integrated
     mean squared error in the bin approximation under the assumption that the
@@ -220,7 +217,6 @@ def scott_bin_width(
     freedman_bin_width
     bayesian_blocks
     histogram
-
     """
     data = np.asarray(data)
     if data.ndim != 1:
@@ -236,14 +232,15 @@ def scott_bin_width(
         Nbins = max(1, Nbins)
         bins = data.min() + dx * np.arange(Nbins + 1)
         return dx, bins
-    return dx
+    else:
+        return dx
 
 
 def freedman_bin_width(
-    data: ArrayLike, return_bins: bool | None = False
+    data: ArrayLike,
+    return_bins: bool | None = False,
 ) -> float | tuple[float, NDArray]:
-    r"""
-    Return the optimal histogram bin width using the Freedman-Diaconis rule.
+    r"""Return the optimal histogram bin width using the Freedman-Diaconis rule.
 
     The Freedman-Diaconis rule is a normal reference rule like Scott's
     rule, but uses rank-based statistics for results which are more robust
@@ -285,7 +282,6 @@ def freedman_bin_width(
     scott_bin_width
     bayesian_blocks
     histogram
-
     """
     data = np.asarray(data)
     if data.ndim != 1:
@@ -311,17 +307,19 @@ def freedman_bin_width(
                     "Please use another bin method, such as "
                     'bins="scott"'
                 )
-            # Something else  # pragma: no cover
-            raise
+            else:  # Something else  # pragma: no cover
+                raise
         return dx, bins
-    return dx
+    else:
+        return dx
 
 
 def knuth_bin_width(
-    data: ArrayLike, return_bins: bool | None = False, quiet: bool | None = True
+    data: ArrayLike,
+    return_bins: bool | None = False,
+    quiet: bool | None = True,
 ) -> float | tuple[float, NDArray]:
-    r"""
-    Return the optimal histogram bin width using Knuth's rule.
+    r"""Return the optimal histogram bin width using Knuth's rule.
 
     Knuth's rule is a fixed-width, Bayesian approach to determining
     the optimal bin width of a histogram.
@@ -367,7 +365,6 @@ def knuth_bin_width(
     scott_bin_width
     bayesian_blocks
     histogram
-
     """
     # import here because of optional scipy dependency
     from scipy import optimize
@@ -380,12 +377,12 @@ def knuth_bin_width(
 
     if return_bins:
         return dx, bins
-    return dx
+    else:
+        return dx
 
 
 class _KnuthF:
-    r"""
-    Class which implements the function minimized by knuth_bin_width.
+    r"""Class which implements the function minimized by knuth_bin_width.
 
     Parameters
     ----------
@@ -408,7 +405,6 @@ class _KnuthF:
     See Also
     --------
     knuth_bin_width
-
     """
 
     def __init__(self, data: ArrayLike) -> None:
@@ -434,8 +430,7 @@ class _KnuthF:
         return self.eval(M)
 
     def eval(self, M: int) -> float:
-        """
-        Evaluate the Knuth function.
+        """Evaluate the Knuth function.
 
         Parameters
         ----------
@@ -447,7 +442,6 @@ class _KnuthF:
         F : float
             evaluation of the negative Knuth loglikelihood function:
             smaller values indicate a better fit.
-
         """
         if not np.isscalar(M):
             M = M[0]

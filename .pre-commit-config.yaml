@@ -113,10 +113,11 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        args: ["--write-changes", "--ignore-words", ".codespell-ignore-words"]
+        args: ["--write-changes"]  # "--ignore-words", ".codespell-ignore-words"
+        # If one configures codespell using the pyproject.toml file instead use:
         additional_dependencies:
           - tomli
-        exclude: '\.ipynb$'  # Excludes .ipynb files from codespell checks
+        # exclude: '\.ipynb$'  # Excludes .ipynb files from codespell checks
 
   # Optional: Cython Linting
   - repo: https://github.com/MarcoGorelli/cython-lint

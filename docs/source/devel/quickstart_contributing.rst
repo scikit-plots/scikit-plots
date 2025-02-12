@@ -380,6 +380,11 @@ and restart the :ref:`Continuous Integration <contributing.ci>` checks.
     covers situations that happen on occasion and can be cause trouble. As always if
     you have questions, ask for help from the maintainer reviewing your PR.
 
+..
+    git branch -d subpackage-bug-fix
+    git fetch origin  # Get the latest changes from remote
+    git reset --hard origin/<branch-name>  # Reset local branch to match remote
+
 Tips for a successful pull request
 ----------------------------------
 

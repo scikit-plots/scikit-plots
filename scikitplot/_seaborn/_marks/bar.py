@@ -1,34 +1,34 @@
 from __future__ import annotations
-
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-import matplotlib as mpl
 import numpy as np
+import matplotlib as mpl
 
 from .._marks.base import (
+    Mark,
     Mappable,
     MappableBool,
     MappableColor,
     MappableFloat,
     MappableStyle,
-    Mark,
-    document_properties,
-    resolve_color,
     resolve_properties,
+    resolve_color,
+    document_properties,
 )
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
-
     from matplotlib.artist import Artist
-
     from .._core.scales import Scale
 
 
 class BarBase(Mark):
+
     def _make_patches(self, data, scales, orient):
+
         transform = scales[orient]._matplotlib_scale.get_transform()
         forward = transform.transform
         reverse = transform.inverted().transform
@@ -54,6 +54,7 @@ class BarBase(Mark):
         bars, vals = [], []
 
         for i in range(len(data)):
+
             row = {k: v[i] for k, v in kws.items()}
 
             # Skip bars with no value. It's possible we'll want to make this
@@ -78,6 +79,7 @@ class BarBase(Mark):
         return bars, vals
 
     def _resolve_properties(self, data, scales):
+
         resolved = resolve_properties(self, data, scales)
 
         resolved["facecolor"] = resolve_color(self, data, "", scales)
@@ -93,7 +95,10 @@ class BarBase(Mark):
         return resolved
 
     def _legend_artist(
-        self, variables: list[str], value: Any, scales: dict[str, Scale]
+        self,
+        variables: list[str],
+        value: Any,
+        scales: dict[str, Scale],
     ) -> Artist:
         # TODO return some sensible default?
         key = {v: value for v in variables}
@@ -113,7 +118,7 @@ class Bar(BarBase):
     """
     A bar mark drawn between baseline and data values.
 
-    See Also
+    See also
     --------
     Bars : A faster bar mark with defaults more suitable for histograms.
 
@@ -136,12 +141,15 @@ class Bar(BarBase):
     baseline: MappableFloat = Mappable(0, grouping=False)  # TODO *is* this mappable?
 
     def _plot(self, split_gen, scales, orient):
+
         val_idx = ["y", "x"].index(orient)
 
         for _, data, ax in split_gen():
+
             bars, vals = self._make_patches(data, scales, orient)
 
             for bar in bars:
+
                 # Because we are clipping the artist (see below), the edges end up
                 # looking half as wide as they actually are. I don't love this clumsy
                 # workaround, which is going to cause surprises if you work with the
@@ -156,7 +164,7 @@ class Bar(BarBase):
                 # centered on the actual extents of the bar, and overlap when bars are
                 # stacked or dodged. We may discover that this causes problems and needs
                 # to be revisited at some point. Also it should be faster to clip with
-                # a bbox than a path, but I can't work out how to get the intersection
+                # a bbox than a path, but I cant't work out how to get the intersection
                 # with the axes bbox.
                 bar.set_clip_path(bar.get_path(), bar.get_transform() + ax.transData)
                 if self.artist_kws.get("clip_on", True):
@@ -178,7 +186,7 @@ class Bars(BarBase):
     """
     A faster bar mark with defaults more suitable for histograms.
 
-    See Also
+    See also
     --------
     Bar : A bar mark drawn between baseline and data values.
 
@@ -201,6 +209,7 @@ class Bars(BarBase):
     baseline: MappableFloat = Mappable(0, grouping=False)  # TODO *is* this mappable?
 
     def _plot(self, split_gen, scales, orient):
+
         ori_idx = ["x", "y"].index(orient)
         val_idx = ["y", "x"].index(orient)
 
@@ -211,6 +220,7 @@ class Bars(BarBase):
 
         collections = {}
         for ax, ax_patches in patches.items():
+
             col = mpl.collections.PatchCollection(ax_patches, match_original=True)
             col.sticky_edges[val_idx][:] = (0, np.inf)
             ax.add_collection(col, autolim=False)
@@ -223,6 +233,7 @@ class Bars(BarBase):
             ax.update_datalim(xys)
 
         if "edgewidth" not in scales and isinstance(self.edgewidth, Mappable):
+
             for ax in collections:
                 ax.autoscale_view()
 

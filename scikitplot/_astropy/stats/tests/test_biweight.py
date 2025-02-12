@@ -110,6 +110,7 @@ def test_biweight_location_axis_3d(nx, ny, nz):
 @pytest.mark.parametrize("shape", [(2, 3, 4), (12, 1, 2), (1, 12, 2), (1, 1, 24)])
 def test_biweight_location_axis_tuple(shape):
     """Test a 3D array with a tuple axis keyword."""
+
     data = np.arange(24).reshape(shape)
     data[0, 0] = 100.0
 
@@ -385,6 +386,7 @@ def test_biweight_midvariance_masked():
 
 def test_biweight_scale_axis_tuple():
     """Test a 3D array with a tuple axis keyword."""
+
     data = np.arange(24).reshape(2, 3, 4)
     data[0, 0] = 100.0
 
@@ -481,6 +483,7 @@ def test_biweight_midcovariance_midvariance():
     Test that biweight_midcovariance diagonal elements agree with
     biweight_midvariance.
     """
+
     rng = np.random.default_rng(1)
     d = rng.normal(0, 2, size=(100, 3))
     cov = biweight_midcovariance(d)
@@ -493,7 +496,10 @@ def test_biweight_midcovariance_midvariance():
 
 
 def test_midcovariance_shape():
-    """Test that biweight_midcovariance raises error with a 3D array."""
+    """
+    Test that biweight_midcovariance raises error with a 3D array.
+    """
+
     d = np.ones(27).reshape(3, 3, 3)
     with pytest.raises(ValueError, match=r"The input array must be 2D or 1D\."):
         biweight_midcovariance(d)
@@ -504,6 +510,7 @@ def test_midcovariance_M_shape():
     Test that biweight_midcovariance raises error when M is not a scalar
     or 1D array.
     """
+
     d = [0, 1, 2]
     M = [[0, 1], [2, 3]]
     with pytest.raises(ValueError, match=r"M must be a scalar or 1D array\."):
@@ -515,6 +522,7 @@ def test_biweight_midcovariance_symmetric():
     Regression test to ensure that midcovariance matrix is symmetric
     when ``modify_sample_size=True`` (see #5972).
     """
+
     rng = np.random.default_rng(1)
     d = rng.gamma(2, 2, size=(3, 500))
     cov = biweight_midcovariance(d)

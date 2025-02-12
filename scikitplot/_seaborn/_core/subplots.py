@@ -1,18 +1,17 @@
 from __future__ import annotations
-
 from collections.abc import Generator
-from typing import TYPE_CHECKING
 
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
+
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # TODO move to seaborn._core.typing?
-    from matplotlib.figure import SubFigure
-
     from .._core.plot import FacetSpec, PairSpec
+    from matplotlib.figure import SubFigure
 
 
 class Subplots:
@@ -38,6 +37,7 @@ class Subplots:
         facet_spec: FacetSpec,
         pair_spec: PairSpec,
     ):
+
         self.subplot_spec = subplot_spec
 
         self._check_dimension_uniqueness(facet_spec, pair_spec)
@@ -67,7 +67,7 @@ class Subplots:
         for pair_axis, (multi_dim, wrap_dim) in collisions.items():
             if pair_axis not in pair_spec.get("structure", {}):
                 continue
-            if multi_dim[:3] in facet_vars:
+            elif multi_dim[:3] in facet_vars:
                 err = f"Cannot facet the {multi_dim} while pairing on `{pair_axis}``."
             elif wrap_dim[:3] in facet_vars and facet_spec.get("wrap"):
                 err = f"Cannot wrap the {wrap_dim} while pairing on `{pair_axis}``."
@@ -83,6 +83,7 @@ class Subplots:
         """Parse faceting and pairing information to define figure structure."""
         self.grid_dimensions: dict[str, list] = {}
         for dim, axis in zip(["col", "row"], ["x", "y"]):
+
             facet_vars = facet_spec.get("variables", {})
             if dim in facet_vars:
                 self.grid_dimensions[dim] = facet_spec["structure"][dim]
@@ -111,9 +112,8 @@ class Subplots:
         n_subplots = self.subplot_spec[f"n{wrap_dim}s"]
         flow = int(np.ceil(n_subplots / wrap))
 
-        self.subplot_spec[f"n{wrap_dim}s"] = min(
-            self.subplot_spec[f"n{wrap_dim}s"], wrap
-        )
+        if wrap < self.subplot_spec[f"n{wrap_dim}s"]:
+            self.subplot_spec[f"n{wrap_dim}s"] = wrap
         self.subplot_spec[f"n{flow_dim}s"] = flow
         self.n_subplots = n_subplots
         self.wrap_dim = wrap_dim
@@ -153,6 +153,7 @@ class Subplots:
             figure_kws = {}
 
         if isinstance(target, mpl.axes.Axes):
+
             if max(self.subplot_spec["nrows"], self.subplot_spec["ncols"]) > 1:
                 err = " ".join(
                     [
@@ -179,7 +180,7 @@ class Subplots:
             self._figure = target.figure
             return self._figure
 
-        if isinstance(target, mpl.figure.SubFigure):
+        elif isinstance(target, mpl.figure.SubFigure):
             figure = target.figure
         elif isinstance(target, mpl.figure.Figure):
             figure = target
@@ -216,6 +217,7 @@ class Subplots:
 
         self._subplot_list = []
         for (i, j), ax in iter_axs:
+
             info = {"ax": ax}
 
             nrows, ncols = self.subplot_spec["nrows"], self.subplot_spec["ncols"]
@@ -244,6 +246,7 @@ class Subplots:
                 info[dim] = self.grid_dimensions[dim][idx]
 
             for axis in "xy":
+
                 idx = {"x": j, "y": i}[axis]
                 if axis in pair_spec.get("structure", {}):
                     key = f"{axis}{idx}"

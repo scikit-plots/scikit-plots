@@ -108,6 +108,7 @@ def test_median_absolute_deviation_nans_masked():
     Regression test to ensure ignore_nan=True gives same results for
     ndarray and masked arrays that contain +/-inf.
     """
+
     data1 = np.array([1.0, np.nan, 2, np.inf])
     data2 = np.ma.masked_array(data1, mask=False)
     mad1 = funcs.median_absolute_deviation(data1, ignore_nan=True)
@@ -547,8 +548,7 @@ def test_poisson_conf_frequentist_confidence_gehrels():
 
 @pytest.mark.skipif(not HAS_SCIPY, reason="requires scipy")
 def test_poisson_conf_frequentist_confidence_gehrels_2sigma():
-    """
-    Test intervals against those published in Gehrels 1986
+    """Test intervals against those published in Gehrels 1986
 
     Note: I think there's a typo (transposition of digits) in Gehrels 1986,
     specifically for the two-sigma lower limit for 3 events; they claim
@@ -619,8 +619,7 @@ def test_poisson_conf_gehrels86(n):
 
 @pytest.mark.skipif(not HAS_SCIPY, reason="requires scipy")
 def test_scipy_poisson_limit():
-    """
-    Test that the lower-level routine gives the snae number.
+    """Test that the lower-level routine gives the snae number.
 
     Test numbers are from table1 1, 3 in
     Kraft, Burrows and Nousek in
@@ -895,8 +894,7 @@ def test_histogram_intervals_known(ii, rr):
     ],
 )
 def test_uniform_binomial(N, m, p):
-    """
-    Check that the false positive probability is right
+    """Check that the false positive probability is right
 
     In particular, run m trials with N uniformly-distributed photons
     and check that the number of false positives is consistent with
