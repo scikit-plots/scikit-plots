@@ -18,8 +18,9 @@ recursive-include scikitplot *
 
 # Include files in a specific subdirectory (e.g., docs for documentation)
 # recursive-include docs *
-recursive-include requirements *
+include environment.yml
 include requirements.txt
+recursive-include requirements *
 
 ## Include specific data files, like your CITATION.bib
 include CITATION.bib
