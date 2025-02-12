@@ -46,6 +46,9 @@ Docker Desktop
    git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
    cd scikit-plots/docker
 
+   ##  Use terminal or open to vscode to run docker compose
+   code .
+
 Docker Environment Setup for Jupyter and/or NVIDIA GPU
 
 This repository contains Docker & Docker Compose configurations for running Jupyter Notebooks with optional NVIDIA GPU support.

@@ -198,22 +198,24 @@ resulting in lost time (yours and CI resources).
 
 Installation is straightforward. From the root of the ``scikit-plots`` repository, run::
 
-    >>> # triggered when committing if pass then pushing changes
+    >>> ## It triggered when committing `git commit ...` if pass then next pushing changes
     >>> pre-commit install
 
-    >>> # (Optionally) manually to see which files were changed:
-    >>> # If the test is successful one by one
-    >>> # but there is an error in the entire test, check the inconsistency
+Manually one-by-one testing::
+
+    >>> ## (Optionally) Manually one-by-one testing:
+    >>> ## If the test is successful one by one
+    >>> ## but there is an error in the entire test, check the inconsistency
+    >>> # pre-commit run ruff-format --verbose # (with `--all-files` option not recommended)
     >>> pre-commit run ruff
-    >>> pre-commit run ruff-format --all-files --verbose
+    >>> pre-commit run black
 
 Update and reinstall pre-commit hooks (not needed every time)::
 
-    >>> # (Optionally) Update and reinstall pre-commit hooks (not needed every time), If Needed
-    >>> pre-commit clean
-    >>> pre-commit autoupdate
-    >>> pre-commit install
-    >>> pre-commit run # --all-files
+    >>> ## (Optionally) Update and reinstall pre-commit hooks (not needed every time), If Needed
+    >>> pre-commit autoupdate  # (not needed every time)
+    >>> pre-commit clean && pre-commit install
+    >>> pre-commit run # (with `--all-files` option not recommended)
 
 Now all of the styling checks will be run each time you commit changes, ensuring that
 the CI formatting checks for your :ref:`pull request <quickstart-pull-request>` will
