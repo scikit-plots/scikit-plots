@@ -1,0 +1,200 @@
+{
+ "TFAutoModel.from_pretrained": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "transformers.TFAutoModel",
+   "module_short": "transformers.TFAutoModel",
+   "name": "from_pretrained"
+  }
+ ],
+ "gc.collect": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "gc",
+   "module_short": "gc",
+   "name": "collect"
+  }
+ ],
+ "plt.axis": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "axis"
+  }
+ ],
+ "plt.imshow": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "imshow"
+  }
+ ],
+ "plt.show": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "show"
+  }
+ ],
+ "scikitplot.visualkeras": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "scikitplot",
+   "module_short": "scikitplot",
+   "name": "visualkeras"
+  }
+ ],
+ "tensorflow.keras.Model": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "tensorflow.keras",
+   "module_short": "tensorflow.keras",
+   "name": "Model"
+  }
+ ],
+ "tf.int32": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow",
+   "module_short": "tensorflow",
+   "name": "int32"
+  }
+ ],
+ "tf.keras.Input": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras",
+   "module_short": "tensorflow.keras",
+   "name": "Input"
+  }
+ ],
+ "tf.keras.Model": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras",
+   "module_short": "tensorflow.keras",
+   "name": "Model"
+  }
+ ],
+ "tf.keras.backend.clear_session": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.backend",
+   "module_short": "tensorflow.keras.backend",
+   "name": "clear_session"
+  }
+ ],
+ "tf.keras.layers.BatchNormalization": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "BatchNormalization"
+  }
+ ],
+ "tf.keras.layers.Conv2D": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Conv2D"
+  }
+ ],
+ "tf.keras.layers.Dense": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Dense"
+  }
+ ],
+ "tf.keras.layers.Dropout": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Dropout"
+  }
+ ],
+ "tf.keras.layers.GlobalAveragePooling2D": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "GlobalAveragePooling2D"
+  }
+ ],
+ "tf.keras.layers.Lambda": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Lambda"
+  }
+ ],
+ "tf.keras.layers.MaxPooling2D": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "MaxPooling2D"
+  }
+ ],
+ "tf.keras.layers.Reshape": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.layers",
+   "module_short": "tensorflow.keras.layers",
+   "name": "Reshape"
+  }
+ ],
+ "torch.nn.Module": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "torch.nn",
+   "module_short": "torch.nn",
+   "name": "Module"
+  }
+ ],
+ "transformers.TFPreTrainedModel": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "transformers",
+   "module_short": "transformers",
+   "name": "TFPreTrainedModel"
+  }
+ ],
+ "visualkeras.layered_view": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scikitplot.visualkeras",
+   "module_short": "scikitplot.visualkeras",
+   "name": "layered_view"
+  }
+ ]
+}

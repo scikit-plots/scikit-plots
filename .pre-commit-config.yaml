@@ -16,6 +16,7 @@ repos:
         exclude: "^(\
           galleries/.*|\
           third_party/.*|\
+          .*searchindex.dat|\
         )$"  # Prevent giant files from being committed.
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.

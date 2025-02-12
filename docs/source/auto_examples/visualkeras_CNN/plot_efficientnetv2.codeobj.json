@@ -1,0 +1,83 @@
+{
+ "gc.collect": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "gc",
+   "module_short": "gc",
+   "name": "collect"
+  }
+ ],
+ "plt.axis": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "axis"
+  }
+ ],
+ "plt.imshow": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "imshow"
+  }
+ ],
+ "plt.show": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "show"
+  }
+ ],
+ "scikitplot.visualkeras": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "scikitplot",
+   "module_short": "scikitplot",
+   "name": "visualkeras"
+  }
+ ],
+ "tensorflow.keras.Model": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "tensorflow.keras",
+   "module_short": "tensorflow.keras",
+   "name": "Model"
+  }
+ ],
+ "tf.keras.applications.EfficientNetV2B0": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.applications",
+   "module_short": "tensorflow.keras.applications",
+   "name": "EfficientNetV2B0"
+  }
+ ],
+ "tf.keras.backend.clear_session": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "tensorflow.keras.backend",
+   "module_short": "tensorflow.keras.backend",
+   "name": "clear_session"
+  }
+ ],
+ "visualkeras.layered_view": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scikitplot.visualkeras",
+   "module_short": "scikitplot.visualkeras",
+   "name": "layered_view"
+  }
+ ]
+}
