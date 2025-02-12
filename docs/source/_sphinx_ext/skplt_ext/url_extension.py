@@ -30,7 +30,9 @@ def preprocess_templates(app: Sphinx):
 
     # Fetch the templates (default or user-defined)
     # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_config_value
-    url_rst_templates = getattr(app.config, "url_rst_templates", DEFAULT_URL_RST_TEMPLATES)
+    url_rst_templates = getattr(
+        app.config, "url_rst_templates", DEFAULT_URL_RST_TEMPLATES
+    )
 
     ######################################################################
     ## jinja2 Template Renderer
@@ -40,7 +42,9 @@ def preprocess_templates(app: Sphinx):
     # Step 1: Create a Jinja environment instance
     jinja_env = jinja2.Environment(extensions=["jinja2.ext.i18n"])
     # Step 2: Register constants and functions globally
-    jinja_env.globals["imp0rt"] = importlib.import_module  # Make available in all templates
+    jinja_env.globals["imp0rt"] = (
+        importlib.import_module
+    )  # Make available in all templates
 
     # Get the source directory of the Sphinx documentation project
     srcdir = Path(app.srcdir)
@@ -53,7 +57,9 @@ def preprocess_templates(app: Sphinx):
             # Load the .rst.template file and render it using Jinja2
             with template_path.open("r", encoding="utf-8") as f:
                 # t = jinja2.Template(f.read())  # Use jinja2.Template to create the template
-                t = jinja_env.from_string(f.read())  # Use "from_string" to create the template
+                t = jinja_env.from_string(
+                    f.read()
+                )  # Use "from_string" to create the template
 
             # Render the template with kwargs variables and write to the corresponding .rst file
             with target_path.open("w", encoding="utf-8") as f:
@@ -73,11 +79,13 @@ def get_repl_url():
     code_file_path = os.path.join(os.path.dirname(__file__), "_pkg_wasm_webassembly.py")
 
     try:
-        with open(code_file_path, "r") as f:
+        with open(code_file_path) as f:
             # Read the code from the file (strip extra whitespace)
             code = f.read().strip()
     except FileNotFoundError:
-        raise FileNotFoundError(f"{code_file_path} not found. Please ensure the file exists.")
+        raise FileNotFoundError(
+            f"{code_file_path} not found. Please ensure the file exists."
+        )
 
     # URL-encode the code for inclusion in the URL query parameters
     params = {
@@ -87,9 +95,7 @@ def get_repl_url():
     }
 
     # Construct the full URL with the parameters
-    repl_url = (
-        f"{base_url}?toolbar={params['toolbar']}&kernel={params['kernel']}&code={params['code']}"
-    )
+    repl_url = f"{base_url}?toolbar={params['toolbar']}&kernel={params['kernel']}&code={params['code']}"
 
     # Return the repl_url
     return repl_url
@@ -111,7 +117,9 @@ def setup(app: Sphinx):
 
         # Connect the `preprocess_templates` function to ensure templates are rendered
         app.connect("builder-inited", preprocess_templates)
-        logger.info("Connected 'preprocess_templates' function to 'builder-inited' event")
+        logger.info(
+            "Connected 'preprocess_templates' function to 'builder-inited' event"
+        )
 
         # Check if `repl_url` already exists; if not, set a default value
         app.add_config_value("repl_url", get_repl_url(), "env")

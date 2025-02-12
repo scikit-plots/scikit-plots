@@ -1,20 +1,19 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 from btyd.utils import calculate_alive_path, expected_cumulative_transactions
 from scipy import stats
 
 __all__ = [
-    "plot_frequency_recency_matrix",
-    "plot_probability_alive_matrix",
-    "plot_period_transactions",
     "plot_calibration_purchases_vs_holdout_purchases",
-    "plot_expected_repeat_purchases",
-    "plot_history_alive",
     "plot_cumulative_transactions",
-    "plot_incremental_transactions",
-    "plot_transaction_rate_heterogeneity",
     "plot_dropout_rate_heterogeneity",
+    "plot_expected_repeat_purchases",
+    "plot_frequency_recency_matrix",
+    "plot_history_alive",
+    "plot_incremental_transactions",
+    "plot_period_transactions",
+    "plot_probability_alive_matrix",
+    "plot_transaction_rate_heterogeneity",
 ]
 
 
@@ -101,6 +100,7 @@ def plot_calibration_purchases_vs_holdout_purchases(
                  "time_since_last_purchase". Time since user made last purchase
     n: int, optional
         Number of ticks on the x axis
+
     Returns
     -------
     axes: matplotlib.AxesSubplot
@@ -117,8 +117,13 @@ def plot_calibration_purchases_vs_holdout_purchases(
     summary = calibration_holdout_matrix.copy()
     duration_holdout = summary.iloc[0]["duration_holdout"]
 
-    summary["model_predictions"] = model.conditional_expected_number_of_purchases_up_to_time(
-        duration_holdout, summary["frequency_cal"], summary["recency_cal"], summary["T_cal"]
+    summary["model_predictions"] = (
+        model.conditional_expected_number_of_purchases_up_to_time(
+            duration_holdout,
+            summary["frequency_cal"],
+            summary["recency_cal"],
+            summary["T_cal"],
+        )
     )
 
     if kind == "time_since_last_purchase":
@@ -158,7 +163,7 @@ def plot_frequency_recency_matrix(
     **kwargs,
 ):
     """
-    Plot recency frequecy matrix as heatmap.
+    Plot recency frequency matrix as heatmap.
 
     Plot a figure of expected transactions in T next units of time by a customer's frequency and recency.
 
@@ -210,7 +215,9 @@ def plot_frequency_recency_matrix(
     plt.ylabel(ylabel)
     if title is None:
         title = (
-            "Expected Number of Future Purchases for {} Unit{} of Time,".format(T, "s"[T == 1 :])
+            "Expected Number of Future Purchases for {} Unit{} of Time,".format(
+                T, "s"[T == 1 :]
+            )
             + "\nby Frequency and Recency of a Customer"
         )
     plt.title(title)
@@ -328,7 +335,9 @@ def plot_expected_repeat_purchases(
         )
     else:
         color_cycle = ax._get_lines.color_cycle
-        color = coalesce(kwargs.pop("c", None), kwargs.pop("color", None), next(color_cycle))
+        color = coalesce(
+            kwargs.pop("c", None), kwargs.pop("color", None), next(color_cycle)
+        )
 
     max_T = model.data["T"].max()
 
@@ -343,7 +352,11 @@ def plot_expected_repeat_purchases(
 
     times = np.linspace(max_T, 1.5 * max_T, 100)
     ax.plot(
-        times, model.expected_number_of_purchases_up_to_time(times), color=color, ls="--", **kwargs
+        times,
+        model.expected_number_of_purchases_up_to_time(times),
+        color=color,
+        ls="--",
+        **kwargs,
     )
 
     plt.title(title)
@@ -400,13 +413,20 @@ def plot_history_alive(
 
     # plot alive_path
     path = calculate_alive_path(model, transactions, datetime_col, t, freq)
-    path_dates = pd.date_range(start=min(transactions[datetime_col]), periods=len(path), freq=freq)
+    path_dates = pd.date_range(
+        start=min(transactions[datetime_col]), periods=len(path), freq=freq
+    )
     plt.plot(path_dates, path, "-", label="P_alive")
 
     # plot buying dates
     payment_dates = customer_history[customer_history["transactions"] >= 1].index
     plt.vlines(
-        payment_dates.values, ymin=0, ymax=1, colors="r", linestyles="dashed", label="purchases"
+        payment_dates.values,
+        ymin=0,
+        ymax=1,
+        colors="r",
+        linestyles="dashed",
+        label="purchases",
     )
 
     plt.ylim(0, 1.0)
@@ -449,7 +469,7 @@ def plot_cumulative_transactions(
     customer_id_col: str
         The column in transactions that denotes the customer_id
     t: float
-        The number of time units since the begining of
+        The number of time units since the beginning of
         data for which we want to calculate cumulative transactions
     t_cal: float
         A marker used to indicate where the vertical line for plotting should be.
@@ -537,7 +557,7 @@ def plot_incremental_transactions(
     customer_id_col: str
         The column in transactions that denotes the customer_id
     t: float
-        The number of time units since the begining of
+        The number of time units since the beginning of
         data for which we want to calculate cumulative transactions
     t_cal: float
         A marker used to indicate where the vertical line for plotting should be.
@@ -637,9 +657,13 @@ def plot_transaction_rate_heterogeneity(
     x = np.linspace(0, lim, 100)
 
     fig, ax = plt.subplots(1)
-    fig.suptitle("Heterogeneity in Transaction Rate", fontsize=suptitle_fontsize, fontweight="bold")
+    fig.suptitle(
+        "Heterogeneity in Transaction Rate",
+        fontsize=suptitle_fontsize,
+        fontweight="bold",
+    )
 
-    ax.set_title("mean: {:.3f}, var: {:.3f}".format(rate_mean, rate_var))
+    ax.set_title(f"mean: {rate_mean:.3f}, var: {rate_var:.3f}")
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
@@ -692,7 +716,7 @@ def plot_dropout_rate_heterogeneity(
     fig, ax = plt.subplots(1)
     fig.suptitle(suptitle, fontsize=suptitle_fontsize, fontweight="bold")
 
-    ax.set_title("mean: {:.3f}, var: {:.3f}".format(beta_mean, beta_var))
+    ax.set_title(f"mean: {beta_mean:.3f}, var: {beta_var:.3f}")
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 

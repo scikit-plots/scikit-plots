@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import re
-import argparse
 
 
 def get_relative_import_level(file_path, root):
@@ -34,7 +34,9 @@ def convert_to_relative_imports(directory, library_name, fix_type_hints=False):
     # cimport_pattern = re.compile(r'^(\s*)cimport (' + library_name + r')\.(.+)', re.MULTILINE)
 
     # Match function parameter type hints containing "Quantity", avoiding already quoted cases
-    type_hint_pattern = re.compile(r'(\b\w+\s*:\s*[^=,]*\b(?<!["\'])Quantity(?!["\'])\b[^=,]*)')
+    type_hint_pattern = re.compile(
+        r'(\b\w+\s*:\s*[^=,]*\b(?<!["\'])Quantity(?!["\'])\b[^=,]*)'
+    )
 
     # Match function return types containing "Quantity", avoiding already quoted cases
     return_type_pattern = re.compile(r'(->\s*[^:]*\b(?<!["\'])Quantity(?!["\'])\b.*)')
@@ -45,7 +47,7 @@ def convert_to_relative_imports(directory, library_name, fix_type_hints=False):
                 file_path = os.path.join(root, file)
                 relative_import_prefix = get_relative_import_level(file_path, directory)
 
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     content = f.read()
 
                 # Convert absolute imports to relative imports
@@ -88,7 +90,9 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--module", default="seaborn", help="Module name")
     parser.add_argument("-r", "--root", default=".", help="root")
     parser.add_argument(
-        "--fix-type-hints", action="store_true", help="Apply Quantity replacement in type hints"
+        "--fix-type-hints",
+        action="store_true",
+        help="Apply Quantity replacement in type hints",
     )
     args = parser.parse_args()
 

@@ -15,7 +15,6 @@ Dependencies
 
 Examples
 --------
-
 While in the repository root::
 
     $ python tools/download-wheels.py 1.19.0
@@ -92,11 +91,7 @@ def download_wheels(version, wheelhouse, test=False):
         wheel_url = f"{STAGING_URL}/{version}/download/{wheel_name}"
         wheel_path = os.path.join(wheelhouse, wheel_name)
         with open(wheel_path, "wb") as f:
-            with http.request(
-                "GET",
-                wheel_url,
-                preload_content=False,
-            ) as r:
+            with http.request("GET", wheel_url, preload_content=False) as r:
                 info = r.info()
                 length = int(info.get("Content-Length", "0"))
                 if length == 0:
@@ -120,7 +115,10 @@ if __name__ == "__main__":
         "[defaults to <cwd>/release/installers]",
     )
     parser.add_argument(
-        "-t", "--test", action="store_true", help="only list available wheels, do not download"
+        "-t",
+        "--test",
+        action="store_true",
+        help="only list available wheels, do not download",
     )
 
     args = parser.parse_args()

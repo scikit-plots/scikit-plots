@@ -36,7 +36,7 @@ To only update the environment and lock files for specific builds, you can use
 the command line argument `--select-build` which will take a regex. For example,
 to only update the documentation builds you can use:
 `python build_tools/update_environments_and_lock_files.py --select-build doc`
-"""  # noqa: CPY001
+"""
 
 import json
 import logging
@@ -163,7 +163,9 @@ build_metadata_list = [
         "platform": "osx-64",
         "channels": ["defaults"],
         "conda_dependencies": (
-            remove_from(common_dependencies, ["cython", "threadpoolctl", "meson-python"])
+            remove_from(
+                common_dependencies, ["cython", "threadpoolctl", "meson-python"]
+            )
             + ["ccache"]
         ),
         "package_constraints": {
@@ -207,7 +209,9 @@ build_metadata_list = [
         "platform": "linux-64",
         "channels": ["conda-forge"],
         "conda_dependencies": (
-            common_dependencies_without_coverage + docstring_test_dependencies + ["ccache"]
+            common_dependencies_without_coverage
+            + docstring_test_dependencies
+            + ["ccache"]
         ),
         "package_constraints": {
             "python": "3.9",
@@ -464,7 +468,9 @@ build_metadata_list = [
 
 def execute_command(command_list):
     logger.debug(" ".join(command_list))
-    proc = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
     out, err = proc.communicate()
     out, err = out.decode(errors="replace"), err.decode(errors="replace")
@@ -473,10 +479,10 @@ def execute_command(command_list):
         command_str = " ".join(command_list)
         raise RuntimeError(
             "Command exited with non-zero exit code.\n"
-            "Exit code: {}\n"
-            "Command:\n{}\n"
-            "stdout:\n{}\n"
-            "stderr:\n{}\n".format(proc.returncode, command_str, out, err)
+            f"Exit code: {proc.returncode}\n"
+            f"Command:\n{command_str}\n"
+            f"stdout:\n{out}\n"
+            f"stderr:\n{err}\n"
         )
     logger.log(TRACE, out)
     return out
@@ -497,7 +503,11 @@ def get_package_with_constraint(package_name, build_metadata, uses_pip=False):
     comment = ""
     if constraint == "min":
         constraint = execute_command(
-            [sys.executable, "sklearn/_min_dependencies.py", package_name]
+            [
+                sys.executable,
+                "sklearn/_min_dependencies.py",
+                package_name,
+            ]
         ).strip()
         comment = "  # min"
 
@@ -652,7 +662,9 @@ def write_pip_lock_file(build_metadata):
 
     json_output = execute_command(["conda", "info", "--json"])
     conda_info = json.loads(json_output)
-    environment_folder = [each for each in conda_info["envs"] if each.endswith(environment_name)][0]
+    environment_folder = [
+        each for each in conda_info["envs"] if each.endswith(environment_name)
+    ][0]
     environment_path = Path(environment_folder)
     pip_compile_path = environment_path / "bin" / "pip-compile"
 
@@ -671,7 +683,11 @@ def write_all_pip_lock_files(build_metadata_list):
 def check_conda_lock_version():
     # Check that the installed conda-lock version is consistent with _min_dependencies.
     expected_conda_lock_version = execute_command(
-        [sys.executable, "sklearn/_min_dependencies.py", "conda-lock"]
+        [
+            sys.executable,
+            "sklearn/_min_dependencies.py",
+            "conda-lock",
+        ]
     ).strip()
 
     installed_conda_lock_version = version("conda-lock")
@@ -693,7 +709,9 @@ def check_conda_version():
     conda_version = Version(conda_info["conda_version"])
 
     if Version("22.9.0") < conda_version < Version("23.7"):
-        raise RuntimeError(f"conda version should be <= 22.9.0 or >= 23.7 got: {conda_version}")
+        raise RuntimeError(
+            f"conda version should be <= 22.9.0 or >= 23.7 got: {conda_version}"
+        )
 
 
 @click.command()
@@ -748,7 +766,9 @@ def main(select_build, skip_build, select_tag, verbose, very_verbose):
         ]
     if skip_build is not None:
         filtered_build_metadata_list = [
-            each for each in filtered_build_metadata_list if not re.search(skip_build, each["name"])
+            each
+            for each in filtered_build_metadata_list
+            if not re.search(skip_build, each["name"])
         ]
 
     selected_build_info = "\n".join(

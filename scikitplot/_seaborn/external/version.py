@@ -1,4 +1,5 @@
-"""Extract reference documentation from the pypa/packaging source tree.
+"""
+Extract reference documentation from the pypa/packaging source tree.
 
 In the process of copying, some unused methods / classes were removed.
 These include:
@@ -19,13 +20,12 @@ Vendored from:
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
 
-
 import collections
 import itertools
 import re
 from typing import Callable, Optional, SupportsInt, Tuple, Union
 
-__all__ = ["Version", "InvalidVersion", "VERSION_PATTERN"]
+__all__ = ["VERSION_PATTERN", "InvalidVersion", "Version"]
 
 
 # Vendored from https://github.com/pypa/packaging/blob/main/packaging/_structures.py
@@ -111,17 +111,21 @@ LocalType = Union[
         ...,
     ],
 ]
-CmpKey = Tuple[int, Tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType]
+CmpKey = Tuple[
+    int, Tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType
+]
 LegacyCmpKey = Tuple[int, Tuple[str, ...]]
-VersionComparisonMethod = Callable[[Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool]
+VersionComparisonMethod = Callable[
+    [Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool
+]
 
-_Version = collections.namedtuple("_Version", ["epoch", "release", "dev", "pre", "post", "local"])
+_Version = collections.namedtuple(
+    "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
+)
 
 
 class InvalidVersion(ValueError):
-    """
-    An invalid version was found, users should refer to PEP 440.
-    """
+    """An invalid version was found, users should refer to PEP 440."""
 
 
 class _BaseVersion:
@@ -205,11 +209,9 @@ VERSION_PATTERN = r"""
 
 
 class Version(_BaseVersion):
-
     _regex = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
     def __init__(self, version: str) -> None:
-
         # Validate the version and parse it into pieces
         match = self._regex.search(version)
         if not match:
@@ -295,8 +297,7 @@ class Version(_BaseVersion):
     def local(self) -> Optional[str]:
         if self._version.local:
             return ".".join(str(x) for x in self._version.local)
-        else:
-            return None
+        return None
 
     @property
     def public(self) -> str:
@@ -343,7 +344,6 @@ class Version(_BaseVersion):
 def _parse_letter_version(
     letter: str, number: Union[str, bytes, SupportsInt]
 ) -> Optional[Tuple[str, int]]:
-
     if letter:
         # We consider there to be an implicit 0 in a pre-release if there is
         # not a numeral associated with it.
@@ -380,9 +380,7 @@ _local_version_separators = re.compile(r"[\._-]")
 
 
 def _parse_local_version(local: str) -> Optional[LocalType]:
-    """
-    Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve").
-    """
+    """Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve")."""
     if local is not None:
         return tuple(
             part.lower() if not part.isdigit() else int(part)
@@ -399,13 +397,14 @@ def _cmpkey(
     dev: Optional[Tuple[str, int]],
     local: Optional[Tuple[SubLocalType]],
 ) -> CmpKey:
-
     # When we compare a release version, we want to compare it with all of the
     # trailing zeros removed. So we'll use a reverse the list, drop all the now
     # leading zeros until we come to something non zero, then take the rest
     # re-reverse it back into the correct order and make it a tuple and use
     # that for our sorting key.
-    _release = tuple(reversed(list(itertools.dropwhile(lambda x: x == 0, reversed(release)))))
+    _release = tuple(
+        reversed(list(itertools.dropwhile(lambda x: x == 0, reversed(release))))
+    )
 
     # We need to "trick" the sorting algorithm to put 1.0.dev0 before 1.0a0.
     # We'll do this by abusing the pre segment, but we _only_ want to do this
@@ -445,6 +444,8 @@ def _cmpkey(
         # - Numeric segments sort numerically
         # - Shorter versions sort before longer versions when the prefixes
         #   match exactly
-        _local = tuple((i, "") if isinstance(i, int) else (NegativeInfinity, i) for i in local)
+        _local = tuple(
+            (i, "") if isinstance(i, int) else (NegativeInfinity, i) for i in local
+        )
 
     return epoch, _release, _pre, _post, _dev, _local

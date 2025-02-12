@@ -5,11 +5,10 @@ import numpy as np
 from .common import Benchmark, safe_import
 
 with safe_import():
-    import scipy.signal as signal
+    from scipy import signal
 
 
 class Resample(Benchmark):
-
     # Some slow (prime), some fast (in radix)
     param_names = ["N", "num"]
     params = [[977, 9973, 2**14, 2**16]] * 2
@@ -26,7 +25,6 @@ class Resample(Benchmark):
 
 
 class CalculateWindowedFFT(Benchmark):
-
     def setup(self):
         rng = np.random.default_rng(5678)
         # Create some long arrays for computation
@@ -84,7 +82,11 @@ class FFTConvolve(Benchmark):
     param_names = ["mode", "size"]
     params = [
         ["full", "valid", "same"],
-        [(a, b) for a, b in product((1, 2, 8, 36, 60, 150, 200, 500), repeat=2) if b <= a],
+        [
+            (a, b)
+            for a, b in product((1, 2, 8, 36, 60, 150, 200, 500), repeat=2)
+            if b <= a
+        ],
     ]
 
     def setup(self, mode, size):
@@ -160,7 +162,6 @@ class Convolve(Benchmark):
 
 
 class LTI(Benchmark):
-
     def setup(self):
         self.system = signal.lti(1.0, [1, 0, 1])
         self.t = np.arange(0, 100, 0.5)

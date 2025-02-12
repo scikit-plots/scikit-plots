@@ -28,7 +28,7 @@ __version__ = "0.5.dev0"
 # import logging
 from .sp_logging import SpLogger, get_logger, sp_logger
 
-try:  # Trt to import meson builded files, modules (etc. *.in)
+try:  # Trt to import meson built files, modules (etc. *.in)
     # If a version with git hash was stored, use that instead.
     # Configuration helper
     from .__config__ import show as show_config
@@ -38,7 +38,9 @@ try:  # Trt to import meson builded files, modules (etc. *.in)
 
     # Low-level callback function
     from ._xp_core_lib._ccallback import LowLevelCallable
-    from .version import __git_hash__, __version__  # Override version if any.
+
+    # Override version if any.
+    from .version import __git_hash__, __version__
 except (ImportError, ModuleNotFoundError):
     msg = (
         "Error importing scikitplot: you cannot import scikitplot while "
@@ -90,12 +92,12 @@ from ._seaborn import _orig_rc_params
 
 # Pytest testing
 from ._testing._pytesttester import PytestTester
-from ._utils._show_versions import show_versions  # noqa: E402
+from ._utils._show_versions import show_versions
 from ._xp_core_lib import __array_api_version__
 from ._xp_core_lib._array_api import gpu_libraries
 
 # Export api modules
-from .api import *
+from .api import *  # noqa: F401,F403
 
 test = PytestTester(__name__)
 del PytestTester
@@ -148,27 +150,29 @@ _submodules = {
     "__getattr__",
     "online_help",
     "setup_module",
+    "__array_api_version__",
+    "_Default",
+    "_Deprecated",
+    "_NoValue",
+    "_orig_rc_params",
+    "gpu_libraries",
 }
-_discard = {
-    "_discard",
-    "_submodules",
-    "py_set",
-    "builtins",
-}
+_discard = {"_discard", "_submodules", "py_set", "builtins", "_all"}
 ## Define __all__ to control what gets imported with 'from module import *'.
 ## If __all__ is not defined, Python falls back to using the module's global namespace
 ## (as returned by dir() or globals().keys()) for 'from module import *'.
 ## This means that all names in the global namespace, except those starting with '_',
 ## will be imported by default.
 ## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
-__all__ = sorted(
+_all = sorted(
     [
         name
         for name in builtins.set(globals()).union(_submodules).difference(_discard)
         # Exclude private/internal names (those starting with '_')
-        if not ((name.startswith("...") and not name.endswith("...")))
+        if not (name.startswith("...") and not name.endswith("..."))
     ]
 )
+__all__ = tuple(_all)
 
 ######################################################################
 ## Customize lazy-loading mechanism `__dir__` with `__getattr__`
@@ -198,8 +202,11 @@ def __dir__():
     >>> from scikitplot import __dir__
     >>> __dir__()
     ['attribute1', 'attribute2', 'attribute3']  # Example output
+
     """
-    return sorted(builtins.set(globals()).union(_submodules).union(dir(api)).difference(_discard))
+    return sorted(
+        builtins.set(globals()).union(_submodules).union(dir(api)).difference(_discard)
+    )
 
 
 ## Dynamically import submodules only when they are accessed (lazy-loading mechanism).
@@ -227,6 +234,7 @@ def __getattr__(name):
     ------
     AttributeError
         If the attribute does not exist as a submodule or in the global namespace.
+
     """
     try:
         if name in dir():
@@ -245,7 +253,9 @@ def __getattr__(name):
     suggestions = difflib.get_close_matches(name, all_names)
     # Raise an error indicating the attribute could not be found, with suggestions if any.
     suggestion_msg = f" Did you mean: {', '.join(suggestions)}?" if suggestions else ""
-    raise AttributeError(f"Module '{__name__}' has no attribute '{name}'.{suggestion_msg}")
+    raise AttributeError(
+        f"Module '{__name__}' has no attribute '{name}'.{suggestion_msg}"
+    )
 
 
 ######################################################################
@@ -259,7 +269,7 @@ def online_help(
     search_page: str = "search.html",
     new_window: int = 0,
 ) -> bool:
-    """\
+    """
     Open the online documentation search page
     for a given query in the default web browser.
 
@@ -304,7 +314,8 @@ def online_help(
     .. jupyter-execute::
 
         >>> import scikitplot
-        >>> scikitplot.online_help('installation')
+        >>> scikitplot.online_help("installation")
+
     """
     try:
         import os
@@ -328,7 +339,7 @@ def online_help(
         # Open the URL in the browser
         return webbrowser.open(full_url, new=new_window)
     except Exception as e:
-        print(f"Error opening documentation: {e}")
+        print(f"Error opening documentation: {e}")  # noqa: T201
         return False
 
 
@@ -347,10 +358,11 @@ def setup_module(module):
     # Check if a random seed exists in the environment, if not create one.
     _random_seed = os.environ.get("SKPLT_SEED", None)
     if _random_seed is None:
-        _random_seed = np.random.uniform() * np.iinfo(np.int32).max
+        _random_seed = np.random.uniform() * np.iinfo(np.int32).max  # noqa: NPY002
     _random_seed = int(_random_seed)
-    print("I: Seeding RNGs with %r" % _random_seed)
-    np.random.seed(_random_seed)
+    print("I: Seeding RNGs with %r" % _random_seed)  # noqa: UP031, T201
+    # np.random.Generator
+    np.random.seed(_random_seed)  # noqa: NPY002
     random.seed(_random_seed)
 
 

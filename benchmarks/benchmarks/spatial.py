@@ -29,11 +29,17 @@ class Build(Benchmark):
 
         rng = np.random.default_rng(1234)
         self.data = np.concatenate(
-            (rng.standard_normal((n // 2, m)), rng.standard_normal((n - n // 2, m)) + np.ones(m))
+            (
+                rng.standard_normal((n // 2, m)),
+                rng.standard_normal((n - n // 2, m)) + np.ones(m),
+            )
         )
 
         self.queries = np.concatenate(
-            (rng.standard_normal((r // 2, m)), rng.standard_normal((r - r // 2, m)) + np.ones(m))
+            (
+                rng.standard_normal((r // 2, m)),
+                rng.standard_normal((r - r // 2, m)) + np.ones(m),
+            )
         )
 
     def time_build(self, mnr, cls_name):
@@ -141,7 +147,9 @@ class Query(LimitedParamBenchmark):
         self.T.query(self.queries, p=p)
 
     # Retain old benchmark results (remove this if changing the benchmark)
-    time_query.version = "327bc0627d5387347e9cdcf4c52a550c813bb80a859eeb0f3e5bfe6650a8a1db"
+    time_query.version = (
+        "327bc0627d5387347e9cdcf4c52a550c813bb80a859eeb0f3e5bfe6650a8a1db"
+    )
 
 
 class Radius(LimitedParamBenchmark):
@@ -157,7 +165,11 @@ class Radius(LimitedParamBenchmark):
 
     def __init__(self):
         self.time_query_pairs.__func__.params = list(self.params)
-        self.time_query_pairs.__func__.params[0] = [(3, 1000, 30), (8, 1000, 30), (16, 1000, 30)]
+        self.time_query_pairs.__func__.params[0] = [
+            (3, 1000, 30),
+            (8, 1000, 30),
+            (16, 1000, 30),
+        ]
         self.time_query_ball_point.__func__.setup = self.setup_query_ball_point
         self.time_query_ball_point_nosort.__func__.setup = self.setup_query_ball_point
         self.time_query_pairs.__func__.setup = self.setup_query_pairs
@@ -166,7 +178,9 @@ class Radius(LimitedParamBenchmark):
         pass
 
     def setup_query_ball_point(self, mnr, p, probe_radius, boxsize, leafsize):
-        LimitedParamBenchmark.setup(self, mnr, p, probe_radius, boxsize, leafsize, param_seed=3)
+        LimitedParamBenchmark.setup(
+            self, mnr, p, probe_radius, boxsize, leafsize, param_seed=3
+        )
         Query.do_setup(self, mnr, p, boxsize, leafsize)
 
     def setup_query_pairs(self, mnr, p, probe_radius, boxsize, leafsize):
@@ -186,7 +200,9 @@ class Radius(LimitedParamBenchmark):
     time_query_ball_point.version = (
         "e0c2074b35db7e5fca01a43b0fba8ab33a15ed73d8573871ea6feb57b3df4168"
     )
-    time_query_pairs.version = "cf669f7d619e81e4a09b28bb3fceaefbdd316d30faf01524ab33d41661a53f56"
+    time_query_pairs.version = (
+        "cf669f7d619e81e4a09b28bb3fceaefbdd316d30faf01524ab33d41661a53f56"
+    )
 
 
 class Neighbors(LimitedParamBenchmark):
@@ -202,7 +218,9 @@ class Neighbors(LimitedParamBenchmark):
     num_param_combinations = 17
 
     def setup(self, mn1n2, p, probe_radius, boxsize, leafsize, cls):
-        LimitedParamBenchmark.setup(self, mn1n2, p, probe_radius, boxsize, leafsize, cls)
+        LimitedParamBenchmark.setup(
+            self, mn1n2, p, probe_radius, boxsize, leafsize, cls
+        )
 
         m, n1, n2 = mn1n2
 
@@ -215,7 +233,9 @@ class Neighbors(LimitedParamBenchmark):
         self.T1 = cKDTree(self.data1, boxsize=boxsize, leafsize=leafsize)
         self.T2 = cKDTree(self.data2, boxsize=boxsize, leafsize=leafsize)
 
-    def time_sparse_distance_matrix(self, mn1n2, p, probe_radius, boxsize, leafsize, cls):
+    def time_sparse_distance_matrix(
+        self, mn1n2, p, probe_radius, boxsize, leafsize, cls
+    ):
         self.T1.sparse_distance_matrix(self.T2, probe_radius, p=p)
 
     def time_count_neighbors(self, mn1n2, p, probe_radius, boxsize, leafsize, cls):
@@ -223,11 +243,12 @@ class Neighbors(LimitedParamBenchmark):
         Count neighbors kd-tree
         dim | # points T1 | # points T2 | p | probe radius |  BoxSize | LeafSize | cls
         """
-
         if cls != "cKDTree_weighted":
             self.T1.count_neighbors(self.T2, probe_radius, p=p)
         else:
-            self.T1.count_neighbors(self.T2, probe_radius, weights=(self.w1, self.w2), p=p)
+            self.T1.count_neighbors(
+                self.T2, probe_radius, weights=(self.w1, self.w2), p=p
+            )
 
     # Retain old benchmark results (remove this if changing the benchmark)
     time_sparse_distance_matrix.version = (
@@ -301,7 +322,8 @@ class SphericalVor(Benchmark):
         self.points = generate_spherical_points(num_points)
 
     def time_spherical_voronoi_calculation(self, num_points):
-        """Perform spherical Voronoi calculation, but not the sorting of
+        """
+        Perform spherical Voronoi calculation, but not the sorting of
         vertices in the Voronoi polygons.
         """
         SphericalVoronoi(self.points, radius=1, center=np.zeros(3))
@@ -316,7 +338,8 @@ class SphericalVorSort(Benchmark):
         self.sv = SphericalVoronoi(self.points, radius=1, center=np.zeros(3))
 
     def time_spherical_polygon_vertex_sorting(self, num_points):
-        """Time the vertex sorting operation in the Spherical Voronoi
+        """
+        Time the vertex sorting operation in the Spherical Voronoi
         code.
         """
         self.sv.sort_vertices_of_regions()
@@ -382,13 +405,15 @@ class Xdist(Benchmark):
             self.kwargs = {}
 
     def time_cdist(self, num_points, metric):
-        """Time scipy.spatial.distance.cdist over a range of input data
+        """
+        Time scipy.spatial.distance.cdist over a range of input data
         sizes and metrics.
         """
         distance.cdist(self.points, self.points, self.metric, **self.kwargs)
 
     def time_pdist(self, num_points, metric):
-        """Time scipy.spatial.distance.pdist over a range of input data
+        """
+        Time scipy.spatial.distance.pdist over a range of input data
         sizes and metrics.
         """
         distance.pdist(self.points, self.metric, **self.kwargs)
@@ -437,7 +462,8 @@ class SingleDist(Benchmark):
             self.kwargs = {}
 
     def time_dist(self, metric):
-        """Time distance metrics individually (without batching with
+        """
+        Time distance metrics individually (without batching with
         cdist or pdist).
         """
         getattr(distance, self.metric)(self.points[0], self.points[1], **self.kwargs)
@@ -484,7 +510,9 @@ class XdistWeighted(Benchmark):
 
     def time_cdist(self, num_points, metric):
         """Time scipy.spatial.distance.cdist for weighted distance metrics."""
-        distance.cdist(self.points, self.points, self.metric, w=self.weights, **self.kwargs)
+        distance.cdist(
+            self.points, self.points, self.metric, w=self.weights, **self.kwargs
+        )
 
     def time_pdist(self, num_points, metric):
         """Time scipy.spatial.distance.pdist for weighted distance metrics."""
@@ -527,7 +555,8 @@ class SingleDistWeighted(Benchmark):
             self.kwargs = {"w": np.ones(3)}
 
     def time_dist_weighted(self, metric):
-        """Time weighted distance metrics individually (without batching
+        """
+        Time weighted distance metrics individually (without batching
         with cdist or pdist).
         """
         getattr(distance, self.metric)(self.points[0], self.points[1], **self.kwargs)
@@ -542,7 +571,8 @@ class ConvexHullBench(Benchmark):
         self.points = rng.random((num_points, 3))
 
     def time_convex_hull(self, num_points, incremental):
-        """Time scipy.spatial.ConvexHull over a range of input data sizes
+        """
+        Time scipy.spatial.ConvexHull over a range of input data sizes
         and settings.
         """
         ConvexHull(self.points, incremental)

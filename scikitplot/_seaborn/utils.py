@@ -1,33 +1,33 @@
 """Utility functions, mostly for internal use."""
 
-import os
-import inspect
-import warnings
 import colorsys
+import inspect
+import os
+import warnings
 from contextlib import contextmanager
-from urllib.request import urlopen, urlretrieve
 from types import ModuleType
+from urllib.request import urlopen, urlretrieve
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-from matplotlib.colors import to_rgb
-import matplotlib.pyplot as plt
 from matplotlib.cbook import normalize_kwargs
+from matplotlib.colors import to_rgb
 
 from ._core.typing import deprecated
-from .external.version import Version
 from .external.appdirs import user_cache_dir
+from .external.version import Version
 
 __all__ = [
     "desaturate",
+    "despine",
+    "get_data_home",
+    "get_dataset_names",
+    "load_dataset",
+    "move_legend",
     "saturate",
     "set_hls_values",
-    "move_legend",
-    "despine",
-    "get_dataset_names",
-    "get_data_home",
-    "load_dataset",
 ]
 
 DATASET_SOURCE = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master"
@@ -35,7 +35,8 @@ DATASET_NAMES_URL = f"{DATASET_SOURCE}/dataset_names.txt"
 
 
 def ci_to_errsize(cis, heights):
-    """Convert intervals to error arguments relative to plot heights.
+    """
+    Convert intervals to error arguments relative to plot heights.
 
     Parameters
     ----------
@@ -77,7 +78,6 @@ def _draw_figure(fig):
 
 def _default_color(method, hue, color, kws, saturation=1):
     """If needed, get a default color by using the matplotlib property cycle."""
-
     if hue is not None:
         # This warning is probably user-friendly, but it's currently triggered
         # in a FacetGrid context and I don't want to mess with that logic right now
@@ -94,15 +94,13 @@ def _default_color(method, hue, color, kws, saturation=1):
             color = desaturate(color, saturation)
         return color
 
-    elif method.__name__ == "plot":
-
+    if method.__name__ == "plot":
         color = normalize_kwargs(kws, mpl.lines.Line2D).get("color")
         (scout,) = method([], [], scalex=False, scaley=False, color=color)
         color = scout.get_color()
         scout.remove()
 
     elif method.__name__ == "scatter":
-
         # Matplotlib will raise if the size of x/y don't match s/c,
         # and the latter might be in the kws dict
         scout_size = max(
@@ -131,7 +129,6 @@ def _default_color(method, hue, color, kws, saturation=1):
         scout.remove()
 
     elif method.__name__ == "bar":
-
         # bar() needs masked, not empty data, to generate a patch
         (scout,) = method([np.nan], [np.nan], **kws)
         color = to_rgb(scout.get_facecolor())
@@ -140,7 +137,6 @@ def _default_color(method, hue, color, kws, saturation=1):
         method.__self__.containers.pop(-1)
 
     elif method.__name__ == "fill_between":
-
         kws = normalize_kwargs(kws, mpl.collections.PolyCollection)
         scout = method([], [], **kws)
         facecolor = scout.get_facecolor()
@@ -154,7 +150,8 @@ def _default_color(method, hue, color, kws, saturation=1):
 
 
 def desaturate(color, prop):
-    """Decrease the saturation channel of a color by some percent.
+    """
+    Decrease the saturation channel of a color by some percent.
 
     Parameters
     ----------
@@ -193,7 +190,8 @@ def desaturate(color, prop):
 
 
 def saturate(color):
-    """Return a fully saturated color with the same hue.
+    """
+    Return a fully saturated color with the same hue.
 
     Parameters
     ----------
@@ -209,8 +207,9 @@ def saturate(color):
     return set_hls_values(color, s=1)
 
 
-def set_hls_values(color, h=None, l=None, s=None):  # noqa
-    """Independently manipulate the h, l, or s channels of a color.
+def set_hls_values(color, h=None, l=None, s=None):
+    """
+    Independently manipulate the h, l, or s channels of a color.
 
     Parameters
     ----------
@@ -237,7 +236,8 @@ def set_hls_values(color, h=None, l=None, s=None):  # noqa
 
 
 def axlabel(xlabel, ylabel, **kwargs):
-    """Grab current axis and label it.
+    """
+    Grab current axis and label it.
 
     DEPRECATED: will be removed in a future version.
 
@@ -250,7 +250,8 @@ def axlabel(xlabel, ylabel, **kwargs):
 
 
 def remove_na(vector):
-    """Helper method for removing null values from data vectors.
+    """
+    Helper method for removing null values from data vectors.
 
     Parameters
     ----------
@@ -267,7 +268,8 @@ def remove_na(vector):
 
 
 def get_color_cycle():
-    """Return the list of colors in the current matplotlib color cycle
+    """
+    Return the list of colors in the current matplotlib color cycle
 
     Parameters
     ----------
@@ -278,15 +280,24 @@ def get_color_cycle():
     colors : list
         List of matplotlib colors in the current cycle, or dark gray if
         the current color cycle is empty.
+
     """
     cycler = mpl.rcParams["axes.prop_cycle"]
     return cycler.by_key()["color"] if "color" in cycler.keys else [".15"]
 
 
 def despine(
-    fig=None, ax=None, top=True, right=True, left=False, bottom=False, offset=None, trim=False
+    fig=None,
+    ax=None,
+    top=True,
+    right=True,
+    left=False,
+    bottom=False,
+    offset=None,
+    trim=False,
 ):
-    """Remove the top and right spines from plot(s).
+    """
+    Remove the top and right spines from plot(s).
 
     fig : matplotlib figure, optional
         Figure to despine all axes of, defaults to the current figure.
@@ -486,7 +497,8 @@ def ci(a, which=95, axis=None):
 
 
 def get_dataset_names():
-    """Report available example datasets, useful for reporting issues.
+    """
+    Report available example datasets, useful for reporting issues.
 
     Requires an internet connection.
 
@@ -499,7 +511,8 @@ def get_dataset_names():
 
 
 def get_data_home(data_home=None):
-    """Return a path to the cache directory for example datasets.
+    """
+    Return a path to the cache directory for example datasets.
 
     This directory is used by :func:`load_dataset`.
 
@@ -517,7 +530,8 @@ def get_data_home(data_home=None):
 
 
 def load_dataset(name, cache=True, data_home=None, **kws):
-    """Load an example dataset from the online repository (requires internet).
+    """
+    Load an example dataset from the online repository (requires internet).
 
     This function provides quick access to a small number of example datasets
     that are useful for documenting seaborn or generating reproducible examples
@@ -579,7 +593,7 @@ def load_dataset(name, cache=True, data_home=None, **kws):
     # Set some columns as a categorical type with ordered levels
 
     if name == "tips":
-        df["day"] = pd.Categorical(df["day"], ["Thur", "Fri", "Sat", "Sun"])
+        df["day"] = pd.Categorical(df["day"], ["Their", "Fri", "Sat", "Sun"])
         df["sex"] = pd.Categorical(df["sex"], ["Male", "Female"])
         df["time"] = pd.Categorical(df["time"], ["Lunch", "Dinner"])
         df["smoker"] = pd.Categorical(df["smoker"], ["Yes", "No"])
@@ -601,34 +615,27 @@ def load_dataset(name, cache=True, data_home=None, **kws):
         df["sex"] = df["sex"].str.title()
 
     elif name == "diamonds":
-        df["color"] = pd.Categorical(
-            df["color"],
-            ["D", "E", "F", "G", "H", "I", "J"],
-        )
+        df["color"] = pd.Categorical(df["color"], ["D", "E", "F", "G", "H", "I", "J"])
         df["clarity"] = pd.Categorical(
-            df["clarity"],
-            ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1"],
+            df["clarity"], ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1"]
         )
         df["cut"] = pd.Categorical(
-            df["cut"],
-            ["Ideal", "Premium", "Very Good", "Good", "Fair"],
+            df["cut"], ["Ideal", "Premium", "Very Good", "Good", "Fair"]
         )
 
     elif name == "taxis":
         df["pickup"] = pd.to_datetime(df["pickup"])
         df["dropoff"] = pd.to_datetime(df["dropoff"])
 
-    elif name == "seaice":
-        df["Date"] = pd.to_datetime(df["Date"])
-
-    elif name == "dowjones":
+    elif name == "seaice" or name == "dowjones":
         df["Date"] = pd.to_datetime(df["Date"])
 
     return df
 
 
 def axis_ticklabels_overlap(labels):
-    """Return a boolean for whether the list of ticklabels have overlaps.
+    """
+    Return a boolean for whether the list of ticklabels have overlaps.
 
     Parameters
     ----------
@@ -652,7 +659,8 @@ def axis_ticklabels_overlap(labels):
 
 
 def axes_ticklabels_overlap(ax):
-    """Return booleans for whether the x and y ticklabels on an Axes overlap.
+    """
+    Return booleans for whether the x and y ticklabels on an Axes overlap.
 
     Parameters
     ----------
@@ -697,7 +705,8 @@ def locator_to_legend_entries(locator, limits, dtype):
 
 
 def relative_luminance(color):
-    """Calculate the relative luminance of a color according to W3C standards
+    """
+    Calculate the relative luminance of a color according to W3C standards
 
     Parameters
     ----------
@@ -719,7 +728,8 @@ def relative_luminance(color):
 
 
 def to_utf8(obj):
-    """Return a string representing a Python object.
+    """
+    Return a string representing a Python object.
 
     Strings (i.e. type ``str``) are returned unchanged.
 
@@ -755,7 +765,8 @@ def _check_argument(param, options, value, prefix=False):
         failure = value not in options
     if failure:
         raise ValueError(
-            f"The value for `{param}` must be one of {options}, " f"but {repr(value)} was passed."
+            f"The value for `{param}` must be one of {options}, "
+            f"but {value!r} was passed."
         )
     return value
 
@@ -817,7 +828,7 @@ def _deprecate_ci(errorbar, ci):
             errorbar = ("ci", ci)
         msg = (
             "\n\nThe `ci` parameter is deprecated. "
-            f"Use `errorbar={repr(errorbar)}` for the same effect.\n"
+            f"Use `errorbar={errorbar!r}` for the same effect.\n"
         )
         warnings.warn(msg, FutureWarning, stacklevel=3)
 
@@ -856,7 +867,6 @@ def _version_predates(lib: ModuleType, version: str) -> bool:
 
 
 def _scatter_legend_artist(**kws):
-
     kws = normalize_kwargs(kws, mpl.collections.PathCollection)
 
     edgecolor = kws.pop("edgecolor", None)
@@ -880,9 +890,7 @@ def _scatter_legend_artist(**kws):
 
 
 def _get_patch_legend_artist(fill):
-
     def legend_artist(**kws):
-
         color = kws.pop("color", None)
         if color is not None:
             if fill:

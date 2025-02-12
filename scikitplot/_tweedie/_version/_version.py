@@ -84,7 +84,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
                 stderr=(subprocess.PIPE if hide_stderr else None),
             )
             break
-        except EnvironmentError:
+        except OSError:
             e = sys.exc_info()[1]
             if e.errno == errno.ENOENT:
                 continue
@@ -108,7 +108,8 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
 
 
 def versions_from_parentdir(parentdir_prefix, root, verbose):
-    """Try to determine the version from the parent directory name.
+    """
+    Try to determine the version from the parent directory name.
 
     Source tarballs conventionally unpack into a directory that includes both
     the project name and a version string. We will also support searching up
@@ -126,9 +127,8 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
                 "error": None,
                 "date": None,
             }
-        else:
-            rootdirs.append(root)
-            root = os.path.dirname(root)  # up a level
+        rootdirs.append(root)
+        root = os.path.dirname(root)  # up a level
 
     if verbose:
         print(
@@ -147,7 +147,7 @@ def git_get_keywords(versionfile_abs):
     # _version.py.
     keywords = {}
     try:
-        f = open(versionfile_abs, "r")
+        f = open(versionfile_abs)
         for line in f.readlines():
             if line.strip().startswith("git_refnames ="):
                 mo = re.search(r'=\s*"(.*)"', line)
@@ -162,7 +162,7 @@ def git_get_keywords(versionfile_abs):
                 if mo:
                     keywords["date"] = mo.group(1)
         f.close()
-    except EnvironmentError:
+    except OSError:
         pass
     return keywords
 
@@ -231,7 +231,8 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
 
 @register_vcs_handler("git", "pieces_from_vcs")
 def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
-    """Get version from 'git describe' in the root of the source tree.
+    """
+    Get version from 'git describe' in the root of the source tree.
 
     This only gets called if the git-archive 'subst' keywords were *not*
     expanded, and _version.py hasn't already been rewritten with a short
@@ -251,7 +252,15 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
     # if there isn't one, this yields HEX[-dirty] (no NUM)
     describe_out, rc = run_command(
         GITS,
-        ["describe", "--tags", "--dirty", "--always", "--long", "--match", "%s*" % tag_prefix],
+        [
+            "describe",
+            "--tags",
+            "--dirty",
+            "--always",
+            "--long",
+            "--match",
+            "%s*" % tag_prefix,
+        ],
         cwd=root,
     )
     # --long was added in git-1.5.5
@@ -284,7 +293,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         # TAG-NUM-gHEX
         mo = re.search(r"^(.+)-(\d+)-g([0-9a-f]+)$", git_describe)
         if not mo:
-            # unparseable. Maybe git-describe is misbehaving?
+            # unparsable. Maybe git-describe is misbehaving?
             pieces["error"] = "unable to parse git-describe output: '%s'" % describe_out
             return pieces
 
@@ -294,7 +303,10 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
             if verbose:
                 fmt = "tag '%s' doesn't start with prefix '%s'"
                 print(fmt % (full_tag, tag_prefix))
-            pieces["error"] = "tag '%s' doesn't start with prefix '%s'" % (full_tag, tag_prefix)
+            pieces["error"] = "tag '%s' doesn't start with prefix '%s'" % (
+                full_tag,
+                tag_prefix,
+            )
             return pieces
         pieces["closest-tag"] = full_tag[len(tag_prefix) :]
 
@@ -311,7 +323,9 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         pieces["distance"] = int(count_out)  # total number of commits
 
     # commit date: see ISO-8601 comment in git_versions_from_keywords()
-    date = run_command(GITS, ["show", "-s", "--format=%ci", "HEAD"], cwd=root)[0].strip()
+    date = run_command(GITS, ["show", "-s", "--format=%ci", "HEAD"], cwd=root)[
+        0
+    ].strip()
     pieces["date"] = date.strip().replace(" ", "T", 1).replace(" ", "", 1)
 
     return pieces
@@ -325,7 +339,8 @@ def plus_or_dot(pieces):
 
 
 def render_pep440(pieces):
-    """Build up version string, with post-release "local version identifier".
+    """
+    Build up version string, with post-release "local version identifier".
 
     Our goal: TAG[+DISTANCE.gHEX[.dirty]] . Note that if you
     get a tagged build and then dirty it, you'll get TAG+0.gHEX.dirty
@@ -349,7 +364,8 @@ def render_pep440(pieces):
 
 
 def render_pep440_pre(pieces):
-    """TAG[.post.devDISTANCE] -- No -dirty.
+    """
+    TAG[.post.devDISTANCE] -- No -dirty.
 
     Exceptions:
     1: no tags. 0.post.devDISTANCE
@@ -365,7 +381,8 @@ def render_pep440_pre(pieces):
 
 
 def render_pep440_post(pieces):
-    """TAG[.postDISTANCE[.dev0]+gHEX] .
+    """
+    TAG[.postDISTANCE[.dev0]+gHEX] .
 
     The ".dev0" means dirty. Note that .dev0 sorts backwards
     (a dirty tree will appear "older" than the corresponding clean one),
@@ -392,7 +409,8 @@ def render_pep440_post(pieces):
 
 
 def render_pep440_old(pieces):
-    """TAG[.postDISTANCE[.dev0]] .
+    """
+    TAG[.postDISTANCE[.dev0]] .
 
     The ".dev0" means dirty.
 
@@ -414,7 +432,8 @@ def render_pep440_old(pieces):
 
 
 def render_git_describe(pieces):
-    """TAG[-DISTANCE-gHEX][-dirty].
+    """
+    TAG[-DISTANCE-gHEX][-dirty].
 
     Like 'git describe --tags --dirty --always'.
 
@@ -434,7 +453,8 @@ def render_git_describe(pieces):
 
 
 def render_git_describe_long(pieces):
-    """TAG-DISTANCE-gHEX[-dirty].
+    """
+    TAG-DISTANCE-gHEX[-dirty].
 
     Like 'git describe --tags --dirty --always -long'.
     The distance/hash is unconditional.

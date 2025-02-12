@@ -89,12 +89,13 @@ class LowLevelCallable(tuple):
     If constructing low-level functions from a PyCapsule, the name of the
     capsule must be the corresponding signature, in the format::
 
-        return_type (arg1_type, arg2_type, ...)
+        return_type(arg1_type, arg2_type, ...)
 
     For example::
 
         "void (double)"
-        "double (double, int *, void *)"
+
+        'double (double, int *, void *)'
 
     The context of a PyCapsule passed in as ``function`` is used as ``user_data``,
     if an explicit value for ``user_data`` was not given.
@@ -169,7 +170,8 @@ class LowLevelCallable(tuple):
             func = obj
         else:
             raise ValueError(
-                "Given input is not a callable or a " "low-level callable (pycapsule/ctypes/cffi)"
+                "Given input is not a callable or a "
+                "low-level callable (pycapsule/ctypes/cffi)"
             )
 
         if isinstance(user_data, ctypes.c_void_p):
@@ -182,7 +184,8 @@ class LowLevelCallable(tuple):
             context = user_data
         else:
             raise ValueError(
-                "Given user data is not a valid " "low-level void* pointer (pycapsule/ctypes/cffi)"
+                "Given user data is not a valid "
+                "low-level void* pointer (pycapsule/ctypes/cffi)"
             )
 
         return _ccallback_c.get_raw_capsule(func, signature, context)
@@ -213,7 +216,7 @@ def _get_ctypes_func(func, signature=None):
 def _typename_from_ctypes(item):
     if item is None:
         return "void"
-    elif item is ctypes.c_void_p:
+    if item is ctypes.c_void_p:
         return "void *"
 
     name = item.__name__
@@ -223,8 +226,7 @@ def _typename_from_ctypes(item):
         pointer_level += 1
         name = name[3:]
 
-    if name.startswith("c_"):
-        name = name[2:]
+    name = name.removeprefix("c_")
 
     if pointer_level > 0:
         name += " " + "*" * pointer_level

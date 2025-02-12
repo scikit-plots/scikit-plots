@@ -7,30 +7,16 @@ enforcing Python 3-like behavior in Python 2.
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all belove func
-__all__ = [
-    "validate_labels",
-    "cumulative_gain_curve",
-    "binary_ks_curve",
-]
+__all__ = ["binary_ks_curve", "cumulative_gain_curve", "validate_labels"]
 
 
-def validate_labels(
-    known_classes,
-    passed_labels,
-    argument_name,
-):
+def validate_labels(known_classes, passed_labels, argument_name):
     """
     Validates the labels passed into arguments such as `true_labels` or `pred_labels`
     in functions like `plot_confusion_matrix`.
@@ -57,10 +43,11 @@ def validate_labels(
 
     Examples
     --------
-    >>> known_classes = ["A", "B", "C"]
-    >>> passed_labels = ["A", "B"]
+    >>> known_classes = ['A', 'B', 'C']
+    >>> passed_labels = ['A', 'B']
     >>> import scikitplot as sp
-    >>> sp.api._utils.validate_labels(known_classes, passed_labels, "true_labels")
+    >>> sp.api._utils.validate_labels(known_classes, passed_labels, 'true_labels')
+
     """
     known_classes = np.array(known_classes)
     passed_labels = np.array(passed_labels)
@@ -70,22 +57,21 @@ def validate_labels(
     # Check for duplicates in passed labels
     if len(passed_labels) != len(unique_labels):
         indexes = np.arange(0, len(passed_labels))
-        duplicate_indexes = indexes[~np.in1d(indexes, unique_indexes)]
+        duplicate_indexes = indexes[~np.isin(indexes, unique_indexes)]
         duplicate_labels = [str(x) for x in passed_labels[duplicate_indexes]]
         raise ValueError(
             "The following duplicate labels were "
-            f"passed into {argument_name}: {', '.join(duplicate_labels)}"
+            f'passed into {argument_name}: {", ".join(duplicate_labels)}'
         )
 
     # Check for labels in passed_labels that are not in known_classes
-    passed_labels_absent = ~np.in1d(passed_labels, known_classes)
+    passed_labels_absent = ~np.isin(passed_labels, known_classes)
     if np.any(passed_labels_absent):
         absent_labels = [str(x) for x in passed_labels[passed_labels_absent]]
         raise ValueError(
             f"The following labels were passed into {argument_name}, "
-            f"but were not found in labels: {', '.join(map(str, absent_labels))}"
+            f'but were not found in labels: {", ".join(map(str, absent_labels))}'
         )
-    return None
 
 
 def cumulative_gain_curve(y_true, y_score, pos_label=None):
@@ -159,9 +145,16 @@ def cumulative_gain_curve(y_true, y_score, pos_label=None):
     >>> from sklearn.model_selection import train_test_split
     >>> import matplotlib.pyplot as plt
     >>> # Generate a binary classification dataset
-    >>> X, y = make_classification(n_samples=1000, n_classes=2, n_informative=3, random_state=42)
+    >>> X, y = make_classification(
+    ...     n_samples=1000,
+    ...     n_classes=2,
+    ...     n_informative=3,
+    ...     random_state=42,
+    ... )
     >>> # Split into training and test sets
-    >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    >>> X_train, X_test, y_train, y_test = train_test_split(
+    ...     X, y, test_size=0.3, random_state=42
+    ... )
     >>> # Train a logistic regression model
     >>> model = LogisticRegression()
     >>> model.fit(X_train, y_train)
@@ -177,6 +170,7 @@ def cumulative_gain_curve(y_true, y_score, pos_label=None):
     >>> plt.title('Cumulative Gain Curve')
     >>> plt.grid()
     >>> plt.show()
+
     """
     # Convert input to numpy arrays for efficient processing
     y_true = np.asarray(y_true)
@@ -186,7 +180,8 @@ def cumulative_gain_curve(y_true, y_score, pos_label=None):
     classes = np.unique(y_true)
     if len(classes) != 2:
         raise ValueError(
-            "`y_true` must contain exactly two distinct classes " "for binary classification."
+            "`y_true` must contain exactly two distinct classes "
+            "for binary classification."
         )
 
     # Ensure the pos_label is provided or infer it from the data
@@ -198,9 +193,10 @@ def cumulative_gain_curve(y_true, y_score, pos_label=None):
         or np.array_equal(classes, [1])
     ):
         raise ValueError(
-            "Data is not binary and pos_label is not specified. " "Please provide the `pos_label`."
+            "Data is not binary and pos_label is not specified. "
+            "Please provide the `pos_label`."
         )
-    elif pos_label is None:
+    if pos_label is None:
         pos_label = 1.0  # Default to 1 for standard binary labels
 
     # Convert y_true to a boolean array where the positive class is True
@@ -228,7 +224,8 @@ def cumulative_gain_curve(y_true, y_score, pos_label=None):
     total_positives = float(np.sum(y_true))
     if total_positives == 0:
         raise ValueError(
-            "The positive class does not appear in `y_true`, " "resulting in a gain of zero."
+            "The positive class does not appear in `y_true`, "
+            "resulting in a gain of zero."
         )
 
     # Compute cumulative gains (number of true positives as threshold decreases)
@@ -248,10 +245,7 @@ def cumulative_gain_curve(y_true, y_score, pos_label=None):
     return percentages, gains
 
 
-def binary_ks_curve(
-    y_true,
-    y_probas,
-):
+def binary_ks_curve(y_true, y_probas):
     """
     Generate the data points necessary to plot the Kolmogorov-Smirnov (KS)
     curve for binary classification tasks.
@@ -334,9 +328,16 @@ def binary_ks_curve(
         >>> from sklearn.model_selection import train_test_split
         >>> import matplotlib.pyplot as plt
         >>> # Generate a binary classification dataset
-        >>> X, y = make_classification(n_samples=1000, n_classes=2, n_informative=3, random_state=0)
+        >>> X, y = make_classification(
+        ...     n_samples=1000,
+        ...     n_classes=2,
+        ...     n_informative=3,
+        ...     random_state=0,
+        ... )
         >>> # Split into training and test sets
-        >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> X_train, X_test, y_train, y_test = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
         >>> # Train a logistic regression model
         >>> model = LogisticRegression()
         >>> model.fit(X_train, y_train)
@@ -344,7 +345,14 @@ def binary_ks_curve(
         >>> y_probas = model.predict_proba(X_test)[:, 1]
         >>> # Calculate the KS Statistic curve
         >>> import scikitplot as sp
-        >>> thresholds, pct1, pct2, ks_statistic, max_distance_at, classes = sp.api._utils.binary_ks_curve(y_test, y_probas)
+        >>> (
+        ...     thresholds,
+        ...     pct1,
+        ...     pct2,
+        ...     ks_statistic,
+        ...     max_distance_at,
+        ...     classes,
+        ... ) = sp.api._utils.binary_ks_curve(y_test, y_probas)
         >>> # Plot the KS Statistic curve
         >>> plt.plot(thresholds, pct1 - pct2, marker='o')
         >>> plt.xlabel('Threshold')
@@ -352,6 +360,7 @@ def binary_ks_curve(
         >>> plt.title('KS Statistic Curve')
         >>> plt.grid()
         >>> plt.show()
+
     """
     # Convert input to numpy arrays for efficient processing
     y_true = np.asarray(y_true)
@@ -362,7 +371,8 @@ def binary_ks_curve(
     encoded_labels = lb.fit_transform(y_true)
     if len(lb.classes_) != 2:
         raise ValueError(
-            f"Cannot calculate KS statistic for data with " f"{len(lb.classes_)} category/ies."
+            f"Cannot calculate KS statistic for data with "
+            f"{len(lb.classes_)} category/ies."
         )
 
     # Separate probabilities for the two classes
@@ -381,7 +391,6 @@ def binary_ks_curve(
 
     # Compute cumulative percentages for different thresholds
     while ctr1 < len(data1) or ctr2 < len(data2):
-
         # Check if data1 has no more elements
         if ctr1 >= len(data1):
             current = data2[ctr2]
@@ -394,23 +403,22 @@ def binary_ks_curve(
             while ctr1 < len(data1) and current == data1[ctr1]:
                 ctr1 += 1
 
+        elif data1[ctr1] > data2[ctr2]:
+            current = data2[ctr2]
+            while ctr2 < len(data2) and current == data2[ctr2]:
+                ctr2 += 1
+
+        elif data1[ctr1] < data2[ctr2]:
+            current = data1[ctr1]
+            while ctr1 < len(data1) and current == data1[ctr1]:
+                ctr1 += 1
+
         else:
-            if data1[ctr1] > data2[ctr2]:
-                current = data2[ctr2]
-                while ctr2 < len(data2) and current == data2[ctr2]:
-                    ctr2 += 1
-
-            elif data1[ctr1] < data2[ctr2]:
-                current = data1[ctr1]
-                while ctr1 < len(data1) and current == data1[ctr1]:
-                    ctr1 += 1
-
-            else:
-                current = data2[ctr2]
-                while ctr2 < len(data2) and current == data2[ctr2]:
-                    ctr2 += 1
-                while ctr1 < len(data1) and current == data1[ctr1]:
-                    ctr1 += 1
+            current = data2[ctr2]
+            while ctr2 < len(data2) and current == data2[ctr2]:
+                ctr2 += 1
+            while ctr1 < len(data1) and current == data1[ctr1]:
+                ctr1 += 1
 
         thresholds.append(current)
         pct1.append(ctr1)
@@ -433,5 +441,8 @@ def binary_ks_curve(
 
     # Calculate the KS Statistic and the threshold where it occurs
     differences = pct1 - pct2
-    ks_statistic, max_distance_at = (np.max(differences), thresholds[np.argmax(differences)])
+    ks_statistic, max_distance_at = (
+        np.max(differences),
+        thresholds[np.argmax(differences)],
+    )
     return thresholds, pct1, pct2, ks_statistic, max_distance_at, lb.classes_

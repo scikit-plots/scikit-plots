@@ -217,7 +217,11 @@ def _get_win_folder_with_jna(csidl_name):
     buf = array.zeros("c", buf_size)
     shell = win32.Shell32.INSTANCE
     shell.SHGetFolderPath(
-        None, getattr(win32.ShlObj, csidl_name), None, win32.ShlObj.SHGFP_TYPE_CURRENT, buf
+        None,
+        getattr(win32.ShlObj, csidl_name),
+        None,
+        win32.ShlObj.SHGFP_TYPE_CURRENT,
+        buf,
     )
     dir = jna.Native.toString(buf.tostring()).rstrip("\0")
 

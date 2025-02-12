@@ -8,6 +8,7 @@ https://data-apis.org/array-api/latest/purpose_and_scope.html
 The SciPy use case of the Array API is described on the following page:
 https://data-apis.org/array-api/latest/use_cases.html#use-case-scipy
 """
+
 from __future__ import annotations
 
 import collections
@@ -35,33 +36,15 @@ if TYPE_CHECKING:
 
 # from scipy._lib import array_api_compat
 from . import array_api_compat
-from .array_api_compat import (
-    device as xp_device,
-)
-from .array_api_compat import (
-    is_array_api_obj,
-)
-from .array_api_compat import (
-    is_array_api_strict_namespace as is_array_api_strict,
-)
-from .array_api_compat import (
-    is_cupy_namespace as is_cupy,
-)
-from .array_api_compat import (
-    is_jax_namespace as is_jax,
-)
-from .array_api_compat import (
-    is_numpy_namespace as is_numpy,
-)
-from .array_api_compat import (
-    is_torch_namespace as is_torch,
-)
-from .array_api_compat import (
-    numpy as np_compat,
-)
-from .array_api_compat import (
-    size as xp_size,
-)
+from .array_api_compat import device as xp_device
+from .array_api_compat import is_array_api_obj
+from .array_api_compat import is_array_api_strict_namespace as is_array_api_strict
+from .array_api_compat import is_cupy_namespace as is_cupy
+from .array_api_compat import is_jax_namespace as is_jax
+from .array_api_compat import is_numpy_namespace as is_numpy
+from .array_api_compat import is_torch_namespace as is_torch
+from .array_api_compat import numpy as np_compat
+from .array_api_compat import size as xp_size
 
 ######################################################################
 ## array API xp ModuleType '.array_api_compat.common._helpers'
@@ -156,10 +139,7 @@ SKPLT_ARRAY_API: str | bool = os.environ.get("SKPLT_ARRAY_API", False)
 # To control the default device - for use in the test suite only
 SKPLT_DEVICE = os.environ.get("SKPLT_DEVICE", "cpu")
 
-_GLOBAL_CONFIG = {
-    "SKPLT_ARRAY_API": SKPLT_ARRAY_API,
-    "SKPLT_DEVICE": SKPLT_DEVICE,
-}
+_GLOBAL_CONFIG = {"SKPLT_ARRAY_API": SKPLT_ARRAY_API, "SKPLT_DEVICE": SKPLT_DEVICE}
 
 ######################################################################
 ## array API xp sub-namespaces
@@ -167,7 +147,8 @@ _GLOBAL_CONFIG = {
 
 
 def skplt_namespace_for(xp: ModuleType) -> ModuleType | None:
-    """Return the `scikitplot`-like namespace of a non-NumPy backend.
+    """
+    Return the `scikitplot`-like namespace of a non-NumPy backend.
 
     This function returns the namespace corresponding with backend `xp`
     that contains `scikitplot` sub-namespaces like `linalg` and `special`.
@@ -197,7 +178,7 @@ def skplt_namespace_for(xp: ModuleType) -> ModuleType | None:
     >>> def array_operation(xp):
     ...     skplt = skplt_namespace_for(xp)
     ...     if skplt is None:
-    ...         print(f"No scikitplot namespace found for {xp.__name__}")
+    ...         print(f'No scikitplot namespace found for {xp.__name__}')
     ...         return
     ...     # Example of a mock operation with `scikitplot.linalg`
     ...     result = skplt.linalg.some_function()  # Placeholder for actual function
@@ -213,6 +194,7 @@ def skplt_namespace_for(xp: ModuleType) -> ModuleType | None:
     -----
     This function currently supports Cupy, JAX, and Torch backends. You can
     expand it by adding additional backends as needed.
+
     """
     if is_cupy(xp):
         import cupyx  # type: ignore[import-not-found,import-untyped]
@@ -236,7 +218,8 @@ def skplt_namespace_for(xp: ModuleType) -> ModuleType | None:
 
 
 def _compliance_scipy(arrays: list[ArrayLike]) -> list[Array]:
-    """Raise exceptions on known-bad subclasses.
+    """
+    Raise exceptions on known-bad subclasses.
 
     The following subclasses are not supported and raise and error:
     - `numpy.ma.MaskedArray`
@@ -262,7 +245,7 @@ def _compliance_scipy(arrays: list[ArrayLike]) -> list[Array]:
 
         if isinstance(array, np.ma.MaskedArray):
             raise TypeError("Inputs of type `numpy.ma.MaskedArray` are not supported.")
-        elif isinstance(array, np.matrix):
+        if isinstance(array, np.matrix):
             raise TypeError("Inputs of type `numpy.matrix` are not supported.")
         if isinstance(array, np.ndarray | np.generic):
             dtype = array.dtype
@@ -276,7 +259,8 @@ def _compliance_scipy(arrays: list[ArrayLike]) -> list[Array]:
                 array = np.asanyarray(array)
             except TypeError:
                 raise TypeError(
-                    "An argument is neither array API compatible nor " "coercible by NumPy."
+                    "An argument is neither array API compatible nor "
+                    "coercible by NumPy."
                 )
             dtype = array.dtype
             if not (np.issubdtype(dtype, np.number) or np.issubdtype(dtype, np.bool_)):
@@ -290,7 +274,8 @@ def _compliance_scipy(arrays: list[ArrayLike]) -> list[Array]:
 
 
 def array_namespace(*arrays: Array) -> ModuleType:
-    """Get the array API compatible namespace for the arrays xs.
+    """
+    Get the array API compatible namespace for the arrays xs.
 
     Parameters
     ----------
@@ -314,6 +299,7 @@ def array_namespace(*arrays: Array) -> ModuleType:
     When the global switch is False, it defaults to the `numpy` namespace.
     In that case, there is no compliance check. This is a convenience to
     ease the adoption. Otherwise, arrays must comply with the new rules.
+
     """
     if not _GLOBAL_CONFIG["SKPLT_ARRAY_API"]:
         # here we could wrap the namespace if needed
@@ -353,7 +339,8 @@ def _asarray(
     check_finite: bool = False,
     subok: bool = False,
 ) -> Array:
-    """SciPy-specific replacement for `np.asarray` with `order`, `check_finite`, and
+    """
+    SciPy-specific replacement for `np.asarray` with `order`, `check_finite`, and
     `subok`.
 
     Memory layout parameter `order` is not exposed in the Array API standard.
@@ -397,7 +384,8 @@ def _asarray(
 
 @contextlib.contextmanager
 def default_xp(xp: ModuleType) -> collections.abc.Generator[None, None, None]:
-    """In all ``xp_assert_*`` and ``assert_*`` function calls executed within this
+    """
+    In all ``xp_assert_*`` and ``assert_*`` function calls executed within this
     context manager, test by default that the array namespace is
     the provided across all arrays, unless one explicitly passes the ``xp=``
     parameter or ``check_namespace=False``.
@@ -412,7 +400,9 @@ def default_xp(xp: ModuleType) -> collections.abc.Generator[None, None, None]:
         _default_xp_ctxvar.reset(token)
 
 
-_default_xp_ctxvar: contextvars.ContextVar[ModuleType] = contextvars.ContextVar("_default_xp")
+_default_xp_ctxvar: contextvars.ContextVar[ModuleType] = contextvars.ContextVar(
+    "_default_xp"
+)
 
 
 def _assert_matching_namespace(actual, desired, xp):
@@ -438,7 +428,14 @@ def _assert_matching_namespace(actual, desired, xp):
 
 
 def _strict_check(
-    actual, desired, xp, *, check_namespace=True, check_dtype=True, check_shape=True, check_0d=True
+    actual,
+    desired,
+    xp,
+    *,
+    check_namespace=True,
+    check_dtype=True,
+    check_shape=True,
+    check_0d=True,
 ):
     __tracebackhide__ = True  # Hide traceback for py.test
 
@@ -457,7 +454,10 @@ def _strict_check(
     # only NumPy distinguishes between scalars and arrays; we do if check_0d=True.
     # do this first so we can then cast to array (and thus use the array API) below.
     if is_numpy(xp) and check_0d:
-        _msg = "Array-ness does not match:\n Actual: " f"{type(actual)}\n Desired: {type(desired)}"
+        _msg = (
+            "Array-ness does not match:\n Actual: "
+            f"{type(actual)}\n Desired: {type(desired)}"
+        )
         assert (xp.isscalar(actual) and xp.isscalar(desired)) or (
             not xp.isscalar(actual) and not xp.isscalar(desired)
         ), _msg
@@ -515,12 +515,18 @@ def xp_assert_equal(
 
     if is_cupy(xp):
         return xp.testing.assert_array_equal(actual, desired, err_msg=err_msg)
-    elif is_torch(xp):
+    if is_torch(xp):
         # PyTorch recommends using `rtol=0, atol=0` like this
         # to test for exact equality
         err_msg = None if err_msg == "" else err_msg
         return xp.testing.assert_close(
-            actual, desired, rtol=0, atol=0, equal_nan=True, check_dtype=False, msg=err_msg
+            actual,
+            desired,
+            rtol=0,
+            atol=0,
+            equal_nan=True,
+            check_dtype=False,
+            msg=err_msg,
         )
     # JAX uses `np.testing`
     return np.testing.assert_array_equal(actual, desired, err_msg=err_msg)
@@ -561,14 +567,24 @@ def xp_assert_close(
         rtol = 1e-7
 
     if is_cupy(xp):
-        return xp.testing.assert_allclose(actual, desired, rtol=rtol, atol=atol, err_msg=err_msg)
-    elif is_torch(xp):
+        return xp.testing.assert_allclose(
+            actual, desired, rtol=rtol, atol=atol, err_msg=err_msg
+        )
+    if is_torch(xp):
         err_msg = None if err_msg == "" else err_msg
         return xp.testing.assert_close(
-            actual, desired, rtol=rtol, atol=atol, equal_nan=True, check_dtype=False, msg=err_msg
+            actual,
+            desired,
+            rtol=rtol,
+            atol=atol,
+            equal_nan=True,
+            check_dtype=False,
+            msg=err_msg,
         )
     # JAX uses `np.testing`
-    return np.testing.assert_allclose(actual, desired, rtol=rtol, atol=atol, err_msg=err_msg)
+    return np.testing.assert_allclose(
+        actual, desired, rtol=rtol, atol=atol, err_msg=err_msg
+    )
 
 
 def xp_assert_less(
@@ -596,21 +612,32 @@ def xp_assert_less(
     )
 
     if is_cupy(xp):
-        return xp.testing.assert_array_less(actual, desired, err_msg=err_msg, verbose=verbose)
-    elif is_torch(xp):
+        return xp.testing.assert_array_less(
+            actual, desired, err_msg=err_msg, verbose=verbose
+        )
+    if is_torch(xp):
         if actual.device.type != "cpu":
             actual = actual.cpu()
         if desired.device.type != "cpu":
             desired = desired.cpu()
     # JAX uses `np.testing`
-    return np.testing.assert_array_less(actual, desired, err_msg=err_msg, verbose=verbose)
+    return np.testing.assert_array_less(
+        actual, desired, err_msg=err_msg, verbose=verbose
+    )
 
 
 def assert_array_almost_equal(actual, desired, decimal=6, *args, **kwds):
     """Backwards compatible replacement. In new code, use xp_assert_close instead."""
     rtol, atol = 0, 1.5 * 10 ** (-decimal)
     return xp_assert_close(
-        actual, desired, atol=atol, rtol=rtol, check_dtype=False, check_shape=False, *args, **kwds
+        actual,
+        desired,
+        atol=atol,
+        rtol=rtol,
+        check_dtype=False,
+        check_shape=False,
+        *args,
+        **kwds,
     )
 
 
@@ -618,7 +645,14 @@ def assert_almost_equal(actual, desired, decimal=7, *args, **kwds):
     """Backwards compatible replacement. In new code, use xp_assert_close instead."""
     rtol, atol = 0, 1.5 * 10 ** (-decimal)
     return xp_assert_close(
-        actual, desired, atol=atol, rtol=rtol, check_dtype=False, check_shape=False, *args, **kwds
+        actual,
+        desired,
+        atol=atol,
+        rtol=rtol,
+        check_dtype=False,
+        check_shape=False,
+        *args,
+        **kwds,
     )
 
 
@@ -635,29 +669,29 @@ def get_xp_devices(xp: ModuleType) -> list[str] | list[None]:
         import torch  # type: ignore[import]
 
         num_cuda = torch.cuda.device_count()
-        for i in range(0, num_cuda):
+        for i in range(num_cuda):
             devices += [f"cuda:{i}"]
         if torch.backends.mps.is_available():
             devices += ["mps"]
         return devices
-    elif is_cupy(xp):
+    if is_cupy(xp):
         import cupy  # type: ignore[import]
 
         num_cuda = cupy.cuda.runtime.getDeviceCount()
-        for i in range(0, num_cuda):
+        for i in range(num_cuda):
             devices += [f"cuda:{i}"]
         return devices
-    elif is_jax(xp):
+    if is_jax(xp):
         import jax  # type: ignore[import]
 
         num_cpu = jax.device_count(backend="cpu")
-        for i in range(0, num_cpu):
+        for i in range(num_cpu):
             devices += [f"cpu:{i}"]
         num_gpu = jax.device_count(backend="gpu")
-        for i in range(0, num_gpu):
+        for i in range(num_gpu):
             devices += [f"gpu:{i}"]
         num_tpu = jax.device_count(backend="tpu")
-        for i in range(0, num_tpu):
+        for i in range(num_tpu):
             devices += [f"tpu:{i}"]
         return devices
 
@@ -673,7 +707,9 @@ def get_xp_devices(xp: ModuleType) -> list[str] | list[None]:
 
 # temporary substitute for xp.moveaxis, which is not yet in all backends
 # or covered by array_api_compat.
-def xp_moveaxis_to_end(x: Array, source: int, /, *, xp: ModuleType | None = None) -> Array:
+def xp_moveaxis_to_end(
+    x: Array, source: int, /, *, xp: ModuleType | None = None
+) -> Array:
     xp = array_namespace(xp) if xp is None else xp
     axes = list(range(x.ndim))
     temp = axes.pop(source)
@@ -726,7 +762,7 @@ def xp_vector_norm(
     *,
     axis: int | tuple[int] | None = None,
     keepdims: bool = False,
-    ord: int | float = 2,
+    ord: float = 2,
     xp: ModuleType | None = None,
 ) -> Array:
     xp = array_namespace(x) if xp is None else xp
@@ -735,19 +771,17 @@ def xp_vector_norm(
         # check for optional `linalg` extension
         if hasattr(xp, "linalg"):
             return xp.linalg.vector_norm(x, axis=axis, keepdims=keepdims, ord=ord)
-        else:
-            if ord != 2:
-                raise ValueError(
-                    "only the Euclidean norm (`ord=2`) is currently supported in "
-                    "`xp_vector_norm` for backends not implementing the `linalg` "
-                    "extension."
-                )
-            # return (x @ x)**0.5
-            # or to get the right behavior with nd, complex arrays
-            return xp.sum(xp.conj(x) * x, axis=axis, keepdims=keepdims) ** 0.5
-    else:
-        # to maintain backwards compatibility
-        return np.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
+        if ord != 2:
+            raise ValueError(
+                "only the Euclidean norm (`ord=2`) is currently supported in "
+                "`xp_vector_norm` for backends not implementing the `linalg` "
+                "extension."
+            )
+        # return (x @ x)**0.5
+        # or to get the right behavior with nd, complex arrays
+        return xp.sum(xp.conj(x) * x, axis=axis, keepdims=keepdims) ** 0.5
+    # to maintain backwards compatibility
+    return np.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
 
 
 ######################################################################
@@ -788,10 +822,9 @@ def xp_take_along_axis(
     xp = array_namespace(arr) if xp is None else xp
     if is_torch(xp):
         return xp.take_along_dim(arr, indices, dim=axis)
-    elif is_array_api_strict(xp):
+    if is_array_api_strict(xp):
         raise NotImplementedError("Array API standard does not define take_along_axis")
-    else:
-        return xp.take_along_axis(arr, indices, axis)
+    return xp.take_along_axis(arr, indices, axis)
 
 
 ######################################################################
@@ -837,6 +870,7 @@ def xp_copy(x: Array, *, xp: ModuleType | None = None) -> Array:
     -----
     This copy function does not offer all the semantics of `np.copy`, i.e. the
     `subok` and `order` keywords are not used.
+
     """
     # Note: for older NumPy versions, `np.asarray` did not support the `copy` kwarg,
     # so this uses our other helper `_asarray`.
@@ -898,7 +932,7 @@ def xp_broadcast_promote(*args, ensure_writeable=False, force_floating=False, xp
     # determine minimum dtype
     default_float = xp.asarray(1.0).dtype
     dtypes = [arg.dtype for arg in args_not_none]
-    try:  # follow library's prefered mixed promotion rules
+    try:  # follow library's preferred mixed promotion rules
         dtype = xp.result_type(*dtypes)
         if force_floating and xp.isdtype(dtype, "integral"):
             # If we were to add `default_float` before checking whether the result
@@ -947,9 +981,8 @@ def xp_default_dtype(xp):
     if is_torch(xp):
         # historically, we allow pytorch to keep its default of float32
         return xp.get_default_dtype()
-    else:
-        # we default to float64
-        return xp.float64
+    # we default to float64
+    return xp.float64
 
 
 ######################################################################
@@ -976,7 +1009,7 @@ def check_cupy(device="cuda"):
         c = cp.matmul(a, b)
         print("Matrix multiplication result (CuPy):", c)
     except Exception as e:
-        print(f"CuPy check failed: {str(e)}")
+        print(f"CuPy check failed: {e!s}")
 
 
 def check_tensorflow(device="cuda"):
@@ -1003,7 +1036,7 @@ def check_tensorflow(device="cuda"):
         c = tf.matmul(a, b)
         print("Matrix multiplication result (TensorFlow):", c.numpy())
     except Exception as e:
-        print(f"TensorFlow check failed: {str(e)}")
+        print(f"TensorFlow check failed: {e!s}")
 
 
 def check_jax(device="cuda"):
@@ -1020,7 +1053,9 @@ def check_jax(device="cuda"):
         cpus = jax.devices("cpu")
 
         if any(device.platform == "gpu" for device in devices):
-            print(f"GPUs Available (JAX): {len([d for d in devices if d.platform == 'gpu'])}")
+            print(
+                f'GPUs Available (JAX): {len([d for d in devices if d.platform == "gpu"])}'
+            )
         else:
             print("No GPUs available for JAX. Using CPU.")
 
@@ -1033,7 +1068,7 @@ def check_jax(device="cuda"):
         c = jnp.dot(a, b)
         print("Matrix multiplication result (JAX):", c)
     except Exception as e:
-        print(f"JAX check failed: {str(e)}")
+        print(f"JAX check failed: {e!s}")
 
 
 def check_pytorch(device="cuda"):
@@ -1061,7 +1096,7 @@ def check_pytorch(device="cuda"):
         c = torch.matmul(a, b)
         print("Matrix multiplication result (PyTorch):", c)
     except Exception as e:
-        print(f"PyTorch check failed: {str(e)}")
+        print(f"PyTorch check failed: {e!s}")
 
 
 def gpu_libraries(device="cuda"):
@@ -1103,6 +1138,7 @@ def gpu_libraries(device="cuda"):
     ----------
     device : {'cpu', 'gpu', 'cuda', 'tpu'} str, default='cuda'
         Check target device av ailable libraries.
+
     """
     # Lazy imports within subprocess
     checks = {

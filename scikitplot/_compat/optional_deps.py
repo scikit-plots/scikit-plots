@@ -1,5 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""Checks for optional dependencies using lazy import from
+"""
+Checks for optional dependencies using lazy import from
 `PEP 562 <https://www.python.org/dev/peps/pep-0562/>`_.
 """
 

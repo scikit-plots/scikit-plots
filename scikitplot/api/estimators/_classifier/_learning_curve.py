@@ -13,12 +13,6 @@ enforcing Python 3-like behavior in Python 2.
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import numpy as np
 from sklearn.model_selection import learning_curve
@@ -32,9 +26,7 @@ from ..._utils.validation import (
 )
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
-__all__ = [
-    "plot_learning_curve",
-]
+__all__ = ["plot_learning_curve"]
 
 
 @validate_plotting_kwargs_decorator
@@ -185,13 +177,16 @@ def plot_learning_curve(
         >>> from sklearn.naive_bayes import GaussianNB
         >>> import scikitplot as skplt
         >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
-        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> X_train, X_val, y_train, y_val = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
         >>> model = GaussianNB()
         >>> model.fit(X_train, y_train)
         >>> y_val_pred = model.predict(X_val)
         >>> skplt.estimators.plot_learning_curve(
         >>>     model, X_val, y_val_pred,
         >>> );
+
     """
     #################################################
     ## Preprocessing
@@ -226,7 +221,9 @@ def plot_learning_curve(
     test_scores_std = np.std(test_scores, axis=1)
 
     # Get model name if available
-    model_name = f"{estimator.__class__.__name__} " if hasattr(estimator, "__class__") else ""
+    model_name = (
+        f"{estimator.__class__.__name__} " if hasattr(estimator, "__class__") else ""
+    )
 
     ##################################################################
     ## Plotting
@@ -250,7 +247,9 @@ def plot_learning_curve(
         color="g",
     )
     ax.plot(train_sizes, train_scores_mean, "o-", color="r", label="Training score")
-    ax.plot(train_sizes, test_scores_mean, "o-", color="g", label="Cross-validation score")
+    ax.plot(
+        train_sizes, test_scores_mean, "o-", color="g", label="Cross-validation score"
+    )
     ax.set_title(model_name + title, fontsize=title_fontsize)
     ax.set_xlabel("Training examples", fontsize=text_fontsize)
     ax.set_ylabel("Score", fontsize=text_fontsize)

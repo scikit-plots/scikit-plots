@@ -5,7 +5,7 @@ This is based on trying to make sure the the following two things match:
 - the Cython files using OpenMP (based on a git grep regex)
 - the Cython extension modules that are built with OpenMP compiler flags (based
   on meson introspect json output)
-"""  # noqa: CPY001
+"""
 
 import json
 import re
@@ -40,8 +40,12 @@ def has_openmp_flags(target):
     assert "compiler" in compiler_source
     assert "linker" in linker_source
 
-    compiler_use_openmp_flags = any("openmp" in arg for arg in compiler_source["parameters"])
-    linker_use_openmp_flags = any("openmp" in arg for arg in linker_source["parameters"])
+    compiler_use_openmp_flags = any(
+        "openmp" in arg for arg in compiler_source["parameters"]
+    )
+    linker_use_openmp_flags = any(
+        "openmp" in arg for arg in linker_source["parameters"]
+    )
 
     assert compiler_use_openmp_flags == linker_use_openmp_flags
     return compiler_use_openmp_flags
@@ -59,7 +63,9 @@ def get_canonical_name_meson(target, build_path):
     # Expect a list with one element with the name of the shared library
     assert len(target["filename"]) == 1
     shared_library_path = Path(target["filename"][0])
-    shared_library_relative_path = shared_library_path.relative_to(build_path.absolute())
+    shared_library_relative_path = shared_library_path.relative_to(
+        build_path.absolute()
+    )
     # Needed on Windows to match git grep output
     rel_path = shared_library_relative_path.as_posix()
     # OS-specific naming of the shared library .cpython- on POSIX and
@@ -115,7 +121,9 @@ def get_meson_info():
     build_path = Path("build/introspect")
     subprocess.check_call(["meson", "setup", build_path, "--reconfigure"])
 
-    json_out = subprocess.check_output(["meson", "introspect", build_path, "--targets"], text=True)
+    json_out = subprocess.check_output(
+        ["meson", "introspect", build_path, "--targets"], text=True
+    )
     target_list = json.loads(json_out)
     meson_targets = [target for target in target_list if has_openmp_flags(target)]
 
@@ -141,7 +149,9 @@ def main():
 
     msg = ""
     if only_in_git_grep:
-        only_in_git_grep_msg = "\n".join([f"  {each}" for each in sorted(only_in_git_grep)])
+        only_in_git_grep_msg = "\n".join(
+            [f"  {each}" for each in sorted(only_in_git_grep)]
+        )
         msg += (
             "Some Cython files use OpenMP,"
             " but their meson.build is missing the openmp_dep dependency:\n"
@@ -157,7 +167,9 @@ def main():
         )
 
     if from_meson != from_git_grep:
-        raise ValueError(f"Some issues have been found in Meson OpenMP dependencies:\n\n{msg}")
+        raise ValueError(
+            f"Some issues have been found in Meson OpenMP dependencies:\n\n{msg}"
+        )
 
 
 if __name__ == "__main__":

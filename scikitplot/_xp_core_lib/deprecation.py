@@ -9,10 +9,7 @@ import warnings
 # from importlib import import_module
 from ._docscrape import FunctionDoc
 
-__all__ = [
-    "_deprecated",
-    "deprecated",
-]
+__all__ = ["_deprecated", "deprecated"]
 
 # Object to use as default value for arguments to be deprecated. This should
 # be used over 'None' as the user could parse 'None' as a positional argument
@@ -33,7 +30,8 @@ def _sub_module_deprecation(
     correct_module=None,
     dep_version="1.16.0",
 ):
-    """Helper function for deprecating modules that are public but were
+    """
+    Helper function for deprecating modules that are public but were
     intended to be private.
 
     Parameters
@@ -54,6 +52,7 @@ def _sub_module_deprecation(
         Default is that `attribute` should be imported from ``scipy.sub_package``.
     dep_version : str, optional
         Version in which deprecated attributes will be removed.
+
     """
     if correct_module is not None:
         correct_import = f"scikitplot.{sub_package}.{correct_module}"
@@ -88,7 +87,9 @@ def _sub_module_deprecation(
 
     for module in private_modules:
         try:
-            return getattr(importlib.import_module(f"scikitplot.{sub_package}.{module}"), attribute)
+            return getattr(
+                importlib.import_module(f"scikitplot.{sub_package}.{module}"), attribute
+            )
         except AttributeError as e:
             # still raise an error if the attribute isn't in any of the expected
             # private modules
@@ -113,7 +114,9 @@ def _deprecated(msg, stacklevel=2):
     def wrap(fun):
         if isinstance(fun, type):
             warnings.warn(
-                f"Trying to deprecate class {fun!r}", category=RuntimeWarning, stacklevel=2
+                f"Trying to deprecate class {fun!r}",
+                category=RuntimeWarning,
+                stacklevel=2,
             )
             return fun
 
@@ -135,8 +138,11 @@ def _deprecated(msg, stacklevel=2):
 
 # taken from scikit-learn, see
 # https://github.com/scikit-learn/scikit-learn/blob/1.3.0/sklearn/utils/validation.py#L38
-def _deprecate_positional_args(func=None, *, version=None, deprecated_args=None, custom_message=""):
-    """Decorator for methods that issues warnings for positional arguments.
+def _deprecate_positional_args(
+    func=None, *, version=None, deprecated_args=None, custom_message=""
+):
+    """
+    Decorator for methods that issues warnings for positional arguments.
 
     Using the keyword-only argument syntax in pep 3102, arguments after the
     * will issue a warning when passed as a positional argument.
@@ -151,6 +157,7 @@ def _deprecate_positional_args(func=None, *, version=None, deprecated_args=None,
         Arguments to deprecate - whether passed by position or keyword.
     custom_message : str, optional
         Custom message to add to deprecation warning and documentation.
+
     """
     if version is None:
         msg = "Need to specify a version where signature will be changed"
@@ -182,7 +189,6 @@ def _deprecate_positional_args(func=None, *, version=None, deprecated_args=None,
 
         @functools.wraps(f)
         def inner_f(*args, **kwargs):
-
             extra_args = len(args) - len(all_args)
             if extra_args <= 0:
                 warn_deprecated_args(kwargs)
@@ -237,9 +243,7 @@ def _deprecate_positional_args(func=None, *, version=None, deprecated_args=None,
 
 
 class _DeprecationHelperStr:
-    """
-    Helper class used by deprecate_cython_api
-    """
+    """Helper class used by deprecate_cython_api"""
 
     def __init__(self, content, message):
         self._content = content
@@ -280,8 +284,12 @@ def deprecate_cython_api(module, routine_name, new_name=None, message=None):
 
     >>> from scipy._lib.deprecation import deprecate_cython_api
     >>> import scipy.linalg.cython_blas as mod
-    >>> deprecate_cython_api(mod, "dgemm", "dgemm_new",
-    ...                      message="Deprecated in Scipy 1.5.0")
+    >>> deprecate_cython_api(
+    ...     mod,
+    ...     'dgemm',
+    ...     'dgemm_new',
+    ...     message='Deprecated in Scipy 1.5.0',
+    ... )
     >>> del deprecate_cython_api, mod
 
     After this, Cython modules that use the deprecated function emit a
@@ -323,7 +331,8 @@ def deprecate_cython_api(module, routine_name, new_name=None, message=None):
 
 
 class deprecated:
-    """Decorator to mark a function or class as deprecated.
+    """
+    Decorator to mark a function or class as deprecated.
 
     Issue a warning when the function is called/the class is instantiated and
     adds a warning to the docstring.
@@ -338,12 +347,14 @@ class deprecated:
     >>> deprecated()
     <sklearn.utils.deprecation.deprecated object at ...>
     >>> @deprecated()
-    ... def some_function(): pass
+    ... def some_function():
+    ...     pass
 
     Parameters
     ----------
     extra : str, default=''
           To be added to the deprecation messages.
+
     """
 
     # Adapted from https://wiki.python.org/moin/PythonDecoratorLibrary,
@@ -353,15 +364,17 @@ class deprecated:
         self.extra = extra
 
     def __call__(self, obj):
-        """Call method
+        """
+        Call method
 
         Parameters
         ----------
         obj : object
+
         """
         if isinstance(obj, type):
             return self._decorate_class(obj)
-        elif isinstance(obj, property):
+        if isinstance(obj, property):
             # Note that this is only triggered properly if the `deprecated`
             # decorator is placed before the `property` decorator, like so:
             #
@@ -370,8 +383,7 @@ class deprecated:
             # def deprecated_attribute_(self):
             #     ...
             return self._decorate_property(obj)
-        else:
-            return self._decorate_fun(obj)
+        return self._decorate_fun(obj)
 
     def _decorate_class(self, cls):
         msg = "Class %s is deprecated" % cls.__name__
@@ -399,7 +411,6 @@ class deprecated:
 
     def _decorate_fun(self, fun):
         """Decorate function fun"""
-
         msg = "Function %s is deprecated" % fun.__name__
         if self.extra:
             msg += "; %s" % self.extra

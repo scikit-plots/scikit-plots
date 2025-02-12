@@ -91,12 +91,9 @@ def main():
         else:
             forename = ""
             surname = fullname.strip()
-        if surname.startswith("van der "):
-            surname = surname[8:]
-        if surname.startswith("de "):
-            surname = surname[3:]
-        if surname.startswith("von "):
-            surname = surname[4:]
+        surname = surname.removeprefix("van der ")
+        surname = surname.removeprefix("de ")
+        surname = surname.removeprefix("von ")
         return (surname.lower(), forename.lower())
 
     # generate set of all new authors
@@ -197,8 +194,7 @@ class Cmd:
         try:
             if call:
                 return subprocess.call(cmd, **kw)
-            else:
-                return subprocess.Popen(cmd, **kw)
+            return subprocess.Popen(cmd, **kw)
         finally:
             if cwd is not None:
                 os.chdir(cwd)
@@ -210,7 +206,9 @@ class Cmd:
 
     def pipe(self, command, *a, **kw):
         stdin = kw.pop("stdin", None)
-        p = self._call(command, a, dict(stdin=stdin, stdout=subprocess.PIPE), call=False, **kw)
+        p = self._call(
+            command, a, dict(stdin=stdin, stdout=subprocess.PIPE), call=False, **kw
+        )
         return p.stdout
 
     def read(self, command, *a, **kw):
@@ -226,7 +224,11 @@ class Cmd:
 
     def test(self, command, *a, **kw):
         ret = self._call(
-            command, a, dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE), call=True, **kw
+            command,
+            a,
+            dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE),
+            call=True,
+            **kw,
         )
         return ret == 0
 

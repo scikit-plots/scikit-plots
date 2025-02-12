@@ -36,7 +36,11 @@ class BartelsConn(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return abs(x[0] ** 2.0 + x[1] ** 2.0 + x[0] * x[1]) + abs(sin(x[0])) + abs(cos(x[1]))
+        return (
+            abs(x[0] ** 2.0 + x[1] ** 2.0 + x[0] * x[1])
+            + abs(sin(x[0]))
+            + abs(cos(x[1]))
+        )
 
 
 class Beale(Benchmark):
@@ -246,7 +250,9 @@ class BiggsExp05(Benchmark):
         self.nfev += 1
         t = arange(1, 12.0) * 0.1
         y = exp(-t) - 5 * exp(-10 * t) + 3 * exp(-4 * t)
-        vec = (x[2] * exp(-t * x[0]) - x[3] * exp(-t * x[1]) + 3 * exp(-t * x[4]) - y) ** 2
+        vec = (
+            x[2] * exp(-t * x[0]) - x[3] * exp(-t * x[1]) + 3 * exp(-t * x[4]) - y
+        ) ** 2
 
         return sum(vec)
 
@@ -332,7 +338,13 @@ class Bohachevsky1(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0]) - 0.4 * cos(4 * pi * x[1]) + 0.7
+        return (
+            x[0] ** 2
+            + 2 * x[1] ** 2
+            - 0.3 * cos(3 * pi * x[0])
+            - 0.4 * cos(4 * pi * x[1])
+            + 0.7
+        )
 
 
 class Bohachevsky2(Benchmark):
@@ -372,7 +384,12 @@ class Bohachevsky2(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0]) * cos(4 * pi * x[1]) + 0.3
+        return (
+            x[0] ** 2
+            + 2 * x[1] ** 2
+            - 0.3 * cos(3 * pi * x[0]) * cos(4 * pi * x[1])
+            + 0.3
+        )
 
 
 class Bohachevsky3(Benchmark):
@@ -411,7 +428,9 @@ class Bohachevsky3(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0] + 4 * pi * x[1]) + 0.3
+        return (
+            x[0] ** 2 + 2 * x[1] ** 2 - 0.3 * cos(3 * pi * x[0] + 4 * pi * x[1]) + 0.3
+        )
 
 
 class BoxBetts(Benchmark):
@@ -456,7 +475,11 @@ class BoxBetts(Benchmark):
         self.nfev += 1
 
         i = arange(1, 11)
-        g = exp(-0.1 * i * x[0]) - exp(-0.1 * i * x[1]) - (exp(-0.1 * i) - exp(-i)) * x[2]
+        g = (
+            exp(-0.1 * i * x[0])
+            - exp(-0.1 * i * x[1])
+            - (exp(-0.1 * i) - exp(-i)) * x[2]
+        )
         return sum(g**2)
 
 
@@ -579,7 +602,11 @@ class Brent(Benchmark):
 
     def fun(self, x, *args):
         self.nfev += 1
-        return (x[0] + 10.0) ** 2.0 + (x[1] + 10.0) ** 2.0 + exp(-x[0] ** 2.0 - x[1] ** 2.0)
+        return (
+            (x[0] + 10.0) ** 2.0
+            + (x[1] + 10.0) ** 2.0
+            + exp(-(x[0] ** 2.0) - x[1] ** 2.0)
+        )
 
 
 class Brown(Benchmark):
@@ -660,7 +687,6 @@ class Bukin02(Benchmark):
         self.fglob = -124.75
 
     def fun(self, x, *args):
-
         self.nfev += 1
         return 100 * (x[1] ** 2 - 0.01 * x[0] ** 2 + 1.0) + 0.01 * (x[0] + 10.0) ** 2.0
 
@@ -697,7 +723,6 @@ class Bukin04(Benchmark):
         self.fglob = 0.0
 
     def fun(self, x, *args):
-
         self.nfev += 1
         return 100 * x[1] ** 2 + 0.01 * abs(x[0] + 10)
 
@@ -733,6 +758,5 @@ class Bukin06(Benchmark):
         self.fglob = 0.0
 
     def fun(self, x, *args):
-
         self.nfev += 1
         return 100 * sqrt(abs(x[1] - 0.01 * x[0] ** 2)) + 0.01 * abs(x[0] + 10)

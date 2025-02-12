@@ -29,6 +29,13 @@ If you are new to contributing to projects through forking on GitHub, see the
 `GitHub documentation for contributing to projects
 <https://docs.github.com/en/get-started/quickstart/contributing-to-projects>`_.
 
+
+.. important::
+
+  If you dont want to install any packages on your local you can use
+  ``Docker Pre-Installed Env`` via :ref:`docker-index`.
+
+
 Install a C compiler if needed
 ------------------------------
 
@@ -91,9 +98,9 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
     git submodule update --init --recursive  # download submodules
 
     # (Optionally) pulls changes from the upstream remote repo and merges them
-    git submodule update --recursive --remote --merge
+    git submodule update --recursive --remote --merge # (not needed every time)
     # (Optionally) Updating your submodule to the latest commit
-    git submodule update --remote
+    git submodule update --remote # (not needed every time)
 
     git remote add upstream https://github.com/scikit-plots/scikit-plots.git
     git fetch upstream --tags
@@ -143,6 +150,7 @@ to create and manage isolated Python environments.
 
 Now create and activate an ``skplt-dev`` conda environment using the following::
 
+   >>> # (Optionally) Can be run on `conda base` or `venv` env
    >>> conda create -n skplt-dev python graphviz
    >>> conda activate skplt-dev
 
@@ -193,11 +201,17 @@ Installation is straightforward. From the root of the ``scikit-plots`` repositor
     >>> # triggered when committing if pass then pushing changes
     >>> pre-commit install
 
-    >>> # (Optionally) update and reinstall pre-commit hooks, If Needed
+    >>> # (Optionally) manually to see which files were changed:
+    >>> pre-commit run ruff
+    >>> pre-commit run ruff-format --all-files --verbose
+
+Update and reinstall pre-commit hooks (not needed every time)::
+
+    >>> # (Optionally) Update and reinstall pre-commit hooks (not needed every time), If Needed
     >>> pre-commit clean
     >>> pre-commit autoupdate
     >>> pre-commit install
-    >>> # pre-commit run --all-files
+    >>> pre-commit run # --all-files
 
 Now all of the styling checks will be run each time you commit changes, ensuring that
 the CI formatting checks for your :ref:`pull request <quickstart-pull-request>` will

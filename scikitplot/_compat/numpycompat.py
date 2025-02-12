@@ -9,12 +9,12 @@ import numpy as np
 from .._utils.introspection import minversion
 
 __all__ = [
+    "COPY_IF_NEEDED",
     "NUMPY_LT_1_24",
     "NUMPY_LT_1_25",
     "NUMPY_LT_1_26",
     "NUMPY_LT_2_0",
     "NUMPY_LT_2_1",
-    "COPY_IF_NEEDED",
 ]
 
 # TODO: It might also be nice to have aliases to these named for specific

@@ -26,8 +26,7 @@ def callback_python(a, user_data=None):
 
     if user_data is None:
         return a + 1
-    else:
-        return a + user_data
+    return a + user_data
 
 
 def _get_cffi_func(base, signature):
@@ -67,26 +66,34 @@ CALLERS = {
 FUNCS = {
     "python": lambda: callback_python,
     "capsule": lambda: _test_ccallback.test_get_plus1_capsule(),
-    "cython": lambda: LowLevelCallable.from_cython(_test_ccallback_cython, "plus1_cython"),
+    "cython": lambda: LowLevelCallable.from_cython(
+        _test_ccallback_cython, "plus1_cython"
+    ),
     "ctypes": lambda: _test_ccallback_cython.plus1_ctypes,
     "cffi": lambda: _get_cffi_func(
         _test_ccallback_cython.plus1_ctypes, "double (*)(double, int *, void *)"
     ),
     "capsule_b": lambda: _test_ccallback.test_get_plus1b_capsule(),
-    "cython_b": lambda: LowLevelCallable.from_cython(_test_ccallback_cython, "plus1b_cython"),
+    "cython_b": lambda: LowLevelCallable.from_cython(
+        _test_ccallback_cython, "plus1b_cython"
+    ),
     "ctypes_b": lambda: _test_ccallback_cython.plus1b_ctypes,
     "cffi_b": lambda: _get_cffi_func(
-        _test_ccallback_cython.plus1b_ctypes, "double (*)(double, double, int *, void *)"
+        _test_ccallback_cython.plus1b_ctypes,
+        "double (*)(double, double, int *, void *)",
     ),
 }
 
 # These functions have signatures the callers don't know
 BAD_FUNCS = {
     "capsule_bc": lambda: _test_ccallback.test_get_plus1bc_capsule(),
-    "cython_bc": lambda: LowLevelCallable.from_cython(_test_ccallback_cython, "plus1bc_cython"),
+    "cython_bc": lambda: LowLevelCallable.from_cython(
+        _test_ccallback_cython, "plus1bc_cython"
+    ),
     "ctypes_bc": lambda: _test_ccallback_cython.plus1bc_ctypes,
     "cffi_bc": lambda: _get_cffi_func(
-        _test_ccallback_cython.plus1bc_ctypes, "double (*)(double, double, double, int *, void *)"
+        _test_ccallback_cython.plus1bc_ctypes,
+        "double (*)(double, double, double, int *, void *)",
     ),
 }
 
@@ -180,9 +187,8 @@ def test_threadsafety():
     def callback(a, caller):
         if a <= 0:
             return 1
-        else:
-            res = caller(lambda x: callback(x, caller), a - 1)
-            return 2 * res
+        res = caller(lambda x: callback(x, caller), a - 1)
+        return 2 * res
 
     def check(caller):
         caller = CALLERS[caller]
@@ -204,5 +210,5 @@ def test_threadsafety():
 
         assert_equal(results, [2.0**count] * len(threads))
 
-    for caller in CALLERS.keys():
+    for caller in CALLERS:
         check(caller)

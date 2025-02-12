@@ -32,7 +32,6 @@ def random_spatial(shape):
 
 
 class LinearAssignment(Benchmark):
-
     sizes = range(100, 401, 100)
     shapes = [(i, i) for i in sizes]
     shapes.extend([(i, 2 * i) for i in sizes])
@@ -42,7 +41,6 @@ class LinearAssignment(Benchmark):
     params = [shapes, cost_types]
 
     def setup(self, shape, cost_type):
-
         cost_func = {
             "uniform": random_uniform,
             "spatial": random_spatial,

@@ -11,7 +11,7 @@ The SciPy standard source distribution will not put code in this file beyond
 the try-except import of `_distributor_init_local` (which is not part of a
 standard source distribution), so you can safely replace this file with your
 own version.
-"""  # noqa: CPY001
+"""
 
 try:
     from . import _distributor_init_local  # noqa: F401

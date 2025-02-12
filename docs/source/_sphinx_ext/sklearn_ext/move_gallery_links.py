@@ -64,7 +64,8 @@ def move_gallery_links(app, exception):
                 continue
 
             def _create_secondary_sidebar_component(items):
-                """Create a new component in the secondary sidebar.
+                """
+                Create a new component in the secondary sidebar.
 
                 `items` should be a list of dictionaries with "element" being the bs4
                 tag of the component and "title" being the title (None if not needed).
@@ -79,7 +80,8 @@ def move_gallery_links(app, exception):
                 secondary_sidebar.append(component)
 
             def _create_download_link(link, is_jupyter=False):
-                """Create a download link to be appended to a component.
+                """
+                Create a download link to be appended to a component.
 
                 `link` should be the bs4 tag of the original download link, either for
                 the Python source code (is_jupyter=False) of for the Jupyter notebook
@@ -112,7 +114,8 @@ def move_gallery_links(app, exception):
                 return {"element": new_link, "title": title}
 
             def _create_badge_link(link):
-                """Create a badge link to be appended to a component.
+                """
+                Create a badge link to be appended to a component.
 
                 `link` should be the bs4 tag of the original badge link, either for
                 binder or JupyterLite. `link` will not be removed; instead the whole
@@ -128,7 +131,9 @@ def move_gallery_links(app, exception):
                 # image and limit the height to 20px (fixed) so that the secondary
                 # sidebar will appear neater
                 badge_img = link.find("img")
-                new_img = soup.new_tag("img", src=badge_img["src"], alt=badge_img["alt"], height=20)
+                new_img = soup.new_tag(
+                    "img", src=badge_img["src"], alt=badge_img["alt"], height=20
+                )
                 new_link.append(new_img)
 
                 return {"element": new_link, "title": None}

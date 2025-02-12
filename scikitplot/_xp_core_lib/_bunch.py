@@ -12,14 +12,18 @@ def _validate_names(typename, field_names, extra_field_names):
         if not isinstance(name, str):
             raise TypeError("typename and all field names must be strings")
         if not name.isidentifier():
-            raise ValueError("typename and all field names must be valid " f"identifiers: {name!r}")
+            raise ValueError(
+                f"typename and all field names must be valid identifiers: {name!r}"
+            )
         if _iskeyword(name):
-            raise ValueError("typename and all field names cannot be a " f"keyword: {name!r}")
+            raise ValueError(
+                f"typename and all field names cannot be a keyword: {name!r}"
+            )
 
     seen = set()
     for name in field_names + extra_field_names:
         if name.startswith("_"):
-            raise ValueError("Field names cannot start with an underscore: " f"{name!r}")
+            raise ValueError(f"Field names cannot start with an underscore: {name!r}")
         if name in seen:
             raise ValueError(f"Duplicate field name: {name!r}")
         seen.add(name)
@@ -105,6 +109,7 @@ def _make_tuple_bunch(typename, field_names, extra_field_names=None, module=None
     2
     >>> result1.beta
     0.5
+
     """
     if len(field_names) == 0:
         raise ValueError("field_names must contain at least one name")
@@ -120,7 +125,9 @@ def _make_tuple_bunch(typename, field_names, extra_field_names=None, module=None
     all_names = field_names + extra_field_names
     arg_list = ", ".join(field_names)
     full_list = ", ".join(all_names)
-    repr_fmt = "".join(("(", ", ".join(f"{name}=%({name})r" for name in all_names), ")"))
+    repr_fmt = "".join(
+        ("(", ", ".join(f"{name}=%({name})r" for name in all_names), ")")
+    )
     tuple_new = tuple.__new__
     _dict, _tuple, _zip = dict, tuple, zip
 
@@ -140,7 +147,7 @@ def __init__(self, {arg_list}, **extra_fields):
         self.__dict__[key] = val
 
 def __setattr__(self, key, val):
-    if key in {repr(field_names)}:
+    if key in {field_names!r}:
         raise AttributeError("can't set attribute %r of class %r"
                              % (key, self.__class__.__name__))
     else:
@@ -160,17 +167,17 @@ def __setattr__(self, key, val):
     __setattr__ = namespace["__setattr__"]
 
     def __repr__(self):
-        "Return a nicely formatted representation string"
+        """Return a nicely formatted representation string"""
         return self.__class__.__name__ + repr_fmt % self._asdict()
 
     def _asdict(self):
-        "Return a new dict which maps field names to their values."
+        """Return a new dict which maps field names to their values."""
         out = _dict(_zip(self._fields, self))
         out.update(self.__dict__)
         return out
 
     def __getnewargs_ex__(self):
-        "Return self as a plain tuple.  Used by copy and pickle."
+        """Return self as a plain tuple.  Used by copy and pickle."""
         return _tuple(self), self.__dict__
 
     # Modify function metadata to help with introspection and debugging

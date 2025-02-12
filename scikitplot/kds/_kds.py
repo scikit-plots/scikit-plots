@@ -9,15 +9,10 @@ References
 This package/module is designed to be compatible with both Python 2 and Python 3.
 The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
+
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,12 +30,12 @@ from ..api._utils.validation import (
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
-    "print_labels",
     "decile_table",
     "plot_cumulative_gain",
+    "plot_ks_statistic",
     "plot_lift",
     "plot_lift_decile_wise",
-    "plot_ks_statistic",
+    "print_labels",
     "report",
 ]
 
@@ -66,6 +61,7 @@ def print_labels(**kwargs):
 
         >>> import scikitplot as skplt
         >>> skplt.kds.print_labels()
+
     """
     print(
         "LABELS INFO:\n\n",
@@ -172,17 +168,24 @@ def decile_table(
 
     .. jupyter-execute::
 
-        >>> from sklearn.datasets import load_breast_cancer as data_2_classes
+        >>> from sklearn.datasets import (
+        ...     load_breast_cancer as data_2_classes,
+        ... )
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
         >>> import scikitplot as skplt
         >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
-        >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
-        >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(X_train, y_train)
+        >>> X_train, X_test, y_train, y_test = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
+        >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(
+        ...     X_train, y_train
+        ... )
         >>> y_prob = clf.predict_proba(X_test)
         >>> skplt.kds.decile_table(
         >>>     y_test, y_prob, class_index=1
         >>> )
+
     """
     # Convert input to numpy arrays for efficient processing
 
@@ -212,7 +215,14 @@ def decile_table(
                     np.size(x["y_true"][x["y_true"] == 0]),
                 ],
                 index=(
-                    ["prob_min", "prob_max", "prob_avg", "cnt_cust", "cnt_resp", "cnt_non_resp"]
+                    [
+                        "prob_min",
+                        "prob_max",
+                        "prob_avg",
+                        "cnt_cust",
+                        "cnt_resp",
+                        "cnt_non_resp",
+                    ]
                 ),
             ),
             **groupby_apply_include_groups(
@@ -248,8 +258,12 @@ def decile_table(
     dt["cum_non_resp"] = np.cumsum(dt["cnt_non_resp"])
     dt["cum_cust_pct"] = round(dt["cum_cust"] * 100 / np.sum(dt["cnt_cust"]), digits)
     dt["cum_resp_pct"] = round(dt["cum_resp"] * 100 / np.sum(dt["cnt_resp"]), digits)
-    dt["cum_resp_pct_wiz"] = round(dt["cum_resp_wiz"] * 100 / np.sum(dt["cnt_resp_wiz"]), digits)
-    dt["cum_non_resp_pct"] = round(dt["cum_non_resp"] * 100 / np.sum(dt["cnt_non_resp"]), digits)
+    dt["cum_resp_pct_wiz"] = round(
+        dt["cum_resp_wiz"] * 100 / np.sum(dt["cnt_resp_wiz"]), digits
+    )
+    dt["cum_non_resp_pct"] = round(
+        dt["cum_non_resp"] * 100 / np.sum(dt["cnt_non_resp"]), digits
+    )
     dt["KS"] = round(dt["cum_resp_pct"] - dt["cum_non_resp_pct"], digits)
     dt["lift"] = round(dt["cum_resp_pct"] / dt["cum_cust_pct"], digits)
 
@@ -260,10 +274,7 @@ def decile_table(
 
 
 @_preprocess._preprocess_data(
-    replace_names=[
-        "y_true",
-        "y_probas",
-    ],
+    replace_names=["y_true", "y_probas"]
     # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
@@ -363,12 +374,17 @@ def plot_lift(
         >>> from sklearn.linear_model import LogisticRegression
         >>> import scikitplot as skplt
         >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
-        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
-        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
+        >>> X_train, X_val, y_train, y_val = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
+        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(
+        ...     X_train, y_train
+        ... )
         >>> y_probas = model.predict_proba(X_val)
         >>> skplt.kds.plot_lift(
         >>>     y_val, y_probas, class_index=1,
         >>> );
+
     """
     # Convert input to numpy arrays for efficient processing
 
@@ -396,10 +412,7 @@ def plot_lift(
 
 
 @_preprocess._preprocess_data(
-    replace_names=[
-        "y_true",
-        "y_probas",
-    ],
+    replace_names=["y_true", "y_probas"]
     # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
@@ -486,11 +499,14 @@ def plot_lift_decile_wise(
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
         >>> X, y = load_iris(return_X_y=True)
-        >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> X_train, X_test, y_train, y_test = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
         >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0)
         >>> clf = clf.fit(X_train, y_train)
         >>> y_prob = clf.predict_proba(X_test)
         >>> skplt.kds.plot_lift_decile_wise(y_test, y_prob, class_index=1)
+
     """
     # Convert input to numpy arrays for efficient processing
 
@@ -523,10 +539,7 @@ def plot_lift_decile_wise(
 
 
 @_preprocess._preprocess_data(
-    replace_names=[
-        "y_true",
-        "y_probas",
-    ],
+    replace_names=["y_true", "y_probas"]
     # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
@@ -626,12 +639,17 @@ def plot_cumulative_gain(
         >>> from sklearn.linear_model import LogisticRegression
         >>> import scikitplot as skplt
         >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
-        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
-        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
+        >>> X_train, X_val, y_train, y_val = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
+        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(
+        ...     X_train, y_train
+        ... )
         >>> y_probas = model.predict_proba(X_val)
         >>> skplt.kds.plot_cumulative_gain(
         >>>     y_val, y_probas, class_index=1,
         >>> );
+
     """
     # Convert input to numpy arrays for efficient processing
 
@@ -670,10 +688,7 @@ def plot_cumulative_gain(
 
 
 @_preprocess._preprocess_data(
-    replace_names=[
-        "y_true",
-        "y_probas",
-    ],
+    replace_names=["y_true", "y_probas"]
     # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
@@ -761,17 +776,24 @@ def plot_ks_statistic(
        :align: center
        :alt: KS Statistic Plot
 
-        >>> from sklearn.datasets import load_breast_cancer as data_2_classes
+        >>> from sklearn.datasets import (
+        ...     load_breast_cancer as data_2_classes,
+        ... )
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
         >>> import scikitplot as skplt
         >>> X, y = data_2_classes(return_X_y=True, as_frame=False)
-        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
-        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train)
+        >>> X_train, X_val, y_train, y_val = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
+        >>> model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(
+        ...     X_train, y_train
+        ... )
         >>> y_probas = model.predict_proba(X_val)
         >>> skplt.kds.plot_ks_statistic(
         >>>     y_val, y_probas, class_index=1,
         >>> );
+
     """
     # Convert input to numpy arrays for efficient processing
 
@@ -799,13 +821,16 @@ def plot_ks_statistic(
     )
     # ax.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
     ksmx = pks.KS.max()
-    ksdcl = pks[pks.KS == ksmx].decile.values
+    ksdcl = pks[ksmx == pks.KS].decile.values
     ax.plot(
         [ksdcl, ksdcl],
-        [pks[pks.KS == ksmx].cum_resp_pct.values, pks[pks.KS == ksmx].cum_non_resp_pct.values],
+        [
+            pks[ksmx == pks.KS].cum_resp_pct.values,
+            pks[ksmx == pks.KS].cum_non_resp_pct.values,
+        ],
         "g--",
         marker="o",
-        label="KS Statisic: " + str(ksmx) + " at decile " + str(list(ksdcl)[0]),
+        label="KS Statistic: " + str(ksmx) + " at decile " + str(list(ksdcl)[0]),
     )
 
     plt.title(title, fontsize=title_fontsize)
@@ -818,10 +843,7 @@ def plot_ks_statistic(
 
 
 @_preprocess._preprocess_data(
-    replace_names=[
-        "y_true",
-        "y_probas",
-    ],
+    replace_names=["y_true", "y_probas"]
     # label_namer="y",  # for label params
 )
 @_docstring.interpd
@@ -933,21 +955,30 @@ def report(
 
     .. jupyter-execute::
 
-        >>> from sklearn.datasets import load_breast_cancer as data_2_classes
+        >>> from sklearn.datasets import (
+        ...     load_breast_cancer as data_2_classes,
+        ... )
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
         >>> import scikitplot as skplt
         >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
-        >>> X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
-        >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(X_train, y_train)
+        >>> X_train, X_test, y_train, y_test = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
+        >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(
+        ...     X_train, y_train
+        ... )
         >>> y_prob = clf.predict_proba(X_test)
         >>> dt = skplt.kds.report(
         >>>     y_test, y_prob, class_index=1
         >>> )
         >>> dt
+
     """
     # Convert input to numpy arrays for efficient processing
-    dc = decile_table(y_true, y_probas, labels=display_term_tables, round_decimal=digits)
+    dc = decile_table(
+        y_true, y_probas, labels=display_term_tables, round_decimal=digits
+    )
 
     ##################################################################
     ## Plotting

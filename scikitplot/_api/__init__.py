@@ -44,7 +44,9 @@ class classproperty:
             def foo(cls):
                 return cls.__name__
 
-        assert C.foo == "C"
+
+        assert C.foo == 'C'
+
     """
 
     def __init__(self, fget, fset=None, fdel=None, doc=None):
@@ -78,6 +80,7 @@ def check_isinstance(types, /, **kwargs):
     Examples
     --------
     >>> _api.check_isinstance((SomeClass, None), arg=arg)
+
     """
     none_type = type(None)
     types = (
@@ -110,7 +113,11 @@ def check_isinstance(types, /, **kwargs):
             raise TypeError(
                 "{!r} must be an instance of {}, not a {}".format(
                     k,
-                    ", ".join(names[:-1]) + " or " + names[-1] if len(names) > 1 else names[0],
+                    (
+                        ", ".join(names[:-1]) + " or " + names[-1]
+                        if len(names) > 1
+                        else names[0]
+                    ),
                     type_name(type(v)),
                 )
             )
@@ -137,7 +144,8 @@ def check_in_list(values, /, *, _print_supported_values=True, **kwargs):
 
     Examples
     --------
-    >>> _api.check_in_list(["foo", "bar"], arg=arg, other_arg=other_arg)
+    >>> _api.check_in_list(['foo', 'bar'], arg=arg, other_arg=other_arg)
+
     """
     if not kwargs:
         raise TypeError("No argument to check!")
@@ -145,7 +153,7 @@ def check_in_list(values, /, *, _print_supported_values=True, **kwargs):
         if val not in values:
             msg = f"{val!r} is not a valid value for {key}"
             if _print_supported_values:
-                msg += f"; supported values are {', '.join(map(repr, values))}"
+                msg += f'; supported values are {", ".join(map(repr, values))}'
             raise ValueError(msg)
 
 
@@ -164,6 +172,7 @@ def check_shape(shape, /, **kwargs):
     To check for (N, 2) shaped arrays
 
     >>> _api.check_shape((None, 2), arg=arg, other_arg=other_arg)
+
     """
     for k, v in kwargs.items():
         data_shape = v.shape
@@ -171,9 +180,13 @@ def check_shape(shape, /, **kwargs):
         if len(data_shape) != len(shape) or any(
             s != t and t is not None for s, t in zip(data_shape, shape)
         ):
-            dim_labels = iter(itertools.chain("NMLKJIH", (f"D{i}" for i in itertools.count())))
+            dim_labels = iter(
+                itertools.chain("NMLKJIH", (f"D{i}" for i in itertools.count()))
+            )
             text_shape = ", ".join(
-                [str(n) if n is not None else next(dim_labels) for n in shape[::-1]][::-1]
+                [str(n) if n is not None else next(dim_labels) for n in shape[::-1]][
+                    ::-1
+                ]
             )
             if len(shape) == 1:
                 text_shape += ","
@@ -192,7 +205,8 @@ def check_getitem(mapping, /, **kwargs):
 
     Examples
     --------
-    >>> _api.check_getitem({"foo": "bar"}, arg=arg)
+    >>> _api.check_getitem({'foo': 'bar'}, arg=arg)
+
     """
     if len(kwargs) != 1:
         raise ValueError("check_getitem takes a single keyword argument")
@@ -202,7 +216,7 @@ def check_getitem(mapping, /, **kwargs):
     except KeyError:
         raise ValueError(
             f"{v!r} is not a valid value for {k}; supported values are "
-            f"{', '.join(map(repr, mapping))}"
+            f'{", ".join(map(repr, mapping))}'
         ) from None
 
 
@@ -224,10 +238,11 @@ def caching_module_getattr(cls):
     all implicitly cached.  Moreover, a suitable AttributeError is generated
     and raised if no property with the given name exists.
     """
-
     assert cls.__name__ == "__getattr__"
     # Don't accidentally export cls dunders.
-    props = {name: prop for name, prop in vars(cls).items() if isinstance(prop, property)}
+    props = {
+        name: prop for name, prop in vars(cls).items() if isinstance(prop, property)
+    }
     instance = cls()
 
     @functools.cache
@@ -284,7 +299,9 @@ def define_aliases(alias_d, cls=None):
         return {*d, *(alias for aliases in d.values() for alias in aliases)}
 
     preexisting_aliases = getattr(cls, "_alias_map", {})
-    conflicting = get_aliased_and_aliases(preexisting_aliases) & get_aliased_and_aliases(alias_d)
+    conflicting = get_aliased_and_aliases(
+        preexisting_aliases
+    ) & get_aliased_and_aliases(alias_d)
     if conflicting:
         # Need to decide on conflict resolution policy.
         raise NotImplementedError(
@@ -322,18 +339,21 @@ def select_matching_signature(funcs, *args, **kwargs):
         def my_func(*args, **kwargs):
             params = select_matching_signature(
                 [lambda old1, old2: locals(), lambda new: locals()],
-                *args, **kwargs)
-            if "old1" in params:
+                *args,
+                **kwargs,
+            )
+            if 'old1' in params:
                 warn_deprecated(...)
                 old1, old2 = params.values()  # note that locals() is ordered.
             else:
-                new, = params.values()
+                (new,) = params.values()
             # do things with params
 
     which allows *my_func* to be called either with two parameters (*old1* and
     *old2*) or a single one (*new*).  Note that the new signature is given
     last, so that callers get a `TypeError` corresponding to the new signature
     if the arguments they passed in do not match any signature.
+
     """
     # Rather than relying on locals() ordering, one could have just used func's
     # signature (``bound = inspect.signature(func).bind(*args, **kwargs);
@@ -347,8 +367,11 @@ def select_matching_signature(funcs, *args, **kwargs):
 
 
 def nargs_error(name, takes, given):
-    """Generate a TypeError to be raised by function calls with wrong arity."""
-    return TypeError(f"{name}() takes {takes} positional arguments but " f"{given} were given")
+    """
+    Generate a TypeError to be raised by function calls with wrong arity."""
+    return TypeError(
+        f"{name}() takes {takes} positional arguments but {given} were given"
+    )
 
 
 def kwarg_error(name, kw):
@@ -362,6 +385,7 @@ def kwarg_error(name, kw):
     kw : str or Iterable[str]
         Either the invalid keyword argument name, or an iterable yielding
         invalid keyword arguments (e.g., a ``kwargs`` dict).
+
     """
     if not isinstance(kw, str):
         kw = next(iter(kw))
@@ -388,7 +412,10 @@ def warn_external(message, category=None):
     if sys.version_info[:2] >= (3, 12):
         # Go to Python's `site-packages` or `lib` from an editable install.
         basedir = pathlib.Path(__file__).parents[2]
-        kwargs["skip_file_prefixes"] = (str(basedir / "matplotlib"), str(basedir / "mpl_toolkits"))
+        kwargs["skip_file_prefixes"] = (
+            str(basedir / "matplotlib"),
+            str(basedir / "mpl_toolkits"),
+        )
     else:
         frame = sys._getframe()
         for stacklevel in itertools.count(1):

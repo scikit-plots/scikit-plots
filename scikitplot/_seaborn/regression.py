@@ -1,12 +1,13 @@
 """Plotting functions for linear models (broadly construed)."""
 
 import copy
-from textwrap import dedent
 import warnings
-import numpy as np
-import pandas as pd
+from textwrap import dedent
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 try:
     import statsmodels
@@ -16,15 +17,16 @@ try:
 except ImportError:
     _has_statsmodels = False
 
-from . import utils
 from . import algorithms as algo
+from . import utils
 from .axisgrid import FacetGrid, _facet_docs
 
 __all__ = ["lmplot", "regplot", "residplot"]
 
 
 class _LinearPlotter:
-    """Base class for plotting relational data in tidy format.
+    """
+    Base class for plotting relational data in tidy format.
 
     To get anything useful done you'll have to inherit from this, but setup
     code that can be abstracted out should be put here.
@@ -70,7 +72,8 @@ class _LinearPlotter:
 
 
 class _RegressionPlotter(_LinearPlotter):
-    """Plotter for numeric independent variables with regression model.
+    """
+    Plotter for numeric independent variables with regression model.
 
     This does the computations and drawing for the `regplot` function, and
     is thus also used indirectly by `lmplot`.
@@ -104,7 +107,6 @@ class _RegressionPlotter(_LinearPlotter):
         color=None,
         label=None,
     ):
-
         # Set member attributes
         self.x_estimator = x_estimator
         self.ci = ci
@@ -184,7 +186,6 @@ class _RegressionPlotter(_LinearPlotter):
         points, cis = [], []
 
         for val in vals:
-
             # Get the point estimate of the y variable
             _y = y[x == val]
             est = self.x_estimator(_y)
@@ -202,7 +203,11 @@ class _RegressionPlotter(_LinearPlotter):
                     if self.units is not None:
                         units = self.units[x == val]
                     boots = algo.bootstrap(
-                        _y, func=self.x_estimator, n_boot=self.n_boot, units=units, seed=self.seed
+                        _y,
+                        func=self.x_estimator,
+                        n_boot=self.n_boot,
+                        units=units,
+                        seed=self.seed,
                     )
                     _ci = utils.ci(boots, self.x_ci)
                 cis.append(_ci)
@@ -225,11 +230,10 @@ class _RegressionPlotter(_LinearPlotter):
         if grid is None:
             if self.truncate:
                 x_min, x_max = self.x_range
+            elif ax is None:
+                x_min, x_max = x_range
             else:
-                if ax is None:
-                    x_min, x_max = x_range
-                else:
-                    x_min, x_max = ax.get_xlim()
+                x_min, x_max = ax.get_xlim()
             grid = np.linspace(x_min, x_max, 100)
         ci = self.ci
 
@@ -237,8 +241,8 @@ class _RegressionPlotter(_LinearPlotter):
         if self.order > 1:
             yhat, yhat_boots = self.fit_poly(grid, self.order)
         elif self.logistic:
-            from statsmodels.genmod.generalized_linear_model import GLM
             from statsmodels.genmod.families import Binomial
+            from statsmodels.genmod.generalized_linear_model import GLM
 
             yhat, yhat_boots = self.fit_statsmodels(grid, GLM, family=Binomial())
         elif self.lowess:
@@ -682,7 +686,6 @@ def lmplot(
     line_kws=None,
     facet_kws=None,
 ):
-
     if facet_kws is None:
         facet_kws = {}
 
@@ -733,7 +736,8 @@ def lmplot(
         markers = [markers] * n_markers
     if len(markers) != n_markers:
         raise ValueError(
-            "markers must be a singleton or a list of markers " "for each level of the hue variable"
+            "markers must be a singleton or a list of markers "
+            "for each level of the hue variable"
         )
     facets.hue_kws = {"marker": markers}
 
@@ -908,7 +912,6 @@ def regplot(
     line_kws=None,
     ax=None,
 ):
-
     plotter = _RegressionPlotter(
         x,
         y,
@@ -1042,7 +1045,8 @@ def residplot(
     line_kws=None,
     ax=None,
 ):
-    """Plot the residuals of a linear regression.
+    """
+    Plot the residuals of a linear regression.
 
     This function will regress y on x (possibly as a robust or polynomial
     regression) and then draw a scatterplot of the residuals. You can

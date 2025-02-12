@@ -10,7 +10,6 @@ import scikitplot as skplt
 
 
 class TestClassifierFactory(unittest.TestCase):
-
     def setUp(self):
         class Clusterer:
             def __init__(self):
@@ -30,7 +29,6 @@ class TestClassifierFactory(unittest.TestCase):
         self.NotClusterer = NotClusterer
 
     def test_instance_validation(self):
-
         clf = self.Clusterer()
         skplt._factory_api.clustering_factory(clf)
 
@@ -38,7 +36,6 @@ class TestClassifierFactory(unittest.TestCase):
         self.assertRaises(TypeError, skplt._factory_api.clustering_factory, not_clf)
 
     def test_method_insertion(self):
-
         clf = self.Clusterer()
         skplt._factory_api.clustering_factory(clf)
         assert hasattr(clf, "plot_silhouette")

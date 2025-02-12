@@ -5,7 +5,9 @@ import os
 import subprocess
 
 # Set up logging configuration
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger()
 
 
@@ -24,7 +26,9 @@ def run_scripts(script_dir):
             relative_script_path = os.path.relpath(script, start=script_dir)
 
             # Run the script using subprocess with the correct relative path
-            subprocess.run(f"python {relative_script_path}", shell=True, cwd=script_dir, check=True)
+            subprocess.run(
+                f"python {relative_script_path}", shell=True, cwd=script_dir, check=True
+            )
             logger.info(f"Successfully executed {script_name}")
         except subprocess.CalledProcessError as e:
             logger.error(f"Error executing {script_name}: {e}")
@@ -36,7 +40,9 @@ def main():
     import os
 
     # Set up argument parser
-    parser = argparse.ArgumentParser(description="Run Python scripts and optionally save plots.")
+    parser = argparse.ArgumentParser(
+        description="Run Python scripts and optionally save plots."
+    )
     parser.add_argument(
         "base_dir",
         nargs="?",
@@ -44,7 +50,9 @@ def main():
         help="Base directory to search for scripts",
     )
     parser.add_argument(
-        "--save-plots", action="store_true", help="Flag to save plots (default is to display them)"
+        "--save-plots",
+        action="store_true",
+        help="Flag to save plots (default is to display them)",
     )
     args = parser.parse_args()
     # Determine whether to save plots or not

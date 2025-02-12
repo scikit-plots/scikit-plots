@@ -1,5 +1,6 @@
 # copied from scipy/_lib/_tmpdirs.py
 """Contexts for *with* statement providing temporary directories"""
+
 import os
 from contextlib import contextmanager
 from shutil import rmtree
@@ -8,7 +9,8 @@ from tempfile import mkdtemp
 
 @contextmanager
 def tempdir():
-    """Create and return a temporary directory. This has the same
+    """
+    Create and return a temporary directory. This has the same
     behavior as mkdtemp but can be used as a context manager.
 
     Upon exiting the context, the directory and everything contained
@@ -23,6 +25,7 @@ def tempdir():
     ...         _ = fobj.write('a string\\n')
     >>> os.path.exists(tmpdir)
     False
+
     """
     d = mkdtemp()
     yield d
@@ -31,7 +34,8 @@ def tempdir():
 
 @contextmanager
 def in_tempdir():
-    """Create, return, and change directory to a temporary directory
+    """
+    Create, return, and change directory to a temporary directory
 
     Examples
     --------
@@ -45,6 +49,7 @@ def in_tempdir():
     False
     >>> os.getcwd() == my_cwd
     True
+
     """
     pwd = os.getcwd()
     d = mkdtemp()
@@ -56,7 +61,8 @@ def in_tempdir():
 
 @contextmanager
 def in_dir(dir=None):
-    """Change directory to given directory for duration of ``with`` block
+    """
+    Change directory to given directory for duration of ``with`` block
 
     Useful when you want to use `in_tempdir` for the final test, but
     you are still debugging. For example, you may want to do this in the end:
@@ -70,7 +76,7 @@ def in_dir(dir=None):
     temporary files that you wanted for debugging. So, while debugging, you
     replace with something like:
 
-    >>> with in_dir() as tmpdir: # Use working directory by default
+    >>> with in_dir() as tmpdir:  # Use working directory by default
     ...     # do something complicated which might break
     ...     pass
 

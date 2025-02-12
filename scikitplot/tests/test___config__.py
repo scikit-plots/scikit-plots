@@ -1,6 +1,4 @@
-"""
-Check the SciPy config is valid.
-"""
+"""Check the SciPy config is valid."""
 
 from unittest.mock import patch
 
@@ -9,20 +7,13 @@ import pytest
 import scikitplot
 
 pytestmark = pytest.mark.skipif(
-    not hasattr(
-        scikitplot.__config__,
-        "_built_with_meson",
-    ),
+    not hasattr(scikitplot.__config__, "_built_with_meson"),
     reason="Requires Meson builds",
 )
 
 
 class TestScikitPlotsConfigs:
-    REQUIRED_CONFIG_KEYS = [
-        "Compilers",
-        "Machine Information",
-        "Python Information",
-    ]
+    REQUIRED_CONFIG_KEYS = ["Compilers", "Machine Information", "Python Information"]
 
     @pytest.mark.thread_unsafe
     @patch("scikitplot.__config__._check_pyyaml")
@@ -45,6 +36,6 @@ class TestScikitPlotsConfigs:
             scikitplot.show_config(mode="foo")
 
     def test_warn_to_add_tests(self):
-        assert len(scikitplot.__config__.DisplayModes) == 2, (
-            "New mode detected," " please add UT if applicable and increment this count"
-        )
+        assert (
+            len(scikitplot.__config__.DisplayModes) == 2
+        ), "New mode detected, please add UT if applicable and increment this count"

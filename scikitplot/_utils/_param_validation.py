@@ -19,7 +19,8 @@ from .sk_validation import _is_arraylike_not_scalar
 
 
 class InvalidParameterError(ValueError, TypeError):
-    """Custom exception to be raised when the parameter of a class/method/function
+    """
+    Custom exception to be raised when the parameter of a class/method/function
     does not have a valid type or value.
     """
 
@@ -27,7 +28,8 @@ class InvalidParameterError(ValueError, TypeError):
 
 
 def validate_parameter_constraints(parameter_constraints, params, caller_name):
-    """Validate types and values of given parameters.
+    """
+    Validate types and values of given parameters.
 
     Parameters
     ----------
@@ -60,6 +62,7 @@ def validate_parameter_constraints(parameter_constraints, params, caller_name):
 
     caller_name : str
         The name of the estimator or function or method that called this function.
+
     """
     for param_name, param_val in params.items():
         # We allow parameters to not have a constraint so that third party estimators
@@ -84,13 +87,16 @@ def validate_parameter_constraints(parameter_constraints, params, caller_name):
 
             # Ignore constraints that we don't want to expose in the error message,
             # i.e. options that are for internal purpose or not officially supported.
-            constraints = [constraint for constraint in constraints if not constraint.hidden]
+            constraints = [
+                constraint for constraint in constraints if not constraint.hidden
+            ]
 
             if len(constraints) == 1:
                 constraints_str = f"{constraints[0]}"
             else:
                 constraints_str = (
-                    f"{', '.join([str(c) for c in constraints[:-1]])} or" f" {constraints[-1]}"
+                    f'{", ".join([str(c) for c in constraints[:-1]])} or'
+                    f" {constraints[-1]}"
                 )
 
             raise InvalidParameterError(
@@ -100,7 +106,8 @@ def validate_parameter_constraints(parameter_constraints, params, caller_name):
 
 
 def make_constraint(constraint):
-    """Convert the constraint into the appropriate Constraint object.
+    """
+    Convert the constraint into the appropriate Constraint object.
 
     Parameters
     ----------
@@ -111,6 +118,7 @@ def make_constraint(constraint):
     -------
     constraint : instance of _Constraint
         The converted constraint.
+
     """
     if isinstance(constraint, str) and constraint == "array-like":
         return _ArrayLikes()
@@ -124,7 +132,9 @@ def make_constraint(constraint):
         return _NoneConstraint()
     if isinstance(constraint, type):
         return _InstancesOf(constraint)
-    if isinstance(constraint, (Interval, StrOptions, Options, HasMethods, MissingValues)):
+    if isinstance(
+        constraint, (Interval, StrOptions, Options, HasMethods, MissingValues)
+    ):
         return constraint
     if isinstance(constraint, str) and constraint == "boolean":
         return _Booleans()
@@ -142,7 +152,8 @@ def make_constraint(constraint):
 
 
 def validate_params(parameter_constraints, *, prefer_skip_nested_validation):
-    """Decorator to validate types and values of functions and methods.
+    """
+    Decorator to validate types and values of functions and methods.
 
     Parameters
     ----------
@@ -170,13 +181,14 @@ def validate_params(parameter_constraints, *, prefer_skip_nested_validation):
     -------
     decorated_function : function or method
         The decorated function.
+
     """
 
     def decorator(func):
         # The dict of parameter constraints is set as an attribute of the function
         # to make it possible to dynamically introspect the constraints for
         # automatic testing.
-        setattr(func, "_skl_parameter_constraints", parameter_constraints)
+        func._skl_parameter_constraints = parameter_constraints
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -228,7 +240,8 @@ def validate_params(parameter_constraints, *, prefer_skip_nested_validation):
 
 
 class RealNotInt(Real):
-    """A type that represents reals that are not instances of int.
+    """
+    A type that represents reals that are not instances of int.
 
     Behaves like float, but also works with values extracted from numpy arrays.
     isintance(1, RealNotInt) -> False
@@ -245,9 +258,9 @@ def _type_name(t):
     qualname = t.__qualname__
     if module == "builtins":
         return qualname
-    elif t == Real:
+    if t == Real:
         return "float"
-    elif t == Integral:
+    if t == Integral:
         return "int"
     return f"{module}.{qualname}"
 
@@ -260,7 +273,8 @@ class _Constraint(ABC):
 
     @abstractmethod
     def is_satisfied_by(self, val):
-        """Whether or not a value satisfies the constraint.
+        """
+        Whether or not a value satisfies the constraint.
 
         Parameters
         ----------
@@ -271,6 +285,7 @@ class _Constraint(ABC):
         -------
         is_satisfied : bool
             Whether or not the constraint is satisfied by this value.
+
         """
 
     @abstractmethod
@@ -279,12 +294,14 @@ class _Constraint(ABC):
 
 
 class _InstancesOf(_Constraint):
-    """Constraint representing instances of a given type.
+    """
+    Constraint representing instances of a given type.
 
     Parameters
     ----------
     type : type
         The valid type.
+
     """
 
     def __init__(self, type):
@@ -312,7 +329,9 @@ class _NanConstraint(_Constraint):
     """Constraint representing the indicator `np.nan`."""
 
     def is_satisfied_by(self, val):
-        return not isinstance(val, Integral) and isinstance(val, Real) and math.isnan(val)
+        return (
+            not isinstance(val, Integral) and isinstance(val, Real) and math.isnan(val)
+        )
 
     def __str__(self):
         return "numpy.nan"
@@ -334,7 +353,8 @@ class _PandasNAConstraint(_Constraint):
 
 
 class Options(_Constraint):
-    """Constraint representing a finite set of instances of a given type.
+    """
+    Constraint representing a finite set of instances of a given type.
 
     Parameters
     ----------
@@ -346,6 +366,7 @@ class Options(_Constraint):
     deprecated : set or None, default=None
         A subset of the `options` to mark as deprecated in the string
         representation of the constraint.
+
     """
 
     def __init__(self, type, options, *, deprecated=None):
@@ -368,12 +389,15 @@ class Options(_Constraint):
         return option_str
 
     def __str__(self):
-        options_str = f"{', '.join([self._mark_if_deprecated(o) for o in self.options])}"
+        options_str = (
+            f'{", ".join([self._mark_if_deprecated(o) for o in self.options])}'
+        )
         return f"a {_type_name(self.type)} among {{{options_str}}}"
 
 
 class StrOptions(Options):
-    """Constraint representing a finite set of strings.
+    """
+    Constraint representing a finite set of strings.
 
     Parameters
     ----------
@@ -383,6 +407,7 @@ class StrOptions(Options):
     deprecated : set of str or None, default=None
         A subset of the `options` to mark as deprecated in the string
         representation of the constraint.
+
     """
 
     def __init__(self, options, *, deprecated=None):
@@ -390,7 +415,8 @@ class StrOptions(Options):
 
 
 class Interval(_Constraint):
-    """Constraint representing a typed interval.
+    """
+    Constraint representing a typed interval.
 
     Parameters
     ----------
@@ -423,6 +449,7 @@ class Interval(_Constraint):
     Setting a bound to `None` and setting the interval closed is valid. For instance,
     strictly speaking, `Interval(Real, 0, None, closed="both")` corresponds to
     `[0, +∞) U {+∞}`.
+
     """
 
     def __init__(self, type, left, right, *, closed):
@@ -454,9 +481,13 @@ class Interval(_Constraint):
             if self.right is not None and not isinstance(self.right, Integral):
                 raise TypeError(f"Expecting right to be an int {suffix}")
             if self.left is None and self.closed in ("left", "both"):
-                raise ValueError(f"left can't be None when closed == {self.closed} {suffix}")
+                raise ValueError(
+                    f"left can't be None when closed == {self.closed} {suffix}"
+                )
             if self.right is None and self.closed in ("right", "both"):
-                raise ValueError(f"right can't be None when closed == {self.closed} {suffix}")
+                raise ValueError(
+                    f"right can't be None when closed == {self.closed} {suffix}"
+                )
         else:
             if self.left is not None and not isinstance(self.left, Real):
                 raise TypeError("Expecting left to be a real number.")
@@ -465,7 +496,8 @@ class Interval(_Constraint):
 
         if self.right is not None and self.left is not None and self.right <= self.left:
             raise ValueError(
-                f"right can't be less than left. Got left={self.left} and " f"right={self.right}"
+                f"right can't be less than left. Got left={self.left} and "
+                f"right={self.right}"
             )
 
     def __contains__(self, val):
@@ -504,7 +536,8 @@ class Interval(_Constraint):
             right_bound = float(right_bound)
 
         return (
-            f"{type_str} in the range " f"{left_bracket}{left_bound}, {right_bound}{right_bracket}"
+            f"{type_str} in the range "
+            f"{left_bracket}{left_bound}, {right_bound}{right_bracket}"
         )
 
 
@@ -539,7 +572,8 @@ class _Callables(_Constraint):
 
 
 class _RandomStates(_Constraint):
-    """Constraint representing random states.
+    """
+    Constraint representing random states.
 
     Convenience class for
     [Interval(Integral, 0, 2**32 - 1, closed="both"), np.random.RandomState, None]
@@ -558,12 +592,14 @@ class _RandomStates(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
+            f'{", ".join([str(c) for c in self._constraints[:-1]])} or'
+            f" {self._constraints[-1]}"
         )
 
 
 class _Booleans(_Constraint):
-    """Constraint representing boolean likes.
+    """
+    Constraint representing boolean likes.
 
     Convenience class for
     [bool, np.bool_]
@@ -571,22 +607,21 @@ class _Booleans(_Constraint):
 
     def __init__(self):
         super().__init__()
-        self._constraints = [
-            _InstancesOf(bool),
-            _InstancesOf(np.bool_),
-        ]
+        self._constraints = [_InstancesOf(bool), _InstancesOf(np.bool_)]
 
     def is_satisfied_by(self, val):
         return any(c.is_satisfied_by(val) for c in self._constraints)
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
+            f'{", ".join([str(c) for c in self._constraints[:-1]])} or'
+            f" {self._constraints[-1]}"
         )
 
 
 class _VerboseHelper(_Constraint):
-    """Helper constraint for the verbose parameter.
+    """
+    Helper constraint for the verbose parameter.
 
     Convenience class for
     [Interval(Integral, 0, None, closed="left"), bool, numpy.bool_]
@@ -605,12 +640,14 @@ class _VerboseHelper(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
+            f'{", ".join([str(c) for c in self._constraints[:-1]])} or'
+            f" {self._constraints[-1]}"
         )
 
 
 class MissingValues(_Constraint):
-    """Helper constraint for the `missing_values` parameters.
+    """
+    Helper constraint for the `missing_values` parameters.
 
     Convenience for
     [
@@ -649,12 +686,14 @@ class MissingValues(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
+            f'{", ".join([str(c) for c in self._constraints[:-1]])} or'
+            f" {self._constraints[-1]}"
         )
 
 
 class HasMethods(_Constraint):
-    """Constraint representing objects that expose specific methods.
+    """
+    Constraint representing objects that expose specific methods.
 
     It is useful for parameters following a protocol and where we don't want to impose
     an affiliation to a specific module or class.
@@ -663,12 +702,10 @@ class HasMethods(_Constraint):
     ----------
     methods : str or list of str
         The method(s) that the object is expected to expose.
+
     """
 
-    @validate_params(
-        {"methods": [str, list]},
-        prefer_skip_nested_validation=True,
-    )
+    @validate_params({"methods": [str, list]}, prefer_skip_nested_validation=True)
     def __init__(self, methods):
         super().__init__()
         if isinstance(methods, str):
@@ -683,7 +720,8 @@ class HasMethods(_Constraint):
             methods = f"{self.methods[0]!r}"
         else:
             methods = (
-                f"{', '.join([repr(m) for m in self.methods[:-1]])} and" f" {self.methods[-1]!r}"
+                f'{", ".join([repr(m) for m in self.methods[:-1]])} and'
+                f" {self.methods[-1]!r}"
             )
         return f"an object implementing {methods}"
 
@@ -699,7 +737,8 @@ class _IterablesNotString(_Constraint):
 
 
 class _CVObjects(_Constraint):
-    """Constraint representing cv objects.
+    """
+    Constraint representing cv objects.
 
     Convenient class for
     [
@@ -724,17 +763,20 @@ class _CVObjects(_Constraint):
 
     def __str__(self):
         return (
-            f"{', '.join([str(c) for c in self._constraints[:-1]])} or" f" {self._constraints[-1]}"
+            f'{", ".join([str(c) for c in self._constraints[:-1]])} or'
+            f" {self._constraints[-1]}"
         )
 
 
 class Hidden:
-    """Class encapsulating a constraint not meant to be exposed to the user.
+    """
+    Class encapsulating a constraint not meant to be exposed to the user.
 
     Parameters
     ----------
     constraint : str or _Constraint instance
         The constraint to be used internally.
+
     """
 
     def __init__(self, constraint):
@@ -742,7 +784,8 @@ class Hidden:
 
 
 def generate_invalid_param_val(constraint):
-    """Return a value that does not satisfy the constraint.
+    """
+    Return a value that does not satisfy the constraint.
 
     Raises a NotImplementedError if there exists no invalid value for this constraint.
 
@@ -757,9 +800,10 @@ def generate_invalid_param_val(constraint):
     -------
     val : object
         A value that does not satisfy the constraint.
+
     """
     if isinstance(constraint, StrOptions):
-        return f"not {' or '.join(constraint.options)}"
+        return f'not {" or ".join(constraint.options)}'
 
     if isinstance(constraint, MissingValues):
         return np.array([1, 2, 3])
@@ -804,7 +848,8 @@ def generate_invalid_param_val(constraint):
 
 
 def generate_valid_param(constraint):
-    """Return a value that does satisfy a constraint.
+    """
+    Return a value that does satisfy a constraint.
 
     This is only useful for testing purpose.
 
@@ -817,6 +862,7 @@ def generate_valid_param(constraint):
     -------
     val : object
         A value that does satisfy the constraint.
+
     """
     if isinstance(constraint, _ArrayLikes):
         return np.array([1, 2, 3])
@@ -857,7 +903,9 @@ def generate_valid_param(constraint):
         return "missing"
 
     if isinstance(constraint, HasMethods):
-        return type("ValidHasMethods", (), {m: lambda self: None for m in constraint.methods})()
+        return type(
+            "ValidHasMethods", (), {m: lambda self: None for m in constraint.methods}
+        )()
 
     if isinstance(constraint, _IterablesNotString):
         return [1, 2, 3]
@@ -873,14 +921,12 @@ def generate_valid_param(constraint):
         interval = constraint
         if interval.left is None and interval.right is None:
             return 0
-        elif interval.left is None:
+        if interval.left is None:
             return interval.right - 1
-        elif interval.right is None:
+        if interval.right is None:
             return interval.left + 1
-        else:
-            if interval.type is Real:
-                return (interval.left + interval.right) / 2
-            else:
-                return interval.left + 1
+        if interval.type is Real:
+            return (interval.left + interval.right) / 2
+        return interval.left + 1
 
     raise ValueError(f"Unknown constraint type: {constraint}")

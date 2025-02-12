@@ -23,9 +23,9 @@
 # backend-path = ["_custom_build"]
 build-backend = "mesonpy"                   # Specifies the Python backend to use for building the package.
 requires = [                                # Building an env isolated one
-  "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
   "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
   "ninja>=1.11.0",                          # The Ninja build system used to compile code
+  "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
   "cython>=3.0.8",                          # C/C++ Cython bindings
   "pybind11>=2.13.0",                       # C/C++ Pybind bindings
   "pythran>=0.14.0",
@@ -40,6 +40,10 @@ requires = [                                # Building an env isolated one
   "scipy>=1.6.0",
   "aggdraw",                                # visualkeras dep
 ]
+
+######################################################################
+## project
+######################################################################
 
 ## The [project] section contains metadata about your project.
 ## https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html
@@ -115,6 +119,7 @@ license = {file = "LICENSE"}  # Primary license file
 ## license-files field to be used only if the license field contains a valid SPDX license expression.
 ## license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later',
 ## license-files = ['LICEN[CS]E*', 'LICENSE']  # must valid glob patterns
+license-files = ["LICENSE", "LICENSES/*"]
 
 ## List the authors of the project
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
@@ -139,15 +144,19 @@ requires-python = ">=3.9"
 ## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#declaring-required-dependency
 dependencies = [
   # Core dependencies required for the project to run
-  "threadpoolctl>=3.1.0",
-  "joblib>=1.2.0",
   "numpy>=1.23.5",
   "scipy>=1.6.0",
-  "pandas>=1.5",                            # Data analysis
   "aggdraw",                                # high-quality drawing, with anti-aliasing and alpha compositing
+  "pandas>=1.5",                            # Data analysis
   "matplotlib>=3.5",                        # Plotting
   "scikit-learn>=1.1",                      # Machine learning
+  "threadpoolctl>=3.1.0",
+  "joblib>=1.2.0",
 ]
+
+######################################################################
+## optional-dependencies
+######################################################################
 
 ## Development dependencies (for linting, type checking, and general dev tools)
 ## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#optional-dependencies
@@ -160,14 +169,14 @@ dependencies = [
 core = [
   "scikit-plots[cpu]",                      # Reference the 'cpu' group as a dependency
   # Core dependencies required for the project to run
-  "threadpoolctl>=3.1.0",
-  "joblib>=1.2.0",
   "numpy>=1.23.5",                          # CPU-based numerical computing
   "scipy>=1.6.0",
-  "pandas>=1.5",                            # Data analysis
   "aggdraw",                                # high-quality drawing, with anti-aliasing and alpha compositing
+  "pandas>=1.5",                            # Data analysis
   "matplotlib>=3.5",                        # Plot Visualization
   "scikit-learn>=1.1",                      # Machine learning
+  "threadpoolctl>=3.1.0",
+  "joblib>=1.2.0",
   # optionally
   "pooch>=1.6.0",                           # Data by downloading files from a server
   "pyarrow>=12.0.0",                        # Arrow format
@@ -195,9 +204,9 @@ dev = [
 ## Build dependencies (for packaging and building extensions)
 build = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
-  "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
   "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
   "ninja>=1.11.0",                          # The ninja build system used to compile code
+  "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
   # 'ninja; sys_platform != "emscripten"',
   "Cython>=3.0.8",                          # Cython bindings for extensions
   "pybind11>=2.13.2",                       # Python bindings
@@ -302,6 +311,10 @@ tpu = [
   "tf-keras",                               # keras compatibility
 ]
 
+######################################################################
+## pip, uv
+######################################################################
+
 [tool.pip]
 extra-index-url = "https://download.pytorch.org/whl/cu124"  # PyTorch custom index GPU 12.4
 
@@ -363,67 +376,202 @@ issues          = "https://github.com/scikit-plots/scikit-plots/issues"
 # [project.entry-points."spam.magical"]
 # tomatoes = "spam:main_tomatoes"
 
+######################################################################
+## pytest
+######################################################################
+
 # Configuration for the pytest testing framework
 [tool.pytest.ini_options]
 minversion = "6.0"  # Specify the minimum version of pytest
-addopts = "-ra -q"  # Add command-line options
+log_cli_level = "info"
+xfail_strict = true
+filterwarnings = [
+  "error",
+]
+## Add command-line options
+addopts = [
+  "--color=yes",
+  "--doctest-rst",
+  "--strict-config",
+  "--strict-markers",
+  "-p no:legacypath",
+]
 testpaths = [
   "scikitplot",
 ]  # Directories where tests are located
-# filterwarnings = [
-#   "error",
-#   'default:.*pyamg, which cannot \(yet\) be imported with NumPy >=2:RuntimeWarning'
-# ]
 
-# Black is a code formatter; this section configures its behavior.
-[tool.black]
-line-length = 100  # Maximum line length 88
-target-version = ['py35', 'py310', 'py314']  # Python versions to target
-preview = true     # Enable Black's preview features
-exclude = '''
-/(
-    \.eggs         # exclude a few common directories in the
-  | \.git          # root of the project
-  | \.mypy_cache
-  | \.vscode
-  | asv_benchmarks/env
-  | benchmarks/env
-  | builddir
-  | build
-  | dist
-  | docs/_build
-  | docs/build
-  | docs/auto_examples
-  | scikitplot/externals
-)/
-'''
+######################################################################
+## ruff
+######################################################################
 
 [tool.ruff]
-# max line length for black
-line-length = 88
-target-version = "py38"
-exclude=[
+## https://docs.astral.sh/ruff/
+## ruff.toml or .ruff.toml (Ruff config file)
+## ruff configuration
+
+cache-dir = "~/.cache/ruff"
+
+exclude = [
   ".git",
   "__pycache__",
-  "asv_benchmarks/env",
-  "benchmarks/env",
   "build",
   "dist",
-  "docs/build",
-  "asv_benchmarks/env",
-  "asv_benchmarks/html",
-  "asv_benchmarks/results",
-  "asv_benchmarks/benchmarks/cache",
+  #
+  "auto_building_tools",
+  "benchmarks",
+  "docs/source",
+  "galleries",
+  "third_party",
+  "tools",
+  "scikitplot/_api",
+  "scikitplot/_astropy",
+  "scikitplot/_build_utils",
+  "scikitplot/_clv",
+  "scikitplot/_externals",
+  "scikitplot/_factory_api",
+  "scikitplot/_seaborn",
+  "scikitplot/_tweedie",
+  "scikitplot/_utils",
+  "scikitplot/_xp_core_lib",
+  "scikitplot/api",
+  "scikitplot/experimental",
+  "scikitplot/probscale",
+  "scikitplot/kds",
+  "scikitplot/modelplotpy",
+  "scikitplot/sphinxext",
+  "scikitplot/visualkeras",
+  "scikitplot/_testing",
+  "**tests",
+  "dev.py",
+  "scikitplot/_distributor_init.py",
+  "scikitplot/_config.py",
+  "scikitplot/_min_dependencies.py",
+  "scikitplot/cbook.pyi",
+  "scikitplot/cbook.py",
+  "scikitplot/_preprocess.py",
+  "scikitplot/conftest.py",
+  "scikitplot/__init__.pyi",
+  "scikitplot/__config__.pyi",
 ]
 
+# fix = true
+
+# indent-width = 2
+
+line-length = 88  # Ensure this matches Black
+indent-width = 4
+
+# Enable preview features, will use unstable rules, fixes, and formatting.
+# preview = true
+
+# respect-gitignore = true
+
+# Enumerate all fixed violations.
+# show-fixes = true
+
+# Always generate Python 3.8-compatible code.
+# target-version = "py38"
+
+# unsafe-fixes = null
+
+[tool.ruff.format]
+# Enable reformatting of code snippets in docstrings.
+docstring-code-format = true
+
+# Format all docstring code snippets with a line length of 60.
+# docstring-code-line-length = 60
+
+exclude = [
+  "auto_building_tools",
+  "benchmarks",
+  "docs/source",
+  "galleries",
+  "third_party",
+  "tools",
+  "scikitplot/_api",
+  "scikitplot/_astropy",
+  "scikitplot/_build_utils",
+  "scikitplot/_clv",
+  "scikitplot/_externals",
+  "scikitplot/_factory_api",
+  "scikitplot/_seaborn",
+  "scikitplot/_tweedie",
+  "scikitplot/_utils",
+  "scikitplot/_xp_core_lib",
+  "scikitplot/api",
+  "scikitplot/experimental",
+  "scikitplot/probscale",
+  "scikitplot/kds",
+  "scikitplot/modelplotpy",
+  "scikitplot/sphinxext",
+  "scikitplot/visualkeras",
+  "scikitplot/_testing",
+  "**tests",
+  "dev.py",
+  "scikitplot/_distributor_init.py",
+  "scikitplot/_config.py",
+  "scikitplot/_min_dependencies.py",
+  "scikitplot/cbook.pyi",
+  "scikitplot/cbook.py",
+  "scikitplot/_preprocess.py",
+  "scikitplot/conftest.py",
+  "scikitplot/__init__.pyi",
+  "scikitplot/__config__.pyi",
+]
+
+# Use tabs instead of 4 space indentation.
+# indent-style = "tab"
+indent-style = "space"  # Use spaces for indentation
+
+# Use `\n` line endings for all files
+line-ending = "lf"
+
+# Prefer single quotes over double quotes.
+quote-style = "double"  # Black uses double quotes by default
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
 [tool.ruff.lint]
+# all rules can be found here: https://beta.ruff.rs/docs/rules/
 # This enables us to use CPY001: copyright header check
 preview = true
 # This enables us to use the explicit preview rules that we want only
-explicit-preview-rules = true
-# all rules can be found here: https://beta.ruff.rs/docs/rules/
-select = ["E", "F", "W", "I", "CPY001"]
-ignore=[
+explicit-preview-rules = true  # Enable explicit preview rules
+# Specify which linting rules to enable.
+extend-select = [
+  "ARG",      # flake8-unused-arguments
+  "B",        # flake8-bugbear
+  "C4",       # flake8-comprehensions
+  "EM",       # flake8-errmsg
+  "EXE",      # flake8-executable
+  "FURB",     # refurb
+  "G",        # flake8-logging-format
+  "I",        # isort
+  "ICN",      # flake8-import-conventions
+  "NPY",      # NumPy specific rules
+  "PD",       # pandas-vet
+  "PGH",      # pygrep-hooks
+  "PIE",      # flake8-pie
+  "PL",       # pylint
+  "PT",       # flake8-pytest-style
+  "PTH",      # flake8-use-pathlib
+  "PYI",      # flake8-pyi
+  "RET",      # flake8-return
+  "RUF",      # Ruff-specific
+  "SIM",      # flake8-simplify
+  "T20",      # flake8-print
+  "UP",       # pyupgrade
+  "YTT",      # flake8-2020
+  "E",    # pycodestyle (formatting errors)
+  "F",    # Pyflakes (logical errors)
+  "N",    # pep8-naming (naming conventions)
+  "D",    # pydocstyle (docstring enforcement)
+  "S",    # flake8-bandit (security checks)
+  # "W",
+  # "CPY001",
+]
+ignore = [
   # space before : (needed for how black formats slicing)
   "E203",
   # do not assign a lambda expression, use a def
@@ -437,29 +585,106 @@ ignore=[
   # F841 is in preview (july 2024), and we don't care much about it.
   # Local variable ... is assigned to but never used
   "F841",
+  "EM101",  # Exception must not use a string literal, assign to variable first
+  "E501",
+  "ARG001", "ARG002",  # Unused method argument
+  "G004",  # Logging statement uses f-string
+  "S110",  # `try`-`except`-`pass` detected, consider logging the exception
+  "E722",  # Do not use bare `except`
+  "EM102",  # Exception must not use an f-string literal, assign to variable first
+  "PLR0913",  # Too many arguments in function definition (6 > 5)
+  "RUF100",  # Prevent Ruff from removing `# noqa`
 ]
+
+# [tool.ruff.lint.per-file-ignores]
+[tool.ruff.lint.extend-per-file-ignores]
+"test_*.py" = [
+    "ANN201",  # Public function without return type annotation
+    "B018",  # UselessExpression
+    "D",  # pydocstyle
+    "S101",  # Use of assert detected
+]
+".pyinstaller/*.py" = ["INP001"]  # Not a package.
+"conftest.py" = ["INP001"]  # Part of configuration, not a package.
+"docs/*.py" = [
+    "INP001",  # implicit-namespace-package. The examples are not a package.
+]
+"__init__.py" = ["F403"]  # Wildcard imports
+
+# Ignore `E402` (import violations) in all `__init__.py` files, and in `path/to/file.py`.
+# "scikitplot/__init__.py"=["F822"]  # __all__ has un-imported names
+# Ignore `D` rules everywhere except for the `src/` directory.
+"!src/**.py" = ["D"]
+# It's fine not to put the import at the top of the file in the examples
+# folder.
+"!**/tests/**"=["CPY001"]
+"!.github/**"=["CPY001"]
+"!.spin/**"=["CPY001"]
+"!auto_building_tools/**"=["CPY001"]
+"benchmarks/**"=["CPY001"]
+"!docs/**"=["CPY001"]
+"!docs/conf.py"=["E402"]
+"!galleries/**"=["E402"]
+"!scikitplot/_build_utils/**"=["CPY001"]
+"!tools/**"=["CPY001"]
+# __doc__ is too long (>4096 chars) and therefore false positive on copyright check
+# "examples/model_selection/plot_precision_recall.py"=["CPY001"]
 
 [tool.ruff.lint.flake8-copyright]
 notice-rgx = "\\#\\ Authors:\\ The\\ scikit\\-plots\\ developers\\\r?\\\n\\#\\ SPDX\\-License\\-Identifier:\\ BSD\\-3\\-Clause"
 
-[tool.ruff.lint.per-file-ignores]
-# It's fine not to put the import at the top of the file in the examples
-# folder.
-"**/tests/*"=["CPY001"]
-".github/*"=["CPY001"]
-".spin/*"=["CPY001"]
-"asv_benchmarks/*"=["CPY001"]
-"benchmarks/*"=["CPY001"]
-"docs/*"=["CPY001"]
-"docs/conf.py"=["E402"]
-"galleries/*"=["E402"]
-"scikitplot/_build_utils/*"=["CPY001"]
-"tools/*"=["CPY001"]
-# __doc__ is too long (>4096 chars) and therefore false positive on copyright check
-# "examples/model_selection/plot_precision_recall.py"=["CPY001"]
-# __all__ has un-imported names
-# "scikitplot/__init__.py"=["F822"]
+[tool.ruff.lint.isort]
+known-first-party = ["scikitplot"]
 
+[tool.ruff.lint.pydocstyle]
+# Enforce NumPy docstring conventions
+convention = "numpy"
+
+######################################################################
+## black
+######################################################################
+
+# Black is a code formatter; this section configures its behavior.
+[tool.black]
+line-length = 88  # Maximum line length 88
+target-version = ['py38', 'py39']  # Python versions to target
+preview = true     # Enable Black's preview features
+
+extend-exclude = '''
+/(
+    \.eggs         # exclude a few common directories in the
+  | \.git          # root of the project
+  | \.mypy_cache
+  | \.vscode
+  | auto_building_tools
+  | benchmarks
+  | build
+  | dist
+  | docs/build
+  | docs/source
+  | galleries
+  | scikitplot/externals
+  | scikitplot/_astropy/stats/tests
+  | scikitplot/_seaborn
+  | scikitplot/modelplotpy
+  | scikitplot/probscale
+  | scikitplot/visualkeras
+  | third_party
+  | tools
+  | tests
+)/
+'''
+
+######################################################################
+## isort
+######################################################################
+
+[tool.isort]
+profile = "black"
+
+######################################################################
+## cython-lint
+######################################################################
 
 [tool.cython-lint]
 # Ignore the same error codes as ruff
@@ -493,52 +718,44 @@ exclude= '''
 )
 '''
 
-# [tool.changelog-bot]
-#   [tool.changelog-bot.towncrier_changelog]
-#     enabled = true
-#     verify_pr_number = true
-#     changelog_noop_label = "No Changelog Needed"
-#     whatsnew_pattern = 'doc/whatsnew/upcoming_changes/[^/]+/\d+\.[^.]+\.rst'
+######################################################################
+## codespell
+######################################################################
 
-# [tool.doit]
-# dodoFile = "dev.py"
+[tool.codespell]
+skip = """
+    *.cff,
+    */data/*,
+    *extern/*,
+    astropy/CITATION,
+    docs/credits.rst,
+    *_lextab.py,
+    *_parsetab.py,
+"""
+# The following list of words for codespell to ignore may contain some
+# misspellings that should be revisited and fixed in the future.
+# ignore-words-list = """
+#     as,
+# """
 
-# [tool.meson-python]
-# meson = 'vendored-meson/meson/meson.py'
+######################################################################
+## repo-review
+######################################################################
 
-# [tool.meson-python.args]
-# install = ['--tags=runtime,python-runtime,tests,devel']
+[tool.repo-review]
+ignore = [
+    "MY",    # ignore MyPy setting checks
+    "PC111", # ignore using `blacken-docs` in pre-commit
+    "PC140", # ignore using `mypy` in pre-commit
+    "PC180", # ignore using `prettier` in pre-commit
+    "PC901", # ignore using custom update message (we have many of the default ones in our history already)
+    "PP308", # ignore requiring `-ra` flag for pytest, astropy's test suite is too large for this to be useful
+    "PY005", # ignore requiring a root level "test*" directory
+]
 
-## https://github.com/scientific-python/spin
-# [tool.spin]
-# package = 'numpy'
-
-# [tool.spin.meson]
-# cli = 'vendored-meson/meson/meson.py'
-
-# [tool.spin.commands]
-# "Build" = [
-#   ".spin/cmds.py:build",
-#   ".spin/cmds.py:test",
-#   ".spin/cmds.py:mypy",
-#   ".spin/cmds.py:config_openblas",
-#   ".spin/cmds.py:lint",
-# ]
-# "Environments" = [
-#   "spin.cmds.meson.run",
-#   ".spin/cmds.py:ipython",
-#   ".spin/cmds.py:python",
-#   "spin.cmds.meson.gdb",
-#   "spin.cmds.meson.lldb"
-# ]
-# "Documentation" = [
-#   ".spin/cmds.py:docs",
-#   ".spin/cmds.py:changelog",
-#   ".spin/cmds.py:notes",
-#   ".spin/cmds.py:check_docs",
-#   ".spin/cmds.py:check_tutorials",
-# ]
-# "Metrics" = [".spin/cmds.py:bench"]
+######################################################################
+## cibuildwheel
+######################################################################
 
 [tool.cibuildwheel]
 # Note: the below skip command doesn't do much currently, the platforms to
@@ -588,7 +805,6 @@ DYLD_LIBRARY_PATH = "/project/.openblas/lib"
 PKG_CONFIG_PATH = "/project/.openblas"
 CIBW_ENVIRONMENT_MACOS = "PKG_CONFIG_PATH=/project/.openblas"
 
-
 [tool.cibuildwheel.windows]
 # config-settings = "setup-args=--vsenv setup-args=-Dallow-noblas=false build-dir=build"
 repair-wheel-command = "bash -el ./tools/wheels/repair_windows.sh {wheel} {dest_dir}"
@@ -617,3 +833,70 @@ before-test = "pip install -r {project}/requirements/emscripten_test_requirement
 # Pyodide ensures that the wheels are already repaired by auditwheel-emscripten
 repair-wheel-command = ""
 test-command = "python -m pytest --pyargs numpy -m 'not slow'"
+
+######################################################################
+## doit
+######################################################################
+
+# [tool.doit]
+# dodoFile = "dev.py"
+
+######################################################################
+## changelog-bot
+######################################################################
+
+# [tool.changelog-bot]
+#   [tool.changelog-bot.towncrier_changelog]
+#     enabled = true
+#     verify_pr_number = true
+#     changelog_noop_label = "No Changelog Needed"
+#     whatsnew_pattern = 'doc/whatsnew/upcoming_changes/[^/]+/\d+\.[^.]+\.rst'
+
+######################################################################
+## meson-python
+######################################################################
+
+# [tool.meson-python]
+# meson = 'vendored-meson/meson/meson.py'
+
+# [tool.meson-python.args]
+# install = ['--tags=runtime,python-runtime,tests,devel']
+
+######################################################################
+## spin
+######################################################################
+
+## https://github.com/scientific-python/spin
+# [tool.spin]
+# package = 'numpy'
+
+# [tool.spin.meson]
+# cli = 'vendored-meson/meson/meson.py'
+
+# [tool.spin.commands]
+# "Build" = [
+#   ".spin/cmds.py:build",
+#   ".spin/cmds.py:test",
+#   ".spin/cmds.py:mypy",
+#   ".spin/cmds.py:config_openblas",
+#   ".spin/cmds.py:lint",
+# ]
+# "Environments" = [
+#   "spin.cmds.meson.run",
+#   ".spin/cmds.py:ipython",
+#   ".spin/cmds.py:python",
+#   "spin.cmds.meson.gdb",
+#   "spin.cmds.meson.lldb"
+# ]
+# "Documentation" = [
+#   ".spin/cmds.py:docs",
+#   ".spin/cmds.py:changelog",
+#   ".spin/cmds.py:notes",
+#   ".spin/cmds.py:check_docs",
+#   ".spin/cmds.py:check_tutorials",
+# ]
+# "Metrics" = [".spin/cmds.py:bench"]
+
+######################################################################
+##
+######################################################################

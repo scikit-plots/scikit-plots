@@ -28,18 +28,11 @@ that may be changed without notice. Use at your own risk!
 
 from __future__ import annotations
 
-from collections.abc import Hashable
-from typing import (
-    TypeVar,
-)
-
-import numpy as np
-
 # Allows for the creation of enumerated constants
 # Enum values are immutable after definition.
 
-_HT = TypeVar("_HT", bound=Hashable)
-DT = TypeVar("DT", bound=np.generic)
+# _HT = TypeVar("_HT", bound=Hashable)
+# DT = TypeVar("DT", bound=np.generic)
 
 
 __all__ = []

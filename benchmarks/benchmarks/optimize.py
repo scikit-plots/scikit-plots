@@ -30,7 +30,8 @@ with safe_import():
 
 
 class _BenchOptimizers(Benchmark):
-    """a framework for benchmarking the optimizer
+    """
+    a framework for benchmarking the optimizer
 
     Parameters
     ----------
@@ -42,6 +43,7 @@ class _BenchOptimizers(Benchmark):
         function that returns the hessian of fun
     minimizer_kwargs : kwargs
         additional keywords passed to the minimizer.  e.g. tol, maxiter
+
     """
 
     def __init__(self, function_name, fun, der=None, hess=None, **minimizer_kwargs):
@@ -78,7 +80,7 @@ class _BenchOptimizers(Benchmark):
         return self.fun(x), self.function.der(x)
 
     def add_result(self, result, t, name):
-        """add a result to the list"""
+        """Add a result to the list"""
         result.time = t
         result.name = name
         if not hasattr(result, "njev"):
@@ -88,26 +90,36 @@ class _BenchOptimizers(Benchmark):
         self.results.append(result)
 
     def print_results(self):
-        """print the current list of results"""
+        """Print the current list of results"""
         results = self.average_results()
         results = sorted(results, key=lambda x: (x.nfail, x.mean_time))
         if not results:
             return
-        print("")
+        print()
         print("=========================================================")
         print(f"Optimizer benchmark: {self.function_name}")
-        print("dimensions: %d, extra kwargs: %s" % (results[0].ndim, str(self.minimizer_kwargs)))
+        print(
+            "dimensions: %d, extra kwargs: %s"
+            % (results[0].ndim, str(self.minimizer_kwargs))
+        )
         print("averaged over %d starting configurations" % (results[0].ntrials))
         print("  Optimizer    nfail   nfev    njev    nhev    time")
         print("---------------------------------------------------------")
         for res in results:
             print(
                 "%11s  | %4d  | %4d  | %4d  | %4d  | %.6g"
-                % (res.name, res.nfail, res.mean_nfev, res.mean_njev, res.mean_nhev, res.mean_time)
+                % (
+                    res.name,
+                    res.nfail,
+                    res.mean_nfev,
+                    res.mean_njev,
+                    res.mean_nhev,
+                    res.mean_time,
+                )
             )
 
     def average_results(self):
-        """group the results by minimizer and average over the runs"""
+        """Group the results by minimizer and average over the runs"""
         grouped_results = defaultdict(list)
         for res in self.results:
             grouped_results[res.name].append(res)
@@ -144,6 +156,7 @@ class _BenchOptimizers(Benchmark):
         -------
         accept_test : bool
             The candidate vector lies in between the bounds
+
         """
         if not hasattr(self.function, "xmin"):
             return True
@@ -154,9 +167,7 @@ class _BenchOptimizers(Benchmark):
         return True
 
     def run_basinhopping(self):
-        """
-        Do an optimization run for basinhopping
-        """
+        """Do an optimization run for basinhopping"""
         kwargs = self.minimizer_kwargs
         if hasattr(self.fun, "temperature"):
             kwargs["T"] = self.function.temperature
@@ -174,7 +185,11 @@ class _BenchOptimizers(Benchmark):
         t0 = time.time()
 
         res = basinhopping(
-            self.fun, x0, accept_test=self.accept_test, minimizer_kwargs=minimizer_kwargs, **kwargs
+            self.fun,
+            x0,
+            accept_test=self.accept_test,
+            minimizer_kwargs=minimizer_kwargs,
+            **kwargs,
         )
 
         t1 = time.time()
@@ -183,9 +198,7 @@ class _BenchOptimizers(Benchmark):
         self.add_result(res, t1 - t0, "basinh.")
 
     def run_direct(self):
-        """
-        Do an optimization run for direct
-        """
+        """Do an optimization run for direct"""
         self.function.nfev = 0
 
         t0 = time.time()
@@ -198,9 +211,7 @@ class _BenchOptimizers(Benchmark):
         self.add_result(res, t1 - t0, "DIRECT")
 
     def run_shgo(self):
-        """
-        Do an optimization run for shgo
-        """
+        """Do an optimization run for shgo"""
         self.function.nfev = 0
 
         t0 = time.time()
@@ -213,9 +224,7 @@ class _BenchOptimizers(Benchmark):
         self.add_result(res, t1 - t0, "SHGO")
 
     def run_differentialevolution(self):
-        """
-        Do an optimization run for differential_evolution
-        """
+        """Do an optimization run for differential_evolution"""
         self.function.nfev = 0
 
         t0 = time.time()
@@ -228,9 +237,7 @@ class _BenchOptimizers(Benchmark):
         self.add_result(res, t1 - t0, "DE")
 
     def run_dualannealing(self):
-        """
-        Do an optimization run for dual_annealing
-        """
+        """Do an optimization run for dual_annealing"""
         self.function.nfev = 0
 
         t0 = time.time()
@@ -243,10 +250,7 @@ class _BenchOptimizers(Benchmark):
         self.add_result(res, t1 - t0, "DA")
 
     def bench_run_global(self, numtrials=50, methods=None):
-        """
-        Run the optimization tests for the required minimizers.
-        """
-
+        """Run the optimization tests for the required minimizers."""
         if methods is None:
             methods = ["DE", "basinh.", "DA", "DIRECT", "SHGO"]
 
@@ -268,7 +272,7 @@ class _BenchOptimizers(Benchmark):
                 method_fun[m]()
 
     def bench_run(self, x0, methods=None, **minimizer_kwargs):
-        """do an optimization test starting at x0 for all the optimizers"""
+        """Do an optimization test starting at x0 for all the optimizers"""
         kwargs = self.minimizer_kwargs
 
         if methods is None:
@@ -300,7 +304,9 @@ class _BenchOptimizers(Benchmark):
                 if method not in methods:
                     continue
                 t0 = time.time()
-                res = scipy.optimize.minimize(self.fun, x0, method=method, jac=self.der, **kwargs)
+                res = scipy.optimize.minimize(
+                    self.fun, x0, method=method, jac=self.der, **kwargs
+                )
                 t1 = time.time()
                 self.add_result(res, t1 - t0, method)
 
@@ -391,7 +397,9 @@ class BenchSmoothUnbounded(Benchmark):
         return b
 
     def run_rosenbrock(self, methods=None):
-        b = _BenchOptimizers("Rosenbrock function", fun=rosen, der=rosen_der, hess=rosen_hess)
+        b = _BenchOptimizers(
+            "Rosenbrock function", fun=rosen, der=rosen_der, hess=rosen_hess
+        )
         for i in range(10):
             b.bench_run(np.random.uniform(-3, 3, 3), methods=methods)
         return b
@@ -408,7 +416,9 @@ class BenchSmoothUnbounded(Benchmark):
         s = funcs.SimpleQuadratic()
         #    print "checking gradient",
         #    scipy.optimize.check_grad(s.fun, s.der, np.array([1.1, -2.3]))
-        b = _BenchOptimizers("simple quadratic function", fun=s.fun, der=s.der, hess=s.hess)
+        b = _BenchOptimizers(
+            "simple quadratic function", fun=s.fun, der=s.der, hess=s.hess
+        )
         for i in range(10):
             b.bench_run(np.random.uniform(-2, 2, 3), methods=methods)
         return b
@@ -417,7 +427,9 @@ class BenchSmoothUnbounded(Benchmark):
         s = funcs.AsymmetricQuadratic()
         #    print "checking gradient",
         #    scipy.optimize.check_grad(s.fun, s.der, np.array([1.1, -2.3]))
-        b = _BenchOptimizers("function sum(x**2) + x[0]", fun=s.fun, der=s.der, hess=s.hess)
+        b = _BenchOptimizers(
+            "function sum(x**2) + x[0]", fun=s.fun, der=s.der, hess=s.hess
+        )
         for i in range(10):
             b.bench_run(np.random.uniform(-2, 2, 3), methods=methods)
         return b
@@ -459,7 +471,10 @@ class BenchSmoothUnbounded(Benchmark):
         #                           np.random.uniform(-2,2,3*4))
         natoms = 4
         b = _BenchOptimizers(
-            "%d atom Lennard Jones potential" % (natoms), fun=s.fun, der=s.der, hess=None
+            "%d atom Lennard Jones potential" % (natoms),
+            fun=s.fun,
+            der=s.der,
+            hess=None,
         )
         for i in range(10):
             b.bench_run(np.random.uniform(-2, 2, natoms * 3), methods=methods)
@@ -485,7 +500,13 @@ class BenchLeastSquares(Benchmark):
             n_runs = 10
             t0 = time.time()
             for _ in range(n_runs):
-                leastsq(problem.fun, problem.x0, Dfun=problem.jac, ftol=ftol, full_output=True)
+                leastsq(
+                    problem.fun,
+                    problem.x0,
+                    Dfun=problem.jac,
+                    ftol=ftol,
+                    full_output=True,
+                )
             return (time.time() - t0) / n_runs
 
         x, cov_x, info, message, ier = leastsq(
@@ -493,10 +514,9 @@ class BenchLeastSquares(Benchmark):
         )
         if result_type == "nfev":
             return info["nfev"]
-        elif result_type == "success":
+        if result_type == "success":
             return int(problem.check_answer(x, ftol))
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
 
 # `export SCIPY_XSLOW=1` to enable BenchGlobal.track_all
@@ -531,7 +551,9 @@ class BenchGlobal(Benchmark):
     if not is_xslow():
         _enabled_functions = []
     elif "SCIPY_GLOBAL_BENCH" in os.environ:
-        _enabled_functions = [x.strip() for x in os.environ["SCIPY_GLOBAL_BENCH"].split(",")]
+        _enabled_functions = [
+            x.strip() for x in os.environ["SCIPY_GLOBAL_BENCH"].split(",")
+        ]
     else:
         _enabled_functions = list(_functions.keys())
 
@@ -577,13 +599,14 @@ class BenchGlobal(Benchmark):
             # if so, then just return the ret_value
             av_results = self.results[name]
             if ret_value == "success%":
-                return 100 * av_results[solver]["nsuccess"] / av_results[solver]["ntrials"]
-            elif ret_value == "<nfev>":
+                return (
+                    100 * av_results[solver]["nsuccess"] / av_results[solver]["ntrials"]
+                )
+            if ret_value == "<nfev>":
                 return av_results[solver]["mean_nfev"]
-            elif ret_value == "average time":
+            if ret_value == "average time":
                 return av_results[solver]["mean_time"]
-            else:
-                raise ValueError()
+            raise ValueError()
 
         klass = self._functions[name]
         f = klass()
@@ -599,13 +622,14 @@ class BenchGlobal(Benchmark):
             self.results[name][solver] = av_results[solver]
 
             if ret_value == "success%":
-                return 100 * av_results[solver]["nsuccess"] / av_results[solver]["ntrials"]
-            elif ret_value == "<nfev>":
+                return (
+                    100 * av_results[solver]["nsuccess"] / av_results[solver]["ntrials"]
+                )
+            if ret_value == "<nfev>":
                 return av_results[solver]["mean_nfev"]
-            elif ret_value == "average time":
+            if ret_value == "average time":
                 return av_results[solver]["mean_time"]
-            else:
-                raise ValueError()
+            raise ValueError()
         except Exception:
             print("".join(traceback.format_exc()))
             self.results[name] = "".join(traceback.format_exc())
@@ -655,7 +679,7 @@ class BenchDFO(Benchmark):
             return calfun(x, m, nprob)
 
         x0 = dfoxs(n, nprob, factor)
-        b = getattr(self, "run_cutest")(func, x0, prob_number=prob_number, methods=[method_name])
+        b = self.run_cutest(func, x0, prob_number=prob_number, methods=[method_name])
         r = b.average_results().get(method_name)
         if r is None:
             raise NotImplementedError()

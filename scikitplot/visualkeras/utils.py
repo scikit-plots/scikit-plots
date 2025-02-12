@@ -5,17 +5,17 @@ from PIL import Image, ImageColor, ImageDraw
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
-    "RectShape",
     "Box",
     "Circle",
-    "Ellipses",
     "ColorWheel",
+    "Ellipses",
+    "RectShape",
     "fade_color",
-    "get_rgba_tuple",
     "get_keys_by_value",
+    "get_rgba_tuple",
+    "linear_layout",
     "self_multiply",
     "vertical_image_concat",
-    "linear_layout",
 ]
 
 
@@ -62,12 +62,22 @@ class Box(RectShape):
 
             if draw_reversed:
                 draw.line(
-                    [self.x2 - self.de, self.y1 - self.de, self.x2 - self.de, self.y2 - self.de],
+                    [
+                        self.x2 - self.de,
+                        self.y1 - self.de,
+                        self.x2 - self.de,
+                        self.y2 - self.de,
+                    ],
                     pen,
                 )
                 draw.line([self.x2 - self.de, self.y2 - self.de, self.x2, self.y2], pen)
                 draw.line(
-                    [self.x1 - self.de, self.y2 - self.de, self.x2 - self.de, self.y2 - self.de],
+                    [
+                        self.x1 - self.de,
+                        self.y2 - self.de,
+                        self.x2 - self.de,
+                        self.y2 - self.de,
+                    ],
                     pen,
                 )
 
@@ -102,12 +112,22 @@ class Box(RectShape):
                 )
             else:
                 draw.line(
-                    [self.x1 + self.de, self.y1 - self.de, self.x1 + self.de, self.y2 - self.de],
+                    [
+                        self.x1 + self.de,
+                        self.y1 - self.de,
+                        self.x1 + self.de,
+                        self.y2 - self.de,
+                    ],
                     pen,
                 )
                 draw.line([self.x1 + self.de, self.y2 - self.de, self.x1, self.y2], pen)
                 draw.line(
-                    [self.x1 + self.de, self.y2 - self.de, self.x2 + self.de, self.y2 - self.de],
+                    [
+                        self.x1 + self.de,
+                        self.y2 - self.de,
+                        self.x2 + self.de,
+                        self.y2 - self.de,
+                    ],
                     pen,
                 )
 
@@ -145,37 +165,49 @@ class Box(RectShape):
 
 
 class Circle(RectShape):
-
     def draw(self, draw: ImageDraw):
         pen, brush = self._get_pen_brush()
         draw.ellipse([self.x1, self.y1, self.x2, self.y2], pen, brush)
 
 
 class Ellipses(RectShape):
-
     def draw(self, draw: ImageDraw):
         pen, brush = self._get_pen_brush()
         w = self.x2 - self.x1
         d = int(w / 7)
         draw.ellipse(
-            [self.x1 + (w - d) / 2, self.y1 + 1 * d, self.x1 + (w + d) / 2, self.y1 + 2 * d],
+            [
+                self.x1 + (w - d) / 2,
+                self.y1 + 1 * d,
+                self.x1 + (w + d) / 2,
+                self.y1 + 2 * d,
+            ],
             pen,
             brush,
         )
         draw.ellipse(
-            [self.x1 + (w - d) / 2, self.y1 + 3 * d, self.x1 + (w + d) / 2, self.y1 + 4 * d],
+            [
+                self.x1 + (w - d) / 2,
+                self.y1 + 3 * d,
+                self.x1 + (w + d) / 2,
+                self.y1 + 4 * d,
+            ],
             pen,
             brush,
         )
         draw.ellipse(
-            [self.x1 + (w - d) / 2, self.y1 + 5 * d, self.x1 + (w + d) / 2, self.y1 + 6 * d],
+            [
+                self.x1 + (w - d) / 2,
+                self.y1 + 5 * d,
+                self.x1 + (w + d) / 2,
+                self.y1 + 6 * d,
+            ],
             pen,
             brush,
         )
 
 
 class ColorWheel:
-
     def __init__(self, colors: list = None):
         self._cache = dict()
         # The default color cycle is defined by the following colors:
@@ -218,7 +250,6 @@ def fade_color(color: tuple, fade_amount: int) -> tuple:
 
 def get_rgba_tuple(color: Any) -> tuple:
     """
-
     :param color:
     :return: (R, G, B, A) tuple
     """
@@ -242,7 +273,6 @@ def get_keys_by_value(d, v):
 
 def self_multiply(tensor_tuple: tuple):
     """
-
     :param tensor_tuple:
     :return:
     """
@@ -266,7 +296,9 @@ def vertical_image_concat(im1: Image, im2: Image, background_fill: Any = "white"
     :param background_fill: Color for the image background. Can be str or (R,G,B,A).
     :return: concatenated image
     """
-    dst = Image.new("RGBA", (max(im1.width, im2.width), im1.height + im2.height), background_fill)
+    dst = Image.new(
+        "RGBA", (max(im1.width, im2.width), im1.height + im2.height), background_fill
+    )
     dst.paste(im1, (0, 0))
     dst.paste(im2, (0, im1.height))
     return dst

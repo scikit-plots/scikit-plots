@@ -1,6 +1,4 @@
-"""
-Airspeed Velocity benchmark utilities
-"""
+"""Airspeed Velocity benchmark utilities"""
 
 import itertools
 import os
@@ -13,11 +11,7 @@ import time
 
 
 class Benchmark:
-    """
-    Base class with sensible options
-    """
-
-    pass
+    """Base class with sensible options"""
 
 
 def is_xslow():
@@ -66,9 +60,7 @@ class LimitedParamBenchmark(Benchmark):
 
 
 def get_max_rss_bytes(rusage):
-    """
-    Extract the max RSS value in bytes.
-    """
+    """Extract the max RSS value in bytes."""
     if not rusage:
         return None
 
@@ -76,12 +68,11 @@ def get_max_rss_bytes(rusage):
         # On Linux getrusage() returns ru_maxrss in kilobytes
         # https://man7.org/linux/man-pages/man2/getrusage.2.html
         return rusage.ru_maxrss * 1024
-    elif sys.platform == "darwin":
+    if sys.platform == "darwin":
         # on macOS ru_maxrss is in bytes
         return rusage.ru_maxrss
-    else:
-        # Unknown, just return whatever is here.
-        return rusage.ru_maxrss
+    # Unknown, just return whatever is here.
+    return rusage.ru_maxrss
 
 
 def run_monitored_wait4(code):
@@ -98,6 +89,7 @@ def run_monitored_wait4(code):
     Notes
     -----
     Works on Unix platforms (Linux, macOS) that have `os.wait4()`.
+
     """
     code = textwrap.dedent(code)
 
@@ -142,7 +134,7 @@ def run_monitored_proc(code):
         with open("/proc/%d/status" % process.pid) as f:
             procdata = f.read()
 
-        m = re.search(r"VmRSS:\s*(\d+)\s*kB", procdata, re.S | re.I)
+        m = re.search(r"VmRSS:\s*(\d+)\s*kB", procdata, re.DOTALL | re.IGNORECASE)
         if m is not None:
             memusage = float(m.group(1)) * 1e3
             peak_memusage = max(memusage, peak_memusage)
@@ -171,11 +163,9 @@ def run_monitored(code):
         Peak memory usage (rough estimate only) in bytes
 
     """
-
     if hasattr(os, "wait4"):
         return run_monitored_wait4(code)
-    else:
-        return run_monitored_proc(code)
+    return run_monitored_proc(code)
 
 
 def get_mem_info():
@@ -190,9 +180,7 @@ def get_mem_info():
 
 
 def set_mem_rlimit(max_mem=None):
-    """
-    Set address space rlimit
-    """
+    """Set address space rlimit"""
     import resource
 
     if max_mem is None:
@@ -219,7 +207,6 @@ def with_attributes(**attrs):
 
 
 class safe_import:
-
     def __enter__(self):
         self.error = False
         return self
@@ -228,7 +215,8 @@ class safe_import:
         if type_ is not None:
             self.error = True
             suppress = not (
-                os.getenv("SCIPY_ALLOW_BENCH_IMPORT_ERRORS", "1").lower() in ("0", "false")
+                os.getenv("SCIPY_ALLOW_BENCH_IMPORT_ERRORS", "1").lower()
+                in ("0", "false")
                 or not issubclass(type_, ImportError)
             )
             return suppress

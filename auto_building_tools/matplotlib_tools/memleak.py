@@ -44,20 +44,17 @@ def run_memleak_test(bench, iterations, report):
             f"files: {open_files: 4d}"
         )
         if i == starti:
-            print(f'{" warmup done ":-^86s}')
+            print(f"{' warmup done ':-^86s}")
         malloc_arr[i] = malloc
         rss_arr[i] = rss
-        if rss > rss_peak:
-            rss_peak = rss
+        rss_peak = max(rss_peak, rss)
         rss_peaks[i] = rss_peak
         nobjs_arr[i] = nobjs
         garbage_arr[i] = garbage
         open_files_arr[i] = open_files
 
     print(
-        "Average memory consumed per loop: {:1.4f} bytes\n".format(
-            np.sum(rss_peaks[starti + 1 :] - rss_peaks[starti:-1]) / (endi - starti)
-        )
+        f"Average memory consumed per loop: {np.sum(rss_peaks[starti + 1 :] - rss_peaks[starti:-1]) / (endi - starti):1.4f} bytes\n"
     )
 
     from matplotlib import pyplot as plt
@@ -139,7 +136,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--empty",
         action="store_true",
-        help="Don't plot any content, just test creating " "and destroying figures",
+        help="Don't plot any content, just test creating and destroying figures",
     )
     parser.add_argument(
         "--interactive",

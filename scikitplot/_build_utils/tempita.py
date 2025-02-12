@@ -7,7 +7,8 @@ from Cython import Tempita as tempita
 
 
 def process_tempita(fromfile, outfile=None):
-    """Process tempita templated file and write out the result.
+    """
+    Process tempita templated file and write out the result.
 
     The template file is expected to end in `.c.in` or `.pyx.in`:
     E.g. processing `template.c.in` generates `template.c`.
@@ -16,7 +17,7 @@ def process_tempita(fromfile, outfile=None):
     #     fromfile,
     #     encoding=sys.getdefaultencoding()
     # )
-    with open(fromfile, "r", encoding="utf-8") as f:
+    with open(fromfile, encoding="utf-8") as f:
         template_content = f.read()
 
     template = tempita.Template(template_content)
@@ -36,7 +37,8 @@ def main():
         "-i",
         "--ignore",
         type=str,
-        help="An ignored input - may be useful to add a " "dependency between custom targets",
+        help="An ignored input - may be useful to add a "
+        "dependency between custom targets",
     )
     args = parser.parse_args()
 
@@ -47,7 +49,9 @@ def main():
     if os.path.isabs(args.outfile):
         raise ValueError("`--outfile` must relative to the current directory")
     outdir_abs = os.path.join(os.getcwd(), args.outfile)
-    outfile = os.path.join(outdir_abs, os.path.splitext(os.path.split(args.infile)[1])[0])
+    outfile = os.path.join(
+        outdir_abs, os.path.splitext(os.path.split(args.infile)[1])[0]
+    )
     process_tempita(args.infile, outfile)
 
 

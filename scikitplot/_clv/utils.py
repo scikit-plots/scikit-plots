@@ -1,5 +1,3 @@
-from __future__ import division
-
 import pickle
 
 import autograd.numpy as np
@@ -8,19 +6,15 @@ import pandas as pd
 pd.options.mode.chained_assignment = None
 
 __all__ = [
-    "calibration_and_holdout_data",
-    "summary_data_from_transaction_data",
     "calculate_alive_path",
+    "calibration_and_holdout_data",
     "expected_cumulative_transactions",
+    "summary_data_from_transaction_data",
 ]
 
 
 class ConvergenceError(ValueError):
-    """
-    Convergence Error Class.
-    """
-
-    pass
+    """Convergence Error Class."""
 
 
 def calibration_and_holdout_data(
@@ -80,6 +74,7 @@ def calibration_and_holdout_data(
         A dataframe with columns frequency_cal, recency_cal, T_cal, frequency_holdout, duration_holdout
         If monetary_value_col isn't None, the dataframe will also have the columns monetary_value_cal and
         monetary_value_holdout.
+
     """
 
     def to_period(d):
@@ -93,9 +88,15 @@ def calibration_and_holdout_data(
         transaction_cols.append(monetary_value_col)
     transactions = transactions[transaction_cols].copy()
 
-    transactions[datetime_col] = pd.to_datetime(transactions[datetime_col], format=datetime_format)
-    observation_period_end = pd.to_datetime(observation_period_end, format=datetime_format)
-    calibration_period_end = pd.to_datetime(calibration_period_end, format=datetime_format)
+    transactions[datetime_col] = pd.to_datetime(
+        transactions[datetime_col], format=datetime_format
+    )
+    observation_period_end = pd.to_datetime(
+        observation_period_end, format=datetime_format
+    )
+    calibration_period_end = pd.to_datetime(
+        calibration_period_end, format=datetime_format
+    )
 
     # create calibration dataset
     calibration_transactions = transactions.loc[
@@ -112,7 +113,9 @@ def calibration_and_holdout_data(
         monetary_value_col=monetary_value_col,
         include_first_transaction=include_first_transaction,
     )
-    calibration_summary_data.columns = [c + "_cal" for c in calibration_summary_data.columns]
+    calibration_summary_data.columns = [
+        c + "_cal" for c in calibration_summary_data.columns
+    ]
 
     # create holdout dataset
     holdout_transactions = transactions.loc[
@@ -125,7 +128,9 @@ def calibration_and_holdout_data(
             "There is no data available. Check the `observation_period_end` and  `calibration_period_end` and confirm that values in `transactions` occur prior to those dates."
         )
 
-    holdout_transactions[datetime_col] = holdout_transactions[datetime_col].map(to_period)
+    holdout_transactions[datetime_col] = holdout_transactions[datetime_col].map(
+        to_period
+    )
     holdout_summary_data = (
         holdout_transactions.groupby([customer_id_col, datetime_col], sort=False)
         .agg(lambda r: 1)
@@ -141,7 +146,9 @@ def calibration_and_holdout_data(
     combined_data = calibration_summary_data.join(holdout_summary_data, how="left")
     combined_data.fillna(0, inplace=True)
 
-    delta_time = (to_period(observation_period_end) - to_period(calibration_period_end)).n
+    delta_time = (
+        to_period(observation_period_end) - to_period(calibration_period_end)
+    ).n
     combined_data["duration_holdout"] = delta_time / freq_multiplier
 
     return combined_data
@@ -184,8 +191,8 @@ def _find_first_transactions(
     freq: string, optional
         Default: 'D' for days. Possible values listed here:
         https://numpy.org/devdocs/reference/arrays.datetime.html#datetime-units
-    """
 
+    """
     if observation_period_end is None:
         observation_period_end = transactions[datetime_col].max()
 
@@ -201,10 +208,14 @@ def _find_first_transactions(
 
     # make sure the date column uses datetime objects, and use Pandas' DateTimeIndex.to_period()
     # to convert the column to a PeriodIndex which is useful for time-wise grouping and truncating
-    transactions[datetime_col] = pd.to_datetime(transactions[datetime_col], format=datetime_format)
+    transactions[datetime_col] = pd.to_datetime(
+        transactions[datetime_col], format=datetime_format
+    )
     transactions = transactions.set_index(datetime_col).to_period(freq).to_timestamp()
 
-    transactions = transactions.loc[(transactions.index <= observation_period_end)].reset_index()
+    transactions = transactions.loc[
+        (transactions.index <= observation_period_end)
+    ].reset_index()
 
     period_groupby = transactions.groupby(
         [datetime_col, customer_id_col], sort=False, as_index=False
@@ -222,13 +233,17 @@ def _find_first_transactions(
     period_transactions["first"] = False
     # find all of the initial transactions and store as an index
     first_transactions = (
-        period_transactions.groupby(customer_id_col, sort=True, as_index=False).head(1).index
+        period_transactions.groupby(customer_id_col, sort=True, as_index=False)
+        .head(1)
+        .index
     )
     # mark the initial transactions as True
     period_transactions.loc[first_transactions, "first"] = True
     select_columns.append("first")
     # reset datetime_col to period
-    period_transactions[datetime_col] = pd.Index(period_transactions[datetime_col]).to_period(freq)
+    period_transactions[datetime_col] = pd.Index(
+        period_transactions[datetime_col]
+    ).to_period(freq)
 
     return period_transactions[select_columns]
 
@@ -286,8 +301,8 @@ def summary_data_from_transaction_data(
     -------
     :obj: DataFrame:
         customer_id, frequency, recency, T [, monetary_value]
-    """
 
+    """
     if observation_period_end is None:
         observation_period_end = (
             pd.to_datetime(transactions[datetime_col].max(), format=datetime_format)
@@ -317,9 +332,9 @@ def summary_data_from_transaction_data(
     ).to_timestamp()
 
     # count all orders by customer.
-    customers = repeated_transactions.groupby(customer_id_col, sort=False)[datetime_col].agg(
-        ["min", "max", "count"]
-    )
+    customers = repeated_transactions.groupby(customer_id_col, sort=False)[
+        datetime_col
+    ].agg(["min", "max", "count"])
 
     if not include_first_transaction:
         # subtract 1 from count, as we ignore their first order.
@@ -328,10 +343,14 @@ def summary_data_from_transaction_data(
         customers["frequency"] = customers["count"]
 
     customers["T"] = (
-        (observation_period_end - customers["min"]) / np.timedelta64(1, freq) / freq_multiplier
+        (observation_period_end - customers["min"])
+        / np.timedelta64(1, freq)
+        / freq_multiplier
     )
     customers["recency"] = (
-        (customers["max"] - customers["min"]) / np.timedelta64(1, freq) / freq_multiplier
+        (customers["max"] - customers["min"])
+        / np.timedelta64(1, freq)
+        / freq_multiplier
     )
 
     summary_columns = ["frequency", "recency", "T"]
@@ -339,12 +358,16 @@ def summary_data_from_transaction_data(
     if monetary_value_col:
         if not include_first_transaction:
             # create an index of all the first purchases
-            first_purchases = repeated_transactions[repeated_transactions["first"]].index
+            first_purchases = repeated_transactions[
+                repeated_transactions["first"]
+            ].index
             # by setting the monetary_value cells of all the first purchases to NaN,
             # those values will be excluded from the mean value calculation
             repeated_transactions.loc[first_purchases, monetary_value_col] = np.nan
         customers["monetary_value"] = (
-            repeated_transactions.groupby(customer_id_col)[monetary_value_col].mean().fillna(0)
+            repeated_transactions.groupby(customer_id_col)[monetary_value_col]
+            .mean()
+            .fillna(0)
         )
         summary_columns.append("monetary_value")
 
@@ -375,8 +398,8 @@ def calculate_alive_path(model, transactions, datetime_col, t, freq="D"):
     -------
     :obj: Series
         A pandas Series containing the p_alive as a function of T (age of the customer)
-    """
 
+    """
     customer_history = transactions[[datetime_col]].copy()
     customer_history[datetime_col] = pd.to_datetime(customer_history[datetime_col])
     customer_history = customer_history.set_index(datetime_col)
@@ -396,7 +419,9 @@ def calculate_alive_path(model, transactions, datetime_col, t, freq="D"):
     # add T column
     customer_history["T"] = np.arange(customer_history.shape[0])
     # add cumulative transactions column
-    customer_history["transactions"] = customer_history["transactions"].apply(lambda t: int(t > 0))
+    customer_history["transactions"] = customer_history["transactions"].apply(
+        lambda t: int(t > 0)
+    )
     customer_history["frequency"] = (
         customer_history["transactions"].cumsum() - 1
     )  # first purchase is ignored
@@ -404,19 +429,20 @@ def calculate_alive_path(model, transactions, datetime_col, t, freq="D"):
     customer_history["recency"] = customer_history.apply(
         lambda row: row["T"] if row["transactions"] != 0 else np.nan, axis=1
     )
-    customer_history["recency"] = customer_history["recency"].fillna(method="ffill").fillna(0)
+    customer_history["recency"] = (
+        customer_history["recency"].fillna(method="ffill").fillna(0)
+    )
 
     return customer_history.apply(
-        lambda row: model.conditional_probability_alive(row["frequency"], row["recency"], row["T"]),
+        lambda row: model.conditional_probability_alive(
+            row["frequency"], row["recency"], row["T"]
+        ),
         axis=1,
     )
 
 
 def _scale_time(age):
-    """
-    Create a scalar such that the maximum age is 1.
-    """
-
+    """Create a scalar such that the maximum age is 1."""
     return 1.0 / age.max()
 
 
@@ -445,22 +471,30 @@ def _check_inputs(frequency, recency=None, T=None, monetary_value=None):
         the vector of customers' age (time since first purchase)
     monetary_value: array_like, optional
         the monetary value vector of customer's purchases (denoted m in literature).
-    """
 
+    """
     if recency is not None:
         if T is not None and np.any(recency > T):
             raise ValueError("Some values in recency vector are larger than T vector.")
         if np.any(recency[frequency == 0] != 0):
-            raise ValueError("There exist non-zero recency values when frequency is zero.")
+            raise ValueError(
+                "There exist non-zero recency values when frequency is zero."
+            )
         if np.any(recency < 0):
-            raise ValueError("There exist negative recency (ex: last order set before first order)")
+            raise ValueError(
+                "There exist negative recency (ex: last order set before first order)"
+            )
         if any(x.shape[0] == 0 for x in [recency, frequency, T]):
-            raise ValueError("There exists a zero length vector in one of frequency, recency or T.")
+            raise ValueError(
+                "There exists a zero length vector in one of frequency, recency or T."
+            )
     if np.sum((frequency - frequency.astype(int)) ** 2) != 0:
         raise ValueError("There exist non-integer values in the frequency vector.")
     if monetary_value is not None and np.any(monetary_value <= 0):
-        raise ValueError("There exist non-positive (<= 0) values in the monetary_value vector.")
-    # TODO: raise warning if np.any(freqency > T) as this means that there are
+        raise ValueError(
+            "There exist non-positive (<= 0) values in the monetary_value vector."
+        )
+    # TODO: raise warning if np.any(frequency > T) as this means that there are
     # more order-periods than periods.
 
 
@@ -502,8 +536,8 @@ def _customer_lifetime_value(
     -------
     :obj: Series
         series with customer ids as index and the estimated customer lifetime values as values
-    """
 
+    """
     df = pd.DataFrame(index=range(len(frequency)))
     df["clv"] = 0  # initialize the clv column to zeros
 
@@ -516,9 +550,9 @@ def _customer_lifetime_value(
             i, frequency, recency, T
         ) - transaction_prediction_model.predict(i - factor, frequency, recency, T)
         # sum up the CLV estimates of all of the periods and apply discounted cash flow
-        df["clv"] += (monetary_value * expected_number_of_transactions) / (1 + discount_rate) ** (
-            i / factor
-        )
+        df["clv"] += (monetary_value * expected_number_of_transactions) / (
+            1 + discount_rate
+        ) ** (i / factor)
 
     return df["clv"]  # return as a series
 
@@ -559,7 +593,7 @@ def expected_cumulative_transactions(
     customer_id_col: string
         the column in transactions that denotes the customer_id
     t: int
-        the number of time units since the begining of
+        the number of time units since the beginning of
         data for which we want to calculate cumulative transactions
     datetime_format: string, optional
         a string that represents the timestamp format. Useful if Pandas can't
@@ -586,8 +620,9 @@ def expected_cumulative_transactions(
     http://brucehardie.com/notes/008/
 
     """
-
-    start_date = pd.to_datetime(transactions[datetime_col], format=datetime_format).min()
+    start_date = pd.to_datetime(
+        transactions[datetime_col], format=datetime_format
+    ).min()
     start_period = start_date.to_period(freq)
     observation_period_end = start_period + t
 
@@ -620,9 +655,7 @@ def expected_cumulative_transactions(
     # evaluated.
     # Then we sum them to get the cumulative sum up to the specific period.
     for i, period in enumerate(date_periods):  # index of period and its date
-
         if i % freq_multiplier == 0 and i > 0:
-
             # Periods before the one being evaluated
             times = np.array([d.n for d in period - first_trans_size.index])
             times = times[times > 0].astype(float) / freq_multiplier
@@ -649,10 +682,11 @@ def expected_cumulative_transactions(
     if set_index_date:
         index = date_periods[freq_multiplier - 1 : -1 : freq_multiplier]
     else:
-        index = range(0, t // freq_multiplier)
+        index = range(t // freq_multiplier)
 
     df_cum_transactions = pd.DataFrame(
-        {"actual": act_cum_transactions, "predicted": pred_cum_transactions}, index=index
+        {"actual": act_cum_transactions, "predicted": pred_cum_transactions},
+        index=index,
     )
 
     return df_cum_transactions
@@ -674,8 +708,8 @@ def _save_obj_without_attr(obj, attr_list, path, values_to_save=None):
     values_to_save: list, optional
         Placeholders for original attributes for saving object. If None will be
         extended to attr_list length like [None] * len(attr_list)
-    """
 
+    """
     if values_to_save is None:
         values_to_save = [None] * len(attr_list)
 

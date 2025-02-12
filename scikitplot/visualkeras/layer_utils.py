@@ -29,26 +29,24 @@ from .utils import get_keys_by_value
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
-    "_DummyLayer",
     "SpacingDummyLayer",
-    "is_spacing_dummy_layer",
-    "get_incoming_layers",
-    "get_outgoing_layers",
-    "model_to_adj_matrix",
+    "_DummyLayer",
+    "augment_output_layers",
+    "find_input_layers",
     "find_layer_by_id",
     "find_layer_by_name",
-    "find_input_layers",
     "find_output_layers",
-    "model_to_hierarchy_lists",
-    "augment_output_layers",
+    "get_incoming_layers",
+    "get_outgoing_layers",
     "is_internal_input",
+    "is_spacing_dummy_layer",
+    "model_to_adj_matrix",
+    "model_to_hierarchy_lists",
 ]
 
 
 class _DummyLayer:
-    """
-    A simple densely-connected neural network layer.
-    """
+    """A simple densely-connected neural network layer."""
 
     def __init__(self, name, units=None, **kwargs):
         """
@@ -62,6 +60,7 @@ class _DummyLayer:
             Positive integer, dimensionality of the output space, if provided.
         **kwargs : dict
             Additional keyword arguments for the base Layer class.
+
         """
         self.name = name
         # Assign the units attribute if provided
@@ -82,6 +81,7 @@ class _DummyLayer:
         -------
         tensor
             Processed output tensor (in this case, unchanged).
+
         """
         return inputs  # Add meaningful logic here if needed
 
@@ -110,6 +110,7 @@ class SpacingDummyLayer:
                     Spacing value to be used by the layer. Default is 50.
                 **kwargs : dict
                     Additional keyword arguments for the base Layer class.
+
                 """
                 # super() without arguments will automatically use the current class and instance in Python 3.x.
                 # In Python 2.x (or if you need to write code that is compatible with both Python 2.x and 3.x),
@@ -131,6 +132,7 @@ class SpacingDummyLayer:
                 -------
                 tensor
                     The input tensor, unchanged.
+
                 """
                 return inputs
 
@@ -216,11 +218,11 @@ def is_spacing_dummy_layer(layer: object) -> bool:
     >>> layer = SomeOtherLayer()
     >>> is_spacing_dummy_layer(layer)
     False
+
     """
     # Check if the class of the layer is SpacingDummyLayer or its dynamically created subclass (DynamicSpacingDummyLayer)
-    return (
-        isinstance(layer, SpacingDummyLayer)
-        or isinstance(layer.__class__, type)
+    return isinstance(layer, SpacingDummyLayer) or (
+        isinstance(layer.__class__, type)
         and layer.__class__.__name__ == "DynamicSpacingDummyLayer"
     )
 
@@ -236,7 +238,9 @@ def get_incoming_layers(layer):
                 yield node.inbound_layers
         else:
             # New Node class (TF 2.16 and Keras 3 and up)
-            inbound_layers = [parent_node.operation for parent_node in node.parent_nodes]
+            inbound_layers = [
+                parent_node.operation for parent_node in node.parent_nodes
+            ]
             if isinstance(inbound_layers, Iterable):
                 for inbound_layer in inbound_layers:
                     yield inbound_layer
@@ -253,6 +257,7 @@ def get_outgoing_layers(layer):
 
     Yields:
     Outgoing layers connected to the given layer.
+
     """
     # layer._outbound_nodes gives you the list of outbound nodes for a layer.
     # node.outbound_layers is a list of layers connected as outputs from the current node.
@@ -343,7 +348,9 @@ def find_layer_by_name(model, name):
 def find_input_layers(model, id_to_num_mapping=None, adj_matrix=None):
     if adj_matrix is None:
         id_to_num_mapping, adj_matrix = model_to_adj_matrix(model)
-    for i in np.where(np.sum(adj_matrix, axis=0) == 0)[0]:  # find all nodes with 0 inputs
+    for i in np.where(np.sum(adj_matrix, axis=0) == 0)[
+        0
+    ]:  # find all nodes with 0 inputs
         for key in get_keys_by_value(id_to_num_mapping, i):
             yield find_layer_by_id(model, key)
 
@@ -391,7 +398,6 @@ def model_to_hierarchy_lists(model, id_to_num_mapping=None, adj_matrix=None):
 
 
 def augment_output_layers(model, output_layers, id_to_num_mapping, adj_matrix):
-
     adj_matrix = np.pad(
         adj_matrix,
         ((0, len(output_layers)), (0, len(output_layers))),

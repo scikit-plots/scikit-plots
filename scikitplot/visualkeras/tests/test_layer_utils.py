@@ -10,7 +10,6 @@ from ..layer_utils import (
 
 
 def test_get_incoming_layers(functional_model):
-
     assert len(list(get_incoming_layers(functional_model.get_layer("input_1")))) == 0
 
     assert list(get_incoming_layers(functional_model.get_layer("layer_1_1"))) == [
@@ -50,7 +49,9 @@ def test_find_layer_by_id(functional_model):
 
 
 def test_find_layer_by_name(functional_model):
-    assert find_layer_by_name(functional_model, "input_1") == functional_model.get_layer("input_1")
+    assert find_layer_by_name(
+        functional_model, "input_1"
+    ) == functional_model.get_layer("input_1")
 
 
 def test_find_input_layers(functional_model):

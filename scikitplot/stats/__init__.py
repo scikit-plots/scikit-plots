@@ -6,5 +6,5 @@ and frequency statistics, correlation functions, statistical tests,
 masked statistics, and additional tools.
 """
 
-from .._tweedie import *
-from .._astropy.stats import *
+from .._astropy.stats import *  # noqa: F401,F403
+from .._tweedie import *  # noqa: F401,F403

@@ -13,34 +13,19 @@ enforcing Python 3-like behavior in Python 2.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Sigmoid and Softmax functions
-from sklearn.metrics import (
-    silhouette_samples,
-    silhouette_score,
-)
-from sklearn.preprocessing import (
-    LabelEncoder,
-)
+from sklearn.metrics import silhouette_samples, silhouette_score
+from sklearn.preprocessing import LabelEncoder
 
-from ..._utils.validation import (
-    validate_plotting_kwargs_decorator,
-)
+from ..._utils.validation import validate_plotting_kwargs_decorator
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
-__all__ = [
-    "plot_silhouette",
-]
+__all__ = ["plot_silhouette"]
 
 
 @validate_plotting_kwargs_decorator
@@ -154,6 +139,7 @@ def plot_silhouette(
         >>>     X,
         >>>     cluster_labels,
         >>> );
+
     """
     ##################################################################
     ## Preprocessing
@@ -180,7 +166,9 @@ def plot_silhouette(
     # Proceed with your plotting logic here
     y_lower = 10
     for i in range(n_clusters):
-        ith_cluster_silhouette_values = sample_silhouette_values[cluster_labels_encoded == i]
+        ith_cluster_silhouette_values = sample_silhouette_values[
+            cluster_labels_encoded == i
+        ]
 
         ith_cluster_silhouette_values.sort()
 
@@ -198,7 +186,12 @@ def plot_silhouette(
             alpha=0.7,
         )
 
-        ax.text(-0.05, y_lower + 0.5 * size_cluster_i, str(le.classes_[i]), fontsize=text_fontsize)
+        ax.text(
+            -0.05,
+            y_lower + 0.5 * size_cluster_i,
+            str(le.classes_[i]),
+            fontsize=text_fontsize,
+        )
 
         y_lower = y_upper + 10
 

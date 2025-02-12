@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import ClassVar, Callable, Optional, Union, cast
+from typing import Callable, ClassVar, Optional, Union, cast
 
 import numpy as np
 from pandas import DataFrame
@@ -19,11 +20,7 @@ class Move:
     group_by_orient: ClassVar[bool] = True
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
         raise NotImplementedError
 
@@ -56,13 +53,8 @@ class Jitter(Move):
     seed: int | None = None
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
-
         data = data.copy()
         rng = np.random.default_rng(self.seed)
 
@@ -114,13 +106,8 @@ class Dodge(Move):
     by: Optional[list[str]] = None
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
-
         grouping_vars = [v for v in groupby.order if v in data]
         groups = groupby.agg(data, {"width": "max"})
         if self.empty == "fill":
@@ -177,7 +164,6 @@ class Stack(Move):
     # TODO center? (or should this be a different move, eg. Stream())
 
     def _stack(self, df, orient):
-
         # TODO should stack do something with ymin/ymax style marks?
         # Should there be an upstream conversion to baseline/height parameterization?
 
@@ -195,13 +181,8 @@ class Stack(Move):
         return df
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
-
         # TODO where to ensure that other semantic variables are sorted properly?
         # TODO why are we not using the passed in groupby here?
         groupers = ["col", "row", orient]
@@ -228,13 +209,8 @@ class Shift(Move):
     y: float = 0
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
-
         data = data.copy(deep=False)
         data["x"] = data["x"] + self.x
         data["y"] = data["y"] + self.y
@@ -271,7 +247,6 @@ class Norm(Move):
     group_by_orient: ClassVar[bool] = False
 
     def _norm(self, df, var):
-
         if self.where is None:
             denom_data = df[var]
         else:
@@ -284,13 +259,8 @@ class Norm(Move):
         return df
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
-
         other = {"x": "y", "y": "x"}[orient]
         return groupby.apply(data, self._norm, other)
 

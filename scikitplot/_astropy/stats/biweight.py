@@ -30,8 +30,7 @@ __all__ = [
 
 
 def _stat_functions(
-    data: ArrayLike,
-    ignore_nan: bool | None = False,
+    data: ArrayLike, ignore_nan: bool | None = False
 ) -> tuple[Callable[..., NDArray[float]], Callable[..., NDArray[float]]]:
     # TODO: typing: update return Callables with custom callback protocol (https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols)
     if isinstance(data, np.ma.MaskedArray):
@@ -129,8 +128,9 @@ def biweight_location(
     >>> from astropy.stats import biweight_location
     >>> rand = np.random.default_rng(12345)
     >>> biloc = biweight_location(rand.standard_normal(1000))
-    >>> print(biloc)    # doctest: +FLOAT_CMP
+    >>> print(biloc)  # doctest: +FLOAT_CMP
     0.01535330525461019
+
     """
     median_func, sum_func = _stat_functions(data, ignore_nan=ignore_nan)
 
@@ -173,7 +173,9 @@ def biweight_location(
     # the median value along that axis.
     # Ignore RuntimeWarnings for divide by zero
     with np.errstate(divide="ignore", invalid="ignore"):
-        value = M.squeeze(axis=axis) + (sum_func(d * u, axis=axis) / sum_func(u, axis=axis))
+        value = M.squeeze(axis=axis) + (
+            sum_func(d * u, axis=axis) / sum_func(u, axis=axis)
+        )
         if np.isscalar(value):
             return value
 
@@ -296,6 +298,7 @@ def biweight_scale(
     >>> biscl = biweight_scale(rand.standard_normal(1000))
     >>> print(biscl)    # doctest: +FLOAT_CMP
     1.0239311812635818
+
     """
     return np.sqrt(
         biweight_midvariance(
@@ -421,6 +424,7 @@ def biweight_midvariance(
     >>> bivar = biweight_midvariance(rand.standard_normal(1000))
     >>> print(bivar)    # doctest: +FLOAT_CMP
     1.0484350639638342
+
     """
     median_func, sum_func = _stat_functions(data, ignore_nan=ignore_nan)
 
@@ -655,6 +659,7 @@ def biweight_midcovariance(
     >>> # Print standard deviation estimates
     >>> print(np.sqrt(bicov.diagonal()))  # doctest: +FLOAT_CMP
     [0.91343072 2.67519302]
+
     """
     data = np.asanyarray(data).astype(np.float64)
 
@@ -786,6 +791,7 @@ def biweight_midcorrelation(
     >>> bicorr = biweight_midcorrelation(x, y)
     >>> print(bicorr)  # doctest: +FLOAT_CMP
     -0.09203238319481295
+
     """
     x = np.asanyarray(x)
     y = np.asanyarray(y)
@@ -796,6 +802,8 @@ def biweight_midcorrelation(
     if x.shape != y.shape:
         raise ValueError("x and y must have the same shape.")
 
-    bicorr = biweight_midcovariance([x, y], c=c, M=M, modify_sample_size=modify_sample_size)
+    bicorr = biweight_midcovariance(
+        [x, y], c=c, M=M, modify_sample_size=modify_sample_size
+    )
 
     return bicorr[0, 1] / (np.sqrt(bicorr[0, 0] * bicorr[1, 1]))

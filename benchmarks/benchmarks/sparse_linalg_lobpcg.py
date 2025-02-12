@@ -83,7 +83,9 @@ class Bench(Benchmark):
             c = cholesky_banded(self.Ab.astype(np.float32))
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                el, _ = lobpcg(self.Ac, X, self.Bc, M=a, tol=1e-4, maxiter=40, largest=False)
+                el, _ = lobpcg(
+                    self.Ac, X, self.Bc, M=a, tol=1e-4, maxiter=40, largest=False
+                )
             accuracy = max(abs(ee - el) / ee)
         elif solver == "eigsh":
             # `eigsh` ARPACK here is called on ``Bx = 1/lambda Ax``
@@ -97,7 +99,14 @@ class Bench(Benchmark):
             c = cholesky_banded(self.Ab)
             a_l = LinearOperator((n, n), matvec=a, matmat=a, dtype="float64")
             ea, _ = eigsh(
-                B, k=m, M=A, Minv=a_l, which="LA", tol=1e-4, maxiter=50, v0=rng.normal(size=(n, 1))
+                B,
+                k=m,
+                M=A,
+                Minv=a_l,
+                which="LA",
+                tol=1e-4,
+                maxiter=50,
+                v0=rng.normal(size=(n, 1)),
             )
             accuracy = max(abs(ee - np.sort(1.0 / ea)) / ee)
         else:
@@ -128,7 +137,14 @@ class Bench(Benchmark):
             accuracy = max(abs(ee - el) / ee)
         elif solver == "eigsh":
             a_l = LinearOperator((n, n), matvec=self.A, matmat=self.A, dtype="float64")
-            ea, _ = eigsh(a_l, k=m, which="SA", tol=1e-9, maxiter=15000, v0=rng.normal(size=(n, 1)))
+            ea, _ = eigsh(
+                a_l,
+                k=m,
+                which="SA",
+                tol=1e-9,
+                maxiter=15000,
+                v0=rng.normal(size=(n, 1)),
+            )
             accuracy = max(abs(ee - ea) / ee)
         else:
             ed, _ = eigh(self.Aa, subset_by_index=(0, m - 1))
@@ -159,7 +175,9 @@ class Bench(Benchmark):
         elif solver == "eigsh":
             c = cholesky_banded(self.A)
             a_l = LinearOperator((n, n), matvec=a, matmat=a, dtype="float64")
-            ea, _ = eigsh(a_l, k=m, which="LA", tol=1e-9, maxiter=8, v0=rng.normal(size=(n, 1)))
+            ea, _ = eigsh(
+                a_l, k=m, which="LA", tol=1e-9, maxiter=8, v0=rng.normal(size=(n, 1))
+            )
             accuracy = max(abs(ee - np.sort(1.0 / ea)) / ee)
         else:
             ed, _ = eig_banded(self.A, select="i", select_range=[0, m - 1])

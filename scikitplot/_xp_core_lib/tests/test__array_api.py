@@ -21,7 +21,6 @@ from .._array_api_no_0d import xp_assert_equal as xp_assert_equal_no_0d
     reason="Array API test; set environment variable SKPLT_ARRAY_API=1 to run it",
 )
 class TestArrayAPI:
-
     def test_array_namespace(self):
         x, y = np.array([0, 1, 2]), np.array([0, 1, 2])
         xp = array_namespace(x, y)
@@ -62,7 +61,8 @@ class TestArrayAPI:
         array_namespace(1)
 
     def test_array_api_extra_hook(self):
-        """Test that the `array_namespace` function used by
+        """
+        Test that the `array_namespace` function used by
         array-api-extra has been overridden by scipy
         """
         msg = "only boolean and numerical dtypes are supported"
@@ -100,8 +100,7 @@ class TestArrayAPI:
             xp_assert_equal(x, y, **options)
         else:
             with pytest.raises(
-                AssertionError,
-                match="Namespace of desired array does not match",
+                AssertionError, match="Namespace of desired array does not match"
             ):
                 xp_assert_equal(x, y, **options)
             with pytest.raises(
@@ -237,7 +236,9 @@ def test_jax():
         import jax.numpy as jnp
 
         devices = jax.devices()
-        assert len(devices) > 0 and devices[0].platform == "gpu", "No GPUs available for JAX"
+        assert (
+            len(devices) > 0 and devices[0].platform == "gpu"
+        ), "No GPUs available for JAX"
 
         a = jnp.array([[1.0, 2.0], [3.0, 4.0]])
         b = jnp.array([[5.0, 6.0], [7.0, 8.0]])

@@ -1,15 +1,11 @@
 import numpy
 
-__all__ = [
-    "_make_boot_index",
-    "_fit_simple",
-    "_bs_fit",
-    "_estimate_from_fit",
-]
+__all__ = ["_bs_fit", "_estimate_from_fit", "_fit_simple", "_make_boot_index"]
 
 
 def _make_boot_index(elements, niter):
-    """Generate an array of bootstrap sample sets
+    """
+    Generate an array of bootstrap sample sets
 
     Parameters
     ----------
@@ -46,12 +42,11 @@ def _fit_simple(x, y, xhat, fitlogs=None):
     results : dict
         Dictionary of the fit coefficients
 
-    See also
+    See Also
     --------
     numpy.polyfit
 
     """
-
     # do the best-fit
     coeffs = numpy.polyfit(x, y, 1)
 
@@ -92,14 +87,15 @@ def _bs_fit(x, y, xhat, fitlogs=None, niter=10000, alpha=0.05):
     results : dict
         Dictionary of the fit coefficients
 
-    See also
+    See Also
     --------
     numpy.polyfit
 
     """
-
     index = _make_boot_index(len(x), niter)
-    yhat_array = numpy.array([_fit_simple(x[ii], y[ii], xhat, fitlogs=fitlogs)[0] for ii in index])
+    yhat_array = numpy.array(
+        [_fit_simple(x[ii], y[ii], xhat, fitlogs=fitlogs)[0] for ii in index]
+    )
 
     percentiles = 100 * numpy.array([alpha * 0.5, 1 - alpha * 0.5])
     yhat_lo, yhat_hi = numpy.percentile(yhat_array, percentiles, axis=0)
@@ -107,7 +103,8 @@ def _bs_fit(x, y, xhat, fitlogs=None, niter=10000, alpha=0.05):
 
 
 def _estimate_from_fit(xhat, slope, intercept, xlog=False, ylog=False):
-    """Estimate the dependent variables of a linear fit given x-data
+    """
+    Estimate the dependent variables of a linear fit given x-data
     and linear parameters.
 
     Parameters
@@ -128,7 +125,6 @@ def _estimate_from_fit(xhat, slope, intercept, xlog=False, ylog=False):
         Estimate of the dependent variable.
 
     """
-
     xhat = numpy.asarray(xhat)
     if ylog:
         if xlog:
@@ -136,11 +132,10 @@ def _estimate_from_fit(xhat, slope, intercept, xlog=False, ylog=False):
         else:
             yhat = numpy.exp(intercept) * numpy.exp(slope) ** xhat
 
-    else:
-        if xlog:
-            yhat = slope * numpy.log(xhat) + intercept
+    elif xlog:
+        yhat = slope * numpy.log(xhat) + intercept
 
-        else:
-            yhat = slope * xhat + intercept
+    else:
+        yhat = slope * xhat + intercept
 
     return yhat

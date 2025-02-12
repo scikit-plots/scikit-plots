@@ -91,7 +91,9 @@ def setup_unsupervised_learning():
     except ImportError:
         raise SkipTest("Skipping unsupervised_learning.rst, scikit-image not installed")
     # ignore deprecation warnings from scipy.misc.face
-    warnings.filterwarnings("ignore", "The binary mode of fromstring", DeprecationWarning)
+    warnings.filterwarnings(
+        "ignore", "The binary mode of fromstring", DeprecationWarning
+    )
 
 
 def skip_if_matplotlib_not_installed(fname):
@@ -159,12 +161,14 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    """Called after collect is completed.
+    """
+    Called after collect is completed.
 
     Parameters
     ----------
     config : pytest config
     items : list of collected items
+
     """
     skip_doctests = False
     if np_base_version >= parse_version("2"):

@@ -18,7 +18,9 @@ def clean():
     virtualenv.
     """
     util.run([sys.executable, "-m", "pip", "uninstall", "scikit-plots", "-y"])
-    default_meson_build_dir = f"build/cp{sys.version_info.major}{sys.version_info.minor}"
+    default_meson_build_dir = (
+        f"build/cp{sys.version_info.major}{sys.version_info.minor}"
+    )
     click.secho(
         f"removing default Meson build dir: {default_meson_build_dir}",
         bold=True,

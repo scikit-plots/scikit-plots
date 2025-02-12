@@ -1,14 +1,42 @@
-exclude = [
-  "**/0yanked/",
-  "auto_building_tools",
-  "benchmarks",
-  "galleries/",
-  "docs/source/auto_examples",
-  "docs/source/jupyterlite_contents/auto_examples",
-  "scikitplot/",
-  "docs/source/introduction/quick_start.py",
-  "docs/source/introduction/quick_start_tf.py",
-  "docs/source/_sphinx_ext",
-  "docs/source/conf.py",
-  "dev.py",
+extend = "pyproject.toml"
+
+[lint.extend-per-file-ignores]
+"__init__.py" = ["E402", "F401"]
+
+"__init__.pyi" = [
+    "F811", "PYI002", "F811",
+]
+
+"cbook.pyi" = [
+    "N801", "N803"
+]
+
+"*_distributor_init.py" = [
+    "SIM105",
+]
+
+"*_min_dependencies.py" = [
+    "T201",
+]
+
+"docs/*" = []
+
+"test_*.py" = [
+    "PTH", # all flake8-use-pathlib
+    "RUF015",  # Prefer next({iterable}) over single element slice
+]
+
+".pyinstaller/*.py" = ["PTH"]
+
+# TODO: fix these, on a per-subpackage basis.
+# When a general exclusion is being fixed, but it affects many subpackages, it
+# is better to fix for subpackages individually. The general exclusion should be
+# copied to these subpackage sections and fixed there.
+"scikitplot/config/*" = []
+
+"scikitplot/_testing/*" = [
+    "UP031",    # Use format specifiers instead of percent format
+    "T201",  # `print` found
+    "PTH100",  # `os.path.abspath()` should be replaced by `Path.resolve()`
+    "RUF005",  # Consider `["--pyargs", *list(tests)]` instead of concatenation
 ]

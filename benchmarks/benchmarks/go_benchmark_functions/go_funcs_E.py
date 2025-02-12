@@ -308,7 +308,10 @@ class Exp2(Benchmark):
 
         i = arange(10.0)
         vec = (
-            exp(-i * x[0] / 10.0) - 5 * exp(-i * x[1] / 10.0) - exp(-i / 10.0) + 5 * exp(-i)
+            exp(-i * x[0] / 10.0)
+            - 5 * exp(-i * x[1] / 10.0)
+            - exp(-i / 10.0)
+            + 5 * exp(-i)
         ) ** 2
 
         return sum(vec)

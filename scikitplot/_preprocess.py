@@ -55,8 +55,9 @@ def _add_data_doc(docstring, replace_names):
     -------
     str
         The augmented docstring.
+
     """
-    if docstring is None or replace_names is not None and len(replace_names) == 0:
+    if docstring is None or (replace_names is not None and len(replace_names) == 0):
         return docstring
     docstring = inspect.cleandoc(docstring)
 
@@ -119,14 +120,15 @@ def _preprocess_data(func=None, *, replace_names=None, label_namer=None):
         a (string) key of *data* and no *label* kwarg is passed, then use the
         (string) value of the *namer* as *label*. ::
 
-            @_preprocess_data(label_namer="foo")
+            @_preprocess_data(label_namer='foo')
             def func(foo, label=None): ...
 
-            func("key", data={"key": value})
-            # is equivalent to
-            func.__wrapped__(value, label="key")
-    """
 
+            func('key', data={'key': value})
+            # is equivalent to
+            func.__wrapped__(value, label='key')
+
+    """
     if func is None:  # Return the actual decorator.
         return functools.partial(
             _preprocess_data, replace_names=replace_names, label_namer=label_namer
@@ -157,7 +159,8 @@ def _preprocess_data(func=None, *, replace_names=None, label_namer=None):
         f"({replace_names!r}) for {func.__name__!r}"
     )
     assert label_namer is None or label_namer in arg_names, (
-        "Matplotlib internal error: invalid label_namer " f"({label_namer!r}) for {func.__name__!r}"
+        "Matplotlib internal error: invalid label_namer "
+        f"({label_namer!r}) for {func.__name__!r}"
     )
 
     @functools.wraps(func)
@@ -184,16 +187,17 @@ def _preprocess_data(func=None, *, replace_names=None, label_namer=None):
             elif k == varargs_name:
                 if replace_names is None:
                     bound.arguments[k] = tuple(_replacer(data, v1) for v1 in v)
-            else:
-                if replace_names is None or k in replace_names:
-                    bound.arguments[k] = _replacer(data, v)
+            elif replace_names is None or k in replace_names:
+                bound.arguments[k] = _replacer(data, v)
 
         new_args = bound.args
         new_kwargs = bound.kwargs
 
         args_and_kwargs = {**bound.arguments, **bound.kwargs}
         if label_namer and "label" not in args_and_kwargs:
-            new_kwargs["label"] = _label_from_arg(args_and_kwargs.get(label_namer), auto_label)
+            new_kwargs["label"] = _label_from_arg(
+                args_and_kwargs.get(label_namer), auto_label
+            )
 
         return func(*new_args, **new_kwargs)
 

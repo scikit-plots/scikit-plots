@@ -24,7 +24,7 @@ def filter_search_index(app, exception):
         return
 
     # get
-    with open(searchindex_path, "r") as f:
+    with open(searchindex_path) as f:
         searchindex_text = f.read()
 
     # filter
@@ -38,9 +38,7 @@ def filter_search_index(app, exception):
 
 
 def setup(app):
-    """
-    Set up the Sphinx application with custom event handlers and configuration.
-    """
+    """Set up the Sphinx application with custom event handlers and configuration."""
     logger.info("Setting up Sphinx application")
 
     # Connect event handlers
@@ -48,4 +46,6 @@ def setup(app):
         app.connect("build-finished", filter_search_index)
         logger.info("Connected 'filter_search_index' to 'build-finished' event")
     except Exception as e:
-        logger.error(f"Failed to connect 'filter_search_index' to 'build-finished' event: {e}")
+        logger.error(
+            f"Failed to connect 'filter_search_index' to 'build-finished' event: {e}"
+        )

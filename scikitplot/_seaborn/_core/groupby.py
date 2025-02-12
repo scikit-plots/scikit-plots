@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from typing import cast, Iterable
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 
 from .._core.rules import categorical_order
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from typing import Callable
-    from pandas import DataFrame, MultiIndex, Index
+
+    from pandas import DataFrame, Index, MultiIndex
 
 
 class GroupBy:
@@ -49,7 +49,9 @@ class GroupBy:
             order = {k: None for k in order}
         self.order = order
 
-    def _get_groups(self, data: DataFrame) -> tuple[str | list[str], Index | MultiIndex]:
+    def _get_groups(
+        self, data: DataFrame
+    ) -> tuple[str | list[str], Index | MultiIndex]:
         """Return index with Cartesian product of ordered grouping variable levels."""
         levels = {}
         for var, order in self.order.items():
@@ -103,11 +105,7 @@ class GroupBy:
         return res
 
     def apply(
-        self,
-        data: DataFrame,
-        func: Callable[..., DataFrame],
-        *args,
-        **kwargs,
+        self, data: DataFrame, func: Callable[..., DataFrame], *args, **kwargs
     ) -> DataFrame:
         """Apply a DataFrame -> DataFrame mapping to each group."""
         grouper, groups = self._get_groups(data)

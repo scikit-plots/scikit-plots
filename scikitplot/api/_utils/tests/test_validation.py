@@ -34,13 +34,16 @@ class TestValidatePlottingKwargs:
         This method wraps another function in the validate_plotting_kwargs_decorator
         to validate the (fig, ax) before returning them.
 
-        Parameters:
+        Parameters
+        ----------
         - fig: The figure object to be validated (optional).
         - ax: The axes object to be validated (optional).
         - figsize: The size of the figure (optional).
 
-        Returns:
+        Returns
+        -------
         - Tuple of (fig, ax) if the inputs are valid.
+
         """
 
         @validate_plotting_kwargs_decorator
@@ -48,17 +51,20 @@ class TestValidatePlottingKwargs:
             *args, fig=None, ax=None, figsize=None, nrows=1, ncols=1, index=1, **kwargs
         ):
             """
-              A dummy plotting function that demonstrates the use of the validate_plotting_kwargs_decorator.
+            A dummy plotting function that demonstrates the use of the validate_plotting_kwargs_decorator.
 
               This function is decorated to validate its inputs before execution.
 
-              Parameters:
+            Parameters
+            ----------
             - fig: The figure object to be validated (optional).
             - ax: The axes object to be validated (optional).
             - figsize: The size of the figure (optional).
 
-              Returns:
+            Returns
+            -------
               - Tuple of (fig, ax) if the inputs are valid.
+
             """
             # Return the provided figure and axes objects
             return fig, ax
@@ -70,7 +76,9 @@ class TestValidatePlottingKwargs:
     def test_no_fig_no_ax(self):
         """Test case: No fig or ax provided (should create new ones)."""
         fig, ax = self.dummy_function()
-        assert isinstance(fig, mpl.figure.Figure), "Expected a Figure object to be created"
+        assert isinstance(
+            fig, mpl.figure.Figure
+        ), "Expected a Figure object to be created"
         assert isinstance(ax, mpl.axes.Axes), "Expected an Axes object to be created"
 
     # Test case 2: Only fig provided (should add subplot to fig)
@@ -78,7 +86,9 @@ class TestValidatePlottingKwargs:
         """Test case: Only fig provided (should add subplot to fig)."""
         fig = plt.figure()
         new_fig, _ = self.dummy_function(fig=fig)
-        assert isinstance(new_fig, mpl.figure.Figure), "Expected a Figure object to be returned"
+        assert isinstance(
+            new_fig, mpl.figure.Figure
+        ), "Expected a Figure object to be returned"
 
     # Test case 3: Only ax provided (should use the provided ax)
     def test_ax_only(self):
@@ -108,7 +118,8 @@ class TestValidatePlottingKwargs:
     def test_invalid_fig(self):
         """Test case: Invalid fig type (should raise ValueError)."""
         with pytest.raises(
-            ValueError, match="Provided fig must be an instance of matplotlib.figure.Figure"
+            ValueError,
+            match="Provided fig must be an instance of matplotlib.figure.Figure",
         ):
             self.dummy_function(fig="invalid_fig")
 
@@ -128,7 +139,9 @@ class TestValidatePlottingKwargs:
         """Test case: Decorator with provided fig and ax."""
         fig, ax = plt.subplots()
         new_fig, new_ax = self.dummy_function(fig=fig, ax=ax)
-        assert new_fig == fig, "Expected the provided Figure to be used by the decorator"
+        assert (
+            new_fig == fig
+        ), "Expected the provided Figure to be used by the decorator"
         assert new_ax == ax, "Expected the provided Axes to be used by the decorator"
 
 
@@ -149,12 +162,15 @@ class TestValidateShapes:
         This method wraps another function in the validate_shapes_decorator
         to validate the shapes of y_true and y_probas before returning them.
 
-        Parameters:
+        Parameters
+        ----------
         - y_true: The true labels (1D or 2D array-like).
         - y_probas: The predicted probabilities (1D or 2D array-like).
 
-        Returns:
+        Returns
+        -------
         - Tuple of y_true and y_probas if shapes are valid.
+
         """
 
         @validate_shapes_decorator
@@ -164,12 +180,15 @@ class TestValidateShapes:
 
             This function is decorated to validate its inputs before execution.
 
-            Parameters:
+            Parameters
+            ----------
             - y_true: The true labels (1D or 2D array-like).
             - y_probas: The predicted probabilities (1D or 2D array-like).
 
-            Returns:
+            Returns
+            -------
             - Tuple of y_true and y_probas.
+
             """
             return y_true, y_probas
 
@@ -184,7 +203,7 @@ class TestValidateShapes:
         try:
             self.dummy_function(y_true, y_probas)
         except ValueError as e:
-            pytest.fail(f"Unexpected ValueError: {str(e)}")
+            pytest.fail(f"Unexpected ValueError: {e!s}")
 
     # Test case 2: Valid binary case, 1D y_true and 2D y_probas (probabilities for two classes)
     def test_valid_binary_2d(self):
@@ -194,7 +213,7 @@ class TestValidateShapes:
         try:
             self.dummy_function(y_true, y_probas)
         except ValueError as e:
-            pytest.fail(f"Unexpected ValueError: {str(e)}")
+            pytest.fail(f"Unexpected ValueError: {e!s}")
 
     # Test case 3: Valid multi-class case, 2D y_true and y_probas
     def test_valid_multiclass(self):
@@ -205,13 +224,13 @@ class TestValidateShapes:
         try:
             self.dummy_function(y_true, y_probas)
         except ValueError as e:
-            pytest.fail(f"Unexpected ValueError: {str(e)}")
+            pytest.fail(f"Unexpected ValueError: {e!s}")
 
         y_true_bin = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
         try:
             self.dummy_function(y_true_bin, y_probas)
         except ValueError as e:
-            pytest.fail(f"Unexpected ValueError: {str(e)}")
+            pytest.fail(f"Unexpected ValueError: {e!s}")
 
     # Test case 4: Invalid shapes, mismatch between y_true and y_probas lengths (1D case)
     def test_shape_mismatch_1d(self):
@@ -252,9 +271,11 @@ class TestValidateShapes:
         y_probas = [0.1, 0.9, 0.2, 0.8]
         try:
             y_true, y_probas = self.dummy_function(y_true, y_probas)
-            assert len(y_true) == len(y_probas), "Decorator should have validated the shapes"
+            assert len(y_true) == len(
+                y_probas
+            ), "Decorator should have validated the shapes"
         except ValueError as e:
-            pytest.fail(f"Unexpected ValueError: {str(e)}")
+            pytest.fail(f"Unexpected ValueError: {e!s}")
 
     # Test case 9: Decorator test (invalid case)
     def test_decorator_invalid_case(self):
@@ -278,7 +299,9 @@ class TestValidateYTrue:
         """A dummy function to test the decorator."""
 
         @validate_y_true_decorator
-        def inner_dummy_function(y_true, *args, pos_label=None, class_index=None, **kwargs):
+        def inner_dummy_function(
+            y_true, *args, pos_label=None, class_index=None, **kwargs
+        ):
             """A dummy function to test the decorator."""
             return y_true  # Simply return y_true after validation
 
@@ -302,7 +325,9 @@ class TestValidateYTrue:
     # Test case 3: Valid multi-class case
     def test_valid_multiclass(self):
         y_true = ["class_0", "class_1", "class_2", "class_0"]
-        expected_output = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 0, 0]])  # One-hot encoded
+        expected_output = np.array(
+            [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 0, 0]]
+        )  # One-hot encoded
         result = self.dummy_function(y_true)
         np.testing.assert_array_equal(result, expected_output)
 
@@ -315,13 +340,17 @@ class TestValidateYTrue:
 
     # Test case 5: Invalid y_true (not enough distinct classes)
     def test_invalid_y_true_not_enough_classes(self):
-        with pytest.raises(ValueError, match="`y_true` must contain more than one distinct class."):
+        with pytest.raises(
+            ValueError, match="`y_true` must contain more than one distinct class."
+        ):
             self.dummy_function([1, 1, 1])  # Only one class
 
     # Test case 6: Invalid pos_label
     def test_invalid_pos_label(self):
         y_true = [0, 1, 1, 0]
-        with pytest.raises(ValueError, match="`pos_label` must be one of label classes:"):
+        with pytest.raises(
+            ValueError, match="`pos_label` must be one of label classes:"
+        ):
             self.dummy_function(y_true, pos_label=2)  # Invalid pos_label
 
     # Test case 7: Invalid class_index
@@ -397,7 +426,9 @@ class TestValidateYProbas:
     # Test case 4: Invalid y_probas (not 1D or 2D)
     def test_invalid_y_probas_shape(self):
         y_true = [0, 1]
-        with pytest.raises(ValueError, match="`y_probas` must be either a 1D or 2D array."):
+        with pytest.raises(
+            ValueError, match="`y_probas` must be either a 1D or 2D array."
+        ):
             self.dummy_function(y_true, np.random.rand(3, 3, 3))  # Invalid shape
 
     # Test case 5: Invalid class_index
@@ -421,7 +452,9 @@ class TestValidateYProbas:
     # Test case 7: Decorator test (invalid case)
     def test_decorator_invalid_case(self):
         y_true = [0, 1]
-        with pytest.raises(ValueError, match="`y_probas` must be an array of numerical values."):
+        with pytest.raises(
+            ValueError, match="`y_probas` must be an array of numerical values."
+        ):
             self.dummy_function(y_true, "invalid_input")  # Invalid input
 
 
@@ -483,5 +516,7 @@ class TestValidateYProbasBounds:
     # Test case 6: Invalid input type
     def test_invalid_input_type(self):
         y_probas = "invalid_input"
-        with pytest.raises(ValueError, match="`y_probas` must be an array of numerical values."):
+        with pytest.raises(
+            ValueError, match="`y_probas` must be an array of numerical values."
+        ):
             self.dummy_function("invalid_input")

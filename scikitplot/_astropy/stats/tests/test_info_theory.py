@@ -37,19 +37,25 @@ def test_akaike_info_criterion_lsq():
     ssr = (25.0, 26.0, 27.0)
     answer = (-130.21, -128.46, -124.68)
 
-    assert_allclose(answer[0], akaike_info_criterion_lsq(ssr[0], n_params[0], n_samples), atol=1e-2)
-    assert_allclose(answer[1], akaike_info_criterion_lsq(ssr[1], n_params[1], n_samples), atol=1e-2)
-    assert_allclose(answer[2], akaike_info_criterion_lsq(ssr[2], n_params[2], n_samples), atol=1e-2)
+    assert_allclose(
+        answer[0], akaike_info_criterion_lsq(ssr[0], n_params[0], n_samples), atol=1e-2
+    )
+    assert_allclose(
+        answer[1], akaike_info_criterion_lsq(ssr[1], n_params[1], n_samples), atol=1e-2
+    )
+    assert_allclose(
+        answer[2], akaike_info_criterion_lsq(ssr[2], n_params[2], n_samples), atol=1e-2
+    )
 
 
 def test_bayesian_info_criterion_lsq():
-    """This test is from:
+    """
+    This test is from:
     http://www.statoek.wiso.uni-goettingen.de/veranstaltungen/non_semi_models/
     AkaikeLsg.pdf
     Note that in there, they compute a "normalized BIC". Therefore, the
     answers presented here are recalculated versions based on their values.
     """
-
     n_samples = 25
     n_params = (1, 2, 1)
     ssr = (48959, 32512, 37980)

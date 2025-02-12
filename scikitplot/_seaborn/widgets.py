@@ -1,9 +1,9 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 try:
-    from ipywidgets import interact, FloatSlider, IntSlider
+    from ipywidgets import FloatSlider, IntSlider, interact
 except ImportError:
 
     def interact(f):
@@ -14,18 +14,18 @@ except ImportError:
 from .miscplot import palplot
 from .palettes import (
     color_palette,
-    dark_palette,
-    light_palette,
-    diverging_palette,
     cubehelix_palette,
+    dark_palette,
+    diverging_palette,
+    light_palette,
 )
 
 __all__ = [
     "choose_colorbrewer_palette",
     "choose_cubehelix_palette",
     "choose_dark_palette",
-    "choose_light_palette",
     "choose_diverging_palette",
+    "choose_light_palette",
 ]
 
 
@@ -56,7 +56,8 @@ def _show_cmap(cmap):
 
 
 def choose_colorbrewer_palette(data_type, as_cmap=False):
-    """Select a palette from the ColorBrewer set.
+    """
+    Select a palette from the ColorBrewer set.
 
     These palettes are built into matplotlib and can be used by name in
     many seaborn functions, or by passing the object returned by this function.
@@ -119,7 +120,10 @@ def choose_colorbrewer_palette(data_type, as_cmap=False):
 
         @interact
         def choose_sequential(
-            name=opts, n=(2, 18), desat=FloatSlider(min=0, max=1, value=1), variant=variants
+            name=opts,
+            n=(2, 18),
+            desat=FloatSlider(min=0, max=1, value=1),
+            variant=variants,
         ):
             if variant == "reverse":
                 name += "_r"
@@ -140,7 +144,10 @@ def choose_colorbrewer_palette(data_type, as_cmap=False):
 
         @interact
         def choose_diverging(
-            name=opts, n=(2, 16), desat=FloatSlider(min=0, max=1, value=1), variant=variants
+            name=opts,
+            n=(2, 16),
+            desat=FloatSlider(min=0, max=1, value=1),
+            variant=variants,
         ):
             if variant == "reverse":
                 name += "_r"
@@ -153,10 +160,21 @@ def choose_colorbrewer_palette(data_type, as_cmap=False):
                 palplot(pal)
 
     elif data_type.startswith("q"):
-        opts = ["Set1", "Set2", "Set3", "Paired", "Accent", "Pastel1", "Pastel2", "Dark2"]
+        opts = [
+            "Set1",
+            "Set2",
+            "Set3",
+            "Paired",
+            "Accent",
+            "Pastel1",
+            "Pastel2",
+            "Dark2",
+        ]
 
         @interact
-        def choose_qualitative(name=opts, n=(2, 16), desat=FloatSlider(min=0, max=1, value=1)):
+        def choose_qualitative(
+            name=opts, n=(2, 16), desat=FloatSlider(min=0, max=1, value=1)
+        ):
             pal[:] = color_palette(name, n, desat)
             palplot(pal)
 
@@ -166,7 +184,8 @@ def choose_colorbrewer_palette(data_type, as_cmap=False):
 
 
 def choose_dark_palette(input="husl", as_cmap=False):
-    """Launch an interactive widget to create a dark sequential palette.
+    """
+    Launch an interactive widget to create a dark sequential palette.
 
     This corresponds with the :func:`dark_palette` function. This kind
     of palette is good for data that range between relatively uninteresting
@@ -203,7 +222,9 @@ def choose_dark_palette(input="husl", as_cmap=False):
     if input == "rgb":
 
         @interact
-        def choose_dark_palette_rgb(r=(0.0, 1.0), g=(0.0, 1.0), b=(0.0, 1.0), n=(3, 17)):
+        def choose_dark_palette_rgb(
+            r=(0.0, 1.0), g=(0.0, 1.0), b=(0.0, 1.0), n=(3, 17)
+        ):
             color = r, g, b
             if as_cmap:
                 colors = dark_palette(color, 256, input="rgb")
@@ -217,7 +238,7 @@ def choose_dark_palette(input="husl", as_cmap=False):
 
         @interact
         def choose_dark_palette_hls(
-            h=(0.0, 1.0), l=(0.0, 1.0), s=(0.0, 1.0), n=(3, 17)  # noqa: E741
+            h=(0.0, 1.0), l=(0.0, 1.0), s=(0.0, 1.0), n=(3, 17)
         ):
             color = h, l, s
             if as_cmap:
@@ -231,7 +252,7 @@ def choose_dark_palette(input="husl", as_cmap=False):
     elif input == "husl":
 
         @interact
-        def choose_dark_palette_husl(h=(0, 359), s=(0, 99), l=(0, 99), n=(3, 17)):  # noqa: E741
+        def choose_dark_palette_husl(h=(0, 359), s=(0, 99), l=(0, 99), n=(3, 17)):
             color = h, s, l
             if as_cmap:
                 colors = dark_palette(color, 256, input="husl")
@@ -247,7 +268,8 @@ def choose_dark_palette(input="husl", as_cmap=False):
 
 
 def choose_light_palette(input="husl", as_cmap=False):
-    """Launch an interactive widget to create a light sequential palette.
+    """
+    Launch an interactive widget to create a light sequential palette.
 
     This corresponds with the :func:`light_palette` function. This kind
     of palette is good for data that range between relatively uninteresting
@@ -284,7 +306,9 @@ def choose_light_palette(input="husl", as_cmap=False):
     if input == "rgb":
 
         @interact
-        def choose_light_palette_rgb(r=(0.0, 1.0), g=(0.0, 1.0), b=(0.0, 1.0), n=(3, 17)):
+        def choose_light_palette_rgb(
+            r=(0.0, 1.0), g=(0.0, 1.0), b=(0.0, 1.0), n=(3, 17)
+        ):
             color = r, g, b
             if as_cmap:
                 colors = light_palette(color, 256, input="rgb")
@@ -298,7 +322,7 @@ def choose_light_palette(input="husl", as_cmap=False):
 
         @interact
         def choose_light_palette_hls(
-            h=(0.0, 1.0), l=(0.0, 1.0), s=(0.0, 1.0), n=(3, 17)  # noqa: E741
+            h=(0.0, 1.0), l=(0.0, 1.0), s=(0.0, 1.0), n=(3, 17)
         ):
             color = h, l, s
             if as_cmap:
@@ -312,7 +336,7 @@ def choose_light_palette(input="husl", as_cmap=False):
     elif input == "husl":
 
         @interact
-        def choose_light_palette_husl(h=(0, 359), s=(0, 99), l=(0, 99), n=(3, 17)):  # noqa: E741
+        def choose_light_palette_husl(h=(0, 359), s=(0, 99), l=(0, 99), n=(3, 17)):
             color = h, s, l
             if as_cmap:
                 colors = light_palette(color, 256, input="husl")
@@ -328,7 +352,8 @@ def choose_light_palette(input="husl", as_cmap=False):
 
 
 def choose_diverging_palette(as_cmap=False):
-    """Launch an interactive widget to choose a diverging color palette.
+    """
+    Launch an interactive widget to choose a diverging color palette.
 
     This corresponds with the :func:`diverging_palette` function. This kind
     of palette is good for data that range between interesting low values
@@ -364,7 +389,7 @@ def choose_diverging_palette(as_cmap=False):
         h_neg=IntSlider(min=0, max=359, value=220),
         h_pos=IntSlider(min=0, max=359, value=10),
         s=IntSlider(min=0, max=99, value=74),
-        l=IntSlider(min=0, max=99, value=50),  # noqa: E741
+        l=IntSlider(min=0, max=99, value=50),
         sep=IntSlider(min=1, max=50, value=10),
         n=(2, 16),
         center=["light", "dark"],
@@ -383,7 +408,8 @@ def choose_diverging_palette(as_cmap=False):
 
 
 def choose_cubehelix_palette(as_cmap=False):
-    """Launch an interactive widget to create a sequential cubehelix palette.
+    """
+    Launch an interactive widget to create a sequential cubehelix palette.
 
     This corresponds with the :func:`cubehelix_palette` function. This kind
     of palette is good for data that range between relatively uninteresting
@@ -425,13 +451,16 @@ def choose_cubehelix_palette(as_cmap=False):
         dark=FloatSlider(min=0, max=1, value=0.15),
         reverse=False,
     ):
-
         if as_cmap:
-            colors = cubehelix_palette(256, start, rot, gamma, hue, light, dark, reverse)
+            colors = cubehelix_palette(
+                256, start, rot, gamma, hue, light, dark, reverse
+            )
             _update_lut(cmap, np.c_[colors, np.ones(256)])
             _show_cmap(cmap)
         else:
-            pal[:] = cubehelix_palette(n_colors, start, rot, gamma, hue, light, dark, reverse)
+            pal[:] = cubehelix_palette(
+                n_colors, start, rot, gamma, hue, light, dark, reverse
+            )
             palplot(pal)
 
     if as_cmap:

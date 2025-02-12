@@ -1,34 +1,34 @@
 from __future__ import annotations
-from dataclasses import dataclass
 
-import numpy as np
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
 import matplotlib as mpl
+import numpy as np
 
 from .._marks.base import (
-    Mark,
     Mappable,
     MappableBool,
+    MappableColor,
     MappableFloat,
     MappableString,
-    MappableColor,
     MappableStyle,
-    resolve_properties,
-    resolve_color,
+    Mark,
     document_properties,
+    resolve_color,
+    resolve_properties,
 )
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
+
     from matplotlib.artist import Artist
+
     from .._core.scales import Scale
 
 
 class DotBase(Mark):
-
     def _resolve_paths(self, data):
-
         paths = []
         path_cache = {}
         marker = data["marker"]
@@ -46,7 +46,6 @@ class DotBase(Mark):
         return paths
 
     def _resolve_properties(self, data, scales):
-
         resolved = resolve_properties(self, data, scales)
         resolved["path"] = self._resolve_paths(resolved)
         resolved["size"] = resolved["pointsize"] ** 2
@@ -61,13 +60,11 @@ class DotBase(Mark):
         return resolved
 
     def _plot(self, split_gen, scales, orient):
-
         # TODO Not backcompat with allowed (but nonfunctional) univariate plots
         # (That should be solved upstream by defaulting to "" for unset x/y?)
         # (Be mindful of xmin/xmax, etc!)
 
         for _, data, ax in split_gen():
-
             offsets = np.column_stack([data["x"], data["y"]])
             data = self._resolve_properties(data, scales)
 
@@ -86,12 +83,8 @@ class DotBase(Mark):
             ax.add_collection(points)
 
     def _legend_artist(
-        self,
-        variables: list[str],
-        value: Any,
-        scales: dict[str, Scale],
+        self, variables: list[str], value: Any, scales: dict[str, Scale]
     ) -> Artist:
-
         key = {v: value for v in variables}
         res = self._resolve_properties(key, scales)
 
@@ -113,7 +106,7 @@ class Dot(DotBase):
     """
     A mark suitable for dot plots or less-dense scatterplots.
 
-    See also
+    See Also
     --------
     Dots : A dot mark defined by strokes to better handle overplotting.
 
@@ -135,7 +128,6 @@ class Dot(DotBase):
     edgestyle: MappableStyle = Mappable("-", grouping=False)
 
     def _resolve_properties(self, data, scales):
-
         resolved = super()._resolve_properties(data, scales)
         filled = resolved["fill"]
 
@@ -168,7 +160,7 @@ class Dots(DotBase):
     """
     A dot mark defined by strokes to better handle overplotting.
 
-    See also
+    See Also
     --------
     Dot : A mark suitable for dot plots or less-dense scatterplots.
 
@@ -189,7 +181,6 @@ class Dots(DotBase):
     fillalpha: MappableFloat = Mappable(0.2, grouping=False)
 
     def _resolve_properties(self, data, scales):
-
         resolved = super()._resolve_properties(data, scales)
         resolved["linewidth"] = resolved.pop("stroke")
         resolved["facecolor"] = resolve_color(self, data, "fill", scales)

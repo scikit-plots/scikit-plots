@@ -20,13 +20,10 @@ ComplexWarning: type[Warning]
 VisibleDeprecationWarning: type[Warning]
 
 if np.lib.NumpyVersion(np.__version__) >= "1.25.0":
-    from numpy.exceptions import (
-        AxisError,
-        DTypePromotionError,
-    )
+    from numpy.exceptions import AxisError, DTypePromotionError
 else:
     from numpy import (  # type: ignore[attr-defined, no-redef]
-        AxisError,  # noqa: F401
+        AxisError,
     )
 
     DTypePromotionError = TypeError  # type: ignore
@@ -85,7 +82,8 @@ except ImportError:
 
 
 def _lazywhere(cond, arrays, f, fillvalue=None, f2=None):
-    """Return elements chosen from two possibilities depending on a condition
+    """
+    Return elements chosen from two possibilities depending on a condition
 
     Equivalent to ``f(*arrays) if cond else fillvalue`` performed elementwise.
 
@@ -123,7 +121,7 @@ def _lazywhere(cond, arrays, f, fillvalue=None, f2=None):
     >>> import numpy as np
     >>> a, b = np.array([1, 2, 3, 4]), np.array([5, 6, 7, 8])
     >>> def f(a, b):
-    ...     return a*b
+    ...     return a * b
     >>> _lazywhere(a > 2, (a, b), f, np.nan)
     array([ nan,  nan,  21.,  32.])
 
@@ -149,7 +147,9 @@ def _lazywhere(cond, arrays, f, fillvalue=None, f2=None):
                 dtype = (temp1 * fillvalue).dtype
         else:
             dtype = xp.result_type(temp1.dtype, fillvalue)
-        out = xp.full(cond.shape, dtype=dtype, fill_value=xp.asarray(fillvalue, dtype=dtype))
+        out = xp.full(
+            cond.shape, dtype=dtype, fill_value=xp.asarray(fillvalue, dtype=dtype)
+        )
     else:
         ncond = ~cond
         temp2 = xp.asarray(f2(*(arr[ncond] for arr in arrays)))
@@ -177,16 +177,19 @@ def _lazyselect(condlist, choicelist, arrays, default=0):
     --------
     >>> import numpy as np
     >>> x = np.arange(6)
-    >>> np.select([x <3, x > 3], [x**2, x**3], default=0)
+    >>> np.select([x < 3, x > 3], [x**2, x**3], default=0)
     array([  0,   1,   4,   0,  64, 125])
 
     >>> _lazyselect([x < 3, x > 3], [lambda x: x**2, lambda x: x**3], (x,))
     array([   0.,    1.,    4.,   0.,   64.,  125.])
 
     >>> a = -np.ones_like(x)
-    >>> _lazyselect([x < 3, x > 3],
-    ...             [lambda x, a: x**2, lambda x, a: a * x**3],
-    ...             (x, a), default=np.nan)
+    >>> _lazyselect(
+    ...     [x < 3, x > 3],
+    ...     [lambda x, a: x**2, lambda x, a: a * x**3],
+    ...     (x, a),
+    ...     default=np.nan,
+    ... )
     array([   0.,    1.,    4.,   nan,  -64., -125.])
 
     """
@@ -203,7 +206,8 @@ def _lazyselect(condlist, choicelist, arrays, default=0):
 
 
 def _aligned_zeros(shape, dtype=float, order="C", align=None):
-    """Allocate a new ndarray with aligned memory.
+    """
+    Allocate a new ndarray with aligned memory.
 
     Primary use case for this currently is working around a f2py issue
     in NumPy 1.9.1, where dtype.alignment is such that np.zeros() does
@@ -229,7 +233,8 @@ def _aligned_zeros(shape, dtype=float, order="C", align=None):
 
 
 def _prune_array(array):
-    """Return an array equivalent to the input array. If the input
+    """
+    Return an array equivalent to the input array. If the input
     array is a view of a much larger array, copy its contents to a
     newly allocated array. Otherwise, return the input unchanged.
     """
@@ -239,7 +244,8 @@ def _prune_array(array):
 
 
 def float_factorial(n: int) -> float:
-    """Compute the factorial and return as a float
+    """
+    Compute the factorial and return as a float
 
     Returns infinity when result is too large for a double
     """
@@ -273,8 +279,11 @@ _rng_desc = r"""If `rng` is passed by keyword, types other than `numpy.random.Ge
 
 
 # SPEC 7
-def _transition_to_rng(old_name, *, position_num=None, end_version=None, replace_doc=True):
-    """Example decorator to transition from old PRNG usage to new `rng` behavior
+def _transition_to_rng(
+    old_name, *, position_num=None, end_version=None, replace_doc=True
+):
+    """
+    Example decorator to transition from old PRNG usage to new `rng` behavior
 
     Suppose the decorator is applied to a function that used to accept parameter
     `old_name='random_state'` either by keyword or as a positional argument at
@@ -458,7 +467,8 @@ def _transition_to_rng(old_name, *, position_num=None, end_version=None, replace
 
 # copy-pasted from scikit-learn utils/validation.py
 def check_random_state(seed):
-    """Turn `seed` into a `np.random.RandomState` instance.
+    """
+    Turn `seed` into a `np.random.RandomState` instance.
 
     Parameters
     ----------
@@ -483,11 +493,18 @@ def check_random_state(seed):
     if isinstance(seed, np.random.RandomState | np.random.Generator):
         return seed
 
-    raise ValueError(f"'{seed}' cannot be used to seed a numpy.random.RandomState" " instance")
+    raise ValueError(
+        f"'{seed}' cannot be used to seed a numpy.random.RandomState instance"
+    )
 
 
 def _asarray_validated(
-    a, check_finite=True, sparse_ok=False, objects_ok=False, mask_ok=False, as_inexact=False
+    a,
+    check_finite=True,
+    sparse_ok=False,
+    objects_ok=False,
+    mask_ok=False,
+    as_inexact=False,
 ):
     """
     Helper function for SciPy argument validation.
@@ -562,13 +579,14 @@ def _validate_int(k, name, minimum=None):
         The name of the parameter.
     minimum : int, optional
         An optional lower bound.
+
     """
     try:
         k = operator.index(k)
     except TypeError:
         raise TypeError(f"{name} must be an integer.") from None
     if minimum is not None and k < minimum:
-        raise ValueError(f"{name} must be an integer not less " f"than {minimum}") from None
+        raise ValueError(f"{name} must be an integer not less than {minimum}") from None
     return k
 
 
@@ -587,12 +605,21 @@ def _validate_int(k, name, minimum=None):
 
 FullArgSpec = namedtuple(
     "FullArgSpec",
-    ["args", "varargs", "varkw", "defaults", "kwonlyargs", "kwonlydefaults", "annotations"],
+    [
+        "args",
+        "varargs",
+        "varkw",
+        "defaults",
+        "kwonlyargs",
+        "kwonlydefaults",
+        "annotations",
+    ],
 )
 
 
 def getfullargspec_no_self(func):
-    """inspect.getfullargspec replacement using inspect.signature.
+    """
+    inspect.getfullargspec replacement using inspect.signature.
 
     If func is a bound method, do not list the 'self' parameter.
 
@@ -616,24 +643,36 @@ def getfullargspec_no_self(func):
     args = [
         p.name
         for p in sig.parameters.values()
-        if p.kind in [inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.POSITIONAL_ONLY]
+        if p.kind
+        in [inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.POSITIONAL_ONLY]
     ]
     varargs = [
-        p.name for p in sig.parameters.values() if p.kind == inspect.Parameter.VAR_POSITIONAL
+        p.name
+        for p in sig.parameters.values()
+        if p.kind == inspect.Parameter.VAR_POSITIONAL
     ]
     varargs = varargs[0] if varargs else None
-    varkw = [p.name for p in sig.parameters.values() if p.kind == inspect.Parameter.VAR_KEYWORD]
+    varkw = [
+        p.name
+        for p in sig.parameters.values()
+        if p.kind == inspect.Parameter.VAR_KEYWORD
+    ]
     varkw = varkw[0] if varkw else None
     defaults = (
         tuple(
             p.default
             for p in sig.parameters.values()
-            if (p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD and p.default is not p.empty)
+            if (
+                p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
+                and p.default is not p.empty
+            )
         )
         or None
     )
     kwonlyargs = [
-        p.name for p in sig.parameters.values() if p.kind == inspect.Parameter.KEYWORD_ONLY
+        p.name
+        for p in sig.parameters.values()
+        if p.kind == inspect.Parameter.KEYWORD_ONLY
     ]
     kwdefaults = {
         p.name: p.default
@@ -641,15 +680,17 @@ def getfullargspec_no_self(func):
         if p.kind == inspect.Parameter.KEYWORD_ONLY and p.default is not p.empty
     }
     annotations = {
-        p.name: p.annotation for p in sig.parameters.values() if p.annotation is not p.empty
+        p.name: p.annotation
+        for p in sig.parameters.values()
+        if p.annotation is not p.empty
     }
-    return FullArgSpec(args, varargs, varkw, defaults, kwonlyargs, kwdefaults or None, annotations)
+    return FullArgSpec(
+        args, varargs, varkw, defaults, kwonlyargs, kwdefaults or None, annotations
+    )
 
 
 class _FunctionWrapper:
-    """
-    Object to wrap user's function, allowing picklability
-    """
+    """Object to wrap user's function, allowing picklability"""
 
     def __init__(self, f, args):
         self.f = f
@@ -674,6 +715,7 @@ class MapWrapper:
         If `pool` is a map-like callable that follows the same
         calling sequence as the built-in map function, then this callable is
         used for parallelization.
+
     """
 
     def __init__(self, pool=1):
@@ -733,7 +775,9 @@ class MapWrapper:
             return self._mapfunc(func, iterable)
         except TypeError as e:
             # wrong number of arguments
-            raise TypeError("The map-like callable must be of the" " form f(func, iterable)") from e
+            raise TypeError(
+                "The map-like callable must be of the form f(func, iterable)"
+            ) from e
 
 
 def rng_integers(gen, low, high=None, size=None, dtype="int64", endpoint=False):
@@ -778,24 +822,24 @@ def rng_integers(gen, low, high=None, size=None, dtype="int64", endpoint=False):
     out: int or ndarray of ints
         size-shaped array of random integers from the appropriate distribution,
         or a single such random int if size not provided.
+
     """
     if isinstance(gen, Generator):
         return gen.integers(low, high=high, size=size, dtype=dtype, endpoint=endpoint)
-    else:
-        if gen is None:
-            # default is RandomState singleton used by np.random.
-            gen = np.random.mtrand._rand
-        if endpoint:
-            # inclusive of endpoint
-            # remember that low and high can be arrays, so don't modify in
-            # place
-            if high is None:
-                return gen.randint(low + 1, size=size, dtype=dtype)
-            if high is not None:
-                return gen.randint(low, high=high + 1, size=size, dtype=dtype)
+    if gen is None:
+        # default is RandomState singleton used by np.random.
+        gen = np.random.mtrand._rand
+    if endpoint:
+        # inclusive of endpoint
+        # remember that low and high can be arrays, so don't modify in
+        # place
+        if high is None:
+            return gen.randint(low + 1, size=size, dtype=dtype)
+        if high is not None:
+            return gen.randint(low, high=high + 1, size=size, dtype=dtype)
 
-        # exclusive
-        return gen.randint(low, high=high, size=size, dtype=dtype)
+    # exclusive
+    return gen.randint(low, high=high, size=size, dtype=dtype)
 
 
 @contextmanager
@@ -810,7 +854,8 @@ def _fixed_default_rng(seed=1638083107694713882823079058616272161):
 
 
 def _rng_html_rewrite(func):
-    """Rewrite the HTML rendering of ``np.random.default_rng``.
+    """
+    Rewrite the HTML rendering of ``np.random.default_rng``.
 
     This is intended to decorate
     ``numpydoc.docscrape_sphinx.SphinxDocString._str_examples``.
@@ -819,7 +864,7 @@ def _rng_html_rewrite(func):
     it does not change the result values getting printed.
     """
     # hexadecimal or number seed, case-insensitive
-    pattern = re.compile(r"np.random.default_rng\((0x[0-9A-F]+|\d+)\)", re.I)
+    pattern = re.compile(r"np.random.default_rng\((0x[0-9A-F]+|\d+)\)", re.IGNORECASE)
 
     def _wrapped(*args, **kwargs):
         res = func(*args, **kwargs)
@@ -831,7 +876,7 @@ def _rng_html_rewrite(func):
 
 def _argmin(a, keepdims=False, axis=None):
     """
-    argmin with a `keepdims` parameter.
+    Argmin with a `keepdims` parameter.
 
     See https://github.com/numpy/numpy/issues/8710
 
@@ -870,6 +915,7 @@ def _first_nonnan(a, axis):
            [ 5.],
            [ 2.],
            [nan]])
+
     """
     k = _argmin(np.isnan(a), axis=axis, keepdims=True)
     return np.take_along_axis(a, k, axis=axis)
@@ -895,12 +941,16 @@ def _nan_allsame(a, axis, keepdims=False):
     Examples
     --------
     >>> from numpy import nan, array
-    >>> a = array([[ 3.,  3., nan,  3.],
-    ...            [ 1., nan,  2.,  4.],
-    ...            [nan, nan,  9., -1.],
-    ...            [nan,  5.,  4.,  3.],
-    ...            [ 2.,  2.,  2.,  2.],
-    ...            [nan, nan, nan, nan]])
+    >>> a = array(
+    ...     [
+    ...         [3.0, 3.0, nan, 3.0],
+    ...         [1.0, nan, 2.0, 4.0],
+    ...         [nan, nan, 9.0, -1.0],
+    ...         [nan, 5.0, 4.0, 3.0],
+    ...         [2.0, 2.0, 2.0, 2.0],
+    ...         [nan, nan, nan, nan],
+    ...     ]
+    ... )
     >>> _nan_allsame(a, axis=1, keepdims=True)
     array([[ True],
            [False],
@@ -908,6 +958,7 @@ def _nan_allsame(a, axis, keepdims=False):
            [False],
            [ True],
            [ True]])
+
     """
     if axis is None:
         if a.size == 0:
@@ -923,7 +974,9 @@ def _nan_allsame(a, axis, keepdims=False):
     return ((a0 == a) | np.isnan(a)).all(axis=axis, keepdims=keepdims)
 
 
-def _contains_nan(a, nan_policy="propagate", policies=None, *, xp_omit_okay=False, xp=None):
+def _contains_nan(
+    a, nan_policy="propagate", policies=None, *, xp_omit_okay=False, xp=None
+):
     # Regarding `xp_omit_okay`: Temporarily, while `_axis_nan_policy` does not
     # handle non-NumPy arrays, most functions that call `_contains_nan` want
     # it to raise an error if `nan_policy='omit'` and `xp` is not `np`.
@@ -938,7 +991,9 @@ def _contains_nan(a, nan_policy="propagate", policies=None, *, xp_omit_okay=Fals
     if nan_policy not in policies:
         raise ValueError(f"nan_policy must be one of {set(policies)}.")
 
-    inexact = xp.isdtype(a.dtype, "real floating") or xp.isdtype(a.dtype, "complex floating")
+    inexact = xp.isdtype(a.dtype, "real floating") or xp.isdtype(
+        a.dtype, "complex floating"
+    )
     if xp_size(a) == 0:
         contains_nan = False
     elif inexact:
@@ -1031,7 +1086,9 @@ def _rng_spawn(rng, n_children):
     # spawns independent RNGs from a parent RNG
     bg = rng._bit_generator
     ss = bg._seed_seq
-    child_rngs = [np.random.Generator(type(bg)(child_ss)) for child_ss in ss.spawn(n_children)]
+    child_rngs = [
+        np.random.Generator(type(bg)(child_ss)) for child_ss in ss.spawn(n_children)
+    ]
     return child_rngs
 
 
@@ -1060,7 +1117,8 @@ def normalize_axis_index(axis, ndim):
 
 
 def _call_callback_maybe_halt(callback, res):
-    """Call wrapped callback; return True if algorithm should stop.
+    """
+    Call wrapped callback; return True if algorithm should stop.
 
     Parameters
     ----------
@@ -1140,31 +1198,26 @@ class _RichResult(dict):
 
         if self.keys():
             return _dict_formatter(self, sorter=item_sorter)
-        else:
-            return self.__class__.__name__ + "()"
+        return self.__class__.__name__ + "()"
 
     def __dir__(self):
         return list(self.keys())
 
 
 def _indenter(s, n=0):
-    """
-    Ensures that lines after the first are indented by the specified amount
-    """
+    """Ensures that lines after the first are indented by the specified amount"""
     split = s.split("\n")
     indent = " " * n
     return ("\n" + indent).join(split)
 
 
 def _float_formatter_10(x):
-    """
-    Returns a string representation of a float with exactly ten characters
-    """
+    """Returns a string representation of a float with exactly ten characters"""
     if np.isposinf(x):
         return "       inf"
-    elif np.isneginf(x):
+    if np.isneginf(x):
         return "      -inf"
-    elif np.isnan(x):
+    if np.isnan(x):
         return "       nan"
     return np.format_float_scientific(x, precision=3, pad_left=2, unique=False)
 
@@ -1240,6 +1293,7 @@ def _apply_over_batch(*argdefs):
     the function over batches of `a` and optionally `b` :
 
     >>> _apply_over_batch(('a', 2), ('b', 2))
+
     """
     names, ndims = list(zip(*argdefs))
     n_arrays = len(names)
@@ -1255,10 +1309,9 @@ def _apply_over_batch(*argdefs):
                 if name in kwargs:
                     if i + 1 <= len(args):
                         raise ValueError(
-                            f"{f.__name__}() got multiple values " f"for argument `{name}`."
+                            f"{f.__name__}() got multiple values for argument `{name}`."
                         )
-                    else:
-                        arrays.append(kwargs.pop(name))
+                    arrays.append(kwargs.pop(name))
 
             # Determine core and batch shapes
             batch_shapes = []

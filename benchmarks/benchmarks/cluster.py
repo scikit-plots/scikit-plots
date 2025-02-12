@@ -44,7 +44,8 @@ class KMeans2(Benchmark):
         with suppress_warnings() as sup:
             sup.filter(
                 UserWarning,
-                "One of the clusters is empty. Re-run kmeans with a " "different initialization",
+                "One of the clusters is empty. Re-run kmeans with a "
+                "different initialization",
             )
             kmeans2(self.obs, k, minit=init, iter=10)
 

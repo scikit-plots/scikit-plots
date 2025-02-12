@@ -202,7 +202,9 @@ class Cola(Benchmark):
     def __init__(self, dimensions=17):
         Benchmark.__init__(self, dimensions)
 
-        self._bounds = [[0.0, 4.0]] + list(zip([-4.0] * (self.N - 1), [4.0] * (self.N - 1)))
+        self._bounds = [[0.0, 4.0]] + list(
+            zip([-4.0] * (self.N - 1), [4.0] * (self.N - 1))
+        )
 
         self.global_optimum = [
             [
@@ -295,7 +297,6 @@ class Colville(Benchmark):
         self.fglob = 0.0
 
     def fun(self, x, *args):
-
         self.nfev += 1
         return (
             100 * (x[0] - x[1] ** 2) ** 2
@@ -436,10 +437,12 @@ class CrossInTray(Benchmark):
         self.fglob = -2.062611870822739
 
     def fun(self, x, *args):
-
         self.nfev += 1
         return -0.0001 * (
-            abs(sin(x[0]) * sin(x[1]) * exp(abs(100 - sqrt(x[0] ** 2 + x[1] ** 2) / pi))) + 1
+            abs(
+                sin(x[0]) * sin(x[1]) * exp(abs(100 - sqrt(x[0] ** 2 + x[1] ** 2) / pi))
+            )
+            + 1
         ) ** (0.1)
 
 
@@ -516,7 +519,6 @@ class CrownedCross(Benchmark):
         self.fglob = 0.0001
 
     def fun(self, x, *args):
-
         self.nfev += 1
         u = 100 - sqrt(x[0] ** 2 + x[1] ** 2) / pi
         v = sin(x[0]) * sin(x[1])
@@ -614,6 +616,5 @@ class Cube(Benchmark):
         self.fglob = 0.0
 
     def fun(self, x, *args):
-
         self.nfev += 1
         return 100.0 * (x[1] - x[0] ** 3.0) ** 2.0 + (1.0 - x[0]) ** 2.0

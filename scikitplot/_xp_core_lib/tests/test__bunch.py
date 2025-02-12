@@ -11,7 +11,6 @@ Result = _make_tuple_bunch("Result", ["x", "y", "z"], ["w", "beta"])
 
 
 class TestMakeTupleBunch:
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Tests with Result
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -136,7 +135,8 @@ class TestMakeTupleBunch:
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @pytest.mark.parametrize(
-        "args", [("123", ["a"], ["b"]), ("Foo", ["-3"], ["x"]), ("Foo", ["a"], ["+-*/"])]
+        "args",
+        [("123", ["a"], ["b"]), ("Foo", ["-3"], ["x"]), ("Foo", ["a"], ["+-*/"])],
     )
     def test_identifiers_not_allowed(self, args):
         with pytest.raises(ValueError, match="identifiers"):

@@ -21,7 +21,9 @@ class MaximumBipartiteMatching(Benchmark):
         # disregarding duplicates is quite a bit faster.
         rng = np.random.default_rng(42)
         d = rng.integers(0, n, size=(int(n * n * density), 2))
-        graph = scipy.sparse.csr_matrix((np.ones(len(d)), (d[:, 0], d[:, 1])), shape=(n, n))
+        graph = scipy.sparse.csr_matrix(
+            (np.ones(len(d)), (d[:, 0], d[:, 1])), shape=(n, n)
+        )
         self.graph = graph
 
     def time_maximum_bipartite_matching(self, n, density):
@@ -36,7 +38,9 @@ def random_uniform(shape, rng):
 
 
 def random_uniform_sparse(shape, rng):
-    return scipy.sparse.random(shape[0], shape[1], density=0.1, format="csr", random_state=rng)
+    return scipy.sparse.random(
+        shape[0], shape[1], density=0.1, format="csr", random_state=rng
+    )
 
 
 def random_uniform_integer(shape, rng):
@@ -62,7 +66,6 @@ def machol_wien(shape, rng):
 
 
 class MinWeightFullBipartiteMatching(Benchmark):
-
     sizes = range(100, 401, 100)
     param_names = ["shapes", "input_type"]
     params = [

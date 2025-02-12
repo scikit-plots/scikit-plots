@@ -15,20 +15,15 @@ That was not the case when the singleton classes were defined in the scikitplot
 ``__init__.py`` file. See gh-7844 for a discussion of the reload problem that
 motivated this module.
 """
-from __future__ import (
-    absolute_import,
-    division,
-    print_function,
-)
 
-from typing import Optional, Type
+from typing import Optional
 
 __all__ = [
+    "ModuleDeprecationWarning",
+    "VisibleDeprecationWarning",
     "_Default",
     "_Deprecated",
     "_NoValue",
-    "ModuleDeprecationWarning",
-    "VisibleDeprecationWarning",
 ]
 
 ######################################################################
@@ -68,6 +63,7 @@ class ModuleDeprecationWarning(DeprecationWarning):
     -------
     __module__
         A string representing the module that contains this warning.
+
     """
 
     # Set the module for the warning to 'scikitplot'
@@ -102,6 +98,7 @@ class VisibleDeprecationWarning(UserWarning):
     -------
     __module__
         A string representing the module that contains this warning.
+
     """
 
     # Set the module for the warning to 'scikitplot'
@@ -122,8 +119,8 @@ class VisibleDeprecationWarning(UserWarning):
 # Use: when you need a singleton class with general behavior,
 # such as managing single resources, configurations, or services.
 # SingletonBase is ideal for simple singleton patterns
-# where you don’t require predefined values or enum-like behavior.
-# It’s simple, flexible, and easy to implement.
+# where you don't require predefined values or enum-like behavior.
+# It is simple, flexible, and easy to implement.
 ######################################################################
 
 
@@ -146,13 +143,14 @@ class SingletonBase:
         Ensures that only one instance of the class is created, implementing the singleton pattern.
     __reduce__(self) -> tuple
         Ensures that the singleton instance is preserved during pickling and unpickling.
+
     """
 
     # Class attribute to hold the single instance of the class.
     _instance: Optional["SingletonBase"] = None
 
-    # magic method to get called in an object’s instantiation.
-    def __new__(cls: Type["SingletonBase"], *args, **kwargs) -> "SingletonBase":
+    # magic method to get called in an objects instantiation.
+    def __new__(cls: type["SingletonBase"], *args, **kwargs) -> "SingletonBase":
         """
         Override the default object creation method to implement the singleton pattern.
 
@@ -161,7 +159,7 @@ class SingletonBase:
 
         Parameters
         ----------
-        cls : Type[SingletonBase]
+        cls : type[SingletonBase]
             The class being instantiated.
         *args : tuple
             Positional arguments to be passed to the class constructor.
@@ -172,6 +170,7 @@ class SingletonBase:
         -------
         SingletonBase
             The single instance of the class.
+
         """
         if cls._instance is None:
             cls._instance = super().__new__(cls, *args, **kwargs)
@@ -189,6 +188,7 @@ class SingletonBase:
         -------
         tuple
             A tuple of (class, args) used to restore the singleton instance during unpickling.
+
         """
         return (self.__class__, ())
 
@@ -206,7 +206,7 @@ class SingletonBase:
 # (e.g., predefined constant values like states or configurations).
 # SingletonBaseEnum is best when you need singleton instances
 # tied to an enumeration of predefined values.
-# It’s perfect for cases where you want both singleton behavior
+# It is perfect for cases where you want both singleton behavior
 # and enum features, but it comes with more complexity and constraints.
 ######################################################################
 
@@ -231,7 +231,7 @@ class SingletonBase:
 #     """
 #     _instance: Optional["SingletonBaseEnum"] = None
 
-#     def __new__(cls: Type["SingletonBaseEnum"], value: Any) -> "SingletonBaseEnum":
+#     def __new__(cls: type["SingletonBaseEnum"], value: Any) -> "SingletonBaseEnum":
 #         """
 #         Override the object creation method to implement the singleton pattern for enum values.
 
@@ -240,7 +240,7 @@ class SingletonBase:
 
 #         Parameters
 #         ----------
-#         cls : Type[SingletonBaseEnum]
+#         cls : type[SingletonBaseEnum]
 #             The class being instantiated.
 #         value : Any
 #             The value of the enum member.
@@ -259,7 +259,7 @@ class SingletonBase:
 #         return cls._instance
 
 ######################################################################
-## Singleton Marker Types
+## Singleton Marker types
 ## _DefaultType class
 ######################################################################
 
@@ -281,6 +281,7 @@ class _DefaultType(SingletonBase):
     >>> another_default = _DefaultType()
     >>> default is another_default  # Singleton behavior ensures one instance
     True
+
     """
 
     # print our string object
@@ -294,6 +295,7 @@ class _DefaultType(SingletonBase):
         -------
         str
             The string representation of the default object.
+
         """
         return "<default>"
 
@@ -323,6 +325,7 @@ class _DeprecatedType(SingletonBase):
     >>> another_deprecated = _DeprecatedType()
     >>> deprecated is another_deprecated  # Ensures singleton behavior
     True
+
     """
 
     def __repr__(self) -> str:
@@ -335,6 +338,7 @@ class _DeprecatedType(SingletonBase):
         -------
         str
             The string representation of the deprecated object.
+
         """
         return "<deprecated>"
 
@@ -379,6 +383,7 @@ class _NoValueType(SingletonBase):
     >>> another_instance = _NoValueType()
     >>> no_value is another_instance  # All instances are the same
     True
+
     """
 
     def __repr__(self) -> str:
@@ -391,6 +396,7 @@ class _NoValueType(SingletonBase):
         -------
         str
             The string representation of the no value object.
+
         """
         return "<no value>"
 

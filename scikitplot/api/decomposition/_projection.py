@@ -13,12 +13,6 @@ enforcing Python 3-like behavior in Python 2.
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -34,9 +28,7 @@ from .._utils.validation import (
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all above func
-__all__ = [
-    "plot_pca_2d_projection",
-]
+__all__ = ["plot_pca_2d_projection"]
 
 
 @validate_plotting_kwargs_decorator
@@ -124,26 +116,41 @@ def plot_pca_2d_projection(
         >>> import scikitplot as skplt
         >>> X, y = data_3_classes(return_X_y=True, as_frame=True)
         >>> pca = PCA(random_state=0).fit(X)
-        >>> skplt.decomposition.plot_pca_2d_projection(pca, X, y, biplot=True, feature_labels=X.columns.tolist());
+        >>> skplt.decomposition.plot_pca_2d_projection(
+        ...     pca,
+        ...     X,
+        ...     y,
+        ...     biplot=True,
+        ...     feature_labels=X.columns.tolist(),
+        ... )
 
     .. plot::
        :context: close-figs
        :align: center
        :alt: LDA 2D Projection
 
-        >>> from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+        >>> from sklearn.discriminant_analysis import (
+        ...     LinearDiscriminantAnalysis,
+        ... )
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> import scikitplot as skplt
         >>> X, y = data_3_classes(return_X_y=True, as_frame=True)
         >>> clf = LinearDiscriminantAnalysis().fit(X, y)
-        >>> skplt.decomposition.plot_pca_2d_projection(clf, X, y, biplot=True, feature_labels=X.columns.tolist());
+        >>> skplt.decomposition.plot_pca_2d_projection(
+        ...     clf,
+        ...     X,
+        ...     y,
+        ...     biplot=True,
+        ...     feature_labels=X.columns.tolist(),
+        ... )
+
     """
     ##################################################################
     ## Preprocessing
     ##################################################################
     # Proceed with your preprocess logic here
     transformed_X = clf.transform(X)
-    # Get unique classes from y, preserving order of class occurence in y (pd.unique)
+    # Get unique classes from y, preserving order of class occurrence in y (pd.unique)
     _, class_indexes = np.unique(np.array(y), return_index=True)
     classes = np.array(y)[np.sort(class_indexes)]
 
@@ -178,7 +185,9 @@ def plot_pca_2d_projection(
     elif hasattr(clf, "scalings_"):
         model_type = "LDA"
         components = clf.scalings_.T
-        components = (components - np.min(components)) / (np.max(components) - np.min(components))
+        components = (components - np.min(components)) / (
+            np.max(components) - np.min(components)
+        )
     else:
         pass
     if biplot:
@@ -206,8 +215,8 @@ def plot_pca_2d_projection(
 
     # Set title, labels, and formatting
     ax.set_title(title.replace("PCA", model_type), fontsize=title_fontsize)
-    ax.set_xlabel(f"{model_type} Component {dimensions[0]+1}", fontsize=text_fontsize)
-    ax.set_ylabel(f"{model_type} Component {dimensions[1]+1}", fontsize=text_fontsize)
+    ax.set_xlabel(f"{model_type} Component {dimensions[0] + 1}", fontsize=text_fontsize)
+    ax.set_ylabel(f"{model_type} Component {dimensions[1] + 1}", fontsize=text_fontsize)
     ax.tick_params(labelsize=text_fontsize)
 
     # ax.set_xlim([-0.02, ax.get_xlim()[1]])

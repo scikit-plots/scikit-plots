@@ -1,18 +1,16 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import ClassVar, Callable
+from typing import Callable, ClassVar
 
 import pandas as pd
 from pandas import DataFrame
 
-from .._core.scales import Scale
 from .._core.groupby import GroupBy
-from .._stats.base import Stat
-from .._statistics import (
-    EstimateAggregator,
-    WeightedAggregator,
-)
+from .._core.scales import Scale
 from .._core.typing import Vector
+from .._statistics import EstimateAggregator, WeightedAggregator
+from .._stats.base import Stat
 
 
 @dataclass
@@ -40,15 +38,14 @@ class Agg(Stat):
     group_by_orient: ClassVar[bool] = True
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
-
         var = {"x": "y", "y": "x"}.get(orient)
-        res = groupby.agg(data, {var: self.func}).dropna(subset=[var]).reset_index(drop=True)
+        res = (
+            groupby.agg(data, {var: self.func})
+            .dropna(subset=[var])
+            .reset_index(drop=True)
+        )
         return res
 
 
@@ -72,7 +69,7 @@ class Est(Stat):
         Name of a :class:`numpy.ndarray` method or a vector -> scalar function.
     errorbar : str, (str, float) tuple, or callable
         Name of errorbar method (one of "ci", "pi", "se" or "sd"), or a tuple
-        with a method name ane a level parameter, or a function that maps from a
+        with a method name and a level parameter, or a function that maps from a
         vector to a (min, max) interval.
     n_boot : int
        Number of bootstrap samples to draw for "ci" errorbars.
@@ -92,20 +89,17 @@ class Est(Stat):
 
     group_by_orient: ClassVar[bool] = True
 
-    def _process(self, data: DataFrame, var: str, estimator: EstimateAggregator) -> DataFrame:
+    def _process(
+        self, data: DataFrame, var: str, estimator: EstimateAggregator
+    ) -> DataFrame:
         # Needed because GroupBy.apply assumes func is DataFrame -> DataFrame
         # which we could probably make more general to allow Series return
         res = estimator(data, var)
         return pd.DataFrame([res])
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale]
     ) -> DataFrame:
-
         boot_kws = {"n_boot": self.n_boot, "seed": self.seed}
         if "weight" in data:
             engine = WeightedAggregator(self.func, self.errorbar, **boot_kws)
@@ -126,6 +120,4 @@ class Est(Stat):
 
 @dataclass
 class Rolling(Stat):
-    ...
-
     def __call__(self, data, groupby, orient, scales): ...

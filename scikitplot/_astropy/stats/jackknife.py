@@ -19,7 +19,8 @@ __doctest_requires__ = {"jackknife_stats": ["scipy"]}
 
 
 def jackknife_resampling(data: NDArray[DT]) -> NDArray[DT]:
-    """Performs jackknife resampling on numpy arrays.
+    """
+    Performs jackknife resampling on numpy arrays.
 
     Jackknife resampling is a technique to generate 'n' deterministic samples
     of size 'n-1' from a measured sample of size 'n'. Basically, the i-th
@@ -50,6 +51,7 @@ def jackknife_resampling(data: NDArray[DT]) -> NDArray[DT]:
         Stanford University, December, 1980.
 
     .. [3] Jackknife resampling <https://en.wikipedia.org/wiki/Jackknife_resampling>
+
     """
     n = data.shape[0]
     if n <= 0:
@@ -64,11 +66,10 @@ def jackknife_resampling(data: NDArray[DT]) -> NDArray[DT]:
 
 
 def jackknife_stats(
-    data: NDArray,
-    statistic: Callable,
-    confidence_level: float = 0.95,
+    data: NDArray, statistic: Callable, confidence_level: float = 0.95
 ) -> tuple[float | NDArray, float | NDArray, float | NDArray, NDArray]:
-    """Performs jackknife estimation on the basis of jackknife resamples.
+    """
+    Performs jackknife estimation on the basis of jackknife resamples.
 
     This function requires `SciPy <https://www.scipy.org/>`_ to be installed.
 
@@ -109,7 +110,7 @@ def jackknife_stats(
     >>> import numpy as np
     >>> from astropy.stats import jackknife_resampling
     >>> from astropy.stats import jackknife_stats
-    >>> data = np.array([1,2,3,4,5,6,7,8,9,0])
+    >>> data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 0])
     >>> resamples = jackknife_resampling(data)
     >>> resamples
     array([[2., 3., 4., 5., 6., 7., 8., 9., 0.],
@@ -130,7 +131,8 @@ def jackknife_stats(
 
     >>> test_statistic = np.mean
     >>> estimate, bias, stderr, conf_interval = jackknife_stats(
-    ...     data, test_statistic, 0.95)
+    ...     data, test_statistic, 0.95
+    ... )
     >>> estimate
     np.float64(4.5)
     >>> bias
@@ -144,7 +146,8 @@ def jackknife_stats(
 
     >>> test_statistic = lambda x: (np.mean(x), np.var(x))
     >>> estimate, bias, stderr, conf_interval = jackknife_stats(
-    ...     data, test_statistic, 0.95)
+    ...     data, test_statistic, 0.95
+    ... )
     >>> estimate
     array([4.5       ,  9.16666667])
     >>> bias
@@ -156,6 +159,7 @@ def jackknife_stats(
            [ 6.37652265,  14.44140947]])
 
     IMPORTANT: Note that confidence intervals are given as columns
+
     """
     # jackknife confidence interval
     if not (0 < confidence_level < 1):
@@ -180,7 +184,8 @@ def jackknife_stats(
 
     # jackknife standard error
     std_err = np.sqrt(
-        (n - 1) * np.mean((jack_stat - mean_jack_stat) * (jack_stat - mean_jack_stat), axis=0)
+        (n - 1)
+        * np.mean((jack_stat - mean_jack_stat) * (jack_stat - mean_jack_stat), axis=0)
     )
 
     # bias-corrected "jackknifed estimate"

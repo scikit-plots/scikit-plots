@@ -6,7 +6,6 @@ from scipy.optimize import rosen
 
 
 class SimpleQuadratic:
-
     def fun(self, x):
         return np.dot(x, x)
 
@@ -18,7 +17,6 @@ class SimpleQuadratic:
 
 
 class AsymmetricQuadratic:
-
     def fun(self, x):
         return np.dot(x, x) + x[0]
 
@@ -32,7 +30,6 @@ class AsymmetricQuadratic:
 
 
 class SlowRosen:
-
     def fun(self, x):
         time.sleep(40e-6)
         return rosen(x)
@@ -57,6 +54,7 @@ class LJ:
     -----
     the double loop over many atoms makes this *very* slow in Python.  If it
     were in a compiled language it would be much faster.
+
     """
 
     def __init__(self, eps=1.0, sig=1.0):
@@ -189,16 +187,17 @@ class HolderTable:
     temperature = 2.0
 
     def fun(self, x):
-        return -abs(sin(x[0]) * cos(x[1]) * exp(abs(1.0 - sqrt(x[0] ** 2 + x[1] ** 2) / pi)))
+        return -abs(
+            sin(x[0]) * cos(x[1]) * exp(abs(1.0 - sqrt(x[0] ** 2 + x[1] ** 2) / pi))
+        )
 
     def dabs(self, x):
-        """derivative of absolute value"""
+        """Derivative of absolute value"""
         if x < 0:
             return -1.0
-        elif x > 0:
+        if x > 0:
             return 1.0
-        else:
-            return 0.0
+        return 0.0
 
 
 # commented out at the because it causes FloatingPointError in
@@ -266,15 +265,24 @@ class Levi:
         return E
 
     def der(self, x):
-
-        dfdx = 2.0 * 3.0 * pi * cos(3.0 * pi * x[0]) * sin(3.0 * pi * x[0]) + 2.0 * (x[0] - 1.0) * (
-            1.0 + sin(3 * pi * x[1]) ** 2
-        )
+        dfdx = 2.0 * 3.0 * pi * cos(3.0 * pi * x[0]) * sin(3.0 * pi * x[0]) + 2.0 * (
+            x[0] - 1.0
+        ) * (1.0 + sin(3 * pi * x[1]) ** 2)
 
         dfdy = (
-            (x[0] - 1.0) ** 2 * 2.0 * 3.0 * pi * cos(3.0 * pi * x[1]) * sin(3.0 * pi * x[1])
+            (x[0] - 1.0) ** 2
+            * 2.0
+            * 3.0
+            * pi
+            * cos(3.0 * pi * x[1])
+            * sin(3.0 * pi * x[1])
             + 2.0 * (x[1] - 1.0) * (1.0 + sin(2 * pi * x[1]) ** 2)
-            + (x[1] - 1.0) ** 2 * 2.0 * 2.0 * pi * cos(2.0 * pi * x[1]) * sin(2.0 * pi * x[1])
+            + (x[1] - 1.0) ** 2
+            * 2.0
+            * 2.0
+            * pi
+            * cos(2.0 * pi * x[1])
+            * sin(2.0 * pi * x[1])
         )
 
         return np.array([dfdx, dfdy])

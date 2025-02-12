@@ -21,30 +21,32 @@ def get_functional_model(lib):
 
     input_img = lib.layers.Input(shape=(shape_x, shape_y, 1), name="input_1")  # input
 
-    layer_1 = lib.layers.Conv2D(1, (1, 1), padding="same", activation="relu", name="layer_1_1")(
-        input_img
-    )
-    layer_1 = lib.layers.Conv2D(1, (3, 3), padding="same", activation="relu", name="layer_1_2")(
-        layer_1
-    )
+    layer_1 = lib.layers.Conv2D(
+        1, (1, 1), padding="same", activation="relu", name="layer_1_1"
+    )(input_img)
+    layer_1 = lib.layers.Conv2D(
+        1, (3, 3), padding="same", activation="relu", name="layer_1_2"
+    )(layer_1)
 
-    layer_2 = lib.layers.Conv2D(1, (1, 1), padding="same", activation="relu", name="layer_2_1")(
-        input_img
-    )
-    layer_2 = lib.layers.Conv2D(1, (5, 5), padding="same", activation="relu", name="layer_2_2")(
-        layer_2
-    )
+    layer_2 = lib.layers.Conv2D(
+        1, (1, 1), padding="same", activation="relu", name="layer_2_1"
+    )(input_img)
+    layer_2 = lib.layers.Conv2D(
+        1, (5, 5), padding="same", activation="relu", name="layer_2_2"
+    )(layer_2)
 
-    layer_3 = lib.layers.MaxPooling2D((3, 3), strides=(1, 1), padding="same", name="layer_3_1")(
-        input_img
-    )
-    layer_3 = lib.layers.Conv2D(1, (1, 1), padding="same", activation="relu", name="layer_3_2")(
-        layer_3
-    )
+    layer_3 = lib.layers.MaxPooling2D(
+        (3, 3), strides=(1, 1), padding="same", name="layer_3_1"
+    )(input_img)
+    layer_3 = lib.layers.Conv2D(
+        1, (1, 1), padding="same", activation="relu", name="layer_3_2"
+    )(layer_3)
 
     input_img2 = lib.layers.Input(shape=(shape_x, shape_y, 1), name="input_2")  # input
 
-    mid_1 = lib.layers.concatenate([layer_1, layer_2, layer_3, input_img2], axis=3, name="concat")
+    mid_1 = lib.layers.concatenate(
+        [layer_1, layer_2, layer_3, input_img2], axis=3, name="concat"
+    )
 
     flat_1 = lib.layers.Flatten(name="flatten")(mid_1)
     dense_1 = lib.layers.Dense(1, activation="relu", name="dense_1")(flat_1)
@@ -62,30 +64,32 @@ def get_functional_model_with_nested(lib):
 
     input_img = lib.layers.Input(shape=(shape_x, shape_y, 1), name="input_1")  # input
 
-    layer_1 = lib.layers.Conv2D(1, (1, 1), padding="same", activation="relu", name="layer_1_1")(
-        input_img
-    )
-    layer_1 = lib.layers.Conv2D(1, (3, 3), padding="same", activation="relu", name="layer_1_2")(
-        layer_1
-    )
+    layer_1 = lib.layers.Conv2D(
+        1, (1, 1), padding="same", activation="relu", name="layer_1_1"
+    )(input_img)
+    layer_1 = lib.layers.Conv2D(
+        1, (3, 3), padding="same", activation="relu", name="layer_1_2"
+    )(layer_1)
 
-    layer_2 = lib.layers.Conv2D(1, (1, 1), padding="same", activation="relu", name="layer_2_1")(
-        input_img
-    )
-    layer_2 = lib.layers.Conv2D(1, (5, 5), padding="same", activation="relu", name="layer_2_2")(
-        layer_2
-    )
+    layer_2 = lib.layers.Conv2D(
+        1, (1, 1), padding="same", activation="relu", name="layer_2_1"
+    )(input_img)
+    layer_2 = lib.layers.Conv2D(
+        1, (5, 5), padding="same", activation="relu", name="layer_2_2"
+    )(layer_2)
 
-    layer_3 = lib.layers.MaxPooling2D((3, 3), strides=(1, 1), padding="same", name="layer_3_1")(
-        input_img
-    )
-    layer_3 = lib.layers.Conv2D(1, (1, 1), padding="same", activation="relu", name="layer_3_2")(
-        layer_3
-    )
+    layer_3 = lib.layers.MaxPooling2D(
+        (3, 3), strides=(1, 1), padding="same", name="layer_3_1"
+    )(input_img)
+    layer_3 = lib.layers.Conv2D(
+        1, (1, 1), padding="same", activation="relu", name="layer_3_2"
+    )(layer_3)
 
     input_img2 = lib.layers.Input(shape=(shape_x, shape_y, 1), name="input_2")  # input
 
-    mid_1 = lib.layers.concatenate([layer_1, layer_2, layer_3, input_img2], axis=3, name="concat")
+    mid_1 = lib.layers.concatenate(
+        [layer_1, layer_2, layer_3, input_img2], axis=3, name="concat"
+    )
 
     flat_1 = lib.layers.Flatten(name="flatten")(mid_1)
     dense_1 = lib.layers.Dense(1, activation="relu", name="dense_1")(flat_1)
@@ -94,8 +98,12 @@ def get_functional_model_with_nested(lib):
 
     # Nested subnet model
     subsubnet_in = lib.layers.Input(shape=(1,), name="sub_input")
-    subsubnet_l1 = lib.layers.Dense(10, activation="relu", name="sub_dense_1")(subsubnet_in)
-    subsubnet_l2 = lib.layers.Dense(10, activation="relu", name="sub_dense_2")(subsubnet_in)
+    subsubnet_l1 = lib.layers.Dense(10, activation="relu", name="sub_dense_1")(
+        subsubnet_in
+    )
+    subsubnet_l2 = lib.layers.Dense(10, activation="relu", name="sub_dense_2")(
+        subsubnet_in
+    )
     subsubnet_m1 = lib.layers.concatenate(
         [subsubnet_l1, subsubnet_l2], axis=1, name="sub_concatenate"
     )
@@ -114,7 +122,9 @@ def get_functional_model_with_nested(lib):
 def get_sequential_model(lib):
     image_size = 8
     model = lib.models.Sequential()
-    model.add(lib.layers.InputLayer(input_shape=(image_size, image_size, 3), name="input"))
+    model.add(
+        lib.layers.InputLayer(input_shape=(image_size, image_size, 3), name="input")
+    )
     model.add(lib.layers.ZeroPadding2D((1, 1), name="zero_padding"))
     model.add(lib.layers.Conv2D(64, activation="relu", kernel_size=(3, 3), name="conv"))
     model.add(lib.layers.MaxPooling2D((2, 2), strides=(2, 2), name="max_pooling"))
@@ -134,7 +144,9 @@ def get_sequential_model_with_nested(lib):
 
     image_size = 8
     model = lib.models.Sequential()
-    model.add(lib.layers.InputLayer(input_shape=(image_size, image_size, 3), name="input"))
+    model.add(
+        lib.layers.InputLayer(input_shape=(image_size, image_size, 3), name="input")
+    )
     model.add(lib.layers.ZeroPadding2D((1, 1), name="zero_padding"))
     model.add(lib.layers.Conv2D(64, activation="relu", kernel_size=(3, 3), name="conv"))
     model.add(lib.layers.MaxPooling2D((2, 2), strides=(2, 2), name="max_pooling"))
@@ -150,11 +162,15 @@ def get_sequential_model_with_nested(lib):
 def pytest_generate_tests(metafunc):
     if "functional_model" in metafunc.fixturenames:
         metafunc.parametrize(
-            "functional_model", ["functional_model_tf", "functional_model_keras"], indirect=True
+            "functional_model",
+            ["functional_model_tf", "functional_model_keras"],
+            indirect=True,
         )
     if "sequential_model" in metafunc.fixturenames:
         metafunc.parametrize(
-            "sequential_model", ["sequential_model_tf", "sequential_model_keras"], indirect=True
+            "sequential_model",
+            ["sequential_model_tf", "sequential_model_keras"],
+            indirect=True,
         )
     if "internal_model" in metafunc.fixturenames:
         metafunc.parametrize(
@@ -182,24 +198,29 @@ def pytest_generate_tests(metafunc):
 def _get_models(request):
     if request.param in ["functional_model_tf", "sequential_model_tf"]:
         return get_functional_model(tf.keras)
-    elif request.param in ["functional_model_keras", "sequential_model_keras"]:
+    if request.param in ["functional_model_keras", "sequential_model_keras"]:
         return get_functional_model(keras)
 
-    elif request.param in ["internal_functional_model_tf", "internal_sequential_model_tf"]:
+    if request.param in [
+        "internal_functional_model_tf",
+        "internal_sequential_model_tf",
+    ]:
         import tensorflow.python as tf_python
 
         return get_functional_model(tf_python.keras)
 
-    elif request.param in ["functional_model_tf_with_nested", "sequential_model_tf_with_nested"]:
+    if request.param in [
+        "functional_model_tf_with_nested",
+        "sequential_model_tf_with_nested",
+    ]:
         return get_functional_model_with_nested(tf.keras)
-    elif request.param in [
+    if request.param in [
         "functional_model_keras_with_nested",
         "sequential_model_keras_with_nested",
     ]:
         return get_functional_model_with_nested(keras)
 
-    else:
-        raise ValueError("invalid internal test config")
+    raise ValueError("invalid internal test config")
 
 
 @pytest.fixture

@@ -77,10 +77,7 @@ common_dependencies_without_coverage = [
     "meson-python",
 ]
 
-common_dependencies = common_dependencies_without_coverage + [
-    "pytest-cov",
-    "coverage",
-]
+common_dependencies = common_dependencies_without_coverage + ["pytest-cov", "coverage"]
 
 docstring_test_dependencies = ["sphinx", "numpydoc"]
 
@@ -132,9 +129,7 @@ build_metadata_list = [
                 "scipy-doctest",
             ]
         ),
-        "package_constraints": {
-            "blas": "[build=mkl]",
-        },
+        "package_constraints": {"blas": "[build=mkl]"},
     },
     {
         "name": "pylatest_conda_forge_mkl_osx-64",
@@ -144,16 +139,9 @@ build_metadata_list = [
         "platform": "osx-64",
         "channels": ["conda-forge"],
         "conda_dependencies": (
-            common_dependencies
-            + [
-                "ccache",
-                "compilers",
-                "llvm-openmp",
-            ]
+            common_dependencies + ["ccache", "compilers", "llvm-openmp"]
         ),
-        "package_constraints": {
-            "blas": "[build=mkl]",
-        },
+        "package_constraints": {"blas": "[build=mkl]"},
     },
     {
         "name": "pylatest_conda_mkl_no_openmp",
@@ -163,7 +151,9 @@ build_metadata_list = [
         "platform": "osx-64",
         "channels": ["defaults"],
         "conda_dependencies": (
-            remove_from(common_dependencies, ["cython", "threadpoolctl", "meson-python"])
+            remove_from(
+                common_dependencies, ["cython", "threadpoolctl", "meson-python"]
+            )
             + ["ccache"]
         ),
         "package_constraints": {
@@ -207,12 +197,11 @@ build_metadata_list = [
         "platform": "linux-64",
         "channels": ["conda-forge"],
         "conda_dependencies": (
-            common_dependencies_without_coverage + docstring_test_dependencies + ["ccache"]
+            common_dependencies_without_coverage
+            + docstring_test_dependencies
+            + ["ccache"]
         ),
-        "package_constraints": {
-            "python": "3.9",
-            "blas": "[build=openblas]",
-        },
+        "package_constraints": {"python": "3.9", "blas": "[build=openblas]"},
     },
     {
         "name": "pylatest_pip_openblas_pandas",
@@ -300,16 +289,9 @@ build_metadata_list = [
         "platform": "win-64",
         "channels": ["conda-forge"],
         "conda_dependencies": (
-            remove_from(common_dependencies, ["pandas", "pyamg"])
-            + [
-                "wheel",
-                "pip",
-            ]
+            remove_from(common_dependencies, ["pandas", "pyamg"]) + ["wheel", "pip"]
         ),
-        "package_constraints": {
-            "python": "3.9",
-            "blas": "[build=mkl]",
-        },
+        "package_constraints": {"python": "3.9", "blas": "[build=mkl]"},
     },
     {
         "name": "doc_min_dependencies",
@@ -339,10 +321,7 @@ build_metadata_list = [
                 "towncrier",
             ]
         ),
-        "pip_dependencies": [
-            "sphinxext-opengraph",
-            "sphinxcontrib-sass",
-        ],
+        "pip_dependencies": ["sphinxext-opengraph", "sphinxcontrib-sass"],
         "package_constraints": {
             "python": "3.9",
             "numpy": "min",
@@ -401,9 +380,7 @@ build_metadata_list = [
             "jupyterlite-pyodide-kernel",
             "sphinxcontrib-sass",
         ],
-        "package_constraints": {
-            "python": "3.9",
-        },
+        "package_constraints": {"python": "3.9"},
     },
     {
         "name": "pymin_conda_forge",
@@ -416,9 +393,7 @@ build_metadata_list = [
             remove_from(common_dependencies_without_coverage, ["pandas", "pyamg"])
             + ["pip", "ccache"]
         ),
-        "package_constraints": {
-            "python": "3.9",
-        },
+        "package_constraints": {"python": "3.9"},
     },
     {
         "name": "debian_32bit",
@@ -464,7 +439,9 @@ build_metadata_list = [
 
 def execute_command(command_list):
     logger.debug(" ".join(command_list))
-    proc = subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
     out, err = proc.communicate()
     out, err = out.decode(errors="replace"), err.decode(errors="replace")
@@ -473,10 +450,10 @@ def execute_command(command_list):
         command_str = " ".join(command_list)
         raise RuntimeError(
             "Command exited with non-zero exit code.\n"
-            "Exit code: {}\n"
-            "Command:\n{}\n"
-            "stdout:\n{}\n"
-            "stderr:\n{}\n".format(proc.returncode, command_str, out, err)
+            f"Exit code: {proc.returncode}\n"
+            f"Command:\n{command_str}\n"
+            f"stdout:\n{out}\n"
+            f"stderr:\n{err}\n"
         )
     logger.log(TRACE, out)
     return out
@@ -584,7 +561,7 @@ def create_conda_lock_file(build_metadata):
 
 def write_all_conda_lock_files(build_metadata_list):
     for build_metadata in build_metadata_list:
-        logger.info(f"# Locking dependencies for {build_metadata['name']}")
+        logger.info(f'# Locking dependencies for {build_metadata["name"]}')
         create_conda_lock_file(build_metadata)
 
 
@@ -652,7 +629,9 @@ def write_pip_lock_file(build_metadata):
 
     json_output = execute_command(["conda", "info", "--json"])
     conda_info = json.loads(json_output)
-    environment_folder = [each for each in conda_info["envs"] if each.endswith(environment_name)][0]
+    environment_folder = [
+        each for each in conda_info["envs"] if each.endswith(environment_name)
+    ][0]
     environment_path = Path(environment_folder)
     pip_compile_path = environment_path / "bin" / "pip-compile"
 
@@ -664,7 +643,7 @@ def write_pip_lock_file(build_metadata):
 
 def write_all_pip_lock_files(build_metadata_list):
     for build_metadata in build_metadata_list:
-        logger.info(f"# Locking dependencies for {build_metadata['name']}")
+        logger.info(f'# Locking dependencies for {build_metadata["name"]}')
         write_pip_lock_file(build_metadata)
 
 
@@ -693,7 +672,9 @@ def check_conda_version():
     conda_version = Version(conda_info["conda_version"])
 
     if Version("22.9.0") < conda_version < Version("23.7"):
-        raise RuntimeError(f"conda version should be <= 22.9.0 or >= 23.7 got: {conda_version}")
+        raise RuntimeError(
+            f"conda version should be <= 22.9.0 or >= 23.7 got: {conda_version}"
+        )
 
 
 @click.command()
@@ -719,10 +700,7 @@ def check_conda_version():
     ),
 )
 @click.option(
-    "-v",
-    "--verbose",
-    is_flag=True,
-    help="Print commands executed by the script",
+    "-v", "--verbose", is_flag=True, help="Print commands executed by the script"
 )
 @click.option(
     "-vv",
@@ -748,11 +726,13 @@ def main(select_build, skip_build, select_tag, verbose, very_verbose):
         ]
     if skip_build is not None:
         filtered_build_metadata_list = [
-            each for each in filtered_build_metadata_list if not re.search(skip_build, each["name"])
+            each
+            for each in filtered_build_metadata_list
+            if not re.search(skip_build, each["name"])
         ]
 
     selected_build_info = "\n".join(
-        f"  - {each['name']}, type: {each['type']}, tag: {each['tag']}"
+        f'  - {each["name"]}, type: {each["type"]}, tag: {each["tag"]}'
         for each in filtered_build_metadata_list
     )
     selected_build_message = (

@@ -1,31 +1,29 @@
 from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 from .._marks.base import (
-    Mark,
     Mappable,
     MappableBool,
-    MappableFloat,
     MappableColor,
+    MappableFloat,
     MappableStyle,
-    resolve_properties,
-    resolve_color,
+    Mark,
     document_properties,
+    resolve_color,
+    resolve_properties,
 )
 
 
 class AreaBase:
-
     def _plot(self, split_gen, scales, orient):
-
         patches = defaultdict(list)
 
         for keys, data, ax in split_gen():
-
             kws = {}
             data = self._standardize_coordinate_parameters(data, orient)
             resolved = resolve_properties(self, keys, scales)
@@ -45,7 +43,6 @@ class AreaBase:
             patches[ax].append(mpl.patches.Polygon(verts, **kws))
 
         for ax, ax_patches in patches.items():
-
             for patch in ax_patches:
                 self._postprocess_artist(patch, ax, orient)
                 ax.add_patch(patch)
@@ -57,7 +54,6 @@ class AreaBase:
         pass
 
     def _get_verts(self, data, orient):
-
         dv = {"x": "y", "y": "x"}[orient]
         data = data.sort_values(orient, kind="mergesort")
         verts = np.concatenate(
@@ -71,7 +67,6 @@ class AreaBase:
         return verts
 
     def _legend_artist(self, variables, value, scales):
-
         keys = {v: value for v in variables}
         resolved = resolve_properties(self, keys, scales)
 
@@ -94,7 +89,7 @@ class Area(AreaBase, Mark):
     """
     A fill mark drawn from a baseline to data values.
 
-    See also
+    See Also
     --------
     Band : A fill mark representing an interval between values.
 
@@ -104,25 +99,13 @@ class Area(AreaBase, Mark):
 
     """
 
-    color: MappableColor = Mappable(
-        "C0",
-    )
-    alpha: MappableFloat = Mappable(
-        0.2,
-    )
-    fill: MappableBool = Mappable(
-        True,
-    )
+    color: MappableColor = Mappable("C0")
+    alpha: MappableFloat = Mappable(0.2)
+    fill: MappableBool = Mappable(True)
     edgecolor: MappableColor = Mappable(depend="color")
-    edgealpha: MappableFloat = Mappable(
-        1,
-    )
-    edgewidth: MappableFloat = Mappable(
-        rc="patch.linewidth",
-    )
-    edgestyle: MappableStyle = Mappable(
-        "-",
-    )
+    edgealpha: MappableFloat = Mappable(1)
+    edgewidth: MappableFloat = Mappable(rc="patch.linewidth")
+    edgestyle: MappableStyle = Mappable("-")
 
     # TODO should this be settable / mappable?
     baseline: MappableFloat = Mappable(0, grouping=False)
@@ -132,7 +115,6 @@ class Area(AreaBase, Mark):
         return data.rename(columns={"baseline": f"{dv}min", dv: f"{dv}max"})
 
     def _postprocess_artist(self, artist, ax, orient):
-
         # TODO copying a lot of code from Bar, let's abstract this
         # See comments there, I am not going to repeat them too
 
@@ -157,7 +139,7 @@ class Band(AreaBase, Mark):
     """
     A fill mark representing an interval between values.
 
-    See also
+    See Also
     --------
     Area : A fill mark drawn from a baseline to data values.
 
@@ -167,27 +149,13 @@ class Band(AreaBase, Mark):
 
     """
 
-    color: MappableColor = Mappable(
-        "C0",
-    )
-    alpha: MappableFloat = Mappable(
-        0.2,
-    )
-    fill: MappableBool = Mappable(
-        True,
-    )
-    edgecolor: MappableColor = Mappable(
-        depend="color",
-    )
-    edgealpha: MappableFloat = Mappable(
-        1,
-    )
-    edgewidth: MappableFloat = Mappable(
-        0,
-    )
-    edgestyle: MappableFloat = Mappable(
-        "-",
-    )
+    color: MappableColor = Mappable("C0")
+    alpha: MappableFloat = Mappable(0.2)
+    fill: MappableBool = Mappable(True)
+    edgecolor: MappableColor = Mappable(depend="color")
+    edgealpha: MappableFloat = Mappable(1)
+    edgewidth: MappableFloat = Mappable(0)
+    edgestyle: MappableFloat = Mappable("-")
 
     def _standardize_coordinate_parameters(self, data, orient):
         # dv = {"x": "y", "y": "x"}[orient]

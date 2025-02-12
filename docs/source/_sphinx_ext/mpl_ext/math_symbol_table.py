@@ -69,8 +69,16 @@ symbols = [
         r"""\aa \AA \ae \AE \oe \OE \O \o \thorn \Thorn \ss \eth \dh \DH""".split(),
     ],
     ["Delimiters", 5, _mathtext.Parser._delims],
-    ["Big symbols", 5, _mathtext.Parser._overunder_symbols | _mathtext.Parser._dropsub_symbols],
-    ["Standard function names", 5, {rf"\{fn}" for fn in _mathtext.Parser._function_names}],
+    [
+        "Big symbols",
+        5,
+        _mathtext.Parser._overunder_symbols | _mathtext.Parser._dropsub_symbols,
+    ],
+    [
+        "Standard function names",
+        5,
+        {rf"\{fn}" for fn in _mathtext.Parser._function_names},
+    ],
     ["Binary operation symbols", 4, _mathtext.Parser._binary_operators],
     ["Relation symbols", 4, _mathtext.Parser._relation_symbols],
     ["Arrow symbols", 4, _mathtext.Parser._arrow_symbols],
@@ -82,17 +90,29 @@ symbols = [
     [
         "Black-board characters",
         6,
-        [rf"\{symbol}" for symbol in _mathtext_data.tex2uni if re.match(bb_pattern, symbol)],
+        [
+            rf"\{symbol}"
+            for symbol in _mathtext_data.tex2uni
+            if re.match(bb_pattern, symbol)
+        ],
     ],
     [
         "Script characters",
         6,
-        [rf"\{symbol}" for symbol in _mathtext_data.tex2uni if re.match(scr_pattern, symbol)],
+        [
+            rf"\{symbol}"
+            for symbol in _mathtext_data.tex2uni
+            if re.match(scr_pattern, symbol)
+        ],
     ],
     [
         "Fraktur characters",
         6,
-        [rf"\{symbol}" for symbol in _mathtext_data.tex2uni if re.match(frak_pattern, symbol)],
+        [
+            rf"\{symbol}"
+            for symbol in _mathtext_data.tex2uni
+            if re.match(frak_pattern, symbol)
+        ],
     ],
     [
         "Miscellaneous symbols",
@@ -112,7 +132,6 @@ symbols = [
 
 
 def run(state_machine):
-
     def render_symbol(sym, ignore_variant=False):
         if ignore_variant and sym not in (r"\varnothing", r"\varlrtriangle"):
             sym = sym.replace(r"\var", "\\")
@@ -130,7 +149,10 @@ def run(state_machine):
             syms,
             # Sort by Unicode and place variants immediately
             # after standard versions.
-            key=lambda sym: (render_symbol(sym, ignore_variant=True), sym.startswith(r"\var")),
+            key=lambda sym: (
+                render_symbol(sym, ignore_variant=True),
+                sym.startswith(r"\var"),
+            ),
             reverse=(category == "Hebrew"),
         )  # Hebrew is rtl
         rendered_syms = [f"{render_symbol(sym)} ``{sym}``" for sym in syms]
@@ -141,7 +163,9 @@ def run(state_machine):
         header = (("=" * max_width) + " ") * columns
         lines.append(header.rstrip())
         for part in range(0, len(rendered_syms), columns):
-            row = " ".join(sym.rjust(max_width) for sym in rendered_syms[part : part + columns])
+            row = " ".join(
+                sym.rjust(max_width) for sym in rendered_syms[part : part + columns]
+            )
             lines.append(row)
         lines.append(header.rstrip())
         lines.append("")

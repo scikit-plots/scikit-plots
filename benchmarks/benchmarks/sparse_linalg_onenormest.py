@@ -11,7 +11,10 @@ with safe_import():
 
 
 class BenchmarkOneNormEst(Benchmark):
-    params = [[2, 3, 5, 10, 30, 100, 300, 500, 1000, 1e4, 1e5, 1e6], ["exact", "onenormest"]]
+    params = [
+        [2, 3, 5, 10, 30, 100, 300, 500, 1000, 1e4, 1e5, 1e6],
+        ["exact", "onenormest"],
+    ]
     param_names = ["n", "solver"]
 
     def setup(self, n, solver):
@@ -55,4 +58,6 @@ class BenchmarkOneNormEst(Benchmark):
                 scipy.sparse.linalg._matfuncs._onenormest_matrix_power(M, 2)
 
     # Retain old benchmark results (remove this if changing the benchmark)
-    time_onenormest.version = "f7b31b4bf5caa50d435465e78dab6e133f3c263a52c4523eec785446185fdb6f"
+    time_onenormest.version = (
+        "f7b31b4bf5caa50d435465e78dab6e133f3c263a52c4523eec785446185fdb6f"
+    )

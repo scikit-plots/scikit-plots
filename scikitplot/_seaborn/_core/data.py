@@ -1,17 +1,15 @@
-"""
-Components for parsing variable assignments and internally representing plot data.
-"""
+"""Components for parsing variable assignments and internally representing plot data."""
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Mapping, Sized
 from typing import cast
-import warnings
 
 import pandas as pd
 from pandas import DataFrame
 
-from .._core.typing import DataSource, VariableSpec, ColumnName
+from .._core.typing import ColumnName, DataSource, VariableSpec
 from ..utils import _version_predates
 
 
@@ -50,12 +48,7 @@ class PlotData:
     source_data: DataSource
     source_vars: dict[str, VariableSpec]
 
-    def __init__(
-        self,
-        data: DataSource,
-        variables: dict[str, VariableSpec],
-    ):
-
+    def __init__(self, data: DataSource, variables: dict[str, VariableSpec]):
         data = handle_data_source(data)
         frame, names, ids = self._assign_variables(data, variables)
 
@@ -66,7 +59,7 @@ class PlotData:
         # The reason we possibly have a dictionary of frames is to support the
         # Plot.pair operation, post scaling, where each x/y variable needs its
         # own frame. This feels pretty clumsy and there are a bunch of places in
-        # the client code with awkard if frame / elif frames constructions.
+        # the client code with awkward if frame / elif frames constructions.
         # It would be great to have a cleaner abstraction here.
         self.frames = {}
 
@@ -80,9 +73,7 @@ class PlotData:
         return key in self.frame
 
     def join(
-        self,
-        data: DataSource,
-        variables: dict[str, VariableSpec] | None,
+        self, data: DataSource, variables: dict[str, VariableSpec] | None
     ) -> PlotData:
         """Add, replace, or drop variables and return as a new dataset."""
         # Inherit the original source of the upstream data by default
@@ -127,9 +118,7 @@ class PlotData:
         return new
 
     def _assign_variables(
-        self,
-        data: DataFrame | Mapping | None,
-        variables: dict[str, VariableSpec],
+        self, data: DataFrame | Mapping | None, variables: dict[str, VariableSpec]
     ) -> tuple[DataFrame, dict[str, str | None], dict[str, str | int]]:
         """
         Assign values for plot variables given long-form data and/or vector inputs.
@@ -188,7 +177,6 @@ class PlotData:
             index = {}
 
         for key, val in variables.items():
-
             # Simply ignore variables with no specification
             if val is None:
                 continue
@@ -223,7 +211,6 @@ class PlotData:
                 names[key] = ids[key] = str(val)
 
             elif isinstance(val, str):
-
                 # This looks like a column name but, lookup failed.
 
                 err = f"Could not interpret value `{val}` for `{key}`. "
@@ -234,7 +221,6 @@ class PlotData:
                 raise ValueError(err)
 
             else:
-
                 # Otherwise, assume the value somehow represents data
 
                 # Ignore empty data structures

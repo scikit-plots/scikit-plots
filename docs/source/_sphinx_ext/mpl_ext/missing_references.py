@@ -110,14 +110,14 @@ def handle_missing_reference(app, domain, node):
     # If we're ignoring this event, return True so that Sphinx thinks we handled it,
     # even though we didn't print or warn. If we aren't ignoring it, Sphinx will print a
     # warning about the missing reference.
-    if location in app.env.missing_references_ignored_references.get((domain_type, target), []):
+    if location in app.env.missing_references_ignored_references.get(
+        (domain_type, target), []
+    ):
         return True
 
 
 def warn_unused_missing_references(app, exc):
-    """
-    Check that all lines of the existing JSON file are still necessary.
-    """
+    """Check that all lines of the existing JSON file are still necessary."""
     # We can only warn if we are building from a source install
     # otherwise, we just have to skip this step.
     basepath = Path(matplotlib.__file__).parent.parent.parent.resolve()
@@ -149,14 +149,15 @@ def warn_unused_missing_references(app, exc):
                     " It is no longer a missing reference in the docs."
                 )
                 logger.warning(
-                    msg, location=ignored_reference_location, type="ref", subtype=domain_type
+                    msg,
+                    location=ignored_reference_location,
+                    type="ref",
+                    subtype=domain_type,
                 )
 
 
 def save_missing_references(app, exc):
-    """
-    Write a new JSON file containing missing references.
-    """
+    """Write a new JSON file containing missing references."""
     json_path = Path(app.confdir) / app.config.missing_references_filename
     references_warnings = app.env.missing_references_events
     _write_missing_references_json(references_warnings, json_path)
@@ -200,9 +201,7 @@ def _read_missing_references_json(json_path):
 
 
 def prepare_missing_references_setup(app):
-    """
-    Initialize this extension once the configuration is ready.
-    """
+    """Initialize this extension once the configuration is ready."""
     if not app.config.missing_references_enabled:
         # no-op when we are disabled.
         return
@@ -224,7 +223,9 @@ def setup(app):
     app.add_config_value("missing_references_enabled", True, "env")
     app.add_config_value("missing_references_write_json", False, "env")
     app.add_config_value("missing_references_warn_unused_ignores", True, "env")
-    app.add_config_value("missing_references_filename", "missing-references.json", "env")
+    app.add_config_value(
+        "missing_references_filename", "missing-references.json", "env"
+    )
 
     app.connect("builder-inited", prepare_missing_references_setup)
 

@@ -1,4 +1,4 @@
-#! /usr/bin/env python3  # noqa: CPY001
+#! /usr/bin/env python3
 
 '''
 Developer CLI: building (meson), tests, benchmark, etc.
@@ -35,7 +35,7 @@ Just use the `cls_cmd` decorator. And define a `run()` method
 
 ```
 @cli.cls_cmd('test')
-class Test():
+class Test:
     """Run tests"""
 
     @classmethod
@@ -48,15 +48,20 @@ class Test():
 
 ```
 @cli.cls_cmd('test')
-class Test():
+class Test:
     """Run tests"""
+
     ctx = CONTEXT
 
     verbose = Option(
-        ['--verbose', '-v'], default=False, is_flag=True, help="verbosity")
+        ['--verbose', '-v'],
+        default=False,
+        is_flag=True,
+        help='verbosity',
+    )
 
     @classmethod
-    def run(cls, **kwargs): # kwargs contains options from class and CONTEXT
+    def run(cls, **kwargs):  # kwargs contains options from class and CONTEXT
         print('Running tests...')
 ```
 
@@ -67,13 +72,12 @@ class Test():
 
 ```
 @cli.cls_cmd('test')
-class Test(Task):   # Task base class, doit will create a task
+class Test(Task):  # Task base class, doit will create a task
     """Run tests"""
+
     ctx = CONTEXT
 
-    TASK_META = {
-        'task_dep': ['build'],
-    }
+    TASK_META = {'task_dep': ['build']}
 
     @classmethod
     def run(cls, **kwargs):
@@ -128,17 +132,10 @@ from rich.panel import Panel
 from rich.theme import Theme
 from rich_click import rich_click
 
-DOIT_CONFIG = {
-    "verbosity": 2,
-    "minversion": "0.36.0",
-}
+DOIT_CONFIG = {"verbosity": 2, "minversion": "0.36.0"}
 
 
-console_theme = Theme(
-    {
-        "cmd": "italic gray50",
-    }
-)
+console_theme = Theme({"cmd": "italic gray50"})
 
 if sys.platform == "win32":
 
@@ -161,12 +158,18 @@ rich_click.OPTION_GROUPS = {
         {
             "name": "Options",
             "options": ["--help", "--build-dir", "--no-build", "--install-prefix"],
-        },
+        }
     ],
     "dev.py test": [
         {
             "name": "Options",
-            "options": ["--help", "--verbose", "--parallel", "--coverage", "--durations"],
+            "options": [
+                "--help",
+                "--verbose",
+                "--parallel",
+                "--coverage",
+                "--durations",
+            ],
         },
         {
             "name": "Options: test selection",
@@ -176,14 +179,8 @@ rich_click.OPTION_GROUPS = {
 }
 rich_click.COMMAND_GROUPS = {
     "dev.py": [
-        {
-            "name": "build & testing",
-            "commands": ["build", "test"],
-        },
-        {
-            "name": "static checkers",
-            "commands": ["lint", "mypy"],
-        },
+        {"name": "build & testing", "commands": ["build", "test"]},
+        {"name": "static checkers", "commands": ["lint", "mypy"]},
         {
             "name": "environments",
             "commands": ["shell", "python", "ipython", "show_PYTHONPATH"],
@@ -192,14 +189,8 @@ rich_click.COMMAND_GROUPS = {
             "name": "documentation",
             "commands": ["doc", "refguide-check", "smoke-docs", "smoke-tutorial"],
         },
-        {
-            "name": "release",
-            "commands": ["notes", "authors"],
-        },
-        {
-            "name": "benchmarking",
-            "commands": ["bench"],
-        },
+        {"name": "release", "commands": ["notes", "authors"]},
+        {"name": "benchmarking", "commands": ["bench"]},
     ]
 }
 
@@ -214,7 +205,7 @@ class ErrorOnlyReporter(ZeroReporter):
     def add_failure(self, task, fail_info):
         console = Console()
         if isinstance(fail_info, TaskError):
-            console.print(f"[red]Task Error - {task.name}" f" => {fail_info.message}")
+            console.print(f"[red]Task Error - {task.name} => {fail_info.message}")
         if fail_info.traceback:
             console.print(
                 Panel(
@@ -262,10 +253,7 @@ def run_doit_task(tasks):
     :param tasks: (dict) task_name -> {options}
     """
     loader = ModuleTaskLoader(globals())
-    doit_config = {
-        "verbosity": 2,
-        "reporter": ErrorOnlyReporter,
-    }
+    doit_config = {"verbosity": 2, "reporter": ErrorOnlyReporter}
     return run_tasks(loader, tasks, extra_config={"GLOBAL": doit_config})
 
 
@@ -335,7 +323,9 @@ class Dirs:
         """Add site dir to sys.path / PYTHONPATH"""
         site_dir = str(self.site)
         sys.path.insert(0, site_dir)
-        os.environ["PYTHONPATH"] = os.pathsep.join((site_dir, os.environ.get("PYTHONPATH", "")))
+        os.environ["PYTHONPATH"] = os.pathsep.join(
+            (site_dir, os.environ.get("PYTHONPATH", ""))
+        )
 
     def get_site_packages(self):
         """
@@ -344,13 +334,12 @@ class Dirs:
         """
         if sys.version_info >= (3, 12):
             plat_path = Path(sysconfig.get_path("platlib"))
+        # infer meson install path for python < 3.12 in
+        # debian patched python
+        elif "deb_system" in sysconfig.get_scheme_names():
+            plat_path = Path(sysconfig.get_path("platlib", "deb_system"))
         else:
-            # infer meson install path for python < 3.12 in
-            # debian patched python
-            if "deb_system" in sysconfig.get_scheme_names():
-                plat_path = Path(sysconfig.get_path("platlib", "deb_system"))
-            else:
-                plat_path = Path(sysconfig.get_path("platlib"))
+            plat_path = Path(sysconfig.get_path("platlib"))
         return self.installed / plat_path.relative_to(sys.exec_prefix)
 
 
@@ -406,12 +395,15 @@ class Build(Task):
 
     ctx = CONTEXT
 
-    werror = Option(["--werror"], default=False, is_flag=True, help="Treat warnings as errors")
+    werror = Option(
+        ["--werror"], default=False, is_flag=True, help="Treat warnings as errors"
+    )
     gcov = Option(
         ["--gcov"],
         default=False,
         is_flag=True,
-        help="enable C code coverage via gcov (requires GCC)." "gcov output goes to build/**/*.gc*",
+        help="enable C code coverage via gcov (requires GCC)."
+        "gcov output goes to build/**/*.gc*",
     )
     asan = Option(
         ["--asan"],
@@ -426,7 +418,9 @@ class Build(Task):
         ),
     )
     debug = Option(["--debug", "-d"], default=False, is_flag=True, help="Debug build")
-    release = Option(["--release", "-r"], default=False, is_flag=True, help="Release build")
+    release = Option(
+        ["--release", "-r"], default=False, is_flag=True, help="Release build"
+    )
     parallel = Option(
         ["--parallel", "-j"],
         default=None,
@@ -483,7 +477,10 @@ class Build(Task):
         """
         for fn in PROJECT_ROOT_FILES:
             if not (dirs.root / fn).exists():
-                print("To build the project, run dev.py in " "git checkout or unpacked source")
+                print(
+                    "To build the project, run dev.py in "
+                    "git checkout or unpacked source"
+                )
                 sys.exit(1)
 
         env = dict(os.environ)
@@ -493,7 +490,7 @@ class Build(Task):
         if build_dir.exists() and not (build_dir / "meson-info").exists():
             if list(build_dir.iterdir()):
                 raise RuntimeError(
-                    "Can't build into non-empty directory " f"'{build_dir.absolute()}'"
+                    f"Can't build into non-empty directory '{build_dir.absolute()}'"
                 )
 
         if sys.platform == "cygwin":
@@ -514,9 +511,15 @@ class Build(Task):
                     break
             if installdir != str(dirs.installed):
                 run_dir = build_dir
-                cmd = ["meson", "setup", "--reconfigure", "--prefix", str(dirs.installed)]
+                cmd = [
+                    "meson",
+                    "setup",
+                    "--reconfigure",
+                    "--prefix",
+                    str(dirs.installed),
+                ]
             else:
-                return
+                return None
         if args.werror:
             cmd += ["--werror"]
         if args.debug or args.release:
@@ -530,7 +533,7 @@ class Build(Task):
                 cflags_unwanted = ("-O0", "-O1", "-O2")
             cmd += [f"-Dbuildtype={buildtype}"]
             if "CFLAGS" in os.environ.keys():
-                # Check that CFLAGS doesn't contain something that supercedes -O0
+                # Check that CFLAGS doesn't contain something that supersedes -O0
                 # for a plain debug build (conda envs tend to set -O2)
                 cflags = os.environ["CFLAGS"].split()
                 for flag in cflags_unwanted:
@@ -551,7 +554,9 @@ class Build(Task):
             cmd += ["-Dblas=accelerate"]
         elif args.with_scipy_openblas:
             cls.configure_scipy_openblas()
-            env["PKG_CONFIG_PATH"] = os.pathsep.join([os.getcwd(), env.get("PKG_CONFIG_PATH", "")])
+            env["PKG_CONFIG_PATH"] = os.pathsep.join(
+                [os.getcwd(), env.get("PKG_CONFIG_PATH", "")]
+            )
 
         # Setting up meson build
         cmd_str = " ".join([str(p) for p in cmd])
@@ -597,8 +602,18 @@ class Build(Task):
         if dirs.installed.exists():
             non_empty = len(os.listdir(dirs.installed))
             if non_empty and not dirs.site.exists():
-                raise RuntimeError("Can't install in non-empty directory: " f"'{dirs.installed}'")
-        cmd = ["meson", "install", "-C", args.build_dir, "--only-changed", "--tags", args.tags]
+                raise RuntimeError(
+                    f"Can't install in non-empty directory: '{dirs.installed}'"
+                )
+        cmd = [
+            "meson",
+            "install",
+            "-C",
+            args.build_dir,
+            "--only-changed",
+            "--tags",
+            args.tags,
+        ]
         log_filename = dirs.root / "meson-install.log"
         start_time = datetime.datetime.now()
         cmd_str = " ".join([str(p) for p in cmd])
@@ -623,12 +638,14 @@ class Build(Task):
                         log_size = os.stat(log_filename).st_size
                         if log_size > last_log_size:
                             elapsed = datetime.datetime.now() - start_time
-                            print(f"    ... installation in progress ({elapsed} " "elapsed)")
+                            print(
+                                f"    ... installation in progress ({elapsed} elapsed)"
+                            )
                             last_blip = time.time()
                             last_log_size = log_size
 
                 ret = p.wait()
-            except:  # noqa: E722
+            except:
                 p.terminate()
                 raise
         elapsed = datetime.datetime.now() - start_time
@@ -650,7 +667,6 @@ class Build(Task):
             subprocess.check_call(rebase_cmd)
 
         print("Installation OK")
-        return
 
     @classmethod
     def configure_scipy_openblas(self, blas_variant="32"):
@@ -662,7 +678,7 @@ class Build(Task):
         pkg_config_fname = os.path.join(basedir, "scipy-openblas.pc")
 
         if os.path.exists(pkg_config_fname):
-            return None
+            return
 
         module_name = f"scipy_openblas{blas_variant}"
         try:
@@ -685,7 +701,7 @@ class Build(Task):
     @classmethod
     def run(cls, add_path=False, **kwargs):
         kwargs.update(cls.ctx.get(kwargs))
-        Args = namedtuple("Args", [k for k in kwargs.keys()])
+        Args = namedtuple("Args", [k for k in kwargs])
         args = Args(**kwargs)
 
         cls.console = Console(theme=console_theme)
@@ -720,14 +736,16 @@ class Test(Task):
 
     ctx = CONTEXT
 
-    verbose = Option(["--verbose", "-v"], default=False, is_flag=True, help="more verbosity")
+    verbose = Option(
+        ["--verbose", "-v"], default=False, is_flag=True, help="more verbosity"
+    )
     # removed doctests as currently not supported by _lib/_testutils.py
     # doctests = Option(['--doctests'], default=False)
     coverage = Option(
         ["--coverage", "-c"],
         default=False,
         is_flag=True,
-        help=("report coverage of project code. " "HTML output goes under build/coverage"),
+        help=("report coverage of project code. HTML output goes under build/coverage"),
     )
     durations = Option(
         ["--durations", "-d"],
@@ -742,7 +760,11 @@ class Test(Task):
         help="Submodule whose tests to run (cluster, constants, ...)",
     )
     tests = Option(
-        ["--tests", "-t"], default=None, multiple=True, metavar="TESTS", help="Specify tests to run"
+        ["--tests", "-t"],
+        default=None,
+        multiple=True,
+        metavar="TESTS",
+        help="Specify tests to run",
     )
     mode = Option(
         ["--mode", "-m"],
@@ -772,11 +794,11 @@ class Test(Task):
         ),
     )
     # Argument can't have `help=`; used to consume all of `-- arg1 arg2 arg3`
-    pytest_args = Argument(["pytest_args"], nargs=-1, metavar="PYTEST-ARGS", required=False)
+    pytest_args = Argument(
+        ["pytest_args"], nargs=-1, metavar="PYTEST-ARGS", required=False
+    )
 
-    TASK_META = {
-        "task_dep": ["build"],
-    }
+    TASK_META = {"task_dep": ["build"]}
 
     @staticmethod
     def run_lcov(dirs):
@@ -873,14 +895,17 @@ class Test(Task):
         # FIXME: changing CWD is not a good practice
         with working_dir(dirs.site):
             print(
-                f"Running tests for {PROJECT_MODULE} version:{version}, " f"installed at:{mod_path}"
+                f"Running tests for {PROJECT_MODULE} version:{version}, "
+                f"installed at:{mod_path}"
             )
             # runner verbosity - convert bool to int
             verbose = int(args.verbose) + 1
 
             was_built_with_gcov_flag = len(list(dirs.build.rglob("*.gcno"))) > 0
             if was_built_with_gcov_flag:
-                config = importlib.import_module("scikitplot.__config__").show(mode="dicts")
+                config = importlib.import_module("scikitplot.__config__").show(
+                    mode="dicts"
+                )
                 compilers_config = config["Compilers"]
                 cpp = compilers_config["c++"]["name"]
                 c = compilers_config["c"]["name"]
@@ -906,7 +931,9 @@ class Test(Task):
             )
             if args.coverage and was_built_with_gcov_flag:
                 if not result:
-                    print("Tests should succeed to generate " "coverage reports using LCOV")
+                    print(
+                        "Tests should succeed to generate coverage reports using LCOV"
+                    )
                 else:
                     return cls.run_lcov(dirs)
         return result
@@ -915,7 +942,7 @@ class Test(Task):
     def run(cls, pytest_args, **kwargs):
         """run unit-tests"""
         kwargs.update(cls.ctx.get())
-        Args = namedtuple("Args", [k for k in kwargs.keys()])
+        Args = namedtuple("Args", [k for k in kwargs])
         args = Args(**kwargs)
         return cls.scipy_tests(args, pytest_args)
 
@@ -925,7 +952,9 @@ class SmokeDocs(Task):
     # XXX This essntially is a copy-paste of the Task class. Consider de-duplicating.
     ctx = CONTEXT
 
-    verbose = Option(["--verbose", "-v"], default=False, is_flag=True, help="more verbosity")
+    verbose = Option(
+        ["--verbose", "-v"], default=False, is_flag=True, help="more verbosity"
+    )
     durations = Option(
         ["--durations", "-d"],
         default=None,
@@ -939,7 +968,11 @@ class SmokeDocs(Task):
         help="Submodule whose tests to run (cluster, constants, ...)",
     )
     tests = Option(
-        ["--tests", "-t"], default=None, multiple=True, metavar="TESTS", help="Specify tests to run"
+        ["--tests", "-t"],
+        default=None,
+        multiple=True,
+        metavar="TESTS",
+        help="Specify tests to run",
     )
     parallel = Option(
         ["--parallel", "-j"],
@@ -948,11 +981,11 @@ class SmokeDocs(Task):
         help="Number of parallel jobs for testing",
     )
     # Argument can't have `help=`; used to consume all of `-- arg1 arg2 arg3`
-    pytest_args = Argument(["pytest_args"], nargs=-1, metavar="PYTEST-ARGS", required=False)
+    pytest_args = Argument(
+        ["pytest_args"], nargs=-1, metavar="PYTEST-ARGS", required=False
+    )
 
-    TASK_META = {
-        "task_dep": ["build"],
-    }
+    TASK_META = {"task_dep": ["build"]}
 
     @classmethod
     def scipy_tests(cls, args, pytest_args):
@@ -990,7 +1023,8 @@ class SmokeDocs(Task):
         # FIXME: changing CWD is not a good practice
         with working_dir(dirs.site):
             print(
-                f"Running tests for {PROJECT_MODULE} version:{version}, " f"installed at:{mod_path}"
+                f"Running tests for {PROJECT_MODULE} version:{version}, "
+                f"installed at:{mod_path}"
             )
             # runner verbosity - convert bool to int
             verbose = int(args.verbose) + 1
@@ -1009,7 +1043,7 @@ class SmokeDocs(Task):
     def run(cls, pytest_args, **kwargs):
         """run unit-tests"""
         kwargs.update(cls.ctx.get())
-        Args = namedtuple("Args", [k for k in kwargs.keys()])
+        Args = namedtuple("Args", [k for k in kwargs])
         args = Args(**kwargs)
         return cls.scipy_tests(args, pytest_args)
 
@@ -1029,12 +1063,14 @@ class SmokeTutorials(Task):
     )
     verbose = Option(["--verbose", "-v"], default=False, is_flag=True, help="verbosity")
 
-    pytest_args = Argument(["pytest_args"], nargs=-1, metavar="PYTEST-ARGS", required=False)
+    pytest_args = Argument(
+        ["pytest_args"], nargs=-1, metavar="PYTEST-ARGS", required=False
+    )
 
     @classmethod
     def task_meta(cls, **kwargs):
         kwargs.update(cls.ctx.get())
-        Args = namedtuple("Args", [k for k in kwargs.keys()])
+        Args = namedtuple("Args", [k for k in kwargs])
         args = Args(**kwargs)
         dirs = Dirs(args)
 
@@ -1075,9 +1111,7 @@ class Bench(Task):
     """
 
     ctx = CONTEXT
-    TASK_META = {
-        "task_dep": ["build"],
-    }
+    TASK_META = {"task_dep": ["build"]}
     submodule = Option(
         ["--submodule", "-s"],
         default=None,
@@ -1085,7 +1119,11 @@ class Bench(Task):
         help="Submodule whose tests to run (cluster, constants, ...)",
     )
     tests = Option(
-        ["--tests", "-t"], default=None, multiple=True, metavar="TESTS", help="Specify tests to run"
+        ["--tests", "-t"],
+        default=None,
+        multiple=True,
+        metavar="TESTS",
+        help="Specify tests to run",
     )
     compare = Option(
         ["--compare", "-c"],
@@ -1111,7 +1149,9 @@ class Bench(Task):
         sys.path.insert(0, str(bench_dir))
         # Always use ccache, if installed
         env = dict(os.environ)
-        env["PATH"] = os.pathsep.join(EXTRA_PATH + env.get("PATH", "").split(os.pathsep))
+        env["PATH"] = os.pathsep.join(
+            EXTRA_PATH + env.get("PATH", "").split(os.pathsep)
+        )
         # Control BLAS/LAPACK threads
         env["OPENBLAS_NUM_THREADS"] = "1"
         env["MKL_NUM_THREADS"] = "1"
@@ -1175,7 +1215,9 @@ class Bench(Task):
                     print("Too many commits to compare benchmarks for")
                 # Check for uncommitted files
                 if commit_b == "HEAD":
-                    r1 = subprocess.call(["git", "diff-index", "--quiet", "--cached", "HEAD"])
+                    r1 = subprocess.call(
+                        ["git", "diff-index", "--quiet", "--cached", "HEAD"]
+                    )
                     r2 = subprocess.call(["git", "diff-files", "--quiet"])
                     if r1 != 0 or r2 != 0:
                         print("*" * 80)
@@ -1186,11 +1228,15 @@ class Bench(Task):
                         print("*" * 80)
 
                 # Fix commit ids (HEAD is local to current repo)
-                p = subprocess.Popen(["git", "rev-parse", commit_b], stdout=subprocess.PIPE)
+                p = subprocess.Popen(
+                    ["git", "rev-parse", commit_b], stdout=subprocess.PIPE
+                )
                 out, err = p.communicate()
                 commit_b = out.strip()
 
-                p = subprocess.Popen(["git", "rev-parse", commit_a], stdout=subprocess.PIPE)
+                p = subprocess.Popen(
+                    ["git", "rev-parse", commit_a], stdout=subprocess.PIPE
+                )
                 out, err = p.communicate()
                 commit_a = out.strip()
                 cmd_compare = [
@@ -1210,7 +1256,7 @@ class Bench(Task):
     def run(cls, **kwargs):
         """run benchmark"""
         kwargs.update(cls.ctx.get())
-        Args = namedtuple("Args", [k for k in kwargs.keys()])
+        Args = namedtuple("Args", [k for k in kwargs])
         args = Args(**kwargs)
         cls.scipy_bench(args)
 
@@ -1254,11 +1300,16 @@ def task_check_python_h_first():
     # Lint just the diff since branching off of main using a
     # stricter configuration.
     # emit_cmdstr(os.path.join('tools', 'lint.py') + ' --diff-against main')
-    cmd = "{!s} --diff-against=main".format(Dirs().root / "tools" / "check_python_h_first.py")
+    cmd = "{!s} --diff-against=main".format(
+        Dirs().root / "tools" / "check_python_h_first.py"
+    )
     return {
         "basename": "check_python_h_first",
         "actions": [cmd],
-        "doc": "Check Python.h order only files modified since last commit " "(stricter rules)",
+        "doc": (
+            "Check Python.h order only files modified since last commit "
+            "(stricter rules)"
+        ),
     }
 
 
@@ -1268,7 +1319,8 @@ def task_check_unicode():
         "basename": "check_unicode",
         "actions": [str(Dirs().root / "tools" / "check_unicode.py")],
         "doc": (
-            "Check for disallowed Unicode characters in the SciPy Python " "and Cython source code."
+            "Check for disallowed Unicode characters in the SciPy Python "
+            "and Cython source code."
         ),
     }
 
@@ -1287,7 +1339,9 @@ class Lint:
     """:dash: Run linter on modified (or all) files and check for
     disallowed Unicode characters and possibly-invalid test names."""
 
-    fix = Option(["--fix"], default=False, is_flag=True, help="Attempt to auto-fix errors")
+    fix = Option(
+        ["--fix"], default=False, is_flag=True, help="Attempt to auto-fix errors"
+    )
     all = Option(
         ["--all"],
         default=False,
@@ -1313,14 +1367,12 @@ class Mypy(Task):
 
     ctx = CONTEXT
 
-    TASK_META = {
-        "task_dep": ["build"],
-    }
+    TASK_META = {"task_dep": ["build"]}
 
     @classmethod
     def run(cls, **kwargs):
         kwargs.update(cls.ctx.get())
-        Args = namedtuple("Args", [k for k in kwargs.keys()])
+        Args = namedtuple("Args", [k for k in kwargs])
         args = Args(**kwargs)
         dirs = Dirs(args)
 
@@ -1343,11 +1395,7 @@ class Mypy(Task):
             # up any type stubs in the source tree.
             emit_cmdstr(f"mypy.api.run --config-file {config} {check_path}")
             report, errors, status = mypy.api.run(
-                [
-                    "--config-file",
-                    str(config),
-                    check_path,
-                ]
+                ["--config-file", str(config), check_path]
             )
         print(report, end="")
         print(errors, end="", file=sys.stderr)
@@ -1377,13 +1425,13 @@ class Doc(Task):
 
     args = Argument(["args"], nargs=-1, metavar="TARGETS", required=False)
     list_targets = Option(
-        ["--list-targets", "-t"],
-        default=False,
-        is_flag=True,
-        help="List doc targets",
+        ["--list-targets", "-t"], default=False, is_flag=True, help="List doc targets"
     )
     parallel = Option(
-        ["--parallel", "-j"], default=1, metavar="N_JOBS", help="Number of parallel jobs"
+        ["--parallel", "-j"],
+        default=1,
+        metavar="N_JOBS",
+        help="Number of parallel jobs",
     )
     no_cache = Option(
         ["--no-cache"],
@@ -1404,7 +1452,7 @@ class Doc(Task):
             targets = " ".join(args) if args else "html"
 
         kwargs.update(cls.ctx.get())
-        Args = namedtuple("Args", [k for k in kwargs.keys()])
+        Args = namedtuple("Args", [k for k in kwargs])
         build_args = Args(**kwargs)
         dirs = Dirs(build_args)
 
@@ -1420,10 +1468,8 @@ class Doc(Task):
         return {
             "actions": [
                 # move to doc/ so local scipy does not get imported
-                (
-                    f'cd doc; env PYTHONPATH="{dirs.site}" '
-                    f'make {" ".join(make_params)} {targets}'
-                ),
+                f'cd doc; env PYTHONPATH="{dirs.site}" '
+                f'make {" ".join(make_params)} {targets}'
             ],
             "task_dep": task_dep,
             "io": {"capture": False},
@@ -1447,7 +1493,7 @@ class RefguideCheck(Task):
     @classmethod
     def task_meta(cls, **kwargs):
         kwargs.update(cls.ctx.get())
-        Args = namedtuple("Args", [k for k in kwargs.keys()])
+        Args = namedtuple("Args", [k for k in kwargs])
         args = Args(**kwargs)
         dirs = Dirs(args)
 
@@ -1737,15 +1783,14 @@ def _cpu_count_cgroup(os_cpu_count):
     if cpu_quota_us == "max":
         # No active Cgroup quota on a Cgroup-capable platform
         return os_cpu_count
-    else:
-        cpu_quota_us = int(cpu_quota_us)
-        cpu_period_us = int(cpu_period_us)
-        if cpu_quota_us > 0 and cpu_period_us > 0:
-            return math.ceil(cpu_quota_us / cpu_period_us)
-        else:  # pragma: no cover
-            # Setting a negative cpu_quota_us value is a valid way to disable
-            # cgroup CPU bandwidth limits
-            return os_cpu_count
+    cpu_quota_us = int(cpu_quota_us)
+    cpu_period_us = int(cpu_period_us)
+    if cpu_quota_us > 0 and cpu_period_us > 0:
+        return math.ceil(cpu_quota_us / cpu_period_us)
+    # pragma: no cover
+    # Setting a negative cpu_quota_us value is a valid way to disable
+    # cgroup CPU bandwidth limits
+    return os_cpu_count
 
 
 def _cpu_count_affinity(os_cpu_count):
@@ -1812,7 +1857,12 @@ def _count_physical_cores():
     # Not cached yet, find it
     try:
         if sys.platform == "linux":
-            cpu_info = subprocess.run("lscpu --parse=core".split(), capture_output=True, text=True)
+            cpu_info = subprocess.run(
+                "lscpu --parse=core".split(),
+                capture_output=True,
+                text=True,
+                check=False,
+            )
             cpu_info = cpu_info.stdout.splitlines()
             cpu_info = {line for line in cpu_info if not line.startswith("#")}
             cpu_count_physical = len(cpu_info)
@@ -1821,15 +1871,21 @@ def _count_physical_cores():
                 "wmic CPU Get NumberOfCores /Format:csv".split(),
                 capture_output=True,
                 text=True,
+                check=False,
             )
             cpu_info = cpu_info.stdout.splitlines()
-            cpu_info = [ci.split(",")[1] for ci in cpu_info if (ci and ci != "Node,NumberOfCores")]
+            cpu_info = [
+                ci.split(",")[1]
+                for ci in cpu_info
+                if (ci and ci != "Node,NumberOfCores")
+            ]
             cpu_count_physical = sum(map(int, cpu_info))
         elif sys.platform == "darwin":
             cpu_info = subprocess.run(
                 "sysctl -n hw.physicalcpu".split(),
                 capture_output=True,
                 text=True,
+                check=False,
             )
             cpu_info = cpu_info.stdout
             cpu_count_physical = int(cpu_info)

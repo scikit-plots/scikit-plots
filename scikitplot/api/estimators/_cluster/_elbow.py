@@ -13,12 +13,6 @@ enforcing Python 3-like behavior in Python 2.
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import time
 
@@ -37,7 +31,7 @@ from ..._utils.validation import (
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
     # '_clone_and_score_clusterer',
-    "plot_elbow",
+    "plot_elbow"
 ]
 
 
@@ -79,10 +73,11 @@ def _clone_and_score_clusterer(clf, X, n_clusters):
     Notes
     -----
     The `score` value is based on the clusterer's scoring method, and the `time` represents the fitting duration.
+
     """
     start = time.time()
     clf = clone(clf)
-    setattr(clf, "n_clusters", n_clusters)
+    clf.n_clusters = n_clusters
     return clf.fit(X).score(X), time.time() - start
 
 
@@ -151,6 +146,7 @@ def plot_elbow(
         >>>     X,
         >>>     cluster_ranges=range(1, 10),
         >>> );
+
     """
     if cluster_ranges is None:
         cluster_ranges = range(1, 12, 2)
@@ -158,7 +154,9 @@ def plot_elbow(
         cluster_ranges = sorted(cluster_ranges)
 
     if not hasattr(clf, "n_clusters"):
-        raise TypeError('"n_clusters" attribute not in classifier. ' "Cannot plot elbow method.")
+        raise TypeError(
+            '"n_clusters" attribute not in classifier. Cannot plot elbow method.'
+        )
 
     tuples = Parallel(n_jobs=n_jobs)(
         delayed(_clone_and_score_clusterer)(clf, X, i) for i in cluster_ranges
@@ -184,7 +182,10 @@ def plot_elbow(
         ax2 = ax.twinx()
         ax2.plot(cluster_ranges, times, ":", alpha=0.75, color=ax2_color)
         ax2.set_ylabel(
-            "Clustering duration (seconds)", color=ax2_color, alpha=0.75, fontsize=text_fontsize
+            "Clustering duration (seconds)",
+            color=ax2_color,
+            alpha=0.75,
+            fontsize=text_fontsize,
         )
         ax2.tick_params(colors=ax2_color, labelsize=text_fontsize)
 

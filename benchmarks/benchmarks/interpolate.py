@@ -6,7 +6,7 @@ with safe_import():
     from scipy.stats import spearmanr
 
 with safe_import():
-    import scipy.interpolate as interpolate
+    from scipy import interpolate
 
 with safe_import():
     from scipy.sparse import csr_matrix
@@ -57,7 +57,6 @@ class Leaks(Benchmark):
 
 
 class BenchPPoly(Benchmark):
-
     def setup(self):
         rng = np.random.default_rng(1234)
         m, k = 55, 3
@@ -77,19 +76,24 @@ class GridData(Benchmark):
     params = [[10j, 100j, 1000j], ["nearest", "linear", "cubic"]]
 
     def setup(self, n_grids, method):
-        self.func = lambda x, y: x * (1 - x) * np.cos(4 * np.pi * x) * np.sin(4 * np.pi * y**2) ** 2
+        self.func = (
+            lambda x, y: x
+            * (1 - x)
+            * np.cos(4 * np.pi * x)
+            * np.sin(4 * np.pi * y**2) ** 2
+        )
         self.grid_x, self.grid_y = np.mgrid[0:1:n_grids, 0:1:n_grids]
         self.points = np.random.rand(1000, 2)
         self.values = self.func(self.points[:, 0], self.points[:, 1])
 
     def time_evaluation(self, n_grids, method):
-        interpolate.griddata(self.points, self.values, (self.grid_x, self.grid_y), method=method)
+        interpolate.griddata(
+            self.points, self.values, (self.grid_x, self.grid_y), method=method
+        )
 
 
 class GridDataPeakMem(Benchmark):
-    """
-    Benchmark based on https://github.com/scipy/scipy/issues/20357
-    """
+    """Benchmark based on https://github.com/scipy/scipy/issues/20357"""
 
     def setup(self):
         shape = (7395, 6408)
@@ -109,10 +113,14 @@ class GridDataPeakMem(Benchmark):
 
         self.coords = np.column_stack(np.nonzero(sparse_matrix))
         self.values = sparse_matrix[self.coords[:, 0], self.coords[:, 1]]
-        self.grid_x, self.grid_y = np.mgrid[0 : sparse_matrix.shape[0], 0 : sparse_matrix.shape[1]]
+        self.grid_x, self.grid_y = np.mgrid[
+            0 : sparse_matrix.shape[0], 0 : sparse_matrix.shape[1]
+        ]
 
     def peakmem_griddata(self):
-        interpolate.griddata(self.coords, self.values, (self.grid_x, self.grid_y), method="cubic")
+        interpolate.griddata(
+            self.coords, self.values, (self.grid_x, self.grid_y), method="cubic"
+        )
 
 
 class Interpolate1d(Benchmark):
@@ -156,7 +164,15 @@ class Rbf(Benchmark):
     param_names = ["n_samples", "function"]
     params = [
         [10, 50, 100],
-        ["multiquadric", "inverse", "gaussian", "linear", "cubic", "quintic", "thin_plate"],
+        [
+            "multiquadric",
+            "inverse",
+            "gaussian",
+            "linear",
+            "cubic",
+            "quintic",
+            "thin_plate",
+        ],
     ]
 
     def setup(self, n_samples, function):
@@ -165,7 +181,7 @@ class Rbf(Benchmark):
         r_samples = n_samples / 2.0
         self.X = np.arange(-r_samples, r_samples, 0.25)
         self.Y = np.arange(-r_samples, r_samples, 0.25)
-        self.z = np.exp(-self.X**2 - self.Y**2)
+        self.z = np.exp(-(self.X**2) - self.Y**2)
 
     def time_rbf_1d(self, n_samples, function):
         interpolate.Rbf(self.x, self.y, function=function)
@@ -211,7 +227,7 @@ class UnivariateSpline(Benchmark):
     def setup(self, n_samples, degree):
         r_samples = n_samples / 2.0
         self.x = np.arange(-r_samples, r_samples, 0.25)
-        self.y = np.exp(-self.x**2) + 0.1 * np.random.randn(*self.x.shape)
+        self.y = np.exp(-(self.x**2)) + 0.1 * np.random.randn(*self.x.shape)
 
     def time_univariate_spline(self, n_samples, degree):
         interpolate.UnivariateSpline(self.x, self.y, k=degree)
@@ -248,13 +264,13 @@ class BivariateSpline(Benchmark):
         interpolate.SmoothBivariateSpline(self.x, self.y, self.z)
 
     def time_lsq_bivariate_spline(self, n_samples):
-        interpolate.LSQBivariateSpline(self.x, self.y, self.z, self.xknots.flat, self.yknots.flat)
+        interpolate.LSQBivariateSpline(
+            self.x, self.y, self.z, self.xknots.flat, self.yknots.flat
+        )
 
 
 class Interpolate(Benchmark):
-    """
-    Linear Interpolate in scipy and numpy
-    """
+    """Linear Interpolate in scipy and numpy"""
 
     param_names = ["n_samples", "module"]
     params = [[10, 50, 100], ["numpy", "scipy"]]
@@ -272,9 +288,7 @@ class Interpolate(Benchmark):
 
 
 class RegularGridInterpolator(Benchmark):
-    """
-    Benchmark RegularGridInterpolator with method="linear".
-    """
+    """Benchmark RegularGridInterpolator with method="linear"."""
 
     param_names = ["ndim", "max_coord_size", "n_samples", "flipped"]
     params = [[2, 3, 4], [10, 40, 200], [10, 100, 1000, 10000], [1, -1]]
@@ -308,9 +322,7 @@ class RegularGridInterpolator(Benchmark):
 
 
 class RGI_Cubic(Benchmark):
-    """
-    Benchmark RegularGridInterpolator with method="cubic".
-    """
+    """Benchmark RegularGridInterpolator with method="cubic"."""
 
     param_names = ["ndim", "n_samples", "method"]
     params = [[2], [10, 40, 100, 200, 400], ["cubic", "cubic_legacy"]]
@@ -326,10 +338,14 @@ class RGI_Cubic(Benchmark):
         xi = [rng.uniform(low, high, size=n_samples) for low, high in bounds]
         self.xi = np.array(xi).T
 
-        self.interp = interpolate.RegularGridInterpolator(self.points, self.values, method=method)
+        self.interp = interpolate.RegularGridInterpolator(
+            self.points, self.values, method=method
+        )
 
     def time_rgi_setup_interpolator(self, ndim, n_samples, method):
-        self.interp = interpolate.RegularGridInterpolator(self.points, self.values, method=method)
+        self.interp = interpolate.RegularGridInterpolator(
+            self.points, self.values, method=method
+        )
 
     def time_rgi(self, ndim, n_samples, method):
         self.interp(self.xi)
@@ -342,23 +358,23 @@ class RegularGridInterpolatorValues(interpolate.RegularGridInterpolator):
         super().__init__(points, values, **kwargs)
         self._is_initialized = False
         # precompute values
-        (self.xi, self.xi_shape, self.ndim, self.nans, self.out_of_bounds) = self._prepare_xi(xi)
+        (self.xi, self.xi_shape, self.ndim, self.nans, self.out_of_bounds) = (
+            self._prepare_xi(xi)
+        )
         self.indices, self.norm_distances = self._find_indices(xi.T)
         self._is_initialized = True
 
     def _prepare_xi(self, xi):
         if not self._is_initialized:
             return super()._prepare_xi(xi)
-        else:
-            # just give back precomputed values
-            return (self.xi, self.xi_shape, self.ndim, self.nans, self.out_of_bounds)
+        # just give back precomputed values
+        return (self.xi, self.xi_shape, self.ndim, self.nans, self.out_of_bounds)
 
     def _find_indices(self, xi):
         if not self._is_initialized:
             return super()._find_indices(xi)
-        else:
-            # just give back pre-computed values
-            return self.indices, self.norm_distances
+        # just give back pre-computed values
+        return self.indices, self.norm_distances
 
     def __call__(self, values, method=None):
         values = self._check_values(values)
@@ -372,9 +388,7 @@ class RegularGridInterpolatorValues(interpolate.RegularGridInterpolator):
 
 
 class RegularGridInterpolatorSubclass(Benchmark):
-    """
-    Benchmark RegularGridInterpolator with method="linear".
-    """
+    """Benchmark RegularGridInterpolator with method="linear"."""
 
     param_names = ["ndim", "max_coord_size", "n_samples", "flipped"]
     params = [[2, 3, 4], [10, 40, 200], [10, 100, 1000, 10000], [1, -1]]
@@ -408,7 +422,8 @@ class RegularGridInterpolatorSubclass(Benchmark):
 
 
 class CloughTocherInterpolatorValues(interpolate.CloughTocher2DInterpolator):
-    """Subclass of the CT2DInterpolator with optional `values`.
+    """
+    Subclass of the CT2DInterpolator with optional `values`.
 
     This is mainly a demo of the functionality. See
     https://github.com/scipy/scipy/pull/18376 for discussion

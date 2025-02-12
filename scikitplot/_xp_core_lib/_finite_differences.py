@@ -33,12 +33,12 @@ def _central_diff_weights(Np, ndiv=1):
 
     >>> def f(x):
     ...     return 2 * x**2 + 3
-    >>> x = 3.0 # derivative point
-    >>> h = 0.1 # differential step
-    >>> Np = 3 # point number for central derivative
-    >>> weights = _central_diff_weights(Np) # weights for first derivative
-    >>> vals = [f(x + (i - Np/2) * h) for i in range(Np)]
-    >>> sum(w * v for (w, v) in zip(weights, vals))/h
+    >>> x = 3.0  # derivative point
+    >>> h = 0.1  # differential step
+    >>> Np = 3  # point number for central derivative
+    >>> weights = _central_diff_weights(Np)  # weights for first derivative
+    >>> vals = [f(x + (i - Np / 2) * h) for i in range(Np)]
+    >>> sum(w * v for (w, v) in zip(weights, vals)) / h
     11.79999999999998
 
     This value is close to the analytical solution:
@@ -106,7 +106,7 @@ def _derivative(func, x0, dx=1.0, n=1, args=(), order=3):
         )
     if order % 2 == 0:
         raise ValueError(
-            "'order' (the number of points used to compute the derivative) " "must be odd."
+            "'order' (the number of points used to compute the derivative) must be odd."
         )
     # pre-computed for n=1 and 2 and low-order for speed.
     if n == 1:
@@ -128,7 +128,9 @@ def _derivative(func, x0, dx=1.0, n=1, args=(), order=3):
         elif order == 7:
             weights = array([2, -27, 270, -490, 270, -27, 2]) / 180.0
         elif order == 9:
-            weights = array([-9, 128, -1008, 8064, -14350, 8064, -1008, 128, -9]) / 5040.0
+            weights = (
+                array([-9, 128, -1008, 8064, -14350, 8064, -1008, 128, -9]) / 5040.0
+            )
         else:
             weights = _central_diff_weights(order, 2)
     else:

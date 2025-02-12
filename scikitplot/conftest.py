@@ -12,10 +12,7 @@ import pandas as pd
 import pytest
 
 from ._xp_core_lib import _pep440
-from ._xp_core_lib._array_api import (
-    SKPLT_ARRAY_API,
-    SKPLT_DEVICE,
-)
+from ._xp_core_lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE
 
 ######################################################################
 ## pytest_configure
@@ -34,12 +31,14 @@ def pytest_configure(config):
     try:
         import pytest_timeout  # noqa:F401
     except Exception:
-        config.addinivalue_line("markers", "timeout: mark a test for a non-default timeout")
+        config.addinivalue_line(
+            "markers", "timeout: mark a test for a non-default timeout"
+        )
     try:
         # This is a more reliable test of whether pytest_fail_slow is installed
         # When I uninstalled it, `import pytest_fail_slow` didn't fail!
         from pytest_fail_slow import (
-            parse_duration,  # type: ignore[import-not-found] # noqa:F401,E501
+            parse_duration,  # type: ignore[import-not-found] # noqa: F401
         )
     except Exception:
         config.addinivalue_line(
@@ -49,11 +48,11 @@ def pytest_configure(config):
     if not PARALLEL_RUN_AVAILABLE:
         config.addinivalue_line(
             "markers",
-            "parallel_threads(n): run the given test function in parallel " "using `n` threads.",
+            "parallel_threads(n): run the given test function in parallel "
+            "using `n` threads.",
         )
         config.addinivalue_line(
-            "markers",
-            "thread_unsafe: mark the test function as single-threaded",
+            "markers", "thread_unsafe: mark the test function as single-threaded"
         )
         config.addinivalue_line(
             "markers",
@@ -78,7 +77,9 @@ def pytest_runtest_setup(item):
         except ValueError:
             v = False
         if not v:
-            pytest.skip("very slow test; " "set environment variable SKPLT_XSLOW=1 to run it")
+            pytest.skip(
+                "very slow test; set environment variable SKPLT_XSLOW=1 to run it"
+            )
     mark = item.get_closest_marker("xfail_on_32bit")
     if mark is not None and np.intp(0).itemsize < 8:
         pytest.xfail(f"Fails on our 32-bit test platform(s): {mark.args[0]}")
@@ -167,7 +168,7 @@ def random_seed():
     np.random.seed(0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def rng():
     # seed = sum(map(ord, "seaborn random object"))
     return np.random.RandomState(0)
@@ -189,10 +190,10 @@ def xr():
     Request the xarray fixture by passing in ``xr`` as an argument to the test ::
 
         def test_imshow_xarray(xr):
-
             ds = xr.DataArray(np.random.randn(2, 3))
             im = plt.figure().subplots().imshow(ds)
             np.testing.assert_array_equal(im.get_array(), ds)
+
     """
     return pytest.importorskip("xarray")
 
@@ -320,8 +321,12 @@ def long_df(rng):
             a=rng.choice(list("abc"), n),
             b=rng.choice(list("mnop"), n),
             c=rng.choice([0, 1], n, [0.3, 0.7]),
-            d=rng.choice(np.arange("2004-07-30", "2007-07-30", dtype="datetime64[Y]"), n),
-            t=rng.choice(np.arange("2004-07-30", "2004-07-31", dtype="datetime64[m]"), n),
+            d=rng.choice(
+                np.arange("2004-07-30", "2007-07-30", dtype="datetime64[Y]"), n
+            ),
+            t=rng.choice(
+                np.arange("2004-07-30", "2004-07-31", dtype="datetime64[m]"), n
+            ),
             s=rng.choice([2, 4, 8], n),
             f=rng.choice([0.2, 0.3], n),
         )
@@ -458,7 +463,8 @@ if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
             # only select a subset of backend by filtering out the dict
             try:
                 xp_available_backends = {
-                    backend: xp_available_backends[backend] for backend in SKPLT_ARRAY_API_
+                    backend: xp_available_backends[backend]
+                    for backend in SKPLT_ARRAY_API_
                 }
             except KeyError:
                 msg = f"'--array-api-backend' must be in {xp_available_backends.keys()}"
@@ -469,7 +475,9 @@ if "cupy" in xp_available_backends:
     SKPLT_DEVICE = "cuda"
 
     # this is annoying in CuPy 13.x
-    warnings.filterwarnings("ignore", "cupyx.jit.rawkernel is experimental", category=FutureWarning)
+    warnings.filterwarnings(
+        "ignore", "cupyx.jit.rawkernel is experimental", category=FutureWarning
+    )
     from cupyx.scipy import signal
 
     del signal
@@ -482,7 +490,8 @@ if "cupy" in xp_available_backends:
     ]
 )
 def xp(request):
-    """Run the test that uses this fixture on each available array API library.
+    """
+    Run the test that uses this fixture on each available array API library.
 
     You can select all and only the tests that use the `xp` fixture by
     passing `-m array_api_backends` to pytest.
@@ -555,7 +564,8 @@ def _backends_kwargs_from_request(request, skip_or_xfail):
 
 @pytest.fixture
 def skip_xp_backends(xp, request):
-    """skip_xp_backends(backend=None, reason=None, np_only=False, cpu_only=False, exceptions=None)
+    """
+    skip_xp_backends(backend=None, reason=None, np_only=False, cpu_only=False, exceptions=None)
 
     Skip a decorated test for the provided backend, or skip a category of backends.
 
@@ -563,7 +573,7 @@ def skip_xp_backends(xp, request):
     ``skip_or_xfail_backends``, the ``backend`` and ``reason`` arguments are optional
     single strings: this function only skips a single backend at a time.
     To skip multiple backends, provide multiple decorators.
-    """  # noqa: E501
+    """
     if "skip_xp_backends" not in request.keywords:
         return
 
@@ -573,7 +583,8 @@ def skip_xp_backends(xp, request):
 
 @pytest.fixture
 def xfail_xp_backends(xp, request):
-    """xfail_xp_backends(backend=None, reason=None, np_only=False, cpu_only=False, exceptions=None)
+    """
+    xfail_xp_backends(backend=None, reason=None, np_only=False, cpu_only=False, exceptions=None)
 
     xfail a decorated test for the provided backend, or xfail a category of backends.
 
@@ -581,7 +592,7 @@ def xfail_xp_backends(xp, request):
     ``skip_or_xfail_backends``, the ``backend`` and ``reason`` arguments are optional
     single strings: this function only xfails a single backend at a time.
     To xfail multiple backends, provide multiple decorators.
-    """  # noqa: E501
+    """
     if "xfail_xp_backends" not in request.keywords:
         return
     backends, kwargs = _backends_kwargs_from_request(request, skip_or_xfail="xfail")
@@ -598,7 +609,7 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="skip"):
     ----------
     backends : tuple
         Backends to skip/xfail, e.g. ``("array_api_strict", "torch")``.
-        These are overriden when ``np_only`` is ``True``, and are not
+        These are overridden when ``np_only`` is ``True``, and are not
         necessary to provide for non-CPU backends when ``cpu_only`` is ``True``.
         For a custom reason to apply, you should pass
         ``kwargs={<backend name>: {'reason': '...'}, ...}``.
@@ -620,6 +631,7 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="skip"):
         but not all, non-CPU/non-NumPy backends.
     skip_or_xfail : str
         ``'skip'`` to skip, ``'xfail'`` to xfail.
+
     """
     skip_or_xfail = getattr(pytest, skip_or_xfail)
     np_only = kwargs.get("np_only", False)
@@ -684,15 +696,15 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="skip"):
 # Following the approach of NumPy's conftest.py...
 # Use a known and persistent tmpdir for hypothesis' caches, which
 # can be automatically cleared by the OS or user.
-hypothesis.configuration.set_hypothesis_home_dir(os.path.join(tempfile.gettempdir(), ".hypothesis"))
+hypothesis.configuration.set_hypothesis_home_dir(
+    os.path.join(tempfile.gettempdir(), ".hypothesis")
+)
 # We register two custom profiles for SciPy - for details see
 # https://hypothesis.readthedocs.io/en/latest/settings.html
 # The first is designed for our own CI runs; the latter also
 # forces determinism and is designed for use via scipy.test()
 hypothesis.settings.register_profile(
-    name="nondeterministic",
-    deadline=None,
-    print_blob=True,
+    name="nondeterministic", deadline=None, print_blob=True
 )
 hypothesis.settings.register_profile(
     name="deterministic",
@@ -784,7 +796,7 @@ hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 
 #         # XXX: this matches the refguide-check behavior, but is a tad strange:
 #         # makes sure that the seed the old-fashioned np.random* methods is
-#         # *NOT* reproducible but the new-style `default_rng()` *IS* repoducible.
+#         # *NOT* reproducible but the new-style `default_rng()` *IS* reproducible.
 #         # Should these two be either both repro or both not repro?
 
 #         from scipy._lib._util import _fixed_default_rng

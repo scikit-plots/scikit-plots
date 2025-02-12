@@ -3,6 +3,7 @@
 A "grab bag" of relatively small general-purpose utilities that don't have
 a clear module/package to live in.
 """
+
 import contextlib
 import difflib
 import inspect
@@ -14,16 +15,17 @@ import threading
 import unicodedata
 
 __all__ = [
+    "JsonCustomEncoder",
+    "NumpyRNGContext",
+    "dtype_bytes_or_chars",
+    "find_api_page",
     "isiterable",
     "silence",
-    "NumpyRNGContext",
-    "find_api_page",
-    "JsonCustomEncoder",
-    "dtype_bytes_or_chars",
 ]
 
 NOT_OVERWRITING_MSG = (
-    "File {} already exists. If you mean to replace it " 'then use the argument "overwrite=True".'
+    "File {} already exists. If you mean to replace it "
+    'then use the argument "overwrite=True".'
 )
 # A useful regex for tests.
 _NOT_OVERWRITING_MSG_MATCH = (
@@ -153,7 +155,11 @@ def find_api_page(obj, version=None, openinbrowser=True, timeout=None):
 
     from astropy.utils.data import get_readable_fileobj
 
-    if not isinstance(obj, str) and hasattr(obj, "__module__") and hasattr(obj, "__name__"):
+    if (
+        not isinstance(obj, str)
+        and hasattr(obj, "__module__")
+        and hasattr(obj, "__name__")
+    ):
         obj = obj.__module__ + "." + obj.__name__
     elif inspect.ismodule(obj):
         obj = obj.__name__
@@ -224,14 +230,15 @@ def find_api_page(obj, version=None, openinbrowser=True, timeout=None):
 
     if resurl is None:
         raise ValueError(f"Could not find the docs for the object {obj}")
-    elif openinbrowser:
+    if openinbrowser:
         webbrowser.open(resurl)
 
     return resurl
 
 
 class JsonCustomEncoder(json.JSONEncoder):
-    """Support for data types that JSON default encoder
+    """
+    Support for data types that JSON default encoder
     does not do.
 
     This includes:
@@ -261,13 +268,13 @@ class JsonCustomEncoder(json.JSONEncoder):
             return dict(value=obj.value, unit=obj.unit.to_string())
         if isinstance(obj, (np.number, np.ndarray)):
             return obj.tolist()
-        elif isinstance(obj, complex):
+        if isinstance(obj, complex):
             return [obj.real, obj.imag]
-        elif isinstance(obj, set):
+        if isinstance(obj, set):
             return list(obj)
-        elif isinstance(obj, bytes):  # pragma: py3
+        if isinstance(obj, bytes):  # pragma: py3
             return obj.decode()
-        elif isinstance(obj, (u.UnitBase, u.FunctionUnitBase)):
+        if isinstance(obj, (u.UnitBase, u.FunctionUnitBase)):
             if obj == u.dimensionless_unscaled:
                 obj = "dimensionless_unit"
             else:
@@ -282,7 +289,9 @@ def strip_accents(s):
 
     This helps with matching "ångström" to "angstrom", for example.
     """
-    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+    )
 
 
 def did_you_mean(s, candidates, n=3, cutoff=0.8, fix=None):
@@ -316,6 +325,7 @@ def did_you_mean(s, candidates, n=3, cutoff=0.8, fix=None):
     message : str
         Returns the string "Did you mean X, Y, or Z?", or the empty
         string if no alternatives were found.
+
     """
     if isinstance(s, str):
         s = strip_accents(s)
@@ -335,7 +345,9 @@ def did_you_mean(s, candidates, n=3, cutoff=0.8, fix=None):
     if s_lower.endswith("s") and s_lower[:-1] in candidates_lower:
         matches = [s_lower[:-1]]
     else:
-        matches = difflib.get_close_matches(s_lower, candidates_lower, n=n, cutoff=cutoff)
+        matches = difflib.get_close_matches(
+            s_lower, candidates_lower, n=n, cutoff=cutoff
+        )
 
     if len(matches):
         capitalized_matches = set()
@@ -382,6 +394,7 @@ def _set_locale(name):
     ----------
     name : str
         Locale name, e.g. "C" or "fr_FR".
+
     """
     name = str(name)
 
@@ -414,6 +427,7 @@ def dtype_bytes_or_chars(dtype):
     -------
     bytes_or_chars : int or None
         Bits (for numeric types) or characters (for string types)
+
     """
     match = re.search(r"(\d+)$", dtype.str)
     out = int(match.group(1)) if match else None

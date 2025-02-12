@@ -115,8 +115,12 @@ def warn_deprecated(
     ::
 
         # To warn of the deprecation of "matplotlib.name_of_module"
-        warn_deprecated('1.4.0', name='matplotlib.name_of_module',
-                        obj_type='module')
+        warn_deprecated(
+            '1.4.0',
+            name='matplotlib.name_of_module',
+            obj_type='module',
+        )
+
     """
     warning = _generate_deprecation_warning(
         since, message, name, alternative, pending, obj_type, addendum, removal=removal
@@ -162,6 +166,7 @@ def deprecated(
         @deprecated('1.4.0')
         def the_function_to_deprecate():
             pass
+
     """
 
     def deprecate(
@@ -199,10 +204,8 @@ def deprecated(
 
             class _deprecated_property(type(obj)):
                 def __get__(self, instance, owner=None):
-                    if (
-                        instance is not None
-                        or owner is not None
-                        and isinstance(self, classproperty)
+                    if instance is not None or (
+                        owner is not None and isinstance(self, classproperty)
                     ):
                         emit_warning()
                     return super().__get__(instance, owner)
@@ -261,13 +264,17 @@ def deprecated(
         second_arg = " ".join(
             [
                 t.strip()
-                for t in (message, f"Use {alternative} instead." if alternative else "", addendum)
+                for t in (
+                    message,
+                    f"Use {alternative} instead." if alternative else "",
+                    addendum,
+                )
                 if t
             ]
         )
         new_doc = (
             f"[*Deprecated*] {old_doc}\n"
-            f"{notes_header if notes_header not in old_doc else ''}\n"
+            f'{notes_header if notes_header not in old_doc else ""}\n'
             f".. deprecated:: {since}\n"
             f"   {second_arg}"
         )
@@ -338,10 +345,10 @@ def rename_parameter(since, old, new, func=None):
     --------
     ::
 
-        @_api.rename_parameter("3.1", "bad_name", "good_name")
+        @_api.rename_parameter('3.1', 'bad_name', 'good_name')
         def func(good_name): ...
-    """
 
+    """
     decorator = functools.partial(rename_parameter, since, old, new)
 
     if func is None:
@@ -349,11 +356,12 @@ def rename_parameter(since, old, new, func=None):
 
     signature = inspect.signature(func)
     assert old not in signature.parameters, (
-        f"Matplotlib internal error: {old!r} cannot be a parameter for " f"{func.__name__}()"
+        f"Matplotlib internal error: {old!r} cannot be a parameter for "
+        f"{func.__name__}()"
     )
-    assert new in signature.parameters, (
-        f"Matplotlib internal error: {new!r} must be a parameter for " f"{func.__name__}()"
-    )
+    assert (
+        new in signature.parameters
+    ), f"Matplotlib internal error: {new!r} must be a parameter for {func.__name__}()"
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -405,10 +413,10 @@ def delete_parameter(since, name, func=None, **kwargs):
     --------
     ::
 
-        @_api.delete_parameter("3.1", "unused")
+        @_api.delete_parameter('3.1', 'unused')
         def func(used_arg, other_arg, unused, more_args): ...
-    """
 
+    """
     decorator = functools.partial(delete_parameter, since, name, **kwargs)
 
     if func is None:
@@ -441,7 +449,11 @@ def delete_parameter(since, name, func=None, **kwargs):
             )
             func.__signature__ = signature = signature.replace(
                 parameters=[
-                    param.replace(default=_deprecated_parameter) if param.name == name else param
+                    (
+                        param.replace(default=_deprecated_parameter)
+                        if param.name == name
+                        else param
+                    )
                     for param in signature.parameters.values()
                 ]
             )
@@ -452,7 +464,8 @@ def delete_parameter(since, name, func=None, **kwargs):
         # Deprecated parameter can't be passed positionally.
         name_idx = math.inf
         assert kwargs_name, (
-            f"Matplotlib internal error: {name!r} must be a parameter for " f"{func.__name__}()"
+            f"Matplotlib internal error: {name!r} must be a parameter for "
+            f"{func.__name__}()"
         )
 
     addendum = kwargs.pop("addendum", None)
@@ -493,7 +506,9 @@ def delete_parameter(since, name, func=None, **kwargs):
                 name=repr(name),
                 obj_type=f"parameter of {func.__name__}()",
                 addendum=(
-                    (addendum + " " + deprecation_addendum) if addendum else deprecation_addendum
+                    (addendum + " " + deprecation_addendum)
+                    if addendum
+                    else deprecation_addendum
                 ),
                 **kwargs,
             )
@@ -512,7 +527,6 @@ def make_keyword_only(since, name, func=None):
     outermost decorator, so that :file:`boilerplate.py` can access the original
     signature.
     """
-
     decorator = functools.partial(make_keyword_only, since, name)
 
     if func is None:
@@ -528,7 +542,9 @@ def make_keyword_only(since, name, func=None):
     )
     names = [*signature.parameters]
     name_idx = names.index(name)
-    kwonly = [name for name in names[name_idx:] if signature.parameters[name].kind == POK]
+    kwonly = [
+        name for name in names[name_idx:] if signature.parameters[name].kind == POK
+    ]
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -577,13 +593,14 @@ def deprecate_method_override(method, obj, *, allow_empty=False, **kwargs):
     **kwargs
         Additional parameters passed to `warn_deprecated` to generate the
         deprecation warning; must at least include the "since" key.
+
     """
 
     def empty():
         pass
 
     def empty_with_docstring():
-        """doc"""
+        """Doc"""
 
     name = method.__name__
     bound_child = getattr(obj, name)

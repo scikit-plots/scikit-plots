@@ -13,12 +13,6 @@ enforcing Python 3-like behavior in Python 2.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import (
-    absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
-    division,  # Changes the division operator `/` to always perform true division.
-    print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
-    unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
-)
 
 import collections
 
@@ -26,14 +20,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Sigmoid and Softmax functions
-from sklearn.metrics import (
-    auc,
-    average_precision_score,
-    precision_recall_curve,
-)
-from sklearn.preprocessing import (
-    label_binarize,
-)
+from sklearn.metrics import auc, average_precision_score, precision_recall_curve
+from sklearn.preprocessing import label_binarize
 from sklearn.utils import deprecated
 
 from ..._utils.validation import (
@@ -46,10 +34,7 @@ from ..._utils.validation import (
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
-__all__ = [
-    "plot_precision_recall_curve",
-    "plot_precision_recall",
-]
+__all__ = ["plot_precision_recall", "plot_precision_recall_curve"]
 
 
 @deprecated(
@@ -67,7 +52,8 @@ def plot_precision_recall_curve(
     title_fontsize="large",
     text_fontsize="medium",
 ):
-    """Generates the Precision Recall Curve from labels and probabilities
+    """
+    Generates the Precision Recall Curve from labels and probabilities
 
     Args:
         y_true (array-like, shape (n_samples)):
@@ -118,6 +104,7 @@ def plot_precision_recall_curve(
         .. image:: /_static/examples/plot_precision_recall_curve.png
            :align: center
            :alt: Precision Recall Curve
+
     """
     y_true = np.array(y_true)
     y_probas = np.array(y_probas)
@@ -126,7 +113,9 @@ def plot_precision_recall_curve(
     probas = y_probas
 
     if "micro" not in curves and "each_class" not in curves:
-        raise ValueError("Invalid argument for curves as it " 'only takes "micro" or "each_class"')
+        raise ValueError(
+            'Invalid argument for curves as it only takes "micro" or "each_class"'
+        )
 
     # Compute Precision-Recall curve and area for each class
     precision = dict()
@@ -154,7 +143,9 @@ def plot_precision_recall_curve(
     precision[micro_key], recall[micro_key], _ = precision_recall_curve(
         y_true.ravel(), probas.ravel()
     )
-    average_precision[micro_key] = average_precision_score(y_true, probas, average="micro")
+    average_precision[micro_key] = average_precision_score(
+        y_true, probas, average="micro"
+    )
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -168,8 +159,7 @@ def plot_precision_recall_curve(
                 recall[i],
                 precision[i],
                 lw=2,
-                label="Precision-recall curve of class {0} "
-                "(area = {1:0.3f})".format(classes[i], average_precision[i]),
+                label=f"Precision-recall curve of class {classes[i]} (area = {average_precision[i]:0.3f})",
                 color=color,
             )
 
@@ -177,8 +167,7 @@ def plot_precision_recall_curve(
         ax.plot(
             recall[micro_key],
             precision[micro_key],
-            label="micro-average Precision-recall curve "
-            "(area = {0:0.3f})".format(average_precision[micro_key]),
+            label=f"micro-average Precision-recall curve (area = {average_precision[micro_key]:0.3f})",
             color="navy",
             linestyle=":",
             linewidth=4,
@@ -359,21 +348,21 @@ def plot_precision_recall(
         >>> from sklearn.naive_bayes import GaussianNB
         >>> import scikitplot as skplt
         >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
-        >>> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+        >>> X_train, X_val, y_train, y_val = train_test_split(
+        ...     X, y, test_size=0.5, random_state=0
+        ... )
         >>> model = GaussianNB()
         >>> model.fit(X_train, y_train)
         >>> y_probas = model.predict_proba(X_val)
         >>> skplt.metrics.plot_precision_recall(
         >>>     y_val, y_probas,
         >>> );
+
     """
 
     def pr_auc_score(recall, precision, y_true, y_proba, pr_auc="pr_auc"):
         if pr_auc == "pr_auc":
-            score = auc(
-                recall,
-                precision,
-            )
+            score = auc(recall, precision)
         elif pr_auc == "average_precision":
             score = average_precision_score(
                 y_true,
@@ -403,12 +392,15 @@ def plot_precision_recall(
         pass
     else:
         raise ValueError(
-            f"Shape mismatch `y_true` shape {y_true.shape}, " f"`y_probas` shape {y_probas.shape}"
+            f"Shape mismatch `y_true` shape {y_true.shape}, "
+            f"`y_probas` shape {y_probas.shape}"
         )
 
     # Get unique classes and filter the ones to plot
     classes = np.arange(y_true.shape[1])
-    to_plot_class_index = classes if to_plot_class_index is None else to_plot_class_index
+    to_plot_class_index = (
+        classes if to_plot_class_index is None else to_plot_class_index
+    )
     indices_to_plot = np.isin(element=classes, test_elements=to_plot_class_index)
 
     ##################################################################
@@ -475,14 +467,16 @@ def plot_precision_recall(
             ls=":",
             lw=3,
             color="deeppink",
-            label=("micro-average " f"(area = {average_precision:0>{digits}.{digits}f})"),
+            label=(f"micro-average (area = {average_precision:0>{digits}.{digits}f})"),
             **line_kwargs,
         )
 
     if plot_macro:
         # Compute macro-average ROC curve and ROC area
         # First aggregate all false positive rates
-        all_precision = np.unique(np.concatenate([precision_dict[i] for i in range(len(classes))]))
+        all_precision = np.unique(
+            np.concatenate([precision_dict[i] for i in range(len(classes))])
+        )
         # Then interpolate all ROC curves at this points
         mean_recall = np.zeros_like(all_precision)
         for i in range(len(classes)):
@@ -500,13 +494,15 @@ def plot_precision_recall(
             ls=":",
             lw=3,
             color="navy",
-            label=("macro-average " f"(area = {average_precision:0>{digits}.{digits}f})"),
+            label=(f"macro-average (area = {average_precision:0>{digits}.{digits}f})"),
             **line_kwargs,
         )
 
     if ap_score:
         average_precision = average_precision_score(y_true.ravel(), y_probas.ravel())
-        label = "Avg. precision={:0>{digits}.{digits}f}".format(average_precision, digits=digits)
+        label = "Avg. precision={:0>{digits}.{digits}f}".format(
+            average_precision, digits=digits
+        )
         ax.axhline(y=average_precision, color="r", ls="--", label=label)
 
     if plot_chance_level:

@@ -1,4 +1,5 @@
-"""A directive to generate a gallery of images from structured data.
+"""
+A directive to generate a gallery of images from structured data.
 
 Generating a gallery of images that are all the same size is a common
 pattern in documentation, and this can be cumbersome if the gallery is
@@ -41,7 +42,8 @@ GRID_CARD = """
 
 
 class GalleryGridDirective(SphinxDirective):
-    """A directive to show a gallery of images and links in a Bootstrap grid.
+    """
+    A directive to show a gallery of images and links in a Bootstrap grid.
 
     The grid can be generated from a YAML file that contains a list of items, or
     from the content of the directive (also formatted in YAML). Use the parameter
@@ -52,6 +54,7 @@ class GalleryGridDirective(SphinxDirective):
     Danger:
         This directive can only be used in the context of a Myst documentation page as
         the templates use Markdown flavored formatting.
+
     """
 
     name = "gallery-grid"
@@ -78,7 +81,7 @@ class GalleryGridDirective(SphinxDirective):
             if not path_data.exists():
                 logger.info(f"Could not find grid data at {path_data}.")
                 nodes.text("No grid data found at {path_data}.")
-                return
+                return None
             yaml_string = path_data.read_text()
         else:
             yaml_string = "\n".join(self.content)
@@ -108,7 +111,7 @@ class GalleryGridDirective(SphinxDirective):
 
         # Parse the template with Sphinx Design to create an output container
         # Prep the options for the template grid
-        class_ = "gallery-directive" + f' {self.options.get("class-container", "")}'
+        class_ = "gallery-directive" + f" {self.options.get('class-container', '')}"
         options = {"gutter": 2, "class-container": class_}
         options_str = "\n".join(f":{k}: {v}" for k, v in options.items())
 
@@ -128,13 +131,15 @@ class GalleryGridDirective(SphinxDirective):
 
 
 def setup(app: Sphinx) -> Dict[str, Any]:
-    """Add custom configuration to sphinx app.
+    """
+    Add custom configuration to sphinx app.
 
     Args:
         app: the Sphinx application
 
     Returns:
         the 2 parallel parameters set to ``True``.
+
     """
     app.add_directive("gallery-grid", GalleryGridDirective)
 

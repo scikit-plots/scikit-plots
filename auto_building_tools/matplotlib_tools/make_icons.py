@@ -28,12 +28,14 @@ def get_fontawesome():
     if not cached_path.exists():
         with (
             urllib.request.urlopen(
-                "https://github.com/FortAwesome/Font-Awesome" "/archive/v4.7.0.tar.gz"
+                "https://github.com/FortAwesome/Font-Awesome/archive/v4.7.0.tar.gz"
             ) as req,
             tarfile.open(fileobj=BytesIO(req.read()), mode="r:gz") as tf,
         ):
             cached_path.write_bytes(
-                tf.extractfile(tf.getmember("Font-Awesome-4.7.0/fonts/FontAwesome.otf")).read()
+                tf.extractfile(
+                    tf.getmember("Font-Awesome-4.7.0/fonts/FontAwesome.otf")
+                ).read()
             )
     return cached_path
 
@@ -58,7 +60,9 @@ def save_icon(fig, dest_dir, name, add_black_fg_color):
 def make_icon(font_path, ccode):
     fig = plt.figure(figsize=(1, 1))
     fig.patch.set_alpha(0.0)
-    fig.text(0.5, 0.48, chr(ccode), ha="center", va="center", font=font_path, fontsize=68)
+    fig.text(
+        0.5, 0.48, chr(ccode), ha="center", va="center", font=font_path, fontsize=68
+    )
     return fig
 
 

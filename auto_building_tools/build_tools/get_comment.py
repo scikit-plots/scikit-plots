@@ -20,8 +20,9 @@ def get_versions(versions_file):
     -------
     versions : dict
         A dictionary with the versions of the packages.
+
     """
-    with open("versions.txt", "r") as f:
+    with open("versions.txt") as f:
         return dict(line.strip().split("=") for line in f)
 
 
@@ -53,11 +54,15 @@ def get_step_message(log, start, end, title, message, details):
     -------
     message : str
         The message to be added to the comment.
+
     """
     if end not in log:
         return ""
     res = (
-        "-----------------------------------------------\n" + f"### {title}\n\n" + message + "\n\n"
+        "-----------------------------------------------\n"
+        + f"### {title}\n\n"
+        + message
+        + "\n\n"
     )
     if details:
         res += (
@@ -69,7 +74,7 @@ def get_step_message(log, start, end, title, message, details):
 
 
 def get_message(log_file, repo, pr_number, sha, run_id, details, versions):
-    with open(log_file, "r") as f:
+    with open(log_file) as f:
         log = f.read()
 
     sub_text = (
@@ -195,7 +200,8 @@ def get_message(log_file, repo, pr_number, sha, run_id, details, versions):
         # no issues detected, so this script "fails"
         return (
             "## ✔️ Linting Passed\n"
-            "All linting checks passed. Your pull request is in excellent shape! ☀️" + sub_text
+            "All linting checks passed. Your pull request is in excellent shape! ☀️"
+            + sub_text
         )
 
     if not details:

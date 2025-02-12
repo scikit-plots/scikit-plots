@@ -48,12 +48,13 @@ def add_safe_directory(repo_path=None):
 
     Examples
     --------
-    >>> add_safe_directory("/path/to/repo")
+    >>> add_safe_directory('/path/to/repo')
     Successfully added /path/to/repo as a safe directory.
 
     >>> Add the current working directory as a safe directory
     >>> add_safe_directory()
     Successfully added /current/working/directory as a safe directory.
+
     """
     try:
         # Use the provided path or default to the current working directory
@@ -82,7 +83,11 @@ def add_safe_directory(repo_path=None):
                 cwd=os.path.dirname(__file__),
             )
             out, err = p.communicate()
-            return (p.returncode, out.decode("utf-8").strip(), err.decode("utf-8").strip())
+            return (
+                p.returncode,
+                out.decode("utf-8").strip(),
+                err.decode("utf-8").strip(),
+            )
 
         code, out, err = run_command()
         # Handle the output
@@ -106,9 +111,7 @@ def add_safe_directory(repo_path=None):
 
 
 def init_version():
-    """
-    Extract version number from `__init__.py`
-    """
+    """Extract version number from `__init__.py`"""
     scikitplot_init = os.path.join(os.path.dirname(__file__), "../__init__.py")
     with open(scikitplot_init) as fid:
         data = fid.readlines()
@@ -119,9 +122,7 @@ def init_version():
 
 
 def toml_version():
-    """
-    Extract version number from `pyproject.toml`
-    """
+    """Extract version number from `pyproject.toml`"""
     scikitplot_toml = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
     with open(scikitplot_toml) as fid:
         data = fid.readlines()
@@ -137,9 +138,7 @@ def toml_version():
 
 
 def git_version(
-    version: str,
-    format: str = "%H %aI",
-    short: bool = True,
+    version: str, format: str = "%H %aI", short: bool = True
 ) -> Tuple[str, str]:
     """
     Append the last commit information (hash and date) to the development version string.
@@ -185,6 +184,7 @@ def git_version(
 
     >>> git_version('1.0.0', format='%H', short=False)
     ('1.0.0', '')
+
     """
     git_hash = ""
     try:
@@ -221,7 +221,9 @@ def git_version(
                 out.decode("utf-8")
                 .strip()
                 .replace('"', "")
-                .split("T")[0]  # Ensure at least hash and date as YYYYMMDD are available
+                .split("T")[
+                    0
+                ]  # Ensure at least hash and date as YYYYMMDD are available
                 .replace("-", "")
                 .split()
             )
@@ -243,7 +245,9 @@ def git_version(
 ######################################################################
 
 
-def git_remote_version(url: str, branch: str = "HEAD", short: bool = False) -> Tuple[str, str]:
+def git_remote_version(
+    url: str, branch: str = "HEAD", short: bool = False
+) -> Tuple[str, str]:
     """
     Fetch the latest commit information from a remote GitHub repository.
 
@@ -277,11 +281,12 @@ def git_remote_version(url: str, branch: str = "HEAD", short: bool = False) -> T
 
     Examples
     --------
-    >>> git_remote_version(url="https://github.com/astropy/astropy")
+    >>> git_remote_version(url='https://github.com/astropy/astropy')
     ('a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p', 'main')
 
-    >>> git_remote_version(url="https://github.com/astropy/astropy", short=True)
+    >>> git_remote_version(url='https://github.com/astropy/astropy', short=True)
     ('a1b2c3d', 'main')
+
     """
     commit_hash = ""
     branch_name = ""
@@ -289,9 +294,7 @@ def git_remote_version(url: str, branch: str = "HEAD", short: bool = False) -> T
         # Use `git ls-remote` to fetch refs and hashes from the remote repository
         git_command = ["git", "ls-remote", url, branch]
         p = subprocess.Popen(
-            git_command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            git_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         out, err = p.communicate()
 
@@ -322,7 +325,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", help="Save version to this file")
     parser.add_argument(
-        "--meson-dist", help="Output path is relative to MESON_DIST_ROOT", action="store_true"
+        "--meson-dist",
+        help="Output path is relative to MESON_DIST_ROOT",
+        action="store_true",
     )
     args = parser.parse_args()
 
@@ -352,10 +357,7 @@ if __name__ == "__main__":
     if args.write:
         outfile = args.write
         if args.meson_dist:
-            outfile = os.path.join(
-                os.environ.get("MESON_DIST_ROOT", ""),
-                outfile,
-            )
+            outfile = os.path.join(os.environ.get("MESON_DIST_ROOT", ""), outfile)
         # Print human readable output path
         relpath = os.path.relpath(outfile)
         if relpath.startswith("."):

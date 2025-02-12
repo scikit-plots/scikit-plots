@@ -39,6 +39,7 @@ class Benchmark:
         the dimensionality of the problem)
     custom_bounds : sequence
         a list of tuples that contain lower/upper bounds for use in plotting.
+
     """
 
     def __init__(self, dimensions):
@@ -47,11 +48,10 @@ class Benchmark:
 
         Parameters
         ----------
-
         dimensions : int
             The dimensionality of the problem
-        """
 
+        """
         self._dimensions = dimensions
         self.nfev = 0
         self.fglob = np.nan
@@ -75,8 +75,8 @@ class Benchmark:
             a vector of length ``N`` that contains random floating point
             numbers that lie between the lower and upper bounds for a given
             parameter.
-        """
 
+        """
         return asarray([np.random.uniform(l, u) for l, u in self.bounds])
 
     def success(self, x, tol=1.0e-5):
@@ -96,6 +96,7 @@ class Benchmark:
         Returns
         -------
         bool : is the candidate vector at the global minimum?
+
         """
         val = self.fun(asarray(x))
         if abs(val - self.fglob) < tol:
@@ -128,8 +129,8 @@ class Benchmark:
         -------
         val : float
               the evaluated benchmark function
-        """
 
+        """
         raise NotImplementedError
 
     def change_dimensions(self, ndim):
@@ -142,12 +143,12 @@ class Benchmark:
         ----------
         ndim : int
                The new dimensionality for the problem.
-        """
 
+        """
         if self.change_dimensionality:
             self._dimensions = ndim
         else:
-            raise ValueError("dimensionality cannot be changed for this" "problem")
+            raise ValueError("dimensionality cannot be changed for thisproblem")
 
     @property
     def bounds(self):
@@ -159,8 +160,7 @@ class Benchmark:
         """
         if self.change_dimensionality:
             return [self._bounds[0]] * self.N
-        else:
-            return self._bounds
+        return self._bounds
 
     @property
     def N(self):
@@ -171,6 +171,7 @@ class Benchmark:
         -------
         N : int
             The dimensionality of the problem
+
         """
         return self._dimensions
 
@@ -183,6 +184,7 @@ class Benchmark:
         -------
         xmin : sequence
             The lower bounds for the problem
+
         """
         return asarray([b[0] for b in self.bounds])
 
@@ -195,5 +197,6 @@ class Benchmark:
         -------
         xmax : sequence
             The upper bounds for the problem
+
         """
         return asarray([b[1] for b in self.bounds])

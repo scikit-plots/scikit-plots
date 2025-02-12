@@ -9,7 +9,8 @@ from scipy.integrate import odeint
 
 
 class LSQBenchmarkProblem:
-    """Template class for nonlinear least squares benchmark problems.
+    """
+    Template class for nonlinear least squares benchmark problems.
 
     The optimized variable is n-dimensional vector x and the objective function
     has the form
@@ -45,6 +46,7 @@ class LSQBenchmarkProblem:
     INITIAL_GUESSES : list of ndarray
         List containing initial guesses to try. Fill this list in a derived
         class with at least one item.
+
     """
 
     INITIAL_GUESSES = None
@@ -58,7 +60,8 @@ class LSQBenchmarkProblem:
         self.ub = ub
 
     def fun(self, x):
-        """Evaluate residuals at point `x`.
+        """
+        Evaluate residuals at point `x`.
 
         Parameters
         ----------
@@ -69,11 +72,13 @@ class LSQBenchmarkProblem:
         -------
         ndarray, shape (m,)
             Vector of residuals at point `x`.
+
         """
         raise NotImplementedError
 
     def jac(self, x):
-        """Evaluate jacobian at point x.
+        """
+        Evaluate jacobian at point x.
 
         Parameters
         ----------
@@ -84,11 +89,13 @@ class LSQBenchmarkProblem:
         -------
         ndarray, shape (m, n)
             Jacobian matrix of `self.fun` at point `x`.
+
         """
         raise NotImplementedError
 
     def check_answer(self, x, ftol):
-        """Check if `x` yields the objective value close enough to
+        """
+        Check if `x` yields the objective value close enough to
         the optimal value.
 
         Parameters
@@ -103,12 +110,10 @@ class LSQBenchmarkProblem:
         bool
             Whether `x` is optimal enough. If `x` violates bounds constraints
             then False is returned.
+
         """
-        if (
-            self.lb is not None
-            and np.any(x < self.lb)
-            or self.ub is not None
-            and np.any(x > self.ub)
+        if (self.lb is not None and np.any(x < self.lb)) or (
+            self.ub is not None and np.any(x > self.ub)
         ):
             return False
 
@@ -117,7 +122,8 @@ class LSQBenchmarkProblem:
 
 
 class AlphaPineneDirect(LSQBenchmarkProblem):
-    """Isomerization of alpha-pinene problem, direct formulation [1]_.
+    """
+    Isomerization of alpha-pinene problem, direct formulation [1]_.
 
     Number of variables --- 5, number of residuals --- 40, no bounds.
 
@@ -129,7 +135,9 @@ class AlphaPineneDirect(LSQBenchmarkProblem):
 
     def __init__(self, x0):
         super().__init__(5, 40, 2.064572e1, x0)
-        self.t = np.array([0, 1230, 3060, 4920, 7800, 10680, 15030, 22620, 36420], dtype=float)
+        self.t = np.array(
+            [0, 1230, 3060, 4920, 7800, 10680, 15030, 22620, 36420], dtype=float
+        )
         self.y0 = np.array([100, 0, 0, 0, 0], dtype=float)
         self.y = np.array(
             [
@@ -193,12 +201,15 @@ class AlphaPineneDirect(LSQBenchmarkProblem):
         return y_hat[1:].ravel() - self.y[1:].ravel()
 
     def jac(self, x):
-        result = odeint(self.jac_ode_rhs, np.hstack((self.y0, np.zeros(25))), self.t, args=(x,))
+        result = odeint(
+            self.jac_ode_rhs, np.hstack((self.y0, np.zeros(25))), self.t, args=(x,)
+        )
         return result[1:, 5:].reshape((40, 5))
 
 
 class CoatingThickness(LSQBenchmarkProblem):
-    """Coating thickness standardization problem, [1]_.
+    """
+    Coating thickness standardization problem, [1]_.
 
     Number of variables --- 134, number of residuals --- 252, no bounds.
 
@@ -206,7 +217,9 @@ class CoatingThickness(LSQBenchmarkProblem):
            p. 25
     """
 
-    INITIAL_GUESSES = [np.hstack(([-8.0, 13.0, 1.2, 0.2, 0.1, 6.0, 5.5, -5.2], np.zeros(126)))]
+    INITIAL_GUESSES = [
+        np.hstack(([-8.0, 13.0, 1.2, 0.2, 0.1, 6.0, 5.5, -5.2], np.zeros(126)))
+    ]
 
     def __init__(self, x0):
         super().__init__(134, 252, 0.5054986, x0)
@@ -517,7 +530,8 @@ class CoatingThickness(LSQBenchmarkProblem):
 
 
 class ExponentialFitting(LSQBenchmarkProblem):
-    """The problem of fitting the sum of exponentials with linear degrees
+    """
+    The problem of fitting the sum of exponentials with linear degrees
     to data, [1]_.
 
     Number of variables --- 5, number of residuals --- 33, no bounds.
@@ -570,7 +584,12 @@ class ExponentialFitting(LSQBenchmarkProblem):
         )
 
     def fun(self, x):
-        return x[0] + x[1] * np.exp(-x[3] * self.t) + x[2] * np.exp(-x[4] * self.t) - self.y
+        return (
+            x[0]
+            + x[1] * np.exp(-x[3] * self.t)
+            + x[2] * np.exp(-x[4] * self.t)
+            - self.y
+        )
 
     def jac(self, x):
         J = np.empty((self.m, self.n))
@@ -583,7 +602,8 @@ class ExponentialFitting(LSQBenchmarkProblem):
 
 
 class GaussianFitting(LSQBenchmarkProblem):
-    """The problem of fitting the sum of exponentials with linear and
+    """
+    The problem of fitting the sum of exponentials with linear and
     quadratic degrees to data, [1]_.
 
     Number of variables --- 11, number of residuals --- 65, no bounds.
@@ -699,7 +719,8 @@ class GaussianFitting(LSQBenchmarkProblem):
 
 
 class ThermistorResistance(LSQBenchmarkProblem):
-    """The problem of fitting thermistor parameters to data, [1]_.
+    """
+    The problem of fitting thermistor parameters to data, [1]_.
 
     Number of variables --- 3, number of residuals --- 16, no bounds.
 
@@ -746,7 +767,8 @@ class ThermistorResistance(LSQBenchmarkProblem):
 
 
 class EnzymeReaction(LSQBenchmarkProblem):
-    """The problem of fitting kinetic parameters for an enzyme reaction, [1]_.
+    """
+    The problem of fitting kinetic parameters for an enzyme reaction, [1]_.
 
     Number of variables --- 4, number of residuals --- 11, no bounds.
 
@@ -759,7 +781,19 @@ class EnzymeReaction(LSQBenchmarkProblem):
     def __init__(self, x0_ind):
         super().__init__(4, 11, 3.075057e-04, x0_ind)
         self.u = np.array(
-            [4.0, 2.0, 1.0, 5.0e-1, 2.5e-1, 1.67e-1, 1.25e-1, 1.0e-1, 8.33e-2, 7.14e-2, 6.25e-2]
+            [
+                4.0,
+                2.0,
+                1.0,
+                5.0e-1,
+                2.5e-1,
+                1.67e-1,
+                1.25e-1,
+                1.0e-1,
+                8.33e-2,
+                7.14e-2,
+                6.25e-2,
+            ]
         )
         self.y = np.array(
             [
@@ -778,7 +812,10 @@ class EnzymeReaction(LSQBenchmarkProblem):
         )
 
     def fun(self, x):
-        return x[0] * (self.u**2 + x[1] * self.u) / (self.u**2 + x[2] * self.u + x[3]) - self.y
+        return (
+            x[0] * (self.u**2 + x[1] * self.u) / (self.u**2 + x[2] * self.u + x[3])
+            - self.y
+        )
 
     def jac(self, x):
         J = np.empty((self.m, self.n))
@@ -792,7 +829,8 @@ class EnzymeReaction(LSQBenchmarkProblem):
 
 
 class ChebyshevQuadrature(LSQBenchmarkProblem):
-    """The problem of determining the optimal nodes of a quadrature formula
+    """
+    The problem of determining the optimal nodes of a quadrature formula
      with equal weights, [1]_.
 
     Number of variables --- 11, number of residuals --- 11, no bounds.
@@ -825,16 +863,20 @@ class ChebyshevQuadrature(LSQBenchmarkProblem):
 
 
 def extract_lsq_problems():
-    """Extract all least squares problems in this file for benchmarking.
+    """
+    Extract all least squares problems in this file for benchmarking.
 
     Returns
     -------
     dict, str -> LSQBenchmarkProblem
         The key is a problem name.
         The value is an instance of LSQBenchmarkProblem.
+
     """
     problems = {}
-    for name, problem_class in inspect.getmembers(sys.modules[__name__], inspect.isclass):
+    for name, problem_class in inspect.getmembers(
+        sys.modules[__name__], inspect.isclass
+    ):
         if (
             name != "LSQBenchmarkProblem"
             and issubclass(problem_class, LSQBenchmarkProblem)

@@ -178,7 +178,6 @@ class Decanomial(Benchmark):
         self.fglob = 0.0
 
     def fun(self, x, *args):
-
         self.nfev += 1
 
         val = x[1] ** 4 + 12 * x[1] ** 3 + 54 * x[1] ** 2 + 108 * x[1] + 81.0
@@ -446,7 +445,11 @@ class DeVilliersGlasser02(Benchmark):
         y = 53.81 * 1.27**t * tanh(3.012 * t + sin(2.13 * t)) * cos(exp(0.507) * t)
 
         return sum(
-            (x[0] * (x[1] ** t) * tanh(x[2] * t + sin(x[3] * t)) * cos(t * exp(x[4])) - y) ** 2.0
+            (
+                x[0] * (x[1] ** t) * tanh(x[2] * t + sin(x[3] * t)) * cos(t * exp(x[4]))
+                - y
+            )
+            ** 2.0
         )
 
 
@@ -482,7 +485,9 @@ class DixonPrice(Benchmark):
         self._bounds = list(zip([-10.0] * self.N, [10.0] * self.N))
         self.custom_bounds = [(-2, 3), (-2, 3)]
 
-        self.global_optimum = [[2.0 ** (-(2.0**i - 2.0) / 2.0**i) for i in range(1, self.N + 1)]]
+        self.global_optimum = [
+            [2.0 ** (-(2.0**i - 2.0) / 2.0**i) for i in range(1, self.N + 1)]
+        ]
         self.fglob = 0.0
         self.change_dimensionality = True
 
@@ -523,7 +528,9 @@ class Dolan(Benchmark):
 
         self._bounds = list(zip([-100.0] * self.N, [100.0] * self.N))
 
-        self.global_optimum = [[-74.10522498, 44.33511286, 6.21069214, 18.42772233, -16.5839403]]
+        self.global_optimum = [
+            [-74.10522498, 44.33511286, 6.21069214, 18.42772233, -16.5839403]
+        ]
         self.fglob = 0
 
     def fun(self, x, *args):

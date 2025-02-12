@@ -34,11 +34,11 @@ from matplotlib import _c_internal_utils
 from . import _api  # , _c_internal_utils
 
 __all__ = [
-    "_get_running_interactive_framework",
-    "_exception_printer",
-    "_StrongRef",
-    "_weak_or_strong_ref",
     "CallbackRegistry",
+    "_StrongRef",
+    "_exception_printer",
+    "_get_running_interactive_framework",
+    "_weak_or_strong_ref",
     # ...
 ]
 
@@ -53,6 +53,7 @@ def _get_running_interactive_framework():
     Optional[str]
         One of the following values: "qt", "gtk3", "gtk4", "wx", "tk",
         "macosx", "headless", ``None``.
+
     """
     # Use ``sys.modules.get(name)`` rather than ``name in sys.modules`` as
     # entries can also have been explicitly set to None.
@@ -97,14 +98,11 @@ def _get_running_interactive_framework():
 def _exception_printer(exc):
     if _get_running_interactive_framework() in ["headless", None]:
         raise exc
-    else:
-        traceback.print_exc()
+    traceback.print_exc()
 
 
 class _StrongRef:
-    """
-    Wrapper similar to a weakref, but keeping a strong reference to the object.
-    """
+    """Wrapper similar to a weakref, but keeping a strong reference to the object."""
 
     def __init__(self, obj):
         self._obj = obj
@@ -120,9 +118,7 @@ class _StrongRef:
 
 
 def _weak_or_strong_ref(func, callback):
-    """
-    Return a `WeakMethod` wrapping *func* if possible, else a `_StrongRef`.
-    """
+    """Return a `WeakMethod` wrapping *func* if possible, else a `_StrongRef`."""
     try:
         return weakref.WeakMethod(func, callback)
     except TypeError:
@@ -149,10 +145,10 @@ class CallbackRegistry:
         drink 123
         >>> callbacks.process('eat', 456)
         eat 456
-        >>> callbacks.process('be merry', 456)   # nothing will be called
+        >>> callbacks.process('be merry', 456)  # nothing will be called
 
         >>> callbacks.disconnect(id_eat)
-        >>> callbacks.process('eat', 456)        # nothing will be called
+        >>> callbacks.process('eat', 456)  # nothing will be called
 
         >>> with callbacks.blocked(signal='drink'):
         ...     callbacks.process('drink', 123)  # nothing will be called
@@ -184,6 +180,7 @@ class CallbackRegistry:
         attempting to `process` or to `connect` to a signal not in the list
         throws a `ValueError`.  The default, None, does not restrict the
         handled signals.
+
     """
 
     # We maintain two mappings:
@@ -205,7 +202,11 @@ class CallbackRegistry:
             # In general, callbacks may not be pickled, so we just drop them,
             # unless directed otherwise by self._pickled_cids.
             "callbacks": {
-                s: {cid: proxy() for cid, proxy in d.items() if cid in self._pickled_cids}
+                s: {
+                    cid: proxy()
+                    for cid, proxy in d.items()
+                    if cid in self._pickled_cids
+                }
                 for s, d in self.callbacks.items()
             },
             # It is simpler to reconstruct this from callbacks in __setstate__.
@@ -217,11 +218,15 @@ class CallbackRegistry:
         cid_count = state.pop("_cid_gen")
         vars(self).update(state)
         self.callbacks = {
-            s: {cid: _weak_or_strong_ref(func, self._remove_proxy) for cid, func in d.items()}
+            s: {
+                cid: _weak_or_strong_ref(func, self._remove_proxy)
+                for cid, func in d.items()
+            }
             for s, d in self.callbacks.items()
         }
         self._func_cid_map = {
-            s: {proxy: cid for cid, proxy in d.items()} for s, d in self.callbacks.items()
+            s: {proxy: cid for cid, proxy in d.items()}
+            for s, d in self.callbacks.items()
         }
         self._cid_gen = itertools.count(cid_count)
 
@@ -329,6 +334,7 @@ class CallbackRegistry:
         ----------
         signal : str, optional
             The callback signal to block. The default is to block all signals.
+
         """
         orig = self.callbacks
         try:
@@ -373,11 +379,12 @@ class silent_list(list):
         if self.type is not None or len(self) != 0:
             tp = self.type if self.type is not None else type(self[0]).__name__
             return f"<a list of {len(self)} {tp} objects>"
-        else:
-            return "<an empty list>"
+        return "<an empty list>"
 
 
-def _local_over_kwdict(local_var, kwargs, *keys, warning_cls=_api.MatplotlibDeprecationWarning):
+def _local_over_kwdict(
+    local_var, kwargs, *keys, warning_cls=_api.MatplotlibDeprecationWarning
+):
     out = local_var
     for key in keys:
         kwarg_val = kwargs.pop(key, None)
@@ -385,7 +392,9 @@ def _local_over_kwdict(local_var, kwargs, *keys, warning_cls=_api.MatplotlibDepr
             if out is None:
                 out = kwarg_val
             else:
-                _api.warn_external(f'"{key}" keyword argument will be ignored', warning_cls)
+                _api.warn_external(
+                    f'"{key}" keyword argument will be ignored', warning_cls
+                )
     return out
 
 
@@ -421,16 +430,15 @@ def _strip_comment(s):
         if quote_pos < 0:
             without_comment = s if hash_pos < 0 else s[:hash_pos]
             return without_comment.strip()
-        elif 0 <= hash_pos < quote_pos:
+        if 0 <= hash_pos < quote_pos:
             return s[:hash_pos].strip()
-        else:
-            closing_quote_pos = s.find('"', quote_pos + 1)
-            if closing_quote_pos < 0:
-                raise ValueError(
-                    f"Missing closing quote in: {s!r}. If you need a double-"
-                    'quote inside a string, use escaping: e.g. "the " char"'
-                )
-            pos = closing_quote_pos + 1  # behind closing quote
+        closing_quote_pos = s.find('"', quote_pos + 1)
+        if closing_quote_pos < 0:
+            raise ValueError(
+                f"Missing closing quote in: {s!r}. If you need a double-"
+                'quote inside a string, use escaping: e.g. "the " char"'
+            )
+        pos = closing_quote_pos + 1  # behind closing quote
 
 
 def is_writable_file_like(obj):
@@ -479,6 +487,7 @@ def to_filehandle(fname, flag="r", return_opened=False, encoding=None):
     fh : file-like
     opened : bool
         *opened* is only returned if *return_opened* is True.
+
     """
     if isinstance(fname, os.PathLike):
         fname = os.fspath(fname)
@@ -515,7 +524,9 @@ def is_scalar_or_string(val):
     return isinstance(val, str) or not np.iterable(val)
 
 
-@_api.delete_parameter("3.8", "np_load", alternative="open(get_sample_data(..., asfileobj=False))")
+@_api.delete_parameter(
+    "3.8", "np_load", alternative="open(get_sample_data(..., asfileobj=False))"
+)
 def get_sample_data(fname, asfileobj=True, *, np_load=True):
     """
     Return a sample data file.  *fname* is a path relative to the
@@ -534,17 +545,14 @@ def get_sample_data(fname, asfileobj=True, *, np_load=True):
         suffix = path.suffix.lower()
         if suffix == ".gz":
             return gzip.open(path)
-        elif suffix in [".npy", ".npz"]:
+        if suffix in [".npy", ".npz"]:
             if np_load:
                 return np.load(path)
-            else:
-                return path.open("rb")
-        elif suffix in [".csv", ".xrc", ".txt"]:
-            return path.open("r")
-        else:
             return path.open("rb")
-    else:
-        return str(path)
+        if suffix in [".csv", ".xrc", ".txt"]:
+            return path.open("r")
+        return path.open("rb")
+    return str(path)
 
 
 def _get_data_path(*args):
@@ -563,7 +571,7 @@ def flatten(seq, scalarp=is_scalar_or_string):
     For example:
 
         >>> from matplotlib.cbook import flatten
-        >>> l = (('John', ['Hunter']), (1, 23), [[([42, (5, 23)], )]])
+        >>> l = (('John', ['Hunter']), (1, 23), [[([42, (5, 23)],)]])
         >>> print(list(flatten(l)))
         ['John', 'Hunter', 1, 23, 42, 5, 23]
 
@@ -594,8 +602,7 @@ class Stack:
         """Return the current element, or None."""
         if not self._elements:
             return self._default
-        else:
-            return self._elements[self._pos]
+        return self._elements[self._pos]
 
     def __len__(self):
         return len(self._elements)
@@ -631,7 +638,7 @@ class Stack:
         The first element is returned.
         """
         if not self._elements:
-            return
+            return None
         self.push(self._elements[0])
         return self()
 
@@ -652,6 +659,7 @@ class Stack:
         ------
         ValueError
             If *o* is not in the stack.
+
         """
         if o not in self._elements:
             raise ValueError("Given element not contained in the stack")
@@ -675,6 +683,7 @@ class Stack:
         ------
         ValueError
             If *o* is not in the stack.
+
         """
         if o not in self._elements:
             raise ValueError("Given element not contained in the stack")
@@ -769,6 +778,7 @@ def print_cycles(objects, outstream=sys.stdout, show_progress=False):
         The stream for output.
     show_progress : bool
         If True, print the number of objects reached as they are found.
+
     """
     import gc
 
@@ -839,9 +849,9 @@ class Grouper:
     >>> class Foo:
     ...     def __init__(self, s):
     ...         self.s = s
+    ...
     ...     def __repr__(self):
     ...         return self.s
-    ...
     >>> a, b, c, d, e, f = [Foo(x) for x in 'abcdef']
     >>> grp = Grouper()
     >>> grp.join(a, b)
@@ -855,10 +865,13 @@ class Grouper:
     True
     >>> grp.joined(a, d)
     False
+
     """
 
     def __init__(self, init=()):
-        self._mapping = weakref.WeakKeyDictionary({x: weakref.WeakSet([x]) for x in init})
+        self._mapping = weakref.WeakKeyDictionary(
+            {x: weakref.WeakSet([x]) for x in init}
+        )
         self._ordering = weakref.WeakKeyDictionary()
         for x in init:
             if x not in self._ordering:
@@ -889,9 +902,7 @@ class Grouper:
         """Clean dead weak references from the dictionary."""
 
     def join(self, a, *args):
-        """
-        Join given arguments into the same set.  Accepts one or more arguments.
-        """
+        """Join given arguments into the same set.  Accepts one or more arguments."""
         mapping = self._mapping
         try:
             set_a = mapping[a]
@@ -973,11 +984,14 @@ def simple_linear_interpolation(a, steps):
     -------
     array
         shape ``((n - 1) * steps + 1, ...)``
+
     """
     fps = a.reshape((len(a), -1))
     xp = np.arange(len(a)) * steps
     x = np.arange((len(a) - 1) * steps + 1)
-    return np.column_stack([np.interp(x, xp, fp) for fp in fps.T]).reshape((len(x),) + a.shape[1:])
+    return np.column_stack([np.interp(x, xp, fp) for fp in fps.T]).reshape(
+        (len(x),) + a.shape[1:]
+    )
 
 
 def delete_masked_points(*args):
@@ -1138,6 +1152,7 @@ def _broadcast_with_masks(*args, compress=False):
     -------
     list of array-like
         The broadcasted and masked inputs.
+
     """
     # extract the masks, if any
     masks = [k.mask for k in args if isinstance(k, np.ma.MaskedArray)]
@@ -1152,7 +1167,10 @@ def _broadcast_with_masks(*args, compress=False):
         if compress:
             inputs = [np.ma.array(k, mask=mask).compressed() for k in inputs]
         else:
-            inputs = [np.ma.array(k, mask=mask, dtype=float).filled(np.nan).ravel() for k in inputs]
+            inputs = [
+                np.ma.array(k, mask=mask, dtype=float).filled(np.nan).ravel()
+                for k in inputs
+            ]
     else:
         inputs = [np.ravel(k) for k in inputs]
     return inputs
@@ -1235,6 +1253,7 @@ def boxplot_stats(X, whis=1.5, bootstrap=None, labels=None, autorange=False):
     General approach from:
     McGill, R., Tukey, J.W., and Larsen, W.A. (1978) "Variations of
     Boxplots", The American Statistician, 32:12-16.
+
     """
 
     def _bootstrap_median(data, N=5000):
@@ -1257,7 +1276,6 @@ def boxplot_stats(X, whis=1.5, bootstrap=None, labels=None, autorange=False):
             notch_min = CI[0]
             notch_max = CI[1]
         else:
-
             N = len(data)
             notch_min = med - 1.57 * iqr / np.sqrt(N)
             notch_max = med + 1.57 * iqr / np.sqrt(N)
@@ -1278,7 +1296,6 @@ def boxplot_stats(X, whis=1.5, bootstrap=None, labels=None, autorange=False):
 
     input_whis = whis
     for ii, (x, label) in enumerate(zip(X, labels)):
-
         # empty dict
         stats = {}
         if label is not None:
@@ -1320,7 +1337,9 @@ def boxplot_stats(X, whis=1.5, bootstrap=None, labels=None, autorange=False):
             whis = (0, 100)
 
         # conf. interval around median
-        stats["cilo"], stats["cihi"] = _compute_conf_interval(x, med, stats["iqr"], bootstrap)
+        stats["cilo"], stats["cihi"] = _compute_conf_interval(
+            x, med, stats["iqr"], bootstrap
+        )
 
         # lowest/highest non-outliers
         if np.iterable(whis) and not isinstance(whis, str):
@@ -1347,10 +1366,7 @@ def boxplot_stats(X, whis=1.5, bootstrap=None, labels=None, autorange=False):
 
         # compute a single array of outliers
         stats["fliers"] = np.concatenate(
-            [
-                x[x < stats["whislo"]],
-                x[x > stats["whishi"]],
-            ]
+            [x[x < stats["whislo"]], x[x > stats["whishi"]]]
         )
 
         # add in the remaining stats
@@ -1411,8 +1427,7 @@ def _to_unmasked_float_array(x):
     """
     if hasattr(x, "mask"):
         return np.ma.asarray(x, float).filled(np.nan)
-    else:
-        return np.asarray(x, float)
+    return np.asarray(x, float)
 
 
 def _check_1d(x):
@@ -1424,8 +1439,7 @@ def _check_1d(x):
     # Note this will strip unit information.
     if not hasattr(x, "shape") or not hasattr(x, "ndim") or len(x.shape) < 1:
         return np.atleast_1d(x)
-    else:
-        return x
+    return x
 
 
 def _reshape_2D(X, name):
@@ -1439,7 +1453,6 @@ def _reshape_2D(X, name):
 
     *name* is used to generate the error message for invalid inputs.
     """
-
     # Unpack in case of e.g. Pandas or xarray object
     X = _unpack_to_numpy(X)
 
@@ -1449,14 +1462,13 @@ def _reshape_2D(X, name):
 
         if len(X) == 0:
             return [[]]
-        elif X.ndim == 1 and np.ndim(X[0]) == 0:
+        if X.ndim == 1 and np.ndim(X[0]) == 0:
             # 1D array of scalars: directly return it.
             return [X]
-        elif X.ndim in [1, 2]:
+        if X.ndim in [1, 2]:
             # 2D array, or 1D array of iterables: flatten them first.
             return [np.reshape(x, -1) for x in X]
-        else:
-            raise ValueError(f"{name} must have 2 or fewer dimensions")
+        raise ValueError(f"{name} must have 2 or fewer dimensions")
 
     # Iterate over list of iterables.
     if len(X) == 0:
@@ -1483,9 +1495,8 @@ def _reshape_2D(X, name):
     if is_1d:
         # 1D array of scalars: directly return it.
         return [np.reshape(result, -1)]
-    else:
-        # 2D array, or 1D array of iterables: use flattened version.
-        return result
+    # 2D array, or 1D array of iterables: use flattened version.
+    return result
 
 
 def violin_stats(X, method, points=100, quantiles=None):
@@ -1538,8 +1549,8 @@ def violin_stats(X, method, points=100, quantiles=None):
         - min: The minimum value for this column of data.
         - max: The maximum value for this column of data.
         - quantiles: The quantile values for this column of data.
-    """
 
+    """
     # List of dictionaries describing each of the violins.
     vpstats = []
 
@@ -1556,7 +1567,8 @@ def violin_stats(X, method, points=100, quantiles=None):
     # quantiles should have the same size as dataset
     if len(X) != len(quantiles):
         raise ValueError(
-            "List of violinplot statistics and quantiles values" " must have the same length"
+            "List of violinplot statistics and quantiles values"
+            " must have the same length"
         )
 
     # Zip x and quantiles
@@ -1614,6 +1626,7 @@ def pts_to_prestep(x, *args):
     Examples
     --------
     >>> x_s, y1_s, y2_s = pts_to_prestep(x, y1, y2)
+
     """
     steps = np.zeros((1 + len(args), max(2 * len(x) - 1, 0)))
     # In all `pts_to_*step` functions, only assign once using *x* and *args*,
@@ -1652,6 +1665,7 @@ def pts_to_poststep(x, *args):
     Examples
     --------
     >>> x_s, y1_s, y2_s = pts_to_poststep(x, y1, y2)
+
     """
     steps = np.zeros((1 + len(args), max(2 * len(x) - 1, 0)))
     steps[0, 0::2] = x
@@ -1688,6 +1702,7 @@ def pts_to_midstep(x, *args):
     Examples
     --------
     >>> x_s, y1_s, y2_s = pts_to_midstep(x, y1, y2)
+
     """
     steps = np.zeros((1 + len(args), 2 * len(x)))
     x = np.asanyarray(x)
@@ -1728,6 +1743,7 @@ def index_of(y):
     -------
     x, y : ndarray
        The x and y values to plot.
+
     """
     try:
         return y.index.to_numpy(), y.to_numpy()
@@ -1794,19 +1810,16 @@ def _safe_first_finite(obj):
     if isinstance(obj, np.flatiter):
         # TODO do the finite filtering on this
         return obj[0]
-    elif isinstance(obj, collections.abc.Iterator):
+    if isinstance(obj, collections.abc.Iterator):
         raise RuntimeError("matplotlib does not support generators as input")
-    else:
-        for val in obj:
-            if safe_isfinite(val):
-                return val
-        return safe_first_element(obj)
+    for val in obj:
+        if safe_isfinite(val):
+            return val
+    return safe_first_element(obj)
 
 
 def sanitize_sequence(data):
-    """
-    Convert dictview objects to list. Other inputs are returned unchanged.
-    """
+    """Convert dictview objects to list. Other inputs are returned unchanged."""
     return list(data) if isinstance(data, collections.abc.MappingView) else data
 
 
@@ -1836,6 +1849,7 @@ def normalize_kwargs(kw, alias_mapping=None):
     TypeError
         To match what Python raises if invalid arguments/keyword arguments are
         passed to a callable.
+
     """
     from matplotlib.artist import Artist
 
@@ -1846,14 +1860,14 @@ def normalize_kwargs(kw, alias_mapping=None):
     if alias_mapping is None:
         alias_mapping = {}
     elif (
-        isinstance(alias_mapping, type)
-        and issubclass(alias_mapping, Artist)
-        or isinstance(alias_mapping, Artist)
-    ):
+        isinstance(alias_mapping, type) and issubclass(alias_mapping, Artist)
+    ) or isinstance(alias_mapping, Artist):
         alias_mapping = getattr(alias_mapping, "_alias_map", {})
 
     to_canonical = {
-        alias: canonical for canonical, alias_list in alias_mapping.items() for alias in alias_list
+        alias: canonical
+        for canonical, alias_list in alias_mapping.items()
+        for alias in alias_list
     }
     canonical_to_seen = {}
     ret = {}  # output dictionary
@@ -1899,13 +1913,11 @@ def _lock_path(path):
             time.sleep(sleeptime)
     else:
         raise TimeoutError(
-            """\
+            f"""\
 Lock error: Matplotlib failed to acquire the following lock file:
-    {}
+    {lock_path}
 This maybe due to another process holding this lock file.  If you are sure no
-other Matplotlib process is running, remove this file and try again.""".format(
-                lock_path
-            )
+other Matplotlib process is running, remove this file and try again."""
         )
     try:
         yield
@@ -1913,7 +1925,9 @@ other Matplotlib process is running, remove this file and try again.""".format(
         lock_path.unlink()
 
 
-def _topmost_artist(artists, _cached_max=functools.partial(max, key=operator.attrgetter("zorder"))):
+def _topmost_artist(
+    artists, _cached_max=functools.partial(max, key=operator.attrgetter("zorder"))
+):
     """
     Get the topmost artist of a list.
 
@@ -1960,30 +1974,35 @@ def _array_perimeter(arr):
     ndarray, shape (2*(M - 1) + 2*(N - 1),)
         The elements on the perimeter of the array::
 
-           [arr[0, 0], ..., arr[0, -1], ..., arr[-1, -1], ..., arr[-1, 0], ...]
+           [
+               arr[0, 0],
+               ...,
+               arr[0, -1],
+               ...,
+               arr[-1, -1],
+               ...,
+               arr[-1, 0],
+               ...,
+           ]
 
     Examples
     --------
     >>> i, j = np.ogrid[:3, :4]
-    >>> a = i*10 + j
+    >>> a = i * 10 + j
     >>> a
     array([[ 0,  1,  2,  3],
            [10, 11, 12, 13],
            [20, 21, 22, 23]])
     >>> _array_perimeter(a)
     array([ 0,  1,  2,  3, 13, 23, 22, 21, 20, 10])
+
     """
     # note we use Python's half-open ranges to avoid repeating
     # the corners
     forward = np.s_[0:-1]  # [0 ... -1)
     backward = np.s_[-1:0:-1]  # [-1 ... 0)
     return np.concatenate(
-        (
-            arr[0, forward],
-            arr[forward, -1],
-            arr[-1, backward],
-            arr[backward, 0],
-        )
+        (arr[0, forward], arr[forward, -1], arr[-1, backward], arr[backward, 0])
     )
 
 
@@ -2011,7 +2030,7 @@ def _unfold(arr, axis, size, step):
     Examples
     --------
     >>> i, j = np.ogrid[:3, :7]
-    >>> a = i*10 + j
+    >>> a = i * 10 + j
     >>> a
     array([[ 0,  1,  2,  3,  4,  5,  6],
            [10, 11, 12, 13, 14, 15, 16],
@@ -2026,6 +2045,7 @@ def _unfold(arr, axis, size, step):
            [[20, 21, 22],
             [22, 23, 24],
             [24, 25, 26]]])
+
     """
     new_shape = [*arr.shape, size]
     new_strides = [*arr.strides, arr.strides[axis]]
@@ -2056,6 +2076,7 @@ def _array_patch_perimeters(x, rstride, cstride):
     Returns
     -------
     ndarray, shape (N/rstride * M/cstride, 2 * (rstride + cstride))
+
     """
     assert rstride > 0 and cstride > 0
     assert (x.shape[0] - 1) % rstride == 0
@@ -2081,14 +2102,14 @@ def _array_patch_perimeters(x, rstride, cstride):
     bottom = _unfold(x[rstride::rstride, 1:], 1, cstride, cstride)[..., ::-1]
     right = _unfold(x[:-1, cstride::cstride], 0, rstride, rstride)
     left = _unfold(x[1:, :-1:cstride], 0, rstride, rstride)[..., ::-1]
-    return np.concatenate((top, right, bottom, left), axis=2).reshape(-1, 2 * (rstride + cstride))
+    return np.concatenate((top, right, bottom, left), axis=2).reshape(
+        -1, 2 * (rstride + cstride)
+    )
 
 
 @contextlib.contextmanager
 def _setattr_cm(obj, **kwargs):
-    """
-    Temporarily set some attributes; restore original state at context exit.
-    """
+    """Temporarily set some attributes; restore original state at context exit."""
     sentinel = object()
     origs = {}
     for attr in kwargs:
@@ -2154,9 +2175,7 @@ class _OrderedSet(collections.abc.MutableSet):
 
 
 def _premultiplied_argb32_to_unmultiplied_rgba8888(buf):
-    """
-    Convert a premultiplied ARGB32 buffer to an unmultiplied RGBA8888 buffer.
-    """
+    """Convert a premultiplied ARGB32 buffer to an unmultiplied RGBA8888 buffer."""
     rgba = np.take(  # .take() ensures C-contiguity of the result.
         buf, [2, 1, 0, 3] if sys.byteorder == "little" else [1, 2, 3, 0], axis=2
     )
@@ -2165,14 +2184,14 @@ def _premultiplied_argb32_to_unmultiplied_rgba8888(buf):
     # Un-premultiply alpha.  The formula is the same as in cairo-png.c.
     mask = alpha != 0
     for channel in np.rollaxis(rgb, -1):
-        channel[mask] = (channel[mask].astype(int) * 255 + alpha[mask] // 2) // alpha[mask]
+        channel[mask] = (channel[mask].astype(int) * 255 + alpha[mask] // 2) // alpha[
+            mask
+        ]
     return rgba
 
 
 def _unmultiplied_rgba8888_to_premultiplied_argb32(rgba8888):
-    """
-    Convert an unmultiplied RGBA8888 buffer to a premultiplied ARGB32 buffer.
-    """
+    """Convert an unmultiplied RGBA8888 buffer to a premultiplied ARGB32 buffer."""
     if sys.byteorder == "little":
         argb32 = np.take(rgba8888, [2, 1, 0, 3], axis=2)
         rgb24 = argb32[..., :-1]
@@ -2203,8 +2222,7 @@ def _get_nonzero_slices(buf):
         l, r = x_nz[[0, -1]]
         b, t = y_nz[[0, -1]]
         return slice(b, t + 1), slice(l, r + 1)
-    else:
-        return slice(0, 0), slice(0, 0)
+    return slice(0, 0), slice(0, 0)
 
 
 def _pformat_subprocess(command):
@@ -2251,9 +2269,7 @@ def _check_and_log_subprocess(command, logger, **kwargs):
 
 
 def _setup_new_guiapp():
-    """
-    Perform OS-dependent setup when Matplotlib creates a new GUI application.
-    """
+    """Perform OS-dependent setup when Matplotlib creates a new GUI application."""
     # Windows: If not explicit app user model id has been set yet (so we're not
     # already embedded), then set it to "matplotlib", so that taskbar icons are
     # correct.
@@ -2312,8 +2328,7 @@ def _unikey_or_keysym_to_mplkey(unikey, keysym):
     if unikey and unikey.isprintable():
         return unikey
     key = keysym.lower()
-    if key.startswith("kp_"):  # keypad_x (including kp_enter).
-        key = key[3:]
+    key = key.removeprefix("kp_")
     if key.startswith("page_"):  # page_{up,down}
         key = key.replace("page_", "page")
     if key.endswith(("_l", "_r")):  # alt_l, ctrl_l, shift_l.
@@ -2452,6 +2467,7 @@ def _auto_format_str(fmt, value):
     'const'
     >>> _auto_format_str('%d or {}', 0.2)
     '0 or {}'
+
     """
     try:
         return fmt % (value,)
