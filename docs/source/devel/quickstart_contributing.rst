@@ -202,6 +202,8 @@ Installation is straightforward. From the root of the ``scikit-plots`` repositor
     >>> pre-commit install
 
     >>> # (Optionally) manually to see which files were changed:
+    >>> # If the test is successful one by one
+    >>> # but there is an error in the entire test, check the inconsistency
     >>> pre-commit run ruff
     >>> pre-commit run ruff-format --all-files --verbose
 
