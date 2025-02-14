@@ -3,19 +3,28 @@
 # If the file is tracked, it will return the file path.
 # If the file is not tracked, there will be no output.
 
+# models
+**catboost_info
+
 # Jupyter Notebook
 **.ipynb_checkpoints
 
 # scipy openblas
 **.openblas
 
+# unzip openblas
+**__MACOSX
+
+# .Rhistory is a file created by R
+**.Rhistory
+
 # Sphinx documentation
-**build/
-**apis/*.rst
-**modules/generated/
+**docs/source/apis/*.rst
+**_tags/
 **auto_examples/
 **jupyterlite_contents/
-**_tags/
+**generated/
+**build/
 
 # virtualenv
 **.venv
