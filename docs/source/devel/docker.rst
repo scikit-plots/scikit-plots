@@ -12,7 +12,7 @@ Docker Desktop or Github Codespaces
 .. important::
 
    When the ``Docker Env`` is ready to use, click to continue to the quickstart section
-   :ref:`contributing.forking`.
+   :ref:`Initialize and Fetch Submodules <contributing.forking>`.
 
 
 🚀 Docker

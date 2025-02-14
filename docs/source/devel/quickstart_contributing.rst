@@ -94,6 +94,10 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
     git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
     cd scikit-plots
 
+Initialize and Fetch Submodules (Not Needed Every Time):
+
+.. code-block:: shell
+
     # to initialise local config file and fetch + checkout submodule (not needed every time)
     git submodule update --init --recursive  # download submodules
 
@@ -101,6 +105,10 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
     git submodule update --recursive --remote --merge # (not needed every time)
     # (Optionally) Updating your submodule to the latest commit
     git submodule update --remote # (not needed every time)
+
+Adding and Fetching Upstream Remote:
+
+.. code-block:: shell
 
     git remote add upstream https://github.com/scikit-plots/scikit-plots.git
     git fetch upstream --tags
@@ -196,12 +204,12 @@ tool that runs a number of :ref:`Continuous Integration (CI) <contributing.ci>` 
 is likely that one or more of those CI checks will fail when you make a pull request,
 resulting in lost time (yours and CI resources).
 
-Installation is straightforward. From the root of the ``scikit-plots`` repository, run::
+(Recommended) Installation is straightforward. From the root of the ``scikit-plots`` repository, run::
 
     >>> ## It triggered when committing `git commit ...` if pass then next pushing changes
     >>> pre-commit install
 
-Manually one-by-one testing::
+(Optionally) Manually one-by-one testing (not needed every time)::
 
     >>> ## (Optionally) Manually one-by-one testing:
     >>> ## If the test is successful one by one
@@ -210,7 +218,7 @@ Manually one-by-one testing::
     >>> pre-commit run ruff
     >>> pre-commit run black
 
-Update and reinstall pre-commit hooks (not needed every time)::
+(Optionally) Update and reinstall pre-commit hooks (not needed every time)::
 
     >>> ## (Optionally) Update and reinstall pre-commit hooks (not needed every time), If Needed
     >>> pre-commit autoupdate  # (not needed every time)
@@ -242,11 +250,67 @@ Creating a branch
 -----------------
 
 Your local ``main`` branch should always reflect the current state of ``scikit-plots`` repository.
-First ensure it's up-to-date with the main ``scikit-plots`` repository::
+First ensure it's up-to-date with the ``main`` ``scikit-plots`` repository::
 
     >>> git switch main
-    >>> ## Download & Fast-Forward If Possible
-    >>> git pull --ff-only upstream main
+
+(Recommended) Use Fast-forward only:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Fast-forward only: Updates your branch only if it can be fast-forwarded (i.e., no local commits that diverge from upstream/main).
+- If divergence exists: Git refuses to pull, and you must manually resolve the situation (e.g., using git rebase or git merge).
+- Use case: When you want a clean history and are sure your local branch is either up-to-date or strictly behind upstream/main.
+
+Use when you have no local commits diverging from upstream/main::
+
+    >>> ## When you just want to update and have no local commits diverging from upstream.
+    >>> git pull upstream main --ff-only
+
+::
+
+    ## Example Scenario Before Fast-forward only:
+
+    A---B---C---D---E---F  (upstream/main)
+             \
+              (local main)
+
+    ## ✅ Works: After git pull upstream main --ff-only, local main becomes:
+
+    A---B---C---D---E---F  (local main = upstream/main)
+
+    ## ❌ Fails (Diverging History): You've made local commits (X and Y), but upstream has new commits (D, E, F):
+    ## Because the histories have diverged, Git refuses to merge since a fast-forward isn't possible.
+
+    A---B---C---D---E---F  (upstream/main)
+             \
+              X---Y  (local main)  ❌ (Fast-forward not possible)
+
+(Optionally) Rebases:
+^^^^^^^^^^^^^^^^^^^^^^
+
+- Rebases your local commits on top of the latest upstream/main
+- Rewrites history by replaying your commits on top of upstream/main, making the history linear
+- Use case: When you want to keep a clean history while incorporating upstream changes without a merge commit.
+- Since no local commits exist, both commands do the same thing: fast-forward the branch.
+
+Use when you have local commits and want to apply them on top of upstream/main while keeping a linear history::
+
+    >>> ## When you do have local commits and want to apply them cleanly on top of the latest upstream changes.
+    >>> git pull upstream main --rebase
+
+::
+
+    ## Example Scenario Before Rebasing:
+
+    A---B---C---D---E---F  (upstream/main)
+             \
+              X---Y  (local main)
+
+    ## ✅ Works: After git pull upstream main --rebase, local main becomes:
+    ## ✅ Rewrites history, replaying local commits on top of upstream/main:
+    ## Your commits (X and Y) are reapplied on top of F, creating new commits (X' and Y' with new hashes).
+
+    A---B---C---D---E---F---X'---Y'  (rebased local main)
 
 ..
     >>> ## Download Updates Only: forked a repository and want to fetch the latest changes
@@ -258,6 +322,11 @@ First ensure it's up-to-date with the main ``scikit-plots`` repository::
     >>> git merge upstream/main
     >>> ## Rewrites commit history. Avoids unnecessary merge commits.
     >>> # git rebase upstream/main
+
+To view the commit history in Git, you can use the following commands::
+
+    >>> git log --pretty=format:"%h - %an, %ar : %s" -n 9
+    >>> git log --oneline --graph --decorate --all -n 9
 
 Now create a development branch for making your changes. For example::
 

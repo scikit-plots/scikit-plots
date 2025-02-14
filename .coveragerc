@@ -6,6 +6,9 @@ branch = False
 source = scikitplot
 parallel = True
 omit =
+    */auto_building_tools/*
+    */benchmarks/*
     */scikitplot/_build_utils/*
     */scikitplot/externals/*
-    */benchmarks/*
+    */third_party/*
+    */tools/*

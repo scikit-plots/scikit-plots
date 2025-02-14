@@ -113,6 +113,10 @@ classifiers = [
 ## https://spdx.org/licenses/BSD-3-Clause.html
 license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later',
 
+## [tool.meson-python]
+## license-files field to be used only if the license field contains a valid SPDX license expression.
+license-files = ['LICENSE', 'LICENSES/*', 'LICEN[CS]E*/*']
+
 ## The readme file this is what users will see on your project's PyPI page.
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#readme
 ## [[project.readme]]  # Usage individually, If Needed
@@ -120,10 +124,6 @@ license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later',
 ## content-type = "text/x-rst"
 ## readme = "README.md"
 readme = {file = "README.md", content-type = "text/markdown"}
-
-## [tool.meson-python]
-## license-files field to be used only if the license field contains a valid SPDX license expression.
-license-files = ["LICENSE", "LICENSES/*", "LICEN[CS]E*/*"]
 
 ## List the authors of the project
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
