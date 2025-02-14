@@ -10,10 +10,15 @@
 **.openblas
 
 # Sphinx documentation
-docs/build/
+**build/
+**apis/*.rst
+**modules/generated/
+**auto_examples/
+**jupyterlite_contents/
+**_tags/
 
 # virtualenv
-.venv
+**.venv
 venv/
 ENV/
 
