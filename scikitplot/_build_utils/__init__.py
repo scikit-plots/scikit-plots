@@ -1,5 +1,8 @@
 # scikitplot/_build_utils/__init__.py
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Don't use the deprecated NumPy C API. Define this to a fixed version instead of
 # NPY_API_VERSION in order not to break compilation for released SciPy versions
 # when NumPy introduces a new deprecation. Use in setup.py::

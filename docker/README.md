@@ -2,8 +2,8 @@
 
 ### 💡 Work on `Docker Desktop` or `Github Codespaces`
 
-Github Codespaces
------------------
+Github Codespaces: <br> (Connect Vscode or Jupyter Notebook Interface)
+----------------------------------------------------------------
 
 <img style="display: block;-webkit-user-select: none;margin: auto;cursor: zoom-in;background-color: hsl(0, 0%, 90%);transition: background-color 300ms;"
 src="https://docs.github.com/assets/cb-49943/mw-1440/images/help/codespaces/who-will-pay.webp"
@@ -17,8 +17,8 @@ width="322" height="305">
 src="https://docs.github.com/assets/cb-66206/mw-1440/images/help/codespaces/advanced-options.webp"
 width="60%" height="80%">
 
-Docker Desktop
------------------
+Docker Desktop: <br>  (Connect Vscode or Jupyter Notebook Interface)
+-------------------------------------------------------------
 
 ```sh
 # Forked repo: https://github.com/scikit-plots/scikit-plots.git

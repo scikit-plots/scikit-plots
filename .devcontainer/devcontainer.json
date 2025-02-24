@@ -9,9 +9,10 @@
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "Pre-installed DevContainer (codespaces default)",
+  "name": "Pre-ins DevContainer (default)",
   // Use a basic Ubuntu-based image
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  // codespaces codespaces image
   "image": "mcr.microsoft.com/devcontainers/universal:2",
   // runArgs only for github Desktop
   // "runArgs": ["--gpus","all"],

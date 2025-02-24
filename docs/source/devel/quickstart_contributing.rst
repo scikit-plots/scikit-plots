@@ -98,6 +98,8 @@ Initialize and Fetch Submodules (Not Needed Every Time):
 
 .. code-block:: shell
 
+    bash docker/script/safe_dirs.sh  # add safe directories for git
+
     # to initialise local config file and fetch + checkout submodule (not needed every time)
     git submodule update --init --recursive  # download submodules
 
@@ -171,6 +173,11 @@ Now you can install the development version of ``scikit-plots`` into your new en
 will install the latest version of ``scikit-plots`` from your local git repo, along with
 all the dependencies needed to build and fully test ``scikit-plots``::
 
+   >>> # pip install -r ./requirements/all.txt
+   >>> pip install -r ./requirements/build.txt
+   >>> pip install --no-build-isolation --no-cache-dir -e . -v
+
+   >>> ## It is also possible to include optional dependencies:
    >>> python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
 **Checking the build**

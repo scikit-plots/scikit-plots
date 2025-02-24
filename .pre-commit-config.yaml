@@ -1,3 +1,4 @@
+# https://github.com/pre-commit/pre-commit/blob/main/.pre-commit-config.yaml
 ci:
   autoupdate_schedule: 'monthly'
   autoupdate_commit_msg: 'chore: update pre-commit hooks'
@@ -24,6 +25,7 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-json  # Attempts to load all json files to verify syntax.
+        exclude: "^\\.devcontainer/.*\\.json$"
       - id: check-yaml  # Attempts to load all yaml files to verify syntax.
       - id: check-toml  # Attempts to load all TOML files to verify syntax.
       - id: check-xml   # Attempts to load all xml files to verify syntax.
@@ -55,7 +57,7 @@ repos:
 
   # Code Quality: Linting and Static Analysis
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.6
+    rev: v0.9.7
     hooks:
       - id: ruff  # Run the linter.
         args: ["--fix", "--show-fixes", "--output-format=full"]  # --unsafe-fixes
@@ -73,7 +75,7 @@ repos:
         exclude: 'tests/'
 
   - repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
+    rev: 7.1.2
     hooks:
       - id: flake8
         additional_dependencies:

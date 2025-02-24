@@ -9,9 +9,35 @@
 
 The quickest and easiest way to go from analysis...
 
-### Install|Try Scikit-plots - Doc: https://scikit-plots.github.io/
+### Install|Try Scikit-plots - Doc: https://scikit-plots.github.io/dev/devel/index.html
 
 ## User Installation:
+
+### Installing from source (REQUIRED OS/LIB BUILD PACKAGES)
+You can also install scikit-plots from source if you want to take advantage of the latest changes:
+```sh
+# Forked repo: https://github.com/scikit-plots/scikit-plots.git
+git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
+cd scikit-plots
+
+bash docker/script/safe_dirs.sh  # add safe directories for git
+git submodule update --init  # download submodules
+
+# pip install -r ./requirements/all.txt
+pip install -r ./requirements/build.txt
+pip install --no-build-isolation --no-cache-dir -e . -v
+```
+
+### It is also possible to include optional dependencies:
+```sh
+# (Optionally) Try Development [dev,build,test,docs,gpu]
+# gpu refer Cupy lib require NVIDIA CUDA support
+# For More in Doc: https://scikit-plots.github.io/
+python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+
+# gpu refer Cupy lib require NVIDIA CUDA support
+pip install "scikit-plots[gpu]"
+```
 
 ### Installing using pip
 
@@ -43,26 +69,6 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
     ```
-
-### Installing from source
-You can also install scikit-plots from source if you want to take advantage of the latest changes:
-```sh
-git clone https://github.com/scikit-plots/scikit-plots.git
-cd scikit-plots
-
-git submodule update --init  # download submodules
-pip install --user -e .
-```
-
-### It is also possible to include optional dependencies:
-```sh
-pip install "scikit-plots[gpu]"
-
-# (Optionally) Try Development [dev,build,test,docs,gpu]
-# gpu refer Cupy lib require NVIDIA CUDA support
-# For More in Doc: https://scikit-plots.github.io/
-python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
-```
 
 ## Sample Plots
 
