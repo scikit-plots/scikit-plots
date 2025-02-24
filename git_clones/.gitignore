@@ -2,5 +2,6 @@
 *
 
 # Except for a specific file or folder (optional)
+!.gitignore
 !README
 !README.md
