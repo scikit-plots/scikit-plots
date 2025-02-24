@@ -1,8 +1,11 @@
+#!/usr/bin/env python
 """
 Detect bitness (32 or 64) of Mingw-w64 gcc build target on Windows.
 """
 
-#!/usr/bin/env python
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import re
 import subprocess
 

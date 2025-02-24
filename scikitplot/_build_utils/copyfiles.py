@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Platform-independent file and folder copier script"""
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import argparse
 import os
 import shutil

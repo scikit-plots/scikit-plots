@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+
 def combine_dict(*dicts, **kwargs):
     """Combine Numpy distutils style library configuration dictionaries.
 

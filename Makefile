@@ -38,15 +38,15 @@ help:
 	@echo "  test            to run unit tests after 'clean-basic'"
 	@echo "  examples        to execute py scripts under 'galleries/' folder"
 	@echo "  update-mod      Submodule Update. Usage: make update-sample [MOD=NumCpp]"
-	@echo "  branch          Add a Branch to the Local project. Usage: make branch BR=maintanance/x.x.x"
-	@echo "  branch-del      Delete the branch locally use BR Enviroment for del. Usage: make branch-del BR=maintanance/x.x.x"
-	@echo "  branch-delr     Delete the branch remotely use BR Enviroment for del. Usage: make branch-delr BR=maintanance/x.x.x"
+	@echo "  branch          Add a Branch to the Local project. Usage: make branch BR=maintenance/x.x.x"
+	@echo "  branch-del      Delete the branch locally use BR Environment for del. Usage: make branch-del BR=maintenance/x.x.x"
+	@echo "  branch-delr     Delete the branch remotely use BR Environment for del. Usage: make branch-delr BR=maintenance/x.x.x"
 	@echo "  branch-clean    Periodically delete old local branches that have already been merged to keep your workspace clean."
 	@echo "  branch-push     Only new Creation stable branch Push to the remote repository. Including -u (or --set-upstream) flag."
-	@echo "  tag-sample      Tag sample by the latest commit or TAG Enviroment. Usage: make tag-sample [TAG=1.0.0]"
-	@echo "  tag             Add a Tag to the Local project check 'tag-sample'. Usage: make tag BR=maintanance/x.x.x [TAG=1.0.0]"
-	@echo "  tag-del         Delete the Local Tag use TAG Enviroment for del. Usage: make tag-del TAG=1.0.0"
-	@echo "  tag-delr        Delete the Remote Tag use TAG Enviroment for del. Usage: make tag-delr TAG=1.0.0"
+	@echo "  tag-sample      Tag sample by the latest commit or TAG Environment. Usage: make tag-sample [TAG=1.0.0]"
+	@echo "  tag             Add a Tag to the Local project check 'tag-sample'. Usage: make tag BR=maintenance/x.x.x [TAG=1.0.0]"
+	@echo "  tag-del         Delete the Local Tag use TAG Environment for del. Usage: make tag-del TAG=1.0.0"
+	@echo "  tag-delr        Delete the Remote Tag use TAG Environment for del. Usage: make tag-delr TAG=1.0.0"
 	@echo "  tag-push        Push the tag to the remote repository"
 	@echo "  check-publish   Checking the distribution files (Readme.md) for PyPI with twine."
 	@echo "  publish         to publish the project on PyPI"
@@ -94,6 +94,8 @@ clean: clean-basic
 	@# find -L -type f -name "*.so" | xargs rm -rf
 	@find -L -type f -name "*.so" -path "*/build*" -exec rm -rf {} +
 	@echo "Removed all '*.so' files in 'build dirs'"
+	@rm -rf ".mypy_cache" ".ruff_cache"
+	@echo "Removed folder '.mypy_cache, .ruff_cache etc.'"
 	@echo "pypi cleaning completed."
 
 reset:
@@ -263,7 +265,7 @@ else
 	@echo "BR is not defined"
 endif
 
-## Delete the branch locally use BR Enviroment for del.
+## Delete the branch locally use BR Environment for del.
 branch-del:
 ifdef BR
 	@echo "Deleting (safe) Local branch: '$(BR)'"
@@ -274,7 +276,7 @@ else
 	@echo "BR is not defined"
 endif
 
-## Delete the branch remotely use BR Enviroment for del.
+## Delete the branch remotely use BR Environment for del.
 branch-delr:
 ifdef BR
 	@echo "Deleting Remote branch: '$(BR)'"
@@ -288,7 +290,7 @@ endif
 ## Periodically delete old local branches that have already been merged to keep your workspace clean.
 branch-clean:
 ifdef BR
-	@echo "Deleting local old branchs..."
+	@echo "Deleting local old branches..."
 	@git branch --merged main | grep -v "main" | xargs git branch -d
 	@git branch
 else
@@ -342,7 +344,7 @@ else
 	@echo "BR is not defined"
 endif
 
-## Delete the Tag locally use TAG Enviroment for del.
+## Delete the Tag locally use TAG Environment for del.
 tag-del:
 ifdef TAG
 	@echo "Deleting Local tag: 'v$(TAG)'"
@@ -352,7 +354,7 @@ else
 	@echo "TAG is not defined"
 endif
 
-## Delete the Tag remotely use TAG Enviroment for del.
+## Delete the Tag remotely use TAG Environment for del.
 tag-delr:
 ifdef TAG
 	@echo "Deleting Remote tag: 'v$(TAG)'"
@@ -380,7 +382,7 @@ release: tag-sample tag tag-push
 
 # Publish to PyPI (example for Python projects)
 check-publish:
-	@echo "Taaging is complated? Make sure before Publish on PyPI."
+	@echo "Taaging is completed? Make sure before Publish on PyPI."
 	@## *twine* for the PyPI upload
 	@# pip install twine
 	@echo "Checking the distribution files (Readme.md) for PyPI with twine."

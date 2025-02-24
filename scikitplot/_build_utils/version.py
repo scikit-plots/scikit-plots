@@ -1,5 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Extract version number from __init__.py file."""
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 import os
 

@@ -160,6 +160,7 @@ dependencies = [
 
 ######################################################################
 ## optional-dependencies
+## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs,gpu] -v
 ######################################################################
 
 ## Development dependencies (for linting, type checking, and general dev tools)
@@ -209,9 +210,9 @@ dev = [
 build = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
   "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
+  # 'ninja; sys_platform != "emscripten"',
   "ninja>=1.11.0",                          # The ninja build system used to compile code
   "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
-  # 'ninja; sys_platform != "emscripten"',
   "Cython>=3.0.8",                          # Cython bindings for extensions
   "pybind11>=2.13.2",                       # Python bindings
   "pythran>=0.14.0",                        # Static Python compiler
@@ -342,6 +343,10 @@ extra-index-url = "https://download.pytorch.org/whl/cu124"  # PyTorch custom ind
 # name = "pytorch-cu124"
 # url = "https://download.pytorch.org/whl/cu124"
 # explicit = true
+
+######################################################################
+## project.urls
+######################################################################
 
 # Links to important pages related to the project
 # https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
