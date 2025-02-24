@@ -4,6 +4,7 @@
 # If the file is not tracked, there will be no output.
 
 # custom git clones, if needed
+!git_clones/.gitignore
 !git_clones/README.md
 git_clones/*
 
