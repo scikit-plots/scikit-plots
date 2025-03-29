@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // See the full list here: https://aka.ms/ghcs-default-image
 // Learn more here: https://aka.ms/configure-codespace
-// https://containers.dev/implementers/json_reference/#image-specific
+// https://containers.dev/implementers/json_reference/
 // https://code.visualstudio.com/docs/reference/variables-reference#_predefined-variables-example
 {
   // More info about Features: https://containers.dev/features
@@ -108,19 +108,22 @@
       ]
     }
   },
-  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
+  // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
   // If this is a single string, it will be run in a shell.
-  // If this is an array of strings, it will be run as a single command without shell. Can be useful script file.
+  // If this is an array of strings, it will be run as a single command without shell. Use script file.
   // If this is an object, each provided command will be run in parallel.
+  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   "onCreateCommand": {
-    "message": "bash -c 'sudo cp .devcontainer/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'",
-    // (Optionally) Install micromamba and Create an isolated development environment based on environment.yml
-    // "setup_conda_env_create": "bash .devcontainer/setup_conda_env_create.sh",
-    // Run Git command and Install the development version of scikit-plots
-    "post_create_commands": ["bash", ".devcontainer/post_create_commands.sh"]
+    "message": "echo 'Runing onCreateCommand...'",
+    "notice": "bash -c 'sudo cp .devcontainer/script/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
+    // "setup_conda_env_create": "bash .devcontainer/script/setup_conda_env_create.sh"
+    // "post_create_commands": ["bash", ".devcontainer/script/post_create_commands.sh"]
   },
+  // "updateContentCommand ": "echo 'Runing updateContentCommand...'",
   // Use 'postCreateCommand' to run commands after the container is created.
-  // "postCreateCommand": ["bash", ".devcontainer/post_create_commands.sh"],
+  "postCreateCommand": ["bash", ".devcontainer/script/post_create_commands.sh"],
+  // "postStartCommand ": "echo 'Runing postStartCommand...'",
+  // "postAttachCommand ": ["bash", "-c", "'Runing postStartCommand...'"],
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8888],
@@ -178,6 +181,7 @@
     },
     "codespaces": {
       "openFiles": [
+        ".devcontainer/welcome-message.txt",
         "README.md",
         "docs/source/devel/codespaces.md"
       ]

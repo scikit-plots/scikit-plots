@@ -26,7 +26,7 @@ done
 if [ "$FALLBACK" = "1" ]; then
   echo "Some directories failed. Allowing all directories as safe..."
   ## Alternative: Bypass Ownership Checks (If Safe)
-  git config --global --add safe.directory '*'
+  git config --global --add safe.directory '*' || echo "Failed to add path to safe.directory"
 fi
 
 echo "Safe directory configuration complete."

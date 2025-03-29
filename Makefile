@@ -434,3 +434,9 @@ publish-docker:
 	## docker tag <existing_image_name>:<existing_tag> <new_image_name>:<new_tag>
 	# docker tag jupyter_notebook-base_notebook:latest skplt/scikit-plots-dev:latest
 	# docker push skplt/scikit-plots-dev:latest
+
+sym:
+	@rm -rf .devcontainer/script
+	@# mkdir -p .devcontainer/script
+	@ln -rsf docker/script/ .devcontainer/script
+	@echo "Created symbolic links..."
