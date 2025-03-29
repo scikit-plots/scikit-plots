@@ -3,7 +3,9 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# set +e  # Disable 'exit on error' temporarily for debugging
 set -e  # Exit script on error
+set -x  # Enable debugging (prints commands as they run)
 
 ######################################################################
 ## safe_dirs.sh
@@ -64,7 +66,7 @@ git fetch upstream --tags
 # Install the development version of scikit-plots
 echo -e "\033[1;32m## Installing development dependencies...\033[0m"
 pip install -r ./requirements/build.txt
-pip install --no-build-isolation --no-cache-dir -e .\[dev,build,test,docs\] -v
+pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,docs]" -v
 
 # Install pre-commit
 echo -e "\033[1;32m## Installing pre-commit hooks...\033[0m"
