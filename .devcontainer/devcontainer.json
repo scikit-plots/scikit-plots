@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // See the full list here: https://aka.ms/ghcs-default-image
 // Learn more here: https://aka.ms/configure-codespace
+// https://containers.dev/implementors/json_reference/#image-specific
+// https://code.visualstudio.com/docs/reference/variables-reference#_predefined-variables-example
 {
   // More info about Features: https://containers.dev/features
   "hostRequirements": {
@@ -19,9 +21,8 @@
   // runArgs only for github Desktop
   // "runArgs": ["--gpus","all"],
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-  // "remoteUser": "root"
-  // https://code.visualstudio.com/docs/reference/variables-reference#_predefined-variables-example
-  "workspaceFolder": "${workspaceFolder}",
+  // "remoteUser": "root",
+  // "workspaceFolder": "/workspace",
   "features": {
     // Enable Docker-in-Docker to allow running Docker inside the container
     // "ghcr.io/devcontainers/features/docker-in-docker:2": {},
