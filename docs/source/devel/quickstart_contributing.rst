@@ -348,6 +348,7 @@ Now create a development branch for making your changes. For example::
 
 Delete the branch locally::
 
+    >>> git checkout main
     >>> git branch -d subpackage-bug-fix
 
 This changes your working branch from ``main`` to the ``subpackage-bug-fix`` branch.
