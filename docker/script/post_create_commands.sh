@@ -32,7 +32,7 @@ done
 if [ "$FALLBACK" = "1" ]; then
   echo "Some directories failed. Allowing all directories as safe..."
   ## Alternative: Bypass Ownership Checks (If Safe)
-  sudo chown -R "$(whoami):$(id -gn whoami)" ~/.gitconfig
+  sudo chown -R "$(whoami):$(id -gn whoami)" ~/.gitconfig || true
   git config --global --add safe.directory '*'
 fi
 
