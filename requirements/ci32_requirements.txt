@@ -1,4 +1,4 @@
-# https://github.com/scientific-python/spin
-spin>=0.13
 # Keep this in sync with ci_requirements.txt
 scipy-openblas32==0.3.29.0.0
+# https://github.com/scientific-python/spin
+spin
