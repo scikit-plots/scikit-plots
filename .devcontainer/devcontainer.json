@@ -117,7 +117,7 @@
     // (Optionally) Install micromamba and Create an isolated development environment based on environment.yml
     // "setup_conda_env_create": "bash .devcontainer/setup_conda_env_create.sh",
     // Run Git command and Install the development version of scikit-plots
-    "post_create_commands": "bash .devcontainer/post_create_commands.sh"
+    "post_create_commands": ["bash", ".devcontainer/post_create_commands.sh"]
   },
   // Use 'postCreateCommand' to run commands after the container is created.
   // "postCreateCommand": ["bash", ".devcontainer/post_create_commands.sh"],

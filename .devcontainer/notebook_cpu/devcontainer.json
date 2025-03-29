@@ -122,10 +122,10 @@
   "onCreateCommand": {
     "message": "echo 'Runing onCreateCommand...'"
     // "setup_conda_env_create": "bash .devcontainer/setup_conda_env_create.sh"
-    // "post_create_commands": "bash .devcontainer/post_create_commands.sh"
+    // "post_create_commands": ["bash", ".devcontainer/post_create_commands.sh"]
   },
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": ["bash", ".devcontainer/post_create_commands.sh"],
+  // "postCreateCommand": ["bash", ".devcontainer/post_create_commands.sh"],
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8888],
