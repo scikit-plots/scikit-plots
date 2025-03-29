@@ -132,8 +132,8 @@
   // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
   // "postCreateCommand": ["bash", ".devcontainer/script/post_create_commands.sh"],
   "postStartCommand": {
-    "message": "echo 'Runing postStartCommand...'"
-    // "open": "code .devcontainer/script/first-run-notice.txt"
+    "message": "echo 'Runing postStartCommand...'",
+    "open": "code .devcontainer/script/first-run-notice.txt"
     // "notice": "cat .devcontainer/script/first-run-notice.txt"
   },
   // "postAttachCommand": ["bash", "-c", "'Runing postStartCommand...'"],
@@ -192,6 +192,7 @@
     },
     "codespaces": {
       "openFiles": [
+        // Not work for txt file
         ".devcontainer/first-run-notice.txt",
         "README.md",
         "docs/source/devel/codespaces.md"
