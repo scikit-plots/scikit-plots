@@ -11,6 +11,8 @@ set -x  # Enable debugging (prints commands as they run)
 ## safe_dirs.sh
 ######################################################################
 
+# export GIT_CONFIG_GLOBAL=~/.gitconfig
+# git config --global --list --show-origin
 # git config --global --unset-all safe.directory
 # git config --global --get-all safe.directory
 
@@ -30,6 +32,7 @@ done
 if [ "$FALLBACK" = "1" ]; then
   echo "Some directories failed. Allowing all directories as safe..."
   ## Alternative: Bypass Ownership Checks (If Safe)
+  sudo chown -R "$(whoami):$(id -gn whoami)" ~/.gitconfig
   git config --global --add safe.directory '*'
 fi
 
