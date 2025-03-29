@@ -1,3 +1,6 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ## Optional file to specify additional files for packaging.
 ## Can be Access import importlib.resources as pkg_resources
 

@@ -8,6 +8,9 @@ You can use your own estimators, but these plots assume specific properties shar
 scikit-learn estimators. The specific requirements are documented per function.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # scikitplot/api/decomposition/__init__.py
 
 # Your package/module initialization code goes here

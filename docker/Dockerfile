@@ -1,3 +1,6 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ## Dockerfile
 ## https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#image-relationships
 ## https://github.com/jupyter/docker-stacks/blob/main/images/base-notebook/Dockerfile#L58
@@ -32,10 +35,17 @@ FROM ${BASE_IMAGE}
 # Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Set environment variable to avoid interactive prompts during builds
+## Set environment variable to avoid interactive prompts during builds
 ENV DEBIAN_FRONTEND=noninteractive
-# Set locale
+
+## Set the desired locale to C with UTF-8 support
+# ENV LANG en_US.UTF-8
+## This sets the system language to C (the "POSIX" or "default" locale) with UTF-8 encoding,
+## allowing it to handle all Unicode characters.
 ENV LANG C.UTF-8
+## Ensures that all locale categories (LC_*) are set to C.UTF-8,
+## so the environment is fully UTF-8 enabled.
+ENV LC_ALL C.UTF-8
 
 # LABEL maintainer="Jupyter Project <jupyter@googlegroups.com>"
 # ARG NB_USER="jovyan"
@@ -45,6 +55,9 @@ ENV LANG C.UTF-8
 USER root
 ## Ensure sudo is installed and allow ${NB_USER} to use it without a password
 RUN apt-get update \
+  ## Generate locales (this may be required depending on the system)
+  ## "C" locale (basic settings) while supporting the full range of Unicode characters (UTF-8).
+  && && apt-get install -y locales && locale-gen C.UTF-8 && dpkg-reconfigure locales \
   && apt-get install -y sudo gosu \
   # && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
@@ -92,6 +105,10 @@ RUN apt-get update --yes \
     ## File and directory utilities
     ## Command-line utility for displaying directory structure
     tree \
+    ## Multimedia tools for matplotlib animations
+    ffmpeg \
+    ## Vector graphics editor
+    inkscape \
     ## Graph visualization software
     ## Graph visualization software: dot -V
     graphviz \
@@ -125,7 +142,7 @@ RUN apt-get update --yes \
     clang-format \
     ## static analysis of C++ code
     clang-tidy \
-    ## Linear algebra and numerical libraries
+    ## Linear algebra and Numerical Libraries
     ## Basic Linear Algebra Subprograms (BLAS)
     libblas-dev \
     ## OpenBLAS (OpenBLAS Linear Algebra Library) - optimized BLAS library
@@ -134,23 +151,27 @@ RUN apt-get update --yes \
     libblis-dev \
     ## LAPACK (Linear Algebra PACKage) - library for linear algebra operations
     liblapack-dev \
-    ## Parallel computing libraries
-    ## OpenMP development libraries
-    libomp-dev \
-    ## TBB (Threading Building Blocks) - Intel’s C++ library for parallelism
-    libtbb-dev \
-    ## MKL (Intel Math Kernel Library) - Intel's high-performance library for math and linear algebra
-    libmkl-dev \
-    ## Boost C++ Libraries
-    ## Boost (Boost C++ Libraries) - a set of portable C++ source libraries
+    ## General-purpose C++ development
+    ## Boost C++ Libraries - a set of portable C++ source libraries
     libboost-all-dev \
-    ## Multimedia tools
-    ## for matplotlib anim
-    ffmpeg \
-    ## Vector graphics editor
-    inkscape \
+    ## CPU-Based Parallel Computing (Multithreading & SIMD)
+    ## Intel's Parallel Computing C++ Libraries
+    ## OpenMP - Open standard for parallel programming on multi-core CPUs.
+    libomp-dev \
+    ## TBB (Threading Building Blocks) - Intel's Threading Building Blocks for task-based parallelism in C++.
+    libtbb-dev \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; } \
+  ## Install separately and ignore failure
+  ## MKL (Intel Math Kernel Library) - Optimized math library for scientific computing with multi-threading support.
+  && apt-get install --yes --no-install-recommends libmkl-dev || true \
+  ## GPU-Based Parallel Computing
+  ## CUDA – NVIDIA's framework for parallel programming on GPUs.
+  ## OpenCL – Open standard for parallel programming on heterogeneous platforms (CPUs, GPUs, FPGAs).
+  ## ROCm – AMD’s alternative to CUDA for GPU acceleration.
+  ## Vulkan (MoltenVK) – Alternative to OpenGL & CUDA
+  ## Metal Performance Shaders (MPS) – Apple’s GPU Framework
+  ## TensorFlow with Metal Backend (ML-Specific)
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   ;
@@ -204,6 +225,8 @@ RUN mamba install --yes \
     'h5py' \
     ## model tracking
     'mlflow' \
+    ## to generate a requirements.txt
+    'pipreqs' \
     # testing
     'pytest' \
     'hypothesis' \

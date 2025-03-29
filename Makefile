@@ -6,20 +6,26 @@
 ## This Makefile contains various "targets" for project management tasks such as "compiling" the project,
 ## "cleaning" up build files, "running" tests, "building" Docker images, and more.
 
-## "target" the name of the action to be execute as "make target". Syntax:
-## <target>: <if-defined-previously-run-this-target>
-##     @<command> The commands to execute, indented with a tab (not spaces).
+## ensures that all commands within a target run in one single shell,
+## allowing variables and environment changes to persist across commands.
+## better multi-line logic → use .ONESHELL: but @ only applies to the first command
+## cleaner output → use @
+.ONESHELL:
+
+# Shell Debugging: If the issue persists, add debugging:
+# SHELL = /bin/bash -x
 
 ## PHONY targets are used to avoid conflicts with files of the same name.
 ## Declare phony targets to indicate these are not files but commands to be executed.
 .PHONY: help all clean publish
 
+## "target" the name of the action to be execute as "make target". Syntax:
+## <target>: <if-defined-previously-run-this-target>
+##     @<command> The commands to execute, indented with a tab (not spaces).
+
 ## (Optional) Ensures that the project is rebuilt from a clean state.
 all: clean publish
 	@echo "all completed."
-
-# Shell Debugging: If the issue persists, add debugging:
-# SHELL = /bin/bash -x
 
 ######################################################################
 ## helper
@@ -55,11 +61,24 @@ help:
 ## Cleaning
 ######################################################################
 
-## get project structure
+## Get project structure
+ifeq ($(OS),Windows_NT)
+    SYSTEM := Windows
+    SHELL  := cmd.exe
+    # TREE_CMD := dir /ad /b
+    TREE_CMD := tree /F /A
+else
+    SYSTEM := Unix
+    SHELL  := /bin/bash
+    ## Check if 'tree' exists, otherwise use 'find' + 'sed'
+    # TREE_CMD := bash -c 'command -v tree >/dev/null && tree || (find . -type d && find . | sed -e "s/[^-][^/]*\// |/g" -e "s/|\([^ ]\)/|-\1/")'
+    ## Check if 'tree' exists, otherwise use 'find' + 'sed' (folders only)
+    TREE_CMD := bash -c 'command -v tree >/dev/null && tree -d || find . -type d | sed -e "s|[^/]*/| |g" -e "s| |-|g"'
+endif
+
 tree:
-	# tree
-	find . -type d
-	find . | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+	@echo "System is: $(SYSTEM)"
+	@$(TREE_CMD)
 
 ## Clean up all the generated files, compiler cleaning without 'third_party'
 clean-basic:
@@ -84,7 +103,7 @@ clean: clean-basic
 	@pip cache purge
 	@echo "Removed all pip cache files"
 	@rm -rf "result_images"
-	@echo "Removed folder 'result_images' produced docs matplotlib ext"
+	@echo "Removed folder 'result_images' produced 'matplotlib.sphinxext.plot_directive'"
 	@rm -rf "build" "build_dir" "builddir" "dist" "scikit_plots.egg-info" *.egg-info*
 	@echo "Removed folder 'build, egg etc.'"
 	@rm -rf rm -rf .meson .mesonpy-*
@@ -99,9 +118,17 @@ clean: clean-basic
 	@echo "pypi cleaning completed."
 
 reset:
-	## to discarding any local uncommitted changes in tracked files.
-	## Warning: -f is destructive—any unsaved changes will be lost.
-	git checkout -f
+	@git status --short
+	@echo "Discards any local uncommitted changes in tracked files."
+	@echo "Warning: This is destructive—any unsaved changes will be lost."
+	@echo "If unsure, use 'git status' before running this."
+	@echo "Are you sure you want to reset? (y/N)"; \
+	read confirm || exit 0; \
+	if [ "$$confirm" = "y" ]; then \
+	    git checkout -f; \
+	else \
+	    echo "Reset aborted."; \
+	fi
 
 ######################################################################
 ## Packaging

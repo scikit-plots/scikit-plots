@@ -1,3 +1,8 @@
+#!/bin/bash
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # This file is vendored from github.com/MacPython/gfortran-install It is
 # licensed under BSD-2 which is copied as a comment below
 
@@ -29,6 +34,7 @@ ARCHIVE_SDIR="${ARCHIVE_SDIR:-archives}"
 
 GF_UTIL_DIR=$(dirname "${BASH_SOURCE[0]}")
 GF_LIB_URL="https://3f23b170c54c2533c070-1c8a9b3114517dc5fe17b7c3f8c63a43.ssl.cf2.rackcdn.com"
+echo "Downloading from: $GF_LIB_URL"
 
 function get_distutils_platform {
     # Report platform as in form of distutils get_platform.
@@ -40,7 +46,7 @@ function get_distutils_platform {
     local plat=$1
     case $plat in
         i686|x86_64|arm64|universal2|intel|aarch64|s390x|ppc64le) ;;
-        *) echo Did not recognize plat $plat; return 1 ;;
+        *) echo Did not recognize plat "$plat"; return 1 ;;
     esac
     local uname=${2:-$(uname)}
     if [ "$uname" != "Darwin" ]; then
@@ -55,7 +61,8 @@ function get_distutils_platform {
     # local target="10_9"
     # macOS 32-bit arch is i386
     [ "$plat" == "i686" ] && plat="i386"
-    local target=$(echo $MACOSX_DEPLOYMENT_TARGET | tr .- _)
+    local target
+    target=$(echo "$MACOSX_DEPLOYMENT_TARGET" | tr .- _)
     echo "macosx_${target}_${plat}"
 }
 
@@ -68,7 +75,7 @@ function get_distutils_platform_ex {
     local mb_ml_ver=${MB_ML_VER:-1}
     case $plat in
         i686|x86_64|arm64|universal2|intel|aarch64|s390x|ppc64le) ;;
-        *) echo Did not recognize plat $plat; return 1 ;;
+        *) echo Did not recognize plat "$plat"; return 1 ;;
     esac
     local uname=${2:-$(uname)}
     if [ "$uname" != "Darwin" ]; then
@@ -83,7 +90,8 @@ function get_distutils_platform_ex {
     # local target="10_9"
     # macOS 32-bit arch is i386
     [ "$plat" == "i686" ] && plat="i386"
-    local target=$(echo $MACOSX_DEPLOYMENT_TARGET | tr .- _)
+    local target
+    target=$(echo "$MACOSX_DEPLOYMENT_TARGET" | tr .- _)
     echo "macosx_${target}_${plat}"
 }
 
@@ -106,11 +114,12 @@ function get_gf_lib_for_suf {
     local plat=${3:-$PLAT}
     local uname=${4:-$(uname)}
     if [ -z "$prefix" ]; then echo Prefix not defined; exit 1; fi
-    local plat_tag=$(get_distutils_platform_ex $plat $uname)
+    local plat_tag
+    plat_tag=$(get_distutils_platform_ex "$plat" "$uname")
     if [ -n "$suffix" ]; then suffix="-$suffix"; fi
     local fname="$prefix-${plat_tag}${suffix}.tar.gz"
     local out_fname="${ARCHIVE_SDIR}/$fname"
-    [ -s $out_fname ] || (echo "$out_fname is empty"; exit 24)
+    [ -s "$out_fname" ] || (echo "$out_fname is empty"; exit 24)
     echo "$out_fname"
 }
 
@@ -121,7 +130,8 @@ if [ "$(uname)" == "Darwin" ]; then
     # available before install_gfortran is called
     # export GFORTRAN_SHA=c469a420d2d003112749dcdcbe3c684eef42127e
     GFORTRAN_DMG="${GF_UTIL_DIR}/archives/gfortran-4.9.0-Mavericks.dmg"
-    export GFORTRAN_SHA="$(shasum $GFORTRAN_DMG)"
+    GFORTRAN_SHA="$(shasum "$GFORTRAN_DMG")"
+    export GFORTRAN_SHA
     # Set SDKROOT env variable if not set
     export SDKROOT=${SDKROOT:-$(xcrun --show-sdk-path)}
 
@@ -183,24 +193,27 @@ if [ "$(uname)" == "Darwin" ]; then
         fi
         sudo mkdir -p /opt/
         sudo cp "gfortran-darwin-arm64.tar.gz" /opt/gfortran-darwin-arm64.tar.gz
-        pushd /opt
+        pushd /opt || exit 1
             sudo tar -xvf gfortran-darwin-arm64.tar.gz
             sudo rm gfortran-darwin-arm64.tar.gz
-        popd
-        export FC_ARM64="$(find /opt/gfortran-darwin-arm64/bin -name "*-gfortran")"
+        popd || exit 1
+        FC_ARM64="$(find /opt/gfortran-darwin-arm64/bin -name "*-gfortran")"
+        export FC_ARM64
         export FC_LOC=/opt/gfortran-darwin-arm64/bin
-        local libgfortran="$(find /opt/gfortran-darwin-arm64/lib -name libgfortran.dylib)"
-        local libdir=$(dirname $libgfortran)
+        local libgfortran
+        libgfortran="$(find /opt/gfortran-darwin-arm64/lib -name libgfortran.dylib)"
+        local libdir
+        libdir=$(dirname "$libgfortran")
 
         export FC_LIBDIR=$libdir
         export FC_ARM64_LDFLAGS="-L$libdir -Wl,-rpath,$libdir"
-        echo $FC_ARM64_LDFLAGS
+        echo "$FC_ARM64_LDFLAGS"
         if [[ "${PLAT:-}" == "arm64" ]]; then
             export FC=$FC_ARM64
         fi
     }
     function install_gfortran {
-        hdiutil attach -mountpoint /Volumes/gfortran $GFORTRAN_DMG
+        hdiutil attach -mountpoint /Volumes/gfortran "$GFORTRAN_DMG"
         sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
 
         # download_and_unpack_gfortran $(uname -m) native
@@ -212,7 +225,7 @@ if [ "$(uname)" == "Darwin" ]; then
 
     function get_gf_lib {
         # Get lib with gfortran suffix
-        get_gf_lib_for_suf "gf_${GFORTRAN_SHA:0:7}" $@
+        get_gf_lib_for_suf "gf_${GFORTRAN_SHA:0:7}" "$@"
     }
 else
     function install_gfortran {
@@ -222,6 +235,6 @@ else
 
     function get_gf_lib {
         # Get library with no suffix
-        get_gf_lib_for_suf "" $@
+        get_gf_lib_for_suf "" "$@"
     }
 fi

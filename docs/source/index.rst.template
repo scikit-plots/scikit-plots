@@ -84,6 +84,7 @@ References:
    Developer’s Guide <{{ development_link }}>
    {#- else #}
    {%- endif %}
+   Code of Conduct <code_of_conduct.rst>
    Governance <project/governance.rst>
    Roadmap <project/roadmap.rst>
    About us <project/index.rst>

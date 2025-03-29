@@ -1,7 +1,7 @@
 .. _quickstart_contributing:
 
 ======================================================================
-Quickstart Guide to Contributing
+Quickstart Contributing Guidelines
 ======================================================================
 
 .. _contributing_environment:
@@ -33,7 +33,7 @@ If you are new to contributing to projects through forking on GitHub, see the
 .. important::
 
   If you dont want to install any packages on your local you can use
-  ``Docker Pre-Installed Env`` via :ref:`docker-index`.
+  ``Setup Docker Pre-Installed Env`` via :ref:`docker-index`.
 
 
 Install a C compiler if needed
@@ -71,7 +71,7 @@ https://devguide.python.org/setup/#macos.
 
 For Linux-based installations, you won't have to install any additional components.
 
-.. _contributing.forking:
+.. _contributing_forking:
 
 Create a clone of scikit-plots
 ------------------------------
@@ -90,22 +90,26 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
 .. code-block:: shell
 
-    # Forked repo: https://github.com/scikit-plots/scikit-plots.git
+    ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
     git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
     cd scikit-plots
 
 Initialize and Fetch Submodules (Not Needed Every Time):
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: shell
 
+    ## Or use `git config ...` to add `scikit-plots` in git safe dirs
     bash docker/script/safe_dirs.sh  # add safe directories for git
 
     # to initialise local config file and fetch + checkout submodule (not needed every time)
     git submodule update --init --recursive  # download submodules
 
     # (Optionally) pulls changes from the upstream remote repo and merges them
+    # Check if user wants to pull changes from upstream
     git submodule update --recursive --remote --merge # (not needed every time)
     # (Optionally) Updating your submodule to the latest commit
+    # Check if user wants to update submodules to the latest commit
     git submodule update --remote # (not needed every time)
 
 Adding and Fetching Upstream Remote:
@@ -129,7 +133,7 @@ You will see something like::
     >>> upstream        https://github.com/scikit-plots/scikit-plots.git (fetch)
     >>> upstream        https://github.com/scikit-plots/scikit-plots.git (push)
 
-.. _create-isolated-env:
+.. _create_isolated_env:
 
 Create an isolated development environment
 ------------------------------------------
@@ -180,7 +184,9 @@ all the dependencies needed to build and fully test ``scikit-plots``::
    >>> ## It is also possible to include optional dependencies:
    >>> python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
-**Checking the build**
+.. _contributing_check_build:
+
+**Checking the build scikit-plots**
 
 At this point you should be able to ``import scikitplot`` from your locally built version::
 
@@ -191,22 +197,23 @@ Running the full test suite can take a few minutes, so you may want to start wit
 single sub-package (e.g. :ref:`kds-index`)::
 
 
-   >>> # run a sub set of the test suite
+   >>> ## python -m pytest -p vscode_pytest --collect-only --rootdir=.
+   >>> ## run a sub set of the test suite
    >>> pytest scikitplot/kds
 
-   >>> # or the whole suite
+   >>> ## or the whole suite
    >>> pytest
 
 Details on running and writing tests can be found in the :ref:`testing-guidelines`
 section.
 
-.. _contributing.pre-commit:
+.. _contributing_pre_commit:
 
 Install pre-commit
 ------------------
 
 This is optional, but *highly recommended*. `Pre-commit <https://pre-commit.com/>`_ is a
-tool that runs a number of :ref:`Continuous Integration (CI) <contributing.ci>` checks
+tool that runs a number of :ref:`Continuous Integration (CI) <contributing_ci>` checks
 (e.g. code formatting) on your code before you commit it. If you skip this step then it
 is likely that one or more of those CI checks will fail when you make a pull request,
 resulting in lost time (yours and CI resources).
@@ -238,7 +245,7 @@ pass.
 
 .. tip:: To learn more about pre-commit, see the :ref:`pre-commit` section.
 
-.. _contributing.pull_request:
+.. _contributing_pull_request:
 
 Creating and submitting a pull request
 ======================================
@@ -351,9 +358,9 @@ the ``kds`` sub-package.
 
 When you want to update the feature branch with changes in main after
 you created the branch, check the section on
-:ref:`updating a PR <contributing.update-pr>`.
+:ref:`updating a PR <contributing_update_pr>`.
 
-.. _contributing.commit-code:
+.. _contributing_commit_code:
 
 Making code or documentation changes
 ------------------------------------
@@ -389,7 +396,7 @@ You can then commit your all your changes to your local repository with an expla
 .. Important:: Never merge changes from ``upstream/main`` into your feature branch. If
    changes in ``main`` require changes to our code you must :ref:`rebase`.
 
-.. _contributing.push-code:
+.. _contributing_push_code:
 
 Pushing your changes
 --------------------
@@ -411,7 +418,7 @@ with a useful link to create a pull request::
   >>> remote:      https://github.com/YOUR-USER-NAME/scikit-plots/pull/new/subpackage-bug-fix
 
 
-.. _quickstart-pull-request:
+.. _quickstart_pull_request:
 
 Making a pull request
 ---------------------
@@ -433,25 +440,25 @@ In addition, if your commits are not ready for CI testing, you
 should include ``[ci skip]`` the last commit message – but note that code formatting
 checks and documentation building will still be done. Formatting and style errors *should*
 already have been fixed before committing if you have locally
-:ref:`installed pre-commit<contributing.pre-commit>`; but if you have not,
+:ref:`installed pre-commit<contributing_pre_commit>`; but if you have not,
 you can use the :ref:`pre-commit_bot` to fix them automatically in the PR.
 
 Once submitted (and marked as ready), this request goes to the ``scikit-plots`` maintainers and
 they will review the PR.
 
-.. _contributing.update-pr:
+.. _contributing_update_pr:
 
 Updating your pull request
 --------------------------
 
 Based on the review you get on your pull request, you will probably need to make
-some adjustments. You can follow the :ref:`code committing steps <contributing.commit-code>`
+some adjustments. You can follow the :ref:`code committing steps <contributing_commit_code>`
 again to address any feedback and update your pull request::
 
     >>> git push origin subpackage-bug-fix
 
 Any ``git push`` will automatically update your pull request with your branch's changes
-and restart the :ref:`Continuous Integration <contributing.ci>` checks.
+and restart the :ref:`Continuous Integration <contributing_ci>` checks.
 
 .. Important:: At this point please read (or at least skim) the sections :ref:`revise
     and push`, :ref:`rebase`, and :ref:`squash-if-necessary`. The information here
@@ -478,3 +485,5 @@ here are some tips:
 - **When practical, limit the scope of a PR to one sub-package** -- this means fewer
   required reviewers and a faster review process.
 - **Ensure that CI is in a green state** -- any required failures should be addressed.
+
+.. _contributing_ci: https://pandas.pydata.org/pandas-docs/stable/development/contributing_codebase.html#contributing-ci

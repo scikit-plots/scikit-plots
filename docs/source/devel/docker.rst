@@ -1,18 +1,18 @@
 .. _docker-index:
 
-===================================
-Docker Desktop or Github Codespaces
-===================================
+======================================================================
+Docker Desktop or Github Codespaces Guidelines
+======================================================================
+
+.. important::
+
+   When the ``Docker Env`` is ready to use, the details of which are available below,
+   click to continue to the quickstart section
+   :ref:`Checking the build scikit-plots <contributing_check_build>`.
 
 .. seealso::
 
    https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md
-
-
-.. important::
-
-   When the ``Docker Env`` is ready to use, click to continue to the quickstart section
-   :ref:`Initialize and Fetch Submodules <contributing.forking>`.
 
 
 🚀 Docker
@@ -22,6 +22,10 @@ Docker Desktop or Github Codespaces
 
 Github Codespaces
 -----------------
+
+(Connect IDE Interface Vscode or Jupyter Notebook)
+
+Choose (recommended) not (default) Option for best practise
 
 .. raw:: html
 
@@ -42,14 +46,14 @@ Docker Desktop
 
 .. code-block:: sh
 
-   # Forked repo: https://github.com/scikit-plots/scikit-plots.git
+   ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
    git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
    cd scikit-plots/docker
 
-   ##  Use terminal or open to vscode to run docker compose
+   ## Use terminal or open to vscode to run ``docker compose``
    code .
 
-Docker Environment Setup for Jupyter and/or NVIDIA GPU
+Docker Environment Setup for IDE (Vscode/Jupyter) and/or NVIDIA GPU driver
 
 This repository contains Docker & Docker Compose configurations for running Jupyter Notebooks with optional NVIDIA GPU support.
 
@@ -71,6 +75,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 --------------------------------
 
 💡 The easiest way to launch the environment is using Docker Compose.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ▶️ Run Docker Env Jupyter Notebook (CPU only)
 
@@ -91,6 +96,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
    docker compose up --build app_nvidia_internal_gpu_driver
 
 ▶️ Run Docker Env Jupyter Notebook by VS Code
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -100,14 +106,34 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
      </a>
    </div>
 
+▶️ Run post_create_commands.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: sh
+
+   # bash .devcontainer/post_create_commands.sh
+   bash docker/script/post_create_commands.sh
+
+   # (Optionally) vscode_ext
+   bash docker/script/setup_vscode_ext.sh
+
+▶️ Run setup_vscode_ext.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: sh
+
+   # (Optionally) vscode_ext
+   bash docker/script/setup_vscode_ext.sh
+
 🚯 Stop Containers
---------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: sh
 
    docker compose down
 
 🐳 Docker Compose Configuration
+--------------------------------
 
 This project is based on Docker Compose and includes multiple services:
 

@@ -1,3 +1,8 @@
+"""citation_ref"""
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import os
 from datetime import datetime
 
@@ -74,7 +79,9 @@ env = Environment(loader=FileSystemLoader(current_dir))
 template_bib = env.get_template("CITATION.bib.template")
 template_cff = env.get_template("CITATION.cff.template")
 
-for template, output_fname in zip([template_bib, template_cff], ["CITATION.bib", "CITATION.cff"]):
+for template, output_fname in zip(
+    [template_bib, template_cff], ["CITATION.bib", "CITATION.cff"]
+):
     # Step 3: Render the template with actual values
     output = template.render(context)
 

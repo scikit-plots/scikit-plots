@@ -1,7 +1,7 @@
 .. _coding_guidelines:
 
 *****************
-Coding guidelines
+Coding Guidelines
 *****************
 
 .. admonition:: Template

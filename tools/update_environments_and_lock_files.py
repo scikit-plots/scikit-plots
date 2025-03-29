@@ -38,6 +38,9 @@ to only update the documentation builds you can use:
 `python build_tools/update_environments_and_lock_files.py --select-build doc`
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import json
 import logging
 import re

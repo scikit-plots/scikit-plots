@@ -1,3 +1,6 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ## Primary File  : docker-compose.yml
 ## Override File : docker-compose.override.yml (automatically included if present)
 ## docker compose config
@@ -27,6 +30,9 @@ networks:
 services:
 
   ## docker-compose up --build notebook_cpu
+  ## docker ps
+  ## docker logs CONTAINER_ID_OR_NAME
+  ## docker exec -it CONTAINER_ID_OR_NAME bash
   "notebook_cpu":
     container_name: "notebook_cpu_main"
     ## Restart policy: always restart the container if it stops
@@ -83,6 +89,9 @@ services:
     #     # jupyter notebook list | grep -oP 'token=\K[^ ]+'
 
   ## docker-compose up --build app_nvidia_host_gpu_driver
+  ## docker ps
+  ## docker logs CONTAINER_ID_OR_NAME
+  ## docker exec -it CONTAINER_ID_OR_NAME bash
   "app_nvidia_host_gpu_driver":
     container_name: "app_nvidia_host_gpu_driver_main"
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
@@ -142,6 +151,8 @@ services:
         start-notebook.py
 
   ## docker-compose up --build app_nvidia_internal_gpu_driver
+  ## docker ps
+  ## docker logs CONTAINER_ID_OR_NAME
   ## docker exec -it CONTAINER_ID_OR_NAME bash
   "app_nvidia_internal_gpu_driver":
     container_name: "app_nvidia_internal_gpu_driver_main"

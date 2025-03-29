@@ -1,5 +1,8 @@
 # Makefile for Sphinx documentation
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # You can set these variables from the command line.
 SPHINXOPTS    = -T
 SPHINXBUILD  ?= sphinx-build

@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 """Generate requirements/*.txt files from pyproject.toml."""
 
-import logging
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+import os
 import sys
+import logging
+from pathlib import Path
+from datetime import datetime
 
 # import pytz
-from datetime import datetime
-from pathlib import Path
 
 try:  # standard module since Python 3.11
     import tomllib as toml
@@ -49,6 +53,8 @@ def generate_requirement_file(name, req_list, *, extra_list=None):
         "scikit-umfpack": "# scikit-umfpack  # circular dependency issues",
         "scikit-plots[core]": "-r core.txt",
         "scikit-plots[cpu]": "-r cpu.txt",
+        "scikit-plots[gpu]": "-r gpu.txt",
+        "scikit-plots[tpu]": "-r tpu.txt",
     }
 
     req_list = [

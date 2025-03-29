@@ -8,6 +8,9 @@ Documentation is available in the docstrings and
 online at https://seaborn.pydata.org/.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # scikitplot/_seaborn/__init__.py
 
 # Import seaborn objects

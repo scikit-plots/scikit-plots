@@ -1,4 +1,4 @@
-.. _communications-guidelines:
+.. _communications_guidelines:
 
 ==========================
 Community management guide
@@ -12,7 +12,7 @@ These guidelines are applicable when **acting as a representative** of Matplotli
 for example at sprints or when giving official talks or tutorials, and in any
 community venue managed by Matplotlib.
 
-Our approach to community engagement is foremost guided by our :ref:`mission-statement`:
+Our approach to community engagement is foremost guided by our :ref:`mission_statement`:
 
 * We demonstrate that we care about visualization as a practice
 * We deepen our practice and the community’s capacity to support users,
@@ -31,7 +31,7 @@ Our approach to community engagement is foremost guided by our :ref:`mission-sta
   by creating educational resources, building third party tools, and building
   informal mentoring networks.
 
-.. _communication-channels:
+.. _communication_channels:
 
 Official communication channels
 ===============================
@@ -47,7 +47,7 @@ The following venues are managed by Matplotlib maintainers and contributors:
 * chat: `https://matrix.to/#/#matplotlib:matrix.org <https://matrix.to/#/#matplotlib:matrix.org>`_
 * blog: https://blog.scientific-python.org/
 
-.. _social-media:
+.. _social_media:
 
 Social media
 ------------
@@ -66,7 +66,7 @@ Official accounts
 * https://www.youtube.com/matplotlib
 
 
-.. _mailing-lists:
+.. _mailing_lists:
 
 Mailing lists
 -------------
@@ -75,7 +75,7 @@ Mailing lists
 * `matplotlib-users@python.org <https://mail.python.org/mailman/listinfo/matplotlib-users>`_
 * `matplotlib-devel@python.org <https://mail.python.org/mailman/listinfo/matplotlib-devel>`_
 
-.. _social-media-coordination:
+.. _social_media_coordination:
 
 Social media coordination
 -------------------------
@@ -89,7 +89,7 @@ Maintenance
 If you are interested in moderating the chat or forum or accessing the social
 media accounts:
 
-* Matplotlib maintainers should reach out to the `community-manager`_.
+* Matplotlib maintainers should reach out to the `community_manager`_.
 
 * Everyone else should send an email to matplotlib-social-admin@numfocus.org:
 
@@ -103,7 +103,7 @@ Content guidelines
 Communication on official channels, such as the Matplotlib homepage or on
 Matplotlib social accounts, should conform to the following standards. If you
 are unsure if content that you would like to post or share meets these
-guidelines, ask on the :ref:`social-media-coordination` channels before posting.
+guidelines, ask on the :ref:`social_media_coordination` channels before posting.
 
 General guidelines
 ------------------
@@ -175,7 +175,7 @@ Visual media in communications should be made as accessible as possible:
   * Do not make bright, strobing images.
   * More guidelines at https://webaim.org/techniques/images/.
 
-.. _social-media-brand:
+.. _social_media_brand:
 
 Social media
 ============
@@ -198,7 +198,7 @@ empower participation. The current voice encourages more input from folks we
 engage with, and also makes it possible for folks who are not in the core team
 to participate in managing the account.
 
-While the :ref:`brand identity <social-media-brand>` is casual, the showcased
+While the :ref:`brand identity <social_media_brand>` is casual, the showcased
 content is high quality, peer-led resource building. Please follow these
 guidelines to maintain a consistent brand identity across platforms.
 
@@ -260,10 +260,10 @@ Retired campaigns
 Changing the guidelines
 =======================
 
-As the person tasked with implementing these guidelines, the `community-manager`_
+As the person tasked with implementing these guidelines, the `community_manager`_
 should be alerted to proposed changes. Similarly, specific platform guidelines
 (e.g. twitter, instagram) should be reviewed by the person responsible for that
 platform, when different from the community manager. If there is no consensus,
 decisions about guidelines revert to the community manager.
 
-.. _community-manager: https://matplotlib.org/governance/people.html#deputy-project-leads
+.. _community_manager: https://matplotlib.org/governance/people.html#deputy-project-leads

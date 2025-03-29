@@ -7,6 +7,9 @@ The table should be updated for each new inclusion in the teams.
 Generating the table requires admin rights.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import getpass
 import os
 import sys

@@ -12,12 +12,17 @@ online at https://scikit-plots.github.io.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# import os
-# import sys
-# import pathlib
-# import warnings
-# py_set = set  # 'seaborn.set' override raise error or use builtins.set
-import builtins
+# import os as _os
+# import sys as _sys
+# import pathlib as _pathlib
+# import warnings as _warnings
+
+import builtins as _builtins
+
+# import importlib as _importlib
+from numpy import __version__ as __numpy_version__
+
+# _set = set  # 'seaborn.set' override raise error or use builtins.set
 
 ######################################################################
 ## scikit-plots modules and objects
@@ -25,7 +30,7 @@ import builtins
 
 __version__ = "0.5.dev0"
 
-# import logging
+# import logging as _logging
 from .sp_logging import SpLogger, get_logger, sp_logger
 
 try:  # Trt to import meson built files, modules (etc. *.in)
@@ -42,14 +47,14 @@ try:  # Trt to import meson built files, modules (etc. *.in)
     # Override version if any.
     from .version import __git_hash__, __version__
 except (ImportError, ModuleNotFoundError):
-    msg = (
+    _msg = (
         "Error importing scikitplot: you cannot import scikitplot while "
         "being in scikitplot source directory; please exit the scikitplot source "
         "tree first and relaunch your Python interpreter."
     )
-    # raise ImportError(msg) from e
-    get_logger().warning("BOOM! :: %s", msg)
-    del msg
+    # raise ImportError(_msg) from e
+    get_logger().warning("BOOM! :: %s", _msg)
+    del _msg
     _BUILT_WITH_MESON = show_config = None
 else:
     _BUILT_WITH_MESON = True
@@ -116,6 +121,7 @@ _submodules = {
     "_api",
     "_astropy",
     "_build_utils",
+    # "_clv",
     "_compat",
     "_externals",
     "_factory_api",
@@ -130,9 +136,9 @@ _submodules = {
     "misc",
     "modelplotpy",
     "probscale",
+    "sphinxext",
     "stats",
     "typing",
-    "utils",
     "visualkeras",
     "__config__",
     "_citation",
@@ -144,32 +150,32 @@ _submodules = {
     "sp_logging",
     "version",
     # Non-modules:
-    "show_versions",
-    "test",
+    "__array_api_version__",
     "__dir__",
     "__getattr__",
-    "online_help",
-    "setup_module",
-    "__array_api_version__",
     "_Default",
     "_Deprecated",
     "_NoValue",
     "_orig_rc_params",
     "gpu_libraries",
+    "online_help",
+    "setup_module",
+    "show_versions",
+    "test",
 }
-_discard = {"_discard", "_submodules", "py_set", "builtins", "_all"}
 ## Define __all__ to control what gets imported with 'from module import *'.
 ## If __all__ is not defined, Python falls back to using the module's global namespace
 ## (as returned by dir() or globals().keys()) for 'from module import *'.
 ## This means that all names in the global namespace, except those starting with '_',
 ## will be imported by default.
 ## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
+_discard = {"_discard", "_submodules", "_all"}
 _all = sorted(
     [
         name
-        for name in builtins.set(globals()).union(_submodules).difference(_discard)
+        for name in _builtins.set(globals()).union(_submodules).difference(_discard)
         # Exclude private/internal names (those starting with '_')
-        if not (name.startswith("...") and not name.endswith("..."))
+        if not (name.startswith("_") and not name.endswith("..."))
     ]
 )
 __all__ = tuple(_all)
@@ -205,7 +211,7 @@ def __dir__():
 
     """
     return sorted(
-        builtins.set(globals()).union(_submodules).union(dir(api)).difference(_discard)
+        _builtins.set(globals()).union(_submodules).union(dir(api)).difference(_discard)
     )
 
 
@@ -238,10 +244,10 @@ def __getattr__(name):
     """
     try:
         if name in dir():
-            # return __import__(f'{__name__}.{name}')
-            import importlib
+            # return __import__(f'{__name__}.{name}')  # low-level function
+            import importlib as _importlib
 
-            return importlib.import_module(f".{name}", package=__name__)
+            return _importlib.import_module(f".{name}", package=__name__)
         return globals()[name]
     except (ModuleNotFoundError, KeyError):
         pass  # Submodule not found; proceed to error handling.

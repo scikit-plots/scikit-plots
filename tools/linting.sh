@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Note that any change in this file, adding or removing steps or changing the
 # printed messages, should be also reflected in the `get_comment.py` file.
 
@@ -60,13 +63,15 @@ fi
 # (else they are treated as functions)
 
 echo -e "### Checking for bad deprecation order ###\n"
-bad_deprecation_property_order=`git grep -A 10 "@property"  -- "*.py" | awk '/@property/,/def /' | grep -B1 "@deprecated"`
+# bad_deprecation_property_order=`git grep -A 10 "@property"  -- "*.py" | awk '/@property/,/def /' | grep -B1 "@deprecated"`
+bad_deprecation_property_order=$(git grep -A 10 "@property" -- "*.py" | awk '/@property/,/def /' | grep -B1 "@deprecated")
 
-if [ ! -z "$bad_deprecation_property_order" ]
+# if [ ! -z "$bad_deprecation_property_order" ]
+if [ -n "$bad_deprecation_property_order" ];
 then
     echo "deprecated decorator should come before property decorator"
     echo "found the following occurrences:"
-    echo $bad_deprecation_property_order
+    echo "$bad_deprecation_property_order"
     echo -e "\nProblems detected by deprecation order check\n"
     global_status=1
 else
@@ -78,7 +83,8 @@ fi
 echo -e "### Checking for default doctest directives ###\n"
 doctest_directive="$(git grep -nw -E "# doctest\: \+(ELLIPSIS|NORMALIZE_WHITESPACE)")"
 
-if [ ! -z "$doctest_directive" ]
+# if [ ! -z "$doctest_directive" ]
+if [ -n "$doctest_directive" ]
 then
     echo "ELLIPSIS and NORMALIZE_WHITESPACE doctest directives are enabled by default, but were found in:"
     echo "$doctest_directive"

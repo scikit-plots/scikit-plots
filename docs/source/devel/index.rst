@@ -250,8 +250,8 @@ manage, or release manage, these guidelines describe how our current process wor
          :maxdepth: 1
 
          coding_guide
-         api_changes
-         testing
+         api_changes_guide
+         testing_guide
 
    .. grid-item-card::
       :shadow: none

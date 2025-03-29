@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-
 '''
 Developer CLI: building (meson), tests, benchmark, etc.
 

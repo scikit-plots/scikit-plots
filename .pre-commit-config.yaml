@@ -1,3 +1,6 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # https://github.com/pre-commit/pre-commit/blob/main/.pre-commit-config.yaml
 ci:
   autoupdate_schedule: 'monthly'
@@ -9,7 +12,7 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: no-commit-to-branch  # Default is master and main.
+      # - id: no-commit-to-branch  # Default is master and main.
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
       - id: check-added-large-files

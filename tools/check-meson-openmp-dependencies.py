@@ -7,6 +7,9 @@ This is based on trying to make sure the the following two things match:
   on meson introspect json output)
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import json
 import re
 import subprocess

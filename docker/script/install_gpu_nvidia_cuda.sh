@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 set -x  # Enable debugging
 ## newlines equivalent to single semicolon ; on terminal or in shell script.
 
@@ -28,17 +32,17 @@ elif [ "$ENABLE_GPU" = "true" ]; then
   UBUNTU_VERSION="${LSB_VERSION:-${UBUNTU_VERSION:-2404}}"
   ## Replace (tr, sed) dots, e.g., "22.04" -> "2204"
   # UBUNTU_VERSION="${UBUNTU_VERSION//./}"
-  UBUNTU_VERSION="$(echo $UBUNTU_VERSION | tr -d '.')"
+  UBUNTU_VERSION="$(echo "$UBUNTU_VERSION" | tr -d '.')"
   echo "UBUNTU_VERSION is: $UBUNTU_VERSION"
 
   ## Add NVIDIA repository key and repo
   ## Pin the CUDA repository to ensure you use the latest driver
   curl -fsSL \
-    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/${NVARCH}/cuda-ubuntu${UBUNTU_VERSION}.pin \
+    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu"${UBUNTU_VERSION}"/"${NVARCH}"/cuda-ubuntu"${UBUNTU_VERSION}".pin \
     | tee /etc/apt/preferences.d/cuda-repository-pin-600 \
     ;
   curl -fsSL \
-    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/${NVARCH}/cuda-keyring_1.1-1_all.deb \
+    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu"${UBUNTU_VERSION}"/"${NVARCH}"/cuda-keyring_1.1-1_all.deb \
     -o cuda-keyring.deb \
     ;
   dpkg -i cuda-keyring.deb && rm -f cuda-keyring.deb \

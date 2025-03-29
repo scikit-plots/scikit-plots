@@ -1,3 +1,6 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Please refer to https://scipy.github.io/devdocs/building/index.html
 # To use:
 #   $ conda env create -f environment.yml  # `mamba` works too for this command

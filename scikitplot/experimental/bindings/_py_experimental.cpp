@@ -1,3 +1,6 @@
+// Authors: The scikit-plots developers
+// SPDX-License-Identifier: BSD-3-Clause
+
 // # scikitplot/experimental/bindings/py_experimental_api.cpp
 // C++ Source File
 // Pybind11 implementation write C++ directly

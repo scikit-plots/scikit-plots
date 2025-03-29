@@ -20,9 +20,9 @@ Project information
     license.rst
     mission.rst
     Teams <teams/index.rst>
-    Governance <governance.rst>
     Code of Conduct <code_of_conduct.rst>
+    Governance <governance.rst>
     Roadmap <roadmap.rst>
-    funding.rst
+    Funding <funding.rst>
     Glossary <glossary/index.rst>
     FAQ <faq.rst>

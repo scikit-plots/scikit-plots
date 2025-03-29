@@ -1,7 +1,7 @@
-.. _api_changes:
+.. _api_changes_guidelines:
 
-API guidelines
-==============
+API changes guidelines
+======================
 
 .. admonition:: Template
 

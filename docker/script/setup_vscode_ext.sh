@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # ================================
 # List of Extensions to Install
 # ================================
@@ -46,6 +49,8 @@ extensions="$extensions donjayamanne.githistory"
 extensions="$extensions github.vscode-pull-request-github"
 # Interactive Git graph
 extensions="$extensions mhutchie.git-graph"
+# Docker for Visual Studio Code
+extensions="$extensions ms-azuretools.vscode-docker"
 
 # ================================
 # Check if 'code' Command Exists
@@ -57,11 +62,15 @@ then
 fi
 
 # ================================
-# Installing Extensions
+# Installing Extensions (Only if Missing)
 # ================================
 for extension in $extensions; do
-    echo "Installing: $extension"
-    code --install-extension "$extension"
+    if ! code --list-extensions | grep -q "^$extension$"; then
+        echo "Installing: $extension"
+        code --install-extension "$extension"
+    else
+        echo "Skipping (already installed): $extension"
+    fi
 done
 
 # ================================

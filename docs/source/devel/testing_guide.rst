@@ -1,4 +1,4 @@
-.. _testing:
+.. _testing_guidelines:
 
 =======
 Testing
@@ -7,6 +7,14 @@ Testing
 .. admonition:: Template
 
    Template for further usage, template belong to matplotlib.
+
+Ensure that the correct python.pythonPath is set in your `.vscode/settings.json`::
+    {
+        "python.defaultInterpreterPath": "/opt/conda/bin/python",
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true
+    }
+
 
 Matplotlib uses the pytest_ framework.
 

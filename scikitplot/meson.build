@@ -1,5 +1,8 @@
 ## scikit-plots/scikitplot/meson.build
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ######################################################################
 ## Install actual python sources (.py)
 ## https://mesonbuild.com/Python-module.html#install_sources
@@ -16,7 +19,7 @@
 # )
 
 ######################################################################
-## Generate file 'version.py' for Sourde Distrubution "--sdist"
+## Generate file 'version.py' for Sourde Distribution "--sdist"
 ## "--sdist" require '.git' if error use only "--wheel" packaging
 ######################################################################
 
@@ -254,7 +257,7 @@ _root_cython_tree = [
 # Ordering of subdirs: because other submodules have dependencies on cython.
 # After those, subdirs with the most heavy builds should come first
 # (that parallelizes better)
-# belows can be needs to be to be before ... since ... cimport *.pxd
+# below can be needs to be to be before ... since ... cimport *.pxd
 subdir('_xp_core_lib')
 # submodules
 subdir('_seaborn')

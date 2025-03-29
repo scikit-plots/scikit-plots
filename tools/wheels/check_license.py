@@ -7,6 +7,9 @@ and that it appears to contain text prevalent for a scikitplot binary
 distribution.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import argparse
 import pathlib
 import re

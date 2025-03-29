@@ -1,4 +1,8 @@
 # Build options
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Most non-trivial builds require user-settable options.
 # As an example a program may have two different data backends that are selectable at build time.
 # Meson provides for this by having an option definition file.
@@ -7,7 +11,7 @@
 #
 # This file defines build options for the scikit-plots project.
 #
-#Numpy
+# Numpy
 option('blas', type: 'string', value: 'auto',
         description: 'Option for BLAS library selection. By default, try to find any in the order given by `blas-order`')
 option('lapack', type: 'string', value: 'auto',

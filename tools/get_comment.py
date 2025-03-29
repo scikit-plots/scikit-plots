@@ -1,3 +1,6 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # This script is used to generate a comment for a PR when linting issues are
 # detected. It is used by the `Comment on failed linting` GitHub Action.
 # This script fails if there are not comments to be posted.

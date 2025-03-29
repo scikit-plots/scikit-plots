@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Process tempita templated file and write out the result."""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause

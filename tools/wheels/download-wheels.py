@@ -22,6 +22,9 @@ While in the repository root::
 
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import argparse
 import os
 import re

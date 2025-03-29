@@ -6,10 +6,11 @@ import tempfile
 import warnings
 
 import hypothesis
+import pytest
+
 import numpy as np
 import numpy.testing as np_testing
 import pandas as pd
-import pytest
 
 from ._xp_core_lib import _pep440
 from ._xp_core_lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE

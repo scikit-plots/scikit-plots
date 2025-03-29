@@ -1,4 +1,8 @@
 // src/hello.cpp
+
+// Authors: The scikit-plots developers
+// SPDX-License-Identifier: BSD-3-Clause
+
 // C++ Source File
 #include <iostream>
 #include <string>

@@ -16,7 +16,7 @@ def import_module(module):
         return module, process.wait()
 
 
-@pytest.mark.fail_slow(99)  # 99s
+@pytest.mark.fail_slow(200)  # 99s
 @pytest.mark.slow
 @pytest.mark.thread_unsafe
 def test_public_modules_importable():

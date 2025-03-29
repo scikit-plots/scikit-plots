@@ -1,5 +1,8 @@
 ## scikit-plots/third_party/meson.build
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ## Get the directory relative to the top-level project directory
 # project_root = meson.project_source_root()
 ## Get the directory relative to the current meson.build file

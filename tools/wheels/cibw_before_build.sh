@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ######################################################################
 ## INFO Logic Functions
 # is_true  Returns 0 (true) for values matching the truthy set: 1, true, True, yes, etc.
@@ -145,19 +149,22 @@ configure_openblas_pkg_config() {
             # Adjust the path format for Windows
             PKG_CONFIG_PATH=$(echo "$PKG_CONFIG_PATH" | sed 's/\//\\/g')
             export PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
-        *) CIBW_ENVIRONMENT = "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" ;;
+        *) CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$PKG_CONFIG_PATH" ;;
     esac
     success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
     # Export LIBRARY PATH based on the OS and log
     case $RUNNER_OS in
         Linux)
-            export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$(LD_LIBRARY_PATH:-'')" ;;
+            LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$(LD_LIBRARY_PATH:-'')"
+            export LD_LIBRARY_PATH ;;
         macOS) export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR" ;;
         Windows)
             # Adjust the path format for Windows
             OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
             export PATH="$OPENBLAS_LIB_DIR:$PATH" ;;
-        *) CIBW_ENVIRONMENT = "OPENBLAS_LIB_DIR=$OPENBLAS_LIB_DIR" ;;
+        *)
+            CIBW_ENVIRONMENT="OPENBLAS_LIB_DIR=$OPENBLAS_LIB_DIR"
+            export CIBW_ENVIRONMENT ;;
     esac
     success "Setting LIBRARY PATH to: $PKG_CONFIG_PATH"
 }
@@ -209,7 +216,8 @@ setup_openblas() {
     # Define project directory
     local project_dir="$1"
     # Detect the system architecture
-    local arch=$(uname -m)
+    local arch
+    arch=$(uname -m)
     arch=$(echo "$arch" | tr '[:upper:]' '[:lower:]')
     log "Running on platform: $RUNNER_OS (Architecture: $arch)"
     # Check and set INSTALL_OPENBLAS if not already set, initialized as an empty string
@@ -248,8 +256,8 @@ setup_openblas() {
             copy_shared_libs "scipy_openblas64"
             ;;
         *)
-            error "Unknown architecture detected: $arch. Unable to proceed. Exiting..."
-            exit 1
+            log "Unknown architecture detected: $arch."
+            error "Unable to proceed. Exiting..."
             ;;
     esac
 }
@@ -270,7 +278,8 @@ setup_windows() {
 # Function to handle macOS-specific setup
 setup_macos() {
     # Detect the system architecture
-    local arch=$(uname -m)
+    local arch
+    arch=$(uname -m)
     if [[ $RUNNER_OS == "macOS" ]]; then
         log "macOS platform detected: $arch"
         if [[ $arch == "x86_64" ]]; then
@@ -329,10 +338,7 @@ setup_macos() {
                 log "Detected 64-bit architecture."
                 openblas_module="scipy_openblas64"
                 ;;
-            *)
-                error "Unknown architecture detected: $arch. Unable to proceed. Exiting..."
-                exit 1
-                ;;
+            *)  error "Unknown architecture detected: $arch. Unable to proceed. Exiting..." ;;
         esac
         # Fix library paths for macOS openblas_lib_dir
         openblas_lib_dir=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
@@ -360,7 +366,7 @@ main() {
     # Clean up previous build artifacts
     clean_build
     # Append LICENSE file based on the OS
-    setup_license $project_dir
+    setup_license "$project_dir"
     # Install free-threaded Python dependencies if applicable
     handle_free_threaded_build
     # Set up Scipy OpenBLAS based on architecture

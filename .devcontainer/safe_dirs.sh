@@ -1,9 +1,11 @@
 #!/bin/sh
 
-## Runs on bash or sh
-# sh ./safe_dirs.sh   # (Run in a New Shell)
-# bash ./safe_dirs.sh   # (Run in a New Shell)
-# . ./safe_dirs.sh   # or `source ./script2.sh` (Run in the Same Shell)
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+## Runs on sh or bash
+# sh|bash ./safe_dirs.sh                    # (Run in a New Shell)
+# .|source ./safe_dirs.sh                   # (Run in the Same Shell)
 
 # git config --global --unset-all safe.directory
 # git config --global --get-all safe.directory

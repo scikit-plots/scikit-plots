@@ -1,3 +1,8 @@
+#!/bin/bash
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Copied from numpy version
 # https://github.com/numpy/numpy/blob/main/tools/wheels/upload_wheels.sh
 # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
@@ -36,7 +41,7 @@ set_upload_vars() {
     fi
 }
 upload_wheels() {
-    echo ${PWD}
+    echo "${PWD}"
     if [[ ${ANACONDA_UPLOAD} == true ]]; then
         if [[ -z ${TOKEN} ]]; then
             echo no token set, not uploading
@@ -45,14 +50,14 @@ upload_wheels() {
             if compgen -G "./dist/*.gz"; then
                 echo "Found sdist"
                 export WHEEL_FILE_PATH="./dist/*.gz"
-                anaconda -q -t ${TOKEN} upload --force -u ${USERNAME} ${WHEEL_FILE_PATH}
+                anaconda -q -t "${TOKEN}" upload --force -u "${USERNAME}" "${WHEEL_FILE_PATH}"
             elif compgen -G "./wheelhouse/*.whl"; then
                 echo "Found wheel"
                 # Force a replacement if the remote file already exists -
                 # nightlies will not have the commit ID in the filename, so
                 # are named the same (1.X.Y.dev0-<platform/interpreter-tags>)
                 export WHEEL_FILE_PATH="./wheelhouse/*.whl"
-                anaconda -q -t ${TOKEN} upload --force -u ${USERNAME} ${WHEEL_FILE_PATH}
+                anaconda -q -t "${TOKEN}" upload --force -u "${USERNAME}" "${WHEEL_FILE_PATH}"
             else
                 echo "Files do not exist"
                 return 1

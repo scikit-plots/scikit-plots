@@ -1,3 +1,8 @@
+#!/bin/bash
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # This script is used by .github/workflows/wheels.yml to run the full test
 # suite, checks for license inclusion and that the openblas version is correct.
 set -xe
@@ -10,7 +15,7 @@ python -c "import scikitplot; scikitplot.show_config()"
 if [[ $RUNNER_OS == "Windows" ]]; then
     # GH 20391
     PY_DIR=$(python -c "import sys; print(sys.prefix)")
-    mkdir $PY_DIR/libs
+    mkdir "$PY_DIR/libs"
 fi
 if [[ $RUNNER_OS == "macOS"  && $RUNNER_ARCH == "X64" ]]; then
   # Not clear why this is needed but it seems on x86_64 this is not the default
@@ -41,4 +46,4 @@ fi
 # the available N CPU cores: 2 by default for Linux instances and 4 for macOS arm64
 # python -c "import sys; import scikitplot; sys.exit(not scikitplot.test(label='full', extra_argv=['-n=auto']))"
 python -c "import sys; import scikitplot;"
-python $PROJECT_DIR/tools/wheels/check_license.py
+python "$PROJECT_DIR/tools/wheels/check_license.py"

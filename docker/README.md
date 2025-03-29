@@ -2,8 +2,12 @@
 
 ### 💡 Work on `Docker Desktop` or `Github Codespaces`
 
-Github Codespaces: <br> (Connect Vscode or Jupyter Notebook Interface)
-----------------------------------------------------------------
+Github Codespaces:
+------------------
+
+(Connect IDE Interface Vscode or Jupyter Notebook)
+
+Choose (recommended) not (default) Option for best practise
 
 <img style="display: block;-webkit-user-select: none;margin: auto;cursor: zoom-in;background-color: hsl(0, 0%, 90%);transition: background-color 300ms;"
 src="https://docs.github.com/assets/cb-49943/mw-1440/images/help/codespaces/who-will-pay.webp"
@@ -17,19 +21,22 @@ width="322" height="305">
 src="https://docs.github.com/assets/cb-66206/mw-1440/images/help/codespaces/advanced-options.webp"
 width="60%" height="80%">
 
-Docker Desktop: <br>  (Connect Vscode or Jupyter Notebook Interface)
--------------------------------------------------------------
+Docker Desktop:
+---------------
+
+(Connect IDE Interface Vscode or Jupyter Notebook)
+
 
 ```sh
-# Forked repo: https://github.com/scikit-plots/scikit-plots.git
+## Forked repo: https://github.com/scikit-plots/scikit-plots.git
 git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
 cd scikit-plots/docker
 
-##  Use terminal or open to vscode to run docker compose
+## Use terminal or open to vscode to run ``docker compose``
 code .
 ```
 
-## Docker Environment Setup for Jupyter and/or NVIDIA GPU
+## Docker Environment Setup for IDE (Vscode/Jupyter) and/or NVIDIA GPU driver
 
 - This repository contains Docker & Docker Compose configurations for running Jupyter Notebooks with optional NVIDIA GPU support.
 - You can run containers with either host-installed CUDA or pre-installed CUDA inside the container.
@@ -53,6 +60,8 @@ code .
 
 ```sh
 docker compose up --build notebook_cpu
+
+bash docker/script/post_create_commands.sh
 ```
 
 ▶️ Run Docker Env Jupyter Notebook (With NVIDIA Host GPU)
@@ -67,7 +76,7 @@ docker compose up --build app_nvidia_host_gpu_driver
 docker compose up --build app_nvidia_internal_gpu_driver
 ```
 
-▶️ Run Docker Env Jupyter Notebook by Vscode
+### ▶️ Run Docker Env Jupyter Notebook by Vscode
 
 <div align=center>
 <a link="https://code.visualstudio.com/docs/containers/overview#_docker-compose">
@@ -75,7 +84,24 @@ docker compose up --build app_nvidia_internal_gpu_driver
 </a>
 </div>
 
-🚯 Stop Containers
+### ▶️ Run post_create_commands.sh
+
+```sh
+# bash .devcontainer/post_create_commands.sh
+bash docker/script/post_create_commands.sh
+
+# (Optionally) vscode_ext
+bash docker/script/setup_vscode_ext.sh
+```
+
+### ▶️ Run setup_vscode_ext.sh
+
+```sh
+# (Optionally) vscode_ext
+bash docker/script/setup_vscode_ext.sh
+```
+
+### 🚯 Stop Containers
 
 ```sh
 docker compose down
