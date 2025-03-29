@@ -124,7 +124,7 @@
   "postCreateCommand": ["bash", ".devcontainer/script/post_create_commands.sh"],
   "postStartCommand": {
     "message": "echo 'Runing postStartCommand...'",
-    "open": "code .devcontainer/script/first-run-notice.txt"
+    "open": "bash -c 'code .devcontainer/script/first-run-notice.txt'"
     // "notice": "cat .devcontainer/script/first-run-notice.txt"
   },
   // "postAttachCommand": ["bash", "-c", "'Runing postStartCommand...'"],
