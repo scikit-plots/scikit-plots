@@ -346,6 +346,10 @@ Now create a development branch for making your changes. For example::
 
     >>> git switch -c subpackage-bug-fix
 
+Delete the branch locally::
+
+    >>> git branch -d subpackage-bug-fix
+
 This changes your working branch from ``main`` to the ``subpackage-bug-fix`` branch.
 Keep any changes in this branch specific to one bug or feature so it is clear what the
 branch brings to ``scikit-plots``. You can have many feature branches and switch in between them
