@@ -122,16 +122,20 @@
   // If this is an object, each provided command will be run in parallel.
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   "onCreateCommand": {
-    "message": "echo 'Runing onCreateCommand...'"
-    // "notice": "bash -c 'sudo cp .devcontainer/script/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
+    "message": "echo 'Runing onCreateCommand...'",
+    "notice": "bash -c 'sudo cp .devcontainer/script/welcome-message.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
     // "setup_conda_env_create": "bash .devcontainer/script/setup_conda_env_create.sh"
     // "post_create_commands": ["bash", ".devcontainer/script/post_create_commands.sh"]
   },
-  // "updateContentCommand ": "echo 'Runing updateContentCommand...'",
-  // Use 'postCreateCommand' to run commands after the container is created.
+  // "updateContentCommand": "echo 'Runing updateContentCommand...'",
+  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
   // "postCreateCommand": ["bash", ".devcontainer/script/post_create_commands.sh"],
-  // "postStartCommand ": "echo 'Runing postStartCommand...'",
-  // "postAttachCommand ": ["bash", "-c", "'Runing postStartCommand...'"],
+  "postStartCommand": {
+    "message": "echo 'Runing postStartCommand...'",
+    // "open": "code .devcontainer/script/welcome-message.md",
+    "notice": "cat .devcontainer/script/welcome-message.md"
+  },
+  // "postAttachCommand": ["bash", "-c", "'Runing postStartCommand...'"],
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8889],
@@ -187,7 +191,7 @@
     },
     "codespaces": {
       "openFiles": [
-        ".devcontainer/welcome-message.txt",
+        // ".devcontainer/welcome-message.md",
         "README.md",
         "docs/source/devel/codespaces.md"
       ]

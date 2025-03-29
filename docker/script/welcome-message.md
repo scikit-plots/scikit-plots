@@ -16,4 +16,6 @@
 
     ## (Optionally) Memory size: df -h && du -h --max-depth=1
 
+    ## Read more at: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch
+
 ⭐⭐ ========================================================================================= ⭐⭐
