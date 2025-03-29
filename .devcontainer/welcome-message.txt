@@ -13,5 +13,6 @@
       pip install --no-cache-dir -e .[dev,build,test,docs] -v
 
       If you don't need any preinstalled editors. That'll give you ~11gb back.
+      df -h && du -h --max-depth=1
       rm -rf /workspaces/.codespaces/shared/editors/jetbrains
 ⭐⭐ ================================================================================== ⭐⭐

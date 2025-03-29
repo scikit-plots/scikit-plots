@@ -58,6 +58,7 @@ RUN apt-get update \
   ## Generate locales (this may be required depending on the system)
   ## "C" locale (basic settings) while supporting the full range of Unicode characters (UTF-8).
   && apt-get install -y locales && locale-gen C.UTF-8 && dpkg-reconfigure locales \
+  ## Install sudo and set up a passwordless sudo user
   && apt-get install -y sudo gosu \
   # && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
@@ -242,8 +243,11 @@ RUN mamba install --yes \
     'pybind11' \
   ## Clean mamba and fix permissions
   && mamba clean --all -f -y || true \
-  && fix-permissions "${CONDA_DIR}" \
+  ## Fix permissions
+  # echo "yourpassword" | sudo chown -R $(whoami):$(id -gn whoami) ~
+  && fix-permissions "${HOME}" \
   && fix-permissions "/home/${NB_USER}" \
+  && fix-permissions "${CONDA_DIR}" \
   ## yarn used by Yarn, a JavaScript package manager, to store its cache
   && rm -rf "/home/${NB_USER}/.cache" "/home/${NB_USER}/.cache/yarn" \
   ;

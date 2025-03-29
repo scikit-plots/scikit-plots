@@ -51,8 +51,10 @@ services:
     ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
     # user: root  # Ensure the container runs as root, jupyter default jovyan
     ## Adjust the working directory as needed
+    # working_dir: "../:/workspaces/scikit-plots"  # Codespaces default
     working_dir: "/home/jovyan/work"
     volumes:
+      # - "../:/workspaces/scikit-plots"  # Codespaces default
       - "../:/home/jovyan/work"
     environment:
       # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
@@ -120,9 +122,11 @@ services:
     ports:
       - "8889:8888"  # Exposing port 8888
     ## Adjust the working directory as needed
+    # working_dir: "../:/workspaces/scikit-plots"  # Codespaces default
     working_dir: "/home/jovyan/work"
     volumes:
-    #   - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
+      # - "../:/workspaces/scikit-plots"  # Codespaces default
+      # - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
       - "../:/home/jovyan/work"
     networks:
       - "back_tier"
@@ -185,10 +189,12 @@ services:
     ports:
       - "8890:8888"  # Exposing port 8888
     ## Adjust the working directory as needed
-    working_dir: "/home/jovyan/work"
+    # working_dir: "/home/jovyan/work"
+    working_dir: "../:/workspaces/scikit-plots"  # Codespaces default
     volumes:
-    #   - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
-      - "../:/home/jovyan/work"
+      # - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
+      # - "../:/home/jovyan/work"
+      - "../:/workspaces/scikit-plots"  # Codespaces default
     networks:
       - "back_tier"
       - "front_tier"
