@@ -7,6 +7,9 @@
 {
   // More info about Features: https://containers.dev/features
   "hostRequirements": {
+    // free limit 1 core 120 hours
+    // 2-core, 8gb ram, 32 gb
+    // 4-core, 16gb ram, 32 gb
     "cpus": 2,
     "memory": "8gb",
     "storage": "32gb",
@@ -73,6 +76,10 @@
         // Graph visualization software
         "graphviz",
 
+        // Multimedia tools
+        "ffmpeg",    // Needed for matplotlib animations
+        "inkscape",  // Vector graphics editor
+
         // Build tools
         "make",
         "cmake",
@@ -95,8 +102,8 @@
         // Linear algebra and numerical libraries
         "libblas-dev",
         "libopenblas-dev",
-        "libblis-dev",
         "liblapack-dev",
+        "libblis-dev",
 
         // Parallel computing libraries
         "libomp-dev",
@@ -104,11 +111,7 @@
         "libmkl-dev",
 
         // Boost C++ Libraries
-        "libboost-all-dev",
-
-        // Multimedia tools
-        "ffmpeg",  // Needed for matplotlib animations
-        "inkscape" // Vector graphics editor
+        "libboost-all-dev"
       ]
     }
   },

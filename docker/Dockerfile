@@ -65,12 +65,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
   ## Generate locales (this may be required depending on the system)
   ## "C" locale (basic settings) while supporting the full range of Unicode characters (UTF-8).
-  && apt-get install -y locales && locale-gen C.UTF-8 && dpkg-reconfigure locales \
+  && apt-get install -y --no-install-recommends locales \
+  && locale-gen C.UTF-8 \
+  && dpkg-reconfigure locales \
   ## Install sudo and set up a passwordless sudo user
-  && apt-get install -yq sudo gosu \
+  && apt-get install -yq --no-install-recommends sudo gosu \
   # && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
   && echo "jovyan:jovyan" | chpasswd \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* \
   ;
 
 # RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
