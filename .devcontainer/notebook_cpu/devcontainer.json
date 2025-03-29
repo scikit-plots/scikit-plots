@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // See the full list here: https://aka.ms/ghcs-default-image
 // Learn more here: https://aka.ms/configure-codespace
-// https://containers.dev/implementors/json_reference/#image-specific
+// https://containers.dev/implementers/json_reference/#image-specific
 // https://code.visualstudio.com/docs/reference/variables-reference#_predefined-variables-example
 {
   // More info about Features: https://containers.dev/features
@@ -28,6 +28,8 @@
   "runArgs": ["--gpus","all"],
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "remoteUser": "root",
+  // "containerUser": "root",
+  // "updateRemoteUserUID ": "true",
   // "workspaceFolder": "/workspace",
   "features": {
     // Enable Docker-in-Docker to allow running Docker inside the container
@@ -115,12 +117,12 @@
   // If this is an array of strings, it will be run as a single command without shell. Use script file.
   // If this is an object, each provided command will be run in parallel.
   "onCreateCommand": {
-    // "user": "su jovyan"
+    "message": "echo 'Runing onCreateCommand...'"
     // "setup_conda_env_create": "bash .devcontainer/setup_conda_env_create.sh"
-    "post_create_commands": "bash .devcontainer/post_create_commands.sh"
+    // "post_create_commands": "bash .devcontainer/post_create_commands.sh"
   },
   // Use 'postCreateCommand' to run commands after the container is created.
-  // "postCreateCommand": "git fetch --tags && pip install tox",
+  "postCreateCommand": ["bash", ".devcontainer/post_create_commands.sh"],
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8888],

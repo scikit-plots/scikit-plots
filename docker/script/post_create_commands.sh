@@ -24,15 +24,22 @@ for DIR in \
   "$(realpath ./third_party/astropy)" \
   "$(realpath ./third_party/seaborn)"
 do
-  ## Try adding each directory
-  git config --global --add safe.directory "$DIR" 2>/dev/null || FALLBACK=1
+  # Check if the directory exists
+  if [ ! -d "$DIR" ]; then
+    echo "Directory $DIR does not exist"
+  # else
+  #   echo "Directory $DIR exists, attempting to add it to safe.directory..."
+  fi
+  ## Try adding the directory to the git safe.directory list
+  #git config --global --add safe.directory "$DIR" 2>&1 | tee /dev/tty | grep -q "error" && { echo "Failed to add $DIR to safe.directory"; FALLBACK=1; }
+  git config --global --add safe.directory "$DIR" 2>/dev/null || { echo "Failed to add $DIR to safe.directory"; FALLBACK=1; }
 done
 
 ## If any command failed, allow all directories as safe
 if [ "$FALLBACK" = "1" ]; then
   echo "Some directories failed. Allowing all directories as safe..."
   ## Alternative: Bypass Ownership Checks (If Safe)
-  sudo chown -R "$(whoami):$(id -gn whoami)" ~/.gitconfig || true
+  # sudo chown -R "$(whoami):$(id -gn whoami)" ~/.gitconfig || true
   git config --global --add safe.directory '*'
 fi
 
