@@ -111,7 +111,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 
 .. code-block:: sh
 
-   # bash .devcontainer/post_create_commands.sh
+   # bash .devcontainer/script/post_create_commands.sh
    bash docker/script/post_create_commands.sh  # (not needed every time)
 
 ▶️ Run setup_vscode_ext.sh

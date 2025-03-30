@@ -8,14 +8,15 @@
 ⭐⭐ =====================================  IMPORTANT!!  ===================================== ⭐⭐
   To complete setup of your development environment to run the following script in the terminal:
 
+    ## (Optionally) Memory size: df -h && du -h --max-depth=1
+
     ## (recommended) Only Installed by Codespaces default (default) option
-    bash ".devcontainer/post_create_commands.sh"  # (not needed every time)
+    bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
 
     ## Checking the build without root
     bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
 
-    ## (Optionally) Memory size: df -h && du -h --max-depth=1
-
+    ## continue to creating a branch
     ## Read more at: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch
 
 ⭐⭐ ========================================================================================= ⭐⭐

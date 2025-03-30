@@ -87,7 +87,7 @@ docker compose up --build app_nvidia_internal_gpu_driver
 ### ▶️ Run post_create_commands.sh
 
 ```sh
-# bash .devcontainer/post_create_commands.sh  # (not needed every time)
+# bash .devcontainer/script/post_create_commands.sh  # (not needed every time)
 bash docker/script/post_create_commands.sh  # (not needed every time)
 ```
 
