@@ -115,7 +115,7 @@
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   "onCreateCommand": {
     "message": "echo 'Runing onCreateCommand...'",
-    "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.md /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
+    "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
     // "setup_conda_env_create": "bash .devcontainer/script/setup_conda_env_create.sh"
     // "post_create_commands": ["bash", ".devcontainer/script/post_create_commands.sh"]
   },

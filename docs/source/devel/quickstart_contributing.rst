@@ -192,6 +192,9 @@ At this point you should be able to ``import scikitplot`` from your locally buil
 
    >>> python -c 'import scikitplot; scikitplot.show_config()'
 
+   >>> ## Checking the build without root
+   >>> bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
+
 Next you may want to try running some or all of the ``scikitplot`` unit tests.
 Running the full test suite can take a few minutes, so you may want to start with a
 single sub-package (e.g. :ref:`kds-index`)::

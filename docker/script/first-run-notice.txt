@@ -8,11 +8,11 @@
 ⭐⭐ =====================================  IMPORTANT!!  ===================================== ⭐⭐
   To complete setup of your development environment to run the following script in the terminal:
 
-    ## (recommended) Only Installed by default (default) option
-    bash ".devcontainer/post_create_commands.sh"
+    ## (recommended) Only Installed by Codespaces default (default) option
+    bash ".devcontainer/post_create_commands.sh"  # (not needed every time)
 
-    ## Checking the build
-    python -c 'import scikitplot; scikitplot.show_config()'
+    ## Checking the build without root
+    bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
 
     ## (Optionally) Memory size: df -h && du -h --max-depth=1
 
