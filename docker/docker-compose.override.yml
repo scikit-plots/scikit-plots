@@ -1,0 +1,162 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+## Primary File  : docker-compose.yml
+## Override File : docker-compose.override.yml (automatically included if present)
+## docker compose config
+## docker compose up --build
+## https://docs.localstack.cloud/getting-started/installation/#docker-compose
+## Specifies the Docker Compose file version
+# version: "3.9"  # Use the latest version that supports your features
+
+## Defines networks that can be used by services in the Docker Compose file
+networks:
+  ## Declares a network named "back_tier"
+  back_tier:
+    # driver: bridge
+  front_tier:
+
+## https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#image-relationships
+## https://github.com/jupyter/docker-stacks/blob/main/images/base-notebook/Dockerfile#L58
+## Use the official Jupyter Docker Stacks
+## "jupyter/base-notebook:latest"
+## "jupyter/minimal-notebook:latest"
+## "jupyter/scipy-notebook:latest"
+## "jupyter/r-notebook:latest"
+## "jupyter/tensorflow-notebook:latest"
+## "jupyter/pytorch-notebook:latest"
+## "jupyter/pyspark-notebook:latest"
+## Declares services (containers) that will be run by Docker Compose
+services:
+
+  ## docker-compose up --build app_nvidia_host_gpu_driver
+  ## docker ps
+  ## docker logs CONTAINER_ID_OR_NAME
+  ## docker exec -it CONTAINER_ID_OR_NAME bash
+  "app_nvidia_host_gpu_driver":
+    container_name: "app_nvidia_host_gpu_driver_main"
+    # stdin_open: true  # Keeps STDIN open (for interactive mode)
+    # tty: true  # Allocates a pseudo-TTY
+    ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
+    ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
+    image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    ## If the host has CUDA installed, the container can use it without installing CUDA inside.
+    ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
+    user: root  # Ensure the container runs as root, jupyter default jovyan
+    ## https://docs.docker.com/engine/containers/resource_constraints/#gpu
+    runtime: nvidia  # Enable NVIDIA runtime
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    environment:
+      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
+      - NVIDIA_DISABLE_REQUIRE=1
+      - TZ=Etc/GMT  # Set timezone to Greenwich Mean Time (GMT)
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all  # "compute,utility"
+    ports:
+      - "8889:8888"  # Exposing port 8888
+    ## Adjust the working directory as needed
+    # working_dir: "../:/workspaces/scikit-plots"  # Codespaces default
+    working_dir: "/home/jovyan/work"  # jupyter default
+    volumes:
+      # - "../:/workspaces/scikit-plots"  # Codespaces default
+      # - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
+      - "../:/home/jovyan/work"  # jupyter default
+    networks:
+      - "back_tier"
+      - "front_tier"
+    ## default only work entrypoint if both provided
+    # entrypoint:
+    command:
+      - "/bin/bash"
+      - "-c"
+      - |-
+        ## Run nvidia-smi to verify GPU access
+        nvidia-smi
+        apt update
+        apt install -y sudo gosu
+        ## Starts a Bash shell so the container doesn't exit immediately
+        # /bin/bash
+        ## Notebook
+        ## Add jovyan to the sudoers.
+        # echo "jovyan ALL=(ALL) ALL" >> /etc/sudoers
+        echo "jovyan ALL=(ALL) ALL" | tee -a /etc/sudoers
+        ## Change password for jovyan user
+        echo "jovyan:jovyan" | chpasswd
+        ## Switching to jovyan and starting notebook
+        # sudo -u jovyan
+        # gosu jovyan
+        start-notebook.py
+
+  ## docker-compose up --build app_nvidia_internal_gpu_driver
+  ## docker ps
+  ## docker logs CONTAINER_ID_OR_NAME
+  ## docker exec -it CONTAINER_ID_OR_NAME bash
+  "app_nvidia_internal_gpu_driver":
+    container_name: "app_nvidia_internal_gpu_driver_main"
+    stdin_open: true  # Keeps STDIN open (for interactive mode)
+    tty: true  # Allocates a pseudo-TTY
+    ## nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04    # CUDA-enabled base image compressed 5.5+Gb
+    ## nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04  # CUDA-enabled base image compressed 2.7+Gb
+    image: nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04  # CUDA-enabled base image (CUDA preinstalled in the container)
+    ## If the host has CUDA installed, the container can use it without installing CUDA inside.
+    ## If CUDA isn't installed on the host, use an NVIDIA CUDA base image.
+    # user: root  # Ensure the container runs as root, ubuntu default root
+    ## https://docs.docker.com/engine/containers/resource_constraints/#gpu
+    runtime: nvidia  # Enable NVIDIA runtime
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              # count: 1
+              # device_ids: ['0', '3']
+    environment:
+      ## https://forums.developer.nvidia.com/t/nvidia-docker-runtime-does-not-seem-to-work-with-docker-compose/307879
+      # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
+      - NVIDIA_DISABLE_REQUIRE=1
+      - TZ=Etc/GMT  # Set timezone to Greenwich Mean Time (GMT)
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all  # "compute,utility"
+    ports:
+      - "8890:8888"  # Exposing port 8888
+    ## Adjust the working directory as needed
+    # working_dir: "/home/jovyan/work"  # jupyter default
+    working_dir: "../:/workspaces/scikit-plots"  # Codespaces default
+    volumes:
+      # - /usr/local/cuda:/usr/local/cuda  # (Optionally) Mount host CUDA
+      # - "../:/home/jovyan/work"  # jupyter default
+      - "../:/workspaces/scikit-plots"  # Codespaces default
+    networks:
+      - "back_tier"
+      - "front_tier"
+    ## default only work entrypoint if both provided
+    entrypoint:  # first unmutuble
+      - "/bin/bash"
+      - "-c"
+      - |-
+        apt update
+        apt install -y sudo gosu python3-pip python3-venv
+        ## Ubuntu 22.04+ enforces PEP 668,
+        ## which restricts system-wide package installations with pip
+        python3 -m venv ~/venv
+        . ~/venv/bin/activate  # source or . (dot Works in both bash and sh)
+        ## If a command is provided → runs that command or run default below
+        exec /bin/bash -c "$@"
+    command:  # as arg mutuble
+      - "/bin/bash"
+      - "-c"
+      - |-
+        ## Run nvidia-smi to verify GPU access
+        nvidia-smi
+        python3 -m pip install cupy-cuda12x
+        python3 -c "import cupy; print(cupy.cuda.runtime.getDeviceCount())"
+        ## Starts a Bash shell so the container doesn't exit immediately
+        /bin/bash

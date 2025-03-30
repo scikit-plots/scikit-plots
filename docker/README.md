@@ -87,18 +87,15 @@ docker compose up --build app_nvidia_internal_gpu_driver
 ### ▶️ Run post_create_commands.sh
 
 ```sh
-# bash .devcontainer/post_create_commands.sh
-bash docker/script/post_create_commands.sh
-
-# (Optionally) vscode_ext
-bash docker/script/setup_vscode_ext.sh
+# bash .devcontainer/script/post_create_commands.sh  # (not needed every time)
+bash docker/script/post_create_commands.sh  # (not needed every time)
 ```
 
 ### ▶️ Run setup_vscode_ext.sh
 
 ```sh
 # (Optionally) vscode_ext
-bash docker/script/setup_vscode_ext.sh
+bash docker/script/setup_vscode_ext.sh  # (not needed every time)
 ```
 
 ### 🚯 Stop Containers

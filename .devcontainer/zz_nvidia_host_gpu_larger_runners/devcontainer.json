@@ -2,11 +2,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // See the full list here: https://aka.ms/ghcs-default-image
 // Learn more here: https://aka.ms/configure-codespace
-// https://containers.dev/implementors/json_reference/#image-specific
+// https://containers.dev/implementers/json_reference/
 // https://code.visualstudio.com/docs/reference/variables-reference#_predefined-variables-example
 {
   // More info about Features: https://containers.dev/features
   "hostRequirements": {
+    // free limit 1 core 120 hours
+    // 2-core, 8gb ram, 32 gb
+    // 4-core, 16gb ram, 32 gb
     "cpus": 2,
     "memory": "8gb",
     "storage": "32gb",
@@ -29,6 +32,8 @@
   "runArgs": ["--gpus","all"],
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "remoteUser": "root",
+  // "containerUser": "root",
+  // "updateRemoteUserUID ": "true",
   // "workspaceFolder": "/workspace",
   "features": {
     // Enable Docker-in-Docker to allow running Docker inside the container
@@ -72,6 +77,10 @@
         // Graph visualization software
         "graphviz",
 
+        // Multimedia tools
+        "ffmpeg",    // Needed for matplotlib animations
+        "inkscape",  // Vector graphics editor
+
         // Build tools
         "make",
         "cmake",
@@ -94,8 +103,8 @@
         // Linear algebra and numerical libraries
         "libblas-dev",
         "libopenblas-dev",
-        "libblis-dev",
         "liblapack-dev",
+        "libblis-dev",
 
         // Parallel computing libraries
         "libomp-dev",
@@ -103,24 +112,30 @@
         "libmkl-dev",
 
         // Boost C++ Libraries
-        "libboost-all-dev",
-
-        // Multimedia tools
-        "ffmpeg",  // Needed for matplotlib animations
-        "inkscape" // Vector graphics editor
+        "libboost-all-dev"
       ]
     }
   },
-  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
+  // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
   // If this is a single string, it will be run in a shell.
   // If this is an array of strings, it will be run as a single command without shell. Use script file.
   // If this is an object, each provided command will be run in parallel.
+  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   "onCreateCommand": {
-    // "setup_conda_env_create": "bash .devcontainer/setup_conda_env_create.sh"
-    // "post_create_commands": "bash .devcontainer/post_create_commands.sh"
+    "message": "echo 'Runing onCreateCommand...'"
+    // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
+    // "setup_conda_env_create": "bash .devcontainer/script/setup_conda_env_create.sh"
+    // "post_create_commands": ["bash", ".devcontainer/script/post_create_commands.sh"]
   },
-  // Use 'postCreateCommand' to run commands after the container is created.
-  // "postCreateCommand": "git fetch --tags && pip install tox",
+  // "updateContentCommand": "echo 'Runing updateContentCommand...'",
+  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
+  // "postCreateCommand": ["bash", ".devcontainer/script/post_create_commands.sh"],
+  "postStartCommand": {
+    "message": "echo 'Runing postStartCommand...'"
+    // "notice": "cat .devcontainer/script/first-run-notice.txt"
+    // "open": "bash -c 'code .devcontainer/script/first-run-notice.txt'"
+  },
+  // "postAttachCommand": ["bash", "-c", "'Runing postStartCommand...'"],
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8889],
@@ -176,6 +191,7 @@
     },
     "codespaces": {
       "openFiles": [
+        ".devcontainer/script/first-run-notice.txt",
         "README.md",
         "docs/source/devel/codespaces.md"
       ]
