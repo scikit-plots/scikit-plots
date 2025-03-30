@@ -115,8 +115,7 @@
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   "onCreateCommand": {
     "message": "echo 'Runing onCreateCommand...'",
-    "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'",
-    "open": "code .devcontainer/script/first-run-notice.txt"
+    "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.md /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
     // "setup_conda_env_create": "bash .devcontainer/script/setup_conda_env_create.sh"
     // "post_create_commands": ["bash", ".devcontainer/script/post_create_commands.sh"]
   },
@@ -126,6 +125,7 @@
   "postStartCommand": {
     "message": "echo 'Runing postStartCommand...'"
     // "notice": "cat .devcontainer/script/first-run-notice.txt"
+    // "open": "bash -c 'code .devcontainer/script/first-run-notice.txt'"
   },
   // "postAttachCommand": ["bash", "-c", "'Runing postStartCommand...'"],
   "waitFor": "postCreateCommand",
@@ -185,8 +185,7 @@
     },
     "codespaces": {
       "openFiles": [
-        // Not work for txt file
-        ".devcontainer/first-run-notice.txt",
+        ".devcontainer/script/first-run-notice.txt",
         "README.md",
         "docs/source/devel/codespaces.md"
       ]
