@@ -4,8 +4,8 @@ on:
 #   schedule:
 #     - cron: "22 22 * * *"
   push:
-    branches:
-      - main  # Set a branch name to trigger deployment
+    # branches:
+    #   - main  # Set a branch name to trigger deployment
   workflow_dispatch:
     inputs:
       branch:
