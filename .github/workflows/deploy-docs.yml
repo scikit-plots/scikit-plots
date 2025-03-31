@@ -14,7 +14,7 @@ on:
         default: 'main'
       version:
         description: 'Docs Version (e.g., 0.4, dev, stable, prev)'
-        required: true
+        required: false
         default: 'dev'
 
 permissions: # Grants read-only permission to repository contents
@@ -31,7 +31,7 @@ jobs:
 
     env:  # Define environment variables at the job level
       # Use inside step level environment NAME: '' as $NAME, ${{ env.NAME }}
-      VERSION: ${{ github.event.inputs.version }}
+      VERSION: ${{ github.event.inputs.version || 'dev' }}  # Use 'dev' if version is empty
 
     steps:
       - name: Checkout Repository
@@ -55,7 +55,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
-          python-version: '3.x'
+          python-version: '3.10'
 
       - name: Install Dependencies
         run: |
