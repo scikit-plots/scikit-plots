@@ -64,6 +64,8 @@ except ImportError:
     # that need plotly.
     pass
 
+# Use datetime.UTC if available (Python 3.11+), else fallback to datetime.timezone.utc
+UTC = getattr(datetime, "UTC", datetime.timezone.utc)  # datetime.datetime.now(tz=UTC)
 
 ##########################################################################
 ## Project information
@@ -84,7 +86,7 @@ author = "scikit-plots developers"
 # where ‘YYYY’ represents a four-digit year.
 # The project_copyright alias.
 # copyright = u'2017, Reiichiro S. Nakano'
-copyright = f"2024 - {datetime.datetime.now(tz=datetime.UTC).year} {author} (BSD-3 Clause License)"
+copyright = f"2024 - {datetime.datetime.now().year} {author} (BSD-3 Clause License)"
 
 ##########################################################################
 ## version
