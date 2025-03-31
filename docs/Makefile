@@ -184,3 +184,9 @@ optipng:
 	  | xargs -0 -n 1 -P 4 optipng -o10
 
 dist: html ziphtml
+
+rep:
+	@# Remove the old contents
+	@rm -rf ../git_clones/scikit-plots.github.io/0.4/*
+	@# Copy the contents from source_foldera to destination
+	@cp -r ./build/html/stable/* ../git_clones/scikit-plots.github.io/0.4
