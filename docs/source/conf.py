@@ -357,7 +357,7 @@ _check_dependencies()
 today_fmt = "%B %d, %Y %H:%M"
 today = datetime.datetime.today().strftime(today_fmt)
 
-copyright += today
+copyright += f" {_version_raw} {today}"
 
 ##########################################################################
 ## Options for highlighting
