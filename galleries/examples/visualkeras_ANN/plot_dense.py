@@ -13,9 +13,20 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 import gc
 
 gc.collect()
+
+import os
+
+# Set UTF-8 environment variable
+os.environ["PYTHONUTF8"] = "1"
+
+import tensorflow as tf
+
+# Clear any session to reset the state of TensorFlow/Keras
+tf.keras.backend.clear_session()
+
 import tensorflow.python as tf_python
 
-# Clear the GPU memory cache
+# Clear any session to reset the state of TensorFlow/Keras
 tf_python.keras.backend.clear_session()
 
 model = tf_python.keras.models.Sequential()

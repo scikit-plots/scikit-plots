@@ -9,6 +9,7 @@ Code Testing Guidelines
    Template for further usage, template belong to matplotlib.
 
 Ensure that the correct python.pythonPath is set in your `.vscode/settings.json`::
+
     {
         "python.defaultInterpreterPath": "/opt/conda/bin/python",
         "python.testing.unittestEnabled": false,

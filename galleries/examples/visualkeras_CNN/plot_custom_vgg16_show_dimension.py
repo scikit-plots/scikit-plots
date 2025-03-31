@@ -13,6 +13,12 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 import gc
 
 gc.collect()
+
+import os
+
+# Set UTF-8 environment variable
+os.environ["PYTHONUTF8"] = "1"
+
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras

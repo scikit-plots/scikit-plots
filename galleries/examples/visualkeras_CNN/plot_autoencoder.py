@@ -13,6 +13,12 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 import gc
 
 gc.collect()
+
+import os
+
+# Set UTF-8 environment variable
+os.environ["PYTHONUTF8"] = "1"
+
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
@@ -40,7 +46,9 @@ autoencoder = tf.keras.Model(encoder_input, decoder_output, name="autoencoder")
 from scikitplot import visualkeras
 
 img_encoder = visualkeras.layered_view(encoder, to_file="../result_images/encoder.png")
-img_autoencoder = visualkeras.layered_view(autoencoder, to_file="../result_images/autoencoder.png")
+img_autoencoder = visualkeras.layered_view(
+    autoencoder, to_file="../result_images/autoencoder.png"
+)
 try:
     import matplotlib.pyplot as plt
 

@@ -13,6 +13,12 @@ used by a :py:class:`~tensorflow.keras.Model` or :py:class:`~torch.nn.Module` or
 import gc
 
 gc.collect()
+
+import os
+
+# Set UTF-8 environment variable
+os.environ["PYTHONUTF8"] = "1"
+
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
@@ -53,19 +59,23 @@ last_hidden_state = tf.keras.layers.Lambda(
 reshaped_output = tf.keras.layers.Reshape((-1, 128, 768))(last_hidden_state)
 
 # Add different layers to the model
-x = tf.keras.layers.Conv2D(512, (3, 3), activation="relu", padding="same", name="conv2d_1")(
-    reshaped_output
-)
+x = tf.keras.layers.Conv2D(
+    512, (3, 3), activation="relu", padding="same", name="conv2d_1"
+)(reshaped_output)
 x = tf.keras.layers.BatchNormalization(name="batchnorm_1")(x)
 x = tf.keras.layers.Dropout(0.3, name="dropout_1")(x)
 x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), name="maxpool_1")(x)
 
-x = tf.keras.layers.Conv2D(256, (3, 3), activation="relu", padding="same", name="conv2d_2")(x)
+x = tf.keras.layers.Conv2D(
+    256, (3, 3), activation="relu", padding="same", name="conv2d_2"
+)(x)
 x = tf.keras.layers.BatchNormalization(name="batchnorm_2")(x)
 x = tf.keras.layers.Dropout(0.3, name="dropout_2")(x)
 x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), name="maxpool_2")(x)
 
-x = tf.keras.layers.Conv2D(128, (3, 3), activation="relu", padding="same", name="conv2d_3")(x)
+x = tf.keras.layers.Conv2D(
+    128, (3, 3), activation="relu", padding="same", name="conv2d_3"
+)(x)
 x = tf.keras.layers.BatchNormalization(name="batchnorm_3")(x)
 x = tf.keras.layers.Dropout(0.4, name="dropout_3")(x)
 x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), name="maxpool_3")(x)
@@ -79,7 +89,9 @@ x = tf.keras.layers.Dropout(0.5, name="dropout_4")(x)
 x = tf.keras.layers.Dense(128, activation="relu", name="dense_2")(x)
 
 # Add output layer (classification head)
-dummy_output = tf.keras.layers.Dense(2, activation="softmax", name="dummy_classification_head")(x)
+dummy_output = tf.keras.layers.Dense(
+    2, activation="softmax", name="dummy_classification_head"
+)(x)
 
 # Wrap into a Keras model
 wrapped_model = tf.keras.Model(inputs=[input_ids, attention_mask], outputs=dummy_output)

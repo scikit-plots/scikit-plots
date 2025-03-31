@@ -18,6 +18,7 @@
 Scikit-plots Contributing |br| |release| - |today|
 :raw-html:`</strong></div>`
 
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
 
 .. _developers-guide-index:
 
@@ -58,6 +59,8 @@ Quickstart Contribute Guide
 ================================
 
 Here you'll find all the guidance and resources you need to quickly start contributing to this project.
+
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
 
 .. grid:: 1 1 2 2
    :class-row: sf-fs-1
@@ -103,6 +106,8 @@ projects to work on, and discussing priorities.
 We have preloaded the issue creation page with markdown forms requesting the information
 we need to triage issues and we welcome you to add any additional information or
 context that may be necessary for resolving the issue:
+
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
 
 .. grid:: 1 1 2 2
 
@@ -153,6 +158,7 @@ to contributing, we recommend that you first read our
 
    Getting Started Contribute Guide <guide_gs_contribute.rst>
 
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
 
 .. grid:: 1 1 2 2
    :class-row: sd-fs-5 sd-align-minor-center
@@ -224,7 +230,11 @@ Development Workflow Guide
 If you are contributing code or documentation, please follow our guide for setting up
 and managing a development environment and workflow:
 
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+
 .. grid:: 1 1 2 2
+   :class-row: sf-fs-1
+   :gutter: 2
 
    .. grid-item-card::
       :shadow: none
@@ -269,6 +279,8 @@ of maintenance work. If you are writing code or documentation, following these p
 helps maintainers more easily review your work. If you are helping triage, community
 manage, or release manage, these guidelines describe how our current process works.
 
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+
 .. grid:: 1 1 2 2
    :class-row: sf-fs-1
    :gutter: 2
@@ -306,7 +318,7 @@ manage, or release manage, these guidelines describe how our current process wor
       This section is about preparing a major/minor release, a release candidate (RC), or a bug-fix release.
 
       .. toctree::
-         :maxdepth: 2
+         :maxdepth: 1
 
          guide_maintainer.rst
 
@@ -317,7 +329,7 @@ manage, or release manage, these guidelines describe how our current process wor
       ^^^
 
       .. toctree::
-         :maxdepth: 2
+         :maxdepth: 1
 
          guide_release
          guide_communication
@@ -330,7 +342,9 @@ manage, or release manage, these guidelines describe how our current process wor
       **Triage And Review Guide**
       ^^^
       .. toctree::
-         :maxdepth: 2
+         :maxdepth: 1
 
          guide_triage
          guide_pr
+
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
