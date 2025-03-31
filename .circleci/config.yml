@@ -1,4 +1,11 @@
+# Circle CI configuration file
+# https://circleci.com/docs/
+---
 version: 2.1
+
+##########################################
+# Here is where the real jobs are defined.
+##########################################
 
 jobs:
   lint:
@@ -113,10 +120,16 @@ jobs:
               bash tools/circle/push_doc.sh docs/build/html/stable
             fi
 
+#########################################
+# Defining workflows gets us parallelism.
+#########################################
+
 workflows:
   version: 2
   build-doc-and-deploy:
     jobs:
+      # NOTE: If you rename this job, then you must update the `if` condition
+      # and `circleci-jobs` option in `.github/workflows/circleci.yml`.
       - lint
       - doc:
           requires:
