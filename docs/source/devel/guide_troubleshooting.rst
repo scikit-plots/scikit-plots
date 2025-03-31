@@ -1,8 +1,8 @@
 .. _troubleshooting-faq:
 
-===============
-Troubleshooting
-===============
+======================================================================
+Troubleshooting Guidelines
+======================================================================
 
 For guidance on debugging an installation, see :ref:`installing-faq`.
 

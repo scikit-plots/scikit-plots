@@ -1,7 +1,8 @@
 .. _api_changes_guidelines:
 
-API changes guidelines
-======================
+======================================================================
+Code API Versioning and Change Guidelines
+======================================================================
 
 .. admonition:: Template
 

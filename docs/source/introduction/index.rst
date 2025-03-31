@@ -15,7 +15,7 @@
    centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
 
 :raw-html:`<div style="text-align: center"><strong>`
-Welcome to Scikit-plots 101 |br| |release|
+Welcome to Scikit-plots 101 |br| |release| - |today|
 :raw-html:`</strong></div>`
 
 .. _introduction-index:

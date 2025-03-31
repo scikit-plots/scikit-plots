@@ -15,7 +15,7 @@
    centered:: Scikit-plots Documentation :raw-html:`<br />` |release|
 
 :raw-html:`<div style="text-align: center"><strong>`
-Scikit-plots Documentation |br| |release|
+Scikit-plots Documentation |br| |release| - |today|
 :raw-html:`</strong></div>`
 
 .. _user-guide-index:

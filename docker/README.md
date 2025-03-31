@@ -84,6 +84,18 @@ docker compose up --build app_nvidia_internal_gpu_driver
 </a>
 </div>
 
+### ▶️ Connect Docker Container Especially When Docker GUI dont available
+
+
+```sh
+# docker-compose up --build notebook_cpu
+
+docker ps  # check running containers
+docker logs CONTAINER_ID_OR_NAME  # find jupyter (token) http address 127.0....
+docker exec -it CONTAINER_ID_OR_NAME bash  # Connect interactive terminal
+```
+
+
 ### ▶️ Run post_create_commands.sh
 
 ```sh

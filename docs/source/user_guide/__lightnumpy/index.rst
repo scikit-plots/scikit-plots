@@ -4,7 +4,7 @@
 LightNumPy (experimental)
 ======================================================================
 
-A lightweight version of NumPy (or similar functionality).
+A lightweight version of NumPy or Cupy (or similar functionality).
 
 .. seealso::
 
@@ -24,9 +24,13 @@ Get Header files location:
 
     >>> try:
     >>>   # pip install git+https://github.com/scikit-plots/lightnumpy.git@main
-    >>>   import lightnumpy as lp
+    >>>   import lightnumpy as ln
     >>>   # Return the directory that contains the lightnumpy and NumCpp *.h header files.
-    >>>   inc_dir_lightnumpy = lp.get_include()
+    >>>   inc_dir_lightnumpy = ln.get_include()
     >>> except: pass
     >>> else:
     >>>   !ls $inc_dir_lightnumpy
+
+::
+
+   >>> import lightnumpy as ln

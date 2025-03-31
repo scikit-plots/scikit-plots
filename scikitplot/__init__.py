@@ -317,10 +317,8 @@ def online_help(
 
     Examples
     --------
-    .. jupyter-execute::
-
-        >>> import scikitplot
-        >>> scikitplot.online_help("installation")
+    >>> import scikitplot
+    >>> scikitplot.online_help("installation")
 
     """
     try:

@@ -81,10 +81,10 @@ References:
    Community-Z <https://zenodo.org/communities/scikit-plots>
    {%- if development_link | default(false) %}
    {#- if development_link is defined and development_link #}
-   Developer’s Guide <{{ development_link }}>
+   Developer's Guide <{{ development_link }}>
    {#- else #}
    {%- endif %}
-   Code of Conduct <code_of_conduct.rst>
+   Code of Conduct <project/code_of_conduct.rst>
    Governance <project/governance.rst>
    Roadmap <project/roadmap.rst>
    About us <project/index.rst>

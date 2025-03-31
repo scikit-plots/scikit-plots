@@ -15,6 +15,9 @@ See: https://www.sphinx-doc.org/en/master/usage/configuration.html
 for more details on configuring the documentation build.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # sphinx conf
 # scikit-plots documentation build configuration file, created by
 # sphinx-quickstart on Sun Feb 12 17:56:21 2017.
@@ -347,7 +350,12 @@ _check_dependencies()
 # today_fmt = '%B %d, %Y'
 #
 # Option 2: Use today's date in the specified format
-today_fmt = "%B %d, %Y"
+# %B → Full month name (e.g., March)
+# %d → Day of the month (e.g., 30)
+# %Y → Full year (e.g., 2025)
+# %H → Hour (24-hour format)
+# %M → Minute
+today_fmt = "%B %d, %Y %H:%M"
 today = datetime.datetime.today().strftime(today_fmt)
 
 ##########################################################################
@@ -515,7 +523,7 @@ html_theme_options = {
     "switcher": {
         # "json_url": "https://scikit-plots.github.io/dev/_static/versions.json",
         "json_url": "https://scikit-plots.github.io/dev/_static/switcher.json",
-        "version_match": release.split("+")[0],  # without git
+        "version_match": _version_raw.split("+")[0].strip(),  # without git section
     },
     # check_switcher may be set to False if docbuild pipeline fails. See
     # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html#configure-switcher-json-url

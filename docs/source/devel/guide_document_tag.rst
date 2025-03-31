@@ -1,5 +1,7 @@
-Tagging guidelines
-==================
+
+======================================================================
+Documentation Tagging Guidelines
+======================================================================
 
 .. admonition:: Template
 
@@ -54,10 +56,10 @@ title or the scope of the example.
     .. toctree::
         :maxdepth: 2
 
-        tag_glossary
+        guide_document_tag_glossary
 
     +++
-    See :doc:`Tag Glossary <tag_glossary>` for a complete list
+    See :doc:`Tag Glossary <guide_document_tag_glossary>` for a complete list
 
 Proposing new tags
 ------------------

@@ -37,7 +37,8 @@
    Release History <whats_new/index.rst>
    Community-G <https://github.com/orgs/scikit-plots/discussions>
    Community-Z <https://zenodo.org/communities/scikit-plots>
-   Developer’s Guide <devel/index>
+   Developer's Guide <devel/index>
+   Code of Conduct <project/code_of_conduct.rst>
    Governance <project/governance.rst>
    Roadmap <project/roadmap.rst>
    About us <project/index.rst>

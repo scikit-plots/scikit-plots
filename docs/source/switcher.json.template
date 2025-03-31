@@ -3,24 +3,25 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # https://jinja.palletsprojects.com/en/stable/templates/
+# ~ operator is used for string concatenation in Jinja2.
 -#}
-{#- if version.split('+')[0] == version #}
-{#- endif #}
+{#- if version.split('+')[0] | trim == version -#}
+{#- endif -#}
 [
   {
-    "name": "0.5.dev0 (dev)",
-    "version": "{{ version.split('+')[0] | trim }}",
+    "name": "{{ dev_version | trim ~ " " ~ "(dev)" }}",
+    "version": "{{ dev_version | trim }}",
     "url": "https://scikit-plots.github.io/dev/"
   },
   {
-    "name": "0.4.0rc0 (stable)",
-    "version": "0.4.0rc0",
+    "name": "{{ stable_version | trim ~ " " ~ "(stable)" }}",
+    "version": "{{ stable_version | trim }}",
     "url": "https://scikit-plots.github.io/stable/",
     "preferred": true
   },
   {
-    "name": "0.3.9rc3 (prev)",
-    "version": "0.3.9rc3",
+    "name": "{{ prev_version | trim ~ " " ~ "(prev)" }}",
+    "version": "{{ prev_version | trim }}",
     "url": "https://scikit-plots.github.io/prev/"
   },
   {
