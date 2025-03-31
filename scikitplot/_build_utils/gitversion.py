@@ -211,6 +211,8 @@ def git_version(
                 stderr=subprocess.PIPE,
                 cwd=os.path.dirname(__file__),
             )
+            # Use communicate() when you only care about the final output.
+            # Use stdout.readline() when you need real-time updates.
             out, err = p.communicate()
             return (p.returncode, out, err.decode("utf-8").strip())
 

@@ -1,0 +1,91 @@
+name: Deploy Docs
+
+on:
+#   schedule:
+#     - cron: "22 22 * * *"
+  push:
+    branches:
+      - main  # Set a branch name to trigger deployment
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy from'
+        required: false
+        default: 'main'
+      version:
+        description: 'Docs Version (e.g., 0.4, dev, stable, prev)'
+        required: true
+        default: 'dev'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:  # Define environment variables at the job level
+      VERSION: ${{ github.event.inputs.version }}
+
+    permissions:
+      contents: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          ref: ${{ github.event.inputs.branch || 'main' }}
+
+      - name: Validate Version Input
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+$ && "$VERSION" != "latest" && "$VERSION" != "stable" ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements/all.txt
+
+      - name: Build Library (if applicable)
+        run: |
+          pip install --no-build-isolation --no-cache-dir .[dev,build,test,docs]
+
+      - name: Build Documentation
+        run: |
+          cd docs
+          make html
+          mkdir -p build/html/"$VERSION"
+          mv build/html/stable/* build/html/"$VERSION"
+          cd ..
+
+    #   - name: Add Redirect to Latest Docs
+    #     run: |
+    #       echo '<meta http-equiv="refresh" content="0; url=latest/index.html">' > docs/build/html/index.html
+
+      - name: Deploy to GitHub Pages (Versioned)
+        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847
+        # If you're changing the branch from main,
+        # also change the `main` in `refs/heads/main`
+        # below accordingly.
+        # if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          external_repository: scikit-plots/scikit-plots.github.io
+          commit_message: "Deploy docs for version $VERSION"
+          full_commit_message: ${{ github.event.head_commit.message }}
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          publish_dir: ./docs/build/html  # Deploy entire build folder  # default: public
+          destination_dir: $VERSION  # Deploy to versioned subfolder
+          publish_branch: gh-pages  # default: gh-pages
+          # allow_empty_commit: true
