@@ -7,15 +7,15 @@ on:
   #   # branches:
   #   #   - main  # Set a branch name to trigger deployment
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to deploy from'
-        required: false
-        default: 'main'
-      version:
-        description: 'Docs Version (e.g., 0.4, dev, stable, prev)'
-        required: false
-        default: 'dev'
+    # inputs:
+    #   branch:
+    #     description: 'Branch to deploy from'
+    #     required: false
+    #     default: 'main'
+    #   version:
+    #     description: 'Docs Version (e.g., 0.4, dev, stable, prev)'
+    #     required: false
+    #     default: 'dev'
 
 permissions: # Grants read-only permission to repository contents
   contents: read # to fetch code (actions/checkout)
@@ -32,6 +32,7 @@ jobs:
     env:  # Define environment variables at the job level
       # Use inside step level environment NAME: '' as $NAME, ${{ env.NAME }}
       VERSION: ${{ github.event.inputs.version || 'dev' }}  # Use 'dev' if version is empty
+      BRANCH: ${{ github.event.inputs.branch || 'main' }}  # Use 'dev' if version is empty
 
     steps:
       - name: Checkout Repository
@@ -40,7 +41,7 @@ jobs:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: true  # Fetch Hugo themes (true OR recursive)
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
-          ref: ${{ github.event.inputs.branch || 'main' }}
+          # ref: $BRANCH
 
       # - name: Validate Version Input
       #   env:
