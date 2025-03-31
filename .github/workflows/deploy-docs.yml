@@ -3,7 +3,7 @@ name: Deploy Docs
 on:
   # schedule:
   #   - cron: "22 22 * * *"
-  # push:
+  push:
   #   # branches:
   #   #   - main  # Set a branch name to trigger deployment
   workflow_dispatch:
