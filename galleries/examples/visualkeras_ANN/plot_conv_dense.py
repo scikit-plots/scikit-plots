@@ -14,10 +14,7 @@ import gc
 
 gc.collect()
 
-import os
-
-# Set UTF-8 environment variable
-os.environ["PYTHONUTF8"] = "1"
+# pip install protobuf==5.29.4
 
 import tensorflow as tf
 
