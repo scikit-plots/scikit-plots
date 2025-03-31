@@ -30,5 +30,5 @@ online at https://www.astropy.org/.
 
    # (recommended) scikit-plots stats also include astropy stats
    from astropy import stats
-   import scikitplot.stats as stats
    from scikitplot import stats
+   import scikitplot.stats as stats

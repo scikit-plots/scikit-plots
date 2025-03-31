@@ -22,7 +22,7 @@ online at https://github.com/thequackdaddy/tweedie.
 
 .. prompt:: bash >>> auto
 
-   # (optionally) Only astropy stats
+   # (optionally) Only _tweedie
    import scikitplot._tweedie as _tweedie
    from scikitplot import _tweedie
 

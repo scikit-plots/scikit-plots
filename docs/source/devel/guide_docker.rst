@@ -15,7 +15,7 @@ Docker Containerization Guidelines
    https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md
 
 
-🚀 Docker Desktop or Github Codespaces
+🚀 Docker Containerization
 ---------------------------------------
 
 💡 Work on Docker Desktop or Github Codespaces
@@ -69,18 +69,6 @@ Docker Environment Setup for IDE (Vscode/Jupyter) and/or NVIDIA GPU driver
 This repository contains Docker & Docker Compose configurations for running Jupyter Notebooks with optional NVIDIA GPU support.
 
 You can run containers with either host-installed CUDA or pre-installed CUDA inside the container.
-
-📂 Folder Structure
---------------------
-
-.. code-block:: text
-
-   docker/
-   ├── docker-compose.yml              # Primary Docker Compose file
-   ├── docker-compose.override.yml     # Optional override file (auto-included if present)
-   ├── Dockerfile                      # Custom Dockerfile
-   ├── script/
-   │   ├── install_gpu_nvidia_cuda.sh  # GPU setup script
 
 🏷️ Docker Compose Quickstart Guide
 -----------------------------------
@@ -203,6 +191,18 @@ If you need more control, you can use Docker CLI commands.
 .. code-block:: sh
 
    docker exec -it <container_id> nvidia-smi
+
+📂 Folder Structure
+--------------------
+
+.. code-block:: text
+
+   docker/
+   ├── docker-compose.yml              # Primary Docker Compose file
+   ├── docker-compose.override.yml     # Optional override file (auto-included if present)
+   ├── Dockerfile                      # Custom Dockerfile
+   ├── script/
+   │   ├── install_gpu_nvidia_cuda.sh  # GPU setup script
 
 🖥️ Useful References
 --------------------------------
