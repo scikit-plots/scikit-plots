@@ -1,5 +1,6 @@
-# Circle CI configuration file
-# https://circleci.com/docs/
+# Python CircleCI 2.1 configuration file
+#
+# Check https://circleci.com/docs/2.1/language-python/ for more details
 ---
 version: 2.1
 
@@ -7,118 +8,222 @@ version: 2.1
 # Here is where the real jobs are defined.
 ##########################################
 
-jobs:
-  lint:
-    docker:
-      - image: cimg/python:3.9.18
-    steps:
-      - checkout
-      - run:
-          name: dependencies
-          command: |
-            source tools/shared.sh
-            # Include pytest compatibility with mypy
-            pip install pytest $(get_dep ruff min) $(get_dep mypy min) $(get_dep black min) cython-lint
-      - run:
-          name: linting
-          command: ./tools/linting.sh
+# Aliases to reuse
+_defaults: &defaults
+  docker:
+    # CircleCI maintains a library of pre-built images
+    # documented at https://circleci.com/developer/images/image/cimg/python
+    - image: cimg/python:3.11
+  # environment:
+  #   - MKL_NUM_THREADS: 2
+  #   - OPENBLAS_NUM_THREADS: 2
+  #   - CONDA_ENV_NAME: testenv
+  #   - LOCK_FILE: build_tools/circle/doc_linux-64_conda.lock
+  #   # Make sure that we fail if the documentation build generates warnings with
+  #   # recent versions of the dependencies.
+  #   - SKLEARN_WARNINGS_AS_ERRORS: '1'
+  resource_class: large
+  working_directory: ~/repo
 
-  doc-min-dependencies:
-    docker:
-      - image: cimg/python:3.9.18
-    environment:
-      - MKL_NUM_THREADS: 2
-      - OPENBLAS_NUM_THREADS: 2
-      - CONDA_ENV_NAME: testenv
-      - LOCK_FILE: tools/circle/doc_min_dependencies_linux-64_conda.lock
-      # Do not fail if the documentation build generates warnings with minimum
-      # dependencies as long as we can avoid raising warnings with more recent
-      # versions of the same dependencies.
-      - SKLEARN_WARNINGS_AS_ERRORS: '0'
+commands:
+  check-skip:
+    description: Check if commit message contains skip keyword
     steps:
-      - checkout
-      - run: ./tools/circle/checkout_merge_commit.sh
-      - restore_cache:
-          key: v1-doc-min-deps-datasets-{{ .Branch }}
-      - restore_cache:
-          keys:
-            - doc-min-deps-ccache-{{ .Branch }}
-            - doc-min-deps-ccache
-      - run: ./tools/circle/build_doc.sh
-      - save_cache:
-          key: doc-min-deps-ccache-{{ .Branch }}-{{ .BuildNum }}
-          paths:
-            - ~/.ccache
-            - ~/.cache/pip
-      - save_cache:
-          key: v1-doc-min-deps-datasets-{{ .Branch }}
-          paths:
-            - ~/scikit_learn_data
-      - store_artifacts:
-          path: docs/build/html/stable
-          destination: docs
-      - store_artifacts:
-          path: ~/log.txt
-          destination: log.txt
+      - run:
+        name: Check skip
+        command: |
+          if [ ! -d "scikitplot" ]; then
+            echo "Build was not run due to skip, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+            circleci-agent step halt;
+          fi
 
-  doc:
-    docker:
-      - image: cimg/python:3.9.18
-    environment:
-      - MKL_NUM_THREADS: 2
-      - OPENBLAS_NUM_THREADS: 2
-      - CONDA_ENV_NAME: testenv
-      - LOCK_FILE: tools/circle/doc_linux-64_conda.lock
-      # Make sure that we fail if the documentation build generates warnings with
-      # recent versions of the dependencies.
-      - SKLEARN_WARNINGS_AS_ERRORS: '1'
+          export GIT_LOG=$(git log --max-count=1 --pretty=format:"%B" | tr "\n" " ")
+          echo "Got commit message:"
+          echo "${GIT_LOG}"
+          if [[ -v CIRCLE_PULL_REQUEST ]] \
+              && ([[ "$GIT_LOG" == *"[skip circle]"* ]] \
+              || [[ "$GIT_LOG" == *"[circle skip]"* ]] \
+              || [[ "$GIT_LOG" == *"[lint only]"* ]]); then
+            echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+            circleci-agent step halt;
+          fi
+  merge:
+    description: Merge with upstream
     steps:
-      - checkout
-      - run: ./tools/circle/checkout_merge_commit.sh
-      - restore_cache:
-          key: v1-doc-datasets-{{ .Branch }}
-      - restore_cache:
-          keys:
-            - doc-ccache-{{ .Branch }}
-            - doc-ccache
-      - run: ./tools/circle/build_doc.sh
-      - save_cache:
-          key: doc-ccache-{{ .Branch }}-{{ .BuildNum }}
-          paths:
-            - ~/.ccache
-            - ~/.cache/pip
-      - save_cache:
-          key: v1-doc-datasets-{{ .Branch }}
-          paths:
-            - ~/scikit_learn_data
+      - run:
+        name: Merge with upstream
+        command: |
+          echo $(git log -1 --pretty=%B)    | tee gitlog.txt
+
+          echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+          if [[ $(cat merge.txt) != "" ]]; then
+            echo "Merging $(cat merge.txt)";
+            if ! git remote -v | grep upstream; then
+              git remote add upstream https://github.com/scikit-plots/scikit-plots.git;
+            fi
+            git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+            git fetch upstream main;
+          fi
+  submodules:
+    description: update submodules
+    steps:
+      - run:
+        name: update submodules
+        command: |
+          # git submodule update --init --recursive  # download submodules
+          git submodule init
+          git submodule update
+  apt-install:
+    description: Install system dependencies
+    steps:
+      - run:
+        name: Install system dependencies
+        command: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            make \
+            ccache \
+            cm-super \
+            graphviz \
+            ffmpeg \
+            inkscape \
+            ninja-build \
+            gfortran \
+            libopenblas-dev \
+            libgmp-dev \
+            libmpfr-dev
+  pip-install:
+    description: Upgrade pip and setuptools and wheel to get as clean an install as possible
+    steps:
+      - run:
+        name: Upgrade pip, setuptools, wheel
+        command: |
+          # python -m pip install --upgrade --user --progress-bar=off --pre pip
+          # pip install -r ./requirements/build.txt
+          pip install -r ./requirements/all.txt
+  build-pkg:
+    description: build scikit-plots
+    steps:
+      - run:
+        name: build scikit-plots
+        command: |
+          pip install --no-build-isolation --no-cache-dir .[dev,build,test,docs]
+  build-docs:
+    description: build documentation scikit-plots
+    steps:
+      - attach_workspace:
+        at: ~/
+      - run:
+        name: build docs
+        # no_output_timeout: 25m
+        command: |
+          cd docs && make html 2>&1 | tee sphinx_log.txt
+      - run:
+        name: Check sphinx log for warnings (which are treated as errors)
+        when: always
+        command: |
+          ! grep "^.* WARNING: .*$" sphinx_log.txt
       - store_artifacts:
-          path: docs/build/html/stable
-          destination: docs
+          path: ~/sphinx_log.txt
+          destination: sphinx_log.txt
       - store_artifacts:
-          path: ~/log.txt
-          destination: log.txt
+        path: docs/build/html/stable
+        destination: stable
       # Persists generated documentation so that it can be attached and deployed
       # in the 'deploy' step.
       - persist_to_workspace:
-          root: docs/build/html
-          paths: .
+        # root: ~/repo
+        root: docs/build/html/stable
+        paths:
+          # - docs/build/html/stable
+          - .
+  # Run benchmarks
+  # Reference guide checking
 
+##########################################
+# Here is where the real jobs are defined.
+##########################################
+
+jobs:
+  # Build scikit-plots from source
+  build:
+    <<: *defaults
+    description: "Build new docs"
+    steps:
+      # run built-in
+      - checkout
+
+      # run commands
+      - check-skip
+      - merge
+      - submodules
+
+      - apt-install
+      # - restore_cache:
+      #   keys:
+      #     - deps_ccache-{{ .Branch }}
+      #     - deps_ccache
+      - pip-install
+      - build-pkg
+      # - save_cache:
+      #     key: deps_ccache-{{ .Branch }}-{{ .BuildNum }}
+      #     paths:
+      #       - ~/.ccache
+      #       - ~/.cache/pip
+      # - run:
+      #     name: ccache performance
+      #     command: |
+      #       ccache -s
+      # - persist_to_workspace:
+      #     root: ~/
+      #     paths:
+      #       - .
+      - build-docs
+  # Upload build output to scipy/devdocs repository, using SSH deploy keys.
+  # The keys are only available for builds on main branch.
+  # https://developer.github.com/guides/managing-deploy-keys/
+  # https://circleci.com/docs/2.0/configuration-reference/#add_ssh_keys
   deploy:
-    docker:
-      - image: cimg/python:3.9.18
+    <<: *defaults
+    description: "Deploy new docs"
     steps:
       - checkout
-      - run: ./tools/circle/checkout_merge_commit.sh
       # Attach documentation generated in the 'doc' step so that it can be
       # deployed.
       - attach_workspace:
-          at: docs/build/html
+        at: docs/build/html/stable
       - run: ls -ltrh docs/build/html/stable
-      - run:
-          command: |
-            if [[ "${CIRCLE_BRANCH}" =~ ^main$|^[0-9]+\.[0-9]+\.X$ ]]; then
-              bash tools/circle/push_doc.sh docs/build/html/stable
-            fi
+      # - run:
+      #   name: upload new docs
+      #   command: |
+      #     if [[ "${CIRCLE_BRANCH}" =~ ^main$|^[0-9]+\.[0-9]+\.X$ ]]; then
+      #       bash build_tools/circle/push_doc.sh doc/_build/html/stable
+      #     fi
+      # - add_ssh_keys:
+      #   fingerprints:
+      #     - "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"
+      # - run:
+      #   name: upload new docs via ssh
+      #   command: |
+      #     set -ex;
+
+      #     mkdir -p ~/.ssh
+      #     echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
+      #     chmod og= ~/.ssh/config
+
+      #     git clone git@github.com:scipy/devdocs.git devdocs;
+      #     cd devdocs;
+      #     (git checkout --orphan tmp && git branch -D gh-pages || true);
+      #     git checkout --orphan gh-pages;
+      #     git reset --hard;
+      #     cp -R /tmp/build/html/. .;
+      #     touch .nojekyll;
+      #     git config --global user.email "scipy-circleci-bot@nomail";
+      #     git config --global user.name "scipy-circleci-bot";
+      #     git config --global push.default simple;
+      #     git add . > /dev/null;
+      #     git commit -m "Docs build of $CIRCLE_SHA1";
+      #     git push --set-upstream origin gh-pages --force
 
 #########################################
 # Defining workflows gets us parallelism.
@@ -126,17 +231,17 @@ jobs:
 
 workflows:
   version: 2
-  build-doc-and-deploy:
+  default:
     jobs:
       # NOTE: If you rename this job, then you must update the `if` condition
       # and `circleci-jobs` option in `.github/workflows/circleci.yml`.
-      - lint
-      - doc:
-          requires:
-            - lint
-      - doc-min-dependencies:
-          requires:
-            - lint
+      - build
+      # - run_benchmarks:
+      #   requires:
+      #     - build
       - deploy:
-          requires:
-            - doc
+        requires:
+          - build
+        # filters:
+        #   branches:
+        #   only: main

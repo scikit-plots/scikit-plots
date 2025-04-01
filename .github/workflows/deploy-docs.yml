@@ -3,9 +3,10 @@ name: Deploy Docs
 on:
   # schedule:
   #   - cron: "22 22 * * *"
-  push:
+  # push:
   #   # branches:
   #   #   - main  # Set a branch name to trigger deployment
+  # pull_request:
   workflow_dispatch:
     # inputs:
     #   branch:
@@ -18,18 +19,24 @@ on:
     #     default: 'dev'
 
 permissions: # Grants read-only permission to repository contents
-  contents: read # to fetch code (actions/checkout)
   # IMPORTANT: This permission is mandatory for secure publishing
+  # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
   id-token: write  # Required for trusted publishing
+  contents: read # to fetch code (actions/checkout)
+  pages: write  # to deploy to Pages
 
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }} # Recommended if you intend to make multiple deployments in quick succession.
+  # cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     env:  # Define environment variables at the job level
+      GIT_TERMINAL_PROMPT: 0  # Prevents interactive password prompts
       # Use inside step level environment NAME: '' as $NAME, ${{ env.NAME }}
       VERSION: ${{ github.event.inputs.version || 'dev' }}  # Use 'dev' if version is empty
       BRANCH: ${{ github.event.inputs.branch || 'main' }}  # Use 'dev' if version is empty
@@ -63,6 +70,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          # Make sure to list Sphinx and any other dependencies in your requirements
           pip install -r requirements/all.txt
 
       - name: Build Library (if applicable)
@@ -73,13 +81,28 @@ jobs:
         run: |
           cd docs
           make html
-          mkdir -p build/html/"$VERSION"
-          mv build/html/stable/* build/html/"$VERSION"
+          # mkdir -p build/html/"$VERSION"
+          # mv build/html/stable/* build/html/"$VERSION"
           cd ..
 
-    #   - name: Add Redirect to Latest Docs
-    #     run: |
-    #       echo '<meta http-equiv="refresh" content="0; url=latest/index.html">' > docs/build/html/index.html
+      # - name: Add Redirect to Latest Docs
+      #   run: |
+      #     echo '<meta http-equiv="refresh" content="0; url=latest/index.html">' > docs/build/html/index.html
+
+      - name: Deploy to GitHub Pages
+        # if: github.event_name == 'push'
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+          # Push to GitHub Pages branch (make sure you have a gh-pages branch)
+          git clone --branch gh-pages https://github.com/${{ github.repository }} gh-pages
+          cd gh-pages
+          rm -rf *  # Clean previous content
+          cp -r ../docs/_build/html/* .  # Copy the new HTML content
+          git add .
+          git commit -m "Update documentation"
+          git push origin gh-pages
 
       - name: Deploy to GitHub Pages (Versioned)
         uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847
@@ -88,7 +111,7 @@ jobs:
         # below accordingly.
         # if: github.ref == 'refs/heads/main'
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # github_token: ${{ secrets.GITHUB_TOKEN }}  # only grants permissions to the same repository
           external_repository: scikit-plots/scikit-plots.github.io
           commit_message: "Deploy docs for version $VERSION"
           full_commit_message: ${{ github.event.head_commit.message }}
