@@ -71,6 +71,8 @@ Installing the latest release
           Note that the virtual environment is optional but strongly recommended, in
           order to avoid potential conflicts with other packages.
 
+          .. .. code-block:: python
+
           .. prompt:: powershell >>> auto
 
             python -m venv sklearn-env
@@ -130,7 +132,7 @@ Installing the latest release
           Now create a `virtual environment (venv)
           <https://docs.python.org/3/tutorial/venv.html>`_ and install scikit-plots.
           Note that the virtual environment is optional but strongly recommended, in
-          order to avoid potential conflicts with other packges.
+          order to avoid potential conflicts with other packages.
 
           .. prompt:: bash >>> auto
 

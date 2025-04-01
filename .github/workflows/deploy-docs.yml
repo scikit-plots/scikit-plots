@@ -1,0 +1,123 @@
+name: Deploy Docs
+
+on:
+  # schedule:
+  #   - cron: "22 22 * * *"
+  # push:
+  #   # branches:
+  #   #   - main  # Set a branch name to trigger deployment
+  # pull_request:
+  workflow_dispatch:
+    # inputs:
+    #   branch:
+    #     description: 'Branch to deploy from'
+    #     required: false
+    #     default: 'main'
+    #   version:
+    #     description: 'Docs Version (e.g., 0.4, dev, stable, prev)'
+    #     required: false
+    #     default: 'dev'
+
+permissions: # Grants read-only permission to repository contents
+  # IMPORTANT: This permission is mandatory for secure publishing
+  # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+  id-token: write  # Required for trusted publishing
+  contents: read # to fetch code (actions/checkout)
+  pages: write  # to deploy to Pages
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }} # Recommended if you intend to make multiple deployments in quick succession.
+  # cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:  # Define environment variables at the job level
+      GIT_TERMINAL_PROMPT: 0  # Prevents interactive password prompts
+      # Use inside step level environment NAME: '' as $NAME, ${{ env.NAME }}
+      VERSION: ${{ github.event.inputs.version || 'dev' }}  # Use 'dev' if version is empty
+      BRANCH: ${{ github.event.inputs.branch || 'main' }}  # Use 'dev' if version is empty
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          # ref: $BRANCH
+
+      # - name: Validate Version Input
+      #   env:
+      #     VERSION: ${{ github.event.inputs.version }}
+      #   run: |
+      #     echo "$VERSION"
+      #     if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+$ && "$VERSION" != "dev" && "$VERSION" != "stable" && "$VERSION" != "prev" ]]; then
+      #       echo "❌ Invalid version format: $VERSION"
+      #       exit 1
+      #     fi
+
+      - name: Install System Dependencies  # ✅ Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          # Make sure to list Sphinx and any other dependencies in your requirements
+          pip install -r requirements/all.txt
+
+      - name: Build Library (if applicable)
+        run: |
+          pip install --no-build-isolation --no-cache-dir .[dev,build,test,docs]
+
+      - name: Build Documentation
+        run: |
+          cd docs
+          make html
+          # mkdir -p build/html/"$VERSION"
+          # mv build/html/stable/* build/html/"$VERSION"
+          cd ..
+
+      # - name: Add Redirect to Latest Docs
+      #   run: |
+      #     echo '<meta http-equiv="refresh" content="0; url=latest/index.html">' > docs/build/html/index.html
+
+      - name: Deploy to GitHub Pages
+        # if: github.event_name == 'push'
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+          # Push to GitHub Pages branch (make sure you have a gh-pages branch)
+          git clone --branch gh-pages https://github.com/${{ github.repository }} gh-pages
+          cd gh-pages
+          rm -rf *  # Clean previous content
+          cp -r ../docs/_build/html/* .  # Copy the new HTML content
+          git add .
+          git commit -m "Update documentation"
+          git push origin gh-pages
+
+      - name: Deploy to GitHub Pages (Versioned)
+        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847
+        # If you're changing the branch from main,
+        # also change the `main` in `refs/heads/main`
+        # below accordingly.
+        # if: github.ref == 'refs/heads/main'
+        with:
+          # github_token: ${{ secrets.GITHUB_TOKEN }}  # only grants permissions to the same repository
+          external_repository: scikit-plots/scikit-plots.github.io
+          commit_message: "Deploy docs for version $VERSION"
+          full_commit_message: ${{ github.event.head_commit.message }}
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          publish_dir: ./docs/build/html  # Deploy entire build folder  # default: public
+          destination_dir: $VERSION  # Deploy to versioned subfolder
+          publish_branch: gh-pages  # default: gh-pages
+          # allow_empty_commit: true

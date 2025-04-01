@@ -74,7 +74,7 @@ For Linux-based installations, you won't have to install any additional componen
 .. _contributing_forking:
 
 Create a clone of scikit-plots
-------------------------------
+==================================
 
 If you have not done so already, you will need your own copy of ``scikit-plots`` to
 build it and/or contribute to the source. scikit-plots is hosted in the
@@ -136,7 +136,7 @@ You will see something like::
 .. _create_isolated_env:
 
 Create an isolated development environment
-------------------------------------------
+============================================
 
 A key requirement is to have an isolated Python environment, meaning that it is
 isolated from both your system Python and any other Python environments you may have
@@ -186,7 +186,8 @@ all the dependencies needed to build and fully test ``scikit-plots``::
 
 .. _contributing_check_build:
 
-**Checking the build scikit-plots**
+Checking the build scikit-plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 At this point you should be able to ``import scikitplot`` from your locally built version::
 
@@ -216,7 +217,7 @@ Install pre-commit
 ------------------
 
 This is optional, but *highly recommended*. `Pre-commit <https://pre-commit.com/>`_ is a
-tool that runs a number of :ref:`Continuous Integration (CI) <contributing_ci>` checks
+tool that runs a number of `Continuous Integration (CI) <contributing_ci>`_ checks
 (e.g. code formatting) on your code before you commit it. If you skip this step then it
 is likely that one or more of those CI checks will fail when you make a pull request,
 resulting in lost time (yours and CI resources).
@@ -371,7 +372,7 @@ you created the branch, check the section on
 .. _contributing_commit_code:
 
 Making code or documentation changes
-------------------------------------
+============================================
 
 Now comes the fun part where you use your favorite editor or IDE to make changes to the
 code or documentation! At a high level this breaks into a few parts:
@@ -466,7 +467,7 @@ again to address any feedback and update your pull request::
     >>> git push origin subpackage-bug-fix
 
 Any ``git push`` will automatically update your pull request with your branch's changes
-and restart the :ref:`Continuous Integration <contributing_ci>` checks.
+and restart the `Continuous Integration <contributing_ci>`_ checks.
 
 .. Important:: At this point please read (or at least skim) the sections :ref:`revise
     and push`, :ref:`rebase`, and :ref:`squash-if-necessary`. The information here

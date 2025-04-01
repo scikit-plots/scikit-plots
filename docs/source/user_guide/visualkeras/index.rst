@@ -14,6 +14,17 @@ For visualkeras for Keras / TensorFlow Models :py:class:`~tensorflow.keras.Model
 Documentation is available in the docstrings and
 online at https://github.com/paulgavrikov/visualkeras.
 
+.. .. code-block:: python
+
+.. prompt:: bash >>> auto
+
+   # (optionally)
+   import visualkeras
+
+   # (recommended) scikit-plots also include visualkeras
+   import scikitplot.visualkeras as visualkeras
+   from scikitplot import visualkeras
+
 
 Visualkeras Visualization
 ----------------------------------------------------------------------

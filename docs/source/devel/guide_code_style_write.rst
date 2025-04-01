@@ -1,8 +1,8 @@
 .. _coding_guidelines:
 
-*****************
-Coding Guidelines
-*****************
+======================================================================
+Code Style and Writing Guidelines
+======================================================================
 
 .. admonition:: Template
 
@@ -309,10 +309,10 @@ and running the same script will display
 
 .. _licence-coding-guide:
 
-.. include:: license.rst
+.. include:: guide_code_license.rst
   :start-line: 2
 
 .. toctree::
    :hidden:
 
-   license.rst
+   guide_code_license.rst

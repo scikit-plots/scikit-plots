@@ -13,9 +13,12 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 import gc
 
 gc.collect()
+
+# pip install protobuf==5.29.4
+
 import tensorflow as tf
 
-# Clear the GPU memory cache
+# Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
 
 model = tf.keras.models.Sequential()
@@ -26,7 +29,9 @@ model.add(tf.keras.layers.InputLayer(input_shape=(100,)))
 # The Conv1D layer expects a 3D input: (batch_size, steps, channels).
 # The Reshape layer now reshapes the input to (n_timesteps,n_features) like (100, 1),
 # which matches the expected input of Conv1D.
-model.add(tf.keras.layers.Reshape((100, 1)))  # Shape: (batch_size, 100, 1), input_shape=(100,)
+model.add(
+    tf.keras.layers.Reshape((100, 1))
+)  # Shape: (batch_size, 100, 1), input_shape=(100,)
 
 # Add Conv1D and other layers
 model.add(tf.keras.layers.Conv1D(32, 1, strides=1, activation="relu"))

@@ -15,6 +15,9 @@ See: https://www.sphinx-doc.org/en/master/usage/configuration.html
 for more details on configuring the documentation build.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # sphinx conf
 # scikit-plots documentation build configuration file, created by
 # sphinx-quickstart on Sun Feb 12 17:56:21 2017.
@@ -61,6 +64,8 @@ except ImportError:
     # that need plotly.
     pass
 
+# Use datetime.UTC if available (Python 3.11+), else fallback to datetime.timezone.utc
+UTC = getattr(datetime, "UTC", datetime.timezone.utc)  # datetime.datetime.now(tz=UTC)
 
 ##########################################################################
 ## Project information
@@ -81,7 +86,7 @@ author = "scikit-plots developers"
 # where ‘YYYY’ represents a four-digit year.
 # The project_copyright alias.
 # copyright = u'2017, Reiichiro S. Nakano'
-copyright = f"2024 - {datetime.datetime.now(tz=datetime.UTC).year}, {author} (BSD-3 Clause License)"
+copyright = f"2024 - {datetime.datetime.now().year} {author} (BSD-3 Clause License)"
 
 ##########################################################################
 ## version
@@ -213,7 +218,6 @@ extensions = [
     # sp: Custom extensions
     "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     "_sphinx_ext.skplt_ext.version_info_extension",  # version_info_extension
-    # "_sphinx_ext.skplt_ext.api_extension",                  # api_extension extension
     # Tags and other utility extensions (load last if they depend on others)
     # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
     "sphinx_tags",  # Needs to be loaded *after* autodoc.
@@ -347,8 +351,15 @@ _check_dependencies()
 # today_fmt = '%B %d, %Y'
 #
 # Option 2: Use today's date in the specified format
-today_fmt = "%B %d, %Y"
+# %B → Full month name (e.g., March)
+# %d → Day of the month (e.g., 30)
+# %Y → Full year (e.g., 2025)
+# %H → Hour (24-hour format)
+# %M → Minute
+today_fmt = "%B %d, %Y %H:%M"
 today = datetime.datetime.today().strftime(today_fmt)
+
+copyright += f" {_version_raw} {today}"
 
 ##########################################################################
 ## Options for highlighting
@@ -513,9 +524,13 @@ html_theme_options = {
     # the built documentation
     # https://pydata-sphinx-theme.readthedocs.io/en/latest/user_guide/version-dropdown.html#configure-switcher-json-url
     "switcher": {
+        # Add a unique query to the switcher.json url.  This will be ignored by
+        # the server, but will be used as part of the key for caching by browsers
+        # so when we do a new meso release the switcher will update "promptly" on
+        # the stable and devdocs.
         # "json_url": "https://scikit-plots.github.io/dev/_static/versions.json",
         "json_url": "https://scikit-plots.github.io/dev/_static/switcher.json",
-        "version_match": release.split("+")[0],  # without git
+        "version_match": _version_raw.split("+")[0].strip(),  # without git section
     },
     # check_switcher may be set to False if docbuild pipeline fails. See
     # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html#configure-switcher-json-url
@@ -1223,7 +1238,7 @@ html_context = {
     #     {"title": "Title 2", "text": "Description 2"},
     #     # Add more entries as needed
     #   ]
-    # }
+    # },
 }
 # See https://github.com/scikit-learn/scikit-learn/pull/22550
 html_context["is_devrelease"] = is_devrelease
@@ -1401,10 +1416,11 @@ extlinks = {
 ## Convert .rst.template files to .rst
 ##########################################################################
 
+# add rst templates
 release_versions_rst_templates = [
     (
-        "devel/maintainer",  # rst_template_name
-        "devel/maintainer",  # rst_target_name
+        "devel/guide_maintainer",  # rst_template_name
+        "devel/guide_maintainer",  # rst_target_name
         {},  # kwargs
     ),
     # Add more default templates here
@@ -1451,7 +1467,7 @@ from apis_reference import APIS_REFERENCE, DEPRECATED_APIS_REFERENCE
 
 # Define the templates and target files for conversion
 # Each entry is in the format (template name, file name, kwargs for rendering)
-rst_templates = [
+rst_templates: list[tuple[str, str, dict[str, any]]] = [
     (
         "apis/index",
         "apis/index",

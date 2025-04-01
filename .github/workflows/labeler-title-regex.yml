@@ -1,7 +1,10 @@
-name: Pull Request Regex Title Labeler
+name: Labeler Title Regex
+
 on:
-  pull_request_target:
+  pull_request:  # Safer alternative to pull_request_target:
     types: [opened, edited]
+    # branches:
+    #   - main  # Only allow workflow to run on main branch PRs
 
 # Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
 # github actions workflow:
@@ -11,16 +14,21 @@ permissions:
   pull-requests: write
 
 jobs:
-
   labeler:
     runs-on: ubuntu-20.04
+
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false  # Prevent automatic token persistence
+
     - uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.11'
+
     - name: Install PyGithub
       run: pip install -Uq PyGithub
+
     - name: Label pull request
       run: python .github/scripts/label_title_regex.py
       env:

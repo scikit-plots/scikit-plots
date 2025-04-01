@@ -39,6 +39,8 @@ def _get_submodule(module_name, submodule_name):
 CONFIGURING APIS_REFERENCE
 =========================
 
+APIS_REFERENCE: dict[str, dict[str, any]]
+
 APIS_REFERENCE maps each module name to a dictionary that consists of the following
 components:
 
@@ -87,7 +89,7 @@ is not a particular submodule does the hook become useful, e.g., the "Loaders" s
 under `sklearn.datasets`.
 """
 
-APIS_REFERENCE = {
+APIS_REFERENCE: dict[str, dict[str, any]] = {
     "scikitplot": {
         "short_summary": "Settings and information visualization tools.",
         "description": None,
@@ -499,6 +501,8 @@ APIS_REFERENCE = {
 CONFIGURING DEPRECATED_APIS_REFERENCE
 ====================================
 
+DEPRECATED_APIS_REFERENCE: dict[str, list[str]]
+
 DEPRECATED_APIS_REFERENCE maps each deprecation target version to a corresponding
 autosummary block. It will be placed at the bottom of the APIs index page under the
 "Recently deprecated" section. Essentially, the rendered section would look like the
@@ -530,7 +534,7 @@ DEPRECATED_APIS_REFERENCE = {
 }
 """
 
-DEPRECATED_APIS_REFERENCE = {
+DEPRECATED_APIS_REFERENCE: dict[str, list[str]] = {
     "0.5": [
         "_factory_api",  # Visualizations (object-based, explicit)
         "api.metrics.plot_roc_curve",

@@ -1,8 +1,8 @@
 .. _communications_guidelines:
 
-==========================
-Community management guide
-==========================
+======================================================================
+Community Management Guidelines
+======================================================================
 
 .. admonition:: Template
 

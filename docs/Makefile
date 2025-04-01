@@ -71,8 +71,8 @@ clean: clean_basic
 	@echo "Removed $(BUILDDIR)/*"
 	@rm -rf $(SOURCEDIR)/css/styles/
 	@echo "Removed $(SOURCEDIR)/css/styles/"
-	@rm -rf $(SOURCEDIR)/api/*.rst $(SOURCEDIR)/apis/*.rst $(SOURCEDIR)/devel/maintainer.rst $(SOURCEDIR)/index.rst
-	@echo "Removed $(SOURCEDIR)/api[s]/*.rst" "$(SOURCEDIR)/devel/maintainer.rst" "$(SOURCEDIR)/index.rst"
+	@rm -rf "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/devel/guide_maintainer.rst" "$(SOURCEDIR)/api{,s}/*.rst"
+	@echo "Removed "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/devel/guide_maintainer.rst" "$(SOURCEDIR)/api{,s}/*.rst" "
 	@rm -rf $(SOURCEDIR)/auto_examples/
 	@echo "Removed $(SOURCEDIR)/auto_examples/"
 	@rm -rf $(SOURCEDIR)/modules/generated/ $(SOURCEDIR)/generated/
@@ -184,3 +184,9 @@ optipng:
 	  | xargs -0 -n 1 -P 4 optipng -o10
 
 dist: html ziphtml
+
+rep:
+	@# Remove the old contents
+	@rm -rf ../git_clones/scikit-plots.github.io/0.4/*
+	@# Copy the contents from source_foldera to destination
+	@cp -r ./build/html/stable/* ../git_clones/scikit-plots.github.io/0.4

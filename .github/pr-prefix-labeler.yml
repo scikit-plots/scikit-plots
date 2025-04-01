@@ -1,0 +1,19 @@
+# https://github.com/gerrymanoim/pr-prefix-labeler
+# pr-prefix-labeler.yml
+---
+"BUG"  : "00 - Bug"
+"ENH"  : "01 - Enhancement"
+"MAINT": "03 - Maintenance"
+"MNT"  : "03 - Maintenance"
+"STY"  : "03 - Maintenance"
+"DOC"  : "04 - Documentation"
+"TST"  : "05 - Testing"
+"DEP"  : "07 - Deprecation"
+"REL"  : "14 - Release"
+"DEV"  : "16 - Development"
+"WIP"  : "25 - WIP"
+"BENCH": "28 - Benchmark"
+"API"  : "30 - API"
+"REV"  : "34 - Reversion"
+"BLD"  : "36 - Build"
+"TYP"  : "static typing"

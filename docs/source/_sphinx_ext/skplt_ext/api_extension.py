@@ -65,50 +65,16 @@ def setup(app: Sphinx):
         # documentation root, use os.path.abspath to make it absolute, like shown here.
         # sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_sphinx_ext/sklearn_ext"))
         sys.path.insert(0, os.path.abspath(app.srcdir))
-        from .api_reference import API_REFERENCE, DEPRECATED_API_REFERENCE
+        from apis_reference import APIS_REFERENCE, DEPRECATED_APIS_REFERENCE
+
+        ## Convert each module API reference page
+        APIS_REFERENCE: dict[str, dict[str, any]]
+        ## Convert the deprecated API reference page (if there exists any)
+        DEPRECATED_APIS_REFERENCE: dict[str, list[str]]
 
         # Define the templates and target files for conversion
         # Each entry is in the format (template name, file name, kwargs for rendering)
-        DEFAULT_API_TEMPLATES = [
-            (
-                "api/index",
-                "api/index",
-                {
-                    "API_REFERENCE": sorted(API_REFERENCE.items(), key=lambda x: x[0]),
-                    "DEPRECATED_API_REFERENCE": sorted(
-                        DEPRECATED_API_REFERENCE.items(),
-                        key=lambda x: x[0],
-                        reverse=True,
-                    ),
-                },
-            ),
-        ]
-
-        # Convert each module API reference page
-        for module in API_REFERENCE:
-            DEFAULT_API_TEMPLATES.append(
-                (
-                    "api/module",
-                    f"api/{module}",
-                    {"module": module, "module_info": API_REFERENCE[module]},
-                )
-            )
-
-        # Convert the deprecated API reference page (if there exists any)
-        if DEPRECATED_API_REFERENCE:
-            DEFAULT_API_TEMPLATES.append(
-                (
-                    "api/deprecated",
-                    "api/deprecated",
-                    {
-                        "DEPRECATED_API_REFERENCE": sorted(
-                            DEPRECATED_API_REFERENCE.items(),
-                            key=lambda x: x[0],
-                            reverse=True,
-                        )
-                    },
-                )
-            )
+        DEFAULT_API_TEMPLATES: list[tuple[str, str, dict[str, any]]]
 
         # Ensure that 'api_rst_templates' has a default configuration value if it's not set in conf.py
         app.add_config_value("api_rst_templates", DEFAULT_API_TEMPLATES, "env")

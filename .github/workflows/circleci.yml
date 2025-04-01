@@ -1,0 +1,53 @@
+# To enable this workflow on a fork, comment out:
+#
+# if: github.repository == 'scikit-plots/scikit-plots'
+---
+name: CircleCI artifact redirector
+
+on: [status]
+
+permissions: read-all
+
+jobs:
+  circleci_artifacts_redirector_job:
+    name: Run CircleCI artifacts redirector
+    runs-on: ubuntu-latest
+    # if: "${{ github.event.context == 'ci/circleci: docs-python3' }}"
+    if: >-
+      github.repository == 'scikit-plots/scikit-plots'
+      && github.event.context == 'ci/circleci: build'
+
+    permissions:
+      statuses: write
+
+    env:
+      # Initially set IS_SKIP as false (you can set it to true here if you prefer a different default value)
+      IS_SKIP: false
+
+    steps:
+      - name: Check if commit message contains skip keyword
+        id: check_commit
+        env:
+          COMMIT_SHA1: ${{ github.event.pull_request.head.sha }}  # Use head SHA for safety
+          COMMIT_SHA: ${{ github.event.after }}  # Use 'after' instead of 'commit.sha' for safety
+        run: |
+          COMMIT_MESSAGE=$(git log --format=%B -n 1 "$COMMIT_SHA")
+          echo "Commit Message: $COMMIT_MESSAGE"
+          if [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]] || [[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]]; then
+            echo "Commit message contains skip keyword, skipping the workflow."
+            echo "IS_SKIP=true" >> $GITHUB_ENV  # Set IS_SKIP to true in $GITHUB_ENV
+            # exit 0  # Exit successfully to stop further steps without failing
+          else
+            echo "IS_SKIP=false" >> $GITHUB_ENV  # Set IS_SKIP to false in $GITHUB_ENV
+          fi
+
+      - name: GitHub Action step
+        # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
+        uses: scientific-python/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # v1.0.0
+        # if: ${{ env.IS_SKIP == 'false' }}  # Accessing IS_SKIP set earlier
+        with:
+          job-title: Check the rendered docs here!
+          artifact-path: 0/docs/build/html/stable/index.html
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          api-token: ${{ secrets.CIRCLE_TOKEN }}
+          circleci-jobs: build

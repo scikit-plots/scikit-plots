@@ -1,7 +1,7 @@
 .. _docker-index:
 
 ======================================================================
-Docker Desktop or Github Codespaces Guidelines
+Docker Containerization Guidelines
 ======================================================================
 
 .. important::
@@ -15,13 +15,24 @@ Docker Desktop or Github Codespaces Guidelines
    https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md
 
 
-🚀 Docker
-----------
+🚀 Docker Containerization
+---------------------------------------
 
 💡 Work on Docker Desktop or Github Codespaces
 
-Github Codespaces
------------------
+Here’s how containerization works:
+
+- **Isolation**: Containers run independently of each other and the host system, ensuring that they don't interfere with other applications or containers.
+
+- **Portability**: Since containers include everything the application needs to run, they can be moved between different environments (like from development to production) without any compatibility issues.
+
+- **Efficiency**: Containers are more lightweight than virtual machines (VMs) because they share the host OS's kernel rather than running their own separate operating system. This makes them faster and more resource-efficient.
+
+- **Consistency**: The application inside the container runs the same way regardless of where it's deployed, ensuring consistency across environments.
+
+
+Github Codespaces Guide
+------------------------
 
 (Connect IDE Interface Vscode or Jupyter Notebook)
 
@@ -41,8 +52,8 @@ Choose (recommended) not (default) Option for best practise
    src="https://docs.github.com/assets/cb-66206/mw-1440/images/help/codespaces/advanced-options.webp"
    width="60%" height="80%">
 
-Docker Desktop
------------------
+Docker Desktop Guide
+---------------------
 
 .. code-block:: sh
 
@@ -59,20 +70,8 @@ This repository contains Docker & Docker Compose configurations for running Jupy
 
 You can run containers with either host-installed CUDA or pre-installed CUDA inside the container.
 
-📂 Folder Structure
---------------------
-
-.. code-block:: text
-
-   docker/
-   ├── docker-compose.yml           # Primary Docker Compose file
-   ├── docker-compose.override.yml  # Optional override file (auto-included if present)
-   ├── Dockerfile                   # Custom Dockerfile
-   ├── script/
-   │   ├── install_gpu_nvidia_cuda.sh  # GPU setup script
-
-🏷️ Quick Start (Docker Compose)
---------------------------------
+🏷️ Docker Compose Quickstart Guide
+-----------------------------------
 
 💡 The easiest way to launch the environment is using Docker Compose.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -105,6 +104,17 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
        <img src="https://code.visualstudio.com/assets/docs/containers/overview/select-subset.gif" alt="Docker Compose IntelliSense" loading="lazy" width=80% height=80%>
      </a>
    </div>
+
+▶️ Connect Docker Container Especially When Docker GUI dont available
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: sh
+
+   # docker-compose up --build notebook_cpu
+
+   docker ps  # check running containers
+   docker logs CONTAINER_ID_OR_NAME  # find jupyter (token) http address 127.0....
+   docker exec -it CONTAINER_ID_OR_NAME bash  # Connect interactive terminal
 
 ▶️ Run post_create_commands.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -181,6 +191,18 @@ If you need more control, you can use Docker CLI commands.
 .. code-block:: sh
 
    docker exec -it <container_id> nvidia-smi
+
+📂 Folder Structure
+--------------------
+
+.. code-block:: text
+
+   docker/
+   ├── docker-compose.yml              # Primary Docker Compose file
+   ├── docker-compose.override.yml     # Optional override file (auto-included if present)
+   ├── Dockerfile                      # Custom Dockerfile
+   ├── script/
+   │   ├── install_gpu_nvidia_cuda.sh  # GPU setup script
 
 🖥️ Useful References
 --------------------------------

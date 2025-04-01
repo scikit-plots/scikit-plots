@@ -1,7 +1,29 @@
+.. _scikit-plots-contributing:
+
+.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
+.. role:: raw-html(raw)
+   :format: html
+
+.. role:: raw-latex(raw)
+   :format: latex
+
+.. |br| raw:: html
+
+   <br/>
+
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
+   centered:: Scikit-plots Documentation :raw-html:`<br />` |release|
+
+:raw-html:`<div style="text-align: center"><strong>`
+Scikit-plots Contributing |br| |release| - |today|
+:raw-html:`</strong></div>`
+
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+
 .. _developers-guide-index:
 
 ======================================================================
-Contribute
+Contributing Guidelines to scikit-plots
 ======================================================================
 
 .. ifconfig:: releaselevel != 'dev'
@@ -32,10 +54,13 @@ There are various ways to contribute, such as optimizing and refactoring code,
 detailing unclear documentation and writing new examples, helping the community,
 reporting and fixing bugs, requesting and implementing new features...
 
-Quickstart Guide to Contributing
+
+Quickstart Contribute Guide
 ================================
 
 Here you'll find all the guidance and resources you need to quickly start contributing to this project.
+
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
 
 .. grid:: 1 1 2 2
    :class-row: sf-fs-1
@@ -44,7 +69,7 @@ Here you'll find all the guidance and resources you need to quickly start contri
    .. grid-item-card::
       :shadow: none
 
-      **Quickstart**
+      **Quickstart Contributing**
       ^^^
       Get up and running quickly to local:
 
@@ -52,7 +77,7 @@ Here you'll find all the guidance and resources you need to quickly start contri
          :maxdepth: 2
          :caption: quickstart
 
-         Quickstart Contributing <quickstart_contributing.rst>
+         Quickstart Contribute Guide <guide_qu_contribute.rst>
 
    .. grid-item-card::
       :shadow: none
@@ -65,7 +90,8 @@ Here you'll find all the guidance and resources you need to quickly start contri
          :maxdepth: 2
          :caption: docker
 
-         Docker <docker.rst>
+         Docker Guidelines <guide_docker.rst>
+
 
 .. _submitting-a-bug-report:
 .. _request-a-new-feature:
@@ -80,6 +106,8 @@ projects to work on, and discussing priorities.
 We have preloaded the issue creation page with markdown forms requesting the information
 we need to triage issues and we welcome you to add any additional information or
 context that may be necessary for resolving the issue:
+
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
 
 .. grid:: 1 1 2 2
 
@@ -115,18 +143,22 @@ Since scikit-plots is an open source project with limited resources, we encourag
 to also :ref:`participate <contribute_code>` in fixing bugs and implementing new
 features.
 
-Getting Started Guide to Contributing
+
+Getting Started Contribute Guide
 =====================================
 
 We welcome you to get more involved with the scikit-plots project! If you are new
 to contributing, we recommend that you first read our
-:ref:`contributing guide<contributing>`:
+:ref:`Getting Started Contribute Guide <guide_gs_contribute>`:
+
 
 .. toctree::
-   :hidden:
    :caption: getting started
+   :hidden:
 
-   Getting Started Contributing <contribute.rst>
+   Getting Started Contribute Guide <guide_gs_contribute.rst>
+
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
 
 .. grid:: 1 1 2 2
    :class-row: sd-fs-5 sd-align-minor-center
@@ -192,51 +224,63 @@ to contributing, we recommend that you first read our
 
 .. _development_environment:
 
-Development workflow
-====================
+Development Workflow Guide
+==========================
 
 If you are contributing code or documentation, please follow our guide for setting up
 and managing a development environment and workflow:
 
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+
 .. grid:: 1 1 2 2
+   :class-row: sf-fs-1
+   :gutter: 2
 
    .. grid-item-card::
       :shadow: none
 
-      **Install**
+      **Install Guide**
       ^^^
       .. toctree::
          :maxdepth: 2
 
-         Development Setup <development_setup.rst>
+         Development Setup Guide <guide_devel_setup.rst>
 
 
    .. grid-item-card::
       :shadow: none
 
-      **Workflow**
+      **Workflow Guide**
       ^^^^
       .. toctree::
          :maxdepth: 2
 
-         Development Workflow <development_workflow.rst>
+         Development Workflow Guide <guide_devel_workflow.rst>
 
+
+   .. grid-item-card::
+      :shadow: none
+
+      **Troubleshooting Guide**
+      ^^^^
       .. toctree::
-         :maxdepth: 1
+         :maxdepth: 2
 
-         troubleshooting.rst
+         Troubleshooting Guide <guide_troubleshooting.rst>
 
 
 .. _contribution_guideline:
 
-Policies and guidelines
-=======================
+Policies and Guidelines for Consistent Maintenance and Workflow Management
+==========================================================================
 
 These policies and guidelines help us maintain consistency in the various types
 of maintenance work. If you are writing code or documentation, following these policies
 helps maintainers more easily review your work. If you are helping triage, community
 manage, or release manage, these guidelines describe how our current process works.
 
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+
 .. grid:: 1 1 2 2
    :class-row: sf-fs-1
    :gutter: 2
@@ -244,67 +288,63 @@ manage, or release manage, these guidelines describe how our current process wor
    .. grid-item-card::
       :shadow: none
 
-      **Code**
+      **Coding Guide**
       ^^^
       .. toctree::
          :maxdepth: 1
 
-         coding_guide
-         api_changes_guide
-         testing_guide
+         guide_code_style_write
+         guide_code_api_ver_change
+         guide_code_testing
 
    .. grid-item-card::
       :shadow: none
 
-      **Documentation**
+      **Documentation Guide**
       ^^^
       .. toctree::
          :maxdepth: 1
 
-         document
-         style_guide
-         tag_guidelines
+         guide_document_write
+         guide_document_style
+         guide_document_tag
 
    .. grid-item-card::
       :shadow: none
 
-      **Triage And Review**
+      **Maintainer Guide**
       ^^^
+
+      This section is about preparing a major/minor release, a release candidate (RC), or a bug-fix release.
+
       .. toctree::
          :maxdepth: 1
 
-         triage
-         pr_guide
+         guide_maintainer.rst
 
    .. grid-item-card::
       :shadow: none
 
-      **Maintenance**
+      **Maintenance Guide**
       ^^^
+
       .. toctree::
          :maxdepth: 1
 
-         release_guide
-         communication_guide
-         min_dep_policy
+         guide_release
+         guide_communication
+         guide_min_dep_policy
          Sp Enhancement Proposals <SPEP/index.rst>
 
-Maintainer
-=======================
-
-This section is about preparing a major/minor release, a release candidate (RC), or a
-bug-fix release.
-
-.. grid:: 1 1 2 2
-   :class-row: sf-fs-1
-   :gutter: 2
-
    .. grid-item-card::
       :shadow: none
 
-      **Maintainer Information**
+      **Triage And Review Guide**
       ^^^
       .. toctree::
-         :maxdepth: 2
+         :maxdepth: 1
 
-         maintainer.rst
+         guide_triage
+         guide_pr
+
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html

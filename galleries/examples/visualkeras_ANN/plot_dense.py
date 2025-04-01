@@ -13,9 +13,17 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 import gc
 
 gc.collect()
+
+# pip install protobuf==5.29.4
+
+import tensorflow as tf
+
+# Clear any session to reset the state of TensorFlow/Keras
+tf.keras.backend.clear_session()
+
 import tensorflow.python as tf_python
 
-# Clear the GPU memory cache
+# Clear any session to reset the state of TensorFlow/Keras
 tf_python.keras.backend.clear_session()
 
 model = tf_python.keras.models.Sequential()

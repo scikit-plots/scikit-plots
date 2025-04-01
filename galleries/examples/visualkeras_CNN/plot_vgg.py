@@ -13,6 +13,9 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 import gc
 
 gc.collect()
+
+# pip install protobuf==5.29.4
+
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
