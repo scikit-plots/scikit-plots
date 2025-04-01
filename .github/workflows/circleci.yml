@@ -25,19 +25,20 @@ jobs:
       IS_SKIP: false
 
     steps:
-      # - name: Check if commit message contains skip keyword
-      #   id: check_commit
-      #   run: |-
-      #     COMMIT_SHA=${{ github.event.commit.sha }}
-      #     COMMIT_MESSAGE=$(git log --format=%B -n 1 $COMMIT_SHA)
-      #     echo "Commit Message: $COMMIT_MESSAGE"
-      #     if [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]] || [[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]]; then
-      #       echo "Commit message contains skip keyword, skipping the workflow."
-      #       echo "IS_SKIP=true" >> $GITHUB_ENV  # Set IS_SKIP to true in $GITHUB_ENV
-      #       # exit 0  # Exit successfully to stop further steps without failing
-      #     else
-      #       echo "IS_SKIP=false" >> $GITHUB_ENV  # Set IS_SKIP to false in $GITHUB_ENV
-      #     fi
+      - name: Check if commit message contains skip keyword
+        id: check_commit
+        env:
+          COMMIT_SHA: ${{ github.event.after }}  # Use 'after' instead of 'commit.sha' for safety
+        run: |
+          COMMIT_MESSAGE=$(git log --format=%B -n 1 "$COMMIT_SHA")
+          echo "Commit Message: $COMMIT_MESSAGE"
+          if [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]] || [[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]]; then
+            echo "Commit message contains skip keyword, skipping the workflow."
+            echo "IS_SKIP=true" >> $GITHUB_ENV  # Set IS_SKIP to true in $GITHUB_ENV
+            # exit 0  # Exit successfully to stop further steps without failing
+          else
+            echo "IS_SKIP=false" >> $GITHUB_ENV  # Set IS_SKIP to false in $GITHUB_ENV
+          fi
 
       - name: GitHub Action step
         # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
