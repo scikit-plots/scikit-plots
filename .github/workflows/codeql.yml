@@ -12,13 +12,14 @@
 name: "CodeQL Analyze"
 
 on:
-  schedule:
-    # run every Wednesday at 6am UTC
-    - cron: '0 6 * * 1'
-  push:
-    branches: [ "main", "*.X" ]
-  pull_request:
-    branches: [ "main", "*.X" ]
+  ## CodeQL If using "Default Setup", remove custom workflows. 🚀
+  # schedule:
+  #   ## run every Wednesday at 6am UTC
+  #   - cron: '0 6 * * 1'
+  # push:
+  #   branches: [ "main", "*.X" ]
+  # pull_request:
+  #   branches: [ "main", "*.X" ]
   workflow_dispatch:
 
 permissions:
