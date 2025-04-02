@@ -14,10 +14,10 @@ on:
 # github actions workflow:
 # https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
-  contents: read
+  contents: read        # Only read access to repository contents
   # pull-requests: read   # General permissions for reading PRs
-  pull-requests: write  # Necessary permission to write labels
-  issues: write         # Ensure labeler can add labels to PRs (since PRs are issues)
+  pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
+  issues: write         # Write access to issues (PRs are treated as issues)
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
