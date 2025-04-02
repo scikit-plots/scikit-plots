@@ -1,0 +1,183 @@
+name: "Pull Request"
+
+on:
+  # Use pull_request_target trigger if you're targeting a pull request from a fork:
+  # pull_request:  Safer alternative to pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [opened, reopened, synchronize, edited]  # Triggers only on these events
+  issues:
+    types:
+    - opened
+    - edited
+
+# Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+# github actions workflow:
+# https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+permissions:
+  contents: read        # Only read access to repository contents
+  pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
+  issues: write         # Write access to issues (PRs are treated as issues)
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write  # Grant write access only to this job
+
+    steps:
+      # label based on PR regex title
+      # - name: Checkout (clone) repository with full history
+      #   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      #   with:
+      #     persist-credentials: false  # Prevents accidental credential exposure
+      #     submodules: true  # Fetch Hugo themes (true OR recursive)
+      #     fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+
+      # - name: "Debug: Check file existence"
+      #   run: ls -lR .github/
+
+      # - name: Python Setup
+      #   uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+      #   with:
+      #     python-version: '3.11'
+
+      # - name: Install PyGithub
+      #   run: |
+      #     pip install -Uq PyGithub
+
+      # - name: Label pull request
+      #   run: python .github/scripts/label_title_regex.py
+      #   env:
+      #     CONTEXT_GITHUB: ${{ toJson(github) }}
+
+      # label based on PR glob files
+      - name: Labeler Glob
+        # uses: thomasjpfan/labeler@v2.5.1
+        uses: actions/labeler@8558fd74291d67161a8a78ce36a881fa63b766a9 # v5.0.0
+        if: >-
+          github.event_name == 'pull_request_target'
+          && github.event.action == 'opened'
+          && github.event.pull_request.user.login != 'meeseeksmachine'
+        continue-on-error: true
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          # max-labels: "4"  # thomasjpfan
+          configuration-path: ".github/labeler.yml"  # ".github/labeler.yml"
+
+      # label based on PR Prefix
+      - name: Labeler PR Prefix
+        uses: gerrymanoim/pr-prefix-labeler@c8062327f6de59a9ae1c19f7f07cacd0b976b6fa # v3
+        if: >-
+          github.event_name == 'pull_request_target'
+          && github.event.action == 'opened'
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: ".github/pr-prefix-labeler.yml"
+
+      # label based on Issue title
+      - name: Labeler Issue
+        uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
+        if: >-
+          github.event_name == 'issues'
+          && github.event.action == 'opened'
+        continue-on-error: true
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}  # ${{ github.token }}
+          enable-versioned-regex: 0
+          include-body: 0
+          include-title: 1
+          sync-labels: 1
+          configuration-path: ".github/labeler-issue.yml"  # ".github/labeler.yml"
+
+      - name: 'Greetings new contributors'
+        uses: actions/first-interaction@34f15e814fe48ac9312ccf29db4e74fa767cbab7  # v1.3.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          pr-message: >+
+            Thank you for opening your first PR into scikit-plots👋!
+
+            If you have not heard from us in a week or so, please leave a new
+            comment below and that should bring it to our attention.
+            Most of our reviewers are volunteers and sometimes things fall
+            through the cracks.
+
+            You can also join us:
+              - [on github](https://github.com/orgs/scikit-plots/discussions)
+              - [on gitter](https://gitter.im/scikit-plots/scikit-plots)
+            for real-time discussion.
+
+            For details on testing, writing docs, and our review process,
+            please see [the developer
+            guide](https://scikit-plots.github.io/dev/devel/index.html)
+
+            We strive to be a welcoming and open project. Please follow our
+            [Code of
+            Conduct](https://scikit-plots.github.io/dev/project/code_of_conduct.html).
+
+          issue-message: >+
+            Thank you for opening your first Issue into scikit-plots👋!
+
+            If you have not heard from us in a week or so, please leave a new
+            comment below and that should bring it to our attention.
+            Most of our reviewers are volunteers and sometimes things fall
+            through the cracks.
+
+            You can also join us:
+              - [on github](https://github.com/orgs/scikit-plots/discussions)
+              - [on gitter](https://gitter.im/scikit-plots/scikit-plots)
+            for real-time discussion.
+
+            For details on testing, writing docs, and our review process,
+            please see [the developer
+            guide](https://scikit-plots.github.io/dev/devel/index.html)
+
+            We strive to be a welcoming and open project. Please follow our
+            [Code of
+            Conduct](https://scikit-plots.github.io/dev/project/code_of_conduct.html).
+
+            GitHub issues in the scikit-plots repository are used to track bug
+            reports and feature requests; If your issue poses a question about
+            how to use scikit-plots, please instead raise your question in the
+            [on github](https://github.com/orgs/scikit-plots/discussions) and close
+            this issue.
+
+      - name: 'Reviewer Checklist'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        if: >-
+          github.event_name == 'pull_request_target'
+          && github.event.action == 'opened'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Thank you for your contribution to scikit-plots! 🌌 This checklist is meant to remind the package maintainers who will review this pull request of some common things to look for.
+
+              - [ ] Do the proposed changes actually accomplish desired goals?
+              - [ ] Do the proposed changes follow the [scikit-plots coding guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
+              - [ ] Are tests added/updated as required? If so, do they follow the [scikit-plots testing guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
+              - [ ] Are docs added/updated as required? If so, do they follow the [scikit-plots documentation guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
+              - [ ] Is rebase and/or squash necessary? If so, please provide the author with appropriate instructions. Also see instructions for [rebase](https://scikit-plots.github.io/dev/devel/index.html) and [squash](https://scikit-plots.github.io/dev/devel/index.html).
+              - [ ] Did the CI pass? If no, are the failures related? If you need to run daily and weekly cron jobs as part of the PR, please apply the "Extra CI" label. Codestyle issues can be fixed by the [bot](https://scikit-plots.github.io/dev/devel/index.html).
+              - [ ] Is a change log needed? If yes, did the change log check pass? If no, add the "no-changelog-entry-needed" label. If this is a manual backport, use the "skip-changelog-checks" label unless special changelog handling is necessary.
+              - [ ] Is this a big PR that makes a "What's new?" entry worthwhile and if so, is (1) a "what's new" entry included in this PR and (2) the "whatsnew-needed" label applied?
+              - [ ] At the time of adding the milestone, if the milestone set requires a backport to release branch(es), apply the appropriate "backport-X.Y.x" label(s) *before* merge.`
+            })
+
+      - name: 'Comment Draft PR'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        if: github.event.pull_request.draft == true
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '👋 Thank you for your draft pull request! Do you know that you can use `[ci skip]` or `[skip ci]` in your commit messages to skip running continuous integration tests until you are ready?'
+            })
