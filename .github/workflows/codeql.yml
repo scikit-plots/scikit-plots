@@ -32,13 +32,6 @@ permissions:
 jobs:
   analyze:
     name: CodeQL Analyze (${{ matrix.language }})
-    permissions:
-      # only required for workflows in private repositories
-      contents: read  # for actions/checkout to fetch code
-      actions: read  # for github/codeql-action/init to get workflow details
-      # required for all workflows
-      security-events: write  # for github/codeql-action/autobuild to send a status report
-      packages: read  # required to fetch internal or private CodeQL packs
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources
@@ -46,6 +39,14 @@ jobs:
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: ${{ 'ubuntu-latest' || (matrix.language == 'swift' && 'macos-latest') }}
     # timeout-minutes: 360
+
+    permissions:
+      # only required for workflows in private repositories
+      contents: read  # for actions/checkout to fetch code
+      actions: read  # for github/codeql-action/init to get workflow details
+      # required for all workflows
+      security-events: write  # for github/codeql-action/autobuild to send a status report
+      packages: read  # required to fetch internal or private CodeQL packs
 
     strategy:
       fail-fast: false

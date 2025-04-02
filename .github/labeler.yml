@@ -1,41 +1,302 @@
----
 # For a single document, --- is optional and has no effect on parsing but can improve clarity and consistency.
 
-# This file contains regexes for automatically adding labels based on issue/PR titles,
-# for use with https://github.com/github/issue-labeler.
-
-array types:
-  - 'array types'
-
-Benchmarks:
-  - 'BENCH'
-
-Build issues:
-  - 'BLD'
+# This file contains globs for automatically adding labels based on changed files,
+# for use with https://github.com/actions/labeler.
+---
+######################################################################
+## CI
+######################################################################
 
 CI:
-  - 'CI'
+- changed-files:
+  - any-glob-to-any-file:
+    - .binder/**
+    - .circleci/**
+    - .github/workflows/**/*
+    - .spin/**
+    - .cirrus.star
+    - ci/**
 
-defect:
-  - '(BUG|FIX)'
+"CI: Run wheels":
+  - changed-files:
+    - any-glob-to-any-file: ['.github/workflows/wheels.yml']
 
-deprecated:
-  - 'DEP'
+"CI: Run publish-to-test-pypi":
+  - changed-files:
+    - any-glob-to-any-file: ['.github/workflows/publish-to-test-pypi.yml']
+
+######################################################################
+## Documentation
+######################################################################
 
 Documentation:
-  - 'DOC'
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/**/*
+    - docs/source/**/*
+    - LICENSE
+    - LICENSES/**
+    - CITATION/**
+    - CITATION.cff
+    - '*.md'
+  - all-globs-to-any-file:
+    - '**/*.rst'
+    - '!CHANGES.rst'
+    - '!docs/changes/**/*'
 
 DX:
-  - 'DEV'
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/source/devel/**/*
 
-enhancement:
-  - 'ENH'
+"Documentation: examples":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'galleries/examples/**/*'
 
-maintenance:
-  - '(MAINT|TST)'
+"Documentation: build":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/Makefile'
+          - 'docs/make.bat'
+          - 'docs/source/conf.py'
+          - 'docs/source/_sphinx_ext/**/*'
 
-query:
-  - '(Q|q)uery'
+"Documentation: user guide":
+  - all:
+      - changed-files:
+          - any-glob-to-any-file:
+              - 'docs/source/user_guide/**/*'
+          - all-globs-to-all-files:
+              - '!docs/source/user_guide/__lightnumpy/**'
+              - '!docs/source/user_guide/__resources/**'
 
-RFC:
-  - 'RFC'
+"Documentation: devdocs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/source/devel/**/*'
+
+"Documentation: API":
+  - all:
+      - changed-files:
+          - any-glob-to-any-file:
+              - 'docs/source/apis/**/*'
+          - all-globs-to-all-files:
+              - '!docs/source/apis/__lightnumpy/**'
+
+######################################################################
+## Language
+######################################################################
+
+C/C++:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.c
+    - scikitplot/**/*.c.in
+    - scikitplot/**/*.c.old
+    - scikitplot/**/*.h
+    - scikitplot/**/*.h.in
+    - scikitplot/**/*.cpp
+    - scikitplot/**/*.cc
+    - scikitplot/**/*.cxx
+    - scikitplot/**/*.hpp
+
+Fortran:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.f
+    - scikitplot/**/*.f.src
+    - scikitplot/**/*.F
+    - scikitplot/**/*.f90
+    - scikitplot/**/*.pyf
+
+Cython:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.pyx*
+    - scikitplot/**/*.pxd*
+    - scikitplot/**/*.pxi*
+    - scikitplot/**/*.pyi*
+    - scikitplot/**/_generate_pyx.py
+
+Tempita templates:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.tp
+
+Meson:
+- changed-files:
+  - any-glob-to-any-file:
+    - meson.build
+    - scikitplot/**/meson.build
+
+######################################################################
+## Modules
+######################################################################
+
+"module: array types":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_xp_core_lib/_array_api.py
+
+"module: _astropy":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_astropy/**/*
+
+"module: build issues":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_build_utils/**/*
+
+"module: _compat":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_compat/**/*
+
+"module: _factory_api":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_factory_api/**/*
+
+"module: _seaborn":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_seaborn/**/*
+
+"module: _tweedie":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_tweedie/**/*
+
+"module: api":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/api/**/*
+
+"module: experimental":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/experimental/**/*
+
+external:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/extern/**/*
+    - cextern/**/*
+
+"module: kds":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/kds/**/*
+
+"module: modelplotpy":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/modelplotpy/**/*
+
+"module: probscale":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/probscale/**/*
+
+"module: stats":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/stats/**
+
+"module: visualkeras":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/visualkeras/**/*
+
+"module: sp_logging":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/sp_logging/**/*
+
+######################################################################
+## Testing
+######################################################################
+
+testing:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/tests/**/*
+    - codecov.yml
+    - conftest.py
+    - '**/conftest.py'
+    - tox.ini
+    - .circleci/*
+    - .github/workflows/ci*.yml
+    - .github/workflows/codeql.yml
+    - .github/workflows/*test.yml
+    - .github/workflows/check_changelog.yml
+    - .pyinstaller/**/*
+    - .flake8
+    - .pycodestyle
+    - .pre-commit-config.yaml
+    - .ruff.toml
+
+installation:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/install.rst
+    - MANIFEST.in
+    - pyproject.toml
+    - setup.py
+
+config:
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/config/**/*'
+    - scikitplot/extern/configobj/**/*
+
+Release:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/development/maintainers/releasing.rst
+    - .github/workflows/publish.yml
+
+######################################################################
+## dev-automation
+######################################################################
+
+dev-automation:
+- changed-files:
+  - any-glob-to-any-file:
+    - .github/**/*
+    - .github/ISSUE_TEMPLATE/**
+    - .github/workflows/stalebot.
+    - .github/workflows/open_actions.yml
+    - .github/workflows/update_astropy_iers_data_pin.*
+    - .devcontainer/**/*
+    - .pre-commit-config.yaml
+    - .ruff.toml
+
+######################################################################
+## Topics
+######################################################################
+
+"topic: sphinx extension":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'scikitplot/sphinxext/**/*'
+
+"backend: agg":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/matplotlib/backends/backend_agg.py*'
+
+"GUI: tk":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/_tkagg.cpp'
+          - 'src/_tkmini.h'
+
+"topic: axes":
+  - changed-files:
+      - any-glob-to-any-file:
+          # Note, axes.py is not included here because it contains many plotting
+          # methods, for which changes would not be considered on topic.
+          - 'lib/matplotlib/axes/_base.py*'
