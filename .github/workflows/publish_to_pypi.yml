@@ -1,6 +1,7 @@
 ## Documentation: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 ## This workflow automates the process of publishing your Python package to TestPyPI or PyPI.
-
+## https://docs.pypi.org/trusted-publishers/adding-a-publisher/
+---
 name: Upload to TestPyPI|PyPI
 
 ## Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
@@ -35,14 +36,18 @@ jobs:
     # environment:
     #   publish_pypi  # Specify the environment for environment secrets
     #   url: https://pypi.org/p/<your-pypi-project-name>
-    env:  # Step level enviroment NAME: '', $NAME, ${{ env.NAME }}
+    env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
       SKPLT_VERSION: ${{ github.event.inputs.version }}
       CONDA_SOURCE: ${{ github.event.inputs.conda_source }}
 
     steps:
       # Step 1: Check out the code from the repository
-      - name: Check out code
+      - name: Checkout (cloned) repository with full history
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
 
       # Step 2: Set up the Python environment
       - name: Python Setup
@@ -72,18 +77,21 @@ jobs:
       # Step 5a: Publish the package to TestPyPI (if selected)
       - name: Publish package distributions to TestPyPI
         if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}
+        ## https://docs.pypi.org/trusted-publishers/adding-a-publisher/
         uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
         with:
+          # user: __token__
+          # password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
           print-hash: true
-          repository-url: https://test.pypi.org/legacy/
-          user: __token__
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
+          repository-url: https://test.pypi.org/legacy/  # Change to TestPyPI if needed
 
       # Step 5b: Publish the package to PyPI (if selected)
       - name: Publish package distributions to  PyPI
         if: ${{ github.event.inputs.pypi_repo == 'pypi' }}
+        ## https://docs.pypi.org/trusted-publishers/adding-a-publisher/
         uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
         with:
+          # user: __token__
+          # password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
           print-hash: true
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
+          repository-url: https://upload.pypi.org/legacy/  # Change to TestPyPI if needed

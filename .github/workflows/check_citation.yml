@@ -1,11 +1,14 @@
-name: Check Changelog
+# https://github.com/citation-file-format/cffconvert-github-action
+name: Checking cffconvert CITATION.cff
 
-# This check makes sure that the changelog is properly updated
-# when a PR introduces a change in a test file.
-# To bypass this check, label the PR with "No Changelog Needed".
 on:
+  push:
+    paths:
+      - "CITATION.cff"
   pull_request:
-    types: [opened, synchronize, labeled, unlabeled]
+    paths:
+      - "CITATION.cff"
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 permissions:
   # only required for workflows in private repositories
@@ -22,8 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: A reviewer will let you know if it is required or can be bypassed
+  cffconvert:
+    name: "cffconvert"
     runs-on: ubuntu-latest
 
     steps:
@@ -34,20 +37,7 @@ jobs:
           # submodules: true  # Fetch Hugo themes (true OR recursive)
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
 
-      - name: Check if tests have changed
-        id: tests_changed
-        run: |
-          set -xe
-          changed_files=$(git diff --name-only origin/main)
-          # Changelog should be updated only if tests have been modified
-          if [[ "$changed_files" =~ tests ]]
-          then
-            echo "check_changelog=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Check changelog entry
-        if: steps.tests_changed.outputs.check_changelog == 'true'
-        uses: scientific-python/action-towncrier-changelog@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BOT_USERNAME: changelog-bot
+      - name: Check whether the citation metadata from CITATION.cff is valid
+        uses: citation-file-format/cffconvert-github-action@4cf11baa70a673bfdf9dad0acc7ee33b3f4b6084  # 2.0.0
+        with:
+          args: --validate

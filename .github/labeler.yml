@@ -229,9 +229,8 @@ testing:
     - tox.ini
     - .circleci/*
     - .github/workflows/ci*.yml
+    - .github/workflows/check_*.yml
     - .github/workflows/codeql.yml
-    - .github/workflows/*test.yml
-    - .github/workflows/check_changelog.yml
     - .flake8
     - .mypy.ini
     - .pycodestyle
