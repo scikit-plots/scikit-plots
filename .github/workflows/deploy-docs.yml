@@ -42,7 +42,7 @@ jobs:
       BRANCH: ${{ github.event.inputs.branch || 'main' }}  # Use 'dev' if version is empty
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout (clone) repository with full history
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false  # Prevents accidental credential exposure
