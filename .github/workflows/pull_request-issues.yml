@@ -1,4 +1,4 @@
-name: "Pull Request"
+name: "Pull Request and/or Issues"
 
 on:
   # Use pull_request_target trigger if you're targeting a pull request from a fork:
@@ -71,6 +71,7 @@ jobs:
         if: >-
           github.event_name == 'pull_request_target'
           && github.event.action == 'opened'
+          && github.event.action == 'edited'
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,6 +83,7 @@ jobs:
         if: >-
           github.event_name == 'issues'
           && github.event.action == 'opened'
+          && github.event.action == 'edited'
         continue-on-error: true
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}  # ${{ github.token }}
@@ -95,7 +97,6 @@ jobs:
         uses: actions/first-interaction@34f15e814fe48ac9312ccf29db4e74fa767cbab7  # v1.3.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
           pr-message: >+
             Thank you for opening your first PR into scikit-plots👋!
 
@@ -116,7 +117,6 @@ jobs:
             We strive to be a welcoming and open project. Please follow our
             [Code of
             Conduct](https://scikit-plots.github.io/dev/project/code_of_conduct.html).
-
           issue-message: >+
             Thank you for opening your first Issue into scikit-plots👋!
 
@@ -156,7 +156,11 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Thank you for your contribution to scikit-plots! 🌌 This checklist is meant to remind the package maintainers who will review this pull request of some common things to look for.
+              body: `Thank you for your contribution to scikit-plots👋!
+
+              ✍️ This checklist is meant to remind the package maintainers who will review this pull request of some common things to look for.
+
+              ## Maintainer's Pull Request Review Checklist
 
               - [ ] Do the proposed changes actually accomplish desired goals?
               - [ ] Do the proposed changes follow the [scikit-plots coding guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
@@ -179,5 +183,6 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '👋 Thank you for your draft pull request! Do you know that you can use `[ci skip]` or `[skip ci]` in your commit messages to skip running continuous integration tests until you are ready?'
+              body: '👋 Thank you for your draft pull request!
+              Do you know that you can use `[ci skip]` or `[skip ci]` in your commit messages to skip running continuous integration tests until you are ready?'
             })
