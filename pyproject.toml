@@ -863,12 +863,12 @@ test-command = "python -m pytest --pyargs numpy -m 'not slow'"
 ## changelog-bot
 ######################################################################
 
-# [tool.changelog-bot]
-#   [tool.changelog-bot.towncrier_changelog]
-#     enabled = true
-#     verify_pr_number = true
-#     changelog_noop_label = "No Changelog Needed"
-#     whatsnew_pattern = 'doc/whatsnew/upcoming_changes/[^/]+/\d+\.[^.]+\.rst'
+[tool.changelog-bot]
+  [tool.changelog-bot.towncrier_changelog]
+    enabled = true
+    verify_pr_number = true
+    changelog_noop_label = "No Changelog Needed"
+    whatsnew_pattern = 'docs/source/whats_new/upcoming_changes/[^/]+/\d+\.[^.]+\.rst'
 
 ######################################################################
 ## meson-python
