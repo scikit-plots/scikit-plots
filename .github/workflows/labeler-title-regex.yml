@@ -2,7 +2,7 @@ name: Labeler Title Regex
 
 on:
   pull_request:  # Safer alternative to pull_request_target:
-    types: [opened, edited]
+    types: [opened, reopened, synchronize, edited]
     # branches:
     #   - main  # Only allow workflow to run on main branch PRs
 
