@@ -1,21 +1,22 @@
 name: "Labeler Pull Request"
 
 on:
-  # issues:
-  #   types:
-  #   - opened
+  # Use pull_request_target trigger if you're targeting a pull request from a fork:
   pull_request:  # Safer alternative to pull_request_target:
     types: [opened, reopened, synchronize, edited]
     # branches:
     #   - main  # Only allow workflow to run on main branch PRs
+  # issues:
+  #   types:
+  #   - opened
 
 # Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
 # github actions workflow:
 # https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
   contents: read
-  issues: write
-  pull-requests: read  # Avoid giving write access unless necessary
+  pull-requests: read  # General permissions for reading PRs
+  issues: write        # Ensure labeler can add labels to PRs (since PRs are issues)
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
@@ -62,6 +63,7 @@ jobs:
       - name: Checkout (clone) repository with full history
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          # repository: "owner/repositoryName" # The one of the available inputs, visit https://github.com/actions/checkout#readme to find more
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: true  # Fetch Hugo themes (true OR recursive)
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
@@ -78,7 +80,7 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           # max-labels: "4"  # thomasjpfan
-          configuration-path: ".github/labeler-by-glob.yml"
+          configuration-path: ".github/labeler-by-glob.yml"  # .github/labeler.yml
 
   pr-prefix-labeler:
     runs-on: ubuntu-latest
