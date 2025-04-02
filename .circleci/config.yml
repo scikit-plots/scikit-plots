@@ -22,8 +22,8 @@ _defaults: &defaults
   #   # Make sure that we fail if the documentation build generates warnings with
   #   # recent versions of the dependencies.
   #   - SKLEARN_WARNINGS_AS_ERRORS: '1'
-  resource_class: large
   working_directory: ~/repo
+  resource_class: large
 
 commands:
   check-skip:
