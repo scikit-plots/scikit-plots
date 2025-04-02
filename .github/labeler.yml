@@ -232,13 +232,13 @@ testing:
     - .github/workflows/codeql.yml
     - .github/workflows/*test.yml
     - .github/workflows/check_changelog.yml
-    - .pyinstaller/**/*
     - .flake8
+    - .mypy.ini
     - .pycodestyle
+    - .pyinstaller/**/*
     - .pre-commit-config.yaml
     - .pre-commit-hooks.yaml
     - .ruff.toml
-    - .mypy.ini
 
 installation:
 - changed-files:
