@@ -236,7 +236,9 @@ testing:
     - .flake8
     - .pycodestyle
     - .pre-commit-config.yaml
+    - .pre-commit-hooks.yaml
     - .ruff.toml
+    - .mypy.ini
 
 installation:
 - changed-files:
