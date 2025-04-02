@@ -1,0 +1,38 @@
+---
+name: PR Greetings
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/first-interaction@34f15e814fe48ac9312ccf29db4e74fa767cbab7  # v1.3.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-message: >+
+            Thank you for opening your first PR into scikit-plots!
+
+            If you have not heard from us in a week or so, please leave a new
+            comment below and that should bring it to our attention.
+            Most of our reviewers are volunteers and sometimes things fall
+            through the cracks.
+
+            You can also join us:
+              - [on github](https://github.com/orgs/scikit-plots/discussions)
+              - [on gitter](https://gitter.im/scikit-plots/scikit-plots)
+            for real-time discussion.
+
+            For details on testing, writing docs, and our review process,
+            please see [the developer
+            guide](https://scikit-plots.github.io/dev/devel/index.html)
+
+            We strive to be a welcoming and open project. Please follow our
+            [Code of
+            Conduct](https://scikit-plots.github.io/dev/project/code_of_conduct.html).
