@@ -58,6 +58,7 @@ jobs:
         if: >-
           github.event_name == 'pull_request_target'
           && github.event.action == 'opened'
+          && github.event.action == 'reopened'
           && github.event.pull_request.user.login != 'meeseeksmachine'
         continue-on-error: true
         with:
