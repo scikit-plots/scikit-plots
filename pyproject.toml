@@ -864,10 +864,13 @@ test-command = "python -m pytest --pyargs numpy -m 'not slow'"
 ######################################################################
 
 [tool.changelog-bot]
+  [tool.changelog-bot.pull_requests]
+    enabled = true
   [tool.changelog-bot.towncrier_changelog]
     enabled = true
     verify_pr_number = true
     changelog_noop_label = "No Changelog Needed"
+    changelog_skip_label = "no-changelog-entry-needed"
     whatsnew_pattern = 'docs/source/whats_new/upcoming_changes/[^/]+/\d+\.[^.]+\.rst'
 
 ######################################################################
