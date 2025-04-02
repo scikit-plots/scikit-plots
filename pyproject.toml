@@ -753,7 +753,7 @@ count = true
 
 # The following list of words for codespell to ignore may contain some
 # misspellings that should be revisited and fixed in the future.
-# ignore-words-list = """ """
+# ignore-words = "build_tools/codespell_ignore_words.txt"
 ignore-words-list = "./.codespell-ignore-words"
 
 ######################################################################
@@ -869,6 +869,94 @@ test-command = "python -m pytest --pyargs numpy -m 'not slow'"
     verify_pr_number = true
     changelog_noop_label = "No Changelog Needed"
     whatsnew_pattern = 'docs/source/whats_new/upcoming_changes/[^/]+/\d+\.[^.]+\.rst'
+
+######################################################################
+## towncrier
+######################################################################
+
+[tool.towncrier]
+    all_bullets  = false
+    single_file  = true
+    issue_format = ":pr:`{issue}`"
+    package      = "scikitplot"
+    filename     = "docs/source/whats_new/v0.5.rst"
+    directory    = "docs/source/whats_new/upcoming_changes"
+    template     = "docs/source/whats_new/upcoming_changes/towncrier_template.rst.jinja2"
+
+    [[tool.towncrier.type]]
+        directory = "major-feature"
+        name = "|MajorFeature|"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "feature"
+        name = "|Feature|"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "efficiency"
+        name = "|Efficiency|"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "enhancement"
+        name = "|Enhancement|"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "fix"
+        name = "|Fix|"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "api"
+        name = "|API|"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "other"
+        name = ""
+        showcontent = true
+
+    [[tool.towncrier.section]]
+        name = "Security"
+        path = "security"
+
+    [[tool.towncrier.section]]
+        name = "Changed models"
+        path = "changed-models"
+
+    [[tool.towncrier.section]]
+        name = "Changes impacting many modules"
+        path = "many-modules"
+
+    [[tool.towncrier.section]]
+        name = "Support for Array API"
+        path = "array-api"
+
+    [[tool.towncrier.section]]
+        name = "Metadata routing"
+        path = "metadata-routing"
+
+    [[tool.towncrier.section]]
+        name = "custom-top-level"
+        path = "custom-top-level"
+
+    [[tool.towncrier.section]]
+        name = ":mod:`scikitplot._astropy`"
+        path = "scikitplot._astropy"
+
+    [[tool.towncrier.section]]
+        name = ":mod:`scikitplot._seaborn`"
+        path = "scikitplot._seaborn"
+
+    [[tool.towncrier.section]]
+        name = ":mod:`scikitplot.api`"
+        path = "scikitplot.api"
+
+    [[tool.towncrier.section]]
+        name = ":mod:`scikitplot.utils`"
+        path = "scikitplot.utils"
 
 ######################################################################
 ## meson-python
