@@ -17,7 +17,7 @@ permissions:
   issues: write         # Write access to issues (PRs are treated as issues)
 
 jobs:
-  welcome:
+  greeting:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,26 +25,6 @@ jobs:
         uses: actions/first-interaction@34f15e814fe48ac9312ccf29db4e74fa767cbab7  # v1.3.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          pr-message: >+
-            Thank you for opening your first PR into scikit-plots👋!
-
-            If you have not heard from us in a week or so, please leave a new
-            comment below and that should bring it to our attention.
-            Most of our reviewers are volunteers and sometimes things fall
-            through the cracks.
-
-            You can also join us:
-              - [on github](https://github.com/orgs/scikit-plots/discussions)
-              - [on gitter](https://gitter.im/scikit-plots/scikit-plots)
-            for real-time discussion.
-
-            For details on testing, writing docs, and our review process,
-            please see [the developer
-            guide](https://scikit-plots.github.io/dev/devel/index.html)
-
-            We strive to be a welcoming and open project. Please follow our
-            [Code of
-            Conduct](https://scikit-plots.github.io/dev/project/code_of_conduct.html).
           issue-message: >+
             Thank you for opening your first Issue into scikit-plots👋!
 
@@ -71,17 +51,23 @@ jobs:
             how to use scikit-plots, please instead raise your question in the
             [on github](https://github.com/orgs/scikit-plots/discussions) and close
             this issue.
+          pr-message: >+
+            Thank you for opening your first PR into scikit-plots👋!
 
-      - name: 'Comment Draft PR'
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
-        if: github.event.pull_request.draft == true
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '👋 Thank you for your draft pull request!
-              Do you know that you can use `[ci skip]` or `[skip ci]` in your commit messages to skip running continuous integration tests until you are ready?'
-            })
+            If you have not heard from us in a week or so, please leave a new
+            comment below and that should bring it to our attention.
+            Most of our reviewers are volunteers and sometimes things fall
+            through the cracks.
+
+            You can also join us:
+              - [on github](https://github.com/orgs/scikit-plots/discussions)
+              - [on gitter](https://gitter.im/scikit-plots/scikit-plots)
+            for real-time discussion.
+
+            For details on testing, writing docs, and our review process,
+            please see [the developer
+            guide](https://scikit-plots.github.io/dev/devel/index.html)
+
+            We strive to be a welcoming and open project. Please follow our
+            [Code of
+            Conduct](https://scikit-plots.github.io/dev/project/code_of_conduct.html).
