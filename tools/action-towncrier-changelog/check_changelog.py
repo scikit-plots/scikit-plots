@@ -11,12 +11,14 @@ from pathlib import Path
 from github import Github
 from toml import loads
 
-event_name = os.environ["GITHUB_EVENT_NAME"]
+event_name = os.environ.get("GITHUB_EVENT_NAME", "pull_request_test")
 if not event_name.startswith("pull_request"):
     print(f"No-op for {event_name}")
     sys.exit(0)
 
-event_jsonfile = os.environ["GITHUB_EVENT_PATH"]
+# Get the directory of the current script
+github_event_test = os.path.join(os.path.dirname(__file__), "github_event.json")
+event_jsonfile = os.environ.get("GITHUB_EVENT_PATH", github_event_test)
 
 with open(event_jsonfile, encoding="utf-8") as fin:
     event = json.load(fin)
@@ -32,6 +34,7 @@ print()
 baserepo = g.get_repo(basereponame)
 pyproject_toml = baserepo.get_contents("pyproject.toml")
 toml_cfg = loads(pyproject_toml.decoded_content.decode("utf-8"))
+print(json.dumps(toml_cfg, indent=2))
 
 try:
     cl_config = toml_cfg["tool"][bot_username]["towncrier_changelog"]
