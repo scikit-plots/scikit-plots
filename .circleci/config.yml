@@ -1,6 +1,12 @@
 # Python CircleCI 2.1 configuration file
 #
 # Check https://circleci.com/docs/2.1/language-python/ for more details
+#
+# https://github.com/Cadair/giles
+# giles only need "Job Completed" events.
+# https://giles.cadair.dev/circleci/v2
+#
+# “run-ci” label added to PR
 ---
 version: 2.1
 
