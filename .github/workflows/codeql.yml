@@ -13,13 +13,13 @@ name: "CodeQL Analyze"
 
 on:
   ## CodeQL If using "Default Setup", remove custom workflows. 🚀
-  # schedule:
-  #   ## run every Wednesday at 6am UTC
-  #   - cron: '0 6 * * 1'
-  # push:
-  #   branches: [ "main", "*.X" ]
-  # pull_request:
-  #   branches: [ "main", "*.X" ]
+  schedule:
+    ## run every Wednesday at 6am UTC
+    - cron: '0 6 * * 1'
+  push:
+    branches: [ "main", "*.X" ]
+  pull_request:
+    branches: [ "main", "*.X" ]
   workflow_dispatch:
 
 permissions:
@@ -147,5 +147,5 @@ jobs:
 
       - name: CodeQL Perform Analysis
         uses: github/codeql-action/analyze@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
-        with:
-          category: "/language:${{matrix.language}}"
+        # with:
+        #   category: "/language:${{matrix.language}}"
