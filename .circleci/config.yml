@@ -23,7 +23,7 @@ _defaults: &defaults
   #   # recent versions of the dependencies.
   #   - SKLEARN_WARNINGS_AS_ERRORS: '1'
   working_directory: ~/repo
-  resource_class: large
+  resource_class: scikit-plots/documentation  # large
 
 commands:
   check-skip:

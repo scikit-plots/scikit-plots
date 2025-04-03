@@ -177,11 +177,17 @@ Now you can install the development version of ``scikit-plots`` into your new en
 will install the latest version of ``scikit-plots`` from your local git repo, along with
 all the dependencies needed to build and fully test ``scikit-plots``::
 
+   >>> ## (Optionally) setup one line scikit-plots development version
+   >>> make install_dev
+
+   >>> ## Setup scikit-plots lib dep
    >>> # pip install -r ./requirements/all.txt
    >>> pip install -r ./requirements/build.txt
+
+   >>> ## Setup scikit-plots lib dep
    >>> pip install --no-build-isolation --no-cache-dir -e . -v
 
-   >>> ## It is also possible to include optional dependencies:
+   >>> ## (Optionally) It is also possible to include optional dependencies:
    >>> python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
 .. _contributing_check_build:
@@ -270,6 +276,7 @@ Creating a branch
 Your local ``main`` branch should always reflect the current state of ``scikit-plots`` repository.
 First ensure it's up-to-date with the ``main`` ``scikit-plots`` repository::
 
+    >>> # git checkout main
     >>> git switch main
 
 (Recommended) Use Fast-forward only:
@@ -352,7 +359,8 @@ Now create a development branch for making your changes. For example::
 
 Delete the branch locally::
 
-    >>> git checkout main
+    >>> # git checkout main && git pull
+    >>> git switch main
     >>> git branch -d subpackage-bug-fix
 
 This changes your working branch from ``main`` to the ``subpackage-bug-fix`` branch.

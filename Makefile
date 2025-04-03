@@ -61,25 +61,6 @@ help:
 ## Cleaning
 ######################################################################
 
-## Get project structure
-ifeq ($(OS),Windows_NT)
-    SYSTEM := Windows
-    SHELL  := cmd.exe
-    # TREE_CMD := dir /ad /b
-    TREE_CMD := tree /F /A
-else
-    SYSTEM := Unix
-    SHELL  := /bin/bash
-    ## Check if 'tree' exists, otherwise use 'find' + 'sed'
-    # TREE_CMD := bash -c 'command -v tree >/dev/null && tree || (find . -type d && find . | sed -e "s/[^-][^/]*\// |/g" -e "s/|\([^ ]\)/|-\1/")'
-    ## Check if 'tree' exists, otherwise use 'find' + 'sed' (folders only)
-    TREE_CMD := bash -c 'command -v tree >/dev/null && tree -d || find . -type d | sed -e "s|[^/]*/| |g" -e "s| |-|g"'
-endif
-
-tree:
-	@echo "System is: $(SYSTEM)"
-	@$(TREE_CMD)
-
 ## Clean up all the generated files, compiler cleaning without 'third_party'
 clean-basic:
 	@echo "Basic cleaning started ..."
@@ -117,18 +98,28 @@ clean: clean-basic
 	@echo "Removed folder '.mypy_cache, .ruff_cache etc.'"
 	@echo "pypi cleaning completed."
 
-reset:
-	@git status --short
-	@echo "Discards any local uncommitted changes in tracked files."
-	@echo "Warning: This is destructive—any unsaved changes will be lost."
-	@echo "If unsure, use 'git status' before running this."
-	@echo "Are you sure you want to reset? (y/N)"; \
-	read confirm || exit 0; \
-	if [ "$$confirm" = "y" ]; then \
-	    git checkout -f; \
-	else \
-	    echo "Reset aborted."; \
-	fi
+######################################################################
+## project structure
+######################################################################
+
+## Get project structure
+ifeq ($(OS),Windows_NT)
+    SYSTEM := Windows
+    SHELL  := cmd.exe
+    # TREE_CMD := dir /ad /b
+    TREE_CMD := tree /F /A
+else
+    SYSTEM := Unix
+    SHELL  := /bin/bash
+    ## Check if 'tree' exists, otherwise use 'find' + 'sed'
+    # TREE_CMD := bash -c 'command -v tree >/dev/null && tree || (find . -type d && find . | sed -e "s/[^-][^/]*\// |/g" -e "s/|\([^ ]\)/|-\1/")'
+    ## Check if 'tree' exists, otherwise use 'find' + 'sed' (folders only)
+    TREE_CMD := bash -c 'command -v tree >/dev/null && tree -d || find . -type d | sed -e "s|[^/]*/| |g" -e "s| |-|g"'
+endif
+
+tree:
+	@echo "System is: $(SYSTEM)"
+	@$(TREE_CMD)
 
 ######################################################################
 ## Packaging
@@ -138,17 +129,17 @@ reset:
 ## https://github.com/pypa/build
 ######################################################################
 
-## Packaging: 'setup.py' build the pypi Packages, depends on "clean"
+## Packaging by 'setup.py' build the pypi Packages, depends on "clean"
 ## 'setup.py' can also be use by 'build' or 'installer' libraries to packaging
-pkg-setup: clean
+install_setuptools: clean
 	@echo "Packaging: 'setup.py' with setuptools, wheel..."
 	@# python setup.py build_ext --inplace --verbose
 	@# python setup.py sdist
 	@# python setup.py bdist_wheel
 	@python setup.py sdist bdist_wheel
 
-## Packaging: 'build' library by 'setup.py' or 'pyproject.toml' for pypi Packages, depends on "clean"
-pkg-build: clean
+## Package by 'build' library by 'setup.py' or 'pyproject.toml' for pypi Packages, depends on "clean"
+build_setuptools: clean
 	@echo "Packaging: 'build' library by 'setup.py' or 'pyproject.toml' with own configuration..."
 	@echo "Configuration libraries: can be (e.g. (setuptools, wheels) or (mesonbuild, meson, ninja))."
 	@# pip install build
@@ -157,11 +148,40 @@ pkg-build: clean
 	@python -m build
 
 ######################################################################
+## Installing Development Mode (a.k.a. “Editable Installs”)
+## https://setuptools.pypa.io/en/stable/userguide/development_mode.html
+## https://mesonbuild.com/meson-python/how-to-guides/editable-installs.html
+######################################################################
+
+## Install the development version of scikit-plots, depends on "clean"
+install_dep: clean
+	@echo "Installing library pip dependencies..."
+	@# pip install -r ./requirements/all.txt
+	@pip install -r ./requirements/build.txt
+
+## Install Packages to local, depends on "clean"
+install: clean install_dep
+	@echo "Installing Packages to local library (editable or not) for checking..."
+	@# python -m pip install .
+	@# python -m pip install --use-pep517 .
+	@# python -m pip install --no-build-isolation --no-cache-dir .
+
+## Install the development version of scikit-plots, depends on "clean"
+install_dev: clean install_dep
+	@echo "Installing Packages to local library (editable or not) for checking..."
+	@# python -m pip install .
+	@# python -m pip install --use-pep517 .
+	@# python -m pip install --no-build-isolation --no-cache-dir .
+	@# python -m pip install --no-build-isolation --no-cache-dir --editable .
+	@# python -m pip install --no-build-isolation --no-cache-dir -e . -vvv
+	@python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+
+######################################################################
 ## Compiling by Meson step-by-step
 ######################################################################
 
-## Compiling: "meson" library for step-by-step compiling, depends on "clean"
-comp-meson: clean
+## Compile by "meson" library for step-by-step, depends on "clean"
+build: clean
 	@echo "Compiling: 'meson' library step-by-step compiling for debugging..."
 	@# pip install mesonbuild, meson, ninja
 
@@ -185,57 +205,69 @@ comp-meson: clean
 	@# ninja -C builddir test
 
 ######################################################################
-## Installing Development Mode (a.k.a. “Editable Installs”)
-## https://setuptools.pypa.io/en/stable/userguide/development_mode.html
-## https://mesonbuild.com/meson-python/how-to-guides/editable-installs.html
-######################################################################
-
-## Install Packages to local, depends on "clean"
-install: clean
-	@echo "Installing Packages to local library (editable or not) for checking..."
-	@# python -m pip install .
-	@# python -m pip install --use-pep517 .
-	@# python -m pip install --no-build-isolation --no-cache-dir .
-	@# python -m pip install --no-build-isolation --no-cache-dir -e . -vvv
-	@# make clean && python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs,gpu] -v
-	@python -m pip install --no-build-isolation --no-cache-dir --editable .
-
-######################################################################
 ## Testing
 ######################################################################
 
 ## Run this target to execute project tests.
-test: clean-basic
-	@echo "Testing project started..."
-	@cd scikitplot && pytest tests/
-	@echo "pytest completed."
+# test: clean-basic
+# 	@echo "Testing project started..."
+# 	@cd scikitplot && pytest tests/
+# 	@echo "pytest completed."
 
 ## Run this target to execute py script to save generating plots images.
-examples: clean-basic
-	@echo "Generating plots images..."
-	@#cd galleries/examples && python classification/plot_feature_importances_script.py
-	@python auto_building_tools/discover_scripts.py --save-plots
-	@echo "All py Script executed."
+# examples: clean-basic
+# 	@echo "Generating plots images..."
+# 	@#cd galleries/examples && python classification/plot_feature_importances_script.py
+# 	@python auto_building_tools/discover_scripts.py --save-plots
+# 	@echo "All py Script executed."
 
 ######################################################################
 ## Submodule
 ######################################################################
 
 ## Submodule Update
-update-mod:
-ifdef MOD
-	@## NumCpp
-	@echo "Submodule: '$(MOD)' Updating..."
-	@git config --global --add safe.directory /home/jovyan/work/contribution/scikit-plots/third_party/$(MOD)
-	@git submodule sync
-	@git submodule update --init --recursive
-	@echo "'$(MOD)' Update completed."
-else
-	@echo "MOD is not defined"
-endif
+# update-mod:
+# ifdef MOD
+# 	@## NumCpp
+# 	@echo "Submodule: '$(MOD)' Updating..."
+# 	@git config --global --add safe.directory /home/jovyan/work/contribution/scikit-plots/third_party/$(MOD)
+# 	@git submodule sync
+# 	@git submodule update --init --recursive
+# 	@echo "'$(MOD)' Update completed."
+# else
+# 	@echo "MOD is not defined"
+# endif
 
 ## git submodule foreach --recursive git pull
 # git submodule update --init --recursive --remote
+
+######################################################################
+## Git reset
+######################################################################
+
+# reset:
+# 	@git status --short
+# 	@echo "Discards any local uncommitted changes in tracked files."
+# 	@echo "Warning: This is destructive—any unsaved changes will be lost."
+# 	@echo "If unsure, use 'git status' before running this."
+# 	@echo "Are you sure you want to reset? (y/N)"; \
+# 	read confirm || exit 0; \
+# 	if [ "$$confirm" = "y" ]; then \
+# 	    git checkout -f; \
+# 	else \
+# 	    echo "Reset aborted."; \
+# 	fi
+
+######################################################################
+## Git Reset Your Local Branch to the Remote Version
+######################################################################
+
+## Be sure you want to completely throw away any uncommitted changes before running this.
+## git checkout develop             # Switch to the branch you want to reset
+## git fetch origin                 # Fetch the latest changes from the remote repository
+## git reset --hard origin/develop  # Reset the branch to match the remote
+## git status
+## git log --oneline
 
 ######################################################################
 ## Git from scratch
@@ -252,17 +284,6 @@ endif
 ## git status
 ## git push -u origin main
 ## git push -u origin main --force  # Force Push to Overwrite Remote Repository
-
-######################################################################
-## Git Reset Your Local Branch to the Remote Version
-######################################################################
-
-## Be sure you want to completely throw away any uncommitted changes before running this.
-## git checkout develop             # Switch to the branch you want to reset
-## git fetch origin                 # Fetch the latest changes from the remote repository
-## git reset --hard origin/develop  # Reset the branch to match the remote
-## git status
-## git log --oneline
 
 ######################################################################
 ## Git Search and fix
@@ -435,8 +456,29 @@ publish-docker:
 	# docker tag jupyter_notebook-base_notebook:latest skplt/scikit-plots-dev:latest
 	# docker push skplt/scikit-plots-dev:latest
 
+######################################################################
+## symbolic links
+######################################################################
+
 sym:
 	@rm -rf .devcontainer/script
 	@# mkdir -p .devcontainer/script
 	@ln -rsf docker/script/ .devcontainer/script
 	@echo "Created symbolic links..."
+
+######################################################################
+## New Branch with the Latest Changes
+## forked repository 'origin', original repository 'upstream '
+######################################################################
+
+newbr:
+	@# git checkout main  # or the branch you want as a base \
+	## If you're on 'feature-branch' but want to pull from 'main' \
+	## same git fetch origin main && git merge origin/main \
+	# git pull origin main  \
+	# git branch -d subpackage-bug-fix || true \
+	# git checkout -b subpackage-bug-fix
+	@git switch main \
+	git pull \
+	git branch -d subpackage-bug-fix || true \
+	git switch -c subpackage-bug-fix

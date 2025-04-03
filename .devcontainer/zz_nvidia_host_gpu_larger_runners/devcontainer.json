@@ -151,37 +151,62 @@
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
         // === Python Development ===
-        "ms-python.python",            // Python language support
-        "ms-toolsai.jupyter",          // Jupyter Notebook support
-        "charliermarsh.ruff",          // Ruff linter
-        "ms-python.black-formatter",   // Black code formatter
+        "ms-python.python",                       // Python language support
+        "ms-toolsai.jupyter",                     // Jupyter Notebook support
+        "ms-toolsai.vscode-jupyter-slideshow",    // Jupyter Slide Show
 
-        // === C/C++ Development ===
-        "ms-vscode.cpptools",          // C/C++ IntelliSense, debugging, etc.
-        "llvm-vs-code-extensions.vscode-clangd",  // Clang language server
-        "jeff-hykin.better-cpp-syntax", // Better syntax highlighting
-        "twxs.cmake",                   // CMake support
-        "ms-vscode.makefile-tools",      // Makefile support
-
-        // === Web Development ===
-        "ms-vscode.live-server",        // Live Server
-        "ritwickdey.liveserver",        // Alternative Live Server
-        "esbenp.prettier-vscode",       // Prettier formatter for JS, HTML, etc.
-
-        // === Shell & Terminal ===
-        "timonwong.shellcheck",         // Shell script linting
-        "foxundermoon.shell-format",    // Shell script formatting
+        // === Formatter extension ===
+        "ms-python.isort",                        // Import sorting extension
+        "ms-python.autopep8",                     // autopep8 formatter
+        "ms-python.flake8",                       // Flake8 extension
+        "ms-python.black-formatter",              // Black code formatter
+        "ms-python.mypy-type-checker",            // Mypy extension
+        "ms-python.pylint",                       // Pylint extension
+        "charliermarsh.ruff",                     // Ruff linter
+        // "ms-pyright.pyright",                     // Static Type Checker for Python
 
         // === Markdown & Docs ===
-        "yzhang.markdown-all-in-one",   // Markdown enhancements
-        "stkb.rewrap",                  // Auto-wrap text and comments
-        "bierner.markdown-mermaid",     // Support for Mermaid diagrams in Markdown
+        "yzhang.markdown-all-in-one",             // Markdown enhancements
+        "stkb.rewrap",                            // Auto-wrap text and comments
+        "bierner.markdown-mermaid",               // Support for Mermaid diagrams in Markdown
+
+        // === Shell & Terminal ===
+        "timonwong.shellcheck",                   // Shell script linting
+        "foxundermoon.shell-format",              // Shell script formatting
+        "ms-vscode.makefile-tools",               // Makefile support
+        // "ms-vscode.cmake-tools",                  // CMake Tools
+
+        // === Web Development ===
+        "ms-vscode.live-server",                  // Live Server
+        "ritwickdey.liveserver",                  // Alternative Live Server
+        "esbenp.prettier-vscode",                 // Prettier formatter for JS, HTML, etc.
 
         // === Git & Productivity ===
-        "eamodio.gitlens",              // Git supercharged
-        "donjayamanne.githistory",      // View git history
-        "github.vscode-pull-request-github", // GitHub PRs and Issues
-        "mhutchie.git-graph"            // Interactive Git graph
+        "eamodio.gitlens",                        // Git supercharged
+        "donjayamanne.githistory",                // View git history
+        "github.vscode-pull-request-github",      // GitHub PRs and Issues
+        "mhutchie.git-graph",                     // Interactive Git graph
+
+        // === C/C++ Development ===
+        // "ms-vscode.cpptools",                     // C/C++ IntelliSense, debugging, etc.
+        "ms-vscode.cpptools-extension-pack",      // C/C++ IntelliSense, debugging, etc.
+        "llvm-vs-code-extensions.vscode-clangd",  // Clang language server
+        "jeff-hykin.better-cpp-syntax",           // Better syntax highlighting
+
+        // === continuous integration and continuous deployment (CI/CD) platform used to automate software builds, tests, and deployments ===
+        // "HashiCorp.terraform",                 // terraform
+        // "ms-azuretools.vscode-azureterraform", // azureterraform
+        "ms-azuretools.vscode-docker",            // Docker for Visual Studio Code
+        "circleci.circleci"
+
+        // === GenAI ===
+        // "genaiscript.genaiscript-vscode"          // GenAIScript
+
+        // === Learn extension ===
+        // "docsmsft.docs-markdown",                 // Learn Markdown Extension
+        // "ms-vscode.copilot-mermaid-diagram",      // vscode-mermAId
+        // "docsmsft.docs-yaml",                     // Docs YAML Extension
+        // "azurepaas-tools.vscode-learncloud",      // Learn Cloud
       ],
       "settings": {
         "terminal.integrated.shell.linux": "/bin/bash",

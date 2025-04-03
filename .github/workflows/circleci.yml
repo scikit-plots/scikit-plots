@@ -15,7 +15,7 @@ jobs:
   circleci_artifacts_redirector_job:
     name: Run CircleCI artifacts redirector
     runs-on: ubuntu-latest
-    # if: "${{ github.event.context == 'ci/circleci: docs-python3' }}"
+    # if: "${{ github.event.context == 'ci/circleci: build' }}"
     if: >-
       github.repository == 'scikit-plots/scikit-plots'
       && github.event.context == 'ci/circleci: build'
