@@ -872,15 +872,21 @@ test-command = "python -m pytest --pyargs numpy -m 'not slow'"
 
   [tool.gilesbot.towncrier_changelog]
     enabled = true  # default is false
-    changelog_noop_label = "skip-changelog-checks"
+    whatsnew_label = "whats_new-needed"  # default
+    changelog_noop_label = "skip-changelog-checks"  # default
     changelog_skip_label = "no-changelog-entry-needed"  # default is none
     verify_pr_number = true  # default is false
-    number_incorrect_long = "The number in the changelog file you added does not match the number of this pull request. Please rename the file."
-    # whatsnew_label = "whats_new-needed"
-    whatsnew_pattern = '''docs/source/whats_new/upcoming_changes/[^/]+/\d+\.[^.]+\.rst'''
-    help_url = "https://github.com/astropy/astropy/blob/main/docs/changes/README.rst"
-    changelog_missing_long = "There isn't a changelog file in this pull request. Please add a changelog file to the `changelog/` directory following the instructions in the changelog [README](https://github.com/astropy/astropy/blob/main/docs/changes/README.rst)."
-    type_incorrect_long = "The changelog file you added is not one of the allowed types. Please use one of the types described in the changelog [README](https://github.com/astropy/astropy/blob/main/docs/changes/README.rst)"
+    number_incorrect_long = """The number in the changelog file you added
+      does not match the number of this pull request. Please rename the file."""
+    help_url = "https://github.com/scikit-plots/scikit-plots/blob/main/docs/source/whats_new/upcoming_changes/README.md"
+    changelog_missing_long = """There isn't a changelog file in this pull request.
+      Please add a changelog file to the `docs/source/whats_new/upcoming_changes/`
+      directory following the instructions in the changelog
+      [README](https://github.com/scikit-plots/scikit-plots/blob/main/docs/source/whats_new/upcoming_changes/README.md)."""
+    type_incorrect_long = """The changelog file you added is not one of the allowed types.
+      Please use one of the types described in the changelog
+      [README](https://github.com/scikit-plots/scikit-plots/blob/main/docs/source/whats_new/upcoming_changes/README.md)"""
+    whatsnew_pattern = '''docs/source/whats_new/[^/]+/[^/]+/v?\d+\.[^.]+\.rst'''
 
 ######################################################################
 ## towncrier
@@ -896,6 +902,8 @@ test-command = "python -m pytest --pyargs numpy -m 'not slow'"
     filename     = "docs/source/whats_new/v0.5.rst"
     directory    = "docs/source/whats_new/upcoming_changes"
     template     = "docs/source/whats_new/upcoming_changes/towncrier_template.rst.jinja2"
+
+    # === towncrier.type ===
 
     [[tool.towncrier.type]]
         directory = "major-feature"
@@ -932,21 +940,23 @@ test-command = "python -m pytest --pyargs numpy -m 'not slow'"
         name = ""
         showcontent = true
 
+    # === towncrier.section ===
+
     [[tool.towncrier.section]]
-        name = "Security"
-        path = "security"
+        name = "Support for Array API"
+        path = "array-api"
 
     [[tool.towncrier.section]]
         name = "Changed models"
         path = "changed-models"
 
     [[tool.towncrier.section]]
-        name = "Changes impacting many modules"
-        path = "many-modules"
+        name = "Security"
+        path = "security"
 
     [[tool.towncrier.section]]
-        name = "Support for Array API"
-        path = "array-api"
+        name = "Changes impacting many modules"
+        path = "many-modules"
 
     [[tool.towncrier.section]]
         name = "Metadata routing"
