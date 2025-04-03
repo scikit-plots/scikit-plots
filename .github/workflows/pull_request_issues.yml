@@ -3,8 +3,6 @@ name: "Pull Request and/or Issues"
 on:
   # Use pull_request_target trigger if you're targeting a pull request from a fork:
   # pull_request:  Safer alternative to pull_request_target:
-  pull_request:
-    types: [opened, reopened, synchronize, edited]  # Triggers only on these events
   pull_request_target: # zizmor: ignore[dangerous-triggers]
     types: [opened, reopened, synchronize, edited]  # Triggers only on these events
   issues:
@@ -29,12 +27,12 @@ jobs:
 
     steps:
       # label based on PR regex title
-      # - name: Checkout (cloned) repository with full history
-      #   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      #   with:
-      #     persist-credentials: false  # Prevents accidental credential exposure
-      #     submodules: true  # Fetch Hugo themes (true OR recursive)
-      #     fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+      - name: Checkout (cloned) repository with full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
 
       # - name: "Debug: Check file existence"
       #   run: ls -lR .github/
@@ -62,7 +60,7 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           # max-labels: "4"  # thomasjpfan
-          sync-labels: true
+          # sync-labels: true
           configuration-path: ".github/labeler.yml"  # ".github/labeler.yml"
 
       # label based on PR Prefix
