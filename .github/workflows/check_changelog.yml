@@ -30,12 +30,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # - name: Checkout (cloned) repository with full history
-      #   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      #   with:
-      #     persist-credentials: false  # Prevents accidental credential exposure
-      #     # submodules: true  # Fetch Hugo themes (true OR recursive)
-      #     fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+      - name: Checkout (cloned) repository with full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
 
       # - name: Check if tests have changed
       #   id: tests_changed
@@ -53,4 +53,4 @@ jobs:
         uses: scientific-python/action-towncrier-changelog@1d7332022f76e36fe8ce2d716b851f3f98063c62  # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BOT_USERNAME: gilesbot
+          BOT_USERNAME: gilesbot  # 'astropy-bot'
