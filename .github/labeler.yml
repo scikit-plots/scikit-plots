@@ -32,17 +32,22 @@ CI:
 Documentation:
 - changed-files:
   - any-glob-to-any-file:
-    - docs/**/*
-    - docs/source/**/*
+    # Add 'Documentation' label to any changes within 'docs' folder or any subfolders
+    - docs/**
+    # Add 'Documentation' label to any file changes within 'docs' folder
+    - docs/*
+    - docs/source/*
     - LICENSE
-    - LICENSES/**
-    - CITATION/**
+    - LICENSES/*
+    - CITATION/*
     - CITATION.cff
-    - '*.md'
-  - all-globs-to-any-file:
+    # Add 'Documentation' label to any change to .md files within the entire repository
+    - '**/*.md'
+    # Add 'Documentation' label to any change to .rst files within the entire repository
     - '**/*.rst'
+  - all-globs-to-any-file:
     - '!CHANGES.rst'
-    - '!docs/changes/**/*'
+    - '!docs/changes/*'
 
 DX:
 - changed-files:

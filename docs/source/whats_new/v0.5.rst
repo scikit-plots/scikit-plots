@@ -39,7 +39,7 @@ Changes impacting many modules
 
 - |Enhancement| `__skplt_tags__` was introduced for setting tags in plots.
   More details in :ref:`plots_tags`.
-  :pr:`94` by :user:`muce <celik-muhammed>`
+  :pr:`96` by :user:`muce <celik-muhammed>`
 
 .. rubric:: Code and documentation contributors
 

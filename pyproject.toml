@@ -865,11 +865,18 @@ test-command = "python -m pytest --pyargs numpy -m 'not slow'"
 ######################################################################
 
 [tool.gilesbot]
-  [tool.gilesbot.pull_requests]
-    enabled = true
+  ## https://github.com/Cadair/giles
   [tool.gilesbot.circleci_artifacts]
     enabled = true
 
+  [tool.gilesbot.pull_requests]
+    enabled = true
+
+  ## To enable checking of milestones
+  # [tool.gilesbot.milestones]
+  #   enabled = true
+
+  ## Towncrier Changelog Checking
   [tool.gilesbot.towncrier_changelog]
     enabled = true  # default is false
     whatsnew_label = "whats_new-needed"  # default
