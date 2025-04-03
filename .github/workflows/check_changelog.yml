@@ -1,3 +1,5 @@
+# https://github.com/scientific-python/action-towncrier-changelog
+---
 name: Check PR Changelog
 
 # This check makes sure that the changelog is properly updated
@@ -23,7 +25,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  changelog_checker:
     name: A reviewer will let you know if it is required or can be bypassed
     runs-on: ubuntu-latest
 
@@ -51,4 +53,4 @@ jobs:
         uses: scientific-python/action-towncrier-changelog@1d7332022f76e36fe8ce2d716b851f3f98063c62  # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BOT_USERNAME: changelog-bot
+          BOT_USERNAME: gilesbot

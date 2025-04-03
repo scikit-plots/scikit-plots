@@ -1,7 +1,28 @@
-# Makefile for Sphinx documentation
+## Makefile for Sphinx documentation
+## Copied from: https://github.com/scikit-learn/scikit-learn/blob/main/doc/Makefile
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+## ensures that all commands within a target run in one single shell,
+## allowing variables and environment changes to persist across commands.
+## better multi-line logic → use .ONESHELL: but @ only applies to the first command
+## cleaner output → use @
+# .ONESHELL:
+
+# Shell Debugging: If the issue persists, add debugging:
+# SHELL = /bin/bash -x
+
+## PHONY targets are used to avoid conflicts with files of the same name.
+## Declare phony targets to indicate these are not files but commands to be executed.
+.PHONY: help clean html dirhtml ziphtml pickle json latex latexpdf changes linkcheck doctest optipng
+
+## (Optional) Ensures that the project is rebuilt from a clean state.
+all: html-noplot
+
+######################################################################
+## Internal variables
+######################################################################
 
 # You can set these variables from the command line.
 SPHINXOPTS    = -T
@@ -28,12 +49,11 @@ endif
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)\
-    $(EXAMPLES_PATTERN_OPTS) $(SOURCEDIR)  # Use SOURCEDIR variable here
+    $(EXAMPLES_PATTERN_OPTS) $(SOURCEDIR)  # . Use SOURCEDIR variable here
 
-
-.PHONY: help clean html dirhtml ziphtml pickle json latex latexpdf changes linkcheck doctest optipng
-
-all: html-noplot
+######################################################################
+## helper
+######################################################################
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -51,6 +71,9 @@ help:
 	@echo "  linkcheck      to check all external links for integrity"
 	@echo "  doctest        to run all doctests embedded in the documentation (if enabled)"
 
+######################################################################
+## Cleaning
+######################################################################
 
 ## clean target: Removes build artifacts and cleans up the project directory.
 ## Useful for ensuring a fresh build environment.
@@ -93,19 +116,24 @@ add_safe_dir: get_abs_path
 	echo "Adding '$$abs_path' git safe dir..."; \
 	git config --global --add safe.directory $$abs_path
 
+######################################################################
+## SPHINX
+######################################################################
+
 # Default to SPHINX_NUMJOBS=1 for full documentation build. Using
 # SPHINX_NUMJOBS!=1 may actually slow down the build, or cause weird issues in
 # the CI (job stalling or EOFError), see
 # https://github.com/scikit-learn/scikit-learn/pull/25836 or
 # https://github.com/scikit-learn/scikit-learn/pull/25809
 html: SPHINX_NUMJOBS ?= 1
-html:
-	# These two lines make the build a bit more lengthy, and the
-	# the embedding of images more robust
-	rm -rf $(BUILDDIR)/html/_images
-	#rm -rf _build/doctrees/
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) -j$(SPHINX_NUMJOBS) $(BUILDDIR)/html/stable
-	@echo
+html: clean
+	@# These two lines make the build a bit more lengthy, and the \
+	# the embedding of images more robust \
+	# rm -rf "$(BUILDDIR)/doctrees/" \
+	rm -rf "$(BUILDDIR)/html/_images"
+	@echo "$(ALLSPHINXOPTS)"
+	@echo "Running sphinx documentation build..."
+	@$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) -j$(SPHINX_NUMJOBS) $(BUILDDIR)/html/stable
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html/stable"
 
 # Default to SPHINX_NUMJOBS=auto (except on MacOS and CI) since this makes
@@ -184,9 +212,3 @@ optipng:
 	  | xargs -0 -n 1 -P 4 optipng -o10
 
 dist: html ziphtml
-
-rep:
-	@# Remove the old contents
-	@rm -rf ../git_clones/scikit-plots.github.io/0.4/*
-	@# Copy the contents from source_foldera to destination
-	@cp -r ./build/html/stable/* ../git_clones/scikit-plots.github.io/0.4
