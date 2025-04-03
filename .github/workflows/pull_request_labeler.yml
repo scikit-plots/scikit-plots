@@ -18,6 +18,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout (cloned) repository with full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+
+      - name: 'Reviewer Checklist'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        if: github.event.action == 'opened'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Thank you for your contribution to scikit-plots👋!
+
+              ✍️ This checklist is meant to remind the package maintainers who will review this pull request of some common things to look for.
+
+              ## Maintainer's Pull Request Review Checklist
+
+              - [ ] Do the proposed changes actually accomplish desired goals?
+              - [ ] Do the proposed changes follow the [scikit-plots coding guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
+              - [ ] Are tests added/updated as required? If so, do they follow the [scikit-plots testing guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
+              - [ ] Are docs added/updated as required? If so, do they follow the [scikit-plots documentation guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
+              - [ ] Is rebase and/or squash necessary? If so, please provide the author with appropriate instructions. Also see instructions for [rebase](https://scikit-plots.github.io/dev/devel/index.html) and [squash](https://scikit-plots.github.io/dev/devel/index.html).
+              - [ ] Did the CI pass? If no, are the failures related? If you need to run daily and weekly cron jobs as part of the PR, please apply the "Extra CI" label. Codestyle issues can be fixed by the [bot](https://scikit-plots.github.io/dev/devel/index.html).
+              - [ ] Is a change log needed? If yes, did the change log check pass? If no, add the "no-changelog-entry-needed" label. If this is a manual backport, use the "skip-changelog-checks" label unless special changelog handling is necessary.
+              - [ ] Is this a big PR that makes a "What's new?" entry worthwhile and if so, is (1) a "what's new" entry included in this PR and (2) the "whatsnew-needed" label applied?
+              - [ ] At the time of adding the milestone, if the milestone set requires a backport to release branch(es), apply the appropriate "backport-X.Y.x" label(s) *before* merge.`
+            })
+
       # label based on PR glob files
       - name: label based on changed files
         # uses: thomasjpfan/labeler@v2.5.1
