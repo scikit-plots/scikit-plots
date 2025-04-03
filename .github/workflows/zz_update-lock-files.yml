@@ -56,7 +56,7 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.BOT_GITHUB_TOKEN }}
+          # token: ${{ secrets.BOT_GITHUB_TOKEN }}
           push-to-fork: scikit-plots-bot/scikit-plots
           commit-message: Update CI lock files ${{ matrix.additional_commit_message }}
           committer: "Lock file bot <noreply@github.com>"

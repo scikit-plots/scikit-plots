@@ -50,7 +50,7 @@ jobs:
         # if: ${{ env.IS_SKIP == 'false' }}  # Accessing IS_SKIP set earlier
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          api-token: ${{ secrets.CIRCLE_TOKEN }}
+          # api-token: ${{ secrets.CIRCLE_TOKEN }}
           job-title: Check the rendered docs here!
           artifact-path: 0/docs/build/html/stable/index.html
           circleci-jobs: build
