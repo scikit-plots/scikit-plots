@@ -212,3 +212,12 @@ optipng:
 	  | xargs -0 -n 1 -P 4 optipng -o10
 
 dist: html ziphtml
+
+######################################################################
+## symbolic links
+######################################################################
+
+# sym:
+# 	@#rm -rf .devcontainer/script
+# 	@ln -rsf docs/source/whats_new/upcoming_changes upcoming_changes
+# 	@echo "Created symbolic links..."

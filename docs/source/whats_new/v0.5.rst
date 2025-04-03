@@ -6,6 +6,7 @@
 
 .. _release_notes_0_5:
 
+===========
 Version 0.5
 ===========
 
@@ -29,9 +30,20 @@ Version 0.5
 .. _changelog_0_5_0:
 
 Version 0.5.0
----------------------------
+=============
+
+**November 2024**
+
+Changes impacting many modules
+------------------------------
+
+- |Enhancement| `__skplt_tags__` was introduced for setting tags in plots.
+  More details in :ref:`plots_tags`.
+  :pr:`94` by :user:`muce <celik-muhammed>`
+
+.. rubric:: Code and documentation contributors
 
 Thanks to everyone who has contributed to the maintenance and improvement of
-the project since version 0.5, including:
+the project since version 0.4, including:
 
 TODO: update at the time of the release.
