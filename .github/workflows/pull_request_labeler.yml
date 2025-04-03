@@ -1,4 +1,4 @@
-name: "Pull Request Labeler"
+name: "PR Labeler"
 
 on:
   # Use pull_request_target trigger if you're targeting a pull request from a fork:
@@ -14,7 +14,7 @@ permissions:
   pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
 
 jobs:
-  label_pull_request:
+  pull_request_label:
     runs-on: ubuntu-latest
 
     steps:
