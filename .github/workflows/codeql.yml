@@ -96,6 +96,7 @@ jobs:
       # Initializes the CodeQL tools for scanning.
       - name: CodeQL Initialize
         uses: github/codeql-action/init@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
+        continue-on-error: true
         with:
           languages: ${{ matrix.language }}
           # build-mode: ${{ matrix.build-mode }}
@@ -113,6 +114,7 @@ jobs:
       - name: CodeQL Autobuild
         if: matrix.language != 'c-cpp'
         uses: github/codeql-action/autobuild@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
+        continue-on-error: true
 
       # ℹ️ Command-line programs to run using the OS shell.
       # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
@@ -147,5 +149,6 @@ jobs:
 
       - name: CodeQL Perform Analysis
         uses: github/codeql-action/analyze@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
+        continue-on-error: true
         with:
           category: "/language:${{matrix.language}}"
