@@ -3,7 +3,8 @@ name: "Pull Request and/or Issues"
 on:
   # Use pull_request_target trigger if you're targeting a pull request from a fork:
   # pull_request:  Safer alternative to pull_request_target:
-  pull_request_target: # zizmor: ignore[dangerous-triggers]
+  pull_request:
+  # pull_request_target: # zizmor: ignore[dangerous-triggers]
     types: [opened, reopened, synchronize, edited]  # Triggers only on these events
   issues:
     types:
