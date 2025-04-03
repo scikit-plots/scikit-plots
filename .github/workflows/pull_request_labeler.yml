@@ -35,11 +35,12 @@ jobs:
         if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}  # ${{ github.token }}
+          # repo-token: ${{ github.token }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           enable-versioned-regex: 0
           include-body: 0
           include-title: 1
-          configuration-path: ".github/labeler-issue.yml"  # ".github/labeler.yml"
+          configuration-path: ".github/labeler-issue.yml"
 
       # label based on PR Prefix
       - name: Labeler PR Prefix
