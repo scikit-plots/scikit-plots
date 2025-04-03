@@ -114,7 +114,7 @@ jobs:
           # github_token: ${{ secrets.GITHUB_TOKEN }}  # only grants permissions to the same repository
           external_repository: scikit-plots/scikit-plots.github.io
           commit_message: "Deploy docs for version $VERSION"
-          full_commit_message: ${{ github.event.head_commit.message }}
+          # full_commit_message: ${{ github.event.head_commit.message }}
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           publish_dir: ./docs/build/html  # Deploy entire build folder  # default: public
