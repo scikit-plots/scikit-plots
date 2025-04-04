@@ -483,4 +483,5 @@ newbr:
 	&& git branch -d subpackage-bug-fix || true \
 	&& git branch -D subpackage-bug-fix || true \
 	&& git switch -c subpackage-bug-fix \
-	&& git push --set-upstream origin subpackage-bug-fix
+	&& git push --set-upstream origin subpackage-bug-fix \
+	&& git branch
