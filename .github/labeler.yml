@@ -2,7 +2,7 @@
 
 # This file contains globs for automatically adding labels based on changed files,
 # for use with https://github.com/actions/labeler.
----
+
 ######################################################################
 ## CI
 ######################################################################
