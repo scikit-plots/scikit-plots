@@ -31,11 +31,12 @@ build:meson:
     - scikitplot/**/meson.build
     - setup.cfg
 
-# Release:
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - docs/development/maintainers/releasing.rst
-#     - .github/workflows/publish.yml
+release:
+- changed-files:
+  - any-glob-to-any-file:
+    - .github/workflows/wheels.yml
+    - .github/workflows/publish_to_pypi.yml
+    - docs/source/devel/maintainers*
 
 # "CI: Run wheels":
 # - changed-files:
