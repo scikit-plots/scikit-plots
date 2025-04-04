@@ -151,15 +151,15 @@ lang:cython:
 #   - any-glob-to-any-file:
 #     - scikitplot/_xp_core_lib/**/*
 
-# "scikitplot/api":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/api/**/*
+"scikitplot/api":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/api/**/*
 
-# "scikitplot/experimental":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/experimental/**/*
+"scikitplot/experimental":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/experimental/**/*
 
 # "scikitplot/kds":
 # - changed-files:
