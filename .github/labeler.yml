@@ -7,29 +7,29 @@
 ## CI
 ######################################################################
 
-"build/ci":
-- changed-files:
-  - any-glob-to-any-file:
-    - .binder/*
-    - .circleci/*
-    - .devcontainer/**/*
-    - .github/**/*
-    - .spin/*
-    - docker/**/*
+# "build/ci":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - .binder/*
+#     - .circleci/*
+#     - .devcontainer/**/*
+#     - .github/**/*
+#     - .spin/*
+#     - docker/**/*
 
-build:templates:
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/**/*.tp
+# build:templates:
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/**/*.tp
 
-build:meson:
-- changed-files:
-  - any-glob-to-any-file:
-    - pyproject.toml
-    - meson.build
-    - meson.options
-    - scikitplot/**/meson.build
-    - setup.cfg
+# build:meson:
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - pyproject.toml
+#     - meson.build
+#     - meson.options
+#     - scikitplot/**/meson.build
+#     - setup.cfg
 
 # Release:
 # - changed-files:
@@ -63,9 +63,9 @@ documentation:
     # - '**/*.md'
     # Add 'Documentation' label to any change to .rst files within the entire repository
     # - '**/*.rst'
-  - all-globs-to-any-file:
-    - '!CHANGES.rst'
-    - '!docs/changes/*'
+  # - all-globs-to-any-file:
+  #   - '!CHANGES.rst'
+  #   - '!docs/changes/*'
 
 "doc:examples":
   - changed-files:
@@ -195,19 +195,19 @@ lang:cython:
 ## Testing
 ######################################################################
 
-testing:
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/tests/**/*
-    - '**/conftest.py'
-    - conftest.py
-    - codecov.yml
-    - tox.ini
-    - .flake8
-    - .mypy.ini
-    - .pre-commit-config.yaml
-    - .pre-commit-hooks.yaml
-    - .ruff.toml
+# testing:
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/tests/**/*
+#     - '**/conftest.py'
+#     - conftest.py
+#     - codecov.yml
+#     - tox.ini
+#     - .flake8
+#     - .mypy.ini
+#     - .pre-commit-config.yaml
+#     - .pre-commit-hooks.yaml
+#     - .ruff.toml
 
 # installation:
 # - changed-files:
