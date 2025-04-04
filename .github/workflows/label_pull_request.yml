@@ -104,6 +104,8 @@ jobs:
 
       # label based on PR Prefix
       - name: Labeler PR Prefix
+        # https://github.com/gerrymanoim/pr-prefix-labeler
+        # pr-prefix-labeler.yml
         uses: gerrymanoim/pr-prefix-labeler@c8062327f6de59a9ae1c19f7f07cacd0b976b6fa # v3
         if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
