@@ -4,7 +4,7 @@
 # for use with https://github.com/github/issue-labeler
 #
 # Add/remove 'critical' label if issue contains the words 'urgent' or 'critical'
----
+
 critical:
     - '(critical|urgent)'
 
