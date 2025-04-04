@@ -20,7 +20,7 @@ on:
     branches: [ "main", "*.X" ]
   pull_request:
     branches: [ "main", "*.X" ]
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 permissions:
   # only required for workflows in private repositories
@@ -95,8 +95,8 @@ jobs:
 
       # Initializes the CodeQL tools for scanning.
       - name: CodeQL Initialize
-        uses: github/codeql-action/init@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
-        continue-on-error: true
+        uses: github/codeql-action/init@1b549b9259bda1cb5ddde3b41741a82a2d15a841  # v3.28.13
+        # continue-on-error: true
         with:
           languages: ${{ matrix.language }}
           # build-mode: ${{ matrix.build-mode }}
@@ -113,8 +113,8 @@ jobs:
       # If this step fails, then you should remove it and run the build manually (see below)
       - name: CodeQL Autobuild
         if: matrix.language != 'c-cpp'
-        uses: github/codeql-action/autobuild@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
-        continue-on-error: true
+        uses: github/codeql-action/autobuild@1b549b9259bda1cb5ddde3b41741a82a2d15a841  # v3.28.13
+        # continue-on-error: true
 
       # ℹ️ Command-line programs to run using the OS shell.
       # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
@@ -148,7 +148,7 @@ jobs:
           pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
       - name: CodeQL Perform Analysis
-        uses: github/codeql-action/analyze@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
-        continue-on-error: true
+        uses: github/codeql-action/analyze@1b549b9259bda1cb5ddde3b41741a82a2d15a841  # v3.28.13
+        # continue-on-error: true
         with:
           category: "/language:${{matrix.language}}"
