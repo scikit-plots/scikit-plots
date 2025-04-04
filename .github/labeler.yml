@@ -7,15 +7,15 @@
 ## CI
 ######################################################################
 
-# "build/ci":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - .binder/*
-#     - .circleci/*
-#     - .devcontainer/**/*
-#     - .github/**/*
-#     - .spin/*
-#     - docker/**/*
+"build/ci":
+- changed-files:
+  - any-glob-to-any-file:
+    - .binder/*
+    - .circleci/*
+    - .devcontainer/**/*
+    - .github/**/*
+    - .spin/*
+    - docker/**/*
 
 # build:templates:
 # - changed-files:
