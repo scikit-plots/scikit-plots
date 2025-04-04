@@ -1,6 +1,6 @@
 # https://github.com/gerrymanoim/pr-prefix-labeler
 # pr-prefix-labeler.yml
----
+
 "BUG"  : "00 - Bug"
 "ENH"  : "01 - Enhancement"
 "MAINT": "03 - Maintenance"
