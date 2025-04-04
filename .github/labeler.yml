@@ -146,10 +146,10 @@ lang:cython:
 #   - any-glob-to-any-file:
 #     - scikitplot/_tweedie/**/*
 
-# "scikitplot/_xp_core_lib":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/_xp_core_lib/**/*
+"scikitplot/_xp_core_lib":
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/_xp_core_lib/**/*
 
 "scikitplot/api":
 - changed-files:
