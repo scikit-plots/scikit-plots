@@ -120,27 +120,28 @@ lang:cython:
 ## Testing
 ######################################################################
 
-# testing:
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/tests/**/*
-#     - '**/conftest.py'
-#     - conftest.py
-#     - codecov.yml
-#     - tox.ini
-#     - .flake8
-#     - .mypy.ini
-#     - .pre-commit-config.yaml
-#     - .pre-commit-hooks.yaml
-#     - .ruff.toml
+tests:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/tests/**/*
+    - '**/conftest.py'
+    - conftest.py
+    - codecov.yml
+    - tox.ini
+    - .flake8
+    - .mypy.ini
+    - .pre-commit-config.yaml
+    - .pre-commit-hooks.yaml
+    - .ruff.toml
 
-# installation:
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - docs/install.rst
-#     - MANIFEST.in
-#     - pyproject.toml
-#     - setup.py
+installation:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/source/install/*
+    - MANIFEST.in
+    - pyproject.toml
+    - setup.cfg
+    - setup.py
 
 # config:
 # - changed-files:
