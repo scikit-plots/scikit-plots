@@ -17,6 +17,7 @@ permissions:
   ## only required for workflows in private repositories
   contents: read  # for actions/checkout to fetch code
   pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
+  issues: write   # Full access to read and modify PRs (e.g., labels, comments)
 
 ## Global environment variables (available to all jobs and steps)
 ## Job-level environment variables (override global, scoped to this job)
