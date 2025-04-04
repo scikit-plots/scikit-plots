@@ -1,0 +1,55 @@
+## https://github.com/scientific-python/action-towncrier-changelog
+---
+name: Check Changelog PR
+
+## This check makes sure that the changelog is properly updated
+## when a PR introduces a change in a test file.
+## To bypass this check, label the PR with "No Changelog Needed".
+on:
+  pull_request:
+    types: [opened, synchronize, labeled, unlabeled]
+
+## simultaneity
+## This ensures that only one deployment to "production" can happen at a time.
+## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
+concurrency:
+  ## The group key defines how GitHub Actions groups workflow runs together.
+  ## github.workflow → The name of the workflow file.
+  ## github.ref      → The branch or tag the workflow is running on.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  ## If you push multiple times quickly, older runs would continue even though newer ones have started.
+  ## Canceling previous runs reduces resource usage and speeds up feedback.
+  cancel-in-progress: true
+
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+permissions:
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
+  pull-requests: read
+
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
+jobs:
+  checker:
+    name: A reviewer will let you know if it is required or can be bypassed
+    runs-on: ubuntu-latest
+
+    steps:
+      # - name: Checkout (cloned) repository with full history
+      #   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      #   with:
+      #     persist-credentials: false  # Prevents accidental credential exposure
+      #     # submodules: true  # Fetch Hugo themes (true OR recursive)
+      #     fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+
+      - name: Check if towncrier change log entry is correct
+        uses: scientific-python/action-towncrier-changelog@1d7332022f76e36fe8ce2d716b851f3f98063c62  # v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_USERNAME: gilesbot  # 'astropy-bot'

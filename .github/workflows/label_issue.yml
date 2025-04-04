@@ -1,18 +1,28 @@
-name: "Issue Labeler"
+# Issue Labeler
+---
+name: "Label Issue"
 
 on:
   issues:
     types: [opened, edited]
 
-# Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
-# github actions workflow:
-# https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
-  contents: read  # Only read access to repository contents
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
   issues: write   # Full access to read and modify PRs (e.g., labels, comments)
 
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
 jobs:
-  label_issue:
+  labeler:
+    name: labeler issue
     runs-on: ubuntu-latest
 
     steps:

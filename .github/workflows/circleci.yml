@@ -1,31 +1,35 @@
 # To enable this workflow on a fork, comment out:
 #
-# if: github.repository == 'scikit-plots/scikit-plots'
+# if: "${{ github.repository == 'scikit-plots/scikit-plots' }}"
 ---
-name: CircleCI artifact redirector
+name: CircleCI
 
 on: [status]
 
-# Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
-# github actions workflow:
-# https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions: read-all
 
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+env:
+  ## Initially set IS_SKIP as false (you can set it to true here if you prefer a different default value)
+  IS_SKIP: false
+
 jobs:
-  circleci_artifacts_redirector_job:
-    name: Run CircleCI artifacts redirector
+  ci_artifacts_redirector:
+    name: ci artifacts redirector
     runs-on: ubuntu-latest
-    # if: "${{ github.event.context == 'ci/circleci: build' }}"
     if: >-
       github.repository == 'scikit-plots/scikit-plots'
       && github.event.context == 'ci/circleci: build'
 
     permissions:
       statuses: write
-
-    env:
-      # Initially set IS_SKIP as false (you can set it to true here if you prefer a different default value)
-      IS_SKIP: false
 
     steps:
       # - name: Check if commit message contains skip keyword
@@ -49,8 +53,8 @@ jobs:
         uses: scientific-python/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # v1.0.0
         # if: ${{ env.IS_SKIP == 'false' }}  # Accessing IS_SKIP set earlier
         with:
+          api-token: ${{ secrets.CIRCLE_TOKEN }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          # api-token: ${{ secrets.CIRCLE_TOKEN }}
           job-title: Check the rendered docs here!
           artifact-path: 0/docs/build/html/stable/index.html
           circleci-jobs: build
