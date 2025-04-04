@@ -38,8 +38,8 @@ build:meson:
 #     - .github/workflows/publish.yml
 
 # "CI: Run wheels":
-#   - changed-files:
-#     - any-glob-to-any-file: ['.github/workflows/wheels.yml']
+# - changed-files:
+#   - any-glob-to-any-file: ['.github/workflows/wheels.yml']
 
 ######################################################################
 ## Documentation
@@ -69,8 +69,8 @@ documentation:
 
 "doc:examples":
 - changed-files:
-    - any-glob-to-any-file:
-        - 'galleries/**/*'
+  - any-glob-to-any-file:
+    - 'galleries/**/*'
 
 ######################################################################
 ## Language
@@ -120,27 +120,28 @@ lang:cython:
 ## Testing
 ######################################################################
 
-# testing:
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/tests/**/*
-#     - '**/conftest.py'
-#     - conftest.py
-#     - codecov.yml
-#     - tox.ini
-#     - .flake8
-#     - .mypy.ini
-#     - .pre-commit-config.yaml
-#     - .pre-commit-hooks.yaml
-#     - .ruff.toml
+tests:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/tests/**/*
+    - '**/conftest.py'
+    - conftest.py
+    - codecov.yml
+    - tox.ini
+    - .flake8
+    - .mypy.ini
+    - .pre-commit-config.yaml
+    - .pre-commit-hooks.yaml
+    - .ruff.toml
 
-# installation:
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - docs/install.rst
-#     - MANIFEST.in
-#     - pyproject.toml
-#     - setup.py
+installation:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/source/install/*
+    - MANIFEST.in
+    - pyproject.toml
+    - setup.cfg
+    - setup.py
 
 # config:
 # - changed-files:
@@ -169,24 +170,24 @@ lang:cython:
 ######################################################################
 
 # "topic: sphinx extension":
-#   - changed-files:
-#       - any-glob-to-any-file:
-#           - 'scikitplot/sphinxext/**/*'
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - 'scikitplot/sphinxext/**/*'
 
 # "backend: agg":
-#   - changed-files:
-#       - any-glob-to-any-file:
-#           - 'lib/matplotlib/backends/backend_agg.py*'
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - 'lib/matplotlib/backends/backend_agg.py*'
 
 # "GUI: tk":
-#   - changed-files:
-#       - any-glob-to-any-file:
-#           - 'src/_tkagg.cpp'
-#           - 'src/_tkmini.h'
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - 'src/_tkagg.cpp'
+#     - 'src/_tkmini.h'
 
 # "topic: axes":
-#   - changed-files:
-#       - any-glob-to-any-file:
-#           # Note, axes.py is not included here because it contains many plotting
-#           # methods, for which changes would not be considered on topic.
-#           - 'lib/matplotlib/axes/_base.py*'
+# - changed-files:
+#   - any-glob-to-any-file:
+#     # Note, axes.py is not included here because it contains many plotting
+#     # methods, for which changes would not be considered on topic.
+#     - 'lib/matplotlib/axes/_base.py*'

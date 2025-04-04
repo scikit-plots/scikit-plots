@@ -1,71 +1,71 @@
-scikitplot/_api:
-- scikitplot/_api/**/*
+"scikitplot/_api":
+- "scikitplot/_api/**/*"
 
-scikitplot/_astropy:
-- scikitplot/_astropy/**/*
+"scikitplot/_astropy":
+- "scikitplot/_astropy/**/*"
 
-scikitplot/_build_utils:
-- scikitplot/_build_utils/**/*
+"scikitplot/_build_utils":
+- "scikitplot/_build_utils/**/*"
 
-scikitplot/_clv:
-- scikitplot/_clv/**/*
+"scikitplot/_clv":
+- "scikitplot/_clv/**/*"
 
-scikitplot/_compat:
-- scikitplot/_compat/**/*
+"scikitplot/_compat":
+- "scikitplot/_compat/**/*"
 
-scikitplot/_externals:
-- scikitplot/_externals/**/*
+"scikitplot/_externals":
+- "scikitplot/_externals/**/*"
 
-scikitplot/_factory_api:
-- scikitplot/_factory_api/**/*
+"scikitplot/_factory_api":
+- "scikitplot/_factory_api/**/*"
 
-scikitplot/_seaborn:
-- scikitplot/_seaborn/**/*
+"scikitplot/_seaborn":
+- "scikitplot/_seaborn/**/*"
 
-scikitplot/_testing:
-- scikitplot/_testing/**/*
+"scikitplot/_testing":
+- "scikitplot/_testing/**/*"
 
-scikitplot/_tweedie:
-- scikitplot/_tweedie/**/*
+"scikitplot/_tweedie":
+- "scikitplot/_tweedie/**/*"
 
-scikitplot/_utils:
-- scikitplot/_utils/**/*
+"scikitplot/_utils":
+- "scikitplot/_utils/**/*"
 
-scikitplot/_xp_core_lib:
-- scikitplot/_xp_core_lib/**/*
+"scikitplot/_xp_core_lib":
+- "scikitplot/_xp_core_lib/**/*"
 
-scikitplot/api:
-- scikitplot/api/**/*
+"scikitplot/api":
+- "scikitplot/api/**/*"
 
-scikitplot/experimental:
-- scikitplot/experimental/**/*
+"scikitplot/experimental":
+- "scikitplot/experimental/**/*"
 
-scikitplot/kds:
-- scikitplot/kds/**/*
+"scikitplot/kds":
+- "scikitplot/kds/**/*"
 
-scikitplot/misc:
-- scikitplot/misc/**/*
+"scikitplot/misc":
+- "scikitplot/misc/**/*"
 
-scikitplot/modelplotpy:
-- scikitplot/modelplotpy/**/*
+"scikitplot/modelplotpy":
+- "scikitplot/modelplotpy/**/*"
 
-scikitplot/probscale:
-- scikitplot/probscale/**/*
+"scikitplot/probscale":
+- "scikitplot/probscale/**/*"
 
-scikitplot/sphinxext:
-- scikitplot/sphinxext.py
+"scikitplot/sphinxext":
+- "scikitplot/sphinxext.py"
 
-scikitplot/stats:
-- scikitplot/stats/**/*
+"scikitplot/stats":
+- "scikitplot/stats/**/*"
 
-scikitplot/typing:
-- scikitplot/typing/**/*
+"scikitplot/typing":
+- "scikitplot/typing/**/*"
 
-scikitplot/visualkeras:
-- scikitplot/visualkeras.py
+"scikitplot/visualkeras":
+- "scikitplot/visualkeras.py"
 
-# scikitplot/preprocessing:
-# - scikitplot/preprocessing/**/*
+# "scikitplot/preprocessing":
+# - "scikitplot/preprocessing/**/*"
 
-# scikitplot/utils:
-# - scikitplot/utils/**/*
+# "scikitplot/utils":
+# - "scikitplot/utils/**/*"
