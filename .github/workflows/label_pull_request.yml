@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   labeler:
-    name: "notifier/ labeler"
+    name: "labeler/ notifier"
     runs-on: ubuntu-latest
 
     steps:
