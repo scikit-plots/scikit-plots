@@ -72,6 +72,8 @@ jobs:
         continue-on-error: true
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          sync-labels: false
+          dot: true
           # max-labels: "4"  # thomasjpfan
           configuration-path: ".github/labeler.yml"  # ".github/labeler.yml"
 
