@@ -68,9 +68,9 @@ documentation:
     - '!docs/changes/*'
 
 "doc:examples":
-  - changed-files:
-      - any-glob-to-any-file:
-          - 'galleries/**/*'
+- changed-files:
+    - any-glob-to-any-file:
+        - 'galleries/**/*'
 
 ######################################################################
 ## Language
@@ -108,88 +108,13 @@ lang:cython:
     - scikitplot/**/_generate_pyx.py
 
 ######################################################################
-## Modules
+## Modules separated
 ######################################################################
 
-"scikitplot/_astropy":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/_astropy/**/*
-
-# "scikitplot/_build_utils":
+# "scikitplot/sp_logging":
 # - changed-files:
 #   - any-glob-to-any-file:
-#     - scikitplot/_build_utils/**/*
-
-# "scikitplot/_compat":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/_compat/**/*
-
-# "scikitplot/_externals":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/_externals/**/*
-
-# "scikitplot/_factory_api":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/_factory_api/**/*
-
-"scikitplot/_seaborn":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/_seaborn/**/*
-
-# "scikitplot/_tweedie":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/_tweedie/**/*
-
-# "scikitplot/_xp_core_lib":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/_xp_core_lib/**/*
-
-"scikitplot/api":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/api/**/*
-
-"scikitplot/experimental":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/experimental/**/*
-
-# "scikitplot/kds":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/kds/**/*
-
-# "scikitplot/modelplotpy":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/modelplotpy/**/*
-
-# "scikitplot/probscale":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/probscale/**/*
-
-# "scikitplot/stats":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/stats/**/*
-
-# "scikitplot/visualkeras":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/visualkeras/**/*
-
-"scikitplot/sp_logging":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/sp_logging/**/*
+#     - scikitplot/sp_logging/**/*
 
 ######################################################################
 ## Testing
