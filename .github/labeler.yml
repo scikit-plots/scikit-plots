@@ -7,15 +7,15 @@
 ## CI
 ######################################################################
 
-# "build/ci":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - .binder/*
-#     - .circleci/*
-#     - .devcontainer/**/*
-#     - .github/**/*
-#     - .spin/*
-#     - docker/**/*
+"build/ci":
+- changed-files:
+  - any-glob-to-any-file:
+    - .binder/*
+    - .circleci/*
+    - .devcontainer/**/*
+    - .github/**/*
+    - .spin/*
+    - docker/**/*
 
 # build:templates:
 # - changed-files:
@@ -50,22 +50,22 @@ DX:
   - any-glob-to-any-file:
     - docs/source/devel/**/*
 
-documentation:
-- changed-files:
-  - any-glob-to-any-file:
-    # Add 'Documentation' label to any changes within 'docs' folder or any subfolders
-    # Add 'Documentation' label to any file changes within 'docs' folder
-    - docs/**/*
-    - CITATION*
-    - LICENSE
-    - LICENSES/*
-    # Add 'Documentation' label to any change to .md files within the entire repository
-    # - '**/*.md'
-    # Add 'Documentation' label to any change to .rst files within the entire repository
-    # - '**/*.rst'
-  # - all-globs-to-any-file:
-  #   - '!CHANGES.rst'
-  #   - '!docs/changes/*'
+# documentation:
+# - changed-files:
+#   - any-glob-to-any-file:
+#     # Add 'Documentation' label to any changes within 'docs' folder or any subfolders
+#     # Add 'Documentation' label to any file changes within 'docs' folder
+#     - docs/**/*
+#     - CITATION*
+#     - LICENSE
+#     - LICENSES/*
+#     # Add 'Documentation' label to any change to .md files within the entire repository
+#     # - '**/*.md'
+#     # Add 'Documentation' label to any change to .rst files within the entire repository
+#     # - '**/*.rst'
+#   # - all-globs-to-any-file:
+#   #   - '!CHANGES.rst'
+#   #   - '!docs/changes/*'
 
 "doc:examples":
   - changed-files:
@@ -111,65 +111,65 @@ lang:cython:
 ## Modules
 ######################################################################
 
-"scikitplot/_astropy":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/_astropy/**/*
+# "scikitplot/_astropy":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/_astropy/**/*
 
-"scikitplot/_build_utils":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/_build_utils/**/*
+# "scikitplot/_build_utils":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/_build_utils/**/*
 
 # "scikitplot/_compat":
 # - changed-files:
 #   - any-glob-to-any-file:
 #     - scikitplot/_compat/**/*
 
-"scikitplot/_externals":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/_externals/**/*
+# "scikitplot/_externals":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/_externals/**/*
 
 # "scikitplot/_factory_api":
 # - changed-files:
 #   - any-glob-to-any-file:
 #     - scikitplot/_factory_api/**/*
 
-"scikitplot/_seaborn":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/_seaborn/**/*
+# "scikitplot/_seaborn":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/_seaborn/**/*
 
 # "scikitplot/_tweedie":
 # - changed-files:
 #   - any-glob-to-any-file:
 #     - scikitplot/_tweedie/**/*
 
-"scikitplot/_xp_core_lib":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/_xp_core_lib/**/*
+# "scikitplot/_xp_core_lib":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/_xp_core_lib/**/*
 
-"scikitplot/api":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/api/**/*
+# "scikitplot/api":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/api/**/*
 
-"scikitplot/experimental":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/experimental/**/*
+# "scikitplot/experimental":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/experimental/**/*
 
-"scikitplot/kds":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/kds/**/*
+# "scikitplot/kds":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/kds/**/*
 
-"scikitplot/modelplotpy":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/modelplotpy/**/*
+# "scikitplot/modelplotpy":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/modelplotpy/**/*
 
 # "scikitplot/probscale":
 # - changed-files:
@@ -181,15 +181,15 @@ lang:cython:
 #   - any-glob-to-any-file:
 #     - scikitplot/stats/**/*
 
-"scikitplot/visualkeras":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/visualkeras/**/*
+# "scikitplot/visualkeras":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/visualkeras/**/*
 
-"scikitplot/sp_logging":
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/sp_logging/**/*
+# "scikitplot/sp_logging":
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - scikitplot/sp_logging/**/*
 
 ######################################################################
 ## Testing
