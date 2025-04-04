@@ -1,20 +1,30 @@
-name: "PR Labeler"
+# Labeler Pull Request
+---
+name: "Label PR"
 
 on:
-  # Use pull_request_target trigger if you're targeting a pull request from a fork:
-  # pull_request:  Safer alternative to pull_request_target:
+  ## Use pull_request_target trigger if you're targeting a pull request from a fork:
+  ## pull_request:  Safer alternative to pull_request_target:
   pull_request_target: # zizmor: ignore[dangerous-triggers]
-    types: [opened, reopened, synchronize, edited]  # Triggers only on these events
+    # types: [opened, reopened, synchronize, edited]  # Triggers only on these events
 
-# Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
-# github actions workflow:
-# https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
-  contents: read        # Only read access to repository contents
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
   pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
 
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
 jobs:
-  pull_request_label:
+  labeler:
+    name: "notifier/ labeler"
     runs-on: ubuntu-latest
 
     steps:
@@ -55,9 +65,10 @@ jobs:
       # label based on PR glob files
       - name: label based on changed files
         # uses: thomasjpfan/labeler@v2.5.1
-        uses: actions/labeler@8558fd74291d67161a8a78ce36a881fa63b766a9 # v5.0.0
+        # uses: actions/labeler@8558fd74291d67161a8a78ce36a881fa63b766a9 # v5.0.0
+        uses: actions/labeler@ac9175f8a1f3625fd0d4fb234536d26811351594 # v4.3.0
         if: github.repository == 'scikit-plots/scikit-plots'
-        continue-on-error: true
+        # continue-on-error: true
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           # max-labels: "4"  # thomasjpfan
@@ -67,7 +78,7 @@ jobs:
       - name: label based on PR title
         uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
         if: github.repository == 'scikit-plots/scikit-plots'
-        continue-on-error: true
+        # continue-on-error: true
         with:
           # repo-token: ${{ github.token }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -80,7 +91,7 @@ jobs:
       - name: Labeler PR Prefix
         uses: gerrymanoim/pr-prefix-labeler@c8062327f6de59a9ae1c19f7f07cacd0b976b6fa # v3
         if: github.repository == 'scikit-plots/scikit-plots'
-        continue-on-error: true
+        # continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: ".github/pr-prefix-labeler.yml"

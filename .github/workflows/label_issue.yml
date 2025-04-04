@@ -1,0 +1,47 @@
+# Issue Labeler
+---
+name: "Label Issue"
+
+on:
+  issues:
+    types: [opened, edited]
+
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+permissions:
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
+  issues: write   # Full access to read and modify PRs (e.g., labels, comments)
+
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
+jobs:
+  labeler:
+    name: labeler issue
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (cloned) repository with full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+
+      # label based on Issue title
+      - name: label based on PR title
+        uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
+        if: github.repository == 'scikit-plots/scikit-plots'
+        continue-on-error: true
+        with:
+          # repo-token: ${{ github.token }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          enable-versioned-regex: 0
+          include-body: 0
+          include-title: 1
+          configuration-path: ".github/labeler-issue.yml"

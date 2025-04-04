@@ -9,28 +9,22 @@
 # the `language` matrix defined below to confirm you have the correct set of
 # supported CodeQL languages.
 #
-name: "CodeQL Analyze"
+name: "CodeQL"
 
 on:
   ## CodeQL If using "Default Setup", remove custom workflows. 🚀
-  # schedule:
-  #   ## run every Wednesday at 6am UTC
-  #   - cron: '0 6 * * 1'
-  # push:
-  #   branches: [ "main", "*.X" ]
-  # pull_request:
-  #   branches: [ "main", "*.X" ]
-  workflow_dispatch:
+  schedule:
+    ## run every Wednesday at 6am UTC
+    - cron: '0 6 * * 1'
+  push:
+    branches: [ "main", "*.X" ]
+  pull_request:
+    branches: [ "main", "*.X" ]
+  workflow_dispatch: # Allows manual triggering of the workflow
 
-permissions:
-  # only required for workflows in private repositories
-  contents: read  # for actions/checkout to fetch code
-  actions: read  # for github/codeql-action/init to get workflow details
-  # required for all workflows
-  packages: read  # required to fetch internal or private CodeQL packs
-  security-events: write  # for github/codeql-action/autobuild to send a status report
-
-# simultaneity
+## simultaneity
+## This ensures that only one deployment to "production" can happen at a time.
+## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
 concurrency:
   ## The group key defines how GitHub Actions groups workflow runs together.
   ## github.workflow → The name of the workflow file.
@@ -40,9 +34,26 @@ concurrency:
   ## Canceling previous runs reduces resource usage and speeds up feedback.
   cancel-in-progress: true
 
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+permissions:
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
+  actions: read  # for github/codeql-action/init to get workflow details
+  pull-requests: read
+  packages: read  # required to fetch internal or private CodeQL packs
+  security-events: write  # for github/codeql-action/autobuild to send a status report
+
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
 jobs:
   analyze:
-    name: CodeQL Analyze (${{ matrix.language }})
+    name: Analyze (${{ matrix.language }})  # Multiples
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources
@@ -50,14 +61,6 @@ jobs:
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: ${{ 'ubuntu-latest' || (matrix.language == 'swift' && 'macos-latest') }}
     # timeout-minutes: 360
-
-    permissions:
-      # only required for workflows in private repositories
-      contents: read  # for actions/checkout to fetch code
-      actions: read  # for github/codeql-action/init to get workflow details
-      # required for all workflows
-      packages: read  # required to fetch internal or private CodeQL packs
-      security-events: write  # for github/codeql-action/autobuild to send a status report
 
     strategy:
       fail-fast: false
@@ -76,6 +79,7 @@ jobs:
         # "We were unable to automatically build your code", modify the matrix above
         # to set the build mode to "manual" for that language. Then modify this step
         # to build your code.
+        # ******** NOTE ********
         # CodeQL supports the following values keywords for 'language': 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -95,11 +99,13 @@ jobs:
 
       # Initializes the CodeQL tools for scanning.
       - name: CodeQL Initialize
-        uses: github/codeql-action/init@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
+        uses: github/codeql-action/init@1b549b9259bda1cb5ddde3b41741a82a2d15a841  # v3.28.13
+        # continue-on-error: true
         with:
           languages: ${{ matrix.language }}
           # build-mode: ${{ matrix.build-mode }}
           # source-root: src
+          # ******** NOTE ********
           # If you wish to specify custom queries, you can do so here or in a config file.
           # By default, queries listed here will override any specified in a config file.
           # Prefix the list here with "+" to use these queries and those in the config file.
@@ -112,8 +118,10 @@ jobs:
       # If this step fails, then you should remove it and run the build manually (see below)
       - name: CodeQL Autobuild
         if: matrix.language != 'c-cpp'
-        uses: github/codeql-action/autobuild@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
+        uses: github/codeql-action/autobuild@1b549b9259bda1cb5ddde3b41741a82a2d15a841  # v3.28.13
+        # continue-on-error: true
 
+      # ******** NOTE ********
       # ℹ️ Command-line programs to run using the OS shell.
       # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
       # 📚 https://git.io/JvXDl
@@ -146,6 +154,7 @@ jobs:
           pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
       - name: CodeQL Perform Analysis
-        uses: github/codeql-action/analyze@5618c9fc1e675841ca52c1c6b1304f5255a905a0  # codeql-bundle-v2.19.0
+        uses: github/codeql-action/analyze@1b549b9259bda1cb5ddde3b41741a82a2d15a841  # v3.28.13
+        # continue-on-error: true
         with:
           category: "/language:${{matrix.language}}"

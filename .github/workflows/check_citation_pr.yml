@@ -1,5 +1,6 @@
-# https://github.com/citation-file-format/cffconvert-github-action
-name: Checking cffconvert CITATION.cff
+## https://github.com/citation-file-format/cffconvert-github-action
+---
+name: Check Citation PR
 
 on:
   push:
@@ -10,11 +11,9 @@ on:
       - "CITATION.cff"
   workflow_dispatch: # Allows manual triggering of the workflow
 
-permissions:
-  # only required for workflows in private repositories
-  contents: read  # for actions/checkout to fetch code
-
-# simultaneity
+## simultaneity
+## This ensures that only one deployment to "production" can happen at a time.
+## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
 concurrency:
   ## The group key defines how GitHub Actions groups workflow runs together.
   ## github.workflow → The name of the workflow file.
@@ -24,9 +23,23 @@ concurrency:
   ## Canceling previous runs reduces resource usage and speeds up feedback.
   cancel-in-progress: true
 
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+permissions:
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
+  pull-requests: read
+
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
 jobs:
-  cffconvert:
-    name: "cffconvert"
+  checker:
+    name: "Checker CITATION.cff"
     runs-on: ubuntu-latest
 
     steps:

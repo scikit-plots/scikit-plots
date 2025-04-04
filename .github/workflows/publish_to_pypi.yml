@@ -2,7 +2,7 @@
 ## This workflow automates the process of publishing your Python package to TestPyPI or PyPI.
 ## https://docs.pypi.org/trusted-publishers/adding-a-publisher/
 ---
-name: Upload to TestPyPI|PyPI
+name: PyPI/TestPyPI
 
 ## Trigger the workflow manually via GitHub Actions' "workflow_dispatch".
 on:
@@ -21,13 +21,23 @@ on:
         default: 'testpypi'  # Default to TestPyPI for safety
         required: true
 
-permissions: # Grants read-only permission to repository contents
-  contents: read # to fetch code (actions/checkout)
-  # IMPORTANT: This permission is mandatory for secure publishing
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+permissions:
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
+  ## IMPORTANT: This permission is mandatory for secure publishing
   id-token: write  # Required for trusted publishing
 
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
 jobs:
-  publish_on_pypi:
+  publisher:
     name: Publish Package to TestPyPI|PyPI
     runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
 
