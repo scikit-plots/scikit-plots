@@ -7,6 +7,10 @@
 ## CI
 ######################################################################
 
+# "CI: Run wheels":
+# - changed-files:
+#   - any-glob-to-any-file: ['.github/workflows/wheels.yml']
+
 "build/ci":
 - changed-files:
   - any-glob-to-any-file:
@@ -37,10 +41,6 @@ release:
     - .github/workflows/wheels.yml
     - .github/workflows/publish_to_pypi.yml
     - docs/source/devel/maintainers*
-
-# "CI: Run wheels":
-# - changed-files:
-#   - any-glob-to-any-file: ['.github/workflows/wheels.yml']
 
 ######################################################################
 ## Documentation
@@ -112,6 +112,12 @@ lang:cython:
 ## Modules separated
 ######################################################################
 
+# config:
+# - changed-files:
+#   - any-glob-to-any-file:
+#     - '**/config/**/*'
+#     - scikitplot/extern/configobj/**/*
+
 # "scikitplot/sp_logging":
 # - changed-files:
 #   - any-glob-to-any-file:
@@ -143,12 +149,6 @@ installation:
     - pyproject.toml
     - setup.cfg
     - setup.py
-
-# config:
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - '**/config/**/*'
-#     - scikitplot/extern/configobj/**/*
 
 ######################################################################
 ## dev-automation

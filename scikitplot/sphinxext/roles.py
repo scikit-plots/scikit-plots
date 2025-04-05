@@ -35,6 +35,9 @@ To fix this, you can add this module as extension to your sphinx :file:`conf.py`
     reserve the right to modify or remove these roles without prior notification.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 from urllib.parse import urlsplit, urlunsplit
 
 import matplotlib

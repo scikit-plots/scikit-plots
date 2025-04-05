@@ -165,6 +165,9 @@ be customized by changing the *plot_template*.  See the source of
 and *TEMPLATE_SRCSET*.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import contextlib
 import doctest
 import itertools

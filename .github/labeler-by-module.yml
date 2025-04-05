@@ -58,8 +58,10 @@
   - any-glob-to-any-file:
     - "scikitplot/modelplotpy/**/*"
 
-# "scikitplot/preprocessing":
-# - "scikitplot/preprocessing/**/*"
+"scikitplot/preprocessing":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/preprocessing/**/*"
 
 "scikitplot/probscale":
 - changed-files:
@@ -101,8 +103,10 @@
   - any-glob-to-any-file:
     - "scikitplot/_utils/**/*"
 
-# "scikitplot/utils":
-# - "scikitplot/utils/**/*"
+"scikitplot/utils":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/utils/**/*"
 
 "scikitplot/visualkeras":
 - changed-files:

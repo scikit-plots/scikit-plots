@@ -10,8 +10,10 @@ to be used with :doc:`/api/sphinxext_plot_directive_api`.
 
 Note that the directory organization is a bit different than ``.. figure::``.
 See the *FigureMpl* documentation below.
-
 """
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 import os
 import shutil
