@@ -67,8 +67,10 @@ mathmpl_srcset : list of str, default: []
     <https://developer.mozilla.org/en-US/docs/Learn/HTML/Multimedia_and_embedding/Responsive_images>`__.
     The list should contain additional x-descriptors (``'1.5x'``, ``'2x'``,
     etc.) to generate (1x is the default and always included.)
-
 """
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 import hashlib
 from pathlib import Path
