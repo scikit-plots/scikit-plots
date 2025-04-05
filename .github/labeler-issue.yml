@@ -26,7 +26,7 @@ defect:
 deprecated:
   - 'DEP'
 
-Documentation:
+documentation:
   - 'DOC'
 
 DX:
