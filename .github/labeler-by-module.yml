@@ -3,6 +3,11 @@
   - any-glob-to-any-file:
     - "scikitplot/_api/**/*"
 
+"scikitplot/api":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/api/**/*"
+
 "scikitplot/_astropy":
 - changed-files:
   - any-glob-to-any-file:
@@ -23,6 +28,11 @@
   - any-glob-to-any-file:
     - "scikitplot/_compat/**/*"
 
+"scikitplot/experimental":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/experimental/**/*"
+
 "scikitplot/_externals":
 - changed-files:
   - any-glob-to-any-file:
@@ -32,41 +42,6 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_factory_api/**/*"
-
-"scikitplot/_seaborn":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_seaborn/**/*"
-
-"scikitplot/_testing":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_testing/**/*"
-
-"scikitplot/_tweedie":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_tweedie/**/*"
-
-"scikitplot/_utils":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_utils/**/*"
-
-"scikitplot/_xp_core_lib":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_xp_core_lib/**/*"
-
-"scikitplot/api":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/api/**/*"
-
-"scikitplot/experimental":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/experimental/**/*"
 
 "scikitplot/kds":
 - changed-files:
@@ -83,10 +58,18 @@
   - any-glob-to-any-file:
     - "scikitplot/modelplotpy/**/*"
 
+# "scikitplot/preprocessing":
+# - "scikitplot/preprocessing/**/*"
+
 "scikitplot/probscale":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/probscale/**/*"
+
+"scikitplot/_seaborn":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_seaborn/**/*"
 
 "scikitplot/sphinxext":
 - changed-files:
@@ -94,20 +77,39 @@
     - "scikitplot/sphinxext.py"
 
 "scikitplot/stats":
-- "scikitplot/stats/**/*"
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/stats/**/*"
 
 "scikitplot/typing":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/typing/**/*"
 
+"scikitplot/_testing":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_testing/**/*"
+
+"scikitplot/_tweedie":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_tweedie/**/*"
+
+"scikitplot/_utils":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_utils/**/*"
+
+# "scikitplot/utils":
+# - "scikitplot/utils/**/*"
+
 "scikitplot/visualkeras":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/visualkeras.py"
 
-# "scikitplot/preprocessing":
-# - "scikitplot/preprocessing/**/*"
-
-# "scikitplot/utils":
-# - "scikitplot/utils/**/*"
+"scikitplot/_xp_core_lib":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_xp_core_lib/**/*"
