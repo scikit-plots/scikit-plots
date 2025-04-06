@@ -1,3 +1,5 @@
+# Including extra files in sdist (source distribution via setuptools)
+
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,21 +22,20 @@ recursive-include scikitplot *
 # prune examples  # Exclude the examples directory
 
 # Include files in a specific subdirectory (e.g., docs for documentation)
-# recursive-include docs *
-include environment.yml
-include requirements.txt
 recursive-include requirements *
+include requirements.txt
+include environment.yml
 
 ## Include specific data files, like your CITATION.bib
 include CITATION.bib
 include CITATION.cff
 
 ## Include the README and LICENSE files (important for documentation and legal information)
+recursive-include LICENSES *
+include LICENSE
+include LICENSE.txt
 include CODE_OF_CONDUCT.md
 include CONTRIBUTING.md
-include LICENSE.txt
-include LICENSE
-recursive-include LICENSES *
 
 # Optionally, include other specific folders or files
 include .pre-commit-config.yaml
