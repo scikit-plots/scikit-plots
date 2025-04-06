@@ -111,7 +111,7 @@ setup_license() {
         warn "OS LICENSE file not found: $project_dir. Skipping OS LICENSE adding."
     fi
 
-    [ -f "$os_license_file" ] && du -h "$os_license_file" || echo "LICENSE file not found"
+    [ -f "$project_dir/LICENSE" ] && du -h "$project_dir/LICENSE" || echo "LICENSE file not found"
 }
 ######################################################################
 ## (All OS Platform) Handle Free-Threaded Python builds
