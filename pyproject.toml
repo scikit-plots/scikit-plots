@@ -280,7 +280,7 @@ cpu = [
   ##
   # "jax",#"jaxlib",                          # import jax.numpy as jnp
   ##
-  "tensorflow-cpu",                         # import tensorflow as tf
+  "tensorflow-cpu>=2.1.0",                    # import tensorflow as tf
   ##
   "transformers",                           # import transformers
   "tf-keras",                               # keras compatibility
