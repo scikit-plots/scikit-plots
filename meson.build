@@ -1,4 +1,5 @@
 ## scikit-plots/meson.build
+## Building C/C++/Rust/native extensions or full native projects
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause

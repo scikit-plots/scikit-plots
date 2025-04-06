@@ -102,12 +102,16 @@ setup_license() {
             ;;
     esac
     # Check if the file exists before appending
+    [ -f "$os_license_file" ] && stat -c "LICENSE size: %s bytes" "$os_license_file" || echo "LICENSE file not found"
+
     if [[ -f $os_license_file ]]; then
-        log "Appending $os_license_file to LICENSE|LICENSE.txt..."
         cat "$os_license_file" >> "$project_dir/LICENSE" || warn "Failed to append LICENSE file."
+        log "Appended $os_license_file to: $(find "$project_dir" -name "LICENSE" -print -quit)"
     else
-        warn "LICENSE file not found: $project_dir. Skipping OS LICENSE update."
+        warn "OS LICENSE file not found: $project_dir. Skipping OS LICENSE adding."
     fi
+
+    [ -f "$os_license_file" ] && du -h "$os_license_file" || echo "LICENSE file not found"
 }
 ######################################################################
 ## (All OS Platform) Handle Free-Threaded Python builds
@@ -157,13 +161,16 @@ configure_openblas_pkg_config() {
     log "OpenBLAS config directory created successfully."
     # Export PKG_CONFIG_PATH based on the OS and log
     case $RUNNER_OS in
-        Linux|macOS) export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"  ;;
+        Linux|macOS)
+            export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"  ;;
         Windows)
             # Adjust the path format for Windows
             PKG_CONFIG_PATH=$(echo "$PKG_CONFIG_PATH" | sed 's/\//\\/g')
             export PKG_CONFIG_PATH ;;
         *)
-            CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$PKG_CONFIG_PATH" ;;
+            export CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+            success "Setting CIBW_ENVIRONMENT to: $CIBW_ENVIRONMENT"
+            ;;
     esac
     success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
     # Export LIBRARY PATH based on the OS and log
@@ -174,20 +181,24 @@ configure_openblas_pkg_config() {
             else
                 export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR"
             fi
+            success "Setting LD_LIBRARY_PATH to: $LD_LIBRARY_PATH"
             ;;
         macOS)
             ## ${VAR:+value}
             export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+            success "Setting DYLD_LIBRARY_PATH to: $DYLD_LIBRARY_PATH"
             ;;
         Windows)
             # Adjust the path format for Windows
             OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
             export PATH="$OPENBLAS_LIB_DIR${PATH:+;$PATH}"
+            success "Setting PATH to: $PATH"
             ;;
         *)
-            export CIBW_ENVIRONMENT="LD_LIBRARY_PATH=$OPENBLAS_LIB_DIR" ;;
+            export CIBW_ENVIRONMENT="LD_LIBRARY_PATH=$OPENBLAS_LIB_DIR"
+            success "Setting CIBW_ENVIRONMENT to: $CIBW_ENVIRONMENT"
+            ;;
     esac
-    success "Setting LD_LIBRARY_PATH to: $LD_LIBRARY_PATH"
 }
 # Function to handle Scipy OpenBLAS setup
 install_requirements() {
@@ -261,6 +272,8 @@ setup_openblas() {
     # Configure the PKG_CONFIG_PATH
     configure_openblas_pkg_config "$project_dir"
     # Determine architecture and install the appropriate requirements
+    # converts the value of $arch to lowercase.
+    arch=$(echo "$arch" | tr '[:upper:]' '[:lower:]')
     case "$arch" in
         i686|x86)
             log "Detected 32-bit architecture."
@@ -269,7 +282,7 @@ setup_openblas() {
             generate_openblas_pkgconfig "scipy_openblas32"
             copy_shared_libs "scipy_openblas32"
             ;;
-        x86_64|*arm64*)
+        x86_64|amd64|*arm64*|aarch64)
             log "Detected 64-bit architecture."
             # Install CI 64-bit specific requirements and generate OpenBLAS pkg-config file
             install_requirements "requirements/ci_requirements.txt"
