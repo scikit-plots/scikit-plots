@@ -18,6 +18,10 @@ permissions:
   pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
   issues: write         # Write access to issues (PRs are treated as issues)
 
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
 jobs:
   greeting:
     name: "greeting"

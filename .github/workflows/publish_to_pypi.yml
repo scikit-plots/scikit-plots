@@ -8,18 +8,34 @@ name: PyPI/TestPyPI
 on:
   workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
-      version:  # Specify the version of the package to upload
-        description: 'Version to upload to PyPI (e.g., 1.0.0)'
-        default: '0.4.0'
-        required: true
       conda_source:  # Specify whether to conda pkg source
         description: 'conda pkg source'
+        required: true           # 👈 This makes the input mandatory
         default: 'scikit-plots-wheels-staging-nightly'  # Default
-        required: true
       pypi_repo:  # Specify whether to publish to TestPyPI or PyPI
-        description: 'Repository to upload to (testpypi or pypi)'
-        default: 'testpypi'  # Default to TestPyPI for safety
-        required: true
+        description: 'Repository to upload to (test.pypi or pypi)'
+        required: true           # 👈 This makes the input mandatory
+        default: 'test.pypi'      # 👈 Default is still used if user doesn't change it
+        type: choice
+        options:
+          - 'test.pypi'  # Default to TestPyPI for safety
+          - 'pypi'
+      version:  # Specify the version of the package to upload
+        description: 'Version to upload to PyPI (e.g., 1.0.0)'
+        required: true           # 👈 This makes the input mandatory
+        default: '0.5.0rc0'      # 👈 Default is still used if user doesn't change it
+        type: choice
+        options:
+          - '0.4.0rc0'
+          - '0.4.0rc1'
+          - '0.4.0rc2'
+          - '0.4.0rc3'
+          - '0.4.0'
+          - '0.5.0rc0'
+          - '0.5.0rc1'
+          - '0.5.0rc2'
+          - '0.5.0rc3'
+          - '0.5.0'
 
 ## Top-level permissions (outside jobs)
 ## Job-level permissions (inside a specific job)
@@ -38,7 +54,7 @@ permissions:
 
 jobs:
   publisher:
-    name: Publish Package to TestPyPI|PyPI
+    name: to publish "${{ github.event.inputs.pypi_repo }}"
     runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
 
     ## Restrict this job to the 'publish_pypi' environment
@@ -86,7 +102,7 @@ jobs:
 
       # Step 5a: Publish the package to TestPyPI (if selected)
       - name: Publish package distributions to TestPyPI
-        if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}
+        if: ${{ github.event.inputs.pypi_repo == 'test.pypi' }}
         ## https://docs.pypi.org/trusted-publishers/adding-a-publisher/
         uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
         with:
