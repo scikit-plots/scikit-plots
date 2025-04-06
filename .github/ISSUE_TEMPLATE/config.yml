@@ -3,18 +3,21 @@
 ---
 blank_issues_enabled: true  # default
 contact_links:
+  - name: Blank issue
+    url: https://github.com/scikit-plots/scikit-plots/issues/new
+    about: Please note that GitHub Discussions should be used in most cases instead
   - name: "Usage: Question/Support/Other"
     url: https://scikit-plots.github.io/
     about: If you have a usage question
   - name: "Discussions: Have questions or need support?"
     url: https://github.com/scikit-plots/scikit-plots/discussions
     about: Please ask questions on the Discussions tab
-  - name: "Chat: Communicate with devs"
-    url: https://gitter.im/scikit-plots/scikit-plots  # url: https://gitter.im/matplotlib/matplotlib
-    about: Ask short questions about contributing to scikit-plots
   - name: Discussions
     url: https://github.com/scikit-plots/scikit-plots/discussions/new
     about: Ask questions and discuss with other scikit-plots community members
+  - name: "Chat: Communicate with devs"
+    url: https://gitter.im/scikit-plots/scikit-plots  # url: https://gitter.im/matplotlib/matplotlib
+    about: Ask short questions about contributing to scikit-plots
   # - name: Mailing list
   #   url: https://mail.python.org/mailman/listinfo/scikit-plots
   #   about: General discussions and announcements on the mailing list
@@ -24,6 +27,3 @@ contact_links:
   # - name: Discord server
   #   url: https://discord.gg/...
   #   about: Developers and users can be found on the Discord server
-  - name: Blank issue
-    url: https://github.com/scikit-plots/scikit-plots/issues/new
-    about: Please note that GitHub Discussions should be used in most cases instead

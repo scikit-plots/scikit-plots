@@ -26,12 +26,15 @@ on:
 ## This ensures that only one deployment to "production" can happen at a time.
 ## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
 concurrency:
-  ## The group key defines how GitHub Actions groups workflow runs together.
-  ## github.workflow → The name of the workflow file.
-  ## github.ref      → The branch or tag the workflow is running on.
-  group: ${{ github.workflow }}-${{ github.ref }}
+  ## Ensures that only one instance of this workflow runs per branch or PR at a time.
+  ## The 'group' key defines a unique concurrency group:
+  ## - github.workflow: Name of the workflow file.
+  ## - github.head_ref: Branch name for pull requests.
+  ## - github.run_id: Fallback unique ID for other cases (like direct pushes).
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   ## If you push multiple times quickly, older runs would continue even though newer ones have started.
   ## Canceling previous runs reduces resource usage and speeds up feedback.
+  ## If a new run is triggered for the same group, cancel the in-progress one.
   cancel-in-progress: true
 
 ## Top-level permissions (outside jobs)
