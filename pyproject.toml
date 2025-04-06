@@ -787,7 +787,7 @@ skip = "cp36-* cp37-* cp-38* pp37-* *-manylinux_i686 *_ppc64le *_s390x *_univers
 before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
 # The build will use openblas64 everywhere, except on arm64 macOS >=14.0 (uses Accelerate)
 config-settings = "setup-args=-Duse-ilp64=true setup-args=-Dallow-noblas=false build-dir=build"
-before-test = "pip install -r {project}/requirements/test_requirements.txt"
+before-test = "pip install -r {project}/requirements/test.txt"
 test-command = "bash {project}/tools/wheels/cibw_test_command.sh {project}"
 
 [tool.cibuildwheel.linux]
@@ -847,7 +847,7 @@ config-settings = "build-dir=build setup-args=--cross-file=$PWD/tools/ci/emscrip
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-before-test = "pip install -r {project}/requirements/emscripten_test_requirements.txt"
+before-test = "pip install -r {project}/requirements/emscripten_test.txt"
 # Pyodide ensures that the wheels are already repaired by auditwheel-emscripten
 repair-wheel-command = ""
 test-command = "python -m pytest --pyargs numpy -m 'not slow'"
