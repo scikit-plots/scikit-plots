@@ -79,7 +79,7 @@ def main():
         sys.exit(1)
 
     # Use glob pattern to find LICENSE files including subdirectories
-    license_files = list(sitepkgs.glob(f"{distinfo_paths[0]}/LICENSE*"))
+    license_files = list(sitepkgs.glob(f"{distinfo_path}/LICENSE*"))
     print(license_files)
 
     license_txt = distinfo_paths[0] / args.license_name

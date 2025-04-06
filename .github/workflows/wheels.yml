@@ -524,7 +524,7 @@ jobs:
 
       - name: Build sdist
         run: |
-          pip install -r requirements/all.txt
+          pip install -r requirements/build.txt
           python -m build --sdist -Csetup-args=-Dallow-noblas=true
 
       - name: Test the sdist
