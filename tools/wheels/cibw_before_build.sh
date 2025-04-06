@@ -38,7 +38,20 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 set -o pipefail  # Ensure pipeline errors are captured
 set -u  # Treat unset variables as an error
-# set -x  # Print each command before executing it
+set -x  # Print each command before executing it
+
+# Set environment variables to make our wheel build easier to reproduce byte
+# for byte from source. See https://reproducible-builds.org/. The long term
+# motivation would be to be able to detect supply chain attacks.
+#
+# In particular we set SOURCE_DATE_EPOCH to the commit date of the last commit.
+#
+# XXX: setting those environment variables is not enough. See the following
+# issue for more details on what remains to do:
+# https://github.com/scikit-learn/scikit-learn/issues/28151
+SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+export SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH"
+export PYTHONHASHSEED=0
 ######################################################################
 ## Logging Functions
 ######################################################################
@@ -148,25 +161,33 @@ configure_openblas_pkg_config() {
         Windows)
             # Adjust the path format for Windows
             PKG_CONFIG_PATH=$(echo "$PKG_CONFIG_PATH" | sed 's/\//\\/g')
-            export PKG_CONFIG_PATH="$PKG_CONFIG_PATH" ;;
-        *) CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$PKG_CONFIG_PATH" ;;
+            export PKG_CONFIG_PATH ;;
+        *)
+            CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$PKG_CONFIG_PATH" ;;
     esac
     success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
     # Export LIBRARY PATH based on the OS and log
     case $RUNNER_OS in
         Linux)
-            LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$(LD_LIBRARY_PATH:-'')"
-            export LD_LIBRARY_PATH ;;
-        macOS) export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR" ;;
+            if [ -n "${LD_LIBRARY_PATH}" ]; then
+                export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$LD_LIBRARY_PATH"
+            else
+                export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR"
+            fi
+            ;;
+        macOS)
+            ## ${VAR:+value}
+            export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+            ;;
         Windows)
             # Adjust the path format for Windows
             OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
-            export PATH="$OPENBLAS_LIB_DIR:$PATH" ;;
+            export PATH="$OPENBLAS_LIB_DIR${PATH:+;$PATH}"
+            ;;
         *)
-            CIBW_ENVIRONMENT="OPENBLAS_LIB_DIR=$OPENBLAS_LIB_DIR"
-            export CIBW_ENVIRONMENT ;;
+            export CIBW_ENVIRONMENT="LD_LIBRARY_PATH=$OPENBLAS_LIB_DIR" ;;
     esac
-    success "Setting LIBRARY PATH to: $PKG_CONFIG_PATH"
+    success "Setting LD_LIBRARY_PATH to: $LD_LIBRARY_PATH"
 }
 # Function to handle Scipy OpenBLAS setup
 install_requirements() {
