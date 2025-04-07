@@ -189,10 +189,9 @@ core = [
   "seaborn>=0.11",                          # Statistical plotting
   "plotly>=5.10",                           # Interactive plotting
   "pyarrow>=12.0.0",                        # Arrow format
-  "polars>=0.20.30",                        # DataFrame library
-  "pillow>=10.1.0",                         # Image processing
-  "scikit-image>=0.17.2",                   # Image processing
-  "pooch>=1.6.0",                           # Data by downloading files from a server
+  # "polars>=0.20.30",                        # DataFrame library
+  # "pillow>=10.1.0",                         # Image processing
+  # "scikit-image>=0.17.2",                   # Image processing
 ]
 dev = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
@@ -239,6 +238,7 @@ test = [
 docs = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
   "packaging>=24.2",                        # Package utilities
+  "pooch>=1.6.0",                           # Data by downloading files from a server
   "numpydoc>=1.2.0",                        # Numpy-style docstrings
   "jinja2>=3.1.2",                          # Templating engine
   "sphinx>=5.0.0,<100.0.0",                 # Documentation generator
