@@ -193,8 +193,6 @@ core = [
   "pillow>=10.1.0",                         # Image processing
   "scikit-image>=0.17.2",                   # Image processing
   "pooch>=1.6.0",                           # Data by downloading files from a server
-  "catboost --prefer-binary",               # Gradient boosting
-  "xgboost",                                # Gradient boosting
 ]
 dev = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
@@ -266,6 +264,9 @@ docs = [
   "sphinx-tabs",                            # Tabbed content
   "sphinx-tags",                            # Tagging support
   "towncrier",
+  # models
+  "catboost",                               # Gradient boosting
+  "xgboost",                                # Gradient boosting
 ]
 ## Maintenance tools
 maintenance = [
