@@ -205,6 +205,12 @@ build: clean
 	@## (Optional) Run tests
 	@# ninja -C builddir test
 
+sdist:
+	@# meson setup builddir && meson dist -C builddir --allow-dirty --no-tests --formats gztar
+	@# python -m pip install -v builddir/*dist/*.gz -Csetup-args=-Dallow-noblas=true
+	@python -m build --sdist -Csetup-args=-Dallow-noblas=true
+	@python -m pip install -v dist/*.gz -Csetup-args=-Dallow-noblas=true
+
 ######################################################################
 ## Testing
 ######################################################################

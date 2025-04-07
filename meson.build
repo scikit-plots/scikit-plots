@@ -41,6 +41,12 @@ project(
 )
 release_version = meson.project_version()
 
+## Add .tarball-version during `meson dist`
+meson.add_dist_script(
+  'bash', '-c',
+  'echo @0@ > "$MESON_DIST_ROOT/.tarball-version"'.format(release_version)
+)
+
 ## Get the directory relative to the top-level project directory
 # project_root = meson.project_source_root()
 

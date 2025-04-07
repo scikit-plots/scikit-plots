@@ -540,6 +540,9 @@ jobs:
       - name: Build sdist
         run: |
           pip install -r requirements/build.txt
+
+          # meson setup builddir && meson dist -C builddir
+          # meson setup builddir && meson dist -C builddir --allow-dirty --no-tests --formats gztar
           python -m build --sdist -Csetup-args=-Dallow-noblas=true
 
       - name: Test the sdist
@@ -548,7 +551,8 @@ jobs:
           ## Depends on pypa/cibuildwheel#1020
           pip install -r requirements/test.txt
 
-          python -m pip install dist/*.gz -Csetup-args=-Dallow-noblas=true
+          python -m pip cache purge
+          python -m pip install -v dist/*.gz -Csetup-args=-Dallow-noblas=true
 
           ## Can't import "scikitplot" within "scikitplot" src directory
           cd dist
