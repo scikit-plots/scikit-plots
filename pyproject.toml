@@ -282,7 +282,7 @@ cpu = [
   ## On Python < 3.13, it installs the latest compatible version of tensorflow-cpu
   "tensorflow-cpu; python_version < '3.13'",  # import tensorflow as tf
   ## On Python >= 3.13, it installs exactly tensorflow-cpu==2.15.0.
-  "tensorflow-cpu==2.15.0; python_version >= '3.13'",  # import tensorflow as tf
+  "tensorflow-cpu==2.18.1; python_version >= '3.13'",  # import tensorflow as tf
   ##
   "transformers",                           # import transformers
   "tf-keras",                               # keras compatibility
