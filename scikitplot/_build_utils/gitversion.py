@@ -351,9 +351,9 @@ if __name__ == "__main__":
     Module to expose more detailed version info for the installed `scikitplot`.
     """
     # Syntax: 0.5.dev0+git.20250114.96321ef
-    _version = full_version  = "{version}"
+    __version__ = version = full_version  = "{version}"
     # Syntax: 0.5.dev0
-    __version__ = version = short_version = full_version.split("+")[0]#.split('.dev')[0]
+    _version = short_version = __version__.split("+")[0]  #.split('.dev')[0]
 
     __git_hash__ = git_revision = "{git_hash}"
     short_git_revision = git_revision[:7]
@@ -369,11 +369,11 @@ if __name__ == "__main__":
         relpath = os.path.relpath(outfile)
         if relpath.startswith("."):
             relpath = outfile
-        with open(outfile, "w") as f:
+        with open(outfile, "w", encoding="utf-8") as f:
             print(f"Saving version to {relpath}")
             f.write(template)
     else:
-        print(version)
+        print(version.split("+")[0])  # Syntax: 0.5.dev0
 
 ######################################################################
 ## ...
