@@ -29,12 +29,6 @@ for more details on configuring the documentation build.
 import os
 import sys
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-# sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_sphinx_ext/sklearn_ext"))
-sys.path.insert(0, os.path.abspath("."))
-
 import datetime
 import importlib
 import shutil
@@ -45,6 +39,12 @@ import jinja2
 
 # Set up sphinx
 from sphinx.util import logging
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_sphinx_ext/sklearn_ext"))
+sys.path.insert(0, os.path.abspath("."))
 
 logger = logging.getLogger(__name__)
 
@@ -92,35 +92,44 @@ copyright = f"2024 - {datetime.datetime.now().year} {author} (BSD-3 Clause Licen
 ## version
 ##########################################################################
 
-import switcher
+import switcher  # pylint: disable=C0413
 
 switcher.main()  # switcher.json
 
 # Import scikitplot information.
-import scikitplot as sp
+import scikitplot as sp  # pylint: disable=C0413
+
+# _version_raw = sp.__version__
+_version_raw = sp.version.full_version  # Syntax: 0.5.dev0+git.20250114.96321ef
 
 # from sklearn.externals._packaging.version import parse
-from scikitplot._externals._packaging.version import parse
+from scikitplot._externals._packaging.version import parse  # pylint: disable=C0413
 
-_version_raw = sp.__version__
-_version_parsed = parse(_version_raw)
-_version_release = _version_parsed.release
+## Version should follow PEP440
+_version_parsed = parse(_version_raw)  # Version('0.5.dev0+git.20250114.96321ef')
+_version_release = _version_parsed.release  # (0, 5)
 if _version_release is None:
     raise ValueError(
         f"Ill-formed version: {_version_raw!r}. Version should follow PEP440"
     )
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-tags
 # https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#substitutions
 # The short X.Y version.
+# Base version: X.Y.Z
+# (this is the main version number, excluding pre-release and post-release tags)
 version = ".".join(_version_parsed.base_version.split(".")[:2])
+print("Major.Minor Version:", version)
 
 # The full version, including alpha/beta/rc tags.
 # Removes post from release name
-is_postrelease = _version_parsed.is_postrelease
-release = _version_parsed.base_version if is_postrelease else _version_raw
+# _is_postrelease = _version_parsed.is_postrelease
+# release = _version_parsed.base_version if _is_postrelease else _version_raw
+release = _version_raw
+
 # Release mode enables optimizations and other related options.
 # is_release_build = tags.has('release')
 
@@ -133,8 +142,8 @@ logger.info("scikit-plots version: %s " % release)
 ## gh_branch
 ##########################################################################
 
-is_devrelease = _version_parsed.is_devrelease
-if is_devrelease:
+_is_devrelease = _version_parsed.is_devrelease
+if _is_devrelease:
     gh_branch = "main"
 else:
     major, minor = _version_parsed.release[:2]
@@ -245,11 +254,11 @@ else:
 ##########################################################################
 
 try:
-    import jupyter_sphinx  # noqa: F401
+    import jupyter_sphinx  # noqa: F401  # pylint: disable=W0611
 
     extensions.append("jupyter_sphinx")
 
-    import jupyterlite_sphinx  # noqa: F401
+    import jupyterlite_sphinx  # noqa: F401  # pylint: disable=W0611
 
     extensions.append("jupyterlite_sphinx")
     with_jupyterlite = True
@@ -504,7 +513,7 @@ html_theme_options = {
     # If the version compares greater than the preferred version
     # (or if the version match contains the strings “dev”, “rc” or “pre”),
     # the announcement will say they are viewing an unstable development version instead.
-    "show_version_warning_banner": True and "dev" in release,
+    "show_version_warning_banner": ("dev" in _version_raw) or _is_devrelease,
     "surface_warnings": True,
     "logo": {
         "alt_text": "scikit-plots homepage",
@@ -1241,7 +1250,7 @@ html_context = {
     # },
 }
 # See https://github.com/scikit-learn/scikit-learn/pull/22550
-html_context["is_devrelease"] = is_devrelease
+html_context["is_devrelease"] = _is_devrelease
 
 # redirects dictionary maps from old links to new links
 old_links_dict = {
@@ -1445,7 +1454,7 @@ release_versions_rst_templates = [
 # development version; see https://github.com/scikit-learn/scikit-learn/pull/22550
 development_link = (
     "devel/index"
-    if is_devrelease
+    if _is_devrelease
     else "https://scikit-plots.github.io/dev/devel/index.html"
 )
 

@@ -5,6 +5,7 @@ from typing import Final, LiteralString
 __all__ = (
     "__git_hash__",
     "__version__",
+    "_version",
     "full_version",
     "git_revision",
     "release",
@@ -12,9 +13,11 @@ __all__ = (
     "short_version",
     "version",
 )
-version: Final[LiteralString]
-__version__: Final[LiteralString]
+_version: Final[LiteralString]
 full_version: Final[LiteralString]
+
+__version__: Final[LiteralString]
+version: Final[LiteralString]
 short_version: Final[LiteralString]
 
 __git_hash__: Final[LiteralString]

@@ -26,22 +26,22 @@ set_upload_vars() {
     echo "IS_PUSH is $IS_PUSH"
     echo "IS_SCHEDULE_DISPATCH is $IS_SCHEDULE_DISPATCH"
     if [[ "$IS_PUSH" == "true" ]]; then
-        echo push and tag event
+        echo EVENT: push and tag event
         export TOKEN="$SKPLT_STAGING_UPLOAD_TOKEN"
         export USERNAME="scikit-plots-wheels-staging"
         export ANACONDA_UPLOAD="true"
     elif [[ "$IS_SCHEDULE_DISPATCH" == "true" ]]; then
-        echo scheduled or dispatched event
+        echo EVENT: scheduled or dispatched event
         export TOKEN="$SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY"
         export USERNAME="scikit-plots-wheels-staging-nightly"
         export ANACONDA_UPLOAD="true"
     else
-        echo non-dispatch event
+        echo EVENT: non-dispatch event
         export ANACONDA_UPLOAD="false"
     fi
 }
 upload_wheels() {
-    echo "${PWD}"
+    echo PWD: "${PWD}"
     if [[ ${ANACONDA_UPLOAD} == true ]]; then
         if [[ -z ${TOKEN} ]]; then
             echo no token set, not uploading
