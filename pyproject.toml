@@ -193,7 +193,7 @@ core = [
   "pillow>=10.1.0",                         # Image processing
   "scikit-image>=0.17.2",                   # Image processing
   "pooch>=1.6.0",                           # Data by downloading files from a server
-  "catboost",                               # Gradient boosting
+  "catboost --prefer-binary",               # Gradient boosting
   "xgboost",                                # Gradient boosting
 ]
 dev = [
