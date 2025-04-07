@@ -176,7 +176,6 @@ dependencies = [  # pipreqs: Automatically scans the codebase and detects the us
 ## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs,gpu] -v
 # Core dependencies that are used in multiple groups
 core = [
-  "scikit-plots[cpu]",                      # Reference the 'cpu' group as a dependency
   # Dependencies required for pip installation
   "numpy>=1.24.4",                           # Numpy C-Api Headers and python module
   "scipy>=1.6.0",
@@ -198,6 +197,7 @@ core = [
   "xgboost",                                # Gradient boosting
 ]
 dev = [
+  "scikit-plots[core]",                     # Reference the 'core' group as a dependency
   "pre-commit",                             # Git hook scripts are useful for identifying simple issues before submission to code review. ".pre-commit-config.yaml"
   "pydevtool",                              # Development tools
   "pycodestyle",                            # PEP-8 compliance
@@ -279,10 +279,9 @@ cpu = [
   # "torchaudio",  # PyTorch
   ##
   # "jax",#"jaxlib",                          # import jax.numpy as jnp
-  ## On Python < 3.13, it installs the latest compatible version of tensorflow-cpu
-  "tensorflow-cpu; python_version < '3.13'",  # import tensorflow as tf
   ## On Python >= 3.13, it installs exactly tensorflow-cpu==2.15.0.
-  "tensorflow-cpu==2.15.0; python_version >= '3.13'",  # import tensorflow as tf
+  # "tensorflow-cpu==2.15.0; python_version >= '3.13'",  # import tensorflow as tf
+  "tensorflow-cpu",                         # import tensorflow as tf
   ##
   "transformers",                           # import transformers
   "tf-keras",                               # keras compatibility

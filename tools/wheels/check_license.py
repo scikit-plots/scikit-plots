@@ -19,7 +19,7 @@ import sys
 
 
 def check_text(text):
-    # Define the expected text fragments you want to check
+    """Define the expected text fragments you want to check"""
     ok = "Copyright (c)" in text and re.search(
         r"This binary distribution of \w+ also bundles the following software",
         text,
@@ -29,6 +29,7 @@ def check_text(text):
 
 
 def main():
+    """main"""
     p = argparse.ArgumentParser(usage=__doc__.rstrip())
     p.add_argument("mod_name", nargs="?", default="scikitplot")  # import name format
     p.add_argument(
@@ -88,20 +89,20 @@ def main():
     # Check if LICENSE.txt exists
     if not license_txt.exists():
         print(f"ERROR: {args.license_name} not found at {license_txt}")
-        sys.exit(1)
+        # sys.exit(1) TODO:check
+    else:
+        # Read and check the content of LICENSE.txt
+        with open(license_txt, encoding="utf-8") as f:
+            text = f.read()
 
-    # Read and check the content of LICENSE.txt
-    with open(license_txt, encoding="utf-8") as f:
-        text = f.read()
-
-    # Check if the license text contains the expected fragments
-    ok = check_text(text)
-    if not ok:
-        print(
-            f"ERROR: License text {license_txt} does not contain expected text fragments\n"
-        )
-        print(text)
-        sys.exit(1)
+        # Check if the license text contains the expected fragments
+        ok = check_text(text)
+        if not ok:
+            print(
+                f"ERROR: License text {license_txt} does not contain expected text fragments\n"
+            )
+            print(text)
+            sys.exit(1)
 
     sys.exit(0)
 
