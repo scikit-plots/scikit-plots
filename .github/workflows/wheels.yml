@@ -409,15 +409,27 @@ jobs:
             mv ./wheelhouse/*.whl $(find ./wheelhouse -type f -name '*.whl' | sed 's/13_0/14_0/')
           fi
 
+      - name: Ensure wheel files exist and list them
+        run: |
+          echo "🔍 Looking for wheel files in ./wheelhouse..."
+          if compgen -G "./wheelhouse/*.whl" > /dev/null; then
+            echo "✅ Found the following wheels:"
+            ls -lh ./wheelhouse/*.whl
+          else
+            echo "❌ No wheel files found in ./wheelhouse/"
+            ls -lh ./
+            exit 1  # Optional: fail the step if no wheels are found
+          fi
+
       - name: Upload Wheelhouse Wheels Packages
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
+          path: ./wheelhouse/*.whl
           name: >-
             ${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
           ## ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           ##   ${{ matrix.buildplat[2] }} ${{ matrix.buildplat[3] }}
           ##   ${{ matrix.buildplat[4] }}
-          path: ./wheelhouse/*.whl
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@505e6394dae86d6a5c7fbb6e3fb8938e3e863830 # v3.1.1
@@ -545,8 +557,8 @@ jobs:
       - name: Upload Wheelhouse Wheels Packages
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: sdist
           path: ./dist/*
+          name: sdist
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@505e6394dae86d6a5c7fbb6e3fb8938e3e863830 # v3.1.1
