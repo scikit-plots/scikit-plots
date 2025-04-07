@@ -410,6 +410,7 @@ jobs:
           fi
 
       - name: Ensure wheel files exist and list them
+        if: ${{ runner.os != 'Windows' }}
         run: |
           echo "🔍 Looking for wheel files in ./wheelhouse..."
           if compgen -G "./wheelhouse/*.whl" > /dev/null; then
@@ -541,12 +542,16 @@ jobs:
 
       - name: Test the sdist
         run: |
-          # TODO: Don't run test suite, and instead build wheels from sdist
-          # Depends on pypa/cibuildwheel#1020
+          ## TODO: Don't run test suite, and instead build wheels from sdist
+          ## Depends on pypa/cibuildwheel#1020
           pip install -r requirements/test.txt
-          python -m pip install dist/*.gz -Csetup-args=-Dallow-noblas=true
-          cd .. # Can't import "scikitplot" within "scikitplot" src directory
-          # python -c "import scikitplot, sys; print(scikitplot.__version__); sys.exit(numpy.test() is False)"
+
+          # python -m pip install dist/*.gz --no-use-pep517 -Csetup-args=-Dallow-noblas=true
+          python -m pip install dist/*.gz --install-option="--setup-args=-Dallow-noblas=true"
+
+          ## Can't import "scikitplot" within "scikitplot" src directory
+          cd dist
+          ## python -c "import scikitplot, sys; print(scikitplot.__version__); sys.exit(numpy.test() is False)"
           python -c "import scikitplot, sys; print(scikitplot.__version__);"
 
       - name: PyPI Check README rendering

@@ -5,7 +5,10 @@ import json
 
 from jinja2 import Environment, FileSystemLoader
 
-from scikitplot import __version__
+# from scikitplot import __version__
+import scikitplot as sp
+
+__version__ = sp.version.full_version
 
 # Load your template
 output_path = os.path.join(os.getcwd(), "_static")
