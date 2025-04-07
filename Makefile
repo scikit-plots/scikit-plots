@@ -158,6 +158,7 @@ install_dep: clean
 	@echo "Installing library pip dependencies..."
 	@# pip install -r ./requirements/all.txt
 	@pip install -r ./requirements/build.txt
+	@pip install -r ./requirements/cpu.txt
 
 ## Install Packages to local, depends on "clean"
 install: clean install_dep
