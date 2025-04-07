@@ -122,7 +122,7 @@ def init_version():
         data = fid.readlines()
     version_line = next(line for line in data if line.startswith("__version__"))
     version = version_line.strip().split("=")[1].strip()
-    version = version.replace('"', "").replace("'", "")
+    version = version.replace('"', "").replace("'", "").strip()
     return version
 
 
@@ -133,7 +133,7 @@ def toml_version():
         data = fid.readlines()
     version_line = next(line for line in data if line.startswith("version ="))
     version = version_line.strip().split("=")[1].strip()
-    version = version.replace('"', "").replace("'", "")
+    version = version.replace('"', "").replace("'", "").strip()
     return version
 
 
@@ -234,6 +234,7 @@ def git_version(
                 .replace("-", "")
                 .split()
             )
+            git_hash, git_date = git_hash.strip(), git_date.strip()
             # Append git hash information to development versions
             # Provide Git Development Edition, Git Deployment Environment, or simply a custom build identifier
             if "dev" in version:
@@ -244,7 +245,7 @@ def git_version(
     except Exception:
         # Catch-all for other exceptions
         pass
-    return version, git_hash
+    return version.strip(), git_hash.strip()
 
 
 ######################################################################
@@ -315,8 +316,10 @@ def git_remote_version(
             return commit_hash, branch_name
 
         # Split output into commit hash and branch
-        commit_hash, ref = output.split()
-        branch_name = ref.split("/")[-1]  # Extract last part of the ref as branch name
+        commit_hash, ref = output.split().strip()
+        branch_name = ref.split("/")[
+            -1
+        ].strip()  # Extract last part of the ref as branch name
 
         # Return the short hash if requested
         commit_hash = commit_hash[:7] if short else commit_hash
@@ -351,11 +354,11 @@ if __name__ == "__main__":
     Module to expose more detailed version info for the installed `scikitplot`.
     """
     # Syntax: 0.5.dev0+git.20250114.96321ef
-    __version__ = version = full_version  = "{version}"
+    __version__ = version = full_version  = "{version.strip()}"
     # Syntax: 0.5.dev0
     _version = short_version = __version__.split("+")[0]  #.split('.dev')[0]
 
-    __git_hash__ = git_revision = "{git_hash}"
+    __git_hash__ = git_revision = "{git_hash.strip()}"
     short_git_revision = git_revision[:7]
 
     # Check is pure version then provide the release version info
@@ -373,7 +376,7 @@ if __name__ == "__main__":
             print(f"Saving version to {relpath}")
             f.write(template)
     else:
-        print(version.split("+")[0])  # Syntax: 0.5.dev0
+        print(version.split("+")[0].strip())  # Syntax: 0.5.dev0
 
 ######################################################################
 ## ...
