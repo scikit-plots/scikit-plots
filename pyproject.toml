@@ -270,7 +270,7 @@ docs = [
 ]
 ## Maintenance tools
 maintenance = [
-  "conda-lock==2.5.7",                      # Dependency lock files for Conda
+  "conda-lock==3.0.0",                      # Dependency lock files for Conda
 ]
 ## Specialized dependencies for specific hardware
 cpu = [
