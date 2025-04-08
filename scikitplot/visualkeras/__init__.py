@@ -2,8 +2,8 @@
 # pip install tensorflow will also install the corresponding version of Keras
 # pip install tf-keras keras Use If not compatibility
 from .graph import *
-from .layer_utils import SpacingDummyLayer as SpacingDummyLayer
 from .layered import *
+from .layer_utils import SpacingDummyLayer as SpacingDummyLayer
 
 # Define the visualkeras version
 # https://github.com/paulgavrikov/visualkeras/blob/master/setup.py
