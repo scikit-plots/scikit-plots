@@ -55,12 +55,18 @@ def generate_requirement_file(name, req_list, *, extra_list=None):
         "scikit-plots[cpu]": "-r cpu.txt",
         "scikit-plots[gpu]": "-r gpu.txt",
         "scikit-plots[tpu]": "-r tpu.txt",
+        "scikit-plots[ci32_requirements]": "-r ci32_requirements.txt",
     }
 
     req_list = [
         (
             comment[x]
-            if x in ["scikit-umfpack", "scikit-plots[core]", "scikit-plots[cpu]"]
+            if x
+            in [
+                "scikit-umfpack",
+                "scikit-plots[core]",
+                "scikit-plots[ci32_requirements]",
+            ]
             else x
         )
         for x in req_list
