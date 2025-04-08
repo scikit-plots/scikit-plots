@@ -123,11 +123,11 @@ jobs:
         ## echo github.ref: "$HEAD"
         ## echo github.ref:  github.ref }}
         run: |
-          set -ex
           ## (Optional) Use Utility script by source it
           ## source .github/scripts/utils.sh
 
-          ## OUTPUT Contains '[wheel build]' or '1'
+          set -ex
+          ## Check that COMMIT contains '[wheel build]'
           COMMIT_MSG=$(git log --no-merges -1 --oneline)
           if [[ "$COMMIT_MSG" == *"[wheel build]"* ]]; then
             ## Set COMMIT_MESSAGE to "true" in $GITHUB_OUTPUT
@@ -423,16 +423,13 @@ jobs:
           fi
 
       - name: Upload Wheelhouse Wheels Packages
+        id: artifact-upload-step
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          # path: ./wheelhouse/*.whl
-          path: |
-            $(find ./wheelhouse -name '*.whl')
           name: >-
-            ${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
-          ## ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          ##   ${{ matrix.buildplat[2] }} ${{ matrix.buildplat[3] }}
-          ##   ${{ matrix.buildplat[4] }}
+            Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
+          path: ./wheelhouse/*.whl
+          # include-hidden-files: true
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@505e6394dae86d6a5c7fbb6e3fb8938e3e863830 # v3.1.1
@@ -463,10 +460,11 @@ jobs:
           ## commented out so the sdist doesn't upload to nightly
           SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN
         run: |
-          # https://github.com/marketplace/actions/build-and-upload-conda-packages
-          # # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          conda install -y anaconda-client
+          ## https://github.com/marketplace/actions/build-and-upload-conda-packages
+          ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
+          conda install -qy anaconda-client
           source tools/wheels/upload_wheels.sh
+
           set_upload_vars  # Required TOKEN, USERNAME
           # For cron jobs (restricted to main branch) or "Run workflow" trigger
           # an upload to:
@@ -562,13 +560,15 @@ jobs:
       - name: PyPI Check README rendering
         run: |
           python -m pip install twine
-          twine check dist/*
+          twine check dist/*.gz
 
       - name: Upload Wheelhouse Wheels Packages
+        id: artifact-upload-step
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          path: ./dist/*
           name: sdist
+          path: ./dist/*.gz
+          # include-hidden-files: true
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@505e6394dae86d6a5c7fbb6e3fb8938e3e863830 # v3.1.1
@@ -599,10 +599,11 @@ jobs:
           # commented out so the sdist doesn't upload to nightly
           SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN
         run: |
-          # https://github.com/marketplace/actions/build-and-upload-conda-packages
-          # # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
+          ## https://github.com/marketplace/actions/build-and-upload-conda-packages
+          ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
           conda install -y anaconda-client
           source tools/wheels/upload_wheels.sh
+
           set_upload_vars  # Required TOKEN, USERNAME
           # For cron jobs (restricted to main branch) or "Run workflow" trigger
           # an upload to:
