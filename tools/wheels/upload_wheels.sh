@@ -54,16 +54,15 @@ upload_wheels() {
             ## -G uses a glob pattern (like *.gz) and returns matching filenames.
             ## if ls ./dist/*.gz 1> /dev/null 2>&1; then
             if compgen -G "./dist/*.gz"; then
-                echo "Found sdist"
-                export WHEEL_FILE_PATH="./dist/*.gz"
-                anaconda -t "${TOKEN}" upload --force -u "${USERNAME}" "${WHEEL_FILE_PATH}"
+                echo "Found sdist..."
+                # No quotes if you want globbing (e.g., *.gz)
+                anaconda -t "${TOKEN}" upload --force -u "${USERNAME}" "./dist/*.gz"  # This will expand the glob correctly
             elif compgen -G "./wheelhouse/*.whl"; then
-                echo "Found wheel"
+                echo "Found wheel..."
                 ## Force a replacement if the remote file already exists -
                 ## nightlies will not have the commit ID in the filename, so
                 ## are named the same (1.X.Y.dev0-<platform/interpreter-tags>)
-                export WHEEL_FILE_PATH="./wheelhouse/*.whl"
-                anaconda -q -t "${TOKEN}" upload --force -u "${USERNAME}" "${WHEEL_FILE_PATH}"
+                anaconda -q -t "${TOKEN}" upload --force -u "${USERNAME}" "./wheelhouse/*.whl"
             else
                 echo "Files do not exist"
                 return 1
