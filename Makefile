@@ -494,5 +494,9 @@ newbr:
 	&& git branch
 
 release:
-	git tag -a v0.4.0rc1 -m "Release version 0.4.0rc1"
+	git tag -a "v0.4.0rc1" -m "Release version 0.4.0rc1"
+	@## git push --tags            # then push all tags
+	git push origin "v0.4.0rc1"    # push just that tag
+	@# git ls-remote --tags origin  # verify what's pushed by running
+
 	git add . && git commit -m "release [wheel build]"  && git push
