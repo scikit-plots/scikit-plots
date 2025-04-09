@@ -159,11 +159,11 @@ dependencies = [  # pipreqs: Automatically scans the codebase and detects the us
   ## Dependencies pip installation (required and optional packages for your project).
   "numpy>=1.20,!=1.24.0",                   # Numpy C-Api Headers and python module
   "scipy>=1.7.0",
-  "pandas>=1.2",                            # Data Analysis
+  "pandas>=1.2.0",                          # Data Analysis
   "matplotlib>=3.4,!=3.6.1",                # Data Plotting
-  "scikit-learn>=1.1",                      # Machine learning
-  "joblib>=1.2.0",
   "threadpoolctl>=3.1.0",
+  "joblib>=1.2.0",
+  "scikit-learn",                           # Machine learning
   ## visualkeras
   "pillow",                                 # Image processing
   "aggdraw",                                # visualkeras dep high-quality drawing, with anti-aliasing and alpha compositing

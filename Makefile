@@ -428,8 +428,8 @@ tag-push:
 	@echo "Remote Repository Tagging completed."."
 
 ## Release combines tagging and pushing the tag to remote
-release: tag-sample tag tag-push
-	@echo "Ready to Publish on PyPI"
+# release: tag-sample tag tag-push
+# 	@echo "Ready to Publish on PyPI"
 
 ######################################################################
 ## Publishing to PyPI
@@ -492,3 +492,7 @@ newbr:
 	&& git switch -c subpackage-bug-fix \
 	&& git push --set-upstream origin subpackage-bug-fix \
 	&& git branch
+
+release:
+	git tag -a v0.4.0rc1 -m "Release version 0.4.0rc1"
+	git add . && git commit -m "release [wheel build]"  && git push
