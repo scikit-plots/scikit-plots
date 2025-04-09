@@ -188,7 +188,7 @@ all the dependencies needed to build and fully test ``scikit-plots``::
    >>> pip install --no-build-isolation --no-cache-dir -e . -v
 
    >>> ## (Optionally) It is also possible to include optional dependencies:
-   >>> python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+   >>> python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
 
 .. _contributing_check_build:
 

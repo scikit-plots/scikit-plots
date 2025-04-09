@@ -72,9 +72,10 @@ def generate_requirement_file(name, req_list, *, extra_list=None):
         for x in req_list
     ]
 
-    if name == "build":
-        req_list = [x for x in req_list if "numpy" not in x]
-        req_list.append("ninja")
+    ## filter build
+    # if name == "build":
+    #     req_list = [x for x in req_list if "numpy" not in x]
+    #     req_list.append("ninja")
 
     if extra_list:
         req_list += extra_list
@@ -96,7 +97,7 @@ def main():
 
     # generate requirements/all.txt
     all_path = repo_dir / "requirements" / "all.txt"
-    files = ["build", "dev", "docs", "test"]
+    files = ["build", "dev", "test", "doc"]
     reqs = [f"-r {x}.txt" for x in files]
     all_path.write_text("\n".join(header + reqs) + "\n")
 
