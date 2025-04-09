@@ -17,7 +17,7 @@
 
 ## PHONY targets are used to avoid conflicts with files of the same name.
 ## Declare phony targets to indicate these are not files but commands to be executed.
-.PHONY: help all clean publish push
+.PHONY: help all clean publish
 
 ## "target" the name of the action to be execute as "make target". Syntax:
 ## <target>: <if-defined-previously-run-this-target>
@@ -496,7 +496,7 @@ newbr:
 push:
 	git add . && git commit -m "fix dependency"  && git push
 
-release: push
+release:
 	git tag -d "v0.4.0rc1" || true
 
 	@## Creates the tag locally
