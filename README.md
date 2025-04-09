@@ -54,11 +54,15 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
 - by `pypi`:
   ```sh
   pip install -U scikit-plots
+  ```
 
+- by `pypi.anaconda.org`:
+  ```sh
+  pip install -r requirements/default.txt  # need for dep
   pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
   ```
 
-- by `GITHUB` use `<branches>` or `<tags>` If any:
+- by source `GITHUB` use `<branches>` or `<tags>` If any:
   - Branches:
     ```bash
     #pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>

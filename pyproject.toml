@@ -58,7 +58,11 @@ name = "scikit-plots"                       # The name of your project
 
 ## https://github.com/mesonbuild/meson-python/blob/main/mesonpy/__init__.py#L743
 ## https://github.com/pypa/setuptools/blob/646c71f9af7e9ba6677203acde4ccd0a478dfbf8/setuptools/config/expand.py#L62-L86
-dynamic = ["version"]                       # Determined dynamically, inside one of meson.build, setup.cfg, setuptools.dynamic
+dynamic = [
+  "version",          # Determined dynamically, inside one of meson.build, setup.cfg, setuptools.dynamic
+  # "license",
+  # "license-files",
+]
 description = "An intuitive library that seamlessly adds plotting capabilities and functionality to any model objects or outputs, compatible with tools like scikit-learn, XGBoost, TensorFlow, and more."
 
 ## Keywords to describe your project, useful for searchability
@@ -116,22 +120,20 @@ classifiers = [
 ## at that point, no longer include them in `py3.install_sources()`
 ## [[project.license]]  # Usage individually, If Needed
 ## If defined required to fully compatible with SPDX license expression by license-files
-## or use test or file license = {file = "LICENSE"}
-# license = {file = "LICENSE"}  # Primary license file
-## https://spdx.org/licenses/BSD-3-Clause.html
-license = 'BSD-3-Clause'  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later',
+## https://spdx.org/licenses/BSD-3-Clause.html  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later'
+license = { file = 'LICENSE' }  # Primary license file # This is the SPDX identifier for the license
 
 ## [tool.meson-python]
-## license-files field to be used only if the license field contains a valid SPDX license expression.
-license-files = ['LICENSE', 'LICENSES/*', 'LICEN[CS]E*/*']
+## PEP-639 license-files field to be used only if the license field contains a valid SPDX license expression.
+# license-files = ['LICENSE', 'LICEN[CS]E*/*']
 
 ## The readme file this is what users will see on your project's PyPI page.
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#readme
 ## [[project.readme]]  # Usage individually, If Needed
-## file = "README.md"
-## content-type = "text/x-rst"
+## file = 'README.md'
+## content-type = 'text/x-rst'
 ## readme = "README.md"
-readme = {file = "README.md", content-type = "text/markdown"}
+readme = {file = 'README.md', content-type = 'text/markdown'}
 
 ## List the authors of the project
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
@@ -165,8 +167,8 @@ dependencies = [  # pipreqs: Automatically scans the codebase and detects the us
   "joblib>=1.2.0",
   "scikit-learn",                           # Machine learning
   ## visualkeras
-  "pillow",                                 # Image processing
-  "aggdraw",                                # visualkeras dep high-quality drawing, with anti-aliasing and alpha compositing
+  "pillow>=6.2.0",                          # Image processing
+  "aggdraw>=1.3.11",                        # visualkeras dep high-quality drawing, with anti-aliasing and alpha compositing
 ]
 
 ######################################################################

@@ -26,9 +26,9 @@ Version 0.4
 .. rubric:: Code and documentation contributors
 
 
-.. _changelog_0_4_0:
+.. _changelog_0_4_0rc1:
 
-Version 0.4.0
+Version 0.4.0rc1
 ---------------------------
 
 :mod:`.metrics`
@@ -56,7 +56,21 @@ Version 0.4.0
 
 - |Fix|
 
+
 Thanks to everyone who has contributed to the maintenance and improvement of
 the project since version 0.3.7, including:
 
-TODO: update at the time of the release.
+.. TODO: update at the time of the release.
+
+Authors
+=======
+
+* dependabot[bot] (13)
+* Muhammed ÇELİK (604)
+
+    A total of 2 people contributed to this release.
+    People with a "+" by their names contributed a patch for the first time.
+    This list of names is automatically generated, and may not be fully complete.
+
+NOTE: Check this list manually! It is automatically generated and some names
+      may be missing.
