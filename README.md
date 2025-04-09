@@ -58,7 +58,7 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
 
 - by `pypi.anaconda.org`:
   ```sh
-  pip install -r requirements/default.txt
+  pip install -r requirements/default.txt  # need for dep
   pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
   ```
 

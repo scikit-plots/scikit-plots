@@ -17,6 +17,7 @@ administrator permission required). Then run:
   conda activate sklearn-env
 
   ## latest dev version
+  pip install -r requirements/default.txt  # need for dep
   pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
 
 In order to check your installation, you can use:
