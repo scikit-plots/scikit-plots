@@ -17,7 +17,7 @@
 
 ## PHONY targets are used to avoid conflicts with files of the same name.
 ## Declare phony targets to indicate these are not files but commands to be executed.
-.PHONY: help all clean publish
+.PHONY: help all clean publish push
 
 ## "target" the name of the action to be execute as "make target". Syntax:
 ## <target>: <if-defined-previously-run-this-target>
