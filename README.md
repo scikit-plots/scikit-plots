@@ -30,7 +30,7 @@ git submodule update --init  # download submodules
 ```sh
 # pip install -r ./requirements/all.txt
 pip install -r ./requirements/build.txt
-pip install --no-build-isolation --no-cache-dir -e . -v
+pip install --no-cache-dir -e . -v
 ```
 
 ### It is also possible to include optional dependencies:
@@ -39,7 +39,7 @@ pip install --no-build-isolation --no-cache-dir -e . -v
 # (Optionally) Try Development [dev,build,test,docs,gpu]
 # gpu refer Cupy lib require NVIDIA CUDA support
 # For More in Doc: https://scikit-plots.github.io/
-python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
+python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
 ```
 
 ```sh
@@ -53,7 +53,9 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
 
 - by `pypi`:
   ```sh
-  pip install scikit-plots -U
+  pip install -U scikit-plots
+
+  pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
   ```
 
 - by `GITHUB` use `<branches>` or `<tags>` If any:

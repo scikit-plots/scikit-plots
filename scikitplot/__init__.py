@@ -28,7 +28,12 @@ from numpy import __version__ as __numpy_version__
 ## scikit-plots modules and objects
 ######################################################################
 
-__version__ = "0.5.dev0"
+## Format: MAJOR.MINOR.PATCH.devN
+## Format: MAJOR.MINOR.PATCHrcN
+## Format: MAJOR.MINOR.PATCH
+__version__ = "0.4.0rc1"
+# __version__ = "0.4.0"
+# __version__ = "0.5.0.dev0"
 
 # import logging as _logging
 from .sp_logging import SpLogger, get_logger, sp_logger
