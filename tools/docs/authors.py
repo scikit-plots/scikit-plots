@@ -13,14 +13,14 @@ repository.
 # Author: Pauli Virtanen <pav@iki.fi>. This script is in the public domain.
 
 import argparse
-import collections
-import os
 import re
-import subprocess
 import sys
+import os
+import subprocess
+import collections
 
 stdout_b = sys.stdout.buffer
-MAILMAP_FILE = os.path.join(os.path.dirname(__file__), "..", ".mailmap")
+MAILMAP_FILE = os.path.join(os.path.dirname(__file__), "../..", ".mailmap")
 
 
 def main():
@@ -91,9 +91,12 @@ def main():
         else:
             forename = ""
             surname = fullname.strip()
-        surname = surname.removeprefix("van der ")
-        surname = surname.removeprefix("de ")
-        surname = surname.removeprefix("von ")
+        if surname.startswith("van der "):
+            surname = surname[8:]
+        if surname.startswith("de "):
+            surname = surname[3:]
+        if surname.startswith("von "):
+            surname = surname[4:]
         return (surname.lower(), forename.lower())
 
     # generate set of all new authors
@@ -194,7 +197,8 @@ class Cmd:
         try:
             if call:
                 return subprocess.call(cmd, **kw)
-            return subprocess.Popen(cmd, **kw)
+            else:
+                return subprocess.Popen(cmd, **kw)
         finally:
             if cwd is not None:
                 os.chdir(cwd)

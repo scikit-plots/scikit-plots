@@ -121,7 +121,7 @@ classifiers = [
 ## [[project.license]]  # Usage individually, If Needed
 ## If defined required to fully compatible with SPDX license expression by license-files
 ## https://spdx.org/licenses/BSD-3-Clause.html  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later'
-license = { file = "LICENSE" }  # Primary license file # This is the SPDX identifier for the license
+license = { file = 'LICENSE' }  # Primary license file # This is the SPDX identifier for the license
 
 ## [tool.meson-python]
 ## PEP-639 license-files field to be used only if the license field contains a valid SPDX license expression.
@@ -130,10 +130,10 @@ license = { file = "LICENSE" }  # Primary license file # This is the SPDX identi
 ## The readme file this is what users will see on your project's PyPI page.
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#readme
 ## [[project.readme]]  # Usage individually, If Needed
-## file = "README.md"
-## content-type = "text/x-rst"
+## file = 'README.md'
+## content-type = 'text/x-rst'
 ## readme = "README.md"
-readme = {file = "README.md", content-type = "text/markdown"}
+readme = {file = 'README.md', content-type = 'text/markdown'}
 
 ## List the authors of the project
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
