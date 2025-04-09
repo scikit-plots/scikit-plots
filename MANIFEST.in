@@ -11,7 +11,7 @@
 recursive-include scikitplot *
 
 ## Include specific files with particular extensions in a subdirectory
-#recursive-include assets *.png *.jpg *.svg
+# recursive-include assets *.png *.jpg *.svg
 
 ## Include all non-Python files in your package directory (e.g., data files, config files)
 ## Replace `your_package_name` with the actual name of your package
@@ -38,10 +38,16 @@ include CODE_OF_CONDUCT.md
 include CONTRIBUTING.md
 
 # Optionally, include other specific folders or files
-include .pre-commit-config.yaml
-include pyproject.toml
-include pytest.ini
-include README.md
-include SECURITY.md
+include .codespell-ignore-words
+include .coveragerc
+include .flake8
+include .mailmap
+include MANIFEST.in
 include setup.cfg
-include tox.ini
+
+recursive-include *.yml
+recursive-include *.yaml
+recursive-include *.ini
+recursive-include *.toml
+recursive-include *.txt
+recursive-include *.md

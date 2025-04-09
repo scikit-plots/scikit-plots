@@ -493,10 +493,22 @@ newbr:
 	&& git push --set-upstream origin subpackage-bug-fix \
 	&& git branch
 
-release:
-	git tag -a "v0.4.0rc1" -m "Release version 0.4.0rc1"
-	@## git push --tags            # then push all tags
-	git push origin "v0.4.0rc1"    # push just that tag
-	@# git ls-remote --tags origin  # verify what's pushed by running
+push:
+	git add . && git commit -m "fix rdependecy"  && git push
 
+release:
 	git add . && git commit -m "release [wheel build]"  && git push
+
+	@## Creates the tag locally
+	git tag -a "v0.4.0rc1" -m "Release version 0.4.0rc1"
+
+	@## Pushes the tag to your fork
+	git push origin "v0.4.0rc1"    # push just that tag
+
+	@## Pushes all tags to your fork
+	@## git push --tags            # then push all tags
+
+	@## Pushes tag to upstream (if allowed) v0.4.0rc1 (APR 09th, 2025)
+	git push upstream "v0.4.0rc1"    # push just that tag
+
+	@# git ls-remote --tags origin  # verify what's pushed by running
