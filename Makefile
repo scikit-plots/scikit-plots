@@ -175,7 +175,7 @@ install_dev: clean install_dep
 	@# python -m pip install --no-build-isolation --no-cache-dir .
 	@# python -m pip install --no-build-isolation --no-cache-dir --editable .
 	@# python -m pip install --no-build-isolation --no-cache-dir -e . -vvv
-	@python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+	@python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
 
 ######################################################################
 ## Compiling by Meson step-by-step

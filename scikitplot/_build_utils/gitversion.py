@@ -155,9 +155,10 @@ def add_safe_directory(repo_path=None):
 def init_version():
     """Extract version number from `__init__.py`"""
     scikitplot_init = os.path.join(os.path.dirname(__file__), "../__init__.py")
-    with open(scikitplot_init) as fid:
+    with open(scikitplot_init, encoding="utf-8") as fid:
         data = fid.readlines()
     version_line = next(line for line in data if line.startswith("__version__"))
+
     version = version_line.strip().split("=")[1].strip()
     version = version.replace('"', "").replace("'", "").strip()
     return version
@@ -166,9 +167,10 @@ def init_version():
 def toml_version():
     """Extract version number from `pyproject.toml`"""
     scikitplot_toml = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
-    with open(scikitplot_toml) as fid:
+    with open(scikitplot_toml, encoding="utf-8") as fid:
         data = fid.readlines()
     version_line = next(line for line in data if line.startswith("version ="))
+
     version = version_line.strip().split("=")[1].strip()
     version = version.replace('"', "").replace("'", "").strip()
     return version
@@ -271,7 +273,6 @@ def git_version(
                 .replace("-", "")
                 .split()
             )
-            git_hash, git_date = git_hash.strip(), git_date.strip()
             # Append git hash information to development versions
             # Provide Git Development Edition, Git Deployment Environment, or simply a custom build identifier
             if "dev" in version:
@@ -282,7 +283,7 @@ def git_version(
     except Exception:
         # Catch-all for other exceptions
         pass
-    return version.strip(), git_hash.strip()
+    return version, git_hash
 
 
 ######################################################################
@@ -391,12 +392,12 @@ if __name__ == "__main__":
     Module to expose more detailed version info for the installed `scikitplot`.
     """
     # Syntax: 0.5.dev0+git.20250114.96321ef
-    _version = full_version = "{version.strip()}"
+    __version__ = version = full_version = "{version}"
 
     # Syntax: 0.5.dev0  # .split('.dev')[0]
-    __version__ = version = short_version = full_version.split("+")[0].strip()
+    _version = short_version = full_version.split("+")[0]
 
-    __git_hash__ = git_revision = "{git_hash.strip()}"
+    __git_hash__ = git_revision = "{git_hash}"
     short_git_revision = git_revision[:7]
 
     # Check is pure version then provide the release version info
@@ -416,7 +417,7 @@ if __name__ == "__main__":
             print(f"Saving version to {relpath}")
             f.write(template)
     else:
-        print(version.split("+")[0].strip())  # Syntax: 0.5.dev0
+        print(version.split("+")[0])  # Pkg Syntax: 0.5.dev0
 
 ######################################################################
 ## ...

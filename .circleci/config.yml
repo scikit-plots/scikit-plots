@@ -113,7 +113,7 @@ commands:
       - run:
           name: build scikit-plots
           command: |
-            pip install --no-build-isolation --no-cache-dir .[dev,build,test,docs]
+            pip install --no-cache-dir .[build,dev,test,doc]
   build-docs:
     description: build documentation scikit-plots
     steps:

@@ -15,26 +15,34 @@ The quickest and easiest way to go from analysis...
 
 ### Installing from source (REQUIRED OS/LIB BUILD PACKAGES)
 You can also install scikit-plots from source if you want to take advantage of the latest changes:
+
 ```sh
 # Forked repo: https://github.com/scikit-plots/scikit-plots.git
 git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
 cd scikit-plots
+```
 
+```sh
 bash docker/script/safe_dirs.sh  # add safe directories for git
 git submodule update --init  # download submodules
+```
 
+```sh
 # pip install -r ./requirements/all.txt
 pip install -r ./requirements/build.txt
 pip install --no-build-isolation --no-cache-dir -e . -v
 ```
 
 ### It is also possible to include optional dependencies:
+
 ```sh
 # (Optionally) Try Development [dev,build,test,docs,gpu]
 # gpu refer Cupy lib require NVIDIA CUDA support
 # For More in Doc: https://scikit-plots.github.io/
-python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
+```
 
+```sh
 # gpu refer Cupy lib require NVIDIA CUDA support
 pip install "scikit-plots[gpu]"
 ```

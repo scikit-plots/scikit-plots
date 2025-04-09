@@ -16,6 +16,9 @@ administrator permission required). Then run:
   conda create -n sklearn-env -c conda-forge scikit-plots
   conda activate sklearn-env
 
+  ## latest dev version
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+
 In order to check your installation, you can use:
 
 .. prompt:: bash >>> auto

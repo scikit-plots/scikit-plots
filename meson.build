@@ -411,7 +411,7 @@ _global_c_args = cc.get_supported_arguments(
 _global_cpp_args = cpp.get_supported_arguments(
   # GCC/Clang flags
   _global_args + [
-    '-std=c++17',
+    # '-std=c++17',              # WARNING: Consider using the built-in option for language standard version instead of using "-std=c++17".
     '-Wno-class-memaccess',      # Suppress warnings about accessing class members inappropriately
     '-Wno-int-in-bool-context',  # Suppress warnings about int used in boolean context
     '-Wno-non-virtual-dtor',     # Suppress warnings about non-virtual destructors
