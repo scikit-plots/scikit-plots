@@ -494,10 +494,10 @@ newbr:
 	&& git branch
 
 push:
-	git add . && git commit -m "fix rdependecy"  && git push
+	git add . && git commit -m "fix dependency"  && git push
 
-release:
-	git add . && git commit -m "release [wheel build]"  && git push
+release: push
+	git tag -d "v0.4.0rc1" || true
 
 	@## Creates the tag locally
 	git tag -a "v0.4.0rc1" -m "Release version 0.4.0rc1"
