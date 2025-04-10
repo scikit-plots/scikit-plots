@@ -13,11 +13,11 @@ __all__ = (
     "short_version",
     "version",
 )
-_version: Final[LiteralString]
-full_version: Final[LiteralString]
-
 __version__: Final[LiteralString]
 version: Final[LiteralString]
+full_version: Final[LiteralString]
+
+_version: Final[LiteralString]
 short_version: Final[LiteralString]
 
 __git_hash__: Final[LiteralString]

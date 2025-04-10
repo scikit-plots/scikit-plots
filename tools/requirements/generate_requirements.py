@@ -14,10 +14,10 @@ from datetime import datetime
 
 try:  # standard module since Python 3.11
     import tomllib as toml
-except ImportError:
+except (ImportError, ModuleNotFoundError):
     try:  # available for older Python via pip
         import tomli as toml
-    except ImportError:
+    except (ImportError, ModuleNotFoundError):
         sys.exit("Please install `tomli` first: `{mamba, pip} install tomli`")
 
 logging.basicConfig(level=logging.INFO)

@@ -121,6 +121,48 @@ tree:
 	@echo "System is: $(SYSTEM)"
 	@$(TREE_CMD)
 
+## https://mamba.readthedocs.io/en/latest/user_guide/mamba.html
+## mamba is a drop-in replacement and uses the same commands and configuration options as conda.
+## mamba create -n ... -c ... ...
+## mamba install ...
+## mamba list
+## mamba remove --name py310 --all -y
+newm:
+	# mamba create -n py38 python=3.8 ipykernel -y
+	# mamba create -n py39 python=3.9 ipykernel -y
+	# mamba create -n py310 python=3.10 ipykernel -y
+	# mamba create -n py311 python=3.11 ipykernel -y
+	# mamba create -n py312 python=3.12 ipykernel -y
+	# mamba create -n py313 python=3.13 ipykernel -y
+	# mamba create -n py314 python=3.14 ipykernel -y
+	# mamba activate py310
+	# mamba deactivate
+
+## https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+## https://docs.conda.io/projects/conda/en/latest/user-guide/cheatsheet.html
+## mamba is a drop-in replacement and uses the same commands and configuration options as conda.
+## conda info
+## conda info --envs
+## conda update conda
+## conda update anaconda
+## conda env list
+## conda search python
+## conda search --full-name python
+## conda update python
+## conda install python=3.11
+## conda env create -f environment.yml
+## The --prune option causes conda to remove any dependencies that are no longer required from the environment.
+## conda env update --file environment.yml  --prune
+## conda create --name <my-env> python=3.11
+## conda install -n myenv <my-env>
+## conda list -n <my-env>
+## conda env export > environment.yml
+## conda env export --from-history
+## conda remove --name myenv --all
+newc:
+	conda create -n test python=3.11 ipykernel
+	conda activate test  # activate our environment
+
 ######################################################################
 ## Packaging
 ## https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html
@@ -494,21 +536,22 @@ newbr:
 	&& git branch
 
 push:
+	@# pre-commit install
 	@git add . && git commit -m "fix dependency"  && git push
 
 release:
-	@git tag -d "v0.4.0rc1" || true
+	@git tag -d "v0.4.0rc2" || true
 
 	@## Creates the tag locally
-	git tag -a "v0.4.0rc1" -m "Release version 0.4.0rc1"
+	git tag -a "v0.4.0rc2" -m "Release version 0.4.0rc2"
 
 	@## Pushes the tag to your fork
-	git push origin "v0.4.0rc1"    # push just that tag
+	git push origin "v0.4.0rc2"    # push just that tag
 
 	@## Pushes all tags to your fork
 	@## git push --tags            # then push all tags
 
-	@## Pushes tag to upstream (if allowed) v0.4.0rc1 (APR 09th, 2025)
-	git push upstream "v0.4.0rc1"    # push just that tag
+	@## Pushes tag to upstream (if allowed) v0.4.0rc2 (APR 09th, 2025)
+	git push upstream "v0.4.0rc2"    # push just that tag
 
 	@# git ls-remote --tags origin  # verify what's pushed by running

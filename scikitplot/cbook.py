@@ -6,7 +6,6 @@ A collection of utility functions and classes.  Originally, many
 import collections
 import collections.abc
 import contextlib
-import functools
 import gzip
 import itertools
 import math
@@ -20,6 +19,15 @@ import traceback
 import types
 import weakref
 from pathlib import Path
+
+import functools
+
+# Attempt to import `cache` from `functools` (Python >= 3.9)
+try:
+    from functools import cache
+except ImportError:
+    # Fallback to `lru_cache` for Python < 3.9
+    from functools import lru_cache as cache
 
 import numpy as np
 
@@ -2344,7 +2352,7 @@ def _unikey_or_keysym_to_mplkey(unikey, keysym):
     return key
 
 
-@functools.cache
+@cache
 def _make_class_factory(mixin_class, fmt, attr_name=None):
     """
     Return a function that creates picklable classes inheriting from a mixin.
@@ -2363,7 +2371,7 @@ def _make_class_factory(mixin_class, fmt, attr_name=None):
     ``Axes`` class always return the same subclass.
     """
 
-    @functools.cache
+    @cache
     def class_factory(axes_class):
         # if we have already wrapped this class, declare victory!
         if issubclass(axes_class, mixin_class):
