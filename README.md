@@ -58,19 +58,24 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
 
 - by `pypi.anaconda.org`:
   ```sh
-  pip install -r requirements/default.txt  # need for dep
+  ## (Optionally) Install the lost packages
+  pip install -r requirements/default.txt
+  ## Try Ensure all dependencies installed
   pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
   ```
 
-- by source `GITHUB` use `<branches>` or `<tags>` If any:
+- by source `GITHUB` use `@<branches>` or `@<tags>` If any:
   - Branches:
     ```bash
-    #pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
-    # Latest in Development
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@main
-    # Added C,Cpp,Fortran Support
+    ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@main  # Latest in Development
+    ##
+    ## Works with standard Python (CPython), Added C,Cpp,Fortran Support
+    ##
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
-    # Pure Python
+    ##
+    ## Works with standard Python (CPython), Works with PyPy interpreter
+    ##
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
     ```
@@ -78,7 +83,7 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
 
   - Tags:
     ```bash
-    #pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
+    ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc0
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7

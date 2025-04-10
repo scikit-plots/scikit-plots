@@ -12,10 +12,12 @@ change in future releases.
 
 # scikitplot/experimental/__init__.py
 
-# Your package/module initialization code goes here
+## this module dependent array_api_extra py>=3.9
+
+## Your package/module initialization code goes here
 from ._logsumexp import *
 
-# Optionally import other modules if available
+## Optionally import other modules if available
 try:
     from ._cy_experimental import *
     from ._py_experimental import *

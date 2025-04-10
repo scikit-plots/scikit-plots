@@ -4,7 +4,20 @@ Checks for optional dependencies using lazy import from
 `PEP 562 <https://www.python.org/dev/peps/pep-0562/>`_.
 """
 
+import sys
 from importlib.util import find_spec
+
+# Check if Python version is >= 3.9 to use removeprefix
+if sys.version_info >= (3, 9):
+
+    def removeprefix(s: str, prefix: str) -> str:
+        return s.removeprefix(prefix)
+
+else:
+
+    def removeprefix(s: str, prefix: str) -> str:
+        return s[len(prefix) :] if s.startswith(prefix) else s
+
 
 # First, the top-level packages:
 # TODO: This list is a duplicate of the dependencies in pyproject.toml "all", but
@@ -51,8 +64,9 @@ _deps["PLT"] = "matplotlib"
 __all__ = [f"HAS_{pkg}" for pkg in _deps]
 
 
+# Now safely use the `removeprefix` function
 def __getattr__(name):
     if name in __all__:
-        return find_spec(_deps[name.removeprefix("HAS_")]) is not None
-
+        # Use the custom `removeprefix` if running Python < 3.9
+        return find_spec(_deps[removeprefix(name, "HAS_")]) is not None
     raise AttributeError(f"Module {__name__!r} has no attribute {name!r}.")

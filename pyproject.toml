@@ -43,7 +43,8 @@ requires = [
   ## Note that building against numpy 1.x works fine too - users and
   ## redistributors can do this by installing the numpy version they like and
   ## disabling build isolation.
-  "numpy>=2.0.0rc1",                         # Numpy C-Api Headers and python module
+  'numpy>=1.20,!=1.24.0;python_version<"3.9"',
+  'numpy>=2.0.0rc1;python_version>="3.9"',  # py>=3.9 Numpy C-Api Headers and python module
 ]
 
 ######################################################################
@@ -88,29 +89,51 @@ keywords = [
 ## https://packaging.python.org/en/latest/specifications/core-metadata/#classifier-multiple-use
 ## https://pypi.org/pypi?%3Aaction=list_classifiers
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 3 - Alpha",
+  # "Development Status :: 4 - Beta",
+  # "Environment :: GPU",
+  # "Environment :: WebAssembly",
+  # "Environment :: WebAssembly :: Emscripten",
+  "Framework :: Matplotlib",
+  # "Framework :: Pyodide",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
-  ## If defined required to fully compatible with SPDX license expression by license-files
-  ## or use test or file license = {file = "LICENSE"}
+  ## If defined required to fully compatible with SPDX license expression for pep-639 license-files
+  ## or use test or file license = {file = "LICENSE"}  # "License :: OSI Approved :: MIT License",
   # 'License :: OSI Approved :: BSD License',
-  # 'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-  # "License :: OSI Approved :: MIT License",
   "Natural Language :: English",
-  "Operating System :: OS Independent",
+  # "Operating System :: OS Independent",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX",
+  "Operating System :: Unix",
+  "Operating System :: MacOS",
   'Programming Language :: C',
   'Programming Language :: C++',
-  'Programming Language :: Cython',
   'Programming Language :: Fortran',
+  'Programming Language :: Cython',
   "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.5",
+  # "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  ## CPython is what you get when you run python on most systems.
+  ## It's written in C, compiles to bytecode, and runs via the CPython interpreter.
+  ## If your package uses C extensions, CPython-specific internals, or is only tested on CPython
   "Programming Language :: Python :: Implementation :: CPython",
+  ## PyPy is written in RPython, and is known for its Just-In-Time (JIT) compiler.
+  ## But it's not 100% compatible with all C-extension packages (like some heavy NumPy/Cython-based tools).
+  ## If your package is PyPy-compatible, or if you want to signal performance compatibility (especially if avoiding C-extensions)
+  # "Programming Language :: Python :: Implementation :: PyPy",
   "Topic :: Scientific/Engineering :: Visualization",
   "Topic :: Software Development :: Libraries",
-  "Topic :: Software Development :: Libraries :: Python Modules"
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Multimedia :: Graphics",
 ]
 
 ## License information is critical. It's recommended to specify the license file.
@@ -152,23 +175,25 @@ maintainers = [
 
 ## Specify the minimum Python version required
 ## https://packaging.python.org/en/latest/specifications/core-metadata/#requires-python
-requires-python = ">=3.8"
+requires-python = ">=3.8"  # also compatipable 3.7
 
 ## Purpose: Specifies the runtime dependencies needed for the project to run after it's installed.
 ## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#declaring-required-dependency
 ## { dependency = "numpy", version = ">=1.21.0" },
 dependencies = [  # pipreqs: Automatically scans the codebase and detects the used libraries.
-  ## Dependencies pip installation (required and optional packages for your project).
-  "numpy>=1.20,!=1.24.0",                   # Numpy C-Api Headers and python module
+  ## py>=3.7 Dependencies pip installation (required and optional packages for your project).
+  'numpy>=1.20,!=1.24.0;python_version<"3.9"',
+  'numpy>=2.0.0rc1;python_version>="3.9"',  # py>=3.9 Numpy C-Api Headers and python module
   "scipy>=1.7.0",
   "pandas>=1.2.0",                          # Data Analysis
   "matplotlib>=3.4,!=3.6.1",                # Data Plotting
   "threadpoolctl>=3.1.0",
   "joblib>=1.2.0",
-  "scikit-learn",                           # Machine learning
+  "scikit-learn>=1.0.rc1",                  # Machine learning
   ## visualkeras
   "pillow>=6.2.0",                          # Image processing
   "aggdraw>=1.3.11",                        # visualkeras dep high-quality drawing, with anti-aliasing and alpha compositing
+  'importlib-metadata;python_version<"3.10"',
 ]
 
 ######################################################################
@@ -217,7 +242,8 @@ build = [
   ## Note that building against numpy 1.x works fine too - users and
   ## redistributors can do this by installing the numpy version they like and
   ## disabling build isolation.
-  "numpy>=2.0.0rc1",                         # Numpy C-Api Headers and python module
+  'numpy>=1.20,!=1.24.0;python_version<"3.9"',
+  'numpy>=2.0.0rc1;python_version>="3.9"',  # py>=3.9 Numpy C-Api Headers and python module
 ]
 dev = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
@@ -232,6 +258,7 @@ dev = [
   "mypy",                                   # Type checking
   "ruff",                                   # Linting
   "pyyaml",
+  'tomli;python_version<"3.11"',            # Python TOML support became built-in (via tomllib) starting in Python 3.11.
 
   "types-psutil",                           # Type stubs for psutil
   "typing_extensions",                      # Backports for older Python versions
@@ -800,7 +827,7 @@ count = true
 
 # The following list of words for codespell to ignore may contain some
 # misspellings that should be revisited and fixed in the future.
-# ignore-words = "build_tools/codespell_ignore_words.txt"
+ignore-words = "./.codespell-ignore-words"
 ignore-words-list = "./.codespell-ignore-words"
 
 ######################################################################

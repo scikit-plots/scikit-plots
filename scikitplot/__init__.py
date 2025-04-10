@@ -85,7 +85,6 @@ from . import (
     _xp_core_lib,
     api,
     cbook,
-    experimental,
     kds,
     misc,
     modelplotpy,

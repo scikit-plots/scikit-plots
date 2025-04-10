@@ -54,6 +54,7 @@ ENV LANG C.UTF-8
 ## Ensures that all locale categories (LC_*) are set to C.UTF-8,
 ## so the environment is fully UTF-8 enabled.
 ENV LC_ALL C.UTF-8
+## LANGUAGE is used on win32
 ENV LANGUAGE C.UTF-8
 
 ## Set environment variable to avoid interactive prompts during builds
@@ -131,6 +132,8 @@ RUN apt-get update --yes \
     ## Graph visualization software
     ## Graph visualization software: dot -V
     graphviz \
+    ## image viewer
+    imagemagick \
     ## Build tools
     ## Utility for building and compiling software projects
     make \

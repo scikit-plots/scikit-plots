@@ -7,7 +7,14 @@ import inspect
 import os
 import sys
 from importlib import import_module, metadata
-from importlib.metadata import packages_distributions
+
+# Handle the import for `packages_distributions` for Python >= 3.10
+try:
+    from importlib.metadata import packages_distributions
+except ImportError:
+    # Fallback for Python < 3.10
+    from importlib_metadata import packages_distributions
+
 from typing import TYPE_CHECKING
 
 from packaging.version import Version
@@ -15,6 +22,7 @@ from packaging.version import Version
 if TYPE_CHECKING:
     from types import FrameType, ModuleType
     from typing import Literal
+
 
 __all__ = [
     "minversion",

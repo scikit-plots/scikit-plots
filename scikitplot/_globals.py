@@ -16,7 +16,9 @@ That was not the case when the singleton classes were defined in the scikitplot
 motivated this module.
 """
 
-from typing import Optional
+from typing import Optional, Type
+
+# from typing import TYPE_CHECKING
 
 __all__ = [
     "ModuleDeprecationWarning",
@@ -147,10 +149,11 @@ class SingletonBase:
     """
 
     # Class attribute to hold the single instance of the class.
+    # _instance: Union["SingletonBase", None] = None
     _instance: Optional["SingletonBase"] = None
 
     # magic method to get called in an objects instantiation.
-    def __new__(cls: type["SingletonBase"], *args, **kwargs) -> "SingletonBase":
+    def __new__(cls: Type["SingletonBase"], *args, **kwargs) -> "SingletonBase":
         """
         Override the default object creation method to implement the singleton pattern.
 
@@ -159,7 +162,7 @@ class SingletonBase:
 
         Parameters
         ----------
-        cls : type[SingletonBase]
+        cls : Type[SingletonBase]
             The class being instantiated.
         *args : tuple
             Positional arguments to be passed to the class constructor.
@@ -231,7 +234,7 @@ class SingletonBase:
 #     """
 #     _instance: Optional["SingletonBaseEnum"] = None
 
-#     def __new__(cls: type["SingletonBaseEnum"], value: Any) -> "SingletonBaseEnum":
+#     def __new__(cls: Type["SingletonBaseEnum"], value: Any) -> "SingletonBaseEnum":
 #         """
 #         Override the object creation method to implement the singleton pattern for enum values.
 
@@ -240,7 +243,7 @@ class SingletonBase:
 
 #         Parameters
 #         ----------
-#         cls : type[SingletonBaseEnum]
+#         cls : Type[SingletonBaseEnum]
 #             The class being instantiated.
 #         value : Any
 #             The value of the enum member.
@@ -259,7 +262,7 @@ class SingletonBase:
 #         return cls._instance
 
 ######################################################################
-## Singleton Marker types
+## Singleton Marker Types
 ## _DefaultType class
 ######################################################################
 

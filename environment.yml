@@ -8,9 +8,10 @@
 #
 name: skplt-dev
 channels:
+  - defaults
   - conda-forge
 dependencies:
-  - python
+  - python=3.11
   - cython>=3.0.8
   - compilers  # Currently unavailable for Windows. Comment out this line and download Rtools and add <path>\ucrt64\bin\ to your path: https://cran.r-project.org/bin/windows/Rtools/rtools40.html
   - meson
@@ -64,3 +65,6 @@ dependencies:
   # For linting
   - ruff>=0.0.292
   - cython-lint
+  - codecov
+variables:
+  VAR1: valueA
