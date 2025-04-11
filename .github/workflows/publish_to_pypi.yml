@@ -12,6 +12,10 @@ on:
         description: 'conda pkg source'
         required: true           # 👈 This makes the input mandatory
         default: 'scikit-plots-wheels-staging-nightly'  # Default
+        type: choice
+        options:
+          - 'scikit-plots-wheels-staging-nightly'  # Default *.whl source
+          - 'scikit-plots-wheels-staging'
       pypi_repo:  # Specify whether to publish to TestPyPI or PyPI
         description: 'Repository to upload to (test.pypi or pypi)'
         required: true           # 👈 This makes the input mandatory
@@ -23,19 +27,29 @@ on:
       version:  # Specify the version of the package to upload
         description: 'Version to upload to PyPI (e.g., 1.0.0)'
         required: true           # 👈 This makes the input mandatory
-        default: '0.5.0rc0'      # 👈 Default is still used if user doesn't change it
+        default: '0.4.0rc2'      # 👈 Default is still used if user doesn't change it
         type: choice
         options:
+          - '0.4.0.dev0'
+          - '0.4.0.dev1'
           - '0.4.0rc0'
           - '0.4.0rc1'
           - '0.4.0rc2'
           - '0.4.0rc3'
           - '0.4.0'
+          - '0.4.1.dev0'
+          - '0.4.1rc0'
+          - '0.4.1'
+          - '0.5.0.dev0'
+          - '0.5.0.dev1'
           - '0.5.0rc0'
           - '0.5.0rc1'
           - '0.5.0rc2'
           - '0.5.0rc3'
           - '0.5.0'
+          - '0.5.1.dev0'
+          - '0.5.1rc0'
+          - '0.5.1'
 
 ## Top-level permissions (outside jobs)
 ## Job-level permissions (inside a specific job)
