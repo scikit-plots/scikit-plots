@@ -31,7 +31,7 @@ from numpy import __version__ as __numpy_version__
 ## Format: MAJOR.MINOR.PATCH.devN
 ## Format: MAJOR.MINOR.PATCHrcN
 ## Format: MAJOR.MINOR.PATCH
-__version__ = "0.4.0rc1"
+__version__ = "0.4.0rc2"
 # __version__ = "0.4.0"
 # __version__ = "0.5.0.dev0"
 
