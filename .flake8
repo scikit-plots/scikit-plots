@@ -74,6 +74,7 @@ exclude =
     benchmarks/**,
     tools/**,  # ← Ensure the `tools/` folder is ignored
     galleries/examples/**,  # ← Ensure the `tools/` folder is ignored
+    ## module
     scikitplot/cbook.py,
     scikitplot/_docstring.py,
     scikitplot/_preprocess.py,

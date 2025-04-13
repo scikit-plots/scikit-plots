@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 get_dep() {
     package="$1"
     version="$2"
@@ -16,7 +13,7 @@ get_dep() {
         # use latest
         echo "$package"
     elif [[ "$version" == "min" ]]; then
-        echo "$package==$(python scikitplot/_min_dependencies.py "$package")"
+        echo "$package==$(python sklearn/_min_dependencies.py $package)"
     fi
 }
 
@@ -31,30 +28,11 @@ show_installed_libraries(){
     fi
 }
 
-# activate_environment() {
-#     if [[ "$DISTRIB" =~ ^conda.* ]]; then
-#         # For Conda environments, use the correct command
-#         if [[ -d "$CONDA_PREFIX" ]]; then
-#             source "$CONDA_PREFIX/bin/activate" || { echo "Conda environment activation failed"; exit 1; }
-#         else
-#             source activate "$VIRTUALENV"
-#         fi
-#     elif [[ "$DISTRIB" == "ubuntu" || "$DISTRIB" == "debian-32" ]]; then
-#         # For Virtualenv on Ubuntu/Debian, ensure the virtual environment exists
-#         if [[ -d "$VIRTUALENV/bin" ]]; then
-#             source "$VIRTUALENV/bin/activate" || { echo "Virtualenv activation failed"; exit 1; }
-#         else
-#             echo "Error: Virtualenv not found at $VIRTUALENV"
-#             exit 1
-#         fi
-#     fi
-# }
-
 activate_environment() {
     if [[ "$DISTRIB" =~ ^conda.* ]]; then
-        source activate "$VIRTUALENV"
+        source activate $VIRTUALENV
     elif [[ "$DISTRIB" == "ubuntu" || "$DISTRIB" == "debian-32" ]]; then
-        source "$VIRTUALENV/bin/activate"
+        source $VIRTUALENV/bin/activate
     fi
 }
 
@@ -65,11 +43,11 @@ create_conda_environment_from_lock_file() {
     # install them directly, provided the lock-file does not contain pip solved
     # packages. For more details, see
     # https://conda.github.io/conda-lock/output/#explicit-lockfile
-    lock_file_has_pip_packages=$(grep -q files.pythonhosted.org "$LOCK_FILE" && echo "true" || echo "false")
+    lock_file_has_pip_packages=$(grep -q files.pythonhosted.org $LOCK_FILE && echo "true" || echo "false")
     if [[ "$lock_file_has_pip_packages" == "false" ]]; then
-        conda create --name "$ENV_NAME" --file "$LOCK_FILE"
+        conda create --name $ENV_NAME --file $LOCK_FILE
     else
         python -m pip install "$(get_dep conda-lock min)"
-        conda-lock install --name "$ENV_NAME $LOCK_FILE"
+        conda-lock install --name $ENV_NAME $LOCK_FILE
     fi
 }

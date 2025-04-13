@@ -40,7 +40,7 @@ fi
 if [[ -n "$CI_PULL_REQUEST"  && -z "$CI_TARGET_BRANCH" ]]
 then
     # Get the target branch name when using CircleCI
-    CI_TARGET_BRANCH=$(curl -s "https://api.github.com/repos/scikit-plots/scikit-plots/pulls/$CIRCLE_PR_NUMBER" | jq -r .base.ref)
+    CI_TARGET_BRANCH=$(curl -s "https://api.github.com/repos/scikit-learn/scikit-learn/pulls/$CIRCLE_PR_NUMBER" | jq -r .base.ref)
 fi
 
 get_build_type() {
@@ -83,7 +83,7 @@ get_build_type() {
         echo QUICK BUILD: no changed filenames for $git_range
         return
     fi
-    changed_examples=$(echo "$filenames" | grep -E "^galleries/examples/(.*/)*plot_")
+    changed_examples=$(echo "$filenames" | grep -E "^examples/(.*/)*plot_")
 
     # The following is used to extract the list of filenames of example python
     # files that sphinx-gallery needs to run to generate png files used as
@@ -210,7 +210,7 @@ fi
 if [[ "$CIRCLE_BRANCH" =~ ^main$ && -z "$CI_PULL_REQUEST" ]]
 then
     # List available documentation versions if on main
-    python tools/circle/list_versions.py --json doc/js/versions.json --rst doc/versions.rst
+    python build_tools/circle/list_versions.py --json doc/js/versions.json --rst doc/versions.rst
 fi
 
 
@@ -235,7 +235,7 @@ affected_doc_paths() {
     sklearn_files=$(echo "$files" | grep '^sklearn/')
     if [ -n "$sklearn_files" ]
     then
-        grep -hlR -f<(echo "$sklearn_files" | sed 's/^/scikit-plots\/blob\/[a-z0-9]*\//') doc/_build/html/stable/modules/generated | cut -d/ -f5-
+        grep -hlR -f<(echo "$sklearn_files" | sed 's/^/scikit-learn\/blob\/[a-z0-9]*\//') doc/_build/html/stable/modules/generated | cut -d/ -f5-
     fi
 }
 
@@ -267,7 +267,7 @@ then
     echo "$affected"
     (
     echo '<html><body><ul>'
-    echo "$affected" | sed 's|.*|<li><a href="&">&</a> [<a href="https://scikit-plots.github.io/dev/&">dev</a>, <a href="https://scikit-plots.github.io/stable/&">stable</a>]</li>|'
+    echo "$affected" | sed 's|.*|<li><a href="&">&</a> [<a href="https://scikit-learn.org/dev/&">dev</a>, <a href="https://scikit-learn.org/stable/&">stable</a>]</li>|'
     echo '</ul><p>General: <a href="index.html">Home</a> | <a href="api/index.html">API Reference</a> | <a href="auto_examples/index.html">Examples</a></p>'
     echo '<strong>Sphinx Warnings in affected files</strong><ul>'
     echo "$warnings" | sed 's/\/home\/circleci\/project\//<li>/g'

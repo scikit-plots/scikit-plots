@@ -3,17 +3,14 @@
 # build_tools/update_environments_and_lock_files.py
 channels:
   - conda-forge
-  - pytorch
-  - nvidia
 dependencies:
-  - python
+  - python=3.10
   - numpy
-  - blas
+  - blas[build=openblas]
   - scipy
   - cython
   - joblib
   - threadpoolctl
-  - matplotlib
   - pandas
   - pyamg
   - pytest
@@ -22,11 +19,6 @@ dependencies:
   - pip
   - ninja
   - meson-python
-  - pytest-cov
-  - coverage
+  - sphinx
+  - numpydoc
   - ccache
-  - pytorch-gpu
-  - polars
-  - pyarrow
-  - cupy
-  - array-api-strict

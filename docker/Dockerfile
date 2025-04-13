@@ -122,6 +122,10 @@ RUN apt-get update --yes \
     ## Documentation tools
     ## pandoc is used to convert notebooks to html files
     pandoc \
+    ## Ensures that pdflatex generates sharp, scalable fonts in PDFs instead of bitmap (raster) fonts.
+    cm-super \
+    ## gives you all LaTeX packages
+    texlive-full \
     ## File and directory utilities
     ## Command-line utility for displaying directory structure
     tree \
@@ -151,6 +155,8 @@ RUN apt-get update --yes \
     # Python development headers, useful for compiling certain packages
     python3-dev \
     ## Compilers and build dependencies
+    ## compiler caching tool that speeds up recompilation of C/C++ code by caching previous compilation results.
+    ccache \
     ## GNU Fortran compiler (required for some scientific libraries)
     gfortran\
     ## GNU C compiler, c/cpp 11.4.0 compiler version

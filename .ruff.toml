@@ -4,9 +4,21 @@ extend = "pyproject.toml"
 # SPDX-License-Identifier: BSD-3-Clause
 
 [lint.extend-per-file-ignores]
+
+".pyinstaller/*.py" = ["PTH"]
+
 "__init__.py" = [
     "E402",
     "F401",
+]
+
+"docs/*" = [
+
+]
+
+"test_*.py" = [
+    "PTH", # all flake8-use-pathlib
+    "RUF015",  # Prefer next({iterable}) over single element slice
 ]
 
 "__init__.pyi" = [
@@ -24,15 +36,6 @@ extend = "pyproject.toml"
 "*_min_dependencies.py" = [
     "T201",
 ]
-
-"docs/*" = []
-
-"test_*.py" = [
-    "PTH", # all flake8-use-pathlib
-    "RUF015",  # Prefer next({iterable}) over single element slice
-]
-
-".pyinstaller/*.py" = ["PTH"]
 
 # TODO: fix these, on a per-subpackage basis.
 # When a general exclusion is being fixed, but it affects many subpackages, it

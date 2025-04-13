@@ -1,7 +1,5 @@
-"""
-Checks that dist/* contains the number of wheels built from the
-.github/workflows/wheels.yml config.
-"""
+"""Checks that dist/* contains the number of wheels built from the
+.github/workflows/wheels.yml config."""
 
 import sys
 from pathlib import Path
@@ -22,7 +20,10 @@ dist_files = list(Path("dist").glob("**/*"))
 n_dist_files = len(dist_files)
 
 if n_dist_files != n_wheels:
-    print(f"Expected {n_wheels} wheels in dist/* but " f"got {n_dist_files} artifacts instead.")
+    print(
+        f"Expected {n_wheels} wheels in dist/* but "
+        f"got {n_dist_files} artifacts instead."
+    )
     sys.exit(1)
 
 print(f"dist/* has the expected {n_wheels} wheels:")

@@ -4,5 +4,5 @@ set -e
 set -x
 
 wget $GITHUB_ARTIFACT_URL
-mkdir -p docs/build/html/stable
-unzip docs*.zip -d docs/build/html/stable
+mkdir -p doc/_build/html/stable
+unzip doc*.zip -d doc/_build/html/stable

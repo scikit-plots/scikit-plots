@@ -7,11 +7,11 @@
 set -ex
 
 if [ -z $CIRCLE_PROJECT_USERNAME ];
-then USERNAME="skplt-ci";
+then USERNAME="sklearn-ci";
 else USERNAME=$CIRCLE_PROJECT_USERNAME;
 fi
 
-DOC_REPO="scikit-plots.github.io"
+DOC_REPO="scikit-learn.github.io"
 GENERATED_DOC_DIR=$1
 
 if [[ -z "$GENERATED_DOC_DIR" ]]; then
@@ -35,7 +35,7 @@ MSG="Pushing the docs to $dir/ for branch: $CIRCLE_BRANCH, commit $CIRCLE_SHA1"
 
 cd $HOME
 if [ ! -d $DOC_REPO ];
-then git clone --depth 1 --no-checkout "git@github.com:scikit-plots/"$DOC_REPO".git";
+then git clone --depth 1 --no-checkout "git@github.com:scikit-learn/"$DOC_REPO".git";
 fi
 cd $DOC_REPO
 
@@ -56,7 +56,7 @@ then
 	git rm -rf $dir/ && rm -rf $dir/
 fi
 cp -R $GENERATED_DOC_DIR $dir
-git config user.email "ci@scikit-plots.github.io"
+git config user.email "ci@scikit-learn.org"
 git config user.name $USERNAME
 git config push.default matching
 git add -f $dir/
