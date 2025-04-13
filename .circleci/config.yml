@@ -33,6 +33,7 @@ _defaults: &defaults
   #   # recent versions of the dependencies.
   #   - SKLEARN_WARNINGS_AS_ERRORS: '1'
   working_directory: ~/repo
+  ## https://circleci.com/docs/configuration-reference/#resourceclass
   # resource_class: scikit-plots/documentation  # large
 
 commands:
@@ -121,7 +122,7 @@ commands:
       - run:
           name: build scikit-plots
           command: |
-            pip install --no-cache-dir .[build,dev,test,doc]
+            pip install --no-cache-dir .[build,dev,test,doc,gpu]
   build-docs:
     description: build documentation scikit-plots
     steps:
@@ -222,12 +223,15 @@ jobs:
       - attach_workspace:
           at: docs/build/html
       - run: ls -ltrh docs/build/html/stable
-      # - run:
-      #     name: upload new docs
-      #     command: |
-      #       if [[ "${CIRCLE_BRANCH}" =~ ^main$|^[0-9]+\.[0-9]+\.X$ ]]; then
-      #         bash build_tools/circle/push_doc.sh doc/_build/html/stable
-      #       fi
+
+      - run:
+          name: upload new docs
+          command: |
+            if [[ "${CIRCLE_BRANCH}" =~ ^main$|^[0-9]+\.[0-9]+\.X$ ]]; then
+              bash tools/circle/push_doc.sh docs/build/html/stable
+            fi
+
+
       # - add_ssh_keys:
       #     fingerprints:
       #       - "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"
@@ -235,11 +239,9 @@ jobs:
       #     name: upload new docs via ssh
       #     command: |
       #       set -ex;
-
       #       mkdir -p ~/.ssh
       #       echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
       #       chmod og= ~/.ssh/config
-
       #       git clone git@github.com:scipy/devdocs.git devdocs;
       #       cd devdocs;
       #       (git checkout --orphan tmp && git branch -D gh-pages || true);
