@@ -220,7 +220,7 @@ jobs:
       - run: echo "Hi I'm on Runners!"
 
       - checkout
-      - run: ./build_tools/circle/checkout_merge_commit.sh
+      - run: ./tools/circle/checkout_merge_commit.sh
 
       # Attach documentation generated in the 'docs' step so that it can be
       # deployed.
