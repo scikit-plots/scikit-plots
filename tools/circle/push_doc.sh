@@ -7,11 +7,11 @@
 set -ex
 
 if [ -z $CIRCLE_PROJECT_USERNAME ];
-then USERNAME="sklearn-ci";
+then USERNAME="skplt-ci";
 else USERNAME=$CIRCLE_PROJECT_USERNAME;
 fi
 
-DOC_REPO="scikit-learn.github.io"
+DOC_REPO="scikit-plots.github.io"  # "scikit-learn.github.io"
 GENERATED_DOC_DIR=$1
 
 if [[ -z "$GENERATED_DOC_DIR" ]]; then
@@ -23,19 +23,37 @@ fi
 # Absolute path needed because we use cd further down in this script
 GENERATED_DOC_DIR=$(readlink -f $GENERATED_DOC_DIR)
 
-if [ "$CIRCLE_BRANCH" = "main" ]
-then
+# Try to extract version of scikit-plots, e.g., 0.3.7 or 0.3.7.dev0
+full_version=$(pip show scikit-plots 2>/dev/null | grep ^Version: | awk '{print $2}')
+
+# Check if the version was found
+if [[ -z "$full_version" ]]; then
+    echo "⚠️ scikit-plots is not installed. Exiting."
+    exit 1
+fi
+
+## Determine the output directory
+## Check if version includes "dev" or we're on the main branch
+if [[ "$CIRCLE_BRANCH" == "main" || "$full_version" == *dev* ]]; then
     dir=dev
 else
-    # Strip off .X
-    dir="${CIRCLE_BRANCH::-2}"
+    ## Strip off .X (e.g., from 'release/1.2.x' → 'release/1.2')
+    # dir="${CIRCLE_BRANCH::-2}"
+    ## Extract version from branches like 'maintenance/1.15.x'
+    # dir=$(echo "$CIRCLE_BRANCH" | sed -E 's|.*/([0-9]+\.[0-9]+)\.x$|\1|')
+
+    ## Extract major.minor from full version (e.g., 0.3 from 0.3.7rc0 or 0.3.7.dev0)
+    # dir=$(echo "$full_version" | cut -d. -f1,2)
+    dir=$(echo "$full_version" | sed -E 's/^([0-9]+\.[0-9]+).*/\1/')
 fi
+
+echo "📂 Directory to use: $dir"
 
 MSG="Pushing the docs to $dir/ for branch: $CIRCLE_BRANCH, commit $CIRCLE_SHA1"
 
 cd $HOME
 if [ ! -d $DOC_REPO ];
-then git clone --depth 1 --no-checkout "git@github.com:scikit-learn/"$DOC_REPO".git";
+then git clone --depth 1 --no-checkout "git@github.com:scikit-plots/"$DOC_REPO".git";
 fi
 cd $DOC_REPO
 
@@ -56,7 +74,7 @@ then
 	git rm -rf $dir/ && rm -rf $dir/
 fi
 cp -R $GENERATED_DOC_DIR $dir
-git config user.email "ci@scikit-learn.org"
+git config user.email "ci@scikit-plots.github.io"
 git config user.name $USERNAME
 git config push.default matching
 git add -f $dir/
