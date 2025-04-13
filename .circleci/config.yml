@@ -122,7 +122,8 @@ commands:
       - run:
           name: build scikit-plots
           command: |
-            pip install --no-cache-dir .[build,dev,test,doc,gpu]
+            # cpu: tensorflow
+            pip install --no-cache-dir .[build,dev,test,doc,cpu]
   build-docs:
     description: build documentation scikit-plots
     steps:
