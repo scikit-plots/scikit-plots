@@ -16,8 +16,12 @@ version: 2.1
 
 # Aliases to reuse
 _defaults: &defaults
+  ## https://circleci.com/docs/install-machine-runner-3-on-linux/
+  # machine: true
+  ## https://circleci.com/docs/container-runner-installation/
   docker:
     # CircleCI maintains a library of pre-built images
+    # - image: cimg/base:current-22.04
     # documented at https://circleci.com/developer/images/image/cimg/python
     - image: cimg/python:3.11
   # environment:
@@ -29,7 +33,7 @@ _defaults: &defaults
   #   # recent versions of the dependencies.
   #   - SKLEARN_WARNINGS_AS_ERRORS: '1'
   working_directory: ~/repo
-  resource_class: scikit-plots/documentation  # large
+  # resource_class: scikit-plots/documentation  # large
 
 commands:
   check-skip:
@@ -40,17 +44,20 @@ commands:
           command: |
             if [ ! -d "scikitplot" ]; then
               echo "Build was not run due to skip, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+              # Exit early without error — skip the rest of the job if condition is met.
               circleci-agent step halt;
             fi
 
             export GIT_LOG=$(git log --max-count=1 --pretty=format:"%B" | tr "\n" " ")
             echo "Got commit message:"
             echo "${GIT_LOG}"
-            if [[ -v CIRCLE_PULL_REQUEST ]] \
-                && ([[ "$GIT_LOG" == *"[skip circle]"* ]] \
-                || [[ "$GIT_LOG" == *"[circle skip]"* ]] \
-                || [[ "$GIT_LOG" == *"[lint only]"* ]]); then
+            if [[ -v CIRCLE_PULL_REQUEST ]] && \
+               ([[ "$GIT_LOG" == *"[skip circle]"* ]] || \
+                [[ "$GIT_LOG" == *"[circle skip]"* ]] || \
+                [[ "$GIT_LOG" == *"[lint only]"* ]] \
+               ); then
               echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+              # Exit early without error — skip the rest of the job if condition is met.
               circleci-agent step halt;
             fi
   merge:
@@ -76,9 +83,10 @@ commands:
       - run:
           name: update submodules
           command: |
-            # git submodule update --init --recursive  # download submodules
-            git submodule init
-            git submodule update
+            ## download submodules
+            # git submodule init
+            # git submodule update
+            git submodule update --init --recursive
   apt-install:
     description: Install system dependencies
     steps:
@@ -87,13 +95,13 @@ commands:
           command: |
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends \
-              make \
+              ninja-build \
               ccache \
               cm-super \
               graphviz \
               ffmpeg \
               inkscape \
-              ninja-build \
+              make \
               gfortran \
               libopenblas-dev \
               libgmp-dev \
@@ -102,12 +110,12 @@ commands:
     description: Upgrade pip and setuptools and wheel to get as clean an install as possible
     steps:
       - run:
-          name: Upgrade pip, setuptools, wheel
+          name: setup Python venv upgrade pip, setuptools, wheel
           command: |
             # python -m pip install --upgrade --user --progress-bar=off --pre pip
             # pip install -r ./requirements/build.txt
             pip install -r ./requirements/all.txt
-  build-pkg:
+  build-skplt:
     description: build scikit-plots
     steps:
       - run:
@@ -119,10 +127,13 @@ commands:
     steps:
       - attach_workspace:
           at: ~/
+      - check-skip  # This calls your custom command
+      - apt-install  # This calls your custom command
       - run:
           name: build docs
           # no_output_timeout: 25m
           command: |
+            export PYTHONPATH=$PWD/build-install/lib/python3.11/site-packages
             cd docs && make html 2>&1 | tee sphinx_log.txt
       - run:
           name: Check sphinx log for warnings (which are treated as errors)
@@ -134,12 +145,12 @@ commands:
           destination: sphinx_log.txt
       - store_artifacts:
           path: docs/build/html/stable
-          destination: stable
+          destination: docs
         # Persists generated documentation so that it can be attached and deployed
         # in the 'deploy' step.
       - persist_to_workspace:
           # root: ~/repo
-          root: docs/build/html/stable
+          root: docs/build/html
           paths:
             # - docs/build/html/stable
             - .
@@ -151,39 +162,49 @@ commands:
 ##########################################
 
 jobs:
-  # Build scikit-plots from source
-  build:
+  ## Build scikit-plots from source
+  build_skplt:
     <<: *defaults
     description: "Build new docs"
     steps:
-      # run built-in
+      - run: echo "Hi I'm on a Container Runner!"
+      ## run built-in
       - checkout
 
-      # run commands
-      - check-skip
+      ## run commands
+      - check-skip  # This calls your custom command
       - merge
       - submodules
-
       - apt-install
-      # - restore_cache:
-      #   keys:
-      #     - deps_ccache-{{ .Branch }}
-      #     - deps_ccache
+
+      - restore_cache:
+          keys:
+            - deps_ccache-{{ .Branch }}
+            - deps_ccache
+
       - pip-install
-      - build-pkg
-      # - save_cache:
-      #     key: deps_ccache-{{ .Branch }}-{{ .BuildNum }}
-      #     paths:
-      #       - ~/.ccache
-      #       - ~/.cache/pip
-      # - run:
-      #     name: ccache performance
-      #     command: |
-      #       ccache -s
-      # - persist_to_workspace:
-      #     root: ~/
-      #     paths:
-      #       - .
+      - build-skplt
+
+      - save_cache:
+          key: deps_ccache-{{ .Branch }}-{{ .BuildNum }}
+          paths:
+            - ~/.ccache
+            - ~/.cache/pip
+      - run:
+          name: ccache performance
+          command: |
+            ccache -s
+      ## Persists generated files
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - .
+  ## Build scikit-plots docs from source
+  build_docs:
+    <<: *defaults
+    description: "Build new docs"
+    steps:
+      - run: echo "Hi I'm on a Container Runner!"
       - build-docs
 
   # Upload build output to scipy/devdocs repository, using SSH deploy keys.
@@ -194,11 +215,12 @@ jobs:
     <<: *defaults
     description: "Deploy new docs"
     steps:
-      - checkout
+      - run: echo "Hi I'm on Runners!"
+
       # Attach documentation generated in the 'docs' step so that it can be
       # deployed.
       - attach_workspace:
-          at: docs/build/html/stable
+          at: docs/build/html
       - run: ls -ltrh docs/build/html/stable
       # - run:
       #     name: upload new docs
@@ -237,18 +259,24 @@ jobs:
 #########################################
 
 workflows:
-  # version: 2.1
+  # version: 2
   default:
     jobs:
       # NOTE: If you rename this job, then you must update the `if` condition
       # and `circleci-jobs` option in `.github/workflows/circleci.yml`.
-      - build
+      - build_skplt
+      - build_docs:
+          requires:
+            - build_skplt
       # - run_benchmarks:
       #   requires:
-      #     - build
+      #     - build_skplt
+      # - refguide_check:
+      #     requires:
+      #       - build_skplt
       - deploy:
           requires:
-            - build
-          # filters:
-          #   branches:
-          #   only: main
+            - build_docs
+          filters:
+            branches:
+              only: main

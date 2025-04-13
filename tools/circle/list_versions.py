@@ -31,8 +31,10 @@ def human_readable_data_quantity(quantity, multiple=1024):
         if quantity < multiple or suffix == SUFFIXES[-1]:
             if suffix == SUFFIXES[0]:
                 return "%d %s" % (quantity, suffix)
-            return "%.1f %s" % (quantity, suffix)
-        quantity /= multiple
+            else:
+                return "%.1f %s" % (quantity, suffix)
+        else:
+            quantity /= multiple
 
 
 def get_file_extension(version):
@@ -50,7 +52,7 @@ def get_file_size(version):
     api_url = ROOT_URL + "%s/_downloads" % version
     for path_details in json_urlread(api_url):
         file_extension = get_file_extension(version)
-        file_path = f"scikit-plots-docs.{file_extension}"
+        file_path = f"scikit-learn-docs.{file_extension}"
         if path_details["name"] == file_path:
             return human_readable_data_quantity(path_details["size"], 1000)
 
@@ -60,7 +62,7 @@ parser.add_argument("--rst", type=str, required=True)
 parser.add_argument("--json", type=str, required=True)
 args = parser.parse_args()
 
-heading = "Available documentation for scikit-plots"
+heading = "Available documentation for scikit-learn"
 json_content = []
 rst_content = [
     ":orphan:\n",
@@ -69,9 +71,9 @@ rst_content = [
     "Web-based documentation is available for versions listed below:\n",
 ]
 
-ROOT_URL = "https://api.github.com/repos/scikit-plots/scikit-plots.github.io/contents/"
-RAW_FMT = "https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/master/%s/index.html"
-VERSION_RE = re.compile(r"scikit-plots ([\w\.\-]+) documentation</title>")
+ROOT_URL = "https://api.github.com/repos/scikit-learn/scikit-learn.github.io/contents/"
+RAW_FMT = "https://raw.githubusercontent.com/scikit-learn/scikit-learn.github.io/master/%s/index.html"
+VERSION_RE = re.compile(r"scikit-learn ([\w\.\-]+) documentation</title>")
 NAMED_DIRS = ["dev", "stable"]
 
 # Gather data for each version directory, including symlinks
@@ -111,7 +113,7 @@ for i, name in enumerate(
         seen.add(version_num)
 
     full_name = f"{version_num}" if name[:1].isdigit() else f"{version_num} ({name})"
-    path = f"https://scikit-plots.github.io/{name}/"
+    path = f"https://scikit-learn.org/{name}/"
 
     # Update JSON for the version switcher; only keep the 8 latest versions to avoid
     # overloading the version switcher dropdown
@@ -122,12 +124,12 @@ for i, name in enumerate(
         json_content.append(info)
 
     # Printout for the historical version page
-    out = f"* `scikit-plots {full_name} documentation <{path}>`_"
+    out = f"* `scikit-learn {full_name} documentation <{path}>`_"
     if file_size is not None:
         file_extension = get_file_extension(version_num)
         out += (
             f" (`{file_extension.upper()} {file_size} <{path}/"
-            f"_downloads/scikit-plots-docs.{file_extension}>`_)"
+            f"_downloads/scikit-learn-docs.{file_extension}>`_)"
         )
     rst_content.append(out)
 

@@ -17,8 +17,7 @@ def make_distributor_init_64_bits(
     vcomp140_dll_filename,
     msvcp140_dll_filename,
 ):
-    """
-    Create a _distributor_init.py file for 64-bit architectures.
+    """Create a _distributor_init.py file for 64-bit architectures.
 
     This file is imported first when importing the sklearn package
     so as to pre-load the vendored vcomp140.dll and msvcp140.dll.

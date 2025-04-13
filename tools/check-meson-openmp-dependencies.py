@@ -7,9 +7,6 @@ This is based on trying to make sure the the following two things match:
   on meson introspect json output)
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 import json
 import re
 import subprocess
@@ -21,8 +18,7 @@ def has_source_openmp_flags(target_source):
 
 
 def has_openmp_flags(target):
-    """
-    Return whether target sources use OpenMP flags.
+    """Return whether target sources use OpenMP flags.
 
     Make sure that both compiler and linker source use OpenMP.
     Look at `get_meson_info` docstring to see what `target` looks like.
@@ -55,8 +51,7 @@ def has_openmp_flags(target):
 
 
 def get_canonical_name_meson(target, build_path):
-    """
-    Return a name based on generated shared library.
+    """Return a name based on generated shared library.
 
     The goal is to return a name that can be easily matched with the output
     from `git_grep_info`.
@@ -78,8 +73,7 @@ def get_canonical_name_meson(target, build_path):
 
 
 def get_canonical_name_git_grep(filename):
-    """
-    Return name based on filename.
+    """Return name based on filename.
 
     The goal is to return a name that can easily be matched with the output
     from `get_meson_info`.
@@ -88,8 +82,7 @@ def get_canonical_name_git_grep(filename):
 
 
 def get_meson_info():
-    """
-    Return names of extension that use OpenMP based on meson introspect output.
+    """Return names of extension that use OpenMP based on meson introspect output.
 
     The meson introspect json info is a list of targets where a target is a dict
     that looks like this (parts not used in this script are not shown for simplicity):

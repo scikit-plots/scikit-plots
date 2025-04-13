@@ -115,6 +115,7 @@ jobs:
           persist-credentials: false  # Prevents accidental credential exposure
           # submodules: true  # Fetch Hugo themes (true OR recursive)
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          lfs: true
           ## Gets the correct commit message for pull request
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -453,7 +454,9 @@ jobs:
         ## see https://github.com/marketplace/actions/setup-miniconda for why
         ## `-el {0}` is required.
         shell: bash -el {0}
-        env:
+        # with: # Set the secret as an input
+        #   super_secret: ${{ secrets.SuperSecret }}
+        env: # Or as an environment variable
           ## ${{ secrets.<SECRET_NAME> }} retrieves the value of a secret stored securely
           ## in the Repository's Secrets or  Environments Secrets settings on GitHub.
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN

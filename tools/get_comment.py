@@ -1,6 +1,3 @@
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 # This script is used to generate a comment for a PR when linting issues are
 # detected. It is used by the `Comment on failed linting` GitHub Action.
 # This script fails if there are not comments to be posted.
@@ -11,8 +8,7 @@ import requests
 
 
 def get_versions(versions_file):
-    """
-    Get the versions of the packages used in the linter job.
+    """Get the versions of the packages used in the linter job.
 
     Parameters
     ----------
@@ -23,15 +19,13 @@ def get_versions(versions_file):
     -------
     versions : dict
         A dictionary with the versions of the packages.
-
     """
-    with open("versions.txt") as f:
+    with open("versions.txt", "r") as f:
         return dict(line.strip().split("=") for line in f)
 
 
 def get_step_message(log, start, end, title, message, details):
-    """
-    Get the message for a specific test.
+    """Get the message for a specific test.
 
     Parameters
     ----------
@@ -57,15 +51,13 @@ def get_step_message(log, start, end, title, message, details):
     -------
     message : str
         The message to be added to the comment.
-
     """
     if end not in log:
         return ""
     res = (
         "-----------------------------------------------\n"
-        + f"### {title}\n\n"
-        + message
-        + "\n\n"
+        f"### {title}\n\n"
+        f"{message}\n\n"
     )
     if details:
         res += (
@@ -77,7 +69,7 @@ def get_step_message(log, start, end, title, message, details):
 
 
 def get_message(log_file, repo, pr_number, sha, run_id, details, versions):
-    with open(log_file) as f:
+    with open(log_file, "r") as f:
         log = f.read()
 
     sub_text = (
@@ -111,7 +103,7 @@ def get_message(log_file, repo, pr_number, sha, run_id, details, versions):
             "the changes. Here you can see the detected issues. Note that "
             "running black might also fix some of the issues which might be "
             "detected by `ruff`. Note that the installed `black` version is "
-            f'`black={versions["black"]}`.'
+            f"`black={versions['black']}`."
         ),
         details=details,
     )
@@ -124,9 +116,9 @@ def get_message(log_file, repo, pr_number, sha, run_id, details, versions):
         title="`ruff`",
         message=(
             "`ruff` detected issues. Please run "
-            "`ruff check --fix --output-format=full .` locally, fix the remaining "
+            "`ruff check --fix --output-format=full` locally, fix the remaining "
             "issues, and push the changes. Here you can see the detected issues. Note "
-            f'that the installed `ruff` version is `ruff={versions["ruff"]}`.'
+            f"that the installed `ruff` version is `ruff={versions['ruff']}`."
         ),
         details=details,
     )
@@ -140,7 +132,7 @@ def get_message(log_file, repo, pr_number, sha, run_id, details, versions):
         message=(
             "`mypy` detected issues. Please fix them locally and push the changes. "
             "Here you can see the detected issues. Note that the installed `mypy` "
-            f'version is `mypy={versions["mypy"]}`.'
+            f"version is `mypy={versions['mypy']}`."
         ),
         details=details,
     )
@@ -155,7 +147,7 @@ def get_message(log_file, repo, pr_number, sha, run_id, details, versions):
             "`cython-lint` detected issues. Please fix them locally and push "
             "the changes. Here you can see the detected issues. Note that the "
             "installed `cython-lint` version is "
-            f'`cython-lint={versions["cython-lint"]}`.'
+            f"`cython-lint={versions['cython-lint']}`."
         ),
         details=details,
     )
@@ -284,7 +276,7 @@ def create_or_update_comment(comment, message, repo, pr_number, token):
         print("updating existing comment")
         # API doc: https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28#update-an-issue-comment  # noqa
         response = requests.patch(
-            f'https://api.github.com/repos/{repo}/issues/comments/{comment["id"]}',
+            f"https://api.github.com/repos/{repo}/issues/comments/{comment['id']}",
             headers=get_headers(token),
             json={"body": message},
         )

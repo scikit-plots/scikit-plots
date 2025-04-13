@@ -126,7 +126,7 @@ tree:
 ## mamba create -n ... -c ... ...
 ## mamba install ...
 ## mamba list
-## mamba remove --name py310 --all -y
+## mamba deactivate && mamba remove -y --all --name py38
 newm:
 	# mamba create -n py38 python=3.8 ipykernel -y
 	# mamba create -n py39 python=3.9 ipykernel -y
