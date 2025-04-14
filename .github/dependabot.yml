@@ -17,14 +17,17 @@ updates:
     schedule:
       interval: weekly                # daily, weekly, monthly
       time: '11:11'
+    labels:
+      - "03 - Maintenance"
+      - "maintenance"
+      - "build/ci"
+      - "dependencies"
+    ignore:
+      - dependency-name: "bus1/cabuild"
     groups:
       actions:
         patterns:
           - "*"
-    labels:
-      - "03 - Maintenance"
-      - "Build / CI"
-      - "dependencies"
     commit-message:
       prefix: "MAINT"
     reviewers:
@@ -36,8 +39,11 @@ updates:
       interval: weekly
     labels:
       - "03 - Maintenance"
-      - "Build / CI"
+      - "maintenance"
+      - "build/ci"
       - "dependencies"
+    ignore:
+      - dependency-name: "bus1/cabuild"
     commit-message:
       prefix: "MAINT"
     reviewers:
