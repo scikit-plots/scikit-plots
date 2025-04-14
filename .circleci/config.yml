@@ -229,18 +229,55 @@ jobs:
           at: docs/build/html
       - run: ls -ltrh docs/build/html/stable
 
+      ## Add the SSH key to the environment (this step tells CircleCI to use the private key from the SSH Key settings)
+      - add_ssh_keys:
+          fingerprints:
+            ## ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+            ## Generate the ED25519 SSH Key Pair (with custom name id_ed25519_circleci):
+            ## ssh-keygen -t ed25519 -C "your_email@example.com" -f ~/.ssh/id_ed25519_circleci
+            ## apply chmod 600 to the private key (not the public key) in order to ensure that only the owner can read and write the private key
+            ## chmod 600 ~/.ssh/id_ed25519_circleci
+            ## cat ~/.ssh/id_ed25519_circleci
+            ## public key can have more relaxed permissions, but chmod 644 is commonly used.
+            ## chmod 644 ~/.ssh/id_ed25519_circleci.pub
+            ## cat ~/.ssh/id_ed25519_circleci.pub
+            ## Only add the public key to GitHub (id_ed25519_circleci.pub), not the private key (id_ed25519_circleci).
+            ## ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICIo9OIfO9BdffgYEKxyg5Zkj7hlX00yV3w1cH2JKpQz your_email@example.com
+            ## This will give you the MD5 fingerprint that you need for CircleCI.
+            ## ssh-keygen -E md5 -lf ~/.ssh/id_ed25519_circleci.pub
+            ## 256 MD5:1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3 (ED25519)
+            ## you’ve added the private key to CircleCI’s project settings,
+            ## is for identifying the correct private key that CircleCI will use during the build process.
+            ## Fingerprint: Used to tell CircleCI which private key to use for SSH connections.
+            # "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"  # Add your SSH private key fingerprint here
+            - "04:ae:1a:89:65:e9:2c:7d:a2:87:7e:9f:3a:23:cc:19"  # Replace with your public key's fingerprint
+
+      ## Add GitHub's SSH key to the known_hosts to avoid verification prompts
       - run:
-          name: upload new docs
+          name: Trust GitHub SSH key
+          command: |
+            mkdir -p ~/.ssh
+            ssh-keyscan github.com >> ~/.ssh/known_hosts  # This step ensures GitHub's public key is trusted.
+            ## Ensure the SSH config file (if used) is only accessible by the user
+            chmod og= ~/.ssh/config  # Set permissions to only allow the user to access the config file.
+
+      # Optionally, you could disable host key checking if you want to bypass the verification (not recommended for security reasons):
+      # - run:
+      #     name: Disable SSH StrictHostKeyChecking
+      #     command: |
+      #       echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config  # Disables SSH host key verification.
+      #       chmod og= ~/.ssh/config  # Ensures the SSH config file is only accessible by the user (security).
+
+      ## Use SSH to clone the repository
+      - run:
+          name: upload new docs to cloned the repo over SSH
           command: |
             ## if [[ "${CIRCLE_BRANCH}" =~ ^main$|^[0-9]+\.[0-9]+\.X$ ]]; then
             if [[ "${CIRCLE_BRANCH}" =~ ^main$|^((maintenance|release)/)?[0-9]+\.[0-9]+(\.x|\.[0-9]+)?$ ]]; then
-              bash tools/circle/push_doc.sh docs/build/html/stable
+              bash ./tools/circle/push_doc.sh docs/build/html/stable
             fi
 
-
-      # - add_ssh_keys:
-      #     fingerprints:
-      #       - "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"
+      ## Use SSH to clone the repository
       # - run:
       #     name: upload new docs via ssh
       #     command: |
