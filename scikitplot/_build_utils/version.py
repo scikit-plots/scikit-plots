@@ -12,7 +12,10 @@ try:
     with open(scikitplot_init, encoding="utf-8") as f:
         data = f.readlines()
     version_line = next(line for line in data if line.startswith("__version__"))
-    version = version_line.strip().split(" = ")[1].replace('"', "").replace("'", "")
+    # print(re.search(r'__version__\s*=\s*[\"\\'](.*?)[\"\\']', f.read()).group(1))
+    version = (
+        version_line.strip().split(" = ")[1].replace('"', "").replace("'", "").strip()
+    )
 except:
     version = "0.0.0"
 if __name__ == "__main__":
