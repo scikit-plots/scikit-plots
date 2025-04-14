@@ -40,6 +40,28 @@ TEMPLATE_FILES = {
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
+def load_local_json(local_path: str) -> list:
+    """Load JSON data from local file."""
+    with open(local_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_json_data(version: str, local_path: str, url: str) -> list:
+    """Load JSON data from local file if dev version, else try remote first."""
+    if "dev" in version:
+        print("Development version detected — using local JSON.")
+        return load_local_json(local_path)
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        print("Loaded data from URL")
+        return response.json()
+    except (requests.RequestException, json.JSONDecodeError):
+        print("Failed to fetch from URL, falling back to local JSON")
+        return load_local_json(local_path)
+
+
 def fetch_json_data(local_path: str, url: str) -> list:
     """Fetch JSON data from remote URL or fallback to local file."""
     try:
@@ -57,17 +79,19 @@ def get_context(version: str, data: list) -> dict:
     """Build context from version and existing data."""
     ## Regex to extract numbers and remove non-numeric characters
     numeric_new_version = int(re.sub(r"\D", "", version))
-    numeric_stable_version = int(re.sub(r"\D", "", version))
+    numeric_stable_version = int(re.sub(r"\D", "", data[1]["version"]))
     ## You might want to compare with real stable
     is_prev = numeric_new_version < numeric_stable_version
 
     dev_version = version.split("+")[0] if "dev" in version else data[0]["version"]
     stable_version = (
-        version.split("+")[0] if "dev" not in version else data[1]["version"]
+        version.split("+")[0]
+        if "dev" not in version and not is_prev
+        else data[1]["version"]
     )
     prev_version = (
         version.split("+")[0]
-        if "dev" not in version and is_prev
+        if "dev" not in version and is_prev and "0.3.7" not in version
         else data[2]["version"]
     )
     mini_version = version.split("+")[0] if "0.3.7" in version else data[-1]["version"]
