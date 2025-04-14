@@ -1,13 +1,21 @@
+"""
+produce json:
+https://github.com/scikit-plots/scikit-plots.github.io/blob/main/dev/_static/switcher.json
+"""
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import os
 import re
-import requests
 import json
+import requests
 
 from jinja2 import Environment, FileSystemLoader
 
-# from scikitplot import __version__
 import scikitplot as sp
 
+# from scikitplot import __version__
 __version__ = sp.version.full_version
 
 # Load your template
