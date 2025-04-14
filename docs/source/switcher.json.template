@@ -10,23 +10,23 @@
 [
   {
     "name": "{{ dev_version | trim ~ " " ~ "(dev)" }}",
-    "version": "{{ dev_version | trim }}",
+    "version": "{{ dev_version.split('+')[0] | trim }}",
     "url": "https://scikit-plots.github.io/dev/"
   },
   {
     "name": "{{ stable_version | trim ~ " " ~ "(stable)" }}",
-    "version": "{{ stable_version | trim }}",
+    "version": "{{ stable_version.split('+')[0] | trim }}",
     "url": "https://scikit-plots.github.io/stable/",
     "preferred": true
   },
   {
     "name": "{{ prev_version | trim ~ " " ~ "(prev)" }}",
-    "version": "{{ prev_version | trim }}",
+    "version": "{{ prev_version.split('+')[0] | trim }}",
     "url": "https://scikit-plots.github.io/prev/"
   },
   {
-    "name": "0.3.7 (mini)",
-    "version": "0.3.7",
+    "name": "{{ mini_version | trim ~ " " ~ "(mini)" }}",
+    "version": "{{ mini_version.split('+')[0] | trim }}",
     "url": "https://scikit-plot.readthedocs.io/en/stable/#"
   }
 ]
