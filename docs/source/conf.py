@@ -146,7 +146,7 @@ _is_devrelease = _version_parsed.is_devrelease
 if _is_devrelease:
     gh_branch = "main"
 else:
-    major, minor = _version_parsed.release[:2]
+    major, minor = _version_release[:2]
     gh_branch = f"maintenance/{major}.{minor}.X"
 
 ##########################################################################
@@ -353,6 +353,20 @@ _check_dependencies()
 ## configuration
 ##########################################################################
 
+## .today() Equivalent to datetime.datetime.now() with no timezone info, Local or tz-aware.
+# now_utc = datetime.datetime.now(datetime.timezone.utc)
+now_utc = datetime.datetime.today()  # Local time, naive
+
+## Human-readable formats (e.g., "April 14, 2025 11:30 UTC")
+_human_today_fmt = "%B %d, %Y %H:%M UTC"
+_human_utc = now_utc.strftime(_human_today_fmt)
+print("Human-readable UTC     :", _human_utc)
+
+## ISO 8601 formats (e.g., "2025-04-14T11:30Z", "2025-04-14T11:30+03:00")
+_iso_today_fmt = "%Y-%m-%dT%H:%MZ"
+_iso_utc = now_utc.strftime(_iso_today_fmt)
+print("ISO 8601 UTC           :", _iso_utc)
+
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
 # today = ''
@@ -365,10 +379,13 @@ _check_dependencies()
 # %Y → Full year (e.g., 2025)
 # %H → Hour (24-hour format)
 # %M → Minute
-today_fmt = "%B %d, %Y %H:%M"
-today = datetime.datetime.today().strftime(today_fmt)
+# today_fmt = "%B %d, %Y %H:%M"
+# today = datetime.datetime.today().strftime(today_fmt)
 
-copyright += f" {_version_raw} {today}"
+today_fmt = _human_today_fmt
+today = _human_utc
+
+copyright += f" {_version_raw} {_iso_utc}"
 
 ##########################################################################
 ## Options for highlighting

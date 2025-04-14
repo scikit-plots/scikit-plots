@@ -31,15 +31,14 @@ from numpy import __version__ as __numpy_version__
 ## Format: MAJOR.MINOR.PATCH.devN
 ## Format: MAJOR.MINOR.PATCHrcN
 ## Format: MAJOR.MINOR.PATCH
-__version__ = "0.4.0rc2"
+# __version__ = "0.4.0rc2"
 # __version__ = "0.4.0"
-# __version__ = "0.5.0.dev0"
+__version__ = "0.5.0.dev0"
 
 # import logging as _logging
 from .sp_logging import SpLogger, get_logger, sp_logger
 
 try:  # Trt to import meson built files, modules (etc. *.in)
-    # If a version with git hash was stored, use that instead.
     # Configuration helper
     from .__config__ import show as show_config
 
@@ -49,6 +48,7 @@ try:  # Trt to import meson built files, modules (etc. *.in)
     # Low-level callback function
     from ._xp_core_lib._ccallback import LowLevelCallable
 
+    # If a version with git hash was stored, use that instead.
     # Override version if any.
     from .version import __git_hash__, __version__
 except (ImportError, ModuleNotFoundError):
