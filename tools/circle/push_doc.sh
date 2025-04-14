@@ -23,18 +23,20 @@ fi
 # Absolute path needed because we use cd further down in this script
 GENERATED_DOC_DIR=$(readlink -f $GENERATED_DOC_DIR)
 
-# Try to extract version of scikit-plots, e.g., 0.3.7 or 0.3.7.dev0
-full_version=$(pip show scikit-plots 2>/dev/null | grep ^Version: | awk '{print $2}')
+## Try to extract version of scikit-plots, e.g., 0.3.7 or 0.3.7.dev0
+# full_version=$(pip show scikit-plots 2>/dev/null | grep ^Version: | awk '{print $2}')
+## Run the version script and clean output
+full_version=$(python scikitplot/_build_utils/version.py | tr -d ' \n\r')
 
-# Check if the version was found
+# Validate extraction
 if [[ -z "$full_version" ]]; then
-    echo "⚠️ scikit-plots is not installed. Exiting."
+    echo "⚠️ Version not found in source file. Exiting."
     exit 1
 fi
 
-## Determine the output directory
+## Determine the output directory, Directory logic
 ## Check if version includes "dev" or we're on the main branch
-if [[ "$CIRCLE_BRANCH" == "main" || "$full_version" == *dev* ]]; then
+if [[ "$CIRCLE_BRANCH" == "main" && "$full_version" == *dev* ]]; then
     dir=dev
 else
     ## Strip off .X (e.g., from 'release/1.2.x' → 'release/1.2')
@@ -42,7 +44,7 @@ else
     ## Extract version from branches like 'maintenance/1.15.x'
     # dir=$(echo "$CIRCLE_BRANCH" | sed -E 's|.*/([0-9]+\.[0-9]+)\.x$|\1|')
 
-    ## Extract major.minor from full version (e.g., 0.3 from 0.3.7rc0 or 0.3.7.dev0)
+    ## Extract major.minor only from full version (e.g., 0.3 from 0.3.7rc0 or 0.3.7.dev0)
     # dir=$(echo "$full_version" | cut -d. -f1,2)
     dir=$(echo "$full_version" | sed -E 's/^([0-9]+\.[0-9]+).*/\1/')
 fi
