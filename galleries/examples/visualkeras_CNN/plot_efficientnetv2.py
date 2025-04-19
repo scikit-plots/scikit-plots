@@ -38,15 +38,8 @@ img_efficientnetv2 = visualkeras.layered_view(
     legend=True,
     show_dimension=True,
     to_file="../result_images/efficientnetv2-b0.png",
+    text_callable="default",
 )
-try:
-    import matplotlib.pyplot as plt
-
-    plt.imshow(img_efficientnetv2)
-    plt.axis("off")
-    plt.show()
-except:
-    pass
 
 # %%
 #

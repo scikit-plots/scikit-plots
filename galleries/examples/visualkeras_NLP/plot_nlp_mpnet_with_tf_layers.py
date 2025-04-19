@@ -102,12 +102,16 @@ img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
     scale_z=1,
     max_z=250,
     to_file="../result_images/nlp_mpnet_with_tf_layers.png",
+    text_callable="default",
 )
-try:
-    import matplotlib.pyplot as plt
 
-    plt.imshow(img_nlp_mpnet_with_tf_layers)
-    plt.axis("off")
-    plt.show()
-except:
-    pass
+# %%
+#
+# .. tags::
+#
+#    model-type: classification
+#    model-workflow: model building
+#    plot-type: visualkeras
+#    domain: neural network
+#    level: advanced
+#    purpose: showcase

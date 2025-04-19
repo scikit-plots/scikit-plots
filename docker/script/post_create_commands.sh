@@ -73,8 +73,18 @@ git remote add upstream https://github.com/scikit-plots/scikit-plots.git || true
 echo -e "\033[1;32m## Fetching tags from upstream...\033[0m"
 git fetch upstream --tags
 
+######################################################################
+## env
+######################################################################
+
+mamba init --all || true
+mamba create -n py311 python=3.11 ipykernel -y || true
+mamba activate py311 || true
+mamba info -e | grep "\*" || true
+
 # Install the development version of scikit-plots
 echo -e "\033[1;32m## Installing development dependencies...\033[0m"
+# pip install -r ./requirements/cpu.txt
 pip install -r ./requirements/build.txt
 pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,docs]" -v
 
@@ -91,3 +101,6 @@ echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 
 # Provide more information about the next steps
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
+
+# (Optionally) Run below script Linux like Os
+echo -e 'bash "docker/script/post_create_commands.sh"'

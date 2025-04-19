@@ -1,3 +1,5 @@
+"""layered.py"""
+
 import warnings
 from math import ceil
 
@@ -14,6 +16,7 @@ if TYPE_CHECKING:  # Only imported during type checking
     from typing import Any
 
     Layer = _lazy_import_tensorflow()
+
 
 ## Define __all__ to specify the public interface of the module
 __all__ = ["layered_view"]
@@ -38,7 +41,8 @@ def layered_view(
     draw_reversed: bool = False,
     padding: int = 10,
     # Define `text_callable` as an optional callable that returns a Tuple[str, bool]
-    # Python understands it as a forward declaration and resolves it later when the 'Layer' type is available.
+    # Python understands it as a forward declaration and
+    # resolves it later when the 'Layer' type is available.
     text_callable: Optional[
         Union[Callable[[int, "Layer"], Tuple[str, bool]], str]
     ] = None,
@@ -100,7 +104,8 @@ def layered_view(
     padding : int
         Distance in pixels before the first and after the last layer.
     text_callable : {callable, 'default', None}
-        A callable that generates text for layers, 'default' to use default behavior, or None to skip.
+        A callable that generates text for layers,
+        'default' to use default behavior, or None to skip.
         The callable should take two arguments: the layer index (int) and the layer (Layer).
     text_vspacing : int
         Vertical spacing in pixels between lines of text produced by `text_callable`.
@@ -137,7 +142,8 @@ def layered_view(
     # Deprecation warning for legend_text_spacing_offset
     if legend_text_spacing_offset != 0:
         warnings.warn(
-            "The legend_text_spacing_offset parameter is deprecated and will be removed in a future release."
+            "The legend_text_spacing_offset parameter is deprecated and"
+            "will be removed in a future release."
         )
 
     boxes = list()
@@ -169,7 +175,8 @@ def layered_view(
         # Do no render the SpacingDummyLayer, just increase the pointer
         if (
             # Check if the layer is an instance of the dynamically created class
-            type(layer) == SpacingDummyLayer
+            # type(layer) == SpacingDummyLayer
+            isinstance(layer, SpacingDummyLayer)
             or is_spacing_dummy_layer(layer)
         ):
             current_z += layer.spacing
@@ -224,9 +231,12 @@ def layered_view(
                 ", "
             )
             dimension = []
-            for i in range(len(dimension_string)):
-                if dimension_string[i].isnumeric():
-                    dimension.append(dimension_string[i])
+            # for i in range(len(dimension_string)):
+            #     if dimension_string[i].isnumeric():
+            #         dimension.append(dimension_string[i])
+            for _, char in enumerate(dimension_string):
+                if char.isnumeric():
+                    dimension.append(char)
             dimension_list.append(dimension)
 
         box = Box()
@@ -267,7 +277,8 @@ def layered_view(
     # Generate image
     img_width = max_right + x_off + padding
 
-    # Check if any text will be written above or below and save the maximum text height for adjusting the image height
+    # Check if any text will be written above or below and
+    # save the maximum text height for adjusting the image height
     is_any_text_above = False
     is_any_text_below = False
     max_box_with_text_height = 0
@@ -283,7 +294,8 @@ def layered_view(
         for index, layer in enumerate(model.layers):
             if (
                 # Check if the layer is an instance of the dynamically created class
-                type(layer) == SpacingDummyLayer
+                # type(layer) == SpacingDummyLayer
+                isinstance(layer, SpacingDummyLayer)
                 or is_spacing_dummy_layer(layer)
                 # by ignore list
                 or type(layer) in type_ignore
@@ -428,7 +440,8 @@ def layered_view(
     draw.flush()
 
     if text_callable is not None:
-        # If text_callable is a string and equals 'default', replace it with the default callable
+        # If text_callable is a string and equals 'default',
+        # replace it with the default callable
         if isinstance(text_callable, str) and text_callable == "default":
             # Do something when text_callable is 'default'
             text_callable = default_text_callable
@@ -437,7 +450,8 @@ def layered_view(
         for index, layer in enumerate(model.layers):
             if (
                 # Check if the layer is an instance of the dynamically created class
-                type(layer) == SpacingDummyLayer
+                # type(layer) == SpacingDummyLayer
+                isinstance(layer, SpacingDummyLayer)
                 or is_spacing_dummy_layer(layer)
                 # by ignore list
                 or type(layer) in type_ignore
@@ -565,6 +579,8 @@ def layered_view(
         img = vertical_image_concat(img, legend_image, background_fill=background_fill)
 
     if to_file is not None:
-        img.save(to_file)
+        # img.save(to_file)
+        # This will show first, then save
+        save_image_safely(img, to_file, use_matplotlib=True)
 
     return img

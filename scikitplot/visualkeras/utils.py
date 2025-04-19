@@ -1,7 +1,15 @@
-from typing import Any
+"""utils.py"""
+
+import os
+import warnings
+from typing import TYPE_CHECKING
 
 import aggdraw  # Anti-Grain Geometry (AGG) graphics library
 from PIL import Image, ImageColor, ImageDraw
+
+if TYPE_CHECKING:  # Only imported during type checking
+    from typing import Any
+
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
@@ -16,16 +24,85 @@ __all__ = [
     "linear_layout",
     "self_multiply",
     "vertical_image_concat",
+    "save_image_safely",
 ]
 
+######################################################################
+## helper
+######################################################################
 
+
+def save_image_safely(
+    img: Image.Image, to_file: str, use_matplotlib: bool = True
+) -> None:
+    """
+    Save an image to the specified file path, either using PIL or Matplotlib.
+
+    Parameters
+    ----------
+    img : PIL.Image.Image
+        The image to save.
+    to_file : str
+        The path to save the image.
+        The directory will be created if it doesn't exist.
+    use_matplotlib : bool, default=True
+        If True, use matplotlib to show and save the image (useful for interactive plotting).
+        Falls back to PIL if matplotlib fails.
+
+    Notes
+    -----
+    If saving fails, a warning will be issued instead of raising an exception.
+    """
+    try:
+        # Ensure the directory exists before saving the image
+        os.makedirs(os.path.dirname(to_file), exist_ok=True)
+
+        if use_matplotlib:
+            import matplotlib.pyplot as plt
+
+            # Using Matplotlib to show the image first
+            try:
+                plt.imshow(img)
+                plt.axis("off")
+                plt.draw()
+                plt.pause(0.1)  # Pause to allow for interactive drawing
+
+                # Show the plot interactively before saving
+                plt.show()
+
+                # Save the image using Matplotlib after showing it
+                plt.savefig(to_file, bbox_inches="tight", pad_inches=0)
+                plt.gcf().clear()  # Clear the figure after saving
+                plt.close()
+                print(f"Image saved using Matplotlib: {to_file}")
+
+            except Exception as e:
+                warnings.warn(
+                    f"[Matplotlib] Failed to save image: {e}. Falling back to PIL."
+                )
+                # Fallback to PIL if Matplotlib fails
+                img.save(to_file)
+                print(f"Image saved using PIL as fallback: {to_file}")
+
+        else:
+            # Using PIL to save the image (default method)
+            img.save(to_file)
+            print(f"Image saved using PIL: {to_file}")
+
+    except Exception as e:
+        warnings.warn(f"[ERROR] Could not save image to '{to_file}': {e}")
+
+
+######################################################################
+## base
+######################################################################
 class RectShape:
     x1: int
     x2: int
     y1: int
     y2: int
-    _fill: Any
-    _outline: Any
+    _fill: "Any"
+    _outline: "Any"
 
     @property
     def fill(self):
@@ -259,7 +336,7 @@ def fade_color(color: tuple, fade_amount: int) -> tuple:
     return r, g, b, color[3]
 
 
-def get_rgba_tuple(color: Any) -> tuple:
+def get_rgba_tuple(color: "Any") -> tuple:
     """
     :param color:
     :return: (R, G, B, A) tuple
@@ -298,7 +375,7 @@ def self_multiply(tensor_tuple: tuple):
     return s
 
 
-def vertical_image_concat(im1: Image, im2: Image, background_fill: Any = "white"):
+def vertical_image_concat(im1: Image, im2: Image, background_fill: "Any" = "white"):
     """
     Vertical concatenation of two PIL images.
 
@@ -322,7 +399,7 @@ def linear_layout(
     horizontal: bool = True,
     padding: int = 0,
     spacing: int = 0,
-    background_fill: Any = "white",
+    background_fill: "Any" = "white",
 ):
     """
     Creates a linear layout of a passed list of images in horizontal or vertical orientation. The layout will wrap in x

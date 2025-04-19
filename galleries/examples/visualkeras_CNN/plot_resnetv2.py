@@ -39,14 +39,6 @@ img_resnet50v2 = visualkeras.layered_view(
     show_dimension=True,
     to_file="../result_images/resnet50v2.png",
 )
-try:
-    import matplotlib.pyplot as plt
-
-    plt.imshow(img_resnet50v2)
-    plt.axis("off")
-    plt.show()
-except:
-    pass
 
 # %%
 #

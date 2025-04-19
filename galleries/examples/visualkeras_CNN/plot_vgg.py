@@ -56,14 +56,6 @@ img_vgg19 = visualkeras.layered_view(
     show_dimension=True,
     to_file="../result_images/vgg19.png",
 )
-try:
-    import matplotlib.pyplot as plt
-
-    plt.imshow(img_vgg19)
-    plt.axis("off")
-    plt.show()
-except:
-    pass
 
 # %%
 #

@@ -47,15 +47,8 @@ img_spam = visualkeras.layered_view(
     scale_xy=10,
     scale_z=10,
     one_dim_orientation="x",
+    text_callable="default",
 )
-try:
-    import matplotlib.pyplot as plt
-
-    plt.imshow(img_spam)
-    plt.axis("off")
-    plt.show()
-except:
-    pass
 
 # %%
 #

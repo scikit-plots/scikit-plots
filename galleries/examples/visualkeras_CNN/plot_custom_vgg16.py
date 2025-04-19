@@ -167,32 +167,6 @@ img_vgg16_scaling = visualkeras.layered_view(
     scale_z=1,
     max_z=1000,
 )
-try:
-    import matplotlib.pyplot as plt
-
-    plt.imshow(img_vgg16)
-    plt.axis("off")
-    plt.show()
-    plt.imshow(img_vgg16_legend)
-    plt.axis("off")
-    plt.show()
-    plt.imshow(img_vgg16_spacing_layers)
-    plt.axis("off")
-    plt.show()
-    plt.imshow(img_vgg16_type_ignore)
-    plt.axis("off")
-    plt.show()
-    plt.imshow(img_vgg16_color_map)
-    plt.axis("off")
-    plt.show()
-    plt.imshow(img_vgg16_flat)
-    plt.axis("off")
-    plt.show()
-    plt.imshow(img_vgg16_scaling)
-    plt.axis("off")
-    plt.show()
-except:
-    pass
 
 # %%
 #
