@@ -125,7 +125,7 @@ RUN apt-get update --yes \
     ## Ensures that pdflatex generates sharp, scalable fonts in PDFs instead of bitmap (raster) fonts.
     cm-super \
     ## gives you all LaTeX packages
-    texlive-full \
+    # texlive-full \
     ## File and directory utilities
     ## Command-line utility for displaying directory structure
     tree \
