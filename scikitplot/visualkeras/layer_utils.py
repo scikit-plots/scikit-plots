@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Iterable
 
 import numpy as np
@@ -14,13 +15,25 @@ def _lazy_import_tensorflow():
             from keras.layers import Layer
 
             return Layer
-        except ImportError as e:
-            raise ImportError(
-                "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
-            ) from e
+        except ModuleNotFoundError:
+            try:
+                # module is primarily for TensorFlow's internal use during development and testing
+                from tensorflow.python.keras.layers import Layer
+
+                return Layer
+            except ImportError as e:
+                # raise ImportError(
+                #   "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
+                # ) from e
+                warnings.warn(
+                    "Could not import the 'layers' module from TensorFlow-Keras. "
+                    "'text_callable' will not work. "
+                    f"{e}"
+                )
 
 
 from typing import TYPE_CHECKING
+from typing import Tuple
 
 if TYPE_CHECKING:  # Only imported during type checking
     Layer = _lazy_import_tensorflow()
@@ -29,8 +42,9 @@ from .utils import get_keys_by_value
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
-    "SpacingDummyLayer",
+    "_lazy_import_tensorflow",
     "_DummyLayer",
+    "SpacingDummyLayer",
     "augment_output_layers",
     "find_input_layers",
     "find_layer_by_id",
@@ -42,6 +56,7 @@ __all__ = [
     "is_spacing_dummy_layer",
     "model_to_adj_matrix",
     "model_to_hierarchy_lists",
+    "default_text_callable",
 ]
 
 
@@ -434,3 +449,49 @@ def is_internal_input(layer):
     except (ModuleNotFoundError, AttributeError):
         pass
     return False
+
+
+# Default text callable function
+def default_text_callable(layer_index: int, layer: "Layer") -> Tuple[str, bool]:
+    """
+    Default text callable: returns a simple default string and indicates
+    that the text should be drawn above the layer.
+    """
+    # Every other piece of text is drawn above the layer, the first one below
+    above = bool(layer_index % 2)
+
+    # Get the output shape of the layer
+    output_shape = [x for x in list(layer.output_shape) if x is not None]
+
+    # If the output shape is a list of tuples, we only take the first one
+    if isinstance(output_shape[0], tuple):
+        output_shape = list(output_shape[0])
+        output_shape = [x for x in output_shape if x is not None]
+
+    # Variable to store text which will be drawn
+    output_shape_txt = ""
+
+    # Create a string representation of the output shape
+    for ii in range(len(output_shape)):
+        output_shape_txt += str(output_shape[ii])
+        if ii < len(output_shape) - 2:  # Add an x between dimensions, e.g. 3x3
+            output_shape_txt += "x"
+        if (
+            ii == len(output_shape) - 2
+        ):  # Add a newline between the last two dimensions, e.g. 3x3 \n 64
+            output_shape_txt += "\n"
+
+    # Add the name of the layer to the text, as a new line
+    try:
+        layer_name = layer.name.split("-")
+        if len(layer_name) == 2:
+            layer_name = "".join([layer.name[:3], layer.name.split("-")[-1]])
+        elif len(layer_name) > 2:
+            layer_name = "".join(map(lambda x: x[:1], layer.name.split("-")))
+    except:
+        output_shape_txt += f"\n{layer.name}"
+    else:
+        output_shape_txt += f"\n{layer_name}"
+
+    # Return the text value and if it should be drawn above the layer
+    return output_shape_txt, above

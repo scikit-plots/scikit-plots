@@ -1,5 +1,8 @@
 ## scikit-plots/scikitplot/_seaborn/meson.build
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ######################################################################
 ## fix_submodule_import (run_command, run_target)
 # https://mesonbuild.com/Reference-manual_functions.html#run_command

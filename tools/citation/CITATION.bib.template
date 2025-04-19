@@ -2,8 +2,13 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# https://jinja.palletsprojects.com/en/stable/templates/
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
+## https://citation-file-format.github.io/
+## https://github.com/citation-file-format/citation-file-format/blob/main/README.md
+## https://github.com/citation-file-format/ruby-cff?tab=readme-ov-file#bibtex-format
+## https://www.bibtex.com/format
+
+## https://jinja.palletsprojects.com/en/stable/templates/
+## https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
 -#}
 % --------------------------------------------------------------------
 % CITATION.bib file for {{ library_name }}
@@ -13,20 +18,25 @@
 
 {% if include_software -%}
 @software{{ '{' }}{{ software_name }}:v{{ version }},
-  {#- The title of your Python library (name it appropriately) #}
-  title   = {{ '{{' }} {{ title }} {{ '}}' }},
   {#- The author(s) or maintainer(s) of the Python library #}
-  author  = { {{ author }} },
-  {#- Month of the library release or the latest significant update #}
-  month   = { {{ release_month }} },
-  {#- Year of the library release or the latest significant update #}
-  year    = { {{ release_year }} },
+  author  = { {{ name }} },
+  {#- Valid SPDX license expression: 'BSD-3-Clause', 'MIT' #}
+  license = { {{ license }} },
   {#- Optional: Add the DOI if your project has one (e.g., if you've archived it in Zenodo) #}
   doi     = { {{ doi }} },
+  {#- Month of the library release or the latest significant update #}
+  month   = { {{ release_month }} },
+  {#- The title of your Python library (name it appropriately) #}
+  title   = {{ '{{' }} {{ title }} {{ '}}' }},
   {#- The URL to your project repository (GitHub, GitLab, etc.) #}
+  {#- howpublished = { \url{ {{ github_url }} } }, #}
   url     = { {{ github_url }} },
   {#- Optional: Add the version number of your library #}
   version = { {{ version }} },
+  {#- Year of the library release or the latest significant update #}
+  year    = { {{ release_year }} },
+  {#- You can provide a short note, such as Documentation link #}
+  note    = { Documentation available at \url{ {{ doc_dev_url }} } },
   {#- You can provide a short note, such as the purpose of the library or a brief description #}
   message = { {{ message }} },
 }

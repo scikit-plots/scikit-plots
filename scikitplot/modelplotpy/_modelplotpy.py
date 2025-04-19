@@ -17,10 +17,12 @@ enforcing Python 3-like behavior in Python 2.
 
 import os
 
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+
+from .file_utils import auto_save_plot_with_params
 
 # from matplotlib.offsetbox import (TextArea, AnnotationBbox)
 
@@ -257,27 +259,31 @@ class ModelPlotPy:
             If there is no match with the complete list or the input list again
 
         """
-        if (len(self.models) == len(self.model_labels)) == False:
+        if (len(self.models) == len(self.model_labels)) is False:
             raise ValueError(
                 "The number of models and the their description model_name must be equal. "
                 "The number of model = %s and model_name = %s."
-                % (len(self.model), len(self.model_name))
+                % (len(self.models), len(self.model_labels))
             )
 
         if (
             len(self.feature_data) == len(self.label_data) == len(self.dataset_labels)
-        ) == False:
+        ) is False:
             raise ValueError(
                 "The number of datasets in feature_data and label_data and their description "
                 "pairs must be equal. The number of datasets in feature_data = "
                 "%s, label_data = %s and description = %s."
-                % (len(self.feature_data), len(self.label_data), len(self.description))
+                % (
+                    len(self.feature_data),
+                    len(self.label_data),
+                    len(self.dataset_labels),
+                )
             )
 
         final = pd.DataFrame()
-        for i in range(len(self.models)):
+        for i, _ in enumerate(self.models):
             data_set = pd.DataFrame()
-            for j in range(len(self.dataset_labels)):
+            for j, _ in enumerate(self.dataset_labels):
                 y_true = self.label_data[j]
                 y_true = y_true.rename("target_class")
                 # probabilities and rename them
@@ -374,7 +380,7 @@ class ModelPlotPy:
         scores_and_ntiles["all"] = 1
         ntiles_aggregate = pd.DataFrame()
         add_origin = pd.DataFrame()
-        for i in range(len(self.model_labels)):
+        for i, _ in enumerate(self.model_labels):
             for j in self.models[i].classes_:
                 for k in self.dataset_labels:
                     add_origin_add = pd.DataFrame(
@@ -691,6 +697,7 @@ class ModelPlotPy:
 ##########################################################################
 
 
+@auto_save_plot_with_params(filename="plot_response", ext=".png", verbose=True)
 def plot_response(
     plot_input: "pandas.DataFrame",
     save_fig=True,
@@ -1069,20 +1076,21 @@ def plot_response(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Response plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The response plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The response plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/response_plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The response plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The response plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@auto_save_plot_with_params(filename="plot_cumresponse", ext=".png", verbose=True)
 def plot_cumresponse(
     plot_input: "pandas.DataFrame",
     save_fig=True,
@@ -1453,20 +1461,21 @@ def plot_cumresponse(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Cumulative response plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The cumulative response plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The cumulative response plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Cumulative response plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The cumulative response plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The cumulative response plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@auto_save_plot_with_params(filename="plot_cumlift", ext=".png", verbose=True)
 def plot_cumlift(
     plot_input: "pandas.DataFrame",
     save_fig=True,
@@ -1816,20 +1825,21 @@ def plot_cumlift(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Cumulative lift plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The cumulative lift plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The cumulative lift plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Cumulative lift plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The cumulative lift plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The cumulative lift plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@auto_save_plot_with_params(filename="plot_cumgains", ext=".png", verbose=True)
 def plot_cumgains(
     plot_input: "pandas.DataFrame",
     save_fig=True,
@@ -2205,20 +2215,21 @@ def plot_cumgains(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Cumulative gains plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The cumulative gains plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The cumulative gains plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Cumulative gains plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The cumulative gains plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The cumulative gains plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@auto_save_plot_with_params(filename="plot_all", ext=".png", verbose=True)
 def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""):
     """
     Plotting cumulative gains curve
@@ -2553,17 +2564,18 @@ def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""
         ax3.legend(loc="upper right", shadow=False, frameon=False)
         ax4.legend(loc="upper right", shadow=False, frameon=False)
     plt.suptitle(title, fontsize=16)
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Plot all.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The plot all plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The plot all plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Plot all.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The plot all plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The plot all plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax1
 
 
@@ -2572,6 +2584,7 @@ def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""
 ##########################################################################
 
 
+@auto_save_plot_with_params(filename="plot_costsrevs", ext=".png", verbose=True)
 def plot_costsrevs(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -2970,20 +2983,21 @@ def plot_costsrevs(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Costs Revenues plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The costs / revenues plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The costs / revenues plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Costs Revenues plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The costs / revenues plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The costs / revenues plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@auto_save_plot_with_params(filename="plot_profit", ext=".png", verbose=True)
 def plot_profit(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -3363,20 +3377,21 @@ def plot_profit(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Profit plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The profit plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The profit plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Profit plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The profit plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The profit plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@auto_save_plot_with_params(filename="plot_roi", ext=".png", verbose=True)
 def plot_roi(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -3761,15 +3776,15 @@ def plot_roi(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/ROI plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The roi plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The roi plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/ROI plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The roi plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The roi plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax

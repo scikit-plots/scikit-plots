@@ -6,20 +6,29 @@
 # ---------------------------------------------------------
 
 cff-version: 1.2.0
-message: "Scikit-plot is the result of an unartistic data scientist's dreadful realization that visualization is one of the most crucial components in the data science process, not just a mere afterthought."
-authors:
-- family-names: "scikit-plots developers"
 title: "scikit-plots: Machine Learning Visualization in Python"
+type: software
+authors:
+- name: "The scikit-plots developers"
+message: "Scikit-plot is the result of an unartistic data scientist's dreadful realization that visualization is one of the most crucial components in the data science process, not just a mere afterthought."
 version: "latest"
-doi: 10.5281/zenodo.13367000
-date-released: 2024-12-18
-url:  "https://scikit-plots.github.io"
+date-released: 2025-04-18
+identifiers:
+  - description: This is the collection of archived snapshots of all versions of
+    type: doi
+    value: "10.5281/zenodo.13367000"
+license: BSD-3-Clause
+repository-code:  "https://github.com/scikit-plots/scikit-plots"
+url:  "https://scikit-plots.github.io/dev"
 preferred-citation:
   type: software
-  authors:
-  - family-names: "scikit-plots developers"
   title: "scikit-plots: Machine Learning Visualization in Python"
+  authors:
+  - name: "The scikit-plots developers"
+  message: "Scikit-plot is the result of an unartistic data scientist's dreadful realization that visualization is one of the most crucial components in the data science process, not just a mere afterthought."
   version: "latest"
+  date-released: 2025-04-18
   doi: 10.5281/zenodo.13367000
-  date-released: 2024-12-18
-  url:  "https://scikit-plots.github.io"
+  license: BSD-3-Clause
+  repository-code:  "https://github.com/scikit-plots/scikit-plots"
+  url:  "https://scikit-plots.github.io/dev"

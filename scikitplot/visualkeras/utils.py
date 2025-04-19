@@ -59,7 +59,6 @@ class Box(RectShape):
         if hasattr(self, "de") and self.de > 0:
             brush_s1 = aggdraw.Brush(fade_color(self.fill, self.shade))
             brush_s2 = aggdraw.Brush(fade_color(self.fill, 2 * self.shade))
-
             if draw_reversed:
                 draw.line(
                     [
@@ -70,7 +69,15 @@ class Box(RectShape):
                     ],
                     pen,
                 )
-                draw.line([self.x2 - self.de, self.y2 - self.de, self.x2, self.y2], pen)
+                draw.line(
+                    [
+                        self.x2 - self.de,
+                        self.y2 - self.de,
+                        self.x2,
+                        self.y2,
+                    ],
+                    pen,
+                )
                 draw.line(
                     [
                         self.x1 - self.de,
@@ -80,7 +87,6 @@ class Box(RectShape):
                     ],
                     pen,
                 )
-
                 draw.polygon(
                     [
                         self.x1,
@@ -95,7 +101,6 @@ class Box(RectShape):
                     pen,
                     brush_s1,
                 )
-
                 draw.polygon(
                     [
                         self.x1 - self.de,
@@ -120,7 +125,15 @@ class Box(RectShape):
                     ],
                     pen,
                 )
-                draw.line([self.x1 + self.de, self.y2 - self.de, self.x1, self.y2], pen)
+                draw.line(
+                    [
+                        self.x1 + self.de,
+                        self.y2 - self.de,
+                        self.x1,
+                        self.y2,
+                    ],
+                    pen,
+                )
                 draw.line(
                     [
                         self.x1 + self.de,
@@ -130,7 +143,6 @@ class Box(RectShape):
                     ],
                     pen,
                 )
-
                 draw.polygon(
                     [
                         self.x1,
@@ -145,7 +157,6 @@ class Box(RectShape):
                     pen,
                     brush_s1,
                 )
-
                 draw.polygon(
                     [
                         self.x2 + self.de,

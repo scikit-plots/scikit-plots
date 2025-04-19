@@ -1,9 +1,13 @@
 from math import ceil
-from typing import Any
 
 import aggdraw
 import numpy as np
 from PIL import Image
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # Only imported during type checking
+    from typing import Any
 
 from .layer_utils import *
 from .utils import *
@@ -26,11 +30,11 @@ def graph_view(
     to_file: str = None,
     color_map: dict = None,
     node_size: int = 50,
-    background_fill: Any = "white",
+    background_fill: "Any" = "white",
     padding: int = 10,
     layer_spacing: int = 250,
     node_spacing: int = 10,
-    connector_fill: Any = "gray",
+    connector_fill: "Any" = "gray",
     connector_width: int = 1,
     ellipsize_after: int = 10,
     inout_as_tensor: bool = True,

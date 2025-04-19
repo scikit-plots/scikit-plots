@@ -14,7 +14,8 @@ count_text_symbols() {
 }
 
 check_symbols() {
-    NUM=`count_text_symbols "$1"`
+    # NUM=`count_text_symbols "$1"`
+    NUM=$(count_text_symbols "$1")
     FILENAME=$(basename "$1")
 
     # special function error handling requires shared state between extension
@@ -31,7 +32,10 @@ check_symbols() {
     fi
 }
 
-find "$@" -type f -name '*.so' -print | while read F; do
+## -r tells read not to treat backslashes as escape characters.
+## IFS= prevents leading/trailing whitespace from being trimmed (optional but good practice).
+# find "$@" -type f -name '*.so' -print | while read F; do
+find "$@" -type f -name '*.so' -print | while IFS= read -r F; do
     check_symbols "$F"
 done
 

@@ -2,8 +2,13 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# https://jinja.palletsprojects.com/en/stable/templates/
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
+## https://citation-file-format.github.io/
+## https://github.com/citation-file-format/citation-file-format/blob/main/README.md
+## https://github.com/citation-file-format/ruby-cff?tab=readme-ov-file#bibtex-format
+## https://www.bibtex.com/format
+
+## https://jinja.palletsprojects.com/en/stable/templates/
+## https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
 -#}
 # ---------------------------------------------------------
 # CITATION.cff file for {{ library_name }}
@@ -13,26 +18,41 @@
 # ---------------------------------------------------------
 
 cff-version: 1.2.0  {# The version of the CFF format used. #}
+title: "{{ title | trim }}"  {# The name of your project. #}
+type: {{ type | trim }}  {# The type of your project. #}
+authors:
+- name: "{{ name | trim }}"  {# Authors and contributors of the software project. #}
+{#- - family-names: "{{ family_names | trim }}" -#}
+{#- given-names: "{{ given_names | trim }}" -#}
+{#- orcid: "{{ orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
+{#- affiliation: "{{ affiliation | trim }}" -#}  {#- Optional, but recommended, Contributor Organization. #}
 message: "{{ message | trim }}"  {# Optional message to users. #}
-authors:  {# Authors and contributors of the software project. #}
-- family-names: "{{ author | trim }}"
-  {#- given-names: "{{ given_names | trim }}" -#}
-  {#- orcid: "{{ orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
-  {#- affiliation: "{{ affiliation | trim }}" -#}  {#- Optional, but recommended, Contributor Organization. #}
-title: "{{ title | trim }}"  {# The name of your software. #}
 version: "{{ version | trim }}"  {# The current version of your software. #}
-doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
 date-released: {{ date_released | trim }}  {# Date when this version was released. #}
-url:  "{{ doc_url | trim }}"
+{#- doi: {{ doi | trim }}  # Optional DOI (if archived on platforms like Zenodo). #}
+identifiers:
+  - description: This is the collection of archived snapshots of all versions of {{ library_name }}
+    type: doi
+    value: "{{ doi | trim }}"
+  {#- - description: This is the archived snapshot of version 0.11.2 of My Research Software -#}
+  {#-  type: doi -#}
+  {#-  value: "10.5281/zenodo.123457" -#}
+{#- Valid SPDX license expression: 'BSD-3-Clause', 'MIT' #}
+license: {{ license }}
+repository-code:  "{{ github_url | trim }}"
+url:  "{{ doc_dev_url | trim }}"
 preferred-citation:
   type: {{ type | trim }}
-  authors:  {# Authors and contributors of the software project. #}
-  - family-names: "{{ author | trim }}"
   title: "{{ title | trim }}"  {# The name of your software. #}
+  authors:  {# Authors and contributors of the software project. #}
+  - name: "{{ name | trim }}"
+  message: "{{ message | trim }}"  {# Optional message to users. #}
   version: "{{ version | trim }}"  {# The current version of your software. #}
-  doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
   date-released: {{ date_released | trim }}  {# Date when this version was released. #}
-  url:  "{{ doc_url | trim }}"
+  doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
+  license: {{ license }}
+  repository-code:  "{{ github_url | trim }}"
+  url:  "{{ doc_dev_url | trim }}"
 
 {#-
 # Optionally, add references to any related articles or papers

@@ -1,45 +1,19 @@
 import warnings
 from math import ceil
-from typing import Any, Callable
+
+from typing import TYPE_CHECKING
+from typing import Callable, Optional, Tuple, Union
 
 import aggdraw
 from PIL import Image, ImageDraw, ImageFont
 
-
-def _lazy_import_tensorflow():
-    try:
-        from tensorflow.keras.layers import Layer
-
-        return Layer
-    except ModuleNotFoundError:
-        try:
-            # from keras.src.layers.layer import Layer
-            from keras.layers import Layer
-
-            return Layer
-        except ModuleNotFoundError:
-            try:
-                # module is primarily for TensorFlow's internal use during development and testing
-                from tensorflow.python.keras.layers import Layer
-
-                return Layer
-            except ImportError:
-                # raise ImportError(
-                #   "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
-                # ) from e
-                warnings.warn(
-                    "Could not import the 'layers' module from TensorFlow-Keras. "
-                    "'text_callable' will not work."
-                )
-
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:  # Only imported during type checking
-    Layer = _lazy_import_tensorflow()
-
 from .layer_utils import *
 from .utils import *
+
+if TYPE_CHECKING:  # Only imported during type checking
+    from typing import Any
+
+    Layer = _lazy_import_tensorflow()
 
 ## Define __all__ to specify the public interface of the module
 __all__ = ["layered_view"]
@@ -59,12 +33,15 @@ def layered_view(
     color_map: dict = None,
     one_dim_orientation: str = "z",
     index_2d: list = None,
-    background_fill: Any = "white",
+    background_fill: "Any" = "white",
     draw_volume: bool = True,
     draw_reversed: bool = False,
     padding: int = 10,
+    # Define `text_callable` as an optional callable that returns a Tuple[str, bool]
     # Python understands it as a forward declaration and resolves it later when the 'Layer' type is available.
-    text_callable: Callable[[int, "Layer"], tuple] = None,
+    text_callable: Optional[
+        Union[Callable[[int, "Layer"], Tuple[str, bool]], str]
+    ] = None,
     text_vspacing: int = 4,
     spacing: int = 10,
     draw_funnel: bool = True,
@@ -72,7 +49,7 @@ def layered_view(
     legend: bool = False,
     legend_text_spacing_offset=15,
     font: ImageFont = None,
-    font_color: Any = "black",
+    font_color: "Any" = "black",
     show_dimension=False,
 ) -> Image:
     """
@@ -122,8 +99,8 @@ def layered_view(
         Whether to draw 3D boxes in reverse order, from front-right to back-left.
     padding : int
         Distance in pixels before the first and after the last layer.
-    text_callable : callable
-        A callable that generates text for layers.
+    text_callable : {callable, 'default', None}
+        A callable that generates text for layers, 'default' to use default behavior, or None to skip.
         The callable should take two arguments: the layer index (int) and the layer (Layer).
     text_vspacing : int
         Vertical spacing in pixels between lines of text produced by `text_callable`.
@@ -296,6 +273,10 @@ def layered_view(
     max_box_with_text_height = 0
     max_box_height = 0
     if text_callable is not None:
+        # If text_callable is a string and equals 'default', replace it with the default callable
+        if isinstance(text_callable, str) and text_callable == "default":
+            # Do something when text_callable is 'default'
+            text_callable = default_text_callable
         if font is None:
             font = ImageFont.load_default()
         i = -1
@@ -304,9 +285,8 @@ def layered_view(
                 # Check if the layer is an instance of the dynamically created class
                 type(layer) == SpacingDummyLayer
                 or is_spacing_dummy_layer(layer)
-                or
                 # by ignore list
-                type(layer) in type_ignore
+                or type(layer) in type_ignore
                 or index in index_ignore
             ):
                 continue
@@ -409,7 +389,6 @@ def layered_view(
             if last_box is not None and draw_funnel:
                 # Top connection front
                 draw.line([last_box.x1, last_box.y1, box.x2, box.y1], pen)
-
                 # Bottom connection front
                 draw.line([last_box.x1, last_box.y2, box.x2, box.y2], pen)
 
@@ -439,9 +418,7 @@ def layered_view(
                     ],
                     pen,
                 )
-
                 draw.line([last_box.x2, last_box.y2, box.x1, box.y2], pen)
-
                 draw.line([last_box.x2, last_box.y1, box.x1, box.y1], pen)
 
             box.draw(draw, draw_reversed=False)
@@ -451,6 +428,10 @@ def layered_view(
     draw.flush()
 
     if text_callable is not None:
+        # If text_callable is a string and equals 'default', replace it with the default callable
+        if isinstance(text_callable, str) and text_callable == "default":
+            # Do something when text_callable is 'default'
+            text_callable = default_text_callable
         draw_text = ImageDraw.Draw(img)
         i = -1
         for index, layer in enumerate(model.layers):
@@ -458,9 +439,8 @@ def layered_view(
                 # Check if the layer is an instance of the dynamically created class
                 type(layer) == SpacingDummyLayer
                 or is_spacing_dummy_layer(layer)
-                or
                 # by ignore list
-                type(layer) in type_ignore
+                or type(layer) in type_ignore
                 or index in index_ignore
             ):
                 continue
@@ -569,7 +549,6 @@ def layered_view(
                 label_patch_size[1] - text_height
             ) / 2  # 2D center; use text_height and not the current label!
             draw_text.text((text_x, text_y), label, font=font, fill=font_color)
-
             draw_box.flush()
             img_box.paste(img_text, mask=img_text)
             patches.append(img_box)
