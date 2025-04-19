@@ -1,5 +1,5 @@
 """
-visualkeras custom VGG example
+visualkeras: custom VGG example
 ==========================================
 
 An example showing the :py:func:`~scikitplot.visualkeras` function
@@ -9,19 +9,24 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 # Force garbage collection
+
 import gc
 
 gc.collect()
 
-# pip install protobuf==5.29.4
+# %%
 
+# pip install protobuf==5.29.4
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
 
 from scikitplot import visualkeras
+
+# %%
 
 # model = tf.keras.applications.VGG16(
 #     include_top=True,
@@ -39,6 +44,8 @@ from scikitplot import visualkeras
 #   show_dimension=True,
 #   to_file='../result_images/vgg16.png',
 # )
+
+# %%
 
 model = tf.keras.applications.VGG19(
     include_top=True,

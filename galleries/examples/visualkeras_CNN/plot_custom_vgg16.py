@@ -1,5 +1,5 @@
 """
-visualkeras custom vgg16 example
+visualkeras: custom vgg16 example
 ==========================================
 
 An example showing the :py:func:`~scikitplot.visualkeras` function
@@ -9,19 +9,24 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 # Force garbage collection
+
 import gc
 
 gc.collect()
 
-# pip install protobuf==5.29.4
+# %%
 
+# pip install protobuf==5.29.4
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
 
 from scikitplot import visualkeras
+
+# %%
 
 # create VGG16
 image_size = 224
@@ -77,6 +82,7 @@ model.add(tf.keras.layers.Dense(4096, activation="relu"))
 model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(1000, activation="softmax"))
 
+# %%
 # Now visualize the model!
 
 from collections import defaultdict
@@ -88,6 +94,8 @@ color_map[tf.keras.layers.Dropout]["fill"] = "pink"
 color_map[tf.keras.layers.MaxPooling2D]["fill"] = "red"
 color_map[tf.keras.layers.Dense]["fill"] = "green"
 color_map[tf.keras.layers.Flatten]["fill"] = "teal"
+
+# %%
 
 from PIL import ImageFont
 
@@ -119,11 +127,16 @@ def get_font():
 # Example usage
 font = get_font()
 
+# %%
+
 img_vgg16 = visualkeras.layered_view(
     model,
     to_file="../result_images/vgg16.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
 )
+
+# %%
+
 img_vgg16_legend = visualkeras.layered_view(
     model,
     to_file="../result_images/vgg16_legend.png",
@@ -131,12 +144,18 @@ img_vgg16_legend = visualkeras.layered_view(
     legend=True,
     font=font,
 )
+
+# %%
+
 img_vgg16_spacing_layers = visualkeras.layered_view(
     model,
     to_file="../result_images/vgg16_spacing_layers.png",
     type_ignore=[],
     spacing=0,
 )
+
+# %%
+
 img_vgg16_type_ignore = visualkeras.layered_view(
     model,
     to_file="../result_images/vgg16_type_ignore.png",
@@ -147,18 +166,27 @@ img_vgg16_type_ignore = visualkeras.layered_view(
         visualkeras.SpacingDummyLayer,
     ],
 )
+
+# %%
+
 img_vgg16_color_map = visualkeras.layered_view(
     model,
     to_file="../result_images/vgg16_color_map.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     color_map=color_map,
 )
+
+# %%
+
 img_vgg16_flat = visualkeras.layered_view(
     model,
     to_file="../result_images/vgg16_flat.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     draw_volume=False,
 )
+
+# %%
+
 img_vgg16_scaling = visualkeras.layered_view(
     model,
     to_file="../result_images/vgg16_scaling.png",

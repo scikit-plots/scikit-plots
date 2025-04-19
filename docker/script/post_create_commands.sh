@@ -77,24 +77,33 @@ git fetch upstream --tags
 ## env
 ######################################################################
 
+# Initialize mamba (or conda)
 mamba init --all || true
+
+# Create a new environment with python 3.11 and ipykernel if it doesn't already exist
 mamba create -n py311 python=3.11 ipykernel -y || true
-mamba activate py311 || true
-mamba info -e | grep "\*" || true
 
-# Install the development version of scikit-plots
-echo -e "\033[1;32m## Installing development dependencies...\033[0m"
-# pip install -r ./requirements/cpu.txt
-pip install -r ./requirements/build.txt
-pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,docs]" -v
+# Activate the environment and install required packages
+# Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
+# Double quotes for the outer string and escaping the inner double quotes or use single
+bash -i -c "
+  mamba activate py311 || exit 1
+  mamba info -e | grep '*' || exit 1
 
-# Install pre-commit
-echo -e "\033[1;32m## Installing pre-commit hooks...\033[0m"
-pip install pre-commit
+  # Install the development version of scikit-plots
+  echo -e '\033[1;32m## Installing development dependencies...\033[0m'
+  # pip install -r ./requirements/cpu.txt
+  pip install -r ./requirements/build.txt
+  pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
-# Install pre-commit hooks in the repository
-echo -e "\033[1;32m## Installing pre-commit hooks inside the repository...\033[0m"
-( cd "/workspaces/scikit-plots/" || true && pre-commit install )
+  # Install pre-commit
+  echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m'
+  pip install pre-commit
+
+  # Install pre-commit hooks in the repository
+  echo -e '\033[1;32m## Installing pre-commit hooks inside the repository...\033[0m'
+  ( cd /workspaces/scikit-plots/ || true && pre-commit install )
+"
 
 # Show next steps to user
 echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
@@ -102,5 +111,5 @@ echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 # Provide more information about the next steps
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
 
-# (Optionally) Run below script Linux like Os
-echo -e 'bash "docker/script/post_create_commands.sh"'
+# (Optionally) Show next steps to user
+echo -e "mamba activate py311"

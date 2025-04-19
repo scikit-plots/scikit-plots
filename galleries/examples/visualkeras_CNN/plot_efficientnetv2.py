@@ -1,5 +1,5 @@
 """
-visualkeras EfficientNetV2 example
+visualkeras: EfficientNetV2 example
 ==========================================
 
 An example showing the :py:func:`~scikitplot.visualkeras` function
@@ -9,19 +9,24 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 # Force garbage collection
+
 import gc
 
 gc.collect()
 
-# pip install protobuf==5.29.4
+# %%
 
+# pip install protobuf==5.29.4
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
 
 from scikitplot import visualkeras
+
+# %%
 
 model = tf.keras.applications.EfficientNetV2B0(
     include_top=True,
@@ -33,6 +38,9 @@ model = tf.keras.applications.EfficientNetV2B0(
     classifier_activation="softmax",
     name="efficientnetv2-b0",
 )
+
+# %%
+
 img_efficientnetv2 = visualkeras.layered_view(
     model,
     legend=True,

@@ -1,5 +1,5 @@
 """
-Visualkeras Spam Classification Conv1D Dense Example
+Visualkeras: Spam Classification Conv1D Dense Example
 ======================================================================
 
 An example showing Spam the :py:func:`~scikitplot.visualkeras` function
@@ -9,17 +9,22 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 # Force garbage collection
+
 import gc
 
 gc.collect()
 
-# pip install protobuf==5.29.4
+# %%
 
+# pip install protobuf==5.29.4
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
+
+# %%
 
 model = tf.keras.models.Sequential()
 model.add(tf.keras.layers.InputLayer(input_shape=(100,)))
@@ -47,7 +52,11 @@ model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
 # Compile the model
 model.compile(optimizer="rmsprop", loss="binary_crossentropy", metrics=["accuracy"])
 
+# %%
+
 from scikitplot import visualkeras
+
+# %%
 
 img_spam = visualkeras.layered_view(
     model,

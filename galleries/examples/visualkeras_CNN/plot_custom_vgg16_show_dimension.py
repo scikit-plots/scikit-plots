@@ -1,5 +1,5 @@
 """
-visualkeras custom vgg16 show dimension example
+visualkeras: custom vgg16 show dimension example
 ======================================================================
 
 An example showing the :py:func:`~scikitplot.visualkeras` function
@@ -9,19 +9,24 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 # Force garbage collection
+
 import gc
 
 gc.collect()
 
-# pip install protobuf==5.29.4
+# %%
 
+# pip install protobuf==5.29.4
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
 
 from scikitplot import visualkeras
+
+# %%
 
 # create VGG16
 image_size = 224
@@ -77,6 +82,7 @@ model.add(tf.keras.layers.Dense(4096, activation="relu"))
 model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(1000, activation="softmax"))
 
+# %%
 # Now visualize the model!
 
 from collections import defaultdict
@@ -88,6 +94,8 @@ color_map[tf.keras.layers.Dropout]["fill"] = "pink"
 color_map[tf.keras.layers.MaxPooling2D]["fill"] = "red"
 color_map[tf.keras.layers.Dense]["fill"] = "green"
 color_map[tf.keras.layers.Flatten]["fill"] = "teal"
+
+# %%
 
 from PIL import ImageFont
 
@@ -119,6 +127,8 @@ def get_font():
 # Example usage
 font = get_font()
 
+# %%
+
 img_vgg16_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
@@ -126,6 +136,9 @@ img_vgg16_show_dimension = visualkeras.layered_view(
     to_file="../result_images/vgg16_show_dimension.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
 )
+
+# %%
+
 img_vgg16_legend_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
@@ -134,6 +147,9 @@ img_vgg16_legend_show_dimension = visualkeras.layered_view(
     type_ignore=[visualkeras.SpacingDummyLayer],
     font=font,
 )
+
+# %%
+
 img_vgg16_spacing_layers_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
@@ -142,6 +158,9 @@ img_vgg16_spacing_layers_show_dimension = visualkeras.layered_view(
     type_ignore=[],
     spacing=0,
 )
+
+# %%
+
 img_vgg16_type_ignore_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
@@ -154,6 +173,9 @@ img_vgg16_type_ignore_show_dimension = visualkeras.layered_view(
         visualkeras.SpacingDummyLayer,
     ],
 )
+
+# %%
+
 img_vgg16_color_map_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
@@ -162,6 +184,9 @@ img_vgg16_color_map_show_dimension = visualkeras.layered_view(
     type_ignore=[visualkeras.SpacingDummyLayer],
     color_map=color_map,
 )
+
+# %%
+
 img_vgg16_flat_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
@@ -170,6 +195,9 @@ img_vgg16_flat_show_dimension = visualkeras.layered_view(
     type_ignore=[visualkeras.SpacingDummyLayer],
     draw_volume=False,
 )
+
+# %%
+
 img_vgg16_scaling_show_dimension = visualkeras.layered_view(
     model,
     legend=True,

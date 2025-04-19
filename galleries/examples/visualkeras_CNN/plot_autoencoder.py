@@ -1,5 +1,5 @@
 """
-visualkeras autoencoder example
+visualkeras: autoencoder example
 ==========================================
 
 An example showing the :py:func:`~scikitplot.visualkeras` function
@@ -9,17 +9,22 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 # Force garbage collection
+
 import gc
 
 gc.collect()
 
-# pip install protobuf==5.29.4
+# %%
 
+# pip install protobuf==5.29.4
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
+
+# %%
 
 # encoder Model
 encoder_input = tf.keras.Input(shape=(28, 28, 1), name="img")
@@ -40,6 +45,7 @@ x = tf.keras.layers.Conv2DTranspose(16, 3, activation="relu")(x)
 decoder_output = tf.keras.layers.Conv2DTranspose(1, 3, activation="relu")(x)
 autoencoder = tf.keras.Model(encoder_input, decoder_output, name="autoencoder")
 
+# %%
 
 # Build the model with an explicit input shape
 autoencoder.build(
@@ -62,6 +68,7 @@ for layer in encoder.layers:
     if hasattr(layer, "output"):
         print(f"{layer.name} shape: {layer.output.shape}")
 
+# %%
 
 from scikitplot import visualkeras
 
@@ -69,10 +76,16 @@ img_encoder = visualkeras.layered_view(
     encoder,
     to_file="../result_images/encoder.png",
 )
+
+# %%
+
 img_autoencoder = visualkeras.layered_view(
     autoencoder,
     to_file="../result_images/autoencoder.png",
 )
+
+# %%
+
 img_autoencoder_text = visualkeras.layered_view(
     autoencoder,
     to_file="../result_images/autoencoder_text.png",

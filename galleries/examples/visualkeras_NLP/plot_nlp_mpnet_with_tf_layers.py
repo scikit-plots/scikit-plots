@@ -1,21 +1,25 @@
 """
-visualkeras transformers example
+visualkeras: transformers example
 ==========================================
 
 An example showing the :py:func:`~scikitplot.visualkeras` function
-used by a :py:class:`~tensorflow.keras.Model` or :py:class:`~torch.nn.Module` or :py:class:`~transformers.TFPreTrainedModel` model.
+used by a :py:class:`~tensorflow.keras.Model` or :py:class:`~torch.nn.Module` or
+:py:class:`~transformers.TFPreTrainedModel` model.
 """
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 # Force garbage collection
+
 import gc
 
 gc.collect()
 
-# pip install protobuf==5.29.4
+# %%
 
+# pip install protobuf==5.29.4
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
@@ -24,6 +28,8 @@ tf.keras.backend.clear_session()
 from transformers import TFAutoModel
 
 from scikitplot import visualkeras
+
+# %%
 
 # Load the Hugging Face transformer model
 transformer_model = TFAutoModel.from_pretrained("microsoft/mpnet-base")
@@ -35,6 +41,8 @@ def wrap_transformer_model(inputs):
     outputs = transformer_model(input_ids=input_ids, attention_mask=attention_mask)
     return outputs.last_hidden_state  # Return the last hidden state for visualization
 
+
+# %%
 
 # Define Keras model inputs
 input_ids = tf.keras.Input(shape=(128,), dtype=tf.int32, name="input_ids")
@@ -92,6 +100,18 @@ dummy_output = tf.keras.layers.Dense(
 
 # Wrap into a Keras model
 wrapped_model = tf.keras.Model(inputs=[input_ids, attention_mask], outputs=dummy_output)
+
+# https://github.com/keras-team/keras/blob/v3.3.3/keras/src/models/model.py#L217
+# https://github.com/keras-team/keras/blob/master/keras/src/utils/summary_utils.py#L121
+wrapped_model.summary(
+    line_length=None,
+    positions=None,
+    print_fn=None,
+    expand_nested=False,
+    show_trainable=True,
+    layer_range=None,
+)
+# %%
 
 # Visualize the wrapped model
 img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
