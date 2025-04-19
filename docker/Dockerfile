@@ -89,7 +89,7 @@ RUN apt-get update \
 #     && sed -i '/jammy-security/s/^/#/' /etc/apt/sources.list
 ## Install common dependencies
 RUN apt-get update --yes \
-  && apt-get install --yes --no-install-recommends \
+  && apt-get --fix-broken install --yes --no-install-recommends \
     --allow-downgrades \
     ## Common useful utilities
     ## Essential packages for building software
