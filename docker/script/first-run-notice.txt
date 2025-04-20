@@ -11,6 +11,14 @@
     ##💽 (Optionally) Memory size: df -h && du -h --max-depth=1
 
     ##👉 (recommended) Only Installed by `Codespaces default` option
+    ##✅ directories to mark as safe
+    ##✅ fetching submodules
+    ##✅ add remote upstream
+    ##✅ fetch tags from upstream
+    ##✅ create a new environment with python 3.11
+    ##✅ install required packages
+    ##✅ install pre-commit hooks
+    ##✅ install the development version of scikit-plots
     bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
 
     ##✅ Checking the build without root

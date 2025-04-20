@@ -54,16 +54,16 @@ Let's load the data and have a quick look at it:
 
 import io
 import os
-import warnings
 import zipfile
-
-import requests
+import warnings
 
 warnings.filterwarnings("ignore")
 
+import requests
 import numpy as np
 
 np.random.seed(0)  # reproducibility
+
 import pandas as pd
 
 # r = requests.get("https://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank-additional.zip")

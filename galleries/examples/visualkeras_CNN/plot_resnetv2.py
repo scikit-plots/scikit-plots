@@ -37,6 +37,7 @@ model = tf.keras.applications.ResNet50V2(
     classifier_activation="softmax",
     name="resnet50v2",
 )
+model.summary()
 
 # %%
 
@@ -57,6 +58,8 @@ img_resnet50v2 = visualkeras.layered_view(
 #    domain: neural network
 #    level: beginner
 #    purpose: showcase
+
+# %%
 
 # model = tf.keras.applications.ResNet101V2(
 #     include_top=True,

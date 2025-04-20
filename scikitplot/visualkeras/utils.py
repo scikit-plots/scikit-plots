@@ -33,69 +33,80 @@ __all__ = [
 
 
 def save_image_safely(
-    img: Image.Image, to_file: str, use_matplotlib: bool = True
+    img: Image.Image,
+    to_file: str,
+    use_matplotlib: bool = False,
 ) -> None:
     """
-    Save an image to the specified file path, either using PIL or Matplotlib.
+    Save and optionally display an image using either Matplotlib or PIL.
 
     Parameters
     ----------
     img : PIL.Image.Image
         The image to save.
+
     to_file : str
-        The path to save the image.
-        The directory will be created if it doesn't exist.
-    use_matplotlib : bool, default=True
-        If True, use matplotlib to show and save the image (useful for interactive plotting).
-        Falls back to PIL if matplotlib fails.
+        Full path to save the image (e.g., "output/image.png").
+        If the directory does not exist, it will be created.
+
+    use_matplotlib : bool, optional
+        If True, use Matplotlib to display and save the image (recommended for consistent dpi).
+        If False, use PIL to save without display.
 
     Notes
     -----
-    If saving fails, a warning will be issued instead of raising an exception.
+    - Matplotlib output includes anti-aliasing, transparency control, and tighter layout.
+    - Falls back to PIL if Matplotlib fails.
+    - Always shows the image, regardless of the saving method.
     """
-    try:
-        # Ensure the directory exists before saving the image
-        os.makedirs(os.path.dirname(to_file), exist_ok=True)
-
-        if use_matplotlib:
+    # Ensure the directory exists before saving the image
+    os.makedirs(os.path.dirname(to_file), exist_ok=True)
+    if use_matplotlib:
+        try:
             import matplotlib.pyplot as plt
 
-            # Using Matplotlib to show the image first
+            plt.imshow(img)
+            plt.axis("off")
+            plt.tight_layout()
+            plt.draw()
+            plt.pause(0.1)  # Pause to allow for interactive drawing
             try:
-                plt.imshow(img)
-                plt.axis("off")
-                plt.draw()
-                plt.pause(0.1)  # Pause to allow for interactive drawing
-
-                # Show the plot interactively before saving
-                plt.show()
-
                 # Save the image using Matplotlib after showing it
-                plt.savefig(to_file, bbox_inches="tight", pad_inches=0)
-                plt.gcf().clear()  # Clear the figure after saving
-                plt.close()
+                plt.savefig(to_file, dpi=150, bbox_inches="tight", pad_inches=0)
                 print(f"Image saved using Matplotlib: {to_file}")
-
             except Exception as e:
-                warnings.warn(
-                    f"[Matplotlib] Failed to save image: {e}. Falling back to PIL."
-                )
-                # Fallback to PIL if Matplotlib fails
+                print(f"[ERROR] Failed to save plot: {e}")
+            plt.show()
+            # plt.gcf().clear()  # Clear the figure after saving
+            # plt.close()
+        except Exception as e:
+            warnings.warn(
+                f"[Matplotlib] Failed to save or show image: {e}. Falling back to PIL."
+            )
+            try:
+                # Using PIL to save the image (default method)
+                # img.save(to_file, dpi=(300, 300))  # dpi is ignored in PIL unless saving to PDF
                 img.save(to_file)
-                print(f"Image saved using PIL as fallback: {to_file}")
-
-        else:
+                print(f"Image saved using PIL: {to_file}")
+                img.show()
+            except Exception as pil_error:
+                warnings.warn(f"[PIL] Final fallback failed: {pil_error}")
+    else:
+        try:
             # Using PIL to save the image (default method)
+            # img.save(to_file, dpi=(300, 300))  # dpi is ignored in PIL unless saving to PDF
             img.save(to_file)
             print(f"Image saved using PIL: {to_file}")
-
-    except Exception as e:
-        warnings.warn(f"[ERROR] Could not save image to '{to_file}': {e}")
+            img.show()
+        except Exception as e:
+            warnings.warn(f"[PIL] Could not save image to '{to_file}': {e}")
 
 
 ######################################################################
 ## base
 ######################################################################
+
+
 class RectShape:
     x1: int
     x2: int

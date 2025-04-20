@@ -183,7 +183,10 @@ def get_result_image_path(
 
 
 def auto_save_plot_default(
-    save_fig=False, filename=None, file_formats=None, **path_kwargs
+    save_fig=False,
+    filename=None,
+    file_formats=None,
+    **path_kwargs,
 ):
     """
     Default version of the decorator that automatically saves a plot when a function is executed.
@@ -206,36 +209,31 @@ def auto_save_plot_default(
     def decorator(plot_func):
         def wrapper(*args, **kwargs):
             result = plot_func(*args, **kwargs)
-
             # Save the figure if save_fig is True
             if save_fig:
                 # Default to PNG if no formats are specified
                 if file_formats is None:
                     file_formats = [path_kwargs.get("ext", ".png")]
-
                 # Loop over the file formats to save the plot in different formats
                 for fmt in file_formats:
                     filename_to_save = filename or plot_func.__name__
                     save_path = get_result_image_path(
                         filename=filename_to_save, ext=fmt, **path_kwargs
                     )
+                    plt.tight_layout()
                     plt.draw()
                     plt.pause(0.1)
-
                     # Try to save the plot and handle any exceptions
                     try:
                         plt.savefig(save_path)
                     except Exception as e:
                         print(f"[ERROR] Failed to save plot: {e}")
-
                     if path_kwargs.get("verbose", False):
                         print(f"[INFO] Plot saved to: {save_path}")
-
             # Manage the plot window
             plt.show()
-            plt.gcf().clear()
-            plt.close()
-
+            # plt.gcf().clear()
+            # plt.close()
             return result
 
         return wrapper
@@ -264,35 +262,31 @@ def auto_save_plot_with_params(filename=None, **path_kwargs):
     def decorator(plot_func):
         def wrapper(*args, **kwargs):
             result = plot_func(*args, **kwargs)
-
             # Get dynamic saving parameters from the function arguments
             save_fig = kwargs.get("save_fig", False)
             save_fig_filename = (
                 kwargs.get("save_fig_filename", filename) or plot_func.__name__
             )
-
             # Save the plot if save_fig is True
             if save_fig:
                 filename_to_save = save_fig_filename or filename
                 save_path = get_result_image_path(
-                    filename=filename_to_save, **path_kwargs
+                    filename=filename_to_save,
+                    **path_kwargs,
                 )
+                plt.tight_layout()
                 plt.draw()
-                # plt.pause(0.1)
-
+                plt.pause(0.1)
                 try:
-                    plt.savefig(save_path)
+                    plt.savefig(save_path, dpi=150, bbox_inches="tight", pad_inches=0)
                 except Exception as e:
                     print(f"[ERROR] Failed to save plot: {e}")
-
                 if path_kwargs.get("verbose", False):
                     print(f"[INFO] Plot saved to: {save_path}")
-
             # Manage the plot window
             plt.show()
-            plt.gcf().clear()
-            plt.close()
-
+            # plt.gcf().clear()
+            # plt.close()
             return result
 
         return wrapper

@@ -44,6 +44,7 @@ x = tf.keras.layers.UpSampling2D(3)(x)
 x = tf.keras.layers.Conv2DTranspose(16, 3, activation="relu")(x)
 decoder_output = tf.keras.layers.Conv2DTranspose(1, 3, activation="relu")(x)
 autoencoder = tf.keras.Model(encoder_input, decoder_output, name="autoencoder")
+autoencoder.summary()
 
 # %%
 
@@ -52,14 +53,12 @@ autoencoder.build(
     input_shape=(None, 28, 28, 1)
 )  # Batch size of None, shape (28, 28, 1)
 
-
 # Create a dummy input tensor with a batch size of 1
 dummy_input = tf.random.normal([1, 28, 28, 1])  # Batch size of 1, shape (28, 28, 1)
 # Run the dummy input through the model to trigger shape calculation
 encoder_output = autoencoder(dummy_input)
 # Now check the output shape of the encoder
 print("Output shape after running model with dummy input:", encoder_output.shape)
-
 
 # Check each layer's output shape after building the model
 for layer in encoder.layers:
@@ -74,6 +73,7 @@ from scikitplot import visualkeras
 
 img_encoder = visualkeras.layered_view(
     encoder,
+    text_callable="default",
     to_file="../result_images/encoder.png",
 )
 
@@ -88,8 +88,8 @@ img_autoencoder = visualkeras.layered_view(
 
 img_autoencoder_text = visualkeras.layered_view(
     autoencoder,
-    to_file="../result_images/autoencoder_text.png",
     text_callable="default",
+    to_file="../result_images/autoencoder_text.png",
 )
 
 # %%

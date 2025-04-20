@@ -90,11 +90,10 @@ bash -i -c "
   mamba activate py311 || exit 1
   mamba info -e | grep '*' || exit 1
 
-  # Install the development version of scikit-plots
   echo -e '\033[1;32m## Installing development dependencies...\033[0m'
+  # pip install -r ./requirements/build.txt
+  pip install -r ./requirements/all.txt
   # pip install -r ./requirements/cpu.txt
-  pip install -r ./requirements/build.txt
-  pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
   # Install pre-commit
   echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m'
@@ -103,6 +102,10 @@ bash -i -c "
   # Install pre-commit hooks in the repository
   echo -e '\033[1;32m## Installing pre-commit hooks inside the repository...\033[0m'
   ( cd /workspaces/scikit-plots/ || true && pre-commit install )
+
+  echo -e '\033[1;32m## Install the development version of scikit-plots...\033[0m'
+  # Install the development version of scikit-plots
+  pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 "
 
 # Show next steps to user
@@ -111,5 +114,5 @@ echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 # Provide more information about the next steps
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
 
-# (Optionally) Show next steps to user
-echo -e "mamba activate py311"
+# (Optionally) Open new terminal activate `py311`
+echo -e "mamba info -e"

@@ -111,6 +111,7 @@ wrapped_model.summary(
     show_trainable=True,
     layer_range=None,
 )
+
 # %%
 
 # Visualize the wrapped model
@@ -121,8 +122,8 @@ img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
     scale_xy=1,
     scale_z=1,
     max_z=250,
-    to_file="../result_images/nlp_mpnet_with_tf_layers.png",
     text_callable="default",
+    to_file="../result_images/nlp_mpnet_with_tf_layers.png",
 )
 
 # %%

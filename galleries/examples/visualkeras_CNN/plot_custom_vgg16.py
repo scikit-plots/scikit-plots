@@ -81,6 +81,7 @@ model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(4096, activation="relu"))
 model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(1000, activation="softmax"))
+model.summary()
 
 # %%
 # Now visualize the model!
@@ -131,69 +132,69 @@ font = get_font()
 
 img_vgg16 = visualkeras.layered_view(
     model,
-    to_file="../result_images/vgg16.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
+    to_file="../result_images/vgg16.png",
 )
 
 # %%
 
 img_vgg16_legend = visualkeras.layered_view(
     model,
-    to_file="../result_images/vgg16_legend.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     legend=True,
     font=font,
+    to_file="../result_images/vgg16_legend.png",
 )
 
 # %%
 
 img_vgg16_spacing_layers = visualkeras.layered_view(
     model,
-    to_file="../result_images/vgg16_spacing_layers.png",
     type_ignore=[],
     spacing=0,
+    to_file="../result_images/vgg16_spacing_layers.png",
 )
 
 # %%
 
 img_vgg16_type_ignore = visualkeras.layered_view(
     model,
-    to_file="../result_images/vgg16_type_ignore.png",
     type_ignore=[
         tf.keras.layers.ZeroPadding2D,
         tf.keras.layers.Dropout,
         tf.keras.layers.Flatten,
         visualkeras.SpacingDummyLayer,
     ],
+    to_file="../result_images/vgg16_type_ignore.png",
 )
 
 # %%
 
 img_vgg16_color_map = visualkeras.layered_view(
     model,
-    to_file="../result_images/vgg16_color_map.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     color_map=color_map,
+    to_file="../result_images/vgg16_color_map.png",
 )
 
 # %%
 
 img_vgg16_flat = visualkeras.layered_view(
     model,
-    to_file="../result_images/vgg16_flat.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     draw_volume=False,
+    to_file="../result_images/vgg16_flat.png",
 )
 
 # %%
 
 img_vgg16_scaling = visualkeras.layered_view(
     model,
-    to_file="../result_images/vgg16_scaling.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     scale_xy=1,
     scale_z=1,
     max_z=1000,
+    to_file="../result_images/vgg16_scaling.png",
 )
 
 # %%

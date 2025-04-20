@@ -38,6 +38,7 @@ from scikitplot import visualkeras
 #     classifier_activation="softmax",
 #     name="vgg16",
 # )
+# model.summary()
 # visualkeras.layered_view(
 #   model,
 #   legend=True,
@@ -57,6 +58,10 @@ model = tf.keras.applications.VGG19(
     classifier_activation="softmax",
     name="vgg19",
 )
+model.summary()
+
+# %%
+
 img_vgg19 = visualkeras.layered_view(
     model,
     legend=True,

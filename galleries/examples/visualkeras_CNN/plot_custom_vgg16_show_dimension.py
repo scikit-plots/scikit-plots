@@ -81,6 +81,7 @@ model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(4096, activation="relu"))
 model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(1000, activation="softmax"))
+model.summary()
 
 # %%
 # Now visualize the model!
@@ -133,8 +134,8 @@ img_vgg16_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
     show_dimension=True,
-    to_file="../result_images/vgg16_show_dimension.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
+    to_file="../result_images/vgg16_show_dimension.png",
 )
 
 # %%
@@ -143,9 +144,9 @@ img_vgg16_legend_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
     show_dimension=True,
-    to_file="../result_images/vgg16_legend_show_dimension.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     font=font,
+    to_file="../result_images/vgg16_legend_show_dimension.png",
 )
 
 # %%
@@ -154,9 +155,9 @@ img_vgg16_spacing_layers_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
     show_dimension=True,
-    to_file="../result_images/vgg16_spacing_layers_show_dimension.png",
     type_ignore=[],
     spacing=0,
+    to_file="../result_images/vgg16_spacing_layers_show_dimension.png",
 )
 
 # %%
@@ -165,13 +166,13 @@ img_vgg16_type_ignore_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
     show_dimension=True,
-    to_file="../result_images/vgg16_type_ignore_show_dimension.png",
     type_ignore=[
         tf.keras.layers.ZeroPadding2D,
         tf.keras.layers.Dropout,
         tf.keras.layers.Flatten,
         visualkeras.SpacingDummyLayer,
     ],
+    to_file="../result_images/vgg16_type_ignore_show_dimension.png",
 )
 
 # %%
@@ -180,9 +181,9 @@ img_vgg16_color_map_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
     show_dimension=True,
-    to_file="../result_images/vgg16_color_map_show_dimension.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     color_map=color_map,
+    to_file="../result_images/vgg16_color_map_show_dimension.png",
 )
 
 # %%
@@ -191,9 +192,9 @@ img_vgg16_flat_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
     show_dimension=True,
-    to_file="../result_images/vgg16_flat_show_dimension.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     draw_volume=False,
+    to_file="../result_images/vgg16_flat_show_dimension.png",
 )
 
 # %%
@@ -202,11 +203,11 @@ img_vgg16_scaling_show_dimension = visualkeras.layered_view(
     model,
     legend=True,
     show_dimension=True,
-    to_file="../result_images/vgg16_scaling_show_dimension.png",
     type_ignore=[visualkeras.SpacingDummyLayer],
     scale_xy=1,
     scale_z=1,
     max_z=1000,
+    to_file="../result_images/vgg16_scaling_show_dimension.png",
 )
 
 # %%

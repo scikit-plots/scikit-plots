@@ -41,6 +41,7 @@ model.add(tf_python.keras.layers.Dense(1, activation="sigmoid"))
 
 # Compile the model
 model.compile(optimizer="rmsprop", loss="binary_crossentropy", metrics=["accuracy"])
+model.summary()
 
 # %%
 
@@ -48,13 +49,13 @@ from scikitplot import visualkeras
 
 img_spam = visualkeras.layered_view(
     model,
-    to_file="../result_images/spam_dense.png",
     min_xy=10,
     min_z=10,
     scale_xy=10,
     scale_z=10,
     one_dim_orientation="x",
     text_callable="default",
+    to_file="../result_images/spam_dense.png",
 )
 
 # %%
