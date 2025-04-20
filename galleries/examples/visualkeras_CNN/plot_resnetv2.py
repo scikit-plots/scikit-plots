@@ -37,14 +37,20 @@ model = tf.keras.applications.ResNet50V2(
     classifier_activation="softmax",
     name="resnet50v2",
 )
-model.summary()
+# model.summary()
 
 # %%
 
 img_resnet50v2 = visualkeras.layered_view(
     model,
     legend=True,
-    show_dimension=True,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=0.01,
+    scale_xy=10,
+    font={"font_size": 99},
     to_file="../result_images/resnet50v2.png",
 )
 

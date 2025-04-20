@@ -2,6 +2,8 @@
 
 import re
 import warnings
+
+# import platform
 import importlib
 from collections.abc import Iterable
 
@@ -869,5 +871,7 @@ def default_text_callable(layer_index: int, layer) -> Tuple[str, bool]:
     layer_name = re.sub(r"[-_]", "\n", layer.name)
     layer_name = re.sub(r"([a-zA-Z])(\d)", r"\1\n\2", layer_name)
     output_shape_txt += f"\n{layer_name}"
-
+    output_shape_txt = (
+        output_shape_txt + "\n|" * 3 if text_above else "|\n" * 3 + output_shape_txt
+    )
     return output_shape_txt, text_above

@@ -21,8 +21,14 @@
     ##✅ install the development version of scikit-plots
     bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
 
+    ##👉 Open to new terminal
+    mamba activate py311
+
     ##✅ Checking the build without root
     bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
+
+    ##✅ Install tensorflow-cpu, if needed
+    pip install -r ./requirements/cpu.txt
 
     ##✍ Continue to creating a branch
     ##🌐 Read more at: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch

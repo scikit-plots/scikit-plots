@@ -58,7 +58,7 @@ model = tf.keras.applications.VGG19(
     classifier_activation="softmax",
     name="vgg19",
 )
-model.summary()
+# model.summary()
 
 # %%
 
@@ -66,6 +66,13 @@ img_vgg19 = visualkeras.layered_view(
     model,
     legend=True,
     show_dimension=True,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=0.5,
+    scale_xy=11,
+    font={"font_size": 199},
     to_file="../result_images/vgg19.png",
 )
 

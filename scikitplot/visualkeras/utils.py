@@ -2,10 +2,34 @@
 
 import os
 import warnings
+import platform
+import logging
+
 from typing import TYPE_CHECKING
+from typing import (
+    # Dict,
+    Optional,
+    Union,
+)
+
+# Attempt to import `cache` from `functools` (Python >= 3.9)
+try:
+    from functools import cache
+except ImportError:
+    # Fallback to `lru_cache` for Python < 3.9
+    from functools import lru_cache as cache
 
 import aggdraw  # Anti-Grain Geometry (AGG) graphics library
-from PIL import Image, ImageColor, ImageDraw
+from PIL import (
+    Image,
+    ImageColor,
+    ImageDraw,
+    ImageFont,
+)
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+
 
 if TYPE_CHECKING:  # Only imported during type checking
     from typing import Any
@@ -25,10 +49,11 @@ __all__ = [
     "self_multiply",
     "vertical_image_concat",
     "save_image_safely",
+    "get_font",
 ]
 
 ######################################################################
-## helper
+## save_image_safely
 ######################################################################
 
 
@@ -36,6 +61,8 @@ def save_image_safely(
     img: Image.Image,
     to_file: str,
     use_matplotlib: bool = False,
+    show_os_viewer: bool = False,
+    dpi: int = None,
 ) -> None:
     """
     Save and optionally display an image using either Matplotlib or PIL.
@@ -50,14 +77,25 @@ def save_image_safely(
         If the directory does not exist, it will be created.
 
     use_matplotlib : bool, optional
-        If True, use Matplotlib to display and save the image (recommended for consistent dpi).
-        If False, use PIL to save without display.
+        If True, use Matplotlib to save (and show) the image.
+        This method provides better control over DPI, transparency, and layout.
+        If False, uses PIL for a lightweight save. Default is False.
+
+    show_os_viewer : bool, optional
+        If True, displays the saved image (by PIL) in the system's default image viewer
+        using PIL's `.show()` method. Default is False.
+
+    dpi : int, optional
+        The resolution in dots per inch when saving the image using Matplotlib or PIL.
+        Only has an effect when supported by the format and method. Default is None.
 
     Notes
     -----
+    - Falls back to PIL if Matplotlib fails, even if `use_matplotlib=True`.
+    - `.show()` opens the image in the OS image viewer, which may block execution
+      depending on the environment.
+    - This function is designed for flexible debugging, not for high-performance pipelines.
     - Matplotlib output includes anti-aliasing, transparency control, and tighter layout.
-    - Falls back to PIL if Matplotlib fails.
-    - Always shows the image, regardless of the saving method.
     """
     # Ensure the directory exists before saving the image
     os.makedirs(os.path.dirname(to_file), exist_ok=True)
@@ -68,11 +106,11 @@ def save_image_safely(
             plt.imshow(img)
             plt.axis("off")
             plt.tight_layout()
-            plt.draw()
-            plt.pause(0.1)  # Pause to allow for interactive drawing
+            # plt.draw()
+            # plt.pause(0.1)  # Pause to allow for interactive drawing
             try:
                 # Save the image using Matplotlib after showing it
-                plt.savefig(to_file, dpi=150, bbox_inches="tight", pad_inches=0)
+                plt.savefig(to_file, dpi=dpi, bbox_inches="tight", pad_inches=0)
                 print(f"Image saved using Matplotlib: {to_file}")
             except Exception as e:
                 print(f"[ERROR] Failed to save plot: {e}")
@@ -88,7 +126,9 @@ def save_image_safely(
                 # img.save(to_file, dpi=(300, 300))  # dpi is ignored in PIL unless saving to PDF
                 img.save(to_file)
                 print(f"Image saved using PIL: {to_file}")
-                img.show()
+                if show_os_viewer:
+                    # Will open in the system's default viewer
+                    img.show()
             except Exception as pil_error:
                 warnings.warn(f"[PIL] Final fallback failed: {pil_error}")
     else:
@@ -97,9 +137,198 @@ def save_image_safely(
             # img.save(to_file, dpi=(300, 300))  # dpi is ignored in PIL unless saving to PDF
             img.save(to_file)
             print(f"Image saved using PIL: {to_file}")
-            img.show()
+            if show_os_viewer:
+                # Will open in the system's default viewer
+                img.show()
         except Exception as e:
             warnings.warn(f"[PIL] Could not save image to '{to_file}': {e}")
+
+
+######################################################################
+## get_font
+######################################################################
+
+
+@cache
+def _cached_truetype(path: str, size: int) -> ImageFont.ImageFont:
+    """
+    Load a TrueType font with the specified path and size.
+
+    Parameters
+    ----------
+    path : str
+        Path to the TrueType (.ttf or .otf) font file.
+
+    size : int
+        Font size to be used.
+
+    Returns
+    -------
+    ImageFont.ImageFont
+        A loaded TrueType font object.
+
+    Raises
+    ------
+    OSError
+        If the font file cannot be opened or read.
+    """
+    return ImageFont.truetype(path, size)
+
+
+def validate_font_size(font_size: Optional[int]) -> int:
+    """
+    Validate that the font size is a positive integer.
+
+    Parameters
+    ----------
+    font_size : int or None
+        The font size to validate.
+
+    Returns
+    -------
+    int
+        The validated font size.
+
+    Raises
+    ------
+    ValueError
+        If `font_size` is not a positive integer.
+    """
+    if not isinstance(font_size, int) or font_size <= 0:
+        raise ValueError("font_size must be a positive integer.")
+    return font_size
+
+
+def load_default_font(font_size: int = 10) -> ImageFont.ImageFont:
+    """
+    Load the default PIL font with version compatibility for different Pillow versions.
+
+    Parameters
+    ----------
+    font_size : int, optional
+        Font size to apply. Will be used if supported by the current Pillow version.
+        Default is 10.
+
+    Returns
+    -------
+    ImageFont.ImageFont
+        A default font object suitable for drawing text.
+    """
+    try:
+        return ImageFont.load_default(size=font_size)
+    except TypeError:
+        # For Pillow versions < 9.2.0 that do not support the `size` argument
+        return ImageFont.load_default()
+
+
+def load_font(
+    font_path: Optional[str] = None,
+    font_size: int = 10,
+    use_default_font: bool = True,
+    verbose: bool = False,
+) -> ImageFont.ImageFont:
+    """
+    Get a font object for text rendering, with an optional custom font path and size.
+
+    Parameters
+    ----------
+    font_path : str, optional
+        Path to the font file. If None, the default system font will be used.
+        Default is None.
+
+    font_size : int, optional
+        Size of the font to load. Must be a positive integer. Default is 10.
+
+    use_default_font : bool, optional
+        If True, directly uses `ImageFont.load_default(size=font_size)`
+        regardless of the platform or custom font path. Default is True.
+
+    verbose : bool, optional
+        If True, prints font path used. Default is False.
+
+    Returns
+    -------
+    ImageFont.ImageFont
+        The font object that can be used for text rendering.
+    """
+    font_size = validate_font_size(font_size)
+
+    # Use PIL's default font directly
+    if use_default_font:
+        if verbose:
+            print("Using PIL default font.")
+        load_default_font(font_size=font_size)
+
+    # Try loading custom font
+    if font_path:
+        supported_exts = os.getenv("SUPPORTED_EXTS", ".ttf .otf .ttc").split()
+        if os.path.exists(font_path) and font_path.lower().endswith(supported_exts):
+            try:
+                if verbose:
+                    print(f"Using custom font: {font_path}")
+                return _cached_truetype(font_path, font_size)
+            except OSError as e:
+                logging.error(f"Failed to load font from '{font_path}': {e}")
+        else:
+            logging.warning(f"Invalid font path or unsupported font file: {font_path}")
+
+    # Platform-specific fallback
+    try:
+        system_platform = platform.system().lower()
+        default_font_paths = {
+            # "windows": os.getenv("DEFAULT_WINDOWS_FONT", "C:/Windows/Fonts/segoeui.ttf"),
+            "windows": os.getenv("DEFAULT_WINDOWS_FONT", "C:/Windows/Fonts/arial.ttf"),
+            # "darwin": os.getenv("DEFAULT_MAC_FONT", "/System/Library/Fonts/Helvetica.ttc"),
+            "darwin": os.getenv("DEFAULT_MAC_FONT", "/Library/Fonts/Arial.ttf"),
+            # "DEFAULT_LINUX_FONT", "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"
+            # "DEFAULT_LINUX_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            "linux": os.getenv(
+                "DEFAULT_LINUX_FONT",
+                "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            ),
+        }
+        system_font_path = default_font_paths.get(system_platform)
+
+        if system_font_path:
+            if verbose:
+                print(f"Using system font: {system_font_path}")
+            return _cached_truetype(system_font_path, font_size)
+    except (OSError, ValueError) as e:
+        logging.warning(f"Error loading system font: {e}")
+
+    logging.warning("Falling back to PIL default font.")
+    return load_default_font(font_size=font_size)
+
+
+def get_font(
+    font: Union[ImageFont.ImageFont, dict, None] = None,
+) -> ImageFont.ImageFont:
+    """
+    Obtain a font object, either directly or by resolving parameters via `load_font`.
+
+    Parameters
+    ----------
+    font : ImageFont.ImageFont or dict, optional
+        If an ImageFont object, it is returned as is.
+        If a dictionary, it is passed to `load_font()` to generate the font.
+
+    Returns
+    -------
+    ImageFont.ImageFont
+        Font object usable with PIL's drawing functions.
+
+    Notes
+    -----
+    Pass `{"use_default_font": True, "font_size": 14}` to override size using default font.
+    """
+    if isinstance(font, ImageFont.ImageFont):
+        return font
+
+    if isinstance(font, dict):
+        return load_font(**font)
+
+    # for None
+    return load_font()
 
 
 ######################################################################

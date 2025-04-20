@@ -40,7 +40,11 @@ Functions:
 
 import os
 import re
+import shutil
 from datetime import datetime
+
+from typing import List
+
 import matplotlib.pyplot as plt
 
 
@@ -221,8 +225,8 @@ def auto_save_plot_default(
                         filename=filename_to_save, ext=fmt, **path_kwargs
                     )
                     plt.tight_layout()
-                    plt.draw()
-                    plt.pause(0.1)
+                    # plt.draw()
+                    # plt.pause(0.1)
                     # Try to save the plot and handle any exceptions
                     try:
                         plt.savefig(save_path)
@@ -292,3 +296,57 @@ def auto_save_plot_with_params(filename=None, **path_kwargs):
         return wrapper
 
     return decorator
+
+
+######################################################################
+## remove_unwanted_paths
+######################################################################
+
+
+def remove_unwanted_paths(
+    remove_paths: List[str] = None,
+    base_path: str = None,
+) -> None:
+    """
+    Removes unwanted files or directories from a specified base path.
+
+    Parameters
+    ----------
+    remove_paths : List[str], optional
+        A list of directory or file names to be removed.
+        If these exist in the `base_path`, they will be deleted.
+        (default ['__MACOSX', 'bank-additional']).
+
+    base_path : str, optional
+        The base directory where the unwanted paths will be removed from.
+        If None, it defaults to the current working directory.
+
+    Notes
+    -----
+    - It checks if the path exists before trying to remove it.
+    - Uses `shutil.rmtree()` for directories and `os.remove()` for files.
+    - Any exceptions raised during removal will be silently ignored.
+    """
+    if base_path is None:
+        base_path = os.getcwd()  # Default to current working directory
+
+    if remove_paths is None:
+        remove_paths = [
+            "__MACOSX",
+            "bank-additional",
+        ]  # Default for modelplotpy bank data
+
+    for p in remove_paths:
+        try:
+            target_path = os.path.join(base_path, p)
+
+            # Check if it's a file and remove it
+            if os.path.isfile(target_path) and os.path.exists(target_path):
+                os.remove(target_path)
+
+            # Check if it's a directory and remove it
+            elif os.path.isdir(target_path) and os.path.exists(target_path):
+                shutil.rmtree(target_path)
+        except Exception as e:
+            # Log the error silently or add specific logging if needed
+            pass

@@ -88,6 +88,13 @@ img_autoencoder = visualkeras.layered_view(
 
 img_autoencoder_text = visualkeras.layered_view(
     autoencoder,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=1,
+    scale_xy=1,
+    font={"font_size": 99},
     text_callable="default",
     to_file="../result_images/autoencoder_text.png",
 )

@@ -59,13 +59,44 @@ from scikitplot import visualkeras
 
 img_spam = visualkeras.layered_view(
     model,
-    min_xy=10,
-    min_z=10,
-    scale_xy=10,
-    scale_z=10,
-    one_dim_orientation="x",
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=6,
+    scale_xy=0.2,
+    font={"font_size": 14},
     text_callable="default",
-    to_file="../result_images/spam_conv.png",
+    one_dim_orientation="x",
+    to_file="../result_images/spam_conv_x.png",
+)
+
+img_spam = visualkeras.layered_view(
+    model,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=6,
+    scale_xy=0.2,
+    font={"font_size": 14},
+    text_callable="default",
+    one_dim_orientation="y",
+    to_file="../result_images/spam_conv_y.png",
+)
+
+img_spam = visualkeras.layered_view(
+    model,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=0.2,
+    scale_xy=1,
+    font={"font_size": 9},
+    text_callable="default",
+    one_dim_orientation="z",
+    to_file="../result_images/spam_conv_z.png",
 )
 
 # %%

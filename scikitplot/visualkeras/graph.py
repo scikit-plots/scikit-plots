@@ -313,5 +313,5 @@ def graph_view(
     # Save the image to file if specified
     if to_file is not None:
         # img.save(to_file)
-        save_image_safely(img, to_file, use_matplotlib=False)
+        save_image_safely(img, to_file, use_matplotlib=True)
     return img

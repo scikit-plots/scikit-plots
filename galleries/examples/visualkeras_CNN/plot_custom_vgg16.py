@@ -81,7 +81,7 @@ model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(4096, activation="relu"))
 model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(1000, activation="softmax"))
-model.summary()
+# model.summary()
 
 # %%
 # Now visualize the model!
@@ -100,33 +100,7 @@ color_map[tf.keras.layers.Flatten]["fill"] = "teal"
 
 from PIL import ImageFont
 
-
-def get_font():
-    import platform
-
-    system_platform = platform.system().lower()
-    # Detect platform and select font accordingly
-    try:
-        if system_platform == "windows":
-            return ImageFont.truetype("arial.ttf", 32)
-        if system_platform == "darwin":  # macOS
-            return ImageFont.truetype(
-                "/Library/Fonts/Arial.ttf", 32
-            )  # or "/System/Library/Fonts/Helvetica.ttc"
-        if system_platform == "linux":
-            # Try a more common font path
-            return ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32
-            )
-        raise ValueError("Unsupported platform")
-    except OSError:
-        # Fallback font if the specified font is not found
-        print("Font not found, using default font.")
-        return ImageFont.load_default()
-
-
-# Example usage
-font = get_font()
+ImageFont.load_default()
 
 # %%
 
@@ -142,7 +116,11 @@ img_vgg16_legend = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
     legend=True,
-    font=font,
+    font={
+        "font_size": 61,
+        # 'use_default_font': False,
+        # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    },
     to_file="../result_images/vgg16_legend.png",
 )
 
@@ -191,9 +169,14 @@ img_vgg16_flat = visualkeras.layered_view(
 img_vgg16_scaling = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
-    scale_xy=1,
-    scale_z=1,
-    max_z=1000,
+    # legend=True,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=0.5,
+    scale_xy=11,
+    # font={'font_size': 99},
     to_file="../result_images/vgg16_scaling.png",
 )
 

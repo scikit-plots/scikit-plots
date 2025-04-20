@@ -2,7 +2,7 @@
 Visualizing predictive model insights for enhanced business decision-making.
 
 The :py:mod:`~scikitplot.modelplotpy` module to build nice plots
-to explain your modelling efforts easily to business colleages.
+to explain your modelling efforts easily to business colleagues.
 
 Documentation is available in the docstrings and
 online at https://modelplot.github.io/.
@@ -16,6 +16,7 @@ online at https://modelplot.github.io/.
 
 # Your package/module initialization code goes here
 from ._modelplotpy import *
+from .file_utils import remove_unwanted_paths
 
 # Define the modelplotpy version
 # https://github.com/modelplot/modelplotpy/blob/master/setup.py

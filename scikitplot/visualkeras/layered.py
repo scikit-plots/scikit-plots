@@ -4,10 +4,20 @@ import warnings
 from math import ceil
 
 from typing import TYPE_CHECKING
-from typing import Callable, Optional, Tuple, Union
+from typing import (
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import aggdraw
-from PIL import Image, ImageDraw, ImageFont
+from PIL import (
+    Image,
+    ImageDraw,
+    ImageFont,
+)
 
 from .layer_utils import *
 from .utils import *
@@ -52,7 +62,7 @@ def layered_view(
     shade_step=10,
     legend: bool = False,
     legend_text_spacing_offset=15,
-    font: ImageFont = None,
+    font: Optional[Union[ImageFont.ImageFont, Dict[str, "Any"]]] = None,
     font_color: "Any" = "black",
     show_dimension=False,
 ) -> Image:
@@ -121,9 +131,20 @@ def layered_view(
     legend_text_spacing_offset : float
         Offset for the space allocated to legend text.
         Useful for preventing text cutoff in the legend.
-    font : str or None
-        Font to be used for legend text.
-        If None, the default font is used.
+    font : Union[ImageFont.ImageFont, Dict[str, Any]], optional
+        Font to be used for text rendering (e.g., legend or labels).
+
+        - If an `ImageFont.ImageFont` object is provided, it is used directly.
+        - If a dictionary is provided, it can include customization options:
+            - `font_path` : str, optional
+                Path to a one of '.ttf .otf .ttc' font file.
+            - `font_size` : int, optional
+                Size of the font. Must be a positive integer.
+            - `use_default_font` : bool, optional
+                If True, uses the default system font.
+                Default is True.
+
+        If `None`, the default font is used.
     font_color : str or tuple
         Color of the font.
         Can be a string or a tuple (R, G, B, A).
@@ -135,7 +156,12 @@ def layered_view(
     image
         The generated architecture visualization image.
 
+    Notes
+    -----
+    This function calls `get_font(font)` internally to normalize the input.
     """
+    font = get_font(font)
+
     index_2d = index_2D = [] if index_2d is None else index_2d
     # Iterate over the model to compute bounds and generate boxes
 
@@ -288,8 +314,6 @@ def layered_view(
         if isinstance(text_callable, str) and text_callable == "default":
             # Do something when text_callable is 'default'
             text_callable = default_text_callable
-        if font is None:
-            font = ImageFont.load_default()
         i = -1
         for index, layer in enumerate(model.layers):
             if (
@@ -503,9 +527,6 @@ def layered_view(
 
     # Create layer color legend
     if legend:
-        if font is None:
-            font = ImageFont.load_default()
-
         if hasattr(font, "getsize"):
             text_height = font.getsize("Ag")[1]
         else:
@@ -580,5 +601,5 @@ def layered_view(
 
     if to_file is not None:
         # img.save(to_file)
-        save_image_safely(img, to_file, use_matplotlib=False)
+        save_image_safely(img, to_file, use_matplotlib=True)
     return img

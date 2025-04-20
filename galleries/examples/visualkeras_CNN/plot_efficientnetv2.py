@@ -38,15 +38,20 @@ model = tf.keras.applications.EfficientNetV2B0(
     classifier_activation="softmax",
     name="efficientnetv2-b0",
 )
-model.summary()
+# model.summary()
 
 # %%
 
 img_efficientnetv2 = visualkeras.layered_view(
     model,
     legend=True,
-    show_dimension=True,
-    text_callable="default",
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=0.01,
+    scale_xy=10,
+    font={"font_size": 99},
     to_file="../result_images/efficientnetv2-b0.png",
 )
 
