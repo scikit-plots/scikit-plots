@@ -16,7 +16,6 @@ online at https://modelplot.github.io/.
 
 # Your package/module initialization code goes here
 from ._modelplotpy import *
-from .file_utils import remove_unwanted_paths
 
 # Define the modelplotpy version
 # https://github.com/modelplot/modelplotpy/blob/master/setup.py

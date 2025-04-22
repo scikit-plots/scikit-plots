@@ -107,7 +107,9 @@ ImageFont.load_default()
 img_vgg16 = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
-    to_file="../result_images/vgg16.png",
+    # to_file="result_images/vgg16.png",
+    save_fig=True,
+    save_fig_filename="vgg16.png",
 )
 
 # %%
@@ -121,7 +123,9 @@ img_vgg16_legend = visualkeras.layered_view(
         # 'use_default_font': False,
         # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     },
-    to_file="../result_images/vgg16_legend.png",
+    # to_file="result_images/vgg16_legend.png",
+    save_fig=True,
+    save_fig_filename="vgg16_legend.png",
 )
 
 # %%
@@ -130,7 +134,9 @@ img_vgg16_spacing_layers = visualkeras.layered_view(
     model,
     type_ignore=[],
     spacing=0,
-    to_file="../result_images/vgg16_spacing_layers.png",
+    # to_file="result_images/vgg16_spacing_layers.png",
+    save_fig=True,
+    save_fig_filename="vgg16_spacing_layers.png",
 )
 
 # %%
@@ -143,7 +149,9 @@ img_vgg16_type_ignore = visualkeras.layered_view(
         tf.keras.layers.Flatten,
         visualkeras.SpacingDummyLayer,
     ],
-    to_file="../result_images/vgg16_type_ignore.png",
+    # to_file="result_images/vgg16_type_ignore.png",
+    save_fig=True,
+    save_fig_filename="vgg16_type_ignore.png",
 )
 
 # %%
@@ -152,7 +160,9 @@ img_vgg16_color_map = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
     color_map=color_map,
-    to_file="../result_images/vgg16_color_map.png",
+    # to_file="result_images/vgg16_color_map.png",
+    save_fig=True,
+    save_fig_filename="vgg16_color_map.png",
 )
 
 # %%
@@ -161,7 +171,9 @@ img_vgg16_flat = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
     draw_volume=False,
-    to_file="../result_images/vgg16_flat.png",
+    # to_file="result_images/vgg16_flat.png",
+    save_fig=True,
+    save_fig_filename="vgg16_flat.png",
 )
 
 # %%
@@ -177,7 +189,9 @@ img_vgg16_scaling = visualkeras.layered_view(
     scale_z=0.5,
     scale_xy=11,
     # font={'font_size': 99},
-    to_file="../result_images/vgg16_scaling.png",
+    # to_file="result_images/vgg16_scaling.png",
+    save_fig=True,
+    save_fig_filename="vgg16_scaling.png",
 )
 
 # %%

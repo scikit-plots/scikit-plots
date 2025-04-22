@@ -51,7 +51,9 @@ img_resnet50v2 = visualkeras.layered_view(
     scale_z=0.01,
     scale_xy=10,
     font={"font_size": 99},
-    to_file="../result_images/resnet50v2.png",
+    # to_file="result_images/resnet50v2.png",
+    save_fig=True,
+    save_fig_filename="resnet50v2.png",
 )
 
 # %%
@@ -81,7 +83,7 @@ img_resnet50v2 = visualkeras.layered_view(
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/resnet101v2.png',
+#   to_file='result_images/resnet101v2.png',
 # )
 
 # model = tf.keras.applications.ResNet152V2(
@@ -98,5 +100,5 @@ img_resnet50v2 = visualkeras.layered_view(
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/resnet152v2.png',
+#   to_file='result_images/resnet152v2.png',
 # )

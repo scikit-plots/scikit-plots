@@ -8,10 +8,11 @@ misc
 import math
 from collections import OrderedDict
 
-# from typing import List
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatch
 import matplotlib.pyplot as plt
+
+# from typing import List
 import numpy as np
 from matplotlib.patches import Rectangle
 
@@ -256,7 +257,7 @@ def plot_colortable(
             names = sorted(
                 colors, key=lambda c: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(c)))
             )
-        except:
+        except Exception:
             names = sorted(
                 colors,
                 key=lambda k: tuple(mcolors.rgb_to_hsv(mcolors.to_rgb(colors.get(k)))),

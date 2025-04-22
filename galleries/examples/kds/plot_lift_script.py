@@ -10,12 +10,13 @@ by a scikit-learn classifier.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-import numpy as np
 from sklearn.datasets import (
     load_iris as data_3_classes,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+
+import numpy as np
 
 np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
@@ -35,16 +36,15 @@ model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_tra
 y_val_prob = model.predict_proba(X_val)
 
 # Plot!
-ax = sp.kds.plot_lift(y_val, y_val_prob)
-
-# Adjust layout to make sure everything fits
-plt.tight_layout()
-
-# Save the plot with a filename based on the current script's name
-# sp.api._utils.save_plot()
-
-# Display the plot
-plt.show(block=True)
+ax = sp.kds.plot_lift(
+    y_val,
+    y_val_prob,
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    # verbose=True,
+)
 
 # %%
 #

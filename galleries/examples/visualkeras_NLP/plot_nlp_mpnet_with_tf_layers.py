@@ -127,7 +127,12 @@ img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
     scale_xy=1,
     font={"font_size": 99},
     text_callable="default",
-    to_file="../result_images/nlp_mpnet_with_tf_layers.png",
+    # to_file="result_images/nlp_mpnet_with_tf_layers.png",
+    save_fig=True,
+    save_fig_filename="nlp_mpnet_with_tf_layers.png",
+    overwrite=False,
+    add_timestamp=True,
+    verbose=True,
 )
 
 # %%

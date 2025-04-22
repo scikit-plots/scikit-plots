@@ -43,7 +43,7 @@ from scikitplot import visualkeras
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/vgg16.png',
+#   to_file='result_images/vgg16.png',
 # )
 
 # %%
@@ -73,7 +73,12 @@ img_vgg19 = visualkeras.layered_view(
     scale_z=0.5,
     scale_xy=11,
     font={"font_size": 199},
-    to_file="../result_images/vgg19.png",
+    # to_file="result_images/vgg19.png",
+    save_fig=True,
+    save_fig_filename="vgg19.png",
+    overwrite=False,
+    add_timestamp=True,
+    verbose=True,
 )
 
 # %%

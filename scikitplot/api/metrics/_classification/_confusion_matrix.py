@@ -37,6 +37,7 @@ from ..._utils._helpers import (
 from ..._utils.validation import (
     validate_plotting_kwargs_decorator,
 )
+from ....utils.utils_plot_mpl import save_plot_decorator
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
@@ -47,6 +48,7 @@ __all__ = [
 
 
 @validate_plotting_kwargs_decorator
+@save_plot_decorator
 def plot_confusion_matrix(
     y_true,
     y_pred,
@@ -65,6 +67,7 @@ def plot_confusion_matrix(
     title_fontsize="large",
     text_fontsize="medium",
     show_colorbar=True,
+    **kwargs,
 ):
     """
     Generates a confusion matrix plot from predictions and true labels.
@@ -253,6 +256,7 @@ def plot_confusion_matrix(
     return ax
 
 
+@save_plot_decorator
 def plot_classifier_eval(
     ## default params
     y_true,

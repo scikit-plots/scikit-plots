@@ -9,12 +9,13 @@ used by a scikit-learn classifier.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-import numpy as np
 from sklearn.datasets import (
     load_iris as data_3_classes,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+
+import numpy as np
 
 np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
@@ -41,6 +42,11 @@ fig1 = sp.metrics.plot_classifier_eval(
     labels=np.unique(y_train),
     figsize=(8, 2),
     title="Val",
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    # verbose=True,
 )
 # plt.show(block=True)
 fig2 = sp.metrics.plot_classifier_eval(
@@ -49,19 +55,12 @@ fig2 = sp.metrics.plot_classifier_eval(
     labels=np.unique(y_train),
     figsize=(8, 2),
     title="Train",
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    # verbose=True,
 )
-
-# Save the combined figures as an simple image file
-figs = sp.api._utils.save_figure((fig1, fig2), to_save=False)
-
-# Adjust layout to make sure everything fits
-plt.tight_layout()
-
-# Save the plot with a filename based on the current script's name
-# sp.api._utils.save_plot()
-
-# Display the plot
-plt.show(block=True)
 
 # %%
 #

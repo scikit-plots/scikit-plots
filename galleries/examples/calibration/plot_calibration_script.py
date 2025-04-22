@@ -12,13 +12,14 @@ used by a scikit-learn classifier.
 # run: Python scripts and shows any outputs directly in the notebook.
 # %run ./examples/calibration/plot_calibration_script.py
 
-import numpy as np
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
+
+import numpy as np
 
 np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
@@ -42,7 +43,9 @@ X_train, y_train, X_val, y_val = X[:1000], y[:1000], X[1000:], y[1000:]
 
 # Create an instance of the LogisticRegression
 lr_probas = (
-    LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_train).predict_proba(X_val)
+    LogisticRegression(max_iter=int(1e5), random_state=0)
+    .fit(X_train, y_train)
+    .predict_proba(X_val)
 )
 nb_probas = GaussianNB().fit(X_train, y_train).predict_proba(X_val)
 svc_scores = LinearSVC().fit(X_train, y_train).decision_function(X_val)
@@ -56,7 +59,9 @@ svc_sigmoid = (
     .fit(X_train, y_train)
     .predict_proba(X_val)
 )
-rf_probas = RandomForestClassifier(random_state=0).fit(X_train, y_train).predict_proba(X_val)
+rf_probas = (
+    RandomForestClassifier(random_state=0).fit(X_train, y_train).predict_proba(X_val)
+)
 
 probas_dict = {
     LogisticRegression(): lr_probas,
@@ -73,16 +78,12 @@ ax = sp.metrics.plot_calibration(
     y_probas_list=probas_dict.values(),
     estimator_names=probas_dict.keys(),
     ax=ax,
+    save_fig=True,
+    save_fig_filename="",
+    overwrite=True,
+    add_timestamp=True,
+    verbose=True,
 )
-
-# Adjust layout to make sure everything fits
-plt.tight_layout()
-
-# Save the plot with a filename based on the current script's name
-# sp.api._utils.save_plot()
-
-# Display the plot
-plt.show(block=True)
 
 # %%
 #

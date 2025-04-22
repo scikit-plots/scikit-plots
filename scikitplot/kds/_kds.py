@@ -27,6 +27,7 @@ from ..api._utils.validation import (
     validate_y_probas_decorator,
     validate_y_true_decorator,
 )
+from ..utils.utils_plot_mpl import save_plot_decorator
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
@@ -278,6 +279,7 @@ def decile_table(
     # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
+@save_plot_decorator
 @_docstring.interpd
 def plot_lift(
     ## default params
@@ -416,6 +418,7 @@ def plot_lift(
     # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
+@save_plot_decorator
 @_docstring.interpd
 def plot_lift_decile_wise(
     ## default params
@@ -543,6 +546,7 @@ def plot_lift_decile_wise(
     # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
+@save_plot_decorator
 @_docstring.interpd
 def plot_cumulative_gain(
     ## default params
@@ -692,6 +696,7 @@ def plot_cumulative_gain(
     # label_namer="y",  # for label params
 )
 @validate_plotting_kwargs_decorator
+@save_plot_decorator
 @_docstring.interpd
 def plot_ks_statistic(
     ## default params
@@ -846,6 +851,7 @@ def plot_ks_statistic(
     replace_names=["y_true", "y_probas"]
     # label_namer="y",  # for label params
 )
+@save_plot_decorator
 @_docstring.interpd
 def report(
     ## default params

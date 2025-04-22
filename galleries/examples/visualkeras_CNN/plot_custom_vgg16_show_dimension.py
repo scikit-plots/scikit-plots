@@ -115,7 +115,9 @@ img_vgg16_show_dimension = visualkeras.layered_view(
         # 'use_default_font': False,
         # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     },
-    to_file="../result_images/vgg16_show_dimension.png",
+    # to_file="result_images/vgg16_show_dimension.png",
+    save_fig=True,
+    save_fig_filename="vgg16_show_dimension.png",
 )
 
 # %%
@@ -130,7 +132,9 @@ img_vgg16_legend_show_dimension = visualkeras.layered_view(
         # 'use_default_font': False,
         # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     },
-    to_file="../result_images/vgg16_legend_show_dimension.png",
+    # to_file="result_images/vgg16_legend_show_dimension.png",
+    save_fig=True,
+    save_fig_filename="vgg16_legend_show_dimension.png",
 )
 
 # %%
@@ -146,7 +150,9 @@ img_vgg16_spacing_layers_show_dimension = visualkeras.layered_view(
         # 'use_default_font': False,
         # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     },
-    to_file="../result_images/vgg16_spacing_layers_show_dimension.png",
+    # to_file="result_images/vgg16_spacing_layers_show_dimension.png",
+    save_fig=True,
+    save_fig_filename="vgg16_spacing_layers_show_dimension.png",
 )
 
 # %%
@@ -166,7 +172,9 @@ img_vgg16_type_ignore_show_dimension = visualkeras.layered_view(
         # 'use_default_font': False,
         # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     },
-    to_file="../result_images/vgg16_type_ignore_show_dimension.png",
+    # to_file="result_images/vgg16_type_ignore_show_dimension.png",
+    save_fig=True,
+    save_fig_filename="vgg16_type_ignore_show_dimension.png",
 )
 
 # %%
@@ -182,7 +190,9 @@ img_vgg16_color_map_show_dimension = visualkeras.layered_view(
         # 'use_default_font': False,
         # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     },
-    to_file="../result_images/vgg16_color_map_show_dimension.png",
+    # to_file="result_images/vgg16_color_map_show_dimension.png",
+    save_fig=True,
+    save_fig_filename="vgg16_color_map_show_dimension.png",
 )
 
 # %%
@@ -198,7 +208,9 @@ img_vgg16_flat_show_dimension = visualkeras.layered_view(
         # 'use_default_font': False,
         # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     },
-    to_file="../result_images/vgg16_flat_show_dimension.png",
+    # to_file="result_images/vgg16_flat_show_dimension.png",
+    save_fig=True,
+    save_fig_filename="vgg16_flat_show_dimension.png",
 )
 
 # %%
@@ -215,7 +227,9 @@ img_vgg16_scaling_show_dimension = visualkeras.layered_view(
     # scale_z = 0.25,
     # scale_xy = 5,
     font={"font_size": 61},
-    to_file="../result_images/vgg16_scaling_show_dimension.png",
+    # to_file="result_images/vgg16_scaling_show_dimension.png",
+    save_fig=True,
+    save_fig_filename="vgg16_scaling_show_dimension.png",
 )
 
 # %%

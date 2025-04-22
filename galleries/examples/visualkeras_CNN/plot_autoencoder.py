@@ -74,14 +74,18 @@ from scikitplot import visualkeras
 img_encoder = visualkeras.layered_view(
     encoder,
     text_callable="default",
-    to_file="../result_images/encoder.png",
+    # to_file="result_images/encoder.png",
+    save_fig=True,
+    save_fig_filename="encoder.png",
 )
 
 # %%
 
 img_autoencoder = visualkeras.layered_view(
     autoencoder,
-    to_file="../result_images/autoencoder.png",
+    # to_file="result_images/autoencoder.png",
+    save_fig=True,
+    save_fig_filename="autoencoder.png",
 )
 
 # %%
@@ -94,9 +98,14 @@ img_autoencoder_text = visualkeras.layered_view(
     max_xy=4096,
     scale_z=1,
     scale_xy=1,
-    font={"font_size": 99},
+    # font={"font_size": 14},
     text_callable="default",
-    to_file="../result_images/autoencoder_text.png",
+    # to_file="result_images/autoencoder_text.png",
+    save_fig=True,
+    save_fig_filename="autoencoder_text.png",
+    overwrite=False,
+    add_timestamp=True,
+    verbose=True,
 )
 
 # %%

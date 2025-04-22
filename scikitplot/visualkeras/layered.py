@@ -1,16 +1,12 @@
 """layered.py"""
 
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
+
 import warnings
 from math import ceil
-
 from typing import TYPE_CHECKING
-from typing import (
-    Callable,
-    Dict,
-    Optional,
-    Tuple,
-    Union,
-)
 
 import aggdraw
 from PIL import (
@@ -22,19 +18,33 @@ from PIL import (
 from .layer_utils import *
 from .utils import *
 
-if TYPE_CHECKING:  # Only imported during type checking
-    from typing import Any
+from ..utils.utils_pil import get_font, save_image_pil_decorator
 
-    Layer = _lazy_import_tensorflow()
+if TYPE_CHECKING:
+    # Only imported during type checking
+    from typing import (
+        Any,
+        Callable,
+        Dict,
+        List,
+        Optional,
+        Tuple,
+        Union,
+    )
+
+    import PIL  # type: ignore[reportMissingModuleSource]
+
+    Layer = _lazy_import_tensorflow()  # pylint: disable=undefined-variable
 
 
 ## Define __all__ to specify the public interface of the module
 __all__ = ["layered_view"]
 
 
+@save_image_pil_decorator
 def layered_view(
     model,
-    to_file: str = None,
+    to_file: "Optional[str]" = None,
     min_z: int = 20,
     min_xy: int = 20,
     max_z: int = 400,
@@ -53,19 +63,28 @@ def layered_view(
     # Define `text_callable` as an optional callable that returns a Tuple[str, bool]
     # Python understands it as a forward declaration and
     # resolves it later when the 'Layer' type is available.
-    text_callable: Optional[
-        Union[Callable[[int, "Layer"], Tuple[str, bool]], str]
-    ] = None,
+    text_callable: """Optional[
+        Union[Callable[[int, Layer], Tuple[str, bool]], str]
+    ]""" = None,
     text_vspacing: int = 4,
     spacing: int = 10,
     draw_funnel: bool = True,
     shade_step=10,
     legend: bool = False,
     legend_text_spacing_offset=15,
-    font: Optional[Union[ImageFont.ImageFont, Dict[str, "Any"]]] = None,
+    font: """Optional[
+        Union[ImageFont.ImageFont, Dict[str, "Any"]]
+    ]""" = None,
     font_color: "Any" = "black",
     show_dimension=False,
-) -> Image:
+    backend: "Optional[Union[bool,str]]" = None,
+    show_os_viewer: bool = False,
+    save_fig: bool = True,
+    save_fig_filename: str = "",
+    overwrite: bool = True,
+    add_timestamp=False,
+    verbose: bool = False,
+) -> "PIL.Image.Image":
     """
     Generates an architectural visualization for a given linear Keras
     :py:class:`~tensorflow.keras.Model` model
@@ -81,6 +100,11 @@ def layered_view(
         If the image does not exist yet it will be created, else overwritten.
         The file type is inferred from the file extension.
         If None, no file is created.
+
+        .. versionchanged:: 0.4.0
+            The `to_file` is now deprecated, and will be removed in a future release.
+            Users are encouraged to use `'save_fig'` and `'save_fig_filename'`
+            instead for improved compatibility.
     min_z : int
         Minimum z-dimension size (in pixels) for a layer.
     min_xy : int
@@ -150,6 +174,54 @@ def layered_view(
         Can be a string or a tuple (R, G, B, A).
     show_dimension : bool
         Whether to display layer dimensions in the legend (only when `legend` is True).
+    backend : bool, str, optional
+        Specifies the backend used to process and save the image.
+        If the value is one of `'matplotlib'`, `'true'`, or `'none'` (case-insensitive),
+        the Matplotlib backend will be used. This is useful for better DPI control and
+        consistent rendering. Any other value will fall back to using the PIL backend.
+        Common values include:
+
+        - `'matplotlib'`, `'true'`, `'none'` : Use Matplotlib
+        - `'pil'`, `'fast'`, etc. : Use PIL (Python Imaging Library)
+
+        Default is `None`.
+
+        .. versionadded:: 0.4.0
+            The `backend` parameter was added to allow switching between PIL and Matplotlib.
+    show_os_viewer : bool, optional
+        If True, displays the saved image (by PIL) in the system's default image viewer
+        using PIL's `.show()` method. Default is False.
+
+        .. versionadded:: 0.4.0
+    save_fig : bool, default=True
+        Save the plot.
+
+        .. versionadded:: 0.4.0
+    save_fig_filename : str, optional, default=''
+        Specify the path and filetype to save the plot.
+        If nothing specified, the plot will be saved as png
+        to the current working directory.
+        Defaults to name to use func.__name__.
+
+        .. versionadded:: 0.4.0
+    overwrite : bool, optional, default=True
+        If False and a file exists, auto-increments the filename to avoid overwriting.
+
+        .. versionadded:: 0.4.0
+    add_timestamp : bool, optional, default=False
+        Whether to append a timestamp to the filename.
+        Default is False.
+
+        .. versionadded:: 0.4.0
+    verbose : bool, optional
+        If True, enables verbose output with informative messages during execution.
+        Useful for debugging or understanding internal operations such as backend selection,
+        font loading, and file saving status. If False, runs silently unless errors occur.
+
+        Default is False.
+
+        .. versionadded:: 0.4.0
+            The `verbose` parameter was added to control logging and user feedback verbosity.
 
     Returns
     -------
@@ -599,7 +671,7 @@ def layered_view(
         )
         img = vertical_image_concat(img, legend_image, background_fill=background_fill)
 
-    if to_file is not None:
-        # img.save(to_file)
-        save_image_safely(img, to_file, use_matplotlib=True)
+    # Save the image to file if specified
+    # if to_file is not None:
+    #     img.save(to_file)
     return img

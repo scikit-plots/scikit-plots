@@ -31,6 +31,7 @@ from ..._utils.validation import (
     validate_y_probas_decorator,
     validate_y_true_decorator,
 )
+from ....utils.utils_plot_mpl import save_plot_decorator
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
@@ -190,6 +191,7 @@ def plot_precision_recall_curve(
 @validate_y_true_decorator
 @validate_y_probas_decorator
 @validate_y_probas_bounds_decorator
+@save_plot_decorator
 def plot_precision_recall(
     ## default params
     y_true,

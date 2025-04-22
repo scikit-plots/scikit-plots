@@ -1,9 +1,11 @@
 """graph.py"""
 
-from math import ceil
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
 
+from math import ceil
 from typing import TYPE_CHECKING
-from typing import Optional, Union, Tuple
 
 import numpy as np
 import aggdraw
@@ -12,8 +14,20 @@ from PIL import Image
 from .layer_utils import *
 from .utils import *
 
-if TYPE_CHECKING:  # Only imported during type checking
-    from typing import Dict, Any
+from ..utils.utils_pil import get_font, save_image_pil_decorator
+
+if TYPE_CHECKING:
+    # Only imported during type checking
+    from typing import (
+        Any,
+        Callable,
+        Dict,
+        List,
+        Optional,
+        Tuple,
+        Union,
+    )
+    import PIL  # type: ignore[reportMissingModuleSource]
 
 
 ## Define __all__ to specify the public interface of the module
@@ -21,10 +35,10 @@ __all__ = ["graph_view"]
 
 
 def _draw_connector(
-    draw: aggdraw.Draw,
+    draw: "aggdraw.Draw",
     start_node: object,
     end_node: object,
-    color: Union[str, Tuple[int, int, int]],
+    color: "Union[str, Tuple[int, int, int]]",
     width: int,
 ) -> None:
     """
@@ -89,10 +103,11 @@ def _draw_connector(
     draw.line([x1, y1, x2, y2], pen)
 
 
+@save_image_pil_decorator
 def graph_view(
     model,
-    to_file: Optional[str] = None,
-    color_map: Optional["Dict"] = None,
+    to_file: "Optional[str]" = None,
+    color_map: 'Optional["Dict"]' = None,
     node_size: int = 50,
     background_fill: "Any" = "white",
     padding: int = 10,
@@ -103,7 +118,14 @@ def graph_view(
     ellipsize_after: int = 10,
     inout_as_tensor: bool = True,
     show_neurons: bool = True,
-) -> Image:
+    backend: "Optional[Union[bool,str]]" = None,
+    show_os_viewer: bool = False,
+    save_fig: bool = True,
+    save_fig_filename: str = "",
+    overwrite: bool = True,
+    add_timestamp=False,
+    verbose: bool = False,
+) -> "PIL.Image.Image":
     """
     Generates an architectural visualization for a given linear Keras
     :py:class:`~tensorflow.keras.Model` model
@@ -117,6 +139,11 @@ def graph_view(
         Path to the file where the generated image will be saved.
         The file type is inferred from the file extension.
         If None, the image is not saved.
+
+        .. versionchanged:: 0.4.0
+            The `to_file` is now deprecated, and will be removed in a future release.
+            Users are encouraged to use `'save_fig'` and `'save_fig_filename'`
+            instead for improved compatibility.
     color_map : dict, optional
         A dictionary defining the fill and outline colors for each layer type.
         Layers not specified will use default (None uses default colors).
@@ -152,10 +179,58 @@ def graph_view(
         (subject to `ellipsize_after` limit).
         If False, each layer is represented by a single node
         (default is True).
+    backend : bool, str, optional
+        Specifies the backend used to process and save the image.
+        If the value is one of `'matplotlib'`, `'true'`, or `'none'` (case-insensitive),
+        the Matplotlib backend will be used. This is useful for better DPI control and
+        consistent rendering. Any other value will fall back to using the PIL backend.
+        Common values include:
+
+        - `'matplotlib'`, `'true'`, `'none'` : Use Matplotlib
+        - `'pil'`, `'fast'`, etc. : Use PIL (Python Imaging Library)
+
+        Default is `None`.
+
+        .. versionadded:: 0.4.0
+            The `backend` parameter was added to allow switching between PIL and Matplotlib.
+    show_os_viewer : bool, optional
+        If True, displays the saved image (by PIL) in the system's default image viewer
+        using PIL's `.show()` method. Default is False.
+
+        .. versionadded:: 0.4.0
+    save_fig : bool, default=True
+        Save the plot.
+
+        .. versionadded:: 0.4.0
+    save_fig_filename : str, optional, default=''
+        Specify the path and filetype to save the plot.
+        If nothing specified, the plot will be saved as png
+        to the current working directory.
+        Defaults to name to use func.__name__.
+
+        .. versionadded:: 0.4.0
+    overwrite : bool, optional, default=True
+        If False and a file exists, auto-increments the filename to avoid overwriting.
+
+        .. versionadded:: 0.4.0
+    add_timestamp : bool, optional, default=False
+        Whether to append a timestamp to the filename.
+        Default is False.
+
+        .. versionadded:: 0.4.0
+    verbose : bool, optional
+        If True, enables verbose output with informative messages during execution.
+        Useful for debugging or understanding internal operations such as backend selection,
+        font loading, and file saving status. If False, runs silently unless errors occur.
+
+        Default is False.
+
+        .. versionadded:: 0.4.0
+            The `verbose` parameter was added to control logging and user feedback verbosity.
 
     Returns
     -------
-    Image
+    PIL.Image.Image
         The generated image visualizing the model's architecture.
     """
     if color_map is None:
@@ -311,7 +386,6 @@ def graph_view(
     draw.flush()
 
     # Save the image to file if specified
-    if to_file is not None:
-        # img.save(to_file)
-        save_image_safely(img, to_file, use_matplotlib=True)
+    # if to_file is not None:
+    #     img.save(to_file)
     return img

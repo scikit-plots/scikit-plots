@@ -9,12 +9,13 @@ used by a scikit-learn clusterer.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.datasets import (
     load_iris as data_3_classes,
 )
 from sklearn.model_selection import train_test_split
+
+import numpy as np
 
 np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
@@ -33,16 +34,15 @@ model = KMeans(n_clusters=4, random_state=0)
 cluster_labels = model.fit_predict(X_train)
 
 # Plot!
-ax = sp.metrics.plot_silhouette(X_train, cluster_labels)
-
-# Adjust layout to make sure everything fits
-plt.tight_layout()
-
-# Save the plot with a filename based on the current script's name
-# sp.api._utils.save_plot()
-
-# Display the plot
-plt.show(block=True)
+ax = sp.metrics.plot_silhouette(
+    X_train,
+    cluster_labels,
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    # verbose=True,
+)
 
 # %%
 #

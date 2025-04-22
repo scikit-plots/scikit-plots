@@ -9,12 +9,13 @@ used by a scikit-learn PCA object.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-import numpy as np
 from sklearn.datasets import (
     load_iris as data_3_classes,
 )
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
+
+import numpy as np
 
 np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
@@ -31,16 +32,15 @@ X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_st
 pca = PCA(random_state=0).fit(X_train)
 
 # Plot!
-ax = sp.decomposition.plot_pca_component_variance(pca, figsize=(9, 5))
-
-# Adjust layout to make sure everything fits
-plt.tight_layout()
-
-# Save the plot with a filename based on the current script's name
-# sp.api._utils.save_plot()
-
-# Display the plot
-plt.show(block=True)
+ax = sp.decomposition.plot_pca_component_variance(
+    pca,
+    figsize=(9, 5),
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    # verbose=True,
+)
 
 # %%
 #

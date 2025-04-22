@@ -48,7 +48,9 @@ model = tf.keras.Sequential(
 model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
 
 # Train the model
-model.fit(X_train, Y_train, batch_size=32, epochs=2, validation_data=(X_val, Y_val), verbose=0)
+model.fit(
+    X_train, Y_train, batch_size=32, epochs=2, validation_data=(X_val, Y_val), verbose=0
+)
 
 # Predict probabilities on the validation set
 y_probas = model.predict(X_val)
@@ -60,5 +62,12 @@ import scikitplot as sp
 
 sp.get_logger().setLevel(sp.sp_logging.WARNING)
 # Plot precision-recall curves
-sp.metrics.plot_precision_recall(y_val, y_probas)
-plt.show()
+sp.metrics.plot_precision_recall(
+    y_val,
+    y_probas,
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    verbose=True,
+)

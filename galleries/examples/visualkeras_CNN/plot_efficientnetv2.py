@@ -52,7 +52,9 @@ img_efficientnetv2 = visualkeras.layered_view(
     scale_z=0.01,
     scale_xy=10,
     font={"font_size": 99},
-    to_file="../result_images/efficientnetv2-b0.png",
+    # to_file="result_images/efficientnetv2-b0.png",
+    save_fig=True,
+    save_fig_filename="efficientnetv2-b0.png",
 )
 
 # %%
@@ -80,7 +82,7 @@ img_efficientnetv2 = visualkeras.layered_view(
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/efficientnetv2-b1.png',
+#   to_file='result_images/efficientnetv2-b1.png',
 # )
 
 # model = tf.keras.applications.EfficientNetV2B2(
@@ -97,7 +99,7 @@ img_efficientnetv2 = visualkeras.layered_view(
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/efficientnetv2-b2.png',
+#   to_file='result_images/efficientnetv2-b2.png',
 # )
 
 # model = tf.keras.applications.EfficientNetV2B3(
@@ -114,7 +116,7 @@ img_efficientnetv2 = visualkeras.layered_view(
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/efficientnetv2-b3.png',
+#   to_file='result_images/efficientnetv2-b3.png',
 # )
 
 # model = tf.keras.applications.EfficientNetV2S(
@@ -131,7 +133,7 @@ img_efficientnetv2 = visualkeras.layered_view(
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/efficientnetv2-s.png',
+#   to_file='result_images/efficientnetv2-s.png',
 # )
 
 # model = tf.keras.applications.EfficientNetV2M(
@@ -148,7 +150,7 @@ img_efficientnetv2 = visualkeras.layered_view(
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/efficientnetv2-m.png',
+#   to_file='result_images/efficientnetv2-m.png',
 # )
 
 # model = tf.keras.applications.EfficientNetV2L(
@@ -165,5 +167,5 @@ img_efficientnetv2 = visualkeras.layered_view(
 #   model,
 #   legend=True,
 #   show_dimension=True,
-#   to_file='../result_images/efficientnetv2-l.png',
+#   to_file='result_images/efficientnetv2-l.png',
 # )

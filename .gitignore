@@ -11,30 +11,27 @@
 !git_clones/README.md
 git_clones/*
 
-# models
-**catboost_info
-
 # Jupyter Notebook
 **.ipynb_checkpoints
-
-# scipy openblas
-**.openblas
-
-# unzip openblas
-**__MACOSX
 
 # .Rhistory is a file created by R
 **.Rhistory
 
 # Sphinx documentation
+# 'matplotlib.sphinxext.plot_directive'
+**result_images/
 **docs/source/apis/*.rst
 **_tags/
 **auto_examples/
 **jupyterlite_contents/
 **generated/
 **build/
-# 'matplotlib.sphinxext.plot_directive'
-result_images
+
+# scipy openblas
+**.openblas
+
+# models
+**catboost_info
 
 # virtualenv
 **.venv
@@ -133,3 +130,4 @@ atlassian-ide-plugin.xml
 
 # OS droppings
 **.DS_Store
+**__MACOSX

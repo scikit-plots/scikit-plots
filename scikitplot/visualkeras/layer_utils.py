@@ -6,17 +6,27 @@ import warnings
 # import platform
 import importlib
 from collections.abc import Iterable
-
 from typing import TYPE_CHECKING
-from typing import Optional, Type
-from typing import Tuple
+
+if TYPE_CHECKING:
+    # Only imported during type checking
+    from typing import (
+        Any,
+        Callable,
+        Dict,
+        List,
+        Optional,
+        Type,
+        Tuple,
+        Union,
+    )
 
 import numpy as np
 
 from .utils import get_keys_by_value
 
 
-def _lazy_import_tensorflow() -> Optional[Type[object]]:
+def _lazy_import_tensorflow() -> "Optional[Type[object]]":
     """
     Lazily attempts to import `Layer` from various TensorFlow/Keras modules.
 
@@ -794,7 +804,7 @@ def is_internal_input(layer) -> bool:
         return False
 
 
-def _get_layer_shape(layer) -> Tuple[bool, list]:
+def _get_layer_shape(layer) -> "Tuple[bool, list]":
     """
     Attempts to extract the output shape from a Keras layer.
 
@@ -831,7 +841,7 @@ def _get_layer_shape(layer) -> Tuple[bool, list]:
         return False, []
 
 
-def default_text_callable(layer_index: int, layer) -> Tuple[str, bool]:
+def default_text_callable(layer_index: int, layer) -> "Tuple[str, bool]":
     """
     Generates a textual representation of a layer's output shape and name
     for use in model visualization tools.

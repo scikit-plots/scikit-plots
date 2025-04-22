@@ -58,7 +58,9 @@ img_spam = visualkeras.layered_view(
     font={"font_size": 7},
     text_callable="default",
     one_dim_orientation="x",
-    to_file="../result_images/spam_dense_x.png",
+    # to_file="result_images/spam_dense_x.png",
+    save_fig=True,
+    save_fig_filename="spam_dense_x.png",
 )
 
 img_spam = visualkeras.layered_view(
@@ -72,7 +74,9 @@ img_spam = visualkeras.layered_view(
     font={"font_size": 7},
     text_callable="default",
     one_dim_orientation="y",
-    to_file="../result_images/spam_dense_y.png",
+    # to_file="result_images/spam_dense_y.png",
+    save_fig=True,
+    save_fig_filename="spam_dense_y.png",
 )
 
 img_spam = visualkeras.layered_view(
@@ -86,7 +90,9 @@ img_spam = visualkeras.layered_view(
     font={"font_size": 7},
     text_callable="default",
     one_dim_orientation="z",
-    to_file="../result_images/spam_dense_z.png",
+    # to_file="result_images/spam_dense_z.png",
+    save_fig=True,
+    save_fig_filename="spam_dense_z.png",
 )
 
 # %%

@@ -13,16 +13,34 @@ enforcing Python 3-like behavior in Python 2.
 
 """
 
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
+# pylint: disable=consider-using-f-string
+
 # code that needs to be compatible with both Python 2 and Python 3
 
 import os
+from typing import TYPE_CHECKING
 
-import numpy as np
+import numpy as np  # type: ignore[reportMissingModuleSource]
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 
-from .file_utils import auto_save_plot_with_params
+from ..utils.utils_plot_mpl import save_plot_decorator
+
+if TYPE_CHECKING:
+    # Only imported during type checking
+    from typing import (  # noqa: F401
+        Any,
+        Dict,
+        List,
+        Optional,
+        Union,
+    )
+
+    import pandas
 
 # from matplotlib.offsetbox import (TextArea, AnnotationBbox)
 
@@ -697,13 +715,14 @@ class ModelPlotPy:
 ##########################################################################
 
 
-@auto_save_plot_with_params(filename="plot_response", ext=".png", verbose=True)
+@save_plot_decorator
 def plot_response(
     plot_input: "pandas.DataFrame",
     save_fig=True,
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting response curve
@@ -720,6 +739,7 @@ def plot_response(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -1090,13 +1110,14 @@ def plot_response(
     return ax
 
 
-@auto_save_plot_with_params(filename="plot_cumresponse", ext=".png", verbose=True)
+@save_plot_decorator
 def plot_cumresponse(
     plot_input: "pandas.DataFrame",
     save_fig=True,
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting cumulative response curve
@@ -1113,6 +1134,7 @@ def plot_cumresponse(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -1120,7 +1142,7 @@ def plot_cumresponse(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -1475,13 +1497,14 @@ def plot_cumresponse(
     return ax
 
 
-@auto_save_plot_with_params(filename="plot_cumlift", ext=".png", verbose=True)
+@save_plot_decorator
 def plot_cumlift(
     plot_input: "pandas.DataFrame",
     save_fig=True,
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting cumulative lift curve
@@ -1498,6 +1521,7 @@ def plot_cumlift(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -1505,7 +1529,7 @@ def plot_cumlift(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -1839,13 +1863,14 @@ def plot_cumlift(
     return ax
 
 
-@auto_save_plot_with_params(filename="plot_cumgains", ext=".png", verbose=True)
+@save_plot_decorator
 def plot_cumgains(
     plot_input: "pandas.DataFrame",
     save_fig=True,
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting cumulative gains curve
@@ -1862,6 +1887,7 @@ def plot_cumgains(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -1869,7 +1895,7 @@ def plot_cumgains(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -2229,8 +2255,13 @@ def plot_cumgains(
     return ax
 
 
-@auto_save_plot_with_params(filename="plot_all", ext=".png", verbose=True)
-def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""):
+@save_plot_decorator
+def plot_all(
+    plot_input: "pandas.DataFrame",
+    save_fig=True,
+    save_fig_filename="",
+    **kwargs,
+):
     """
     Plotting cumulative gains curve
 
@@ -2246,6 +2277,7 @@ def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     Returns
     -------
@@ -2584,7 +2616,7 @@ def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""
 ##########################################################################
 
 
-@auto_save_plot_with_params(filename="plot_costsrevs", ext=".png", verbose=True)
+@save_plot_decorator
 def plot_costsrevs(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -2594,6 +2626,7 @@ def plot_costsrevs(
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting costs / revenue curve
@@ -2621,6 +2654,7 @@ def plot_costsrevs(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -2628,7 +2662,7 @@ def plot_costsrevs(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -2997,7 +3031,7 @@ def plot_costsrevs(
     return ax
 
 
-@auto_save_plot_with_params(filename="plot_profit", ext=".png", verbose=True)
+@save_plot_decorator
 def plot_profit(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -3007,6 +3041,7 @@ def plot_profit(
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting profit curve
@@ -3032,7 +3067,9 @@ def plot_profit(
 
     save_fig_filename : str, optional, default=''
         Specify the path and filetype to save the plot.
-        If nothing specified, the plot will be saved as jpeg to the current working directory.
+        If nothing specified, the plot will be saved as jpeg
+        to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -3040,7 +3077,7 @@ def plot_profit(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -3391,7 +3428,7 @@ def plot_profit(
     return ax
 
 
-@auto_save_plot_with_params(filename="plot_roi", ext=".png", verbose=True)
+@save_plot_decorator
 def plot_roi(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -3401,6 +3438,7 @@ def plot_roi(
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting ROI curve
@@ -3428,6 +3466,7 @@ def plot_roi(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -3435,7 +3474,7 @@ def plot_roi(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
