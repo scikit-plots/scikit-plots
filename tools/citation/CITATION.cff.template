@@ -46,7 +46,6 @@ preferred-citation:
   title: "{{ title | trim }}"  {# The name of your software. #}
   authors:  {# Authors and contributors of the software project. #}
   - name: "{{ name | trim }}"
-  message: "{{ message | trim }}"  {# Optional message to users. #}
   version: "{{ version | trim }}"  {# The current version of your software. #}
   date-released: {{ date_released | trim }}  {# Date when this version was released. #}
   doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
