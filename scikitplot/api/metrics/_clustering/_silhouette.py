@@ -22,6 +22,7 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.preprocessing import LabelEncoder
 
 from ..._utils.validation import validate_plotting_kwargs_decorator
+from ....utils.utils_plot_mpl import save_plot_decorator
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
@@ -29,6 +30,7 @@ __all__ = ["plot_silhouette"]
 
 
 @validate_plotting_kwargs_decorator
+@save_plot_decorator
 def plot_silhouette(
     ## default params
     X,

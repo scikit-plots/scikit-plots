@@ -1,7 +1,28 @@
-from typing import Any
+"""utils.py"""
+
+# import os
+# import warnings
+# import platform
+# import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Only imported during type checking
+    from typing import (
+        Any,
+        Dict,
+        List,
+        Optional,
+        Union,
+    )
 
 import aggdraw  # Anti-Grain Geometry (AGG) graphics library
-from PIL import Image, ImageColor, ImageDraw
+from PIL import (
+    Image,
+    ImageColor,
+    ImageDraw,
+    ImageFont,
+)
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
@@ -19,13 +40,18 @@ __all__ = [
 ]
 
 
+######################################################################
+## base
+######################################################################
+
+
 class RectShape:
     x1: int
     x2: int
     y1: int
     y2: int
-    _fill: Any
-    _outline: Any
+    _fill: "Any"
+    _outline: "Any"
 
     @property
     def fill(self):
@@ -59,7 +85,6 @@ class Box(RectShape):
         if hasattr(self, "de") and self.de > 0:
             brush_s1 = aggdraw.Brush(fade_color(self.fill, self.shade))
             brush_s2 = aggdraw.Brush(fade_color(self.fill, 2 * self.shade))
-
             if draw_reversed:
                 draw.line(
                     [
@@ -70,7 +95,15 @@ class Box(RectShape):
                     ],
                     pen,
                 )
-                draw.line([self.x2 - self.de, self.y2 - self.de, self.x2, self.y2], pen)
+                draw.line(
+                    [
+                        self.x2 - self.de,
+                        self.y2 - self.de,
+                        self.x2,
+                        self.y2,
+                    ],
+                    pen,
+                )
                 draw.line(
                     [
                         self.x1 - self.de,
@@ -80,7 +113,6 @@ class Box(RectShape):
                     ],
                     pen,
                 )
-
                 draw.polygon(
                     [
                         self.x1,
@@ -95,7 +127,6 @@ class Box(RectShape):
                     pen,
                     brush_s1,
                 )
-
                 draw.polygon(
                     [
                         self.x1 - self.de,
@@ -120,7 +151,15 @@ class Box(RectShape):
                     ],
                     pen,
                 )
-                draw.line([self.x1 + self.de, self.y2 - self.de, self.x1, self.y2], pen)
+                draw.line(
+                    [
+                        self.x1 + self.de,
+                        self.y2 - self.de,
+                        self.x1,
+                        self.y2,
+                    ],
+                    pen,
+                )
                 draw.line(
                     [
                         self.x1 + self.de,
@@ -130,7 +169,6 @@ class Box(RectShape):
                     ],
                     pen,
                 )
-
                 draw.polygon(
                     [
                         self.x1,
@@ -145,7 +183,6 @@ class Box(RectShape):
                     pen,
                     brush_s1,
                 )
-
                 draw.polygon(
                     [
                         self.x2 + self.de,
@@ -248,7 +285,7 @@ def fade_color(color: tuple, fade_amount: int) -> tuple:
     return r, g, b, color[3]
 
 
-def get_rgba_tuple(color: Any) -> tuple:
+def get_rgba_tuple(color: "Any") -> tuple:
     """
     :param color:
     :return: (R, G, B, A) tuple
@@ -287,7 +324,7 @@ def self_multiply(tensor_tuple: tuple):
     return s
 
 
-def vertical_image_concat(im1: Image, im2: Image, background_fill: Any = "white"):
+def vertical_image_concat(im1: Image, im2: Image, background_fill: "Any" = "white"):
     """
     Vertical concatenation of two PIL images.
 
@@ -311,7 +348,7 @@ def linear_layout(
     horizontal: bool = True,
     padding: int = 0,
     spacing: int = 0,
-    background_fill: Any = "white",
+    background_fill: "Any" = "white",
 ):
     """
     Creates a linear layout of a passed list of images in horizontal or vertical orientation. The layout will wrap in x

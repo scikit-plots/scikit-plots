@@ -13,14 +13,34 @@ enforcing Python 3-like behavior in Python 2.
 
 """
 
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
+# pylint: disable=consider-using-f-string
+
 # code that needs to be compatible with both Python 2 and Python 3
 
 import os
+from typing import TYPE_CHECKING
 
+import numpy as np  # type: ignore[reportMissingModuleSource]
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-import numpy as np
-import pandas as pd
+
+from ..utils.utils_plot_mpl import save_plot_decorator
+
+if TYPE_CHECKING:
+    # Only imported during type checking
+    from typing import (  # noqa: F401
+        Any,
+        Dict,
+        List,
+        Optional,
+        Union,
+    )
+
+    import pandas
 
 # from matplotlib.offsetbox import (TextArea, AnnotationBbox)
 
@@ -257,27 +277,31 @@ class ModelPlotPy:
             If there is no match with the complete list or the input list again
 
         """
-        if (len(self.models) == len(self.model_labels)) == False:
+        if (len(self.models) == len(self.model_labels)) is False:
             raise ValueError(
                 "The number of models and the their description model_name must be equal. "
                 "The number of model = %s and model_name = %s."
-                % (len(self.model), len(self.model_name))
+                % (len(self.models), len(self.model_labels))
             )
 
         if (
             len(self.feature_data) == len(self.label_data) == len(self.dataset_labels)
-        ) == False:
+        ) is False:
             raise ValueError(
                 "The number of datasets in feature_data and label_data and their description "
                 "pairs must be equal. The number of datasets in feature_data = "
                 "%s, label_data = %s and description = %s."
-                % (len(self.feature_data), len(self.label_data), len(self.description))
+                % (
+                    len(self.feature_data),
+                    len(self.label_data),
+                    len(self.dataset_labels),
+                )
             )
 
         final = pd.DataFrame()
-        for i in range(len(self.models)):
+        for i, _ in enumerate(self.models):
             data_set = pd.DataFrame()
-            for j in range(len(self.dataset_labels)):
+            for j, _ in enumerate(self.dataset_labels):
                 y_true = self.label_data[j]
                 y_true = y_true.rename("target_class")
                 # probabilities and rename them
@@ -374,7 +398,7 @@ class ModelPlotPy:
         scores_and_ntiles["all"] = 1
         ntiles_aggregate = pd.DataFrame()
         add_origin = pd.DataFrame()
-        for i in range(len(self.model_labels)):
+        for i, _ in enumerate(self.model_labels):
             for j in self.models[i].classes_:
                 for k in self.dataset_labels:
                     add_origin_add = pd.DataFrame(
@@ -691,12 +715,14 @@ class ModelPlotPy:
 ##########################################################################
 
 
+@save_plot_decorator
 def plot_response(
     plot_input: "pandas.DataFrame",
     save_fig=True,
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting response curve
@@ -713,6 +739,7 @@ def plot_response(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -1069,26 +1096,28 @@ def plot_response(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Response plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The response plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The response plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/response_plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The response plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The response plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@save_plot_decorator
 def plot_cumresponse(
     plot_input: "pandas.DataFrame",
     save_fig=True,
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting cumulative response curve
@@ -1105,6 +1134,7 @@ def plot_cumresponse(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -1112,7 +1142,7 @@ def plot_cumresponse(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -1453,26 +1483,28 @@ def plot_cumresponse(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Cumulative response plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The cumulative response plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The cumulative response plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Cumulative response plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The cumulative response plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The cumulative response plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@save_plot_decorator
 def plot_cumlift(
     plot_input: "pandas.DataFrame",
     save_fig=True,
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting cumulative lift curve
@@ -1489,6 +1521,7 @@ def plot_cumlift(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -1496,7 +1529,7 @@ def plot_cumlift(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -1816,26 +1849,28 @@ def plot_cumlift(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Cumulative lift plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The cumulative lift plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The cumulative lift plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Cumulative lift plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The cumulative lift plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The cumulative lift plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@save_plot_decorator
 def plot_cumgains(
     plot_input: "pandas.DataFrame",
     save_fig=True,
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting cumulative gains curve
@@ -1852,6 +1887,7 @@ def plot_cumgains(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -1859,7 +1895,7 @@ def plot_cumgains(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -2205,21 +2241,27 @@ def plot_cumgains(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Cumulative gains plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The cumulative gains plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The cumulative gains plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Cumulative gains plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The cumulative gains plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The cumulative gains plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
-def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""):
+@save_plot_decorator
+def plot_all(
+    plot_input: "pandas.DataFrame",
+    save_fig=True,
+    save_fig_filename="",
+    **kwargs,
+):
     """
     Plotting cumulative gains curve
 
@@ -2235,6 +2277,7 @@ def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     Returns
     -------
@@ -2553,17 +2596,18 @@ def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""
         ax3.legend(loc="upper right", shadow=False, frameon=False)
         ax4.legend(loc="upper right", shadow=False, frameon=False)
     plt.suptitle(title, fontsize=16)
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Plot all.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The plot all plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The plot all plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Plot all.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The plot all plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The plot all plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax1
 
 
@@ -2572,6 +2616,7 @@ def plot_all(plot_input: "pandas.DataFrame", save_fig=True, save_fig_filename=""
 ##########################################################################
 
 
+@save_plot_decorator
 def plot_costsrevs(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -2581,6 +2626,7 @@ def plot_costsrevs(
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting costs / revenue curve
@@ -2608,6 +2654,7 @@ def plot_costsrevs(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -2615,7 +2662,7 @@ def plot_costsrevs(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -2970,20 +3017,21 @@ def plot_costsrevs(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Costs Revenues plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The costs / revenues plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The costs / revenues plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Costs Revenues plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The costs / revenues plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The costs / revenues plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@save_plot_decorator
 def plot_profit(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -2993,6 +3041,7 @@ def plot_profit(
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting profit curve
@@ -3018,7 +3067,9 @@ def plot_profit(
 
     save_fig_filename : str, optional, default=''
         Specify the path and filetype to save the plot.
-        If nothing specified, the plot will be saved as jpeg to the current working directory.
+        If nothing specified, the plot will be saved as jpeg
+        to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -3026,7 +3077,7 @@ def plot_profit(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -3363,20 +3414,21 @@ def plot_profit(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/Profit plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The profit plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The profit plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/Profit plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The profit plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The profit plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax
 
 
+@save_plot_decorator
 def plot_roi(
     plot_input: "pandas.DataFrame",
     fixed_costs,
@@ -3386,6 +3438,7 @@ def plot_roi(
     save_fig_filename="",
     highlight_ntile=None,
     highlight_how="plot_text",
+    **kwargs,
 ):
     """
     Plotting ROI curve
@@ -3413,6 +3466,7 @@ def plot_roi(
         Specify the path and filetype to save the plot.
         If nothing specified, the plot will be saved as jpeg
         to the current working directory.
+        Defaults to name to use func.__name__.
 
     highlight_ntile : int or None, optional, default=None
         Highlight the value of the response curve at a specified ntile value.
@@ -3420,7 +3474,7 @@ def plot_roi(
         .. versionchanged:: 0.3.9
             Default changed from False to None.
 
-    highlight_how : str, optional, default='plot_text'
+    highlight_how : {'plot','text','plot_text'}, optional, default='plot_text'
         Highlight_how specifies where information about the model performance is printed.
         It can be shown as text, on the plot or both.
 
@@ -3761,15 +3815,15 @@ def plot_roi(
         if highlight_how in ("plot", "plot_text"):
             fig.text(0.15, -0.001, text[:-1], ha="left")
 
-    if save_fig == True:
-        if not save_fig_filename:
-            location = "%s/ROI plot.png" % os.getcwd()
-            plt.savefig(location, dpi=300)
-            print("The roi plot is saved in %s" % location)
-        else:
-            plt.savefig(save_fig_filename, dpi=300)
-            print("The roi plot is saved in %s" % save_fig_filename)
-        plt.show()
-        plt.gcf().clear()
-    plt.show()
+    # if save_fig is True:
+    #     if not save_fig_filename:
+    #         location = "%s/ROI plot.png" % os.getcwd()
+    #         plt.savefig(location, dpi=300)
+    #         print("The roi plot is saved in %s" % location)
+    #     else:
+    #         plt.savefig(save_fig_filename, dpi=300)
+    #         print("The roi plot is saved in %s" % save_fig_filename)
+    #     plt.show()
+    #     plt.gcf().clear()
+    # plt.show()
     return ax

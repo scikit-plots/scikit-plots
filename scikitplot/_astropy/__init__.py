@@ -8,6 +8,9 @@ Documentation is available in the docstrings and
 online at https://www.astropy.org/.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # scikitplot/_astropy/__init__.py
 
 from .._build_utils.gitversion import git_remote_version

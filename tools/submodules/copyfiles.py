@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-"""Platform-independent file and folder copier script"""
+"""
+Platform-independent file and folder copier script.
+
+Consistency with Unix tools like `cp`.
+"""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause

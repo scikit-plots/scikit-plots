@@ -54,36 +54,37 @@ Let's load the data and have a quick look at it:
 
 import io
 import os
-import warnings
 import zipfile
 
-import requests
+import warnings
 
 warnings.filterwarnings("ignore")
 
 import numpy as np
 
 np.random.seed(0)  # reproducibility
+
+import requests
 import pandas as pd
 
-# r = requests.get("https://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank-additional.zip")
+# You can change the path, currently the data is written to the working directory
+path = os.getcwd()
+
+# r = requests.get(
+#     "https://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank-additional.zip"
+# )
 # we encountered that the source at uci.edu is not always available,
 # therefore we made a copy to our repos.
 r = requests.get("https://modelplot.github.io/img/bank-additional.zip")
 z = zipfile.ZipFile(io.BytesIO(r.content))
-# You can change the path, currently the data is written to the working directory
-path = os.getcwd()
 z.extractall(path)
-# Define the directory to be removed
-dir_to_remove = os.path.join(path, "bank-additional/__MACOSX")
-# Check if the directory exists before attempting to remove it
-if os.path.exists(dir_to_remove):
-    os.remove(dir_to_remove)
+
 # Load csv data
 bank = pd.read_csv(path + "/bank-additional/bank-additional-full.csv", sep=";")
 
 # select the 6 columns
 bank = bank[["y", "duration", "campaign", "pdays", "previous", "euribor3m"]]
+
 # rename target class value 'yes' for better interpretation
 bank.y[bank.y == "yes"] = "term deposit"
 
@@ -130,8 +131,9 @@ clf_mult = LogisticRegression(multi_class="multinomial", solver="newton-cg").fit
 # For now, we focus on explaining to our marketing colleagues how good our predictive model
 # can help them select customers for their term deposit campaign.
 
-# from scikitplot import modelplotpy as mp
 import scikitplot.modelplotpy as mp
+
+# from scikitplot import modelplotpy as mp
 
 obj = mp.ModelPlotPy(
     feature_data=[X_train, X_test],
@@ -196,7 +198,7 @@ ps = obj.plotting_scope(
 # what % of the actual target class observations can we expect to target?
 
 # plot the cumulative gains plot and annotate the plot at decile = 3
-mp.plot_cumgains(ps, highlight_ntile=3, save_fig=False)
+mp.plot_cumgains(ps, highlight_ntile=3, save_fig=True)
 
 # %%
 #
@@ -219,7 +221,7 @@ mp.plot_cumgains(ps, highlight_ntile=3, save_fig=False)
 # how many times better is that than using no model at all?
 
 # plot the cumulative lift plot and annotate the plot at decile = 3
-mp.plot_cumlift(ps, highlight_ntile=3, save_fig=False)
+mp.plot_cumlift(ps, highlight_ntile=3, save_fig=True)
 
 # %%
 #
@@ -245,7 +247,7 @@ mp.plot_cumlift(ps, highlight_ntile=3, save_fig=False)
 # what is the expected % of target class observations in that decile?
 
 # plot the response plot and annotate the plot at decile = 3
-mp.plot_response(ps, highlight_ntile=3, save_fig=False)
+mp.plot_response(ps, highlight_ntile=3, save_fig=True)
 
 
 # %%
@@ -258,7 +260,7 @@ mp.plot_response(ps, highlight_ntile=3, save_fig=False)
 # what is the expected % of target class observations in the selection?
 
 # plot the cumulative response plot and annotate the plot at decile = 3
-mp.plot_cumresponse(ps, highlight_ntile=3, save_fig=False)
+mp.plot_cumresponse(ps, highlight_ntile=3, save_fig=True)
 
 
 # %%
@@ -270,8 +272,10 @@ mp.plot_cumresponse(ps, highlight_ntile=3, save_fig=False)
 # plot all four evaluation plots and save to file
 mp.plot_all(
     ps,
-    save_fig=False,
-    # save_fig_filename = 'Selection model Term Deposits'
+    save_fig=True,
+    overwrite=False,
+    add_timestamp=True,
+    verbose=True,
 )
 
 
@@ -308,7 +312,7 @@ mp.plot_roi(
     variable_costs_per_unit=10,
     profit_per_unit=50,
     highlight_ntile=3,
-    save_fig=False,
+    save_fig=True,
 )
 
 
@@ -330,7 +334,7 @@ mp.plot_costsrevs(
     profit_per_unit=50,
     highlight_ntile=3,
     # highlight_ntile = "max_roi",
-    save_fig=False,
+    save_fig=True,
 )
 
 
@@ -351,7 +355,7 @@ mp.plot_profit(
     variable_costs_per_unit=10,
     profit_per_unit=50,
     highlight_ntile=3,
-    save_fig=False,
+    save_fig=True,
 )
 
 
@@ -372,8 +376,13 @@ mp.plot_profit(
 ps2 = obj.plotting_scope(scope="compare_models", select_dataset_label=["test_data"])
 
 # plot the cumulative response plot and annotate the plot at decile = 3
-mp.plot_cumresponse(ps2, highlight_ntile=3, save_fig=False)
+mp.plot_cumresponse(ps2, highlight_ntile=3, save_fig=True)
 
+# %%
+
+import scikitplot as sp
+
+sp.remove_paths()
 
 # %%
 # Seems like the algorithm used will not make a big difference in this case.

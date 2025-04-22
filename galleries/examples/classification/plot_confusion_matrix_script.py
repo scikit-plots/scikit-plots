@@ -9,12 +9,13 @@ used by a scikit-learn classifier.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-import numpy as np
 from sklearn.datasets import (
     load_digits as data_10_classes,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+
+import numpy as np
 
 np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
@@ -34,16 +35,16 @@ model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_tra
 y_val_pred = model.predict(X_val)
 
 # Plot!
-ax = sp.metrics.plot_confusion_matrix(y_val, y_val_pred, normalize=False)
-
-# Adjust layout to make sure everything fits
-plt.tight_layout()
-
-# Save the plot with a filename based on the current script's name
-# sp.api._utils.save_plot()
-
-# Display the plot
-plt.show(block=True)
+ax = sp.metrics.plot_confusion_matrix(
+    y_val,
+    y_val_pred,
+    normalize=False,
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    # verbose=True,
+)
 
 # %%
 #

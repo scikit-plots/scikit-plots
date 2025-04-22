@@ -1,53 +1,50 @@
+"""layered.py"""
+
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
+
 import warnings
 from math import ceil
-from typing import Any, Callable
-
-import aggdraw
-from PIL import Image, ImageDraw, ImageFont
-
-
-def _lazy_import_tensorflow():
-    try:
-        from tensorflow.keras.layers import Layer
-
-        return Layer
-    except ModuleNotFoundError:
-        try:
-            # from keras.src.layers.layer import Layer
-            from keras.layers import Layer
-
-            return Layer
-        except ModuleNotFoundError:
-            try:
-                # module is primarily for TensorFlow's internal use during development and testing
-                from tensorflow.python.keras.layers import Layer
-
-                return Layer
-            except ImportError:
-                # raise ImportError(
-                #   "TensorFlow-Keras is required. Install it with `pip install tensorflow`."
-                # ) from e
-                warnings.warn(
-                    "Could not import the 'layers' module from TensorFlow-Keras. "
-                    "'text_callable' will not work."
-                )
-
-
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:  # Only imported during type checking
-    Layer = _lazy_import_tensorflow()
+import aggdraw
+from PIL import (
+    Image,
+    ImageDraw,
+    ImageFont,
+)
 
 from .layer_utils import *
 from .utils import *
+
+from ..utils.utils_pil import get_font, save_image_pil_decorator
+
+if TYPE_CHECKING:
+    # Only imported during type checking
+    from typing import (
+        Any,
+        Callable,
+        Dict,
+        List,
+        Optional,
+        Tuple,
+        Union,
+    )
+
+    import PIL  # type: ignore[reportMissingModuleSource]
+
+    Layer = _lazy_import_tensorflow()  # pylint: disable=undefined-variable
+
 
 ## Define __all__ to specify the public interface of the module
 __all__ = ["layered_view"]
 
 
+@save_image_pil_decorator
 def layered_view(
     model,
-    to_file: str = None,
+    to_file: "Optional[str]" = None,
     min_z: int = 20,
     min_xy: int = 20,
     max_z: int = 400,
@@ -59,22 +56,35 @@ def layered_view(
     color_map: dict = None,
     one_dim_orientation: str = "z",
     index_2d: list = None,
-    background_fill: Any = "white",
+    background_fill: "Any" = "white",
     draw_volume: bool = True,
     draw_reversed: bool = False,
     padding: int = 10,
-    # Python understands it as a forward declaration and resolves it later when the 'Layer' type is available.
-    text_callable: Callable[[int, "Layer"], tuple] = None,
+    # Define `text_callable` as an optional callable that returns a Tuple[str, bool]
+    # Python understands it as a forward declaration and
+    # resolves it later when the 'Layer' type is available.
+    text_callable: """Optional[
+        Union[Callable[[int, Layer], Tuple[str, bool]], str]
+    ]""" = None,
     text_vspacing: int = 4,
     spacing: int = 10,
     draw_funnel: bool = True,
     shade_step=10,
     legend: bool = False,
     legend_text_spacing_offset=15,
-    font: ImageFont = None,
-    font_color: Any = "black",
+    font: """Optional[
+        Union[ImageFont.ImageFont, Dict[str, "Any"]]
+    ]""" = None,
+    font_color: "Any" = "black",
     show_dimension=False,
-) -> Image:
+    backend: "Optional[Union[bool,str]]" = None,
+    show_os_viewer: bool = False,
+    save_fig: bool = True,
+    save_fig_filename: str = "",
+    overwrite: bool = True,
+    add_timestamp=False,
+    verbose: bool = False,
+) -> "PIL.Image.Image":
     """
     Generates an architectural visualization for a given linear Keras
     :py:class:`~tensorflow.keras.Model` model
@@ -90,6 +100,11 @@ def layered_view(
         If the image does not exist yet it will be created, else overwritten.
         The file type is inferred from the file extension.
         If None, no file is created.
+
+        .. versionchanged:: 0.4.0
+            The `to_file` is now deprecated, and will be removed in a future release.
+            Users are encouraged to use `'save_fig'` and `'save_fig_filename'`
+            instead for improved compatibility.
     min_z : int
         Minimum z-dimension size (in pixels) for a layer.
     min_xy : int
@@ -122,8 +137,9 @@ def layered_view(
         Whether to draw 3D boxes in reverse order, from front-right to back-left.
     padding : int
         Distance in pixels before the first and after the last layer.
-    text_callable : callable
-        A callable that generates text for layers.
+    text_callable : {callable, 'default', None}
+        A callable that generates text for layers,
+        'default' to use default behavior, or None to skip.
         The callable should take two arguments: the layer index (int) and the layer (Layer).
     text_vspacing : int
         Vertical spacing in pixels between lines of text produced by `text_callable`.
@@ -139,28 +155,93 @@ def layered_view(
     legend_text_spacing_offset : float
         Offset for the space allocated to legend text.
         Useful for preventing text cutoff in the legend.
-    font : str or None
-        Font to be used for legend text.
-        If None, the default font is used.
+    font : Union[ImageFont.ImageFont, Dict[str, Any]], optional
+        Font to be used for text rendering (e.g., legend or labels).
+
+        - If an `ImageFont.ImageFont` object is provided, it is used directly.
+        - If a dictionary is provided, it can include customization options:
+            - `font_path` : str, optional
+                Path to a one of '.ttf .otf .ttc' font file.
+            - `font_size` : int, optional
+                Size of the font. Must be a positive integer.
+            - `use_default_font` : bool, optional
+                If True, uses the default system font.
+                Default is True.
+
+        If `None`, the default font is used.
     font_color : str or tuple
         Color of the font.
         Can be a string or a tuple (R, G, B, A).
     show_dimension : bool
         Whether to display layer dimensions in the legend (only when `legend` is True).
+    backend : bool, str, optional
+        Specifies the backend used to process and save the image.
+        If the value is one of `'matplotlib'`, `'true'`, or `'none'` (case-insensitive),
+        the Matplotlib backend will be used. This is useful for better DPI control and
+        consistent rendering. Any other value will fall back to using the PIL backend.
+        Common values include:
+
+        - `'matplotlib'`, `'true'`, `'none'` : Use Matplotlib
+        - `'pil'`, `'fast'`, etc. : Use PIL (Python Imaging Library)
+
+        Default is `None`.
+
+        .. versionadded:: 0.4.0
+            The `backend` parameter was added to allow switching between PIL and Matplotlib.
+    show_os_viewer : bool, optional
+        If True, displays the saved image (by PIL) in the system's default image viewer
+        using PIL's `.show()` method. Default is False.
+
+        .. versionadded:: 0.4.0
+    save_fig : bool, default=True
+        Save the plot.
+
+        .. versionadded:: 0.4.0
+    save_fig_filename : str, optional, default=''
+        Specify the path and filetype to save the plot.
+        If nothing specified, the plot will be saved as png
+        to the current working directory.
+        Defaults to name to use func.__name__.
+
+        .. versionadded:: 0.4.0
+    overwrite : bool, optional, default=True
+        If False and a file exists, auto-increments the filename to avoid overwriting.
+
+        .. versionadded:: 0.4.0
+    add_timestamp : bool, optional, default=False
+        Whether to append a timestamp to the filename.
+        Default is False.
+
+        .. versionadded:: 0.4.0
+    verbose : bool, optional
+        If True, enables verbose output with informative messages during execution.
+        Useful for debugging or understanding internal operations such as backend selection,
+        font loading, and file saving status. If False, runs silently unless errors occur.
+
+        Default is False.
+
+        .. versionadded:: 0.4.0
+            The `verbose` parameter was added to control logging and user feedback verbosity.
 
     Returns
     -------
     image
         The generated architecture visualization image.
 
+    Notes
+    -----
+    This function calls `get_font(font)` internally to normalize the input.
     """
+    font = get_font(font)
+
     index_2d = index_2D = [] if index_2d is None else index_2d
     # Iterate over the model to compute bounds and generate boxes
 
     # Deprecation warning for legend_text_spacing_offset
     if legend_text_spacing_offset != 0:
         warnings.warn(
-            "The legend_text_spacing_offset parameter is deprecated and will be removed in a future release."
+            "The legend_text_spacing_offset parameter is deprecated and"
+            "will be removed in a future release."
         )
 
     boxes = list()
@@ -192,7 +273,8 @@ def layered_view(
         # Do no render the SpacingDummyLayer, just increase the pointer
         if (
             # Check if the layer is an instance of the dynamically created class
-            type(layer) == SpacingDummyLayer
+            # type(layer) == SpacingDummyLayer
+            isinstance(layer, SpacingDummyLayer)
             or is_spacing_dummy_layer(layer)
         ):
             current_z += layer.spacing
@@ -247,9 +329,12 @@ def layered_view(
                 ", "
             )
             dimension = []
-            for i in range(len(dimension_string)):
-                if dimension_string[i].isnumeric():
-                    dimension.append(dimension_string[i])
+            # for i in range(len(dimension_string)):
+            #     if dimension_string[i].isnumeric():
+            #         dimension.append(dimension_string[i])
+            for _, char in enumerate(dimension_string):
+                if char.isnumeric():
+                    dimension.append(char)
             dimension_list.append(dimension)
 
         box = Box()
@@ -290,23 +375,26 @@ def layered_view(
     # Generate image
     img_width = max_right + x_off + padding
 
-    # Check if any text will be written above or below and save the maximum text height for adjusting the image height
+    # Check if any text will be written above or below and
+    # save the maximum text height for adjusting the image height
     is_any_text_above = False
     is_any_text_below = False
     max_box_with_text_height = 0
     max_box_height = 0
     if text_callable is not None:
-        if font is None:
-            font = ImageFont.load_default()
+        # If text_callable is a string and equals 'default', replace it with the default callable
+        if isinstance(text_callable, str) and text_callable == "default":
+            # Do something when text_callable is 'default'
+            text_callable = default_text_callable
         i = -1
         for index, layer in enumerate(model.layers):
             if (
                 # Check if the layer is an instance of the dynamically created class
-                type(layer) == SpacingDummyLayer
+                # type(layer) == SpacingDummyLayer
+                isinstance(layer, SpacingDummyLayer)
                 or is_spacing_dummy_layer(layer)
-                or
                 # by ignore list
-                type(layer) in type_ignore
+                or type(layer) in type_ignore
                 or index in index_ignore
             ):
                 continue
@@ -409,7 +497,6 @@ def layered_view(
             if last_box is not None and draw_funnel:
                 # Top connection front
                 draw.line([last_box.x1, last_box.y1, box.x2, box.y1], pen)
-
                 # Bottom connection front
                 draw.line([last_box.x1, last_box.y2, box.x2, box.y2], pen)
 
@@ -439,9 +526,7 @@ def layered_view(
                     ],
                     pen,
                 )
-
                 draw.line([last_box.x2, last_box.y2, box.x1, box.y2], pen)
-
                 draw.line([last_box.x2, last_box.y1, box.x1, box.y1], pen)
 
             box.draw(draw, draw_reversed=False)
@@ -451,16 +536,21 @@ def layered_view(
     draw.flush()
 
     if text_callable is not None:
+        # If text_callable is a string and equals 'default',
+        # replace it with the default callable
+        if isinstance(text_callable, str) and text_callable == "default":
+            # Do something when text_callable is 'default'
+            text_callable = default_text_callable
         draw_text = ImageDraw.Draw(img)
         i = -1
         for index, layer in enumerate(model.layers):
             if (
                 # Check if the layer is an instance of the dynamically created class
-                type(layer) == SpacingDummyLayer
+                # type(layer) == SpacingDummyLayer
+                isinstance(layer, SpacingDummyLayer)
                 or is_spacing_dummy_layer(layer)
-                or
                 # by ignore list
-                type(layer) in type_ignore
+                or type(layer) in type_ignore
                 or index in index_ignore
             ):
                 continue
@@ -509,9 +599,6 @@ def layered_view(
 
     # Create layer color legend
     if legend:
-        if font is None:
-            font = ImageFont.load_default()
-
         if hasattr(font, "getsize"):
             text_height = font.getsize("Ag")[1]
         else:
@@ -569,7 +656,6 @@ def layered_view(
                 label_patch_size[1] - text_height
             ) / 2  # 2D center; use text_height and not the current label!
             draw_text.text((text_x, text_y), label, font=font, fill=font_color)
-
             draw_box.flush()
             img_box.paste(img_text, mask=img_text)
             patches.append(img_box)
@@ -585,7 +671,7 @@ def layered_view(
         )
         img = vertical_image_concat(img, legend_image, background_fill=background_fill)
 
-    if to_file is not None:
-        img.save(to_file)
-
+    # Save the image to file if specified
+    # if to_file is not None:
+    #     img.save(to_file)
     return img

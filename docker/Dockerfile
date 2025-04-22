@@ -89,7 +89,7 @@ RUN apt-get update \
 #     && sed -i '/jammy-security/s/^/#/' /etc/apt/sources.list
 ## Install common dependencies
 RUN apt-get update --yes \
-  && apt-get install --yes --no-install-recommends \
+  && apt-get --fix-broken install --yes --no-install-recommends \
     --allow-downgrades \
     ## Common useful utilities
     ## Essential packages for building software
@@ -125,7 +125,7 @@ RUN apt-get update --yes \
     ## Ensures that pdflatex generates sharp, scalable fonts in PDFs instead of bitmap (raster) fonts.
     cm-super \
     ## gives you all LaTeX packages
-    texlive-full \
+    # texlive-full \
     ## File and directory utilities
     ## Command-line utility for displaying directory structure
     tree \

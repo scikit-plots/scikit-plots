@@ -27,6 +27,7 @@ from ..._utils.validation import (
     # validate_y_probas_decorator,
     # validate_y_probas_bounds_decorator,
 )
+from ....utils.utils_plot_mpl import save_plot_decorator
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
@@ -82,6 +83,7 @@ def _clone_and_score_clusterer(clf, X, n_clusters):
 
 
 @validate_plotting_kwargs_decorator
+@save_plot_decorator
 def plot_elbow(
     clf,
     X,
@@ -94,6 +96,7 @@ def plot_elbow(
     figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
+    **kwargs,
 ):
     """
     Plot the elbow curve for different values of K in KMeans clustering.

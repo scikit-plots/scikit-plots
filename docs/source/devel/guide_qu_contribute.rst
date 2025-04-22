@@ -162,11 +162,11 @@ If you do not already have ``conda`` installed, `download and install miniforge
 your system but the end result is to provide a ``conda`` executable that you can use
 to create and manage isolated Python environments.
 
-Now create and activate an ``skplt-dev`` conda environment using the following::
+Now create and activate an ``py311`` conda environment using the following::
 
    >>> # (Optionally) Can be run on `conda base` or `venv` env
-   >>> conda create -n skplt-dev python graphviz
-   >>> conda activate skplt-dev
+   >>> mamba create -n py311 python=3.11 ipykernel graphviz -y
+   >>> conda activate py311
 
 Note the ``graphviz`` package is required for building the documentation.
 
@@ -182,6 +182,7 @@ all the dependencies needed to build and fully test ``scikit-plots``::
 
    >>> ## Setup scikit-plots lib dep
    >>> # pip install -r ./requirements/all.txt
+   >>> # pip install -r ./requirements/cpu.txt
    >>> pip install -r ./requirements/build.txt
 
    >>> ## Setup scikit-plots lib dep

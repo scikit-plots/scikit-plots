@@ -8,15 +8,29 @@
 ⭐⭐ =====================================  IMPORTANT!!  ===================================== ⭐⭐
   To complete setup of your development environment to run the following script in the terminal:
 
-    ## (Optionally) Memory size: df -h && du -h --max-depth=1
+    ##💽 (Optionally) Memory size: df -h && du -h --max-depth=1
 
-    ## (recommended) Only Installed by Codespaces default (default) option
+    ##👉 (recommended) Only Installed by `Codespaces default` option
+    ##✅ directories to mark as safe
+    ##✅ fetching submodules
+    ##✅ add remote upstream
+    ##✅ fetch tags from upstream
+    ##✅ create a new environment with python 3.11
+    ##✅ install required packages
+    ##✅ install pre-commit hooks
+    ##✅ install the development version of scikit-plots
     bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
 
-    ## Checking the build without root
+    ##👉 Open to new terminal
+    mamba activate py311
+
+    ##✅ Checking the build without root
     bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
 
-    ## continue to creating a branch
-    ## Read more at: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch
+    ##✅ Install tensorflow-cpu, if needed
+    pip install -r ./requirements/cpu.txt
+
+    ##✍ Continue to creating a branch
+    ##🌐 Read more at: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch
 
 ⭐⭐ ========================================================================================= ⭐⭐

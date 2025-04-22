@@ -8,6 +8,10 @@ from datetime import datetime
 
 from jinja2 import Environment, FileSystemLoader
 
+current_dir = os.path.dirname(__file__)
+output_path = os.path.join(current_dir, "../../")
+os.makedirs(output_path, exist_ok=True)
+
 # Get the current date and time
 now = datetime.now()
 formatted_date = now.strftime("%Y-%m-%d")  # Outputs: '2024-10-27'
@@ -23,6 +27,7 @@ context = {
         "Scikit-plot is the result of an unartistic data scientist's dreadful realization that visualization is one of the most crucial components in the data science process, not just a mere afterthought."
     ),
     # cff authors
+    "name": "The scikit-plots developers",
     "family_names": "celik",
     "given_names": "muhammed",
     "orcid": "https://orcid.org/0000-0000-0000-0000",
@@ -38,15 +43,15 @@ context = {
     "type": "software",
     # cff preferred-citation authors
     # cff preferred-citation optional
-    # "license": "BSD-3-Clause",
+    "license": "BSD-3-Clause",
     # "keywords": ["Software", "Python", "scikit-plots", "Machine Learning Visualization"],
     # bib software
     "include_software": True,
     "software_name": "scikit-plots",
-    "author": "scikit-plots developers",
     "release_month": "11",
     "release_year": "2024",
     "doc_url": "https://scikit-plots.github.io",
+    "doc_dev_url": "https://scikit-plots.github.io/dev",
     # # bib article
     # "include_article": False,
     # "article_key": "yourarticle2024",
@@ -72,9 +77,6 @@ context = {
 }
 
 # Step 2: Load your template
-current_dir = os.path.dirname(__file__)
-output_path = os.path.join(current_dir, "../../")
-os.makedirs(output_path, exist_ok=True)
 env = Environment(loader=FileSystemLoader(current_dir))
 template_bib = env.get_template("CITATION.bib.template")
 template_cff = env.get_template("CITATION.cff.template")
@@ -89,7 +91,9 @@ for template, output_fname in zip(
     # output = "\n".join([line for line in output.splitlines() if line.strip()])
 
     # Step 5: Print the rendered result or save it to a file
-    with open(os.path.join(output_path, output_fname), "w") as output_file:
+    with open(
+        os.path.join(output_path, output_fname), "w", encoding="utf-8"
+    ) as output_file:
         output_file.write(output)
 
     print(f"{os.path.join(output_path, output_fname)} file created successfully.")

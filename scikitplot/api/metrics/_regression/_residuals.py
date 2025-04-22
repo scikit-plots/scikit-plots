@@ -33,6 +33,7 @@ from scipy import stats
 # pip install tweedie probscale
 # import tweedie
 from scikitplot.stats import tweedie
+from ....utils.utils_plot_mpl import save_plot_decorator
 
 # Q-Q plot with fitted normal distribution
 # sm.qqplot
@@ -45,6 +46,7 @@ __all__ = ["plot_residuals_distribution"]
 
 
 # @validate_plotting_kwargs_decorator
+@save_plot_decorator
 def plot_residuals_distribution(
     ## default params
     y_true,

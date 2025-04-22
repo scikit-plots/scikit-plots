@@ -1,5 +1,5 @@
 """
-Visualkeras Spam Classification Conv1D Dense Example
+Visualkeras: Spam Classification Conv1D Dense Example
 ======================================================================
 
 An example showing Spam the :py:func:`~scikitplot.visualkeras` function
@@ -9,17 +9,22 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 # Force garbage collection
+
 import gc
 
 gc.collect()
 
-# pip install protobuf==5.29.4
+# %%
 
+# pip install protobuf==5.29.4
 import tensorflow as tf
 
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
+
+# %%
 
 model = tf.keras.models.Sequential()
 model.add(tf.keras.layers.InputLayer(input_shape=(100,)))
@@ -46,26 +51,62 @@ model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
 
 # Compile the model
 model.compile(optimizer="rmsprop", loss="binary_crossentropy", metrics=["accuracy"])
+model.summary()
+
+# %%
 
 from scikitplot import visualkeras
 
 img_spam = visualkeras.layered_view(
     model,
-    to_file="../result_images/spam_conv.png",
-    min_xy=10,
-    min_z=10,
-    scale_xy=10,
-    scale_z=10,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=6,
+    scale_xy=0.2,
+    font={"font_size": 14},
+    text_callable="default",
     one_dim_orientation="x",
+    # to_file="./spam_conv_x.png",
+    save_fig=True,
+    save_fig_filename="spam_conv_x.png",
 )
-try:
-    import matplotlib.pyplot as plt
 
-    plt.imshow(img_spam)
-    plt.axis("off")
-    plt.show()
-except:
-    pass
+img_spam = visualkeras.layered_view(
+    model,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=6,
+    scale_xy=0.2,
+    font={"font_size": 14},
+    text_callable="default",
+    one_dim_orientation="y",
+    # to_file="./spam_conv_y.png",
+    save_fig=True,
+    save_fig_filename="spam_conv_y.png",
+)
+
+img_spam = visualkeras.layered_view(
+    model,
+    min_z=1,
+    min_xy=1,
+    max_z=4096,
+    max_xy=4096,
+    scale_z=0.2,
+    scale_xy=1,
+    font={"font_size": 9},
+    text_callable="default",
+    one_dim_orientation="z",
+    # to_file="./spam_conv_z.png",
+    save_fig=True,
+    save_fig_filename="spam_conv_z.png",
+    overwrite=False,
+    add_timestamp=True,
+    verbose=True,
+)
 
 # %%
 #

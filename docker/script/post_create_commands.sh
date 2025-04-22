@@ -73,21 +73,46 @@ git remote add upstream https://github.com/scikit-plots/scikit-plots.git || true
 echo -e "\033[1;32m## Fetching tags from upstream...\033[0m"
 git fetch upstream --tags
 
-# Install the development version of scikit-plots
-echo -e "\033[1;32m## Installing development dependencies...\033[0m"
-pip install -r ./requirements/build.txt
-pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,docs]" -v
+######################################################################
+## env
+######################################################################
 
-# Install pre-commit
-echo -e "\033[1;32m## Installing pre-commit hooks...\033[0m"
-pip install pre-commit
+# Initialize mamba (or conda)
+mamba init --all || true
 
-# Install pre-commit hooks in the repository
-echo -e "\033[1;32m## Installing pre-commit hooks inside the repository...\033[0m"
-( cd "/workspaces/scikit-plots/" || true && pre-commit install )
+# Create a new environment with python 3.11 and ipykernel if it doesn't already exist
+mamba create -n py311 python=3.11 ipykernel -y || true
+
+# Activate the environment and install required packages
+# Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
+# Double quotes for the outer string and escaping the inner double quotes or use single
+bash -i -c "
+  mamba activate py311 || exit 1
+  mamba info -e | grep '*' || exit 1
+
+  echo -e '\033[1;32m## Installing development dependencies...\033[0m'
+  # pip install -r ./requirements/build.txt
+  pip install -r ./requirements/all.txt
+  # pip install -r ./requirements/cpu.txt
+
+  # Install pre-commit
+  echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m'
+  pip install pre-commit
+
+  # Install pre-commit hooks in the repository
+  echo -e '\033[1;32m## Installing pre-commit hooks inside the repository...\033[0m'
+  ( cd /workspaces/scikit-plots/ || true && pre-commit install )
+
+  echo -e '\033[1;32m## Install the development version of scikit-plots...\033[0m'
+  # Install the development version of scikit-plots
+  pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+"
 
 # Show next steps to user
 echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 
 # Provide more information about the next steps
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
+
+# (Optionally) Open new terminal activate `py311`
+echo -e "mamba info -e"

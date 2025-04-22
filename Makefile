@@ -135,7 +135,7 @@ newm:
 	# mamba create -n py312 python=3.12 ipykernel -y
 	# mamba create -n py313 python=3.13 ipykernel -y
 	# mamba create -n py314 python=3.14 ipykernel -y
-	# mamba activate py310
+	# mamba activate py311
 	# mamba deactivate
 
 ## https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html

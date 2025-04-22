@@ -25,5 +25,14 @@ import scikitplot as sp
 
 sp.get_logger().setLevel(sp.sp_logging.WARNING)
 train_r = sp.metrics.plot_classifier_eval(
-    y_train, y_pred, labels=np.unique(y), figsize=(8, 3.2), title="Confusion Matrix"
+    y_train,
+    y_pred,
+    labels=np.unique(y),
+    figsize=(8, 3.2),
+    title="Confusion Matrix",
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    verbose=True,
 )
