@@ -14,7 +14,7 @@ def assert_quantity_allclose(actual, desired, rtol=1.0e-7, atol=0, **kwargs):
     """
     Raise an assertion if two objects are not equal up to desired tolerance.
 
-    This is a :class:`~astropy.units.'Quantity'`-aware version of
+    This is a :class:`~astropy.units.Quantity`-aware version of
     :func:`numpy.testing.assert_allclose`.
     """
     __tracebackhide__ = True

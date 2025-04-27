@@ -192,7 +192,7 @@ dep: clean
 
 ## Packaging by 'setup.py' build the pypi Packages, depends on "clean"
 ## 'setup.py' can also be use by 'build' or 'installer' libraries to packaging
-install_setuptools: clean
+ins-st: clean
 	@echo "Packaging: 'setup.py' with setuptools, wheel..."
 	@# python setup.py build_ext --inplace --verbose
 	@# python setup.py sdist
@@ -200,7 +200,7 @@ install_setuptools: clean
 	@python setup.py sdist bdist_wheel
 
 ## Package by 'build' library by 'setup.py' or 'pyproject.toml' for pypi Packages, depends on "clean"
-build_setuptools: clean
+build-st: clean
 	@echo "Packaging: 'build' library by 'setup.py' or 'pyproject.toml' with own configuration..."
 	@echo "Configuration libraries: can be (e.g. (setuptools, wheels) or (mesonbuild, meson, ninja))."
 	@# pip install build
@@ -236,7 +236,7 @@ dev: clean dep
 ######################################################################
 
 ## Compile by "meson" library for step-by-step, depends on "clean"
-build: clean
+build-me: clean
 	@echo "Compiling: 'meson' library step-by-step compiling for debugging..."
 	@# pip install mesonbuild, meson, ninja
 

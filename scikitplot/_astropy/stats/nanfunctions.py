@@ -65,7 +65,7 @@ if HAS_BOTTLENECK:
         array: ArrayLike,
         axis: int | tuple[int, ...] | None = None,
         **kwargs,
-    ) -> float | NDArray | "Quantity":
+    ) -> "float | NDArray | Quantity":
         """Wrap bottleneck function to handle tuple axis.
 
         Also takes care to ensure the output is of the expected type,

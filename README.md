@@ -28,7 +28,7 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
   ```sh
   ## (Optionally) Install the lost dependency packages
   ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
-  ## curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+  curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
   pip install -r default.txt
   ```
   ```sh
@@ -40,9 +40,10 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
   - Branches:
     ```bash
     ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@main  # Latest in Development
+    ## Latest in Development
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@main
     ##
-    ## Works with standard Python (CPython), Added C,Cpp,Fortran Support
+    ## Works with standard Python (CPython), Added C, Cpp, Fortran Support
     ##
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
     ##
@@ -89,9 +90,9 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
   python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
   ```
   ```sh
-  ## cpu refer tensorflow-cpu, keras, transformers
-  ## gpu refer Cupy tensorflow lib require NVIDIA CUDA support
-  pip install "scikit-plots[gpu]"
+  ## [cpu] refer tensorflow-cpu, keras, transformers
+  ## [gpu] refer Cupy tensorflow lib require NVIDIA CUDA support
+  pip install "scikit-plots[cpu]"
   ```
 
 ---

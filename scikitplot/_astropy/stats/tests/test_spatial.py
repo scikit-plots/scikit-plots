@@ -70,7 +70,7 @@ with NumpyRNGContext(123):
 def test_ripley_uniform_property(points):
     # Ripley's K function without edge-correction converges to the area when
     # the number of points and the argument radii are large enough, i.e.,
-    # K(x) --> area as x --> inf
+    # K(x) --> area as x--> inf
     area = 50
     Kest = RipleysKEstimator(area=area)
     r = np.linspace(0, 20, 5)

@@ -3,8 +3,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# set +e  # Disable 'exit on error' temporarily for debugging
-set -e  # Exit script on error
+set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
 
 ######################################################################
@@ -24,14 +23,14 @@ for DIR in \
   "$(realpath ./third_party/astropy)" \
   "$(realpath ./third_party/seaborn)"
 do
-  # Check if the directory exists
+  ## Check if the directory exists
   if [ ! -d "$DIR" ]; then
     echo "Directory $DIR does not exist"
-  # else
-  #   echo "Directory $DIR exists, attempting to add it to safe.directory..."
+  ## else
+  ##   echo "Directory $DIR exists, attempting to add it to safe.directory..."
   fi
   ## Try adding the directory to the git safe.directory list
-  #git config --global --add safe.directory "$DIR" 2>&1 | tee /dev/tty | grep -q "error" && { echo "Failed to add $DIR to safe.directory"; FALLBACK=1; }
+  # git config --global --add safe.directory "$DIR" 2>&1 | tee /dev/tty | grep -q "error" && { echo "Failed to add $DIR to safe.directory"; FALLBACK=1; }
   git config --global --add safe.directory "$DIR" 2>/dev/null || { echo "Failed to add $DIR to safe.directory"; FALLBACK=1; }
 done
 
@@ -49,27 +48,42 @@ echo -e "\033[1;32m## Safe directory configuration complete.\033[0m"
 ## post_create_commands
 ######################################################################
 
-# to initialise local config file and fetch + checkout submodule (not needed every time)
 echo -e "\033[1;32m## Initializing local configuration and fetching submodules...\033[0m"
-git submodule update --init --recursive  # download submodules
+## Initialize and clone any missing submodules, set up the working tree
+## Almost always used after cloning a repo with submodules.
+git submodule update --init --recursive
 
-# (Optionally) pulls changes from the upstream remote repo and merges them
-# Check if user wants to pull changes from upstream
-# echo -e "\033[1;34m## Pulling latest changes and merging...\033[0m"
-# git submodule update --recursive --remote --merge # (not needed every time)
-
-# (Optionally) Updating your submodule to the latest commit
-# Check if user wants to update submodules to the latest commit
 # echo -e "\033[1;34m## Updating submodules to the latest commit...\033[0m"
-# git submodule update --remote # (not needed every time)
+## Update submodules to the latest commit on their configured remote branch
+## Used when you want your submodules to move to their latest remote commit.
+# git submodule update --remote --recursive # (not needed every time)
+
+## For each submodule, fetch updates from its remote
+## Used if you only want to fetch updates but not move HEAD or update the working directory yet.
+# git submodule foreach git fetch # (Less Common)
+
+## Same as above, but tries to merge if local submodule has uncommitted changes
+## Only used if you already made changes inside submodules locally and you don't want to lose them
+## — you want Git to merge updates instead of overwriting.
+# git submodule update --remote --merge # (Rare)
+
+# echo -e "\033[1;34m## Pulling latest changes and merging...\033[0m"
+## Update recursively, in case submodules have submodules
+## Submodules have nested submodules, and you have local changes inside those too,
+## and you want to merge, not reset.
+# git submodule update --remote --merge --recursive # (Very Rare (Edge Case))
 
 echo -e "\033[1;32m## Submodule update process completed!\033[0m"
 
-# Add remote upstream if not already added
+######################################################################
+## git upstream configuration
+######################################################################
+
+## Add remote upstream if not already added
 echo -e "\033[1;32m## Adding remote upstream repository...\033[0m"
 git remote add upstream https://github.com/scikit-plots/scikit-plots.git || true
 
-# Fetch tags from upstream
+## Fetch tags from upstream
 echo -e "\033[1;32m## Fetching tags from upstream...\033[0m"
 git fetch upstream --tags
 
@@ -77,15 +91,15 @@ git fetch upstream --tags
 ## env
 ######################################################################
 
-# Initialize mamba (or conda)
+## Initialize mamba (or conda)
 mamba init --all || true
 
-# Create a new environment with python 3.11 and ipykernel if it doesn't already exist
+## Create a new environment with python 3.11 and ipykernel if it doesn't already exist
 mamba create -n py311 python=3.11 ipykernel -y || true
 
-# Activate the environment and install required packages
-# Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
-# Double quotes for the outer string and escaping the inner double quotes or use single
+## Activate the environment and install required packages
+## Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
+## Double quotes for the outer string and escaping the inner double quotes or use single
 bash -i -c "
   mamba activate py311 || exit 1
   mamba info -e | grep '*' || exit 1
@@ -108,11 +122,11 @@ bash -i -c "
   pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 "
 
-# Show next steps to user
+## Show next steps to user
 echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 
-# Provide more information about the next steps
+## Provide more information about the next steps
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
 
-# (Optionally) Open new terminal activate `py311`
+## (Optionally) Open new terminal activate `py311`
 echo -e "mamba info -e"

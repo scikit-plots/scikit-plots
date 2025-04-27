@@ -18,7 +18,7 @@ administrator permission required). Then run:
 
   ## (Optionally) Install the lost packages
   ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
-  ## curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+  curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
   pip install -r default.txt
 
   ## Try Ensure all dependencies installed
