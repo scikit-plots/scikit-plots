@@ -6,13 +6,14 @@ for saving result images (such as plots).
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-import os
+import os  # noqa: I001
 import re
 import shutil
 
 # from pathlib import Path
 from datetime import datetime
-from typing import TYPE_CHECKING
+
+from typing import TYPE_CHECKING  # pylint: disable=wrong-import-order
 
 if TYPE_CHECKING:
     # Only imported during type checking

@@ -32,28 +32,40 @@ all: clean publish
 ######################################################################
 
 ## helper for defined targets in Makefile
+## -e enables interpretation of backslash escapes.
 help:
-	@echo "Please use \`make <target>' where <target> is one of"
+	@echo -e "Please use one of below targets with 'make <target>' like: \nmake clean-basic"
 	@echo "  clean-basic     to remove 'jupyter' artifacts and 'testing' artifacts files."
 	@echo "  clean           to remove package 'build' artifacts and temporary files."
-	@echo "  reset           to discarding any local uncommitted changes in tracked files."
+	@#echo "  reset           to discarding any local uncommitted changes in tracked files."
+	@echo "  tree            Get project file/folder structure."
+	@echo ""
+	@echo "  newm            mamba create environment 'py311'."
+	@echo "  conda           conda create environment 'py311'."
+	@echo "  dep             Install scikit-plots build dependencies. and cpu dep pkgs."
+	@echo "  ins             Install scikit-plots from local."
+	@echo "  dev             Install the development version of scikit-plots."
+	@echo ""
 	@echo "  pkg-setup       Packaging: 'setup.py' build the pypi Packages, depends on 'clean'"
 	@echo "  pkg-build       Packaging: 'build' library by 'setup.py' or 'pyproject.toml' for pypi Packages, depends on 'clean'"
 	@echo "  comp-meson      Compiling: 'meson' library for step-by-step compiling, depends on 'clean'"
-	@echo "  install         Install Packages to local, depends on 'clean'"
+	@echo ""
 	@echo "  test            to run unit tests after 'clean-basic'"
 	@echo "  examples        to execute py scripts under 'galleries/' folder"
 	@echo "  update-mod      Submodule Update. Usage: make update-sample [MOD=NumCpp]"
+	@echo ""
 	@echo "  branch          Add a Branch to the Local project. Usage: make branch BR=maintenance/x.x.x"
 	@echo "  branch-del      Delete the branch locally use BR Environment for del. Usage: make branch-del BR=maintenance/x.x.x"
 	@echo "  branch-delr     Delete the branch remotely use BR Environment for del. Usage: make branch-delr BR=maintenance/x.x.x"
 	@echo "  branch-clean    Periodically delete old local branches that have already been merged to keep your workspace clean."
 	@echo "  branch-push     Only new Creation stable branch Push to the remote repository. Including -u (or --set-upstream) flag."
+	@echo ""
 	@echo "  tag-sample      Tag sample by the latest commit or TAG Environment. Usage: make tag-sample [TAG=1.0.0]"
 	@echo "  tag             Add a Tag to the Local project check 'tag-sample'. Usage: make tag BR=maintenance/x.x.x [TAG=1.0.0]"
 	@echo "  tag-del         Delete the Local Tag use TAG Environment for del. Usage: make tag-del TAG=1.0.0"
 	@echo "  tag-delr        Delete the Remote Tag use TAG Environment for del. Usage: make tag-delr TAG=1.0.0"
 	@echo "  tag-push        Push the tag to the remote repository"
+	@echo ""
 	@echo "  check-publish   Checking the distribution files (Readme.md) for PyPI with twine."
 	@echo "  publish         to publish the project on PyPI"
 
@@ -126,12 +138,12 @@ tree:
 ## mamba create -n ... -c ... ...
 ## mamba install ...
 ## mamba list
-## mamba deactivate && mamba remove -y --all --name py38
+## mamba deactivate && mamba remove -y --all --name py311
 newm:
 	# mamba create -n py38 python=3.8 ipykernel -y
 	# mamba create -n py39 python=3.9 ipykernel -y
 	# mamba create -n py310 python=3.10 ipykernel -y
-	# mamba create -n py311 python=3.11 ipykernel -y
+	mamba create -n py311 python=3.11 ipykernel -y
 	# mamba create -n py312 python=3.12 ipykernel -y
 	# mamba create -n py313 python=3.13 ipykernel -y
 	# mamba create -n py314 python=3.14 ipykernel -y
@@ -161,7 +173,14 @@ newm:
 ## conda remove --name myenv --all
 newc:
 	conda create -n test python=3.11 ipykernel
-	conda activate test  # activate our environment
+	# conda activate test  # activate our environment
+
+## Install the development version of scikit-plots, depends on "clean"
+dep: clean
+	@echo "Installing library pip dependencies..."
+	@# pip install -r ./requirements/all.txt
+	@pip install -r ./requirements/build.txt
+	@pip install -r ./requirements/cpu.txt
 
 ######################################################################
 ## Packaging
@@ -195,22 +214,15 @@ build_setuptools: clean
 ## https://mesonbuild.com/meson-python/how-to-guides/editable-installs.html
 ######################################################################
 
-## Install the development version of scikit-plots, depends on "clean"
-install_dep: clean
-	@echo "Installing library pip dependencies..."
-	@# pip install -r ./requirements/all.txt
-	@pip install -r ./requirements/build.txt
-	@pip install -r ./requirements/cpu.txt
-
 ## Install Packages to local, depends on "clean"
-install: clean install_dep
+ins: clean dep
 	@echo "Installing Packages to local library (editable or not) for checking..."
 	@# python -m pip install .
 	@# python -m pip install --use-pep517 .
-	@# python -m pip install --no-build-isolation --no-cache-dir .
+	@python -m pip install --no-build-isolation --no-cache-dir . -v
 
 ## Install the development version of scikit-plots, depends on "clean"
-install_dev: clean install_dep
+dev: clean dep
 	@echo "Installing Packages to local library (editable or not) for checking..."
 	@# python -m pip install .
 	@# python -m pip install --use-pep517 .

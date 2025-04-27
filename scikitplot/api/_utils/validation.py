@@ -19,16 +19,22 @@ This module is part of the scikit-plots library and is intended for internal use
 to facilitate the validation and processing of inputs.
 """
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
 # code that needs to be compatible with both Python 2 and Python 3
 
 import functools
 import importlib
 import inspect
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-from sklearn.preprocessing import label_binarize
+import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+import numpy as np  # type: ignore[reportMissingModuleSource]
+from sklearn.preprocessing import label_binarize  # type: ignore[reportMissingModuleSource]
 
 from ... import _docstring
 
