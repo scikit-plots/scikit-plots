@@ -37,6 +37,9 @@ seaborn:
 	@python ../scikitplot/_build_utils/copyfiles.py \
 		'./submodules/vendored_seaborn/' '../scikitplot/_seaborn' \
 		-r --progress
+
+# fix
+seaborn-f:
 	@python ../scikitplot/_build_utils/fix_submodule_import.py \
 		-m 'seaborn' \
 		-r '../scikitplot/_seaborn'
