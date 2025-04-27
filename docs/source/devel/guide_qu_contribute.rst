@@ -178,7 +178,7 @@ will install the latest version of ``scikit-plots`` from your local git repo, al
 all the dependencies needed to build and fully test ``scikit-plots``::
 
    >>> ## (Optionally) setup one line scikit-plots development version
-   >>> make install_dev
+   >>> make dev
 
    >>> ## Setup scikit-plots lib dep
    >>> # pip install -r ./requirements/all.txt
@@ -189,6 +189,7 @@ all the dependencies needed to build and fully test ``scikit-plots``::
    >>> pip install --no-build-isolation --no-cache-dir -e . -v
 
    >>> ## (Optionally) It is also possible to include optional dependencies:
+   >>> ## cpu refer tensorflow-cpu, keras, transformers
    >>> python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
 
 .. _contributing_check_build:

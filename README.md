@@ -9,45 +9,13 @@
 
 The quickest and easiest way to go from analysis...
 
-### Install|Try Scikit-plots - Doc: https://scikit-plots.github.io/dev/devel/index.html
+#### Install|Try Scikit-plots
+
+##### - Doc: https://scikit-plots.github.io/dev/devel/index.html
 
 ## User Installation:
 
-### Installing from source (REQUIRED OS/LIB BUILD PACKAGES)
-You can also install scikit-plots from source if you want to take advantage of the latest changes:
-
-```sh
-# Forked repo: https://github.com/scikit-plots/scikit-plots.git
-git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
-cd scikit-plots
-```
-
-```sh
-bash docker/script/safe_dirs.sh  # add safe directories for git
-git submodule update --init  # download submodules
-```
-
-```sh
-# pip install -r ./requirements/all.txt
-pip install -r ./requirements/build.txt
-pip install --no-cache-dir -e . -v
-```
-
-### It is also possible to include optional dependencies:
-
-```sh
-# (Optionally) Try Development [dev,build,test,docs,gpu]
-# gpu refer Cupy lib require NVIDIA CUDA support
-# For More in Doc: https://scikit-plots.github.io/
-python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
-```
-
-```sh
-# gpu refer Cupy lib require NVIDIA CUDA support
-pip install "scikit-plots[gpu]"
-```
-
-### Installing using pip
+### PIP Installation by `pypi` or `github`
 
 The easiest way to set up scikit-plots is to install it using pip with the following command:
 
@@ -58,13 +26,17 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
 
 - by `pypi.anaconda.org`:
   ```sh
-  ## (Optionally) Install the lost packages
-  pip install -r requirements/default.txt
+  ## (Optionally) Install the lost dependency packages
+  ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+  ## curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+  pip install -r default.txt
+  ```
+  ```sh
   ## Try Ensure all dependencies installed
   pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
   ```
 
-- by source `GITHUB` use `@<branches>` or `@<tags>` If any:
+- by `GITHUB` to use `@<branches>` or `@<tags>`, If any:
   - Branches:
     ```bash
     ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
@@ -84,12 +56,48 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
   - Tags:
     ```bash
     ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc0
+    pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc3
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
     ```
 
+### Cloned Source Installation (REQUIRED OS/LIB BUILD PACKAGES)
+
+- You can also install scikit-plots from source if you want to take advantage of the latest changes:
+  ```sh
+  ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
+  git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
+  cd scikit-plots
+  ```
+  ```sh
+  ## (Optionally) Add safe directories for git
+  bash docker/script/safe_dirs.sh
+  ## download submodules
+  git submodule update --init
+  ```
+  ```sh
+  # pip install -r ./requirements/all.txt
+  pip install -r ./requirements/build.txt
+  ## Install development version
+  pip install --no-cache-dir -e . -v
+  ```
+
+- #### It is also possible to include optional dependencies:
+  ```sh
+  ## (Optionally) Try Development [build,dev,test,doc]
+  ## For More in Doc: https://scikit-plots.github.io/
+  python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
+  ```
+  ```sh
+  ## cpu refer tensorflow-cpu, keras, transformers
+  ## gpu refer Cupy tensorflow lib require NVIDIA CUDA support
+  pip install "scikit-plots[gpu]"
+  ```
+
+---
+
 ## Sample Plots
+
 
 <table style="margin-left:auto;margin-right:auto;width:100%;border-collapse:collapse;">
   <tr>
