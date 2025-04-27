@@ -28,7 +28,8 @@ discard:
 	@## Warning: -f is destructive—any unsaved changes will be lost.
 	# git checkout -f
 
-copy:
+# copy submodules into lib
+seaborn:
 	@## seaborn
 	@python ../scikitplot/_build_utils/copyfiles.py \
 		'../third_party/seaborn/seaborn/' '../scikitplot/_seaborn' \
@@ -40,6 +41,8 @@ copy:
 		-m 'seaborn' \
 		-r '../scikitplot/_seaborn'
 
+# copy submodules into lib
+astropy:
 	@## astropy
 	@python ../scikitplot/_build_utils/copyfiles.py \
 		'../third_party/astropy/astropy/stats/' '../scikitplot/_astropy/stats' \
@@ -47,6 +50,9 @@ copy:
 	@python ../scikitplot/_build_utils/copyfiles.py \
 		'./submodules/vendored_astropy/' '../scikitplot/_astropy' \
 		-r --progress
+
+# fix
+astropy-f:
 	@python ../scikitplot/_build_utils/fix_submodule_import.py \
 		-m 'astropy' \
 		-r '../scikitplot/_astropy' \

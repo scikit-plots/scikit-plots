@@ -17,7 +17,10 @@ administrator permission required). Then run:
   conda activate sklearn-env
 
   ## (Optionally) Install the lost packages
-  pip install -r requirements/default.txt
+  ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+  curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+  pip install -r default.txt
+
   ## Try Ensure all dependencies installed
   pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
 

@@ -102,15 +102,13 @@ Initialize and Fetch Submodules (Not Needed Every Time):
     ## Or use `git config ...` to add `scikit-plots` in git safe dirs
     bash docker/script/safe_dirs.sh  # add safe directories for git
 
-    # to initialise local config file and fetch + checkout submodule (not needed every time)
-    git submodule update --init --recursive  # download submodules
+    ## Initialize and clone any missing submodules, set up the working tree
+    ## Almost always used after cloning a repo with submodules.
+    git submodule update --init --recursive
 
-    # (Optionally) pulls changes from the upstream remote repo and merges them
-    # Check if user wants to pull changes from upstream
-    git submodule update --recursive --remote --merge # (not needed every time)
-    # (Optionally) Updating your submodule to the latest commit
-    # Check if user wants to update submodules to the latest commit
-    git submodule update --remote # (not needed every time)
+    ## Update submodules to the latest commit on their configured remote branch
+    ## Used when you want your submodules to move to their latest remote commit.
+    git submodule update --remote --recursive # (not needed every time)
 
 Adding and Fetching Upstream Remote:
 
@@ -178,7 +176,7 @@ will install the latest version of ``scikit-plots`` from your local git repo, al
 all the dependencies needed to build and fully test ``scikit-plots``::
 
    >>> ## (Optionally) setup one line scikit-plots development version
-   >>> make install_dev
+   >>> make dev
 
    >>> ## Setup scikit-plots lib dep
    >>> # pip install -r ./requirements/all.txt
@@ -189,6 +187,7 @@ all the dependencies needed to build and fully test ``scikit-plots``::
    >>> pip install --no-build-isolation --no-cache-dir -e . -v
 
    >>> ## (Optionally) It is also possible to include optional dependencies:
+   >>> ## cpu refer tensorflow-cpu, keras, transformers
    >>> python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
 
 .. _contributing_check_build:
