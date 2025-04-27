@@ -7,6 +7,5 @@ to work with the scikitplot library.
 # scikitplot/api/_utils/__init__.py
 
 # Your package/module initialization code goes here
-from ._figures import *
 from ._helpers import *
 from .validation import *

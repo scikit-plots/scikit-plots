@@ -10,16 +10,20 @@ and includes decorators for automatically saving plots.
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
 
-import functools
+# from functools import wraps
+import functools  # noqa: I001
 import logging
 import warnings
 
-# from functools import wraps
-from typing import TYPE_CHECKING
+# import inspect
 
+import numpy as np  # type: ignore[reportMissingModuleSource]
+import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
 import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 
 from .utils_path import get_file_path
+
+from typing import TYPE_CHECKING  # pylint: disable=wrong-import-order
 
 if TYPE_CHECKING:
     # Only imported during type checking
@@ -51,7 +55,7 @@ def save_plot_decorator(
     # *_dargs,  # not need placeholder
     # The target function to be decorated (passed when no parameters are used)
     func: "Optional[Callable[..., Any]]" = None,
-    # *,  # Expected one or more keyword parameter after '*'
+    # *,  # indicates that all following parameters must be passed as keyword
     **dkwargs: dict,  # Keyword arguments passed to the decorator for customization (e.g., verbose)
 ) -> "Callable[..., Any]":
     """
@@ -129,7 +133,10 @@ def save_plot_decorator(
                 # Save the plot if save_fig is True
                 # dkwargs = dkwargs.copy(); dkwargs.update(kwargs)
                 # Get dynamic saving parameters from the function arguments
+                show_fig = kwargs.get("show_fig", True)
                 save_fig = kwargs.get("save_fig", False)
+                # Automatically get the name of the calling script using inspect.stack()
+                # caller_filename = inspect.stack()[1].filename
                 save_fig_filename = (
                     kwargs.get("save_fig_filename", dkwargs.get("filename"))
                     or inner_func.__name__
@@ -157,10 +164,11 @@ def save_plot_decorator(
                             print(f"[INFO] Plot saved to: {save_path}")  # noqa: T201
                     except Exception as e:
                         print(f"[ERROR] Failed to save plot: {e}")  # noqa: T201
-                # Manage the plot window
-                plt.show()
-                # plt.gcf().clear()
-                # plt.close()
+                if show_fig:
+                    # Manage the plot window
+                    plt.show()
+                    # plt.gcf().clear()
+                    # plt.close()
             except Exception:
                 pass
             return result
@@ -172,6 +180,92 @@ def save_plot_decorator(
         return decorator(func)
 
     return decorator
+
+
+######################################################################
+## stacking matplotlib figures
+######################################################################
+
+
+@save_plot_decorator
+def stack_mpl_figures(
+    *figs: tuple,
+    orient: str = "vertical",
+    padding: float | None = None,
+    **kwargs,
+):
+    """
+    Stack multiple matplotlib figures into a single combined figure.
+    Save it (if specified).
+
+    Parameters
+    ----------
+    figs : tuple of matplotlib.figure.Figure
+        Figures to be combined.
+    orient : {'vertical', 'horizontal', 'v', 'h', 'x', 'y'}, default='vertical'
+        Direction to stack the figures.
+    padding : float, optional
+        Space between stacked figures, in inches.
+    **kwargs : dict
+        Additional keyword arguments passed to plt.subplots() (e.g., figsize, dpi).
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        A new combined figure containing all input figures.
+
+    Examples
+    --------
+    >>> import matplotlib.pyplot as plt
+    >>> fig1, ax1 = plt.subplots()
+    >>> ax1.plot([1, 2, 3], [4, 5, 6])
+    >>> ax1.set_title("Figure 1")
+    >>> fig2, ax2 = plt.subplots()
+    >>> ax2.bar(["A", "B", "C"], [3, 7, 2])
+    >>> ax2.set_title("Figure 2")
+    >>> import scikitplot as sp
+    >>> fig = sp.stack_mpl_figures(fig1, fig2)
+
+    """
+    if not figs:
+        raise ValueError("At least one figure must be provided.")
+    orient = orient.lower()
+    if orient in ["horizontal", "h", "x"]:
+        nrows, ncols = 1, len(figs)
+    elif orient in ["vertical", "v", "y"]:
+        nrows, ncols = len(figs), 1
+    else:
+        raise ValueError(
+            f"Unsupported orient '{orient}'. Use 'vertical' or 'horizontal' (or v/h/x/y)."
+        )
+
+    figsize = kwargs.get("figsize")
+    dpi = kwargs.get("dpi", 100)
+
+    if figsize is None:
+        # Set a basic figsize depending on orientation
+        if orient in ["horizontal", "h", "x"]:
+            figsize = (3.15 * len(figs), 12)  # (5 * len(figs), 4)
+        else:
+            figsize = (12, 3.15 * len(figs))  # (5, 4 * len(figs))
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, dpi=dpi)
+
+    # If only one figure, ax will not be a list, so we make it a list
+    # ax = [ax] if n_figs == 1 else ax
+
+    # Make axes iterable
+    axes = np.atleast_1d(axes).ravel()
+
+    for ax, fig_ in zip(axes, figs):
+        canvas = mpl.backends.backend_agg.FigureCanvasAgg(fig_)
+        canvas.draw()
+        image = np.asarray(canvas.buffer_rgba())
+        ax.imshow(image)
+        ax.axis("off")
+
+    plt.tight_layout(pad=padding if padding is not None else 0.5)
+    return fig
 
 
 ######################################################################

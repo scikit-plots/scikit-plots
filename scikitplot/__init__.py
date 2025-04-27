@@ -8,6 +8,8 @@ online at https://scikit-plots.github.io.
 """
 
 # mypy: disallow-any-generics
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -19,8 +21,9 @@ online at https://scikit-plots.github.io.
 
 # _set = set  # 'seaborn.set' override raise error or
 # use builtins.set
-import builtins as _builtins
-from typing import TYPE_CHECKING as _TYPE_CHECKING
+import builtins as _builtins  # noqa: I001
+
+from typing import TYPE_CHECKING as _TYPE_CHECKING  # pylint: disable=wrong-import-order
 
 if _TYPE_CHECKING:
     # Only imported during type checking
@@ -33,7 +36,9 @@ if _TYPE_CHECKING:
     )
 
 # import importlib as _importlib
-from numpy import __version__ as __numpy_version__
+from numpy import (  # pylint: disable=import-error, wrong-import-position  # type: ignore[reportMissingModuleSource]
+    __version__ as __numpy_version__,
+)
 
 ######################################################################
 ## scikit-plots modules and objects
@@ -44,26 +49,38 @@ from numpy import __version__ as __numpy_version__
 ## Format: MAJOR.MINOR.PATCH
 # __version__ = "0.3.7.post0"
 # __version__ = "0.3.9rc3"
-__version__ = "0.4.0rc3"
+__version__ = "0.4.0rc4"
 # __version__ = "0.4.0"
 # __version__ = "0.5.0.dev0"
 
 # import logging as _logging
-from .sp_logging import SpLogger, get_logger, sp_logger
+from .sp_logging import (  # pylint: disable=wrong-import-order, wrong-import-position
+    SpLogger,
+    get_logger,
+    sp_logger,
+)
 
 try:  # Trt to import meson built files, modules (etc. *.in)
     # Configuration helper
-    from .__config__ import show as show_config
+    from .__config__ import (  # type: ignore[reportMissingModuleSource]
+        show as show_config,
+    )
 
     # Citations helper
-    from ._citation import __bibtex__, __citation__
+    from ._citation import (  # type: ignore[reportMissingModuleSource]
+        __bibtex__,
+        __citation__,
+    )
 
     # Low-level callback function
     from ._xp_core_lib._ccallback import LowLevelCallable
 
     # If a version with git hash was stored, use that instead.
     # Override version if any.
-    from .version import __git_hash__, __version__
+    from .version import (  # type: ignore[reportMissingModuleSource]
+        __git_hash__,
+        __version__,
+    )
 except (ImportError, ModuleNotFoundError):
     _msg = (
         "Error importing scikitplot: you cannot import scikitplot while "
@@ -89,6 +106,7 @@ from ._xp_core_lib._array_api import gpu_libraries
 # Export api modules
 from .api import *  # noqa: F401,F403
 from .utils.utils_path import remove_paths
+from .utils.utils_plot_mpl import stack_mpl_figures
 
 test = PytestTester(__name__)
 del PytestTester
@@ -122,6 +140,7 @@ _submodules = {
     "kds",
     "misc",
     "modelplotpy",
+    "pipeline",
     "probscale",
     # sphinxext,
     "stats",

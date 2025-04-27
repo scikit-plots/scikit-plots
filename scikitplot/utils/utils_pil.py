@@ -12,7 +12,8 @@ import logging
 import os
 import platform
 import warnings
-from typing import TYPE_CHECKING
+
+# import inspect
 
 ## Attempt to import `cache` from `functools` (Python >= 3.9)
 try:
@@ -21,7 +22,7 @@ except ImportError:
     # Fallback to `lru_cache` for Python < 3.9
     from functools import lru_cache as cache
 
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]  # noqa: I001
 from PIL import (  # type: ignore[reportMissingModuleSource]
     # Image,
     # ImageColor,
@@ -30,6 +31,8 @@ from PIL import (  # type: ignore[reportMissingModuleSource]
 )
 
 from .utils_path import get_file_path
+
+from typing import TYPE_CHECKING  # pylint: disable=wrong-import-order
 
 if TYPE_CHECKING:
     # Only imported during type checking
@@ -328,7 +331,7 @@ def save_image_pil_decorator(
     # *_dargs,  # not need placeholder
     # The target function to be decorated (passed when no parameters are used)
     func: "Optional[Callable[..., Any]]" = None,
-    # *,  # Expected one or more keyword parameter after '*'
+    # *,  # indicates that all following parameters must be passed as keyword
     **dkwargs: dict,  # Keyword arguments passed to the decorator for customization (e.g., verbose)
 ) -> "Callable[..., Any]":
     """
@@ -408,7 +411,11 @@ def save_image_pil_decorator(
                 # Get dynamic saving parameters from the function arguments
                 backend = kwargs.get("backend", "matplotlib")
                 show_os_viewer = kwargs.get("show_os_viewer", False)
+                # mpl
+                show_fig = kwargs.get("show_fig", True)
                 save_fig = kwargs.get("save_fig", False)
+                # Automatically get the name of the calling script using inspect.stack()
+                # caller_filename = inspect.stack()[1].filename
                 save_fig_filename = (
                     kwargs.get("save_fig_filename", dkwargs.get("filename"))
                     or inner_func.__name__
@@ -449,10 +456,11 @@ def save_image_pil_decorator(
                                     )
                             except Exception as e:
                                 print(f"[ERROR] Failed to save plot: {e}")  # noqa: T201
-                            # Manage the plot window
-                            plt.show()
-                            # plt.gcf().clear()  # Clear the figure after saving
-                            # plt.close()
+                            if show_fig:
+                                # Manage the plot window
+                                plt.show()
+                                # plt.gcf().clear()  # Clear the figure after saving
+                                # plt.close()
                         except Exception as e:
                             warnings.warn(
                                 "[ERROR] Could not saved image using Matplotlib to "
