@@ -26,6 +26,7 @@ if git_check.returncode() != 0
   message('Git not found. Skipping submodule update.')
 else
   # If git is found, try to update the submodules
+  # Initialize and update submodules
   submodule_cmd = run_command(
     'git', 'submodule', 'update', '--init', '--recursive'
   )
