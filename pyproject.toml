@@ -175,7 +175,8 @@ maintainers = [
 
 ## Specify the minimum Python version required
 ## https://packaging.python.org/en/latest/specifications/core-metadata/#requires-python
-requires-python = ">=3.8"  # also compatipable 3.7
+## TODO: "3.10"  # due to array api compat
+requires-python = ">=3.8"
 
 ## Purpose: Specifies the runtime dependencies needed for the project to run after it's installed.
 ## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#declaring-required-dependency
