@@ -237,9 +237,11 @@ def git_version(
             "git",
             "log",
             "-1",
+            ## 9a1f3d7 - John Doe, 2 days ago : Update README file
             # f'--format={format}',
-            # f'--pretty=format:"%h - %an, %ar : %s"',  # 9a1f3d7 - John Doe, 2 days ago : Update README file
+            # f'--pretty=format:"%h - %an, %ar : %s"',
             f"--pretty=format:{format}",
+            "--date=format:%Y-%m-%d %H:%M",
         ]
 
         # Run the git command
@@ -276,6 +278,8 @@ def git_version(
             # Append git hash information to development versions
             # Provide Git Development Edition, Git Deployment Environment, or simply a custom build identifier
             if "dev" in version:
+                version += f"+git.{git_date}.{git_hash[:7] if short else git_hash}"
+            else:
                 version += f"+git.{git_date}.{git_hash[:7] if short else git_hash}"
     except FileNotFoundError:
         # Git command not found or not in a git repository
@@ -391,10 +395,15 @@ if __name__ == "__main__":
     """
     Module to expose more detailed version info for the installed `scikitplot`.
     """
-    # Syntax: 0.5.dev0+git.20250114.96321ef
-    __version__ = version = full_version = "{version}"
+    # Syntax: 0.4.0rc4+git.20250114.96321ef
+    # Syntax: 0.5.0.dev0+git.20250114.96321ef
+    full_version = "{version}"
 
-    # Syntax: 0.5.dev0  # .split('.dev')[0]
+    __version__ = version = (
+        full_version if 'dev' in full_version else full_version.split("+")[0]
+    )
+
+    # Syntax: 0.5.0.dev0  # .split('.dev')[0]
     _version = short_version = full_version.split("+")[0]
 
     __git_hash__ = git_revision = "{git_hash}"
@@ -417,7 +426,8 @@ if __name__ == "__main__":
             print(f"Saving version to {relpath}")
             f.write(template)
     else:
-        print(version.split("+")[0])  # Pkg Syntax: 0.5.dev0
+        # Pkg version syntax always use short: 0.5.dev0
+        print(version.split("+")[0])
 
 ######################################################################
 ## ...

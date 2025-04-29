@@ -105,8 +105,8 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
      </a>
    </div>
 
-▶️ Connect Docker Container Especially When Docker GUI dont available
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+▶️ Connect Docker Container Especially When `Docker-GUI dont available`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: sh
 
@@ -116,21 +116,32 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
    docker logs CONTAINER_ID_OR_NAME  # find jupyter (token) http address 127.0....
    docker exec -it CONTAINER_ID_OR_NAME bash  # Connect interactive terminal
 
-▶️ Run post_create_commands.sh
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: sh
-
-   # bash .devcontainer/script/post_create_commands.sh
-   bash docker/script/post_create_commands.sh  # (not needed every time)
-
 ▶️ Run setup_vscode_ext.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: sh
 
-   # (Optionally) vscode_ext
+   ## (Optionally) Install common vscode extensions
+   ##✅ c/C++/Python and Jupyter Notebook
+   ##✅ Linter and Formatter
    bash docker/script/setup_vscode_ext.sh  # (not needed every time)
+
+▶️ Run post_create_commands.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: sh
+
+   ##👉 (recommended) Only Installed by `Codespaces default` option
+   ##✅ directories to mark as safe
+   ##✅ fetching submodules
+   ##✅ add remote upstream
+   ##✅ fetch tags from upstream
+   ##✅ create a new environment with python 3.11
+   ##✅ install required packages
+   ##✅ install pre-commit hooks
+   ##✅ install the development version of scikit-plots
+   # bash .devcontainer/script/post_create_commands.sh  # (not needed every time)
+   bash docker/script/post_create_commands.sh  # (not needed every time)
 
 🚯 Stop Containers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
