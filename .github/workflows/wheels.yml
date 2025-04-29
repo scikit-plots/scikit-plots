@@ -178,6 +178,7 @@ jobs:
           - [macos-14, macosx, arm64, accelerate, "14.0"]
           - [windows-2019, win, AMD64]  # Window 64 bit ("*-win_amd64", "*-x86_64")
         python: [
+          ## Min Py version "3.10" due to array api compat
           ## python[0] is used to specify the python versions made by cibuildwheel
           # ["pp310", "3.10"],  # pp310 (PyPy 3.10) Slower startup Just-In-Time (JIT) warm-up
           ["cp310", "3.10"],  # CPython 3.10 – Broadest library support, stable
@@ -532,11 +533,16 @@ jobs:
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
           fetch-tags: true
 
+      # - name: Install system dependencies, Not needed cause os independent
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y libopenblas-dev liblapack-dev
+
       # Used to push the built wheels
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           # Build sdist on lowest supported Python
-          python-version: "3.11"
+          python-version: "3.10"  # due to array api compat
 
       - name: Build sdist
         run: |
