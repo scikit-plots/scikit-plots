@@ -10,6 +10,31 @@
 ## Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
 
+# Check the OS
+os_type = meson.project_machine().system()
+
+# Check if Git is available, use 'which' for Linux/macOS, 'where' for Windows
+if os_type == 'windows'
+  git_check = run_command('where', 'git')
+else
+  git_check = run_command('which', 'git')
+endif
+
+# If git is found, attempt to update the submodules
+# If git is not found, print a message and skip the submodule update
+if git_check.returncode() != 0
+  message('Git not found. Skipping submodule update.')
+else
+  # If git is found, try to update the submodules
+  submodule_cmd = run_command(
+    'git', 'submodule', 'update', '--init', '--recursive'
+  )
+  if submodule_cmd.returncode() != 0
+    # Optionally log the failure, but don't stop the build
+    message('Git submodule update failed, but continuing without error.')
+  endif
+endif
+
 ######################################################################
 ## Submodule `array-api-compat` for Python array API standard
 ## https://data-apis.org/array-api/latest/index.html
