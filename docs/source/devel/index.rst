@@ -321,6 +321,7 @@ manage, or release manage, these guidelines describe how our current process wor
          :maxdepth: 1
 
          guide_maintainer.rst
+         conda-forge Guidelines <guide_maintainer_conda_forge.rst>
 
    .. grid-item-card::
       :shadow: none

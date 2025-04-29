@@ -4,7 +4,7 @@
        :depth: 2
 
 ======================================================================
-How to Add ``scikit-plots`` to conda-forge
+How to Add ``scikit-plots`` to conda-forge Guidelines
 ======================================================================
 
 This guide provides a **comprehensive, beginner-friendly walkthrough** for adding ``scikit-plots`` to conda-forge, including best practices, important notes, and maintenance instructions.
