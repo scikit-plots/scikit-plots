@@ -3,6 +3,10 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+######################################################################
+## ANSI colors
+######################################################################
+
 # ANSI colors for pretty output
 BOLD='\033[1m'
 RESET='\033[0m'
@@ -19,6 +23,10 @@ CYAN='\033[1;36m'
 # current_dir = meson.current_source_dir()
 ## Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
+
+######################################################################
+## submodules
+######################################################################
 
 # Check if Git is available, use 'which' for Linux/macOS, 'where' for Windows
 if host_machine.system() == 'windows'
