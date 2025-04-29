@@ -5,6 +5,34 @@
 
 # Welcome to Scikit-plots 101
 
+<a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank">
+<img style="display:auto;width:28.5%;height:auto;" alt="CI Build Wheels" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml/badge.svg?event=workflow_dispatch">
+</a>
+<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
+<img style="display:auto;width:27.5%;height:auto;" alt="Nightly wheels" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
+</a>
+<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
+<img style="display:auto;width:25%;height:auto;" alt="Nightly wheels" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
+</a>
+<a href="https://pypi.org/project/scikit-plots" target="_blank">
+<img style="display:auto;width:16.5%;height:auto;" alt="pypi" src="https://img.shields.io/pypi/v/scikit-plots">
+</a>
+
+<a href="https://app.circleci.com/pipelines/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij" target="_blank">
+<img style="display:auto;width:17.5%;height:auto;" alt="CircleCI" src="https://dl.circleci.com/status-badge/img/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main.svg?style=shield">
+</a>
+<a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
+<img style="display:auto;width:32.5%;height:auto;" alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
+</a>
+<a href="https://github.com/astral-sh/ruff" target="_blank">
+<img style="display:auto;width:16%;height:auto;" alt="Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000.svg">
+</a>
+<a href="https://pypi.org/project/scikit-plots" target="_blank">
+<img style="display:auto;width:31.5%;height:auto;" alt="pyversions" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
+</a>
+
+
+
 ## Single line functions for detailed visualizations
 
 The quickest and easiest way to go from analysis...
