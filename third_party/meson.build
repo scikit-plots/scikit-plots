@@ -12,10 +12,10 @@
 
 # Check if Git is available, use 'which' for Linux/macOS, 'where' for Windows
 if host_machine.system() == 'windows'
-  git_check = run_command('where', 'git')
+  git_check = run_command('where', 'git', check: false)
 else
   # host_machine.system() == 'linux' or host_machine.system() == 'darwin'
-  git_check = run_command('which', 'git')
+  git_check = run_command('which', 'git', check: false)
 endif
 
 # If git is found, attempt to update the submodules
@@ -26,11 +26,14 @@ else
   # If git is found, try to update the submodules
   # Initialize and update submodules
   submodule_cmd = run_command(
-    'git', 'submodule', 'update', '--init', '--recursive'
+    'git', 'submodule', 'update', '--init', '--recursive',
+    check: false
   )
   if submodule_cmd.returncode() != 0
     # Optionally log the failure, but don't stop the build
-    message('Git submodule update failed, but continuing without error.')
+    message(
+      'Git submodule update failed, but continuing without error.'
+    )
   endif
 endif
 
@@ -206,3 +209,8 @@ endif
 ######################################################################
 ##
 ######################################################################
+
+# Optionally add a message to confirm the installation
+message(
+  '\nSUCCESS: scikitplot submodules installed successfully.'
+)

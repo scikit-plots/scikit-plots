@@ -1094,7 +1094,7 @@ install_subdir(
 )
 # Optionally add a message to confirm the installation
 message(
-  '\nscikitplot files installed successfully: ' +
+  '\nSUCCESS: scikitplot files installed successfully: ' +
   '@0@'.format(py.get_install_dir())
 )
 
