@@ -21,7 +21,9 @@ endif
 # If git is found, attempt to update the submodules
 # If git is not found, print a message and skip the submodule update
 if git_check.returncode() != 0
-  message('Git not found. Skipping submodule update.')
+  message(
+    '\033[1;33m[INFO]\033[0m Git not found. Skipping submodule update.'
+  )
 else
   # If git is found, try to update the submodules
   # Initialize and update submodules
@@ -32,7 +34,7 @@ else
   if submodule_cmd.returncode() != 0
     # Optionally log the failure, but don't stop the build
     message(
-      'Git submodule update failed, but continuing without error.'
+      '\033[1;33m[INFO]\033[0m Git submodule update failed, but continuing without error.'
     )
   endif
 endif
@@ -60,7 +62,7 @@ install_subdir(
 )
 ## Optionally add a message to confirm the installation
 message(
-  '\nArray API compatibility files installed successfully: ' +
+  '\n\033[1;33m[INFO]\033[0m Array API compatibility files installed successfully: ' +
   '@0@'.format(py.get_install_dir() / 'scikitplot/_xp_core_lib/array_api_compat')
 )
 
@@ -87,7 +89,7 @@ install_subdir(
 )
 ## Optionally add a message to confirm the installation
 message(
-  '\nArray API compatibility files installed successfully: ' +
+  '\n\033[1;33m[INFO]\033[0m Array API compatibility files installed successfully: ' +
   '@0@'.format(py.get_install_dir() / 'scikitplot/_xp_core_lib/array_api_extra')
 )
 
@@ -144,7 +146,7 @@ endif
 
 ## Optionally add a message to confirm the installation
 # message(
-#   '\n`seaborn` compatibility files installed successfully: ' +
+#   '\n\033[1;33m[INFO]\033[0m `seaborn` compatibility files installed successfully: ' +
 #   '@0@'.format( meson.project_source_root() / 'scikitplot/_seaborn' )
 # )
 
@@ -202,7 +204,7 @@ endif
 
 ## Optionally add a message to confirm the installation
 # message(
-#   '\n`astropy` compatibility files installed successfully: ' +
+#   '\n\033[1;33m[INFO]\033[0m `astropy` compatibility files installed successfully: ' +
 #   '@0@'.format( meson.project_source_root()/'scikitplot/_astropy/stats' )
 # )
 
