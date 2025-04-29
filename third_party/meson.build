@@ -3,12 +3,75 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+######################################################################
+## ANSI colors
+######################################################################
+
+# ANSI colors for pretty output
+BOLD='\033[1m'
+RESET='\033[0m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
+YELLOW='\033[1;33m'
+MAGENTA='\033[1;35m'
+CYAN='\033[1;36m'
+
 ## Get the directory relative to the top-level project directory
 # project_root = meson.project_source_root()
 ## Get the directory relative to the current meson.build file
 # current_dir = meson.current_source_dir()
 ## Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
+
+######################################################################
+## submodules
+######################################################################
+
+# Check if Git is available, use 'which' for Linux/macOS, 'where' for Windows
+if host_machine.system() == 'windows'
+  git_check = run_command('where', 'git', check: false)
+else
+  # host_machine.system() == 'linux' or host_machine.system() == 'darwin'
+  git_check = run_command('which', 'git', check: false)
+endif
+
+# Check if expected submodule folders exist
+required_submodules = [
+  'third_party/array-api-compat',
+  'third_party/array-api-extra',
+]
+
+foreach submod : required_submodules
+  if not fs.exists(meson.current_source_dir() / submod)
+    # If git is found, attempt to update the submodules
+    # If git is not found, print a message and skip the submodule update
+    if git_check.returncode() != 0
+      message(
+        '\n' +
+        BLUE + '[INFO]' + RESET +
+        ' Git not found. Skipping submodule update.'
+      )
+    else
+      # If git is found, try to update the submodules
+      # Initialize and update submodules
+      submodule_cmd = run_command(
+        'git', 'submodule', 'update', '--init', '--recursive',
+        check: false
+      )
+      if submodule_cmd.returncode() != 0
+        # Optionally log the failure, but don't stop the build
+        message(
+          '\n' +
+          BLUE + '[INFO]' + RESET +
+          ' Git submodule update failed, but continuing without error.'
+        )
+      endif
+    endif
+  else
+    message(green + '[FOUND]' + reset + ' ' + submod)
+  endif
+endforeach
 
 ######################################################################
 ## Submodule `array-api-compat` for Python array API standard
@@ -33,7 +96,9 @@ install_subdir(
 )
 ## Optionally add a message to confirm the installation
 message(
-  '\nArray API compatibility files installed successfully: ' +
+  '\n' +
+  BLUE + '[INFO]' + RESET +
+  ' Array API compatibility files installed successfully: ' +
   '@0@'.format(py.get_install_dir() / 'scikitplot/_xp_core_lib/array_api_compat')
 )
 
@@ -60,7 +125,9 @@ install_subdir(
 )
 ## Optionally add a message to confirm the installation
 message(
-  '\nArray API compatibility files installed successfully: ' +
+  '\n' +
+  BLUE + '[INFO]' + RESET +
+  ' Array API compatibility files installed successfully: ' +
   '@0@'.format(py.get_install_dir() / 'scikitplot/_xp_core_lib/array_api_extra')
 )
 
@@ -117,7 +184,7 @@ endif
 
 ## Optionally add a message to confirm the installation
 # message(
-#   '\n`seaborn` compatibility files installed successfully: ' +
+#   '\n `seaborn` compatibility files installed successfully: ' +
 #   '@0@'.format( meson.project_source_root() / 'scikitplot/_seaborn' )
 # )
 
@@ -175,10 +242,17 @@ endif
 
 ## Optionally add a message to confirm the installation
 # message(
-#   '\n`astropy` compatibility files installed successfully: ' +
+#   '\n `astropy` compatibility files installed successfully: ' +
 #   '@0@'.format( meson.project_source_root()/'scikitplot/_astropy/stats' )
 # )
 
 ######################################################################
 ##
 ######################################################################
+
+# Optionally add a message to confirm the installation
+message(
+  '\n' +
+  GREEN + '[SUCCESS]' + RESET +
+  ' scikitplot submodules installed successfully.'
+)

@@ -31,7 +31,7 @@ project(
     'pkgconfig.relocatable=true',
     'c_std=c17',                     # Set C standard to C17
     'cpp_std=c++17',                 # Set C++ standard to C++17
-    'fortran_std=legacy',
+    # 'fortran_std=legacy',          # ERROR 'none'
     # 'blas=openblas',               # 'scipy-openblas'
     # 'lapack=openblas',             # 'scipy-openblas'
     # https://mesonbuild.com/Builtin-options.html#details-for-warning_level
@@ -55,6 +55,20 @@ meson.add_dist_script(
 
 ## Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
+
+######################################################################
+## ANSI colors
+######################################################################
+
+## ANSI colors for pretty output
+BOLD='\033[1m'
+RESET='\033[0m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
+YELLOW='\033[1;33m'
+MAGENTA='\033[1;35m'
+CYAN='\033[1;36m'
 
 ######################################################################
 ## BLAS/LAPACK dependency
@@ -191,7 +205,11 @@ if have_blas
     else
       blas_symbol_suffix = blas.get_variable('symbol_suffix', default_value: '')
     endif
-    message(f'BLAS symbol suffix: @blas_symbol_suffix@')
+    message(
+      '\n' +
+      BLUE + '[INFO]' + RESET +
+      f' BLAS symbol suffix: @blas_symbol_suffix@'
+    )
   endif
   if blas_symbol_suffix != ''
     _args_blas += ['-DBLAS_SYMBOL_SUFFIX=' + blas_symbol_suffix]
@@ -243,6 +261,13 @@ endif
 # Adding at project level causes many spurious -lgfortran flags.
 add_languages('fortran', native: false)
 ff = meson.get_compiler('fortran')
+if ff.get_id() == 'gcc'
+  # -std=legacy is not supported by all Fortran compilers, but very useful with
+  # gfortran since it avoids a ton of warnings that we don't care about.
+  # Needs fixing in Meson, see https://github.com/mesonbuild/meson/issues/11633.
+  add_project_arguments('-std=legacy', language: 'fortran')
+endif
+
 if ff.has_argument('-Wno-conversion')
   add_project_arguments(
     '-Wno-conversion',
@@ -356,7 +381,10 @@ if cc_id.startswith('clang')
       trapping_math = [trapping_math, '-Wno-unsupported-floating-point-opt']
       # Inform the user about the workaround.
       message(
-        'Clang version does not strictly enforce floating-point exception handling. ' +
+        '\n' +
+        BLUE + '[INFO]' + RESET +
+        ' Clang version does not strictly ' +
+        'enforce floating-point exception handling. ' +
         'Performance may be impacted. Consider upgrading Clang.'
       )
     endif
@@ -438,7 +466,11 @@ foreach arg : _global_c_args
     add_project_arguments(arg, language: 'c')
   else
     # Debug message for compiler IDs
-    message('C compiler (' + cc_id + ') does not support argument: ' + arg)
+    message(
+      '\n' +
+      BLUE + '[INFO]' + RESET +
+      ' C compiler (' + cc_id + ') does not support argument: ' + arg
+    )
   endif
 endforeach
 
@@ -448,7 +480,11 @@ foreach arg : _global_cpp_args
     add_project_arguments(arg, language: 'cpp')
   else
     # Debug message for compiler IDs
-    message('C++ compiler (' + cpp_id + ') does not support argument: ' + arg)
+    message(
+      '\n' +
+      BLUE + '[INFO]' + RESET +
+      ' C++ compiler (' + cpp_id + ') does not support argument: ' + arg
+    )
   endif
 endforeach
 
@@ -738,7 +774,7 @@ if get_option('pythran').enabled()
       [
         '-c',
       '''\
-import os; os.chdir("..")
+import os; os.chdir('..')
 import pythran
 print(os.path.dirname(pythran.__file__))
 '''
@@ -749,7 +785,9 @@ print(os.path.dirname(pythran.__file__))
   inc_dir_pythran = include_directories(_pythran_inc_dir)
 
   message(
-    'pythran include dir: @0@'.format(_pythran_inc_dir)
+  '\n' +
+  BLUE + '[INFO]' + RESET +
+  ' pythran include dir: @0@'.format(_pythran_inc_dir)
   )
 endif
 
@@ -982,7 +1020,7 @@ try:
   # get absolute path
   _np_inc_dir = np.get_include()
   if not os.path.exists(_np_inc_dir):
-    raise FileNotFoundError("")
+    raise FileNotFoundError('')
 except Exception as e:
   os.chdir('.')
   _np_inc_dir = np.get_include()
@@ -1006,8 +1044,12 @@ else
   _np_inc_dir_abs = _np_inc_dir
 endif
 message(
-  '\nnumpy include dir    : @0@'.format(_np_inc_dir) +
-  '\nnumpy include dir abs: @0@'.format(_np_inc_dir_abs)
+  '\n' +
+  BLUE + '[INFO]' + RESET +
+  ' numpy include dir    : @0@'.format(_np_inc_dir) +
+  '\n' +
+  BLUE + '[INFO]' + RESET +
+  ' numpy include dir abs: @0@'.format(_np_inc_dir_abs)
 )
 
 # Use the include directory in your build setup
@@ -1087,7 +1129,9 @@ install_subdir(
 )
 # Optionally add a message to confirm the installation
 message(
-  '\nscikitplot files installed successfully: ' +
+  '\n' +
+  GREEN + '[SUCCESS]' + RESET +
+  ' scikitplot files installed successfully: ' +
   '@0@'.format(py.get_install_dir())
 )
 

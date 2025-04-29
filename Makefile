@@ -552,18 +552,18 @@ push:
 	@git add . && git commit -m "fix dependency"  && git push
 
 release:
-	@git tag -d "v0.4.0rc2" || true
+	@git tag -d "v0.4.0rc4" || true
 
 	@## Creates the tag locally
-	git tag -a "v0.4.0rc2" -m "Release version 0.4.0rc2"
+	git tag -a "v0.4.0rc4" -m "Release version 0.4.0rc4"
 
 	@## Pushes the tag to your fork
-	git push origin "v0.4.0rc2"    # push just that tag
+	git push origin "v0.4.0rc4"    # push just that tag
 
 	@## Pushes all tags to your fork
 	@## git push --tags            # then push all tags
 
-	@## Pushes tag to upstream (if allowed) v0.4.0rc2 (APR 09th, 2025)
-	git push upstream "v0.4.0rc2"    # push just that tag
+	@## Pushes tag to upstream (if allowed) v0.4.0rc4 (APR 29th, 2025)
+	git push upstream "v0.4.0rc4"    # push just that tag
 
 	@# git ls-remote --tags origin  # verify what's pushed by running

@@ -34,7 +34,7 @@ fi
 export NPY_AVAILABLE_MEM="4 GB"
 
 
-FREE_THREADED_BUILD="$(python -c"import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")"
+FREE_THREADED_BUILD="$(python -c "import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")"
 if [[ $FREE_THREADED_BUILD == "True" ]]; then
     # TODO: delete when importing numpy no longer enables the GIL
     # setting to zero ensures the GIL is disabled while running the

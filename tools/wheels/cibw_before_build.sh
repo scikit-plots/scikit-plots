@@ -56,11 +56,14 @@ export PYTHONHASHSEED=0
 ## Logging Functions
 ######################################################################
 # Colors for Pretty Logs
-# RESET="\033[0m"
-# CYAN="\033[1;36m"
-# GREEN="\033[1;32m"
-# YELLOW="\033[1;33m"
-# RED="\033[1;31m"
+# BOLD='\033[1m'
+# RESET='\033[0m'
+# RED='\033[1;31m'
+# GREEN='\033[1;32m'
+# BLUE='\033[1;34m'
+# YELLOW='\033[1;33m'
+# MAGENTA='\033[1;35m'
+# CYAN='\033[1;36m'
 log()     { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;36m[INFO]\033[0m $1"; }
 success() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;32m[SUCCESS]\033[0m $1";}
 warn()    { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;33m[WARNING]\033[0m $1"; }

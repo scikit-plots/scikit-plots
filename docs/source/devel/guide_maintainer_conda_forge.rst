@@ -15,11 +15,11 @@ Prerequisites
 Ensure you have:
 
 - A GitHub account.
-- ``scikit-plots`` published on `PyPI <https://pypi.org/project/scikit-plots/>`_.
+- ``scikit-plots`` published on a distribution source (e.g. `PyPI <https://pypi.org/project/scikit-plots/>`_, `GitHub release <https://github.com/>`_, or `Anaconda <https://anaconda.org/>`_).
 - Installed tools: ``git``, ``conda``, and ``grayskull``.
 
 .. important::
-   Your package **must** be on PyPI before you can add it to conda-forge!
+   Your package must be available via **a valid source distribution** like PyPI, GitHub, or Anaconda.org before it can be added to conda-forge.
 
 .. hint::
    Install ``grayskull`` easily:
@@ -34,16 +34,66 @@ Ensure you have:
 
       pip install grayskull
 
+.. _choosing-a-source-distribution:
+
+Choosing a Source Distribution
+==============================
+
+You need to specify a source archive in ``meta.yaml``. Choose one from the following formats:
+
+.. code-block:: jinja
+
+   {% set name = "scikit-plots" %}
+   {% set version = "0.4.0rc4" %}
+   {% set tag = "v" ~ version %}
+
+   package:
+     name: {{ name|lower }}
+     version: {{ version }}
+
+   source:
+     # Choose one valid source:
+     # GitHub archive
+     # url: https://github.com/scikit-plots/scikit-plots/archive/{{ tag }}.tar.gz
+
+     # PyPI source
+     # url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name | replace("-", "_") }}-{{ version }}.tar.gz
+
+     # Anaconda source (less common)
+     # url: https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/{{ name }}/{{ version }}/{{ name | replace("-", "_") }}-{{ version }}.tar.gz
+
+     url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/scikit_plots-{{ version }}.tar.gz
+     sha256: cd6c8a3d11cfe0b9cc3e4ecc95399efe16ea242ddb4c02505031c6271f8876f8
+
+.. note::
+   You **must include** the correct ``sha256`` checksum for the chosen source archive.
+   To compute it:
+
+   .. code-block:: bash
+
+      ## wget https://github.com/scikit-plots/scikit-plots/archive/refs/tags/{{ tag }}.tar.gz
+      wget https://github.com/scikit-plots/scikit-plots/archive/refs/tags/v0.4.0rc4.tar.gz
+
+      ## openssl sha256 {{ tag }}.tar.gz
+      openssl sha256 v0.4.0rc4.tar.gz
+
+.. _publishing-to-pypi:
+
 Publishing to PyPI
 ==================
+
+If you use PyPI:
 
 Before proceeding, confirm that ``scikit-plots`` is correctly published on PyPI.
 
 .. important::
-   **Conda-forge** builds the package **from PyPI releases**, **not** from GitHub source directly.
+   **Conda-forge** builds the package **from PyPI releases**, not from GitHub directly (unless you configure otherwise in your recipe).
 
 .. hint::
-   If you need help publishing, check out the official `PyPI packaging tutorial <https://packaging.python.org/en/latest/tutorials/packaging-projects/>`_.
+   If you need help publishing, check out the official
+   `PyPI packaging tutorial <https://packaging.python.org/en/latest/tutorials/packaging-projects/>`_.
+
+.. _creating-the-recipe-with-grayskull:
 
 Creating the Recipe with Grayskull
 ==================================
@@ -64,6 +114,8 @@ This generates a ``recipes/scikit-plots/`` folder containing a ``meta.yaml``.
    - Check license information.
    - Verify dependencies (`requirements` section).
    - Correct any missing classifiers or Python version constraints.
+
+.. _submitting-to-staged-recipes:
 
 Submitting to Staged-Recipes
 ============================
@@ -104,6 +156,8 @@ Submitting to Staged-Recipes
 .. hint::
    Your PR title should follow the format: ``Add package: scikit-plots``.
 
+.. _post-merge-feedstock-creation:
+
 Post-Merge: Feedstock Creation
 ==============================
 
@@ -119,6 +173,8 @@ After your PR is merged:
 
 .. hint::
    Add the feedstock repo to your GitHub notifications (watch → participating) to stay informed!
+
+.. _maintaining-the-package:
 
 Maintaining the Package
 =======================
@@ -179,23 +235,16 @@ Quick Reference Summary
 
 Follow these steps to successfully add and maintain ``scikit-plots`` on conda-forge.
 
-+------+----------------------------------------------------+
-| Step | Action                                              |
-+======+====================================================+
-| 1    | `Publish to PyPI <#publishing-to-pypi>`__            |
-+------+----------------------------------------------------+
-| 2    | `Fork & clone staged-recipes <#submitting-to-staged-recipes>`__ |
-+------+----------------------------------------------------+
-| 3    | `Generate recipe with grayskull <#creating-the-recipe-with-grayskull>`__ |
-+------+----------------------------------------------------+
-| 4    | `Submit PR to staged-recipes <#submitting-to-staged-recipes>`__ |
-+------+----------------------------------------------------+
-| 5    | `Wait for review & merge <#post-merge-feedstock-creation>`__ |
-+------+----------------------------------------------------+
-| 6    | `Feedstock repository created <#post-merge-feedstock-creation>`__ |
-+------+----------------------------------------------------+
-| 7    | `Maintain future updates (bot/manual) <#maintaining-the-package>`__ |
-+------+----------------------------------------------------+
+Steps Overview
+--------------
+
+1. :ref:`Choose source distribution <choosing-a-source-distribution>`
+2. :ref:`Publish to PyPI (if needed) <publishing-to-pypi>`
+3. :ref:`Generate recipe with grayskull <creating-the-recipe-with-grayskull>`
+4. :ref:`Submit PR to staged-recipes <submitting-to-staged-recipes>`
+5. :ref:`Wait for review & merge <post-merge-feedstock-creation>`
+6. :ref:`Feedstock repository created <post-merge-feedstock-creation>`
+7. :ref:`Maintain future updates (bot/manual) <maintaining-the-package>`
 
 .. hint::
    You can click on any action to jump directly to the detailed explanation!
