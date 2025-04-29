@@ -4,6 +4,16 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# ANSI colors for pretty output
+BOLD="\033[1m"
+RESET="\033[0m"
+RED="\033[1;31m"
+GREEN="\033[1;32m"
+BLUE="\033[1;34m"
+YELLOW="\033[1;33m"
+MAGENTA="\033[1;35m"
+CYAN="\033[1;36m"
+
 ######################################################################
 ## Project
 ## https://mesonbuild.com/Syntax.html#syntax
@@ -191,7 +201,11 @@ if have_blas
     else
       blas_symbol_suffix = blas.get_variable('symbol_suffix', default_value: '')
     endif
-    message(f'\033[1;33m[INFO]\033[0m BLAS symbol suffix: @blas_symbol_suffix@')
+    message(
+      '\n' +
+      BLUE + '[INFO]' + RESET +
+      f' BLAS symbol suffix: @blas_symbol_suffix@'
+    )
   endif
   if blas_symbol_suffix != ''
     _args_blas += ['-DBLAS_SYMBOL_SUFFIX=' + blas_symbol_suffix]
@@ -363,7 +377,9 @@ if cc_id.startswith('clang')
       trapping_math = [trapping_math, '-Wno-unsupported-floating-point-opt']
       # Inform the user about the workaround.
       message(
-        '\033[1;33m[INFO]\033[0m Clang version does not strictly ' +
+        '\n' +
+        BLUE + '[INFO]' + RESET +
+        ' Clang version does not strictly ' +
         'enforce floating-point exception handling. ' +
         'Performance may be impacted. Consider upgrading Clang.'
       )
@@ -447,7 +463,9 @@ foreach arg : _global_c_args
   else
     # Debug message for compiler IDs
     message(
-      '\033[1;33m[INFO]\033[0m  C compiler (' + cc_id + ') does not support argument: ' + arg
+      '\n' +
+      BLUE + '[INFO]' + RESET +
+      ' C compiler (' + cc_id + ') does not support argument: ' + arg
     )
   endif
 endforeach
@@ -459,7 +477,9 @@ foreach arg : _global_cpp_args
   else
     # Debug message for compiler IDs
     message(
-      '\033[1;33m[INFO]\033[0m  C++ compiler (' + cpp_id + ') does not support argument: ' + arg
+      '\n' +
+      BLUE + '[INFO]' + RESET +
+      ' C++ compiler (' + cpp_id + ') does not support argument: ' + arg
     )
   endif
 endforeach
@@ -680,7 +700,7 @@ endif
 # inc_dir_py = include_directories(_py_inc_dir)
 
 # Print the include directory
-# message('\033[1;33m[INFO]\033[0m python include dir: @0@'.format(_py_inc_dir))
+# message('python include dir: @0@'.format(_py_inc_dir))
 
 ######################################################################
 ## pybind11 is a lightweight header-only library
@@ -761,7 +781,9 @@ print(os.path.dirname(pythran.__file__))
   inc_dir_pythran = include_directories(_pythran_inc_dir)
 
   message(
-    '\033[1;33m[INFO]\033[0m pythran include dir: @0@'.format(_pythran_inc_dir)
+  '\n' +
+  BLUE + '[INFO]' + RESET +
+  ' pythran include dir: @0@'.format(_pythran_inc_dir)
   )
 endif
 
@@ -1018,8 +1040,12 @@ else
   _np_inc_dir_abs = _np_inc_dir
 endif
 message(
-  '\n\033[1;33m[INFO]\033[0m numpy include dir    : @0@'.format(_np_inc_dir) +
-  '\n\033[1;33m[INFO]\033[0m numpy include dir abs: @0@'.format(_np_inc_dir_abs)
+  '\n' +
+  BLUE + '[INFO]' + RESET +
+  ' numpy include dir    : @0@'.format(_np_inc_dir) +
+  '\n' +
+  BLUE + '[INFO]' + RESET +
+  ' numpy include dir abs: @0@'.format(_np_inc_dir_abs)
 )
 
 # Use the include directory in your build setup
@@ -1099,7 +1125,9 @@ install_subdir(
 )
 # Optionally add a message to confirm the installation
 message(
-  '\n\033[1;32m[SUCCESS]\033[0m scikitplot files installed successfully: ' +
+  '\n' +
+  GREEN + '[SUCCESS]' + RESET +
+  ' scikitplot files installed successfully: ' +
   '@0@'.format(py.get_install_dir())
 )
 
