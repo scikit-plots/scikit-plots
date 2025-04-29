@@ -49,9 +49,9 @@ from numpy import (  # pylint: disable=import-error, wrong-import-position  # ty
 ## Format: MAJOR.MINOR.PATCH
 # __version__ = "0.3.7.post0"
 # __version__ = "0.3.9rc3"
-# __version__ = "0.4.0rc4"
+__version__ = "0.4.0rc4"
 # __version__ = "0.4.0"
-__version__ = "0.5.0.dev0"
+# __version__ = "0.5.0.dev0"
 
 # import logging as _logging
 from .sp_logging import (  # pylint: disable=wrong-import-order, wrong-import-position
