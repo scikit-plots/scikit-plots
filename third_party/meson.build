@@ -10,13 +10,11 @@
 ## Get the directory relative to the build directory
 # build_dir = meson.current_build_dir()
 
-# Check the OS
-os_type = meson.project_machine().system()
-
 # Check if Git is available, use 'which' for Linux/macOS, 'where' for Windows
-if os_type == 'windows'
+if host_machine.system() == 'windows'
   git_check = run_command('where', 'git')
 else
+  # host_machine.system() == 'linux' or host_machine.system() == 'darwin'
   git_check = run_command('which', 'git')
 endif
 
