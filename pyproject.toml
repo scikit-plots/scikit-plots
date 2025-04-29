@@ -438,7 +438,7 @@ homepage        = "https://scikit-plots.github.io"
 # source (Source Code), repository, sourcecode, github
 repository      = "https://github.com/scikit-plots/scikit-plots"
 # download (Download), equivalent to Download-URL
-download        = "https://github.com/scikit-plots/scikit-plots"
+download        = "https://github.com/scikit-plots/scikit-plots/tags"
 # changelog (Changelog), changes, whatsnew, history
 # The changelog, really useful for ongoing users of your project
 changelog       = "https://scikit-plots.github.io/dev/whats_new/index.html"

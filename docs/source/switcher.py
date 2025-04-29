@@ -6,12 +6,15 @@ https://github.com/scikit-plots/scikit-plots.github.io/blob/main/dev/_static/swi
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
 import os
 import re
 import json
-import requests
+import requests  # type: ignore[reportMissingModuleSource]
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader  # type: ignore[reportMissingModuleSource]
 import scikitplot as sp
 
 # from scikitplot import __version__
