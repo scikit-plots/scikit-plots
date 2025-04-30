@@ -89,6 +89,7 @@ clean-basic:
 	@rm -rf `find -L . -type d -name ".vscode" -not -path "./third_party/*"`
 	@echo "Removed zip file leftovers '.vscode'"
 	@echo "basic cleaning completed."
+	@pip cache purge
 
 ## pypi cleaning in 'build dirs'
 clean: clean-basic
@@ -109,6 +110,7 @@ clean: clean-basic
 	@rm -rf ".mypy_cache" ".ruff_cache"
 	@echo "Removed folder '.mypy_cache, .ruff_cache etc.'"
 	@echo "pypi cleaning completed."
+	@pip uninstall scikit-plots -y || true
 
 ######################################################################
 ## project structure
@@ -178,9 +180,9 @@ newc:
 ## Install the development version of scikit-plots, depends on "clean"
 dep: clean
 	@echo "Installing library pip dependencies..."
-	@# pip install -r ./requirements/all.txt
-	@pip install -r ./requirements/build.txt
-	@pip install -r ./requirements/cpu.txt
+	@# pip install --no-cache-dir -r ./requirements/all.txt
+	@pip install --no-cache-dir -r ./requirements/build.txt
+	@pip install --no-cache-dir -r ./requirements/cpu.txt
 
 ######################################################################
 ## Packaging
@@ -203,7 +205,7 @@ ins-st: clean
 build-st: clean
 	@echo "Packaging: 'build' library by 'setup.py' or 'pyproject.toml' with own configuration..."
 	@echo "Configuration libraries: can be (e.g. (setuptools, wheels) or (mesonbuild, meson, ninja))."
-	@# pip install build
+	@# pip install --no-cache-dir build
 	@# python -m build --sdist
 	@# python -m build --wheel
 	@python -m build
@@ -217,15 +219,15 @@ build-st: clean
 ## Install Packages to local, depends on "clean"
 ins: clean dep
 	@echo "Installing Packages to local library (editable or not) for checking..."
-	@# python -m pip install .
-	@# python -m pip install --use-pep517 .
+	@# python -m pip install --no-cache-dir .
+	@# python -m pip install --no-cache-dir --use-pep517 .
 	@python -m pip install --no-build-isolation --no-cache-dir . -v
 
 ## Install the development version of scikit-plots, depends on "clean"
 dev: clean dep
 	@echo "Installing Packages to local library (editable or not) for checking..."
-	@# python -m pip install .
-	@# python -m pip install --use-pep517 .
+	@# python -m pip install --no-cache-dir .
+	@# python -m pip install --no-cache-dir --use-pep517 .
 	@# python -m pip install --no-build-isolation --no-cache-dir .
 	@# python -m pip install --no-build-isolation --no-cache-dir --editable .
 	@# python -m pip install --no-build-isolation --no-cache-dir -e . -vvv
@@ -238,7 +240,7 @@ dev: clean dep
 ## Compile by "meson" library for step-by-step, depends on "clean"
 build-me: clean
 	@echo "Compiling: 'meson' library step-by-step compiling for debugging..."
-	@# pip install mesonbuild, meson, ninja
+	@# pip install --no-cache-dir mesonbuild, meson, ninja
 
 	@echo "meson cleaning previous build artifacts..."
 	@meson clean -C builddir
@@ -261,9 +263,9 @@ build-me: clean
 
 sdist:
 	@# meson setup builddir && meson dist -C builddir --allow-dirty --no-tests --formats gztar
-	@# python -m pip install -v builddir/*dist/*.gz -Csetup-args=-Dallow-noblas=true
+	@# python -m pip install --no-cache-dir -v builddir/*dist/*.gz -Csetup-args=-Dallow-noblas=true
 	@python -m build --sdist -Csetup-args=-Dallow-noblas=true
-	@python -m pip install -v dist/*.gz -Csetup-args=-Dallow-noblas=true
+	@python -m pip install --no-cache-dir -v dist/*.gz -Csetup-args=-Dallow-noblas=true
 
 ######################################################################
 ## Testing
@@ -493,7 +495,7 @@ tag-push:
 check-publish:
 	@echo "Taaging is completed? Make sure before Publish on PyPI."
 	@## *twine* for the PyPI upload
-	@# pip install twine
+	@# pip install --no-cache-dir twine
 	@echo "Checking the distribution files (Readme.md) for PyPI with twine."
 	@twine check dist/*
 	@echo "Uploading the distribution files to PyPI."

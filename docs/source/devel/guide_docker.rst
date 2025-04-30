@@ -122,7 +122,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 .. code-block:: sh
 
    ## (Optionally) Install common vscode extensions
-   ##✅ c/C++/Python and Jupyter Notebook
+   ##✅ C/C++/Python and Jupyter Notebook
    ##✅ Linter and Formatter
    bash docker/script/setup_vscode_ext.sh  # (not needed every time)
 

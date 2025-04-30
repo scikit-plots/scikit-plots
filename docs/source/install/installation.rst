@@ -76,7 +76,7 @@ Installing the latest release
           .. prompt:: powershell >>> auto
 
             python -m venv sklearn-env
-            sklearn-env\Scripts\activate  # activate
+            sklearn-env\Scripts\activate  # (or dot .) activate
             pip install -U scikit-plots
 
           In order to check your installation, you can use:
@@ -110,7 +110,7 @@ Installing the latest release
           .. prompt:: bash >>> auto
 
             python3 -m venv sklearn-env
-            source sklearn-env/bin/activate  # activate
+            source sklearn-env/bin/activate  # (or dot .) activate
             pip3 install -U scikit-plots
 
           In order to check your installation, you can use:
@@ -137,7 +137,7 @@ Installing the latest release
           .. prompt:: bash >>> auto
 
             python -m venv sklearn-env
-            source sklearn-env/bin/activate  # activate
+            source sklearn-env/bin/activate  # (or dot .) activate
             pip install -U scikit-plots
 
           In order to check your installation, you can use:
@@ -152,6 +152,7 @@ Installing the latest release
       :class-label: tab-6
 
       .. include:: installation_instructions_conda.rst
+         :start-after: :orphan:
 
 
 Setting Up Your Environment

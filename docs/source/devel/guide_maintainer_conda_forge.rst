@@ -15,11 +15,16 @@ Prerequisites
 Ensure you have:
 
 - A GitHub account.
-- ``scikit-plots`` published on a distribution source (e.g. `PyPI <https://pypi.org/project/scikit-plots/>`_, `GitHub release <https://github.com/>`_, or `Anaconda <https://anaconda.org/>`_).
+- ``scikit-plots`` published one of:
+   - ``github`` like `GitHub <https://github.com/scikit-plots/scikit-plots>`_
+   - ``github release`` like `GitHub Release <https://github.com/scikit-plots/scikit-plots/releases>`_
+   - ``source distribution`` like `PyPI <https://pypi.org/project/scikit-plots>`_
+   - ``source distribution`` like `Anaconda.org <https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots>`_
 - Installed tools: ``git``, ``conda``, and ``grayskull``.
 
 .. important::
-   Your package must be available via **a valid source distribution** like PyPI, GitHub, or Anaconda.org before it can be added to conda-forge.
+   Your package must be available via **a valid source distribution** like GitHub, PyPI, or Anaconda.org before it can be added to conda-forge.
+   But can be use direct ``github repo``, read below more info.
 
 .. hint::
    Install ``grayskull`` easily:
@@ -39,43 +44,56 @@ Ensure you have:
 Choosing a Source Distribution
 ==============================
 
-You need to specify a source archive in ``meta.yaml``. Choose one from the following formats:
+When updating the recipe (`meta.yaml`), you must choose **one** of the valid source distribution types. Conda-forge supports four typical options:
 
-.. code-block:: jinja
+1. **GitHub archive (tagged release)**
 
-   {% set name = "scikit-plots" %}
-   {% set version = "0.4.0rc4" %}
-   {% set tag = "v" ~ version %}
+   .. code-block:: yaml
 
-   package:
-     name: {{ name|lower }}
-     version: {{ version }}
+      source:
+        url: https://github.com/scikit-plots/scikit-plots/archive/v{{ version }}.tar.gz
+        sha256: <fill-this-sha>
 
-   source:
-     # Choose one valid source:
-     # GitHub archive
-     # url: https://github.com/scikit-plots/scikit-plots/archive/{{ tag }}.tar.gz
+   .. important::
+      - Ensure the tag exists on GitHub.
+      - Use a specific release version to avoid build inconsistencies.
 
-     # PyPI source
-     # url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name | replace("-", "_") }}-{{ version }}.tar.gz
+2. **PyPI source distribution**
 
-     # Anaconda source (less common)
-     # url: https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/{{ name }}/{{ version }}/{{ name | replace("-", "_") }}-{{ version }}.tar.gz
+   .. code-block:: yaml
 
-     url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/scikit_plots-{{ version }}.tar.gz
-     sha256: cd6c8a3d11cfe0b9cc3e4ecc95399efe16ea242ddb4c02505031c6271f8876f8
+      source:
+        url: https://pypi.org/packages/source/s/scikit-plots/scikit_plots-{{ version }}.tar.gz
+        sha256: <fill-this-sha>
 
-.. note::
-   You **must include** the correct ``sha256`` checksum for the chosen source archive.
-   To compute it:
+   .. note::
+      This is the most common and preferred method when available on PyPI.
 
-   .. code-block:: bash
+3. **Anaconda.org source (e.g., staging wheels)**
 
-      ## wget https://github.com/scikit-plots/scikit-plots/archive/refs/tags/{{ tag }}.tar.gz
-      wget https://github.com/scikit-plots/scikit-plots/archive/refs/tags/v0.4.0rc4.tar.gz
+   .. code-block:: yaml
 
-      ## openssl sha256 {{ tag }}.tar.gz
-      openssl sha256 v0.4.0rc4.tar.gz
+      source:
+        url: https://pypi.anaconda.org/<channel>/simple/scikit-plots/{{ version }}/scikit_plots-{{ version }}.tar.gz
+        sha256: <fill-this-sha>
+
+   .. hint::
+      Replace ``<channel>`` with your actual Anaconda channel, such as ``scikit-plots-wheels-staging-nightly``.
+
+4. **Direct Git repository source**
+
+   .. code-block:: yaml
+
+      source:
+        git_url: https://github.com/scikit-plots/scikit-plots.git
+        git_rev: {{ tag }}  # 🔒 Use a tag or commit hash for reproducibility
+
+   .. important::
+      - Always use a **tag** or **commit hash**, not ``main`` or ``master``.
+      - This method is less common and should only be used when source tarballs are not available.
+
+.. suggestion::
+   Use `grayskull pypi scikit-plots` to auto-generate a `meta.yaml` based on your latest PyPI release, then modify the `source` field if needed.
 
 .. _publishing-to-pypi:
 
@@ -114,6 +132,47 @@ This generates a ``recipes/scikit-plots/`` folder containing a ``meta.yaml``.
    - Check license information.
    - Verify dependencies (`requirements` section).
    - Correct any missing classifiers or Python version constraints.
+
+.. code-block:: jinja
+
+   {% set name = "scikit-plots" %}
+   {% set version = "0.4.0rc4" %}
+   {% set tag = "v" ~ version %}
+
+   package:
+     name: {{ name|lower }}
+     version: {{ version }}
+
+   source:
+     # Choose one valid source:
+
+     # GitHub
+     git_url: https://github.com/scikit-plots/scikit-plots.git
+     git_rev: {{ tag }}       # 🔒 use a tag or commit hash for reproducibility
+
+     # GitHub archive
+     # url: https://github.com/{{ name }}/{{ name }}/archive/{{ tag }}.tar.gz
+
+     # PyPI source
+     # url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name | replace("-", "_") }}-{{ version }}.tar.gz
+
+     # Anaconda source (less common)
+     # url: https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/{{ name }}/{{ version }}/{{ name | replace("-", "_") }}-{{ version }}.tar.gz
+
+     url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/scikit_plots-{{ version }}.tar.gz
+     sha256: cd6c8a3d11cfe0b9cc3e4ecc95399efe16ea242ddb4c02505031c6271f8876f8
+
+.. note::
+   You **must include** the correct ``sha256`` checksum for the chosen source archive.
+   To compute it:
+
+   .. code-block:: bash
+
+      ## wget https://github.com/scikit-plots/scikit-plots/archive/refs/tags/{{ tag }}.tar.gz
+      wget https://github.com/scikit-plots/scikit-plots/archive/refs/tags/v0.4.0rc4.tar.gz
+
+      ## openssl sha256 {{ tag }}.tar.gz
+      openssl sha256 v0.4.0rc4.tar.gz
 
 .. _submitting-to-staged-recipes:
 

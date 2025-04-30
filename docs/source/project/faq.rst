@@ -48,7 +48,7 @@ About the project
 Do you support PyPy?
 ^^^^^^^^^^^^^^^^^^^^
 
-Currently No.
+Yes. `scikit-plots <https://pypi.org/project/scikit-plots>`_
 
 How can I obtain permission to use the images in scikit-plots for my work?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
