@@ -99,7 +99,7 @@ docker exec -it CONTAINER_ID_OR_NAME bash  # Connect interactive terminal
 
 ```sh
 ## (Optionally) Install common vscode extensions
-##✅ c/C++/Python and Jupyter Notebook
+##✅ C/C++/Python and Jupyter Notebook
 ##✅ Linter and Formatter
 bash docker/script/setup_vscode_ext.sh  # (not needed every time)
 ```

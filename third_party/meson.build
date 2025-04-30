@@ -43,7 +43,10 @@ required_submodules = [
 ]
 
 foreach submod : required_submodules
-  if not fs.exists(meson.current_source_dir() / submod)
+  if not (
+      fs.exists(meson.current_source_dir() / submod / 'README.md') or
+      fs.exists(meson.current_source_dir() / submod / 'README.rst')
+  )
     # If git is found, attempt to update the submodules
     # If git is not found, print a message and skip the submodule update
     if git_check.returncode() != 0
