@@ -14,9 +14,12 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
+import numpy as np  # type: ignore[reportMissingImports]
+import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 
 from .._utils.validation import (
     validate_plotting_kwargs_decorator,
@@ -26,14 +29,18 @@ from .._utils.validation import (
     # validate_y_probas_bounds_decorator,
 )
 from ...utils.utils_plot_mpl import save_plot_decorator
+from ..._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all above func
-__all__ = ["plot_pca_2d_projection"]
+__all__ = [
+    "plot_pca_2d_projection",
+]
 
 
 @validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 # @validate_y_true_decorator
 def plot_pca_2d_projection(
     clf,
@@ -47,9 +54,6 @@ def plot_pca_2d_projection(
     model_type=None,  # 'PCA' or 'LDA'
     ## plotting params
     title="PCA 2-D Projection",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap="nipy_spectral",  # 'Spectral'
@@ -84,12 +88,6 @@ def plot_pca_2d_projection(
     title : str, optional, default='PCA 2-D Projection'
         Title of the generated plot.
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axes upon which to plot. If None, a new set of axes is created.
-
-    figsize : tuple of int, optional, default=None
-        Size of the figure (width, height) in inches.
-
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title.
 
@@ -101,9 +99,18 @@ def plot_pca_2d_projection(
         documentation for available options:
         https://matplotlib.org/users/colormaps.html
 
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
+
     Returns
     -------
-    matplotlib.axes.Axes
+    ax : matplotlib.axes.Axes
         The axes on which the plot was drawn.
 
     Examples
@@ -151,7 +158,7 @@ def plot_pca_2d_projection(
     ## Preprocessing
     ##################################################################
     # Proceed with your preprocess logic here
-    transformed_X = clf.transform(X)
+    transformed_x = clf.transform(X)
     # Get unique classes from y, preserving order of class occurrence in y (pd.unique)
     _, class_indexes = np.unique(np.array(y), return_index=True)
     classes = np.array(y)[np.sort(class_indexes)]
@@ -163,11 +170,12 @@ def plot_pca_2d_projection(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     colors = plt.get_cmap(cmap)(np.linspace(0, 1, len(classes)))
     for label, color in zip(classes, colors):
         ax.scatter(
-            transformed_X[y == label, dimensions[0]],
-            transformed_X[y == label, dimensions[1]],
+            transformed_x[y == label, dimensions[0]],
+            transformed_x[y == label, dimensions[1]],
             alpha=0.8,
             lw=2,
             label=label,
@@ -175,7 +183,7 @@ def plot_pca_2d_projection(
         )
 
         if label_dots:
-            for dot in transformed_X[y == label][:, dimensions]:
+            for dot in transformed_x[y == label][:, dimensions]:
                 ax.text(*dot, label)
 
     # PCA
@@ -193,8 +201,8 @@ def plot_pca_2d_projection(
     else:
         pass
     if biplot:
-        xs = transformed_X[:, dimensions[0]]
-        ys = transformed_X[:, dimensions[1]]
+        xs = transformed_x[:, dimensions[0]]
+        ys = transformed_x[:, dimensions[1]]
         vectors = np.transpose(components[dimensions, :])
         vectors_scaled = vectors * [xs.max(), ys.max()]
         for i in range(vectors.shape[0]):
@@ -243,5 +251,4 @@ def plot_pca_2d_projection(
             title="Classes",
             alignment="left",
         )
-    # plt.tight_layout()
     return ax

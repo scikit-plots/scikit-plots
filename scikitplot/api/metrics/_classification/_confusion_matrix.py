@@ -12,6 +12,9 @@ enforcing Python 3-like behavior in Python 2.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import (
     absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
@@ -22,9 +25,10 @@ from __future__ import (
 
 import itertools
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
+import numpy as np  # type: ignore[reportMissingImports]
+import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+
 from sklearn.metrics import (
     classification_report,
     confusion_matrix,
@@ -38,6 +42,7 @@ from ..._utils.validation import (
     validate_plotting_kwargs_decorator,
 )
 from ....utils.utils_plot_mpl import save_plot_decorator
+from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
@@ -49,23 +54,22 @@ __all__ = [
 
 @validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_confusion_matrix(
     y_true,
     y_pred,
+    *,
     labels=None,
     true_labels=None,
     pred_labels=None,
-    title=None,
     normalize=False,
     hide_zeros=False,
     hide_counts=False,
-    x_tick_rotation=0,
-    ax=None,
-    fig=None,
-    figsize=None,
-    cmap="Blues",
+    title=None,
     title_fontsize="large",
     text_fontsize="medium",
+    x_tick_rotation=0,
+    cmap="Blues",
     show_colorbar=True,
     **kwargs,
 ):
@@ -95,10 +99,6 @@ def plot_confusion_matrix(
     pred_labels : array-like, optional
         The predicted labels to display. If None, all labels are used.
 
-    title : string, optional
-        Title of the generated plot. Defaults to "Confusion Matrix" if `normalize` is True.
-        Otherwise, defaults to "Normalized Confusion Matrix".
-
     normalize : bool, optional, default=False
         If True, normalizes the confusion matrix before plotting.
 
@@ -108,15 +108,18 @@ def plot_confusion_matrix(
     hide_counts : bool, optional, default=False
         If True, counts are not overlaid on the plot.
 
+    title : string, optional
+        Title of the generated plot. Defaults to "Confusion Matrix" if `normalize` is True.
+        Otherwise, defaults to "Normalized Confusion Matrix".
+
+    title_fontsize : string or int, optional, default="large"
+        Font size for the plot title. Use "small", "medium", "large", or integer values.
+
+    text_fontsize : string or int, optional, default="medium"
+        Font size for text in the plot. Use "small", "medium", "large", or integer values.
+
     x_tick_rotation : int, optional, default=0
         Rotates x-axis tick labels by the specified angle. Useful when labels overlap.
-
-    ax : matplotlib.axes.Axes, optional
-        The axes upon which to plot the confusion matrix. If None, a new set of axes is created.
-        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
-
-    figsize : tuple of int, optional
-        Tuple denoting figure size of the plot, e.g., (6, 6). Defaults to None.
 
     cmap : None, str or matplotlib.colors.Colormap, optional, default=None
         Colormap used for plotting.
@@ -127,16 +130,19 @@ def plot_confusion_matrix(
         - plt.colormaps()
         - plt.get_cmap()  # None == 'viridis'
 
-    title_fontsize : string or int, optional, default="large"
-        Font size for the plot title. Use "small", "medium", "large", or integer values.
-
-    text_fontsize : string or int, optional, default="medium"
-        Font size for text in the plot. Use "small", "medium", "large", or integer values.
-
     show_colorbar : bool, optional, default=True
         If False, the colorbar is not displayed.
 
         .. versionadded:: 0.3.9
+
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -216,9 +222,9 @@ def plot_confusion_matrix(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Set title, labels, and formatting
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     image = ax.imshow(cm, interpolation="nearest", cmap=plt.get_cmap(cmap))
-
-    if show_colorbar == True:
+    if show_colorbar is True:
         plt.colorbar(mappable=image)
 
     thresh = cm.max() / 2.0
@@ -252,11 +258,13 @@ def plot_confusion_matrix(
     ax.set_yticklabels(true_classes, fontsize=text_fontsize)
 
     ax.grid(False)
-    plt.tight_layout()
+    # plt.tight_layout()
     return ax
 
 
+@validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_classifier_eval(
     ## default params
     y_true,
@@ -267,22 +275,26 @@ def plot_classifier_eval(
     digits=3,
     ## plotting params
     title="train",
-    ax=None,
-    fig=None,
-    figsize=(8, 3),
     title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
     # heatmap
     x_tick_rotation=0,
+    # add docstr
+    figsize=(8, 3),
+    nrows=1,
+    ncols=2,
+    index=2,
     ## additional params
     **kwargs,
 ):
     """
-    Generates various evaluation plots for a classifier, including confusion matrix, precision-recall curve, and ROC curve.
+    Generates various evaluation plots for a classifier, including confusion matrix,
+    precision-recall curve, and ROC curve.
 
-    This function provides a comprehensive view of a classifier's performance through multiple plots,
-    helping in the assessment of its effectiveness and areas for improvement.
+    This function provides a comprehensive view of a classifier's performance through
+    multiple plots, helping in the assessment of its effectiveness
+    and areas for improvement.
 
     Parameters
     ----------
@@ -310,20 +322,6 @@ def plot_classifier_eval(
     title : string, optional, default='train'
         Title of the generated plot.
 
-    ax : list of matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-        Need two axes like [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-        .. versionadded:: 0.3.9
-
-    figsize : tuple of int, optional, default=(8, 3)
-        Tuple denoting figure size of the plot, e.g. (8, 3).
-
     title_fontsize : string or int, optional, default="large"
         Font size for the plot title.
         Use e.g. "small", "medium", "large" or integer values.
@@ -345,6 +343,15 @@ def plot_classifier_eval(
         Rotates x-axis tick labels by the specified angle.
 
         .. versionadded:: 0.3.9
+
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -423,29 +430,8 @@ def plot_classifier_eval(
     ##################################################################
     ## Plotting
     ##################################################################
-    # Validate the types of ax and fig if they are provided
-    if ax is not None and not all(isinstance(ax, mpl.axes.Axes) for ax in ax):
-        raise ValueError("Provided ax list must be an instance of matplotlib.axes.Axes")
-    if fig is not None and not isinstance(fig, mpl.figure.Figure):
-        raise ValueError("Provided fig must be an instance of matplotlib.figure.Figure")
-    # Neither ax nor fig is provided.
-    # Create a new figure with two subplots,
-    # adjusting the width ratios with the specified figsize.
-    if ax is None and fig is None:
-        fig, ax = plt.subplots(
-            nrows=1, ncols=2, figsize=figsize, gridspec_kw={"width_ratios": [5, 5]}
-        )
-    # fig is provided but ax is not.
-    # Add two subplots (ax) to the provided figure (fig).
-    elif ax is None:
-        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
-        ax = [fig.add_subplot(1, 2, 1), fig.add_subplot(1, 2, 2)]
-    # ax is provided (whether fig is provided or not).
-    # Use the provided ax for plotting. No new figure or subplot is created.
-    else:
-        pass
     # Proceed with your plotting logic here
-
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     # Plot the classification report on the first subplot
     ax[0].axis("off")
     ax[0].set_title(f"{title.capitalize()} Classification Report\n", fontsize=11)
@@ -520,7 +506,6 @@ def plot_classifier_eval(
     # Adjust layout with additional space
     plt.tight_layout()
     fig.tight_layout()
-
     # Show the plot
     # plt.show()
     return fig

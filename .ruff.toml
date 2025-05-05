@@ -4,16 +4,10 @@ extend = "pyproject.toml"
 # SPDX-License-Identifier: BSD-3-Clause
 
 [lint.extend-per-file-ignores]
-
-".pyinstaller/*.py" = ["PTH"]
-
-"__init__.py" = [
-    "E402",
-    "F401",
-]
+# ".pyinstaller/*.py" = ["PTH"]
 
 "docs/*" = [
-
+  "PTH",
 ]
 
 "test_*.py" = [
@@ -21,12 +15,9 @@ extend = "pyproject.toml"
     "RUF015",  # Prefer next({iterable}) over single element slice
 ]
 
-"__init__.pyi" = [
-    "F811", "PYI002", "F811",
-]
-
-"cbook.pyi" = [
-    "N801", "N803"
+"__init__.py" = [
+    "E402",
+    "F401",
 ]
 
 "*_distributor_init.py" = [
@@ -44,8 +35,8 @@ extend = "pyproject.toml"
 "scikitplot/config/*" = []
 
 "scikitplot/_testing/*" = [
-    "UP031",    # Use format specifiers instead of percent format
-    "T201",  # `print` found
-    "PTH100",  # `os.path.abspath()` should be replaced by `Path.resolve()`
-    "RUF005",  # Consider `["--pyargs", *list(tests)]` instead of concatenation
+  "UP031",    # Use format specifiers instead of percent format
+  "T201",  # `print` found
+  "PTH100",  # `os.path.abspath()` should be replaced by `Path.resolve()`
+  "RUF005",  # Consider `["--pyargs", *list(tests)]` instead of concatenation
 ]

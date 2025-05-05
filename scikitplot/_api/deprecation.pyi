@@ -1,7 +1,12 @@
-import contextlib
-from collections.abc import Callable
-from typing import Any, Literal, ParamSpec, TypedDict, TypeVar, overload
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
 
+from collections.abc import Callable
+import contextlib
+from typing import Any, Literal, ParamSpec, TypedDict, TypeVar, overload
 from typing_extensions import (
     Unpack,  # < Py 3.11
 )

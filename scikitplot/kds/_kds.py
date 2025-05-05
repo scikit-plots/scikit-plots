@@ -14,20 +14,27 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
 
-from .. import _docstring, _preprocess
-from .._seaborn._compat import groupby_apply_include_groups
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+import numpy as np  # type: ignore[reportMissingModuleSource]
+import pandas as pd  # type: ignore[reportMissingModuleSource]
+
+from .. import _preprocess
+
 from ..api._utils.validation import (
     validate_plotting_kwargs_decorator,
     validate_shapes_decorator,
-    validate_y_probas_bounds_decorator,
-    validate_y_probas_decorator,
     validate_y_true_decorator,
+    validate_y_probas_decorator,
+    validate_y_probas_bounds_decorator,
 )
 from ..utils.utils_plot_mpl import save_plot_decorator
+
+from .._seaborn._compat import groupby_apply_include_groups
+from .._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
@@ -49,11 +56,22 @@ def print_labels(**kwargs):
 
     See Also
     --------
-    decile_table : Generates the Decile Table from labels and probabilities.
+    print_labels
+        A legend for the abbreviations of decile table column names.
+    decile_table
+        Generates the Decile Table from labels and probabilities.
+    plot_lift
+        Generates the Decile based cumulative Lift Plot from labels and probabilities.
+    plot_lift_decile_wise
+        Generates the Decile-wise Lift Plot from labels and probabilities.
+    plot_cumulative_gain
+        Generates the cumulative Gain Plot from labels and probabilities.
+    plot_ks_statistic
+        Generates the Kolmogorov-Smirnov (KS) Statistic Plot from labels and probabilities.
 
     References
     ----------
-    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L5
+    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382
 
     Examples
     --------
@@ -92,11 +110,12 @@ def print_labels(**kwargs):
 @validate_y_true_decorator
 @validate_y_probas_decorator
 @validate_y_probas_bounds_decorator
+# @_docstring.interpd
 def decile_table(
     ## default params
     y_true,
     y_probas,
-    *args,
+    *,
     pos_label=None,  # for y_true
     class_index=1,  # for y_probas
     change_deciles=10,
@@ -158,11 +177,22 @@ def decile_table(
 
     See Also
     --------
-    print_labels : A legend for the abbreviations of decile table column names.
+    print_labels
+        A legend for the abbreviations of decile table column names.
+    decile_table
+        Generates the Decile Table from labels and probabilities.
+    plot_lift
+        Generates the Decile based cumulative Lift Plot from labels and probabilities.
+    plot_lift_decile_wise
+        Generates the Decile-wise Lift Plot from labels and probabilities.
+    plot_cumulative_gain
+        Generates the cumulative Gain Plot from labels and probabilities.
+    plot_ks_statistic
+        Generates the Kolmogorov-Smirnov (KS) Statistic Plot from labels and probabilities.
 
     References
     ----------
-    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L32
+    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382
 
     Examples
     --------
@@ -270,7 +300,6 @@ def decile_table(
 
     if labels is True:
         print_labels()
-
     return dt
 
 
@@ -285,7 +314,7 @@ def plot_lift(
     ## default params
     y_true,
     y_probas,
-    *args,
+    *,
     pos_label=None,  # for y_true
     class_index=1,  # for y_probas
     # class_names=None,
@@ -293,9 +322,6 @@ def plot_lift(
     # to_plot_class_index=None,
     ## plotting params
     title="Lift Curves",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     # cmap=None,
@@ -347,21 +373,37 @@ def plot_lift(
         Font size for the text in the plot.
 
     **kwargs : dict, optional
-
-        .. versionadded:: 0.3.9
+        Generic keyword arguments.
 
     Other Parameters
     ----------------
     %(_validate_plotting_kwargs_doc)s
 
+    %(_save_plot_decorator_kwargs_doc)s
+
     Returns
     -------
-    matplotlib.axes.Axes
+    ax : matplotlib.axes.Axes
         The axes with the plotted lift curves.
 
     See Also
     --------
-    plot_lift_decile_wise : Generates the Decile-wise Lift Plot from labels and probabilities.
+    print_labels
+        A legend for the abbreviations of decile table column names.
+    decile_table
+        Generates the Decile Table from labels and probabilities.
+    plot_lift
+        Generates the Decile based cumulative Lift Plot from labels and probabilities.
+    plot_lift_decile_wise
+        Generates the Decile-wise Lift Plot from labels and probabilities.
+    plot_cumulative_gain
+        Generates the cumulative Gain Plot from labels and probabilities.
+    plot_ks_statistic
+        Generates the Kolmogorov-Smirnov (KS) Statistic Plot from labels and probabilities.
+
+    References
+    ----------
+    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382
 
     Examples
     --------
@@ -398,18 +440,16 @@ def plot_lift(
     # fig, ax = validate_plotting_kwargs(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
-
     # Proceed with your plotting logic here, e.g.:
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     ax.plot(pl.decile.values, pl.lift.values, marker="o", label="Model")
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
     ax.plot([1, 10], [1, 1], "k--", marker="o", label="Random")
-
+    ax.legend()
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel("Deciles", fontsize=text_fontsize)
     plt.ylabel("Lift", fontsize=text_fontsize)
-    plt.legend()
     plt.grid(True)
-    # plt.show()
     return ax
 
 
@@ -432,9 +472,6 @@ def plot_lift_decile_wise(
     # to_plot_class_index=None,
     ## plotting params
     title="Decile-wise Lift Plot",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     # cmap=None,
@@ -471,23 +508,38 @@ def plot_lift_decile_wise(
         Font size for the text in the plot. Use e.g., "small", "medium", "large" or integer-values
         (8, 10, 12, etc.).
 
-    figsize : tuple of int, optional, default=None
-        Tuple denoting figure size of the plot (e.g., (6, 6)).
+    **kwargs : dict, optional
+        Generic keyword arguments.
 
-        .. versionadded:: 0.3.9
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
-    matplotlib.axes.Axes
+    ax : matplotlib.axes.Axes
         The axes with the plotted Decile-wise Lift curves.
 
     See Also
     --------
-    plot_lift : Generates the Decile based cumulative Lift Plot from labels and probabilities.
+    print_labels
+        A legend for the abbreviations of decile table column names.
+    decile_table
+        Generates the Decile Table from labels and probabilities.
+    plot_lift
+        Generates the Decile based cumulative Lift Plot from labels and probabilities.
+    plot_lift_decile_wise
+        Generates the Decile-wise Lift Plot from labels and probabilities.
+    plot_cumulative_gain
+        Generates the cumulative Gain Plot from labels and probabilities.
+    plot_ks_statistic
+        Generates the Kolmogorov-Smirnov (KS) Statistic Plot from labels and probabilities.
 
     References
     ----------
-    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L190
+    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382
 
     Examples
     --------
@@ -521,8 +573,8 @@ def plot_lift_decile_wise(
     # fig, ax = validate_plotting_kwargs(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
-
     # Proceed with your plotting logic here, e.g.:
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     ax.plot(
         pldw.decile.values,
         pldw.cnt_resp.values / pldw.cnt_resp_rndm.values,
@@ -531,13 +583,11 @@ def plot_lift_decile_wise(
     )
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
     ax.plot([1, 10], [1, 1], "k--", marker="o", label="Random")
-
+    ax.legend()
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel("Deciles", fontsize=text_fontsize)
     plt.ylabel("Lift @ Decile", fontsize=text_fontsize)
-    plt.legend()
     plt.grid(True)
-    # plt.show()
     return ax
 
 
@@ -560,9 +610,6 @@ def plot_cumulative_gain(
     # to_plot_class_index=None,
     ## plotting params
     title="Cumulative Gain Plot",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     # cmap=None,
@@ -597,38 +644,48 @@ def plot_cumulative_gain(
     title : str, optional, default='Cumulative Gain Curves'
         Title of the generated plot.
 
-    ax : list of matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-        .. versionadded:: 0.3.9
-
-    figsize : tuple of int, optional, default=None
-        Size of the figure (width, height) in inches.
-
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title.
 
     text_fontsize : str or int, optional, default='medium'
         Font size for the text in the plot.
 
+    **kwargs : dict, optional
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
+
     Returns
     -------
-    matplotlib.axes.Axes
+    ax: matplotlib.axes.Axes
         The axes with the plotted cumulative gain curves.
 
     Notes
     -----
     The implementation is specific to binary classification.
 
+    See Also
+    --------
+    print_labels
+        A legend for the abbreviations of decile table column names.
+    decile_table
+        Generates the Decile Table from labels and probabilities.
+    plot_lift
+        Generates the Decile based cumulative Lift Plot from labels and probabilities.
+    plot_lift_decile_wise
+        Generates the Decile-wise Lift Plot from labels and probabilities.
+    plot_cumulative_gain
+        Generates the cumulative Gain Plot from labels and probabilities.
+    plot_ks_statistic
+        Generates the Kolmogorov-Smirnov (KS) Statistic Plot from labels and probabilities.
+
     References
     ----------
-    [1] http://mlwiki.org/index.php/Cumulative_Gain_Chart
+    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382
 
     Examples
     --------
@@ -665,8 +722,8 @@ def plot_cumulative_gain(
     # fig, ax = validate_plotting_kwargs(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
-
     # Proceed with your plotting logic here, e.g.:
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     ax.plot(
         np.append(0, pcg.decile.values),
         np.append(0, pcg.cum_resp_pct.values),
@@ -681,13 +738,11 @@ def plot_cumulative_gain(
     )
     # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
     ax.plot([0, 10], [0, 100], "k--", marker="o", label="Random")
-
+    ax.legend()
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel("Deciles", fontsize=text_fontsize)
     plt.ylabel("% Resonders", fontsize=text_fontsize)
-    plt.legend()
     plt.grid(True)
-    # plt.show()
     return ax
 
 
@@ -710,9 +765,6 @@ def plot_ks_statistic(
     # to_plot_class_index=None,
     ## plotting params
     title="KS Statistic Plot",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     digits=2,
@@ -743,35 +795,52 @@ def plot_ks_statistic(
     title : str, optional, default='KS Statistic Plot'
         Title of the generated plot.
 
-    ax : list of matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-        .. versionadded:: 0.3.9
-
-    figsize : tuple of 2 ints, optional
-        Tuple denoting figure size of the plot e.g. (6, 6). Defaults to None.
-
     title_fontsize : str or int, optional
-        Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or integer-values. Defaults to "large".
+        Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or integer-values.
+        Defaults to "large".
 
     text_fontsize : str or int, optional
-        Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or integer-values. Defaults to "medium".
+        Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or integer-values.
+        Defaults to "medium".
 
     digits : int, optional
-        Number of digits for formatting output floating point values. Use e.g. 2 or 4. Defaults to 2.
+        Number of digits for formatting output floating point values. Use e.g. 2 or 4.
+        Defaults to 2.
 
         .. versionadded:: 0.3.9
+
+    **kwargs : dict, optional
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
-    matplotlib.axes.Axes
+    ax : matplotlib.axes.Axes
         The axes on which the plot was drawn.
+
+    See Also
+    --------
+    print_labels
+        A legend for the abbreviations of decile table column names.
+    decile_table
+        Generates the Decile Table from labels and probabilities.
+    plot_lift
+        Generates the Decile based cumulative Lift Plot from labels and probabilities.
+    plot_lift_decile_wise
+        Generates the Decile-wise Lift Plot from labels and probabilities.
+    plot_cumulative_gain
+        Generates the cumulative Gain Plot from labels and probabilities.
+    plot_ks_statistic
+        Generates the Kolmogorov-Smirnov (KS) Statistic Plot from labels and probabilities.
+
+    References
+    ----------
+    [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382
 
     Examples
     --------
@@ -810,8 +879,8 @@ def plot_ks_statistic(
     # fig, ax = validate_plotting_kwargs(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
-
     # Proceed with your plotting logic here, e.g.:
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     ax.plot(
         np.append(0, pks.decile.values),
         np.append(0, pks.cum_resp_pct.values),
@@ -837,13 +906,11 @@ def plot_ks_statistic(
         marker="o",
         label="KS Statistic: " + str(ksmx) + " at decile " + str(list(ksdcl)[0]),
     )
-
+    ax.legend()
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel("Deciles", fontsize=text_fontsize)
     plt.ylabel("% Resonders", fontsize=text_fontsize)
-    plt.legend()
     plt.grid(True)
-    # plt.show()
     return ax
 
 
@@ -851,6 +918,7 @@ def plot_ks_statistic(
     replace_names=["y_true", "y_probas"]
     # label_namer="y",  # for label params
 )
+@validate_plotting_kwargs_decorator
 @save_plot_decorator
 @_docstring.interpd
 def report(
@@ -865,12 +933,13 @@ def report(
     display_term_tables=True,
     digits=3,
     ## plotting params
-    ax=None,
-    fig=None,
-    figsize=(12, 7),
     title_fontsize="large",
     text_fontsize="medium",
     plot_style=None,
+    # add docstr
+    figsize=(10, 5),
+    nrows=2,
+    ncols=2,
     ## additional params
     **kwargs,
 ):
@@ -908,12 +977,6 @@ def report(
 
         .. versionadded:: 0.3.9
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axes upon which to plot. If None, a new set of axes is created.
-
-    figsize : tuple of int, optional, default=None
-        Tuple denoting figure size of the plot (e.g., (6, 6)).
-
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title. Use e.g., "small", "medium", "large" or integer-values.
 
@@ -925,13 +988,14 @@ def report(
 
         .. versionadded:: 0.3.9
 
-    plot_style : str, optional, default=None
-        Check available styles with "plt.style.available". Examples include:
-        ['ggplot', 'seaborn', 'bmh', 'classic', 'dark_background', 'fivethirtyeight',
-        'grayscale', 'seaborn-bright', 'seaborn-colorblind', 'seaborn-dark',
-        'seaborn-dark-palette', 'tableau-colorblind10', 'fast'].
+    **kwargs : dict, optional
+        Generic keyword arguments.
 
-        .. versionadded:: 0.3.9
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -940,17 +1004,18 @@ def report(
 
     See Also
     --------
-    plot_lift : Generates the Decile based cumulative Lift Plot from labels and probabilities.
-
-    plot_lift_decile_wise : Generates the Decile-wise Lift Plot from labels and probabilities.
-
-    plot_cumulative_gain : Generates the cumulative Gain Plot from labels and probabilities.
-
-    plot_ks_statistic : Generates the Kolmogorov-Smirnov (KS) Statistic Plot from labels and probabilities.
-
-    print_labels : A legend for the abbreviations of decile table column names.
-
-    decile_table : Generates the Decile Table from labels and probabilities.
+    print_labels
+        A legend for the abbreviations of decile table column names.
+    decile_table
+        Generates the Decile Table from labels and probabilities.
+    plot_lift
+        Generates the Decile based cumulative Lift Plot from labels and probabilities.
+    plot_lift_decile_wise
+        Generates the Decile-wise Lift Plot from labels and probabilities.
+    plot_cumulative_gain
+        Generates the cumulative Gain Plot from labels and probabilities.
+    plot_ks_statistic
+        Generates the Kolmogorov-Smirnov (KS) Statistic Plot from labels and probabilities.
 
     References
     ----------
@@ -983,34 +1048,47 @@ def report(
     """
     # Convert input to numpy arrays for efficient processing
     dc = decile_table(
-        y_true, y_probas, labels=display_term_tables, round_decimal=digits
+        y_true,
+        y_probas,
+        labels=display_term_tables,
+        round_decimal=digits,
     )
-
     ##################################################################
     ## Plotting
     ##################################################################
-    if plot_style is None:
-        None
-    else:
-        plt.style.use(plot_style)
-
-    fig = plt.figure(figsize=figsize)
-
+    # Proceed with your plotting logic here, e.g.:
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     # Cumulative Lift Plot
-    ax = plt.subplot(2, 2, 1)
-    plot_lift(y_true, y_probas, fig=fig, ax=ax)
-
+    plot_lift(
+        y_true,
+        y_probas,
+        fig=fig,
+        ax=ax[0][0],
+        show_fig=False,
+    )
     #  Decile-wise Lift Plot
-    ax = plt.subplot(2, 2, 2)
-    plot_lift_decile_wise(y_true, y_probas, fig=fig, ax=ax)
-
+    plot_lift_decile_wise(
+        y_true,
+        y_probas,
+        fig=fig,
+        ax=ax[0][1],
+        show_fig=False,
+    )
     # Cumulative Gains Plot
-    ax = plt.subplot(2, 2, 3)
-    plot_cumulative_gain(y_true, y_probas, fig=fig, ax=ax)
-
+    plot_cumulative_gain(
+        y_true,
+        y_probas,
+        fig=fig,
+        ax=ax[1][0],
+        show_fig=False,
+    )
     # KS Statistic Plot
-    ax = plt.subplot(2, 2, 4)
-    plot_ks_statistic(y_true, y_probas, fig=fig, ax=ax)
-
+    plot_ks_statistic(
+        y_true,
+        y_probas,
+        fig=fig,
+        ax=ax[1][1],
+        show_fig=False,
+    )
     fig.tight_layout()
     return dc

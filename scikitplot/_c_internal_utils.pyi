@@ -1,3 +1,9 @@
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
+
 def display_is_valid() -> bool: ...
 def Win32_GetForegroundWindow() -> int | None: ...
 def Win32_SetForegroundWindow(hwnd: int) -> None: ...

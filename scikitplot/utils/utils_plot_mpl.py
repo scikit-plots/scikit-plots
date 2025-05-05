@@ -14,6 +14,7 @@ and includes decorators for automatically saving plots.
 import functools  # noqa: I001
 import logging
 import warnings
+from typing import TYPE_CHECKING
 
 # import inspect
 
@@ -23,7 +24,7 @@ import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 
 from .utils_path import get_file_path
 
-from typing import TYPE_CHECKING  # pylint: disable=wrong-import-order
+from .._docstrings import _docstring
 
 if TYPE_CHECKING:
     # Only imported during type checking
@@ -42,6 +43,26 @@ logger = logging.getLogger(__name__)
 ## save_plot_decorator
 ######################################################################
 
+# The docstrings here must be generic enough to apply to all relevant methods.
+_docstring.interpd.register(
+    _save_plot_decorator_kwargs_doc="""\
+show_fig : bool, default=True
+    Show the plot.
+
+save_fig : bool, default=False
+    Save the plot.
+
+save_fig_filename : str, optional, default=''
+    Specify the path and filetype to save the plot.
+    If nothing specified, the plot will be saved as png
+    inside ``result_images`` under to the current working directory.
+    Defaults to plot image named to used ``func.__name__``.
+
+verbose : bool, optional
+    If True, prints debugging information.
+""".rstrip()
+)
+
 
 # 1. Standard Decorator (no arguments) both with params and without params
 # 2. Decorator with Arguments (takes args like @my_decorator(x=1)), need hint
@@ -52,7 +73,7 @@ logger = logging.getLogger(__name__)
 # Hint: from functools import partial _decorator = partial(_decorator, verbose=True)
 def save_plot_decorator(
     # Not needed as a placeholder, but kept for parameterized usage
-    # *_dargs,  # not need placeholder
+    # *dargs,  # not need placeholder
     # The target function to be decorated (passed when no parameters are used)
     func: "Optional[Callable[..., Any]]" = None,
     # *,  # indicates that all following parameters must be passed as keyword
@@ -72,7 +93,7 @@ def save_plot_decorator(
 
     Parameters
     ----------
-    *_dargs : tuple
+    *dargs : tuple
         Positional arguments passed to the decorator (ignored by default).
     func : Callable, optional
         The target function to be decorated. This is automatically set when the decorator
@@ -99,7 +120,7 @@ def save_plot_decorator(
     Notes
     -----
     - This decorator can be used both with and without parameters.
-    - The `func` argument must be placed after `*_dargs` to support keyword-only usage and
+    - The `func` argument must be placed after `*dargs` to support keyword-only usage and
       to avoid `W1113` (keyword-before-vararg) linter warnings.
     - This structure enables reusability across decorators with shared patterns.
     """
@@ -126,6 +147,9 @@ def save_plot_decorator(
         @functools.wraps(inner_func)
         def wrapper(*args, **kwargs) -> "Any":
             result = inner_func(*args, **kwargs)
+            plt.tight_layout()
+            # plt.draw()
+            # plt.pause(0.1)
             try:
                 # c = a | b  # Non-destructive merge (3.9+)
                 # c = {**a, **b}  # Non-destructive merge (3.5+), Safe, non-mutating
@@ -153,9 +177,6 @@ def save_plot_decorator(
                     save_path = get_file_path(
                         **{**dkwargs, **kwargs},  # Update by inner func
                     )
-                    plt.tight_layout()
-                    # plt.draw()
-                    # plt.pause(0.1)
                     try:
                         plt.savefig(
                             save_path, dpi=150, bbox_inches="tight", pad_inches=0
@@ -208,6 +229,10 @@ def stack_mpl_figures(
         Space between stacked figures, in inches.
     **kwargs : dict
         Additional keyword arguments passed to plt.subplots() (e.g., figsize, dpi).
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------

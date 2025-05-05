@@ -32,7 +32,7 @@ The plot content may be defined in one of three ways:
 
         import matplotlib.pyplot as plt
         plt.plot([1, 2, 3], [4, 5, 6])
-        plt.title("A plotting exammple")
+        plt.title("A plotting example")
 
 3. Using **doctest** syntax::
 
@@ -165,30 +165,35 @@ be customized by changing the *plot_template*.  See the source of
 and *TEMPLATE_SRCSET*.
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
 
 import contextlib
 import doctest
+from io import StringIO
 import itertools
 import os
+from os.path import relpath
+from pathlib import Path
 import re
 import shutil
 import sys
 import textwrap
 import traceback
-from io import StringIO
-from os.path import relpath
-from pathlib import Path
 
-import jinja2  # Sphinx dependency.
-import matplotlib
-import matplotlib.pyplot as plt
-from docutils.parsers.rst import Directive, directives
+from docutils.parsers.rst import directives, Directive
 from docutils.parsers.rst.directives.images import Image
-from matplotlib import _pylab_helpers, cbook
-from matplotlib.backend_bases import FigureManagerBase
+import jinja2  # Sphinx dependency.
+
 from sphinx.errors import ExtensionError
+
+import matplotlib
+from matplotlib.backend_bases import FigureManagerBase
+import matplotlib.pyplot as plt
+from matplotlib import _pylab_helpers, cbook
 
 matplotlib.use("agg")
 
@@ -204,11 +209,12 @@ def _option_boolean(arg):
     if not arg or not arg.strip():
         # no argument given, assume used as a flag
         return True
-    if arg.strip().lower() in ("no", "0", "false"):
+    elif arg.strip().lower() in ("no", "0", "false"):
         return False
-    if arg.strip().lower() in ("yes", "1", "true"):
+    elif arg.strip().lower() in ("yes", "1", "true"):
         return True
-    raise ValueError(f"{arg!r} unknown boolean")
+    else:
+        raise ValueError(f"{arg!r} unknown boolean")
 
 
 def _option_context(arg):
@@ -339,13 +345,14 @@ def contains_doctest(text):
         return False
     except SyntaxError:
         pass
-    r = re.compile(r"^\s*>>>", re.MULTILINE)
+    r = re.compile(r"^\s*>>>", re.M)
     m = r.search(text)
     return bool(m)
 
 
 def _split_code_at_show(text, function_name):
     """Split code at plt.show()."""
+
     is_doctest = contains_doctest(text)
     if function_name is None:
         parts = []
@@ -529,6 +536,7 @@ def _run_code(code, code_path, ns=None, function_name=None):
     Import a Python module from a path, and run the function given by
     name, if function_name is not None.
     """
+
     # Change the working directory to the directory of the example, so
     # it can get at its data files, if any.  Add its path to sys.path
     # so it can import any helper modules sitting beside it.
@@ -552,10 +560,9 @@ def _run_code(code, code_path, ns=None, function_name=None):
         dirname = os.path.abspath(os.path.dirname(code_path))
         os.chdir(dirname)
 
-    with (
-        cbook._setattr_cm(sys, argv=[code_path], path=[os.getcwd(), *sys.path]),
-        contextlib.redirect_stdout(StringIO()),
-    ):
+    with cbook._setattr_cm(
+        sys, argv=[code_path], path=[os.getcwd(), *sys.path]
+    ), contextlib.redirect_stdout(StringIO()):
         try:
             if ns is None:
                 ns = {}
@@ -608,7 +615,9 @@ def get_plot_formats(config):
 
 
 def _parse_srcset(entries):
-    """Parse srcset for multiples..."""
+    """
+    Parse srcset for multiples...
+    """
     srcset = {}
     for entry in entries:
         entry = entry.strip()
@@ -638,6 +647,7 @@ def render_figures(
     Save the images under *output_dir* with file names derived from
     *output_base*
     """
+
     if function_name is not None:
         output_base = f"{output_base}_{function_name}"
     formats = get_plot_formats(config)
@@ -908,7 +918,9 @@ def run(arguments, content, options, state_machine, state, lineno):
         reporter = state.memo.reporter
         sm = reporter.system_message(
             2,
-            f"Exception occurred in plotting {output_base}\n from {source_file_name}:\n{err}",
+            "Exception occurred in plotting {}\n from {}:\n{}".format(
+                output_base, source_file_name, err
+            ),
             line=lineno,
         )
         results = [(code, [])]
@@ -916,7 +928,7 @@ def run(arguments, content, options, state_machine, state, lineno):
 
     # Properly indent the caption
     if caption and config.plot_srcset:
-        caption = f":caption: {caption}"
+        caption = ":caption: " + caption.replace("\n", " ")
     elif caption:
         caption = "\n" + "\n".join(
             "      " + line.strip() for line in caption.split("\n")
@@ -939,6 +951,9 @@ def run(arguments, content, options, state_machine, state, lineno):
 
         if nofigs:
             images = []
+
+        if "alt" in options:
+            options["alt"] = options["alt"].replace("\n", " ")
 
         opts = [
             f":{key}: {val}"

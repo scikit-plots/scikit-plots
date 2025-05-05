@@ -229,8 +229,8 @@ dev: clean dep
 	@# python -m pip install --no-cache-dir .
 	@# python -m pip install --no-cache-dir --use-pep517 .
 	@# python -m pip install --no-build-isolation --no-cache-dir .
-	@# python -m pip install --no-build-isolation --no-cache-dir --editable .
-	@# python -m pip install --no-build-isolation --no-cache-dir -e . -vvv
+	@# python -m pip install --no-build-isolation --no-cache-dir --editable . -vvv
+	@# python -m pip install --no-build-isolation --no-cache-dir -e . -v
 	@python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
 
 ######################################################################

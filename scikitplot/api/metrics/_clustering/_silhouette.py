@@ -14,15 +14,24 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import matplotlib.pyplot as plt
-import numpy as np
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
+import numpy as np  # type: ignore[reportMissingImports]
+
+# import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 
 # Sigmoid and Softmax functions
-from sklearn.metrics import silhouette_samples, silhouette_score
-from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import (  # type: ignore[reportMissingModuleSource]
+    silhouette_samples,
+    silhouette_score,
+)
+from sklearn.preprocessing import LabelEncoder  # type: ignore[reportMissingModuleSource]
 
 from ..._utils.validation import validate_plotting_kwargs_decorator
 from ....utils.utils_plot_mpl import save_plot_decorator
+from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
@@ -31,6 +40,7 @@ __all__ = ["plot_silhouette"]
 
 @validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_silhouette(
     ## default params
     X,
@@ -40,9 +50,6 @@ def plot_silhouette(
     copy=True,
     ## plotting params
     title="Silhouette Analysis",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
@@ -78,20 +85,6 @@ def plot_silhouette(
     title : str, optional, default='Silhouette Analysis'
         Title of the generated plot.
 
-    ax : list of matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-        .. versionadded:: 0.3.9
-
-    figsize : tuple of int, optional, default=None
-        Size of the figure (width, height) in inches.
-
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title.
 
@@ -112,9 +105,18 @@ def plot_silhouette(
 
         .. versionadded:: 0.3.9
 
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
+
     Returns
     -------
-    matplotlib.axes.Axes
+    ax : matplotlib.axes.Axes
         The axes on which the plot was drawn.
 
 
@@ -166,6 +168,7 @@ def plot_silhouette(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     y_lower = 10
     for i in range(n_clusters):
         ith_cluster_silhouette_values = sample_silhouette_values[
@@ -221,5 +224,5 @@ def plot_silhouette(
     if handles:
         ax.legend(loc="best", fontsize=text_fontsize)
 
-    plt.tight_layout()
+    # plt.tight_layout()
     return ax

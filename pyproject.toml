@@ -496,9 +496,9 @@ testpaths = [
 
 [tool.ruff]
 ## https://docs.astral.sh/ruff/
-## ruff.toml or .ruff.toml (Ruff config file)
+## .ruff.toml or ruff.toml (Ruff config file)
 ## ruff configuration
-
+# fix = true
 cache-dir = "~/.cache/ruff"
 
 exclude = [
@@ -506,13 +506,13 @@ exclude = [
   "__pycache__",
   "build",
   "dist",
-  "auto_building_tools",
   "benchmarks",
   "docs/source",
   "galleries",
   "third_party",
   "tools",
   "**tests",
+  "**conftest.py",
   "dev.py",
   ## module
   "scikitplot/_api",
@@ -530,26 +530,17 @@ exclude = [
   "scikitplot/probscale",
   "scikitplot/kds",
   "scikitplot/modelplotpy",
-  "scikitplot/sphinxext",
   "scikitplot/visualkeras",
   "scikitplot/_testing",
   "scikitplot/_distributor_init.py",
   "scikitplot/_config.py",
   "scikitplot/_min_dependencies.py",
-  "scikitplot/cbook.pyi",
   "scikitplot/cbook.py",
   "scikitplot/_preprocess.py",
-  "scikitplot/conftest.py",
-  "scikitplot/__init__.pyi",
-  "scikitplot/__config__.pyi",
 ]
 
-# fix = true
-
-# indent-width = 2
-
 line-length = 88  # Ensure this matches Black
-indent-width = 4
+indent-width = 4  # 2
 
 # Enable preview features, will use unstable rules, fixes, and formatting.
 # preview = true
@@ -572,13 +563,13 @@ docstring-code-format = true
 # docstring-code-line-length = 60
 
 exclude = [
-  "auto_building_tools",
   "benchmarks",
   "docs/source",
   "galleries",
   "third_party",
   "tools",
   "**tests",
+  "**conftest.py",
   "dev.py",
   ## module
   "scikitplot/_api",
@@ -596,18 +587,13 @@ exclude = [
   "scikitplot/probscale",
   "scikitplot/kds",
   "scikitplot/modelplotpy",
-  "scikitplot/sphinxext",
   "scikitplot/visualkeras",
   "scikitplot/_testing",
   "scikitplot/_distributor_init.py",
   "scikitplot/_config.py",
   "scikitplot/_min_dependencies.py",
-  "scikitplot/cbook.pyi",
   "scikitplot/cbook.py",
   "scikitplot/_preprocess.py",
-  "scikitplot/conftest.py",
-  "scikitplot/__init__.pyi",
-  "scikitplot/__config__.pyi",
 ]
 
 # Use tabs instead of 4 space indentation.
@@ -676,51 +662,54 @@ ignore = [
   # F841 is in preview (july 2024), and we don't care much about it.
   # Local variable ... is assigned to but never used
   "F841",
-  "EM101",  # Exception must not use a string literal, assign to variable first
+  "EM101",                                  # Exception must not use a string literal, assign to variable first
   "E501",
-  "ARG001", "ARG002",  # Unused method argument
-  "G004",  # Logging statement uses f-string
-  "S110",  # `try`-`except`-`pass` detected, consider logging the exception
-  "E722",  # Do not use bare `except`
-  "EM102",  # Exception must not use an f-string literal, assign to variable first
-  "PLR0913",  # Too many arguments in function definition (6 > 5)
-  "RUF100",  # Prevent Ruff from removing `# noqa`
-  "EXE002",  # Ignore shebang missing warning
+  "ARG001", "ARG002",                       # Unused method argument
+  "G004",                                   # Logging statement uses f-string
+  "S110",                                   # `try`-`except`-`pass` detected, consider logging the exception
+  "E722",                                   # Do not use bare `except`
+  "EM102",                                  # Exception must not use an f-string literal, assign to variable first
+  "PLR0913",                                # Too many arguments in function definition (6 > 5)
+  "RUF100",                                 # Prevent Ruff from removing `# noqa`
+  "EXE002",                                 # Ignore shebang missing warning
 ]
 
 # [tool.ruff.lint.per-file-ignores]
 [tool.ruff.lint.extend-per-file-ignores]
-"test_*.py" = [
-    "ANN201",  # Public function without return type annotation
-    "B018",  # UselessExpression
-    "D",  # pydocstyle
-    "S101",  # Use of assert detected
-]
-".pyinstaller/*.py" = ["INP001"]  # Not a package.
-"conftest.py" = ["INP001"]  # Part of configuration, not a package.
-"docs/*.py" = [
-    "INP001",  # implicit-namespace-package. The examples are not a package.
-]
-"__init__.py" = ["F403"]  # Wildcard imports
-
-# Ignore `E402` (import violations) in all `__init__.py` files, and in `path/to/file.py`.
-# "scikitplot/__init__.py"=["F822"]  # __all__ has un-imported names
-# Ignore `D` rules everywhere except for the `src/` directory.
-"!src/**.py" = ["D"]
 # It's fine not to put the import at the top of the file in the examples
 # folder.
-"!**/tests/**"=["CPY001"]
 "!.github/**"=["CPY001"]
 "!.spin/**"=["CPY001"]
-"!auto_building_tools/**"=["CPY001"]
 "benchmarks/**"=["CPY001"]
 "!docs/**"=["CPY001"]
 "!docs/conf.py"=["E402"]
+"docs/*.py" = [
+  "INP001",                                 # implicit-namespace-package. The examples are not a package.
+]
 "!galleries/**"=["E402"]
-"!scikitplot/_build_utils/**"=["CPY001"]
-"!tools/**"=["CPY001"]
 # __doc__ is too long (>4096 chars) and therefore false positive on copyright check
-# "examples/model_selection/plot_precision_recall.py"=["CPY001"]
+# "galleries/examples/classification/plot_precision_recall.py"=["CPY001"]
+"!tools/**"=[
+  "CPY001",
+]
+# Ignore `D` rules everywhere except for the `src/` directory.
+"!src/**.py" = [
+  "D",
+]
+"!**/tests/**"=["CPY001"]
+"test_*.py" = [
+  "ANN201",                                 # Public function without return type annotation
+  "B018",                                   # UselessExpression
+  "D",                                      # pydocstyle
+  "S101",                                   # Use of assert detected
+]
+"conftest.py" = [                           # Part of configuration, not a package.
+  "INP001",
+]
+# Ignore `E402` (import violations) in all `__init__.py` files, and in `path/to/file.py`.
+# "scikitplot/__init__.py"=["F822"]  # __all__ has un-imported names
+"__init__.py" = ["F403"]                    # Wildcard imports
+"!scikitplot/_build_utils/**"=["CPY001"]
 
 [tool.ruff.lint.flake8-copyright]
 notice-rgx = "\\#\\ Authors:\\ The\\ scikit\\-plots\\ developers\\\r?\\\n\\#\\ SPDX\\-License\\-Identifier:\\ BSD\\-3\\-Clause"
@@ -738,9 +727,9 @@ convention = "numpy"
 
 # Black is a code formatter; this section configures its behavior.
 [tool.black]
-line-length = 88  # Maximum line length 88
-target-version = ['py38', 'py39']  # Python versions to target
-preview = true     # Enable Black's preview features
+line-length = 88                            # Maximum line length 88
+target-version = ['py38', 'py39']           # Python versions to target
+preview = true                              # Enable Black's preview features
 
 extend-exclude = '''
 /(
@@ -748,7 +737,6 @@ extend-exclude = '''
   | \.git          # root of the project
   | \.mypy_cache
   | \.vscode
-  | auto_building_tools
   | benchmarks
   | build
   | dist
@@ -758,8 +746,8 @@ extend-exclude = '''
   | third_party
   | tools
   | tests
-  | scikitplot/externals
   | scikitplot/_astropy/stats/tests
+  | scikitplot/_externals
   | scikitplot/_seaborn
   | scikitplot/modelplotpy
   | scikitplot/probscale
@@ -812,27 +800,33 @@ exclude= '''
 
 ######################################################################
 ## codespell
+## https://github.com/codespell-project/codespell
+## If several config files are present, they are read in the following order:
+##   1. pyproject.toml (only if the tomli library is available for Python < 3.11)
+##   2. setup.cfg
+##   3. .codespellrc
+##   4. any additional file supplied via --config
 ######################################################################
 
 [tool.codespell]
-# .codespellrc ini file
+# specific files or directories (specified via their names or glob patterns):
 skip = """
-    *.cff,
-    docs/credits.rst,
-    galleries/*,
-    third_party/*,
-    tools/*,
-    *_externals/*,
-    scikitplot/_astropy/*,
-    scikitplot/_seaborn/*,
+  docs/credits.rst,
+  galleries/*,
+  third_party/*,
+  tools/*,
+  *.cff,
+  scikitplot/_astropy/*,
+  scikitplot/_externals/*,
+  scikitplot/_seaborn/*,
 """
 count = true
 # quiet-level = 3
 
 # The following list of words for codespell to ignore may contain some
 # misspellings that should be revisited and fixed in the future.
-ignore-words = "./.codespell-ignore-words"
-ignore-words-list = "./.codespell-ignore-words"
+ignore-words = ".codespellrc-ignore-words"
+ignore-words-list = ".codespellrc-ignore-words"
 
 ######################################################################
 ## repo-review
@@ -840,13 +834,13 @@ ignore-words-list = "./.codespell-ignore-words"
 
 [tool.repo-review]
 ignore = [
-    "MY",    # ignore MyPy setting checks
-    "PC111", # ignore using `blacken-docs` in pre-commit
-    "PC140", # ignore using `mypy` in pre-commit
-    "PC180", # ignore using `prettier` in pre-commit
-    "PC901", # ignore using custom update message (we have many of the default ones in our history already)
-    "PP308", # ignore requiring `-ra` flag for pytest, astropy's test suite is too large for this to be useful
-    "PY005", # ignore requiring a root level "test*" directory
+  "MY",    # ignore MyPy setting checks
+  "PC111", # ignore using `blacken-docs` in pre-commit
+  "PC140", # ignore using `mypy` in pre-commit
+  "PC180", # ignore using `prettier` in pre-commit
+  "PC901", # ignore using custom update message (we have many of the default ones in our history already)
+  "PP308", # ignore requiring `-ra` flag for pytest, astropy's test suite is too large for this to be useful
+  "PY005", # ignore requiring a root level "test*" directory
 ]
 
 ######################################################################
@@ -983,93 +977,93 @@ test-command = "python -m pytest --pyargs numpy -m 'not slow'"
 ######################################################################
 
 [tool.towncrier]
-    all_bullets  = false
-    single_file  = true
-    issue_format = ":pr:`{issue}`"
-    underlines = "=-^"
-    package      = "scikitplot"
-    filename     = "docs/source/whats_new/v0.5.rst"
-    directory    = "docs/source/whats_new/upcoming_changes"
-    template     = "docs/source/whats_new/upcoming_changes/towncrier_template.rst.jinja2"
+  all_bullets  = false
+  single_file  = true
+  issue_format = ":pr:`{issue}`"
+  underlines = "=-^"
+  package      = "scikitplot"
+  filename     = "docs/source/whats_new/v0.5.rst"
+  directory    = "docs/source/whats_new/upcoming_changes"
+  template     = "docs/source/whats_new/upcoming_changes/towncrier_template.rst.jinja2"
 
-    # === towncrier.type ===
+  # === towncrier.type ===
 
-    [[tool.towncrier.type]]
-        directory = "major-feature"
-        name = "|MajorFeature|"
-        showcontent = true
+  [[tool.towncrier.type]]
+    directory = "major-feature"
+    name = "|MajorFeature|"
+    showcontent = true
 
-    [[tool.towncrier.type]]
-        directory = "feature"
-        name = "|Feature|"
-        showcontent = true
+  [[tool.towncrier.type]]
+    directory = "feature"
+    name = "|Feature|"
+    showcontent = true
 
-    [[tool.towncrier.type]]
-        directory = "efficiency"
-        name = "|Efficiency|"
-        showcontent = true
+  [[tool.towncrier.type]]
+    directory = "efficiency"
+    name = "|Efficiency|"
+    showcontent = true
 
-    [[tool.towncrier.type]]
-        directory = "enhancement"
-        name = "|Enhancement|"
-        showcontent = true
+  [[tool.towncrier.type]]
+    directory = "enhancement"
+    name = "|Enhancement|"
+    showcontent = true
 
-    [[tool.towncrier.type]]
-        directory = "fix"
-        name = "|Fix|"
-        showcontent = true
+  [[tool.towncrier.type]]
+    directory = "fix"
+    name = "|Fix|"
+    showcontent = true
 
-    [[tool.towncrier.type]]
-        directory = "api"
-        name = "|API|"
-        showcontent = true
+  [[tool.towncrier.type]]
+    directory = "api"
+    name = "|API|"
+    showcontent = true
 
-    [[tool.towncrier.type]]
-        directory = "other"
-        name = ""
-        showcontent = true
+  [[tool.towncrier.type]]
+    directory = "other"
+    name = ""
+    showcontent = true
 
-    # === towncrier.section ===
+  # === towncrier.section ===
 
-    [[tool.towncrier.section]]
-        name = "Support for Array API"
-        path = "array-api"
+  [[tool.towncrier.section]]
+    name = "Support for Array API"
+    path = "array-api"
 
-    [[tool.towncrier.section]]
-        name = "Changed models"
-        path = "changed-models"
+  [[tool.towncrier.section]]
+    name = "Changed models"
+    path = "changed-models"
 
-    [[tool.towncrier.section]]
-        name = "Security"
-        path = "security"
+  [[tool.towncrier.section]]
+    name = "Security"
+    path = "security"
 
-    [[tool.towncrier.section]]
-        name = "Changes impacting many modules"
-        path = "many-modules"
+  [[tool.towncrier.section]]
+    name = "Changes impacting many modules"
+    path = "many-modules"
 
-    [[tool.towncrier.section]]
-        name = "Metadata routing"
-        path = "metadata-routing"
+  [[tool.towncrier.section]]
+    name = "Metadata routing"
+    path = "metadata-routing"
 
-    [[tool.towncrier.section]]
-        name = "custom-top-level"
-        path = "custom-top-level"
+  [[tool.towncrier.section]]
+    name = "custom-top-level"
+    path = "custom-top-level"
 
-    [[tool.towncrier.section]]
-        name = ":mod:`scikitplot._astropy`"
-        path = "scikitplot._astropy"
+  [[tool.towncrier.section]]
+    name = ":mod:`scikitplot._astropy`"
+    path = "scikitplot._astropy"
 
-    [[tool.towncrier.section]]
-        name = ":mod:`scikitplot._seaborn`"
-        path = "scikitplot._seaborn"
+  [[tool.towncrier.section]]
+    name = ":mod:`scikitplot._seaborn`"
+    path = "scikitplot._seaborn"
 
-    [[tool.towncrier.section]]
-        name = ":mod:`scikitplot.api`"
-        path = "scikitplot.api"
+  [[tool.towncrier.section]]
+    name = ":mod:`scikitplot.api`"
+    path = "scikitplot.api"
 
-    [[tool.towncrier.section]]
-        name = ":mod:`scikitplot.utils`"
-        path = "scikitplot.utils"
+  [[tool.towncrier.section]]
+    name = ":mod:`scikitplot.utils`"
+    path = "scikitplot.utils"
 
 ######################################################################
 ## meson-python

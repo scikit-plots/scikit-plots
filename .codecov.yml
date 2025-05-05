@@ -26,6 +26,6 @@ codecov:
     after_n_builds: 6
 
 ignore:
-- "scikitplot/_build_utils"
-- "scikitplot/externals"
 - "**/conftest.py"
+- "scikitplot/_build_utils"
+- "scikitplot/_externals"

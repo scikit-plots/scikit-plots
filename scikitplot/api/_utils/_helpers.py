@@ -8,8 +8,11 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import numpy as np
-from sklearn.preprocessing import LabelEncoder
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
+import numpy as np  # type: ignore[reportMissingImports]
+from sklearn.preprocessing import LabelEncoder  # type: ignore[reportMissingModuleSource]
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all belove func

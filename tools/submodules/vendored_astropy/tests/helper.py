@@ -4,6 +4,8 @@ This module provides the tools used to internally run the astropy test suite
 from the installed astropy.  It makes use of the |pytest| testing framework.
 """
 
+# pylint: disable=import-error
+
 import os
 import pickle
 import sys

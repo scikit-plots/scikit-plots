@@ -328,7 +328,7 @@ def save_image_with_pil(
 # Hint: from functools import partial _decorator = partial(_decorator, verbose=True)
 def save_image_pil_decorator(
     # Not needed as a placeholder, but kept for parameterized usage
-    # *_dargs,  # not need placeholder
+    # *dargs,  # not need placeholder
     # The target function to be decorated (passed when no parameters are used)
     func: "Optional[Callable[..., Any]]" = None,
     # *,  # indicates that all following parameters must be passed as keyword
@@ -348,7 +348,7 @@ def save_image_pil_decorator(
 
     Parameters
     ----------
-    *_dargs : tuple
+    *dargs : tuple
         Positional arguments passed to the decorator (ignored by default).
     func : Callable, optional
         The target function to be decorated. This is automatically set when the decorator
@@ -375,7 +375,7 @@ def save_image_pil_decorator(
     Notes
     -----
     - This decorator can be used both with and without parameters.
-    - The `func` argument must be placed after `*_dargs` to support keyword-only usage and
+    - The `func` argument must be placed after `*dargs` to support keyword-only usage and
       to avoid `W1113` (keyword-before-vararg) linter warnings.
     - This structure enables reusability across decorators with shared patterns.
     """
@@ -432,7 +432,7 @@ def save_image_pil_decorator(
                 # Save the plot if save_image is True
                 if save_fig and save_fig_filename:
                     save_path = get_file_path(
-                        **{**dkwargs, **kwargs},  # Update by inner func
+                        **{**dkwargs, **kwargs},  # Update for inner func
                     )
                     if str(backend).lower() in ("matplotlib", "true", "none"):
                         try:
@@ -469,15 +469,18 @@ def save_image_pil_decorator(
                             )
                             # Using PIL to save the image (fallback method)
                             save_image_with_pil(
-                                result,
-                                save_path,
+                                img=result,
+                                to_file=save_path,
                                 show_os_viewer=show_os_viewer,
-                                **kwargs,
+                                **{**dkwargs, **kwargs},  # Update for inner func
                             )
                     else:
                         # Using PIL to save the image
                         save_image_with_pil(
-                            result, save_path, show_os_viewer=show_os_viewer, **kwargs
+                            result,
+                            save_path,
+                            show_os_viewer=show_os_viewer,
+                            **{**dkwargs, **kwargs},  # Update for inner func
                         )
             except Exception:
                 pass

@@ -14,29 +14,33 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import matplotlib as mpl
-import numpy as np
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
+import numpy as np  # type: ignore[reportMissingImports]
+import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
 
 from .._utils.validation import validate_plotting_kwargs_decorator
 from ...utils.utils_plot_mpl import save_plot_decorator
+from ..._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all above func
-__all__ = ["plot_pca_component_variance"]
+__all__ = [
+    "plot_pca_component_variance",
+]
 
 
 @validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_pca_component_variance(
     clf,
-    *args,
+    *,
     target_explained_variance=0.75,
     model_type=None,  # 'PCA' or 'LDA'
     ## plotting params
     title="Cumulative Explained Variance Ratio by Principal Components",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     x_tick_rotation=0,
@@ -53,18 +57,12 @@ def plot_pca_component_variance(
     clf : object
         PCA instance that has the ``explained_variance_ratio_`` attribute.
 
-    title : str, optional, default='Cumulative Explained Variance Ratio by Principal Components'
-        Title of the generated plot.
-
     target_explained_variance : float, optional, default=0.75
         Looks for the minimum number of principal components that satisfies this
         value and emphasizes it on the plot.
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axes upon which to plot the curve. If None, a new set of axes is created.
-
-    figsize : tuple of int, optional, default=None
-        Tuple denoting figure size of the plot (e.g., (6, 6)).
+    title : str, optional, default='Cumulative Explained Variance Ratio by Principal Components'
+        Title of the generated plot.
 
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title. Use e.g., "small", "medium", "large" or integer-values.
@@ -77,9 +75,18 @@ def plot_pca_component_variance(
 
         .. versionadded:: 0.3.9
 
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
+
     Returns
     -------
-    matplotlib.axes.Axes
+    ax : matplotlib.axes.Axes
         The axes on which the plot was drawn.
 
     Examples
@@ -149,6 +156,7 @@ def plot_pca_component_variance(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     ax.plot(range(size), cumulative_sum_ratios, "*-")
     if idx < len(cumulative_sum_ratios):
         ax.plot(
@@ -216,5 +224,4 @@ def plot_pca_component_variance(
             title="Components",
             alignment="left",
         )
-    # plt.tight_layout()
     return ax

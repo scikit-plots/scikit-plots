@@ -236,13 +236,12 @@ configure_file(
 # Need for Cython cimports across subpackages to work, i.e. avoid errors like
 # relative cimport from non-package directory is not allowed
 _root_cython_tree = [
-  fs.copyfile('__init__.py'),       # Ensure __init__.py is copied early
-  fs.copyfile('experimental.pxd'),  # Cython definition file for C/C++ code
+  fs.copyfile('__init__.py'),             # Ensure __init__.py is copied early
+  fs.copyfile('experimental.pxd'),        # Cython definition file for C/C++ code
 
   # Pure Python types.
   fs.copyfile('__init__.pyi'),
   fs.copyfile('_c_internal_utils.pyi'),
-  fs.copyfile('_docstring.pyi'),
   fs.copyfile('_preprocess.pyi'),
   fs.copyfile('cbook.pyi'),
   fs.copyfile('version.pyi'),

@@ -4,6 +4,8 @@ A "grab bag" of relatively small general-purpose utilities that don't have
 a clear module/package to live in.
 """
 
+# pylint: disable=import-error
+
 from __future__ import annotations
 
 import contextlib
@@ -66,12 +68,12 @@ class NumpyRNGContext:
         self.seed = seed
 
     def __enter__(self):
-        from numpy import random
+        from numpy import random  # type: ignore[reportMissingModuleSource]
 
         self.startstate = random.get_state()
         random.seed(self.seed)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        from numpy import random
+        from numpy import random  # type: ignore[reportMissingModuleSource]
 
         random.set_state(self.startstate)
