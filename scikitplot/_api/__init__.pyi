@@ -1,22 +1,30 @@
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
+
 from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
 from typing import Any, TypeVar, overload
-
-from numpy.typing import NDArray
 from typing_extensions import Self  # < Py 3.11
 
-from .deprecation import MatplotlibDeprecationWarning as MatplotlibDeprecationWarning
-from .deprecation import delete_parameter as delete_parameter
-from .deprecation import deprecate_method_override as deprecate_method_override
-from .deprecation import deprecate_privatize_attribute as deprecate_privatize_attribute
-from .deprecation import deprecated as deprecated
-from .deprecation import make_keyword_only as make_keyword_only
-from .deprecation import rename_parameter as rename_parameter
-from .deprecation import (
+from numpy.typing import NDArray
+
+from .deprecation import (  # noqa: F401, re-exported API
+    deprecated as deprecated,
+    warn_deprecated as warn_deprecated,
+    rename_parameter as rename_parameter,
+    delete_parameter as delete_parameter,
+    make_keyword_only as make_keyword_only,
+    deprecate_method_override as deprecate_method_override,
+    deprecate_privatize_attribute as deprecate_privatize_attribute,
     suppress_matplotlib_deprecation_warning as suppress_matplotlib_deprecation_warning,
+    MatplotlibDeprecationWarning as MatplotlibDeprecationWarning,
 )
-from .deprecation import warn_deprecated as warn_deprecated
 
 _T = TypeVar("_T")
+
+class _Unset: ...
 
 class classproperty(Any):
     def __init__(

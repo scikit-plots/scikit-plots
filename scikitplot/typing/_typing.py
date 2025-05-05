@@ -28,11 +28,27 @@ that may be changed without notice. Use at your own risk!
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import (  # noqa: F401
+        Any,
+        Callable,
+        Dict,
+        List,
+        Optional,
+        Tuple,
+        Type,
+        Union,
+    )
+
+    # F = TypeVar("F", bound=Callable[..., Any])
+
 # Allows for the creation of enumerated constants
 # Enum values are immutable after definition.
 
 # _HT = TypeVar("_HT", bound=Hashable)
-# DT = TypeVar("DT", bound=np.generic)
+# _DT = TypeVar("_DT", bound=np.generic)
 
 
 __all__ = []

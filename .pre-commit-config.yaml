@@ -119,9 +119,10 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        args: ["--write-changes"]  # "--ignore-words", ".codespell-ignore-words"
+        args: ["--write-changes"]  # "--ignore-words", ".codespellrc-ignore-words"
         # If one configures codespell using the pyproject.toml file instead use:
         additional_dependencies:
+          # pyproject.toml (only if the tomli library is available for Python < 3.11)
           - tomli
         # exclude: '\.ipynb$'  # Excludes .ipynb files from codespell checks
 

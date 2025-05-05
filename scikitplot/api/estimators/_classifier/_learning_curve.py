@@ -14,8 +14,11 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import numpy as np
-from sklearn.model_selection import learning_curve
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
+import numpy as np  # type: ignore[reportMissingImports]
+from sklearn.model_selection import learning_curve  # type: ignore[reportMissingModuleSource]
 
 from ..._utils.validation import (
     validate_plotting_kwargs_decorator,
@@ -25,6 +28,7 @@ from ..._utils.validation import (
     # validate_y_probas_bounds_decorator,
 )
 from ....utils.utils_plot_mpl import save_plot_decorator
+from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = ["plot_learning_curve"]
@@ -32,6 +36,7 @@ __all__ = ["plot_learning_curve"]
 
 @validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_learning_curve(
     ## default params
     estimator,
@@ -53,9 +58,6 @@ def plot_learning_curve(
     fit_params=None,
     ## plotting params
     title="Learning Curves",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     ## additional params
@@ -131,17 +133,6 @@ def plot_learning_curve(
     title : str, optional, default="Learning Curves"
         Title of the generated plot.
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-    figsize : tuple of int, optional, default=None
-        Tuple denoting figure size of the plot, e.g., (6, 6).
-
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title.
         Use e.g., "small", "medium", "large" or integer values.
@@ -150,13 +141,19 @@ def plot_learning_curve(
         Font size for the text in the plot.
         Use e.g., "small", "medium", "large" or integer values.
 
-    kwargs: dict
-        generic keyword arguments.
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
 
     Returns
     -------
-    matplotlib.axes.Axes
+    ax : matplotlib.axes.Axes
         The axes on which the plot was drawn.
 
 
@@ -234,6 +231,7 @@ def plot_learning_curve(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     ax.fill_between(
         train_sizes,
         train_scores_mean - train_scores_std,

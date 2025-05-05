@@ -14,8 +14,13 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import matplotlib.pyplot as plt
-import numpy as np
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
+import numpy as np  # type: ignore[reportMissingImports]
+
+# import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 
 # Sigmoid and Softmax functions
 from sklearn.metrics import auc, roc_curve
@@ -30,6 +35,7 @@ from ..._utils.validation import (
     validate_y_true_decorator,
 )
 from ....utils.utils_plot_mpl import save_plot_decorator
+from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
@@ -213,6 +219,7 @@ def plot_roc_curve(
 @validate_y_probas_decorator
 @validate_y_probas_bounds_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_roc(
     ## default params
     y_true,
@@ -225,14 +232,11 @@ def plot_roc(
     to_plot_class_index=None,
     ## plotting params
     title="ROC AUC Curves",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
     show_labels=True,
-    digits=3,
+    digits=4,
     plot_micro=True,
     plot_macro=False,
     ## additional params
@@ -276,20 +280,6 @@ def plot_roc(
     title : str, optional, default='ROC AUC Curves'
         Title of the generated plot.
 
-    ax : list of matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-        .. versionadded:: 0.3.9
-
-    figsize : tuple of int, optional, default=None
-        Size of the figure (width, height) in inches.
-
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title.
 
@@ -318,6 +308,15 @@ def plot_roc(
 
     plot_macro : bool, optional, default=False
         Whether to plot the macro-average ROC AUC curve.
+
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -394,6 +393,7 @@ def plot_roc(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     # Initialize dictionaries to store
     fpr_dict, tpr_dict = {}, {}
     roc_auc_dict = {}
@@ -505,5 +505,5 @@ def plot_roc(
     # equalize the scales
     # plt.axis('equal')
     # ax.set_aspect(aspect='equal', adjustable='box')
-    plt.tight_layout()
+    # plt.tight_layout()
     return ax

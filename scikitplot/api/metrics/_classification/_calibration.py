@@ -14,25 +14,32 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
 from collections.abc import KeysView, ValuesView
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
+import numpy as np  # type: ignore[reportMissingImports]
+import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 
 # Sigmoid and Softmax functions
 from sklearn.calibration import calibration_curve
 
 from ..._utils.validation import validate_inputs, validate_plotting_kwargs_decorator
 from ....utils.utils_plot_mpl import save_plot_decorator
+from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
-__all__ = ["plot_calibration"]
+__all__ = [
+    "plot_calibration",
+]
 
 
 @validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_calibration(
     ## default params
     y_true,
@@ -48,9 +55,6 @@ def plot_calibration(
     strategy="uniform",
     ## plotting params
     title="Calibration Curves (Reliability Diagrams)",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap="inferno",
@@ -111,20 +115,6 @@ def plot_calibration(
     title : str, optional, default='Calibration plots (Reliability Curves)'
         Title of the generated plot.
 
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-        .. versionadded:: 0.3.9
-
-    figsize : tuple, optional
-        Tuple denoting the figure size of the plot, e.g., (6, 6). Defaults to `None`.
-
     title_fontsize : str or int, optional, default='large'
         Font size of the plot title. Accepts Matplotlib-style sizes like "small",
         "medium", "large", or an integer.
@@ -142,8 +132,14 @@ def plot_calibration(
         - plt.colormaps()
         - plt.get_cmap()  # None == 'viridis'
 
-    kwargs: dict
-        generic keyword arguments.
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -260,12 +256,12 @@ def plot_calibration(
         try:
             estimator_names = list(estimator_names)
             y_probas_list = list(map(np.asarray, y_probas_list))
-        except:
+        except Exception as e:
             raise ValueError(
                 f"`estimator_names` type {type(estimator_names)} must be a None "
                 f"or list of (str, model), `y_probas_list` type {type(y_probas_list)} "
                 f"must be a list of probability arrays."
-            )
+            ) from e
 
         # Check if the length of estimator_names matches y_probas_list
         if len(estimator_names) != len(y_probas_list):
@@ -318,6 +314,7 @@ def plot_calibration(
     # )
     # Proceed with your plotting logic here
     # Initialize dictionaries to store results
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     fraction_of_positives_dict, mean_predicted_value_dict = {}, {}
 
     # Loop through classes and classifiers
@@ -371,5 +368,5 @@ def plot_calibration(
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(loc="lower right", title="Classifier Model", alignment="left")
-    plt.tight_layout()
+    # plt.tight_layout()
     return ax

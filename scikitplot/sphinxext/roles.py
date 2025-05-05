@@ -25,7 +25,7 @@ roles, you'll see one of the following error messages:
 To fix this, you can add this module as extension to your sphinx :file:`conf.py`::
 
     extensions = [
-        'matplotlib.sphinxext.roles'
+        "matplotlib.sphinxext.roles",
         # Other extensions.
     ]
 
@@ -35,13 +35,17 @@ To fix this, you can add this module as extension to your sphinx :file:`conf.py`
     reserve the right to modify or remove these roles without prior notification.
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
 
 from urllib.parse import urlsplit, urlunsplit
 
-import matplotlib
 from docutils import nodes
+
+import matplotlib
 from matplotlib import rcParamsDefault
 
 
@@ -74,7 +78,9 @@ def _visit_query_reference_node(self, node):
 
 
 def _depart_query_reference_node(self, node):
-    """Act as if this is a `~docutils.nodes.literal`."""
+    """
+    Act as if this is a `~docutils.nodes.literal`.
+    """
     self.depart_literal(node)
 
 
@@ -126,7 +132,10 @@ def _mpltype_role(name, rawtext, text, lineno, inliner, options=None, content=No
 
     """
     mpltype = text
-    type_to_link_target = {"color": "colors_def"}
+    type_to_link_target = {
+        "color": "colors_def",
+        "hatch": "hatch_def",
+    }
     if mpltype not in type_to_link_target:
         raise ValueError(f"Unknown mpltype: {mpltype!r}")
 

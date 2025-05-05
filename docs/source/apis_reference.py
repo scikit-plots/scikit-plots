@@ -1,5 +1,8 @@
 """Configuration for the APIs reference documentation."""
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 
 def _get_guide(*refs, is_developer=False):
     """
@@ -178,9 +181,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_utils.binary_ks_curve",
                     # validation
                     "_utils.validate_plotting_kwargs",
-                    # figures
-                    "_utils.save_figure",
-                    "_utils.save_plot",
                 ],
             },
         ],
@@ -403,7 +403,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
             {
                 "title": "Astrostatistics: Selecting the bin width of histograms",
-                # "description": _get_submodule("scikitplot._astropy.stats", "histogram"),
+                # "description": _get_submodule(
+                #     "scikitplot._astropy.stats", "histogram"
+                # ),
                 "autosummary": [
                     "calculate_bin_edges",
                     "freedman_bin_width",

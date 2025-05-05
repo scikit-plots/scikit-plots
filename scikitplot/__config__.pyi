@@ -1,3 +1,9 @@
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
+
 from enum import Enum
 from types import ModuleType
 from typing import Final, TypedDict, overload, type_check_only

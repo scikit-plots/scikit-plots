@@ -14,11 +14,14 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
 import time
 
-import numpy as np
-from joblib import Parallel, delayed
-from sklearn.base import clone
+import numpy as np  # type: ignore[reportMissingImports]
+from sklearn.base import clone  # type: ignore[reportMissingModuleSource]
+from joblib import Parallel, delayed  # type: ignore[reportMissingModuleSource]
 
 from ..._utils.validation import (
     validate_plotting_kwargs_decorator,
@@ -28,11 +31,12 @@ from ..._utils.validation import (
     # validate_y_probas_bounds_decorator,
 )
 from ....utils.utils_plot_mpl import save_plot_decorator
+from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
     # '_clone_and_score_clusterer',
-    "plot_elbow"
+    "plot_elbow",
 ]
 
 
@@ -45,11 +49,13 @@ def _clone_and_score_clusterer(clf, X, n_clusters):
     Parameters
     ----------
     clf : object
-        Clusterer instance that implements `fit`, `fit_predict`, and `score` methods, and an `n_clusters` hyperparameter.
+        Clusterer instance that implements `fit`, `fit_predict`,
+        and `score` methods, and an `n_clusters` hyperparameter.
         Example: :class:`sklearn.cluster.KMeans` instance.
 
     X : array-like, shape (n_samples, n_features)
-        Data to cluster, where `n_samples` is the number of samples and `n_features` is the number of features.
+        Data to cluster, where `n_samples` is the number of samples
+        and `n_features` is the number of features.
 
     n_clusters : int
         Number of clusters.
@@ -73,7 +79,8 @@ def _clone_and_score_clusterer(clf, X, n_clusters):
 
     Notes
     -----
-    The `score` value is based on the clusterer's scoring method, and the `time` represents the fitting duration.
+    The `score` value is based on the clusterer's scoring method,
+    and the `time` represents the fitting duration.
 
     """
     start = time.time()
@@ -84,16 +91,15 @@ def _clone_and_score_clusterer(clf, X, n_clusters):
 
 @validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_elbow(
     clf,
     X,
-    title="Elbow Curves",
+    *,
     cluster_ranges=None,
-    n_jobs=1,
     show_cluster_time=True,
-    ax=None,
-    fig=None,
-    figsize=None,
+    n_jobs=1,
+    title="Elbow Curves",
     title_fontsize="large",
     text_fontsize="medium",
     **kwargs,
@@ -107,25 +113,39 @@ def plot_elbow(
         A clusterer instance with ``fit``, ``fit_predict``, and ``score`` methods,
         and an ``n_clusters`` hyperparameter. Typically an instance of
         :class:`sklearn.cluster.KMeans`.
+
     X : array-like of shape (n_samples, n_features)
         The data to cluster, where `n_samples` is the number of samples and
         `n_features` is the number of features.
-    title : str, optional, default="Elbow Plot"
-        The title of the generated plot.
+
     cluster_ranges : list of int or None, optional, default=range(1, 12, 2)
         List of values for `n_clusters` over which to plot the explained variances.
-    n_jobs : int, optional, default=1
-        The number of jobs to run in parallel.
+
     show_cluster_time : bool, optional
         Whether to include a plot of the time taken to cluster for each value of K.
-    ax : matplotlib.axes.Axes, optional
-        The axes on which to plot the curve. If None, a new set of axes will be created.
-    figsize : tuple, optional
-        Tuple denoting the figure size of the plot, e.g., (6, 6). If None, the default size will be used.
+
+    n_jobs : int, optional, default=1
+        The number of jobs to run in parallel.
+
+    title : str, optional, default="Elbow Plot"
+        The title of the generated plot.
+
     title_fontsize : str or int, optional, default="large"
-        Font size of the title. Accepts Matplotlib font sizes, such as "small", "medium", "large", or an integer value.
+        Font size of the title. Accepts Matplotlib font sizes,
+        such as "small", "medium", "large", or an integer value.
+
     text_fontsize : str or int, optional, default="medium"
-        Font size of the text labels. Accepts Matplotlib font sizes, such as "small", "medium", "large", or an integer value.
+        Font size of the text labels. Accepts Matplotlib font sizes,
+        such as "small", "medium", "large", or an integer value.
+
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -173,6 +193,7 @@ def plot_elbow(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     ax.set_title(title, fontsize=title_fontsize)
     ax.plot(cluster_ranges, np.absolute(clfs), "b*-")
     ax.grid(True)

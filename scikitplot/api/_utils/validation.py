@@ -22,51 +22,156 @@ to facilitate the validation and processing of inputs.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# code that needs to be compatible with both Python 2 and Python 3
+
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
-
-# code that needs to be compatible with both Python 2 and Python 3
+# pylint: disable=logging-fstring-interpolation
 
 import functools
 import importlib
 import inspect
+import logging
+from collections.abc import Sequence
+from contextlib import nullcontext
+from typing import TYPE_CHECKING
 
 import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
 import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 import numpy as np  # type: ignore[reportMissingModuleSource]
 from sklearn.preprocessing import label_binarize  # type: ignore[reportMissingModuleSource]
 
-from ... import _docstring
+from ..._docstrings import _docstring
+
+if TYPE_CHECKING:
+    from typing import (  # noqa: F401
+        Any,
+        Callable,
+        List,
+        Optional,
+        Type,
+        Union,
+    )
+
+    # F = TypeVar("F", bound=Callable[..., Any])
+
+# Configure logging as needed
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 __all__ = [
-    "validate_inputs",
     "validate_plotting_decorator",
     "validate_plotting_kwargs",
     "validate_plotting_kwargs_decorator",
     "validate_shapes",
     "validate_shapes_decorator",
-    "validate_y_probas",
-    "validate_y_probas_bounds",
-    "validate_y_probas_bounds_decorator",
-    "validate_y_probas_decorator",
     "validate_y_true",
     "validate_y_true_decorator",
-]
-_all_ignore = [
-    "absolute_import",
-    "division",
-    "print_function",
-    "unicode_literals",
-    "npma",
-    "np",
-    "mpl",
-    "plt",
+    "validate_y_probas",
+    "validate_y_probas_decorator",
+    "validate_y_probas_bounds",
+    "validate_y_probas_bounds_decorator",
+    "validate_inputs",
 ]
 
+######################################################################
+## _resolve_args_and_kwargs
+######################################################################
 
-def get_param_w_index(*args, func=None, params=None, **kwargs):
+
+def _get_style_context(plot_style=None):
+    plot_style = None if isinstance(plot_style, int) else plot_style
+    if plot_style is None:
+        return nullcontext()
+    if not isinstance(plot_style, (str, list, tuple)):
+        raise TypeError(
+            f"`plot_style` must be a str or list of styles, not {type(plot_style).__name__}"
+        )
+    return plt.style.context(plot_style)
+
+
+######################################################################
+## _resolve_args_and_kwargs
+######################################################################
+
+
+def _resolve_args_and_kwargs(func, *args, strict=False, **kwargs):
     """
-    Retrieve the parameter and its index from the function signature.
+    Resolve and separate positional and keyword arguments for a function,
+    applying default values. Can log or raise errors on unexpected kwargs.
+
+    Parameters
+    ----------
+    func : callable
+        The target function whose signature is used for resolution.
+    *args : tuple
+        Positional arguments to resolve.
+    strict : bool, optional
+        If True, enforce that all required parameters are provided and no extras are allowed.
+        If False (default), allow partial binding and ignore extra keys (loggable).
+    **kwargs : dict
+        Keyword arguments to resolve. Can include 'verbose=True' for logging extras.
+
+    Returns
+    -------
+    tuple
+        A tuple (resolved_args, resolved_kwargs) where:
+        - resolved_args is a tuple of bound positional arguments.
+        - resolved_kwargs is a dict of keyword arguments, including defaults.
+
+    Raises
+    ------
+    TypeError
+        If required arguments are missing or unexpected keys are found (in strict mode).
+
+    Notes
+    -----
+    - Uses `inspect.signature()` and argument binding utilities.
+    - Useful for function wrappers, config validation, deferred execution, etc.
+    """
+
+    # Get the signature of the function
+    sig = inspect.signature(func)
+
+    try:
+        # Attempt to bind the provided args and kwargs
+        # strict=True: enforce full binding with all required args
+        # strict=False: allow partial binding (some args may be missing)
+        if strict:
+            bound_args = sig.bind(*args, **kwargs)
+        else:
+            bound_args = sig.bind_partial(*args, **kwargs)
+
+        # After binding, apply default values to missing parameters
+        bound_args.apply_defaults()
+
+    except TypeError as e:
+        # If binding fails (e.g., missing required arg), raise with context
+        raise TypeError(f"Argument resolution failed: {e}") from e
+
+    # Identify all valid parameter names from the function signature
+    all_param_names = set(sig.parameters)
+
+    # Determine if any kwargs were passed that do not match the signature
+    extra_kwargs = set(kwargs) - all_param_names
+
+    # In non-strict mode, optionally log unknown kwargs if 'verbose' was passed
+    if not strict and kwargs.get("verbose", False) and extra_kwargs:
+        logger.info(f"⚠️ Unexpected kwargs ignored: {extra_kwargs}")
+
+    # In strict mode, raise an error for any unknown extra kwargs
+    if strict and extra_kwargs:
+        raise TypeError(f"Unexpected keyword arguments: {extra_kwargs}")
+
+    # Return the resolved args and kwargs (fully applied with defaults)
+    return bound_args.args, bound_args.kwargs
+
+
+def _get_param_w_index(
+    *args, func=None, params=None, **kwargs
+) -> "tuple[str, int, Any]":
+    """
+    Retrieve the parameter and its param_index from the function signature.
 
     .. versionadded:: 0.3.9
 
@@ -79,7 +184,7 @@ def get_param_w_index(*args, func=None, params=None, **kwargs):
         The original function to inspect.
 
     params : list of str
-        List of parameter names to search for.
+        List of possible parameter names to search for.
 
     **kwargs : dict
         Keyword arguments passed to the function.
@@ -87,7 +192,7 @@ def get_param_w_index(*args, func=None, params=None, **kwargs):
     Returns
     -------
     tuple
-        A tuple containing the parameter, its name, and its index.
+        A tuple containing respectively its name, and its param_index, and the parameter.
         If the parameter is not found, returns (None, None, None).
 
     Raises
@@ -100,39 +205,43 @@ def get_param_w_index(*args, func=None, params=None, **kwargs):
     signature = inspect.signature(func)
 
     # Initialize variable to hold parameter information
-    param_name = None
+    param_key = None
     default = None
-    index = None
+    param_index = None
 
-    # Determine the parameter and its index
-    for index, (name, parameter) in enumerate(signature.parameters.items()):
+    # Determine the parameter and its param_index
+    for param_index, (name, parameter) in enumerate(signature.parameters.items()):
         if name in params:
-            param_name = name
+            param_key = name
             # If the parameter has a default value, store it
             if parameter.default is not inspect.Parameter.empty:
                 default = parameter.default
             break  # Stop once we find the first match
 
     # If no matching parameter is found, return None values
-    if param_name is None:
+    if param_key is None:
         return None, None, None
 
     # Step 3: Extract the parameter value from args or kwargs
-    param = (
-        kwargs.get(param_name, default)  # Prefer kwargs if present
-        if param_name in kwargs
+    param_value = (
+        kwargs.get(param_key, default)  # Prefer kwargs if present
+        if param_key in kwargs
         else (
-            args[index]  # Otherwise use args by index, if available
-            if index < len(args)
+            args[param_index]  # Otherwise use args by param_index, if available
+            if param_index < len(args)
             else default
         )  # Fallback to default if neither args nor kwargs contain it
     )
 
-    return param, param_name, index
+    return param_key, param_index, param_value
 
 
-def get_new_args_kwargs(
-    *args, new_param=None, param_name=None, param_index=None, **kwargs
+def _get_args_kwargs(
+    *args,
+    param_key=None,
+    param_index=None,
+    param_value=None,
+    **kwargs,
 ):
     """
     Create new args and kwargs with the new parameter value.
@@ -144,14 +253,14 @@ def get_new_args_kwargs(
     *args : tuple
         Positional arguments passed to the function.
 
-    new_param : any
-        The new value to replace the original parameter.
-
-    param_name : str
+    param_key : str
         The name of the parameter being replaced.
 
     param_index : int
         The index of the parameter in the positional arguments.
+
+    param_value : any
+        The new value to replace the original parameter.
 
     **kwargs : dict
         Keyword arguments passed to the function.
@@ -170,16 +279,21 @@ def get_new_args_kwargs(
     new_args = list(args)
 
     # Only replace if the parameter exists in args or kwargs
-    if param_name in kwargs:
-        kwargs[param_name] = new_param
+    if param_key in kwargs:
+        kwargs[param_key] = param_value
     elif param_index is not None and param_index < len(new_args):
-        new_args[param_index] = new_param
+        new_args[param_index] = param_value
     else:
         raise ValueError(
-            f"The specified parameter {param_name} was not found in the function's arguments."
+            f"The specified parameter {param_key} was not found in the function's arguments."
         )
 
     return new_args, kwargs
+
+
+######################################################################
+## validate_plotting_decorator
+######################################################################
 
 
 # The decorator function
@@ -224,42 +338,50 @@ def validate_plotting_decorator(func):
     return wrapper
 
 
+######################################################################
+## validate_plotting_kwargs_decorator
+######################################################################
+
 # The docstrings here must be generic enough to apply to all relevant methods.
 _docstring.interpd.register(
     _validate_plotting_kwargs_doc="""\
-ax : mpl.axes.Axes, optional
-    The axes on which to plot. If None, a new one will be created.
+ax : matplotlib.axes.Axes, optional, default=None
+    The axis to plot the figure on. If None is passed in the current axes
+    will be used (or generated if required).
 
-fig : mpl.figure.Figure, optional
-    The figure in which to place the axes. If None, a new one will be created.
+fig : matplotlib.pyplot.figure, optional, default: None
+    The figure to plot the Visualizer on. If None is passed in the current
+    plot will be used (or generated if required).
 
-figsize : tuple, optional
-    Size of the figure if a new one is created. Default is None.
+figsize : tuple, optional, default=None
+    Width, height in inches.
+    Tuple denoting figure size of the plot e.g. (12, 5)
 
-nrows : int, optional
-    Number of rows in the subplot grid. Default is 1.
+nrows : int, optional, default=1
+    Number of rows in the subplot grid.
 
-ncols : int, optional
-    Number of columns in the subplot grid. Default is 1.
+ncols : int, optional, default=1
+    Number of columns in the subplot grid.
 
-index : int or tuple, optional
-    The position of the subplot on the grid. It can be:
-    - An integer specifying the position (1-based).
+plot_style : str, optional, default=None
+    Check available styles with "plt.style.available". Examples include:
+    ['ggplot', 'seaborn', 'bmh', 'classic', 'dark_background', 'fivethirtyeight',
+    'grayscale', 'seaborn-bright', 'seaborn-colorblind', 'seaborn-dark',
+    'seaborn-dark-palette', 'tableau-colorblind10', 'fast'].
 
-*args : tuple, optional
-    :py:func:`~scikitplot.api.utils.validation.validate_plotting_kwargs` properties
-    Positional arguments passed to the function.
-
-**kwargs : dict, optional
-    :py:func:`~scikitplot.api.utils.validation.validate_plotting_kwargs` properties
-    Keyword arguments passed to the function."""
+    .. versionadded:: 0.4.0
+""".rstrip()
 )
+# index : int or tuple, optional, default=1
+#     The position of the subplot on the grid. It can be:
+#     - An integer specifying the position (1-based).
 
 
 @validate_plotting_decorator
 @_docstring.interpd
 def validate_plotting_kwargs(
-    *args, ax=None, fig=None, figsize=None, nrows=1, ncols=1, index=1, **kwargs
+    *args: tuple,
+    **kwargs: dict,
 ):
     """
     Validate the provided axes and figure or create new ones if needed.
@@ -275,11 +397,12 @@ def validate_plotting_kwargs(
 
     Returns
     -------
-    fig : mpl.figure.Figure
+    fig : matplotlib.figure.Figure
         The figure to be used for plotting.
 
-    ax : mpl.axes.Axes or list of mpl.axes.Axes
-        The axes to be used for plotting. Returns a single Axes object if only one subplot is created,
+    ax : matplotlib.axes.Axes or list of matplotlib.axes.Axes
+        The axes to be used for plotting.
+        Returns a single Axes object if only one subplot is created,
         or a list of Axes objects if multiple subplots are created.
 
     Notes
@@ -303,30 +426,62 @@ def validate_plotting_kwargs(
 
     """
     # Proceed with your plotting logic here, e.g.:
+    plot_style = kwargs.get("plot_style", 1)
+    ax = kwargs.get("ax")
+    fig = kwargs.get("fig")
+    figsize = kwargs.get("figsize")
+    nrows = kwargs.get("nrows", 1)
+    ncols = kwargs.get("ncols", 1)
+    # index=kwargs.get('index', 1)
     # Validate the types of ax and fig if they are provided
-    if ax is not None and not isinstance(ax, mpl.axes.Axes):
-        raise ValueError("Provided ax must be an instance of matplotlib.axes.Axes")
+    if ax is not None:
+        # Flatten ax to ensure consistent shape
+        _ax = np.ravel([ax]).tolist()
+        # Check if ax is a sequence (list or tuple), but not a single Axes object
+        if isinstance(_ax, (list, tuple, np.ndarray, Sequence)):
+            if not all(isinstance(a, mpl.axes.Axes) for a in _ax):
+                raise ValueError(
+                    "Each item in ax must be an instance of matplotlib.axes.Axes"
+                )
+        # elif not isinstance(ax, mpl.axes.Axes):
+        #     raise ValueError(
+        #         "Provided ax must be an instance of matplotlib.axes.Axes"
+        #     )
+    # Validate `fig` if provided
     if fig is not None and not isinstance(fig, mpl.figure.Figure):
         raise ValueError("Provided fig must be an instance of matplotlib.figure.Figure")
     # Create a new figure and axes if neither ax nor fig is provided
     if ax is None and fig is None:
-        fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+        # plt.style.use('seaborn-darkgrid')  # or 'ggplot', 'fivethirtyeight', etc.
+        # _ = None if plot_style is None else plt.style.use(plot_style)
+        # For temporary styling, use a context manager:
+        with _get_style_context(plot_style):
+            fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
         return fig, ax  # Return immediately for new figure/axes
 
     # If fig is provided but ax is not, create new subplots in the existing figure
     if ax is None and fig is not None:
-        # fig override subplot defined (nrows, ncols, index)
         ax = []  # Initialize list to hold axes
-        for row in range(1, nrows + 1):
-            for col in range(1, ncols + 1):
-                for idx in range(1, index + 1):
-                    ax.append(fig.add_subplot(row, col, idx))
-        # Return the figure and axes (single or list)
+        # fig override subplot define (nrows, ncols, index)
+        # int, (int, int, index), or SubplotSpec, default: (1, 1, 1)
+        n_subplots = nrows * ncols
+        for idx in range(1, n_subplots + 1):
+            # plt.style.use('seaborn-darkgrid')  # or 'ggplot', 'fivethirtyeight', etc.
+            # _ = None if plot_style is None else plt.style.use(plot_style)
+            # For temporary styling, use a context manager:
+            with _get_style_context(plot_style):
+                # Each subplot is placed in a grid defined by nrows x ncols at position idx
+                ax.append(fig.add_subplot(nrows, ncols, idx))
+        # Return the figure and axes (single axis if only one)
         return fig, ax[0] if len(ax) == 1 else ax
 
     # Use the provided ax for plotting if it is provided (whether fig is provided or not)
     # Use the provided ax and its figure for plotting. plt.gcf()
-    fig = ax[0].figure if isinstance(ax, (list, tuple)) == 1 else ax.figure
+    fig = (
+        ax[0].figure
+        if isinstance(ax, (list, tuple, np.ndarray, Sequence)) == 1
+        else ax.figure
+    )
     return fig, ax
 
 
@@ -334,22 +489,23 @@ def validate_plotting_kwargs(
 def validate_plotting_kwargs_decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # Extract fig, ax, figsize from kwargs (if provided)
-        ax = kwargs.get("ax")
-        fig = kwargs.get("fig")
-        figsize = kwargs.get("figsize")
-
+        (_args, _kwargs) = _resolve_args_and_kwargs(func, *args, **kwargs)
         # Call the validation function to ensure proper fig and ax are set
-        fig, ax = validate_plotting_kwargs(ax=ax, fig=fig, figsize=figsize)
-
+        fig, ax = validate_plotting_kwargs(
+            **_kwargs,
+        )
         # Update kwargs to pass the validated fig and ax
         kwargs["fig"] = fig
         kwargs["ax"] = ax
-
         # Call the actual plotting function
         return func(*args, **kwargs)
 
     return wrapper
+
+
+######################################################################
+## validate_shapes_decorator
+######################################################################
 
 
 def validate_shapes(y_true, y_probas):
@@ -445,13 +601,13 @@ def validate_shapes_decorator(func):
     def wrapper(*args, **kwargs):
         # Find and validate y_true and y_probas
         # Ensure you explicitly specify params before unpacking
-        y_true, y_true_name, y_true_index = get_param_w_index(
+        _, _, y_true = _get_param_w_index(
             func=func,
             params=["y_true", "y"],  # No need to pass 'func'
             *args,  # Unpack args here
             **kwargs,  # Unpack kwargs
         )
-        y_probas, y_probas_name, y_probas_index = get_param_w_index(
+        _, _, y_probas = _get_param_w_index(
             func=func,
             params=["y_probas"],  # Specify params after func
             *args,  # Unpack args here
@@ -469,6 +625,11 @@ def validate_shapes_decorator(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+######################################################################
+## validate_y_true_decorator
+######################################################################
 
 
 def validate_y_true(y_true, pos_label=None, class_index=None):
@@ -557,17 +718,12 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
             class_index < 0 or class_index >= y_true.shape[1]
         ):  # Make sure the index is within bounds
             raise ValueError(
-                f"class_index {class_index} out of bounds for `y_true`. It must be between 0 and {y_true.shape[1] - 1}."
+                f"class_index {class_index} out of bounds for `y_true`. "
+                f"It must be between 0 and {y_true.shape[1] - 1}."
             )
         return y_true[:, class_index]
 
     raise ValueError("`y_true` must contain more than one distinct class.")
-
-
-def validate_y_true_parameterized_decorator(
-    parameter_constraints, *, prefer_skip_nested_validation
-):
-    """ """
 
 
 def validate_y_true_decorator(func):
@@ -594,7 +750,7 @@ def validate_y_true_decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # Find and validate y_true
-        y_true, y_true_name, y_true_index = get_param_w_index(
+        y_true_name, y_true_index, y_true = _get_param_w_index(
             func=func,  # Keep this first to avoid ambiguity
             params=["y_true", "y"],  # Specify params after func
             *args,  # Unpack args here
@@ -602,10 +758,10 @@ def validate_y_true_decorator(func):
         )
 
         # Extract pos_label and class_index from kwargs (if provided)
-        pos_label, _, _ = get_param_w_index(
+        _, _, pos_label = _get_param_w_index(
             func=func, params=["pos_label"], *args, **kwargs
         )
-        class_index, _, _ = get_param_w_index(
+        _, _, class_index = _get_param_w_index(
             func=func, params=["class_index"], *args, **kwargs
         )
 
@@ -614,10 +770,10 @@ def validate_y_true_decorator(func):
 
         # Ensure validated_y_true is passed correctly
         if validated_y_true is not None:
-            new_args, new_kwargs = get_new_args_kwargs(
-                new_param=validated_y_true,
-                param_name=y_true_name,
+            new_args, new_kwargs = _get_args_kwargs(
+                param_key=y_true_name,
                 param_index=y_true_index,
+                param_value=validated_y_true,
                 *args,
                 **kwargs,
             )
@@ -628,6 +784,11 @@ def validate_y_true_decorator(func):
         return func(*new_args, **new_kwargs)
 
     return wrapper
+
+
+######################################################################
+## validate_y_probas_decorator
+######################################################################
 
 
 def validate_y_probas(y_probas, class_index=None):
@@ -697,7 +858,8 @@ def validate_y_probas(y_probas, class_index=None):
             class_index < 0 or class_index >= y_probas.shape[1]
         ):  # Make sure the index is within bounds
             raise ValueError(
-                f"class_index {class_index} out of bounds for `y_probas`. It must be between 0 and {y_probas.shape[1] - 1}."
+                f"class_index {class_index} out of bounds for `y_probas`. "
+                f"It must be between 0 and {y_probas.shape[1] - 1}."
             )
 
         return y_probas[:, class_index]  # Return specified class probabilities
@@ -727,7 +889,7 @@ def validate_y_probas_decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # Find and validate y_probas
-        y_probas, y_probas_name, y_probas_index = get_param_w_index(
+        y_probas_name, y_probas_index, y_probas = _get_param_w_index(
             func=func,  # Keep this first to avoid ambiguity
             params=["y_probas"],  # Specify params after func
             *args,  # Unpack args here
@@ -735,7 +897,7 @@ def validate_y_probas_decorator(func):
         )
 
         # Extract class_index from kwargs (default to 0 if not provided)
-        class_index, _, _ = get_param_w_index(
+        _, _, class_index = _get_param_w_index(
             func=func, params=["class_index"], *args, **kwargs
         )
 
@@ -744,10 +906,10 @@ def validate_y_probas_decorator(func):
 
         # Ensure validated_y_true is passed correctly
         if validated_y_probas is not None:
-            new_args, new_kwargs = get_new_args_kwargs(
-                new_param=validated_y_probas,
-                param_name=y_probas_name,
+            new_args, new_kwargs = _get_args_kwargs(
+                param_key=y_probas_name,
                 param_index=y_probas_index,
+                param_value=validated_y_probas,
                 *args,
                 **kwargs,
             )
@@ -758,6 +920,11 @@ def validate_y_probas_decorator(func):
         return func(*new_args, **new_kwargs)
 
     return wrapper
+
+
+######################################################################
+## validate_y_probas_bounds_decorator
+######################################################################
 
 
 def _range01(x):
@@ -889,7 +1056,7 @@ def validate_y_probas_bounds_decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # Find and validate y_probas
-        y_probas, y_probas_name, y_probas_index = get_param_w_index(
+        y_probas_name, y_probas_index, y_probas = _get_param_w_index(
             func=func,  # Keep this first to avoid ambiguity
             params=["y_probas"],  # Specify params after func
             *args,  # Unpack args here
@@ -897,8 +1064,8 @@ def validate_y_probas_bounds_decorator(func):
         )
 
         # Retrieve method and axis from kwargs
-        method, _, _ = get_param_w_index(func=func, params=["method"], *args, **kwargs)
-        axis, _, _ = get_param_w_index(func=func, params=["axis"], *args, **kwargs)
+        _, _, method = _get_param_w_index(func=func, params=["method"], *args, **kwargs)
+        _, _, axis = _get_param_w_index(func=func, params=["axis"], *args, **kwargs)
 
         # Validate y_probas and apply bounds scaling
         validated_y_probas = validate_y_probas_bounds(
@@ -906,10 +1073,10 @@ def validate_y_probas_bounds_decorator(func):
         )
 
         # Create new args and kwargs with validated y_probas
-        new_args, new_kwargs = get_new_args_kwargs(
-            new_param=validated_y_probas,
-            param_name=y_probas_name,
+        new_args, new_kwargs = _get_args_kwargs(
+            param_key=y_probas_name,
             param_index=y_probas_index,
+            param_value=validated_y_probas,
             *args,
             **kwargs,
         )
@@ -918,6 +1085,11 @@ def validate_y_probas_bounds_decorator(func):
         return func(*new_args, **new_kwargs)
 
     return wrapper
+
+
+######################################################################
+## validate_inputs
+######################################################################
 
 
 def validate_inputs(
@@ -967,3 +1139,8 @@ def validate_inputs(
     y_probas = validate_y_probas_bounds(y_probas, method=method, axis=axis)
 
     return y_true, y_probas
+
+
+######################################################################
+##
+######################################################################

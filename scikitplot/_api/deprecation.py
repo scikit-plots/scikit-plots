@@ -115,12 +115,8 @@ def warn_deprecated(
     ::
 
         # To warn of the deprecation of "matplotlib.name_of_module"
-        warn_deprecated(
-            '1.4.0',
-            name='matplotlib.name_of_module',
-            obj_type='module',
-        )
-
+        warn_deprecated('1.4.0', name='matplotlib.name_of_module',
+                        obj_type='module')
     """
     warning = _generate_deprecation_warning(
         since, message, name, alternative, pending, obj_type, addendum, removal=removal
@@ -166,7 +162,6 @@ def deprecated(
         @deprecated('1.4.0')
         def the_function_to_deprecate():
             pass
-
     """
 
     def deprecate(
@@ -178,7 +173,7 @@ def deprecated(
         obj_type=obj_type,
         addendum=addendum,
     ):
-        from matplotlib._api import classproperty
+        from . import classproperty
 
         if isinstance(obj, type):
             if obj_type is None:
@@ -345,9 +340,8 @@ def rename_parameter(since, old, new, func=None):
     --------
     ::
 
-        @_api.rename_parameter('3.1', 'bad_name', 'good_name')
+        @_api.rename_parameter("3.1", "bad_name", "good_name")
         def func(good_name): ...
-
     """
     decorator = functools.partial(rename_parameter, since, old, new)
 
@@ -413,9 +407,8 @@ def delete_parameter(since, name, func=None, **kwargs):
     --------
     ::
 
-        @_api.delete_parameter('3.1', 'unused')
+        @_api.delete_parameter("3.1", "unused")
         def func(used_arg, other_arg, unused, more_args): ...
-
     """
     decorator = functools.partial(delete_parameter, since, name, **kwargs)
 
@@ -623,6 +616,7 @@ def deprecate_method_override(method, obj, *, allow_empty=False, **kwargs):
 
 @contextlib.contextmanager
 def suppress_matplotlib_deprecation_warning():
+    """suppress_matplotlib_deprecation_warning"""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MatplotlibDeprecationWarning)
         yield

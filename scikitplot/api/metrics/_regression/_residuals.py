@@ -14,12 +14,15 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
+import numpy as np  # type: ignore[reportMissingImports]
+import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 
 # Sigmoid and Softmax functions
-from scipy import stats
+from scipy import stats  # type: ignore[reportMissingModuleSource]
 
 # from sklearn.metrics import (
 # )
@@ -33,7 +36,10 @@ from scipy import stats
 # pip install tweedie probscale
 # import tweedie
 from scikitplot.stats import tweedie
+
+from ..._utils.validation import validate_plotting_kwargs_decorator
 from ....utils.utils_plot_mpl import save_plot_decorator
+from ...._docstrings import _docstring
 
 # Q-Q plot with fitted normal distribution
 # sm.qqplot
@@ -42,11 +48,14 @@ from ....utils.utils_plot_mpl import save_plot_decorator
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
-__all__ = ["plot_residuals_distribution"]
+__all__ = [
+    "plot_residuals_distribution",
+]
 
 
-# @validate_plotting_kwargs_decorator
+@validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_residuals_distribution(
     ## default params
     y_true,
@@ -56,14 +65,16 @@ def plot_residuals_distribution(
     var_power=1.5,
     ## plotting params
     title="Precision-Recall AUC Curves",
-    ax=None,
-    fig=None,
-    figsize=(10, 5),
     title_fontsize="large",
     text_fontsize="medium",
     cmap=None,
     show_labels=True,
     digits=4,
+    # add docstr
+    figsize=(10, 5),
+    nrows=1,
+    ncols=3,
+    index=3,
     ## additional params
     **kwargs,
 ):
@@ -84,12 +95,15 @@ def plot_residuals_distribution(
         - 'normal': For symmetrically distributed residuals (mean μ, std σ).
         - 'poisson': For count-based residuals or rare events (mean λ).
         - 'gamma': For positive, skewed residuals with a heavy tail (shape k or α, scale θ or β).
-        - 'inverse_gaussian': For residuals with a distribution similar to the inverse Gaussian (mean μ, scale λ).
+        - 'inverse_gaussian': For residuals with a distribution similar to the inverse Gaussian
+        (mean μ, scale λ).
         - 'exponential': For non-negative residuals with a long tail (scale λ).
-        - 'lognormal': For positively skewed residuals with a multiplicative effect (shape σ, scale exp(μ)).
+        - 'lognormal': For positively skewed residuals with a multiplicative effect
+        (shape σ, scale exp(μ)).
         - 'tweedie': For complex data including counts and continuous components.
 
-        The Tweedie distribution can model different types of data based on the variance power (`var_power`):
+        The Tweedie distribution can model different types of data based on
+        the variance power (`var_power`):
 
         - var_power = 0: Normal distribution (mean μ, std σ)
         - var_power = 1: Poisson distribution (mean λ)
@@ -104,20 +118,6 @@ def plot_residuals_distribution(
 
     title : str, optional, default='Precision-Recall AUC Curves'
         Title of the generated plot.
-
-    ax : list of matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-        Axes like ``fig.add_subplot(1, 1, 1)`` or ``plt.gca()``
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-        .. versionadded:: 0.3.9
-
-    figsize : tuple of int, optional, default=(10, 5)
-        Size of the figure (width, height) in inches.
 
     title_fontsize : str or int, optional, default='large'
         Font size for the plot title.
@@ -141,6 +141,15 @@ def plot_residuals_distribution(
         Number of digits for formatting PR AUC values in the plot.
 
         .. versionadded:: 0.3.9
+
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -193,38 +202,8 @@ def plot_residuals_distribution(
     ##################################################################
     ## Plotting
     ##################################################################
-    # Validate the types of ax and fig if they are provided
-    if ax is not None and not all(isinstance(ax, mpl.axes.Axes) for ax in ax):
-        raise ValueError("Provided ax list must be an instance of matplotlib.axes.Axes")
-    if fig is not None and not isinstance(fig, mpl.figure.Figure):
-        raise ValueError("Provided fig must be an instance of matplotlib.figure.Figure")
-    # Neither ax nor fig is provided.
-    # Create a new figure with two subplots,
-    # adjusting the width ratios with the specified figsize.
-    if ax is None and fig is None:
-        fig, ax = plt.subplots(
-            nrows=1,
-            ncols=3,
-            figsize=figsize,
-            sharex=False,
-            sharey=False,
-            # gridspec_kw={'width_ratios': [5, 5]}
-        )
-    # fig is provided but ax is not.
-    # Add two subplots (ax) to the provided figure (fig).
-    elif ax is None:
-        # 111 means a grid of 1 row, 1 column, and we want the first (and only) subplot.
-        # fig = plt.gcf()
-        ax = [
-            fig.add_subplot(1, 3, 1),
-            fig.add_subplot(1, 3, 2),
-            fig.add_subplot(1, 3, 3),
-        ]
-    # ax is provided (whether fig is provided or not).
-    # Use the provided ax for plotting. No new figure or subplot is created.
-    else:
-        pass
     # Proceed with your plotting logic here
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
 
     # Histogram of residuals
     ax[0].hist(residuals, bins="auto", edgecolor="k", alpha=0.8, color="dodgerblue")
@@ -437,7 +416,8 @@ def plot_residuals_distribution(
     else:
         raise ValueError(
             "Unsupported distribution type."
-            "Choose from 'normal', 'poisson', 'gamma', 'inverse_gaussian', 'tweedie', 'exponential', or 'lognormal'."
+            "Choose from 'normal', 'poisson', 'gamma', 'inverse_gaussian', "
+            "'tweedie', 'exponential', or 'lognormal'."
         )
 
     # Enable grid and display legend

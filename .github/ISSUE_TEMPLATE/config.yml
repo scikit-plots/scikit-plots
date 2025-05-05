@@ -18,6 +18,9 @@ contact_links:
   - name: "Chat: Communicate with devs"
     url: https://gitter.im/scikit-plots/scikit-plots  # url: https://gitter.im/matplotlib/matplotlib
     about: Ask short questions about contributing to scikit-plots
+  # - name: Question/Support/Other
+  #   url: https://discourse.matplotlib.org
+  #   about: If you have a usage question
   # - name: Mailing list
   #   url: https://mail.python.org/mailman/listinfo/scikit-plots
   #   about: General discussions and announcements on the mailing list

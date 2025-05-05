@@ -127,6 +127,7 @@ _submodules = {
     "_build_utils",
     # '_clv',
     "_compat",
+    "_docstrings",
     "_externals",
     "_factory_api",
     ## Experimental, we keep transform api module to compatibility seaborn core.
@@ -153,7 +154,6 @@ _submodules = {
     "_citation",
     "_config",
     "_distributor_init",
-    "_docstring",
     "_globals",
     "_min_dependencies",
     "_preprocess",

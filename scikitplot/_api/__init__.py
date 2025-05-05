@@ -18,16 +18,27 @@ import sys
 import warnings
 
 from .deprecation import (  # noqa: F401
-    MatplotlibDeprecationWarning,
+    deprecated,
+    warn_deprecated,
+    rename_parameter,
     delete_parameter,
+    make_keyword_only,
     deprecate_method_override,
     deprecate_privatize_attribute,
-    deprecated,
-    make_keyword_only,
-    rename_parameter,
     suppress_matplotlib_deprecation_warning,
-    warn_deprecated,
+    MatplotlibDeprecationWarning,
 )
+
+
+# A sentinel value for optional arguments, when None cannot be used as
+# default because we need to distinguish between None passed explicitly
+# and parameter not given. Usage: def foo(arg=_api.UNSET):
+class _Unset:
+    def __repr__(self):
+        return "<UNSET>"
+
+
+UNSET = _Unset()
 
 
 class classproperty:
@@ -80,7 +91,6 @@ def check_isinstance(types, /, **kwargs):
     Examples
     --------
     >>> _api.check_isinstance((SomeClass, None), arg=arg)
-
     """
     none_type = type(None)
     types = (
@@ -144,8 +154,7 @@ def check_in_list(values, /, *, _print_supported_values=True, **kwargs):
 
     Examples
     --------
-    >>> _api.check_in_list(['foo', 'bar'], arg=arg, other_arg=other_arg)
-
+    >>> _api.check_in_list(["foo", "bar"], arg=arg, other_arg=other_arg)
     """
     if not kwargs:
         raise TypeError("No argument to check!")
@@ -172,7 +181,6 @@ def check_shape(shape, /, **kwargs):
     To check for (N, 2) shaped arrays
 
     >>> _api.check_shape((None, 2), arg=arg, other_arg=other_arg)
-
     """
     for k, v in kwargs.items():
         data_shape = v.shape

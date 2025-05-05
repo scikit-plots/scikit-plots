@@ -67,21 +67,26 @@ mathmpl_srcset : list of str, default: []
     <https://developer.mozilla.org/en-US/docs/Learn/HTML/Multimedia_and_embedding/Responsive_images>`__.
     The list should contain additional x-descriptors (``'1.5x'``, ``'2x'``,
     etc.) to generate (1x is the default and always included.)
+
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
 
 import hashlib
 from pathlib import Path
 
-import matplotlib as mpl
-import sphinx
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
+import sphinx
+from sphinx.errors import ConfigError, ExtensionError
+
+import matplotlib as mpl
 from matplotlib import _api, mathtext
 from matplotlib.rcsetup import validate_float_or_None
-from sphinx.errors import ConfigError, ExtensionError
 
 
 # Define LaTeX math node:
@@ -107,7 +112,9 @@ math_role.options = {"fontset": fontset_choice, "fontsize": validate_float_or_No
 
 
 class MathDirective(Directive):
-    """The ``.. mathmpl::`` directive, as documented in the module's docstring."""
+    """
+    The ``.. mathmpl::`` directive, as documented in the module's docstring.
+    """
 
     has_content = True
     required_arguments = 0
@@ -146,7 +153,10 @@ def latex2html(node, source):
     fontset = node["fontset"]
     fontsize = node["fontsize"]
     name = "math-{}".format(
-        hashlib.md5(f"{latex}{fontset}{fontsize}".encode()).hexdigest()[-10:]
+        hashlib.sha256(
+            f"{latex}{fontset}{fontsize}".encode(),
+            usedforsecurity=False,
+        ).hexdigest()[-10:]
     )
 
     destdir = Path(setup.app.builder.outdir, "_images", "mathmpl")
@@ -157,7 +167,7 @@ def latex2html(node, source):
 
     srcset = []
     for size in setup.app.config.mathmpl_srcset:
-        filename = f'{name}-{size.replace(".", "_")}.png'
+        filename = f"{name}-{size.replace('.', '_')}.png"
         latex2png(
             latex,
             destdir / filename,

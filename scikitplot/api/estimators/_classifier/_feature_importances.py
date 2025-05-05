@@ -14,8 +14,13 @@ enforcing Python 3-like behavior in Python 2.
 
 # code that needs to be compatible with both Python 2 and Python 3
 
-import matplotlib.pyplot as plt
-import numpy as np
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
+import numpy as np  # type: ignore[reportMissingImports]
+
+# import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 
 from ..._utils.validation import (
     validate_plotting_kwargs_decorator,
@@ -25,13 +30,17 @@ from ..._utils.validation import (
     # validate_y_probas_bounds_decorator,
 )
 from ....utils.utils_plot_mpl import save_plot_decorator
+from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
-__all__ = ["plot_feature_importances"]
+__all__ = [
+    "plot_feature_importances",
+]
 
 
 @validate_plotting_kwargs_decorator
 @save_plot_decorator
+@_docstring.interpd
 def plot_feature_importances(
     ## default params
     estimator,
@@ -41,9 +50,6 @@ def plot_feature_importances(
     threshold=None,
     ## plotting params
     title="Feature Importances",
-    ax=None,
-    fig=None,
-    figsize=None,
     title_fontsize="large",
     text_fontsize="medium",
     cmap="PiYG",
@@ -52,8 +58,8 @@ def plot_feature_importances(
     orientation="vertical",
     x_tick_rotation=None,
     bar_padding=11,
-    display_bar_label=True,
     digits=4,
+    display_bar_label=True,
     ## additional params
     **kwargs,
 ):
@@ -75,12 +81,14 @@ def plot_feature_importances(
     - :py:class:`~sklearn.tree.DecisionTreeClassifier`
     - :py:class:`~sklearn.ensemble.RandomForestClassifier`
     - :py:class:`~sklearn.decomposition.PCA`
-    - `xgboost Python API <https://xgboost.readthedocs.io/en/stable/python/python_api.html#module-xgboost.sklearn>`_
-    - `catboost Python API <https://catboost.ai/en/docs/concepts/python-quickstart>`_
+    - :py:mod:`xgboost` `Python API
+    <https://xgboost.readthedocs.io/en/stable/python/python_api.html#module-xgboost.sklearn>`_
+    - :py:mod:`catboost` `Python API
+    <https://catboost.ai/en/docs/concepts/python-quickstart>`_
 
     Parameters
     ----------
-    estimator : estimator object
+    estimator : fitted estimator object
         Fitted classifier or a fitted :class:`~sklearn.pipeline.Pipeline`
         in which the last estimator is a classifier.
 
@@ -99,17 +107,6 @@ def plot_feature_importances(
 
     title : str, optional, default='Feature Importances'
         Title of the generated plot.
-
-    ax : matplotlib.axes.Axes, optional, default=None
-        The axis to plot the figure on. If None is passed in the current axes
-        will be used (or generated if required).
-
-    fig : matplotlib.pyplot.figure, optional, default: None
-        The figure to plot the Visualizer on. If None is passed in the current
-        plot will be used (or generated if required).
-
-    figsize : tuple, optional, default=None
-        Tuple denoting figure size of the plot e.g. (6, 6)
 
     title_fontsize : str or int, optional, default='large'
         Matplotlib-style fontsizes. Use e.g. "small", "medium", "large" or
@@ -139,13 +136,22 @@ def plot_feature_importances(
     bar_padding : float, optional, default=11
         Padding between bars in the plot.
 
-    display_bar_label : bool, optional, default=True
-        Whether to display the bar labels.
-
     digits : int, optional, default=4
         Number of digits for formatting AUC values in the plot.
 
+    display_bar_label : bool, optional, default=True
+        Whether to display the bar labels.
+
         .. versionadded:: 0.3.9
+
+    **kwargs: dict
+        Generic keyword arguments.
+
+    Other Parameters
+    ----------------
+    %(_validate_plotting_kwargs_doc)s
+
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -232,7 +238,6 @@ def plot_feature_importances(
     # Apply ordering based on orientation
     if order is None:
         order = "ascending" if orientation in ["horizontal", "h", "x"] else "descending"
-
     if order == "descending":
         # Sort the indices based on the importances in descending order
         sorted_indices = np.argsort(importances[indices])[::-1]
@@ -259,6 +264,7 @@ def plot_feature_importances(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
+    fig, ax = kwargs.get("fig"), kwargs.get("ax")
     # Plot bars based on orientation
     for idx, (col, imp) in enumerate(zip(feature_names, importances)):
         # Default colormap if not provided, 'viridis'
@@ -316,5 +322,5 @@ def plot_feature_importances(
         ax.set_xlim([ax.get_xlim()[0], ax.get_xlim()[1] * 1.2])
 
     plt.legend([f"n_features_out_: {len(importances)}"])
-    plt.tight_layout()
+    # plt.tight_layout()
     return ax, feature_names
