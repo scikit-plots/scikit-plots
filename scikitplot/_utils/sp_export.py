@@ -1,3 +1,5 @@
+"""Tensorflow like exporter."""
+
 SKPLT_API_NAME = "scikitplot"
 
 # class ExportType(Protocol):

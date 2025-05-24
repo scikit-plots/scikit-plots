@@ -56,7 +56,7 @@ warnings.warn(
     DeprecationWarning,
 )
 
-from .._xp_core_lib.deprecation import _sub_module_deprecation
+from .._lib.deprecation import _sub_module_deprecation
 
 
 def __dir__():
@@ -77,8 +77,8 @@ def __getattr__(name):
 ## Module Attr Deprecation
 ######################################################################
 
-from .._xp_core_lib.deprecation import __DEPRECATION_MSG, _deprecated
-from .._xp_core_lib.deprecation import deprecated as deprecated_test
+from .._lib.deprecation import __DEPRECATION_MSG, _deprecated
+from .._lib.deprecation import deprecated as deprecated_test
 
 
 @_deprecated(

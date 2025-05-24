@@ -16,9 +16,12 @@ That was not the case when the singleton classes were defined in the scikitplot
 motivated this module.
 """
 
-from typing import Optional, Type
+# pylint: disable=import-outside-toplevel
 
-# from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 __all__ = [
     "ModuleDeprecationWarning",
@@ -34,9 +37,9 @@ __all__ = [
 
 # Disallow reloading this module so as to preserve the identities of the
 # classes defined here.
-if "_is_loaded" in globals():
+if "_IS_LOADED" in globals():
     raise RuntimeError("Reloading scikitplot._globals is not allowed")
-_is_loaded = True
+_IS_LOADED = True
 
 ######################################################################
 ## ModuleDeprecationWarning class
@@ -150,10 +153,10 @@ class SingletonBase:
 
     # Class attribute to hold the single instance of the class.
     # _instance: Union["SingletonBase", None] = None
-    _instance: Optional["SingletonBase"] = None
+    _instance: "Optional[SingletonBase]" = None
 
     # magic method to get called in an objects instantiation.
-    def __new__(cls: Type["SingletonBase"], *args, **kwargs) -> "SingletonBase":
+    def __new__(cls: "type[SingletonBase]", *args, **kwargs) -> "SingletonBase":
         """
         Override the default object creation method to implement the singleton pattern.
 
@@ -162,7 +165,7 @@ class SingletonBase:
 
         Parameters
         ----------
-        cls : Type[SingletonBase]
+        cls : type[SingletonBase]
             The class being instantiated.
         *args : tuple
             Positional arguments to be passed to the class constructor.
@@ -181,11 +184,10 @@ class SingletonBase:
 
     def __reduce__(self) -> tuple:
         """
-        Ensures the singleton instance is correctly restored during object serialization
-        (i.e., pickling and unpickling).
+        Ensure the singleton instance is correctly restored during object serialization.
 
-        This method ensures that the singleton behavior is maintained during
-        serialization.
+        (i.e., pickling and unpickling). This method ensures that the singleton behavior
+        is maintained during serialization.
 
         Returns
         -------
@@ -234,7 +236,7 @@ class SingletonBase:
 #     """
 #     _instance: Optional["SingletonBaseEnum"] = None
 
-#     def __new__(cls: Type["SingletonBaseEnum"], value: Any) -> "SingletonBaseEnum":
+#     def __new__(cls: type["SingletonBaseEnum"], value: Any) -> "SingletonBaseEnum":
 #         """
 #         Override the object creation method to implement the singleton pattern for enum values.
 
@@ -243,7 +245,7 @@ class SingletonBase:
 
 #         Parameters
 #         ----------
-#         cls : Type[SingletonBaseEnum]
+#         cls : type[SingletonBaseEnum]
 #             The class being instantiated.
 #         value : Any
 #             The value of the enum member.
@@ -262,12 +264,12 @@ class SingletonBase:
 #         return cls._instance
 
 ######################################################################
-## Singleton Marker Types
-## _DefaultType class
+## Singleton Marker types
+## _Defaulttype class
 ######################################################################
 
 
-class _DefaultType(SingletonBase):
+class _Defaulttype(SingletonBase):
     """
     A marker representing the use of a default value.
 
@@ -277,11 +279,11 @@ class _DefaultType(SingletonBase):
 
     Examples
     --------
-    >>> default = _DefaultType()
+    >>> default = _Defaulttype()
     >>> print(default)
     <default>
 
-    >>> another_default = _DefaultType()
+    >>> another_default = _Defaulttype()
     >>> default is another_default  # Singleton behavior ensures one instance
     True
 
@@ -290,7 +292,7 @@ class _DefaultType(SingletonBase):
     # print our string object
     def __repr__(self) -> str:
         """
-        Returns a string representation of the object.
+        Return a string representation of the object.
 
         Printing <default> makes it easy to spot when the default value is used.
 
@@ -304,15 +306,15 @@ class _DefaultType(SingletonBase):
 
 
 # Create class instance to direct use
-_Default = _DefaultType()
+_Default = _Defaulttype()
 
 ######################################################################
-## Singleton Marker Types
-## _DeprecatedType class
+## Singleton Marker types
+## _Deprecatedtype class
 ######################################################################
 
 
-class _DeprecatedType(SingletonBase):
+class _Deprecatedtype(SingletonBase):
     """
     A marker indicating that a value or feature is deprecated.
 
@@ -321,11 +323,11 @@ class _DeprecatedType(SingletonBase):
 
     Examples
     --------
-    >>> deprecated = _DeprecatedType()
+    >>> deprecated = _Deprecatedtype()
     >>> print(deprecated)
     <deprecated>
 
-    >>> another_deprecated = _DeprecatedType()
+    >>> another_deprecated = _Deprecatedtype()
     >>> deprecated is another_deprecated  # Ensures singleton behavior
     True
 
@@ -333,7 +335,7 @@ class _DeprecatedType(SingletonBase):
 
     def __repr__(self) -> str:
         """
-        Returns a string representation of the object.
+        Return a string representation of the object.
 
         Printing <deprecated> makes it easy to identify deprecated values or features.
 
@@ -347,15 +349,15 @@ class _DeprecatedType(SingletonBase):
 
 
 # Create class instance to direct use
-_Deprecated = _DeprecatedType()
+_Deprecated = _Deprecatedtype()
 
 ######################################################################
-## Singleton Marker Types
-## _NoValueType class
+## Singleton Marker types
+## _NoValuetype class
 ######################################################################
 
 
-class _NoValueType(SingletonBase):
+class _NoValuetype(SingletonBase):
     """
     A special value indicating no user-defined input.
 
@@ -379,11 +381,11 @@ class _NoValueType(SingletonBase):
 
     Examples
     --------
-    >>> no_value = _NoValueType()
+    >>> no_value = _NoValuetype()
     >>> print(no_value)
     <no value>
 
-    >>> another_instance = _NoValueType()
+    >>> another_instance = _NoValuetype()
     >>> no_value is another_instance  # All instances are the same
     True
 
@@ -391,7 +393,7 @@ class _NoValueType(SingletonBase):
 
     def __repr__(self) -> str:
         """
-        Returns a string representation of the object.
+        Return a string representation of the object.
 
         This helps in debugging and makes it clear when <no value> is printed.
 
@@ -405,7 +407,7 @@ class _NoValueType(SingletonBase):
 
 
 # Create class instance to direct use
-_NoValue = _NoValueType()
+_NoValue = _NoValuetype()
 
 ######################################################################
 ## Singleton for Resource Management

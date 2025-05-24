@@ -3,6 +3,7 @@
 # ruff: noqa
 # flake8: noqa
 # type: ignore
+# mypy: ignore-errors
 
 from typing import Final, LiteralString
 

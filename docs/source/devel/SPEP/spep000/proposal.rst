@@ -124,7 +124,7 @@ approved by at least one core developer, the SPEP draft can be merged.
 Additional PRs may be made by the champions to update or expand the SPEP, or by
 maintainers to set its status, discussion URL, etc.
 
-Standards Track SPEPs (see bellow) consist of two parts, a design document and
+Standards Track SPEPs (see below) consist of two parts, a design document and
 a reference implementation. It is generally recommended that at least a
 prototype implementation be co-developed with the SPEP, as ideas that sound
 good in principle sometimes turn out to be impractical when subjected to the

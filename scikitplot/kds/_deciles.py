@@ -22,7 +22,7 @@ __all__ = ["plot_cumulative_gain", "plot_ks_statistic", "plot_lift"]
 ## Module Deprecation
 ######################################################################
 
-from .._xp_core_lib.deprecation import _sub_module_deprecation
+from .._lib.deprecation import _sub_module_deprecation
 
 
 def __dir__():

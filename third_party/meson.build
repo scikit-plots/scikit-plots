@@ -94,7 +94,7 @@ endif
 install_subdir(
   'array-api-compat/array_api_compat',
   ## Load direct not need any changes
-  install_dir: py.get_install_dir() / 'scikitplot/_xp_core_lib',
+  install_dir: py.get_install_dir() / 'scikitplot/_lib',
   install_tag: 'python-runtime',
 )
 ## Optionally add a message to confirm the installation
@@ -102,7 +102,7 @@ message(
   '\n' +
   BLUE + '[INFO]' + RESET +
   ' Array API compatibility files installed successfully: ' +
-  '@0@'.format(py.get_install_dir() / 'scikitplot/_xp_core_lib/array_api_compat')
+  '@0@'.format(py.get_install_dir() / 'scikitplot/_lib/array_api_compat')
 )
 
 ######################################################################
@@ -123,7 +123,7 @@ endif
 install_subdir(
   'array-api-extra/src/array_api_extra',
   ## Load direct not need any changes
-  install_dir: py.get_install_dir() / 'scikitplot/_xp_core_lib',
+  install_dir: py.get_install_dir() / 'scikitplot/_lib',
   install_tag: 'python-runtime',
 )
 ## Optionally add a message to confirm the installation
@@ -131,7 +131,7 @@ message(
   '\n' +
   BLUE + '[INFO]' + RESET +
   ' Array API compatibility files installed successfully: ' +
-  '@0@'.format(py.get_install_dir() / 'scikitplot/_xp_core_lib/array_api_extra')
+  '@0@'.format(py.get_install_dir() / 'scikitplot/_lib/array_api_extra')
 )
 
 ######################################################################

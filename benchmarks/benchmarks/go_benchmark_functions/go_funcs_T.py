@@ -285,7 +285,13 @@ class ThreeHumpCamel(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return 2.0 * x[0] ** 2.0 - 1.05 * x[0] ** 4.0 + x[0] ** 6 / 6.0 + x[0] * x[1] + x[1] ** 2.0
+        return (
+            2.0 * x[0] ** 2.0
+            - 1.05 * x[0] ** 4.0
+            + x[0] ** 6 / 6.0
+            + x[0] * x[1]
+            + x[1] ** 2.0
+        )
 
 
 class Trid(Benchmark):
@@ -410,7 +416,11 @@ class Trigonometric02(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        vec = 8 * sin(7 * (x - 0.9) ** 2) ** 2 + 6 * sin(14 * (x - 0.9) ** 2) ** 2 + (x - 0.9) ** 2
+        vec = (
+            8 * sin(7 * (x - 0.9) ** 2) ** 2
+            + 6 * sin(14 * (x - 0.9) ** 2) ** 2
+            + (x - 0.9) ** 2
+        )
         return 1.0 + sum(vec)
 
 

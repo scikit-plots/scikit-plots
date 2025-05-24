@@ -10,7 +10,7 @@ with safe_import():
 
 
 class Laplacian(Benchmark):
-    params = [[30, 300, 900], ["dense", "coo", "csc", "csr", "dia"], [True, False]]
+    params = [[30, 300, 900], ["dense", "coup", "csc", "csr", "dia"], [True, False]]
     param_names = ["n", "format", "normed"]
 
     def setup(self, n, format, normed):

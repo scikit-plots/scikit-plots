@@ -35,11 +35,11 @@ extensions="$extensions charliermarsh.ruff"
 
 # === Markdown & Docs ===
 # Markdown enhancements
-extensions="$extensions yzhang.markdown-all-in-one"
+# extensions="$extensions yzhang.markdown-all-in-one"
 # Auto-wrap text and comments in Markdown files
 extensions="$extensions stkb.rewrap"
 # Mermaid diagrams support in Markdown
-extensions="$extensions bierner.markdown-mermaid"
+# extensions="$extensions bierner.markdown-mermaid"
 
 # === Shell & Terminal ===
 # Shell script linting
@@ -68,7 +68,7 @@ extensions="$extensions donjayamanne.githistory"
 # GitHub PRs and Issues integration
 extensions="$extensions github.vscode-pull-request-github"
 # Interactive Git graph
-extensions="$extensions mhutchie.git-graph"
+# extensions="$extensions mhutchie.git-graph"
 
 # === C/C++ Development ===
 # C/C++ IntelliSense, debugging, etc.
@@ -88,7 +88,7 @@ extensions="$extensions jeff-hykin.better-cpp-syntax"
 # Docker for Visual Studio Code
 extensions="$extensions ms-azuretools.vscode-docker"
 # circleci
-extensions="$extensions circleci.circleci"
+# extensions="$extensions circleci.circleci"
 
 # === GenAI ===
 # GenAIScript
@@ -128,4 +128,4 @@ done
 # ================================
 # Final Message
 # ================================
-echo "All extensions have been installed!"
+echo "All extensions have been installed! ✨ 🍰 ✨"

@@ -1,11 +1,11 @@
 .. _api-index:
 
 ======================================================================
-Metric Perfomance
+Metric Performance
 ======================================================================
 
 This module contains functions related to :py:mod:`~.api`.
-For model evaluation metric perfomance.
+For model evaluation metric performance.
 
 .. grid:: 1 1 2 2
 

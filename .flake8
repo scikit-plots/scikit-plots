@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 [flake8]
-max-line-length = 88
+# Flake8 settings
+# Add additional plugins if necessary for custom linting
+
+# max-line-length = 88  # Same as Black's line length
 
 select =
     # flake8 default
@@ -78,13 +81,12 @@ exclude =
     scikitplot/_astropy/**,                 # ← Ensure the `tools/` folder is ignored
     scikitplot/_build_utils/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/_clv/**,                     # ← Ensure the `tools/` folder is ignored
-    # scikitplot/_docstring,
     scikitplot/_externals/**,               # ← Ensure the `tools/` folder is ignored
     scikitplot/_factory_api/**,             # ← Ensure the `tools/` folder is ignored
+    scikitplot/_lib/**,                     # ← Ensure the `tools/` folder is ignored
     scikitplot/_seaborn/**,                 # ← Ensure the `tools/` folder is ignored
     scikitplot/_tweedie/**,                 # ← Ensure the `tools/` folder is ignored
     scikitplot/_utils/**,                   # ← Ensure the `tools/` folder is ignored
-    scikitplot/_xp_core_lib/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/api/**,                      # ← Ensure the `tools/` folder is ignored
     scikitplot/experimental/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/kds/**,                      # ← Ensure the `tools/` folder is ignored
@@ -95,6 +97,7 @@ exclude =
     scikitplot/_preprocess.py,
     scikitplot/cbook.py,
     scikitplot/conftest.py,
+    scikitplot/llm_backend/**,
 
 per-file-ignores =
     scikitplot/kds/_kds.py: D412, E225, E231, E261, E262, D412

@@ -98,7 +98,9 @@ class Ratkowsky01(Benchmark):
         Benchmark.__init__(self, dimensions)
 
         self._bounds = list(zip([0.0, 1.0, 0.0, 0.1], [1000, 20.0, 3.0, 6.0]))
-        self.global_optimum = [[6.996415127e2, 5.2771253025, 7.5962938329e-1, 1.2792483859]]
+        self.global_optimum = [
+            [6.996415127e2, 5.2771253025, 7.5962938329e-1, 1.2792483859]
+        ]
         self.fglob = 8.786404908e3
         self.a = asarray(
             [

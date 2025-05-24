@@ -85,7 +85,7 @@ User Guide
         .. toctree::
             :maxdepth: 2
 
-            ./_xp_core_lib/index.rst
+            ./_lib/index.rst
 
 
 .. _under-development:

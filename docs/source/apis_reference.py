@@ -354,14 +354,14 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "warning",
                 ],
             },
-            {
-                "title": "Class Interface - SpLogger",
-                "description": None,
-                "autosummary": [
-                    "SpLogger",
-                    "sp_logger",
-                ],
-            },
+            # {
+            #     "title": "Class Interface - SpLogger",
+            #     "description": None,
+            #     "autosummary": [
+            #         "SpLogger",
+            #         "sp_logger",
+            #     ],
+            # },
         ],
     },
     "scikitplot.stats": {

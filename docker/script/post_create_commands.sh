@@ -91,23 +91,37 @@ git fetch upstream --tags
 ## env
 ######################################################################
 
-## Initialize mamba (or conda)
-mamba init --all || true
+# Choose mamba if available, otherwise fallback to conda
+MAMBA_CMD=$(command -v mamba || command -v conda)
+# Check if mamba or conda is available
+if [ -z "$MAMBA_CMD" ]; then
+  echo "Error: Neither mamba nor conda is available on your PATH."
+  exit 1
+fi
 
-## Create a new environment with python 3.11 and ipykernel if it doesn't already exist
-mamba create -n py311 python=3.11 ipykernel -y || true
+## Initialize mamba (or conda)
+$MAMBA_CMD init --all || true
+
+# Check if 'py311' env exists
+if ! conda env list | grep -qE '(^|\s)py311(\s|$)'; then
+  ## Create a new environment with python 3.11 and ipykernel if it doesn't already exist
+  echo "Creating 'py311' environment with Python 3.11 and ipykernel using: $MAMBA_CMD"
+  $MAMBA_CMD create -n py311 python=3.11 ipykernel -y || true
+else
+    echo "'py311' environment already exists. Skipping creation."
+fi
 
 ## Activate the environment and install required packages
 ## Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
 ## Double quotes for the outer string and escaping the inner double quotes or use single
 bash -i -c "
-  mamba activate py311 || exit 1
-  mamba info -e | grep '*' || exit 1
+  $MAMBA_CMD activate py311 || exit 1
+  $MAMBA_CMD info -e | grep '*' || exit 1
 
   echo -e '\033[1;32m## Installing development dependencies...\033[0m'
+  # pip install -r ./requirements/cpu.txt
   # pip install -r ./requirements/build.txt
   pip install -r ./requirements/all.txt
-  # pip install -r ./requirements/cpu.txt
 
   # Install pre-commit
   echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m'
@@ -129,4 +143,4 @@ echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
 
 ## (Optionally) Open new terminal activate `py311`
-echo -e "mamba info -e"
+echo -e "conda info -e"

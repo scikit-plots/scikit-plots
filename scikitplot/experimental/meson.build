@@ -37,7 +37,7 @@ experimental_inc_dir = [
 inc_dir_experimental = include_directories(experimental_inc_dir)
 
 ######################################################################
-## library, If Neeed
+## library, If Needed
 ######################################################################
 
 # # Static library with C++ source file implementing bindings

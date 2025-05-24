@@ -1,0 +1,46 @@
+# https://github.com/mlflow/mlflow/blob/master/CONTRIBUTING.md#running-the-javascript-dev-server
+# How to build protobuf files using this Dockerfile:
+# $ DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile.protos -t gen-protos .
+# -v "$(pwd):/app" mounts your current project directory into the container.
+# -w /app tells Docker to make that the working directory inside the container.
+# This ensures Docker can find your script at ./tools/protos/generate_protos.py.
+# $ docker run --rm -v "$(pwd):/app" -w /app gen-protos python ./tools/protos/generate_protos.py
+# > docker run --rm -v "%cd%:/app" -w /app gen-protos python ./tools/protos/generate_protos.py
+# docker run --rm \
+#   -v $(pwd)/mlflow/protos:/app/mlflow/protos \
+#   -v $(pwd)/mlflow/java/client/src/main/java:/app/mlflow/java/client/src/main/java \
+#   -v $(pwd)/generate-protos.sh:/app/generate-protos.sh \
+#   gen-protos ./generate-protos.sh
+
+# FROM node:18-slim
+# npm install --global yarn
+# RUN npm install -g yarn
+# yarn --version
+# Add Node.js (LTS) and Yarn
+# RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+#  && apt-get install -y nodejs \
+#  && npm install -g yarn
+
+# FROM ubuntu:20.04
+FROM python:3.11-slim
+# Install protoc
+ENV PROTOC_VERSION=3.19.4
+ENV PATH="/root/protoc/bin:${PATH}"
+ENV GIT_PYTHON_REFRESH=quiet
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget curl unzip git ca-certificates \
+    && curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip \
+    && unzip protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /root/protoc \
+    && rm -rf protoc-${PROTOC_VERSION}-linux-x86_64.zip \
+    && apt-get remove -y ca-certificates \
+    && apt-get autoremove -y \
+    && apt-get autoremove -yqq --purge \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install required Python dependencies
+# COPY tools/protos/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir packaging GitPython protobuf numpy threadpoolctl flask requests graphene
+
+RUN protoc --version

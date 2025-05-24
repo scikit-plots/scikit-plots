@@ -6,7 +6,7 @@ import scikitplot.sp_logging as logging  # module logger
 
 # cbook must import matplotlib only within function
 # definitions, so it is safe to import from it here.
-from . import cbook
+from .config import cbook
 
 ######################################################################
 ## matplotlib like wrapper

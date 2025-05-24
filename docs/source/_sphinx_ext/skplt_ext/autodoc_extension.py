@@ -97,12 +97,16 @@ def setup(app: Sphinx):
     logger.info("Setting up Sphinx application")
     try:
         app.connect("autodoc-process-bases", autodoc_process_bases)
-        logger.info("Connected 'autodoc_process_bases' function to 'autodoc-process-bases' event")
+        logger.info(
+            "Connected 'autodoc_process_bases' function to 'autodoc-process-bases' event"
+        )
 
         # Connect the `add_html_cache_busting` function to ensure templates are rendered
         if sphinx.version_info[:2] < (7, 1):
             app.connect("html-page-context", add_html_cache_busting, priority=1000)
-            logger.info("Connected 'add_html_cache_busting' function to 'html-page-context' event")
+            logger.info(
+                "Connected 'add_html_cache_busting' function to 'html-page-context' event"
+            )
 
         # app.add_config_value('skip_sub_dirs', 0, '')
     except Exception as e:

@@ -53,30 +53,30 @@ SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
 export SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH"
 export PYTHONHASHSEED=0
 ######################################################################
-## Logging Functions
+## Define color and style variables for styled output.
 ######################################################################
 # Colors for Pretty Logs
-# BOLD='\033[1m'
-# RESET='\033[0m'
-# RED='\033[1;31m'
-# GREEN='\033[1;32m'
-# BLUE='\033[1;34m'
-# YELLOW='\033[1;33m'
+BOLD='\033[1m'
+RESET='\033[0m'  # No Color
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
+YELLOW='\033[1;33m'
 # MAGENTA='\033[1;35m'
 # CYAN='\033[1;36m'
-log()     { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;36m[INFO]\033[0m $1"; }
-success() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;32m[SUCCESS]\033[0m $1";}
-warn()    { echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;33m[WARNING]\033[0m $1"; }
-error()   {
-    echo -e "$(date '+%Y-%m-%d %H:%M:%S') \033[1;31m[ERROR]\033[0m $1" >&2;
-    exit 1;
-}
+######################################################################
+## Logging functions for consistent output styling.
+######################################################################
+log_info()    { echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${BLUE}[INFO]${RESET} $1"; }
+log_success() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${GREEN}[SUCCESS]${RESET} $1"; }
+log_warning() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${YELLOW}[WARNING]${RESET} $1"; }
+log_error()   { echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${RED}[ERROR]${RESET} $1" >&2; exit 1;}
 ######################################################################
 ## Utility Functions
 ######################################################################
 # Function to clean up build artifacts
 clean_build() {
-    log "Cleaning up any previous build artifacts..."
+    log_info "Cleaning up any previous build artifacts..."
     rm -rf build || log_error "Failed to remove build artifacts."
 }
 ######################################################################
@@ -84,7 +84,7 @@ clean_build() {
 ######################################################################
 # Function to handle LICENSE setup
 setup_license() {
-    log "Updating LICENSE file for $RUNNER_OS..."
+    log_info "Updating LICENSE file for $RUNNER_OS..."
     # Define project directory
     local project_dir="$1"
     # Define the license file based on OS
@@ -100,7 +100,7 @@ setup_license() {
             os_license_file="$project_dir/tools/wheels/LICENSE_win32.txt"
             ;;
         *)
-            warn "Unknown OS: $RUNNER_OS. Skipping OS LICENSE update."
+            log_warning "Unknown OS: $RUNNER_OS. Skipping OS LICENSE update."
             return
             ;;
     esac
@@ -108,10 +108,10 @@ setup_license() {
     [ -f "$os_license_file" ] && stat -c "LICENSE size: %s bytes" "$os_license_file" || echo "LICENSE file not found"
 
     if [[ -f $os_license_file ]]; then
-        cat "$os_license_file" >> "$project_dir/LICENSE" || warn "Failed to append LICENSE file."
-        log "Appended $os_license_file to: $(find "$project_dir" -name "LICENSE" -print -quit)"
+        cat "$os_license_file" >> "$project_dir/LICENSE" || log_warning "Failed to append LICENSE file."
+        log_info "Appended $os_license_file to: $(find "$project_dir" -name "LICENSE" -print -quit)"
     else
-        warn "OS LICENSE file not found: $project_dir. Skipping OS LICENSE adding."
+        log_warning "OS LICENSE file not found: $project_dir. Skipping OS LICENSE adding."
     fi
 
     [ -f "$project_dir/LICENSE" ] && du -h "$project_dir/LICENSE" || echo "LICENSE file not found"
@@ -121,7 +121,7 @@ setup_license() {
 ######################################################################
 # Function to handle free-threaded Python builds
 handle_free_threaded_build() {
-    log "Checking for free-threaded Python support..."
+    log_info "Checking for free-threaded Python support..."
     # TODO: delete along with enabling build isolation by unsetting
     # CIBW_BUILD_FRONTEND when numpy is buildable under free-threaded
     # python with a released version of cython
@@ -129,7 +129,7 @@ handle_free_threaded_build() {
     # local FREE_THREADED_BUILD
     FREE_THREADED_BUILD=$(python -c "import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")
     if [[ $FREE_THREADED_BUILD == "True" ]]; then
-        log "Free-threaded Python build detected. Installing additional build dependencies..."
+        log_info "Free-threaded Python build detected. Installing additional build dependencies..."
         python -m pip install -U --pre pip
         python -m pip uninstall -y cython numpy
         python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy || python -m pip install cython numpy
@@ -139,7 +139,7 @@ handle_free_threaded_build() {
         # python -m pip install git+https://github.com/serge-sans-paille/pythran
         python -m pip install meson-python ninja pybind11 pythran
     else
-        log "No free-threaded Python build detected. Skipping additional dependencies."
+        log_info "No free-threaded Python build detected. Skipping additional dependencies."
     fi
 }
 ######################################################################
@@ -153,15 +153,15 @@ configure_openblas_pkg_config() {
     OPENBLAS_LIB_DIR="$project_dir/.openblas/lib"
     # Check if directory exists before attempting to delete it
     if [ -d "$PKG_CONFIG_PATH" ]; then
-        log "Removing existing OpenBLAS config directory..."
+        log_info "Removing existing OpenBLAS config directory..."
         rm -rf "$PKG_CONFIG_PATH"  # Remove existing config directory
     else
-        log "No existing OpenBLAS config directory to remove."
+        log_info "No existing OpenBLAS config directory to remove."
     fi
     # Create a new OpenBLAS directory and log the success
-    log "Creating OpenBLAS config directory..."
+    log_info "Creating OpenBLAS config directory..."
     mkdir -p "$PKG_CONFIG_PATH"
-    log "OpenBLAS config directory created successfully."
+    log_info "OpenBLAS config directory created successfully."
     # Export PKG_CONFIG_PATH based on the OS and log
     case $RUNNER_OS in
         Linux|macOS)
@@ -172,10 +172,10 @@ configure_openblas_pkg_config() {
             export PKG_CONFIG_PATH ;;
         *)
             export CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-            success "Setting CIBW_ENVIRONMENT to: $CIBW_ENVIRONMENT"
+            log_success "Setting CIBW_ENVIRONMENT to: $CIBW_ENVIRONMENT"
             ;;
     esac
-    success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
+    log_success "Setting PKG_CONFIG_PATH to: $PKG_CONFIG_PATH"
     # Export LIBRARY PATH based on the OS and log
     case $RUNNER_OS in
         Linux)
@@ -184,22 +184,22 @@ configure_openblas_pkg_config() {
             else
                 export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR"
             fi
-            success "Setting LD_LIBRARY_PATH to: $LD_LIBRARY_PATH"
+            log_success "Setting LD_LIBRARY_PATH to: $LD_LIBRARY_PATH"
             ;;
         macOS)
             ## ${VAR:+value}
             export DYLD_LIBRARY_PATH="$OPENBLAS_LIB_DIR${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
-            success "Setting DYLD_LIBRARY_PATH to: $DYLD_LIBRARY_PATH"
+            log_success "Setting DYLD_LIBRARY_PATH to: $DYLD_LIBRARY_PATH"
             ;;
         Windows)
             # Adjust the path format for Windows
             OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
             export PATH="$OPENBLAS_LIB_DIR${PATH:+;$PATH}"
-            success "Setting PATH to: $PATH"
+            log_success "Setting PATH to: $PATH"
             ;;
         *)
             export CIBW_ENVIRONMENT="LD_LIBRARY_PATH=$OPENBLAS_LIB_DIR"
-            success "Setting CIBW_ENVIRONMENT to: $CIBW_ENVIRONMENT"
+            log_success "Setting CIBW_ENVIRONMENT to: $CIBW_ENVIRONMENT"
             ;;
     esac
 }
@@ -207,18 +207,18 @@ configure_openblas_pkg_config() {
 install_requirements() {
     # Define the requirements file based on Platform
     local requirements_file="$1"
-    log "Installing Python requirements from $requirements_file..."
+    log_info "Installing Python requirements from $requirements_file..."
     python -m pip install -U pip -r "$requirements_file" \
-        || error "Failed to install requirements."
+        || log_error "Failed to install requirements."
 }
 generate_openblas_pkgconfig() {
     # Define the Scipy OpenBLAS based on Platform
     local openblas_module="$1"
     # Generate OpenBLAS pkg-config file based on Platform
-    log "Generating OpenBLAS pkg-config file using $openblas_module..."
+    log_info "Generating OpenBLAS pkg-config file using $openblas_module..."
     python -c "import $openblas_module; print($openblas_module.get_pkg_config())" > "$PKG_CONFIG_PATH/scipy-openblas.pc" \
-        || error "Failed to generate pkg-config."
-    success "Defined scipy-openblas to: $PKG_CONFIG_PATH/scipy-openblas.pc"
+        || log_error "Failed to generate pkg-config."
+    log_success "Defined scipy-openblas to: $PKG_CONFIG_PATH/scipy-openblas.pc"
 }
 copy_shared_libs() {
     # Copy Scipy OpenBLAS shared libraries to the build directory
@@ -227,7 +227,7 @@ copy_shared_libs() {
     # pull these into the wheel. Use python to avoid windows/posix problems
     # Define the Scipy OpenBLAS based on Platform
     local openblas_module="$1"
-    log "Copying shared libraries for $openblas_module..."
+    log_info "Copying shared libraries for $openblas_module..."
     python <<EOF
 import os, shutil, $openblas_module
 srcdir = os.path.join(os.path.dirname($openblas_module.__file__), "lib")
@@ -237,39 +237,39 @@ if os.path.exists(srcdir):  # macOS delocate
     shutil.copytree(srcdir, os.path.join("$PKG_CONFIG_PATH", ".dylibs"))
 EOF
     # Check for pkg-config availability
-    log "Verifying OpenBLAS pkg-config file..."
+    log_info "Verifying OpenBLAS pkg-config file..."
     if ! [ -x "$(command -v pkg-config)" ]; then
-        log "pkg-config not found. Attempting to manually set OpenBLAS library paths."
+        log_info "pkg-config not found. Attempting to manually set OpenBLAS library paths."
     else
-        log "pkg-config found. Verifying OpenBLAS detection..."
-        pkg-config --libs scipy-openblas --print-provides || error "Failed to find OpenBLAS with pkg-config."
+        log_info "pkg-config found. Verifying OpenBLAS detection..."
+        pkg-config --libs scipy-openblas --print-provides || log_error "Failed to find OpenBLAS with pkg-config."
     fi
-    success "$openblas_module setup completed successfully."
+    log_success "$openblas_module setup completed successfully."
 }
 setup_openblas() {
-    log "Starting Python Scipy OpenBLAS setup..."
+    log_info "Starting Python Scipy OpenBLAS setup..."
     # Define project directory
     local project_dir="$1"
     # Detect the system architecture
     local arch
     arch=$(uname -m)
     arch=$(echo "$arch" | tr '[:upper:]' '[:lower:]')
-    log "Running on platform: $RUNNER_OS (Architecture: $arch)"
+    log_info "Running on platform: $RUNNER_OS (Architecture: $arch)"
     # Check and set INSTALL_OPENBLAS if not already set, initialized as an empty string
     # set +u  # Temporarily disable unbound variable check
     # set -u  # Re-enable unbound variable check
     INSTALL_OPENBLAS="${INSTALL_OPENBLAS:-}"
     if [[ -z "$INSTALL_OPENBLAS" ]]; then
-        log "INSTALL_OPENBLAS is not set. Setting INSTALL_OPENBLAS=true."
+        log_info "INSTALL_OPENBLAS is not set. Setting INSTALL_OPENBLAS=true."
         INSTALL_OPENBLAS=true
         export INSTALL_OPENBLAS
     else
-        # Log INSTALL_OPENBLAS is set or not
-        log "INSTALL_OPENBLAS is already set: $INSTALL_OPENBLAS"
+        # log_info INSTALL_OPENBLAS is set or not
+        log_info "INSTALL_OPENBLAS is already set: $INSTALL_OPENBLAS"
     fi
     # Skip setup if INSTALL_OPENBLAS is not enabled
     if [[ "$INSTALL_OPENBLAS" != "true" ]]; then
-        log "INSTALL_OPENBLAS is disabled. Skipping setup."
+        log_info "INSTALL_OPENBLAS is disabled. Skipping setup."
         return
     fi
     # Configure the PKG_CONFIG_PATH
@@ -279,22 +279,22 @@ setup_openblas() {
     arch=$(echo "$arch" | tr '[:upper:]' '[:lower:]')
     case "$arch" in
         i686|x86)
-            log "Detected 32-bit architecture."
+            log_info "Detected 32-bit architecture."
             # Install CI 32-bit specific requirements and generate OpenBLAS pkg-config file
             install_requirements "requirements/ci32_requirements.txt"
             generate_openblas_pkgconfig "scipy_openblas32"
             copy_shared_libs "scipy_openblas32"
             ;;
         x86_64|amd64|*arm64*|aarch64)
-            log "Detected 64-bit architecture."
+            log_info "Detected 64-bit architecture."
             # Install CI 64-bit specific requirements and generate OpenBLAS pkg-config file
             install_requirements "requirements/ci_requirements.txt"
             generate_openblas_pkgconfig "scipy_openblas64"
             copy_shared_libs "scipy_openblas64"
             ;;
         *)
-            log "Unknown architecture detected: $arch."
-            error "Unable to proceed. Exiting..."
+            log_info "Unknown architecture detected: $arch."
+            log_error "Unable to proceed. Exiting..."
             ;;
     esac
 }
@@ -304,7 +304,7 @@ setup_openblas() {
 # Function to handle Windows-specific setup
 setup_windows() {
     if [[ $RUNNER_OS == "Windows" ]]; then
-        log "Windows platform detected. Installing delvewheel and wheel..."
+        log_info "Windows platform detected. Installing delvewheel and wheel..."
         # delvewheel is the equivalent of delocate/auditwheel for windows.
         python -m pip install delvewheel wheel
     fi
@@ -318,9 +318,9 @@ setup_macos() {
     local arch
     arch=$(uname -m)
     if [[ $RUNNER_OS == "macOS" ]]; then
-        log "macOS platform detected: $arch"
+        log_info "macOS platform detected: $arch"
         if [[ $arch == "x86_64" ]]; then
-            log "Setting up GFortran for x86_64..."
+            log_info "Setting up GFortran for x86_64..."
             # GFORTRAN=$(type -p gfortran-9)
             # sudo ln -s $GFORTRAN /usr/local/bin/gfortran
             # same version of gfortran as the openblas-libs
@@ -330,7 +330,7 @@ setup_macos() {
             GFORTRAN_SHA256=$(shasum -a 256 gfortran.tar.gz)
             KNOWN_SHA256="981367dd0ad4335613e91bbee453d60b6669f5d7e976d18c7bdb7f1966f26ae4  gfortran.tar.gz"
             if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
-                log "SHA256 mismatch for gfortran tarball"
+                log_info "SHA256 mismatch for gfortran tarball"
                 exit 1
             fi
             sudo mkdir -p /opt/
@@ -350,13 +350,13 @@ setup_macos() {
             # activation scripts)
             export SDKROOT=${SDKROOT:-$(xcrun --show-sdk-path)}
         elif [[ $arch == "arm64" ]]; then
-            log "Setting up GFortran for ARM64..."
+            log_info "Setting up GFortran for ARM64..."
             # Download and install gfortran for ARM64
             curl -L https://github.com/fxcoudert/gfortran-for-macOS/releases/download/12.1-monterey/gfortran-ARM-12.1-Monterey.dmg -o gfortran.dmg
             GFORTRAN_SHA256=$(shasum -a 256 gfortran.dmg)
             KNOWN_SHA256="e2e32f491303a00092921baebac7ffb7ae98de4ca82ebbe9e6a866dd8501acdf  gfortran.dmg"
             if [ "$GFORTRAN_SHA256" != "$KNOWN_SHA256" ]; then
-                log "SHA256 mismatch for gfortran DMG"
+                log_info "SHA256 mismatch for gfortran DMG"
                 exit 1
             fi
             hdiutil attach -mountpoint /Volumes/gfortran gfortran.dmg
@@ -368,18 +368,18 @@ setup_macos() {
         # Determine architecture and install the appropriate requirements
         case "$arch" in
             i686|x86)
-                log "Detected 32-bit architecture."
+                log_info "Detected 32-bit architecture."
                 openblas_module="scipy_openblas32"
                 ;;
             x86_64|*arm64*)
-                log "Detected 64-bit architecture."
+                log_info "Detected 64-bit architecture."
                 openblas_module="scipy_openblas64"
                 ;;
-            *)  error "Unknown architecture detected: $arch. Unable to proceed. Exiting..." ;;
+            *)  log_error "Unknown architecture detected: $arch. Unable to proceed. Exiting..." ;;
         esac
         # Fix library paths for macOS openblas_lib_dir
         openblas_lib_dir=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
-        log "OpenBLAS path: $openblas_lib_dir"
+        log_info "OpenBLAS path: $openblas_lib_dir"
         # lib_dir by openblas_lib_dir
         # lib_loc=$openblas_lib_dir
         # # Use the libgfortran from gfortran rather than the one in the wheel
@@ -396,10 +396,10 @@ setup_macos() {
 # Main function to orchestrate all steps
 main() {
     printenv
-    log "Starting build environment setup..."
+    log_info "Starting build environment setup..."
     # Define project directory
     local project_dir="${1:-$PWD}"
-    log "Project directory: $project_dir"
+    log_info "Project directory: $project_dir"
     # Clean up previous build artifacts
     clean_build
     # Append LICENSE file based on the OS
@@ -412,7 +412,7 @@ main() {
     setup_windows
     # macOS-specific setup GFortran + OpenBLAS
     setup_macos
-    success "Build environment setup complete!"
+    log_success "Build environment setup complete!"
 }
 # Execute the main function
 main "$@"

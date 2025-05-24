@@ -260,7 +260,9 @@ def dfovec(m, n, x, nprob):
             temp = i + 1
             tmp1 = temp / 10
             fvec[i] = (
-                np.exp(-tmp1 * x[0]) - np.exp(-tmp1 * x[1]) + (np.exp(-temp) - np.exp(-tmp1)) * x[2]
+                np.exp(-tmp1 * x[0])
+                - np.exp(-tmp1 * x[1])
+                + (np.exp(-temp) - np.exp(-tmp1)) * x[2]
             )
     elif nprob == 13:  # Jennrich and Sampson function.
         for i in range(m):

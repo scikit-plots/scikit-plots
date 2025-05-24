@@ -29,37 +29,42 @@ ARG BASE_IMAGE=jupyter/scipy-notebook:latest
 
 ## Use the argument to specify the base image
 FROM ${BASE_IMAGE}
-# ARG may specified again because the FROM directive resets ARGs
-# (but their default value is retained if set previously)
+## ARG may specified again because the FROM directive resets ARGs
+## (but their default value is retained if set previously)
 
 LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
-# ARG NB_USER="jovyan"
-# ARG NB_UID="1000"
-# ARG NB_GID="100"
+## ARG NB_USER="jovyan"
+## ARG NB_UID="1000"
+## ARG NB_GID="100"
 
-# Fix DL4006
-# Needed for string substitution in RUN commands
-# Fix: https://github.com/hadolint/hadolint/wiki/DL4006
-# Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
+## Fix DL4006
+## Needed for string substitution in RUN commands
+## Fix: https://github.com/hadolint/hadolint/wiki/DL4006
+## Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ## Switch to the root user to install dependencies
 USER root
 
-## Set the desired locale to C with UTF-8 support
-# ENV LANG en_US.UTF-8
-## This sets the system language to C (the "POSIX" or "default" locale) with UTF-8 encoding,
-## allowing it to handle all Unicode characters.
-ENV LANG C.UTF-8
-## Ensures that all locale categories (LC_*) are set to C.UTF-8,
-## so the environment is fully UTF-8 enabled.
-ENV LC_ALL C.UTF-8
-## LANGUAGE is used on win32
-ENV LANGUAGE C.UTF-8
-
 ## Set environment variable to avoid interactive prompts during builds
 ENV DEBIAN_FRONTEND=noninteractive
 
+######################################################################
+## Set system locale and timezone
+######################################################################
+
+## Set the system locale to en_US.UTF-8
+## ENV LANG=en_US.UTF-8 \
+##     LC_ALL=en_US.UTF-8 \
+##     LANGUAGE=en_US.UTF-8
+## Set the system locale to C.UTF-8 (POSIX-compliant with Unicode support)
+ENV LANG=C.UTF-8
+## Ensures that all locale categories (LC_*) are set to C.UTF-8,
+## so the environment is fully UTF-8 enabled.
+ENV LC_ALL=C.UTF-8
+## LANGUAGE is used on win32
+ENV LANGUAGE=C.UTF-8
+## Install minimal locales support and generate C.UTF-8 locale
 ## Install all OS dependencies for notebook server that starts but lacks all
 ## features (e.g., download as all possible file formats)
 ## Ensure sudo is installed and allow ${NB_USER} to use it without a password
@@ -67,26 +72,48 @@ RUN apt-get update \
   ## Generate locales (this may be required depending on the system)
   ## "C" locale (basic settings) while supporting the full range of Unicode characters (UTF-8).
   && apt-get install -y --no-install-recommends locales \
+  ## &&  echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+  ## && locale-gen && update-locale LANG=en_US.UTF-8 \
+  ## Generate C.UTF-8 locale
   && locale-gen C.UTF-8 \
-  && dpkg-reconfigure locales \
+  && dpkg-reconfigure -f noninteractive locales \
   ## Install sudo and set up a passwordless sudo user
   && apt-get install -yq --no-install-recommends sudo gosu \
-  # && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
+  ## && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
   && echo "jovyan:jovyan" | chpasswd \
+  ## Cleanup to reduce image size
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   ;
 
-# RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
-#   locale-gen
-## Copy a script that we will use to correct permissions after running certain commands
-# COPY fix-permissions /usr/local/bin/fix-permissions
-# RUN chmod a+rx /usr/local/bin/fix-permissions
+## Set the timezone for the container to UTC+3 (Europe/Moscow)
+## ENV TZ=Europe/Moscow
+# ENV TZ=Europe/Istanbul
+
+## Install tzdata non-interactively, set timezone, and clean up to reduce image size
+# RUN apt-get update && \
+#   apt-get install -y --no-install-recommends tzdata && \
+#   ## Configure timezone
+#   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+#   echo $TZ > /etc/timezone && \
+#   dpkg-reconfigure -f noninteractive tzdata && \
+#   ## Cleanup to reduce image size
+#   apt-get clean && \
+#   rm -rf /var/lib/apt/lists/*
+
+######################################################################
+## OS dependencies
+######################################################################
 
 ## If Time Zone Error
 # RUN sed -i '/jammy-updates/s/^/#/' /etc/apt/sources.list \
 #     && sed -i '/jammy-security/s/^/#/' /etc/apt/sources.list
+
+## Copy the permissions-fix script and make it executable
+# COPY "./docker/script/fix-permissions" /usr/local/bin/fix-permissions
+# RUN chmod a+rx /usr/local/bin/fix-permissions
+
 ## Install common dependencies
 RUN apt-get update --yes \
   && apt-get --fix-broken install --yes --no-install-recommends \
@@ -202,82 +229,141 @@ RUN apt-get update --yes \
   ## TensorFlow with Metal Backend (ML-Specific)
   && fix-permissions "$HOME" \
   && fix-permissions "$CONDA_DIR" \
+  ## Cleanup to reduce image size
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   ;
 
+######################################################################
+## (Optionally) GPU dependencies (e.g. NVIDIA)
+######################################################################
+
 ## Create a root-owned folder and copy the script there only if it exists
 # COPY --chown="${NB_UID}:${NB_GID}" "./script/install_gpu_nvidia_cuda.sh" "/script/install_gpu_nvidia_cuda.sh"
-COPY "./docker/script/install_gpu_nvidia_cuda.sh" "/script/install_gpu_nvidia_cuda.sh"
+# COPY "./docker/script/install_gpu_nvidia_cuda.sh" "/script/install_gpu_nvidia_cuda.sh"
 # RUN chmod a+rx "/script/install_gpu_nvidia_cuda.sh"
-# Use a wrapper script to check for file existence before running it, ([ -f file ] && ... || ...)
-RUN bash -c ' \
-  [ -f /script/install_gpu_nvidia_cuda.sh ] \
-  && chmod +x /script/install_gpu_nvidia_cuda.sh \
-  # && /script/install_gpu_nvidia_cuda.sh \
-  || echo "Script not found, skipping..." \
-  '
+## Use a wrapper script to check for file existence before running it, ([ -f file ] && ... || ...)
+# RUN bash -c ' \
+#   [ -f /script/install_gpu_nvidia_cuda.sh ] \
+#   && chmod +x /script/install_gpu_nvidia_cuda.sh \
+#   # && /script/install_gpu_nvidia_cuda.sh \
+#   || echo "Script not found, skipping..." \
+#   '
+
+######################################################################
+## default user
+######################################################################
 
 ## Switch back to the notebook default user jovyan to avoid accidental container runs as root
 USER ${NB_UID}
 
-# Setup work directory for backward-compatibility
+## Setup work directory for backward-compatibility
 RUN mkdir -p /home/$NB_USER/work || true && \
     fix-permissions /home/$NB_USER
 
-## Optionally, Additional configurations or installations (if needed)
-# RUN conda install -n base conda-forge::mamba
-# RUN mamba env create -f environment.yml && mamba activate skplt-env
-RUN mamba install --yes \
-    -c defaults \
-    -c conda-forge \
-    # -c nvidia \
-    # cuda \
-    ## jupyter extensions
-    'notebook>=6.0.3' \
-    'jupyterhub>=1.1.0' \
-    'jupyterlab>=2.1.5' \
-    'jupyterlab-git' \
-    'ipympl'\
-    'ipywidgets' \
-    'widgetsnbextension'\
-    ## data manuplation
-    'scipy' \
-    'pandas' \
-    'xlrd' \
-    'openpyxl' \
-    'pyarrow' \
-    ## data visualiation
-    'matplotlib-base' \
-    'seaborn' \
-    ## models
-    'statsmodels' \
-    'scikit-learn' \
-    'catboost' \
-    'xgboost' \
-    ## model optimizations
-    'optuna' \
-    'hyperopt' \
-    ## model saving
-    'joblib' \
-    'h5py' \
-    ## model tracking
-    'mlflow' \
-    ## to generate a requirements.txt
-    'pipreqs' \
-    # testing
-    'pytest' \
-    'hypothesis' \
-    # development
-    'setuptools' \
-    'wheel' \
-    'build' \
-    # C/C++ development
-    'meson' \
-    'ninja' \
-    'meson-python' \
-    'cython' \
-    'pybind11' \
+######################################################################
+## default environment (e.g. conda, mamba, pipenv)
+######################################################################
+
+## Optionally, Ensure mamba installations (if needed)
+## RUN conda install -n base conda-forge::mamba -y
+## RUN conda install -n base -c conda-forge mamba -y
+## Install packages inside the base
+# RUN mamba install --yes \
+#     -c defaults \
+#     -c anaconda \
+#     -c conda-forge \
+#     # -c nvidia \
+#     # cuda \
+#     ## jupyter extensions
+#     'notebook>=6.0.3' \
+#     'jupyterhub>=1.1.0' \
+#     'jupyterlab>=2.1.5' \
+#     'jupyterlab-git' \
+#     'ipympl'\
+#     'ipywidgets' \
+#     'widgetsnbextension' \
+#     ## data manuplation
+#     'requests' \
+#     'scipy' \
+#     'pandas' \
+#     'xlrd' \
+#     'openpyxl' \
+#     'pyarrow' \
+#     ## data
+#     'pyyaml' \
+#     'click' \
+#     ## data visualiation
+#     'matplotlib-base' \
+#     'seaborn' \
+#     'pillow' \
+#     'aggdraw' \
+#     ## models
+#     'scikit-learn' \
+#     'statsmodels' \
+#     'catboost' \
+#     'xgboost' \
+#     ## model optimizations
+#     'optuna' \
+#     'hyperopt' \
+#     ## model saving
+#     'joblib' \
+#     'h5py' \
+#     ## model tracking
+#     'sqlalchemy' \
+#     'sqlparse' \
+#     'mlflow' \
+#     ## model deploy
+#     'streamlit' \
+#     'fastapi' \
+#     'flask' \
+#     'uvicorn' \
+#     # 'Windows'
+#     'waitress' \
+#     # 'unix'
+#     'gunicorn' \
+#     ## to generate a requirements.txt
+#     'pipreqs' \
+#     # testing
+#     'pytest' \
+#     'hypothesis' \
+#     # development
+#     'setuptools' \
+#     'wheel' \
+#     'build' \
+#     'pre_commit' \
+#     # C/C++ development
+#     'conda-lock' \
+#     'meson' \
+#     'ninja' \
+#     'meson-python' \
+#     'cython' \
+#     'pybind11' \
+#     'pythran' \
+#     # dev
+#     'sphinx' \
+#     'pytest' \
+#     'hypothesis' \
+#     'numpydoc' \
+#     'cython-lint' \
+#     'pandas-stubs' \
+#   ## Clean mamba and fix permissions
+#   && mamba clean --all -f -y || true \
+#   ## Fix permissions as jovyan
+#   # echo "yourpassword" | sudo chown -R $(whoami):$(id -gn whoami) ~
+#   && fix-permissions "/home/${NB_USER}" \
+#   && fix-permissions "${CONDA_DIR}" \
+#   ## yarn used by Yarn, a JavaScript package manager, to store its cache
+#   && rm -rf "/home/${NB_USER}/.cache" \
+#   && rm -rf "$CONDA_DIR/share/jupyter/lab/staging" \
+#   ;
+
+## Create conda environment from environment.yml and clean cache
+COPY "./docker/environment.yml" "/tmp/environment.yml"
+# RUN mamba create -n py311 python=3.11 ipykernel -y
+RUN mamba env create -f "/tmp/environment.yml" \
+  || { echo "Failed to create environment py311"; exit 1; } \
+  && conda info --env \
   ## Clean mamba and fix permissions
   && mamba clean --all -f -y || true \
   ## Fix permissions as jovyan
@@ -288,6 +374,15 @@ RUN mamba install --yes \
   && rm -rf "/home/${NB_USER}/.cache" \
   && rm -rf "$CONDA_DIR/share/jupyter/lab/staging" \
   ;
+
+## Set shell to use conda run — safer than `conda activate`
+# SHELL ["conda", "run", "-n", "py311", "/bin/bash", "-c"]
+# Example: Run a command inside the env
+# RUN python --version
+
+######################################################################
+## JUPYTER
+######################################################################
 
 ## Set environment variable with a default port, allowing override
 ENV JUPYTER_PORT=${JUPYTER_PORT:-8888}
@@ -303,6 +398,10 @@ ENTRYPOINT ["tini", "-g", "--"]
 # CMD ["start-notebook.sh"]
 ## Set the command to start Jupyter lab with the specified port
 CMD start-notebook.py --port ${JUPYTER_PORT}
+
+######################################################################
+## WORKDIR
+######################################################################
 
 ## Setup work directory for backward-compatibility (if needed)
 WORKDIR "${HOME}/work"

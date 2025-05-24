@@ -3,11 +3,10 @@
 # ruff: noqa
 # flake8: noqa
 # type: ignore
+# mypy: ignore-errors
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-
-# mypy: ignore-errors
 
 # https://abseil.io/docs/python/quickstart.html
 # https://abseil.io/docs/python/guides/logging
@@ -27,18 +26,15 @@ if TYPE_CHECKING:
     # Heavy import, only for type checking
     pass  # Usage as str type 'tf'
 
-import scikitplot.sp_logging as logging  # module logger
 from scikitplot import get_logger
 
-logging = get_logger()  # pure python logger, not have direct log level
-from scikitplot import SpLogger
+logger = get_logger()  # python logger, not have direct log level
 
-logging = SpLogger()  # class logger
-from scikitplot import sp_logger as logging  # class instance logger
+from scikitplot import sp_logging as logging  # class instance logger
 
-logging.setLevel(level=logging.INFO)  # default WARNING
-logging.warning("scikitplot warning!!!")
-logging.info("This is a info message from the sp logger.")
+logger.setLevel(level=logging.INFO)  # default WARNING
+logger.warning("scikitplot warning!!!")
+logger.info("This is a info message from the sp logger.")
 
 ######################################################################
 ## scikit-plots version

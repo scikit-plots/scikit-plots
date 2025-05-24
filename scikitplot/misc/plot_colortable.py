@@ -1,5 +1,5 @@
 """
-misc
+misc.
 """
 
 # Authors: The scikit-plots developers

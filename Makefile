@@ -76,6 +76,10 @@ help:
 ## Clean up all the generated files, compiler cleaning without 'third_party'
 clean-basic:
 	@echo "Basic cleaning started ..."
+	@#sudo -H rm -rf ./.cache/protobuf_cache || true
+	@rm -rf ~/.cache/pip
+	@pip cache purge || true
+	@echo "Removed all pip cache files"
 	@# Command Substitution "$(...)" "(`...`)" (its output in place of the backticks):
 	@rm -rf `find -L . -type d -name ".ipynb_checkpoints" -not -path "./third_party/*"`
 	@rm -rf "./third_party/.ipynb_checkpoints"
@@ -89,13 +93,10 @@ clean-basic:
 	@rm -rf `find -L . -type d -name ".vscode" -not -path "./third_party/*"`
 	@echo "Removed zip file leftovers '.vscode'"
 	@echo "basic cleaning completed."
-	@pip cache purge
 
 ## pypi cleaning in 'build dirs'
 clean: clean-basic
 	@echo "Cleaning started..."
-	@pip cache purge
-	@echo "Removed all pip cache files"
 	@rm -rf "result_images"
 	@echo "Removed folder 'result_images' produced 'matplotlib.sphinxext.plot_directive'"
 	@rm -rf "build" "build_dir" "builddir" "dist" "scikit_plots.egg-info" *.egg-info*
@@ -142,6 +143,7 @@ tree:
 ## mamba list
 ## mamba deactivate && mamba remove -y --all --name py311
 newm:
+	# mamba env create -f "./docker/environment.yml"
 	# mamba create -n py38 python=3.8 ipykernel -y
 	# mamba create -n py39 python=3.9 ipykernel -y
 	# mamba create -n py310 python=3.10 ipykernel -y
@@ -524,9 +526,10 @@ publish-docker:
 ######################################################################
 
 sym:
-	@rm -rf .devcontainer/script
-	@# mkdir -p .devcontainer/script
-	@ln -rsf docker/script/ .devcontainer/script
+	@rm -rf ".devcontainer/script" "environment.yml"
+	@# mkdir -p ".devcontainer/script"
+	@ln -rsf "docker/script/" ".devcontainer/script"
+	@ln -rsf "docker/environment.yml" "environment.yml"
 	@echo "Created symbolic links..."
 
 ######################################################################

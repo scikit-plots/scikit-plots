@@ -1,4 +1,12 @@
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
+# mypy: ignore-errors
+
 # Pytest customization conftest.py
+
 import gc
 import json
 import os
@@ -12,8 +20,8 @@ import numpy as np
 import numpy.testing as np_testing
 import pandas as pd
 
-from ._xp_core_lib import _pep440
-from ._xp_core_lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE
+from ._lib import _pep440
+from ._lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE
 
 ######################################################################
 ## pytest_configure
@@ -410,7 +418,7 @@ xp_available_backends = {"numpy": np}
 if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
     # fill the dict of backends with available libraries
     try:
-        from ._xp_core_lib import array_api_strict
+        from ._lib import array_api_strict
 
         xp_available_backends.update({"array_api_strict": array_api_strict})
         if _pep440.parse(array_api_strict.__version__) < _pep440.Version("2.0"):
@@ -500,7 +508,7 @@ def xp(request):
     Please read: https://docs.scipy.org/doc/scipy/dev/api-dev/array_api.html
     """
     if SKPLT_ARRAY_API:
-        from ._xp_core_lib._array_api import default_xp
+        from ._lib._array_api import default_xp
 
         # Throughout all calls to assert_almost_equal, assert_array_almost_equal, and
         # xp_assert_* functions, test that the array namespace is xp in both the

@@ -144,8 +144,12 @@ class QuadraticAssignment(Benchmark):
 
     def setup(self, method, qap_prob):
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        datafile = np.load(os.path.join(dir_path, "qapdata/qap_probs.npz"), allow_pickle=True)
-        slnfile = np.load(os.path.join(dir_path, "qapdata/qap_sols.npz"), allow_pickle=True)
+        datafile = np.load(
+            os.path.join(dir_path, "qapdata/qap_probs.npz"), allow_pickle=True
+        )
+        slnfile = np.load(
+            os.path.join(dir_path, "qapdata/qap_sols.npz"), allow_pickle=True
+        )
         self.A = datafile[qap_prob][0]
         self.B = datafile[qap_prob][1]
         self.opt_solution = slnfile[qap_prob]
