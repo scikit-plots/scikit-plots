@@ -136,6 +136,10 @@ tree:
 	@echo "System is: $(SYSTEM)"
 	@$(TREE_CMD)
 
+######################################################################
+## Env conda or mamba
+######################################################################
+
 ## https://mamba.readthedocs.io/en/latest/user_guide/mamba.html
 ## mamba is a drop-in replacement and uses the same commands and configuration options as conda.
 ## mamba create -n ... -c ... ...
@@ -178,6 +182,10 @@ newm:
 newc:
 	conda create -n test python=3.11 ipykernel
 	# conda activate test  # activate our environment
+
+######################################################################
+## Install scikit-plots
+######################################################################
 
 ## Install the development version of scikit-plots, depends on "clean"
 dep: clean
@@ -354,7 +362,10 @@ sdist:
 ## Git Search and fix
 ######################################################################
 
-## git grep "interp("
+grep:
+	@#grep -rn "interp(" .
+	@#Use git grep (faster in Git repos)
+	@git grep -n "interp("
 
 ######################################################################
 ## Git Branch

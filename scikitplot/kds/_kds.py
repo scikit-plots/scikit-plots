@@ -23,7 +23,6 @@ import numpy as np  # type: ignore[reportMissingModuleSource]
 import pandas as pd  # type: ignore[reportMissingModuleSource]
 
 from .. import _preprocess
-
 from ..api._utils.validation import (
     validate_plotting_kwargs_decorator,
     validate_shapes_decorator,

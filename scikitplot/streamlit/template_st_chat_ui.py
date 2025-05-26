@@ -21,7 +21,7 @@ from typing import Optional
 from scikitplot import logger
 from scikitplot._compat.optional_deps import HAS_STREAMLIT, safe_import
 from scikitplot.llm_provider import (
-    LLM_MODEL_PROVIDER2ID,  # noqa: F401
+    LLM_MODEL_PROVIDER2CONFIG,  # noqa: F401
     chat_provider,
     get_env_st_secrets,
     load_mlflow_gateway_config,
@@ -56,18 +56,19 @@ if HAS_STREAMLIT:
         # st.subheader("🔐 API Key Configuration")
         st.subheader("\U0001f511 API Key Configuration")
 
-        if "llm_model_provider2id" not in st.session_state:
+        if "llm_model_provider2config" not in st.session_state:
             # pylint: disable=global-statement
             # pylint: disable=global-variable-not-assigned
-            global LLM_MODEL_PROVIDER2ID  # noqa: PLW0602, PLW0603
-            st.session_state.llm_model_provider2id = LLM_MODEL_PROVIDER2ID
+            global LLM_MODEL_PROVIDER2CONFIG  # noqa: PLW0602, PLW0603
+            st.session_state.llm_model_provider2config = LLM_MODEL_PROVIDER2CONFIG
 
         config_path = (
             config_path
             or st.text_input(
-                "Get from MLflow gateway config file:\n( ./galleries/gateway/openai/config.yaml )",
+                "Load from MLflow gateway config file:\n"
+                "( ./galleries/gateway/openai/config.yaml )",
                 value="",
-                placeholder="./galleries/gateway/openai/config.yaml",
+                placeholder="./galleries/gateway/huggingface/config.yaml",
                 disabled=False,
                 # on_change=call_func,
             ).strip()
@@ -77,25 +78,29 @@ if HAS_STREAMLIT:
             try:
                 # conf = load_mlflow_gateway_config(config_path)
                 conf = cached_config(config_path)
-                st.session_state.llm_model_provider2id = conf
+                st.session_state.llm_model_provider2config = conf
             except Exception as e:
                 # Fallback defaults
                 # st.warning("No model configurations available.")
                 st.error(f"Failed to load config: {e}")
                 logger.error(f"Failed to load config: {e}")
         else:
-            st.session_state.llm_model_provider2id = LLM_MODEL_PROVIDER2ID
+            st.session_state.llm_model_provider2config = LLM_MODEL_PROVIDER2CONFIG
         # Select provider
         model_provider = st.selectbox(
             label="Select Model Provider:",
-            options=list(st.session_state.llm_model_provider2id.keys()),
+            options=list(st.session_state.llm_model_provider2config.keys()),
             index=0,  # This default won't reapply if user changes selection
             help="Choose the model provider.",
         )
+        # Store in Session
+        st.session_state.model_provider = model_provider
+        _suffix = "_TOKEN" if model_provider in ["huggingface"] else "_API_KEY"
+        env_key = model_provider.upper() + _suffix
         # Select or input model ID
         model_options = [
             cfg["model_id"]
-            for cfg in st.session_state.llm_model_provider2id[model_provider]
+            for cfg in st.session_state.llm_model_provider2config[model_provider]
         ] + ["Custom..."]
         model_id = st.selectbox(
             label="Select or enter a model ID:",
@@ -113,24 +118,23 @@ if HAS_STREAMLIT:
             if model_id == "Custom..."
             else model_id
         )
-        key_default = next(
-            (
-                cfg["api_key"]
-                for cfg in st.session_state.llm_model_provider2id[model_provider]
-                if cfg["model_id"] == model_id
-            ),
-            "",
-        )
+        # Store in Session
+        st.session_state.model_id = model_id
         # API Key input
-        key_input = st.text_input(
-            f"Enter your {model_provider} API key:",
-            value=key_default,
+        # Mapping of model providers to tokens
+        provider_tokens = {
+            "openai": "sk-...",
+            "huggingface": "hf_...",
+            "cohere": "cohere-...",
+            "anthropic": "anthropic-...",
+        }
+        api_key = st.text_input(
+            f"Enter here {model_provider} API key\n"
+            f"or set environment {env_key} inside "
+            f"(e.g. .env or ~/.streamlit/secrets.toml ):",
+            value="",
             type="password",
-            placeholder=(
-                "sk-..."
-                if model_provider == "openai"
-                else "hf_..." if model_provider == "huggingface" else "..."
-            ),
+            placeholder=provider_tokens.get(model_provider),
             help="API key used to authenticate requests.",
         ).strip()
         # def valid_key_format(provider: str, key: str) -> bool:
@@ -143,32 +147,32 @@ if HAS_STREAMLIT:
         #         (provider == "anthropic" and key.startswith("sk-ant-")) or
         #         (provider == "cohere" and key.startswith("coh_"))
         #     )
-        # product detection
-        product = os.getenv("PRODUCT") or get_env_st_secrets("PRODUCT", "product")
-        if st.button("Save API Key"):
-            # if not key_input or len(key_input) < 10:
+        # api_key = api_key if api_key else None
+        # Store in Session
+        st.session_state["api_key"] = api_key
+        if st.button(
+            "Save API Key to '~/.streamlit/secrets.toml'",
+            use_container_width=True,
+        ):
+            # if not api_key or len(api_key) < 10:
             #     st.warning("Please enter a valid API key.")
-            # elif not valid_key_format(model_provider, key_input):
+            # elif not valid_key_format(model_provider, api_key):
             #     st.warning(f"API key for {model_provider} must start with expected prefix.")
             # else:
-            st.session_state[f"{model_provider}_api_key"] = key_input
+            # product detection
+            product = os.getenv("PRODUCT") or get_env_st_secrets("PRODUCT", None)
             if product == "product":
+                # Load Update Save streamlit secrets
                 secrets = load_st_secrets()
-                secrets[model_provider.upper() + "_API_KEY"] = key_input
+                secrets[env_key] = api_key
                 save_st_secrets(secrets)
-                st.success(
-                    f"{model_provider.capitalize()} API key saved and persisted!"
-                )
+                st.success(f"{model_provider.capitalize()} API key saved as persisted!")
             else:
-                st.info("Dev mode: API key saved to session only.")
-                st.success(f"{model_provider.capitalize()} API key saved in session!")
-
-        # Show current key info (not the key itself)
-        current_key = st.session_state.get(f"{model_provider}_api_key")
-        if current_key:
-            st.info(f"Loaded key for {model_provider} (hidden).")
-
-        return model_provider, model_id, key_input if key_input else None
+                # Show current key info (not the key itself)
+                st.info(
+                    f"Dev mode: {model_provider.capitalize()} API key keep only session!"
+                )
+        return model_provider, model_id, api_key
 
     def run_chat_ui():  # noqa: PLR0912
         """
@@ -202,20 +206,26 @@ if HAS_STREAMLIT:
                 st.session_state.show_history = False
             if "messages" not in st.session_state:
                 st.session_state.messages = []
+            if "model_provider" not in st.session_state:
+                st.session_state.model_provider = "huggingface"
+            if "model_id" not in st.session_state:
+                st.session_state.model_id = None
+            if "api_key" not in st.session_state:
+                st.session_state.api_key = None
             # Initialize the flag in session state
             if "running" not in st.session_state:
                 st.session_state["running"] = False
 
             # Sidebar for controlling expanders and categories
             with st.sidebar:
-                model_provider, model_id, key_input = api_key_config_ui()
+                api_key_config_ui()
 
             # with st.expander("💬 Assistant Chat"):
             # st.title("💬 ChatBot")
             st.subheader("💬 Assistant Chat")
 
-            st.write(f"Selected model_type: {model_provider}")
-            st.write(f"Selected model_id: {model_id}")
+            st.write(f"Selected model_type: {st.session_state.model_provider}")
+            st.write(f"Selected model_id: {st.session_state.model_id}")
 
             # Placeholder
             chat_history_placeholder = st.empty().container()
@@ -234,6 +244,7 @@ if HAS_STREAMLIT:
                     # Button Toggle ChatBot History
                     if st.button(
                         "Toggle ChatBot History",
+                        icon=":material/expansion_panels:",
                         use_container_width=True,
                         # disabled button (Streamlit 1.22+ supports disabled param)
                         disabled=st.session_state["running"],
@@ -245,6 +256,7 @@ if HAS_STREAMLIT:
                     # Button Toggle ChatBot History
                     if st.button(
                         "Clear ChatBot History",
+                        icon=":material/delete:",
                         use_container_width=True,
                         # disabled button (Streamlit 1.22+ supports disabled param)
                         disabled=st.session_state["running"],
@@ -284,7 +296,9 @@ if HAS_STREAMLIT:
                         # logger.info(response)
                         response = chat_provider.get_response(
                             st.session_state.messages,
-                            api_key=key_input,
+                            model_provider=st.session_state.model_provider,
+                            model_id=st.session_state.model_id,
+                            api_key=st.session_state.api_key,
                         )
                         # Add assistant response to chat history
                         # Display assistant response in chat message container

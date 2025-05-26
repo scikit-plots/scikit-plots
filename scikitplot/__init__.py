@@ -94,7 +94,7 @@ del PytestTester
 # public submodules are imported lazily, therefore are accessible from
 # __getattr__.
 _submodules = {
-    ## Sub-modules as folder:
+    ## A package is a directory with an __init__.py file that can define what attributes it exposes.
     "_api",
     "_astropy",
     "_build_utils",
@@ -124,7 +124,7 @@ _submodules = {
     "typing",
     "utils",
     "visualkeras",
-    ## Sub-modules as file:
+    ## A module is a .py file that is itself a module object when imported.
     "_globals",
     "_min_dependencies",
     "_preprocess",

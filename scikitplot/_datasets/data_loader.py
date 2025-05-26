@@ -1,4 +1,4 @@
-"""data_loader - Unified and extensible data loading module."""
+"""dataset_loader - Unified and extensible data loading module."""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -70,11 +70,14 @@ def detect_file_type(
 def get_extension(file_name: str) -> str:
     """Extract the lowercase file extension."""
     # Uploaded file like streamlit
-    if hasattr(file_name, "name"):
-        extension = file_name.name.split(".")[-1].lower()
-        logger.info(f"get_extension: {getattr(file_name, 'type', '')}")
-    else:
-        extension = Path(file_name).suffix.lower()
+    # if hasattr(file_name, "name"):
+    file_name = getattr(file_name, "name", file_name)
+    # extension = file_name.name.split(".")[-1].lower()
+    # extension = Path(file_name).suffix.lower()
+    # List of all suffixes (e.g., ['.csv', '.gz'])
+    extension = Path(file_name).suffixes
+    # Single extension types
+    extension = "".join(extension).lower()
     logger.info(f"get_extension: {extension}")
     return extension
 
@@ -138,31 +141,6 @@ def get_file_data(
 
 
 # ---------------------- Unified Loader ----------------------
-
-
-def default_loader(file_like, extension, **kwargs):
-    """Load data from a file-like object based on its extension."""
-    pd = safe_import("pandas")
-    loaders = {
-        ".csv": pd.read_csv,
-        ".xlsx": pd.read_excel,
-        ".xls": pd.read_excel,
-        ".parquet": pd.read_parquet,
-        ".json": pd.read_json,
-        ".feather": pd.read_feather,
-        ".txt": lambda f, **kw: pd.read_csv(f, sep="\t", **kw),
-        ".npy": lambda f, **kw: safe_import("numpy").load(f, **kw),
-        ".pkl": lambda f, **kw: safe_import("pickle").load(f),  # noqa: ARG005
-        ".pickle": lambda f, **kw: safe_import("pickle").load(f),  # noqa: ARG005
-        ".joblib": lambda f, **kw: safe_import("joblib").load(f),  # noqa: ARG005
-        ".cloudpkl": lambda f, **kw: safe_import("cloudpickle").load(f),  # noqa: ARG005
-        ".cloudpickle": (
-            lambda f, **kw: safe_import("cloudpickle").load(f)
-        ),  # noqa: ARG005
-    }
-    if extension in loaders:
-        return loaders[extension](file_like, **kwargs)
-    raise ValueError(f"Unsupported extension: {extension}")
 
 
 def load_file_by_extension(file_obj, extension: str, **kwargs):
@@ -242,30 +220,44 @@ def load_file_from_url(url):
 
 # ---------------------- File Loaders ----------------------
 
+
+def default_loader(file_like, extension, **kwargs):
+    """Load data from a file-like object based on its extension."""
+    if extension in EXTENSION_LOADERS:
+        return EXTENSION_LOADERS.get(extension)(file_like, **kwargs)
+    raise ValueError(f"Unsupported extension: {extension}")
+
+
 # Simplified using safe_import and get_file_data
-
-
-def make_loader(pandas_func):
+def make_loader(module, attr):
     """make_loader."""
 
     def loader(path, **kwargs):
         # pylint: disable=unnecessary-dunder-call
-        return safe_import("pandas").__getattribute__(pandas_func)(
-            get_file_data(path), **kwargs
-        )
+        return safe_import(module).__getattribute__(attr)(get_file_data(path), **kwargs)
 
     return loader
 
 
 # pylint: disable=unnecessary-lambda-assignment
-load_csv = make_loader("read_csv")
+load_numpy = lambda path, **kwargs: safe_import("numpy").load(  # noqa: E731
+    get_file_data(path), **kwargs
+)
+# pandas
+load_csv = make_loader("pandas", "read_csv")
 load_txt = lambda path, **kwargs: safe_import("pandas").read_csv(  # noqa: E731
     get_file_data(path), sep="\t", **kwargs
 )
-load_parquet = make_loader("read_parquet")  # import pyarrow.parquet as pq
-load_excel = make_loader("read_excel")
-load_json = make_loader("read_json")
-load_feather = make_loader("read_feather")
+load_parquet = make_loader("pandas", "read_parquet")
+load_excel = make_loader("pandas", "read_excel")
+load_json = make_loader("pandas", "read_json")
+load_feather = make_loader("pandas", "read_feather")
+load_pandas_pickle = make_loader("pandas", "read_pickle")
+# pyarrow
+# import pyarrow.parquet as pq
+# Convert to pandas DataFrame if needed
+# load_pyarrow_parquet = make_loader("pyarrow.parquet", "read_table").to_pandas()
+# pickle
 load_pickle = lambda path, **kwargs: safe_import("pickle").load(  # noqa: E731
     get_file_data(path)
 )  # noqa: ARG005
@@ -276,9 +268,6 @@ load_cloudpickle = lambda path, **kwargs: safe_import(  # noqa: E731
     "cloudpickle"
 ).load(  # noqa: ARG005
     get_file_data(path)
-)
-load_numpy = lambda path, **kwargs: safe_import("numpy").load(  # noqa: E731
-    get_file_data(path), **kwargs
 )
 
 # ---------------------- Database Loaders ----------------------
@@ -615,15 +604,15 @@ def upload_handler(
         # print(f"[upload_handler] Failed to process file: {e}")
         return tmp_path if return_file else None
     finally:
-        if (
-            clean_tmp and "tmp_path" in locals() and os.path.exists(tmp_path)
-        ):  # noqa: PTH110
-            os.remove(tmp_path)  # noqa: PTH107
+        if clean_tmp and "tmp_path" in locals() and os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 
 # ---------------------- Extension Dispatcher ----------------------
 
 EXTENSION_LOADERS = {
+    ".npy": load_numpy,
+    # pandas
     ".zip": load_csv,  # assume zipped CSV as a fallback
     ".csv": load_csv,
     ".txt": load_txt,
@@ -632,17 +621,20 @@ EXTENSION_LOADERS = {
     ".xlsx": load_excel,
     ".json": load_json,
     ".feather": load_feather,
+    ".pd.pkl": load_pandas_pickle,
+    ".pandas.pkl": load_pandas_pickle,
+    # pickle
     ".pkl": load_pickle,
     ".pickle": load_pickle,
     ".joblib": load_joblib,
     ".cloudpkl": load_cloudpickle,
     ".cloudpickle": load_cloudpickle,
-    ".npy": load_numpy,
-    ".db": load_sqlite,  # just path
-    ".sqlite": load_sqlite,  # just path
-    ".sqlite3": load_sqlite,  # just path
-    ".duckdb": load_duckdb,  # just path
-    # Connect Database fetch query
+    # Upload Database fetch sql query
+    ".db": load_sqlite,  # just path db
+    ".sqlite": load_sqlite,  # just path db
+    ".sqlite3": load_sqlite,  # just path db
+    ".duckdb": load_duckdb,  # just path db
+    # Connect Database fetch sql query
     ".oracle.sql": lambda path, **kwargs: load_sqlalchemy(
         path, db_type="oracle", **kwargs
     ),
@@ -671,14 +663,15 @@ def register_loader(extension: str, func, override: bool = False):
 def get_loader_by_ext(ext: str) -> "Callable":
     """get_loader_by_ext."""
     return EXTENSION_LOADERS.get(
-        ext.lower(), lambda path, **kwargs: load_stream_or_path(path, ext, **kwargs)
+        ext.lower(),
+        lambda path, **kwargs: load_stream_or_path(path, ext, **kwargs),
     )
 
 
 # ---------------------- load_data ----------------------
 
 
-def load_data(
+def load_data_meta(
     path: "Union[str, Path]",
     extension: "Optional[str]" = None,
     upload_type: "Optional[str]" = None,
@@ -686,7 +679,7 @@ def load_data(
     query: "Optional[str]" = None,
     **kwargs,
 ) -> dict:
-    """Unified high-level data loading interface."""
+    """Unified high-level data loading with meta interface."""
     # Generalized data loading interface with file type inference
     logger.info(f"load_data: {type(path)}")
     logger.info(f"load_data: {path!r}")
@@ -701,6 +694,7 @@ def load_data(
         if upload_type:
             path = upload_handler(path)
         ext = extension or get_extension(path)
+        # Normalize ext
         ext = "." + ext.lower().lstrip(".")
         loader = get_loader_by_ext(ext)
         data = (
@@ -715,11 +709,42 @@ def load_data(
             # If sqlite db get table
             else loader(path, query=clean_sql(query), **kwargs)
         )
+    # "meta": {"source": str(path), "rows": len(df), "columns": len(df.columns)},
     return {
         "data": data,
-        "source": str(path),
-        "type": db_type or ext,
-        "is_url": is_url(path),
         "shape": getattr(data, "shape", None),
-        # "meta": {"source": "converted xls", "rows": len(df), "columns": len(df.columns)},
+        "source": str(path),
+        "is_url": is_url(path),
+        "type": db_type or ext,
+        "query": (
+            (
+                db_type
+                or ext
+                in [
+                    ".db",
+                    ".sqlite",
+                    ".duckdb",
+                ]
+            )
+            and str(clean_sql(query))
+        ),
     }
+
+
+def load_data(
+    path: "Union[str, Path]",
+    extension: "Optional[str]" = None,
+    upload_type: "Optional[str]" = None,
+    db_type: "Optional[str]" = None,
+    query: "Optional[str]" = None,
+    **kwargs,
+) -> "pandas.DataFrame":
+    """Unified high-level data loading interface."""
+    return load_data_meta(
+        path,
+        extension,
+        upload_type,
+        db_type,
+        query,
+        **kwargs,
+    ).get("data", pd.DataFrame())

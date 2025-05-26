@@ -35,8 +35,8 @@ def hf_login(cli: bool = False):
         login(token=token)
         ## Or configure a HfApi client
         # hf_api = HfApi(
-        #     # endpoint="https://huggingface.co", # Can be a Private Hub endpoint.
         #     token=token, # Token is not persisted on the machine.
+        #     # endpoint="https://huggingface.co", # Can be a Private Hub endpoint.
         # )
     # logout()
     ## Use root method

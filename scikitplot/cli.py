@@ -384,9 +384,7 @@ def run(
     param_dict = _user_args_to_dict(param_list)
     args_dict = _user_args_to_dict(docker_args, argument_type="A")
 
-    if (
-        backend_config is not None and os.path.splitext(backend_config)[-1] != ".json"
-    ):  # noqa: PTH122
+    if backend_config is not None and os.path.splitext(backend_config)[-1] != ".json":
         try:
             backend_config = json.loads(backend_config)
         except ValueError as e:
@@ -734,13 +732,15 @@ def st(file_path, address, port, dark_theme, lib_sample):
 ## Add a COMMAND to Entry-point: from defined py
 ######################################################################
 
-with contextlib.suppress(NameError):
+with contextlib.suppress(NameError, AttributeError):
     cli.add_command(scikitplot.runs.commands)  # noqa: F821
     cli.add_command(scikitplot.db.commands)  # noqa: F821
 
 # We are conditional loading these commands since the skinny client does
 # not support them due to the pandas and numpy dependencies of Scikit-plots Models
-with contextlib.suppress(ImportError):
+with contextlib.suppress(
+    ImportError,
+):
     from .gateway import cli  # type: ignore  # noqa: PGH003
 
     cli.add_command(scikitplot.gateway.cli.commands)

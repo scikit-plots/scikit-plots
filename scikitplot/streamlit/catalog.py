@@ -45,8 +45,8 @@ class FunctionMeta(Enum):
     snsx_catalog = [
         {
             "module": "scikitplot",
-            "function": "snsx.evaluation.roc_curve",
-            "fallback_function": "api.metrics.plot_roc",
+            "function": ".snsx.evaluation.roc_curve",
+            "fallback_function": ".api.metrics.plot_roc",
             "category": "evaluation",
             "task_type": "classification",
             "plot_type": "diagnostic",
@@ -55,7 +55,7 @@ class FunctionMeta(Enum):
             "description": "Plot the Receiver Operating Characteristic (ROC) curve to visualize the trade-off between true positive rate and false positive rate.",
             "parameters": ["y_true", "y_score"],
             "optional_parameters": {
-                "figsize": (5, 2.5)
+                "figsize": (6, 2.7)
             }
         },
     """
@@ -69,8 +69,21 @@ class FunctionMeta(Enum):
 snsx_catalog = [
     {
         "module": "scikitplot",
-        "function": "snsx.evaluation.roc_curve",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.evaluation.plot_classifier_eval",
+        "fallback_function": ".api.metrics.plot_classifier_eval",
+        "category": "evaluation",
+        "task_type": "classification",
+        "plot_type": "tabular/matrix",
+        "supervised": True,
+        "explainability_level": "medium",
+        "description": "Plot the.",
+        "parameters": ["y_true", "y_pred"],
+        "optional_parameters": {"figsize": (6, 2.7)},
+    },
+    {
+        "module": "scikitplot",
+        "function": ".snsx.evaluation.roc_curve",
+        "fallback_function": ".api.metrics.plot_roc",
         "category": "evaluation",
         "task_type": "classification",
         "plot_type": "diagnostic",
@@ -80,12 +93,12 @@ snsx_catalog = [
             "Plot the Receiver Operating Characteristic (ROC) curve to visualize the trade-off between true positive rate and false positive rate."
         ),
         "parameters": ["y_true", "y_score"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     {
         "module": "scikitplot",
-        "function": "snsx.evaluation.pr_curve",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.evaluation.pr_curve",
+        "fallback_function": ".api.metrics.plot_precision_recall",
         "category": "evaluation",
         "task_type": "classification",
         "plot_type": "diagnostic",
@@ -95,12 +108,12 @@ snsx_catalog = [
             "Plot the Precision-Recall curve for imbalanced classification problems."
         ),
         "parameters": ["y_true", "y_score"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     {
         "module": "scikitplot",
-        "function": "snsx.evaluation.lift_curve",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.evaluation.lift_curve",
+        "fallback_function": ".kds.plot_lift",
         "category": "evaluation",
         "task_type": "classification",
         "plot_type": "ranking/performance",
@@ -110,12 +123,12 @@ snsx_catalog = [
             "Display the lift curve to understand the effectiveness of a predictive model by deciles."
         ),
         "parameters": ["y_true", "y_score"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     {
         "module": "scikitplot",
-        "function": "snsx.evaluation.ks_statistic",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.evaluation.ks_statistic",
+        "fallback_function": ".kds.plot_ks_statistic",
         "category": "evaluation",
         "task_type": "classification",
         "plot_type": "diagnostic",
@@ -125,12 +138,12 @@ snsx_catalog = [
             "Plot the Kolmogorov-Smirnov (KS) statistic curve to evaluate the separation between positive and negative classes."
         ),
         "parameters": ["y_true", "y_score"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     {
         "module": "scikitplot",
-        "function": "snsx.representation.pca",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.representation.pca",
+        "fallback_function": ".api.metrics.plot_roc",
         "category": "representation",
         "task_type": "unsupervised",
         "plot_type": "embedding",
@@ -140,12 +153,12 @@ snsx_catalog = [
             "Visualize the principal component analysis (PCA) 2D projection of input features."
         ),
         "parameters": ["data", "hue"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     {
         "module": "scikitplot",
-        "function": "snsx.explanation.shap_summary",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.explanation.shap_summary",
+        "fallback_function": ".api.metrics.plot_roc",
         "category": "explanation",
         "task_type": "general",
         "plot_type": "importance",
@@ -155,12 +168,12 @@ snsx_catalog = [
             "Show SHAP summary plot to explain global feature importance for a trained model."
         ),
         "parameters": ["model", "X"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     {
         "module": "scikitplot",
-        "function": "snsx.features.mutual_information",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.features.mutual_information",
+        "fallback_function": ".api.metrics.plot_roc",
         "category": "features",
         "task_type": "general",
         "plot_type": "importance",
@@ -168,12 +181,12 @@ snsx_catalog = [
         "explainability_level": "medium",
         "description": "Plot mutual information between features and target variable.",
         "parameters": ["X", "y"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     {
         "module": "scikitplot",
-        "function": "snsx.dataset.null_heatmap",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.dataset.null_heatmap",
+        "fallback_function": ".api.metrics.plot_roc",
         "category": "dataset",
         "task_type": "general",
         "plot_type": "matrix",
@@ -183,12 +196,12 @@ snsx_catalog = [
             "Visualize missing values in a heatmap to assess data completeness."
         ),
         "parameters": ["df"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     {
         "module": "scikitplot",
-        "function": "snsx.training.loss_curve",
-        "fallback_function": "api.metrics.plot_roc",
+        "function": ".snsx.training.loss_curve",
+        "fallback_function": ".api.metrics.plot_roc",
         "category": "training",
         "task_type": "general",
         "plot_type": "curve",
@@ -198,7 +211,7 @@ snsx_catalog = [
             "Plot model training loss across epochs to monitor convergence and overfitting."
         ),
         "parameters": ["history"],
-        "optional_parameters": {"figsize": (5, 2.5)},
+        "optional_parameters": {"figsize": (6, 2.7)},
     },
     # Additional functions can be appended here following the same structure
 ]

@@ -66,9 +66,14 @@ repos:
         args: ["--fix", "--show-fixes", "--output-format=full"]  # --unsafe-fixes
         # types_or: [ python, pyi ]
       - id: ruff-format  # Run the formatter.
-        # args: ['--preview']  # Enables experimental formatting.
-        # types_or: [ python, pyi ]
+        args:
+          - --check                   # Check if files are formatted. Exit with code 1 if reformatting is needed, but don’t change files.
+          - --diff                    # Show a diff of what would change, without writing changes to disk. Often used with --check.
+          # - --preview                 # Enables preview formatting features that are experimental or not yet stable.
+          # - --verbose                 # Show additional debugging or context info.
+          # - --config=pyproject.toml   # Optional: use custom config file
         # verbose: true  # Force Ruff to show which files were modified
+        # types_or: [ python, pyi ]
 
   - repo: https://github.com/psf/black
     rev: 25.1.0

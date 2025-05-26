@@ -8,6 +8,8 @@ import os
 # from pathlib import Path
 import yaml
 
+from ... import logger
+
 
 def load_mlflow_gateway_config(path: str) -> "dict[str, any]":
     """load_mlflow_gateway_config."""
@@ -15,26 +17,28 @@ def load_mlflow_gateway_config(path: str) -> "dict[str, any]":
     # path = Path(path).expanduser().resolve()
     # path = os.path.abspath(os.path.join(os.getcwd(), path))
     path = os.path.abspath(os.path.expanduser(path))
-
     with open(path, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)
 
     configs = {}
     for endpoint in raw.get("endpoints", []):
-        provider = endpoint["model"].get("provider")
+        provider = endpoint["model"].get("provider", "")
         model_id = endpoint["model"].get("name")
         config = endpoint["model"].get("config", {})
 
-        key = next(iter(config.values()), "")
+        # get api key
+        suffix = "_TOKEN" if provider in ["huggingface"] else "_API_KEY"
+        # api_key = next(iter(config.values()), "")
+        api_key = config.get(f"{provider.upper()}{suffix}", "")
         # Expand $VAR or ${VAR} environment-style names
-        if key.startswith(("$", "${")):
-            # stays as-is (not a variable ref)
-            expanded = os.path.expandvars(key)
-            key = expanded if expanded != key else ""
-
+        if api_key.startswith(("$", "${")):
+            # stays as-is (not a variable ref) (read-only)
+            expanded = os.path.expandvars(api_key)
+            api_key = expanded if expanded != api_key else ""
+            if api_key:
+                logger.info(f"Loaded {provider.upper()}{suffix} from Env.")
         if provider and model_id:
             if provider not in configs:
                 configs[provider] = []
-            configs[provider].append({"model_id": model_id, "api_key": key})
-
+            configs[provider].append({"model_id": model_id, "api_key": api_key})
     return configs

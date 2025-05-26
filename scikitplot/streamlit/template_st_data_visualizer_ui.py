@@ -75,34 +75,23 @@ including task type, plot type, explainability level, and more.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=import-error
-# pylint: disable=unused-import
-# pylint: disable=unused-argument
-# pylint: disable=invalid-name
 # pylint: disable=no-name-in-module
-# pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
+# pylint: disable=unused-argument
 
-# ruff: noqa: N806, PD901
-
+# import petname
+# petname.Generate(3, separator="-")  # e.g., 'green-fox-jump'
+# import hashlib
+import json
 import traceback
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt  # type: ignore[reportMissingImports]
-import pandas as pd  # type: ignore[reportMissingImports]
-from sklearn.ensemble import (  # type: ignore[reportMissingImports]
-    RandomForestClassifier,
-)
-from sklearn.metrics import (  # type: ignore[reportMissingImports]  # noqa: F401
-    confusion_matrix,
-)
-from sklearn.model_selection import (  # type: ignore[reportMissingImports]
-    train_test_split,
-)
+import matplotlib.pyplot as plt
+import pandas as pd
 
 from scikitplot import logger
 from scikitplot._compat.optional_deps import HAS_STREAMLIT, nested_import, safe_import
-from scikitplot.streamlit.catalog import snsx_catalog
+from scikitplot.streamlit import get_sns_data, snsx_catalog
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -113,70 +102,17 @@ if TYPE_CHECKING:
 
 def load_snsx_catalog():
     """Load metadata dynamically (optional)."""
-    import json
-
     with open("snsx_catalog.json", encoding="utf-8") as f:  # noqa: PTH123
         return json.load(f)
 
 
 if HAS_STREAMLIT:
+    from scikitplot.streamlit.template_st_chat_ui import (
+        api_key_config_ui,
+        chat_provider,
+    )
+
     st = safe_import("streamlit")
-
-    ######################################################################
-    ## get_data
-    ######################################################################
-
-    # Caches resources or objects like models, connections, etc.
-    # @st.cache_resource
-    # Caches pure functions that return data and don't have side effects
-    # Data Fetching	Add @st.cache_data
-    # https://docs.streamlit.io/develop/concepts/architecture/caching
-    @st.cache_data(show_spinner="Loading data...")
-    def get_data(
-        file_link: str | None = None,
-        uploaded_data: bool = False,
-        load_sns: bool | str = "iris",
-    ):
-        """Fetc Data function."""
-        # Use default inputs here; real example would customize this
-        if uploaded_data:
-            df = st.session_state.get("df", pd.DataFrame())
-            if "species" in df.columns:
-                X = df.drop(columns="species")
-                y = df["species"]
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X,
-                    y,
-                    test_size=0.7,
-                    random_state=42,
-                )
-                model = RandomForestClassifier().fit(X_train, y_train)
-                y_score = model.predict_proba(X_test)
-                y_pred = model.predict(X_test)
-                return {
-                    "y_true": df.get("y_test") or y_test,
-                    "y_score": df.get("y_score") or y_score,
-                    "y_pred": df.get("y_pred") or y_pred,
-                }
-        if load_sns:
-            import seaborn as sns
-
-            # Load example data
-            df = sns.load_dataset(load_sns)
-            X = df.drop(columns="species")
-            y = df["species"]
-            X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
-            model = RandomForestClassifier().fit(X_train, y_train)
-            y_score = model.predict_proba(X_test)
-            y_pred = model.predict(X_test)
-            result = {
-                "y_true": y_test,
-                "y_score": y_score,
-                "y_pred": y_pred,
-            }
-            logger.info("Plot data loaded.")
-            return result
-        raise NotImplementedError
 
     ######################################################################
     ## get_plot_func
@@ -213,9 +149,13 @@ if HAS_STREAMLIT:
         """
         # Dynamically import function
         try:
-            return nested_import(function_meta["function"], silent=True)
+            logger.info(f"Called function {function_meta['fallback_function']}")
+            return nested_import(function_meta["function"], silent=False)
         except Exception:
-            return nested_import(function_meta["fallback_function"])
+            logger.info(
+                f"Called fallback function {function_meta['fallback_function']}"
+            )
+            return nested_import(function_meta["fallback_function"], silent=False)
         # raise AttributeError
 
     # -------------------- UI Components --------------------
@@ -263,7 +203,11 @@ if HAS_STREAMLIT:
             The selected categories.
         """
         categories = sorted({f["category"] for f in snsx_catalog})
-        return st.multiselect("Selected categories", categories, default=categories)
+        return st.multiselect(
+            "Selected categories",
+            categories,
+            default=categories[:2],
+        )
 
     @st.cache_data
     def filter_by_categories(categories: list) -> list[dict]:
@@ -376,27 +320,13 @@ if HAS_STREAMLIT:
             # Sidebar checkbox for controlling expanders
             expand_meta = st.checkbox("Expand all metadata", value=False)
             expand_live = st.checkbox("Expand all live interaction", value=True)
+        # Sidebar for controlling expanders and categories
+        with st.sidebar:
+            api_key_config_ui()
         # Add a checkbox to the sidebar for demonstration
         # show_message = st.sidebar.checkbox("Show message", value=True)
         # if show_message:
         #     st.sidebar.write("Checkbox is checked!")
-        st.sidebar.markdown(
-            f"""
-            <div class="sidebar-logo">
-                <a align=center href="https://scikit-plots.github.io/dev">
-                  <img src={
-                "https://raw.githubusercontent.com/scikit-plots/scikit-plots"
-                "/main/docs/source/logos/scikit-plots-logo.svg"
-            }
-                  alt="Logo" width="auto">
-                </a>
-                <a align=center href="https://scikit-plots.github.io/dev">
-                  <h2 align=center>scikit-plots</h2>
-                </a>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
         return selected_categories, expand_meta, expand_live
 
     def set_hide_sidebar():
@@ -459,11 +389,12 @@ if HAS_STREAMLIT:
                     f"**Explainability**: {function_meta['explainability_level'].capitalize()}"
                 )
 
+    # @st.fragment  # expensive_ui
     def render_live_plot_section(
         function_meta: "dict[str, any]",
         expanded: bool = False,
         placeholder: "Optional[DeltaGenerator]" = None,
-        plot_progress_placeholder: "Optional[DeltaGenerator]" = None,
+        # plot_progress_placeholder: "Optional[DeltaGenerator]" = None,
     ) -> None:
         """
         Render the interactive live plotting section.
@@ -485,6 +416,8 @@ if HAS_STREAMLIT:
         btn_run_key = f"run_{function_meta['function']}"
         btn_clr_label = "Clear Plots!"
         btn_clr_key = f"clear_{function_meta['function']}"
+        btn_chat_label = f"Ask AI - {function_meta['function'].rsplit('.')[-1]}"
+        btn_chat_key = f"ask_ai_{function_meta['function']}"
 
         with placeholder or st.container(
             key=cont_key,
@@ -498,61 +431,101 @@ if HAS_STREAMLIT:
                 label=expan_label,
                 expanded=expanded,
             ):
+                # To place two buttons side-by-side (in the same horizontal row) in Streamlit
+                # col1, col2 = st.columns(2)
+                # with col1:
                 # Button to trigger plotting
                 # you can use a unique identifier (function name, loop index, hash, etc.)
                 if st.button(
                     btn_run_label,
+                    icon=":material/order_play:",
+                    use_container_width=True,
                     key=btn_run_key,
                     type="secondary",
-                    icon=":material/order_play:",
                     # on_click=None,
                 ):
                     try:
-                        # logger.info(st.session_state.df.y_true.shape)
-                        # logger.info(st.session_state.df.y_score.shape)
-                        # logger.info(st.session_state.df.y_pred.shape)
                         # Example: if the function needs y_test and y_pred
-                        y_true, y_score, y_pred = (
-                            st.session_state.df["y_true"],
-                            st.session_state.df["y_score"],
-                            st.session_state.df["y_pred"],
+                        y_true, y_pred, y_score = (
+                            st.session_state["y_true"],
+                            st.session_state["y_pred"],
+                            st.session_state["y_score"],
                         )
                         # Dynamically import function
                         plot_func = get_plot_func(function_meta)
-                        logger.info(plot_func.__doc__)
-                        # Example: if the function needs y_test and y_pred
-                        if function_meta["parameters"] == ["y_true", "y_pred"] or True:
-                            # Show a spinner while the function runs or spinner decorator
-                            with st.spinner("Generating plot...", show_time=True):
-                                # 6 inches wide, 2 inches tall
-                                fig, ax = plt.subplots(
-                                    figsize=(
-                                        function_meta.get(
-                                            "optional_parameters", {}
-                                        ).get("figsize", (5, 2.5))
-                                    ),
+                        logger.info(f"{plot_func.__name__} function called.")
+                        # 6 inches wide, 2 inches tall
+                        # width=8 inches, height=6 inches
+                        fig = plt.figure(
+                            figsize=(
+                                function_meta.get("optional_parameters", {}).get(
+                                    "figsize", (6, 2.7)
                                 )
+                            ),
+                        )
+                        # fig, ax = plt.subplots(
+                        #     figsize=(
+                        #         function_meta.get(
+                        #             "optional_parameters", {}
+                        #         ).get("figsize", (5, 2.5))
+                        #     ),
+                        # )
+                        # Show a spinner while the function runs or spinner decorator
+                        with st.spinner("Generating plot...", show_time=True):
+                            # Example: if the function needs y_test and y_pred
+                            if function_meta["parameters"] == ["y_true", "y_score"]:
                                 # Plot with spinner
-                                plot_func(y_true, y_score, fig=fig, ax=ax)
+                                plot_func(y_true, y_score, fig=fig)
                                 # Tight, small legend
-                                ax.legend(fontsize=7)
-                                # time.sleep(0.1)
+                                # ax.legend(fontsize=7)
                                 # Save to session state using unique key
                                 st.session_state[function_meta["function"]].append(fig)
-                        else:
-                            st.warning(
-                                "Demo input for this function is not configured."
-                            )
+                            elif function_meta["parameters"] == ["y_true", "y_pred"]:
+                                # Plot with spinner
+                                plot_func(y_true, y_pred, fig=fig)
+                                # Tight, small legend
+                                # ax.legend(fontsize=7)
+                                # Save to session state using unique key
+                                st.session_state[function_meta["function"]].append(fig)
+                            else:
+                                st.warning(
+                                    "Demo input for this function is not configured."
+                                )
+                                raise NotImplementedError
+                            plt.legend(fontsize=7)  # sets the legend font size
                     except Exception as e:
                         st.error(f"Execution failed: {e}")
+                # with col2:
+                # Add a "Ask AI" button
+                # you can use a unique identifier (function name, loop index, hash, etc.)
+                if st.button(
+                    btn_chat_label,
+                    icon=":material/forum:",
+                    use_container_width=True,
+                    key=btn_chat_key,
+                ):
+                    response = chat_provider.get_response(
+                        st.session_state.messages,
+                        model_provider=st.session_state.model_provider,
+                        model_id=st.session_state.model_id,
+                        api_key=st.session_state.api_key,
+                    )
+                    st.session_state[f"{function_meta['function']}_response"] = response
                 # Add a "Clear Plots" button
                 # you can use a unique identifier (function name, loop index, hash, etc.)
-                if st.button(btn_clr_label, key=btn_clr_key, icon=":material/delete:"):
+                if st.button(
+                    btn_clr_label,
+                    icon=":material/delete:",
+                    use_container_width=True,
+                    key=btn_clr_key,
+                ):
                     # st.session_state.pop(fig_key, None)
                     del st.session_state[function_meta["function"]]
             # Display the example code snippet for the user
             ex_code = (
-                f"{function_meta['function']}({', '.join(function_meta['parameters'])})"
+                f"{function_meta['function'].rsplit('.')[-1]}(\n"
+                f"  {', '.join(function_meta['parameters'])}\n"
+                ")"
             )
             st.code(
                 ex_code,
@@ -563,10 +536,11 @@ if HAS_STREAMLIT:
             )
 
     # quick local rerun under fragment other/default long Full rerun
+    # doesn't need to rerun every time the rest of the app changes
     @st.fragment
     def render_bot_message(
         function_meta: "dict[str, any]",
-        msg: str = "Hi there,",
+        msg: str = "Explain Plot...",
         placeholder: "Optional[DeltaGenerator]" = None,
     ) -> None:
         """
@@ -588,7 +562,9 @@ if HAS_STREAMLIT:
             if st.session_state.get(function_meta["function"], []):
                 # st.chat_message("assistant").write("Hi there,")
                 message = st.chat_message("assistant")
-                message.write(msg)
+                message.write(
+                    st.session_state.get(f"{function_meta['function']}_response", msg)
+                )
                 # Separate visually
                 # st.markdown("---")
                 # st.divider()  # visually sleek
@@ -618,7 +594,11 @@ if HAS_STREAMLIT:
         with placeholder or plot_placeholder:
             # Display stored plot (if available)
             for fig in st.session_state.get(function_meta["function"], []):
-                st.pyplot(fig, use_container_width=False, dpi=150)
+                st.pyplot(
+                    fig,
+                    use_container_width=True,
+                    dpi=150,
+                )
 
     # -------------------- Plot State --------------------
 
@@ -641,9 +621,9 @@ if HAS_STREAMLIT:
             # if function_meta["function"] not in st.session_state:
             #     st.session_state[function_meta["function"]] = []
             return st.session_state.setdefault(function_meta["function"], [])
-        except Exception:
-            st.error("Execution failed.")
-            st.exception(traceback.format_exc())
+        except Exception as e:
+            st.exception(f"❌ Failed to create a Streamlit placeholder: {e}")
+            st.code(traceback.format_exc(), language="python")
 
     def display_function_details(
         function_meta: "dict[str, any]",
@@ -703,7 +683,7 @@ if HAS_STREAMLIT:
             # Layout: Just use 2 columns, where col2 is wide
             # One for the button and metadata, the other for the plot
             cols = st.columns(
-                [0.33, 0.66],  # Adjust columns width ratio
+                [0.3, 0.7],  # Adjust columns width ratio
                 border=True,
                 gap="small",
             )
@@ -719,8 +699,8 @@ if HAS_STREAMLIT:
                     )
                 # Right column for chat ant plot display
                 with cols[-1]:  # noqa: SIM117
-                    render_bot_message(function_meta)
                     render_plot_output(function_meta)
+                    render_bot_message(function_meta)
 
             render_details(function_meta)
 
@@ -761,25 +741,57 @@ if HAS_STREAMLIT:
                     "About": "### Scikit-Plots Explorer\nBuilt with Streamlit",
                 },
             )
+        ## Initialize session state with defaults (only once)
+        # st.session_state.setdefault("running", False)
+        if "running" not in st.session_state:
+            # Initialize the flag in session state
+            st.session_state["running"] = False
 
         ## Initialize session state with defaults (only once)
-        # st.session_state.setdefault("loaded_data", {})
-        if "loaded_data" not in st.session_state:
-            st.session_state.loaded_data = st.session_state.get(
-                "loaded_data", {"iris": get_data()}
+        if "dfs" not in st.session_state:
+            st.session_state.dfs = st.session_state.get("dfs", get_sns_data())
+        if "y_true" not in st.session_state:
+            st.session_state["y_true"] = pd.Series()
+        if "y_pred" not in st.session_state:
+            st.session_state["y_pred"] = pd.Series()
+        if "y_score" not in st.session_state:
+            st.session_state["y_score"] = pd.Series()
+
+        # To place two buttons side-by-side (in the same horizontal row) in Streamlit
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.session_state["y_true"] = st.session_state.dfs.get(
+                st.radio(
+                    "Select Uploaded `y_true` from 📁 Dataset Load:",
+                    options=list(st.session_state.dfs.keys()),
+                    index=None,
+                    help="Choose DataFrame for analysis (e.g. y_true, y_pred, y_score).",
+                ),
+                pd.Series(),
             )
-        # Initialize the flag in session state
-        if "running" not in st.session_state:
-            st.session_state["running"] = False
-        df_name = st.radio(
-            "Select data source in below or add from 📁 Data Load:",
-            list(st.session_state.loaded_data.keys()),
-            help="Choose DataFrame for analysis (y_true, y_score, y_pred).",
-        )
-        st.session_state.df = st.session_state.loaded_data.get(df_name, pd.DataFrame())
-        # snsx_explorer.template_st_data_loader_ui.display_dataframe(
-        #     df_name, st.session_state.df
-        # )
+            logger.info(st.session_state.y_true.shape)
+        with col2:
+            st.session_state["y_pred"] = st.session_state.dfs.get(
+                st.radio(
+                    "Select Uploaded `y_pred` from 📁 Dataset Load:",
+                    options=list(st.session_state.dfs.keys()),
+                    index=None,
+                    help="Choose DataFrame for analysis (e.g. y_true, y_pred, y_score).",
+                ),
+                pd.Series(),
+            )
+            logger.info(st.session_state.y_pred.shape)
+        with col3:
+            st.session_state["y_score"] = st.session_state.dfs.get(
+                st.radio(
+                    "Select Uploaded `y_score` from 📁 Dataset Load:",
+                    options=list(st.session_state.dfs.keys()),
+                    index=None,
+                    help="Choose DataFrame for analysis (e.g. y_true, y_pred, y_score).",
+                ),
+                pd.Series(),
+            )
+            logger.info(st.session_state.y_score.shape)
 
         ## Call the sidebar function
         selected_categories, expand_meta, expand_live = add_sidebar()
