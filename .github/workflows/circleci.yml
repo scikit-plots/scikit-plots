@@ -56,7 +56,7 @@ jobs:
 
       - name: GitHub Action step
         # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
-        uses: scientific-python/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # v1.0.0
+        uses: scientific-python/circleci-artifacts-redirector-action@7eafdb60666f57706a5525a2f5eb76224dc8779b # v1.1.0
         # if: ${{ env.IS_SKIP == 'false' }}  # Accessing IS_SKIP set earlier
         with:
           # api_token: ${{ env.CIRCLE_TOKEN }}
