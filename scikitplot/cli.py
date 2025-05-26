@@ -747,4 +747,4 @@ with contextlib.suppress(
 
 
 if __name__ == "__main__":
-    cli(9)
+    cli()

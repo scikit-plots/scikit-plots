@@ -86,6 +86,8 @@ Installing the latest release
             python -m pip show scikit-plots  # show scikit-plots version and location
             python -m pip freeze             # show all installed packages in the environment
             python -c "import scikitplot; scikitplot.show_versions()"
+            scikitplot --version
+            scikitplot -v
 
         .. tab-item:: Linux
           :class-label: tab-4
@@ -120,6 +122,8 @@ Installing the latest release
             python3 -m pip show scikit-plots  # show scikit-plots version and location
             python3 -m pip freeze             # show all installed packages in the environment
             python3 -c "import scikitplot; scikitplot.show_versions()"
+            scikitplot --version
+            scikitplot -v
 
         .. tab-item:: MacOS
           :class-label: tab-4
@@ -147,6 +151,8 @@ Installing the latest release
             python -m pip show scikit-plots  # show scikit-plots version and location
             python -m pip freeze             # show all installed packages in the environment
             python -c "import scikitplot; scikitplot.show_versions()"
+            scikitplot --version
+            scikitplot -v
 
     .. tab-item:: conda
       :class-label: tab-6

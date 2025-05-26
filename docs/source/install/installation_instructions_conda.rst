@@ -30,6 +30,8 @@ In order to check your installation, you can use:
   conda list scikit-plots  # show scikit-plots version and location
   conda list               # show all installed packages in the environment
   python -c "import scikitplot; scikitplot.show_versions()"
+  scikitplot --version
+  scikitplot -v
 
 (Not Recommended) Also available Nightly Version can cause conflict:
 
