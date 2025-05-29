@@ -997,6 +997,14 @@ cython_cpp_flags = cython_c_flags + [
 dep_thread = dependency('threads', required: false)
 
 ######################################################################
+## Fs-module
+## https://mesonbuild.com/Fs-module.html
+######################################################################
+
+# Copy the main __init__.py|pxd files to the build dir (needed for Cython)
+fs = import('fs')
+
+######################################################################
 ## dependency 'numpy'
 ######################################################################
 
@@ -1099,6 +1107,17 @@ dep_np = declare_dependency(
 _f2py_inc_dir = _np_inc_dir / '..' / '..' / 'f2py' / 'src'
 inc_dir_f2py = include_directories(_f2py_inc_dir)
 fortranobject_c = _f2py_inc_dir / 'fortranobject.c'
+
+if not fs.exists(fortranobject_c)
+  error(
+    '\n' +
+    RED + '[ERROR]' + RESET +
+    'Missing required file: ' + fortranobject_c.to_string() + '\n' +
+    'Make sure NumPy is installed from source with f2py support. Try:\n' +
+    '  pip install numpy --no-binary :all:\n' +
+    'Also ensure gfortran is installed.'
+  )
+endif
 
 npymath_path = _np_inc_dir_abs / '..' / 'lib'
 npymath_lib = cc.find_library('npymath', dirs: npymath_path)
@@ -1235,14 +1254,6 @@ gen_tempita = generator(cli_tempita,
 ## meson install --tags tag1,tag2 command line. When --tags is specified,
 ## only files that have been tagged with one of the tags are going to be installed.
 ######################################################################
-
-######################################################################
-## Fs-module
-## https://mesonbuild.com/Fs-module.html
-######################################################################
-
-# Copy the main __init__.py|pxd files to the build dir (needed for Cython)
-fs = import('fs')
 
 ######################################################################
 ## Copy all the .py files  like [tool.setuptools.package-data]

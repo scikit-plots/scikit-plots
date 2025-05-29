@@ -938,16 +938,16 @@ def get_logger() -> "_logging.Logger":
 
     .. jupyter-execute::
 
-        >>> import scikitplot.sp_logging as logging  # module logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
+        >>> from scikitplot import logger
+        >>> logger.setLevel(logger.INFO)  # default WARNING
+        >>> logger.info("This is a info message from the sp logger.")
 
     Get a root logger by func:
 
     .. jupyter-execute::
 
-        >>> import scikitplot.sp_logging as logging  # module logger
-        >>> logging.get_logger().setLevel(sp_logging.INFO)  # default WARNING
+        >>> from scikitplot import logger
+        >>> logger.setLevel(logger.INFO)  # default WARNING
         >>> logger.info("This is a info message from the sp logger.")
     """
     # Ensure the root logger is initialized
