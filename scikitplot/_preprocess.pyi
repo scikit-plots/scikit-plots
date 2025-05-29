@@ -3,6 +3,7 @@
 # ruff: noqa
 # flake8: noqa
 # type: ignore
+# mypy: ignore-errors
 
 from collections.abc import Callable
 

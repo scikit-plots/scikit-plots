@@ -1,6 +1,7 @@
 """
-This module provides utilities for saving result images (such as plots)
-and includes decorators for automatically saving plots.
+Provides utilities for saving result images.
+
+Such as plots and includes decorators for automatically saving plots.
 """
 
 # Authors: The scikit-plots developers
@@ -13,6 +14,7 @@ and includes decorators for automatically saving plots.
 # from functools import wraps
 import functools  # noqa: I001
 import logging
+import tempfile  # noqa: F401
 import warnings
 from typing import TYPE_CHECKING
 
@@ -31,12 +33,12 @@ if TYPE_CHECKING:
     from typing import (  # noqa: F401
         Any,
         Callable,
-        Dict,
-        List,
         Optional,
         Union,
     )
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 ######################################################################
@@ -49,17 +51,36 @@ _docstring.interpd.register(
 show_fig : bool, default=True
     Show the plot.
 
+    .. versionadded:: 0.4.0
 save_fig : bool, default=False
     Save the plot.
 
+    .. versionadded:: 0.4.0
 save_fig_filename : str, optional, default=''
     Specify the path and filetype to save the plot.
     If nothing specified, the plot will be saved as png
     inside ``result_images`` under to the current working directory.
     Defaults to plot image named to used ``func.__name__``.
 
+    .. versionadded:: 0.4.0
+overwrite : bool, optional, default=True
+    If False and a file exists, auto-increments the filename to avoid overwriting.
+
+    .. versionadded:: 0.4.0
+add_timestamp : bool, optional, default=False
+    Whether to append a timestamp to the filename.
+    Default is False.
+
+    .. versionadded:: 0.4.0
 verbose : bool, optional
-    If True, prints debugging information.
+    If True, enables verbose output with informative messages during execution.
+    Useful for debugging or understanding internal operations such as backend selection,
+    font loading, and file saving status. If False, runs silently unless errors occur.
+
+    Default is False.
+
+    .. versionadded:: 0.4.0
+        The `verbose` parameter was added to control logging and user feedback verbosity.\
 """.rstrip()
 )
 
@@ -80,7 +101,7 @@ def save_plot_decorator(
     **dkwargs: dict,  # Keyword arguments passed to the decorator for customization (e.g., verbose)
 ) -> "Callable[..., Any]":
     """
-    A generic decorator that supports both parameterized and non-parameterized usage.
+    Decorate that supports both parameterized and non-parameterized usage.
 
     This decorator can be used directly (`@decorator`) or
     with parameters (`@decorator(param=value)`).
@@ -128,7 +149,7 @@ def save_plot_decorator(
     # The case where the decorator is called with parameters (returns a decorator)
     def decorator(inner_func: "Callable") -> "Callable":
         """
-        The actual decorator function that wraps the target function.
+        Actual decorator function that wraps the target function.
 
         Parameters
         ----------
@@ -146,6 +167,7 @@ def save_plot_decorator(
 
         @functools.wraps(inner_func)
         def wrapper(*args, **kwargs) -> "Any":
+            # Call the actual plotting function
             result = inner_func(*args, **kwargs)
             plt.tight_layout()
             # plt.draw()
@@ -178,6 +200,8 @@ def save_plot_decorator(
                         **{**dkwargs, **kwargs},  # Update by inner func
                     )
                     try:
+                        # with tempfile.TemporaryDirectory() as tmpdirname:
+                        # with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmpfile:  # tmpfile.name
                         plt.savefig(
                             save_path, dpi=150, bbox_inches="tight", pad_inches=0
                         )
@@ -217,6 +241,7 @@ def stack_mpl_figures(
 ):
     """
     Stack multiple matplotlib figures into a single combined figure.
+
     Save it (if specified).
 
     Parameters
@@ -261,7 +286,8 @@ def stack_mpl_figures(
         nrows, ncols = len(figs), 1
     else:
         raise ValueError(
-            f"Unsupported orient '{orient}'. Use 'vertical' or 'horizontal' (or v/h/x/y)."
+            f"Unsupported orient '{orient}'. "
+            "Use 'vertical' or 'horizontal' (or v/h/x/y)."
         )
 
     figsize = kwargs.get("figsize")

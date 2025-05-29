@@ -4,12 +4,12 @@ import numpy as np
 import numpy.testing as np_testing
 import pytest
 
-from scikitplot._xp_core_lib._array_api import (
+from scikitplot._lib._array_api import (
     array_namespace,
     is_array_api_strict,
     xp_default_dtype,
 )
-from scikitplot._xp_core_lib._array_api_no_0d import (
+from scikitplot._lib._array_api_no_0d import (
     xp_assert_close,
     xp_assert_equal,
     xp_assert_less,

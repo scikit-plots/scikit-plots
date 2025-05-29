@@ -1,3 +1,3 @@
 """Testing utilities."""
 
-from ._testing import *
+from ._testing import *  # noqa: F403

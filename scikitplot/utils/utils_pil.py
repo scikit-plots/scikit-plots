@@ -1,55 +1,45 @@
-"""utils_pil.py"""
+"""utils_pil.py."""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 # pylint: disable=import-error
+# pylint: disable=unused-import
+# pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
 
+# import inspect
 import functools
 import logging
 import os
 import platform
 import warnings
+from typing import TYPE_CHECKING
 
-# import inspect
-
-## Attempt to import `cache` from `functools` (Python >= 3.9)
-try:
-    from functools import cache
-except ImportError:
-    # Fallback to `lru_cache` for Python < 3.9
-    from functools import lru_cache as cache
-
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]  # noqa: I001
-from PIL import (  # type: ignore[reportMissingModuleSource]
+import matplotlib.pyplot as plt
+from PIL import (
     # Image,
     # ImageColor,
     # ImageDraw,
     ImageFont,
 )
 
+from .. import logger  # noqa: F401
+from .._docstrings import _docstring
+from .utils_params import (
+    # _get_args_kwargs,
+    # _get_param_w_index,
+    _resolve_args_and_kwargs,
+)
 from .utils_path import get_file_path
 
-from typing import TYPE_CHECKING  # pylint: disable=wrong-import-order
-
+# Runtime-safe imports for type hints (avoids runtime overhead)
 if TYPE_CHECKING:
     # Only imported during type checking
-    from typing import (  # noqa: F401
-        Any,
-        Callable,
-        Dict,
-        List,
-        Optional,
-        Union,
-    )
+    from typing import Optional, Union
 
-    import PIL  # type: ignore[reportMissingModuleSource]
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-
+    import PIL
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
@@ -57,13 +47,12 @@ __all__ = [
     "save_image_pil_decorator",
 ]
 
-
 ######################################################################
 ## get_font
 ######################################################################
 
 
-@cache
+@functools.lru_cache
 def _cached_truetype(
     path: str,
     size: int,
@@ -253,7 +242,7 @@ def get_font(
 
 
 ######################################################################
-## save_image_pil
+## save_image_with_pil
 ######################################################################
 
 
@@ -319,6 +308,198 @@ def save_image_with_pil(
         )
 
 
+######################################################################
+## save_image_pil_decorator
+######################################################################
+
+# The docstrings here must be generic enough to apply to all relevant methods.
+_docstring.interpd.register(
+    _save_image_pil_kwargs_doc="""\
+backend : bool, str, optional, default=None
+    Specifies the backend used to process and save the image.
+    If the value is one of `'matplotlib'`, `'true'`, or `'none'` (case-insensitive),
+    the Matplotlib backend will be used. This is useful for better DPI control and
+    consistent rendering. Any other value will fall back to using the PIL backend.
+    Default is `None`. Common values include:
+
+    - `'matplotlib'`, `'true'`, `'none'` : Use Matplotlib
+    - `'pil'`, `'fast'`, etc. : Use PIL (Python Imaging Library)
+
+    .. versionadded:: 0.4.0
+        The `backend` parameter was added to allow switching between PIL and Matplotlib.
+show_os_viewer : bool, optional, default=False
+    If True, displays the saved image (by PIL) in the system's default image viewer
+    using PIL's `.show()` method. Default is False.
+
+    .. versionadded:: 0.4.0
+show_fig : bool, default=True
+    Show the plot.
+
+    .. versionadded:: 0.4.0
+save_fig : bool, default=False
+    Save the plot.
+
+    .. versionadded:: 0.4.0
+save_fig_filename : str, optional, default=''
+    Specify the path and filetype to save the plot.
+    If nothing specified, the plot will be saved as png
+    inside ``result_images`` under to the current working directory.
+    Defaults to plot image named to used ``func.__name__``.
+
+    .. versionadded:: 0.4.0
+overwrite : bool, optional, default=True
+    If False and a file exists, auto-increments the filename to avoid overwriting.
+
+    .. versionadded:: 0.4.0
+add_timestamp : bool, optional, default=False
+    Whether to append a timestamp to the filename.
+    Default is False.
+
+    .. versionadded:: 0.4.0
+verbose : bool, optional
+    If True, enables verbose output with informative messages during execution.
+    Useful for debugging or understanding internal operations such as backend selection,
+    font loading, and file saving status. If False, runs silently unless errors occur.
+
+    Default is False.
+
+    .. versionadded:: 0.4.0
+        The `verbose` parameter was added to control logging and user feedback verbosity.\
+""".rstrip()
+)
+
+
+@_docstring.interpd
+def save_image_pil_kwargs(
+    *args: tuple,
+    result: "PIL.Image.Image" = None,
+    func_name: str = "",
+    **kwargs: dict,
+):
+    """
+    Save an image using either Matplotlib or PIL, based on dynamic keyword arguments.
+
+    .. versionadded:: 0.4.0
+
+    Parameters
+    ----------
+    *args : tuple
+        Positional arguments (currently unused).
+    result : PIL.Image.Image, optional
+        The image result to be saved. Required for PIL fallback.
+    func_name : str, optional
+        A fallback name for the output file if no filename is provided.
+    **kwargs : dict
+        Additional keyword arguments to control behavior. Includes:
+
+        - `backend` (str or bool): "matplotlib", "pil", or fallback behavior.
+        - `show_fig` (bool): Whether to show the Matplotlib figure. Default is True.
+        - `save_fig` (bool): Whether to save the figure. Default is False.
+        - `save_fig_filename` or `filename` (str): Name/path to save the file.
+        - `show_os_viewer` (bool): Whether to open the image in the OS viewer (PIL).
+        - `verbose` (bool): Whether to print status messages. Default is False.
+
+    Other Parameters
+    ----------------
+    %(_save_image_pil_kwargs_doc)s
+
+    Returns
+    -------
+    None
+        This function has side effects (e.g., saving or showing a plot), and does not return values.
+
+    Notes
+    -----
+    This utility allows flexible saving of plots or PIL images depending on user input or
+    calling context. It prefers Matplotlib but falls back to PIL if needed.
+
+    Examples
+    --------
+    >>> save_image_pil_kwargs(result=img, save_fig=True, filename="output.png")
+
+    """
+    # Extract optional parameters with defaults
+    # pil
+    backend: Optional[Union[bool, str]] = kwargs.get(
+        "backend", "matplotlib"
+    )  # noqa: UP037
+    show_os_viewer: bool = kwargs.get("show_os_viewer", False)
+    # mpl
+    show_fig: bool = kwargs.get("show_fig", True)
+    save_fig: bool = kwargs.get("save_fig", False)
+    # filename
+    # Automatically get the name of the calling script using inspect.stack()
+    # caller_filename = inspect.stack()[1].filename
+    # Resolve output filename: prefer explicit, fallback to func name
+    save_fig_filename: str = (
+        kwargs.get("save_fig_filename", kwargs.get("filename")) or func_name
+    )
+    # Warn if 'verbose' exists but is not a bool
+    # verbose: bool = kwargs.get("verbose", False)
+    if "verbose" in kwargs and not isinstance(kwargs["verbose"], bool):
+        warnings.warn(
+            "'verbose' parameter should be of type bool.",
+            stacklevel=1,
+        )
+    # Proceed with your plotting logic here, e.g.:
+    try:
+        # Save the plot if save_image is True
+        if save_fig and save_fig_filename:
+            save_path = get_file_path(
+                # Update for inner func
+                **{**kwargs, "filename": save_fig_filename},
+            )
+            # Use Matplotlib backend (default or fallback)
+            if str(backend).lower() in ("matplotlib", "true", "none", None):
+                try:
+                    # Attempt to show and save using matplotlib
+                    plt.imshow(result)
+                    plt.axis("off")
+                    plt.tight_layout()
+                    # plt.draw()
+                    # plt.pause(0.1)  # Pause to allow for interactive drawing
+                    try:
+                        # Save the image using Matplotlib after showing it
+                        plt.savefig(
+                            save_path,
+                            dpi=150,
+                            bbox_inches="tight",
+                            pad_inches=0,
+                        )
+                        if kwargs.get("verbose", False):
+                            print(  # noqa: T201
+                                f"[INFO] Image saved using Matplotlib: {save_path}"
+                            )
+                    except Exception as e:
+                        print(f"[ERROR] Failed to save plot: {e}")  # noqa: T201
+                    if show_fig:
+                        # Manage the plot window
+                        plt.show()
+                        # plt.gcf().clear()  # Clear the figure after saving
+                        # plt.close()
+                except Exception as e:
+                    warnings.warn(
+                        "[ERROR] Could not saved image using Matplotlib to "
+                        f"'{save_path}': {e}. Falling back to PIL.",
+                        stacklevel=1,
+                    )
+                    # Using PIL to save the image (PIL fallback)
+                    save_image_with_pil(
+                        img=result,
+                        to_file=save_path,
+                        show_os_viewer=show_os_viewer,
+                    )
+            else:
+                # Using PIL to save the image (Explicit PIL backend)
+                save_image_with_pil(
+                    img=result,
+                    to_file=save_path,
+                    show_os_viewer=show_os_viewer,
+                )
+    except Exception:
+        pass  # Silently ignore any final failure (can be logged if needed)
+
+
 # 1. Standard Decorator (no arguments) both with params and without params
 # 2. Decorator with Arguments (takes args like @my_decorator(x=1)), need hint
 # Called with params: @_decorator(), Called without params: @_decorator
@@ -330,12 +511,12 @@ def save_image_pil_decorator(
     # Not needed as a placeholder, but kept for parameterized usage
     # *dargs,  # not need placeholder
     # The target function to be decorated (passed when no parameters are used)
-    func: "Optional[Callable[..., Any]]" = None,
+    func: "Optional[callable[..., any]]" = None,
     # *,  # indicates that all following parameters must be passed as keyword
     **dkwargs: dict,  # Keyword arguments passed to the decorator for customization (e.g., verbose)
-) -> "Callable[..., Any]":
+) -> "callable[..., any]":
     """
-    A generic decorator that supports both parameterized and non-parameterized usage.
+    Decorate that supports both parameterized and non-parameterized usage.
 
     This decorator can be used directly (`@decorator`) or
     with parameters (`@decorator(param=value)`).
@@ -350,7 +531,7 @@ def save_image_pil_decorator(
     ----------
     *dargs : tuple
         Positional arguments passed to the decorator (ignored by default).
-    func : Callable, optional
+    func : callable, optional
         The target function to be decorated. This is automatically set when the decorator
         is used without parentheses (e.g., `@decorator`).
     **dkwargs : dict
@@ -359,7 +540,7 @@ def save_image_pil_decorator(
 
     Returns
     -------
-    Callable
+    callable
         The decorated function with additional behavior defined by the decorator.
 
     Examples
@@ -381,13 +562,13 @@ def save_image_pil_decorator(
     """
 
     # The case where the decorator is called with parameters (returns a decorator)
-    def decorator(inner_func: "Callable") -> "Callable":
+    def decorator(inner_func: "callable") -> "callable":
         """
-        The actual decorator function that wraps the target function.
+        Decorate function that wraps the target function.
 
         Parameters
         ----------
-        inner_func : Callable
+        inner_func : callable
             The function to be decorated.
 
         **dkwargs : dict
@@ -395,95 +576,26 @@ def save_image_pil_decorator(
 
         Returns
         -------
-        Callable
+        callable
             The wrapped function.
         """
 
         @functools.wraps(inner_func)
-        def wrapper(*args, **kwargs) -> "Any":
+        def wrapper(*args, **kwargs) -> "any":
+            # Call the actual plotting function
             result = inner_func(*args, **kwargs)
-            try:
-                # c = a | b  # Non-destructive merge (3.9+)
-                # c = {**a, **b}  # Non-destructive merge (3.5+), Safe, non-mutating
-                # a.update(b)  # In-place update (All Versions), Copy Before Update
-                # Save the plot if save_fig is True
-                # dkwargs = dkwargs.copy(); dkwargs.update(kwargs)
-                # Get dynamic saving parameters from the function arguments
-                backend = kwargs.get("backend", "matplotlib")
-                show_os_viewer = kwargs.get("show_os_viewer", False)
-                # mpl
-                show_fig = kwargs.get("show_fig", True)
-                save_fig = kwargs.get("save_fig", False)
-                # Automatically get the name of the calling script using inspect.stack()
-                # caller_filename = inspect.stack()[1].filename
-                save_fig_filename = (
-                    kwargs.get("save_fig_filename", dkwargs.get("filename"))
-                    or inner_func.__name__
-                )
-                dkwargs["filename"] = save_fig_filename
-
-                # Handle verbosity if specified
-                if "verbose" in kwargs and not isinstance(kwargs["verbose"], bool):
-                    warnings.warn(
-                        "'verbose' parameter should be of type bool.",
-                        stacklevel=1,
-                    )
-                # print(f"[INFO]:\n\t{kwargs}\n\t{dkwargs}\n\t{save_fig}\n\t{save_fig_filename}\n")
-                # Save the plot if save_image is True
-                if save_fig and save_fig_filename:
-                    save_path = get_file_path(
-                        **{**dkwargs, **kwargs},  # Update for inner func
-                    )
-                    if str(backend).lower() in ("matplotlib", "true", "none"):
-                        try:
-                            plt.imshow(result)
-                            plt.axis("off")
-
-                            plt.tight_layout()
-                            # plt.draw()
-                            # plt.pause(0.1)  # Pause to allow for interactive drawing
-                            try:
-                                # Save the image using Matplotlib after showing it
-                                plt.savefig(
-                                    save_path,
-                                    dpi=150,
-                                    bbox_inches="tight",
-                                    pad_inches=0,
-                                )
-                                if kwargs.get("verbose", False):
-                                    print(  # noqa: T201
-                                        f"[INFO] Image saved using Matplotlib: {save_path}"
-                                    )
-                            except Exception as e:
-                                print(f"[ERROR] Failed to save plot: {e}")  # noqa: T201
-                            if show_fig:
-                                # Manage the plot window
-                                plt.show()
-                                # plt.gcf().clear()  # Clear the figure after saving
-                                # plt.close()
-                        except Exception as e:
-                            warnings.warn(
-                                "[ERROR] Could not saved image using Matplotlib to "
-                                f"'{save_path}': {e}. Falling back to PIL.",
-                                stacklevel=1,
-                            )
-                            # Using PIL to save the image (fallback method)
-                            save_image_with_pil(
-                                img=result,
-                                to_file=save_path,
-                                show_os_viewer=show_os_viewer,
-                                **{**dkwargs, **kwargs},  # Update for inner func
-                            )
-                    else:
-                        # Using PIL to save the image
-                        save_image_with_pil(
-                            result,
-                            save_path,
-                            show_os_viewer=show_os_viewer,
-                            **{**dkwargs, **kwargs},  # Update for inner func
-                        )
-            except Exception:
-                pass
+            # c = {**a, **b}  # Non-destructive merge (3.5+), Safe, non-mutating
+            # c = a | b       # Non-destructive merge (3.9+)
+            # a.update(b)     # All Versions but In-place update
+            (_args, _kwargs) = _resolve_args_and_kwargs(
+                *args, func=inner_func, **kwargs
+            )
+            # Call the validation function to ensure proper fig and ax are set
+            _ = save_image_pil_kwargs(
+                result=result,
+                func_name=inner_func.__name__,
+                **_kwargs,
+            )
             return result
 
         return wrapper

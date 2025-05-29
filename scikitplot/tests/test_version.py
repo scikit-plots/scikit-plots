@@ -20,7 +20,8 @@ def test_valid_scikitplot_version():
 
 
 def test_version_submodule_members():
-    """`scipy.version` may not be quite public, but we install it.
+    """
+    `scipy.version` may not be quite public, but we install it.
 
     So check that we don't silently change its contents.
     """

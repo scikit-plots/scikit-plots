@@ -1,5 +1,5 @@
 """
-pipeline.py
+pipeline.py.
 """
 
 # Modified from scikit-learn's pipeline:

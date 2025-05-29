@@ -759,7 +759,7 @@ General Concepts
         when a particular format provides especial benefit, we try to document
         this fact in Scikit-learn parameter descriptions.
 
-        Some sparse matrix formats (notably CSR, CSC, COO and LIL) distinguish
+        Some sparse matrix formats (notably CSR, CSC, COUP and LIL) distinguish
         between *implicit* and *explicit* zeros. Explicit zeros are stored
         (i.e. they consume memory in a ``data`` array) in the data structure,
         while implicit zeros correspond to every element not otherwise defined

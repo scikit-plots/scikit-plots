@@ -12,8 +12,7 @@ import pkgutil
 import types
 from pprint import pprint
 
-# from scikitplot import sp_logging as logging
-from scikitplot import sp_logger as logging
+from scikitplot import sp_logging as logging
 
 __all__ = [
     "getargspec",

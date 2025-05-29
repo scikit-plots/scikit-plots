@@ -215,7 +215,10 @@ class MieleCantrell(Benchmark):
         self.nfev += 1
 
         return (
-            (exp(-x[0]) - x[1]) ** 4 + 100 * (x[1] - x[2]) ** 6 + tan(x[2] - x[3]) ** 4 + x[0] ** 8
+            (exp(-x[0]) - x[1]) ** 4
+            + 100 * (x[1] - x[2]) ** 6
+            + tan(x[2] - x[3]) ** 4
+            + x[0] ** 8
         )
 
 

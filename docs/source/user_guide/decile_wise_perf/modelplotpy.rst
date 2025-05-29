@@ -6,7 +6,7 @@ modelplotpy
 This module contains functions related to :py:mod:`~.modelplotpy`.
 
 The :py:mod:`~.modelplotpy` module to build nice plots to explain
-your modelling efforts easily to business colleages.
+your modelling efforts easily to business colleagues.
 
 .. seealso::
 

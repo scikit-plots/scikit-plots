@@ -20,6 +20,8 @@ from .utils import *
 
 from ..utils.utils_pil import get_font, save_image_pil_decorator
 
+from .._docstrings import _docstring
+
 if TYPE_CHECKING:
     # Only imported during type checking
     from typing import (
@@ -36,12 +38,14 @@ if TYPE_CHECKING:
 
     Layer = _lazy_import_tensorflow()  # pylint: disable=undefined-variable
 
-
 ## Define __all__ to specify the public interface of the module
-__all__ = ["layered_view"]
+__all__ = [
+    "layered_view",
+]
 
 
 @save_image_pil_decorator
+@_docstring.interpd
 def layered_view(
     model,
     to_file: "Optional[str]" = None,
@@ -79,7 +83,8 @@ def layered_view(
     show_dimension=False,
     backend: "Optional[Union[bool,str]]" = None,
     show_os_viewer: bool = False,
-    save_fig: bool = True,
+    show_fig: bool = True,
+    save_fig: bool = False,
     save_fig_filename: str = "",
     overwrite: bool = True,
     add_timestamp=False,
@@ -174,54 +179,12 @@ def layered_view(
         Can be a string or a tuple (R, G, B, A).
     show_dimension : bool
         Whether to display layer dimensions in the legend (only when `legend` is True).
-    backend : bool, str, optional
-        Specifies the backend used to process and save the image.
-        If the value is one of `'matplotlib'`, `'true'`, or `'none'` (case-insensitive),
-        the Matplotlib backend will be used. This is useful for better DPI control and
-        consistent rendering. Any other value will fall back to using the PIL backend.
-        Common values include:
+    **kwargs : dict
+        Generic keyword arguments.
 
-        - `'matplotlib'`, `'true'`, `'none'` : Use Matplotlib
-        - `'pil'`, `'fast'`, etc. : Use PIL (Python Imaging Library)
-
-        Default is `None`.
-
-        .. versionadded:: 0.4.0
-            The `backend` parameter was added to allow switching between PIL and Matplotlib.
-    show_os_viewer : bool, optional
-        If True, displays the saved image (by PIL) in the system's default image viewer
-        using PIL's `.show()` method. Default is False.
-
-        .. versionadded:: 0.4.0
-    save_fig : bool, default=True
-        Save the plot.
-
-        .. versionadded:: 0.4.0
-    save_fig_filename : str, optional, default=''
-        Specify the path and filetype to save the plot.
-        If nothing specified, the plot will be saved as png
-        to the current working directory.
-        Defaults to name to use func.__name__.
-
-        .. versionadded:: 0.4.0
-    overwrite : bool, optional, default=True
-        If False and a file exists, auto-increments the filename to avoid overwriting.
-
-        .. versionadded:: 0.4.0
-    add_timestamp : bool, optional, default=False
-        Whether to append a timestamp to the filename.
-        Default is False.
-
-        .. versionadded:: 0.4.0
-    verbose : bool, optional
-        If True, enables verbose output with informative messages during execution.
-        Useful for debugging or understanding internal operations such as backend selection,
-        font loading, and file saving status. If False, runs silently unless errors occur.
-
-        Default is False.
-
-        .. versionadded:: 0.4.0
-            The `verbose` parameter was added to control logging and user feedback verbosity.
+    Other Parameters
+    ----------------
+    %(_save_image_pil_kwargs_doc)s
 
     Returns
     -------

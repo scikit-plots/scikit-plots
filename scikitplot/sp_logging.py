@@ -1,27 +1,38 @@
 """
-Scikit-plots Logging Module
+Logging utilities.
+
+Inspired by `"Tensorflow's logging system"
+<https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94>`_.
 
 This module provides advanced logging utilities for Python applications,
 including support for singleton-based logging with customizable formatters,
-handlers, and thread-safety. It extends Python's standard logging library
-to enhance usability and flexibility for large-scale projects.
+handlers, and thread-safety.
+
+It extends Python's standard logging library to enhance usability
+and flexibility for large-scale projects.
 
 Scikit-plots logging helpers, supports vendoring.
 
 Module Dependencies:
-
-* Python standard library: :py:mod:`logging`
-* This module defines a logging class based on the built-in logging module.
-"""
+- Python standard library: :py:mod:`logging`
+"""  # pylint: disable=too-many-lines
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# pylint: disable=import-error
 # pylint: disable=unused-import
-# pylint: disable=g-bad-import-order
+# pylint: disable=unused-argument
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
 # pylint: disable=invalid-name
+# pylint: disable=import-outside-toplevel
+
+# ruff: noqa: UP037
+
 from __future__ import annotations
 
+import inspect  # noqa: F401
 import json
 import logging as _logging
 import os
@@ -29,6 +40,8 @@ import pprint
 import sys
 import textwrap  # textwrap.dedent
 import threading  # Python 2 to thread.get_ident
+import time  # noqa: F401
+import traceback
 from datetime import datetime
 from logging import (
     CRITICAL,
@@ -36,16 +49,25 @@ from logging import (
     ERROR,
     FATAL,
     INFO,
-    NOTSET,  # Module-level variable
+    NOTSET,
     WARNING,
-    StreamHandler,
 )
-from logging import (
+from logging import (  # pylint: disable=reimported
     WARNING as WARN,  # logger WARN deprecated
 )
-from typing import IO, Any, Optional
+from typing import TYPE_CHECKING
 
-from ._globals import SingletonBase
+# Runtime-safe imports for type hints (avoids runtime overhead)
+if TYPE_CHECKING:
+    from typing import (  # noqa: F401
+        IO,
+        Callable,
+        Optional,
+        TypeVar,
+    )
+
+    # Define a generic callable type for decorator functions
+    F = TypeVar("F", bound="Callable[..., any]")
 
 __all__ = [
     "CRITICAL",
@@ -56,7 +78,8 @@ __all__ = [
     "NOTSET",
     "WARN",
     "WARNING",
-    "SpLogger",  # class based
+    "AlwaysStdErrHandler",
+    "GoogleLogFormatter",
     "_default_log_level",
     "_get_thread_id",
     "_is_jupyter_notebook",
@@ -64,102 +87,34 @@ __all__ = [
     "debug",
     "error",
     "error_log",
+    "exception",
     "fatal",
     "getEffectiveLevel",
     "get_logger",  # func based
+    "get_verbosity",
     "info",
     "log",
+    "log_every_n",
+    "log_first_n",
     "log_if",
     "setLevel",
-    "sp_logger",  # class instance
+    "set_verbosity",
     "vlog",
     "warn",
     "warning",
+    # "SpLogger",  # class based
+    # "sp_logger",  # class instance
 ]
+
+######################################################################
+## module level variables
+######################################################################
 
 # Don't use this directly. Use get_logger() instead.
 _logger = None
 # Reentrant: The same thread can acquire the lock multiple times without blocking.
-# _logger_lock = threading.RLock()
-_logger_lock = threading.Lock()
-
-######################################################################
-## THREAD ID helper
-######################################################################
-
-# Mask to convert integer thread ids to unsigned quantities for logging
-# purposes
-_THREAD_ID_MASK = 2 * sys.maxsize + 1
-
-
-def _get_thread_id() -> int:
-    """
-    Get the id of the current thread, suitable for logging as an unsigned quantity.
-
-    Returns
-    -------
-    int
-        The thread ID masked and converted to an unsigned quantity.
-
-    """
-    # Get id of current thread, suitable for logging as an unsigned quantity.
-    thread_id = threading.get_ident()
-    return thread_id & _THREAD_ID_MASK
-
-
-######################################################################
-## Define and Set log level
-######################################################################
-
-
-# Define and Set log level
-def _default_log_level(debug_mode: bool = False) -> int:
-    """Define and Set log level"""
-    val: bool | str | None = debug_mode or os.getenv("SKPLT_DEBUG")
-    return _logging.WARNING if val is None else _logging.DEBUG
-
-
-def _is_jupyter_notebook() -> bool:
-    """
-    Determines if the current environment is a Jupyter notebook.
-
-    This function checks several indicators to detect if the code is running
-    inside a Jupyter notebook environment, including:
-
-    * Presence of the `get_ipython` function.
-    * Active IPython kernel configuration (e.g., `IPKernelApp`).
-    * Environment variables specific to Jupyter.
-    * Modules loaded in the current Python session.
-
-    Returns
-    -------
-    bool
-        True if running in a Jupyter notebook, False otherwise.
-
-    """
-    try:
-        # from IPython import get_ipython
-        # Check if `get_ipython` is available and callable
-        # get_ipython = globals().get("get_ipython", None)
-        if get_ipython is None or not callable(get_ipython):
-            return False
-        # Check if IPython kernel is active
-        if "IPKernelApp" in get_ipython().config:
-            return True
-    except (ImportError, AttributeError, NameError):
-        pass
-    # Check environment variables and loaded modules
-    return "JPY_PARENT_PID" in os.environ or "ipykernel" in sys.modules
-
-
-######################################################################
-## google2 log_prefix
-######################################################################
-
-_log_prefix = None  # later set to google2_log_prefix
-
-# Counter to keep track of number of log entries per token.
-_log_counter_per_token = {}
+# _logger_lock = threading.Lock()
+_logger_lock = threading.RLock()
 
 _level_names = {
     CRITICAL: "CRITICAL",
@@ -169,49 +124,376 @@ _level_names = {
     WARN: "WARNING",
     INFO: "INFO",
     DEBUG: "DEBUG",
+    NOTSET: "NOTSET",
 }
 
-# def _GetFileAndLine():
-#   """Returns (filename, linenumber) for the stack frame."""
-#   code, f = _get_caller()
-#   if not code:
-#     return ('<unknown>', 0)
-#   return (code.co_filename, f.f_lineno)
+# Mask to convert integer thread ids to unsigned quantities for logging
+# purposes
+_THREAD_ID_MASK = 2 * sys.maxsize + 1
 
-# def google2_log_prefix(level, timestamp=None, file_and_line=None):
-#   """Assemble a logline prefix using the google2 format."""
-#   # pylint: disable=global-variable-not-assigned
-#   global _level_names
-#   # pylint: enable=global-variable-not-assigned
+_log_prefix = None  # later set to google2_log_prefix
 
-#   # Record current time
-#   now             = timestamp or time.time()
-#   now_tuple       = time.localtime(now)
-#   now_microsecond = int(1e6 * (now % 1.0))
+# Counter to keep track of number of log entries per token.
+_log_counter_per_token = {}
 
-#   (filename, line) = file_and_line #or _GetFileAndLine()
-#   basename = os.path.basename(filename)
+######################################################################
+## sp_logging falling back to python logging
+######################################################################
 
-#   # Severity string
-#   severity = 'I'
-#   if level in _level_names:
-#     severity = _level_names[level][0]
 
-#   s = '%c%02d%02d %02d:%02d:%02d.%06d %5d %s:%d] ' % (
-#       severity,
-#       now_tuple[1],  # month
-#       now_tuple[2],  # day
-#       now_tuple[3],  # hour
-#       now_tuple[4],  # min
-#       now_tuple[5],  # sec
-#       now_microsecond,
-#       _get_thread_id(),
-#       basename,
-#       line)
+def __getattr__(name: str):
+    """
+    Dynamic attribute resolver for the sp_logging module.
 
-#   return s
+    If an attribute is not found in this module, this function attempts to
+    retrieve it from the standard Python 'logging' module as a fallback.
+    This is useful for making a custom logging wrapper behave like the
+    built-in 'logging' module for common usage.
 
-# _log_prefix = google2_log_prefix
+    Parameters
+    ----------
+    name : str
+        The attribute name being accessed.
+
+    Returns
+    -------
+    any
+        The corresponding attribute from the built-in 'logging' module if found.
+
+    Raises
+    ------
+    AttributeError
+        If the attribute is not found in the logging module either.
+
+    Notes
+    -----
+    This function makes it possible to do things like:
+
+    >>> from sp_logging import DEBUG, warning
+    >>> warning("This will behave like logging.warning")
+
+    Examples
+    --------
+    >>> hasattr(sp_logging, "INFO")
+    True  # Delegated to logging.INFO
+
+    >>> sp_logging.NonexistentAttribute
+    AttributeError: Module 'sp_logging' has no attribute 'NonexistentAttribute'...
+    """
+    try:
+        # Attempt to retrieve attribute from the logging module
+        attr = getattr(_logging, name, None)  # or getattr(get_logger(), name, None)
+        get_logger().debug(f"Falling back to logging.{name}")
+        return attr
+    except AttributeError as e:
+        # Raise a clear error if not found in both sp_logging and logging
+        raise AttributeError(
+            f"Module 'sp_logging' has no attribute '{name}', "
+            f"and it was not found in the standard 'logging' module either."
+        ) from e
+
+
+######################################################################
+## Determine default log level
+######################################################################
+
+
+def _is_jupyter_notebook() -> bool:
+    """
+    Detect whether the current Python environment is a Jupyter notebook.
+
+    This function attempts to determine whether the code is executing inside
+    a Jupyter notebook. It uses a combination of lightweight heuristics
+    (environment variables and loaded modules) and, as a fallback, attempts to
+    inspect the IPython shell configuration.
+
+    Returns
+    -------
+    bool
+        True if the code is running in a Jupyter notebook environment,
+        False otherwise.
+
+    Notes
+    -----
+    - This detection is based on common patterns in Jupyter environments.
+    - It checks for known environment variables (like 'JPY_PARENT_PID') and
+      loaded modules (e.g., 'ipykernel'), which are typically present in Jupyter sessions.
+    - If those checks fail, it attempts to import IPython and inspect the shell
+      configuration for signs of an active IPython kernel.
+    - The function avoids importing heavy dependencies unless necessary.
+    - This method may not distinguish between classic Jupyter, JupyterLab,
+      or VSCode notebooks, but it covers most interactive notebook cases.
+
+    Examples
+    --------
+    >>> _is_jupyter_notebook()
+    True  # if running inside a notebook
+
+    >>> _is_jupyter_notebook()
+    False  # if running from a standard script or terminal
+    """
+    ## First, check environment clues — these are fast and commonly reliable
+    if "JPY_PARENT_PID" in os.environ:
+        return True  # Jupyter sets this to identify the parent notebook process
+    if "ipykernel" in sys.modules:
+        return True  # Jupyter notebooks always use ipykernel
+    ## Fallback: try importing and inspecting the IPython shell
+    try:
+        try:
+            from IPython import get_ipython  # type: ignore[reportMissingModuleSource]
+        except ImportError:
+            get_ipython = None
+        ## If no IPython shell is active, this is likely not a notebook
+        if (
+            get_ipython is None  # type: ignore[reportMissingModuleSource]
+            or not callable(get_ipython)  # type: ignore[reportMissingModuleSource]
+        ):
+            return False
+        ## Check if the IPython shell is configured as a kernel app (notebook backend)
+        if "IPKernelApp" in get_ipython().config:  # type: ignore[reportMissingModuleSource]
+            # shell = get_ipython().__class__.__name__
+            return True
+    except (ImportError, AttributeError, NameError, Exception):
+        # any error during inspection implies not running in Jupyter
+        return False
+    # If none of the above checks confirm Jupyter, return False
+    return False
+
+
+def _default_log_level(verbose: bool = False) -> int:
+    """
+    Determine the default log level based on environment and verbosity.
+
+    This function checks the SKPLT_VERBOSE environment variable to decide
+    whether to enable verbose (DEBUG-level) logging. If the environment
+    variable is not set, it uses the value of the verbose argument.
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Whether to enable verbose logging. Defaults to False. Ignored if
+        SKPLT_VERBOSE is set.
+
+    Returns
+    -------
+    int
+        The logging level (e.g., logging.DEBUG or logging.WARNING).
+
+    Notes
+    -----
+    - If SKPLT_VERBOSE is set (to any non-empty string), DEBUG logging is enabled.
+    - If SKPLT_VERBOSE is unset, the function uses the `verbose` parameter instead.
+    - Useful for setting a default log level in CLI tools or libraries.
+
+    Examples
+    --------
+    >>> _default_log_level()
+    30  # logging.WARNING
+
+    >>> _default_log_level(verbose=True)
+    10  # logging.DEBUG
+
+    >>> os.environ["SKPLT_VERBOSE"] = "1"
+    >>> _default_log_level()
+    10  # logging.DEBUG
+    """
+    env_value = os.getenv("SKPLT_VERBOSE")
+    is_verbose = bool(env_value) if env_value is not None else verbose
+    return _logging.DEBUG if is_verbose else _logging.WARNING
+
+
+######################################################################
+## THREAD ID helper
+######################################################################
+
+
+def _get_thread_id(thread_id_mask: int = _THREAD_ID_MASK) -> int:
+    """
+    Get the ID of the current thread, masked as an unsigned integer.
+
+    This is useful for logging and debugging where thread identifiers
+    must be displayed or compared as positive integers, even if the system
+    may return signed values.
+
+    Parameters
+    ----------
+    thread_id_mask : int, optional
+        A bitmask to apply to the thread ID to convert it to an unsigned quantity.
+        Defaults to a value that ensures correct masking across platforms.
+
+    Returns
+    -------
+    int
+        The current thread's ID, bitmasked as an unsigned integer.
+
+    Notes
+    -----
+    - This function uses threading.get_ident() to retrieve the native thread ID.
+    - The default bitmask (_THREAD_ID_MASK) converts signed thread IDs to unsigned
+      representations for consistent logging and storage.
+    - Useful in systems where thread IDs might appear negative on certain architectures.
+
+    Examples
+    --------
+    >>> _get_thread_id()
+    140712536721152
+
+    >>> _get_thread_id(0xFFFFFFFF)
+    32518  # Lower 32 bits of the thread ID
+    """
+    # Fall back to default mask if a falsy value is passed
+    mask = thread_id_mask or _THREAD_ID_MASK
+
+    # Get the native thread ID
+    thread_id = threading.get_ident()
+
+    # Mask the ID to ensure it's treated as an unsigned integer
+    return thread_id & mask
+
+
+######################################################################
+## _logger_find_caller, _GetFileAndLine
+######################################################################
+
+
+def _get_caller(offset=3):
+    """Return a code and frame object for the lowest non-logging stack frame."""
+    # Use sys._getframe().  This avoids creating a traceback object.
+    # pylint: disable=protected-access
+    f = sys._getframe(offset)
+    # pylint: enable=protected-access
+    our_file = f.f_code.co_filename
+    f = f.f_back
+    while f:
+        code = f.f_code
+        if code.co_filename != our_file:
+            return code, f
+        f = f.f_back
+    return None, None
+
+
+# The definition of `findCaller` changed in Python 3.2,
+# and further changed in Python 3.8
+if sys.version_info.major >= 3 and sys.version_info.minor >= 8:  # noqa: PLR2004, YTT204
+
+    def _logger_find_caller(stack_info=False, stacklevel=1):
+        code, frame = _get_caller(4)
+        sinfo = None
+        if stack_info:
+            sinfo = "\n".join(traceback.format_stack())
+        if code:
+            return (code.co_filename, frame.f_lineno, code.co_name, sinfo)
+        else:  # noqa: RET505
+            return "(unknown file)", 0, "(unknown function)", sinfo
+
+elif (
+    sys.version_info.major >= 3 and sys.version_info.minor >= 2  # noqa: PLR2004, YTT204
+):  # noqa: PLR2004, YTT204
+
+    def _logger_find_caller(stack_info=False):
+        code, frame = _get_caller(4)
+        sinfo = None
+        if stack_info:
+            sinfo = "\n".join(traceback.format_stack())
+        if code:
+            return (code.co_filename, frame.f_lineno, code.co_name, sinfo)
+        else:  # noqa: RET505
+            return "(unknown file)", 0, "(unknown function)", sinfo
+
+else:
+
+    def _logger_find_caller():
+        code, frame = _get_caller(4)
+        if code:
+            return (code.co_filename, frame.f_lineno, code.co_name)
+        else:  # noqa: RET505
+            return "(unknown file)", 0, "(unknown function)"
+
+
+def _GetFileAndLine():  # noqa: N802
+    """Return (filename, linenumber) for the stack frame."""
+    code, f = _get_caller()
+    if not code:
+        return ("<unknown>", 0)
+    return (code.co_filename, f.f_lineno)
+
+
+######################################################################
+## google2 log_prefix
+######################################################################
+
+
+def _get_default_log_level_name() -> str:
+    _level = _logging.getLogger().getEffectiveLevel()
+    return _logging.getLevelName(_level)
+
+
+def google2_log_prefix(level=None, timestamp=None, file_and_line=None):
+    """Assemble a logline prefix using the google2 format."""
+    # pylint: disable=global-variable-not-assigned
+    global _level_names  # noqa: PLW0602
+    # pylint: enable=global-variable-not-assigned
+
+    # Record current time
+    now = timestamp or time.time()
+    now_tuple = time.localtime(now)
+    now_microsecond = int(1e6 * (now % 1.0))
+
+    (filename, line) = file_and_line or _GetFileAndLine()
+    basename = os.path.basename(filename)  # noqa: PTH119
+
+    # Severity string
+    severity = "I"
+    level = level or _get_default_log_level_name()
+    if level in _level_names:
+        severity = _level_names[level][0]
+
+    s = "%c %04d%02d%02d %02d:%02d:%02d.%06d %5d %s:%d] " % (  # noqa: UP031
+        severity,  # level letter
+        now_tuple[0],  # year
+        now_tuple[1],  # month
+        now_tuple[2],  # day
+        now_tuple[3],  # hour
+        now_tuple[4],  # min
+        now_tuple[5],  # sec
+        now_microsecond,  # microsec
+        _get_thread_id(),
+        basename,
+        line,
+    )
+
+    return s  # noqa: RET504
+
+
+_log_prefix = google2_log_prefix
+
+######################################################################
+## LogRecordFactory alternate or combined _logger_find_caller
+## https://docs.python.org/3/library/logging.html#logrecord-objects
+######################################################################
+
+# _old_factory = _logging.getLogRecordFactory()
+
+# def record_factory(*args, **kwargs):
+#     """record_factory"""
+#     record = _old_factory(*args, **kwargs)
+#     try:
+#         # Start from frame 0 and walk up
+#         co_filename, f_lineno = _GetFileAndLine()
+#         if co_filename and f_lineno:
+#             record.caller_filename = os.path.basename(co_filename)  # noqa: PTH119
+#             record.caller_lineno = f_lineno
+#         else:
+#             # Fallback: use standard info if walk failed
+#             record.caller_filename = os.path.basename(record.pathname)  # noqa: PTH119
+#             record.caller_lineno = record.lineno
+#     except Exception:
+#         record.caller_filename = record.filename
+#         record.caller_lineno = record.lineno
+#     return record
+
+# # Register it globally
+# _logging.setLogRecordFactory(record_factory)
 
 ######################################################################
 ## logging Formatter
@@ -220,8 +502,9 @@ _level_names = {
 
 class GoogleLogFormatter(_logging.Formatter):
     """
-    A custom logging formatter inherited from :py:class:`~logging.Formatter`
-    that formats log messages in a Google-style format::
+    A custom logging formatter inherited from :py:class:`~logging.Formatter`.
+
+    That formats log messages in a Google-style format::
 
       >>> # Google-style format
       >>> `YYYY-MM-DD HH:MM:SS.mmmmmm logger_name log_level message`
@@ -255,7 +538,6 @@ class GoogleLogFormatter(_logging.Formatter):
     --------
     logging.Formatter :
         logging Formatter.
-
     """
 
     def __init__(
@@ -263,8 +545,8 @@ class GoogleLogFormatter(_logging.Formatter):
         datefmt: str = "%Y-%m-%d %H:%M:%S",
         default_time_format: str = "%Y-%m-%d %H:%M:%S",
         default_msec_format: str = "%s,%03d",
-        backend: Optional[str] = None,
-        use_datetime: Optional[bool] = True,
+        backend: "Optional[str]" = None,
+        use_datetime: "Optional[bool]" = True,
     ) -> None:
         """Initialize the GoogleLogFormatter with the desired Formatter."""
         # formatTime time module's strftime() function does not support microseconds
@@ -293,7 +575,7 @@ class GoogleLogFormatter(_logging.Formatter):
         )
         self.backend = backend
 
-    def format(self, record: _logging.LogRecord) -> str:
+    def format(self, record: "_logging.LogRecord") -> str:
         """
         Format the log record into a JSON string or a pretty-printed dictionary.
 
@@ -306,16 +588,17 @@ class GoogleLogFormatter(_logging.Formatter):
         -------
         str
             The formatted log message (either in literal str, JSON or pretty-print format).
-
         """
         log_obj = {
-            # "asctime0"  : f"{self.formatTime(record, datefmt=None)} ",
-            "asctime": f"{datetime.now().strftime(self.datefmt)} ",
+            # "asctime": f"{self.formatTime(record, datefmt=self.datefmt)} ",
+            "asctime": f"{datetime.now().strftime(self.datefmt)}: ",
             "levelname": f"{record.levelname[:1]} ",
             "name": f"{record.name} ",
             "thread": f"{record.thread} ",
-            "filename": f"{record.filename}",
-            "lineno": f":{record.lineno}] ",
+            # "pathname" : f"pathname {record.pathname}",
+            "filename": f"{getattr(record, 'caller_filename', record.filename)}",
+            "lineno": f":{getattr(record, 'caller_lineno', record.lineno)}",
+            "funcName": f":{record.funcName}] ",
             "message": f"{record.getMessage()}",
         }
         try:
@@ -338,10 +621,10 @@ class GoogleLogFormatter(_logging.Formatter):
 
 
 def _make_default_formatter(
-    formatter: Optional[_logging.Formatter | str] = "CUSTOM_FORMAT",
-    time_format: Optional[str] = None,
-    use_datetime: Optional[bool] = True,
-) -> _logging.Formatter:
+    formatter: "Optional[_logging.Formatter | str]" = "GOOGLE_FORMAT",
+    time_format: "Optional[str]" = None,
+    use_datetime: "Optional[bool]" = True,
+) -> "_logging.Formatter":
     """
     Create and return a default logging Formatter instance based on the provided formatter type.
 
@@ -365,7 +648,6 @@ def _make_default_formatter(
     -------
     logging.Formatter
         The Formatter instance based on the specified `formatter` type.
-
     """
     # Configure time format (default if none is provided)
     time_format = time_format or "%Y-%m-%d %H:%M:%S"
@@ -373,7 +655,12 @@ def _make_default_formatter(
         if isinstance(formatter, _logging.Formatter):
             return formatter
         if formatter == "BASIC_FORMAT":
-            return _logging.Formatter(_logging.BASIC_FORMAT, None)
+            return _logging.Formatter(
+                fmt=_logging.BASIC_FORMAT,
+                datefmt=None,
+            )
+        if formatter == "GOOGLE_FORMAT":
+            return GoogleLogFormatter(datefmt=time_format, use_datetime=use_datetime)
         if formatter == "CUSTOM_FORMAT":
             # d=(
             #   '{'
@@ -387,7 +674,7 @@ def _make_default_formatter(
             #   '"message": "%(message)s", '
             #   '}'
             # )
-            short = (
+            custom = (
                 "%(asctime)s "
                 "%(levelname)s "
                 "%(name)s "
@@ -397,14 +684,17 @@ def _make_default_formatter(
                 # '%(pathname)s '
                 "%(message)s "
             )
-            return _logging.Formatter(fmt=short, datefmt=time_format)
-        if formatter == "GOOGLE_FORMAT":
-            return GoogleLogFormatter(datefmt=time_format, use_datetime=use_datetime)
+            return _logging.Formatter(
+                fmt=custom,
+                datefmt=time_format,
+            )
     except Exception:
         # sys.stderr.write(e)
-        pass
-    # Fallback to basic formatter if other formatters are not available
-    return _logging.Formatter(_logging.BASIC_FORMAT, None)
+        # Fallback to basic formatter if other formatters are not available
+        return _logging.Formatter(
+            fmt=_logging.BASIC_FORMAT,
+            datefmt=None,
+        )
 
 
 ######################################################################
@@ -414,8 +704,9 @@ def _make_default_formatter(
 
 class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
     """
-    A custom logging handler inherited from :py:class:`~logging.StreamHandler`
-    that enforces the use of a specific output stream: either standard error
+    A custom logging handler inherited from :py:class:`~logging.StreamHandler`.
+
+    That enforces the use of a specific output stream: either standard error
     (`sys.stderr`) or standard output (`sys.stdout`).
 
     This handler is particularly useful for environments where log streams must
@@ -435,7 +726,6 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
         may be used.
     _is_jupyter_notebook :
         Determines if the environment is a Jupyter notebook. For define `use_stderr`.
-
     """
 
     def __init__(self, use_stderr: bool = not _is_jupyter_notebook()) -> None:
@@ -459,9 +749,16 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
     #     return super().name  # Use the parent class's name property behavior.
     # def set_name(self, value):
     #     """Setter for the name property."""
-    #     super(_logging.StreamHandler, self.__class__).name.fset(self, value)  # Set the name in the parent class.
-    # # Define the property
-    # name = property(get_name, set_name, doc="This is the name property for AlwaysStdErrHandler.")
+    #     super(
+    #         _logging.StreamHandler,
+    #         self.__class__,
+    #     ).name.fset(self, value)  # Set the name in the parent class.
+    # ## Define the property
+    # name = property(
+    #     get_name,
+    #     set_name,
+    #     doc="This is the name property for AlwaysStdErrHandler.",
+    # )
     # Add a docstring to the inherited 'name' property if it doesn't already have one
     if not _logging.StreamHandler.name.__doc__:
         _logging.StreamHandler.name.__doc__ = textwrap.dedent(
@@ -476,7 +773,7 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
         )
 
     @property  # type: ignore [override]
-    def stream(self) -> IO[str]:
+    def stream(self) -> "IO[str]":
         """
         Get the current logging stream.
 
@@ -484,12 +781,11 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
         -------
         IO[str]
             The current stream object (`sys.stderr` or `sys.stdout`).
-
         """
         return self._stream
 
     @stream.setter
-    def stream(self, value: IO[str]) -> None:
+    def stream(self, value: "IO[str]") -> None:
         """
         Set the stream for logging. This method ensures the stream is either stderr or stdout.
 
@@ -504,7 +800,6 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
             If the provided stream is not `sys.stderr` or `sys.stdout`.
         ValueError
             If the provided stream is not `sys.stderr` or `sys.stdout`.
-
         """
         # if condition returns True, then nothing happens:
         # assert (
@@ -518,12 +813,13 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
 
 
 def _make_default_handler(
-    handler: Optional[_logging.Handler] = None,
-    formatter: Optional[_logging.Formatter] = None,
-) -> _logging.Handler:
+    handler: "Optional[_logging.Handler]" = None,
+    formatter: "Optional[_logging.Formatter]" = None,
+) -> "_logging.Handler":
     """
-    Create and return a default logging Handler instance based on the provided
-    `handler` type.
+    Create and return a default logging Handler.
+
+    Instance based on the provided `handler` type.
 
     Parameters
     ----------
@@ -542,50 +838,48 @@ def _make_default_handler(
     -------
     logging.Handler
         The Handler instance that matches the specified `handler` type.
-
     """
     # Configure formatter (default if none is provided)
     formatter = formatter or _make_default_formatter()
     try:
         if isinstance(handler, _logging.Handler):
-            handler.setFormatter(formatter)
-            return handler
-        if handler == "RotatingFileHandler":
-            from _logging.handlers import RotatingFileHandler
-
-            handler = RotatingFileHandler(
-                "app.log",
+            pass
+        elif handler is None:
+            handler = AlwaysStdErrHandler()
+        elif handler == "RotatingFileHandler":
+            handler = _logging.handlers.RotatingFileHandler(
+                "skplt.log",
                 maxBytes=5000,
                 backupCount=2,  # 5KB per file, 2 backups
             )
-            handler.setFormatter(formatter)
-            return handler
-        if handler == "RichHandler":
+        elif handler == "RichHandler":
             # Use RichHandler for better console output
-            from rich.console import Console
-            from rich.logging import RichHandler
+            from rich.console import Console  # type: ignore[reportMissingImports]
+            from rich.logging import RichHandler  # type: ignore[reportMissingImports]
 
-            console = Console(stderr=True)
-            handler = RichHandler(console=console)
-            handler.setFormatter(formatter)
-            return handler
-    except:
-        pass
-    # Fallback to AlwaysStdErrHandler if other handlers are not available
-    handler = AlwaysStdErrHandler()
+            handler = RichHandler(console=Console(stderr=True))
+    except Exception:
+        # Fallback to AlwaysStdErrHandler if other handlers are not available
+        handler = AlwaysStdErrHandler()
+    # finally:
     handler.setFormatter(formatter)
     return handler
 
 
 ######################################################################
-## Function based to expose the initialized logger
+## Function to expose the initialized logging logger based on singleton logic
 ######################################################################
 
 
 # Expose the logger to other modules.
-def get_logger() -> _logging.Logger:
+def get_logger() -> "_logging.Logger":
     """
     Return SP (scikitplot) logger instance.
+
+    Returns
+    -------
+    logging.Logger
+        An instance of the Python logging library Logger.
 
     See Also
     --------
@@ -593,17 +887,10 @@ def get_logger() -> _logging.Logger:
         A singleton logger class that provides a shared :py:class:`logging.Logger` instance
         with customizable name, formatter, handler, logging level, and thread-safety.
     sp_logger :
-        An instance of :py:class:`SpLogger` class, providing logging functionality.
+        An instance of :py:class:`SpLogger` class, providing logging logger functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance.
         For more: https://docs.python.org/3/library/logging.html
-    _is_jupyter_notebook :
-        Determines if the environment is a Jupyter notebook. For define `use_stderr`.
-
-    Returns
-    -------
-    logging.Logger
-        An instance of the Python logging library Logger.
 
     Notes
     -----
@@ -612,17 +899,18 @@ def get_logger() -> _logging.Logger:
 
     The logger has 5 levels of logging from the most serious to the least:
 
-    1. `FATAL`
+    1. `CRITICAL` or `FATAL`
     2. `ERROR`
     3. `WARNING`
     4. `INFO`
     5. `DEBUG`
+    6. `NOTSET`
 
     The logger has the following methods, based on these logging levels:
 
-    1. `fatal(msg, *args, **kwargs)`
+    1. `critical(msg, *args, **kwargs)` or `fatal(msg, *args, **kwargs)`
     2. `error(msg, *args, **kwargs)`
-    3. `warn(msg, *args, **kwargs)`
+    3. `warning(msg, *args, **kwargs)` or `warn(msg, *args, **kwargs)`
     4. `info(msg, *args, **kwargs)`
     5. `debug(msg, *args, **kwargs)`
 
@@ -646,7 +934,7 @@ def get_logger() -> _logging.Logger:
 
     Examples
     --------
-    Get a root logger by module:
+    Use a root logger by module:
 
     .. jupyter-execute::
 
@@ -658,78 +946,101 @@ def get_logger() -> _logging.Logger:
 
     .. jupyter-execute::
 
-        >>> from scikitplot import sp_logging, get_logger
-        ...
-        ... logging = get_logger()  # pure python logger, not have direct log level
-        >>> logging.setLevel(sp_logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
-
-    Get a root logger by class:
-
-    .. jupyter-execute::
-
-        >>> from scikitplot import SpLogger
-        ...
-        ... logging = SpLogger()  # class logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
-
-    Get a root logger by class instance:
-
-    .. jupyter-execute::
-
-        >>> from scikitplot import (
-        ...     sp_logger as logging,
-        ... )  # class instance logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
-
+        >>> import scikitplot.sp_logging as logging  # module logger
+        >>> logging.get_logger().setLevel(sp_logging.INFO)  # default WARNING
+        >>> logger.info("This is a info message from the sp logger.")
     """
     # Ensure the root logger is initialized
+    # pylint: disable=global-statement
+    # pylint: disable=global-variable-not-assigned
     global _logger  # noqa: PLW0603
+    # pylint: enable=global-variable-not-assigned
+    # pylint: enable=global-statement
+
     # Use double-checked locking to avoid taking lock unnecessarily.
     if _logger:
         return _logger
+
     _logger_lock.acquire()
+
     try:
         if _logger:
             return _logger
         ######################################################################
         ## Define scikit-plots the top-level logger
         ######################################################################
-        # This uses the default logging configuration
-        # _logging.basicConfig()  # Using default settings
-        # _logging.basicConfig(
-        #     # level=_logging.WARNING,
-        #     # handlers=[_logging.StreamHandler()],
-        #     format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}',
-        #     datefmt="%Y-%m-%d %H:%M:%S"
-        # )
         # _logging.config.fileConfig('logging.conf')
         # Scope the scikit-plots logger
         name = "scikitplot"
         # Configure the logger here (only once for the entire project).
+        # Scope the scikitplot logger to not conflict with users' loggers.
         logger = _logging.getLogger(name)
+
+        # Override findCaller on the logger to skip internal helper functions
+        logger.findCaller = _logger_find_caller
+
+        # Disable propagation to prevent double logging
         # Set propagate to False to prevent messages from propagating to the root logger
         logger.propagate = False
-        # Configure handler (default is StreamHandler)
-        handler = _make_default_handler()  # or _logging.StreamHandler()
-        # handler.setFormatter(_logging.Formatter(_logging.BASIC_FORMAT, None))
-        # Add the handler to the logger
-        logger.addHandler(handler)
-        # Set the logging level (default is WARNING)
-        logger.setLevel(_default_log_level())
+
+        # Don't further configure the TensorFlow logger if the root logger is
+        # already configured. This prevents double logging in those cases.
+        if not _logging.getLogger().handlers:
+            # Determine whether we are in an interactive environment
+            _interactive = False
+        try:
+            # This is only defined in interactive shells.
+            if sys.ps1:
+                _interactive = True
+        except AttributeError:
+            # Even now, we may be in an interactive shell with `python -i`.
+            _interactive = sys.flags.interactive
+
+        # If we are in an interactive environment (like Jupyter), set loglevel
+        # to INFO and pipe the output to stdout.
+        # pylint: disable=possibly-used-before-assignment
+        if _interactive:
+            logger.setLevel(INFO)
+            _logging_target = sys.stdout
+        else:
+            _logging_target = sys.stderr
+
+        ## This uses the default logging configuration
+        # _logging.basicConfig()  # Using default settings
+        # _logging.basicConfig(
+        #     format   = _logging.BASIC_FORMAT,
+        #     datefmt  = None,
+        #     # level    = _logging.WARNING,  # _default_log_level()
+        #     handlers = [_logging.StreamHandler(_logging_target)],
+        # )
+
+        # Add a handler if needed (since propagation is disabled)
+        ## Configure handler (default is StreamHandler)
+        _handler = _make_default_handler()
+        # _handler = _logging.StreamHandler(_logging_target)
+        # _handler.setFormatter(_logging.Formatter(_logging.BASIC_FORMAT, None))
+        logger.addHandler(_handler)  # Add the handler to the logger
 
         _logger = logger
         return _logger
     finally:
         _logger_lock.release()
-        _logger.debug(f"{_logger.name} logger initialized.")
+        _logger.debug(
+            f"logger initialized as "
+            f"{_logging.getLevelName(get_logger().getEffectiveLevel())}",
+            stacklevel=4,
+        )
 
 
 ######################################################################
-## Exposed loggers helper funcs
+## Exposed logging helpers
 ######################################################################
+
+
+# logging.TaskLevelStatusMessage
+def TaskLevelStatusMessage(msg):  # noqa: N802
+    """Log logging.TaskLevelStatusMessage."""
+    error(msg)
 
 
 def getEffectiveLevel():  # noqa: N802
@@ -737,14 +1048,195 @@ def getEffectiveLevel():  # noqa: N802
     return get_logger().getEffectiveLevel()
 
 
+def get_verbosity():
+    """Return how much logging output will be produced."""
+    return get_logger().getEffectiveLevel()
+
+
 def setLevel(v):  # noqa: N802
-    """Sets the threshold for what messages will be logged."""
+    """Set the threshold for what messages will be logged."""
     get_logger().setLevel(v)
+
+
+def set_verbosity(v):
+    """Set the threshold for what messages will be logged."""
+    get_logger().setLevel(v)
+
+
+def _GetNextLogCountPerToken(token):  # noqa: N802
+    """
+    Wrap for _log_counter_per_token.
+
+    Parameters
+    ----------
+    token :
+        The token for which to look up the count.
+
+    Returns
+    -------
+    int : The number of times this function has been called with
+          *token* as an argument (starting at 0)
+    """
+    # pylint: disable=global-variable-not-assigned
+    global _log_counter_per_token  # noqa: PLW0602
+    # pylint: enable=global-variable-not-assigned
+    _log_counter_per_token[token] = 1 + _log_counter_per_token.get(token, -1)
+    return _log_counter_per_token[token]
+
+
+def log_every_n(level, msg, n, *args):
+    """
+    Log 'msg % args' at level 'level' once per 'n' times.
+
+    Logs the 1st call, (N+1)st call, (2N+1)st call,  etc.
+    Not threadsafe.
+
+    Parameters
+    ----------
+    level :
+        The level at which to log.
+    msg :
+        The message to be logged.
+    n :
+        The number of times this should be called before it is logged.
+    *args :
+        The args to be substituted into the msg.
+    """
+    count = _GetNextLogCountPerToken(_GetFileAndLine())
+    log_if(level, msg, not (count % n), *args)
+
+
+def log_first_n(level, msg, n, *args):  # pylint: disable=invalid-name
+    """
+    Log 'msg % args' at level 'level' only first 'n' times.
+
+    Not threadsafe.
+
+    Parameters
+    ----------
+    level :
+        The level at which to log.
+    msg :
+        The message to be logged.
+    n :
+        The number of times this should be called before it is logged.
+    *args :
+        The args to be substituted into the msg.
+    """
+    count = _GetNextLogCountPerToken(_GetFileAndLine())
+    log_if(level, msg, count < n, *args)
+
+
+######################################################################
+## Exposed logging helper funcs
+######################################################################
+
+
+def critical(msg, *args, **kwargs):
+    """
+    Log a message at the CRITICAL log level.
+
+    Parameters
+    ----------
+    msg : str
+        The log message to be logged.
+    args : any
+        Arguments for string formatting in the message.
+    kwargs : any
+        Additional keyword arguments for logging.
+    """
+    get_logger().critical(msg, *args, **kwargs)
+
+
+def debug(msg, *args, **kwargs):
+    """
+    Log a message at the DEBUG log level.
+
+    Parameters
+    ----------
+    msg : str
+        The log message to be logged.
+    args : any
+        Arguments for string formatting in the message.
+    kwargs : any
+        Additional keyword arguments for logging.
+    """
+    get_logger().debug(msg, *args, **kwargs)
+
+
+def error(msg, *args, **kwargs):
+    """
+    Log a message at the ERROR log level.
+
+    Parameters
+    ----------
+    msg : str
+        The log message to be logged.
+    args : any
+        Arguments for string formatting in the message.
+    kwargs : any
+        Additional keyword arguments for logging.
+    """
+    get_logger().error(msg, *args, **kwargs)
+
+
+def error_log(error_msg, *args, level=ERROR, **kwargs):
+    """Empty helper method."""
+    del error_msg, args, level, kwargs
+
+
+def exception(msg, *args, exc_info=True, **kwargs):
+    """
+    Log a message with severity 'ERROR' on the root logger.
+
+    With exception information. If the logger has no handlers,
+    basicConfig() is called to add a console handler
+    with a pre-defined format.
+    """
+    error(msg, *args, exc_info=exc_info, **kwargs)
+
+
+def fatal(msg, *args, **kwargs):
+    """
+    Log a message at the FATAL - CRITICAL log level.
+
+    Parameters
+    ----------
+    msg : str
+        The log message to be logged.
+    args : any
+        Arguments for string formatting in the message.
+    kwargs : any
+        Additional keyword arguments for logging.
+    """
+    get_logger().fatal(msg, *args, **kwargs)
+
+
+# logging.flush
+def flush():
+    """Log logging.flush."""
+    raise NotImplementedError()
+
+
+def info(msg, *args, **kwargs):
+    """
+    Log a message at the INFO log level.
+
+    Parameters
+    ----------
+    msg : str
+        The log message to be logged.
+    args : any
+        Arguments for string formatting in the message.
+    kwargs : any
+        Additional keyword arguments for logging.
+    """
+    get_logger().info(msg, *args, **kwargs)
 
 
 def log(level, msg, *args, **kwargs):
     """
-    Logs a message at the specified log level.
+    Log a message at the specified log level.
 
     Parameters
     ----------
@@ -752,161 +1244,68 @@ def log(level, msg, *args, **kwargs):
         The logging level (e.g., DEBUG, INFO, WARNING, etc.).
     msg : str
         The log message to be logged.
-    args : Any
+    args : any
         Arguments for string formatting in the message.
-    kwargs : Any
+    kwargs : any
         Additional keyword arguments for logging.
-
     """
     get_logger().log(level, msg, *args, **kwargs)
 
 
 def log_if(level, msg, condition, *args, **kwargs):
-    """
-    Log 'msg % args' at level 'level' only if condition is fulfilled."""
+    """Log 'msg % args' at level 'level' only if condition is fulfilled."""
     if condition:
         log(level, msg, *args, **kwargs)
 
 
-def error_log(error_msg, level=ERROR, *args, **kwargs):
-    """Empty helper method."""
-    del error_msg, level
-
-
 # Code below is taken from pyglib/logging
 def vlog(level, msg, *args, **kwargs):
-    """
-    Logs a message at the specified log level."""
+    """Log a message at the specified log level."""
     get_logger().log(level, msg, *args, **kwargs)
-
-
-def critical(msg, *args, **kwargs):
-    """
-    Logs a message at the CRITICAL log level.
-
-    Parameters
-    ----------
-    msg : str
-        The log message to be logged.
-    args : Any
-        Arguments for string formatting in the message.
-    kwargs : Any
-        Additional keyword arguments for logging.
-
-    """
-    get_logger().critical(msg, *args, **kwargs)
-
-
-def fatal(msg, *args, **kwargs):
-    """
-    Logs a message at the FATAL - CRITICAL log level.
-
-    Parameters
-    ----------
-    msg : str
-        The log message to be logged.
-    args : Any
-        Arguments for string formatting in the message.
-    kwargs : Any
-        Additional keyword arguments for logging.
-
-    """
-    get_logger().fatal(msg, *args, **kwargs)
-
-
-def error(msg, *args, **kwargs):
-    """
-    Logs a message at the ERROR log level.
-
-    Parameters
-    ----------
-    msg : str
-        The log message to be logged.
-    args : Any
-        Arguments for string formatting in the message.
-    kwargs : Any
-        Additional keyword arguments for logging.
-
-    """
-    get_logger().error(msg, *args, **kwargs)
-
-
-def warning(msg, *args, **kwargs):
-    """
-    Logs a message at the WARNING log level.
-
-    Parameters
-    ----------
-    msg : str
-        The log message to be logged.
-    args : Any
-        Arguments for string formatting in the message.
-    kwargs : Any
-        Additional keyword arguments for logging.
-
-    """
-    get_logger().warning(msg, *args, **kwargs)
 
 
 def warn(msg, *args, **kwargs):
     """
-    Logs a message at the WARN - WARNING log level.
+    Log a message at the WARN - WARNING log level.
 
     Parameters
     ----------
     msg : str
         The log message to be logged.
-    args : Any
+    args : any
         Arguments for string formatting in the message.
-    kwargs : Any
+    kwargs : any
         Additional keyword arguments for logging.
-
     """
     get_logger().warning(msg, *args, **kwargs)
 
 
-def info(msg, *args, **kwargs):
+def warning(msg, *args, **kwargs):
     """
-    Logs a message at the INFO log level.
+    Log a message at the WARNING log level.
 
     Parameters
     ----------
     msg : str
         The log message to be logged.
-    args : Any
+    args : any
         Arguments for string formatting in the message.
-    kwargs : Any
+    kwargs : any
         Additional keyword arguments for logging.
-
     """
-    get_logger().info(msg, *args, **kwargs)
-
-
-def debug(msg, *args, **kwargs):
-    """
-    Logs a message at the DEBUG log level.
-
-    Parameters
-    ----------
-    msg : str
-        The log message to be logged.
-    args : Any
-        Arguments for string formatting in the message.
-    kwargs : Any
-        Additional keyword arguments for logging.
-
-    """
-    get_logger().debug(msg, *args, **kwargs)
+    get_logger().warning(msg, *args, **kwargs)
 
 
 ######################################################################
-## Class (SingletonBase) based SpLogger to expose the initialized logger
+## Class (SingletonBase) like SpLogger to expose the initialized logger
 ######################################################################
 
 
-class SpLogger(SingletonBase):
+class SpLogger:
     """
-    A singleton logger class that provides a shared logger instance with customizable
+    A singleton logger class.
+
+    That provides a shared logger instance with customizable
     name, formatter, handler, logging level, and thread-safety.
 
     This class implements the Singleton pattern, ensuring only a single instance of
@@ -928,24 +1327,15 @@ class SpLogger(SingletonBase):
 
     Parameters
     ----------
-    name : Optional[str], default=None
-        The name of the logger.
-        If None, defaults to 'scikitplot'.
     formatter : Optional[logging.Formatter], default=None
         The formatter to use for logging.
         If None, a default customized formatter is applied.
     handler : Optional[logging.Handler], default=None
         The handler to use for logging.
         If None, a default customized handler is applied.
-    log_level : Optional[int], default=None
-        The logging level to set for the logger (e.g., DEBUG, INFO, WARNING).
-        Defaults to WARNING.
-    thread_safe : bool, default=True
-        Indicates whether thread-safety is enabled for the logger.
-        If True, a threading lock is used.
-    *args : Any, optional
+    *args : any, optional
         Additional positional arguments for customization.
-    **kwargs : Any, optional
+    **kwargs : any, optional
         Additional keyword arguments for further customization.
 
     See Also
@@ -957,88 +1347,25 @@ class SpLogger(SingletonBase):
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance,
         for more https://docs.python.org/3/library/logging.html.
-
-    Notes
-    -----
-    See Python documentation (https://docs.python.org/3/library/logging.html)
-    for detailed API. Below is only a summary.
-
-    The logger has 5 levels of logging from the most serious to the least.
-
-    Here supported logging levels:
-
-    * `CRITICAL`, `FATAL`
-    * `ERROR`
-    * `WARNING`
-    * `INFO`
-    * `DEBUG`
-
-    The logger methods support string formatting. For example::
-
-      >>> import scikitplot as sp
-      >>> sp.SpLogger().error("The value %d is invalid.", 3)
-
-    You can change the verbosity of the logger as follows::
-
-      >>> import scikitplot as sp
-      >>> sp.SpLogger().setLevel(sp.SpLogger().INFO)   # set level INFO
-      >>> sp.SpLogger().debug("This is a debug.")      # This will not be shown, as level is INFO.
-      >>> sp.SpLogger().info("This is a info.")        # This will be shown, as level is INFO.
-      >>> sp.SpLogger().warning("This is a warning.")  # This will be shown, as level is INFO.
-
-    Examples
-    --------
-    Get a root logger by module:
-
-    .. jupyter-execute::
-
-        >>> import scikitplot.sp_logging as logging  # module logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
-
-    Get a root logger by func:
-
-    .. jupyter-execute::
-
-        >>> from scikitplot import sp_logging, get_logger
-        ...
-        ... logging = get_logger()  # pure python logger, not have direct log level
-        >>> logging.setLevel(sp_logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
-
-    Get a root logger by class:
-
-    .. jupyter-execute::
-
-        >>> from scikitplot import SpLogger
-        ...
-        ... logging = SpLogger()  # class logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
-
-    Get a root logger by class instance:
-
-    .. jupyter-execute::
-
-        >>> from scikitplot import (
-        ...     sp_logger as logging,
-        ... )  # class instance logger
-        >>> logging.setLevel(logging.INFO)  # default WARNING
-        >>> logging.info("This is a info message from the sp logger.")
-
     """
 
     # cls attr
+    ## Store singleton instances in a class-level
+    _instance: "_logging.logger" = None  # noqa: UP037
+
+    # Thread-safe logging lock
+    _lock = _logger_lock or threading.Lock()
+
     # Directly or Dynamically reference the module-level variable
     # CRITICAL  = FATAL = getattr(__import__(__name__), 'CRITICAL', 50)
     # ERROR     = getattr(__import__(__name__), 'ERROR', 40)
     # WARNING   = WARN = getattr(__import__(__name__), 'WARNING', 30)
     # INFO      = getattr(__import__(__name__), 'INFO', 20)
     # DEBUG     = getattr(__import__(__name__), 'DEBUG', 10)
-    # NOTSET    = NOTSET
+    # NOTSET    = NOTSET  # direct use
     def __getattr__(self, name):
         """
-        Retrieves the attribute `name` either from the instance or the `logging` module.
+        Resolve the attribute name from the instance or fall back to the logging module.
 
         If the attribute is not found within the class, this method checks for it
         in the `logging` module (e.g., `DEBUG`, `INFO`, etc.).
@@ -1050,279 +1377,63 @@ class SpLogger(SingletonBase):
 
         Returns
         -------
-        Any :
+        any :
             The value of the attribute `name`, either from the class or the `logging` module.
 
         Raises
         ------
         AttributeError :
             If the attribute is not found in the class or the `logging` module.
-
         """
         # First, check if the attribute is in the instance's dictionary
         if name in self.__dict__:
             return self.__dict__[name]
 
+        # Now, dynamically import the sp_logging module and check for the attribute
+        if hasattr(__import__(__name__), name):
+            return getattr(__import__(__name__), name)
+
         # Now, dynamically import the logging module and check for the attribute
-        module = _logging  # Importing logging module explicitly
-        if hasattr(module, name):
-            return getattr(module, name)
+        if hasattr(_logging, name):  # logging module explicitly
+            return getattr(_logging, name)
 
         # If not found, raise an AttributeError
         raise AttributeError(
             f"'{self.__class__.__name__}' object has no attribute '{name}'"
         )
 
-    # magic method to initiate object, To get called by the __new__ method.
-    def __init__(
-        self,
-        *args: Any,
-        name: Optional[str] = None,
-        formatter: Optional[_logging.Formatter] = None,
-        handler: Optional[StreamHandler] = None,
-        log_level: Optional[int] = None,
-        thread_safe: bool = True,
-        **kwargs: Any,
-    ):
-        """
-        Initializes the logger instance with custom configuration.
+    # def __new__(
+    #     # cls refers to the class itself, and is used in class methods (@classmethod).
+    #     cls,
+    #     *args: tuple[any, ...], **kwargs: dict[str, any],  # noqa: ARG004
+    # ) -> _logging.logger:
+    #     """
+    #     Create a single instance of logging.Logger.
 
-        Attributes
-        ----------
-        logger : logging.Logger
-            The logger instance used for logging messages.
-        lock : Optional[threading.Lock]
-            A lock used for thread-safe logging operations.
+    #     Parameters
+    #     ----------
+    #     *args : tuple
+    #         Optional positional arguments.
 
-        """
-        # instance attr
-        if not hasattr(self, "logger"):  # Ensure initialization happens only once
-            self._name = name or "scikitplot"
-            self.logger = get_logger() or _logging.getLogger(self._name)
+    #     **kwargs : dict
+    #         Optional keyword arguments.
 
-            # Thread-safe logging lock
-            self.lock = _logger_lock or threading.Lock() if thread_safe else None
-
-    @property
-    def name(self) -> str:
-        """
-        Gets the name of the logger.
-
-        Returns
-        -------
-        str
-            The name of the logger instance.
-
-        """
-        return self._name
-
-    @name.setter
-    def name(self, value: str):
-        """
-        Sets the name of the logger.
-
-        Parameters
-        ----------
-        value : str
-            The new name for the logger.
-
-        """
-        if not isinstance(value, str):
-            raise ValueError("Logger name must be a string.")
-        self._name = value
-        self.logger.name = value
-
-    @property
-    def level(self) -> int:
-        """
-        Gets the current logging level of the logger.
-
-        Returns
-        -------
-        int
-            The current logging level (e.g., DEBUG, INFO, WARNING) of the logger.
-
-        """
-        return self.logger.level
-
-    @level.setter
-    def level(self, value: int):
-        """
-        Sets the logging level of the logger.
-
-        Parameters
-        ----------
-        value : int
-            The new logging level (e.g., DEBUG, INFO, WARNING).
-
-        """
-        if not isinstance(value, int):
-            raise ValueError("Logging level must be an integer.")
-        self.logger.setLevel(value)
-
-    # @staticmethod
-    def getEffectiveLevel(self) -> int:  # noqa: N802
-        """
-        Gets the current logging level of the logger.
-
-        Returns
-        -------
-        int
-            The current logging level (e.g., DEBUG, INFO, WARNING) of the logger.
-
-        """
-        return self.logger.getEffectiveLevel()
-
-    # @staticmethod
-    def setLevel(self, level: int):  # noqa: N802
-        """
-        Set the logger's logging level.
-
-        Parameters
-        ----------
-        level : int
-            The logging level to set (e.g., DEBUG, INFO, WARNING).
-
-        """
-        if not isinstance(level, int):
-            raise ValueError("Logging level must be an integer.")
-        self.logger.setLevel(level)
-
-    def _format_msg_with_thread(self, msg: str) -> str:
-        """
-        Adds the current thread ID to the log message.
-
-        Parameters
-        ----------
-        msg : str
-            The message to be logged.
-
-        Returns
-        -------
-        str
-            The formatted message with the thread ID.
-
-        Notes
-        -----
-        This method ensures thread-safety by using a lock if thread-safe logging is enabled.
-
-        """
-        # if self.lock:
-        #   with self.lock:
-        #     thread_id = _get_thread_id()
-        #     return f"[Thread-{thread_id}] {msg}"
-        return f"{msg}"
-
-    def log(self, level: int, msg: str, *args: Any, **kwargs: Any):
-        """
-        Logs a message at the specified log level.
-
-        Parameters
-        ----------
-        level : int
-            The logging level (e.g., DEBUG, INFO, WARNING, etc.).
-        msg : str
-            The log message to be logged.
-        args : Any
-            Arguments for string formatting in the message.
-        kwargs : Any
-            Additional keyword arguments for logging.
-
-        """
-        self.logger.log(level, self._format_msg_with_thread(msg), *args, **kwargs)
-
-    def log_if(self, level, msg, condition, *args, **kwargs):
-        """Log 'msg % args' at level 'level' only if condition is fulfilled."""
-        if condition:
-            self.logger.log(level, self._format_msg_with_thread(msg), *args, **kwargs)
-
-    def error_log(self, error_msg, level=ERROR, *args, **kwargs):
-        """Empty helper method."""
-        del error_msg, level
-
-    def vlog(self, level: int, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the specified log level."""
-        self.logger.log(level, self._format_msg_with_thread(msg), *args, **kwargs)
-
-    def critical(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the CRITICAL level."""
-        self.log(CRITICAL, msg, *args, **kwargs)
-
-    def fatal(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the CRITICAL level."""
-        self.log(FATAL, msg, *args, **kwargs)
-
-    def error(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the ERROR level."""
-        self.log(ERROR, msg, *args, **kwargs)
-
-    def warning(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the WARNING level."""
-        self.log(WARNING, msg, *args, **kwargs)
-
-    def warn(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the WARNING level."""
-        self.log(WARNING, msg, *args, **kwargs)
-
-    def info(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the INFO level."""
-        self.log(INFO, msg, *args, **kwargs)
-
-    def debug(self, msg: str, *args: Any, **kwargs: Any):
-        """Logs a message at the DEBUG level."""
-        self.log(DEBUG, msg, *args, **kwargs)
+    #     Returns
+    #     -------
+    #     logging.logger
+    #         Either the decorated function or the singleton instance.
+    #     """
+    #     # Class.method() or obj.method()
+    #     # Ensure only one instance exists (singleton pattern)
+    #     with cls._lock:
+    #         # Create a new instance if none exists:
+    #         if cls._instance is None:
+    #             cls._instance = get_logger()
+    #     return cls._instance
 
 
 # Instantiate the class so its methods can be accessed directly via the module
-sp_logger = SpLogger()
-sp_logger.__doc__ = """\
-An instance of :py:class:`SpLogger`, providing logging functionality.
-
-See Also
---------
-get_logger :
-    Function that provides a shared :py:class:`logging.Logger` instance.
-SpLogger :
-    A singleton logger class that provides a shared :py:class:`logging.Logger` instance
-    with customizable name, formatter, handler, logging level, and thread-safety.
-logging.getLogger :
-    Standard library function to retrieve :py:class:`logging.Logger` instance,
-    for more https://docs.python.org/3/library/logging.html.
-
-Examples
---------
-Get a root logger by module:
-
-.. jupyter-execute::
-
-    >>> import scikitplot.sp_logging as logging  # module logger
-    >>> logging.setLevel(logging.INFO)           # default WARNING
-    >>> logging.info("This is a info message from the sp logger.")
-
-Get a root logger by func:
-
-.. jupyter-execute::
-
-    >>> from scikitplot import sp_logging, get_logger; logging=get_logger()  # pure python logger, not have direct log level
-    >>> logging.setLevel(sp_logging.INFO)                                    # default WARNING
-    >>> logging.info("This is a info message from the sp logger.")
-
-Get a root logger by class:
-
-.. jupyter-execute::
-
-    >>> from scikitplot import SpLogger; logging=SpLogger()  # class logger
-    >>> logging.setLevel(logging.INFO)                       # default WARNING
-    >>> logging.info("This is a info message from the sp logger.")
-
-Get a root logger by class instance:
-
-.. jupyter-execute::
-
-    >>> from scikitplot import sp_logger as logging  # class instance logger
-    >>> logging.setLevel(logging.INFO)               # default WARNING
-    >>> logging.info("This is a info message from the sp logger.")
-"""
+# sp_logger = SpLogger()
 
 ######################################################################
 ##

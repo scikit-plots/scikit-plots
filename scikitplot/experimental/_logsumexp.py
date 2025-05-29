@@ -2,8 +2,8 @@ import math
 
 import numpy as np
 
-from scikitplot._xp_core_lib import array_api_extra as xpx
-from scikitplot._xp_core_lib._array_api import (
+from scikitplot._lib import array_api_extra as xpx
+from scikitplot._lib._array_api import (
     array_namespace,
     xp_broadcast_promote,
     xp_copy,
@@ -11,7 +11,7 @@ from scikitplot._xp_core_lib._array_api import (
     xp_real,
     xp_size,
 )
-from scikitplot._xp_core_lib.validation import _asarray_validated
+from scikitplot._lib.validation import _asarray_validated
 
 __all__ = ["log_softmax", "logsumexp", "sigmoid", "softmax"]
 

@@ -70,6 +70,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **DoReMi**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./doremi/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **Logging System**
         ^^^
         .. toctree::
@@ -85,7 +95,7 @@ User Guide
         .. toctree::
             :maxdepth: 2
 
-            ./_xp_core_lib/index.rst
+            ./_lib/index.rst
 
 
 .. _under-development:

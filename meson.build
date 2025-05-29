@@ -283,6 +283,7 @@ endif
 # The default list of warnings to ignore from Fortran code. There is a lot of
 # old, vendored code that is very bad and we want to compile it silently (at
 # least with GCC and Clang)
+# Fortran warning flags
 _global_fortran_args = [
   # Define warning flags for Fortran compilation
   '-Wno-argument-mismatch',      # Suppress warnings about mismatched argument types in subroutine/function calls
@@ -297,13 +298,6 @@ _global_fortran_args = [
   '-Wno-tabs',                   # Suppress warnings about tabs in the source code (often used in legacy code)
 ]
 # Compiler options for Fortran
-_global_fortran_args = ff.get_supported_arguments(
-  _global_fortran_args
-)
-add_project_arguments(
-  _global_fortran_args,
-  language: ['fortran'],
-)
 # # Apply fortran arguments if supported
 # foreach arg : _global_fortran_args
 #   if ff.has_argument(arg)
@@ -313,6 +307,13 @@ add_project_arguments(
 #     message('fortran compiler (' + ff.get_id() + ') does not support argument: ' + arg)
 #   endif
 # endforeach
+# fortran_ignore_warnings _global_fortran_args
+_global_fortran_args = ff.get_supported_arguments(
+  _global_fortran_args
+)
+add_project_arguments(
+  _global_fortran_args, language: ['fortran'],
+)
 
 ######################################################################
 ## C and C++ Compiler Setup
@@ -813,27 +814,27 @@ cli_cython = find_program(cy.cmd_array()[0])
 # Define the arguments for the Cython command. These arguments will be passed
 # to the Cython compiler when generating the C source files.
 cython_c_args = [
-  # '-O2',  # Optimization level
-  # '-X boundscheck=' + boundscheck,      # Control bounds checking (True/False)
-  '-X language_level=3',                # Ensure Cython targets Python3 like '-3'
+  # '-O2',                                    # Optimization level
+  # '-X boundscheck=' + boundscheck,          # Control bounds checking (True/False)
+  '-X language_level=3',                      # Ensure Cython targets Python3 like '-3'
   # Prevents using negative indexing, which can provide a speedup for array handling.
-  '-X wraparound=False',                # Disable negative indexing (wraparound)
+  '-X wraparound=False',                      # Disable negative indexing (wraparound)
   # Skips checking for uninitialized variables, improving performance at the cost of safety.
-  '-X initializedcheck=False',          # Disable check for uninitialized variables
+  '-X initializedcheck=False',                # Disable check for uninitialized variables
   # Skips checking for None values, improving performance when you're sure that variables won’t be None.
-  '-X nonecheck=False',                 # Disable None checks
+  '-X nonecheck=False',                       # Disable None checks
   # Enables C-style division (ignores Python division safety), improving performance.
-  '-X cdivision=True',                  # Enable C division
+  '-X cdivision=True',                        # Enable C division
   # Disables profiling support, which improves speed if profiling isn’t needed.
-  '-X profile=False',                   # Disable profiling
-  '--fast-fail',                        # Halt on first error during compilation
+  '-X profile=False',                         # Disable profiling
+  '--fast-fail',                              # Halt on first error during compilation
   # Specifies the include directory where Cython can find the necessary headers.
   # Needed for cython imports across subpackages, e.g. cluster pyx that
   # cimports metrics pxd
-  # '--include-dir', '@BUILD_ROOT@',      # Placeholder for Meson to replace later
+  # '--include-dir', '@BUILD_ROOT@',          # Placeholder for Meson to replace later
   '--include-dir', meson.global_build_root(), # Directly resolves to the build root path
-  # '--output-file', '@OUTPUT@',          # Specify output file for generated C code
-  # '@INPUT@',                            # Input file placeholder managed by Meson
+  # '--output-file', '@OUTPUT@',              # Specify output file for generated C code
+  # '@INPUT@',                                # Input file placeholder managed by Meson
 ]
 # If the Cython version is 3.1.0 or newer, add the option for free threading compatibility
 if cy.version().version_compare('>=3.1.0')
@@ -964,7 +965,7 @@ cython_cpp_flags = cython_c_flags + [
 # endif
 
 ######################################################################
-## numpy include dir
+## Cross-compilation include dir
 ######################################################################
 
 # When cross-compiling scikitplots, the compiler needs access to NumPy and Pythran
@@ -989,6 +990,34 @@ cython_cpp_flags = cython_c_flags + [
 #
 #  https://mesonbuild.com/Cross-compilation.html
 
+######################################################################
+## dependency 'threads'
+######################################################################
+
+dep_thread = dependency('threads', required: false)
+
+######################################################################
+## dependency 'numpy'
+######################################################################
+
+min_numpy_version = '1.25.2'  # keep in sync with pyproject.toml
+
+# Uses the `numpy-config` executable (or a user's numpy.pc pkg-config file).
+# Will work for numpy>=2.0, hence not required (it'll be a while until 2.0 is
+# our minimum supported version). Using this now to be able to detect the
+# version easily for >=2.0.
+_dep_np = dependency('numpy', required: false)
+f2py_freethreading_arg = []
+if _dep_np.found()
+  if _dep_np.version().version_compare('>=2.1.0')
+    f2py_freethreading_arg = ['--free-threading']
+  endif
+endif
+
+######################################################################
+## dependency 'numpy' include dir
+######################################################################
+
 # NumPy include directory - needed in all submodules
 # The chdir is needed because within numpy there's an `import signal`
 # statement, and we don't want that to pick up scipy's signal module rather
@@ -1011,38 +1040,31 @@ _np_inc_dir = meson.get_external_property(
 )
 if _np_inc_dir == 'not-given'
   _np_inc_dir = run_command(py,
-    [
-      '-c',
-      '''\
+    ['-c', '''\
 import os
 import numpy as np
 try:
-  # get absolute path
-  _np_inc_dir = np.get_include()
+  # get relpath path from absolute path
+  os.chdir(os.path.join(".", "tools"))
+  _np_inc_dir = os.path.relpath(np.get_include())
   if not os.path.exists(_np_inc_dir):
-    raise FileNotFoundError('')
+    raise FileNotFoundError('')  # dont print
 except Exception as e:
-  os.chdir('.')
+  # use absolute path
   _np_inc_dir = np.get_include()
-  # get relative path
-  _np_inc_dir = os.path.relpath(_np_inc_dir)
-print(_np_inc_dir)
-'''
-    ],
-    check: true
+print(_np_inc_dir)''' ],
+    check: true,
   ).stdout().strip()
 
   # We do need an absolute path to feed to `cc.find_library` below
   _np_inc_dir_abs = run_command(py,
-    [
-      '-c',
-      'import numpy; print(numpy.get_include())'
-    ],
-    check: true
+    ['-c', 'import numpy; print(numpy.get_include())'],
+    check: true,
   ).stdout().strip()
 else
   _np_inc_dir_abs = _np_inc_dir
 endif
+
 message(
   '\n' +
   BLUE + '[INFO]' + RESET +
@@ -1051,7 +1073,6 @@ message(
   BLUE + '[INFO]' + RESET +
   ' numpy include dir abs: @0@'.format(_np_inc_dir_abs)
 )
-
 # Use the include directory in your build setup
 # Specify Include directories where your headers are located
 # include_directories(header) -> static_library(mix), library(mix), declare_dependency(mix)
@@ -1061,13 +1082,126 @@ inc_dir_np = include_directories(_np_inc_dir)
 # NPY_API_VERSION in order not to break compilation for released SciPy versions
 # when NumPy introduces a new deprecation.
 _global_np_args = [
-  '-DNPY_NO_DEPRECATED_API=NPY_1_9_API_VERSION'
+  '-DNPY_NO_DEPRECATED_API=NPY_1_9_API_VERSION',
 ]
 # Get the Numpy Dependencies
 dep_np = declare_dependency(
-  compile_args: _global_np_args,
   dependencies: [],
   include_directories: inc_dir_np,
+  compile_args: _global_np_args,
+)
+
+######################################################################
+## 'fortran' include dir
+######################################################################
+
+# full_path = join_paths(inc_path, 'subdir')  # ✅ correct
+_f2py_inc_dir = _np_inc_dir / '..' / '..' / 'f2py' / 'src'
+inc_dir_f2py = include_directories(_f2py_inc_dir)
+fortranobject_c = _f2py_inc_dir / 'fortranobject.c'
+
+npymath_path = _np_inc_dir_abs / '..' / 'lib'
+npymath_lib = cc.find_library('npymath', dirs: npymath_path)
+
+######################################################################
+## dependency 'fortran'
+######################################################################
+
+# Share this object across multiple modules.
+fortranobject_lib = static_library('_fortranobject',
+  fortranobject_c,
+  c_args: _global_np_args,
+  dependencies: dep_py,
+  include_directories: [inc_dir_np, inc_dir_f2py],  # nested accepts
+  gnu_symbol_visibility: 'hidden',
+)
+fortranobject_dep = declare_dependency(
+  link_with: fortranobject_lib,
+  include_directories: [inc_dir_np, inc_dir_f2py],  # nested accepts
+)
+
+
+######################################################################
+## Generate file 'config/scikitplot_config.h'
+## https://mesonbuild.com/Reference-manual_functions.html#configure_file
+## https://github.com/scipy/scipy/blob/main/scipy/meson.build#L153
+######################################################################
+
+# Define configure_file
+cdata = configuration_data()
+
+# Test variable attribute to use for thread-local storage;
+# Adapted from `numpy/_core/meson.build`.
+check_tls_attrs = [
+  ['thread_local', 'HAVE_THREAD_LOCAL'],    # C23
+  ['_Thread_local', 'HAVE__THREAD_LOCAL'],  # C11/C17
+  ['__thread', 'HAVE__THREAD'],
+]
+if is_windows and not is_mingw
+  check_tls_attrs += ['__declspec(thread)', 'HAVE___DECLSPEC_THREAD_']
+endif
+
+f2py_tls_define = ''
+foreach tls_attrs: check_tls_attrs
+  attr = tls_attrs[0]
+  code = f'''
+    #pragma GCC diagnostic error "-Wattributes"
+    #pragma clang diagnostic error "-Wattributes"
+
+    int @attr@ foo;
+  '''
+  code += '''
+    int
+    main()
+    {
+      return 0;
+    }
+  '''
+  if cc.compiles(code, name: tls_attrs[0])
+    cdata.set10(tls_attrs[1], true)
+    f2py_tls_define = tls_attrs[0]
+  endif
+endforeach
+
+######################################################################
+## 'fortran' _f2py_c_args
+######################################################################
+
+_f2py_c_args = [
+  f'-DF2PY_THREAD_LOCAL_DECL=@f2py_tls_define@'
+]
+fortranobject_dep = declare_dependency(
+  dependencies: fortranobject_dep,
+  compile_args: _f2py_c_args,
+)
+
+######################################################################
+## f2py
+######################################################################
+
+generate_f2pymod = find_program('tools/f2py/generate_f2pymod.py')
+
+f2py = find_program('f2py')
+# It should be quite rare for the `f2py` executable to not be the one from
+# `numpy` installed in the Python env we are building for (unless we are
+# cross-compiling). If it is from a different env, that is still fine as long
+# as it's not too old. We are only using f2py as a code generator, and the
+# output is not dependent on platform or Python version (see gh-20612 for more
+# details).
+# This should be robust enough. If not, we can make this more complex, using
+# a fallback to `python -m f2py` rather than erroring out.
+# f2py_version = run_command([f2py, '-v'], check: true).stdout().strip()
+# if f2py_version.version_compare('<'+min_numpy_version)
+#   error(f'Found f2py executable is too old: @f2py_version@')
+# endif
+
+# Note: this generator cannot handle:
+# 1. `.pyf.src` files, because `@BASENAME@` will still include .pyf
+# 2. targets with #include's (due to no `depend_files` - see feature request
+#    at meson#8295)
+f2py_gen = generator(generate_f2pymod,
+  arguments : ['@INPUT@', '-o', '@BUILD_DIR@'] + f2py_freethreading_arg,
+  output : ['_@BASENAME@module.c', '_@BASENAME@-f2pywrappers.f'],
 )
 
 ######################################################################
@@ -1111,7 +1245,9 @@ gen_tempita = generator(cli_tempita,
 fs = import('fs')
 
 ######################################################################
-## Copy all the .py files
+## Copy all the .py files  like [tool.setuptools.package-data]
+## install_data() copies single files.
+## install_subdir() copies directories recursively.
 ## https://mesonbuild.com/Reference-manual_functions.html#install_subdir
 ## https://mesonbuild.com/Installing.html#installing
 ######################################################################
@@ -1124,7 +1260,7 @@ install_subdir(
   install_dir: py.get_install_dir(),  # Folder relative to site-packages to install to
   install_tag: 'python-runtime',      # Tag to help categorize the install
   exclude_directories: [              # Exclude from installation, but it doesn't work as expected
-    '**tests',                        # Excludes the 'tests' directory
+    'js',                             # Excludes the 'tests' directory
   ],
 )
 # Optionally add a message to confirm the installation

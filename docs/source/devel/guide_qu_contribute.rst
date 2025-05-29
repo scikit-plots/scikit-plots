@@ -162,7 +162,9 @@ to create and manage isolated Python environments.
 
 Now create and activate an ``py311`` conda environment using the following::
 
-   >>> # (Optionally) Can be run on `conda base` or `venv` env
+   >>> # (Optionally) Docker also created env `py311` ready to use
+   >>> # (Optionally) Can be run on mamba (or conda) `conda base` or `venv` env
+   >>> conda info -e
    >>> mamba create -n py311 python=3.11 ipykernel graphviz -y
    >>> conda activate py311
 

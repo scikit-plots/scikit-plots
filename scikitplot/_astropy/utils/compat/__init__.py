@@ -7,4 +7,4 @@ packages or code.
 """
 
 # Importing this module will also install monkey-patches defined in it
-from .numpycompat import *  # noqa: F403
+from .numpycompat import *

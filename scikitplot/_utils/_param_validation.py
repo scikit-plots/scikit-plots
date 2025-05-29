@@ -14,8 +14,9 @@ import numpy as np
 import scipy.sparse as sp
 
 # import scipy.special as special
-from .._config import config_context, get_config
-from .sk_validation import _is_arraylike_not_scalar
+from ..config._config import config_context, get_config
+
+from .validation import _is_arraylike_not_scalar
 
 
 class InvalidParameterError(ValueError, TypeError):

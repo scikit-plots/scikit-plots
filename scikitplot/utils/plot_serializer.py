@@ -1,9 +1,12 @@
-"""plot_serializer.py"""
+"""plot_serializer.py."""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 # pylint: disable=import-error
+# pylint: disable=unused-import
+# pylint: disable=unused-variable
+# pylint: disable=disallowed-name
 # pylint: disable=broad-exception-caught
 
 import collections.abc as cab
@@ -73,7 +76,7 @@ def get_ax_from_input(input_plot=None):  # noqa: PLR0912
                 "Tuple input must be of form (Figure, Axes or list of Axes)"
             )
 
-        fig, ax = input_plot
+        _, ax = input_plot
 
         # Subcase: second element is single Axes
         if isinstance(ax, mpl.axes.Axes):
@@ -238,7 +241,7 @@ def serialize_lineplot(ax):
 
 def serialize_plot(input_plot=None, pretty=True):
     """
-    Main entry: serialize any supported plot to JSON.
+    Serialize any supported plot to JSON.
 
     Args:
         input_plot: matplotlib Figure, Axes, or None

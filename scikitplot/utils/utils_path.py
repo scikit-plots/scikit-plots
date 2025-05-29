@@ -1,10 +1,14 @@
 """
-This module provides utilities for managing file paths
-for saving result images (such as plots).
+Provides utilities for managing file paths.
+
+For saving result images (such as plots).
 """
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=broad-exception-caught
+# pylint: disable=unused-argument
 
 import os  # noqa: I001
 import re
@@ -17,14 +21,7 @@ from typing import TYPE_CHECKING  # pylint: disable=wrong-import-order
 
 if TYPE_CHECKING:
     # Only imported during type checking
-    from typing import (  # noqa: F401
-        Any,
-        Dict,
-        List,
-        Optional,
-        Tuple,
-        Union,
-    )
+    from typing import Optional
 
 
 ######################################################################
@@ -35,9 +32,9 @@ if TYPE_CHECKING:
 def _filename_extension_normalizer(
     filename: str,
     ext: "Optional[str]" = None,
-    allowed_exts: "Tuple[str, ...]" = (".png", ".jpg", ".jpeg", ".pdf"),
+    allowed_exts: "tuple[str, ...]" = (".png", ".jpg", ".jpeg", ".pdf"),
     default_ext: str = ".png",
-) -> "Tuple[str, str]":
+) -> "tuple[str, str]":
     """
     Normalize a filename and ensure it has a valid extension.
 
@@ -132,8 +129,7 @@ def _filename_sanitizer(filename: str) -> str:
 
 def _filename_uniquer(full_path, file_path, filename):
     """
-    Check if the file already exists, and if so,
-    modify the filename to avoid overwriting.
+    Check if the file already exists, and if so, modify the filename to avoid overwriting.
 
     Parameters
     ----------
@@ -160,7 +156,7 @@ def _filename_uniquer(full_path, file_path, filename):
     return full_path, file_path, filename
 
 
-def get_file_path(
+def get_file_path(  # noqa: D417
     *,
     filename=None,
     ext=None,
@@ -173,8 +169,7 @@ def get_file_path(
     **kwargs,
 ):
     """
-    Generate a full file path for saving result images,
-    ensuring the target directory exists.
+    Generate a full file path for saving result images, ensuring the target directory exists.
 
     Parameters
     ----------
@@ -271,11 +266,11 @@ def get_file_path(
 
 
 def remove_paths(
-    paths: "Optional[List[str]]" = None,
+    paths: "Optional[list[str]]" = None,
     base_path: "Optional[str]" = None,
 ) -> None:
     """
-    Removes unwanted files or directories from a specified base path.
+    Remove unwanted files or directories from a specified base path.
 
     Parameters
     ----------

@@ -1,4 +1,7 @@
-"""validation.py"""
+"""validation.py."""
+
+# pylint: disable=unused-import
+# pylint: disable=consider-using-f-string
 
 import warnings
 from functools import reduce, wraps  # noqa: F401
@@ -10,7 +13,7 @@ from inspect import Parameter, isclass, signature  # noqa: F401
 # require a deprecation cycle to fix.
 def _deprecate_positional_args(func=None, *, version="1.3"):
     """
-    Decorator for methods that issues warnings for positional arguments.
+    Decorate for methods that issues warnings for positional arguments.
 
     Using the keyword-only argument syntax in pep 3102, arguments after the
     * will issue a warning when passed as a positional argument.

@@ -1,11 +1,11 @@
 .. _decile-wise-perf-index:
 
 ======================================================================
-Decile-Wise Perfomance
+Decile-Wise Performance
 ======================================================================
 
 This module contains functions related to :py:mod:`~.kds` and :py:mod:`~.modelplotpy`.
-For model evaluation decile-wise perfomance.
+For model evaluation decile-wise performance.
 
 .. grid:: 1 1 2 2
 

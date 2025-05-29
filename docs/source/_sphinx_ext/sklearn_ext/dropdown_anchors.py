@@ -49,7 +49,8 @@ class DropdownAnchorAdder(SphinxPostTransform):
             # Create the anchor element and insert after the title text; we do this
             # directly with raw HTML
             anchor_html = (
-                f'<a class="headerlink" href="#{anchor_id}" ' 'title="Link to this dropdown">#</a>'
+                f'<a class="headerlink" href="#{anchor_id}" '
+                'title="Link to this dropdown">#</a>'
             )
             anchor_node = nodes.raw("", anchor_html, format="html")
             sd_summary_text.append(anchor_node)

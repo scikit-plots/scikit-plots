@@ -1,5 +1,5 @@
 """
-scikit-plots
+scikit-plots.
 
 An intuitive library to add plotting functionality to scikit-learn objects
 
@@ -7,36 +7,27 @@ Documentation is available in the docstrings and
 online at https://scikit-plots.github.io.
 """
 
-# mypy: disallow-any-generics
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# mypy: disallow-any-generics
+
+# pylint: disable=import-error
+# pylint: disable=unused-import
+# pylint: disable=wrong-import-position
+# pylint: disable=import-outside-toplevel
+# pylint: disable=broad-exception-caught
+
+# ruff: noqa: F401
+
 # import os as _os
 # import sys as _sys
+# import importlib as _importlib
 # import pathlib as _pathlib
 # import warnings as _warnings
-
-# _set = set  # 'seaborn.set' override raise error or
-# use builtins.set
+# _set = set  # 'seaborn.set' can be override raise error
 import builtins as _builtins  # noqa: I001
-
-from typing import TYPE_CHECKING as _TYPE_CHECKING  # pylint: disable=wrong-import-order
-
-if _TYPE_CHECKING:
-    # Only imported during type checking
-    from typing import (
-        Any,
-        # Dict,
-        List,
-        Optional,
-        Union,
-    )
-
-# import importlib as _importlib
-from numpy import (  # pylint: disable=import-error, wrong-import-position  # type: ignore[reportMissingModuleSource]
+from numpy import (  # type: ignore[reportMissingModuleSource]
     __version__ as __numpy_version__,
 )
 
@@ -54,57 +45,41 @@ from numpy import (  # pylint: disable=import-error, wrong-import-position  # ty
 __version__ = "0.5.0.dev0"
 
 # import logging as _logging
-from .sp_logging import (  # pylint: disable=wrong-import-order, wrong-import-position
-    SpLogger,
-    get_logger,
-    sp_logger,
-)
+from . import sp_logging as logger
+
+# logger.setLevel(logger.DEBUG)  # for debugging
 
 try:  # Trt to import meson built files, modules (etc. *.in)
-    # Configuration helper
-    from .__config__ import (  # type: ignore[reportMissingModuleSource]
-        show as show_config,
-    )
-
-    # Citations helper
-    from ._citation import (  # type: ignore[reportMissingModuleSource]
-        __bibtex__,
-        __citation__,
-    )
-
-    # Low-level callback function
-    from ._xp_core_lib._ccallback import LowLevelCallable
-
-    # If a version with git hash was stored, use that instead.
-    # Override version if any.
+    from ._lib import __array_api_version__
+    from ._lib._array_api import gpu_libraries
+    from ._lib._ccallback import LowLevelCallable  # Low-level callback function
+    from .config import __bibtex__, __citation__, show_config
     from .version import (  # type: ignore[reportMissingModuleSource]
+        # If a version with git hash was stored,
+        # use that instead so override version if any.
         __git_hash__,
         __version__,
     )
 except (ImportError, ModuleNotFoundError):
-    _msg = (
-        "Error importing scikitplot: you cannot import scikitplot while "
-        "being in scikitplot source directory; please exit the scikitplot source "
-        "tree first and relaunch your Python interpreter."
+    _BUILT_WITH_MESON = show_config = None
+    logger.warning(
+        "BOOM! :: %s",
+        (
+            "Error importing scikitplot: you cannot import scikitplot while "
+            "being in scikitplot source directory; please exit the scikitplot source "
+            "tree first and relaunch your Python interpreter."
+        ),
     )
     # raise ImportError(_msg) from e
-    get_logger().warning("BOOM! :: %s", _msg)
-    del _msg
-    _BUILT_WITH_MESON = show_config = None
 else:
     _BUILT_WITH_MESON = True
 
-from ._config import config_context, get_config, set_config
+# Export some module objects
 from ._globals import _Default, _Deprecated, _NoValue
-
-# Pytest testing
-from ._testing._pytesttester import PytestTester
+from ._testing._pytesttester import PytestTester  # Pytest testing
 from ._utils._show_versions import show_versions
-from ._xp_core_lib import __array_api_version__
-from ._xp_core_lib._array_api import gpu_libraries
-
-# Export api modules
-from .api import *  # noqa: F401,F403
+from .api import *  # noqa: F403
+from .config._config import config_context, get_config, set_config
 from .utils.utils_path import remove_paths
 from .utils.utils_plot_mpl import stack_mpl_figures
 
@@ -121,43 +96,43 @@ del PytestTester
 # public submodules are imported lazily, therefore are accessible from
 # __getattr__.
 _submodules = {
-    ## Sub-modules as folder:
+    ## A package is a directory with an __init__.py file that can define what attributes it exposes.
     "_api",
     "_astropy",
     "_build_utils",
     # '_clv',
     "_compat",
+    "_datasets",
+    "_decorates",
     "_docstrings",
     "_externals",
     "_factory_api",
+    "_lib",
     ## Experimental, we keep transform api module to compatibility seaborn core.
     "_seaborn",
     "_testing",
     "_tweedie",
     "_utils",
-    "_xp_core_lib",
     "api",
-    # 'experimental',
+    "config",
+    "experimental",
     "kds",
     "misc",
     "modelplotpy",
-    "pipeline",
     "probscale",
-    # sphinxext,
+    "snsx",
+    "sphinxext",
     "stats",
     "typing",
     "utils",
     "visualkeras",
-    ## Sub-modules as file:
-    "__config__",
-    "_c_internal_utils",
-    "_citation",
-    "_config",
-    "_distributor_init",
+    ## A module is a .py file that is itself a module object when imported.
     "_globals",
     "_min_dependencies",
     "_preprocess",
-    "cbook",
+    "environment_variables",
+    "ml_package_versions",
+    "sp_logging",
     "version",
 }
 ## Define __all__ to control what gets imported with 'from module import *'.
@@ -174,7 +149,7 @@ __all__ = tuple(
             for name in (
                 _builtins.set(globals()).union(_submodules).difference(_discard)
             )
-            ## Exclude private/internal names (those starting with '_')
+            ## Exclude private/internal names (those starting with '_') placeholder
             if not (name.startswith("...") and not name.endswith("..."))
         ]
     )
@@ -194,7 +169,7 @@ __all__ = tuple(
 ## To customize what dir() returns, define a custom __dir__() function within the module.
 def __dir__():
     """
-    Returns a sorted list of custom attributes for the module.
+    Return a sorted list of custom attributes for the module.
 
     This function overrides the default `dir()` behavior to display
     a custom list of attributes defined in the `__all__` variable.
@@ -223,9 +198,9 @@ def __dir__():
 ## Provide clear error handling and suggestions for unresolved attributes.
 def __getattr__(
     name: str,
-    package: "Optional[str]" = None,
+    package: "str | None" = None,
     suggestion: bool = False,
-) -> "Any":
+) -> "any":
     """
     Dynamically handle undefined attribute access in a module.
 
@@ -256,39 +231,33 @@ def __getattr__(
         If the attribute cannot be resolved.
     """
     package = package or __name__
-
     try:
         # Check if it's already in the module's global scope
         if name in globals():
             return globals()[name]
-
         # Try importing as a submodule
-        import importlib as _importlib
+        from ._compat.optional_deps import nested_import
 
-        return _importlib.import_module(f".{name}", package=package)
-        # return __import__(f'{__name__}.{name}')  # low-level function
-
-    except (ImportError, ModuleNotFoundError, KeyError):
+        return nested_import(name, package)
+    except (AttributeError, ImportError, ModuleNotFoundError, Exception) as e:
         suggestion_msg = ""
-
         if suggestion:
-            import difflib as _difflib
-            import sys as _sys
+            from difflib import get_close_matches
+            from sys import modules
 
             # Everything in namespace dir()
             available = list(globals().keys()) + list(
-                getattr(_sys.modules[package], "__all__", [])
+                getattr(modules[package], "__all__", [])
             )
             # Generate suggestions for mistyped names.
-            matches = _difflib.get_close_matches(name, available)
+            matches = get_close_matches(name, available)
             if matches:
                 suggestion_msg = f" Did you mean: {', '.join(matches)}?"
-
         # Raise an error indicating the attribute could not be found,
         # with suggestions if any.
         raise AttributeError(
-            f"Module '{package}' has no attribute '{name}'.{suggestion_msg}"
-        ) from None
+            f"Module '{package}' has no attribute '{name}'.{suggestion_msg}\n{e}"
+        ) from e
 
 
 ######################################################################
@@ -303,9 +272,9 @@ def online_help(
     new_window: int = 0,
 ) -> bool:
     """
-    Open the online documentation search page
-    for a given query in the default web browser.
+    Open the online documentation search page.
 
+    Use a given search query in the default web browser.
     This function constructs a search URL based on the provided query
     and opens it in the web browser.
     It detects whether the version is in development or stable state
@@ -367,7 +336,7 @@ def online_help(
         params = {"q": query}
         full_url = f"{search_url}{('&' if urlparse(search_url).query else '?')}{urlencode(params)}"
 
-        # Open the URL in the browser
+        ## This launches the URL in the browser
         return webbrowser.open(full_url, new=new_window)
     except Exception as e:
         print(f"Error opening documentation: {e}")  # noqa: T201

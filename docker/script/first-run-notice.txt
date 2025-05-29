@@ -21,7 +21,7 @@
     ##✅ install the development version of scikit-plots
     bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
 
-    ##👉 Open to new terminal
+    ##👉 Open to new terminal mamba (or conda)
     mamba activate py311
 
     ##✅ Checking the build without root

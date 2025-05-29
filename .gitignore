@@ -6,10 +6,25 @@
 # If the file is tracked, it will return the file path.
 # If the file is not tracked, there will be no output.
 
+# gradio
+.gradio
+
+mlruns
+mlruns.db
+mlflow
+mlflow.db
+outputs
+
+# streamlit secret: .streamlit/secrets.toml or ~/.streamlit/secrets.toml
+.streamlit/secrets.toml
+
+# enviroment
+.env
+
 # custom git clones, if needed
-!git_clones/.gitignore
-!git_clones/README.md
-git_clones/*
+!.git_clones/.gitignore
+!.git_clones/README.md
+.git_clones/*
 
 # Jupyter Notebook
 **.ipynb_checkpoints

@@ -75,8 +75,16 @@ class Ursem03(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        u = -(sin(2.2 * pi * x[0] + 0.5 * pi) * ((2.0 - abs(x[0])) / 2.0) * ((3.0 - abs(x[0])) / 2))
-        v = -(sin(2.2 * pi * x[1] + 0.5 * pi) * ((2.0 - abs(x[1])) / 2) * ((3.0 - abs(x[1])) / 2))
+        u = -(
+            sin(2.2 * pi * x[0] + 0.5 * pi)
+            * ((2.0 - abs(x[0])) / 2.0)
+            * ((3.0 - abs(x[0])) / 2)
+        )
+        v = -(
+            sin(2.2 * pi * x[1] + 0.5 * pi)
+            * ((2.0 - abs(x[1])) / 2)
+            * ((3.0 - abs(x[1])) / 2)
+        )
         return u + v
 
 
@@ -113,7 +121,9 @@ class Ursem04(Benchmark):
     def fun(self, x, *args):
         self.nfev += 1
 
-        return -3 * sin(0.5 * pi * x[0] + 0.5 * pi) * (2 - sqrt(x[0] ** 2 + x[1] ** 2)) / 4
+        return (
+            -3 * sin(0.5 * pi * x[0] + 0.5 * pi) * (2 - sqrt(x[0] ** 2 + x[1] ** 2)) / 4
+        )
 
 
 class UrsemWaves(Benchmark):

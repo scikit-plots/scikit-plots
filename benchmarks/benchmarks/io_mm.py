@@ -46,7 +46,7 @@ class MemUsage(Benchmark):
         return [
             list(self._get_size().keys()),
             ["scipy.io", "scipy.io._mmio", "scipy.io._fast_matrix_market"],
-            ["dense", "coo"],  # + ['csr']
+            ["dense", "coup"],  # + ['csr']
         ]
 
     def _get_size(self):
@@ -87,12 +87,12 @@ class MemUsage(Benchmark):
     def track_mmread(self, size, implementation, matrix_type):
         size = self.size[size]
 
-        if matrix_type == "coo":
+        if matrix_type == "coup":
             a = generate_coo(size)
         elif matrix_type == "dense":
             a = generate_dense(size)
         elif matrix_type == "csr":
-            # cannot read directly into csr, only coo
+            # cannot read directly into csr, only coup
             return 0
         else:
             raise NotImplementedError
@@ -153,14 +153,14 @@ class IOSpeed(Benchmark):
     param_names = ["implementation", "matrix_type"]
     params = [
         ["scipy.io", "scipy.io._mmio", "scipy.io._fast_matrix_market"],
-        ["dense", "coo"],  # + ['csr']
+        ["dense", "coup"],  # + ['csr']
     ]
 
     def setup(self, implementation, matrix_type):
         # Use a 10MB matrix size to keep the runtimes somewhat short
         self.size = int(10e6)
 
-        if matrix_type == "coo":
+        if matrix_type == "coup":
             self.a = generate_coo(self.size)
         elif matrix_type == "dense":
             self.a = generate_dense(self.size)
@@ -175,7 +175,7 @@ class IOSpeed(Benchmark):
 
     def time_mmread(self, implementation, matrix_type):
         if matrix_type == "csr":
-            # cannot read directly into csr, only coo
+            # cannot read directly into csr, only coup
             return
 
         if implementation == "scipy.io":

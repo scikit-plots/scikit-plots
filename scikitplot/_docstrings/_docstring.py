@@ -25,7 +25,6 @@ if TYPE_CHECKING:
         Any,
         Callable,
         Optional,
-        Type,
         Union,
     )
 
@@ -47,8 +46,7 @@ __all__ = [
 
 class Substitution:
     """
-    A decorator class for performing string substitution in function
-    or class docstrings.
+    A decorator class for performing string substitution in function or class docstrings.
 
     Supports both old-style `%` formatting (e.g., "%(var)s") and new-style `.format()`
     (e.g., "{var}"). You can specify the formatting style explicitly,
@@ -165,7 +163,8 @@ class Substitution:
         **kwargs,
     ) -> "Callable[..., Any]":
         """
-        Instance-Level Method (decorator)
+        Instance-Level Method (decorator).
+
         Return a decorator that updates the instance's substitution parameters.
 
         Parameters
@@ -213,7 +212,8 @@ class Substitution:
         **kwargs,
     ) -> "Callable[[Callable[..., Any]], Callable[..., Any]]":  # Callable[[F], F]
         """
-        Class-Level Method (decorate)
+        Class-Level Method (decorate).
+
         Class-level shortcut to create a new one and apply a Substitution decorator.
 
         Parameters
@@ -277,8 +277,7 @@ class _ArtistKwdocLoader(dict):
 
     def __missing__(self, key: str) -> str:
         """
-        The __missing__ method is automatically invoked
-        when a key is not found in the dictionary.
+        Automatically invoke when a key is not found in the dictionary.
         """
         if not key.endswith(":kwdoc"):
             raise KeyError(f"Invalid `:kwdoc` key: {key}")
@@ -362,7 +361,7 @@ class _ArtistPropertiesSubstitution:
 
     def __init__(self) -> None:
         """
-        Initializes the substitution parameters with an _ArtistKwdocLoader instance.
+        Initialize the substitution parameters with an _ArtistKwdocLoader instance.
 
         The `params` attribute is a dictionary (or a subclass of it) that handles dynamic
         loading and substitution of kwdoc-related values for Matplotlib artists.
@@ -376,11 +375,11 @@ class _ArtistPropertiesSubstitution:
             logger.warning(f"Failed to initialize _ArtistKwdocLoader: {e}")
             self.params = {}  # Fallback to a plain dict if something goes wrong
 
-    def __call__(
+    def __call__(  # noqa: D417
         self,
-        obj: "Union[Callable[..., Any], Type[Any]]",
+        obj: "Union[Callable[..., Any], type[Any]]",
         strict: bool = False,
-    ) -> "Union[Callable[..., Any], Type[Any]]":
+    ) -> "Union[Callable[..., Any], type[Any]]":
         """
         Apply substitution to the given object's docstring.
 
@@ -476,7 +475,7 @@ def decorate_doc_kwarg(
     text: str,
 ) -> "Callable[[Callable], Callable]":
     """
-    Decorator for defining the kwdoc documentation of artist properties.
+    Decorate for defining the kwdoc documentation of artist properties.
 
     This decorator can be applied to artist property setter methods.
     The given text is stored in a private attribute ``_kwarg_doc`` on
@@ -531,7 +530,7 @@ def decorate_doc_copy(
     obj_source: "Callable",
 ) -> "Callable[[Callable], Callable]":
     """
-    Decorator factory to copy the docstring from another function or class (if present).
+    Decorate factory to copy the docstring from another function or class (if present).
 
     This is robust to missing or None docstrings (e.g., when run with Python -OO).
     """
