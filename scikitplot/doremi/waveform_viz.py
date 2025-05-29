@@ -64,23 +64,33 @@ def plot_waveform(
 
         >>> from scikitplot import doremi
 
-        Sample Sheet:
+    Sample Sheet:
+
+    .. jupyter-execute::
 
         >>> doremi.SHEET
 
-        Compose as Waveform:
+    Compose as Waveform:
+
+    .. jupyter-execute::
 
         >>> music = doremi.compose_as_waveform(doremi.SHEET, envelope="hann")
 
-        Play waveform:
+    Play waveform:
+
+    .. jupyter-execute::
 
         >>> doremi.play_waveform(music)
 
-        Plot waveform:
+    Plot waveform:
+
+    .. jupyter-execute::
 
         >>> doremi.plot_waveform(music)
 
-        Save waveform:
+    Save waveform:
+
+    .. jupyter-execute::
 
         >>> # doremi.save_waveform(music)
     """
