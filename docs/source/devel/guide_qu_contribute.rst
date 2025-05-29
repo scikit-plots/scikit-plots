@@ -94,8 +94,9 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
     git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
     cd scikit-plots
 
+
 Initialize and Fetch Submodules (Not Needed Every Time):
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------------------
 
 .. code-block:: shell
 
@@ -153,7 +154,7 @@ and use on all platforms and it makes it easy to install different Python versio
 can be useful for testing.
 
 Install miniforge and conda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------
 
 If you do not already have ``conda`` installed, `download and install miniforge
 <https://github.com/conda-forge/miniforge/blob/main/README.md>`_. The details depend on
@@ -282,7 +283,7 @@ First ensure it's up-to-date with the ``main`` ``scikit-plots`` repository::
     >>> git switch main
 
 (Recommended) Use Fast-forward only:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 - Fast-forward only: Updates your branch only if it can be fast-forwarded (i.e., no local commits that diverge from upstream/main).
 - If divergence exists: Git refuses to pull, and you must manually resolve the situation (e.g., using git rebase or git merge).
@@ -313,7 +314,7 @@ Use when you have no local commits diverging from upstream/main::
               X---Y  (local main)  ❌ (Fast-forward not possible)
 
 (Optionally) Rebases:
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 - Rebases your local commits on top of the latest upstream/main
 - Rewrites history by replaying your commits on top of upstream/main, making the history linear

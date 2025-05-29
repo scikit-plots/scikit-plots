@@ -96,10 +96,10 @@ def plot_residuals_distribution(
         - 'poisson': For count-based residuals or rare events (mean λ).
         - 'gamma': For positive, skewed residuals with a heavy tail (shape k or α, scale θ or β).
         - 'inverse_gaussian': For residuals with a distribution similar to the inverse Gaussian
-        (mean μ, scale λ).
+           (mean μ, scale λ).
         - 'exponential': For non-negative residuals with a long tail (scale λ).
         - 'lognormal': For positively skewed residuals with a multiplicative effect
-        (shape σ, scale exp(μ)).
+           (shape σ, scale exp(μ)).
         - 'tweedie': For complex data including counts and continuous components.
 
         The Tweedie distribution can model different types of data based on

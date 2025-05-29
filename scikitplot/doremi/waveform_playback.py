@@ -117,22 +117,23 @@ def play_waveform(
     >>> sine_wave = 0.5 * np.sin(2 * np.pi * 440 * t)  # A4 tone
     >>> play_waveform(sine_wave, rate)
 
-    Automatically picks best option
+    Automatically picks best option:
 
     >>> play_waveform(music, rate=doremi.DEFAULT_SAMPLE_RATE)
 
-    Force Jupyter output
+    Force Jupyter output:
 
     >>> play_waveform(music, rate=doremi.DEFAULT_SAMPLE_RATE, backend="jupyter")
 
-    Force sounddevice
+    Force sounddevice:
 
     >>> play_waveform(music, rate=doremi.DEFAULT_SAMPLE_RATE, backend="sounddevice")
 
     Notes
     -----
     🔧 Requires either IPython (for Jupyter playback) or the `sounddevice` package.
-    To install sounddevice and its backend:
+    To install sounddevice and its backend::
+
         # Install PortAudio library (needed for sounddevice to work on Linux)
         sudo apt-get install libportaudio2 libportaudiocpp0 portaudio19-dev
         pip install sounddevice

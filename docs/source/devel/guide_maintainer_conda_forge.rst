@@ -92,7 +92,7 @@ When updating the recipe (`meta.yaml`), you must choose **one** of the valid sou
       - Always use a **tag** or **commit hash**, not ``main`` or ``master``.
       - This method is less common and should only be used when source tarballs are not available.
 
-.. suggestion::
+.. hint::
    Use `grayskull pypi scikit-plots` to auto-generate a `meta.yaml` based on your latest PyPI release, then modify the `source` field if needed.
 
 .. _publishing-to-pypi:
@@ -127,7 +127,7 @@ This generates a ``recipes/scikit-plots/`` folder containing a ``meta.yaml``.
 .. note::
    ``grayskull`` will automatically pull metadata from your PyPI release — **but you must review it**.
 
-.. suggestion::
+.. hint::
    After generation:
    - Check license information.
    - Verify dependencies (`requirements` section).
@@ -243,7 +243,7 @@ Future updates for ``scikit-plots``:
 - Publish a new release to PyPI.
 - The **conda-forge bot** will open a PR automatically to update the feedstock recipe.
 
-.. suggestion::
+.. hint::
    Regularly check your feedstock repository for pending bot PRs!
 
 Manual Updates

@@ -64,7 +64,7 @@ def plot_feature_importances(
     **kwargs,
 ):
     """
-    Generates a plot of a sklearn model's feature importances.
+    Generate a plot of a sklearn model's feature importances.
 
     This function handles different types of classifiers and their respective
     feature importances (``feature_importances_``) or coefficient (``coef_``) attributes,
@@ -81,10 +81,10 @@ def plot_feature_importances(
     - :py:class:`~sklearn.tree.DecisionTreeClassifier`
     - :py:class:`~sklearn.ensemble.RandomForestClassifier`
     - :py:class:`~sklearn.decomposition.PCA`
-    - :py:mod:`xgboost` `Python API
-    <https://xgboost.readthedocs.io/en/stable/python/python_api.html#module-xgboost.sklearn>`_
-    - :py:mod:`catboost` `Python API
-    <https://catboost.ai/en/docs/concepts/python-quickstart>`_
+    - `"XGBoost Python API"
+      <https://xgboost.readthedocs.io/en/stable/python/python_api.html#module-xgboost.sklearn>`_
+    - `"CatBoost Python API"
+      <https://catboost.ai/en/docs/concepts/python-quickstart>`_
 
     Parameters
     ----------
