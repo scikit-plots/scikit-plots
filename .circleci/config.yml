@@ -92,6 +92,13 @@ commands:
     description: Install system dependencies
     steps:
       - run:
+          name: Fix Ubuntu mirrors to avoid 403 errors
+          command: |
+            sudo sed -i 's|http://archive.ubuntu.com/ubuntu|https://ftp.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sudo sed -i 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sudo apt-get clean
+            sudo apt-get update
+      - run:
           name: Install system dependencies
           command: |
             sudo apt-get update --fix-missing -y
