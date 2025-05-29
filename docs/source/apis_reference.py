@@ -106,7 +106,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "config_context",
                     "get_config",
-                    "logger",
+                    # "logger",
                     "set_config",
                     "show_config",
                     "show_versions",

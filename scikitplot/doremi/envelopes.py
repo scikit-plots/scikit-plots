@@ -318,31 +318,39 @@ def ad_envelope(t: np.ndarray, d: float, attack_ratio=0.2) -> np.ndarray:
     return np.clip(env, 0, 1)
 
 
+class EnvelopeRegistry(dict):
+    """Mapping of envelope types to amplitude-modulation functions."""
+
+
 # Envelope (Amplitude Modulation) Strategy Pattern:
-ENVELOPES = {
-    "none": (
-        lambda t, d: 1.0
-    ),  # No shaping — constant amplitude; may cause clicks at start/end
-    "soft_sine": soft,  # Sine-based soft — smooth, gentle fade-in and fade-out
-    "hann": (
-        hann
-    ),  # Hann window — cosine-shaped taper; smooth fade-in/out; standard default
-    "triangular": (
-        triangular
-    ),  # Triangular — linear rise and fall; fastest transitions, less smooth
-    "gaussian": (
-        gaussian
-    ),  # Gaussian bell curve — smooth symmetric fade centered in time
-    "ad_envelope": (
-        ad_envelope
-    ),  # Attack-Decay — linear ramp up then down; configurable shape
-    "exponential_decay": (
-        exponential_decay
-    ),  # Exponential decay — fast initial drop; trailing tail
-    # "hann_clipped": hann_clipped,  # Hann window with peak clipping — reduces overshoots
-    # "soft_sine_clipped": soft_clipped,  # Clipped sine — soft envelope with limited peaks
-    # "exponential_in_out": exponential_in_out,  # Exponential in/out — sharp rise and fall; dramatic contour
-}
+# ENVELOPES: Mapping of envelope names to their corresponding shaping functions.
+# These are used to modulate amplitude over time and prevent audio artifacts.
+ENVELOPES = EnvelopeRegistry(
+    {
+        "none": (
+            lambda t, d: 1.0
+        ),  # No shaping — constant amplitude; may cause clicks at start/end
+        "soft_sine": soft,  # Sine-based soft — smooth, gentle fade-in and fade-out
+        "hann": (
+            hann
+        ),  # Hann window — cosine-shaped taper; smooth fade-in/out; standard default
+        "triangular": (
+            triangular
+        ),  # Triangular — linear rise and fall; fastest transitions, less smooth
+        "gaussian": (
+            gaussian
+        ),  # Gaussian bell curve — smooth symmetric fade centered in time
+        "ad_envelope": (
+            ad_envelope
+        ),  # Attack-Decay — linear ramp up then down; configurable shape
+        "exponential_decay": (
+            exponential_decay
+        ),  # Exponential decay — fast initial drop; trailing tail
+        # "hann_clipped": hann_clipped,  # Hann window with peak clipping — reduces overshoots
+        # "soft_sine_clipped": soft_clipped,  # Clipped sine — soft envelope with limited peaks
+        # "exponential_in_out": exponential_in_out,  # Exponential in/out — sharp rise and fall; dramatic contour
+    }
+)
 
 
 def get_envelope(

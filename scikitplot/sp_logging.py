@@ -974,6 +974,7 @@ def get_logger() -> "_logging.Logger":
         name = "scikitplot"
         # Configure the logger here (only once for the entire project).
         # Scope the scikitplot logger to not conflict with users' loggers.
+        # logger: Main application logger for diagnostics and debugging output.
         logger = _logging.getLogger(name)
 
         # Override findCaller on the logger to skip internal helper functions
