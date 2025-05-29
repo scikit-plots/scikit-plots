@@ -67,7 +67,7 @@ def plot_waveform(
         >>> # doremi.save_waveform(music)
         >>> doremi.play_waveform(music)
 
-        Plot waveform
+        >>> # Plot waveform
         >>> doremi.plot_waveform(music)
     """
     # Preprocess to ensure float32, correct shape, and optional normalization
