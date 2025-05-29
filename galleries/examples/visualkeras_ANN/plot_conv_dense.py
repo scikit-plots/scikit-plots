@@ -55,8 +55,10 @@ model.summary()
 
 # %%
 
+import matplotlib.pyplot as plt
 from scikitplot import visualkeras
 
+# %%
 img_spam = visualkeras.layered_view(
     model,
     min_z=1,
@@ -72,7 +74,9 @@ img_spam = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="spam_conv_x.png",
 )
+img_spam
 
+# %%
 img_spam = visualkeras.layered_view(
     model,
     min_z=1,
@@ -88,7 +92,9 @@ img_spam = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="spam_conv_y.png",
 )
+img_spam
 
+# %%
 img_spam = visualkeras.layered_view(
     model,
     min_z=1,
@@ -107,6 +113,7 @@ img_spam = visualkeras.layered_view(
     add_timestamp=True,
     verbose=True,
 )
+img_spam
 
 # %%
 #

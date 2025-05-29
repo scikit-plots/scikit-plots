@@ -55,6 +55,7 @@ img_resnet50v2 = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="resnet50v2.png",
 )
+img_resnet50v2
 
 # %%
 #

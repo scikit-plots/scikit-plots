@@ -134,6 +134,7 @@ img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
     add_timestamp=True,
     verbose=True,
 )
+img_nlp_mpnet_with_tf_layers
 
 # %%
 #

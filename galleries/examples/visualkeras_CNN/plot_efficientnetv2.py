@@ -56,6 +56,7 @@ img_efficientnetv2 = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="efficientnetv2-b0.png",
 )
+img_efficientnetv2
 
 # %%
 #

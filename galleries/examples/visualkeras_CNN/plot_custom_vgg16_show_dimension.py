@@ -119,6 +119,7 @@ img_vgg16_show_dimension = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="vgg16_show_dimension.png",
 )
+img_vgg16_show_dimension
 
 # %%
 
@@ -136,6 +137,7 @@ img_vgg16_legend_show_dimension = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="vgg16_legend_show_dimension.png",
 )
+img_vgg16_legend_show_dimension
 
 # %%
 
@@ -154,6 +156,7 @@ img_vgg16_spacing_layers_show_dimension = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="vgg16_spacing_layers_show_dimension.png",
 )
+img_vgg16_spacing_layers_show_dimension
 
 # %%
 
@@ -176,6 +179,7 @@ img_vgg16_type_ignore_show_dimension = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="vgg16_type_ignore_show_dimension.png",
 )
+img_vgg16_type_ignore_show_dimension
 
 # %%
 
@@ -194,6 +198,7 @@ img_vgg16_color_map_show_dimension = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="vgg16_color_map_show_dimension.png",
 )
+img_vgg16_color_map_show_dimension
 
 # %%
 
@@ -212,6 +217,7 @@ img_vgg16_flat_show_dimension = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="vgg16_flat_show_dimension.png",
 )
+img_vgg16_flat_show_dimension
 
 # %%
 
@@ -231,6 +237,7 @@ img_vgg16_scaling_show_dimension = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="vgg16_scaling_show_dimension.png",
 )
+img_vgg16_scaling_show_dimension
 
 # %%
 #

@@ -78,6 +78,7 @@ img_encoder = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="encoder.png",
 )
+img_encoder
 
 # %%
 
@@ -87,6 +88,7 @@ img_autoencoder = visualkeras.layered_view(
     save_fig=True,
     save_fig_filename="autoencoder.png",
 )
+img_autoencoder
 
 # %%
 
@@ -107,6 +109,7 @@ img_autoencoder_text = visualkeras.layered_view(
     add_timestamp=True,
     verbose=True,
 )
+img_autoencoder_text
 
 # %%
 #
