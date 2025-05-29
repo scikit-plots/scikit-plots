@@ -63,12 +63,26 @@ def plot_waveform(
     .. jupyter-execute::
 
         >>> from scikitplot import doremi
-        >>> music = doremi.compose_as_waveform()
-        >>> # doremi.save_waveform(music)
+
+        Sample Sheet:
+
+        >>> doremi.SHEET
+
+        Compose as Waveform:
+
+        >>> music = doremi.compose_as_waveform(doremi.SHEET, envelope="hann")
+
+        Play waveform:
+
         >>> doremi.play_waveform(music)
 
-        >>> # Plot waveform
+        Plot waveform:
+
         >>> doremi.plot_waveform(music)
+
+        Save waveform:
+
+        >>> # doremi.save_waveform(music)
     """
     # Preprocess to ensure float32, correct shape, and optional normalization
     # Ensure shape (samples, channels) and extract meta
