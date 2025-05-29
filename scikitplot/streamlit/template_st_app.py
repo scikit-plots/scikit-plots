@@ -25,6 +25,7 @@ import os
 from scikitplot._compat.optional_deps import HAS_STREAMLIT, safe_import
 
 if HAS_STREAMLIT:
+    # import streamlit as st
     st = safe_import("streamlit")
 
     from scikitplot.streamlit import (  # noqa: F401

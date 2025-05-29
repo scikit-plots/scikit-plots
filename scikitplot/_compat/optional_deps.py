@@ -229,6 +229,8 @@ _optional_deps = [  # noqa: RUF005
 ] + [
     "tensorflow",
     "keras",
+    # sample UI app
+    "gradio",
     "streamlit",
 ]
 _deps = {k.upper(): k for k in _optional_deps}
