@@ -6,7 +6,9 @@
 # If the file is tracked, it will return the file path.
 # If the file is not tracked, there will be no output.
 
-# mlflow
+# gradio
+.gradio
+
 mlruns
 mlruns.db
 mlflow

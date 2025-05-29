@@ -3,7 +3,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-from .config_provider import (  # noqa: F401
+from .model_registry import (  # noqa: F401
     LLM_MODEL_PROVIDER2API_KEY,
     LLM_MODEL_PROVIDER2CONFIG,
 )

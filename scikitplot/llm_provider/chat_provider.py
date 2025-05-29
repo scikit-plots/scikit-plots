@@ -13,7 +13,7 @@ from typing import Optional, Union
 
 from .. import logger
 from .clint_provider import get_client, hf_fallback_request
-from .config_provider import LLM_MODEL_PROVIDER2API_KEY, LLM_MODEL_PROVIDER2CONFIG
+from .model_registry import LLM_MODEL_PROVIDER2API_KEY, LLM_MODEL_PROVIDER2CONFIG
 from .utils import get_env_var, streamlit_stream_or_return
 
 

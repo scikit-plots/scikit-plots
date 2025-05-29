@@ -9,7 +9,7 @@
 ######################################################################
 import pathlib
 
-from scikitplot import sp_logging as logger
+from scikitplot import logger
 
 _built_with_meson = True
 

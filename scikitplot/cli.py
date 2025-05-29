@@ -729,6 +729,50 @@ def st(file_path, address, port, dark_theme, lib_sample):
 
 
 ######################################################################
+## Add a COMMAND to Entry-point: gr()
+######################################################################
+
+
+@cli.command()
+@click.option(
+    "--file_path",
+    default="template_st_app.py",
+    help="Streamlit app file, default 'template_st_app.py'.",
+)
+@click.option(
+    "--share",
+    "-s",
+    default="localhost",
+    help="Streamlit Host address, default 'localhost'.",
+)
+def gr(file_path, share):
+    """
+    Launch the gradio app with the provided configuration options.
+
+    For Docker or WSL 2 environments::
+
+        # Inside Docker: set address to "0.0.0.0" instead of "localhost"
+
+        python -m scikitplot.streamlit.run_app st --address 0.0.0.0
+
+        # (optionally persist) ~/.wslconfig
+
+        localhostforwarding=true
+    """
+    from .gradio.template_gr_app import app
+
+    try:
+        click.echo(f"Launching {file_path} on port {share}")
+        app.launch(share=True)
+    except ShellCommandException:
+        eprint(
+            "Running the scikitplot gradio UI app failed. "
+            "Please see the logs above for details."
+        )
+        sys.exit(1)
+
+
+######################################################################
 ## Add a COMMAND to Entry-point: from defined py
 ######################################################################
 

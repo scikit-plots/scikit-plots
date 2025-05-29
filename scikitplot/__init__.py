@@ -47,6 +47,8 @@ __version__ = "0.5.0.dev0"
 # import logging as _logging
 from . import sp_logging as logger
 
+logger.setLevel(logger.DEBUG)
+
 try:  # Trt to import meson built files, modules (etc. *.in)
     from ._lib import __array_api_version__
     from ._lib._array_api import gpu_libraries
