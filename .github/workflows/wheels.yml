@@ -533,10 +533,22 @@ jobs:
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
           fetch-tags: true
 
-      # - name: Install system dependencies, Not needed cause os independent
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y libopenblas-dev liblapack-dev
+      - name: Install system dependencies, Not needed cause os independent
+        run: |
+          sudo apt-get update --fix-missing -y
+          sudo apt-get install --fix-missing -y --no-install-recommends \
+            ninja-build \
+            ccache \
+            cm-super \
+            graphviz \
+            ffmpeg \
+            inkscape \
+            make \
+            gfortran \
+            libopenblas-dev \
+            liblapack-dev \
+            libgmp-dev \
+            libmpfr-dev
 
       # Used to push the built wheels
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0

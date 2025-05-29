@@ -105,6 +105,7 @@ commands:
               make \
               gfortran \
               libopenblas-dev \
+              liblapack-dev \
               libgmp-dev \
               libmpfr-dev
   pip-install:
