@@ -3,6 +3,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# pylint: disable=pointless-string-statement
+
 
 def _get_guide(*refs, is_developer=False):
     """
@@ -469,7 +471,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
     # },
     "scikitplot.visualkeras": {
         "short_summary": (
-            "Visualization of Neural Network Architectures Keras (either standalone or included in tensorflow)."
+            "Visualization of Neural Network Architectures Keras "
+            "(either standalone or included in tensorflow)."
         ),
         "description": _get_guide("visualkeras-index"),
         "sections": [
@@ -492,6 +495,32 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": None,
                 "autosummary": [
                     "SpacingDummyLayer",
+                ],
+            },
+        ],
+    },
+    "scikitplot.doremi": {
+        "short_summary": "Musical note handling, synthesis, and notation.",
+        "description": _get_guide("doremi-index"),
+        "sections": [
+            {
+                "title": "Simple Music Composer",
+                "description": (
+                    _get_submodule("scikitplot", "doremi")
+                    + "\n\n"
+                    + _get_guide("doremi-index")
+                ),
+                "autosummary": [
+                    "ENVELOPES",
+                    "compose_as_waveform",
+                    "play_waveform",
+                    "plot_waveform",
+                    "save_waveform",
+                    "save_waveform_as_mp3",
+                    "sheet_to_note",
+                    "sheet_converter",
+                    "serialize_sheet",
+                    "export_sheet",
                 ],
             },
         ],

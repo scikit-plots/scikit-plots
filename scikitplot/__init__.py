@@ -47,7 +47,7 @@ __version__ = "0.5.0.dev0"
 # import logging as _logging
 from . import sp_logging as logger
 
-logger.setLevel(logger.DEBUG)
+# logger.setLevel(logger.DEBUG)  # for debugging
 
 try:  # Trt to import meson built files, modules (etc. *.in)
     from ._lib import __array_api_version__

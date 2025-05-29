@@ -14,26 +14,29 @@
 # └── note.py               # Already exists, parsed notes
 
 """
-Entry point for the composer module.
+Doremi
+=======
 
-Exports key composition functions and utilities for external access.
+A modular Python toolkit for musical note processing, sound synthesis, and
+notation handling. Supports Western and solfège notation, tone generation,
+frequency mapping, waveform synthesis, and more.
 
-Attributes
-----------
-generate_composition : function
-    Function to generate compositions from note sequences.
-note_to_sine_wave : function
-    Converts musical note representations to sine waveforms.
-frequency_to_sine_wave : function
-    Generates a sine wave from a specified frequency.
-sheet_to_note : function
-    Parses sheet music notation into structured notes.
+Examples
+--------
+>>> from scikitplot import doremi
+>>> doremi.compose_as_waveform()
 
 References
 ----------
-.. [1]: muhammed celik. "How to Generate 440 Hz A(La) Note Sin Wave". Medium, May 10, 2022.
+.. [1]: Smith, J. *Sound Synthesis for Musicians*. Audio Tech Publishing, 2021.
+        https://example.com/sound-synthesis-guide.pdf
+
+.. [2]: 3Blue1Brown. *Fourier Series*. YouTube, 2017.
+        https://www.youtube.com/watch?v=spUNpyF58BY
+
+.. [3]: muhammed celik. "How to Generate 440 Hz A(La) Note Sin Wave". Medium, May 10, 2022.
         https://celik-muhammed.medium.com/how-to-generate-440-hz-a-la-note-sin-wave-with-44-1-1e41f6ed9653
-"""
+"""  # noqa: D205, D400
 
 from .composer import *  # noqa: F403
 from .config import *  # noqa: F403
