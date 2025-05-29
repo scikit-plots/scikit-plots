@@ -29,6 +29,17 @@ from scikitplot._compat.optional_deps import HAS_GRADIO, safe_import
 ## Clean up temp folder on shutdown
 # atexit.register(lambda: shutil.rmtree(TEMP_DIR))
 
+# Your SVG content (Download icon) fill="currentColor"
+svg = """
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="white" width="24" height="24">
+<path d="M26 24v4H6v-4H4v4a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-4zm0-10l-1.41-1.41L17 20.17V2h-2v18.17l-7.59-7.58L6 14l10 10 10-10z"></path>
+</svg>
+"""
+# Encode the SVG to base64
+svg_base64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+img_tag = f'<img src="data:image/svg+xml;base64,{svg_base64}" width="18" height="18" style="vertical-align: middle; display:inline;">'
+# img_tag = f'<span style="display:inline;">{img_tag}</span>'
+
 if HAS_GRADIO:
     # import spaces  # huggingface
     # import gradio as gr
@@ -80,18 +91,17 @@ if HAS_GRADIO:
                     label="🔊 Attention: Please wait for soundbars..."
                 )  # , autoplay=True, streaming=True
 
+                gr.Markdown(
+                    "Choose how the sound's volume gradually starts and ends to avoid abrupt noises and clicks."
+                )
+                envelope_choice = gr.Radio(
+                    choices=list(doremi.ENVELOPES),
+                    label="Envelope Type",
+                    value="hann",  # Default selection
+                )
+
                 # Always visible accordion with instructions, collapsed by default
-                with gr.Accordion("🔔 Trouble playing the audio?", open=False):
-                    # Your SVG content (Download icon) fill="currentColor"
-                    svg = """
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="white" width="24" height="24">
-                    <path d="M26 24v4H6v-4H4v4a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-4zm0-10l-1.41-1.41L17 20.17V2h-2v18.17l-7.59-7.58L6 14l10 10 10-10z"></path>
-                    </svg>
-                    """
-                    # Encode the SVG to base64
-                    svg_base64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
-                    img_tag = f'<img src="data:image/svg+xml;base64,{svg_base64}" width="18" height="18" style="vertical-align: middle; display:inline;">'
-                    # img_tag = f'<span style="display:inline;">{img_tag}</span>'
+                with gr.Accordion("🔔 Trouble playing the audio?", open=True):
                     # Text with embedded icon
                     gr.Markdown(
                         f"""
@@ -123,6 +133,22 @@ if HAS_GRADIO:
             ),
             inputs=[
                 sheet_input,
+                envelope_choice,
+            ],
+            outputs=audio_output,  # one output by fn
+        )
+
+        # Trigger an action when the user changes a gr.Radio selection
+        envelope_choice.change(
+            # return filepath or (sample_rate, audio array)
+            # lambda *a, **kw: doremi.save_waveform(doremi.compose_as_waveform(*a, **kw), file_path=file_path)
+            fn=lambda *a, **kw: (
+                doremi.DEFAULT_SAMPLE_RATE,
+                doremi.compose_as_waveform(*a, **kw),
+            ),
+            inputs=[
+                sheet_input,
+                envelope_choice,
             ],
             outputs=audio_output,  # one output by fn
         )
@@ -137,6 +163,7 @@ if HAS_GRADIO:
             ),
             inputs=[
                 sheet_input,
+                envelope_choice,
             ],
             outputs=audio_output,  # one output by fn
         )

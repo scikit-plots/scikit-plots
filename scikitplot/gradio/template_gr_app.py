@@ -7,7 +7,10 @@
 
 """template_gr_app."""
 
+from scikitplot import logger
 from scikitplot._compat.optional_deps import HAS_GRADIO, safe_import
+
+logger.setLevel(logger.INFO)
 
 if HAS_GRADIO:
     # import spaces  # huggingface

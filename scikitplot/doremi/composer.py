@@ -67,6 +67,7 @@ class CompositionSchema(BaseModel):
 @interpd
 def compose_as_waveform(
     composition: Union[str, list[tuple[str, int, float]], dict] = SHEET,
+    envelope: "Union[str, callable[[np.ndarray, float], np.ndarray], None]" = None,
     **kwargs,
 ) -> np.ndarray:
     """
@@ -82,6 +83,9 @@ def compose_as_waveform(
         - dict: {'notes': [{'note': 'C', 'octave': 4, 'duration': 0.5}, ...]}
 
         Defaults to an internal sample `SHEET`.
+    envelope : str or callable, optional
+        Envelope to shape amplitude over time.
+        Choose from: 'hann', 'soft', 'triangular', or provide a custom function.
     **kwargs : dict
         Additional keyword arguments passed to `note_to_sine_wave`,
         such as amplitude, envelope, sample_rate, etc.
@@ -110,7 +114,9 @@ def compose_as_waveform(
             waveform_segments.append(silence)
         else:
             # Generate sine wave for note
-            segment = note_to_sine_wave(note, octave, duration, **kwargs)
+            segment = note_to_sine_wave(
+                note, octave, duration, envelope=envelope, **kwargs
+            )
             waveform_segments.append(segment)
 
     result = (
@@ -118,8 +124,8 @@ def compose_as_waveform(
         if waveform_segments
         else np.zeros(0, dtype=np.float32)
     )
-    logger.info(result.shape)
-    return result
+    # logger.info(result.shape)
+    return result  # noqa: RET504
 
 
 # -------------------------------------------------------------------

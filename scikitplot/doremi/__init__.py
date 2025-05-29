@@ -37,6 +37,7 @@ References
 
 from .composer import *  # noqa: F403
 from .config import *  # noqa: F403
+from .envelopes import ENVELOPES  # noqa: F401
 from .note import *  # noqa: F403
 from .note_io import *  # noqa: F403
 from .synthesis import *  # noqa: F403

@@ -1,5 +1,7 @@
 ### composer/synthesis.py
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 # pylint: disable=import-error
 # pylint: disable=import-outside-toplevel
@@ -22,7 +24,7 @@ frequency_to_sine_wave(frequency, duration, amplitude, sample_rate, envelope)
     Generates a sine wave with a given frequency and envelope.
 """  # noqa: D205
 
-from typing import Callable, Union
+from typing import Union
 
 import numpy as np
 
@@ -48,10 +50,10 @@ def frequency_to_sine_wave(
     duration: float = DEFAULT_DURATION,
     amplitude: float = DEFAULT_AMPLITUDE,
     sample_rate: int = DEFAULT_SAMPLE_RATE,
-    envelope: Union[str, Callable[[np.ndarray, float], np.ndarray], None] = None,
+    envelope: "Union[str, callable[[np.ndarray, float], np.ndarray], None]" = None,
 ) -> np.ndarray:
     r"""
-    Generate a sine waveform at a given frequency with optional amplitude envelope.
+    Generate a sine waveform at a given frequency with optional amplitude envelope (fade-in/out).
 
     The sine wave is defined as:
 
@@ -73,8 +75,8 @@ def frequency_to_sine_wave(
         Peak amplitude of the waveform. Default is 1.0.
     sample_rate : int, optional
         Sampling rate in Hz. Default is 44100.
-    envelope : str or callable, optional
-        Amplitude shaping function. Options:
+    envelope : str or callable or None, optional
+        Amplitude envelope shaping function over time. Options:
         - 'hann' (default)
         - 'soft'
         - 'triangular'
@@ -106,12 +108,7 @@ def frequency_to_sine_wave(
     >>> frequency_to_sine_wave(523.25, amplitude=0.7, envelope="triangular")
     """
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
-
-    if envelope:  # noqa: SIM108
-        env = get_envelope(t, duration, envelope)
-    else:
-        env = 1.0  # No envelope shaping
-
+    env = 1.0 if envelope is None else get_envelope(t, duration, envelope)
     waveform = amplitude * np.sin(2 * np.pi * frequency * t) * env
     return waveform.astype(np.float32)
 
@@ -123,7 +120,7 @@ def note_to_sine_wave(  # noqa: D417
     duration: float = DEFAULT_DURATION,
     amplitude: float = DEFAULT_AMPLITUDE,
     sample_rate: int = DEFAULT_SAMPLE_RATE,
-    envelope: Union[str, Callable[[np.ndarray, float], np.ndarray], None] = None,
+    envelope: "Union[str, callable[[np.ndarray, float], np.ndarray], None]" = None,
 ) -> np.ndarray:
     """
     Generate a sine waveform for a given musical note.
