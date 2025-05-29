@@ -63,7 +63,7 @@ def plot_waveform(
     .. jupyter-execute::
 
         >>> from scikitplot import doremi
-        >>> music = doremi.generate_composition()
+        >>> music = doremi.compose_as_waveform()
         >>> # doremi.save_waveform(music)
         >>> doremi.play_waveform(music)
 

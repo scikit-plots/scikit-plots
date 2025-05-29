@@ -118,12 +118,15 @@ def play_waveform(
     >>> play_waveform(sine_wave, rate)
 
     Automatically picks best option
+
     >>> play_waveform(music, rate=doremi.DEFAULT_SAMPLE_RATE)
 
     Force Jupyter output
+
     >>> play_waveform(music, rate=doremi.DEFAULT_SAMPLE_RATE, backend="jupyter")
 
     Force sounddevice
+
     >>> play_waveform(music, rate=doremi.DEFAULT_SAMPLE_RATE, backend="sounddevice")
 
     Notes
