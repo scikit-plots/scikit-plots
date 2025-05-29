@@ -419,10 +419,11 @@ def save_image_pil_kwargs(
 
     """
     # Extract optional parameters with defaults
+    backend: Optional[Union[bool, str]] = kwargs.get(  # noqa: UP037
+        "backend",
+        "matplotlib",
+    )
     # pil
-    backend: Optional[Union[bool, str]] = kwargs.get(
-        "backend", "matplotlib"
-    )  # noqa: UP037
     show_os_viewer: bool = kwargs.get("show_os_viewer", False)
     # mpl
     show_fig: bool = kwargs.get("show_fig", True)
@@ -452,8 +453,16 @@ def save_image_pil_kwargs(
             # Use Matplotlib backend (default or fallback)
             if str(backend).lower() in ("matplotlib", "true", "none", None):
                 try:
-                    # Attempt to show and save using matplotlib
-                    plt.imshow(result)
+                    if plt.get_fignums():
+                        fig = (
+                            plt.gcf()
+                        )  # Get current figure (create one if none exists)
+                        ax = plt.gca()  # Get current axes (create one if none exists)
+                    else:
+                        fig, ax = (
+                            plt.subplots()
+                        )  # Attempt to show and save using matplotlib
+                    ax = ax.imshow(result)  # Display the image on the existing axes
                     plt.axis("off")
                     plt.tight_layout()
                     # plt.draw()
@@ -477,6 +486,7 @@ def save_image_pil_kwargs(
                         plt.show()
                         # plt.gcf().clear()  # Clear the figure after saving
                         # plt.close()
+                    return ax
                 except Exception as e:
                     warnings.warn(
                         "[ERROR] Could not saved image using Matplotlib to "
@@ -497,7 +507,8 @@ def save_image_pil_kwargs(
                     show_os_viewer=show_os_viewer,
                 )
     except Exception:
-        pass  # Silently ignore any final failure (can be logged if needed)
+        # pass  # Silently ignore any final failure (can be logged if needed)
+        return result
 
 
 # 1. Standard Decorator (no arguments) both with params and without params
@@ -591,12 +602,12 @@ def save_image_pil_decorator(
                 *args, func=inner_func, **kwargs
             )
             # Call the validation function to ensure proper fig and ax are set
-            _ = save_image_pil_kwargs(
+            ax_or_im = save_image_pil_kwargs(
                 result=result,
                 func_name=inner_func.__name__,
                 **_kwargs,
             )
-            return result
+            return ax_or_im or result
 
         return wrapper
 

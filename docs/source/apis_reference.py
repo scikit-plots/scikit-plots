@@ -106,6 +106,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "config_context",
                     "get_config",
+                    "logger",
                     "set_config",
                     "show_config",
                     "show_versions",
@@ -183,6 +184,28 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_utils.binary_ks_curve",
                     # validation
                     "_utils.validate_plotting_kwargs",
+                ],
+            },
+        ],
+    },
+    "scikitplot.doremi": {
+        "short_summary": "Musical note handling, synthesis, and notation.",
+        "description": _get_guide("doremi-index"),
+        "sections": [
+            {
+                "title": "Simple Music Composer",
+                "description": None,
+                "autosummary": [
+                    "ENVELOPES",
+                    "compose_as_waveform",
+                    "play_waveform",
+                    "plot_waveform",
+                    "save_waveform",
+                    "save_waveform_as_mp3",
+                    "sheet_to_note",
+                    "sheet_converter",
+                    "serialize_sheet",
+                    "export_sheet",
                 ],
             },
         ],
@@ -495,32 +518,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": None,
                 "autosummary": [
                     "SpacingDummyLayer",
-                ],
-            },
-        ],
-    },
-    "scikitplot.doremi": {
-        "short_summary": "Musical note handling, synthesis, and notation.",
-        "description": _get_guide("doremi-index"),
-        "sections": [
-            {
-                "title": "Simple Music Composer",
-                "description": (
-                    _get_submodule("scikitplot", "doremi")
-                    + "\n\n"
-                    + _get_guide("doremi-index")
-                ),
-                "autosummary": [
-                    "ENVELOPES",
-                    "compose_as_waveform",
-                    "play_waveform",
-                    "plot_waveform",
-                    "save_waveform",
-                    "save_waveform_as_mp3",
-                    "sheet_to_note",
-                    "sheet_converter",
-                    "serialize_sheet",
-                    "export_sheet",
                 ],
             },
         ],

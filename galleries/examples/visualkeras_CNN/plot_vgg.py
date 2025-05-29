@@ -80,6 +80,7 @@ img_vgg19 = visualkeras.layered_view(
     add_timestamp=True,
     verbose=True,
 )
+img_vgg19
 
 # %%
 #
