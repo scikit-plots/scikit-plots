@@ -92,16 +92,23 @@ commands:
     description: Install system dependencies
     steps:
       - run:
-          name: Fix Ubuntu mirrors to avoid 403 errors
+          name: Ensure CA certificates are installed and update apt sources to HTTP
           command: |
-            sudo sed -i 's|http://archive.ubuntu.com/ubuntu|https://ftp.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-            sudo sed -i 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            # Install CA certs to avoid SSL errors
+            sudo apt-get update || true
+            sudo apt-get install -y --fix-missing ca-certificates
+            sudo update-ca-certificates
+
+            # Replace HTTPS mirrors with HTTP to avoid cert errors in CI
+            sudo sed -i 's|https://ftp.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sudo sed -i 's|https://security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+
+            # Clean apt cache and update package lists
             sudo apt-get clean
-            sudo apt-get update
+            sudo apt-get update --fix-missing -y
       - run:
           name: Install system dependencies
           command: |
-            sudo apt-get update --fix-missing -y
             sudo apt-get install --fix-missing -y --no-install-recommends \
               ninja-build \
               ccache \
