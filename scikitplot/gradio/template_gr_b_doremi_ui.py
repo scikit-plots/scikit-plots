@@ -17,11 +17,14 @@ import os
 import shutil
 import tempfile
 import uuid
+from datetime import datetime
 
 # import numpy as np
 # from scipy.io.wavfile import write
 from scikitplot import doremi
 from scikitplot._compat.optional_deps import HAS_GRADIO, safe_import
+
+prefix = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
 
 ## Create one shared temp folder
 # TEMP_DIR = tempfile.mkdtemp()
@@ -48,7 +51,7 @@ if HAS_GRADIO:
     ## gr.Blocks - Flexible and Modular
     with gr.Blocks() as gr_bocks:
         # --- UI placeholders ---
-        # Example UI
+        # ♪♪ Example UI
         gr.Markdown(
             "<h1 style='text-align: center;'>🎵 Simple Music Composer: Western and Solfège Notation</h1>"
         )
@@ -59,6 +62,8 @@ if HAS_GRADIO:
         with gr.Row():  # noqa: SIM117
             with gr.Column():
                 # freq_input = gr.Slider(minimum=100, maximum=50000, label="Frequency (Hz)", value=440)
+                # Use for MP3 from pydub import AudioSegment
+                # format = gr.Radio(["wav", "mp3"], value="wav", label="Format")
                 sheet_input = gr.Textbox(
                     value=doremi.SHEET.strip(),
                     label="🎼 Enter Music Composition...",
@@ -87,21 +92,13 @@ if HAS_GRADIO:
                 # It requires a small delay to function correctly.
                 # Play generated audio feed: filepath or (sample_rate, audio array)
                 # audio_output = gr.Audio(label="Player: Generated Audio", type="filepath")
+                # https://github.com/gradio-app/gradio/issues/8177
                 audio_output = gr.Audio(
                     label="🔊 Attention: Please wait for soundbars..."
-                )  # , autoplay=True, streaming=True
-
-                gr.Markdown(
-                    "Choose how the sound's volume gradually starts and ends to avoid abrupt noises and clicks."
-                )
-                envelope_choice = gr.Radio(
-                    choices=list(doremi.ENVELOPES),
-                    label="Envelope Type",
-                    value="hann",  # Default selection
-                )
+                )  # , autoplay=True, streaming=True, format="mp3" | "bytes",
 
                 # Always visible accordion with instructions, collapsed by default
-                with gr.Accordion("🔔 Trouble playing the audio?", open=True):
+                with gr.Accordion("🔔 Trouble playing the audio?", open=False):
                     # Text with embedded icon
                     gr.Markdown(
                         f"""
@@ -112,6 +109,15 @@ if HAS_GRADIO:
                         - 📲 Open the file in your preferred media player.
                         """
                     )
+
+                gr.Markdown(
+                    "Choose how the sound's volume gradually starts and ends to avoid abrupt noises and clicks."
+                )
+                envelope_choice = gr.Radio(
+                    choices=list(doremi.ENVELOPES),
+                    label="Envelope Type",
+                    value="hann",  # Default selection
+                )
 
         # --- Add/Call Action ---
         # Gradio dynamically adds event methods like .click() at runtime.
