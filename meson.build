@@ -1109,9 +1109,9 @@ inc_dir_f2py = include_directories(_f2py_inc_dir)
 fortranobject_c = _f2py_inc_dir / 'fortranobject.c'
 
 if not fs.exists(fortranobject_c)
-  error(
+  warning(
     '\n' +
-    RED + '[ERROR]' + RESET +
+    YELLOW + '[WARNING]' + RESET +
     'Missing required file: ' + fortranobject_c + '\n' +
     'Make sure NumPy is installed from source with f2py support. Try:\n' +
     '  pip install numpy --no-binary :all:\n' +
