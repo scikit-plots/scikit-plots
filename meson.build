@@ -1112,11 +1112,12 @@ if not fs.exists(fortranobject_c)
   error(
     '\n' +
     RED + '[ERROR]' + RESET +
-    'Missing required file: ' + fortranobject_c.to_string() + '\n' +
+    'Missing required file: ' + fortranobject_c + '\n' +
     'Make sure NumPy is installed from source with f2py support. Try:\n' +
     '  pip install numpy --no-binary :all:\n' +
     'Also ensure gfortran is installed.'
   )
+  fortranobject_c = meson.project_source_root() / 'scikitplot/_f2py/src/fortranobject.c'
 endif
 
 npymath_path = _np_inc_dir_abs / '..' / 'lib'

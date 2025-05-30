@@ -65,6 +65,7 @@ repos:
       - id: ruff  # Run the linter.
         args: ["--fix", "--show-fixes", "--output-format=full"]  # --unsafe-fixes
         # types_or: [ python, pyi ]
+      # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
       - id: ruff-format  # Run the formatter.
         args:
           - --check                   # Check if files are formatted. Exit with code 1 if reformatting is needed, but don’t change files.
@@ -82,6 +83,7 @@ repos:
         # args: ["--target-version=py312"]  # Change to match your Python version.
         exclude: 'tests/'
 
+  # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.2
     hooks:
