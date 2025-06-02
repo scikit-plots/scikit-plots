@@ -414,7 +414,7 @@ extend = [
 ]
 ci32_requirements = [
   ## https://anaconda.org/conda-forge/blas
-  "scipy-openblas32==0.3.29.0.0",           # Keep this in sync with ci_requirements.txt
+  "scipy-openblas32==0.3.29.265.0",           # Keep this in sync with ci_requirements.txt
   "spin",                                   # https://github.com/scientific-python/spin
 ]
 ci_requirements = [
