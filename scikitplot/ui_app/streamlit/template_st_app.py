@@ -87,7 +87,7 @@ if HAS_STREAMLIT:
         title: str = "scikit-plots",
         max_height: str = "80px",
         font_size: str = "1.1rem",
-        center: bool = True,
+        align: str = "center",  # Now explicitly takes 'left', 'center', or 'right'
     ):
         """
         Display a logo and title at the bottom of the Streamlit sidebar.
@@ -104,10 +104,9 @@ if HAS_STREAMLIT:
             Maximum height of the logo image (e.g., '70px').
         font_size : str
             Font size of the title (e.g., '1.1rem').
-        center : bool
+        align : 'left', 'center', or 'right'
             Whether to center the logo and title.
         """
-        align = "center" if center else "left"
         # st.sidebar.markdown(
         #     f"""
         #     <div class="sidebar-logo">
@@ -130,13 +129,13 @@ if HAS_STREAMLIT:
         <style>
         /* Make sidebar a flex column container */
         section[data-testid="stSidebar"] > div:first-child {{
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-            /* height: 100vh; */
             display: flex;
             flex-direction: column;
+            height: 100vh;
             /* space-between pushes last child to bottom */
             justify-content: space-between;
+            padding-top: 0rem;
+            padding-bottom: 0rem;
         }}
 
         /* Optional: reduce overall sidebar top margin */
@@ -145,13 +144,15 @@ if HAS_STREAMLIT:
             padding-bottom: 0 !important;
         }}
 
+        /* Sidebar content wrapper grows to fill space, pushing logo down */
+        .sidebar-content {{
+            flex-grow: 1;
+        }}
+
         .sidebar-logo {{
             text-align: {align};
-            padding-top: 4.5rem;
-            padding-bottom: 0rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            margin-top: auto; /* push to bottom */
+            padding: 2rem 1rem 1rem 1rem;
         }}
 
         .sidebar-logo img {{
@@ -173,6 +174,7 @@ if HAS_STREAMLIT:
         }}*/
         </style>
 
+        <div class="sidebar-content"></div>
         <div class="sidebar-logo">
             <a href="{url}" target="_blank" style="text-decoration: none;">
                 <img src="{logo_url}" alt="{title} Logo" onerror="this.style.display='none';">

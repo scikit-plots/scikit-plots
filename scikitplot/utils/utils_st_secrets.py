@@ -70,7 +70,11 @@ def save_st_secrets(
     try:
         write_toml(path, secrets_dict)
     except ScikitplotException as e:
-        logger.error(f"Failed to save secrets to {path}: {e}")
+        # 🔒 Updated save_st_secrets (secure):
+        logger.error(
+            f"Failed to save secrets to file at {os.path.basename(path)}: "
+            f"{type(e).__name__}"
+        )
         raise
 
 
