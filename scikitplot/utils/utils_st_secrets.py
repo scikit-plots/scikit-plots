@@ -45,11 +45,8 @@ def load_st_secrets(
     if os.path.exists(path):
         try:
             return read_toml(path)
-        except ScikitplotException as e:
-            logger.warning(
-                f"Failed to load secrets to file at {os.path.basename(path)}: "
-                f"{type(e).__name__}"
-            )
+        except ScikitplotException:
+            logger.error("Failed to load streamlit secrets to file at.")
     return {}
 
 
@@ -72,14 +69,9 @@ def save_st_secrets(
     os.makedirs(os.path.dirname(path), exist_ok=True)
     try:
         write_toml(path, secrets_dict)
-    except ScikitplotException as e:
+    except ScikitplotException:
         # 🔒 Updated save_st_secrets (secure):
-        redacted_path = os.path.basename(path)  # Redact full path to avoid exposing sensitive data
-        logger.error(
-            f"Failed to save secrets to file at {redacted_path}: "
-            f"{type(e).__name__}"
-        )
-        raise
+        logger.error("Failed to save secrets to file at.")
 
 
 def get_env_st_secrets(
@@ -111,24 +103,3 @@ def get_env_st_secrets(
         )
     except Exception:
         return default
-
-
-def sanitize_log_message(msg: str) -> str:
-    """
-    Sanitize a log message by redacting sensitive data.
-
-    Parameters
-    ----------
-    msg : str
-        The log message to sanitize.
-
-    Returns
-    -------
-    str
-        The sanitized log message with sensitive data redacted.
-    """
-    sensitive_keywords = ["secret", "password", "token", "key"]
-    for keyword in sensitive_keywords:
-        if keyword in msg.lower():
-            return "[REDACTED] Sensitive information detected in log message."
-    return msg
