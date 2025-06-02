@@ -107,36 +107,16 @@ if HAS_STREAMLIT:
         align : 'left', 'center', or 'right'
             Whether to center the logo and title.
         """
-        # st.sidebar.markdown(
-        #     f"""
-        #     <div class="sidebar-logo">
-        #         <a align=center href="https://scikit-plots.github.io/dev">
-        #           <img src={
-        #         "https://raw.githubusercontent.com/scikit-plots/scikit-plots"
-        #         "/main/docs/source/logos/scikit-plots-logo.svg"
-        #     }
-        #           alt="Logo" width="auto">
-        #         </a>
-        #         <a align=center href="https://scikit-plots.github.io/dev">
-        #           <h2 align=center>scikit-plots</h2>
-        #         </a>
-        #     </div>
-        #     """,
-        #     unsafe_allow_html=True,
-        # )
         st.sidebar.markdown(
             f"""
         <style>
         /* Make sidebar a flex column container */
         section[data-testid="stSidebar"] > div:first-child {{
-            /* position: fixed; */
-            left: 0;
-            top: 0;
+            /* height: 100vh; */
+            height: 100%;
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            /* space-between pushes last child to bottom */
-            justify-content: space-between;
+            /* justify-content: space-between; */
             padding-top: 0rem;
             padding-bottom: 0rem;
         }}
