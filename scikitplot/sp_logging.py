@@ -1178,8 +1178,9 @@ def error(msg, *args, **kwargs):
     kwargs : any
         Additional keyword arguments for logging.
     """
+    if "secret" in msg.lower():  # Simple heuristic to detect sensitive data
+        msg = "[REDACTED] Sensitive information detected in log message."
     get_logger().error(msg, *args, **kwargs)
-
 
 def error_log(error_msg, *args, level=ERROR, **kwargs):
     """Empty helper method."""
