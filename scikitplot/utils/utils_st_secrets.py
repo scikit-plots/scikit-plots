@@ -111,3 +111,24 @@ def get_env_st_secrets(
         )
     except Exception:
         return default
+
+
+def sanitize_log_message(msg: str) -> str:
+    """
+    Sanitize a log message by redacting sensitive data.
+
+    Parameters
+    ----------
+    msg : str
+        The log message to sanitize.
+
+    Returns
+    -------
+    str
+        The sanitized log message with sensitive data redacted.
+    """
+    sensitive_keywords = ["secret", "password", "token", "key"]
+    for keyword in sensitive_keywords:
+        if keyword in msg.lower():
+            return "[REDACTED] Sensitive information detected in log message."
+    return msg

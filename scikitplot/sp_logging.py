@@ -1178,8 +1178,8 @@ def error(msg, *args, **kwargs):
     kwargs : any
         Additional keyword arguments for logging.
     """
-    if "secret" in msg.lower():  # Simple heuristic to detect sensitive data
-        msg = "[REDACTED] Sensitive information detected in log message."
+    from .utils.utils_st_secrets import sanitize_log_message  # Import sanitization utility
+    msg = sanitize_log_message(msg)  # Sanitize the log message to redact sensitive data
     get_logger().error(msg, *args, **kwargs)
 
 def error_log(error_msg, *args, level=ERROR, **kwargs):
