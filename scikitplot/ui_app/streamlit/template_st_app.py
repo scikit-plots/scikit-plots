@@ -1,6 +1,8 @@
 """
 Streamlit home UI template_st_app.
 
+~/.streamlit/config.toml
+
 ├── template_st_app.py        ← this file
 └── .streamlit/
     └── config.toml
@@ -28,7 +30,7 @@ if HAS_STREAMLIT:
     # import streamlit as st
     st = safe_import("streamlit")
 
-    from scikitplot.streamlit import (  # noqa: F401
+    from scikitplot.ui_app.streamlit import (  # noqa: F401
         template_st_chat_ui,
         template_st_data_visualizer_ui,
         template_st_dataset_loader_ui,

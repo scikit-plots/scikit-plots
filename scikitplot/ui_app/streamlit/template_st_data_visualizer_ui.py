@@ -91,7 +91,7 @@ import pandas as pd
 
 from scikitplot import logger
 from scikitplot._compat.optional_deps import HAS_STREAMLIT, nested_import, safe_import
-from scikitplot.streamlit import get_sns_data, snsx_catalog
+from scikitplot.ui_app.streamlit import get_sns_data, snsx_catalog
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -107,7 +107,7 @@ def load_snsx_catalog():
 
 
 if HAS_STREAMLIT:
-    from scikitplot.streamlit.template_st_chat_ui import (
+    from scikitplot.ui_app.streamlit.template_st_chat_ui import (
         api_key_config_ui,
         chat_provider,
     )
