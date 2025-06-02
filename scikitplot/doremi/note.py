@@ -351,6 +351,12 @@ def sheet_converter(
     -------
     str or list or dict or pandas.DataFrame
         Formatted note data.
+
+    Examples
+    --------
+    >>> sheet_converter(return_mode='df')
+    ...     note octave duration frequency
+    ... 0	G	 4	    0.50	 392.00
     """
     sheet = sheet or SHEET  # Use internal fallback
     sheet = sheet_to_note(sheet)  # Convert to (note, octave, duration)

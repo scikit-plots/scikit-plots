@@ -130,7 +130,7 @@ if HAS_STREAMLIT:
         section[data-testid="stSidebar"] > div:first-child {{
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
-            height: 100vh;
+            /* height: 100vh; */
             display: flex;
             flex-direction: column;
             /* space-between pushes last child to bottom */

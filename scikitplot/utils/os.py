@@ -12,4 +12,5 @@ def is_windows():
     True if the local system/OS name is Windows.
 
     """
+    # return sys.platform.startswith("win")
     return os.name == "nt"

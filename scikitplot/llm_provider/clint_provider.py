@@ -1,9 +1,9 @@
-"""clint_provider."""
-
 # scikitplot/llm_provider/clint_provider.py
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+"""clint_provider."""
 
 import importlib
 

@@ -15,18 +15,13 @@ Streamlit Conversational UI.
 # pylint: disable=no-name-in-module
 # pylint: disable=broad-exception-caught
 
-import os
-from typing import Optional
-
+# import os
 from scikitplot import logger
 from scikitplot._compat.optional_deps import HAS_STREAMLIT, safe_import
 from scikitplot.llm_provider import (
     LLM_MODEL_PROVIDER2CONFIG,  # noqa: F401
     chat_provider,
-    get_env_st_secrets,
     load_mlflow_gateway_config,
-    load_st_secrets,
-    save_st_secrets,
 )
 
 if HAS_STREAMLIT:
@@ -38,8 +33,8 @@ if HAS_STREAMLIT:
         return load_mlflow_gateway_config(path)
 
     def api_key_config_ui(
-        config_path: "Optional[str]" = None,
-    ) -> "tuple[str, str, Optional[str]]":
+        config_path: str | None = None,
+    ) -> "tuple[str, str, str | None]":
         """
         Render the Streamlit UI for API key configuration.
 
@@ -150,28 +145,28 @@ if HAS_STREAMLIT:
         # api_key = api_key if api_key else None
         # Store in Session
         st.session_state["api_key"] = api_key
-        if st.button(
-            "Save API Key to '~/.streamlit/secrets.toml'",
-            use_container_width=True,
-        ):
-            # if not api_key or len(api_key) < 10:
-            #     st.warning("Please enter a valid API key.")
-            # elif not valid_key_format(model_provider, api_key):
-            #     st.warning(f"API key for {model_provider} must start with expected prefix.")
-            # else:
-            # product detection
-            product = os.getenv("PRODUCT") or get_env_st_secrets("PRODUCT", None)
-            if product == "product":
-                # Load Update Save streamlit secrets
-                secrets = load_st_secrets()
-                secrets[env_key] = api_key
-                save_st_secrets(secrets)
-                st.success(f"{model_provider.capitalize()} API key saved as persisted!")
-            else:
-                # Show current key info (not the key itself)
-                st.info(
-                    f"Dev mode: {model_provider.capitalize()} API key keep only session!"
-                )
+        # if st.button(
+        #     "Save API Key to '~/.streamlit/secrets.toml'",
+        #     use_container_width=True,
+        # ):
+        #     # if not api_key or len(api_key) < 10:
+        #     #     st.warning("Please enter a valid API key.")
+        #     # elif not valid_key_format(model_provider, api_key):
+        #     #     st.warning(f"API key for {model_provider} must start with expected prefix.")
+        #     # else:
+        #     # product detection
+        #     product = os.getenv("PRODUCT") or get_env_st_secrets("PRODUCT", None)
+        #     if product == "product":
+        #         # Load Update .env
+        #         # secrets = load_st_secrets()
+        #         # secrets[env_key] = api_key
+        #         # save_st_secrets(secrets)
+        #         st.success(f"{model_provider.capitalize()} API key saved as persisted!")
+        #     else:
+        #         # Show current key info (not the key itself)
+        #         st.info(
+        #             f"Dev mode: {model_provider.capitalize()} API key keep only session!"
+        #         )
         return model_provider, model_id, api_key
 
     def run_chat_ui():  # noqa: PLR0912

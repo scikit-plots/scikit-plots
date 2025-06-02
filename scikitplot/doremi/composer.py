@@ -67,7 +67,7 @@ class CompositionSchema(BaseModel):
 @interpd
 def compose_as_waveform(
     composition: Union[str, list[tuple[str, int, float]], dict] = SHEET,
-    envelope: "Union[str, callable[[np.ndarray, float], np.ndarray], None]" = None,
+    envelope: "Union[str, callable[[np.ndarray, float], np.ndarray], None]" = "hann",
     **kwargs,
 ) -> np.ndarray:
     """
