@@ -65,6 +65,7 @@ class AliasedGroup(click.Group):
 @click.help_option(
     "--help",
     "-h",  # param_decls (only positional)
+    "-H",  # param_decls (only positional)
 )
 # Automatically provides --version (or -v) as a command-line flag
 # to print the program version and exit.
@@ -72,6 +73,7 @@ class AliasedGroup(click.Group):
     __version__,  # version
     "--version",
     "-v",  # param_decls (only positional)
+    "-V",  # param_decls (only positional)
     # package_name="scikitplot",  # optional, use version from installed `scikitplot`
     # prog_name="scikit-plots",  # optional, default display name in the version message
     # The message to show.
@@ -709,7 +711,7 @@ def st(file_path, address, port, dark_theme, lib_sample):
 
         localhostforwarding=true
     """
-    from .streamlit.run_app import launch_streamlit
+    from .ui_app.streamlit.run_app import launch_streamlit
 
     try:
         click.echo(f"Launching {file_path} on port {port}")
@@ -759,7 +761,7 @@ def gr(file_path, share):
 
         localhostforwarding=true
     """
-    from .gradio.template_gr_app import app
+    from .ui_app.gradio.template_gr_app import app
 
     try:
         click.echo(f"Launching {file_path} on port {share}")

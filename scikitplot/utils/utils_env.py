@@ -1,19 +1,17 @@
-"""llm_provider."""
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 # pylint: disable=broad-exception-caught
 
+"""utils_env."""
+
 import os
-from typing import Optional
 
-from .env_utils import run_load_dotenv
-from .secret_utils import get_env_st_secrets
-from .stream_utils import streamlit_stream_or_return  # noqa: F401
+from .utils_dot_env import run_load_dotenv
+from .utils_st_secrets import get_env_st_secrets
 
 
-def get_env_var(env_var: str = "", fallback: Optional[str] = None) -> Optional[str]:
+def get_env_var(env_var: str = "", fallback: str | None = None) -> str | None:
     """
     Retrieve token from environment variable or Streamlit secrets.
 

@@ -8,7 +8,7 @@
 from collections.abc import Generator
 from typing import Union
 
-from ..._compat.optional_deps import HAS_STREAMLIT, safe_import
+from .._compat.optional_deps import HAS_STREAMLIT, safe_import
 
 
 def streamlit_stream_or_return(

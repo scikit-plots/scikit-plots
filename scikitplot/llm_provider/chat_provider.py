@@ -1,5 +1,3 @@
-"""chat_provider."""
-
 # scikitplot/llm_provider/chat_provider.py
 
 # Authors: The scikit-plots developers
@@ -7,14 +5,17 @@
 
 # pylint: disable=broad-exception-caught
 
+"""chat_provider."""
+
 import argparse
 from dataclasses import dataclass
 from typing import Optional, Union
 
 from .. import logger
+from ..utils.utils_env import get_env_var
+from ..utils.utils_stream import streamlit_stream_or_return
 from .clint_provider import get_client, hf_fallback_request
 from .model_registry import LLM_MODEL_PROVIDER2API_KEY, LLM_MODEL_PROVIDER2CONFIG
-from .utils import get_env_var, streamlit_stream_or_return
 
 
 @dataclass

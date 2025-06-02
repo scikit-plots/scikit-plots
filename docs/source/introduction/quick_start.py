@@ -24,6 +24,7 @@ y_pred = cross_val_predict(clf, X_train, y_train)
 import scikitplot as sp
 
 sp.logger.setLevel(sp.logger.WARNING)
+
 sp.metrics.plot_classifier_eval(
     y_train,
     y_pred,

@@ -3,21 +3,23 @@
 # %run ../docs/source/introduction/quick_start_tf.py
 
 # Import Libraries
-# Before tf {'0':'All', '1':'Warnings+', '2':'Errors+', '3':'Fatal Only'} if any
 import os
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-# Disable GPU and force TensorFlow to use CPU
-import os
-
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 # Set TensorFlow's logging level to Fatal
-import logging
+# Before tf {'0':'All', '1':'Warnings+', '2':'Errors+', '3':'Fatal Only'} if any
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+# Disable GPU and force TensorFlow to use CPU
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+import matplotlib.pyplot as plt
+import scikitplot as sp
+
+sp.logger.setLevel(sp.logger.WARNING)
 
 import tensorflow as tf
 
-tf.get_logger().setLevel(logging.CRITICAL)
+# Set TensorFlow's logging level to Fatal
+tf.get_logger().setLevel(sp.logger.CRITICAL)
 
 from sklearn.datasets import load_digits
 from sklearn.model_selection import train_test_split
@@ -55,12 +57,6 @@ model.fit(
 # Predict probabilities on the validation set
 y_probas = model.predict(X_val)
 
-# Plot the data
-import matplotlib.pyplot as plt
-
-import scikitplot as sp
-
-sp.logger.setLevel(sp.logger.WARNING)
 # Plot precision-recall curves
 sp.metrics.plot_precision_recall(
     y_val,

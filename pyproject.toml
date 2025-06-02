@@ -273,6 +273,9 @@ dev = [
   "pydantic",
   "pydevtool",                              # Development tools
   "pyyaml",
+  # toml — a popular older TOML parsing library, supports both reading and writing.
+  # tomli — a newer, faster, read-only TOML parser focused on compliance.
+  # >= 3.11	tomllib (built-in)	Read-only	No external dependency
   'tomli;python_version<"3.11"',            # Python TOML support became built-in (via tomllib) starting in Python 3.11.
   "types-psutil",                           # Type stubs for psutil
   "typing_extensions",                      # Backports for older Python versions
