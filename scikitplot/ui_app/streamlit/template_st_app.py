@@ -129,6 +129,9 @@ if HAS_STREAMLIT:
         <style>
         /* Make sidebar a flex column container */
         section[data-testid="stSidebar"] > div:first-child {{
+            /* position: fixed; */
+            left: 0;
+            top: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
@@ -138,16 +141,11 @@ if HAS_STREAMLIT:
             padding-bottom: 0rem;
         }}
 
-        /* Optional: reduce overall sidebar top margin */
+        /* Optional: reduce overall sidebar top margin
         section[data-testid="stSidebar"] {{
             padding-top: 0 !important;
             padding-bottom: 0 !important;
-        }}
-
-        /* Sidebar content wrapper grows to fill space, pushing logo down */
-        .sidebar-content {{
-            flex-grow: 1;
-        }}
+        }} */
 
         .sidebar-logo {{
             text-align: {align};
@@ -174,7 +172,6 @@ if HAS_STREAMLIT:
         }}*/
         </style>
 
-        <div class="sidebar-content"></div>
         <div class="sidebar-logo">
             <a href="{url}" target="_blank" style="text-decoration: none;">
                 <img src="{logo_url}" alt="{title} Logo" onerror="this.style.display='none';">
