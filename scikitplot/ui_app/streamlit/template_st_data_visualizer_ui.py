@@ -269,40 +269,6 @@ if HAS_STREAMLIT:
 
         You can add any content here: title, logo, menu, etc.
         """
-        st.logo(
-            image=(
-                "https://raw.githubusercontent.com/scikit-plots/scikit-plots"
-                "/main/docs/source/logos/scikit-plots-logo.svg"
-            ),
-            icon_image=(
-                "https://raw.githubusercontent.com/scikit-plots/scikit-plots"
-                "/main/docs/source/logos/scikit-plots-favicon.ico"
-            ),
-            link="https://scikit-plots.github.io/dev",
-            size="small",  # "medium","large"
-        )
-        # Add a logo to the bottom-left of the sidebar
-        st.sidebar.markdown(
-            """
-            <style>
-            /* Apply flex layout ONLY to the sidebar container (not every child div) */
-            section[data-testid="stSidebar"] > div:first-child {
-                display: flex;
-                flex-direction: column;
-                margin-bottom: 0 !important;
-                padding-bottom: 0 !important;
-                justify-content: space-between;
-                height: 100vh;
-            }
-            /* Remove any bottom padding/margin from internal divs */
-            section[data-testid="stSidebar"] div {
-                margin-bottom: 0 !important;
-                padding-bottom: 0 !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
         # Sidebar for controlling expanders and categories
         with st.sidebar:
             # Add title to the sidebar

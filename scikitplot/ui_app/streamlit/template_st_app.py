@@ -182,6 +182,19 @@ if HAS_STREAMLIT:
         if not template_st_login_ui.run_login_form_ui():
             st.stop()  # 👈 prevent rest of the app from rendering
 
+        st.logo(
+            image=(
+                "https://raw.githubusercontent.com/scikit-plots/scikit-plots"
+                "/main/docs/source/logos/scikit-plots-logo.svg"
+            ),
+            icon_image=(
+                "https://raw.githubusercontent.com/scikit-plots/scikit-plots"
+                "/main/docs/source/logos/scikit-plots-favicon.ico"
+            ),
+            link="https://scikit-plots.github.io/dev",
+            size="small",  # "medium","large"
+        )
+
         ## ---- App Content ----
         st.sidebar.title("🔖 Navigation")
 
