@@ -1294,7 +1294,8 @@ def warning(msg, *args, **kwargs):
     kwargs : any
         Additional keyword arguments for logging.
     """
-    get_logger().warning(msg, *args, **kwargs)
+    sanitized_msg = sanitize_sensitive_data(msg)
+    get_logger().warning(sanitized_msg, *args, **kwargs)
 
 
 ######################################################################

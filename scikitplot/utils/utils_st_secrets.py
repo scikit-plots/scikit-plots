@@ -46,7 +46,7 @@ def load_st_secrets(
         try:
             return read_toml(path)
         except ScikitplotException as e:
-            logger.warning(f"Could not load secrets from {path}: {e}")
+            logger.warning(f"Could not load secrets from {os.path.basename(path)}: {e}")
     return {}
 
 
