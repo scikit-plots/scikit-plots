@@ -1178,9 +1178,8 @@ def error(msg, *args, **kwargs):
     kwargs : any
         Additional keyword arguments for logging.
     """
-    from .utils.utils_st_secrets import sanitize_log_message  # Import sanitization utility
-    msg = sanitize_log_message(msg)  # Sanitize the log message to redact sensitive data
     get_logger().error(msg, *args, **kwargs)
+
 
 def error_log(error_msg, *args, level=ERROR, **kwargs):
     """Empty helper method."""
@@ -1296,6 +1295,27 @@ def warning(msg, *args, **kwargs):
         Additional keyword arguments for logging.
     """
     get_logger().warning(msg, *args, **kwargs)
+
+
+def sanitize_log_message(msg: str) -> str:
+    """
+    Sanitize a log message by redacting sensitive data.
+
+    Parameters
+    ----------
+    msg : str
+        The log message to sanitize.
+
+    Returns
+    -------
+    str
+        The sanitized log message with sensitive data redacted.
+    """
+    sensitive_keywords = ["secret", "password", "token", "key"]
+    for keyword in sensitive_keywords:
+        if keyword in msg.lower():
+            return "[REDACTED] Sensitive information detected in log message."
+    return msg
 
 
 ######################################################################

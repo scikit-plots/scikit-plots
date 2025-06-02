@@ -148,6 +148,6 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '👋 Thank you for your draft pull request!
-              Do you know that you can use `[ci skip]` or `[skip ci]` in your commit messages to skip running continuous integration tests until you are ready?'
+              body: `👋 Thank you for your draft pull request!
+              Do you know that you can use \`[ci skip]\` or \`[skip ci]\` in your commit messages to skip running continuous integration tests until you are ready?`
             })
