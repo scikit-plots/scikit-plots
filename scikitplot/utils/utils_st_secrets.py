@@ -74,8 +74,9 @@ def save_st_secrets(
         write_toml(path, secrets_dict)
     except ScikitplotException as e:
         # 🔒 Updated save_st_secrets (secure):
+        redacted_path = os.path.basename(path)  # Redact full path to avoid exposing sensitive data
         logger.error(
-            f"Failed to save secrets to file at {os.path.basename(path)}: "
+            f"Failed to save secrets to file at {redacted_path}: "
             f"{type(e).__name__}"
         )
         raise
