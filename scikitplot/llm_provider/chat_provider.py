@@ -345,10 +345,7 @@ def client_fallback_request(
     """
     fallback_msg = fallback_msg or "[ERROR] Model call failed."
     if provider == "huggingface":
-        try:
-            return hf_fallback_request(model_id, api_key, params)
-        except Exception as e:
-            logger.exception(f"[HF fallback failed] {e}")
+        hf_fallback_request(model_id, api_key, params)
     else:
         logger.error(f"[{provider}] fallback not implemented.")
     return fallback_msg
