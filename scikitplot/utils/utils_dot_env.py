@@ -32,8 +32,8 @@ def run_load_dotenv(
 
     Returns
     -------
-    list of str
-        A sorted list of environment variable names loaded.
+    bool
+        True if at least one environment variable is set else False
 
     Raises
     ------
@@ -61,27 +61,11 @@ def run_load_dotenv(
             if not dotenv_path.is_file():
                 raise ScikitplotException(f".env file not found at: {dotenv_path}")
         else:
-            found_path = find_dotenv(usecwd=True)
-            dotenv_path = pathlib.Path(found_path) if found_path else None
+            dotenv_path = find_dotenv(usecwd=True)
 
-        if not dotenv_path or not dotenv_path.exists():
-            logger.warning("No .env file found.")
-            return []
-
+        # Load .env
         logger.info(f"Loading environment variables from: {dotenv_path}")
-
-        # Load .env and determine new variables
-        before = set(os.environ.keys())
-        load_dotenv(dotenv_path=dotenv_path, override=override)
-        after = set(os.environ.keys())
-        loaded = sorted(after - before)
-
-        if verbose:
-            logger.debug(f"Loaded {len(loaded)} environment variables: {loaded}")
-        else:
-            logger.debug(f"Loaded {len(loaded)} environment variables.")
-
-        return loaded
+        return load_dotenv(dotenv_path=dotenv_path, override=override, verbose=verbose)
 
     except Exception as e:
         msg = f"Failed to load .env file: {e}"
