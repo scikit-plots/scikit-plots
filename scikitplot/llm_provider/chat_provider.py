@@ -172,7 +172,7 @@ def get_model_info(
     """
     model_id = model_id or LLM_MODEL_PROVIDER2CONFIG[model_provider][0]["model_id"]
     env_api_key = LLM_MODEL_PROVIDER2API_KEY.get(model_provider, "")
-    api_key = api_key or get_env_var(env_api_key)
+    api_key = api_key if api_key else get_env_var(env_api_key)
 
     if not api_key:
         logger.warning(
@@ -201,8 +201,15 @@ def format_messages(
     List[Dict[str, str]]
         List of formatted messages with a system instruction prepended.
     """
+    role_system = {
+        "role": "system",
+        "content": (
+            "You are a helpful AI assistant specialized in machine learning topics."
+        ),
+    }
     if not messages:
         messages = [
+            role_system,
             {
                 "role": "user",
                 "content": "Hello Assistant!",
@@ -210,18 +217,14 @@ def format_messages(
         ]
     elif isinstance(messages, (str, int)):
         messages = [
+            role_system,
             {
                 "role": "user",
                 "content": f"{messages}",
             },
         ]
     return [
-        {
-            "role": "system",
-            "content": (
-                "You are a helpful AI assistant specialized in machine learning topics."
-            ),
-        },
+        role_system,
         *messages[-max_history:],
     ]
 
@@ -308,11 +311,15 @@ def parse_response(
     str
         Extracted content.
     """
-    if stream:
+    try:
+        if stream:
+            return response
+        if provider == "huggingface":
+            return response.choices[0].message.get("content")
+        return response.choices[0].message.content
+    except Exception as e:
+        logger.exception(f"Response parser error: {e}")
         return response
-    if provider == "huggingface":
-        return response.choices[0].message.get("content")
-    return response.choices[0].message.content
 
 
 def client_fallback_request(
@@ -430,19 +437,24 @@ def get_response(
             response = client.chat.completions.create(**params)
             content = parse_response(model_provider, stream, response)
             return streamlit_stream_or_return(content)
-        except Exception:
+        except Exception as e:
+            logger.exception(
+                f"Failed to get response from '{model_provider}' endpoint: {e}"
+            )
             # _handle_fallback
             client_fallback_request(
                 model_provider,
                 model_id,
                 api_key,
                 params,
-                fallback_message,
+                str(e),
             )
             return fallback_message
 
     except Exception as e:
-        logger.exception(f"[Global Exception] {e}")
+        logger.exception(
+            f"No client configuration found for model provider '{model_provider}': {e}"
+        )
         return fallback_message
 
 

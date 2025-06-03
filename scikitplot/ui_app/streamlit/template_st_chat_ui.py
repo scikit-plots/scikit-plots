@@ -358,12 +358,13 @@ if HAS_STREAMLIT:
                         # )
                         # response = assitant_response.choices[0].message.content
                         # logger.info(response)
-                        response = get_response(
-                            st.session_state.messages,
-                            model_provider=st.session_state.model_provider,
-                            model_id=st.session_state.model_id,
-                            api_key=st.session_state.api_key,
-                        )
+                        with st.spinner("Response..."):
+                            response = get_response(
+                                st.session_state.messages,
+                                model_provider=st.session_state.model_provider,
+                                model_id=st.session_state.model_id,
+                                api_key=st.session_state["api_key"],
+                            )
                         # Add assistant response to chat history
                         # Display assistant response in chat message container
                         st.session_state.messages.append(
