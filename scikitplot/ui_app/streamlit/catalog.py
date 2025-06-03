@@ -55,7 +55,7 @@ class FunctionMeta(Enum):
             "description": "Plot the Receiver Operating Characteristic (ROC) curve to visualize the trade-off between true positive rate and false positive rate.",
             "parameters": ["y_true", "y_score"],
             "optional_parameters": {
-                "figsize": (6, 2.7)
+                "figsize": (6, 2.85)
             }
         },
     """
@@ -78,7 +78,7 @@ snsx_catalog = [
         "explainability_level": "medium",
         "description": "Plot the.",
         "parameters": ["y_true", "y_pred"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -93,7 +93,7 @@ snsx_catalog = [
             "Plot the Receiver Operating Characteristic (ROC) curve to visualize the trade-off between true positive rate and false positive rate."
         ),
         "parameters": ["y_true", "y_score"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -108,7 +108,7 @@ snsx_catalog = [
             "Plot the Precision-Recall curve for imbalanced classification problems."
         ),
         "parameters": ["y_true", "y_score"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -123,7 +123,7 @@ snsx_catalog = [
             "Display the lift curve to understand the effectiveness of a predictive model by deciles."
         ),
         "parameters": ["y_true", "y_score"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -138,7 +138,7 @@ snsx_catalog = [
             "Plot the Kolmogorov-Smirnov (KS) statistic curve to evaluate the separation between positive and negative classes."
         ),
         "parameters": ["y_true", "y_score"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -153,7 +153,7 @@ snsx_catalog = [
             "Visualize the principal component analysis (PCA) 2D projection of input features."
         ),
         "parameters": ["data", "hue"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -168,7 +168,7 @@ snsx_catalog = [
             "Show SHAP summary plot to explain global feature importance for a trained model."
         ),
         "parameters": ["model", "X"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -181,7 +181,7 @@ snsx_catalog = [
         "explainability_level": "medium",
         "description": "Plot mutual information between features and target variable.",
         "parameters": ["X", "y"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -196,7 +196,7 @@ snsx_catalog = [
             "Visualize missing values in a heatmap to assess data completeness."
         ),
         "parameters": ["df"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     {
         "module": "scikitplot",
@@ -211,7 +211,7 @@ snsx_catalog = [
             "Plot model training loss across epochs to monitor convergence and overfitting."
         ),
         "parameters": ["history"],
-        "optional_parameters": {"figsize": (6, 2.7)},
+        "optional_parameters": {"figsize": (6, 2.85)},
     },
     # Additional functions can be appended here following the same structure
 ]

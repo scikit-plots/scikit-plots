@@ -33,9 +33,6 @@ if HAS_STREAMLIT:
             - authenticated: True if logged in
             - user_type: 'admin' or 'guest'
         """
-        # Only main page
-        # st.set_page_config(page_title="Login", layout="centered")
-
         ## Initialize session state with defaults (only once)
         # st.session_state.setdefault("authenticated", False)
         if "authenticated" not in st.session_state:
@@ -45,6 +42,7 @@ if HAS_STREAMLIT:
 
         # Placeholder
         login_placeholder = st.empty().container()
+        # Placeholder
         sidebar_placeholder = st.empty().container()
 
         # Display login form only if not logged in
