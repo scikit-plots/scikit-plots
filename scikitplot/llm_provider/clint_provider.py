@@ -5,64 +5,23 @@
 
 """clint_provider."""
 
+import functools
 import importlib
 
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-# ----------------------------
-# Provider clients
-# ----------------------------
+from .. import logger
+from ..exceptions import ScikitplotException
+
+# add numpydoc notes examples types and add each line comments
+
+######################################################################
+## CLIENT_FACTORY
+######################################################################
 
 
-class ClientImportError(ImportError):
-    """Custom exception raised when a client import or attribute lookup fails."""
-
-
-def import_client(module_name: str, class_name: str, **kwargs: any) -> any:
-    """
-    Dynamically import a client class from a module and instantiate it with an API key.
-
-    Parameters
-    ----------
-    module_name : str
-        The name of the Python module to import.
-    class_name : str
-        The class name within the module to instantiate.
-    **kwargs : dict, optional
-        Additional keyword arguments passed to the client constructor.
-        - api_key : str
-          The API key or `token` used to authenticate the client.
-
-    Returns
-    -------
-    object
-        An instance of the requested client class.
-
-    Raises
-    ------
-    ClientImportError
-        Raised if the module cannot be imported or the class is not found in the module.
-    """
-    try:
-        # Use importlib for cleaner imports
-        module = importlib.import_module(module_name)
-    except ImportError as e:
-        raise ClientImportError(f"Could not import module '{module_name}': {e}") from e
-
-    try:
-        # Attempt to get the client class from the module
-        client_cls = getattr(module, class_name)
-    except AttributeError as e:
-        raise ClientImportError(
-            f"Module '{module_name}' has no attribute '{class_name}'"
-        ) from e
-
-    # Instantiate the client with api_key and additional parameters
-    # huggingface use token parameters
-    return client_cls(**kwargs)
-
-
+# Factory that maps model provider names to their respective client initializer lambdas.
 CLIENT_FACTORY: "dict[str, callable[..., any]]" = {
     # HuggingFace Hub Inference client
     "huggingface": lambda token, **kwargs: import_client(
@@ -127,41 +86,100 @@ CLIENT_FACTORY: "dict[str, callable[..., any]]" = {
 }
 
 
+def import_client(
+    module_name: str,
+    class_name: str,
+    **kwargs: any,
+) -> any:
+    """
+    Dynamically import and instantiate a client class from the given module.
+
+    Parameters
+    ----------
+    module_name : str
+        The name of the Python module (e.g., 'openai', 'huggingface_hub').
+    class_name : str
+        The name of the class to instantiate from the module.
+    **kwargs : Any
+        Additional keyword arguments for the class constructor.
+        Commonly includes 'api_key' or 'token'.
+
+    Returns
+    -------
+    Any
+        Instantiated client object.
+
+    Raises
+    ------
+    ScikitplotException
+        If the module or class cannot be imported.
+
+    Examples
+    --------
+    >>> import_client("openai", "OpenAI", api_key="sk-abc123")
+    <openai.OpenAI object>
+    """
+    try:
+        # Use importlib for cleaner imports
+        module = importlib.import_module(module_name)
+    except ImportError as e:
+        raise ScikitplotException(
+            f"Could not import module '{module_name}': {e}"
+        ) from e
+
+    try:
+        # Attempt to get the client class from the module
+        client_cls = getattr(module, class_name)
+    except AttributeError as e:
+        raise ScikitplotException(
+            f"Module '{module_name}' has no attribute '{class_name}'"
+        ) from e
+
+    # Instantiate the client with api_key and additional parameters
+    # huggingface use token parameters
+    return client_cls(**kwargs)
+
+
+@functools.lru_cache(maxsize=128)
 def get_client(
     model_provider: str,
     api_key: str,
     **kwargs: any,
 ) -> any:
     """
-    Return the appropriate client instance based on the model provider.
+    Retrieve a cached client instance for the specified model provider.
 
     Parameters
     ----------
     model_provider : str
-        The name of the model provider, e.g., 'openai', 'groq', 'huggingface'.
+        Name of the model provider, e.g., 'openai', 'groq', 'huggingface'.
     api_key : str
-        API `api_key` or `token` used to authenticate with the "model_provider.model_id".
-    **kwargs : dict, optional
-        Additional keyword arguments forwarded to the client constructor.
-        - base_url : str, optional
-          `model_provider` API format compatible with OpenAI `base_url` params.
-          Like (OpenAI(api_key="<DeepSeek API Key>", base_url="https://api.deepseek.com"))
+        API key or token required by the model provider.
+    **kwargs : Any
+        Optional keyword arguments passed to the client constructor.
+        e.g., `base_url`, `timeout`, or `model`.
 
     Returns
     -------
-    object
-        An initialized client instance for the specified provider.
+    Any
+        Instantiated and cached client object.
 
     Raises
     ------
     ValueError
-        If the specified model_provider is not supported.
+        If an unsupported model provider is passed.
+
+    Examples
+    --------
+    >>> get_client("openai", api_key="sk-xxx", base_url="https://api.example.com")
+    <openai.OpenAI object>
     """
     if model_provider not in CLIENT_FACTORY:
         raise ValueError(f"Unknown model_provider '{model_provider}'")
 
     # Call the appropriate factory with api_key and any extra kwargs
     # client = get_client("openai", "my_openai_api_key", model="gpt-4", timeout=30)
+    # Return the initialized client
     return CLIENT_FACTORY[model_provider](api_key, **kwargs)
 
 
@@ -171,31 +189,62 @@ def get_client(
 
 
 @retry(wait=wait_exponential(min=1, max=10), stop=stop_after_attempt(3))
-def hf_fallback_request(model_id: str, token: str, payload: dict) -> str:
+def hf_fallback_request(
+    model_id: str,
+    token: str,
+    payload: dict,
+) -> str:
     """
-    Fallback raw POST request to HuggingFace endpoint.
+    Send a fallback POST request to HuggingFace inference API endpoint.
 
     Parameters
     ----------
     model_id : str
-        The model identifier.
+        Identifier of the model deployed on HuggingFace.
     token : str
-        API token for authentication.
+        API token used for authenticating the request.
     payload : dict
-        JSON payload for the request.
+        The JSON payload containing chat parameters (e.g., messages, temperature).
 
     Returns
     -------
     str
-        Content of the response message.
+        The content from the first response message.
 
     Raises
     ------
     requests.HTTPError
-        If the request fails.
+        Raised if the HTTP request fails or returns a non-200 status code.
+
+    Notes
+    -----
+    - This is typically used as a fallback if the HuggingFace client invocation fails.
+    - Automatically retries up to 3 times with exponential backoff.
+
+    Examples
+    --------
+    >>> hf_fallback_request(
+    ...     model_id="mistralai/Mixtral-8x7B-Instruct-v0.1",
+    ...     token="hf_abc123...",
+    ...     payload={"messages": [...], "temperature": 0.7},
+    ... )
+    "Sure, here's how to do that..."
     """
-    headers = {"Authorization": f"Bearer {token}"}
-    url = f"https://router.huggingface.co/hf-inference/models/{model_id}/v1/chat/completions"
-    response = requests.post(url, headers=headers, json=payload, timeout=30)
-    response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
+    try:
+        # Construct headers with the authorization token
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Construct the target URL for HuggingFace inference router
+        url = f"https://router.huggingface.co/hf-inference/models/{model_id}/v1/chat/completions"
+
+        # Send the POST request to the HuggingFace endpoint
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+
+        # Raise HTTPError if the request was unsuccessful (non-200 status)
+        response.raise_for_status()
+
+        # Parse and return the chat content from the first choice
+        return response.json()["choices"][0]["message"]["content"]
+    except requests.RequestException as e:
+        logger.exception("Request to HuggingFace fallback endpoint failed.")
+        raise e

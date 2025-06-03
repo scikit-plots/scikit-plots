@@ -17,8 +17,8 @@ if HAS_GRADIO:
     # import gradio as gr
     gr = safe_import("gradio")
 
-    from scikitplot.gradio.template_gr_b_doremi_ui import gr_bocks
-    from scikitplot.gradio.template_gr_i_doremi_ui import gr_interface
+    from scikitplot.ui_app.gradio.template_gr_b_doremi_ui import gr_bocks
+    from scikitplot.ui_app.gradio.template_gr_i_doremi_ui import gr_interface
 
     with gr.Blocks() as app:  # noqa: SIM117
         with gr.Tabs():
