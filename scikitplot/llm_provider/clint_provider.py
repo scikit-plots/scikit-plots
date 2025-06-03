@@ -3,6 +3,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# pylint: disable=broad-exception-caught
+
 """clint_provider."""
 
 import functools
@@ -174,13 +176,18 @@ def get_client(
     >>> get_client("openai", api_key="sk-xxx", base_url="https://api.example.com")
     <openai.OpenAI object>
     """
-    if model_provider not in CLIENT_FACTORY:
-        raise ValueError(f"Unknown model_provider '{model_provider}'")
+    try:
+        if model_provider not in CLIENT_FACTORY:
+            raise ValueError(f"Unknown model_provider '{model_provider}'")
 
-    # Call the appropriate factory with api_key and any extra kwargs
-    # client = get_client("openai", "my_openai_api_key", model="gpt-4", timeout=30)
-    # Return the initialized client
-    return CLIENT_FACTORY[model_provider](api_key, **kwargs)
+        # Call the appropriate factory with api_key and any extra kwargs
+        # client = get_client("openai", "my_openai_api_key", model="gpt-4", timeout=30)
+        # Return the initialized client
+        return CLIENT_FACTORY[model_provider](api_key, **kwargs)
+    except Exception as e:
+        logger.exception(
+            f"Model provider '{model_provider}' could not be imported. Error: {e}"
+        )
 
 
 # ----------------------------
@@ -246,5 +253,4 @@ def hf_fallback_request(
         # Parse and return the chat content from the first choice
         return response.json()["choices"][0]["message"]["content"]
     except requests.RequestException as e:
-        logger.exception("Request to HuggingFace fallback endpoint failed.")
-        raise e
+        logger.exception(f"Hugging Face fallback request failed: {e}")

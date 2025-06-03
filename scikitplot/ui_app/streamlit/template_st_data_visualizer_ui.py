@@ -486,12 +486,13 @@ if HAS_STREAMLIT:
                     use_container_width=True,
                     key=btn_chat_key,
                 ):
-                    response = chat_provider.get_response(
-                        st.session_state.messages,
-                        model_provider=st.session_state.model_provider,
-                        model_id=st.session_state.model_id,
-                        api_key=st.session_state.api_key,
-                    )
+                    with st.spinner("Response..."):
+                        response = chat_provider.get_response(
+                            st.session_state.messages,
+                            model_provider=st.session_state.model_provider,
+                            model_id=st.session_state.model_id,
+                            api_key=st.session_state["api_key"],
+                        )
                     st.session_state[f"{function_meta['function']}_response"] = response
             # Display the example code snippet for the user
             ex_code = (
