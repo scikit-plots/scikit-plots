@@ -264,12 +264,12 @@ class SingletonBase:
 #         return cls._instance
 
 ######################################################################
-## Singleton Marker types
-## _Defaulttype class
+## Singleton Marker Types
+## _DefaultType class
 ######################################################################
 
 
-class _Defaulttype(SingletonBase):
+class _DefaultType(SingletonBase):
     """
     A marker representing the use of a default value.
 
@@ -279,11 +279,11 @@ class _Defaulttype(SingletonBase):
 
     Examples
     --------
-    >>> default = _Defaulttype()
+    >>> default = _DefaultType()
     >>> print(default)
     <default>
 
-    >>> another_default = _Defaulttype()
+    >>> another_default = _DefaultType()
     >>> default is another_default  # Singleton behavior ensures one instance
     True
 
@@ -306,15 +306,15 @@ class _Defaulttype(SingletonBase):
 
 
 # Create class instance to direct use
-_Default = _Defaulttype()
+_Default = _DefaultType()
 
 ######################################################################
-## Singleton Marker types
-## _Deprecatedtype class
+## Singleton Marker Types
+## _DeprecatedType class
 ######################################################################
 
 
-class _Deprecatedtype(SingletonBase):
+class _DeprecatedType(SingletonBase):
     """
     A marker indicating that a value or feature is deprecated.
 
@@ -323,11 +323,11 @@ class _Deprecatedtype(SingletonBase):
 
     Examples
     --------
-    >>> deprecated = _Deprecatedtype()
+    >>> deprecated = _DeprecatedType()
     >>> print(deprecated)
     <deprecated>
 
-    >>> another_deprecated = _Deprecatedtype()
+    >>> another_deprecated = _DeprecatedType()
     >>> deprecated is another_deprecated  # Ensures singleton behavior
     True
 
@@ -349,15 +349,15 @@ class _Deprecatedtype(SingletonBase):
 
 
 # Create class instance to direct use
-_Deprecated = _Deprecatedtype()
+_Deprecated = _DeprecatedType()
 
 ######################################################################
-## Singleton Marker types
-## _NoValuetype class
+## Singleton Marker Types
+## _NoValueType class
 ######################################################################
 
 
-class _NoValuetype(SingletonBase):
+class _NoValueType(SingletonBase):
     """
     A special value indicating no user-defined input.
 
@@ -381,11 +381,11 @@ class _NoValuetype(SingletonBase):
 
     Examples
     --------
-    >>> no_value = _NoValuetype()
+    >>> no_value = _NoValueType()
     >>> print(no_value)
     <no value>
 
-    >>> another_instance = _NoValuetype()
+    >>> another_instance = _NoValueType()
     >>> no_value is another_instance  # All instances are the same
     True
 
@@ -407,7 +407,7 @@ class _NoValuetype(SingletonBase):
 
 
 # Create class instance to direct use
-_NoValue = _NoValuetype()
+_NoValue = _NoValueType()
 
 ######################################################################
 ## Singleton for Resource Management

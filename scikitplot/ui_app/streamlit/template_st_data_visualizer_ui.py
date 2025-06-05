@@ -75,50 +75,43 @@ including task type, plot type, explainability level, and more.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=no-name-in-module
 # pylint: disable=broad-exception-caught
 # pylint: disable=unused-argument
+# pylint: disable=ungrouped-imports
 
 # import petname
 # petname.Generate(3, separator="-")  # e.g., 'green-fox-jump'
 # import hashlib
-import json
-import traceback
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from scikitplot import logger
-from scikitplot._compat.optional_deps import HAS_STREAMLIT, nested_import, safe_import
+from scikitplot import LazyImport, logger
 from scikitplot.ui_app.streamlit import get_sns_data, snsx_catalog
 
-if TYPE_CHECKING:
-    from typing import Optional
+# import streamlit as st
+st = LazyImport(package="streamlit")
 
-    st = safe_import("streamlit")
-    DeltaGenerator = st.delta_generator.DeltaGenerator
-
-
-def load_snsx_catalog():
-    """Load metadata dynamically (optional)."""
-    with open("snsx_catalog.json", encoding="utf-8") as f:  # noqa: PTH123
-        return json.load(f)
-
-
-if HAS_STREAMLIT:
+# Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
+# Use @st.fragment to create modular, reusable UI blocks with proper state handling
+if st:
     from scikitplot.ui_app.streamlit.template_st_chat_ui import (
         api_key_config_ui,
-        chat_provider,
+        get_response,
     )
 
-    st = safe_import("streamlit")
+    if TYPE_CHECKING:
+        from typing import Optional
+
+        from streamlit.delta_generator import DeltaGenerator
 
     ######################################################################
     ## get_plot_func
     ######################################################################
 
-    @st.cache_data
+    # Cache expensive resources (e.g., models, DB conns), Assumes mutable (and reusable) objects
+    @st.cache_resource
     def get_plot_func(function_meta: "dict[str, any]"):
         """
         Dynamically import a plotting function from a string path.
@@ -148,15 +141,17 @@ if HAS_STREAMLIT:
         AttributeError
         """
         # Dynamically import function
-        try:
+        logger.info(f"Called function {function_meta['function']}")
+        func = LazyImport(function_meta["function"], package="scikitplot")
+        if not func:
             logger.info(f"Called function {function_meta['fallback_function']}")
-            return nested_import(function_meta["function"], silent=False)
-        except Exception:
-            logger.info(
-                f"Called fallback function {function_meta['fallback_function']}"
-            )
-            return nested_import(function_meta["fallback_function"], silent=False)
-        # raise AttributeError
+            func = LazyImport(function_meta["fallback_function"], package="scikitplot")
+        if callable(func.resolved):
+            return func
+        logger.warning(
+            f"Function not callable, using fallback: {function_meta['fallback_function']}"
+        )
+        raise TypeError(f"Object {function_meta['fallback_function']} is not callable.")
 
     # -------------------- UI Components --------------------
 
@@ -176,6 +171,7 @@ if HAS_STREAMLIT:
         categories = sorted({f["category"] for f in snsx_catalog})
         return st.selectbox("Selected category", categories)
 
+    # Cache pure data (e.g., DataFrames, results), Assumes immutable return values
     @st.cache_data
     def filter_by_category(category: str) -> list[dict]:
         """
@@ -209,6 +205,7 @@ if HAS_STREAMLIT:
             default=categories[:2],
         )
 
+    # Cache pure data (e.g., DataFrames, results), Assumes immutable return values
     @st.cache_data
     def filter_by_categories(categories: list) -> list[dict]:
         """
@@ -294,18 +291,18 @@ if HAS_STREAMLIT:
         #     st.sidebar.write("Checkbox is checked!")
         return selected_categories, expand_meta, expand_live
 
-    def set_hide_sidebar():
-        """hide_sidebar."""
-        # st.sidebar.empty()
-        st.session_state.sidebar_handler = ["collapsed"]
-        st.rerun()
+    # def set_hide_sidebar():
+    #     """hide_sidebar."""
+    #     # st.sidebar.empty()
+    #     st.session_state.sidebar_handler = ["collapsed"]
+    #     st.rerun()
 
     ######################################################################
     ## CONTENT
+    ## UI and plot encapsulated in fragment
+    ## @st.fragment provides an implicit container; use st.container only for nested control
     ######################################################################
 
-    # quick local rerun under fragment other/default long Full rerun
-    @st.fragment
     def render_metadata_section(
         function_meta: "dict[str, any]",
         expanded: bool = False,
@@ -354,7 +351,6 @@ if HAS_STREAMLIT:
                     f"**Explainability**: {function_meta['explainability_level'].capitalize()}"
                 )
 
-    # @st.fragment  # expensive_ui
     def render_live_plot_section(
         function_meta: "dict[str, any]",
         expanded: bool = False,
@@ -487,7 +483,7 @@ if HAS_STREAMLIT:
                     key=btn_chat_key,
                 ):
                     with st.spinner("Response..."):
-                        response = chat_provider.get_response(
+                        response = get_response(
                             st.session_state.messages,
                             model_provider=st.session_state.model_provider,
                             model_id=st.session_state.model_id,
@@ -508,9 +504,6 @@ if HAS_STREAMLIT:
                 height=None,
             )
 
-    # quick local rerun under fragment other/default long Full rerun
-    # doesn't need to rerun every time the rest of the app changes
-    @st.fragment
     def render_bot_message(
         function_meta: "dict[str, any]",
         msg: str = "Explain Plot...",
@@ -545,9 +538,6 @@ if HAS_STREAMLIT:
                 # st.caption("🔻 Start of config")
                 # st.toast(f"## Total clicks: {st.session_state.clicks}")
 
-    # Redraw Minimization	Use st.fragment (if stable)
-    # quick local rerun under fragment other/default long Full rerun
-    @st.fragment
     def render_plot_output(
         function_meta: "dict[str, any]",
         placeholder: "Optional[DeltaGenerator]" = None,
@@ -573,31 +563,9 @@ if HAS_STREAMLIT:
                     dpi=150,
                 )
 
-    # -------------------- Plot State --------------------
-
-    def set_plot_state(function_meta=dict) -> "list[plt.Figure]":
-        """
-        Retrieve or create a Streamlit placeholder stored in session state.
-
-        Parameters
-        ----------
-        function_meta : dict
-            Metadata dict of the plotting function.
-
-        Returns
-        -------
-        st.delta_generator.DeltaGenerator
-            Streamlit placeholder container.
-        """
-        try:
-            # func_key = f"{function_meta['module']}::{function_meta['function']}"
-            # if function_meta["function"] not in st.session_state:
-            #     st.session_state[function_meta["function"]] = []
-            return st.session_state.setdefault(function_meta["function"], [])
-        except Exception as e:
-            st.exception(f"❌ Failed to create a Streamlit placeholder: {e}")
-            st.code(traceback.format_exc(), language="python")
-
+    # Redraw Minimization	Use st.fragment (if stable)
+    # quick local rerun under fragment other/default long Full rerun
+    @st.fragment
     def display_function_details(
         function_meta: "dict[str, any]",
         expand_meta: bool = False,
@@ -628,9 +596,11 @@ if HAS_STREAMLIT:
         expand_all : bool, optional
             Whether to expand both sections by default.
         """
-
-        # Initialize session state list for storing plots if not present
-        set_plot_state(function_meta)
+        # -------------------- Plot State --------------------
+        ## Initialize session state with defaults (only once)
+        # st.session_state.setdefault(function_meta["function"], [])
+        if function_meta["function"] not in st.session_state:
+            st.session_state[function_meta["function"]] = []
 
         # Outer container for modular rendering
         cont_key = f"det_container_{function_meta['function']}"

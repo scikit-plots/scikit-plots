@@ -16,7 +16,6 @@ Streamlit home UI template_st_app.
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
 # pylint: disable=ungrouped-imports
-# pylint: disable=no-name-in-module
 # pylint: disable=broad-exception-caught
 # pylint: disable=line-too-long
 
@@ -24,12 +23,14 @@ Streamlit home UI template_st_app.
 import importlib
 import os
 
-from scikitplot._compat.optional_deps import HAS_STREAMLIT, safe_import
+from scikitplot import LazyImport  # logger
 
-if HAS_STREAMLIT:
-    # import streamlit as st
-    st = safe_import("streamlit")
+# import streamlit as st
+st = LazyImport(package="streamlit")
 
+# Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
+# Use @st.fragment to create modular, reusable UI blocks with proper state handling
+if st:
     from scikitplot.ui_app.streamlit import (  # noqa: F401
         template_st_chat_ui,
         template_st_data_visualizer_ui,

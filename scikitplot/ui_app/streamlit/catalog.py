@@ -27,7 +27,6 @@ Usage:
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
-
 # pylint: disable=line-too-long
 
 from abc import ABCMeta, abstractmethod  # noqa: F401

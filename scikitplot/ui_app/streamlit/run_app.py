@@ -57,8 +57,6 @@ import sys
 
 from scikitplot import logger
 
-logger.setLevel(logger.INFO)
-
 # ---------------------------
 # Common app launcher Function
 # ---------------------------
@@ -192,8 +190,8 @@ def parse_arguments():
     # Parse and return the arguments
     args, unknown = parser.parse_known_args()
     if unknown:
-        # logger.info(f"unknown: {unknown}")
-        pass
+        logger.debug(f"unknown: {unknown}")
+        # pass
     return args or parser.parse_args()
 
 
