@@ -1,3 +1,6 @@
+# Copied: Mlflow
+# See: from ._compat.optional_deps import LazyImport
+
 """Utility to lazy load modules."""
 
 import importlib

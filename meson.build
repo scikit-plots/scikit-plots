@@ -317,7 +317,20 @@ add_project_arguments(
 
 ######################################################################
 ## C and C++ Compiler Setup
+## -D : Define a macro, It's equivalent to putting `#define DEBUG` at the top of every source file.
+## -d : Internal debugging options (rarely used by end users), Print all macros after preprocessing.
+## -f : Enable/disable compiler feature flags, Codegen or safety behavior toggles.
+##
+## -fPIC	  : Feature	Enables position-independent code
+## -dM	    : Debugging	Shows all macros after preprocessing
+## -DDEBUG	: Macro	Defines DEBUG for #ifdef DEBUG
+## -Wall	  : Warning	Turns on most compiler warnings
+## -O2	    : Optimization	Enables safe, general optimizations
 ######################################################################
+# Meson usually handles -fPIC automatically when building shared libraries
+# '-fPIC'                         # Required for building position-independent shared libraries
+# -fPIC: Generate position-independent code
+# -funroll-loops: Unroll loops for performance (can be risky)
 
 cc  = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
@@ -345,12 +358,13 @@ elif cc_id == 'msvc'
 endif
 
 ######################################################################
-## Compiler Flags: C strict aliasing flags
+## Compiler Feature Flags: C strict aliasing flags
 ######################################################################
 
 # Add default compile flags for any compiler that supports them.
 # Note that MSVC does not support strict aliasing at all, and neither do the
 # Intel compilers on Windows, so the `-fno` flavor of the flag should be fine.
+# -fno-strict-aliasing: Disable certain optimizations that assume pointer types don’t alias
 add_project_arguments(
   cc.get_supported_arguments('-fno-strict-aliasing'),
   language : ['c'],
@@ -400,9 +414,12 @@ endif
 ## C and C++ Global compiler flags/options argument
 ######################################################################
 
+# -dM: Dump all macros after preprocessing
+# -dD: Dump only macros defined in the current file
+
 # List of global arguments for C and C++
 _global_args = [
-  '-DDEBUG',                        # Define DEBUG macro to enable debug mode
+  '-DDEBUG',                        # Define DEBUG macro for conditional debug printing or logging
   '-W',                             # Enable all warnings
   '-Werror=unused-variable',        # Treat unused variables as errors to enforce code quality
   '-Wno-cast-align',                # Suppress warnings if a pointer is cast to a type with different alignment
@@ -928,7 +945,10 @@ if is_mingw
   # Silence warnings emitted by PyOS_snprintf for (%zd), see
   # https://github.com/rgommers/scipy/issues/118.
   # Use as c_args for extensions containing Cython code
-  cython_c_flags += ['-Wno-format-extra-args', '-Wno-format']
+  cython_c_flags += [
+    '-Wno-format-extra-args',
+    '-Wno-format',
+  ]
   # Flag needed to work around BLAS and LAPACK Gfortran dependence on
   # undocumented C feature when passing single character string arguments. See:
   #   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90329
@@ -943,7 +963,9 @@ endif
 # Cython doesn't always get this right itself (see, e.g., gh-16800), so
 # explicitly add the define as a compiler flag for Cython-generated code.
 if is_windows
-  use_math_defines = ['-D_USE_MATH_DEFINES']
+  use_math_defines = [
+    '-D_USE_MATH_DEFINES',
+  ]
 else
   use_math_defines = []
 endif

@@ -19,6 +19,5 @@ eventually visualize plotting functions dynamically.
 """
 
 # __init__.py
-
 from .catalog import snsx_catalog  # noqa: F401
 from .template_st_dataset_loader_ui import get_sns_data  # noqa: F401

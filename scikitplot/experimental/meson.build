@@ -61,7 +61,7 @@ inc_dir_experimental = include_directories(experimental_inc_dir)
 #   gnu_symbol_visibility: 'hidden',
 #   gnu_symbol_visibility: 'inlineshidden',
 #   # link_with: [_st_lib_experimental],  # Link with the static library
-#   # link_args: ['-shared'],  # shared library that can be used by other programs at runtime.
+#   # link_args: ['-shared'],  # Build a shared library that can be used by other programs at runtime.
 #   install: true,
 #   install_dir: 'lightnumpy/_core',
 # )

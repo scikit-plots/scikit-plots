@@ -5,7 +5,6 @@ template_st_dataset_loader_ui.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=no-name-in-module
 # pylint: disable=broad-exception-caught
 # pylint: disable=import-outside-toplevel
 # pylint: disable=invalid-name
@@ -29,8 +28,7 @@ from sklearn.model_selection import (
     train_test_split,
 )
 
-from scikitplot import logger
-from scikitplot._compat.optional_deps import HAS_STREAMLIT, safe_import
+from scikitplot import LazyImport, logger
 from scikitplot._datasets import EXTENSION_LOADERS, load_data_meta  # , load_data
 
 SUPPORTED_TYPES = EXTENSION_LOADERS
@@ -80,9 +78,12 @@ def total_memory_usage(obj):
     return total_bytes / 1e6  # Convert bytes to MB
 
 
-if HAS_STREAMLIT:
-    st = safe_import("streamlit")
+# import streamlit as st
+st = LazyImport(package="streamlit")
 
+# Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
+# Use @st.fragment to create modular, reusable UI blocks with proper state handling
+if st:
     ######################################################################
     ## get data
     ######################################################################
@@ -92,6 +93,7 @@ if HAS_STREAMLIT:
     # Caches pure functions that return data and don't have side effects
     # Data Fetching	Add @st.cache_data
     # https://docs.streamlit.io/develop/concepts/architecture/caching
+    # Cache pure data (e.g., DataFrames, results), Assumes immutable return values
     @st.cache_data(show_spinner="Loading data...")
     def get_sns_data_cache():
         """Fetc Data function."""

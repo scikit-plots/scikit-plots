@@ -6,19 +6,22 @@
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
-# pylint: disable=no-name-in-module
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 
 from typing import TYPE_CHECKING
 
-from scikitplot._compat.optional_deps import HAS_STREAMLIT, safe_import
+from scikitplot import LazyImport  # logger
 
 if TYPE_CHECKING:
     from typing import Literal, Optional
 
-if HAS_STREAMLIT:
-    st = safe_import("streamlit")
+# import streamlit as st
+st = LazyImport(package="streamlit")
+
+# Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
+# Use @st.fragment to create modular, reusable UI blocks with proper state handling
+if st:
 
     def configure_page(
         title: str = "scikit-plots",

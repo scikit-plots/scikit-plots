@@ -3,19 +3,20 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=no-name-in-module
 # pylint: disable=line-too-long
 
 """template_gr_i_doremi_ui."""
 
-from scikitplot import doremi
-from scikitplot._compat.optional_deps import HAS_GRADIO, safe_import
+from scikitplot import (
+    LazyImport,  # logger
+    doremi,
+)
 
-if HAS_GRADIO:
+# import gradio as gr
+gr = LazyImport(package="gradio")
+
+if gr:
     # import spaces  # huggingface
-    # import gradio as gr
-    gr = safe_import("gradio")
-
     ## gr.Interface - Simpler and High-Level
     gr_interface = gr.Interface(
         title="🎵 Simple Music Composer: Western and Solfège Notation",

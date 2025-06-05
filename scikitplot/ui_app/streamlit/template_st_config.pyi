@@ -12,6 +12,9 @@
 import streamlit as st
 from typing import Optional, Literal
 
+# Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
+# Use @st.fragment to create modular, reusable UI blocks with proper state handling
+
 def configure_page(
     title: str = "Streamlit App",
     layout: Literal["centered", "wide"] = "wide",

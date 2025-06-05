@@ -778,7 +778,7 @@ def gr(file_path, share):
 ## Add a COMMAND to Entry-point: from defined py
 ######################################################################
 
-with contextlib.suppress(NameError, AttributeError):
+with contextlib.suppress(AttributeError, ModuleNotFoundError, NameError):
     cli.add_command(scikitplot.runs.commands)  # noqa: F821
     cli.add_command(scikitplot.db.commands)  # noqa: F821
 

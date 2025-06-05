@@ -12,83 +12,85 @@ Streamlit Conversational UI.
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
-# pylint: disable=no-name-in-module
 # pylint: disable=broad-exception-caught
 
 # import os
 from typing import Optional, Union
 
-from scikitplot import logger
-from scikitplot._compat.optional_deps import HAS_STREAMLIT, safe_import
+from scikitplot import LazyImport, logger
 from scikitplot.llm_provider import (
     LLM_MODEL_PROVIDER2CONFIG,
     chat_provider,
     load_mlflow_gateway_config,
 )
 
+# import streamlit as st
+st = LazyImport(package="streamlit")
 
-def get_response(
-    messages: Union[str, list[dict[str, str]]] = "",
-    model_provider: str = "huggingface",
-    model_id: Optional[str] = None,
-    api_key: Optional[str] = None,
-) -> str:
-    """
-    Unified interface for fetching an LLM response from a specified provider.
-
-    Parameters
-    ----------
-    messages : str or list of dict[str, str], optional
-        A prompt string or a list of chat messages. Each message should follow:
-        {"role": "user" or "assistant", "content": "message text"}.
-    model_provider : str, optional
-        The provider to use (e.g., 'huggingface', 'openai', 'groq'). Default is 'huggingface'.
-    model_id : str, optional
-        Optional model identifier. If not provided, a default may be inferred.
-    api_key : str, optional
-        API key/token for authenticating the client.
-
-    Returns
-    -------
-    str
-        The text content returned by the model.
-
-    Raises
-    ------
-    Exception
-        If the underlying chat provider fails to respond.
-
-    Notes
-    -----
-    - Acts as a wrapper over the `chat_provider.get_response` interface.
-    - Useful for quick synchronous calls to any supported LLM backend.
-
-    Examples
-    --------
-    >>> get_response(
-    ...     "Explain Newton's laws",
-    ...     model_provider="openai",
-    ...     model_id="gpt-4",
-    ...     api_key="sk-...",
-    ... )
-    'Sure, Newton's laws of motion are...'
-    """
-    # Forward the arguments to the main chat provider's `get_response` logic
-    return chat_provider.get_response(
-        messages=messages,
-        model_provider=model_provider,
-        model_id=model_id,
-        api_key=api_key,
-    )
-
-
-if HAS_STREAMLIT:
-    st = safe_import("streamlit")
-
-    @st.cache_resource
+# Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
+# Use @st.fragment to create modular, reusable UI blocks with proper state handling
+if st:
+    # Cache pure data (e.g., DataFrames, results), Assumes immutable return values
+    @st.cache_data
     def cached_config(path: str) -> "dict[str, any]":
         """cached_config."""
         return load_mlflow_gateway_config(path)
+
+    # Cache expensive resources (e.g., models, DB conns), Assumes mutable (and reusable) objects
+    @st.cache_resource
+    def get_response(
+        messages: Union[str, list[dict[str, str]]] = "",
+        model_provider: str = "huggingface",
+        model_id: Optional[str] = None,
+        api_key: Optional[str] = None,
+    ) -> str:
+        """
+        Unified interface for fetching an LLM response from a specified provider.
+
+        Parameters
+        ----------
+        messages : str or list of dict[str, str], optional
+            A prompt string or a list of chat messages. Each message should follow:
+            {"role": "user" or "assistant", "content": "message text"}.
+        model_provider : str, optional
+            The provider to use (e.g., 'huggingface', 'openai', 'groq'). Default is 'huggingface'.
+        model_id : str, optional
+            Optional model identifier. If not provided, a default may be inferred.
+        api_key : str, optional
+            API key/token for authenticating the client.
+
+        Returns
+        -------
+        str
+            The text content returned by the model.
+
+        Raises
+        ------
+        Exception
+            If the underlying chat provider fails to respond.
+
+        Notes
+        -----
+        - Acts as a wrapper over the `chat_provider.get_response` interface.
+        - Useful for quick synchronous calls to any supported LLM backend.
+
+        Examples
+        --------
+        >>> get_response(
+        ...     "Explain Newton's laws",
+        ...     model_provider="openai",
+        ...     model_id="gpt-4",
+        ...     api_key="sk-...",
+        ... )
+        'Sure, Newton's laws of motion are...'
+        """
+        # Forward the arguments to the main chat provider's `get_response` logic
+        return chat_provider.get_response(
+            messages=messages,
+            model_provider=model_provider,
+            model_id=model_id,
+            api_key=api_key,
+        )
 
     ######################################################################
     ## api_key config UI

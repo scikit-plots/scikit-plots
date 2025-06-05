@@ -3,7 +3,6 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=no-name-in-module
 # pylint: disable=unused-import
 # pylint: disable=line-too-long
 # pylint: disable=no-member
@@ -21,8 +20,10 @@ from datetime import datetime
 
 # import numpy as np
 # from scipy.io.wavfile import write
-from scikitplot import doremi
-from scikitplot._compat.optional_deps import HAS_GRADIO, safe_import
+from scikitplot import (
+    LazyImport,  # logger
+    doremi,
+)
 
 prefix = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -43,11 +44,11 @@ svg_base64 = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
 img_tag = f'<img src="data:image/svg+xml;base64,{svg_base64}" width="18" height="18" style="vertical-align: middle; display:inline;">'
 # img_tag = f'<span style="display:inline;">{img_tag}</span>'
 
-if HAS_GRADIO:
-    # import spaces  # huggingface
-    # import gradio as gr
-    gr = safe_import("gradio")
+# import gradio as gr
+gr = LazyImport(package="gradio")
 
+if gr:
+    # import spaces  # huggingface
     ## gr.Blocks - Flexible and Modular
     with gr.Blocks() as gr_bocks:
         # --- UI placeholders ---

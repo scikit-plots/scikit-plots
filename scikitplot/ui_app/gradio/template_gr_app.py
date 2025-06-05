@@ -3,20 +3,15 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=no-name-in-module
-
 """template_gr_app."""
 
-from scikitplot import logger
-from scikitplot._compat.optional_deps import HAS_GRADIO, safe_import
+from scikitplot import LazyImport  # logger
 
-logger.setLevel(logger.INFO)
+# import gradio as gr
+gr = LazyImport(package="gradio")
 
-if HAS_GRADIO:
+if gr:
     # import spaces  # huggingface
-    # import gradio as gr
-    gr = safe_import("gradio")
-
     from scikitplot.ui_app.gradio.template_gr_b_doremi_ui import gr_bocks
     from scikitplot.ui_app.gradio.template_gr_i_doremi_ui import gr_interface
 

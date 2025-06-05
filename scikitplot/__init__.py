@@ -11,14 +11,8 @@ online at https://scikit-plots.github.io.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # mypy: disallow-any-generics
-
-# pylint: disable=import-error
 # pylint: disable=unused-import
-# pylint: disable=wrong-import-position
-# pylint: disable=import-outside-toplevel
-# pylint: disable=broad-exception-caught
-
-# ruff: noqa: F401
+# ruff: noqa: F401, I001
 
 # import os as _os
 # import sys as _sys
@@ -26,10 +20,8 @@ online at https://scikit-plots.github.io.
 # import pathlib as _pathlib
 # import warnings as _warnings
 # _set = set  # 'seaborn.set' can be override raise error
-import builtins as _builtins  # noqa: I001
-from numpy import (  # type: ignore[reportMissingModuleSource]
-    __version__ as __numpy_version__,
-)
+import builtins as _builtins
+from numpy import __version__ as __numpy_version__
 
 ######################################################################
 ## scikit-plots modules and objects
@@ -74,6 +66,12 @@ except (ImportError, ModuleNotFoundError):
 else:
     _BUILT_WITH_MESON = True
 
+# Avoiding heavy imports top level module unless actually used
+# from .utils.lazy_load import LazyLoader
+from ._compat.optional_deps import LazyImport
+
+# Lazily load scikitplot flavors to avoid excessive dependencies.
+# visualkeras = LazyImport("scikitplot.visualkeras")
 # Export some module objects
 from ._globals import _Default, _Deprecated, _NoValue
 from ._testing._pytesttester import PytestTester  # Pytest testing
@@ -186,10 +184,13 @@ def __dir__():
     ['attribute1', 'attribute2', 'attribute3']  # Example output
 
     """
-    from . import api
-
     return sorted(
-        _builtins.set(globals()).union(_submodules).union(dir(api)).difference(_discard)
+        _builtins.set(globals())
+        .union(_submodules)
+        # Returns the api submodule directly.
+        # .union(dir(__import__(__name__ + '.api', fromlist=[''])))
+        .union(dir(LazyImport(".api", package=__name__)))
+        .difference(_discard)
     )
 
 
@@ -236,12 +237,14 @@ def __getattr__(
         if name in globals():
             return globals()[name]
         # Try importing as a submodule
-        from ._compat.optional_deps import nested_import
-
-        return nested_import(name, package)
+        # from ._compat.optional_deps import LazyImport  # nested_import
+        # return nested_import(name, package)
+        # Lazily load scikitplot flavors to avoid excessive dependencies.
+        return LazyImport(name, package)  # ~4.5-8s
     except (AttributeError, ImportError, ModuleNotFoundError, Exception) as e:
         suggestion_msg = ""
         if suggestion:
+            # pylint: disable=import-outside-toplevel
             from difflib import get_close_matches
             from sys import modules
 
@@ -318,6 +321,7 @@ def online_help(
 
     """
     try:
+        # pylint: disable=import-outside-toplevel
         import os
         import webbrowser
         from urllib.parse import urlencode, urlparse
@@ -337,9 +341,10 @@ def online_help(
         full_url = f"{search_url}{('&' if urlparse(search_url).query else '?')}{urlencode(params)}"
 
         ## This launches the URL in the browser
+        logger.error(f"{full_url}")
         return webbrowser.open(full_url, new=new_window)
-    except Exception as e:
-        print(f"Error opening documentation: {e}")  # noqa: T201
+    except ModuleNotFoundError as e:
+        logger.exception(f"Error opening documentation: {e}")
         return False
 
 
