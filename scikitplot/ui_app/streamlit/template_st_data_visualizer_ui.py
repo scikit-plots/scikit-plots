@@ -621,23 +621,23 @@ if st:
             # Layout: Just use 2 columns, where col2 is wide
             # One for the button and metadata, the other for the plot
             cols = st.columns(
-                [0.3, 0.7],  # Adjust columns width ratio
+                [0.7, 0.3],  # Adjust columns width ratio
                 border=True,
                 gap="small",
                 vertical_alignment="top",
             )
 
             def render_details(function_meta: "dict[str, any]"):
-                # Left column for metadata and interactivity
-                with cols[0], st.container():
+                # Right column for metadata and interactivity
+                with cols[-1], st.container():
                     render_metadata_section(
                         function_meta, expanded=(expand_all or expand_meta)
                     )
                     render_live_plot_section(
                         function_meta, expanded=(expand_all or expand_live)
                     )
-                # Right column for chat ant plot display
-                with cols[-1], st.container():
+                # Left column for chat ant plot display
+                with cols[0], st.container():
                     render_plot_output(function_meta)
                     render_bot_message(function_meta)
 
