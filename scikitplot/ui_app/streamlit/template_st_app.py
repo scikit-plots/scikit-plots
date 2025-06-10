@@ -136,8 +136,8 @@ if st:
         # Placeholder
         # st.container A static layout block.
         # st.empty().container Dynamic and replaceable container.
-        with st.container(border=True):
-            st.sidebar.markdown(
+        with st.sidebar, st.container(border=True):
+            st.markdown(
                 f"""
             <style>
             /* Make sidebar a flex column container */
