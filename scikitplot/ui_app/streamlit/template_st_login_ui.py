@@ -42,9 +42,11 @@ if st:
             st.session_state.user_type = "guest"
 
         # Placeholder
-        login_placeholder = st.empty().container()
+        # st.container A static layout block.
+        # st.empty().container Dynamic and replaceable container.
+        login_placeholder = st.container()
         # Placeholder
-        sidebar_placeholder = st.empty().container()
+        sidebar_placeholder = st.container()
 
         # Display login form only if not logged in
         if not st.session_state.authenticated:

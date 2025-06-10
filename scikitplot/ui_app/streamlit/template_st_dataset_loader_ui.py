@@ -203,7 +203,9 @@ if st:
         None
         """
         # Placeholder
-        with st.empty().container(border=True):
+        # st.container A static layout block.
+        # st.empty().container Dynamic and replaceable container.
+        with st.container(border=True):
             st.subheader("📤 Upload Dataset File(s)")
             file_types = list(SUPPORTED_TYPES.keys())
             accept_multiple = st.checkbox(
@@ -251,7 +253,7 @@ if st:
         None
         """
         # Placeholder
-        with st.empty().container(border=True):
+        with st.container(border=True):
             st.subheader("🗄️ Fetch Dataset File")
             file_url = st.text_input(
                 (
@@ -286,7 +288,7 @@ if st:
         None
         """
         # Placeholder
-        with st.empty().container(border=True):
+        with st.container(border=True):
             st.subheader("🌐 Database Queried Dataset File")
             # connection_urls = {
             #     "duckdb": "duckdb:///path/to/file.duckdb",
@@ -352,15 +354,15 @@ if st:
             st.session_state["dfs"] = get_sns_data_cache()
 
         # Placeholder
-        with st.empty().container(border=True):
+        with st.container(border=True):
             st.title("📁 Load Dataset File(s)")
             # st.subheader("📁 Load Dataset File(s)")
             st.caption("Supported extensions: " + ", ".join(SUPPORTED_TYPES.keys()))
 
         # Placeholder
-        clear_btn_placeholder = st.empty().container(border=True)
+        clear_btn_placeholder = st.container(border=True)
         # Placeholder
-        dataset_loader_placeholder = st.empty().container(border=True)
+        dataset_loader_placeholder = st.container(border=True)
 
         with clear_btn_placeholder:
             if st.button(
@@ -402,7 +404,7 @@ if st:
                 db_component()
 
         # Placeholder
-        with st.empty().container(border=True):
+        with st.container(border=True):
             # Show results
             if st.session_state.get("dfs", None):
                 st.subheader("📑 Loaded Data Summary")
