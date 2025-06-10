@@ -91,11 +91,13 @@ from scikitplot import LazyImport, logger
 from scikitplot.ui_app.streamlit import get_sns_data, snsx_catalog
 
 # import streamlit as st
-st = LazyImport(package="streamlit")
+st = LazyImport("streamlit", package="streamlit")
 
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
+    st = st.resolved
+
     from scikitplot.ui_app.streamlit.template_st_chat_ui import (
         api_key_config_ui,
         get_response,
@@ -142,11 +144,19 @@ if st:
         """
         # Dynamically import function
         logger.info(f"Called function {function_meta['function']}")
-        func = LazyImport(function_meta["function"], package="scikitplot")
-        if not func:
-            logger.info(f"Called function {function_meta['fallback_function']}")
-            func = LazyImport(function_meta["fallback_function"], package="scikitplot")
-        if callable(func.resolved):
+        func = LazyImport(
+            function_meta["function"],
+            package="scikitplot",
+        ).resolved
+        if callable(func):
+            return func
+        # Dynamically import function
+        logger.info(f"Called function {function_meta['fallback_function']}")
+        func = LazyImport(
+            function_meta["fallback_function"],
+            package="scikitplot",
+        ).resolved
+        if callable(func):
             return func
         logger.warning(
             f"Function not callable, using fallback: {function_meta['fallback_function']}"

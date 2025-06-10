@@ -25,11 +25,13 @@ from scikitplot.llm_provider import (
 )
 
 # import streamlit as st
-st = LazyImport(package="streamlit")
+st = LazyImport("streamlit", package="streamlit")
 
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
+    st = st.resolved
+
     # Cache pure data (e.g., DataFrames, results), Assumes immutable return values
     @st.cache_data
     def cached_config(path: str) -> "dict[str, any]":

@@ -8,9 +8,11 @@
 from scikitplot import LazyImport  # logger
 
 # import gradio as gr
-gr = LazyImport(package="gradio")
+gr = LazyImport("gradio", package="gradio")
 
 if gr:
+    gr = gr.resolved
+
     # import spaces  # huggingface
     from scikitplot.ui_app.gradio.template_gr_b_doremi_ui import gr_bocks
     from scikitplot.ui_app.gradio.template_gr_i_doremi_ui import gr_interface

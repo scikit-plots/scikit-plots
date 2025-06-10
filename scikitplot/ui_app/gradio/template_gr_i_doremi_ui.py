@@ -13,9 +13,11 @@ from scikitplot import (
 )
 
 # import gradio as gr
-gr = LazyImport(package="gradio")
+gr = LazyImport("gradio", package="gradio")
 
 if gr:
+    gr = gr.resolved
+
     # import spaces  # huggingface
     ## gr.Interface - Simpler and High-Level
     gr_interface = gr.Interface(
