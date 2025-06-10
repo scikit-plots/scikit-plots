@@ -22,7 +22,6 @@ st = LazyImport("streamlit", package="streamlit")
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
-    st = st.resolved
 
     def configure_page(
         title: str = "scikit-plots",

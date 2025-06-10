@@ -48,8 +48,6 @@ img_tag = f'<img src="data:image/svg+xml;base64,{svg_base64}" width="18" height=
 gr = LazyImport("gradio", package="gradio")
 
 if gr:
-    gr = gr.resolved
-
     # import spaces  # huggingface
     ## gr.Blocks - Flexible and Modular
     with gr.Blocks() as gr_bocks:
