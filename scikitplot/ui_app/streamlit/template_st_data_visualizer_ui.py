@@ -96,8 +96,6 @@ st = LazyImport("streamlit", package="streamlit")
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
-    st = st.resolved
-
     from scikitplot.ui_app.streamlit.template_st_chat_ui import (
         api_key_config_ui,
         get_response,
@@ -330,7 +328,7 @@ if st:
         placeholder : st.delta_generator.DeltaGenerator | None
             Streamlit object.
         """
-        with placeholder or st.container(  # noqa: SIM117
+        with placeholder or st.empty().container(  # noqa: SIM117
             key=f"metadata_container_{function_meta['function']}",
             border=True,
             height=None,
@@ -359,6 +357,19 @@ if st:
                 )
                 st.markdown(
                     f"**Explainability**: {function_meta['explainability_level'].capitalize()}"
+                )
+                # Display the example code snippet for the user
+                ex_code = (
+                    f"{function_meta['function'].rsplit('.')[-1]}(\n"
+                    f"  {', '.join(function_meta['parameters'])}\n"
+                    ")"
+                )
+                st.code(
+                    ex_code,
+                    language="python",
+                    line_numbers=True,
+                    wrap_lines=True,
+                    height=None,
                 )
 
     def render_live_plot_section(
@@ -390,129 +401,115 @@ if st:
         btn_chat_label = f"Ask AI - {function_meta['function'].rsplit('.')[-1]}"
         btn_chat_key = f"ask_ai_{function_meta['function']}"
 
-        with placeholder or st.container(
-            key=cont_key,
-            border=True,
-            height=None,
-        ):
-            # you can use a unique identifier (function name, loop index, hash, etc.)
-            # Live Expander: Controlled by `expand_live`
-            with st.expander(
+        # you can use a unique identifier (function name, loop index, hash, etc.)
+        # Live Expander: Controlled by `expand_live`
+        with (
+            placeholder
+            or st.empty().container(
+                key=cont_key,
+                border=True,
+                height=None,
+            ),
+            st.expander(
                 # label=f"{function_meta['function'].rsplit('.')[-1]}",
                 label=expan_label,
                 expanded=expanded,
-            ):
-                # To place two buttons side-by-side (in the same horizontal row) in Streamlit
-                col1, col2 = st.columns(2)
-                with col1:
-                    # Button to trigger plotting
-                    # you can use a unique identifier (function name, loop index, hash, etc.)
-                    if st.button(
-                        btn_run_label,
-                        icon=":material/order_play:",
-                        use_container_width=True,
-                        key=btn_run_key,
-                        type="secondary",
-                        # on_click=None,
-                    ):
-                        try:
-                            # Example: if the function needs y_test and y_pred
-                            y_true, y_pred, y_score = (
-                                st.session_state["y_true"],
-                                st.session_state["y_pred"],
-                                st.session_state["y_score"],
-                            )
-                            # Dynamically import function
-                            plot_func = get_plot_func(function_meta)
-                            logger.info(f"{plot_func.__name__} function called.")
-                            # 6 inches wide, 2 inches tall
-                            # width=8 inches, height=6 inches
-                            fig = plt.figure(
-                                figsize=(
-                                    function_meta.get("optional_parameters", {}).get(
-                                        "figsize", (6, 2.85)
-                                    )
-                                ),
-                            )
-                            # fig, ax = plt.subplots(
-                            #     figsize=(
-                            #         function_meta.get(
-                            #             "optional_parameters", {}
-                            #         ).get("figsize", (5, 2.5))
-                            #     ),
-                            # )
-                            # Show a spinner while the function runs or spinner decorator
-                            with st.spinner("Generating plot...", show_time=True):
-                                # Example: if the function needs y_test and y_pred
-                                if function_meta["parameters"] == ["y_true", "y_score"]:
-                                    # Plot with spinner
-                                    plot_func(y_true, y_score, fig=fig)
-                                    # Tight, small legend
-                                    # ax.legend(fontsize=7)
-                                    # Save to session state using unique key
-                                    st.session_state[function_meta["function"]].append(
-                                        fig
-                                    )
-                                elif function_meta["parameters"] == [
-                                    "y_true",
-                                    "y_pred",
-                                ]:
-                                    # Plot with spinner
-                                    plot_func(y_true, y_pred, fig=fig)
-                                    # Tight, small legend
-                                    # ax.legend(fontsize=7)
-                                    # Save to session state using unique key
-                                    st.session_state[function_meta["function"]].append(
-                                        fig
-                                    )
-                                else:
-                                    st.warning(
-                                        "Demo input for this function is not configured."
-                                    )
-                                    raise NotImplementedError
-                                plt.legend(fontsize=7)  # sets the legend font size
-                        except Exception as e:
-                            st.error(f"Execution failed: {e}")
-                with col2:
-                    # Add a "Clear Plots" button
-                    # you can use a unique identifier (function name, loop index, hash, etc.)
-                    if st.button(
-                        btn_clr_label,
-                        icon=":material/delete:",
-                        use_container_width=True,
-                        key=btn_clr_key,
-                    ):
-                        # st.session_state.pop(fig_key, None)
-                        del st.session_state[function_meta["function"]]
-                # Add a "Ask AI" button
+            ),
+        ):
+            # To place two buttons side-by-side (in the same horizontal row) in Streamlit
+            col1, col2 = st.columns(2)
+            with col1:
+                # Button to trigger plotting
                 # you can use a unique identifier (function name, loop index, hash, etc.)
                 if st.button(
-                    btn_chat_label,
-                    icon=":material/forum:",
+                    btn_run_label,
+                    icon=":material/order_play:",
                     use_container_width=True,
-                    key=btn_chat_key,
+                    key=btn_run_key,
+                    type="secondary",
+                    # on_click=None,
                 ):
-                    with st.spinner("Response..."):
-                        response = get_response(
-                            st.session_state.messages,
-                            model_provider=st.session_state.model_provider,
-                            model_id=st.session_state.model_id,
-                            api_key=st.session_state["api_key"],
+                    try:
+                        # Example: if the function needs y_test and y_pred
+                        y_true, y_pred, y_score = (
+                            st.session_state["y_true"],
+                            st.session_state["y_pred"],
+                            st.session_state["y_score"],
                         )
-                    st.session_state[f"{function_meta['function']}_response"] = response
-            # Display the example code snippet for the user
-            ex_code = (
-                f"{function_meta['function'].rsplit('.')[-1]}(\n"
-                f"  {', '.join(function_meta['parameters'])}\n"
-                ")"
-            )
-            st.code(
-                ex_code,
-                language="python",
-                line_numbers=True,
-                wrap_lines=True,
-                height=None,
-            )
+                        # Dynamically import function
+                        plot_func = get_plot_func(function_meta)
+                        logger.info(f"{plot_func.__name__} function called.")
+                        # 6 inches wide, 2 inches tall
+                        # width=8 inches, height=6 inches
+                        fig = plt.figure(
+                            figsize=(
+                                function_meta.get("optional_parameters", {}).get(
+                                    "figsize", (5, 2.5)
+                                )
+                            ),
+                        )
+                        # fig, ax = plt.subplots(
+                        #     figsize=(
+                        #         function_meta.get(
+                        #             "optional_parameters", {}
+                        #         ).get("figsize", (5, 2.5))
+                        #     ),
+                        # )
+                        # Show a spinner while the function runs or spinner decorator
+                        with st.spinner("Generating plot...", show_time=True):
+                            # Example: if the function needs y_test and y_pred
+                            if function_meta["parameters"] == ["y_true", "y_score"]:
+                                # Plot with spinner
+                                plot_func(y_true, y_score, fig=fig)
+                                # Tight, small legend
+                                # ax.legend(fontsize=7)
+                                # Save to session state using unique key
+                                st.session_state[function_meta["function"]].append(fig)
+                            elif function_meta["parameters"] == [
+                                "y_true",
+                                "y_pred",
+                            ]:
+                                # Plot with spinner
+                                plot_func(y_true, y_pred, fig=fig)
+                                # Tight, small legend
+                                # ax.legend(fontsize=7)
+                                # Save to session state using unique key
+                                st.session_state[function_meta["function"]].append(fig)
+                            else:
+                                st.warning(
+                                    "Demo input for this function is not configured."
+                                )
+                                raise NotImplementedError
+                            plt.legend(fontsize=7)  # sets the legend font size
+                    except Exception as e:
+                        st.error(f"Execution failed: {e}")
+            with col2:
+                # Add a "Clear Plots" button
+                # you can use a unique identifier (function name, loop index, hash, etc.)
+                if st.button(
+                    btn_clr_label,
+                    icon=":material/delete:",
+                    use_container_width=True,
+                    key=btn_clr_key,
+                ):
+                    # st.session_state.pop(fig_key, None)
+                    del st.session_state[function_meta["function"]]
+            # Add a "Ask AI" button
+            # you can use a unique identifier (function name, loop index, hash, etc.)
+            if st.button(
+                btn_chat_label,
+                icon=":material/forum:",
+                use_container_width=True,
+                key=btn_chat_key,
+            ):
+                with st.spinner("Response..."):
+                    response = get_response(
+                        st.session_state.messages,
+                        model_provider=st.session_state.model_provider,
+                        model_id=st.session_state.model_id,
+                        api_key=st.session_state["api_key"],
+                    )
+                st.session_state[f"{function_meta['function']}_response"] = response
 
     def render_bot_message(
         function_meta: "dict[str, any]",
@@ -614,7 +611,7 @@ if st:
 
         # Outer container for modular rendering
         cont_key = f"det_container_{function_meta['function']}"
-        with st.container(
+        with st.empty().container(
             key=cont_key,
             border=True,
             height=None,
@@ -746,6 +743,7 @@ if st:
         ## Display details for each selected function
         ## -------------------- Render All --------------------
         for entry in selected_functions:
+            # entry to function_meta
             display_function_details(entry, expand_meta, expand_live)
 
     # Run the app from command line

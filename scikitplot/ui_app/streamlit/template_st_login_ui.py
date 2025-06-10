@@ -19,8 +19,6 @@ st = LazyImport("streamlit", package="streamlit")
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
-    st = st.resolved
-
     # ---------------------- Streamlit Module Interface ----------------------
     def authenticate_user(username: str, password: str) -> bool:
         """Stub auth logic — replace with real DB or API."""

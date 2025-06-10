@@ -240,7 +240,7 @@ def __getattr__(
         # from ._compat.optional_deps import LazyImport  # nested_import
         # return nested_import(name, package)
         # Lazily load scikitplot flavors to avoid excessive dependencies.
-        return LazyImport(name, package).resolved  # ~4.5-8s
+        return LazyImport(name, package)  # ~(4.5-11)s
     except (AttributeError, ImportError, ModuleNotFoundError, Exception) as e:
         suggestion_msg = ""
         if suggestion:

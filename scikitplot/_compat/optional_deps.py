@@ -370,7 +370,7 @@ class LazyImport(types.ModuleType):
             If True, logs debug information during import resolution.
         """  # noqa: D205
 
-        super().__init__(name)
+        super().__init__(str(name))
         self._name = name  # Full dotted import path
         self._package = package  # Optional package for relative imports
         self._default = default  # Fallback value if import fails
@@ -391,7 +391,8 @@ class LazyImport(types.ModuleType):
         types.ModuleType or Callable or None
             The resolved module or attribute, or None if resolution fails.
         """
-        if self._loaded:
+        if self._resolved:
+            # If already loaded, return the loaded module.
             return self._resolved
         # Resolve module/attr
         module = nested_import(
@@ -653,10 +654,10 @@ class LazyImport(types.ModuleType):
         except Exception:
             return type(None)
 
-    # @property
-    # def __path__(self):
-    #     """Required if this is a package, for relative imports to work."""
-    #     return getattr(self._resolved, "__path__", [])
+    @property
+    def __path__(self):
+        """Required if this is a package, for relative imports to work."""
+        return getattr(self._resolved, "__path__", [])
 
     # @property
     # def __doc__(self):
@@ -694,7 +695,7 @@ class LazyImport(types.ModuleType):
         # getattr(self._resolved, '__module__', '?')
         return (
             f"<LazyImport → {type(self._resolved).__name__} "
-            f"'{self._name}' from '{_get_source_path(self._resolved)}'>"
+            f"{self._name!r} from '{_get_source_path(self._resolved)}' (Not loaded yet)>"
         )
         # return f"<LazyImport '{self._name}' (not loaded)>"
 
@@ -786,96 +787,93 @@ class LazyImport(types.ModuleType):
         except ScikitplotException:
             return False
 
-    # def __getattr__(self, attr: str) -> any:
-    #     """
-    #     Delegate attribute access to the real resolved object.
+    def __dir__(self) -> list[str]:
+        """
+        Provide intelligent tab autocompletion support.
 
-    #     Parameters
-    #     ----------
-    #     attr : str
-    #         The attribute name to access.
-
-    #     Returns
-    #     -------
-    #     Any
-    #         The attribute value from the resolved object.
-
-    #     Raises
-    #     ------
-    #     AttributeError
-    #         If the attribute is not found on the resolved object.
-    #     """
-    #     try:
-    #         return getattr(self, attr)  # raise AttributeError
-    #     except ScikitplotException:
-    #         return getattr(self.resolved, attr)  # raise AttributeError
-
-    # def __dir__(self) -> list[str]:
-    #     """
-    #     Provide intelligent tab autocompletion support.
-
-    #     Returns
-    #     -------
-    #     list of str
-    #         A sorted list of available attributes from the resolved object.
-    #     """
-    #     try:
-    #         return sorted(set(dir(self._resolved)))
-    #     except Exception:
-    #         return sorted(set(super().__dir__()) | {"is_loaded"})
+        Returns
+        -------
+        list of str
+            A sorted list of available attributes from the resolved object.
+        """
+        try:
+            return sorted(set(dir(self._resolved)))
+        except Exception:
+            return sorted(set(super().__dir__()) | {"is_loaded", "resolved"})
 
     # def _ipython_key_completions_(self):
     #     """IPython tab completion support."""
     #     return dir(self)
 
-    # def __eq__(self, other: any) -> bool:
-    #     """
-    #     Compare this LazyImport to another object or LazyImport.
+    def __getattr__(self, attr: str) -> any:
+        """
+        Delegate attribute access to the real resolved object.
 
-    #     If the object is another LazyImport, compares their resolved values.
-    #     Otherwise, compares the resolved object to `other`.
+        Parameters
+        ----------
+        attr : str
+            The attribute name to access.
 
-    #     Parameters
-    #     ----------
-    #     other : Any
-    #         Another object or LazyImport instance to compare against.
+        Returns
+        -------
+        Any
+            The attribute value from the resolved object.
 
-    #     Returns
-    #     -------
-    #     bool
-    #         True if the resolved objects are equal, False otherwise.
+        Raises
+        ------
+        AttributeError
+            If the attribute is not found on the resolved object.
+        """
+        return getattr(self._resolve(), attr)  # raise AttributeError
 
-    #     Examples
-    #     --------
-    #     >>> LazyImport("math") == importlib.import_module("math")  # True
-    #     >>> LazyImport("math") == LazyImport("math")  # True
-    #     >>> LazyImport("math") == "math"  # False
-    #     """
-    #     try:
-    #         return self.resolved == (
-    #             other.resolved if isinstance(other, LazyImport) else other
-    #         )
-    #     except ScikitplotException:
-    #         return False
+    def __hash__(self) -> int:
+        """
+        Return a hash based on the import path for the LazyImport instance.
 
-    # def __hash__(self) -> int:
-    #     """
-    #     Return a hash based on the import path for the LazyImport instance.
+        Makes the LazyImport object usable as a key in dictionaries or elements in sets.
 
-    #     Makes the LazyImport object usable as a key in dictionaries or elements in sets.
+        Returns
+        -------
+        int
+            Hash of the module's dotted import name.
 
-    #     Returns
-    #     -------
-    #     int
-    #         Hash of the module's dotted import name.
+        Examples
+        --------
+        >>> lazy = LazyImport("math")
+        >>> hash(lazy) == hash("math")  # True
+        >>> {lazy: "cached"}  # Works in dictionaries
+        """
+        return hash(self._name)
 
-    #     Examples
-    #     --------
-    #     >>> lazy = LazyImport("math")
-    #     >>> hash(lazy) == hash("math")  # True
-    #     >>> {lazy: "cached"}  # Works in dictionaries
-    #     """
-    #     return hash(self._name)
+    def __eq__(self, other: any) -> bool:
+        """
+        Compare this LazyImport to another object or LazyImport.
+
+        If the object is another LazyImport, compares their resolved values.
+        Otherwise, compares the resolved object to `other`.
+
+        Parameters
+        ----------
+        other : Any
+            Another object or LazyImport instance to compare against.
+
+        Returns
+        -------
+        bool
+            True if the resolved objects are equal, False otherwise.
+
+        Examples
+        --------
+        >>> LazyImport("math") == importlib.import_module("math")  # True
+        >>> LazyImport("math") == LazyImport("math")  # True
+        >>> LazyImport("math") == "math"  # False
+        """
+        try:
+            return self.resolved == (
+                other.resolved if isinstance(other, LazyImport) else other
+            )
+        except ScikitplotException:
+            return False
 
     # def __getstate__(self) -> dict:
     #     """
