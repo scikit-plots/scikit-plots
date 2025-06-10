@@ -328,7 +328,9 @@ if st:
         placeholder : st.delta_generator.DeltaGenerator | None
             Streamlit object.
         """
-        with placeholder or st.empty().container(  # noqa: SIM117
+        # st.container A static layout block.
+        # st.empty().container Dynamic and replaceable container.
+        with placeholder or st.container(  # noqa: SIM117
             key=f"metadata_container_{function_meta['function']}",
             border=True,
             height=None,
@@ -405,7 +407,7 @@ if st:
         # Live Expander: Controlled by `expand_live`
         with (
             placeholder
-            or st.empty().container(
+            or st.container(
                 key=cont_key,
                 border=True,
                 height=None,
@@ -530,7 +532,7 @@ if st:
         """
         # bot_key = f"bot_msg_{function_meta['function']}"
         # Placeholder
-        bot_placeholder = st.empty().container()
+        bot_placeholder = st.container()
         with placeholder or bot_placeholder:
             if st.session_state.get(function_meta["function"], []):
                 # st.chat_message("assistant").write("Hi there,")
@@ -560,7 +562,7 @@ if st:
             Streamlit object.
         """
         # plot_key = f"plot_out_{function_meta['function']}"
-        plot_placeholder = st.empty().container()
+        plot_placeholder = st.container()
         with placeholder or plot_placeholder:
             # Display stored plot (if available)
             for fig in st.session_state.get(function_meta["function"], []):
@@ -611,7 +613,7 @@ if st:
 
         # Outer container for modular rendering
         cont_key = f"det_container_{function_meta['function']}"
-        with st.empty().container(
+        with st.container(
             key=cont_key,
             border=True,
             height=None,
@@ -622,11 +624,12 @@ if st:
                 [0.3, 0.7],  # Adjust columns width ratio
                 border=True,
                 gap="small",
+                vertical_alignment="top",
             )
 
             def render_details(function_meta: "dict[str, any]"):
                 # Left column for metadata and interactivity
-                with cols[0]:  # noqa: SIM117
+                with cols[0], st.container():
                     render_metadata_section(
                         function_meta, expanded=(expand_all or expand_meta)
                     )
@@ -634,7 +637,7 @@ if st:
                         function_meta, expanded=(expand_all or expand_live)
                     )
                 # Right column for chat ant plot display
-                with cols[-1]:  # noqa: SIM117
+                with cols[-1], st.container():
                     render_plot_output(function_meta)
                     render_bot_message(function_meta)
 
