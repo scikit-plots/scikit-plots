@@ -45,9 +45,11 @@ img_tag = f'<img src="data:image/svg+xml;base64,{svg_base64}" width="18" height=
 # img_tag = f'<span style="display:inline;">{img_tag}</span>'
 
 # import gradio as gr
-gr = LazyImport(package="gradio")
+gr = LazyImport("gradio", package="gradio")
 
 if gr:
+    gr = gr.resolved
+
     # import spaces  # huggingface
     ## gr.Blocks - Flexible and Modular
     with gr.Blocks() as gr_bocks:

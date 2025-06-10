@@ -26,11 +26,13 @@ import os
 from scikitplot import LazyImport  # logger
 
 # import streamlit as st
-st = LazyImport(package="streamlit")
+st = LazyImport("streamlit", package="streamlit")
 
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
+    st = st.resolved
+
     from scikitplot.ui_app.streamlit import (  # noqa: F401
         template_st_chat_ui,
         template_st_data_visualizer_ui,

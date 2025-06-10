@@ -13,14 +13,12 @@ From `PEP 562 <https://www.python.org/dev/peps/pep-0562/>`_.
 import contextlib
 import inspect
 import types
+from functools import lru_cache
 from importlib import import_module
 from importlib.util import find_spec
 from typing import Optional
 
 from .. import logger
-
-# from functools import lru_cache
-from .._compat.python import lru_cache
 from ..exceptions import ScikitplotException
 
 # Returns the top-level package/module, not the submodule.
@@ -117,63 +115,58 @@ def _get_source_path(obj):
 # Try importing as a submodule
 @lru_cache(maxsize=128)
 def nested_import(  # noqa: PLR0912
-    name: "str | None" = ".",
+    name: str,
     package: "str | None" = "scikitplot",
     default: "any | None" = None,
     validate_callable: bool = False,
     silent: bool = True,
     verbose: bool = False,
-) -> "types.ModuleType | callable | None":
+) -> "types.ModuleType | callable | any | None":
     """
-    Dynamically import a nested module or attribute from a dotted path like `a.b.c.d`.
+    Dynamically import a nested module or attribute from a dotted path (e.g., 'a.b.c').
 
-    Attempts to import a deeply nested module or object using either a relative
-    or absolute dotted string path. Supports fallbacks and optional validation.
+    Supports both absolute and relative imports, fallback behavior, and validation of callables.
 
     Parameters
     ----------
     name : str
         Dotted path to the target object. Can be relative (e.g., '.sub.attr') or
-        absolute (e.g., 'scikitplot.sub.attr') name of the module to import.
-        Default is '.' (current package) relative to 'scikitplot' refers to 'scikitplot' itself.
+        absolute (e.g., 'scikitplot.sub.attr').
     package : str, optional
-        Base package for resolving relative imports (e.g., 'scikitplot').
-        Required because Python uses it as the anchor point only for relative imports
-        (i.e., when name starts with a dot '.').
+        Anchor package for resolving relative imports (when `name` starts with '.').
         Default is 'scikitplot'.
     default : Any, optional
-        Value to return on failure. Defaults to None.
-        Sample: `lambda *a, **kw: None`.
+        Value to return if the import fails and `silent=True`.
+        Default is None.
     validate_callable : bool, optional
         If True, raises ValueError if the final imported object is not callable.
     silent : bool, optional
-        If True, suppresses exceptions and returns `default` on failure.
+        If True, suppresses errors and returns `default` on failure.
     verbose : bool, optional
-        If True, logs info/debug messages.
+        If True, logs additional debug information.
         Default is False.
 
     Returns
     -------
-    module_or_obj : types.ModuleType, callable or Any
-        The imported object or `default` if not found and `silent=True`.
+    module_or_obj : types.ModuleType, callable, Any or None
+        Imported object or `default` if import fails and `silent` is True.
 
     Raises
     ------
-    ModuleNotFoundError
-        If the module could not be imported and `silent=False`.
-    AttributeError
-        If an attribute in the path doesn't exist and `silent=False`.
     ValueError
-        If `validate_callable=True` and the object is not callable.
+        If `validate_callable` is True and the imported object is not callable.
+    ImportError
+        If import fails and `silent` is False.
 
     Notes
     -----
-    - Relative imports (starting with '.') require a non-empty `package`.
-    - If import fails and `silent=True`, the `default` is returned.
-    - Objects returned can be modules, functions, classes, etc.
+    - Uses `importlib.import_module` for both absolute and relative imports.
+    - Supports importing deeply nested attributes (e.g., functions or classes).
+    - Relative imports require a non-empty `package` argument.
+    - Does not cache imported modules; uses standard import system behavior.
+    - Absolute import: import_module(name='scikitplot', package=None) only load top-level
     - Relative import: import_module(name='.', package='scikitplot') support load submodule
     - Relative import: import_module(name='.', package='scikitplot.api') support load submodule
-    - Absolute import: import_module(name='scikitplot', package=None) only load top-level
 
     Examples
     --------
@@ -201,45 +194,59 @@ def nested_import(  # noqa: PLR0912
             raise TypeError(
                 f"the 'package' argument is required to perform a relative import for {name!r}"
             )
-        # Normalize the dotted path and split into parts (for relative imports)
+        # Normalize dotted path by removing leading dot (if relative)
         dotted_path = name.lstrip(".")  # Remove leading dot for relative paths
         parts = dotted_path.split(".")  # Split into module/attribute parts
 
-        # Handle fully-qualified paths redundantly prefixed with package name
-        if not is_relative and package and parts[0] == package:
-            parts = parts[1:]
+        # For relative imports or internal package shortcuts, prepend package name
+        if package and parts[0] != package:  # or is_relative
+            # parts.insert(0, 5)  # Insert 5 at index 0
+            parts = [package, *parts]  # handle for module "internal relatives"
 
         module = None  # Will hold the successfully imported module
-        i = 0  # Will track how many parts were used for module import
+        i = 0  # module_prefix_len : Will track how many parts were used for module import
 
-        # Attempt to import the longest valid resolvable module prefix
+        # Try importing the longest possible module path (from full to partial)
         for i in reversed(range(1, len(parts) + 1)):
             # Try importing the longest valid prefix as a module
             module_path = ".".join(parts[:i])
             try:
-                # Aleways use relative import to handle for "internal relatives"
+                # module = import_module(
+                #     name=f".{module_path}" if is_relative else module_path,
+                #     package=package,
+                # )
                 module = import_module(
-                    name=f".{module_path}",  # if is_relative module_path,
-                    package=package,
+                    name=module_path,
                 )
                 # a module, If successfully imported
                 break
             except ModuleNotFoundError:
                 continue  # Try a shorter prefix
-        else:
+            except ScikitplotException as e:
+                logger.exception(f"Unexpected error while importing {module_path!r}")
+                raise e
+
+        if module is None:
             # No module could be resolved
             # developer-friendly string (with quotes, escapes, etc.) "Format this using repr()"
-            msg = f"Could not import any module {name!r} from {package!r}"
+            msg = f"Could not import any module prefix from {name!r} using package {package!r}"
             logger.exception(msg)
             if silent:
                 return default
-            raise ModuleNotFoundError(msg)
+            raise ImportError(msg)
 
         # Resolve remaining dotted parts as attributes on the module (if any)
-        for attr in parts[i:]:
-            # if hasattr(module, attr):
-            # raise AttributeError
-            module = getattr(module, attr, default) if silent else getattr(module, attr)
+        try:
+            # Resolve the rest of the dotted path as attributes
+            for attr in parts[i:]:
+                # if not hasattr(module, attr):
+                # raise AttributeError
+                module = getattr(module, attr)
+        except AttributeError as e:
+            logger.exception(f"Attribute {attr!r} not found in {module}")
+            if silent:
+                return default
+            raise e
 
         # If required, ensure the final object is callable
         if validate_callable and not callable(module):
@@ -248,7 +255,7 @@ def nested_import(  # noqa: PLR0912
             raise ValueError(msg)
 
         if verbose:
-            logger.info(f"Successfully loaded {name!r}")
+            logger.info(f"Successfully imported {name!r}: {module!r}")
         return module
 
     except ScikitplotException as e:
@@ -266,29 +273,8 @@ class LazyImport(types.ModuleType):
     Lazily import (No load, fully lazy) a module, or function or attribute object
     upon first time access or invocation by its dotted path.
 
-    This class delays the import of a dotted module or attribute path (e.g., `a.b.c`)
-    until it is first accessed or called. This is useful to reduce initial load time
-    or avoid importing heavy dependencies unless needed.
-
-    Parameters
-    ----------
-    name : str
-        The dotted import path of the target module or attribute to load
-        (e.g., "pandas.DataFrame").
-    package : str, optional
-        Root package used to resolve relative imports.
-        Only relevant if `name` is a relative import (e.g., ".utils").
-    default : Any, optional
-        A fallback value to return if the import fails.
-        If None, errors will be raised unless `silent=True`.
-    validate_callable : bool, optional
-        If True, ensures the final resolved object is callable.
-        Raises TypeError if not.
-    silent : bool, optional
-        If True, suppresses import errors and returns `default` instead.
-        Default is True.
-    verbose : bool, optional
-        If True, logs debug information during import resolution.
+    Delay the import of a dotted module or attribute path (e.g., `a.b.c`)
+    until it is first accessed or called.
 
     Attributes
     ----------
@@ -311,11 +297,6 @@ class LazyImport(types.ModuleType):
     is_loaded : bool
         True if the import has been performed and cached, False otherwise.
 
-    Notes
-    -----
-    - Caches the result after first resolution.
-    - Supports equality, hashing, boolean context.
-
     Examples
     --------
     Lazy load a function:
@@ -337,6 +318,8 @@ class LazyImport(types.ModuleType):
 
     Notes
     -----
+    - Caches the result after first resolution.
+    - Supports equality, hashing, boolean context.
     - Use `lazy_obj.is_loaded` to check if the object has been loaded.
     - Use `repr()` or `dir()` for interactive exploration.
     """  # noqa: D205
@@ -356,13 +339,37 @@ class LazyImport(types.ModuleType):
 
     def __init__(
         self,
-        name: "str | None" = ".",
+        name: str,
         package: "str | None" = "scikitplot",
         default: "any | None" = None,
         validate_callable: bool = False,
         silent: bool = True,
         verbose: bool = False,
     ):
+        """
+        Reduce initial load time or avoid importing heavy dependencies unless needed.
+
+        Parameters
+        ----------
+        name : str
+            The dotted import path of the target module or attribute to load
+            (e.g., "pandas.DataFrame").
+        package : str, optional
+            Root package used to resolve relative imports.
+            Only relevant if `name` is a relative import (e.g., ".utils").
+        default : Any, optional
+            A fallback value to return if the import fails.
+            If None, errors will be raised unless `silent=True`.
+        validate_callable : bool, optional
+            If True, ensures the final resolved object is callable.
+            Raises TypeError if not.
+        silent : bool, optional
+            If True, suppresses import errors and returns `default` instead.
+            Default is True.
+        verbose : bool, optional
+            If True, logs debug information during import resolution.
+        """  # noqa: D205
+
         super().__init__(name)
         self._name = name  # Full dotted import path
         self._package = package  # Optional package for relative imports
@@ -371,10 +378,9 @@ class LazyImport(types.ModuleType):
         self._silent = silent  # Suppress errors
         self._verbose = verbose  # Log debug info
 
+        # Import status flag, object is called or accessed triggers import
+        self._loaded = False
         self._resolved: Optional[any] = None  # Cached resolved object
-        self._loaded = (
-            False,  # Import status flag, object is called or accessed triggers import
-        )
 
     def _resolve(self) -> "types.ModuleType | callable | None":
         """
@@ -396,8 +402,6 @@ class LazyImport(types.ModuleType):
             self._silent,
             self._verbose,
         )
-        # Cache and return the resolved object
-        self._resolved = module
         if hasattr(self, "__dict__"):
             # Ignore errors in custom proxies
             # Cache module attributes to speed up repeated lookups
@@ -405,54 +409,9 @@ class LazyImport(types.ModuleType):
             with contextlib.suppress(Exception):
                 self.__dict__.update(module.__dict__)  # ← Requested enhancement
         self._loaded = True
+        # Cache and return the resolved object to reuse.
+        self._resolved = module
         return module
-
-    @property
-    def resolved(self) -> any:
-        """
-        Public accessor for the resolved object.
-
-        Returns
-        -------
-        Any
-            The resolved object or fallback if `silent=True`, or None if resolution fails.
-
-        Examples
-        --------
-        >>> lazy = LazyImport("math.sqrt")
-
-        Before resolution:
-        >>> lazy.is_loaded
-        False
-
-        Trigger resolution:
-        >>> print(lazy.resolved_type)
-        <class 'builtin_function_or_method'>
-
-        Accessing resolved value:
-        >>> print(lazy.resolved(25))
-        5.0
-
-        After resolution:
-        >>> lazy.is_loaded
-        True
-        >>> lazy.is_resolved
-        True
-        >>> lazy.is_missing
-        False
-
-        Use in boolean context:
-        >>> bool(LazyImport("math"))  # True, once loaded
-        True
-
-        Handle missing modules safely:
-        >>> bool(LazyImport("missing.module", default=False, silent=True))
-        False
-        """
-        try:
-            return self._resolve()
-        except Exception:
-            return None
 
     def clear_cache(self):
         """
@@ -461,8 +420,8 @@ class LazyImport(types.ModuleType):
         Use this to force re-importing on the next access. Helpful for testing,
         debugging, or reloading updated modules.
         """
-        self._resolved = None
         self._loaded = False
+        self._resolved = None
 
     @property
     def is_loaded(self) -> bool:
@@ -507,6 +466,50 @@ class LazyImport(types.ModuleType):
         False
         """
         return self._loaded
+
+    @property
+    def is_missing(self) -> bool:
+        """
+        Return True if the object is missing (import failed or resolved to None).
+
+        Returns
+        -------
+        bool
+            True if import failed or resolved to None, False otherwise.
+
+        Examples
+        --------
+        >>> lazy = LazyImport("math.sqrt")
+
+        Before resolution:
+        >>> lazy.is_loaded
+        False
+
+        Trigger resolution:
+        >>> print(lazy.resolved_type)
+        <class 'builtin_function_or_method'>
+
+        Accessing resolved value:
+        >>> print(lazy.resolved(25))
+        5.0
+
+        After resolution:
+        >>> lazy.is_loaded
+        True
+        >>> lazy.is_resolved
+        True
+        >>> lazy.is_missing
+        False
+
+        Use in boolean context:
+        >>> bool(LazyImport("math"))  # True, once loaded
+        True
+
+        Handle missing modules safely:
+        >>> bool(LazyImport("missing.module", default=False, silent=True))
+        False
+        """
+        return not self.is_resolved
 
     @property
     def is_resolved(self) -> bool:
@@ -556,14 +559,14 @@ class LazyImport(types.ModuleType):
             return False
 
     @property
-    def is_missing(self) -> bool:
+    def resolved(self) -> "types.ModuleType | callable | None":
         """
-        Return True if the object is missing (import failed or resolved to None).
+        Public accessor for the resolved object.
 
         Returns
         -------
-        bool
-            True if import failed or resolved to None, False otherwise.
+        types.ModuleType or Callable or None
+            The resolved module or attribute, or None if resolution fails.
 
         Examples
         --------
@@ -597,7 +600,11 @@ class LazyImport(types.ModuleType):
         >>> bool(LazyImport("missing.module", default=False, silent=True))
         False
         """
-        return not self.is_resolved
+        try:
+            return self._resolve()
+        except (AttributeError, ImportError) as e:
+            logger.exception(f"{e}")
+            raise e
 
     @property
     def resolved_type(self) -> type:
@@ -645,6 +652,81 @@ class LazyImport(types.ModuleType):
             return type(self.resolved)
         except Exception:
             return type(None)
+
+    # @property
+    # def __path__(self):
+    #     """Required if this is a package, for relative imports to work."""
+    #     return getattr(self._resolved, "__path__", [])
+
+    # @property
+    # def __doc__(self):
+    #     # Adding __doc__ property = lazy until docstring requested, then eager on demand.
+    #     # No way to have real docstring on proxy without importing the target.
+    #     # Force load the real object and return its docstring
+    #     # Docstring access (? or help()):
+    #     try:
+    #         help(self._resolved)
+    #         # doc = help(self._resolved)
+    #         # doc = inspect.getdoc(self._resolved)
+    #         return getattr(self._resolved, "__doc__", "")  # returns not raise
+    #     except Exception:
+    #         return "No docstring."
+
+    # @property
+    # def __class__(self):
+    #     """Make isinstance and others work properly."""
+    #     # Forward to resolved object's class
+    #     try:
+    #         return self._resolved.__class__
+    #     except Exception:
+    #         return super().__class__
+
+    def __repr__(self) -> str:
+        """
+        Developer-friendly representation of the LazyImport instance.
+
+        Returns
+        -------
+        str
+            A string showing the import path and resolution state.
+        """
+        # resolved_type = type(self._resolved).__name__ if self._loaded else "unresolved"
+        # getattr(self._resolved, '__module__', '?')
+        return (
+            f"<LazyImport → {type(self._resolved).__name__} "
+            f"'{self._name}' from '{_get_source_path(self._resolved)}'>"
+        )
+        # return f"<LazyImport '{self._name}' (not loaded)>"
+
+    def __call__(self, *args, **kwargs) -> any:
+        """
+        Call the resolved object if it is callable.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments to pass to the callable.
+        **kwargs : dict
+            Keyword arguments to pass to the callable.
+
+        Returns
+        -------
+        Any
+            The result of calling the imported object.
+
+        Raises
+        ------
+        TypeError
+            If the resolved object is not callable.
+        """
+        obj = self.resolved
+        if callable(obj):
+            return obj(*args, **kwargs)
+        return obj
+        # or ?
+        # raise TypeError(
+        #     f"Lazy-imported object '{self._name}' is not callable"
+        # )
 
     def __bool__(self) -> bool:
         """
@@ -694,217 +776,151 @@ class LazyImport(types.ModuleType):
         False
         """
         try:
-            return bool(self.resolved)
-        except ScikitplotException:
-            return bool(self._default)
-
-    def __call__(self, *args, **kwargs) -> any:
-        """
-        Call the resolved object if it is callable.
-
-        Parameters
-        ----------
-        *args : tuple
-            Positional arguments to pass to the callable.
-        **kwargs : dict
-            Keyword arguments to pass to the callable.
-
-        Returns
-        -------
-        Any
-            The result of calling the imported object.
-
-        Raises
-        ------
-        TypeError
-            If the resolved object is not callable.
-        """
-        obj = self.resolved
-        if callable(obj):
-            return obj(*args, **kwargs)
-        # or ?
-        return obj
-        # raise TypeError(
-        #     f"Lazy-imported object '{self._name}' is not callable"
-        # )
-
-    def __repr__(self) -> str:
-        """
-        Developer-friendly representation of the LazyImport instance.
-
-        Returns
-        -------
-        str
-            A string showing the import path and resolution state.
-        """
-        # resolved_type = type(self._resolved).__name__ if self._loaded else "unresolved"
-        # getattr(self._resolved, '__module__', '?')
-        return (
-            f"<LazyImport → {type(self._resolved).__name__} "
-            f"'{self._name}' from '{_get_source_path(self._resolved)}'>"
-        )
-        # return f"<LazyImport '{self._name}' (not loaded)>"
-
-    def __getattr__(self, attr: str) -> any:
-        """
-        Delegate attribute access to the real resolved object.
-
-        Parameters
-        ----------
-        attr : str
-            The attribute name to access.
-
-        Returns
-        -------
-        Any
-            The attribute value from the resolved object.
-
-        Raises
-        ------
-        AttributeError
-            If the attribute is not found on the resolved object.
-        """
-        return getattr(self.resolved, attr, self)  # raise AttributeError
-
-    @property
-    def __doc__(self):
-        # Adding __doc__ property = lazy until docstring requested, then eager on demand.
-        # No way to have real docstring on proxy without importing the target.
-        # Force load the real object and return its docstring
-        # Docstring access (? or help()):
-        try:
-            help(self._resolved)
-            # doc = help(self._resolved)
-            # doc = inspect.getdoc(self._resolved)
-            return getattr(self._resolved, "__doc__", "")  # returns not raise
-        except Exception:
-            return "No docstring."
-
-    @property
-    def __class__(self):
-        """Make isinstance and others work properly."""
-        # Forward to resolved object's class
-        try:
-            return self._resolved.__class__
-        except Exception:
-            return super().__class__
-
-    def __dir__(self) -> list[str]:
-        """
-        Provide intelligent tab autocompletion support.
-
-        Returns
-        -------
-        list of str
-            A sorted list of available attributes from the resolved object.
-        """
-        try:
-            return sorted(set(dir(self._resolved)))
-        except Exception:
-            return sorted(set(super().__dir__()) | {"is_loaded"})
-
-    def _ipython_key_completions_(self):
-        """IPython tab completion support."""
-        return self.__dir__()
-
-    @property
-    def __path__(self):
-        """Required if this is a package, for relative imports to work."""
-        return getattr(self._resolved, "__path__", [])
-
-    def __eq__(self, other: any) -> bool:
-        """
-        Compare this LazyImport to another object or LazyImport.
-
-        If the object is another LazyImport, compares their resolved values.
-        Otherwise, compares the resolved object to `other`.
-
-        Parameters
-        ----------
-        other : Any
-            Another object or LazyImport instance to compare against.
-
-        Returns
-        -------
-        bool
-            True if the resolved objects are equal, False otherwise.
-
-        Examples
-        --------
-        >>> LazyImport("math") == importlib.import_module("math")  # True
-        >>> LazyImport("math") == LazyImport("math")  # True
-        >>> LazyImport("math") == "math"  # False
-        """
-        try:
-            return self.resolved == (
-                other.resolved if isinstance(other, LazyImport) else other
+            pkg = (
+                self._package
+                if self._name.startswith(".")
+                else self._name.split(".")[0]
             )
+            has_ = "HAS_" + pkg.upper()
+            return __getattr__(has_)
         except ScikitplotException:
             return False
 
-    def __hash__(self) -> int:
-        """
-        Return a hash based on the import path for the LazyImport instance.
+    # def __getattr__(self, attr: str) -> any:
+    #     """
+    #     Delegate attribute access to the real resolved object.
 
-        Makes the LazyImport object usable as a key in dictionaries or elements in sets.
+    #     Parameters
+    #     ----------
+    #     attr : str
+    #         The attribute name to access.
 
-        Returns
-        -------
-        int
-            Hash of the module's dotted import name.
+    #     Returns
+    #     -------
+    #     Any
+    #         The attribute value from the resolved object.
 
-        Examples
-        --------
-        >>> lazy = LazyImport("math")
-        >>> hash(lazy) == hash("math")  # True
-        >>> {lazy: "cached"}  # Works in dictionaries
-        """
-        return hash(self._name)
+    #     Raises
+    #     ------
+    #     AttributeError
+    #         If the attribute is not found on the resolved object.
+    #     """
+    #     try:
+    #         return getattr(self, attr)  # raise AttributeError
+    #     except ScikitplotException:
+    #         return getattr(self.resolved, attr)  # raise AttributeError
 
-    def __getstate__(self) -> dict:
-        """
-        Prepare the LazyImport instance for pickling.
+    # def __dir__(self) -> list[str]:
+    #     """
+    #     Provide intelligent tab autocompletion support.
 
-        Returns
-        -------
-        dict
-            A dictionary representing the serializable state,
-            including attributes from __slots__ and __dict__ if present.
-        """
-        state = {}
+    #     Returns
+    #     -------
+    #     list of str
+    #         A sorted list of available attributes from the resolved object.
+    #     """
+    #     try:
+    #         return sorted(set(dir(self._resolved)))
+    #     except Exception:
+    #         return sorted(set(super().__dir__()) | {"is_loaded"})
 
-        # Collect attributes from __slots__, if defined
-        slots = getattr(self, "__slots__", [])  # returns [] not raise
-        for slot in slots:
-            # __slots__ can be a single string or iterable of strings (in case of inheritance)
-            if isinstance(slot, str):
-                # Ignore errors in custom
-                with contextlib.suppress(AttributeError):
-                    state[slot] = getattr(self, slot)  # raises AttributeError
-            else:  # if slot is iterable (multiple inheritance)
-                for s in slot:
-                    # Ignore errors in custom
-                    with contextlib.suppress(AttributeError):
-                        state[s] = getattr(self, s)  # raises AttributeError
+    # def _ipython_key_completions_(self):
+    #     """IPython tab completion support."""
+    #     return dir(self)
 
-        # Include attributes from __dict__ (dynamic attributes) if available
-        if hasattr(self, "__dict__"):
-            state.update(self.__dict__)
+    # def __eq__(self, other: any) -> bool:
+    #     """
+    #     Compare this LazyImport to another object or LazyImport.
 
-        return state
+    #     If the object is another LazyImport, compares their resolved values.
+    #     Otherwise, compares the resolved object to `other`.
 
-    def __setstate__(self, state: dict) -> None:
-        """
-        Restore the LazyImport instance from the pickled state.
+    #     Parameters
+    #     ----------
+    #     other : Any
+    #         Another object or LazyImport instance to compare against.
 
-        Parameters
-        ----------
-        state : dict
-            Dictionary of saved attributes to restore.
-            The dictionary representing the serialized state.
-        """
-        for key, value in state.items():
-            setattr(self, key, value)
+    #     Returns
+    #     -------
+    #     bool
+    #         True if the resolved objects are equal, False otherwise.
+
+    #     Examples
+    #     --------
+    #     >>> LazyImport("math") == importlib.import_module("math")  # True
+    #     >>> LazyImport("math") == LazyImport("math")  # True
+    #     >>> LazyImport("math") == "math"  # False
+    #     """
+    #     try:
+    #         return self.resolved == (
+    #             other.resolved if isinstance(other, LazyImport) else other
+    #         )
+    #     except ScikitplotException:
+    #         return False
+
+    # def __hash__(self) -> int:
+    #     """
+    #     Return a hash based on the import path for the LazyImport instance.
+
+    #     Makes the LazyImport object usable as a key in dictionaries or elements in sets.
+
+    #     Returns
+    #     -------
+    #     int
+    #         Hash of the module's dotted import name.
+
+    #     Examples
+    #     --------
+    #     >>> lazy = LazyImport("math")
+    #     >>> hash(lazy) == hash("math")  # True
+    #     >>> {lazy: "cached"}  # Works in dictionaries
+    #     """
+    #     return hash(self._name)
+
+    # def __getstate__(self) -> dict:
+    #     """
+    #     Prepare the LazyImport instance for pickling.
+
+    #     Returns
+    #     -------
+    #     dict
+    #         A dictionary representing the serializable state,
+    #         including attributes from __slots__ and __dict__ if present.
+    #     """
+    #     state = {}
+
+    #     # Collect attributes from __slots__, if defined
+    #     slots = getattr(self, "__slots__", [])  # returns [] not raise
+    #     for slot in slots:
+    #         # __slots__ can be a single string or iterable of strings (in case of inheritance)
+    #         if isinstance(slot, str):
+    #             # Ignore errors in custom
+    #             with contextlib.suppress(AttributeError):
+    #                 state[slot] = getattr(self, slot)  # raises AttributeError
+    #         else:  # if slot is iterable (multiple inheritance)
+    #             for s in slot:
+    #                 # Ignore errors in custom
+    #                 with contextlib.suppress(AttributeError):
+    #                     state[s] = getattr(self, s)  # raises AttributeError
+
+    #     # Include attributes from __dict__ (dynamic attributes) if available
+    #     if hasattr(self, "__dict__"):
+    #         state.update(self.__dict__)
+
+    #     return state
+
+    # def __setstate__(self, state: dict) -> None:
+    #     """
+    #     Restore the LazyImport instance from the pickled state.
+
+    #     Parameters
+    #     ----------
+    #     state : dict
+    #         Dictionary of saved attributes to restore.
+    #         The dictionary representing the serialized state.
+    #     """
+    #     for key, value in state.items():
+    #         setattr(self, key, value)
 
     # def __del__(self):
     #     """
@@ -996,6 +1012,7 @@ _optional_deps = [  # noqa: RUF005
     "tensorflow",
     "keras",
     # sample UI app
+    "scikitplot",
     "gradio",
     "streamlit",
     "pyyaml",
@@ -1037,6 +1054,7 @@ def __getattr__(name: str) -> bool:
     >>> HAS_PANDAS
     False  # if pandas is not installed
     """
+    logger.info(f"name {name}")
     if name in __all__:
         # Extract the dependency key by removing "HAS_" prefix
         dep_key = name.removeprefix("HAS_")
