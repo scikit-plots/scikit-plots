@@ -134,7 +134,9 @@ if st:
         #     '<div class="center-align">This content is centered</div>',
         #     unsafe_allow_html=True)
         # Placeholder
-        with st.empty().container(border=True):
+        # st.container A static layout block.
+        # st.empty().container Dynamic and replaceable container.
+        with st.container(border=True):
             st.sidebar.markdown(
                 f"""
             <style>
@@ -201,7 +203,7 @@ if st:
         You can add any content here: title, logo, menu, etc.
         """
         # Sidebar for controlling expanders and categories
-        with st.sidebar, st.empty().container(border=True):
+        with st.sidebar, st.container(border=True):
             st.logo(
                 image=(
                     "https://raw.githubusercontent.com/scikit-plots/scikit-plots"
@@ -264,7 +266,7 @@ if st:
         view_style = add_sidebar()
 
         # Placeholder
-        with st.empty().container(border=True):
+        with st.container(border=True):
             ## ---- App Content UI ----
             # Update Content by selection
             if view_style == "Tabs":
