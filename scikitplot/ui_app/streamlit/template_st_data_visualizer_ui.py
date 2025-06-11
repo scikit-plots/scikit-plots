@@ -293,7 +293,7 @@ if st:
             selected_categories = multiselect_categories()
             # Sidebar checkbox for controlling expanders
             expand_meta = st.checkbox("Expand all metadata", value=False)
-            expand_live = st.checkbox("Expand all live interaction", value=True)
+            expand_live = st.checkbox("Expand all live interaction", value=False)
         # Sidebar for controlling expanders and categories
         with st.sidebar:
             api_key_config_ui()
