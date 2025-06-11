@@ -479,16 +479,22 @@ if st:
             col1, col2 = st.columns([7, 3], vertical_alignment="top")
             with placeholder or plot_placeholder:
                 with col1:
-                    # plotting the figure
-                    # fig.set_size_inches(6, 3.5)  # width=6 inches, height=3.5 inches
-                    st.pyplot(
-                        fig,
-                        # clear_figure=None,
-                        use_container_width=False,
-                        dpi=150,
-                    )
+                    # width to center area
+                    _, mid, _ = st.columns([0.01, 0.985, 0.005])
+                    with mid:
+                        # plotting the figure
+                        # fig.set_size_inches(6, 3.5)  # width=6 inches, height=3.5 inches
+                        st.pyplot(
+                            fig,
+                            # clear_figure=None,
+                            use_container_width=True,
+                            dpi=150,
+                        )
                 with col2:
-                    render_bot_message(function_meta, idx)
+                    # width to center area
+                    col3, _ = st.columns([0.99, 0.01])
+                    with col3:
+                        render_bot_message(function_meta, idx)
 
     # Redraw Minimization
     @st.fragment
