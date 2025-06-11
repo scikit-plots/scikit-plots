@@ -293,7 +293,7 @@ if st:
             selected_categories = multiselect_categories()
             # Sidebar checkbox for controlling expanders
             expand_meta = st.checkbox("Expand all metadata", value=False)
-            expand_live = st.checkbox("Expand all live interaction", value=True)
+            expand_live = st.checkbox("Expand all live interaction", value=False)
         # Sidebar for controlling expanders and categories
         with st.sidebar:
             api_key_config_ui()
@@ -408,13 +408,14 @@ if st:
         placeholder : st.delta_generator.DeltaGenerator | None
             Streamlit object.
         """
-        btn_chat_key = f"ask_ai_{function_meta['function']}_{idx}"
+        bot_chat_key = f"ask_ai_bot_{function_meta['function']}_{idx}"
+        btn_chat_key = f"ask_ai_btn_{function_meta['function']}_{idx}"
         # bot_key = f"bot_msg_{function_meta['function']}"
         # Placeholder
         bot_placeholder = st.container(
             height=None,
             border=None,
-            key=None,
+            key=bot_chat_key,
         )
         with placeholder or bot_placeholder:
             # col1, col2 = st.columns([1, 9], vertical_alignment="center")
@@ -469,11 +470,12 @@ if st:
         """
         # Display stored plot(s) (if available)
         for idx, fig in enumerate(st.session_state.get(function_meta["function"], [])):
+            plot_key = f"plot_key_{function_meta['function']}_{idx}"
             # plot_key = f"plot_out_{function_meta['function']}"
             plot_placeholder = st.container(
                 height=None,
                 border=None,
-                key=None,
+                key=plot_key,
             )
             # Center
             col1, col2 = st.columns([7, 3], vertical_alignment="top")
