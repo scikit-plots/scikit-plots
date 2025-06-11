@@ -728,12 +728,13 @@ if st:
             """
             <style>
             div[data-testid="stVerticalBlock"] > div {
-                overflow-y: auto;
+                /* overflow-y: auto; */
+                overflow-y: hidden;
                 overflow-x: hidden;
-                /* border: 1px solid #CCC; */
+                border: 0px solid #CCC;
                 border-radius: 0rem;
                 padding: 0rem;
-                margin-bottom: 0rem;
+                margin: 0rem;
                 box-sizing: border-box;
             }
             canvas {
