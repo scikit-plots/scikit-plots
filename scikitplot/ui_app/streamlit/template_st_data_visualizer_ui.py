@@ -338,7 +338,7 @@ if st:
             placeholder
             or st.container(
                 height=None,
-                border=True,
+                border=None,
                 key=f"metadata_container_{function_meta['function']}",
             ),
             st.expander(
@@ -419,7 +419,7 @@ if st:
             placeholder
             or st.container(
                 key=cont_key,
-                border=True,
+                border=None,
                 height=None,
             ),
             st.expander(
@@ -523,39 +523,6 @@ if st:
                     )
                 st.session_state[f"{function_meta['function']}_response"] = response
 
-    def render_plot_output(
-        function_meta: "dict[str, any]",
-        placeholder: "Optional[DeltaGenerator]" = None,
-    ) -> None:
-        """
-        Render the stored plots in the output placeholder.
-
-        Parameters
-        ----------
-        function_meta : dict
-            Metadata dict of the plotting function.
-        placeholder : st.delta_generator.DeltaGenerator | None
-            Streamlit object.
-        """
-        # plot_key = f"plot_out_{function_meta['function']}"
-        plot_placeholder = st.container(
-            height=None,
-            border=True,
-            key=None,
-        )
-        with (
-            placeholder or plot_placeholder,
-            st.expander("Show plot(s)!", expanded=True),
-        ):
-            # Display stored plot(s) (if available)
-            for fig in st.session_state.get(function_meta["function"], []):
-                st.pyplot(
-                    fig,
-                    clear_figure=None,
-                    use_container_width=True,
-                    dpi=150,
-                )
-
     def render_bot_message(
         function_meta: "dict[str, any]",
         msg: str = "Explain Plot...",
@@ -577,28 +544,59 @@ if st:
         # Placeholder
         bot_placeholder = st.container(
             height=None,
-            border=True,
+            border=None,
             key=None,
         )
-        with (
-            placeholder or bot_placeholder,
-            st.expander("Show chat(s)!", expanded=True),
-        ):
-            if st.session_state.get(function_meta["function"], []):
-                # st.chat_message("assistant").write("Hi there,")
-                message = st.chat_message("assistant")
-                message.write(
-                    st.session_state.get(f"{function_meta['function']}_response", msg)
-                )
-                # Separate visually
-                # st.markdown("---")
-                # st.divider()  # visually sleek
-                # st.markdown("### 🔹 Begin Section A")
-                # st.caption("🔻 Start of config")
-                # st.toast(f"## Total clicks: {st.session_state.clicks}")
+        with placeholder or bot_placeholder:
+            # st.chat_message("assistant").write("Hi there,")
+            message = st.chat_message("assistant")
+            message.write(
+                st.session_state.get(f"{function_meta['function']}_response", msg)
+            )
+            # Separate visually
+            # st.markdown("---")
+            # st.divider()  # visually sleek
+            # st.markdown("### 🔹 Begin Section A")
+            # st.caption("🔻 Start of config")
+            # st.toast(f"## Total clicks: {st.session_state.clicks}")
 
-    # Redraw Minimization	Use st.fragment (if stable)
-    # quick local rerun under fragment other/default long Full rerun
+    # Redraw Minimization
+    @st.fragment
+    def render_plot_output(
+        function_meta: "dict[str, any]",
+        placeholder: "Optional[DeltaGenerator]" = None,
+    ) -> None:
+        """
+        Render the stored plots in the output placeholder.
+
+        Parameters
+        ----------
+        function_meta : dict
+            Metadata dict of the plotting function.
+        placeholder : st.delta_generator.DeltaGenerator | None
+            Streamlit object.
+        """
+        # Display stored plot(s) (if available)
+        for fig in st.session_state.get(function_meta["function"], []):
+            # plot_key = f"plot_out_{function_meta['function']}"
+            plot_placeholder = st.container(
+                height=None,
+                border=None,
+                key=None,
+            )
+            with (
+                placeholder or plot_placeholder,
+                st.expander("Show plot(s)!", expanded=True),
+            ):
+                st.pyplot(
+                    fig,
+                    clear_figure=None,
+                    use_container_width=True,
+                    dpi=150,
+                )
+                render_bot_message(function_meta)
+
+    # Redraw Minimization
     @st.fragment
     def display_function_details(
         function_meta: "dict[str, any]",
@@ -647,7 +645,7 @@ if st:
             # One for the button and metadata, the other for the plot
             col1, col2 = st.columns(
                 [0.3, 0.7],  # Adjust columns width ratio
-                border=True,
+                border=False,
                 gap="small",
                 vertical_alignment="top",
             )
@@ -666,7 +664,6 @@ if st:
                 # Left column for chat ant plot display
                 with col2:
                     render_plot_output(function_meta)
-                    render_bot_message(function_meta)
 
             render_details(function_meta)
 
@@ -682,6 +679,22 @@ if st:
         the layout, handles user interaction, and displays metadata for
         all functions within the selected category.
         """
+        ## Initialize session state with defaults (only once)
+        # st.session_state.setdefault("running", False)
+        if "running" not in st.session_state:
+            # Initialize the flag in session state
+            st.session_state["running"] = False
+
+        ## Initialize session state with defaults (only once)
+        if "dfs" not in st.session_state:
+            st.session_state.dfs = st.session_state.get("dfs", get_sns_data())
+        if "y_true" not in st.session_state:
+            st.session_state["y_true"] = pd.Series()
+        if "y_pred" not in st.session_state:
+            st.session_state["y_pred"] = pd.Series()
+        if "y_score" not in st.session_state:
+            st.session_state["y_score"] = pd.Series()
+
         # (Optionally) set without login page
         if not st.session_state.get("authenticated", False):
             ## Initialize session state with defaults (only once)
@@ -707,44 +720,29 @@ if st:
                     "About": "### Scikit-Plots Explorer\nBuilt with Streamlit",
                 },
             )
-        ## Initialize session state with defaults (only once)
-        # st.session_state.setdefault("running", False)
-        if "running" not in st.session_state:
-            # Initialize the flag in session state
-            st.session_state["running"] = False
-
-        ## Initialize session state with defaults (only once)
-        if "dfs" not in st.session_state:
-            st.session_state.dfs = st.session_state.get("dfs", get_sns_data())
-        if "y_true" not in st.session_state:
-            st.session_state["y_true"] = pd.Series()
-        if "y_pred" not in st.session_state:
-            st.session_state["y_pred"] = pd.Series()
-        if "y_score" not in st.session_state:
-            st.session_state["y_score"] = pd.Series()
 
         # Inject the CSS only once
-        st.markdown(
-            """
-            <style>
-            div[data-testid="stVerticalBlock"] > div {
-                /* overflow-y: auto; */
-                overflow-y: hidden;
-                overflow-x: hidden;
-                border: 0px solid #CCC;
-                border-radius: 0rem;
-                padding: 0rem;
-                margin: 0rem;
-                box-sizing: border-box;
-            }
-            canvas {
-                max-width: 100% !important;
-                height: auto !important;
-            }
-            </style>
-        """,
-            unsafe_allow_html=True,
-        )
+        # st.markdown(
+        #     """
+        #     <style>
+        #     div[data-testid="stVerticalBlock"] > div {
+        #         /* overflow-y: auto; */
+        #         overflow-y: hidden;
+        #         overflow-x: hidden;
+        #         border: 0px solid #CCC;
+        #         border-radius: 0rem;
+        #         padding: 0rem;
+        #         margin: 0rem;
+        #         box-sizing: border-box;
+        #     }
+        #     canvas {
+        #         max-width: 100% !important;
+        #         height: auto !important;
+        #     }
+        #     </style>
+        # """,
+        #     unsafe_allow_html=True,
+        # )
 
         ## Call the sidebar function
         selected_categories, expand_meta, expand_live = add_sidebar()

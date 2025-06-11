@@ -66,11 +66,25 @@ repos:
 
   # Code Quality: Formatter black vs ruff-format can be conflict make sure both compatipable
   # - repo: https://github.com/psf/black
+  # Using this mirror lets us use mypyc-compiled black, which is about 2x faster
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 25.1.0
     hooks:
       - id: black
-        # args: ["--target-version=py312"]  # Change to match your Python version.
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        entry: black
+        language: python
+        # It is recommended to specify the latest version of Python
+        # supported by your project here, or alternatively use
+        # pre-commit's default_language_version, see
+        # https://pre-commit.com/#top_level-default_language_version
+        # language_version: python3.11
+        types_or: [python, pyi]
+        args:
+          # - -t, --target-version
+          - --check                   # Check if files are formatted. Exit with code 1 if reformatting is needed, but don’t change files.
+          - --diff                    # Show a diff of what would change, without writing changes to disk. Often used with --check.
         exclude: 'tests/'
 
   # - repo: https://github.com/charliermarsh/ruff
