@@ -318,7 +318,7 @@ if st:
     def render_metadata_section(
         function_meta: "dict[str, any]",
         expanded: bool = False,
-        placeholder: "Optional[DeltaGenerator]" = None,  # type: ignore[reportInvalidTypeForm]
+        placeholder: "Optional[DeltaGenerator]" = None,
     ) -> None:
         """
         Render the metadata section for the function.
@@ -334,49 +334,55 @@ if st:
         """
         # st.container A static layout block.
         # st.empty().container Dynamic and replaceable container.
-        with placeholder or st.container(  # noqa: SIM117
-            key=f"metadata_container_{function_meta['function']}",
-            border=True,
-            height=None,
-        ):
-            # Using st.expander with st.markdown inside it
-            # $\color{color-code}{your-text-here} \space$
-            # \Huge, \huge, \LARGE, \Large, \normalsize, \small, \tiny
-            # \boldsymbol{...} — bolds the content inside.
-            # \color{blue} — colors the content. oe :blue[text]
-            # \boldsymbol{...} — only works for math symbols, not plain text.
-            # Metadata Expander: Controlled by `expand_meta`
-            with st.expander(
+        with (
+            placeholder
+            or st.container(
+                height=None,
+                border=True,
+                key=f"metadata_container_{function_meta['function']}",
+            ),
+            st.expander(
+                # Using st.expander with st.markdown inside it
+                # $\color{color-code}{your-text-here} \space$
+                # \Huge, \huge, \LARGE, \Large, \normalsize, \small, \tiny
+                # \boldsymbol{...} — bolds the content inside.
+                # \color{blue} — colors the content. oe :blue[text]
+                # \boldsymbol{...} — only works for math symbols, not plain text.
+                # Metadata Expander: Controlled by `expand_meta`
                 # rf"👉 ${{\small \color{{blue}} \textbf{{[INFO]}}}}$ "
-                label=r"👉 ${\small \color{blue} \textbf{\text{[INFO]}}}$ "
-                f"{function_meta['function'].rsplit('.')[-1]}",
+                label=(
+                    r"${\small \color{blue} \textbf{\text{[INFO]}}}$ "
+                    f"{function_meta['function'].rsplit('.')[-1]}"
+                ),
                 expanded=expanded,
-            ):
-                st.markdown(f"##### :blue-background[{function_meta['function']}]")
-                st.markdown(f"**Fallback**: {function_meta['fallback_function']}")
-                st.markdown(f"**Module**: {function_meta['module']}")
-                st.markdown(f"**Description**: {function_meta['description']}")
-                st.markdown(f"**Task Type**: {function_meta['task_type']}")
-                st.markdown(f"**Plot Type**: {function_meta['plot_type']}")
-                st.markdown(
-                    f"**Supervised**: {'✅' if function_meta['supervised'] else '❌'}"
-                )
-                st.markdown(
-                    f"**Explainability**: {function_meta['explainability_level'].capitalize()}"
-                )
-                # Display the example code snippet for the user
-                ex_code = (
-                    f"{function_meta['function'].rsplit('.')[-1]}(\n"
-                    f"  {', '.join(function_meta['parameters'])}\n"
-                    ")"
-                )
-                st.code(
-                    ex_code,
-                    language="python",
-                    line_numbers=True,
-                    wrap_lines=True,
-                    height=None,
-                )
+                icon="👉",
+            ),
+        ):
+            st.markdown(f"##### :blue-background[{function_meta['function']}]")
+            st.markdown(f"**Fallback**: {function_meta['fallback_function']}")
+            st.markdown(f"**Module**: {function_meta['module']}")
+            st.markdown(f"**Description**: {function_meta['description']}")
+            st.markdown(f"**Task Type**: {function_meta['task_type']}")
+            st.markdown(f"**Plot Type**: {function_meta['plot_type']}")
+            st.markdown(
+                f"**Supervised**: {'✅' if function_meta['supervised'] else '❌'}"
+            )
+            st.markdown(
+                f"**Explainability**: {function_meta['explainability_level'].capitalize()}"
+            )
+            # Display the example code snippet for the user
+            ex_code = (
+                f"{function_meta['function'].rsplit('.')[-1]}(\n"
+                f"  {', '.join(function_meta['parameters'])}\n"
+                ")"
+            )
+            st.code(
+                ex_code,
+                language="python",
+                line_numbers=True,
+                wrap_lines=True,
+                height=None,
+            )
 
     def render_live_plot_section(
         function_meta: "dict[str, any]",
@@ -537,7 +543,10 @@ if st:
             border=True,
             key=None,
         )
-        with placeholder or plot_placeholder:
+        with (
+            placeholder or plot_placeholder,
+            st.expander("Show plot(s)!", expanded=True),
+        ):
             # Display stored plot(s) (if available)
             for fig in st.session_state.get(function_meta["function"], []):
                 st.pyplot(
@@ -571,7 +580,10 @@ if st:
             border=True,
             key=None,
         )
-        with placeholder or bot_placeholder:
+        with (
+            placeholder or bot_placeholder,
+            st.expander("Show chat(s)!", expanded=True),
+        ):
             if st.session_state.get(function_meta["function"], []):
                 # st.chat_message("assistant").write("Hi there,")
                 message = st.chat_message("assistant")
