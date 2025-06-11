@@ -266,7 +266,7 @@ if st:
         view_style = add_sidebar()
 
         # Placeholder
-        with st.container(border=True):
+        with st.container(border=False):
             ## ---- App Content UI ----
             # Update Content by selection
             if view_style == "Tabs":
