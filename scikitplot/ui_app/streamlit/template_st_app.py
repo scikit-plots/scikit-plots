@@ -147,8 +147,8 @@ if st:
                 display: flex;
                 flex-direction: column;
                 /* justify-content: space-between; */
-                padding-top: 0rem;
-                padding-bottom: 0rem;
+                margin: 0rem;
+                padding: 0rem;
             }}
 
             /* Optional: reduce overall sidebar top margin
@@ -262,7 +262,7 @@ if st:
         if not template_st_login_ui.run_login_form_ui():
             st.stop()  # 👈 prevent rest of the app from rendering
 
-        ## ---- add_sidebar UI ----
+        ## ---- add_sidebar UI top ----
         view_style = add_sidebar()
 
         # Placeholder
@@ -300,7 +300,7 @@ if st:
             else:
                 pass
 
-        ## ---- add_sidebar Logo ----
+        ## ---- add_sidebar bottom Logo ----
         sidebar_logo()
 
     # Run the app from command line
