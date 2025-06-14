@@ -654,10 +654,16 @@ class LazyImport(types.ModuleType):
         except Exception:
             return type(None)
 
-    @property
-    def __path__(self):
-        """Required if this is a package, for relative imports to work."""
-        return getattr(self._resolved, "__path__", [])
+    # @property
+    # def __path__(self):
+    #     """
+    #     Required if this is a package, for relative imports to work.
+    #
+    #      __path__ is ONLY for Packages:
+    #      If a module is just a .py file, like module1.py, it does not have __path__.
+    #      If a module is a directory with an __init__.py file, it is a package, and gets __path__ automatically.
+    #     """
+    #     return getattr(self._resolved, "__path__", [])
 
     # @property
     # def __doc__(self):
@@ -783,6 +789,7 @@ class LazyImport(types.ModuleType):
                 else self._name.split(".")[0]
             )
             has_ = "HAS_" + pkg.upper()
+            # importlib.util.find_spec(pkg)
             return __getattr__(has_)
         except ScikitplotException:
             return False
@@ -1052,8 +1059,8 @@ def __getattr__(name: str) -> bool:
     >>> HAS_PANDAS
     False  # if pandas is not installed
     """
-    logger.info(f"name {name}")
     if name in __all__:
+        logger.info(f"name {name}")
         # Extract the dependency key by removing "HAS_" prefix
         dep_key = name.removeprefix("HAS_")
         # Check if the dependency module can be found

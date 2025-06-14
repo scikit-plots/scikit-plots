@@ -11,35 +11,32 @@ Such as plots and includes decorators for automatically saving plots.
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
 
+# import inspect
+# import tempfile
 # from functools import wraps
-import functools  # noqa: I001
-import logging
-import tempfile  # noqa: F401
+import functools
 import warnings
 from typing import TYPE_CHECKING
 
-# import inspect
-
-import numpy as np  # type: ignore[reportMissingModuleSource]
-import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
-
-from .utils_path import get_file_path
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 
 from .._docstrings import _docstring
+from .utils_path import get_file_path
 
 if TYPE_CHECKING:
     # Only imported during type checking
-    from typing import (  # noqa: F401
-        Any,
+    from typing import (
         Callable,
         Optional,
-        Union,
+        # Union,
     )
 
+# import logging
 # Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
 
 ######################################################################
 ## save_plot_decorator
@@ -96,10 +93,10 @@ def save_plot_decorator(
     # Not needed as a placeholder, but kept for parameterized usage
     # *dargs,  # not need placeholder
     # The target function to be decorated (passed when no parameters are used)
-    func: "Optional[Callable[..., Any]]" = None,
+    func: "Optional[Callable[..., any]]" = None,
     # *,  # indicates that all following parameters must be passed as keyword
     **dkwargs: dict,  # Keyword arguments passed to the decorator for customization (e.g., verbose)
-) -> "Callable[..., Any]":
+) -> "Callable[..., any]":
     """
     Decorate that supports both parameterized and non-parameterized usage.
 
@@ -166,7 +163,7 @@ def save_plot_decorator(
         """
 
         @functools.wraps(inner_func)
-        def wrapper(*args, **kwargs) -> "Any":
+        def wrapper(*args, **kwargs) -> "any":
             # Call the actual plotting function
             result = inner_func(*args, **kwargs)
             plt.tight_layout()
