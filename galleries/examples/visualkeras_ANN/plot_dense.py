@@ -49,6 +49,16 @@ from scikitplot import visualkeras
 
 # %%
 
+img_spam = visualkeras.graph_view(
+    model,
+    # to_file="result_images/spam_dense_x.png",
+    save_fig=True,
+    save_fig_filename="spam_dense_graph.png",
+)
+img_spam
+
+# %%
+
 img_spam = visualkeras.layered_view(
     model,
     min_z=1,

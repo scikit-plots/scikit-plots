@@ -4,17 +4,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # pylint: disable=import-error
-# pylint: disable=unused-import
 # pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
 
 # import inspect
+# import logging
+# import warnings
 import functools
-import logging
 import os
 import platform
-import warnings
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
@@ -25,13 +24,9 @@ from PIL import (
     ImageFont,
 )
 
-from .. import logger  # noqa: F401
+from .. import logger
 from .._docstrings import _docstring
-from .utils_params import (
-    # _get_args_kwargs,
-    # _get_param_w_index,
-    _resolve_args_and_kwargs,
-)
+from ..exceptions import ScikitplotException
 from .utils_path import get_file_path
 
 # Runtime-safe imports for type hints (avoids runtime overhead)
@@ -178,9 +173,9 @@ def load_font(
                     print(f"Using custom font: {font_path}")  # noqa: T201
                 return _cached_truetype(font_path, font_size)
             except OSError as e:
-                logging.error(f"Failed to load font from '{font_path}': {e}")
+                logger.error(f"Failed to load font from '{font_path}': {e}")
         else:
-            logging.warning(f"Invalid font path or unsupported font file: {font_path}")
+            logger.warning(f"Invalid font path or unsupported font file: {font_path}")
 
     # Platform-specific fallback
     try:
@@ -204,9 +199,9 @@ def load_font(
                 print(f"Using system font: {system_font_path}")  # noqa: T201
             return _cached_truetype(system_font_path, font_size)
     except (OSError, ValueError) as e:
-        logging.warning(f"Error loading system font: {e}")  # noqa: W1203
+        logger.warning(f"Error loading system font: {e}")  # noqa: W1203
 
-    logging.warning("Falling back to PIL default font.")
+    logger.warning("Falling back to PIL default font.")
     return load_default_font(font_size=font_size)
 
 
@@ -301,8 +296,8 @@ def save_image_with_pil(
             # Will open in the system's default viewer
             img.show()
 
-    except Exception as e:
-        warnings.warn(
+    except ScikitplotException as e:
+        logger.warning(
             f"[ERROR] Could not saved image using PIL to '{to_file}': {e}",
             stacklevel=1,
         )
@@ -438,14 +433,14 @@ def save_image_pil_kwargs(
     # Warn if 'verbose' exists but is not a bool
     # verbose: bool = kwargs.get("verbose", False)
     if "verbose" in kwargs and not isinstance(kwargs["verbose"], bool):
-        warnings.warn(
+        logger.warning(
             "'verbose' parameter should be of type bool.",
             stacklevel=1,
         )
     # Proceed with your plotting logic here, e.g.:
     try:
         # Save the plot if save_image is True
-        if save_fig and save_fig_filename:
+        if save_fig:
             save_path = get_file_path(
                 # Update for inner func
                 **{**kwargs, "filename": save_fig_filename},
@@ -467,29 +462,22 @@ def save_image_pil_kwargs(
                     plt.tight_layout()
                     # plt.draw()
                     # plt.pause(0.1)  # Pause to allow for interactive drawing
-                    try:
-                        # Save the image using Matplotlib after showing it
-                        plt.savefig(
-                            save_path,
-                            dpi=150,
-                            bbox_inches="tight",
-                            pad_inches=0,
-                        )
-                        if kwargs.get("verbose", False):
-                            print(  # noqa: T201
-                                f"[INFO] Image saved using Matplotlib: {save_path}"
-                            )
-                    except Exception as e:
-                        print(f"[ERROR] Failed to save plot: {e}")  # noqa: T201
+                    # Save the image using Matplotlib after showing it
+                    plt.savefig(
+                        save_path,
+                        dpi=150,
+                        bbox_inches="tight",
+                        pad_inches=0,
+                    )
                     if show_fig:
                         # Manage the plot window
                         plt.show()
                         # plt.gcf().clear()  # Clear the figure after saving
                         # plt.close()
                     return ax
-                except Exception as e:
-                    warnings.warn(
-                        "[ERROR] Could not saved image using Matplotlib to "
+                except ScikitplotException as e:
+                    logger.exception(
+                        "Could not saved image using Matplotlib to "
                         f"'{save_path}': {e}. Falling back to PIL.",
                         stacklevel=1,
                     )
@@ -506,9 +494,11 @@ def save_image_pil_kwargs(
                     to_file=save_path,
                     show_os_viewer=show_os_viewer,
                 )
-    except Exception:
-        # pass  # Silently ignore any final failure (can be logged if needed)
-        return result
+        else:
+            logger.info("Could not saved pil image or Axes plot.")
+    except ScikitplotException as e:
+        logger.exception(f"Failed to save pil image: {e}")
+    return result
 
 
 # 1. Standard Decorator (no arguments) both with params and without params
@@ -595,18 +585,14 @@ def save_image_pil_decorator(
         def wrapper(*args, **kwargs) -> "any":
             # Call the actual plotting function
             result = inner_func(*args, **kwargs)
-            # c = {**a, **b}  # Non-destructive merge (3.5+), Safe, non-mutating
-            # c = a | b       # Non-destructive merge (3.9+)
-            # a.update(b)     # All Versions but In-place update
-            (_args, _kwargs) = _resolve_args_and_kwargs(
-                *args, func=inner_func, **kwargs
-            )
             # Call the validation function to ensure proper fig and ax are set
             ax_or_im = save_image_pil_kwargs(
                 result=result,
                 func_name=inner_func.__name__,
-                **_kwargs,
+                **kwargs,
             )
+            if ax_or_im:
+                logger.debug(f"Returned object {type(ax_or_im)}")
             return ax_or_im or result
 
         return wrapper

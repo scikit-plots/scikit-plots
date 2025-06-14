@@ -11,25 +11,25 @@ import numpy as np
 import aggdraw
 from PIL import Image
 
+# from .. import logger
+from .._compat.optional_deps import LazyImport
+from .._docstrings import _docstring
+from ..utils.utils_pil import get_font, save_image_pil_decorator
 from .layer_utils import *
 from .utils import *
-
-from ..utils.utils_pil import get_font, save_image_pil_decorator
-
-from .._docstrings import _docstring
 
 if TYPE_CHECKING:
     # Only imported during type checking
     from typing import (
-        Any,
-        Callable,
-        Dict,
-        List,
         Optional,
-        Tuple,
+        TypeVar,
         Union,
     )
-    import PIL  # type: ignore[reportMissingModuleSource]
+
+    # Lazy import at runtime
+    matplotlib = LazyImport("matplotlib", package="matplotlib")
+    PIL = LazyImport("PIL", package="PIL")
+    Layer = _lazy_import_tensorflow()  # pylint: disable=undefined-variable
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
@@ -41,7 +41,7 @@ def _draw_connector(
     draw: "aggdraw.Draw",
     start_node: object,
     end_node: object,
-    color: "Union[str, Tuple[int, int, int]]",
+    color: "Union[str, tuple[int, int, int]]",
     width: int,
 ) -> None:
     """
@@ -111,13 +111,13 @@ def _draw_connector(
 def graph_view(
     model,
     to_file: "Optional[str]" = None,
-    color_map: 'Optional["Dict"]' = None,
+    color_map: 'Optional["dict"]' = None,
     node_size: int = 50,
-    background_fill: "Any" = "white",
+    background_fill: "any" = "white",
     padding: int = 10,
     layer_spacing: int = 250,
     node_spacing: int = 10,
-    connector_fill: "Any" = "gray",
+    connector_fill: "any" = "gray",
     connector_width: int = 1,
     ellipsize_after: int = 10,
     inout_as_tensor: bool = True,
@@ -131,7 +131,7 @@ def graph_view(
     add_timestamp=False,
     verbose: bool = False,
     **kwargs,
-) -> "PIL.Image.Image":
+) -> "PIL.Image.Image | matplotlib.image.AxesImage":
     """
     Generates an architectural visualization for a given linear Keras
     :py:class:`~tensorflow.keras.Model` model
@@ -194,7 +194,7 @@ def graph_view(
 
     Returns
     -------
-    PIL.Image.Image
+    PIL.Image.Image or matplotlib.image.AxesImage
         The generated image visualizing the model's architecture.
     """
     if color_map is None:

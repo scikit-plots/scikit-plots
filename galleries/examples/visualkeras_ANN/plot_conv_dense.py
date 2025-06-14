@@ -73,6 +73,7 @@ img_spam = visualkeras.layered_view(
     # to_file="./spam_conv_x.png",
     save_fig=True,
     save_fig_filename="spam_conv_x.png",
+    show_fig=True,
 )
 img_spam
 

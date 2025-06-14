@@ -4,7 +4,7 @@
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
 
-import warnings
+# import warnings
 from math import ceil
 from typing import TYPE_CHECKING
 
@@ -15,27 +15,25 @@ from PIL import (
     ImageFont,
 )
 
+from .. import logger
+from .._compat.optional_deps import LazyImport
+from .._docstrings import _docstring
+from ..utils.utils_pil import get_font, save_image_pil_decorator
 from .layer_utils import *
 from .utils import *
-
-from ..utils.utils_pil import get_font, save_image_pil_decorator
-
-from .._docstrings import _docstring
 
 if TYPE_CHECKING:
     # Only imported during type checking
     from typing import (
-        Any,
         Callable,
-        Dict,
-        List,
+        TypeVar,
         Optional,
-        Tuple,
         Union,
     )
 
-    import PIL  # type: ignore[reportMissingModuleSource]
-
+    # Lazy import at runtime
+    matplotlib = LazyImport("matplotlib", package="matplotlib")
+    PIL = LazyImport("PIL", package="PIL")
     Layer = _lazy_import_tensorflow()  # pylint: disable=undefined-variable
 
 ## Define __all__ to specify the public interface of the module
@@ -60,15 +58,15 @@ def layered_view(
     color_map: dict = None,
     one_dim_orientation: str = "z",
     index_2d: list = None,
-    background_fill: "Any" = "white",
+    background_fill: "any" = "white",
     draw_volume: bool = True,
     draw_reversed: bool = False,
     padding: int = 10,
-    # Define `text_callable` as an optional callable that returns a Tuple[str, bool]
+    # Define `text_callable` as an optional callable that returns a tuple[str, bool]
     # Python understands it as a forward declaration and
     # resolves it later when the 'Layer' type is available.
     text_callable: """Optional[
-        Union[Callable[[int, Layer], Tuple[str, bool]], str]
+        Union[Callable[[int, Layer], tuple[str, bool]], str]
     ]""" = None,
     text_vspacing: int = 4,
     spacing: int = 10,
@@ -77,9 +75,9 @@ def layered_view(
     legend: bool = False,
     legend_text_spacing_offset=15,
     font: """Optional[
-        Union[ImageFont.ImageFont, Dict[str, "Any"]]
+        Union[ImageFont.ImageFont, dict[str, "any"]]
     ]""" = None,
-    font_color: "Any" = "black",
+    font_color: "any" = "black",
     show_dimension=False,
     backend: "Optional[Union[bool,str]]" = None,
     show_os_viewer: bool = False,
@@ -89,7 +87,7 @@ def layered_view(
     overwrite: bool = True,
     add_timestamp=False,
     verbose: bool = False,
-) -> "PIL.Image.Image":
+) -> "PIL.Image.Image | matplotlib.image.AxesImage":
     """
     Generates an architectural visualization for a given linear Keras
     :py:class:`~tensorflow.keras.Model` model
@@ -160,7 +158,7 @@ def layered_view(
     legend_text_spacing_offset : float
         Offset for the space allocated to legend text.
         Useful for preventing text cutoff in the legend.
-    font : Union[ImageFont.ImageFont, Dict[str, Any]], optional
+    font : Union[ImageFont.ImageFont, dict[str, any]], optional
         Font to be used for text rendering (e.g., legend or labels).
 
         - If an `ImageFont.ImageFont` object is provided, it is used directly.
@@ -188,7 +186,7 @@ def layered_view(
 
     Returns
     -------
-    image
+    PIL.Image.Image or matplotlib.image.AxesImage
         The generated architecture visualization image.
 
     Notes
@@ -202,7 +200,7 @@ def layered_view(
 
     # Deprecation warning for legend_text_spacing_offset
     if legend_text_spacing_offset != 0:
-        warnings.warn(
+        logger.warning(
             "The legend_text_spacing_offset parameter is deprecated and"
             "will be removed in a future release."
         )
