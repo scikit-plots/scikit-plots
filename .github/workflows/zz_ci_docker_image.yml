@@ -7,6 +7,7 @@ name: zz CI Docker Image
 # documentation.
 
 on:
+  workflow_dispatch: # Allows manual triggering of the workflow
   # schedule:
   #   - cron: $cron-daily
   # push:
@@ -15,7 +16,6 @@ on:
   #   tags: [ 'v*.*.*' ]
   # pull_request:
   #   branches: [ $default-branch ]
-  workflow_dispatch: # Allows manual triggering of the workflow
 
 env:
   # Use docker.io for Docker Hub if empty

@@ -2,7 +2,7 @@
 name: zz CI Conda Lock Files Update
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering of the workflow
   # schedule:
   #   - cron: '0 5 * * 1'
 
