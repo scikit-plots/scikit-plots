@@ -23,8 +23,9 @@ repos:
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
       - id: check-added-large-files
-        args: ["--enforce-all", "--maxkb=5000"]
+        args: ["--enforce-all", "--maxkb=500"]
         exclude: "^(\
+          benchmarks/.*|\
           galleries/.*|\
           third_party/.*|\
           .*searchindex.dat|\

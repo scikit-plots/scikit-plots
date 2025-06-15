@@ -8,7 +8,7 @@ Documentation is available in the docstrings and
 online at https://seaborn.pydata.org/.
 """
 
-# scikitplot/_seaborn/__init__.py
+# _seaborn/__init__.py
 # https://github.com/mwaskom/seaborn/blob/master/seaborn/__init__.py
 
 # Import seaborn objects
