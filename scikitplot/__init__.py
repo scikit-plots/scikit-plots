@@ -237,11 +237,21 @@ def __getattr__(
         if name in globals():
             return globals()[name]
         # Try importing as a submodule
-        # from ._compat.optional_deps import LazyImport  # nested_import
-        # return nested_import(name, package)
+        # pylint: disable=import-outside-toplevel
+        from ._compat.optional_deps import nested_import
+
+        return nested_import(name, package)  # ~(4.5-11)s
         # Lazily load scikitplot flavors to avoid excessive dependencies.
-        return LazyImport(name, package)  # ~(4.5-11)s
-    except (AttributeError, ImportError, ModuleNotFoundError, Exception) as e:
+        # TODO: Cause some infinite loop
+        # from ._compat.optional_deps import LazyImport
+        # return LazyImport(name, package)  # RecursionError
+    except (
+        AttributeError,
+        ImportError,
+        ModuleNotFoundError,
+        RecursionError,
+        Exception,
+    ) as e:
         suggestion_msg = ""
         if suggestion:
             # pylint: disable=import-outside-toplevel
