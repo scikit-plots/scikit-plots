@@ -20,7 +20,7 @@ Docker Containerization Guidelines
 
 💡 Work on Docker Desktop or Github Codespaces
 
-Here’s how containerization works:
+Here's how containerization works:
 
 - **Isolation**: Containers run independently of each other and the host system, ensuring that they don't interfere with other applications or containers.
 
@@ -36,7 +36,16 @@ Github Codespaces Guide
 
 (Connect IDE Interface Vscode or Jupyter Notebook)
 
-Choose (recommended) not (default) Option for best practise
+**👉 (recommended) Choose (recommended) not (default) Option for best practise:**
+
+.. raw:: html
+
+   <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fnotebook_cpu%2Fdevcontainer.json&geo=EuropeWest" target="_blank">
+   <img style="display:auto;width:auto;height:auto;" alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg">
+   </a>
+
+
+**Step by step:**
 
 .. raw:: html
 

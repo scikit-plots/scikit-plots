@@ -3,19 +3,15 @@ extend = "pyproject.toml"
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# check: ruff format --diff
+
 [lint.extend-per-file-ignores]
-"docs/*" = [
-  "PTH",  # all flake8-use-pathlib
-]
 "scikitplot/_testing/*" = [
-  "PTH100",  # `os.path.abspath()` should be replaced by `Path.resolve()`
-  "PTH",     # all flake8-use-pathlib
   "UP031",   # Use format specifiers instead of percent format
   "T201",    # `print` found
   "RUF005",  # Consider `["--pyargs", *list(tests)]` instead of concatenation
 ]
 "test_*.py" = [
-  "PTH",     # all flake8-use-pathlib
   "RUF015",  # Prefer next({iterable}) over single element slice
 ]
 # TODO: fix these, on a per-subpackage basis.

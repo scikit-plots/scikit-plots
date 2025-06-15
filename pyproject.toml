@@ -298,7 +298,7 @@ test = [
 
   "hypothesis>=6.130.0",                    # Property-based testing
   "pytest>=7.1.2",                          # Core testing framework
-  "pytest-cov",                             # Coverage reports
+  "pytest-cov",                             # Coverage reports codecov.io
   "pytest-fail-slow",
   "pytest-mpl",                             # Matplotlib testing
   "pytest-run-parallel",
@@ -536,6 +536,7 @@ testpaths = [
 ## Linters and Formatters
 ## 1. Ruff
 ## General-purpose linter (superset of Flake8, PyLint, etc.)
+## ruff format --diff
 ######################################################################
 
 [tool.ruff]
@@ -544,8 +545,9 @@ testpaths = [
 ## ruff configuration
 
 # .ruff.toml
+# Ruff automatically infers the target Python version from requires-python, so setting both is redundant and discouraged.
 # Always generate Python 3.8-compatible code.
-# target-version = "py38"  # "py39" or "py310", etc.
+# target-version = "py38"  # "py39", "py310", "py311" etc.  # ← remove this
 
 # fix = true
 cache-dir = "~/.cache/ruff"
@@ -553,13 +555,13 @@ cache-dir = "~/.cache/ruff"
 exclude = [
   ".git",
   "__pycache__",
-  "build",
-  "dist",
-  "benchmarks",
-  "docs/source",
-  "galleries",
-  "third_party",
-  "tools",
+  "build/**",
+  "dist/**",
+  "benchmarks/**",
+  "docs/source/**",
+  "galleries/**",
+  "third_party/**",
+  "tools/**",
   "**tests",
   "**conftest.py",
   "dev.py",
@@ -593,7 +595,7 @@ indent-width = 4  # 2
 # Enable preview features, will use unstable rules, fixes, and formatting.
 # preview = true
 
-# respect-gitignore = true
+respect-gitignore = true
 
 # Enumerate all fixed violations.
 # show-fixes = true
@@ -608,11 +610,11 @@ docstring-code-format = true
 # docstring-code-line-length = 88
 
 exclude = [
-  "benchmarks",
-  "docs/source",
-  "galleries",
-  "third_party",
-  "tools",
+  "benchmarks/**",
+  "docs/source/**",
+  "galleries/**",
+  "third_party/**",
+  "tools/**",
   "**tests",
   "**conftest.py",
   "dev.py",

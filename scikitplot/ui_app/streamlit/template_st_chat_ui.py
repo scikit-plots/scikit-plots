@@ -129,7 +129,8 @@ if st:
         if "llm_model_provider2config" not in st.session_state:
             # pylint: disable=global-statement
             # pylint: disable=global-variable-not-assigned
-            global LLM_MODEL_PROVIDER2CONFIG  # noqa: PLW0602, PLW0603
+            # Remove the global statement if you're only reading
+            # global LLM_MODEL_PROVIDER2CONFIG  # noqa: PLW0602, PLW0603
             st.session_state.llm_model_provider2config = LLM_MODEL_PROVIDER2CONFIG
 
         with st.sidebar, st.empty().container(border=True):

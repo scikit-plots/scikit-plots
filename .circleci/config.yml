@@ -7,6 +7,9 @@
 # https://giles.cadair.dev/circleci/v2
 #
 # “run-ci” label added to PR
+#
+# https://circleci.com/docs/set-environment-variable/#set-an-environment-variable-in-a-project
+# https://app.codecov.io/gh/scikit-plots/scikit-plots/new/circle-ci
 ---
 version: 2.1
 
@@ -35,6 +38,10 @@ _defaults: &defaults
   working_directory: ~/repo
   ## https://circleci.com/docs/configuration-reference/#resourceclass
   # resource_class: scikit-plots/documentation  # large
+
+# https://github.com/codecov/example-javascript/blob/main/.circleci/config.yml
+# orbs:
+#   codecov: codecov/codecov-action@v5
 
 commands:
   check-skip:
@@ -131,7 +138,7 @@ commands:
             # python -m pip install --upgrade --user --progress-bar=off --pre pip
             # pip install -r ./requirements/build.txt
             pip install -r ./requirements/all.txt
-  build-skplt:
+  build-scikit-plots:
     description: build scikit-plots
     steps:
       - run:
@@ -139,6 +146,16 @@ commands:
           command: |
             # cpu: tensorflow
             pip install --no-cache-dir .[build,dev,test,doc,cpu]
+  # upload-codecov:
+  #   description: Upload coverage results to codecov
+  #   steps:
+  #     - run:
+  #         name: Upload coverage results to codecov
+  #         # https://uploader.codecov.io/linux/latest
+  #         command: |
+  #           curl -Os https://uploader.codecov.io/latest/linux/codecov
+  #           chmod +x codecov
+  #           ./codecov -t ${CODECOV_TOKEN} -f coverage.xml
   build-docs:
     description: build documentation scikit-plots
     steps:
@@ -201,7 +218,8 @@ jobs:
             - deps_ccache
 
       - pip-install
-      - build-skplt
+      - build-scikit-plots
+      # - upload-codecov
 
       - save_cache:
           key: deps_ccache-{{ .Branch }}-{{ .BuildNum }}

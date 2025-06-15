@@ -5,41 +5,58 @@
 
 # Welcome to Scikit-plots 101
 
+<!--
+# https://app.codecov.io/gh/scikit-plots/scikit-plots/new
+-->
+
+<a href="https://dl.circleci.com/status-badge/redirect/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="CircleCI Status" src="https://dl.circleci.com/status-badge/img/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main.svg?style=shield">
+</a>
 <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="CI Build Wheels" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml/badge.svg?event=workflow_dispatch">
-</a>
-<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="Nightly wheels" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
-</a>
-<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="Nightly wheels" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
+<img style="display:auto;width:auto;height:17px;" alt="GitHub Actions CI Build Wheels Status" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml/badge.svg?event=workflow_dispatch">
 </a>
 <a href="https://pypi.org/project/scikit-plots" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="pypi" src="https://img.shields.io/pypi/v/scikit-plots">
+<img style="display:auto;width:auto;height:17px;" alt="PyPI Status" src="https://img.shields.io/pypi/v/scikit-plots">
 </a>
-
-<a href="https://app.circleci.com/pipelines/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="CircleCI" src="https://dl.circleci.com/status-badge/img/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main.svg?style=shield">
+<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="Anaconda Nightly Wheels Status" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
 </a>
-<a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
+<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="Anaconda Nightly Release Date" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
+</a>
+<a href="https://github.com/pre-commit/pre-commit" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="pre-commit Status" src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
+</a>
+<a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="pre-commit.ci Status" src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
 </a>
 <a href="https://github.com/astral-sh/ruff" target="_blank">
 <img style="display:auto;width:auto;height:17px;" alt="Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000.svg">
 </a>
+<a href="https://github.com/astral-sh/ruff" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json">
+</a>
 <a href="https://pypi.org/project/scikit-plots" target="_blank">
 <img style="display:auto;width:auto;height:17px;" alt="pyversions" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
 </a>
+<a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="Zenodo DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
+</a>
+<a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank">
+<!-- <img style="display:auto;width:auto;height:17px;" alt="Coverage Status" src="https://codecov.io/gh/scikit-plots/scikit-plots/graph/badge.svg?token=D9ET8W1I2P"/> -->
+<img style="display:auto;width:auto;height:17px;" alt="Coverage Status" src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg"/>
+</a>
 
+<!-- [![build status](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml/badge.svg)](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml) -->
 
 
 ## Single line functions for detailed visualizations
 
 The quickest and easiest way to go from analysis...
 
-#### Install|Try Scikit-plots
+### Documentation, Examples and Try|Install Scikit-plots
 
-##### - Doc: https://scikit-plots.github.io/dev/devel/index.html
+**Explore the full features of Scikit-plots: https://scikit-plots.github.io/dev/devel/index.html**
 
 ## User Installation:
 
@@ -64,18 +81,18 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
   pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
   ```
 
-- by `GITHUB` to use `@<branches>` or `@<tags>`, If any:
+- by `GITHUB` Source to use `@<branches>` or `@<tags>` or `Source code archive URLs`, If any:
   - Branches:
     ```bash
     ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
     ## Latest in Development
     pip install git+https://github.com/scikit-plots/scikit-plots.git@main
     ##
-    ## Works with standard Python (CPython), Added C, Cpp, Fortran Support
+    ## (Added C, Cpp, Fortran Support) Works with standard Python (CPython)
     ##
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
     ##
-    ## Works with standard Python (CPython), Works with PyPy interpreter
+    ## (Works with PyPy interpreter) Works with standard Python (CPython)
     ##
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
     pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
@@ -89,6 +106,16 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
     pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
     ```
+
+  - Source code archive URLs (Also available PyPi, If any):
+
+    Source code archives are available at specific URLs for each repository.
+    For example, consider the repository `scikit-plots/scikit-plots`.
+    There are different URLs for downloading a branch, a tag, or a specific commit ID.
+
+    - https://github.com/scikit-plots/scikit-plots/tags
+
+    **Note:** You can use either .zip or .tar.gz in the URLs above to request a zipball or tarball respectively.
 
 ### Cloned Source Installation (REQUIRED OS/LIB BUILD PACKAGES)
 
@@ -273,23 +300,76 @@ As long as you provide the functions what they're asking for, they'll happily dr
 
 The possibilities are endless.
 
-## Release Notes
+# Release Notes
 
 See the [changelog](https://scikit-plots.github.io/dev/whats_new/index.html)
 for a history of notable changes to scikit-plots.
 
-## Documentation and Examples
+# Contributing to Scikit-plots
 
-Explore the full features of Scikit-plot.
+**Reporting a bug? Suggesting a feature? Want to add your own plot to the library? Visit our.**
 
-## Contributing to scikit-plots
+<!--
+<a href="https://docs.astropy.org/en/latest/impact_health.html" target="_blank">
+<img style="display:auto;width:auto;height:auto;" alt="User Statistics" src="https://github.com/astropy/repo_stats/blob/cache/cache/astropy_user_stats_light.png">
+</a> -->
 
-Reporting a bug? Suggesting a feature? Want to add your own plot to the library? Visit our.
+The Scikit-plots Project is made both by and for its users, so we welcome and
+encourage contributions of many kinds. Our goal is to keep this a positive,
+inclusive, successful, and growing community that abides by the
+[Scikit-plots Community Code of Conduct](https://scikit-plots.github.io/dev/project/code_of_conduct.html).
 
-## Citing scikit-plots
+For guidance on contributing to or submitting feedback for the Scikit-plots Project,
+see the [contributions page](https://scikit-plots.github.io/dev/devel/index.html).
+For contributing code specifically, the developer docs have a
+[guide](https://scikit-plots.github.io/dev/devel/index.html) with a `quickstart`.
+There's also a [summary of contribution guidelines](https://github.com/scikit-plots/scikit-plots/blob/main/CONTRIBUTING.md).
+
+# Developing with Codespaces
+
+GitHub Codespaces is a cloud development environment using Visual Studio Code
+in your browser. This is a convenient way to start developing Scikit-plots, using
+our [dev container](https://github.com/scikit-plots/scikit-plots/blob/main/.devcontainer/notebook_cpu/devcontainer.json) configured
+with the required packages. For help, see the [GitHub Codespaces docs](https://docs.github.com/en/codespaces).
+
+<div align=center>
+  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fnotebook_cpu%2Fdevcontainer.json&geo=EuropeWest" target="_blank">
+  <img style="display:auto;width:auto;height:auto;" alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg">
+  </a><br>
+</div>
+
+# Acknowledging (Governance) and Citing Scikit-plots
+
+See the [Acknowledgement](https://scikit-plots.github.io/dev/project/governance.html),
+[Citation Guide](https://scikit-plots.github.io/dev/project/citing.html)
+and the [CITATION.bib](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.bib),
+[CITATION.cff](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.cff) file.
 
 1. scikit-plots, “scikit-plots: vlatest”. Zenodo, Aug. 23, 2024.
    DOI: [10.5281/zenodo.13367000](https://doi.org/10.5281/zenodo.13367000).
 
 2. scikit-plots, “scikit-plots: v0.3.8dev0”. Zenodo, Aug. 23, 2024.
    DOI: [10.5281/zenodo.13367001](https://doi.org/10.5281/zenodo.13367001).
+
+# Supporting the Project (Upcoming)
+
+<a href="https://numfocus.org" target="_blank">
+<img style="display:auto;width:auto;height:auto;" alt="Powered by NumFOCUS" src="https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A">
+</a>
+<a href="https://numfocus.org/donate-to-scikit-plots" target="_blank">
+<img style="display:auto;width:auto;height:auto;" alt="Donate" src="https://img.shields.io/badge/Donate-to%20Scikit-plots-brightgreen.svg">
+</a>
+
+NumFOCUS, a 501(c)(3) nonprofit in the United States.
+
+<!-- The Scikit-plots Project is sponsored by NumFOCUS, a 501(c)(3) nonprofit in the
+United States. You can donate to the project by using the link above, and this
+donation will support our mission to promote sustainable, high-level code base
+for the astronomy community, open code development, educational materials, and
+reproducible scientific research. -->
+
+# License
+
+Scikit-plots is licensed under a 3-clause BSD style license - see the
+[LICENSE](https://github.com/scikit-plots/scikit-plots/blob/main/LICENSE) file,
+and [LICENSES](https://github.com/scikit-plots/scikit-plots/tree/main/LICENSES) files.

@@ -199,7 +199,7 @@ def load_font(
                 print(f"Using system font: {system_font_path}")  # noqa: T201
             return _cached_truetype(system_font_path, font_size)
     except (OSError, ValueError) as e:
-        logger.warning(f"Error loading system font: {e}")  # noqa: W1203
+        logger.warning(f"Error loading system font: {e}")
 
     logger.warning("Falling back to PIL default font.")
     return load_default_font(font_size=font_size)
@@ -506,7 +506,7 @@ def save_image_pil_kwargs(
 # Called with params: @_decorator(), Called without params: @_decorator
 # Hint: Then you'll get TypeError, because func is passed as the first positional arg
 # to _decorator, which is not expecting a function yet.
-# Hint: prefix _ or pylint: disable=unused-argument  # noqa: W0613
+# Hint: prefix _ or pylint: disable=unused-argument
 # Hint: from functools import partial _decorator = partial(_decorator, verbose=True)
 def save_image_pil_decorator(
     # Not needed as a placeholder, but kept for parameterized usage

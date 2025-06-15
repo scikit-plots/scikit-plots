@@ -317,7 +317,7 @@ def remove_paths(
                 path_to_remove
             ):  # noqa: PTH110
                 shutil.rmtree(path_to_remove)
-        except Exception:  # noqa: W0718
+        except Exception:
             # Log the error silently or add specific logging if needed
             pass
 

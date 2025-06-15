@@ -318,7 +318,8 @@ def append_to_uri_path(uri, *paths):
 
 
 def append_to_uri_query_params(
-    uri, *query_params: tuple[str, Any]
+    uri,
+    *query_params: tuple[str, Any],
 ) -> str:  # noqa: D417
     """
     Append the specified query parameters to an existing URI.

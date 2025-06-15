@@ -8,7 +8,7 @@ Documentation is available in the docstrings and
 online at https://www.astropy.org/.
 """
 
-# scikitplot/_astropy/__init__.py
+# _astropy/__init__.py
 # https://docs.astropy.org/en/latest/index.html
 
 #######################################################################

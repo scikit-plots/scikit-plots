@@ -87,7 +87,7 @@ verbose : bool, optional
 # Called with params: @_decorator(), Called without params: @_decorator
 # Hint: Then you'll get TypeError, because func is passed as the first positional arg
 # to _decorator, which is not expecting a function yet.
-# Hint: prefix _ or pylint: disable=unused-argument  # noqa: W0613
+# Hint: prefix _ or pylint: disable=unused-argument
 # Hint: from functools import partial _decorator = partial(_decorator, verbose=True)
 def save_plot_decorator(
     # Not needed as a placeholder, but kept for parameterized usage
