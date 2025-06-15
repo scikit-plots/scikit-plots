@@ -1,22 +1,22 @@
 name: zz CI Docs Deploy
 
-on:
-  # schedule:
-  #   - cron: "22 22 * * *"
-  # push:
-  #   # branches:
-  #   #   - main  # Set a branch name to trigger deployment
-  # pull_request:
-  # workflow_dispatch:
-    # inputs:
-    #   branch:
-    #     description: 'Branch to deploy from'
-    #     required: false
-    #     default: 'main'
-    #   version:
-    #     description: 'Docs Version (e.g., 0.4, dev, stable, prev)'
-    #     required: false
-    #     default: 'dev'
+# on:
+#   # schedule:
+#   #   - cron: "22 22 * * *"
+#   # push:
+#   #   # branches:
+#   #   #   - main  # Set a branch name to trigger deployment
+#   # pull_request:
+#   workflow_dispatch:
+#     # inputs:
+#     #   branch:
+#     #     description: 'Branch to deploy from'
+#     #     required: false
+#     #     default: 'main'
+#     #   version:
+#     #     description: 'Docs Version (e.g., 0.4, dev, stable, prev)'
+#     #     required: false
+#     #     default: 'dev'
 
 permissions: # Grants read-only permission to repository contents
   # IMPORTANT: This permission is mandatory for secure publishing
