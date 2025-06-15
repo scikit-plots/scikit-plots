@@ -2,16 +2,23 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # https://github.com/pre-commit/pre-commit/blob/main/.pre-commit-config.yaml
+# https://github.com/asottile/pyupgrade/pull/365
 ci:
   autoupdate_schedule: 'monthly'
   autoupdate_commit_msg: 'chore: update pre-commit hooks'
   autofix_prs: false
 
+# rm -rf ~/.cache/pre-commit
+# pre-commit clean
+# pre-commit autoupdate
+# pre-commit install
 repos:
   # Critical Checks: Sensitive data, large files, and merge conflicts
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      # - id: requirements-txt-fixer
+      # - id: check-docstring-first
       - id: no-commit-to-branch  # Default is master and main.
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
@@ -39,20 +46,25 @@ repos:
     hooks:
       - id: check-case-conflict  # Checks for file naming conflicts on case-insensitive filesystems.
       - id: check-symlinks  # Checks for symlinks which do not point to anything.
+      # - id: name-tests-test
+      # - id: debug-statements
 
   # Cleanliness and Formatting: Whitespace, line endings, and file endings
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      - id: double-quote-string-fixer
       - id: end-of-file-fixer  # Ensures files end in a newline.
         exclude_types: [svg]
       - id: trailing-whitespace  # Trims trailing whitespace.
+        name: Trim Trailing Whitespace
+        description: This hook trims trailing whitespace.
         exclude_types: [svg]  # Python Covered by Ruff W291?
       - id: mixed-line-ending  # Checks for mixed line endings.
 
   # Code Quality: Formatter flake8 vs ruff-format can be conflict make sure both compatipable
   - repo: https://github.com/pycqa/flake8
-    rev: 7.1.2
+    rev: 7.2.0
     hooks:
       - id: flake8
         additional_dependencies:
@@ -97,7 +109,7 @@ repos:
 
   # Code Quality: Linting and Formating Static Analysis
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.7
+    rev: v0.11.13
     hooks:
       - id: ruff  # Run the linter.
         args: ["--fix", "--show-fixes", "--output-format=full"]  # --unsafe-fixes
@@ -114,7 +126,7 @@ repos:
         # types_or: [ python, pyi ]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
+    rev: v1.16.0
     hooks:
       - id: mypy
         pass_filenames: false  # Prevent passing filenames to the hook.
@@ -125,7 +137,7 @@ repos:
 
   # Documentation and Specialized Linting
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.3.1
+    rev: v1.9.0
     hooks:
       - id: zizmor
 
@@ -159,7 +171,7 @@ repos:
 
   # Optional: Custom Repository Review
   - repo: https://github.com/scientific-python/cookie
-    rev: 2025.01.22
+    rev: 2025.05.02
     hooks:
       - id: sp-repo-review
 
@@ -208,3 +220,8 @@ repos:
   #   rev: '0.1.0'
   #   hooks:
   #     - id: 'black-nbconvert'
+
+  # - repo: https://github.com/asottile/setup-cfg-fmt
+  #   rev: v2.8.0
+  #   hooks:
+  #   - id: setup-cfg-fmt

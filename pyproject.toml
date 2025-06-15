@@ -298,7 +298,7 @@ test = [
 
   "hypothesis>=6.130.0",                    # Property-based testing
   "pytest>=7.1.2",                          # Core testing framework
-  "pytest-cov",                             # Coverage reports
+  "pytest-cov",                             # Coverage reports codecov.io
   "pytest-fail-slow",
   "pytest-mpl",                             # Matplotlib testing
   "pytest-run-parallel",
