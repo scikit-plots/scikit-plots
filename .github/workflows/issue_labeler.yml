@@ -1,6 +1,6 @@
 # Issue Labeler
 ---
-name: "Label Issue"
+name: "Issue Labeler"
 
 on:
   issues:

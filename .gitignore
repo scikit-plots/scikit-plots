@@ -6,31 +6,10 @@
 # If the file is tracked, it will return the file path.
 # If the file is not tracked, there will be no output.
 
-# gradio
-.gradio
-
-mlruns
-mlruns.db
-mlflow
-mlflow.db
-outputs
-
-# streamlit secret: .streamlit/secrets.toml or ~/.streamlit/secrets.toml
-.streamlit/secrets.toml
-
-# enviroment
-.env
-
-# custom git clones, if needed
+# git clones, if needed
+.git_clones/*
 !.git_clones/.gitignore
 !.git_clones/README.md
-.git_clones/*
-
-# Jupyter Notebook
-**.ipynb_checkpoints
-
-# .Rhistory is a file created by R
-**.Rhistory
 
 # Sphinx documentation
 # 'matplotlib.sphinxext.plot_directive'
@@ -42,11 +21,29 @@ outputs
 **generated/
 **build/
 
-# scipy openblas
-**.openblas
+# UI app
+.gradio
+# streamlit secret: .streamlit/secrets.toml or ~/.streamlit/secrets.toml
+.streamlit/secrets.toml
+
+# model registry
+mlruns
+mlruns.db
+mlflow
+mlflow.db
+outputs
 
 # models
 **catboost_info
+
+# Jupyter Notebook
+**.ipynb_checkpoints
+
+# scipy openblas
+**.openblas
+
+# enviroment
+.env
 
 # virtualenv
 **.venv
@@ -146,3 +143,6 @@ atlassian-ide-plugin.xml
 # OS droppings
 **.DS_Store
 **__MACOSX
+
+# .Rhistory is a file created by R
+**.Rhistory

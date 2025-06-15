@@ -1,6 +1,6 @@
 # "Greetings"
 ---
-name: "Greetings"
+name: "Issue-PR Greetings"
 
 on:
   pull_request:

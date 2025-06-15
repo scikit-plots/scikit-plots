@@ -1,6 +1,6 @@
 # https://github.com/pre-commit/action
 ---
-name: pre-commit
+name: PR Check Pre Commit Standards
 
 on:
   # ✅ Prevents accidental direct pushes to main. Enforces review + CI.

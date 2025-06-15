@@ -13,7 +13,7 @@
 # 36 - Build(for changes to the building process,
 # 14 - Release(ensure wheels build before release)
 ---
-name: CI Build Wheels
+name: CI Wheels Conda
 
 on:
   schedule:
