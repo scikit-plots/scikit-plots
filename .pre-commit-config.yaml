@@ -26,10 +26,12 @@ repos:
         args: ["--enforce-all", "--maxkb=300"]
         exclude: "^(\
           benchmarks/.*|\
+          docs/source/logos/.*|\
           galleries/.*|\
           third_party/.*|\
           .*searchindex.dat|\
           .*CDNOW_master.txt|\
+          .*example_transactions.csv|\
         )$"
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.
