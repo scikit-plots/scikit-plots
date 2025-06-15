@@ -1,6 +1,6 @@
 # Labeler Pull Request
 ---
-name: "Label PR"
+name: "PR Labeler"
 
 on:
   ## Use pull_request_target trigger if you're targeting a pull request from a fork:

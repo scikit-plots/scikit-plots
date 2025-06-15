@@ -1,5 +1,5 @@
 # Workflow to update lock files
-name: Update lock files
+name: zz CI Conda Lock Files Update
 
 on:
   workflow_dispatch:

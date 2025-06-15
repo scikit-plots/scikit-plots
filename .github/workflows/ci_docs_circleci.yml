@@ -2,7 +2,7 @@
 #
 # if: "${{ github.repository == 'scikit-plots/scikit-plots' }}"
 ---
-name: CircleCI
+name: CI Docs CircleCI
 
 on: [status]
 

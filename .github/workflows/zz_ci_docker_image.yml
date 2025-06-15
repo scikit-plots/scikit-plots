@@ -1,4 +1,4 @@
-name: Docker
+name: zz CI Docker Image
 
 # https://github.com/actions/starter-workflows/blob/main/ci/docker-publish.yml
 # This workflow uses actions that are not certified by GitHub.

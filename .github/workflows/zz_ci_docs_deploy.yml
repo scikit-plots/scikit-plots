@@ -1,4 +1,4 @@
-name: Deploy Docs
+name: zz CI Docs Deploy
 
 on:
   # schedule:
@@ -7,7 +7,7 @@ on:
   #   # branches:
   #   #   - main  # Set a branch name to trigger deployment
   # pull_request:
-  workflow_dispatch:
+  # workflow_dispatch:
     # inputs:
     #   branch:
     #     description: 'Branch to deploy from'
