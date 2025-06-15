@@ -2,8 +2,8 @@ name: zz PR Check Milestone
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
-#   pull_request:
-#     types: [synchronize, milestoned, demilestoned]
+  # pull_request:
+  #   types: [synchronize, milestoned, demilestoned]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -1,11 +1,11 @@
 name: zz Linux Test musllinux_x86_64
 
-on:
-  # pull_request:
-  #   branches:
-  #     - main
-  #     - maintenance/**
-  # workflow_dispatch: # Allows manual triggering of the workflow
+# on:
+#   # pull_request:
+#   #   branches:
+#   #     - main
+#   #     - maintenance/**
+#   # workflow_dispatch: # Allows manual triggering of the workflow
 
 
 concurrency:
