@@ -22,14 +22,15 @@ repos:
       - id: no-commit-to-branch  # Default is master and main.
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
-      - id: check-added-large-files
-        args: ["--enforce-all", "--maxkb=500"]
+      - id: check-added-large-files  # Prevent giant files from being committed.
+        args: ["--enforce-all", "--maxkb=300"]
         exclude: "^(\
           benchmarks/.*|\
           galleries/.*|\
           third_party/.*|\
           .*searchindex.dat|\
-        )$"  # Prevent giant files from being committed.
+          .*CDNOW_master.txt|\
+        )$"
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.
   - repo: https://github.com/pre-commit/pre-commit-hooks
