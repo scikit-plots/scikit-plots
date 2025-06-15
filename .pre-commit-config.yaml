@@ -117,15 +117,15 @@ repos:
     rev: v0.11.13
     hooks:
       - id: ruff  # Run the linter.
-        args: ["--fix", "--show-fixes", "--output-format=full"]  # --unsafe-fixes
+        args: ["--verbose", "--fix", "--show-fixes", "--output-format=full"]  # --unsafe-fixes
         # types_or: [ python, pyi ]
       # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
       - id: ruff-format  # Run the formatter.
-        # args:
-        #   - --check                   # Check if files are formatted. Exit with code 1 if reformatting is needed, but don’t change files.
-        #   - --diff                    # Show a diff of what would change, without writing changes to disk. Often used with --check.
+        args:
+          - --verbose                 # Show additional debugging or context info.
+          # - --check                   # Check if files are formatted. Exit with code 1 if reformatting is needed, but don’t change files.
+          # - --diff                    # Show a diff of what would change, without writing changes to disk. Often used with --check.
           # - --preview                 # Enables preview formatting features that are experimental or not yet stable.
-          # - --verbose                 # Show additional debugging or context info.
           # - --config=pyproject.toml   # Optional: use custom config file
         # verbose: true  # Force Ruff to show which files were modified
         # types_or: [ python, pyi ]
