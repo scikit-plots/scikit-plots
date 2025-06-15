@@ -3,6 +3,8 @@ extend = "pyproject.toml"
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# check: ruff format --diff
+
 [lint.extend-per-file-ignores]
 "scikitplot/_testing/*" = [
   "UP031",   # Use format specifiers instead of percent format
