@@ -45,7 +45,7 @@
         "pytest": [],
         "pythran": [],
         "pybind11": [],
-        "meson-python": [],
+        "meson-python": []
     },
 
     // The directory (relative to the current directory) that benchmarks are
