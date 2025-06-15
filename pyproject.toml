@@ -555,7 +555,7 @@ exclude = [
   "__pycache__",
   "build",
   "dist",
-  "benchmarks",
+  "benchmarks/**",
   "docs/source",
   "galleries",
   "third_party",
@@ -608,7 +608,7 @@ docstring-code-format = true
 # docstring-code-line-length = 88
 
 exclude = [
-  "benchmarks",
+  "benchmarks/**",
   "docs/source",
   "galleries",
   "third_party",
