@@ -3,9 +3,15 @@
 name: pre-commit
 
 on:
+  # ✅ Prevents accidental direct pushes to main. Enforces review + CI.
   pull_request:
-  push:
-    branches: [main]
+  # push:
+  #   branches:
+  #     - main
+  #     - dev
+  #     - staging
+  #     - release/*
+  #   # branches: [main]
 
 ## Top-level permissions (outside jobs)
 ## Job-level permissions (inside a specific job)
