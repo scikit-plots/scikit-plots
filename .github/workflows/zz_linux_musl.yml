@@ -24,7 +24,10 @@ jobs:
     container:
       # Use container used for building musllinux wheels
       # it has git installed, all the pythons, etc
-      image: quay.io/pypa/musllinux_1_1_x86_64
+      # image: quay.io/pypa/musllinux_1_1_x86_64
+      # sudo apt-get install skopeo jq
+      # skopeo inspect docker://quay.io/pypa/musllinux_1_1_x86_64:latest | jq .Digest
+      image: quay.io/pypa/musllinux_1_1_x86_64@sha256:79908067ecc89a594474c799331ca1ef27ae36bda08960aca5a9a31c28453ef1
 
     steps:
     - name: setup

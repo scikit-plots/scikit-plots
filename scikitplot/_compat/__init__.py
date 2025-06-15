@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
 The content of this module is solely for internal use of ``scikitplot``.

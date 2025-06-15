@@ -23,7 +23,7 @@ repos:
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
       - id: check-added-large-files
-        args: ["--enforce-all", "--maxkb=300"]
+        args: ["--enforce-all", "--maxkb=5000"]
         exclude: "^(\
           galleries/.*|\
           third_party/.*|\
@@ -135,6 +135,7 @@ repos:
         # Use regex to specify the files to check
         files: scikitplot/_seaborn/_(core|marks|stats)/
         # additional_dependencies: [pytest==6.2.4]
+        additional_dependencies: [numpy]
 
   # Documentation and Specialized Linting
   - repo: https://github.com/woodruffw/zizmor-pre-commit

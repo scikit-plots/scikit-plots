@@ -431,7 +431,8 @@ def _get_default_log_level_name() -> str:
 def google2_log_prefix(level=None, timestamp=None, file_and_line=None):
     """Assemble a logline prefix using the google2 format."""
     # pylint: disable=global-variable-not-assigned
-    global _level_names  # noqa: PLW0602
+    # Remove the global statement if you're only reading
+    # global _level_names  # noqa: PLW0602
     # pylint: enable=global-variable-not-assigned
 
     # Record current time
@@ -1079,7 +1080,8 @@ def _GetNextLogCountPerToken(token):  # noqa: N802
           *token* as an argument (starting at 0)
     """
     # pylint: disable=global-variable-not-assigned
-    global _log_counter_per_token  # noqa: PLW0602
+    # Remove the global statement if you're only reading
+    # global _log_counter_per_token  # noqa: PLW0602
     # pylint: enable=global-variable-not-assigned
     _log_counter_per_token[token] = 1 + _log_counter_per_token.get(token, -1)
     return _log_counter_per_token[token]
