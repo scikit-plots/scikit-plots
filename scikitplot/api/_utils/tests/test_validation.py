@@ -110,7 +110,7 @@ class TestValidatePlottingKwargs:
     def test_invalid_ax(self):
         """Test case: Invalid ax type (should raise ValueError)."""
         with pytest.raises(
-            ValueError, match="Provided ax must be an instance of matplotlib.axes.Axes"
+            ValueError, match="Each item in ax must be an instance of matplotlib.axes.Axes"
         ):
             self.dummy_function(ax="invalid_ax")
 
@@ -334,14 +334,16 @@ class TestValidateYTrue:
     # Test case 4: Invalid y_true (non-iterable)
     def test_invalid_y_true_non_iterable(self):
         with pytest.raises(
-            ValueError, match="`y_true` must be of type bool, str, numeric, or a mix"
+            ValueError,
+            match="`y_true` must be of type bool, str, numeric, or a mix (object) type.",
         ):
             self.dummy_function(12345)  # Invalid input
 
     # Test case 5: Invalid y_true (not enough distinct classes)
     def test_invalid_y_true_not_enough_classes(self):
         with pytest.raises(
-            ValueError, match="`y_true` must contain more than one distinct class."
+            ValueError,
+            match="`y_true` must be of type bool, str, numeric, or a mix (object) type.",
         ):
             self.dummy_function([1, 1, 1])  # Only one class
 
@@ -372,7 +374,8 @@ class TestValidateYTrue:
     # Test case 9: Decorator test (invalid case)
     def test_decorator_invalid_case(self):
         with pytest.raises(
-            ValueError, match="`y_true` must be of type bool, str, numeric, or a mix"
+            ValueError,
+            match="`y_true` must be of type bool, str, numeric, or a mix (object) type.",
         ):
             self.dummy_function(12345)  # Invalid input
 
