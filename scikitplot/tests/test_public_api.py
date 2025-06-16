@@ -36,19 +36,14 @@ PUBLIC_MODULES = [
     "scikitplot." + s
     for s in [
         "experimental",
-        "cbook",
         "sp_logging",
         "api",
         "api.plotters",
         "api.decomposition",
         "api.estimators",
         "api.metrics",
-        "api.utils",
-        "api.utils.validation",
         "kds",
         "misc",
-        "misc.font",
-        "misc.helper",
         "misc.plot_colortable",
         "modelplotpy",
         "probscale",
@@ -73,7 +68,12 @@ PUBLIC_MODULES = [
 # public and private API" in the 1.8.0 release notes.
 # These private modules support will be removed in SciPy v2.0.0, as the
 # deprecation messages emitted by each of these modules say.
-PRIVATE_BUT_PRESENT_MODULES = ["scikitplot." + s for s in ["_build_utils"]]
+PRIVATE_BUT_PRESENT_MODULES = [
+    "scikitplot." + s
+    for s in [
+        "_build_utils",
+    ]
+]
 
 
 def is_unexpected(name):
@@ -90,7 +90,10 @@ def is_unexpected(name):
     return True
 
 
-SKIP_LIST = ["scikitplot.conftest", "scikitplot.version"]
+SKIP_LIST = [
+    "scikitplot.conftest",
+    "scikitplot.version",
+]
 
 
 # XXX: this test does more than it says on the tin - in using `pkgutil.walk_packages`,
@@ -115,7 +118,7 @@ def test_all_modules_are_expected():
             path = f"array_api_compat.{backend}"
             if path in name and backend not in xp_available_backends:
                 return
-        raise
+        raise ValueError
 
     modnames = []
 
@@ -139,29 +142,13 @@ def test_all_modules_are_expected():
 # Stuff that clearly shouldn't be in the API and is detected by the next test
 # below
 SKIP_LIST_2 = [
-    # seaborn artifact
-    "scikitplot.algorithms",
-    "scikitplot.axisgrid",
-    "scikitplot.categorical",
-    "scikitplot.cm",
-    "scikitplot.colors",
-    "scikitplot.distributions",
-    "scikitplot.external",
-    "scikitplot.matrix",
-    "scikitplot.miscplot",
-    "scikitplot.palettes",
-    "scikitplot.rcmod",
-    "scikitplot.regression",
-    "scikitplot.relational",
-    "scikitplot.utils",
-    "scikitplot.widgets",
+    # root artifact
+    "scikitplot.version",
     # api artifact
     "scikitplot.decomposition",
     "scikitplot.estimators",
     "scikitplot.metrics",
     "scikitplot.plotters",
-    # root artifact
-    "scikitplot.version",
 ]
 
 
