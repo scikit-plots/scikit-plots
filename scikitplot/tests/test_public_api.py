@@ -119,7 +119,7 @@ def test_all_modules_are_expected():
             path = f"array_api_compat.{backend}"
             if path in name and backend not in xp_available_backends:
                 return
-        raise ValueError
+        raise
 
     modnames = []
 
