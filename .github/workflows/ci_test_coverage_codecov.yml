@@ -59,7 +59,6 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Manual Build Library
-        if: matrix.language == 'c-cpp'
         run: |
           # install your project if it's a package
           pip install -r requirements/all.txt
