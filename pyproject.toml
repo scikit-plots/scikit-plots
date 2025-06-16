@@ -989,30 +989,36 @@ ignore = [
 # build wheels for in CI are controlled in `.github/workflows/wheels.yml` and
 # `tools/ci/cirrus_wheels.yml`.
 build-frontend = "build"
-skip = "cp36-* cp37-* cp-38* pp37-* *-manylinux_i686 *_ppc64le *_s390x *_universal2"
+skip = ["*_i686", "*_ppc64le", "*_s390x", "*_universal2"]
+
 # cibuildwheel to represent
 # {project} might be used for higher-level tasks, like referencing the project root.
 # {package} is used to refer to the specific package directory
 before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
-# The build will use openblas64 everywhere, except on arm64 macOS >=14.0 (uses Accelerate)
-config-settings = "setup-args=-Duse-ilp64=true setup-args=-Dallow-noblas=false build-dir=build"
 before-test = "pip install -r {project}/requirements/test.txt"
 test-command = "bash {project}/tools/wheels/cibw_test_command.sh {project}"
+enable = ["cpython-freethreading", "pypy", "cpython-prerelease"]
+
+# The build will use openblas64 everywhere, except on arm64 macOS >=14.0 (uses Accelerate)
+[tool.cibuildwheel.config-settings]
+setup-args = ["-Duse-ilp64=true", "-Dallow-noblas=false"]
+build-dir = "build"
 
 [tool.cibuildwheel.linux]
 # environment = {}
-manylinux-x86_64-image = "manylinux2014"
-manylinux-aarch64-image = "manylinux2014"
+manylinux-x86_64-image = "manylinux_2_28"  # "manylinux2014"
+manylinux-aarch64-image = "manylinux_2_28"  # "manylinux2014"
 musllinux-x86_64-image = "musllinux_1_2"
+musllinux-aarch64-image = "musllinux_1_2"
 
 # Linux-specific environment variables
 [tool.cibuildwheel.linux.environment]
+# RUNNER_OS is a GitHub Actions specific env var; define it here so it works on Cirrus CI too
+RUNNER_OS="Linux"
 # /project will be the $PWD equivalent inside the docker used to build the wheel
 PKG_CONFIG_PATH = "/project/.openblas"
 LD_LIBRARY_PATH = "/project/.openblas/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 CIBW_ENVIRONMENT = "PKG_CONFIG_PATH=/project/.openblas"
-# RUNNER_OS is a GitHub Actions specific env var; define it here so it works on Cirrus CI too
-RUNNER_OS="Linux"
 
 [tool.cibuildwheel.macos]
 # universal2 wheels are not supported (see gh-21233), use `delocate-fuse` if you need them
@@ -1033,17 +1039,18 @@ DYLD_LIBRARY_PATH = "/project/.openblas/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_P
 CIBW_ENVIRONMENT_MACOS = "PKG_CONFIG_PATH=/project/.openblas"
 
 [tool.cibuildwheel.windows]
-# config-settings = "setup-args=--vsenv setup-args=-Dallow-noblas=false build-dir=build"
-# before-build = "bash {project}/tools/wheels/cibw_before_build_win.sh {project}"
+config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=false"], build-dir="build"}
 repair-wheel-command = "bash -el ./tools/wheels/repair_windows.sh {wheel} {dest_dir}"
+# This does not work, use CIBW_ENVIRONMENT_WINDOWS
+# environment = {PKG_CONFIG_PATH="./.openblas"}
 
-# [[tool.cibuildwheel.overrides]]
-# select = [
-#   "*-win32",
-##   "*-win_amd64"
-# ]
-# config-settings = "setup-args=--vsenv setup-args=-Dallow-noblas=true build-dir=build"
-# repair-wheel-command = ""  # Leave empty if no repair script is needed
+[[tool.cibuildwheel.overrides]]
+select = [
+  "*-win32",
+  ## "*-win_amd64"
+]
+config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=true"], build-dir="build"}
+repair-wheel-command = ""  # Leave empty if no repair script is needed
 
 # Windows-specific environment variables
 [tool.cibuildwheel.windows.environment]
@@ -1056,14 +1063,14 @@ PATH = "{project}/.openblas/lib;$PATH"
 # CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH={project}/.openblas"
 
 [tool.cibuildwheel.pyodide]
-config-settings = "build-dir=build setup-args=--cross-file=$PWD/tools/ci/emscripten/emscripten.meson.cross setup-args=-Dblas=none setup-args=-Dlapack=none"
-
-[[tool.cibuildwheel.overrides]]
-select = "*pyodide*"
 before-test = "pip install -r {project}/requirements/emscripten_test.txt"
 # Pyodide ensures that the wheels are already repaired by auditwheel-emscripten
 repair-wheel-command = ""
 test-command = "python -m pytest --pyargs numpy -m 'not slow'"
+
+[tool.cibuildwheel.pyodide.config-settings]
+build-dir = "build"
+setup-args = ["--cross-file=$PWD/tools/ci/emscripten/emscripten.meson.cross", "-Dblas=none", "-Dlapack=none"]
 
 ######################################################################
 ## doit
