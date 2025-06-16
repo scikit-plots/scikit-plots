@@ -2,6 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+import re
 
 from ..validation import (
     validate_plotting_kwargs_decorator,
@@ -335,7 +336,7 @@ class TestValidateYTrue:
     def test_invalid_y_true_non_iterable(self):
         with pytest.raises(
             ValueError,
-            match="`y_true` must be of type bool, str, numeric, or a mix (object) type.",
+            match=re.escape("`y_true` must be of type bool, str, numeric, or a mix (object) type."),
         ):
             self.dummy_function(12345)  # Invalid input
 
@@ -343,7 +344,7 @@ class TestValidateYTrue:
     def test_invalid_y_true_not_enough_classes(self):
         with pytest.raises(
             ValueError,
-            match="`y_true` must be of type bool, str, numeric, or a mix (object) type.",
+            match=re.escape("`y_true` must be of type bool, str, numeric, or a mix (object) type."),
         ):
             self.dummy_function([1, 1, 1])  # Only one class
 
@@ -375,7 +376,7 @@ class TestValidateYTrue:
     def test_decorator_invalid_case(self):
         with pytest.raises(
             ValueError,
-            match="`y_true` must be of type bool, str, numeric, or a mix (object) type.",
+            match=re.escape("`y_true` must be of type bool, str, numeric, or a mix (object) type."),
         ):
             self.dummy_function(12345)  # Invalid input
 
