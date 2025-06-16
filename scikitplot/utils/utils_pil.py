@@ -28,6 +28,7 @@ from .. import logger
 from .._docstrings import _docstring
 from ..exceptions import ScikitplotException
 from .utils_path import get_file_path
+from .utils_plot_mpl import safe_tight_layout
 
 # Runtime-safe imports for type hints (avoids runtime overhead)
 if TYPE_CHECKING:
@@ -457,9 +458,11 @@ def save_image_pil_kwargs(
                         fig, ax = (
                             plt.subplots()
                         )  # Attempt to show and save using matplotlib
-                    ax = ax.imshow(result)  # Display the image on the existing axes
+
+                    with safe_tight_layout():
+                        ax = ax.imshow(result)  # Display the image on the existing axes
+                        # plt.tight_layout()
                     plt.axis("off")
-                    plt.tight_layout()
                     # plt.draw()
                     # plt.pause(0.1)  # Pause to allow for interactive drawing
                     # Save the image using Matplotlib after showing it

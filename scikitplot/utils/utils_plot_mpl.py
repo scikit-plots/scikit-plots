@@ -14,6 +14,7 @@ Such as plots and includes decorators for automatically saving plots.
 # import inspect
 # import tempfile
 # from functools import wraps
+import contextlib
 import functools
 import warnings
 from typing import TYPE_CHECKING
@@ -22,6 +23,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .. import logger
 from .._docstrings import _docstring
 from .utils_path import get_file_path
 
@@ -37,6 +39,19 @@ if TYPE_CHECKING:
 # Set up logging
 # logging.basicConfig(level=logging.INFO)
 # logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def safe_tight_layout(fig=None):
+    """Apply tight_layout safely after yielding, logging a warning if it fails."""
+    try:
+        yield
+    finally:
+        try:
+            (fig or plt).tight_layout()
+        except Exception as e:
+            logger.warning("tight_layout() failed: %s", e)
+
 
 ######################################################################
 ## save_plot_decorator
@@ -164,9 +179,10 @@ def save_plot_decorator(
 
         @functools.wraps(inner_func)
         def wrapper(*args, **kwargs) -> "any":
-            # Call the actual plotting function
-            result = inner_func(*args, **kwargs)
-            plt.tight_layout()
+            with safe_tight_layout():
+                # Call the actual plotting function
+                result = inner_func(*args, **kwargs)
+            # plt.tight_layout()
             # plt.draw()
             # plt.pause(0.1)
             try:
