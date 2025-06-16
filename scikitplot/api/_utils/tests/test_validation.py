@@ -344,7 +344,7 @@ class TestValidateYTrue:
     def test_invalid_y_true_not_enough_classes(self):
         with pytest.raises(
             ValueError,
-            match=re.escape("`y_true` must be of type bool, str, numeric, or a mix (object) type."),
+            match="`y_true` must contain more than one distinct class.",
         ):
             self.dummy_function([1, 1, 1])  # Only one class
 
