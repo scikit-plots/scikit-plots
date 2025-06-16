@@ -91,8 +91,8 @@ def is_unexpected(name):
 
 
 SKIP_LIST = [
-    "scikitplot.conftest",
-    "scikitplot.version",
+    # root artifact
+    "scikitplot._clv",
 ]
 
 
@@ -143,7 +143,7 @@ def test_all_modules_are_expected():
 # below
 SKIP_LIST_2 = [
     # root artifact
-    "scikitplot.version",
+    "scikitplot._clv",
     # api artifact
     "scikitplot.decomposition",
     "scikitplot.estimators",
