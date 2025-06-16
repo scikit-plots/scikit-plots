@@ -434,7 +434,7 @@ class LazyImport(types.ModuleType):
             self._silent,
             self._verbose,
         )
-        logger.info(f"Loaded {self._name} as Module: {module}")
+        logger.info(f"Loaded {self._package!r}.{self._name!r} as Module: {module!r}")
         # prevent RecursionError
         # if isinstance(module, LazyImport):
         #     module = module.resolved
