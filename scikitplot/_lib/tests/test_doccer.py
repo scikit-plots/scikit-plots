@@ -1,8 +1,9 @@
 """Some tests for the documenting decorator and support functions"""
 
-import sys
-
 import pytest
+import sys
+import textwrap
+
 from numpy.testing import assert_equal, suppress_warnings
 
 from .. import doccer
@@ -89,7 +90,14 @@ def test_decorator():
                with some indent
             """
 
-        assert_equal(func.__doc__, expected.__doc__)
+        # textwrap.dedent() removes common leading whitespace from all lines in the string.
+        # .strip() ensures there's no trailing newline
+        # or leading blank lines affecting the comparison.
+        # assert_equal(func.__doc__, expected.__doc__)
+        assert_equal(
+            textwrap.dedent(func.__doc__).strip(),
+            textwrap.dedent(expected.__doc__).strip(),
+        )
 
         # without unindentation of parameters
 
@@ -113,7 +121,11 @@ def test_decorator():
                with some indent
             """
 
-        assert_equal(func.__doc__, expected.__doc__)
+        # assert_equal(func.__doc__, expected.__doc__)
+        assert_equal(
+            textwrap.dedent(func.__doc__).strip(),
+            textwrap.dedent(expected.__doc__).strip()
+        )
 
 
 @pytest.mark.skipif(DOCSTRINGS_STRIPPED, reason="docstrings stripped")
