@@ -168,6 +168,7 @@ def is_unexpected(name):
 # Skip public modules
 SKIP_LIST = [
     # root artifact
+    "scikitplot.conftest",
     "scikitplot._clv",
     # optional
     "scikitplot.ui_app.gradio",
@@ -299,7 +300,7 @@ SKIP_LIST_2 = [
     'scikitplot.cli.json', 'scikitplot.cli.os', 'scikitplot.cli.re', 'scikitplot.cli.scikitplot', 'scikitplot.cli.sys', 'scikitplot.cli.warnings', 'scikitplot.conftest.gc',
     'scikitplot.conftest.hypothesis', 'scikitplot.conftest.json', 'scikitplot.conftest.np', 'scikitplot.conftest.np_testing', 'scikitplot.conftest.os', 'scikitplot.conftest.pd',
     'scikitplot.conftest.pytest', 'scikitplot.conftest.tempfile', 'scikitplot.conftest.warnings', 'scikitplot.environment_variables.os',
-    'scikitplot.environment_variables.tempfile', 'scikitplot.exceptions.json',
+    'scikitplot.environment_variables.tempfile', 'scikitplot.exceptions.json', 'scikitplot.ui_app.gradio', 'scikitplot.ui_app.streamlit', 'scikitplot.conftest.pytest_run_parallel',
 ]
 
 
