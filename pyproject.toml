@@ -311,6 +311,8 @@ test = [
   # "gmpy2",
   "mpmath",
   "pyamg",                                  # Algebraic multigrid solvers
+
+  "tenacity",                               # general-purpose retrying library, written in Python
 ]
 emscripten_test = [
   "hypothesis>=6.130.0",                    # Property-based testing

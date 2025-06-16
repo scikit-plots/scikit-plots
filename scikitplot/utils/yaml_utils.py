@@ -24,7 +24,8 @@ except ImportError:
 
 from ..exceptions import MissingConfigException
 from ..utils import merge_dicts
-from ..utils.file_utils import ENCODING, exists, get_parent_dir
+from ..utils.file_utils import ENCODING, exists
+from ..utils.file_utils import parent as get_parent_dir
 
 
 def write_yaml(

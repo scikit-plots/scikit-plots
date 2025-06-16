@@ -1,18 +1,40 @@
 import pytest
 
-try:
+# Skip test if tensorflow is not available
+# tf = pytest.importorskip("tensorflow")
+# keras = pytest.importorskip("keras")
+
+
+# Avoids calling pytest.importorskip() prematurely (it raises an exception instead of a boolean)
+def has_module(name):
+    """Doesn't re-import the same modules redundantly."""
+    try:
+        __import__(name)
+        return True
+    except (ImportError, ModuleNotFoundError):
+        return False
+
+# Check availability
+HAS_TF = has_module("tensorflow")
+HAS_KERAS = has_module("keras")
+
+# Skip test if neither TensorFlow nor Keras is available
+if not (HAS_TF or HAS_KERAS):
+    # allow_module_level=True ensures the entire file is skipped, not just a test function.
+    # It must be called at the top level, not inside a test function.
+    pytest.skip("Required packages (tensorflow or keras) not available.", allow_module_level=True)
+
+# Optionally import them safely now
+if HAS_TF:
     import tensorflow as tf
-
-    HAS_TF = True
-except ModuleNotFoundError:
-    HAS_TF = False
-
-try:
+if HAS_KERAS:
     import keras
 
-    HAS_KERAS = True
-except ModuleNotFoundError:
-    HAS_KERAS = False
+
+# Optional: actual test
+def test_dummy_model():
+    model = tf.keras.Sequential([tf.keras.layers.Dense(1)])
+    assert model is not None
 
 
 def get_functional_model(lib):

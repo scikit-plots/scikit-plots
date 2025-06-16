@@ -29,8 +29,7 @@ class Decorator(Protocol):
 
 
 def docformat(docstring: str, docdict: Mapping[str, str] | None = None) -> str:
-    """
-    Fill a function docstring from variables in dictionary.
+    """Fill a function docstring from variables in dictionary.
 
     Adapt the indent of the inserted docs
 
@@ -53,17 +52,13 @@ def docformat(docstring: str, docdict: Mapping[str, str] | None = None) -> str:
 
     Examples
     --------
-    >>> docformat(
-    ...     ' Test string with %(value)s',
-    ...     {'value': 'inserted value'},
-    ... )
+    >>> docformat(' Test string with %(value)s', {'value':'inserted value'})
     ' Test string with inserted value'
     >>> docstring = 'First line\\n    Second line\\n    %(value)s'
-    >>> inserted_string = 'indented\\nstring'
+    >>> inserted_string = "indented\\nstring"
     >>> docdict = {'value': inserted_string}
     >>> docformat(docstring, docdict)
     'First line\\n    Second line\\n    indented\\n    string'
-
     """
     if not docstring:
         return docstring
@@ -82,19 +77,12 @@ def docformat(docstring: str, docdict: Mapping[str, str] | None = None) -> str:
     indented = {}
     for name, dstr in docdict.items():
         lines = dstr.expandtabs().splitlines()
-        try:
-            newlines = [lines[0]]
-            for line in lines[1:]:
-                newlines.append(indent + line)
-            indented[name] = "\n".join(newlines)
-        except IndexError:
-            indented[name] = dstr
+        indented[name] = ("\n" + indent).join(lines)
     return docstring % indented
 
 
 def inherit_docstring_from(cls: object) -> Decorator:
-    """
-    This decorator modifies the decorated function's docstring by
+    """This decorator modifies the decorated function's docstring by
     replacing occurrences of '%(super)s' with the docstring of the
     method of the same name from the class `cls`.
 
@@ -123,6 +111,7 @@ def inherit_docstring_from(cls: object) -> Decorator:
     ...     def func(self):
     ...         '''Do something useful.'''
     ...         return
+    ...
     >>> class Bar(Foo):
     ...     @inherit_docstring_from(Foo)
     ...     def func(self):
@@ -130,10 +119,10 @@ def inherit_docstring_from(cls: object) -> Decorator:
     ...         Do it fast.
     ...         '''
     ...         return
+    ...
     >>> b = Bar()
     >>> b.func.__doc__
     'Do something useful.\n        Do it fast.\n        '
-
     """
 
     def _doc(func: _F) -> _F:
@@ -150,8 +139,7 @@ def inherit_docstring_from(cls: object) -> Decorator:
 
 
 def extend_notes_in_docstring(cls: object, notes: str) -> Decorator:
-    """
-    This decorator replaces the decorated function's docstring
+    """This decorator replaces the decorated function's docstring
     with the docstring from corresponding method in `cls`.
     It extends the 'Notes' section of that docstring to include
     the given `notes`.
@@ -170,7 +158,6 @@ def extend_notes_in_docstring(cls: object, notes: str) -> Decorator:
     decfunc : function
         The decorator function that modifies the __doc__ attribute
         of its argument.
-
     """
 
     def _doc(func: _F) -> _F:
@@ -193,8 +180,7 @@ def extend_notes_in_docstring(cls: object, notes: str) -> Decorator:
 
 
 def replace_notes_in_docstring(cls: object, notes: str) -> Decorator:
-    """
-    This decorator replaces the decorated function's docstring
+    """This decorator replaces the decorated function's docstring
     with the docstring from corresponding method in `cls`.
     It replaces the 'Notes' section of that docstring with
     the given `notes`.
@@ -213,7 +199,6 @@ def replace_notes_in_docstring(cls: object, notes: str) -> Decorator:
     decfunc : function
         The decorator function that modifies the __doc__ attribute
         of its argument.
-
     """
 
     def _doc(func: _F) -> _F:
@@ -240,8 +225,7 @@ def replace_notes_in_docstring(cls: object, notes: str) -> Decorator:
 
 
 def indentcount_lines(lines: Iterable[str]) -> int:
-    """
-    Minimum indent for all lines in line list
+    """Minimum indent for all lines in line list
 
     Parameters
     ----------
@@ -267,7 +251,6 @@ def indentcount_lines(lines: Iterable[str]) -> int:
     1
     >>> indentcount_lines(['    '])
     0
-
     """
     indentno = sys.maxsize
     for line in lines:
@@ -280,8 +263,7 @@ def indentcount_lines(lines: Iterable[str]) -> int:
 
 
 def filldoc(docdict: Mapping[str, str], unindent_params: bool = True) -> Decorator:
-    """
-    Return docstring decorator using docdict variable dictionary.
+    """Return docstring decorator using docdict variable dictionary.
 
     Parameters
     ----------
@@ -296,7 +278,6 @@ def filldoc(docdict: Mapping[str, str], unindent_params: bool = True) -> Decorat
     decfunc : function
         The decorator function that applies dictionary to its
         argument's __doc__ attribute.
-
     """
     if unindent_params:
         docdict = unindent_dict(docdict)
@@ -311,8 +292,7 @@ def filldoc(docdict: Mapping[str, str], unindent_params: bool = True) -> Decorat
 
 
 def unindent_dict(docdict: Mapping[str, str]) -> dict[str, str]:
-    """
-    Unindent all strings in a docdict.
+    """Unindent all strings in a docdict.
 
     Parameters
     ----------
@@ -323,7 +303,6 @@ def unindent_dict(docdict: Mapping[str, str]) -> dict[str, str]:
     -------
     docdict : dict[str, str]
         The `docdict` dictionary but each of its string values are unindented.
-
     """
     can_dict: dict[str, str] = {}
     for name, dstr in docdict.items():
@@ -332,8 +311,7 @@ def unindent_dict(docdict: Mapping[str, str]) -> dict[str, str]:
 
 
 def unindent_string(docstring: str) -> str:
-    """
-    Set docstring to minimum indent for all lines, including first.
+    """Set docstring to minimum indent for all lines, including first.
 
     Parameters
     ----------
@@ -351,7 +329,6 @@ def unindent_string(docstring: str) -> str:
     'two'
     >>> unindent_string('  two\\n   three')
     'two\\n three'
-
     """
     lines = docstring.expandtabs().splitlines()
     icount = indentcount_lines(lines)
@@ -361,8 +338,7 @@ def unindent_string(docstring: str) -> str:
 
 
 def doc_replace(obj: object, oldval: str, newval: str) -> Decorator:
-    """
-    Decorator to take the docstring from obj, with oldval replaced by newval
+    """Decorator to take the docstring from obj, with oldval replaced by newval
 
     Equivalent to ``func.__doc__ = obj.__doc__.replace(oldval, newval)``
 
@@ -381,7 +357,6 @@ def doc_replace(obj: object, oldval: str, newval: str) -> Decorator:
     decfunc : function
         A decorator function that replaces occurrences of `oldval` with `newval`
         in the docstring of the decorated function.
-
     """
     # __doc__ may be None for optimized Python (-OO)
     doc = (obj.__doc__ or "").replace(oldval, newval)

@@ -6,8 +6,8 @@ This module serves as the core API for the `xp` array namespace,
 providing essential functionalities for array operations.
 ::
 
-    from scikitplot import _xp_core_lib
-    _xp_core_lib.test()
+    from scikitplot import _lib
+    _lib.test()
 
 See Also
 --------
@@ -23,7 +23,7 @@ Core Features
 Behind `xp` functionality
 ----------------------------
 
-The `_xp_core_api` module offers a simple and intuitive interface for users to interact
+The `_lib` module offers a simple and intuitive interface for users to interact
 with array data. Below are some key functionalities:
 
 1. **Array Creation**
@@ -40,7 +40,7 @@ Notes
   functions available in this module.
 """
 
-# scikitplot/_xp_core_lib/__init__.py
+# scikitplot/_lib/__init__.py
 
 # https://data-apis.org/array-api/latest/index.html
 # https://github.com/data-apis/array-api-compat/blob/main/array_api_compat/numpy/__init__.py

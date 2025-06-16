@@ -85,7 +85,7 @@ class TestMakeTupleBunch:
     def test_module(self):
         # 'scipy._lib.tests.test_bunch'
         # __package__, __name__ stores the fully qualified name of a module
-        assert __name__ == "scikitplot._xp_core_lib.tests.test__bunch", __name__
+        assert __name__ == "scikitplot._lib.tests.test__bunch", __name__
         m = __name__
         assert_equal(Result.__module__, m)
         assert_equal(self.result.__module__, m)

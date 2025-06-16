@@ -434,13 +434,14 @@ class LazyImport(types.ModuleType):
             self._silent,
             self._verbose,
         )
+        logger.info(f"Loaded {self._package!r}.{self._name!r} as Module: {module!r}")
         # prevent RecursionError
         # if isinstance(module, LazyImport):
         #     module = module.resolved
 
         # Import the target module and insert it into the parent's namespace
         # module = importlib.import_module(self.__name__)
-        self._parent_module_globals[self._name] = module
+        self._parent_module_globals[self._name.strip(".")] = module
         sys.modules[self._name] = module
 
         # Ignore errors in custom proxies

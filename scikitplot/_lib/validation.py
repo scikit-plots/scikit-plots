@@ -1,5 +1,5 @@
 """
-scikitplot._xp_core_lib.validation - Utility Functions for Validation
+scikitplot._lib.validation - Utility Functions for Validation
 
 This module provides utility functions designed to validate inputs and
 parameters within the scikit-plot library. These functions assist in ensuring
