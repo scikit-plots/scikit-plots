@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      ## Release branches
       - maintenance/**
   # Note: this workflow gets triggered on the same schedule as the
   # wheels.yml workflow to upload WASM wheels to Anaconda.org.
@@ -42,7 +43,9 @@ jobs:
       contents: read  # to fetch code (actions/checkout)
 
     # To enable this workflow on a fork, comment out:
-    if: github.repository == 'scikit-plots/scikit-plots'
+    if: >-
+      github.repository == 'scikit-plots/scikit-plots'
+      || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout
