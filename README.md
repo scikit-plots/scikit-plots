@@ -13,7 +13,7 @@
 <img style="display:auto;width:auto;height:17px;" alt="CircleCI Status" src="https://dl.circleci.com/status-badge/img/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main.svg?style=shield">
 </a>
 <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="GitHub Actions CI Build Wheels Status" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml/badge.svg?event=workflow_dispatch">
+<img style="display:auto;width:auto;height:17px;" alt="GitHub Actions CI Build Wheels Status" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg?event=workflow_dispatch">
 </a>
 <a href="https://pypi.org/project/scikit-plots" target="_blank">
 <img style="display:auto;width:auto;height:17px;" alt="PyPI Status" src="https://img.shields.io/pypi/v/scikit-plots">

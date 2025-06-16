@@ -161,6 +161,7 @@ jobs:
       - name: Manual Build Library
         if: matrix.language == 'c-cpp'
         run: |
+          # install your project if it's a package
           pip install -r requirements/all.txt
           pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
