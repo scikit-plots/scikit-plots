@@ -11,8 +11,10 @@ permissions:
 
 jobs:
   update_lock_files:
-    if: github.repository == 'scikit-plots/scikit-plots'
     runs-on: ubuntu-latest
+
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
 
     strategy:
       # Ensure that each build will continue even if one build in the matrix fails

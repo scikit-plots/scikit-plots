@@ -29,6 +29,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
     permissions:
       contents: read
       packages: write

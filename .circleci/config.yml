@@ -197,7 +197,7 @@ commands:
 
 jobs:
   ## Build scikit-plots from source
-  build_skplt:
+  build_scikitplot:
     <<: *defaults
     description: "Build new docs"
     steps:
@@ -342,16 +342,16 @@ workflows:
     jobs:
       # NOTE: If you rename this job, then you must update the `if` condition
       # and `circleci-jobs` option in `.github/workflows/circleci.yml`.
-      - build_skplt
+      - build_scikitplot
       - build_docs:
           requires:
-            - build_skplt
+            - build_scikitplot
       # - run_benchmarks:
       #   requires:
-      #     - build_skplt
+      #     - build_scikitplot
       # - refguide_check:
       #     requires:
-      #       - build_skplt
+      #       - build_scikitplot
       - deploy:
           requires:
             - build_docs

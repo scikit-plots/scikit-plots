@@ -3,13 +3,13 @@
 name: PR Check Citation File
 
 on:
-  push:
-    paths:
-      - "CITATION.cff"
+  workflow_dispatch: # Allows manual triggering of the workflow
   pull_request:
     paths:
       - "CITATION.cff"
-  workflow_dispatch: # Allows manual triggering of the workflow
+  push:
+    paths:
+      - "CITATION.cff"
 
 ## simultaneity
 ## This ensures that only one deployment to "production" can happen at a time.

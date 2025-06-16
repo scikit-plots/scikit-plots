@@ -3,12 +3,12 @@
 name: "Issue-PR Greetings"
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize, edited]  # Triggers only on these events
   issues:
     types:
     - opened
     - edited
+  pull_request:
+    types: [opened, reopened, synchronize, edited]  # Triggers only on these events
 
 # Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
 # github actions workflow:

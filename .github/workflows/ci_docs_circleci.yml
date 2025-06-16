@@ -2,7 +2,7 @@
 #
 # if: "${{ github.repository == 'scikit-plots/scikit-plots' }}"
 ---
-name: CI Docs CircleCI
+name: CI Docs Redirect CircleCI Artifacts
 
 on: [status]
 
@@ -11,7 +11,8 @@ on: [status]
 ## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
 ## github actions workflow:
 ## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
-permissions: read-all
+permissions: read-all  # to fetch code (actions/checkout)
+#  contents: read  # to fetch code (actions/checkout)
 
 ## Global environment variables (available to all jobs and steps)
 ## Job-level environment variables (override global, scoped to this job)
@@ -21,39 +22,22 @@ env:
   IS_SKIP: false  # ${{ env.IS_SKIP == 'false' }}
 
 jobs:
-  ci_artifacts_redirector:
-    name: ci artifacts redirector
+  circleci_artifacts_redirector_job:
+    name: CI Docs CircleCI Artifacts Redirector
     runs-on: ubuntu-latest
+
+    # To enable this workflow on a fork, comment out:
+    # if: "github.repository == 'numpy/numpy' && !contains(github.event.head_commit.message, '[circle skip]') && !contains(github.event.head_commit.message, '[skip circle]')  && github.event.context == 'ci/circleci: build'"
     if: >-
       github.repository == 'scikit-plots/scikit-plots'
-      && github.event.context == 'ci/circleci: build'
+      && !contains(github.event.head_commit.message, '[circle skip]')
+      && !contains(github.event.head_commit.message, '[skip circle]')
+      && github.event.context == 'ci/circleci: build_docs'
 
     permissions:
       statuses: write
 
     steps:
-      # - name: Check if commit message contains skip keyword
-      #   id: check_commit
-      #   env:
-      #     COMMIT_SHA1: ${{ github.event.pull_request.head.sha }}  # Use head SHA for safety
-      #     COMMIT_SHA: ${{ github.event.after }}  # Use 'after' instead of 'commit.sha' for safety
-      #   run: |
-      #     COMMIT_MESSAGE=$(git log --format=%B -n 1 "$COMMIT_SHA")
-      #     echo "Commit Message: $COMMIT_MESSAGE"
-      #     if [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]] || [[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]]; then
-      #       echo "Commit message contains skip keyword, skipping the workflow."
-      #       echo "IS_SKIP=true" >> $GITHUB_ENV  # Set IS_SKIP to true in $GITHUB_ENV
-      #       # exit 0  # Exit successfully to stop further steps without failing
-      #     else
-      #       echo "IS_SKIP=false" >> $GITHUB_ENV  # Set IS_SKIP to false in $GITHUB_ENV
-      #     fi
-
-      # - name: Set up environment variable with fallback
-      #   run: |
-      #     echo "CIRCLE_TOKEN=${CIRCLE_TOKEN:-default-fallback-token}" >> $GITHUB_ENV
-      #   env:
-      #     CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
-
       - name: GitHub Action step
         # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
         uses: scientific-python/circleci-artifacts-redirector-action@7eafdb60666f57706a5525a2f5eb76224dc8779b # v1.1.0
@@ -62,6 +46,6 @@ jobs:
           # api_token: ${{ env.CIRCLE_TOKEN }}
           api-token: ${{ secrets.CIRCLE_TOKEN }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          job-title: Check the rendered docs here!
           artifact-path: 0/docs/build/html/stable/index.html
-          circleci-jobs: build
+          circleci-jobs: build_docs
+          job-title: Check the rendered docs here!

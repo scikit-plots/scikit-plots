@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   lint:
-    if: github.repository == 'numpy/numpy' && github.event_name != 'push'
+    if: github.repository == 'scikit-plots/scikit-plots' && github.event_name != 'push'
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -53,8 +53,10 @@ jobs:
       #     python tools/linter.py --branch origin/${{ github.base_ref }}
 
   smoke_test:
+    # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
     runs-on: ubuntu-latest
+
     env:
       MESON_ARGS: "-Dallow-noblas=true -Dcpu-baseline=none -Dcpu-dispatch=none"
     steps:
