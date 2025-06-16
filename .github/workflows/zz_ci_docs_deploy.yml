@@ -35,6 +35,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
     env:  # Define environment variables at the job level
       GIT_TERMINAL_PROMPT: 0  # Prevents interactive password prompts
       # Use inside step level environment NAME: '' as $NAME, ${{ env.NAME }}

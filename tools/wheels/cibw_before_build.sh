@@ -179,7 +179,8 @@ configure_openblas_pkg_config() {
     # Export LIBRARY PATH based on the OS and log
     case $RUNNER_OS in
         Linux)
-            if [ -n "${LD_LIBRARY_PATH}" ]; then
+            # requires using safe expansions like ${VAR:-}
+            if [ -n "${LD_LIBRARY_PATH:-}" ]; then
                 export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR:$LD_LIBRARY_PATH"
             else
                 export LD_LIBRARY_PATH="$OPENBLAS_LIB_DIR"

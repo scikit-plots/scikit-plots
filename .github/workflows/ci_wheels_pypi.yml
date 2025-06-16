@@ -75,6 +75,9 @@ jobs:
     name: to publish "${{ github.event.inputs.pypi_repo }}"
     runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
 
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
     ## Restrict this job to the 'publish_pypi' environment
     ## If Activated, Accessing Environment Secret for 'publish_pypi'
     # environment:
