@@ -88,20 +88,6 @@ PUBLIC_MODULES = [
         "stats",
         "typing",
         "ui_app",
-        "ui_app.gradio",
-        "ui_app.gradio.template_gr_app",
-        "ui_app.gradio.template_gr_b_doremi_ui",
-        "ui_app.gradio.template_gr_i_doremi_ui",
-        "ui_app.streamlit",
-        "ui_app.streamlit.build_app",
-        "ui_app.streamlit.catalog",
-        "ui_app.streamlit.run_app",
-        "ui_app.streamlit.template_st_app",
-        "ui_app.streamlit.template_st_chat_ui",
-        "ui_app.streamlit.template_st_config",
-        "ui_app.streamlit.template_st_data_visualizer_ui",
-        "ui_app.streamlit.template_st_dataset_loader_ui",
-        "ui_app.streamlit.template_st_login_ui",
         "utils",
         "utils.arguments_utils",
         "utils.cli_args",
@@ -183,6 +169,21 @@ def is_unexpected(name):
 SKIP_LIST = [
     # root artifact
     "scikitplot._clv",
+    # optional
+    "scikitplot.ui_app.gradio",
+    "scikitplot.ui_app.gradio.template_gr_app",
+    "scikitplot.ui_app.gradio.template_gr_b_doremi_ui",
+    "scikitplot.ui_app.gradio.template_gr_i_doremi_ui",
+    "scikitplot.ui_app.streamlit",
+    "scikitplot.ui_app.streamlit.build_app",
+    "scikitplot.ui_app.streamlit.catalog",
+    "scikitplot.ui_app.streamlit.run_app",
+    "scikitplot.ui_app.streamlit.template_st_app",
+    "scikitplot.ui_app.streamlit.template_st_chat_ui",
+    "scikitplot.ui_app.streamlit.template_st_config",
+    "scikitplot.ui_app.streamlit.template_st_data_visualizer_ui",
+    "scikitplot.ui_app.streamlit.template_st_dataset_loader_ui",
+    "scikitplot.ui_app.streamlit.template_st_login_ui",
 ]
 
 
