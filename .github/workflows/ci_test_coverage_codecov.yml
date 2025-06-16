@@ -34,7 +34,7 @@ permissions:
   contents: read  # for actions/checkout to fetch code
 
 jobs:
-  test:
+  test_coverage:
     runs-on: ubuntu-latest
 
     # To enable this workflow on a fork, comment out:
