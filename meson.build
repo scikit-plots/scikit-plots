@@ -1221,21 +1221,34 @@ fortranobject_dep = declare_dependency(
 ## f2py
 ######################################################################
 
-generate_f2pymod = find_program('tools/f2py/generate_f2pymod.py')
+f2py = find_program('f2py', required: false)
+if f2py.found()
+  # It should be quite rare for the `f2py` executable to not be the one from
+  # `numpy` installed in the Python env we are building for (unless we are
+  # cross-compiling). If it is from a different env, that is still fine as long
+  # as it's not too old. We are only using f2py as a code generator, and the
+  # output is not dependent on platform or Python version (see gh-20612 for more
+  # details).
+  # This should be robust enough. If not, we can make this more complex, using
+  # a fallback to `python -m f2py` rather than erroring out.
+  #
+  # f2py_version = run_command([f2py, '-v'], check: true).stdout().strip()
+  # if f2py_version.version_compare('<'+min_numpy_version)
+  #   error(f'Found f2py executable is too old: @f2py_version@')
+  # endif
+else
+    warning(
+      '\n' +
+      YELLOW + '[WARNING]' + RESET +
+      'Skipping f2py generation — f2py not available in this environment.'
+    )
+endif
 
-f2py = find_program('f2py')
-# It should be quite rare for the `f2py` executable to not be the one from
-# `numpy` installed in the Python env we are building for (unless we are
-# cross-compiling). If it is from a different env, that is still fine as long
-# as it's not too old. We are only using f2py as a code generator, and the
-# output is not dependent on platform or Python version (see gh-20612 for more
-# details).
-# This should be robust enough. If not, we can make this more complex, using
-# a fallback to `python -m f2py` rather than erroring out.
-# f2py_version = run_command([f2py, '-v'], check: true).stdout().strip()
-# if f2py_version.version_compare('<'+min_numpy_version)
-#   error(f'Found f2py executable is too old: @f2py_version@')
-# endif
+######################################################################
+## f2py_gen
+######################################################################
+
+generate_f2pymod = find_program('tools/f2py/generate_f2pymod.py')
 
 # Note: this generator cannot handle:
 # 1. `.pyf.src` files, because `@BASENAME@` will still include .pyf
