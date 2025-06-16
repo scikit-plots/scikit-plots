@@ -252,7 +252,7 @@ static int ccallback_prepare(ccallback_t *callback, ccallback_signature_t *signa
         PyObject *module;
 
         // module = PyImport_ImportModule("scipy._lib._ccallback");
-        module = PyImport_ImportModule("scikitplot._xp_core_lib._ccallback");
+        module = PyImport_ImportModule("scikitplot._lib._ccallback");
         if (module == NULL) {
             goto error;
         }

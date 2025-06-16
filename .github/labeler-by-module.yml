@@ -113,7 +113,7 @@
   - any-glob-to-any-file:
     - "scikitplot/visualkeras.py"
 
-"scikitplot/_xp_core_lib":
+"scikitplot/_lib":
 - changed-files:
   - any-glob-to-any-file:
-    - "scikitplot/_xp_core_lib/**/*"
+    - "scikitplot/_lib/**/*"

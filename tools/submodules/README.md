@@ -108,7 +108,7 @@ To remove a submodule you need to:
     ```
     # Remove the submodule entry from .git/config
     # git submodule deinit -f <path/to/submodule>
-    git submodule deinit -f scikitplot/_xp_core_api/array-api-compat
+    git submodule deinit -f scikitplot/_lib/array-api-compat
     ```
 - Verify Deinitialization Check if the submodule is deinitialized.
     ```

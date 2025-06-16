@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.thread_unsafe
 def test_cython_api_deprecation():
     match = (
-        "`scikitplot._xp_core_lib._test_deprecation_def.foo_deprecated` "
+        "`scikitplot._lib._test_deprecation_def.foo_deprecated` "
         "is deprecated, use `foo` instead!\n"
         "Deprecated in Scikit-plots 42.0.0"
     )

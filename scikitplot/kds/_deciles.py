@@ -43,7 +43,7 @@ def __getattr__(name):
 ## Module Attr Deprecation
 ######################################################################
 
-# from .._xp_core_lib.deprecation import _deprecated, __DEPRECATION_MSG, deprecated
+# from .._lib.deprecation import _deprecated, __DEPRECATION_MSG, deprecated
 # @_deprecated(
 #   __DEPRECATION_MSG.format(
 #     "kds._deciles.plot_cumulative_gain",
