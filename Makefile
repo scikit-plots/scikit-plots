@@ -110,6 +110,8 @@ clean: clean-basic
 	@echo "Removed all '*.so' files in 'build dirs'"
 	@rm -rf ".mypy_cache" ".ruff_cache"
 	@echo "Removed folder '.mypy_cache, .ruff_cache etc.'"
+	@rm -rf ".gradio"
+	@echo "Removed folder '.gradio etc.'"
 	@echo "pypi cleaning completed."
 	@pip uninstall scikit-plots -y || true
 
