@@ -1074,7 +1074,7 @@ PATH = "{project}/.openblas/lib;$PATH"
 before-test = "pip install -r {project}/requirements/emscripten_test.txt"
 # Pyodide ensures that the wheels are already repaired by auditwheel-emscripten
 repair-wheel-command = ""
-test-command = "bash -c 'scikitplot --version'"
+test-command = "python -c 'import scikitplot; print(scikitplot.__version__)'"
 
 [tool.cibuildwheel.pyodide.config-settings]
 build-dir = "build"
