@@ -4,12 +4,12 @@
 #
 # if: "${{ github.repository == 'scikit-plots/scikit-plots' }}"
 ---
-name: CI Post Docs Preview Link CircleCI
+name: CI Docs Preview Link Post CircleCI
 
 on: # [status]  # [status, workflow_dispatch]
   workflow_dispatch: # Allows manual triggering of the workflow
   status:
-    branches: [ "main", "*.X" ]
+    # branches: [ "main", "*.X" ]
     # types: [completed]  # ?
   # pull_request:
   #   types: [opened, synchronize, reopened]
@@ -48,13 +48,12 @@ jobs:
     permissions:
       contents: read
       statuses: write
-      issues: write
-      pull-requests: write  # needed to remove PR labels
+      # issues: write
+      # pull-requests: write  # needed to remove PR labels
 
     steps:
       # - name: Wait for CircleCI to finish
       #   run: sleep 120  # wait for build_docs to finish and upload artifacts
-
       # - name: Debug status
       #   run: |
       #     echo "Context: ${{ github.event.context }}"
