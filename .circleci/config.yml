@@ -11,6 +11,13 @@
 #
 # https://circleci.com/docs/set-environment-variable/#set-an-environment-variable-in-a-project
 # https://app.codecov.io/gh/scikit-plots/scikit-plots/new/circle-ci
+#
+# 🔍 You can test this by visiting a raw artifact link directly in your browser:
+# https://app.circleci.com/pipelines/github/YOUR_ORG/YOUR_REPO
+# https://app.circleci.com/pipelines/github/scikit-plots/scikit-plots
+# https://app.circleci.com/pipelines/circleci/MzCciwxVsGS9w3PCUFjTaB
+# → click on a pipeline → job → Artifacts tab
+# If you're not logged in and still can view the artifact, it's public ✅
 ---
 version: 2.1
 
