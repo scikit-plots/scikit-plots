@@ -1,6 +1,15 @@
 name: CI Wheels WASM (Emscripten/Pyodide)  # WebAssembly frontend (via pyodide)
 
 on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+    inputs:
+      push_wheels:
+        # Can be 'true' or 'false'. Default is 'false'.
+        # Warning: this will overwrite existing wheels.
+        description: >
+          Push wheels to Anaconda.org if the build succeeds
+        required: false
+        default: 'false'
   pull_request:
     branches:
       - main
@@ -16,15 +25,6 @@ on:
   #   #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
   #   #        │  │ │ │ │
   #   - cron: "42 2 * * SUN,WED"
-  workflow_dispatch:
-    inputs:
-      push_wheels:
-        # Can be 'true' or 'false'. Default is 'false'.
-        # Warning: this will overwrite existing wheels.
-        description: >
-          Push wheels to Anaconda.org if the build succeeds
-        required: false
-        default: 'false'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
