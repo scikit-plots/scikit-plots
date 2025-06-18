@@ -27,6 +27,9 @@ jobs:
     name: "greeting"
     runs-on: ubuntu-latest
 
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
     steps:
       - name: 'Greet First-Time Contributors'
         uses: actions/first-interaction@34f15e814fe48ac9312ccf29db4e74fa767cbab7  # v1.3.0

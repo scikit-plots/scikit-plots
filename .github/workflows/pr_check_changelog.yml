@@ -1,6 +1,6 @@
 ## https://github.com/scientific-python/action-towncrier-changelog
 ---
-name: PR Check Changelog File
+name: PRs Check Changelog File
 
 ## This check makes sure that the changelog is properly updated
 ## when a PR introduces a change in a test file.
@@ -45,6 +45,9 @@ jobs:
   changelog_checker:
     name: A reviewer will let you know if it is required or can be bypassed for (towncrier change log entry)
     runs-on: ubuntu-latest
+
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
       - name: Check if towncrier change log entry is correct

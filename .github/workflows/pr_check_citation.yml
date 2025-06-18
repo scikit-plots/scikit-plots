@@ -1,6 +1,6 @@
 ## https://github.com/citation-file-format/cffconvert-github-action
 ---
-name: PR Check Citation File
+name: PRs Check Citation File
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
@@ -47,6 +47,9 @@ jobs:
   checker:
     name: "Checker CITATION.cff"
     runs-on: ubuntu-latest
+
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
       - name: Checkout (cloned) repository with full history
