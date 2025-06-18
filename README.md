@@ -3,22 +3,12 @@
 - https://github.com/pypa/readme_renderer
 -->
 
+
 <h1 align=center>Welcome to Scikit-plots 101</h1>
 
-<!-- [![build status](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml/badge.svg)](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml) -->
 
-<!--
-<a href="https://pypi.org/project/scikit-plots" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="PyPI Status" src="https://img.shields.io/pypi/v/scikit-plots">
-</a>
-<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="Anaconda Nightly Wheels Status" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
-</a>
-<a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
-<img style="display:auto;width:auto;height:17px;" alt="Zenodo DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
-</a> -->
-
-<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 580px; margin: auto;">
+<!-- GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
+<!-- <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 580px; margin: auto;">
   <a href="https://pypi.org/project/scikit-plots" target="_blank">
     <img style="height:17px;" alt="PyPI Status" src="https://img.shields.io/pypi/v/scikit-plots">
   </a>
@@ -47,7 +37,7 @@
     <img style="height:17px;" alt="Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000.svg">
   </a>
   <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank">
-    <!-- <img style="display:auto;width:auto;height:17px;" alt="Coverage Status" src="https://codecov.io/gh/scikit-plots/scikit-plots/graph/badge.svg?token=D9ET8W1I2P"/> -->
+    # <img style="display:auto;width:auto;height:17px;" alt="Coverage Status" src="https://codecov.io/gh/scikit-plots/scikit-plots/graph/badge.svg?token=D9ET8W1I2P"/>
     <img style="height:17px;" alt="Coverage Status" src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
   </a>
   <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
@@ -56,7 +46,60 @@
   <a href="https://pypi.org/project/scikit-plots" target="_blank">
     <img style="height:17px;" alt="pyversions" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
   </a>
-</div>
+</div> -->
+
+
+<!-- GitHub- & PyPI-Compatible Badge Grid -->
+
+<!-- [![build status](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml/badge.svg)](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml) -->
+<!--
+<a href="https://pypi.org/project/scikit-plots" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="PyPI Status" src="https://img.shields.io/pypi/v/scikit-plots">
+</a>
+<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="Anaconda Nightly Wheels Status" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
+</a>
+<a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
+<img style="display:auto;width:auto;height:17px;" alt="Zenodo DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
+</a> -->
+<p align="center">
+  <a href="https://pypi.org/project/scikit-plots" target="_blank">
+    <img alt="PyPI Status" height="17" src="https://img.shields.io/pypi/v/scikit-plots">
+  </a>
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
+    <img alt="Anaconda Nightly Wheels Status" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
+  </a>
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank">
+    <img alt="Anaconda Nightly Release Date" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
+  </a>
+  <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank">
+    <img alt="GitHub Actions CI Build Wheels Status" height="17" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg?event=workflow_dispatch">
+  </a>
+  <a href="https://dl.circleci.com/status-badge/redirect/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main" target="_blank">
+    <img alt="CircleCI Status" height="17" src="https://dl.circleci.com/status-badge/img/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main.svg?style=shield">
+  </a>
+  <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank">
+    <img alt="pre-commit.ci Status" height="17" src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
+  </a>
+  <a href="https://github.com/pre-commit/pre-commit" target="_blank">
+    <img alt="pre-commit Status" height="17" src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
+  </a>
+  <a href="https://github.com/astral-sh/ruff" target="_blank">
+    <img alt="Ruff Version" height="17" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json">
+  </a>
+  <a href="https://github.com/astral-sh/ruff" target="_blank">
+    <img alt="Ruff" height="17" src="https://img.shields.io/badge/code%20style-ruff-000000.svg">
+  </a>
+  <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank">
+    <img alt="Coverage Status" height="17" src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
+  </a>
+  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
+    <img alt="Zenodo DOI" height="17" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
+  </a>
+  <a href="https://pypi.org/project/scikit-plots" target="_blank">
+    <img alt="pyversions" height="17" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
+  </a>
+</p>
 
 
 ## Single line functions for detailed visualizations
@@ -66,6 +109,7 @@ The quickest and easiest way to go from analysis...
 ### Documentation, Examples and Try|Install Scikit-plots
 
 **Explore the full features of Scikit-plots: https://scikit-plots.github.io/dev/devel/index.html**
+
 
 ## User Installation:
 
@@ -159,18 +203,19 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
   pip install "scikit-plots[cpu]"
   ```
 
+
 <h2 align=center>Sample Plots</h2>
 
-<!-- <table style="margin-left:auto;margin-right:auto;width:100%;border-collapse:collapse;"></table> -->
+<!-- GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
 <!-- <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 580px; margin: auto;"> -->
 <!-- <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5em; max-width: 580px; margin: auto;"> -->
-<div style="max-width: 1400px; margin: auto; display: flex; flex-direction: column; align-items: center; gap: 1.5em;">
-  <!-- Header Row -->
-  <!-- <div style="display: flex; width: 100%; justify-content: space-between; text-align: center; font-weight: bold;">
+<!-- <div style="max-width: 1400px; margin: auto; display: flex; flex-direction: column; align-items: center; gap: 1.5em;">
+  Header Row
+  <div style="display: flex; width: 100%; justify-content: space-between; text-align: center; font-weight: bold;">
     <div style="width: 49.5%;">Sample Plot 1</div>
     <div style="width: 49.5%;">Sample Plot 2</div>
-  </div> -->
-  <!-- Image Rows -->
+  </div>
+  Image Rows
   <div style="display: flex; width: 100%; justify-content: space-between;">
     <img style="width: 49.5%;" alt="plot_learning_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_learning_curve-1.png">
     <img style="width: 49.5%;" alt="plot_calibration_curve.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_calibration-1.png">
@@ -200,8 +245,61 @@ The easiest way to set up scikit-plots is to install it using pip with the follo
     <img style="width: 49.5%;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-kds-plot_cumulative_gain-1.png">
     <img style="width: 49.5%;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-kds-plot_lift-1.png">
   </div>
+</div> -->
 
-</div>
+
+<!-- GitHub- & PyPI-Compatible Grid -->
+<!-- <p align="center"><strong>Sample Plot 1</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Sample Plot 2</strong></p> -->
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_classifier_eval-1.png" alt="plot_classifier_eval.png" width="100%">
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_feature_importances-1.png" alt="plot_feature_importances.png" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_roc-1.png" alt="plot_roc.png" width="100%">
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_precision_recall-1.png" alt="plot_precision_recall.png" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-decomposition-plot_pca_component_variance-1.png" alt="plot_pca_component_variance.png" width="100%">
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-decomposition-plot_pca_2d_projection-1.png" alt="plot_pca_2d_projection.png" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_elbow-1.png" alt="plot_elbow.png" width="100%">
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_silhouette-1.png" alt="plot_silhouette.png" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-kds-plot_cumulative_gain-1.png" alt="plot_cumulative_gain.png" width="100%">
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-kds-plot_lift-1.png" alt="plot_lift.png" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="45%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_learning_curve-1.png" alt="plot_learning_curve.png" width="100%">
+    </td>
+    <td align="center" width="45%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_calibration-1.png" alt="plot_calibration_curve.png" width="100%">
+    </td>
+  </tr>
+</table>
 
 
 Scikit-plots is the result of an unartistic data scientist's dreadful realization that *visualization is one of the most crucial components in the data science process, not just a mere afterthought*.
@@ -209,6 +307,7 @@ Scikit-plots is the result of an unartistic data scientist's dreadful realizatio
 Gaining insights is simply a lot easier when you're looking at a colored heatmap of a confusion matrix complete with class labels rather than a single-line dump of numbers enclosed in brackets. Besides, if you ever need to present your results to someone (virtually any time anybody hires you to do data science), you show them visualizations, not a bunch of numbers in Excel.
 
 That said, there are a number of visualizations that frequently pop up in machine learning. Scikit-plots is a humble attempt to provide aesthetically-challenged programmers (such as myself) the opportunity to generate quick and beautiful graphs and plots with as little boilerplate as possible.
+
 
 ## Okay then, prove it. Show us an example.
 
@@ -286,6 +385,7 @@ plt.show()
 
 Pretty.
 
+
 ## Maximum flexibility. Compatibility with non-scikit-learn objects.
 
 Although Scikit-plot is loosely based around the scikit-learn interface, you don't actually need scikit-learn objects to use the available functions.
@@ -293,10 +393,12 @@ As long as you provide the functions what they're asking for, they'll happily dr
 
 The possibilities are endless.
 
+
 # Release Notes
 
 See the [changelog](https://scikit-plots.github.io/dev/whats_new/index.html)
 for a history of notable changes to scikit-plots.
+
 
 # Contributing to Scikit-plots
 
@@ -318,6 +420,7 @@ For contributing code specifically, the developer docs have a
 [guide](https://scikit-plots.github.io/dev/devel/index.html) with a `quickstart`.
 There's also a [summary of contribution guidelines](https://github.com/scikit-plots/scikit-plots/blob/main/CONTRIBUTING.md).
 
+
 # Developing with Codespaces
 
 GitHub Codespaces is a cloud development environment using Visual Studio Code
@@ -331,6 +434,7 @@ with the required packages. For help, see the [GitHub Codespaces docs](https://d
   </a><br>
 </div>
 
+
 # Acknowledging (Governance) and Citing Scikit-plots
 
 See the [Acknowledgement](https://scikit-plots.github.io/dev/project/governance.html),
@@ -343,6 +447,7 @@ and the [CITATION.bib](https://github.com/scikit-plots/scikit-plots/blob/main/CI
 
 2. scikit-plots, “scikit-plots: v0.3.8dev0”. Zenodo, Aug. 23, 2024.
    DOI: [10.5281/zenodo.13367001](https://doi.org/10.5281/zenodo.13367001).
+
 
 # Supporting the Project (Upcoming)
 
@@ -360,6 +465,7 @@ United States. You can donate to the project by using the link above, and this
 donation will support our mission to promote sustainable, high-level code base
 for the astronomy community, open code development, educational materials, and
 reproducible scientific research. -->
+
 
 # License
 

@@ -1,3 +1,4 @@
+# .circleci/config.yml or project settings
 # Python CircleCI 2.1 configuration file
 #
 # Check https://circleci.com/docs/2.1/language-python/ for more details
@@ -174,12 +175,15 @@ commands:
           when: always
           command: |
             ! grep "^.* WARNING: .*$" sphinx_log.txt
+      # you must store the artifact explicitly:
       - store_artifacts:
           path: ~/sphinx_log.txt
           destination: sphinx_log.txt
       - store_artifacts:
+          # path: docs/build/html/stable/index.html  # index.html
           path: docs/build/html/stable
-          destination: docs
+          destination: docs/build/html/stable  # CircleCI to preserve the full directory structure
+          # destination: docs  # (docs/index.html because of destination: docs).
         # Persists generated documentation so that it can be attached and deployed
         # in the 'deploy' step.
       - persist_to_workspace:
@@ -187,6 +191,7 @@ commands:
           root: docs/build/html
           paths:
             # - docs/build/html/stable
+            # - docs/build/html/stable/index.html
             - .
   # Run benchmarks
   # Reference guide checking
@@ -346,6 +351,9 @@ workflows:
       - build_docs:
           requires:
             - build_scikitplot
+          filters:
+            branches:
+              ignore: gh-pages
       # - run_benchmarks:
       #   requires:
       #     - build_scikitplot

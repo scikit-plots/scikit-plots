@@ -15,13 +15,9 @@ Documentation is available in the docstrings and online at
 https://scikit-plots.github.io.
 """  # noqa: D205
 
-# import os as _os
-# import sys as _sys
-# import importlib as _importlib
-# import pathlib as _pathlib
-# import warnings as _warnings
 # _set = set  # 'seaborn.set' can be override raise error
 import builtins as _builtins
+from importlib import import_module as _import_module
 
 from numpy import __version__ as __numpy_version__
 
@@ -40,6 +36,7 @@ __version__ = "0.5.0.dev0"
 
 # import logging as _logging
 from . import sp_logging as logger
+from .exceptions import ScikitplotException
 
 # logger.setLevel(logger.DEBUG)  # for debugging
 
@@ -142,7 +139,11 @@ _submodules = {
 ## This means that all names in the global namespace, except those starting with '_',
 ## will be imported by default.
 ## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
-_discard = {"_discard", "_submodules"}
+_discard = {
+    "_discard",
+    "_submodules",
+    "_builtins",
+}
 __all__ = tuple(
     sorted(
         [
@@ -182,6 +183,10 @@ def __dir__():
 
     Examples
     --------
+    >>> import scikitplot as sp
+    >>> dir(sp)  # sp.__dir__()
+    ['attribute1', 'attribute2', 'attribute3']  # Example output
+
     >>> from scikitplot import __dir__
     >>> __dir__()
     ['attribute1', 'attribute2', 'attribute3']  # Example output
@@ -189,10 +194,11 @@ def __dir__():
     """
     return sorted(
         _builtins.set(globals())
-        .union(_submodules)
+        .union(__all__)
         # Returns the api submodule directly.
-        # .union(dir(__import__(__name__ + '.api', fromlist=[''])))
-        .union(dir(nested_import(".api", package=__name__)))
+        # .union(dir(nested_import(".api", package=__name__)))
+        # .union(dir(_import_module(".api", package=__name__)))
+        .union(dir(__import__(__name__ + ".api", fromlist=[""])))
         .difference(_discard)
     )
 
@@ -240,16 +246,19 @@ def __getattr__(
         if name in globals():
             return globals()[name]
         # Try importing as a submodule
-        # import_module(f".{name}", package=package)  # high-level function
-        # __import__(f'{__name__}.{name}')  # low-level function, not, not the submodule
+        # import_module(f".{name}", package=package)  # high-level function, submodule directly
+        # __import__(f'{__name__}.{name}')  # low-level function, not return submodule directly
         # __import__(module_name, fromlist=[class_name])  # Return submodule directly
-        return nested_import(name, package)  # ~(4.5-11)s
+        try:
+            return _import_module(f"{package}.{name}")  # package
+        except ScikitplotException:
+            return nested_import(name, package)  # ~(4.5-11)s
     except (
         AttributeError,
         ImportError,
         ModuleNotFoundError,
         RecursionError,
-        Exception,
+        ScikitplotException,
     ) as e:
         suggestion_msg = ""
         if suggestion:
@@ -268,7 +277,7 @@ def __getattr__(
         # Raise an error indicating the attribute could not be found,
         # with suggestions if any.
         raise AttributeError(
-            f"Module '{package}' has no attribute '{name}'.{suggestion_msg}\n{e}"
+            f"Module {package!r} has no attribute {name!r}.{{suggestion_msg}}\n\n{{e}}"
         ) from e
 
 
@@ -327,11 +336,12 @@ def online_help(
     --------
     >>> import scikitplot
     >>> scikitplot.online_help("installation")
-    2025-06-17 14:35:41.260923: E scikitplot 123480369030208 __init__.py:351:online_help] https://scikit-plots.github.io/dev/search.html?q=installation
+    https://scikit-plots.github.io/dev/search.html?q=installation
     """
     try:
         # pylint: disable=import-outside-toplevel
         import os
+        import sys
         import webbrowser
         from urllib.parse import urlencode, urlparse
 
@@ -349,7 +359,8 @@ def online_help(
         full_url = f"{search_url}{('&' if urlparse(search_url).query else '?')}{urlencode(params)}"
 
         ## This launches the URL in the browser
-        logger.error(f"{full_url}")
+        # logger.error(f"{full_url}")
+        sys.stderr.write(f"{full_url}")
         return webbrowser.open(full_url, new=new_window)
     except ModuleNotFoundError as e:
         logger.exception(f"Error opening documentation: {e}")
@@ -399,7 +410,7 @@ def online_help(
 #         np.random.seed(seed)  # noqa: NPY002
 #         random.seed(seed)
 
-#     except Exception as e:
+#     except ScikitplotException as e:
 #         print(f"Warning: RNG seeding failed: {e}")  # noqa: T201
 
 
