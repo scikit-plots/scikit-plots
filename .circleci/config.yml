@@ -1,4 +1,5 @@
 # .circleci/config.yml or project settings
+# https://circleci.com/docs/
 # Python CircleCI 2.1 configuration file
 #
 # Check https://circleci.com/docs/2.1/language-python/ for more details
@@ -16,6 +17,7 @@
 # https://app.circleci.com/pipelines/github/YOUR_ORG/YOUR_REPO
 # YOUR_ORG  = the provider ("github", "gh", "bitbucket", "bb", "circleci", etc.)
 # YOUR_REPO = unique ID (org/repo hash, base64-like unique ID)
+# https://app.circleci.com/organization/github/scikit-plots
 # https://app.circleci.com/pipelines/github/scikit-plots/scikit-plots
 # https://app.circleci.com/pipelines/<org>/<repo>/<pipeline_number>/workflows/<workflow_id>/jobs/<job_id>/artifacts
 # → click on a pipeline → job → Artifacts tab
@@ -309,25 +311,44 @@ jobs:
       ## Add the SSH key to the environment (this step tells CircleCI to use the private key from the SSH Key settings)
       - add_ssh_keys:
           fingerprints:
-            ## ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+            ## INFO: Since CircleCI cannot decrypt SSH keys, every new key must have an empty passphrase.
+            ## https://circleci.com/docs/add-ssh-key/#steps
+            ## https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+            ## https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent?platform=linux
+            ## https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account?platform=linux
+            ##
             ## Generate the ED25519 SSH Key Pair (with custom name id_ed25519_circleci):
+            ## ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+            ## ssh-keygen -t ed25519 -C "your_email@example.com"
+            ## ssh-keygen -t ed25519-sk -C "your_email@example.com"  # hardware security key
             ## ssh-keygen -t ed25519 -C "your_email@example.com" -f ~/.ssh/id_ed25519_circleci
-            ## apply chmod 600 to the private key (not the public key) in order to ensure that only the owner can read and write the private key
+            ##
+            ## apply private key (not the public key) to "chmod 600" in order to ensure that only the owner can read and write the private key
             ## chmod 600 ~/.ssh/id_ed25519_circleci
             ## cat ~/.ssh/id_ed25519_circleci
-            ## public key can have more relaxed permissions, but chmod 644 is commonly used.
+            ##
+            ## apply public key can have more relaxed permissions, but chmod 644 is commonly used.
             ## chmod 644 ~/.ssh/id_ed25519_circleci.pub
             ## cat ~/.ssh/id_ed25519_circleci.pub
+            ##
             ## Only add the public key to GitHub (id_ed25519_circleci.pub), not the private key (id_ed25519_circleci).
             ## ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICIo9OIfO9BdffgYEKxyg5Zkj7hlX00yV3w1cH2JKpQz your_email@example.com
+            ##
+            ## The fingerprint can be SHA256 or MD5.
+            ## SHA256 fingerprints should be prefixed with SHA256: and MD5 fingerprints should include the colons between character pairs.
             ## This will give you the MD5 fingerprint that you need for CircleCI.
             ## ssh-keygen -E md5 -lf ~/.ssh/id_ed25519_circleci.pub
-            ## 256 MD5:1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3 (ED25519)
-            ## you’ve added the private key to CircleCI’s project settings,
+            ## 256 MD5:1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3 your_email@example.com (ED25519)
+            ##
+            ## you've added the private key to CircleCI's project settings,
             ## is for identifying the correct private key that CircleCI will use during the build process.
+            ## Also ensure that the private key is added to the CircleCI project
+            ## and that the public key has been added to the additional repositories that you want to checkout from within your job.
             ## Fingerprint: Used to tell CircleCI which private key to use for SSH connections.
-            # "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"  # Add your SSH private key fingerprint here
-            - "04:ae:1a:89:65:e9:2c:7d:a2:87:7e:9f:3a:23:cc:19"  # Replace with your public key's fingerprint
+            ## All fingerprints in the fingerprints list must correspond to keys that have been added through the CircleCI application.
+            ## Fingerprints in CircleCI environment variables will fail.
+            # "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"  # Replace with your public key's fingerprint
+            - "fa:a7:3e:10:71:de:f5:31:0e:3a:44:6a:b4:f5:be:8f"  # Add fingerprint here
 
       ## Add GitHub's SSH key to the known_hosts to avoid verification prompts
       - run:
