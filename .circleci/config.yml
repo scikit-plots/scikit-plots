@@ -1,3 +1,4 @@
+# .circleci/config.yml or project settings
 # Python CircleCI 2.1 configuration file
 #
 # Check https://circleci.com/docs/2.1/language-python/ for more details
@@ -350,6 +351,9 @@ workflows:
       - build_docs:
           requires:
             - build_scikitplot
+          filters:
+            branches:
+              ignore: gh-pages
       # - run_benchmarks:
       #   requires:
       #     - build_scikitplot
