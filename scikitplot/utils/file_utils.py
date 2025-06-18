@@ -12,38 +12,37 @@
 
 # import errno
 # import uuid
-import atexit
-import codecs
-import concurrent
-import contextlib
-import fnmatch
-import gzip
-import json
-import math
-import os
-import pathlib
-import posixpath
-import shutil
-import stat
+import atexit as _atexit
+import codecs as _codecs
+import concurrent as _concurrent
+import contextlib as _contextlib
+import fnmatch as _fnmatch
+import gzip as _gzip
+import json as _json
+import math as _math
+import os as _os
+import pathlib as _pathlib
+import posixpath as _posixpath
+import shutil as _shutil
+import stat as _stat
 
 # import subprocess
-import sys
-import tarfile
-import tempfile
+import sys as _sys
+import tarfile as _tarfile
+import tempfile as _tempfile
 
 # import textwrap
-import time
-import urllib.parse
-import urllib.request
+import time as _time
+import urllib as _urllib
 from collections.abc import Generator, Iterable, Iterator
 from dataclasses import dataclass
 from typing import Optional, Union
 
-import requests
+import requests as _requests
 
 # import logging
-from .. import logger
-from ..entities import FileInfo
+from .. import logger as _logger
+from .._entities import FileInfo
 from ..environment_variables import (
     _SKPLT_MPD_NUM_RETRIES,
     _SKPLT_MPD_RETRY_INTERVAL_SECONDS,
@@ -118,15 +117,15 @@ def get_file_info(
     >>> get_file_info("/home/user/data.csv", "data.csv")
     FileInfo(path='data.csv', is_dir=False, size=1284)
     """
-    if not os.path.exists(path):
+    if not _os.path.exists(path):
         raise FileNotFoundError(f"Path does not exist: {path}")
 
     def _permissions(mode: int) -> str:
         """Convert permission bits to symbolic notation."""
-        return stat.filemode(mode)
+        return _stat.filemode(mode)
 
-    is_dir_ = os.path.isdir(path)
-    stat_result = os.stat(path)  # os.path.getsize(path)
+    is_dir_ = _os.path.isdir(path)
+    stat_result = _os.stat(path)  # _os.path.getsize(path)
 
     return FileInfo(
         path=rel_path,
@@ -135,7 +134,7 @@ def get_file_info(
         # Not implemented
         # modified_time=stat_result.st_mtime,
         # permissions=_permissions(stat_result.st_mode),
-        # absolute_path=str(pathlib.Path(path).resolve()),
+        # absolute_path=str(_pathlib.Path(path).resolve()),
     )
 
 
@@ -145,27 +144,27 @@ def get_file_info(
 
 
 def contains_path_separator(
-    path: Union[str, os.PathLike],
+    path: Union[str, _os.PathLike],
 ) -> bool:
     r"""
     Check if the given path contains any path separator.
 
     Parameters
     ----------
-    path : str or os.PathLike
+    path : str or _os.PathLike
         The path to check.
 
     Returns
     -------
     bool
-        True if the path contains a path separator (`os.path.sep` or `os.path.altsep`),
+        True if the path contains a path separator (`_os.path.sep` or `_os.path.altsep`),
         False otherwise.
 
     Notes
     -----
-    - `os.path.sep` is the primary path separator for the current OS
+    - `_os.path.sep` is the primary path separator for the current OS
       (e.g., '/' on Unix, '\\' on Windows).
-    - `os.path.altsep` is an alternative separator if one exists
+    - `_os.path.altsep` is an alternative separator if one exists
       (e.g., '/' is the altsep on Windows).
 
     Examples
@@ -177,7 +176,7 @@ def contains_path_separator(
     False
     """
     return any(
-        (sep in path) for sep in (os.path.sep, os.path.altsep) if sep is not None
+        (sep in path) for sep in (_os.path.sep, _os.path.altsep) if sep is not None
     )
 
 
@@ -214,14 +213,14 @@ def contains_percent(
 
 
 def exists(
-    name: Union[str, pathlib.Path],
+    name: Union[str, _pathlib.Path],
 ) -> bool:
     """
     Check whether a given file or directory exists.
 
     Parameters
     ----------
-    name : str or pathlib.Path
+    name : str or _pathlib.Path
         Path to the file or directory.
 
     Returns
@@ -236,18 +235,18 @@ def exists(
     >>> exists("/some/missing/folder")
     False
     """
-    return os.path.exists(str(name))
+    return _os.path.exists(str(name))
 
 
 def is_file(
-    name: Union[str, pathlib.Path],
+    name: Union[str, _pathlib.Path],
 ) -> bool:
     """
     Check if the given path is a file.
 
     Parameters
     ----------
-    name : str or pathlib.Path
+    name : str or _pathlib.Path
         Path to check.
 
     Returns
@@ -262,18 +261,18 @@ def is_file(
     >>> is_file("some_directory/")
     False
     """
-    return os.path.isfile(str(name))
+    return _os.path.isfile(str(name))
 
 
 def is_dir(
-    path: Union[str, pathlib.Path],
+    path: Union[str, _pathlib.Path],
 ) -> bool:
     """
     Check if the given path is an existing directory.
 
     Parameters
     ----------
-    path : str or pathlib.Path
+    path : str or _pathlib.Path
         Path to check.
 
     Returns
@@ -288,12 +287,12 @@ def is_dir(
     >>> is_dir("/tmp/somefile.txt")
     False
     """
-    return os.path.isdir(str(path))
+    return _os.path.isdir(str(path))
 
 
 def abspath(
     path: str = ".",
-) -> pathlib.Path:
+) -> _pathlib.Path:
     """
     Resolve a given relative or user path to an absolute `Path` object.
 
@@ -307,7 +306,7 @@ def abspath(
 
     Returns
     -------
-    pathlib.Path
+    _pathlib.Path
         The fully resolved absolute path as a `Path` object.
 
     Examples
@@ -319,28 +318,28 @@ def abspath(
     PosixPath('/current/working/directory')
     """
     # Stay in the current directory
-    # current_path = os.path.join(os.getcwd(), os.curdir)
-    # path = os.path.abspath(os.path.join(os.getcwd(), path))
-    # path = os.path.abspath(os.path.expanduser(path))
-    # path = Path.cwd() / path or f"{os.getcwd()}/.env"
+    # current_path = _os.path.join(_os.getcwd(), _os.curdir)
+    # path = _os.path.abspath(_os.path.join(_os.getcwd(), path))
+    # path = _os.path.abspath(_os.path.expanduser(path))
+    # path = Path.cwd() / path or f"{_os.getcwd()}/.env"
     # If you don't want symlinks to be resolved (preserve exact structure):
     # Replace .resolve() with .absolute().
-    path = pathlib.Path(path).expanduser().resolve()
+    path = _pathlib.Path(path).expanduser().resolve()
 
 
 def relpath(
-    root_path: Union[str, pathlib.Path],
-    target_path: Union[str, pathlib.Path],
+    root_path: Union[str, _pathlib.Path],
+    target_path: Union[str, _pathlib.Path],
 ) -> str:
     """
     Return the part of `target_path` that is relative to `root_path`.
 
     Parameters
     ----------
-    root_path : str or pathlib.Path
+    root_path : str or _pathlib.Path
         The base or root directory path.
 
-    target_path : str or pathlib.Path
+    target_path : str or _pathlib.Path
         The target path from which the relative path is calculated.
 
     Returns
@@ -355,7 +354,7 @@ def relpath(
 
     Notes
     -----
-    - Uses `pathlib.Path.relative_to()` which avoids issues with simple prefix matching.
+    - Uses `_pathlib.Path.relative_to()` which avoids issues with simple prefix matching.
     - Symbolic links are resolved by default to avoid false mismatches.
     - `~` is expanded using `expanduser()`.
 
@@ -366,10 +365,10 @@ def relpath(
     """
     # if len(root_path) > len(target_path):
     #     raise Exception(f"Root path '{root_path}' longer than target path '{target_path}'")
-    # common_prefix = os.path.commonprefix([root_path, target_path])
-    # return os.path.relpath(target_path, common_prefix)
-    root = pathlib.Path(root_path).expanduser().resolve()
-    target = pathlib.Path(target_path).expanduser().resolve()
+    # common_prefix = _os.path.commonprefix([root_path, target_path])
+    # return _os.path.relpath(target_path, common_prefix)
+    root = _pathlib.Path(root_path).expanduser().resolve()
+    target = _pathlib.Path(target_path).expanduser().resolve()
 
     try:
         return str(target.relative_to(root))
@@ -380,7 +379,7 @@ def relpath(
 
 
 def parent(
-    path: Union[str, pathlib.Path],
+    path: Union[str, _pathlib.Path],
 ) -> str:
     """
     Return the absolute path to the parent directory of the given path,
@@ -388,7 +387,7 @@ def parent(
 
     Parameters
     ----------
-    path : str or pathlib.Path or os.PathLike
+    path : str or _pathlib.Path or _os.PathLike
         A file or directory path. May include `~` to indicate the home directory.
 
     Returns
@@ -406,19 +405,19 @@ def parent(
 
     Notes
     -----
-    - Uses `pathlib.Path` for modern path handling.
+    - Uses `_pathlib.Path` for modern path handling.
     - `expanduser()` supports `~` expansion to home directory.
     - `resolve()` resolves symlinks and returns an absolute path.
     - On Windows, the returned path is case-normalized using `.casefold()`
       for comparison consistency.
-    - `os.pardir` is a constant string representing the parent directory (typically `'..'`)
+    - `_os.pardir` is a constant string representing the parent directory (typically `'..'`)
       and is used here to navigate one level up in the directory tree.
     """  # noqa: D205
-    # expanded_path = os.path.expanduser(path)
+    # expanded_path = _os.path.expanduser(path)
     # Move to the parent of the current directory
-    # dirname = os.path.dirname(path)
-    # return os.path.abspath(os.path.join(expanded_path, os.pardir))
-    path_obj = pathlib.Path(path).expanduser().resolve(strict=False)
+    # dirname = _os.path.dirname(path)
+    # return _os.path.abspath(_os.path.join(expanded_path, _os.pardir))
+    path_obj = _pathlib.Path(path).expanduser().resolve(strict=False)
     dirname = path_obj.parent
 
     # Optional: normalize case only on Windows (mostly relevant for internal comparison)
@@ -435,7 +434,7 @@ get_parent_dir = parent
 
 
 def relative_path_to_artifact_path(
-    path: Union[str, os.PathLike],
+    path: Union[str, _os.PathLike],
 ) -> str:
     r"""
     Convert a relative file path to a POSIX-style artifact path.
@@ -446,7 +445,7 @@ def relative_path_to_artifact_path(
 
     Parameters
     ----------
-    path : str or os.PathLike
+    path : str or _os.PathLike
         A relative file path string or Path-like object.
 
     Returns
@@ -483,18 +482,18 @@ def relative_path_to_artifact_path(
     # Normalize input to string
     path = str(path)
     # Check if path is absolute
-    if os.path.isabs(path):
+    if _os.path.isabs(path):
         raise ValueError("This method only works with relative paths.")
     # On POSIX, return unchanged
-    if os.path == posixpath:
+    if _os.path == _posixpath:
         return path  # Already POSIX-style
     # On Windows, convert path to URL format then unquote to get posix style
     # with escaped chars handled
-    return urllib.parse.unquote(urllib.request.pathname2url(path))
+    return _urllib.parse.unquote(_urllib.request.pathname2url(path))
 
 
 def path_to_local_file_uri(
-    path: Union[str, pathlib.Path],
+    path: Union[str, _pathlib.Path],
 ) -> str:
     r"""
     Convert a local filesystem path to a file URI.
@@ -504,7 +503,7 @@ def path_to_local_file_uri(
 
     Parameters
     ----------
-    path : str or pathlib.Path
+    path : str or _pathlib.Path
         The local file path to convert. Can be relative or absolute.
 
     Returns
@@ -529,7 +528,7 @@ def path_to_local_file_uri(
     >>> path_to_local_file_uri("C:\\logs\\run.log")
     'file:///C:/logs/run.log'
     """
-    return pathlib.Path(os.path.abspath(path)).as_uri()
+    return _pathlib.Path(_os.path.abspath(path)).as_uri()
 
 
 def local_file_uri_to_path(
@@ -568,19 +567,19 @@ def local_file_uri_to_path(
     """
     path = uri
     if uri.startswith("file:"):
-        parsed = urllib.parse.urlparse(uri)
+        parsed = _urllib.parse.urlparse(uri)
         path = parsed.path
         # Fix for retaining server name in UNC path.
         # For Windows UNC paths, include the server/network share name
         if is_windows() and parsed.netloc:
             # UNC path, e.g. file://server/share/file.txt
-            return urllib.request.url2pathname(rf"\\{parsed.netloc}{path}")
-    return urllib.request.url2pathname(path)
+            return _urllib.request.url2pathname(rf"\\{parsed.netloc}{path}")
+    return _urllib.request.url2pathname(path)
 
 
 def local_file_uri_to_path2(
     uri: str,
-) -> pathlib.Path:
+) -> _pathlib.Path:
     """
     Convert a file URI to a local filesystem path.
 
@@ -591,7 +590,7 @@ def local_file_uri_to_path2(
 
     Returns
     -------
-    pathlib.Path
+    _pathlib.Path
         The corresponding local file system path.
 
     Notes
@@ -609,14 +608,14 @@ def local_file_uri_to_path2(
     >>> local_file_uri_to_path2("file:///C:/Users/Name/Documents/file.txt")
     WindowsPath("C:/Users/Name/Documents/file.txt")
     """
-    parsed = urllib.parse.urlparse(uri)
+    parsed = _urllib.parse.urlparse(uri)
     if parsed.scheme != "file":
         raise ValueError(f"URI scheme must be 'file', got '{parsed.scheme}'")
-    path = urllib.parse.unquote(parsed.path)
+    path = _urllib.parse.unquote(parsed.path)
     # On Windows, urlparse includes an initial '/' before drive letter, remove if needed
-    if path.startswith("/") and pathlib.Path(path[1:]).drive:
+    if path.startswith("/") and _pathlib.Path(path[1:]).drive:
         path = path[1:]
-    return pathlib.Path(path)
+    return _pathlib.Path(path)
 
 
 def get_local_path_or_none(
@@ -653,7 +652,7 @@ def get_local_path_or_none(
     >>> get_local_path_or_none("https://example.com/file.txt")
     None
     """  # noqa: D205
-    parsed_uri = urllib.parse.urlparse(path_or_uri)
+    parsed_uri = _urllib.parse.urlparse(path_or_uri)
     if (
         # No scheme means it's a local path
         len(parsed_uri.scheme) == 0
@@ -666,14 +665,14 @@ def get_local_path_or_none(
 
 
 def path_to_local_sqlite_uri(
-    path: Union[str, os.PathLike],
+    path: Union[str, _os.PathLike],
 ) -> str:
     r"""
     Convert a local filesystem path to a SQLite URI suitable for SQLAlchemy or other tools.
 
     Parameters
     ----------
-    path : Union[str, os.PathLike]
+    path : Union[str, _os.PathLike]
         The local filesystem path to convert.
 
     Returns
@@ -699,12 +698,12 @@ def path_to_local_sqlite_uri(
     >>> path_to_local_sqlite_uri("C:\\Users\\user\\mydb.sqlite")
     'sqlite://C:/Users/user/mydb.sqlite'  # on Windows32
     """
-    abs_path = pathlib.Path(path).expanduser().resolve()
+    abs_path = _pathlib.Path(path).expanduser().resolve()
     # Convert path to a URL-encoded path (with forward slashes)
-    posix_path = posixpath.abspath(urllib.request.pathname2url(abs_path))
+    posix_path = _posixpath.abspath(_urllib.request.pathname2url(abs_path))
     # SQLite URI requires three slashes after sqlite:
     # This is consistent on both Windows and Unix.
-    prefix = "sqlite://" if sys.platform == "win32" else "sqlite:///"
+    prefix = "sqlite://" if _sys.platform == "win32" else "sqlite:///"
     return prefix + posix_path
 
 
@@ -714,23 +713,23 @@ def path_to_local_sqlite_uri(
 
 
 def list_all(
-    root: Union[str, pathlib.Path],
+    root: Union[str, _pathlib.Path],
     full_path: bool = False,
-    filter_func: "callable[[pathlib.Path], bool]" = lambda x: True,
+    filter_func: "callable[[_pathlib.Path], bool]" = lambda x: True,
     only_files: bool = False,
     only_dirs: bool = False,
     exclude_symlinks: bool = False,
-    sort: "Union[bool, callable[[pathlib.Path], any]]" = False,
+    sort: "Union[bool, callable[[_pathlib.Path], any]]" = False,
     return_path_objects: bool = False,
-) -> list[Union[str, pathlib.Path]]:
+) -> list[Union[str, _pathlib.Path]]:
     """
     List all entries in a directory that match a filter function.
 
     Parameters
     ----------
-    root : str or pathlib.Path
+    root : str or _pathlib.Path
         Path to the directory whose immediate contents are to be listed.
-    filter_func : Callable[[pathlib.Path], bool], optional
+    filter_func : Callable[[_pathlib.Path], bool], optional
         Function to filter entries. Defaults to include all.
     full_path : bool, optional
         If True, return absolute paths (as strings) to each item;
@@ -741,15 +740,15 @@ def list_all(
         If True, only return directories (symlinks to directories included).
     exclude_symlinks : bool, optional
         If True, exclude symbolic links entirely.
-    sort : bool or Callable[[pathlib.Path], Any], optional
+    sort : bool or Callable[[_pathlib.Path], Any], optional
         If True, sort alphabetically by name.
         If a callable is provided, use it as the sort key function.
     return_path_objects : bool, optional
-        If True, return pathlib.Path objects instead of strings.
+        If True, return _pathlib.Path objects instead of strings.
 
     Returns
     -------
-    List[Union[str, pathlib.Path]]
+    List[Union[str, _pathlib.Path]]
         List of files or directories under `root` matching the criteria.
 
     Raises
@@ -765,14 +764,14 @@ def list_all(
 
     See Also
     --------
-    pathlib.Path.glob, os.walk
+    _pathlib.Path.glob, _os.walk
 
     Examples
     --------
     >>> list_all("/tmp", lambda p: p.endswith(".log"))
     ['example.log']
 
-    >>> list_all("/tmp", os.path.isfile, full_path=True)
+    >>> list_all("/tmp", _os.path.isfile, full_path=True)
     ['/tmp/example.log', '/tmp/test.txt']
 
     >>> list_all("my_folder", only_files=True)
@@ -784,10 +783,10 @@ def list_all(
     # if not is_dir(root):
     #     raise Exception(f"Invalid parent directory '{root}'")
 
-    # entries = os.listdir(root)
-    # matches = [x for x in entries if filter_func(os.path.join(root, x))]
-    # return [os.path.join(root, m) for m in matches] if full_path else matches
-    root_path = pathlib.Path(root).expanduser().resolve()
+    # entries = _os.listdir(root)
+    # matches = [x for x in entries if filter_func(_os.path.join(root, x))]
+    # return [_os.path.join(root, m) for m in matches] if full_path else matches
+    root_path = _pathlib.Path(root).expanduser().resolve()
     if not root_path.is_dir():
         raise ValueError(f"Invalid directory: {root}")
 
@@ -820,11 +819,11 @@ def list_all(
 
 
 def list_subdirs(
-    dir_name: Union[str, pathlib.Path],
+    dir_name: Union[str, _pathlib.Path],
     full_path: bool = False,
     exclude_symlinks: bool = False,
     sort: bool = False,
-) -> list[Union[str, pathlib.Path]]:
+) -> list[Union[str, _pathlib.Path]]:
     """
     List all immediate subdirectories (non-recursive) under the given directory.
 
@@ -833,7 +832,7 @@ def list_subdirs(
 
     Parameters
     ----------
-    dir_name : str or pathlib.Path
+    dir_name : str or _pathlib.Path
         Path to the directory to search for subdirectories.
     full_path : bool, optional
         If True, returns full `Path` objects. If False, returns just names.
@@ -844,7 +843,7 @@ def list_subdirs(
 
     Returns
     -------
-    List[Union[str, pathlib.Path]]
+    List[Union[str, _pathlib.Path]]
         List of immediate subdirectories as `Path` or `str`.
 
     Raises
@@ -868,9 +867,9 @@ def list_subdirs(
     >>> list_subdirs("/tmp", exclude_symlinks=True, sort=True)
     ['data', 'logs']
     """
-    # return list_all(dir_name, os.path.isdir, full_path)
+    # return list_all(dir_name, _os.path.isdir, full_path)
     # Normalize and resolve the root path
-    root = pathlib.Path(dir_name).expanduser().resolve()
+    root = _pathlib.Path(dir_name).expanduser().resolve()
 
     # Validate that the root path is a directory
     if not root.is_dir():
@@ -889,11 +888,11 @@ def list_subdirs(
 
 
 def list_files(
-    dir_name: Union[str, pathlib.Path],
+    dir_name: Union[str, _pathlib.Path],
     full_path: bool = False,
     exclude_symlinks: bool = False,
     sort: bool = False,
-) -> list[Union[str, pathlib.Path]]:
+) -> list[Union[str, _pathlib.Path]]:
     """
     List all immediate files (non-recursive) under the specified directory.
 
@@ -902,7 +901,7 @@ def list_files(
 
     Parameters
     ----------
-    dir_name : str or pathlib.Path
+    dir_name : str or _pathlib.Path
         Path to the directory in which to look for files.
     full_path : bool, optional
         If True, returns absolute Path objects. If False, returns just file names.
@@ -913,7 +912,7 @@ def list_files(
 
     Returns
     -------
-    List[Union[str, pathlib.Path]]
+    List[Union[str, _pathlib.Path]]
         A list of file names or full paths, depending on `full_path`.
 
     Raises
@@ -924,7 +923,7 @@ def list_files(
     Notes
     -----
     - This is a shallow search; subdirectories are not traversed.
-    - Uses `pathlib.Path.iterdir()` for performance and simplicity.
+    - Uses `_pathlib.Path.iterdir()` for performance and simplicity.
 
     Examples
     --------
@@ -937,9 +936,9 @@ def list_files(
     >>> list_files("/tmp", exclude_symlinks=True, sort=True)
     ['example.txt', 'log.csv']
     """
-    # return list_all(dir_name, os.path.isfile, full_path)
+    # return list_all(dir_name, _os.path.isfile, full_path)
     # Normalize and resolve the input directory path
-    root = pathlib.Path(dir_name).expanduser().resolve()
+    root = _pathlib.Path(dir_name).expanduser().resolve()
 
     # Ensure the input is a valid directory
     if not root.is_dir():
@@ -962,7 +961,7 @@ def list_files(
 ######################################################################
 
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def chdir(path: str) -> Generator[None, None, None]:
     """
     Temporarily change the current working directory to the specified path.
@@ -985,22 +984,22 @@ def chdir(path: str) -> Generator[None, None, None]:
     Examples
     --------
     >>> with chdir("/tmp"):
-    ...     print(os.getcwd())
+    ...     print(_os.getcwd())
     """
-    # original_dir = os.getcwd()
-    original_dir = pathlib.Path.cwd()
+    # original_dir = _os.getcwd()
+    original_dir = _pathlib.Path.cwd()
     try:
-        os.chdir(pathlib.Path(path).expanduser().resolve())
+        _os.chdir(_pathlib.Path(path).expanduser().resolve())
         yield
     finally:
-        os.chdir(original_dir)
+        _os.chdir(original_dir)
 
 
 def find(
-    root: Union[str, pathlib.Path],
+    root: Union[str, _pathlib.Path],
     name: str,
     full_path: bool = False,
-) -> list[Union[str, pathlib.Path]]:
+) -> list[Union[str, _pathlib.Path]]:
     """
     Search for an entry with the given name directly under the specified root directory.
 
@@ -1009,7 +1008,7 @@ def find(
 
     Parameters
     ----------
-    root : str or pathlib.Path
+    root : str or _pathlib.Path
         The directory path where the search is performed.
     name : str
         The exact name (not pattern) of the file or directory to find.
@@ -1019,7 +1018,7 @@ def find(
 
     Returns
     -------
-    list of str or pathlib.Path
+    list of str or _pathlib.Path
         A list of matching names or full paths under the specified root.
 
     Raises
@@ -1035,10 +1034,10 @@ def find(
     >>> find("/tmp", "log.txt", full_path=True)
     [PosixPath('/tmp/log.txt')]
     """
-    # path_name = os.path.join(root, name)
+    # path_name = _os.path.join(root, name)
     # return list_all(root, lambda x: x == path_name, full_path)
     # Normalize root path
-    root_path = pathlib.Path(root).expanduser().resolve()
+    root_path = _pathlib.Path(root).expanduser().resolve()
 
     # Validate that root exists and is a directory
     if not root_path.is_dir():
@@ -1052,22 +1051,22 @@ def find(
 
 
 def mkdir(
-    root: Union[str, pathlib.Path],
+    root: Union[str, _pathlib.Path],
     name: Optional[str] = None,
-) -> pathlib.Path:
+) -> _pathlib.Path:
     """
     Create a directory at `root/name` if `name` is provided, or just `root` otherwise.
 
     Parameters
     ----------
-    root : str or pathlib.Path
+    root : str or _pathlib.Path
         The base or parent directory where the new directory should be created.
     name : str, optional
         Name of the subdirectory to create. If None, `root` itself is created.
 
     Returns
     -------
-    pathlib.Path
+    _pathlib.Path
         A `Path` object pointing to the created (or pre-existing) directory.
 
     Raises
@@ -1089,15 +1088,15 @@ def mkdir(
     - Resolves symbolic links and expands `~` via `expanduser().resolve()`.
     - Does nothing if the directory already exists.
     """
-    # target = os.path.join(root, name) if name is not None else root
+    # target = _os.path.join(root, name) if name is not None else root
     # try:
-    #     os.makedirs(target, exist_ok=True)
+    #     _os.makedirs(target, exist_ok=True)
     # except OSError as e:
-    #     if e.errno != errno.EEXIST or not os.path.isdir(target):
+    #     if e.errno != errno.EEXIST or not _os.path.isdir(target):
     #         raise e
     # return target
-    # Normalize and combine paths using pathlib
-    target = pathlib.Path(root).expanduser().resolve()
+    # Normalize and combine paths using _pathlib
+    target = _pathlib.Path(root).expanduser().resolve()
     if name is not None:
         target = target / name
 
@@ -1107,22 +1106,22 @@ def mkdir(
     except OSError as e:
         # If mkdir fails and the path is not a directory, re-raise
         if not target.is_dir():
-            logger.error(f"Failed to create directory: {target} — {e}")
+            _logger.error(f"Failed to create directory: {target} — {e}")
             raise
 
-    logger.debug(f"Directory ensured: {target}")
+    _logger.debug(f"Directory ensured: {target}")
     return target
 
 
 def mkdir_parent(
-    path: Union[str, pathlib.Path],
+    path: Union[str, _pathlib.Path],
 ) -> None:
     """
     Ensure that all parent directories for a given file path exist.
 
     Parameters
     ----------
-    path : str or pathlib.Path
+    path : str or _pathlib.Path
         The file path whose parent directory tree will be created if missing.
 
     Returns
@@ -1144,34 +1143,34 @@ def mkdir_parent(
     >>> mkdir_parent("~/logs/app/output.log")
     # Ensures that ~/logs/app exists.
     """
-    # dirname = os.path.dirname(path)
-    # if not os.path.exists(dirname):
-    #     os.makedirs(dirname, exist_ok=True)
+    # dirname = _os.path.dirname(path)
+    # if not _os.path.exists(dirname):
+    #     _os.makedirs(dirname, exist_ok=True)
     try:
         # Resolve absolute path and get its parent directory
-        dir_path = pathlib.Path(path).expanduser().resolve().parent
+        dir_path = _pathlib.Path(path).expanduser().resolve().parent
 
         # Recursively create parent directories if they don't exist
         dir_path.mkdir(parents=True, exist_ok=True)
 
-        logger.debug(f"Ensured parent directory: {dir_path}")
+        _logger.debug(f"Ensured parent directory: {dir_path}")
     except Exception as e:
-        logger.error(f"Failed to ensure parent directory for {path}: {e}")
+        _logger.error(f"Failed to ensure parent directory for {path}: {e}")
         raise
 
 
 def mv(
-    target: Union[str, os.PathLike],
-    new_parent: Union[str, os.PathLike],
+    target: Union[str, _os.PathLike],
+    new_parent: Union[str, _os.PathLike],
 ) -> None:
     """
     Move a file or directory into a new parent directory.
 
     Parameters
     ----------
-    target : str or os.PathLike
+    target : str or _os.PathLike
         Path to the file or directory to move.
-    new_parent : str or os.PathLike
+    new_parent : str or _os.PathLike
         Path to the destination directory.
 
     Returns
@@ -1199,8 +1198,8 @@ def mv(
     - Overwriting is not allowed by default. The function will raise if
       the destination path already exists.
     """
-    target_path = pathlib.Path(target).expanduser().resolve()
-    new_parent_path = pathlib.Path(new_parent).expanduser().resolve()
+    target_path = _pathlib.Path(target).expanduser().resolve()
+    new_parent_path = _pathlib.Path(new_parent).expanduser().resolve()
 
     # Validate source and destination
     if not target_path.exists():
@@ -1216,16 +1215,16 @@ def mv(
         raise FileExistsError(f"Destination already exists: {destination_path}")
 
     try:
-        shutil.move(str(target_path), str(new_parent_path))
-        logger.info(f"Moved: {target_path} -> {new_parent_path}")
+        _shutil.move(str(target_path), str(new_parent_path))
+        _logger.info(f"Moved: {target_path} -> {new_parent_path}")
     except Exception as e:
-        logger.error(f"Failed to move {target_path} to {new_parent_path}: {e}")
+        _logger.error(f"Failed to move {target_path} to {new_parent_path}: {e}")
         raise
 
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def rmtree_on_error(
-    path: Union[str, os.PathLike],
+    path: Union[str, _os.PathLike],
     onerror: "Optional[callable[[Exception], None]]" = None,
 ) -> Generator[None, None, None]:
     """
@@ -1234,7 +1233,7 @@ def rmtree_on_error(
 
     Parameters
     ----------
-    path : str or os.PathLike
+    path : str or _os.PathLike
         The file or directory path to remove if an error occurs.
     onerror : callable, optional
         A callback accepting the raised exception as input. Useful for
@@ -1258,12 +1257,12 @@ def rmtree_on_error(
 
     Notes
     -----
-    - Converts `path` to `Path` internally using `pathlib`.
+    - Converts `path` to `Path` internally using `_pathlib`.
     - Only attempts cleanup if an exception is raised.
     - Uses `unlink()` for files and `rmtree()` for directories.
     - Cleanup failure is logged but does not mask the original exception.
     """  # noqa: D205
-    _path = pathlib.Path(path)
+    _path = _pathlib.Path(path)
 
     try:
         # Yield control to the context block
@@ -1273,53 +1272,53 @@ def rmtree_on_error(
             try:
                 onerror(exc)
             except Exception as cb_err:
-                logger.warning(f"onerror callback raised an exception: {cb_err}")
+                _logger.warning(f"onerror callback raised an exception: {cb_err}")
 
         # Attempt to remove the file or directory
         try:
             if _path.exists():
                 if _path.is_file() or _path.is_symlink():
                     _path.unlink()
-                    logger.warning(f"Removed file after error: {_path}")
+                    _logger.warning(f"Removed file after error: {_path}")
                 elif _path.is_dir():
-                    shutil.rmtree(_path)
-                    logger.warning(f"Removed directory after error: {_path}")
+                    _shutil.rmtree(_path)
+                    _logger.warning(f"Removed directory after error: {_path}")
             else:
-                logger.debug(f"No cleanup needed; path does not exist: {_path}")
+                _logger.debug(f"No cleanup needed; path does not exist: {_path}")
         except Exception as cleanup_err:
-            logger.warning(f"Cleanup failed for path '{_path}': {cleanup_err}")
+            _logger.warning(f"Cleanup failed for path '{_path}': {cleanup_err}")
 
         # Re-raise the original exception after cleanup attempt
         raise
 
 
 # def copytree_without_file_permissions(
-#     src_dir: Union[str, os.PathLike],
-#     dst_dir: Union[str, os.PathLike],
+#     src_dir: Union[str, _os.PathLike],
+#     dst_dir: Union[str, _os.PathLike],
 # ) -> None:
 #     """
 #     Copy the directory src_dir into dst_dir, without preserving filesystem permissions.
 #     """
-#     for dirpath, dirnames, filenames in os.walk(src_dir):
+#     for dirpath, dirnames, filenames in _os.walk(src_dir):
 #         for dirname in dirnames:
-#             relative_dir_path = os.path.relpath(os.path.join(dirpath, dirname), src_dir)
+#             relative_dir_path = _os.path.relpath(_os.path.join(dirpath, dirname), src_dir)
 #             # For each directory <dirname> immediately under <dirpath>,
 #             # create an equivalently-named
 #             # directory under the destination directory
-#             abs_dir_path = os.path.join(dst_dir, relative_dir_path)
-#             os.mkdir(abs_dir_path)
+#             abs_dir_path = _os.path.join(dst_dir, relative_dir_path)
+#             _os.mkdir(abs_dir_path)
 #         for filename in filenames:
 #             # For each file with name <filename> immediately under <dirpath>, copy that file to
 #             # the appropriate location in the destination directory
-#             file_path = os.path.join(dirpath, filename)
-#             relative_file_path = os.path.relpath(file_path, src_dir)
-#             abs_file_path = os.path.join(dst_dir, relative_file_path)
-#             shutil.copy2(file_path, abs_file_path)
+#             file_path = _os.path.join(dirpath, filename)
+#             relative_file_path = _os.path.relpath(file_path, src_dir)
+#             abs_file_path = _os.path.join(dst_dir, relative_file_path)
+#             _shutil.copy2(file_path, abs_file_path)
 
 
 def copytree_without_file_permissions(  # noqa: PLR0912
-    src_dir: Union[str, pathlib.Path],
-    dst_dir: Union[str, pathlib.Path],
+    src_dir: Union[str, _pathlib.Path],
+    dst_dir: Union[str, _pathlib.Path],
     skip_extensions: Optional[Iterable[str]] = None,
     *,
     follow_symlinks: bool = False,
@@ -1332,9 +1331,9 @@ def copytree_without_file_permissions(  # noqa: PLR0912
 
     Parameters
     ----------
-    src_dir : str or pathlib.Path
+    src_dir : str or _pathlib.Path
         Source directory to copy from.
-    dst_dir : str or pathlib.Path
+    dst_dir : str or _pathlib.Path
         Destination directory to copy to.
     skip_extensions : Iterable[str], optional
         A list of file extensions to skip, e.g. {".tmp", ".log"}.
@@ -1348,7 +1347,7 @@ def copytree_without_file_permissions(  # noqa: PLR0912
 
     Notes
     -----
-    - Uses `shutil.copyfile` to avoid copying metadata (unlike `copy2`).
+    - Uses `_shutil.copyfile` to avoid copying metadata (unlike `copy2`).
     - Does not preserve original permissions, timestamps, or other metadata.
     - Directories are created with `mkdir(parents=True, exist_ok=True)`.
     - If `follow_symlinks=False`, symbolic links are preserved.
@@ -1362,8 +1361,8 @@ def copytree_without_file_permissions(  # noqa: PLR0912
     ...     skip_extensions={".tmp", ".log"},
     ... )
     """  # noqa: D205
-    src_path = pathlib.Path(src_dir).expanduser().resolve()
-    dst_path = pathlib.Path(dst_dir).expanduser().resolve()
+    src_path = _pathlib.Path(src_dir).expanduser().resolve()
+    dst_path = _pathlib.Path(dst_dir).expanduser().resolve()
 
     if not src_path.exists() or not src_path.is_dir():
         raise FileNotFoundError(f"Source directory not found: {src_path}")
@@ -1378,26 +1377,26 @@ def copytree_without_file_permissions(  # noqa: PLR0912
     files_copied = 0
     files_skipped = 0
 
-    def _copy_file(source: pathlib.Path, dest: pathlib.Path) -> int:
+    def _copy_file(source: _pathlib.Path, dest: _pathlib.Path) -> int:
         """Copy file from `source` to `dest` and return the size in bytes."""
         if dry_run:
-            logger.info(f"[Dry-run] Would copy: {source} -> {dest}")
+            _logger.info(f"[Dry-run] Would copy: {source} -> {dest}")
             return 0
         try:
             dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source, dest)
+            _shutil.copyfile(source, dest)
             size = source.stat().st_size
-            logger.info(f"Copied: {source} -> {dest} ({size} bytes)")
+            _logger.info(f"Copied: {source} -> {dest} ({size} bytes)")
             return size
         except Exception as e:
-            logger.error(f"Error copying {source} -> {dest}: {e}")
+            _logger.error(f"Error copying {source} -> {dest}: {e}")
             raise
 
     # Traverse source directory
     for path in src_path.rglob("*"):
         # Handle symbolic links
         if path.is_symlink() and not follow_symlinks:
-            logger.info(f"Skipped symlink: {path}")
+            _logger.info(f"Skipped symlink: {path}")
             files_skipped += 1
             continue
 
@@ -1407,48 +1406,48 @@ def copytree_without_file_permissions(  # noqa: PLR0912
         # Create directories (dry_run safe)
         if path.is_dir():
             if dry_run:
-                logger.info(f"[Dry-run] Would create directory: {target_path}")
+                _logger.info(f"[Dry-run] Would create directory: {target_path}")
             else:
                 try:
                     target_path.mkdir(parents=True, exist_ok=True)
                 except Exception as e:
-                    logger.error(f"Failed to create directory {target_path}: {e}")
+                    _logger.error(f"Failed to create directory {target_path}: {e}")
             continue
 
         # Skip files with ignored extensions
         if path.is_file():
             if path.suffix in skip_exts:
-                logger.info(f"Skipped file due to extension: {path}")
+                _logger.info(f"Skipped file due to extension: {path}")
                 files_skipped += 1
                 continue
             file_tasks.append((path, target_path))
 
     # Parallel file copying
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with _concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(_copy_file, src, dst): (src, dst) for src, dst in file_tasks
         }
-        for future in concurrent.futures.as_completed(futures):
+        for future in _concurrent.futures.as_completed(futures):
             src, dst = futures[future]
             try:
                 total_bytes += future.result()
                 files_copied += 1
             except Exception:
-                logger.error(f"Failed to copy file: {src} -> {dst}")
+                _logger.error(f"Failed to copy file: {src} -> {dst}")
 
     # Log summary
-    logger.info("---- Copy Summary ----")
-    logger.info(f"Files copied:  {files_copied}")
-    logger.info(f"Files skipped: {files_skipped}")
-    logger.info(f"Total bytes:   {total_bytes:,}")
+    _logger.info("---- Copy Summary ----")
+    _logger.info(f"Files copied:  {files_copied}")
+    _logger.info(f"Files skipped: {files_skipped}")
+    _logger.info(f"Total bytes:   {total_bytes:,}")
     if dry_run:
-        logger.info("[Dry-run] No files were copied.")
+        _logger.info("[Dry-run] No files were copied.")
 
 
 def _copy_file_or_tree(
-    src: str | pathlib.Path,
-    dst: str | pathlib.Path,
-    dst_dir: Optional[str | pathlib.Path] = None,
+    src: str | _pathlib.Path,
+    dst: str | _pathlib.Path,
+    dst_dir: Optional[str | _pathlib.Path] = None,
 ) -> str:
     """
     Copy a file or directory tree from `src` into the destination `dst`, optionally
@@ -1456,11 +1455,11 @@ def _copy_file_or_tree(
 
     Parameters
     ----------
-    src : str or pathlib.Path
+    src : str or _pathlib.Path
         Source file or directory to copy.
-    dst : str or pathlib.Path
+    dst : str or _pathlib.Path
         Destination root directory.
-    dst_dir : str or pathlib.Path, optional
+    dst_dir : str or _pathlib.Path, optional
         Optional subdirectory inside `dst` where the `src` will be copied.
 
     Returns
@@ -1482,14 +1481,14 @@ def _copy_file_or_tree(
       ignoring `__pycache__` directories.
     - The destination directory structure is created as needed.
     """  # noqa: D205
-    # Convert inputs to pathlib.Path for consistent handling
-    src_path = pathlib.Path(src).expanduser().resolve()
-    dst_path = pathlib.Path(dst).expanduser().resolve()
+    # Convert inputs to _pathlib.Path for consistent handling
+    src_path = _pathlib.Path(src).expanduser().resolve()
+    dst_path = _pathlib.Path(dst).expanduser().resolve()
 
     if dst_dir is not None:  # noqa: SIM108
-        dst_dir = pathlib.Path(dst_dir)
+        dst_dir = _pathlib.Path(dst_dir)
     else:
-        dst_dir = pathlib.Path()
+        dst_dir = _pathlib.Path()
 
     if not src_path.exists():
         raise FileNotFoundError(f"Source path does not exist: {src_path}")
@@ -1503,14 +1502,14 @@ def _copy_file_or_tree(
             # Ensure destination directory exists
             full_dst_path.parent.mkdir(parents=True, exist_ok=True)
             # Copy file contents only
-            # shutil.copy(src=src, dst=dst_path)
-            shutil.copyfile(src=src_path, dst=full_dst_path)
+            # _shutil.copy(src=src, dst=dst_path)
+            _shutil.copyfile(src=src_path, dst=full_dst_path)
         elif src_path.is_dir():
             # Copy entire directory tree, ignore __pycache__
-            shutil.copytree(
+            _shutil.copytree(
                 src=src_path,
                 dst=full_dst_path,
-                ignore=shutil.ignore_patterns("__pycache__"),
+                ignore=_shutil.ignore_patterns("__pycache__"),
                 dirs_exist_ok=True,  # Python 3.8+
             )
         else:
@@ -1526,18 +1525,18 @@ def _handle_readonly_on_windows(
     """
     Retry deleting a read-only file on Windows by setting it writable.
 
-    This is intended to be used as the `onerror` handler for `shutil.rmtree`
+    This is intended to be used as the `onerror` handler for `_shutil.rmtree`
     when cleaning up files or directories that might be read-only (common in
     temporary caches, build artifacts, or cloned repos).
 
     Parameters
     ----------
     func : callable
-        The function that raised the error (e.g., os.unlink or os.rmdir).
+        The function that raised the error (e.g., _os.unlink or _os.rmdir).
     path : str
         The path that caused the error.
     exc_info : tuple
-        The exception info as returned by `sys.exc_info()`.
+        The exception info as returned by `_sys.exc_info()`.
 
     Raises
     ------
@@ -1552,14 +1551,14 @@ def _handle_readonly_on_windows(
     Notes
     -----
     - Only applies to Windows with `winerror == 5` (Access Denied).
-    - Makes the file writable via `os.chmod(path, stat.S_IWRITE)` before retrying.
+    - Makes the file writable via `_os.chmod(path, _stat.S_IWRITE)` before retrying.
     """
     _exc_type, exc_value = exc_info[:2]
 
     should_reattempt = (
-        # os.name == "nt"
+        # _os.name == "nt"
         is_windows()
-        and func in (os.unlink, os.rmdir)
+        and func in (_os.unlink, _os.rmdir)
         and isinstance(exc_value, PermissionError)
         and getattr(exc_value, "winerror", None) == 5  # Access denied  # noqa: PLR2004
     )
@@ -1567,7 +1566,7 @@ def _handle_readonly_on_windows(
     if not should_reattempt:
         raise exc_value
 
-    os.chmod(path, stat.S_IWRITE)
+    _os.chmod(path, _stat.S_IWRITE)
     try:
         func(path)
     except Exception as retry_error:  # noqa: TRY203
@@ -1617,11 +1616,11 @@ def _copy_project(
 
     def _docker_ignore(root: str):
         # Construct path to potential `.dockerignore` file
-        docker_ignore_path = os.path.join(root, ".dockerignore")
+        docker_ignore_path = _os.path.join(root, ".dockerignore")
         patterns = []
 
         # Read ignore patterns if `.dockerignore` exists
-        if os.path.exists(docker_ignore_path):
+        if _os.path.exists(docker_ignore_path):
             with open(docker_ignore_path, encoding=ENCODING) as f:
                 # Strip whitespace and ignore empty lines
                 patterns = [line.strip() for line in f if line.strip()]
@@ -1630,7 +1629,7 @@ def _copy_project(
             # Apply all ignore patterns using fnmatch (like glob)
             ignored = set()
             for pattern in patterns:
-                ignored.update(fnmatch.filter(names, pattern))
+                ignored.update(_fnmatch.filter(names, pattern))
             return list(ignored)
 
         # Return the ignore callable only if patterns were found
@@ -1639,15 +1638,15 @@ def _copy_project(
     project_dir = "mlflow-project"
 
     # Ensure this is a valid MLflow project by checking for `pyproject.toml`
-    pyproject_path = os.path.abspath(os.path.join(src_path, "pyproject.toml"))
-    assert os.path.isfile(  # noqa: S101
+    pyproject_path = _os.path.abspath(_os.path.join(src_path, "pyproject.toml"))
+    assert _os.path.isfile(  # noqa: S101
         pyproject_path,
     ), f"file not found: {pyproject_path}"  # noqa: S101
 
     # Perform recursive copy, applying the ignore rules if applicable
-    shutil.copytree(
+    _shutil.copytree(
         src=src_path,
-        dst=os.path.join(dst_path, project_dir),
+        dst=_os.path.join(dst_path, project_dir),
         ignore=_docker_ignore(src_path),
     )
 
@@ -1660,13 +1659,13 @@ def _copy_project(
 ######################################################################
 
 
-def _get_local_file_size(file: Union[str, pathlib.Path]) -> float:
+def _get_local_file_size(file: Union[str, _pathlib.Path]) -> float:
     """
     Get the size of a local file in kilobytes (KB).
 
     Parameters
     ----------
-    file : str or pathlib.Path
+    file : str or _pathlib.Path
         Path to the file.
 
     Returns
@@ -1686,7 +1685,7 @@ def _get_local_file_size(file: Union[str, pathlib.Path]) -> float:
     >>> _get_local_file_size("example.txt")
     12.3
     """
-    file_path = pathlib.Path(file).expanduser().resolve()
+    file_path = _pathlib.Path(file).expanduser().resolve()
 
     if not file_path.is_file():
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -1699,7 +1698,7 @@ def _get_local_file_size(file: Union[str, pathlib.Path]) -> float:
 
 
 def get_total_file_size(
-    path: Union[str, pathlib.Path],
+    path: Union[str, _pathlib.Path],
 ) -> Optional[int]:
     """
     Return the total size (in bytes) of all files under the given directory path,
@@ -1707,7 +1706,7 @@ def get_total_file_size(
 
     Parameters
     ----------
-    path : str or pathlib.Path
+    path : str or _pathlib.Path
         Absolute or relative path to a local directory.
 
     Returns
@@ -1723,23 +1722,23 @@ def get_total_file_size(
 
     Notes
     -----
-    - Uses os.walk to recursively traverse directory tree.
+    - Uses _os.walk to recursively traverse directory tree.
     - Logs and swallows unexpected errors, returning None on failure.
     """  # noqa: D205
     try:
-        # Convert pathlib.Path to string if necessary
-        if isinstance(path, pathlib.Path):
+        # Convert _pathlib.Path to string if necessary
+        if isinstance(path, _pathlib.Path):
             path = str(path)
 
         # Validate path existence
-        if not os.path.exists(path):
+        if not _os.path.exists(path):
             raise ScikitplotException(
                 message=f"The given path does not exist: {path}",
                 error_code=INVALID_PARAMETER_VALUE,
             )
 
         # Ensure the path is a directory
-        if not os.path.isdir(path):
+        if not _os.path.isdir(path):
             raise ScikitplotException(
                 message=f"The given path is not a directory: {path}",
                 error_code=INVALID_PARAMETER_VALUE,
@@ -1748,23 +1747,23 @@ def get_total_file_size(
         total_size = 0
 
         # Traverse directory tree, summing file sizes
-        for current_dir, _dirs, files in os.walk(path):
+        for current_dir, _dirs, files in _os.walk(path):
             # Build full file paths for all files in current directory
-            full_paths = [os.path.join(current_dir, file) for file in files]
+            full_paths = [_os.path.join(current_dir, file) for file in files]
 
             # Accumulate file sizes
-            total_size += sum(os.path.getsize(file) for file in full_paths)
+            total_size += sum(_os.path.getsize(file) for file in full_paths)
 
         return total_size
 
     except Exception as e:
         # Log error and return None if anything unexpected happens
-        logger.info(f"Failed to get total size for {path}: {e}")
+        _logger.info(f"Failed to get total size for {path}: {e}")
         return None
 
 
 def _get_local_project_dir_size(
-    project_path: Union[str, pathlib.Path],
+    project_path: Union[str, _pathlib.Path],
 ) -> float:
     """
     Compute the total size of all files in a local project directory.
@@ -1774,7 +1773,7 @@ def _get_local_project_dir_size(
 
     Parameters
     ----------
-    project_path : str or pathlib.Path
+    project_path : str or _pathlib.Path
         The root path of the local project directory.
 
     Returns
@@ -1787,20 +1786,20 @@ def _get_local_project_dir_size(
     -----
     - Ignores symbolic links to avoid circular references.
     - Includes hidden files.
-    - Uses `os.walk` to traverse the directory tree.
+    - Uses `_os.walk` to traverse the directory tree.
     """
     # Ensure path is a string
-    if isinstance(project_path, pathlib.Path):
+    if isinstance(project_path, _pathlib.Path):
         project_path = str(project_path)
 
     total_size = 0
 
     # Walk through all subdirectories and files
-    for root, _, files in os.walk(project_path):
+    for root, _, files in _os.walk(project_path):
         for f in files:
-            path = os.path.join(root, f)
+            path = _os.path.join(root, f)
             # Accumulate file size (in bytes)
-            total_size += os.path.getsize(path)
+            total_size += _os.path.getsize(path)
 
     # Convert bytes to kilobytes and round for readability
     return round(total_size / 1024.0, 1)
@@ -1812,17 +1811,17 @@ def _get_local_project_dir_size(
 
 
 def read_file(
-    parent_path: Union[str, pathlib.Path],
-    file_name: Union[str, pathlib.Path],
+    parent_path: Union[str, _pathlib.Path],
+    file_name: Union[str, _pathlib.Path],
 ) -> str:
     r"""
     Read and return the full contents of a text file.
 
     Parameters
     ----------
-    parent_path : str or pathlib.Path
+    parent_path : str or _pathlib.Path
         Path to the directory containing the file. Can include `~` for the home directory.
-    file_name : str or pathlib.Path
+    file_name : str or _pathlib.Path
         Name of the file to read (can be a simple file name or subpath).
 
     Returns
@@ -1837,21 +1836,21 @@ def read_file(
 
     Notes
     -----
-    - Supports both string and pathlib inputs.
+    - Supports both string and _pathlib inputs.
     - Uses `expanduser()` to resolve user home (~).
     - Uses `resolve()` to get an absolute canonical path.
     - Assumes the file is encoded in UTF-8 unless otherwise configured.
     """
     # Convert and normalize path
-    path = pathlib.Path(parent_path).expanduser().resolve() / file_name
+    path = _pathlib.Path(parent_path).expanduser().resolve() / file_name
     # Open file with specified encoding and read entire content
-    with codecs.open(path, mode="r", encoding=ENCODING) as f:
+    with _codecs.open(path, mode="r", encoding=ENCODING) as f:
         return f.read()
 
 
 def read_file_lines(
-    parent_path: Union[str, pathlib.Path],
-    file_name: Union[str, pathlib.Path],
+    parent_path: Union[str, _pathlib.Path],
+    file_name: Union[str, _pathlib.Path],
 ) -> list[str]:
     r"""
     Read the contents of a text file and return lines as a list.
@@ -1861,9 +1860,9 @@ def read_file_lines(
 
     Parameters
     ----------
-    parent_path : str or pathlib.Path
+    parent_path : str or _pathlib.Path
         Path to the directory containing the file. Can include `~` for the home directory.
-    file_name : str or pathlib.Path
+    file_name : str or _pathlib.Path
         Name of the file (may include subdirectories relative to `parent_path`).
 
     Returns
@@ -1883,14 +1882,14 @@ def read_file_lines(
     - Uses `codecs.open` for consistent encoding handling across platforms.
     """
     # Convert and normalize path
-    file_path = pathlib.Path(parent_path).expanduser().resolve() / file_name
+    file_path = _pathlib.Path(parent_path).expanduser().resolve() / file_name
     # Open the file with the specified encoding and return all lines
-    with codecs.open(file_path, mode="r", encoding=ENCODING) as f:
+    with _codecs.open(file_path, mode="r", encoding=ENCODING) as f:
         return f.readlines()
 
 
 def read_chunk(
-    path: Union[str, os.PathLike],
+    path: Union[str, _os.PathLike],
     size: int,
     start_byte: int = 0,
 ) -> bytes:
@@ -1899,7 +1898,7 @@ def read_chunk(
 
     Parameters
     ----------
-    path : str or os.PathLike
+    path : str or _os.PathLike
         Path to the file. Supports `~` for home directory expansion.
     size : int
         The number of bytes to read.
@@ -1916,7 +1915,7 @@ def read_chunk(
     ValueError
         If the path does not exist or is not a file.
     """
-    file_path = pathlib.Path(path).expanduser().resolve()
+    file_path = _pathlib.Path(path).expanduser().resolve()
     if not file_path.is_file():
         raise ValueError(f"Invalid file path: {file_path}")
 
@@ -1927,7 +1926,7 @@ def read_chunk(
 
 
 def yield_file_in_chunks(
-    file: Union[str, pathlib.Path],
+    file: Union[str, _pathlib.Path],
     chunk_size: int = 100_000_000,
 ) -> Generator[bytes, None, None]:
     """
@@ -1938,7 +1937,7 @@ def yield_file_in_chunks(
 
     Parameters
     ----------
-    file : str or pathlib.Path
+    file : str or _pathlib.Path
         Path to the input file. Supports `~` for home directory.
     chunk_size : int, optional
         Number of bytes to read per chunk. Default is 100,000,000 (≈100 MB).
@@ -1953,7 +1952,7 @@ def yield_file_in_chunks(
     >>> for chunk in yield_file_in_chunks("large_file.bin", chunk_size=1024 * 1024):
     ...     process(chunk)  # Handle 1MB chunks
     """
-    file_path = pathlib.Path(file).expanduser().resolve()
+    file_path = _pathlib.Path(file).expanduser().resolve()
 
     # Open the file in binary mode and yield chunks
     with file_path.open("rb") as f:
@@ -1965,7 +1964,7 @@ def yield_file_in_chunks(
 
 
 def write_to(
-    filename: Union[str, pathlib.Path],
+    filename: Union[str, _pathlib.Path],
     data: str,
 ) -> None:
     """
@@ -1973,7 +1972,7 @@ def write_to(
 
     Parameters
     ----------
-    filename : str or pathlib.Path
+    filename : str or _pathlib.Path
         The target file path. Supports `~` for home directory.
     data : str
         The content to write.
@@ -1983,14 +1982,14 @@ def write_to(
     - Uses the global ENCODING constant.
     - Automatically creates the parent directory if it does not exist.
     """
-    file_path = pathlib.Path(filename).expanduser().resolve()
+    file_path = _pathlib.Path(filename).expanduser().resolve()
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    with codecs.open(file_path, mode="w", encoding=ENCODING) as handle:
+    with _codecs.open(file_path, mode="w", encoding=ENCODING) as handle:
         handle.write(data)
 
 
 def append_to(
-    filename: Union[str, pathlib.Path],
+    filename: Union[str, _pathlib.Path],
     data: str,
 ) -> None:
     """
@@ -1998,7 +1997,7 @@ def append_to(
 
     Parameters
     ----------
-    filename : str or pathlib.Path
+    filename : str or _pathlib.Path
         The target file path. Supports `~` for home directory.
     data : str
         The content to append.
@@ -2008,7 +2007,7 @@ def append_to(
     - Appends using system default encoding unless explicitly modified.
     - Automatically creates the parent directory if it does not exist.
     """
-    file_path = pathlib.Path(filename).expanduser().resolve()
+    file_path = _pathlib.Path(filename).expanduser().resolve()
     file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(file_path, "a", encoding=ENCODING) as handle:
         handle.write(data)
@@ -2018,7 +2017,7 @@ def create_tar_gz_archive(
     output_filename: str,
     source_dir: str,
     archive_name: str,
-    custom_filter: "Optional[callable[[tarfile.TarInfo], Optional[tarfile.TarInfo]]]" = None,
+    custom_filter: "Optional[callable[[_tarfile.TarInfo], Optional[_tarfile.TarInfo]]]" = None,
 ) -> None:
     """
     Create a reproducible gzip-compressed tar archive (`.tar.gz`) from a directory.
@@ -2039,7 +2038,7 @@ def create_tar_gz_archive(
         The name of the root directory inside the archive. This controls the folder
         name when extracting the archive.
     custom_filter : callable, optional
-        A callable that takes a `tarfile.TarInfo` object and returns a modified
+        A callable that takes a `_tarfile.TarInfo` object and returns a modified
         `TarInfo` object or `None` to exclude the entry. Useful to filter or modify
         metadata such as permissions, ownership, or file inclusion.
         If `None`, no additional filtering is applied.
@@ -2094,18 +2093,18 @@ def create_tar_gz_archive(
     - Reproducible builds: https://reproducible-builds.org/
     """
 
-    def _filter_timestamps(tar_info: tarfile.TarInfo) -> Optional[tarfile.TarInfo]:
+    def _filter_timestamps(tar_info: _tarfile.TarInfo) -> Optional[_tarfile.TarInfo]:
         # Zero modification time for reproducible archives
         tar_info.mtime = 0
         # Apply user-provided filter if any
         return custom_filter(tar_info) if custom_filter else tar_info
 
     # Create a temporary file for the uncompressed tar archive
-    unzipped_fd, unzipped_filename = tempfile.mkstemp()
+    unzipped_fd, unzipped_filename = _tempfile.mkstemp()
     try:
-        os.close(unzipped_fd)  # Close the file descriptor, tarfile will open it
+        _os.close(unzipped_fd)  # Close the file descriptor, tarfile will open it
         # Create tar archive with filtered timestamps and optional filtering
-        with tarfile.open(unzipped_filename, "w") as tar:
+        with _tarfile.open(unzipped_filename, "w") as tar:
             tar.add(source_dir, arcname=archive_name, filter=_filter_timestamps)
 
         # Compress the tar archive with gzip, omitting timestamp metadata
@@ -2113,7 +2112,7 @@ def create_tar_gz_archive(
         # zipped archive (see https://docs.python.org/3/library/gzip.html#gzip.GzipFile)
         with (
             open(unzipped_filename, "rb") as raw_tar,
-            gzip.GzipFile(
+            _gzip.GzipFile(
                 filename="",
                 fileobj=open(output_filename, "wb"),
                 mode="wb",
@@ -2124,7 +2123,7 @@ def create_tar_gz_archive(
 
     finally:
         # Clean up temporary tar file
-        os.remove(unzipped_filename)
+        _os.remove(unzipped_filename)
 
 
 ######################################################################
@@ -2132,7 +2131,7 @@ def create_tar_gz_archive(
 ######################################################################
 
 
-def _get_tmp_dir() -> Optional[pathlib.Path]:
+def _get_tmp_dir() -> Optional[_pathlib.Path]:
     """
     Get a secure temporary directory path, with special handling for Databricks environments.
 
@@ -2152,8 +2151,8 @@ def _get_tmp_dir() -> Optional[pathlib.Path]:
 
     Returns
     -------
-    Optional[pathlib.Path]
-        A pathlib.Path to a newly created temporary directory.
+    Optional[_pathlib.Path]
+        A _pathlib.Path to a newly created temporary directory.
         Returns None only if an unexpected failure occurs.
 
     Notes
@@ -2176,10 +2175,10 @@ def _get_tmp_dir() -> Optional[pathlib.Path]:
             # Attempt to use the Databricks-provided temp directory
             from mlflow.utils.databricks_utils import get_databricks_local_temp_dir
 
-            base_dir = pathlib.Path(get_databricks_local_temp_dir())
+            base_dir = _pathlib.Path(get_databricks_local_temp_dir())
             base_dir = base_dir.expanduser().resolve()
             base_dir.mkdir(parents=True, exist_ok=True)
-            return pathlib.Path(tempfile.mkdtemp(dir=base_dir))
+            return _pathlib.Path(_tempfile.mkdtemp(dir=base_dir))
     except Exception:
         pass  # If Databricks-specific utilities not available or fail, fallback
 
@@ -2188,24 +2187,24 @@ def _get_tmp_dir() -> Optional[pathlib.Path]:
 
         repl_id = get_repl_id()
         if repl_id:
-            base_dir = pathlib.Path(tempfile.gettempdir()) / "repl_tmp_data" / repl_id
+            base_dir = _pathlib.Path(_tempfile.gettempdir()) / "repl_tmp_data" / repl_id
             base_dir = base_dir.expanduser().resolve()
             base_dir.mkdir(parents=True, exist_ok=True)
-            return pathlib.Path(tempfile.mkdtemp(dir=base_dir))
+            return _pathlib.Path(_tempfile.mkdtemp(dir=base_dir))
     except Exception:
         pass  # Silently ignore if repl_id not retrievable or other errors
 
     # Default fallback to system temp directory
-    base_dir = pathlib.Path(tempfile.gettempdir())
+    base_dir = _pathlib.Path(_tempfile.gettempdir())
     base_dir.mkdir(parents=True, exist_ok=True)
-    return pathlib.Path(tempfile.mkdtemp(dir=base_dir))
+    return _pathlib.Path(_tempfile.mkdtemp(dir=base_dir))
 
 
 def create_tmp_dir() -> str:
     """
     Create a secure temporary directory, optionally nested inside a Databricks-specific location.
 
-    This function wraps `tempfile.mkdtemp()` with special handling for Databricks environments
+    This function wraps `_tempfile.mkdtemp()` with special handling for Databricks environments
     by attempting to place the temporary directory inside a platform-appropriate parent directory.
 
     Behavior
@@ -2222,7 +2221,7 @@ def create_tmp_dir() -> str:
     Examples
     --------
     >>> tmp_dir = create_tmp_dir()
-    >>> with open(os.path.join(tmp_dir, "temp.txt"), "w") as f:
+    >>> with open(_os.path.join(tmp_dir, "temp.txt"), "w") as f:
     ...     f.write("example")
 
     Notes
@@ -2234,13 +2233,13 @@ def create_tmp_dir() -> str:
 
     # Fallback to system temp if _get_tmp_dir() returns None
     if base_dir is None:
-        base_dir = pathlib.Path(tempfile.gettempdir())
+        base_dir = _pathlib.Path(_tempfile.gettempdir())
     else:
-        base_dir = pathlib.Path(base_dir).expanduser().resolve()
+        base_dir = _pathlib.Path(base_dir).expanduser().resolve()
         base_dir.mkdir(parents=True, exist_ok=True)
 
     # Create a new unique subdirectory within base_dir
-    tmp_path = pathlib.Path(tempfile.mkdtemp(dir=base_dir))
+    tmp_path = _pathlib.Path(_tempfile.mkdtemp(dir=base_dir))
     return str(tmp_path)
 
 
@@ -2273,44 +2272,44 @@ class TempDir:
         self._remove = remove_on_exit
         self._use_env_tmpdir = use_env_tmpdir
 
-        self._original_dir: Optional[pathlib.Path] = None
-        self._temp_dir: Optional[pathlib.Path] = None
+        self._original_dir: Optional[_pathlib.Path] = None
+        self._temp_dir: Optional[_pathlib.Path] = None
 
     def __enter__(self) -> "TempDir":  # noqa: D105
         base_dir = _get_tmp_dir() if self._use_env_tmpdir else None
-        self._temp_dir = pathlib.Path(tempfile.mkdtemp(dir=base_dir)).resolve()
+        self._temp_dir = _pathlib.Path(_tempfile.mkdtemp(dir=base_dir)).resolve()
 
         if self._chdr:
-            self._original_dir = pathlib.Path.cwd()
-            os.chdir(self._temp_dir)
+            self._original_dir = _pathlib.Path.cwd()
+            _os.chdir(self._temp_dir)
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):  # noqa: D105
         if self._chdr and self._original_dir:
-            os.chdir(self._original_dir)
+            _os.chdir(self._original_dir)
             self._original_dir = None
 
         if self._remove and self._temp_dir and self._temp_dir.exists():
-            shutil.rmtree(self._temp_dir, ignore_errors=True)
+            _shutil.rmtree(self._temp_dir, ignore_errors=True)
 
         if self._remove and self._temp_dir and self._temp_dir.exists():
             raise RuntimeError(
                 f"Failed to remove temporary directory: {self._temp_dir}"
             )
 
-    def path(self, *parts: Union[str, pathlib.Path]) -> pathlib.Path:
+    def path(self, *parts: Union[str, _pathlib.Path]) -> _pathlib.Path:
         """
         Construct a path inside the temporary directory.
 
         Parameters
         ----------
-        *parts : str or pathlib.Path
+        *parts : str or _pathlib.Path
             Path components to append to the temp directory path.
 
         Returns
         -------
-        pathlib.Path
+        _pathlib.Path
             A resolved Path inside the temp directory.
 
         Raises
@@ -2320,19 +2319,19 @@ class TempDir:
         """
         if not self._temp_dir:
             raise RuntimeError("TempDir must be entered before using `.path()`.")
-        subpath = pathlib.Path(*parts).expanduser()
+        subpath = _pathlib.Path(*parts).expanduser()
         return (
-            pathlib.Path(".") / subpath if self._chdr else self._temp_dir / subpath
+            _pathlib.Path(".") / subpath if self._chdr else self._temp_dir / subpath
         ).resolve()
 
     @property
-    def root(self) -> pathlib.Path:
+    def root(self) -> _pathlib.Path:
         """
         Get the root temporary directory path.
 
         Returns
         -------
-        pathlib.Path
+        _pathlib.Path
             The root temp directory as a Path object.
 
         Raises
@@ -2346,7 +2345,7 @@ class TempDir:
 
 
 @cache_return_value_per_process
-def get_or_create_tmp_dir() -> pathlib.Path:
+def get_or_create_tmp_dir() -> _pathlib.Path:
     """
     Get or create a persistent temporary directory scoped to the current Python process.
 
@@ -2358,13 +2357,13 @@ def get_or_create_tmp_dir() -> pathlib.Path:
           Databricks handles cleanup on session end.
 
     Non-Databricks behavior:
-    - Creates a secure temporary directory via `tempfile.mkdtemp()`.
-    - Registers `shutil.rmtree()` via `atexit` for cleanup on process exit.
+    - Creates a secure temporary directory via `_tempfile.mkdtemp()`.
+    - Registers `_shutil.rmtree()` via `atexit` for cleanup on process exit.
     - Changes permissions to `0o777` so subprocesses like Spark UDFs can access it.
 
     Returns
     -------
-    pathlib.Path
+    _pathlib.Path
         A path object pointing to the persistent temporary directory.
 
     Notes
@@ -2386,11 +2385,11 @@ def get_or_create_tmp_dir() -> pathlib.Path:
             # The temp directory is designed to be used by all kinds of applications,
             # so create a child directory "mlflow" for storing mlflow temp data.
             try:
-                base_dir = pathlib.Path(get_databricks_local_temp_dir())
+                base_dir = _pathlib.Path(get_databricks_local_temp_dir())
             except Exception:
                 # "/tmp"
                 base_dir = (
-                    pathlib.Path(tempfile.gettempdir()) / "repl_tmp_data" / repl_id
+                    _pathlib.Path(_tempfile.gettempdir()) / "repl_tmp_data" / repl_id
                 )
 
             tmp_dir = base_dir.expanduser().resolve() / "mlflow"
@@ -2401,19 +2400,19 @@ def get_or_create_tmp_dir() -> pathlib.Path:
         pass  # Silently fall back to generic tmp dir
 
     # Fallback: standard tmpdir with atexit cleanup
-    tmp_dir = pathlib.Path(tempfile.mkdtemp()).resolve()
+    tmp_dir = _pathlib.Path(_tempfile.mkdtemp()).resolve()
     # mkdtemp creates a directory with permission 0o700
     # change it to be 0o777 to ensure it can be seen in spark UDF
-    os.chmod(
+    _os.chmod(
         tmp_dir,
         0o777,  # noqa: S103
     )  # Needed for access in subprocesses like Spark UDFs  # noqa: S103
-    atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
+    _atexit.register(_shutil.rmtree, tmp_dir, ignore_errors=True)
     return tmp_dir
 
 
 @cache_return_value_per_process
-def get_or_create_nfs_tmp_dir() -> pathlib.Path:
+def get_or_create_nfs_tmp_dir() -> _pathlib.Path:
     """
     Get or create a temporary NFS-backed directory scoped to the current Python process.
 
@@ -2428,7 +2427,7 @@ def get_or_create_nfs_tmp_dir() -> pathlib.Path:
 
     Returns
     -------
-    pathlib.Path
+    _pathlib.Path
         Path to the created or reused NFS temporary directory.
     """
     try:
@@ -2439,13 +2438,13 @@ def get_or_create_nfs_tmp_dir() -> pathlib.Path:
         from mlflow.utils.nfs_on_spark import get_nfs_cache_root_dir
     except Exception:
         # mlflow not available: use default local temp directory
-        tmp_nfs_dir = pathlib.Path(tempfile.mkdtemp()).resolve()
-        os.chmod(tmp_nfs_dir, 0o777)  # noqa: S103
-        atexit.register(shutil.rmtree, tmp_nfs_dir, ignore_errors=True)
+        tmp_nfs_dir = _pathlib.Path(_tempfile.mkdtemp()).resolve()
+        _os.chmod(tmp_nfs_dir, 0o777)  # noqa: S103
+        _atexit.register(_shutil.rmtree, tmp_nfs_dir, ignore_errors=True)
         return tmp_nfs_dir
 
     try:
-        nfs_root = pathlib.Path(get_nfs_cache_root_dir()).expanduser().resolve()
+        nfs_root = _pathlib.Path(get_nfs_cache_root_dir()).expanduser().resolve()
 
         if is_in_databricks_runtime() and (repl_id := get_repl_id()):
             # Note: In databricks, atexit hook does not work.
@@ -2456,7 +2455,7 @@ def get_or_create_nfs_tmp_dir() -> pathlib.Path:
             try:
                 from mlflow.utils.databricks_utils import get_databricks_nfs_temp_dir
 
-                repl_nfs_base = pathlib.Path(get_databricks_nfs_temp_dir())
+                repl_nfs_base = _pathlib.Path(get_databricks_nfs_temp_dir())
             except Exception:
                 repl_nfs_base = nfs_root / "repl_tmp_data" / repl_id
 
@@ -2468,11 +2467,11 @@ def get_or_create_nfs_tmp_dir() -> pathlib.Path:
         pass  # Ignore errors and fallback below
 
     # Fallback if not in Databricks or if REPL/NFS logic fails
-    tmp_nfs_dir = pathlib.Path(tempfile.mkdtemp(dir=nfs_root)).resolve()
+    tmp_nfs_dir = _pathlib.Path(_tempfile.mkdtemp(dir=nfs_root)).resolve()
     # mkdtemp creates a directory with permission 0o700
     # change it to be 0o777 to ensure it can be seen in spark UDF
-    os.chmod(tmp_nfs_dir, 0o777)  # noqa: S103
-    atexit.register(shutil.rmtree, tmp_nfs_dir, ignore_errors=True)
+    _os.chmod(tmp_nfs_dir, 0o777)  # noqa: S103
+    _atexit.register(_shutil.rmtree, tmp_nfs_dir, ignore_errors=True)
     return tmp_nfs_dir
 
 
@@ -2821,7 +2820,7 @@ def _yield_chunks(
         raise ValueError("chunk_size must be positive")
 
     # Calculate the total number of chunks needed, rounding up for any remainder
-    num_chunks = math.ceil(file_size / chunk_size)
+    num_chunks = _math.ceil(file_size / chunk_size)
 
     for i in range(num_chunks):
         range_start = i * chunk_size
@@ -2853,7 +2852,7 @@ def download_chunk_direct(chunk: _Chunk, headers: dict, http_uri: str) -> None:
     headers = headers.copy()
     headers["Range"] = f"bytes={chunk.start}-{chunk.end}"
 
-    response = requests.get(http_uri, headers=headers, stream=True, timeout=99)
+    response = _requests.get(http_uri, headers=headers, stream=True, timeout=99)
     response.raise_for_status()
 
     with open(chunk.path, "r+b") as f:
@@ -2863,7 +2862,7 @@ def download_chunk_direct(chunk: _Chunk, headers: dict, http_uri: str) -> None:
 
 
 def parallelized_download_file(
-    executor: concurrent.futures.Executor,
+    executor: _concurrent.futures.Executor,
     http_uri: str,
     download_path: str,
     file_size: int,
@@ -2910,7 +2909,7 @@ def parallelized_download_file(
         try:
             download_chunk_direct(chunk, headers, http_uri)
         except Exception as e:
-            logger.warning(f"Chunk {chunk.index} failed: {e}")
+            _logger.warning(f"Chunk {chunk.index} failed: {e}")
             raise
 
     futures = {executor.submit(_download, c): c for c in chunks}
@@ -2919,7 +2918,7 @@ def parallelized_download_file(
     with ProgressBar.chunks(
         file_size, f"Downloading {download_path}", chunk_size
     ) as pbar:
-        for future in concurrent.futures.as_completed(futures):
+        for future in _concurrent.futures.as_completed(futures):
             chunk = futures[future]
             try:
                 future.result()
@@ -2988,7 +2987,7 @@ def parallelized_download_file(
 #             # Call external downloader script with required arguments
 #             subprocess.run(  # noqa: S603
 #                 [
-#                     sys.executable,
+#                     _sys.executable,
 #                     download_cloud_file_chunk.__file__,
 #                     "--range-start",
 #                     str(chunk.start),
@@ -3045,7 +3044,7 @@ def parallelized_download_file(
 #             download_path=download_path,
 #             http_uri=http_uri,
 #         )
-#         downloaded_size = os.path.getsize(download_path)
+#         downloaded_size = _os.path.getsize(download_path)
 #         # If downloaded size was equal to the chunk size it would have been downloaded serially,
 #         # so we don't need to consider this here
 #         # If size indicates transcoding, skip parallel chunked downloads
@@ -3067,7 +3066,7 @@ def parallelized_download_file(
 #                 # Raises exception if occurred in the thread
 #                 future.result()
 #             except Exception as e:
-#                 logger.debug(
+#                 _logger.debug(
 #                     f"Failed to download chunk {chunk.index} for {chunk.path}: {e}. "
 #                     f"The download of this chunk will be retried later."
 #                 )
@@ -3111,14 +3110,14 @@ def retry_failed_chunks(
     retry_interval = _SKPLT_MPD_RETRY_INTERVAL_SECONDS.get() or retry_interval
 
     for chunk in failed_chunks:
-        logger.info(f"Retrying chunk {chunk.index}")
+        _logger.info(f"Retrying chunk {chunk.index}")
         for attempt in range(max_retries):
             try:
                 download_chunk_direct(chunk, headers, http_uri)
-                logger.info(f"Chunk {chunk.index} succeeded on attempt {attempt + 1}")
+                _logger.info(f"Chunk {chunk.index} succeeded on attempt {attempt + 1}")
                 break
             except Exception as e:
-                logger.warning(
+                _logger.warning(
                     f"Attempt {attempt + 1} failed for chunk {chunk.index}: {e}"
                 )
                 if attempt == max_retries - 1:
@@ -3160,7 +3159,7 @@ def download_chunk_retries(
     max_retries = _SKPLT_MPD_NUM_RETRIES.get() or max_retries
     retry_interval = _SKPLT_MPD_RETRY_INTERVAL_SECONDS.get() or retry_interval
     for chunk in chunks:
-        logger.info(f"Retrying download of chunk {chunk.index} for {chunk.path}")
+        _logger.info(f"Retrying download of chunk {chunk.index} for {chunk.path}")
         for attempt in range(max_retries):
             try:
                 download_chunk(
@@ -3170,18 +3169,18 @@ def download_chunk_retries(
                     download_path=download_path,
                     http_uri=http_uri,
                 )
-                logger.info(
+                _logger.info(
                     f"Successfully downloaded chunk {chunk.index} for {chunk.path}"
                 )
                 break  # Success: break retry loop
             except Exception as e:
-                logger.warning(
+                _logger.warning(
                     f"Attempt {attempt + 1} failed for chunk {chunk.index}: {e}"
                 )
                 if attempt == max_retries - 1:
                     # Raise exception if max retries exceeded
                     raise
-                time.sleep(retry_interval)
+                _time.sleep(retry_interval)
 
 
 # --- JSON ---
@@ -3217,10 +3216,10 @@ def read_json(
     --------
     >>> data = read_json("/configs", "settings.json")
     """
-    file_path = os.path.join(root, file_name)
+    file_path = _os.path.join(root, file_name)
 
     with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        return _json.load(f)
 
 
 def write_json(
@@ -3268,15 +3267,15 @@ def write_json(
     if ensure_json_extension and not file_name.lower().endswith(".json"):
         file_name += ".json"
 
-    file_path = os.path.join(root, file_name)
+    file_path = _os.path.join(root, file_name)
 
-    if not overwrite and os.path.exists(file_path):
+    if not overwrite and _os.path.exists(file_path):
         raise FileExistsError(
             f"File '{file_path}' already exists and overwrite is False."
         )
 
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=indent)
+        _json.dump(data, f, indent=indent)
 
 
 # --- YAML ---
@@ -3322,7 +3321,7 @@ def read_yaml(
     """
     import yaml
 
-    file_path = os.path.join(root, file_name)
+    file_path = _os.path.join(root, file_name)
     with open(file_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
@@ -3386,9 +3385,9 @@ def write_yaml(
     if ensure_yaml_extension and not file_name.lower().endswith((".yaml", ".yml")):
         file_name += ".yaml"
 
-    file_path = os.path.join(root, file_name)
+    file_path = _os.path.join(root, file_name)
 
-    if not overwrite and os.path.exists(file_path):
+    if not overwrite and _os.path.exists(file_path):
         raise FileExistsError(
             f"File '{file_path}' already exists and overwrite is False."
         )
@@ -3409,7 +3408,7 @@ def write_yaml(
 #     """Deserialize and load the specified parquet file as a Pandas DataFrame.
 
 #     Args:
-#         data_parquet_path: String, path object (implementing os.PathLike[str]),
+#         data_parquet_path: String, path object (implementing _os.PathLike[str]),
 #             or file-like object implementing a binary read() function. The string
 #             could be a URL. Valid URL schemes include http, ftp, s3, gs, and file.
 #             For file URLs, a host is expected. A local file could
@@ -3431,7 +3430,7 @@ def write_yaml(
 
 #     Args:
 #         df: pandas data frame.
-#         data_parquet_path: String, path object (implementing os.PathLike[str]),
+#         data_parquet_path: String, path object (implementing _os.PathLike[str]),
 #             or file-like object implementing a binary write() function.
 
 #     """
@@ -3449,9 +3448,9 @@ def write_yaml(
 #     from mlflow.utils.databricks_utils import is_in_databricks_runtime
 
 #     if is_in_databricks_runtime():
-#         dbfs_path = os.path.join(".mlflow", "cache", str(uuid.uuid4()))
+#         dbfs_path = _os.path.join(".mlflow", "cache", str(uuid.uuid4()))
 #         spark_df.coalesce(1).write.format("parquet").save(dbfs_path)
-#         shutil.copytree("/dbfs/" + dbfs_path, output_path)
-#         shutil.rmtree("/dbfs/" + dbfs_path)
+#         _shutil.copytree("/dbfs/" + dbfs_path, output_path)
+#         _shutil.rmtree("/dbfs/" + dbfs_path)
 #     else:
 #         spark_df.coalesce(1).write.format("parquet").save(output_path)

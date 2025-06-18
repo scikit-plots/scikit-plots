@@ -1,6 +1,4 @@
-"""
-template_st_dataset_loader_ui.
-"""
+# template_st_dataset_loader.py
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -11,7 +9,9 @@ template_st_dataset_loader_ui.
 
 # ruff: noqa: PD901, N806
 
-# template_st_dataset_loader.py
+"""
+template_st_dataset_loader_ui.
+"""
 
 # import petname
 # petname.Generate(3, separator="-")  # e.g., 'green-fox-jump'
@@ -29,9 +29,13 @@ from sklearn.model_selection import (
 )
 
 from scikitplot import LazyImport, logger
-from scikitplot._datasets import EXTENSION_LOADERS, load_data_meta  # , load_data
+from scikitplot._datasets import (
+    EXTENSION_LOADERS,
+    load_data_meta,
+    # load_data,
+)
 
-SUPPORTED_TYPES = EXTENSION_LOADERS
+__all__ = []
 
 
 def get_sns_data(
@@ -84,6 +88,10 @@ st = LazyImport("streamlit", package="streamlit")
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
+    __all__ += [
+        "st_dataset_loader",
+    ]
+
     ######################################################################
     ## get data
     ######################################################################
@@ -187,7 +195,7 @@ if st:
             st.exception(f"❌ Failed to load data: {e}")
             st.code(traceback.format_exc(), language="python")
 
-    def upload_component(accept_multiple=False, sql_query=""):
+    def st_upload_component(accept_multiple=False, sql_query=""):
         """
         Add a Streamlit component for uploading data files.
 
@@ -207,7 +215,7 @@ if st:
         # st.empty().container Dynamic and replaceable container.
         with st.container(border=True):
             st.subheader("📤 Upload Dataset File(s)")
-            file_types = list(SUPPORTED_TYPES.keys())
+            file_types = list(EXTENSION_LOADERS.keys())
             accept_multiple = st.checkbox(
                 "Enable multi-file upload",
                 key="accept_multiple",
@@ -217,7 +225,7 @@ if st:
                 label="Choose file(s) to upload:",
                 type=file_types,
                 accept_multiple_files=accept_multiple,
-                help="Supported formats: " + ", ".join(SUPPORTED_TYPES.keys()),
+                help="Supported formats: " + ", ".join(EXTENSION_LOADERS.keys()),
             )
             # https://www.sqlitetutorial.net/sqlite-sample-database/
             # https://www.sqlitetutorial.net/tryit/#tracks
@@ -244,7 +252,7 @@ if st:
                 for file in files_to_process:
                     handle_file_upload(file, sql_query)
 
-    def url_component():
+    def st_url_component():
         """
         Add a Streamlit component for url data files.
 
@@ -279,7 +287,7 @@ if st:
             if file_url:
                 handle_file_upload(file_url, sql_query)
 
-    def db_component():
+    def st_db_component():
         """
         Add a Streamlit component for db data files.
 
@@ -342,7 +350,7 @@ if st:
             if db_uri and db_type:
                 handle_database_load(db_uri, db_type, sql_query)
 
-    def run_dataset_loader_ui():
+    def st_dataset_loader():
         """
         Render the Streamlit UI for loading data.
 
@@ -357,7 +365,7 @@ if st:
         with st.container(border=True):
             st.title("📁 Load Dataset File(s)")
             # st.subheader("📁 Load Dataset File(s)")
-            st.caption("Supported extensions: " + ", ".join(SUPPORTED_TYPES.keys()))
+            st.caption("Supported extensions: " + ", ".join(EXTENSION_LOADERS.keys()))
 
         # Placeholder
         clear_btn_placeholder = st.container(border=True)
@@ -397,11 +405,11 @@ if st:
 
             # ---------------------- Handle Modes ----------------------
             if input_mode == "upload":
-                upload_component()
+                st_upload_component()
             elif input_mode == "url":
-                url_component()
+                st_url_component()
             elif input_mode == "db":
-                db_component()
+                st_db_component()
 
         # Placeholder
         with st.container(border=True):
@@ -416,4 +424,4 @@ if st:
 # ---------------------- Main Entrypoint ----------------------
 
 if __name__ == "__main__":
-    run_dataset_loader_ui()
+    st_dataset_loader()

@@ -6,15 +6,15 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 
-import os
-import pathlib
+import os as _os
+import pathlib as _pathlib
 
-from .. import logger
+from .. import logger as _logger
 from ..exceptions import ScikitplotException
 
 
 def run_load_dotenv(
-    dotenv_path: str | os.PathLike[str] = "",
+    dotenv_path: str | _os.PathLike[str] = "",
     override: bool = False,
     verbose: bool = False,
 ) -> list[str]:
@@ -51,23 +51,23 @@ def run_load_dotenv(
         )
     except ImportError as e:
         msg = "Missing required package 'python-dotenv'. Install with `pip install python-dotenv`."
-        logger.exception(msg)
+        _logger.exception(msg)
         raise ScikitplotException(msg) from e
 
     try:
         # Resolve and validate path
         if dotenv_path:
-            dotenv_path = pathlib.Path(dotenv_path).expanduser().resolve()
+            dotenv_path = _pathlib.Path(dotenv_path).expanduser().resolve()
             if not dotenv_path.is_file():
                 raise ScikitplotException(f".env file not found at: {dotenv_path}")
         else:
             dotenv_path = find_dotenv(usecwd=True)
 
         # Load .env
-        logger.info(f"Loading environment variables from: {dotenv_path}")
+        _logger.info(f"Loading environment variables from: {dotenv_path}")
         return load_dotenv(dotenv_path=dotenv_path, override=override, verbose=verbose)
 
     except Exception as e:
         msg = f"Failed to load .env file: {e}"
-        logger.exception(msg)
+        _logger.exception(msg)
         raise ScikitplotException(msg) from e

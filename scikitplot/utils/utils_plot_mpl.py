@@ -14,16 +14,16 @@ Such as plots and includes decorators for automatically saving plots.
 # import inspect
 # import tempfile
 # from functools import wraps
-import contextlib
-import functools
-import warnings
+import contextlib as _contextlib
+import functools as _functools
+import warnings as _warnings
 from typing import TYPE_CHECKING
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib as _mpl  # noqa: ICN001
+import matplotlib.pyplot as _plt  # noqa: ICN001
+import numpy as _np  # noqa: ICN001
 
-from .. import logger
+from .. import logger as _logger
 from .._docstrings import _docstring
 from .utils_path import get_file_path
 
@@ -38,19 +38,19 @@ if TYPE_CHECKING:
 # import logging
 # Set up logging
 # logging.basicConfig(level=logging.INFO)
-# logger = logging.getLogger(__name__)
+# _logger = logging.getLogger(__name__)
 
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def safe_tight_layout(fig=None):
     """Apply tight_layout safely after yielding, logging a warning if it fails."""
     try:
         yield
     finally:
         try:
-            (fig or plt).tight_layout()
+            (fig or _plt).tight_layout()
         except Exception as e:
-            logger.warning("tight_layout() failed: %s", e)
+            _logger.warning("tight_layout() failed: %s", e)
 
 
 ######################################################################
@@ -177,14 +177,14 @@ def save_plot_decorator(
             The wrapped function.
         """
 
-        @functools.wraps(inner_func)
+        @_functools.wraps(inner_func)
         def wrapper(*args, **kwargs) -> "any":
             with safe_tight_layout():
                 # Call the actual plotting function
                 result = inner_func(*args, **kwargs)
-            # plt.tight_layout()
-            # plt.draw()
-            # plt.pause(0.1)
+            # _plt.tight_layout()
+            # _plt.draw()
+            # _plt.pause(0.1)
             try:
                 # c = a | b  # Non-destructive merge (3.9+)
                 # c = {**a, **b}  # Non-destructive merge (3.5+), Safe, non-mutating
@@ -204,7 +204,7 @@ def save_plot_decorator(
                 # print(f"[INFO]:\n\t{kwargs}\n\t{dkwargs}\n\t{save_fig}\n\t{save_fig_filename}\n")
                 # Handle verbosity if specified
                 if "verbose" in kwargs and not isinstance(kwargs["verbose"], bool):
-                    warnings.warn(
+                    _warnings.warn(
                         "'verbose' parameter should be of type bool.",
                         stacklevel=1,
                     )
@@ -215,7 +215,7 @@ def save_plot_decorator(
                     try:
                         # with tempfile.TemporaryDirectory() as tmpdirname:
                         # with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmpfile:  # tmpfile.name
-                        plt.savefig(
+                        _plt.savefig(
                             save_path, dpi=150, bbox_inches="tight", pad_inches=0
                         )
                         if kwargs.get("verbose", False):
@@ -224,9 +224,9 @@ def save_plot_decorator(
                         print(f"[ERROR] Failed to save plot: {e}")  # noqa: T201
                 if show_fig:
                     # Manage the plot window
-                    plt.show()
-                    # plt.gcf().clear()
-                    # plt.close()
+                    _plt.show()
+                    # _plt.gcf().clear()
+                    # _plt.close()
             except Exception:
                 pass
             return result
@@ -313,22 +313,22 @@ def stack_mpl_figures(
         else:
             figsize = (12, 3.15 * len(figs))  # (5, 4 * len(figs))
 
-    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, dpi=dpi)
+    fig, axes = _plt.subplots(nrows, ncols, figsize=figsize, dpi=dpi)
 
     # If only one figure, ax will not be a list, so we make it a list
     # ax = [ax] if n_figs == 1 else ax
 
     # Make axes iterable
-    axes = np.atleast_1d(axes).ravel()
+    axes = _np.atleast_1d(axes).ravel()
 
     for ax, fig_ in zip(axes, figs):
-        canvas = mpl.backends.backend_agg.FigureCanvasAgg(fig_)
+        canvas = _mpl.backends.backend_agg.FigureCanvasAgg(fig_)
         canvas.draw()
-        image = np.asarray(canvas.buffer_rgba())
+        image = _np.asarray(canvas.buffer_rgba())
         ax.imshow(image)
         ax.axis("off")
 
-    plt.tight_layout(pad=padding if padding is not None else 0.5)
+    _plt.tight_layout(pad=padding if padding is not None else 0.5)
     return fig
 
 

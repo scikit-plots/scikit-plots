@@ -6,10 +6,10 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=too-many-locals
 
-import os
+import os as _os
 
 # from pathlib import Path
-from .. import logger
+from .. import logger as _logger
 from ..exceptions import ScikitplotException
 
 
@@ -59,8 +59,8 @@ def load_mlflow_gateway_config(
 
     try:
         # Normalize and resolve the path
-        abs_path = os.path.abspath(os.path.expanduser(path))
-        if not os.path.exists(abs_path):
+        abs_path = _os.path.abspath(_os.path.expanduser(path))
+        if not _os.path.exists(abs_path):
             raise FileNotFoundError(f"Configuration file not found: {abs_path}")
 
         with open(abs_path, "r", encoding="utf-8") as f:
@@ -78,7 +78,7 @@ def load_mlflow_gateway_config(
         for idx, endpoint in enumerate(endpoints):
             model = endpoint.get("model", {})
             if not isinstance(model, dict):
-                logger.warning(f"Skipping endpoint[{idx}]: 'model' must be a dict.")
+                _logger.warning(f"Skipping endpoint[{idx}]: 'model' must be a dict.")
                 continue
 
             provider = model.get("provider", "").lower()
@@ -86,13 +86,13 @@ def load_mlflow_gateway_config(
             config = model.get("config", {})
 
             if not provider or not model_id:
-                logger.warning(
+                _logger.warning(
                     f"Skipping endpoint[{idx}]: Missing 'provider' or 'name'."
                 )
                 continue
 
             if not isinstance(config, dict):
-                logger.warning(f"Skipping endpoint[{idx}]: 'config' must be a dict.")
+                _logger.warning(f"Skipping endpoint[{idx}]: 'config' must be a dict.")
                 continue
 
             # get api key
@@ -104,10 +104,10 @@ def load_mlflow_gateway_config(
             # Expand environment variable if format is $VAR or ${VAR}
             if isinstance(api_key, str) and api_key.startswith(("$", "${")):
                 # stays as-is (not a variable ref) (read-only)
-                expanded = os.path.expandvars(api_key)
+                expanded = _os.path.expandvars(api_key)
                 api_key = expanded if expanded != api_key else ""
                 if api_key:
-                    logger.info(f"Loaded {key_name} from environment variables.")
+                    _logger.info(f"Loaded {key_name} from environment variables.")
 
             # Initialize provider list if not already present
             configs.setdefault(provider, []).append(
@@ -117,5 +117,5 @@ def load_mlflow_gateway_config(
         return configs
 
     except (yaml.YAMLError, FileNotFoundError, OSError) as exc:
-        logger.exception(f"Failed to load or parse config: {exc}")
+        _logger.exception(f"Failed to load or parse config: {exc}")
         raise ScikitplotException(f"Error loading config: {exc}") from exc

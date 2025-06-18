@@ -11,12 +11,12 @@
 # import inspect
 # import logging
 # import warnings
-import functools
-import os
-import platform
+import functools as _functools
+import os as _os
+import platform as _platform
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as _plt  # noqa: ICN001
 from PIL import (
     # Image,
     # ImageColor,
@@ -24,7 +24,7 @@ from PIL import (
     ImageFont,
 )
 
-from .. import logger
+from .. import logger as _logger
 from .._docstrings import _docstring
 from ..exceptions import ScikitplotException
 from .utils_path import get_file_path
@@ -48,7 +48,7 @@ __all__ = [
 ######################################################################
 
 
-@functools.lru_cache
+@_functools.lru_cache
 def _cached_truetype(
     path: str,
     size: int,
@@ -165,8 +165,8 @@ def load_font(
 
     # Try loading custom font
     if font_path:
-        supported_exts = os.getenv("SUPPORTED_EXTS", ".ttf .otf .ttc").split()
-        if os.path.exists(font_path) and font_path.lower().endswith(  # noqa: PTH110
+        supported_exts = _os.getenv("SUPPORTED_EXTS", ".ttf .otf .ttc").split()
+        if _os.path.exists(font_path) and font_path.lower().endswith(  # noqa: PTH110
             supported_exts
         ):  # noqa: PTH110
             try:
@@ -174,21 +174,21 @@ def load_font(
                     print(f"Using custom font: {font_path}")  # noqa: T201
                 return _cached_truetype(font_path, font_size)
             except OSError as e:
-                logger.error(f"Failed to load font from '{font_path}': {e}")
+                _logger.error(f"Failed to load font from '{font_path}': {e}")
         else:
-            logger.warning(f"Invalid font path or unsupported font file: {font_path}")
+            _logger.warning(f"Invalid font path or unsupported font file: {font_path}")
 
     # Platform-specific fallback
     try:
-        system_platform = platform.system().lower()
+        system_platform = _platform.system().lower()
         default_font_paths = {
-            # "windows": os.getenv("DEFAULT_WINDOWS_FONT", "C:/Windows/Fonts/segoeui.ttf"),
-            "windows": os.getenv("DEFAULT_WINDOWS_FONT", "C:/Windows/Fonts/arial.ttf"),
-            # "darwin": os.getenv("DEFAULT_MAC_FONT", "/System/Library/Fonts/Helvetica.ttc"),
-            "darwin": os.getenv("DEFAULT_MAC_FONT", "/Library/Fonts/Arial.ttf"),
+            # "windows": _os.getenv("DEFAULT_WINDOWS_FONT", "C:/Windows/Fonts/segoeui.ttf"),
+            "windows": _os.getenv("DEFAULT_WINDOWS_FONT", "C:/Windows/Fonts/arial.ttf"),
+            # "darwin": _os.getenv("DEFAULT_MAC_FONT", "/System/Library/Fonts/Helvetica.ttc"),
+            "darwin": _os.getenv("DEFAULT_MAC_FONT", "/Library/Fonts/Arial.ttf"),
             # "DEFAULT_LINUX_FONT", "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"
             # "DEFAULT_LINUX_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-            "linux": os.getenv(
+            "linux": _os.getenv(
                 "DEFAULT_LINUX_FONT",
                 "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
             ),
@@ -200,9 +200,9 @@ def load_font(
                 print(f"Using system font: {system_font_path}")  # noqa: T201
             return _cached_truetype(system_font_path, font_size)
     except (OSError, ValueError) as e:
-        logger.warning(f"Error loading system font: {e}")
+        _logger.warning(f"Error loading system font: {e}")
 
-    logger.warning("Falling back to PIL default font.")
+    _logger.warning("Falling back to PIL default font.")
     return load_default_font(font_size=font_size)
 
 
@@ -284,7 +284,7 @@ def save_image_with_pil(
     - If the format supports it, metadata such as DPI can be embedded (not shown here).
     """
     # Ensure the directory exists before saving the image
-    os.makedirs(os.path.dirname(to_file), exist_ok=True)  # noqa: PTH103, PTH120
+    _os.makedirs(_os.path.dirname(to_file), exist_ok=True)  # noqa: PTH103, PTH120
     try:
         # Save the image using PIL
         # Using PIL to save the image (default method)
@@ -298,7 +298,7 @@ def save_image_with_pil(
             img.show()
 
     except ScikitplotException as e:
-        logger.warning(
+        _logger.warning(
             f"[ERROR] Could not saved image using PIL to '{to_file}': {e}",
             stacklevel=1,
         )
@@ -434,7 +434,7 @@ def save_image_pil_kwargs(
     # Warn if 'verbose' exists but is not a bool
     # verbose: bool = kwargs.get("verbose", False)
     if "verbose" in kwargs and not isinstance(kwargs["verbose"], bool):
-        logger.warning(
+        _logger.warning(
             "'verbose' parameter should be of type bool.",
             stacklevel=1,
         )
@@ -449,24 +449,24 @@ def save_image_pil_kwargs(
             # Use Matplotlib backend (default or fallback)
             if str(backend).lower() in ("matplotlib", "true", "none", None):
                 try:
-                    if plt.get_fignums():
+                    if _plt.get_fignums():
                         fig = (
-                            plt.gcf()
+                            _plt.gcf()
                         )  # Get current figure (create one if none exists)
-                        ax = plt.gca()  # Get current axes (create one if none exists)
+                        ax = _plt.gca()  # Get current axes (create one if none exists)
                     else:
                         fig, ax = (
-                            plt.subplots()
+                            _plt.subplots()
                         )  # Attempt to show and save using matplotlib
 
                     with safe_tight_layout():
                         ax = ax.imshow(result)  # Display the image on the existing axes
-                        # plt.tight_layout()
-                    plt.axis("off")
-                    # plt.draw()
-                    # plt.pause(0.1)  # Pause to allow for interactive drawing
+                        # _plt.tight_layout()
+                    _plt.axis("off")
+                    # _plt.draw()
+                    # _plt.pause(0.1)  # Pause to allow for interactive drawing
                     # Save the image using Matplotlib after showing it
-                    plt.savefig(
+                    _plt.savefig(
                         save_path,
                         dpi=150,
                         bbox_inches="tight",
@@ -474,12 +474,12 @@ def save_image_pil_kwargs(
                     )
                     if show_fig:
                         # Manage the plot window
-                        plt.show()
-                        # plt.gcf().clear()  # Clear the figure after saving
-                        # plt.close()
+                        _plt.show()
+                        # _plt.gcf().clear()  # Clear the figure after saving
+                        # _plt.close()
                     return ax
                 except ScikitplotException as e:
-                    logger.exception(
+                    _logger.exception(
                         "Could not saved image using Matplotlib to "
                         f"'{save_path}': {e}. Falling back to PIL.",
                         stacklevel=1,
@@ -498,9 +498,9 @@ def save_image_pil_kwargs(
                     show_os_viewer=show_os_viewer,
                 )
         else:
-            logger.info("Could not saved pil image or Axes plot.")
+            _logger.info("Could not saved pil image or Axes plot.")
     except ScikitplotException as e:
-        logger.exception(f"Failed to save pil image: {e}")
+        _logger.exception(f"Failed to save pil image: {e}")
     return result
 
 
@@ -584,7 +584,7 @@ def save_image_pil_decorator(
             The wrapped function.
         """
 
-        @functools.wraps(inner_func)
+        @_functools.wraps(inner_func)
         def wrapper(*args, **kwargs) -> "any":
             # Call the actual plotting function
             result = inner_func(*args, **kwargs)
@@ -595,7 +595,7 @@ def save_image_pil_decorator(
                 **kwargs,
             )
             if ax_or_im:
-                logger.debug(f"Returned object {type(ax_or_im)}")
+                _logger.debug(f"Returned object {type(ax_or_im)}")
             return ax_or_im or result
 
         return wrapper

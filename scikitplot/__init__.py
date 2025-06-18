@@ -1,18 +1,19 @@
-"""
-scikit-plots.
-
-An intuitive library to add plotting functionality to scikit-learn objects
-
-Documentation is available in the docstrings and
-online at https://scikit-plots.github.io.
-"""
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 # mypy: disallow-any-generics
+# ruff: noqa: F401
 # pylint: disable=unused-import
-# ruff: noqa: F401, I001
+# pylint: disable=line-too-long
+
+"""
+An intuitive library that seamlessly adds plotting capabilities and functionality
+to any model objects or outputs, compatible with tools like scikit-learn,
+XGBoost, TensorFlow, and more.
+
+Documentation is available in the docstrings and online at
+https://scikit-plots.github.io.
+"""  # noqa: D205
 
 # import os as _os
 # import sys as _sys
@@ -21,6 +22,7 @@ online at https://scikit-plots.github.io.
 # import warnings as _warnings
 # _set = set  # 'seaborn.set' can be override raise error
 import builtins as _builtins
+
 from numpy import __version__ as __numpy_version__
 
 ######################################################################
@@ -68,10 +70,10 @@ else:
 
 # Avoiding heavy imports top level module unless actually used
 # from .utils.lazy_load import LazyLoader
-from ._compat.optional_deps import LazyImport
+from ._compat.optional_deps import LazyImport, nested_import
 
 # Lazily load scikitplot flavors to avoid excessive dependencies.
-# visualkeras = LazyImport("scikitplot.visualkeras")
+# api = LazyImport(".api", package=__name__)
 # Export some module objects
 from ._globals import _Default, _Deprecated, _NoValue
 from ._testing._pytesttester import PytestTester  # Pytest testing
@@ -108,6 +110,7 @@ _submodules = {
     "_lib",
     ## Experimental, we keep transform api module to compatibility seaborn core.
     "_seaborn",
+    "_sphinxext",
     "_testing",
     "_tweedie",
     "_utils",
@@ -115,13 +118,13 @@ _submodules = {
     "config",
     "experimental",
     "kds",
+    "llm_provider",
     "misc",
     "modelplotpy",
+    "pipeline",
     "probscale",
     "snsx",
-    "sphinxext",
     "stats",
-    "typing",
     "utils",
     "visualkeras",
     ## A module is a .py file that is itself a module object when imported.
@@ -189,7 +192,7 @@ def __dir__():
         .union(_submodules)
         # Returns the api submodule directly.
         # .union(dir(__import__(__name__ + '.api', fromlist=[''])))
-        .union(dir(LazyImport(".api", package=__name__)))
+        .union(dir(nested_import(".api", package=__name__)))
         .difference(_discard)
     )
 
@@ -237,14 +240,10 @@ def __getattr__(
         if name in globals():
             return globals()[name]
         # Try importing as a submodule
-        # pylint: disable=import-outside-toplevel
-        from ._compat.optional_deps import nested_import
-
+        # import_module(f".{name}", package=package)  # high-level function
+        # __import__(f'{__name__}.{name}')  # low-level function, not, not the submodule
+        # __import__(module_name, fromlist=[class_name])  # Return submodule directly
         return nested_import(name, package)  # ~(4.5-11)s
-        # Lazily load scikitplot flavors to avoid excessive dependencies.
-        # TODO: Cause some infinite loop
-        # from ._compat.optional_deps import LazyImport
-        # return LazyImport(name, package)  # RecursionError
     except (
         AttributeError,
         ImportError,
@@ -328,7 +327,7 @@ def online_help(
     --------
     >>> import scikitplot
     >>> scikitplot.online_help("installation")
-
+    2025-06-17 14:35:41.260923: E scikitplot 123480369030208 __init__.py:351:online_help] https://scikit-plots.github.io/dev/search.html?q=installation
     """
     try:
         # pylint: disable=import-outside-toplevel
@@ -337,7 +336,6 @@ def online_help(
         from urllib.parse import urlencode, urlparse
 
         # from scikitplot import __version__
-
         # Determine if the current version is in development or stable
         version_type = "dev" if "dev" in __version__ else "stable"
 

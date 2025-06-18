@@ -2,10 +2,8 @@
 
 # pylint: disable=missing-function-docstring
 
-import json
+import json as _json
 from typing import Optional
-
-from . import logger as _logger  # noqa: F401
 
 
 class ScikitplotException(Exception):  # noqa: N818
@@ -46,7 +44,7 @@ class ScikitplotException(Exception):  # noqa: N818
     def serialize_as_json(self):  # noqa: D102
         exception_dict = {"error_code": self.error_code, "message": self.message}
         exception_dict.update(self.json_kwargs)
-        return json.dumps(exception_dict)
+        return _json.dumps(exception_dict)
 
     def get_http_status_code(self):  # noqa: D102
         return 500

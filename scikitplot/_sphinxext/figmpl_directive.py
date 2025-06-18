@@ -1,3 +1,9 @@
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
+
 """
 Add a ``figure-mpl`` directive that is a responsive version of ``figure``.
 
@@ -13,12 +19,6 @@ See the *FigureMpl* documentation below.
 
 """
 
-# pylint: skip-file
-# ruff: noqa: PGH004
-# ruff: noqa
-# flake8: noqa
-# type: ignore
-
 import os
 from os.path import relpath
 from pathlib import PurePath, Path
@@ -30,6 +30,11 @@ from docutils.parsers.rst.directives.images import Figure, Image
 from sphinx.errors import ExtensionError
 
 import matplotlib
+
+# __all__ = [
+#     "FigureMpl",
+#     "make_pipeline",
+# ]
 
 
 class figmplnode(nodes.General, nodes.Element):

@@ -6,22 +6,22 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 
-import os
+import os as _os
 
-from .. import logger
+from .. import logger as _logger
 from ..exceptions import ScikitplotException
 from .utils_toml import read_toml, write_toml
 
 # Default path to Streamlit secrets file (user config dir)
-# secrets_path = os.path.join(os.getcwd(), ".streamlit", "secrets.toml")
-DEFAULT_SECRETS_PATH = os.getenv("STREAMLIT_CONFIG_DIR") or os.path.expanduser(
+# secrets_path = _os.path.join(_os.getcwd(), ".streamlit", "secrets.toml")
+DEFAULT_SECRETS_PATH = _os.getenv("STREAMLIT_CONFIG_DIR") or _os.path.expanduser(
     "~/.streamlit/secrets.toml"
 )
 
 
 def resolve_secret_path(secret_path: str = "") -> str:
     """Resolve absolute path to secrets.toml."""
-    return os.path.abspath(os.path.expanduser(secret_path or DEFAULT_SECRETS_PATH))
+    return _os.path.abspath(_os.path.expanduser(secret_path or DEFAULT_SECRETS_PATH))
 
 
 # Load existing secrets (if file exists)
@@ -42,11 +42,11 @@ def load_st_secrets(
         Parsed secrets dictionary. Empty if file doesn't exist.
     """
     path = resolve_secret_path(secret_path)
-    if os.path.exists(path):
+    if _os.path.exists(path):
         try:
             return read_toml(path)
         except ScikitplotException:
-            logger.error("Failed to load streamlit secrets to file at.")
+            _logger.error("Failed to load streamlit secrets to file at.")
     return {}
 
 
@@ -66,12 +66,12 @@ def save_st_secrets(
         Path to secrets TOML file. Defaults to `~/.streamlit/secrets.toml`.
     """
     path = resolve_secret_path(secret_path)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    _os.makedirs(_os.path.dirname(path), exist_ok=True)
     try:
         write_toml(path, secrets_dict)
     except ScikitplotException:
         # 🔒 Updated save_st_secrets (secure):
-        logger.error("Failed to save secrets to file at.")
+        _logger.error("Failed to save secrets to file at.")
 
 
 def get_env_st_secrets(

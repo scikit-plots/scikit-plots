@@ -1,5 +1,3 @@
-"""config."""
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +7,8 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 
+"""config."""
+
 from typing import TYPE_CHECKING
 
 from scikitplot import LazyImport  # logger
@@ -16,14 +16,19 @@ from scikitplot import LazyImport  # logger
 if TYPE_CHECKING:
     from typing import Literal, Optional
 
+__all__ = []
+
 # import streamlit as st
 st = LazyImport("streamlit", package="streamlit")
 
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
+    __all__ += [
+        "st_page_config",
+    ]
 
-    def configure_page(
+    def st_page_config(
         title: str = "scikit-plots",
         layout: "Literal['centered', 'wide']" = "wide",
         sidebar_state: "Optional[Literal['auto', 'expanded', 'collapsed']]" = None,

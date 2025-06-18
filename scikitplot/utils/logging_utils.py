@@ -11,11 +11,11 @@ https://github.com/mlflow/mlflow/blob/master/mlflow/utils/logging_utils.py
 
 # ruff: noqa: D102
 
-import contextlib
-import re
-import sys
+import contextlib as _contextlib
+import re as _re
+import sys as _sys
 
-from .. import sp_logging as logging
+from .. import sp_logging as _logging
 from ..environment_variables import SKPLT_LOGGING_LEVEL
 
 # Logging format example:
@@ -39,11 +39,11 @@ class ScikitplotLoggingStream:
 
     def write(self, text):
         if self._enabled:
-            sys.stderr.write(text)
+            _sys.stderr.write(text)
 
     def flush(self):
         if self._enabled:
-            sys.stderr.flush()
+            _sys.stderr.flush()
 
     @property
     def enabled(self):
@@ -78,7 +78,7 @@ def enable_logging():
     MLFLOW_LOGGING_STREAM.enabled = True
 
 
-class ScikitplotFormatter(logging.Formatter):
+class ScikitplotFormatter(_logging.Formatter):
     """
     Custom Formatter Class to support colored log.
 
@@ -109,7 +109,7 @@ class ScikitplotFormatter(logging.Formatter):
 
     def format(self, record):
         if color := getattr(record, "color", None):  # noqa: SIM102
-            if color in self.COLORS and sys.platform != "win32":
+            if color in self.COLORS and _sys.platform != "win32":
                 color_code = self._escape(self.COLORS[color])
                 return f"{color_code}{super().format(record)}{self.RESET}"
         return super().format(record)
@@ -119,7 +119,7 @@ class ScikitplotFormatter(logging.Formatter):
 
 
 def _configure_scikitplot_loggers(root_module_name):
-    logging.config.dictConfig(
+    _logging.config.dictConfig(
         {
             "version": 1,
             "disable_existing_loggers": False,
@@ -133,7 +133,7 @@ def _configure_scikitplot_loggers(root_module_name):
             "handlers": {
                 "scikitplot_handler": {
                     "formatter": "scikitplot_formatter",
-                    "class": "logging.StreamHandler",
+                    "class": "_logging.StreamHandler",
                     "stream": MLFLOW_LOGGING_STREAM,
                 },
             },
@@ -153,10 +153,10 @@ def eprint(*args, **kwargs):
     print(*args, file=MLFLOW_LOGGING_STREAM, **kwargs)
 
 
-class LoggerMessageFilter(logging.Filter):
+class LoggerMessageFilter(_logging.Filter):
     """LoggerMessageFilter."""
 
-    def __init__(self, module: str, filter_regex: re.Pattern):
+    def __init__(self, module: str, filter_regex: _re.Pattern):
         super().__init__()
         self._pattern = filter_regex
         self._module = module
@@ -169,8 +169,8 @@ class LoggerMessageFilter(logging.Filter):
         return True
 
 
-@contextlib.contextmanager
-def suppress_logs(module: str, filter_regex: re.Pattern):
+@_contextlib.contextmanager
+def suppress_logs(module: str, filter_regex: _re.Pattern):
     """
     Context manager that suppresses log messages.
 
@@ -179,7 +179,7 @@ def suppress_logs(module: str, filter_regex: re.Pattern):
     expected log messages from third-party
     libraries that are not relevant to the current test.
     """
-    logger = logging.getLogger(module)
+    logger = _logging.getLogger(module)
     filter = LoggerMessageFilter(module=module, filter_regex=filter_regex)
     logger.addFilter(filter)
     try:
@@ -190,4 +190,4 @@ def suppress_logs(module: str, filter_regex: re.Pattern):
 
 def _debug(s: str) -> None:
     """Debug function to test logging level."""
-    logging.getLogger(__name__).debug(s)
+    _logging.getLogger(__name__).debug(s)

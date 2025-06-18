@@ -3,12 +3,12 @@
 
 """Utility to lazy load modules."""
 
-import importlib
-import sys
-import types
+import importlib as _importlib
+import sys as _sys
+import types as _types
 
 
-class LazyLoader(types.ModuleType):
+class LazyLoader(_types.ModuleType):
     """
     Class for module lazy loading.
 
@@ -31,9 +31,9 @@ class LazyLoader(types.ModuleType):
             return self._module
 
         # Import the target module and insert it into the parent's namespace
-        module = importlib.import_module(self.__name__)
+        module = _importlib.import_module(self.__name__)
         self._parent_module_globals[self._local_name] = module
-        sys.modules[self._local_name] = module
+        _sys.modules[self._local_name] = module
 
         # Update this object's dict so that if someone keeps a reference to the `LazyLoader`,
         # lookups are efficient (`__getattr__` is only called on lookups that fail).

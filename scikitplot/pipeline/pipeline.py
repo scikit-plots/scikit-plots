@@ -30,6 +30,11 @@ from sklearn.utils.metadata_routing import _routing_enabled, process_routing
 from sklearn.utils.metaestimators import available_if
 from sklearn.utils.validation import check_memory
 
+__all__ = [
+    "Pipeline",
+    "make_pipeline",
+]
+
 METHODS.append("transform_x_y")
 
 

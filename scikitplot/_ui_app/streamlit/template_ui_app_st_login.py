@@ -1,4 +1,4 @@
-"""template_st_login."""
+# template_st_login.py
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -9,9 +9,11 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 
-# template_st_login.py
+"""template_st_login."""
 
 from scikitplot import LazyImport  # logger
+
+__all__ = []
 
 # import streamlit as st
 st = LazyImport("streamlit", package="streamlit")
@@ -19,12 +21,16 @@ st = LazyImport("streamlit", package="streamlit")
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
+    __all__ += [
+        "st_login",
+    ]
+
     # ---------------------- Streamlit Module Interface ----------------------
     def authenticate_user(username: str, password: str) -> bool:
         """Stub auth logic — replace with real DB or API."""
         return username in ["", "admin", "guest"] and password in ["", "admin", "guest"]
 
-    def run_login_form_ui() -> "tuple[bool, str]":
+    def st_login() -> "tuple[bool, str]":
         """
         Render a login interface with both username/password and guest login.
 
@@ -91,7 +97,7 @@ if st:
             # Clear login form
             login_placeholder.empty()
 
-        with sidebar_placeholder:  # noqa: SIM117
+        with sidebar_placeholder:
             ## App starts below only after login
             authenticated = st.session_state.get("authenticated", False)
             username = st.session_state.get("username", "guest")
@@ -122,4 +128,4 @@ if st:
     # ---------------------- Main Entrypoint ----------------------
 
     if __name__ == "__main__":
-        run_login_form_ui()
+        st_login()

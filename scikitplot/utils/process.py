@@ -1,9 +1,9 @@
 """process."""
 
-import functools
-import os
-import subprocess
-import sys
+import functools as _functools
+import os as _os
+import subprocess as _subprocess
+import sys as _sys
 
 # from .utils.databricks_utils import is_in_databricks_runtime
 from ..utils.os import is_windows
@@ -37,7 +37,7 @@ class ShellCommandException(Exception):  # noqa: N818
 def _remove_inaccessible_python_path(env):
     """Remove inaccessible path from PYTHONPATH environment variable."""
     if python_path := env.get("PYTHONPATH"):
-        paths = [p for p in python_path.split(":") if os.access(p, os.R_OK)]
+        paths = [p for p in python_path.split(":") if _os.access(p, _os.R_OK)]
         env["PYTHONPATH"] = ":".join(paths)
     return env
 
@@ -96,8 +96,8 @@ def _exec_cmd(  # noqa: PLR0912
             "`capture_output=True` and `stream_output=True` cannot be specified at the same time"
         )
 
-    # Copy current `os.environ` or passed in `env` to avoid mutating it.
-    env = env or os.environ.copy()
+    # Copy current `_os.environ` or passed in `env` to avoid mutating it.
+    env = env or _os.environ.copy()
     if extra_env is not None:
         env.update(extra_env)
 
@@ -118,16 +118,16 @@ def _exec_cmd(  # noqa: PLR0912
             raise ValueError(
                 "stdout and stderr arguments may not be used with capture_output or stream_output"
             )
-        kwargs["stdout"] = subprocess.PIPE
+        kwargs["stdout"] = _subprocess.PIPE
         if capture_output:
-            kwargs["stderr"] = subprocess.PIPE
+            kwargs["stderr"] = _subprocess.PIPE
         elif stream_output:
             # Redirect stderr to stdout in order to combine the streams for unified printing to
             # `sys.stdout`, as documented in
             # https://docs.python.org/3/library/subprocess.html#subprocess.run
-            kwargs["stderr"] = subprocess.STDOUT
+            kwargs["stderr"] = _subprocess.STDOUT
 
-    process = subprocess.Popen(  # noqa: S603
+    process = _subprocess.Popen(  # noqa: S603
         cmd,
         env=env,
         text=True,
@@ -138,11 +138,11 @@ def _exec_cmd(  # noqa: PLR0912
 
     if stream_output:
         for output_char in iter(lambda: process.stdout.read(1), ""):
-            sys.stdout.write(output_char)
+            _sys.stdout.write(output_char)
 
     stdout, stderr = process.communicate()
     returncode = process.poll()
-    comp_process = subprocess.CompletedProcess(
+    comp_process = _subprocess.CompletedProcess(
         process.args,
         returncode=returncode,
         stdout=stdout,
@@ -174,7 +174,7 @@ def cache_return_value_per_process(fn):
     and all the argument values must be hashable.
     """
 
-    @functools.wraps(fn)
+    @_functools.wraps(fn)
     def wrapped_fn(*args, **kwargs):
         if len(kwargs) > 0:
             raise ValueError(
@@ -183,11 +183,11 @@ def cache_return_value_per_process(fn):
             )
         if (fn, args) in _per_process_value_cache_map:
             prev_value, prev_pid = _per_process_value_cache_map.get((fn, args))
-            if os.getpid() == prev_pid:
+            if _os.getpid() == prev_pid:
                 return prev_value
 
         new_value = fn(*args)
-        new_pid = os.getpid()
+        new_pid = _os.getpid()
         _per_process_value_cache_map[(fn, args)] = (new_value, new_pid)
         return new_value
 

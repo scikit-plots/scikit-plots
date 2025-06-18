@@ -1,9 +1,3 @@
-"""
-Streamlit Conversational UI.
-
-- https://docs.streamlit.io/develop/tutorials/chat-and-llm-apps/build-conversational-apps
-"""
-
 # template_st_chat_ui.py
 
 # Authors: The scikit-plots developers
@@ -13,6 +7,12 @@ Streamlit Conversational UI.
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
+
+"""
+Streamlit Conversational UI.
+
+- https://docs.streamlit.io/develop/tutorials/chat-and-llm-apps/build-conversational-apps
+"""
 
 # import os
 from typing import Optional, Union
@@ -24,12 +24,20 @@ from scikitplot.llm_provider import (
     load_mlflow_gateway_config,
 )
 
+__all__ = []
+
 # import streamlit as st
 st = LazyImport("streamlit", package="streamlit")
 
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
+    __all__ += [
+        "get_response",
+        "st_add_sidebar_api_key",
+        "st_chat",
+    ]
+
     # Cache pure data (e.g., DataFrames, results), Assumes immutable return values
     @st.cache_data
     def cached_config(path: str) -> "dict[str, any]":
@@ -96,7 +104,7 @@ if st:
     ## api_key config UI
     ######################################################################
 
-    def api_key_config_ui(
+    def st_add_sidebar_api_key(
         config_path: str | None = None,
     ) -> "tuple[str, str, str | None]":
         """
@@ -258,7 +266,7 @@ if st:
     ## chat UI
     ######################################################################
 
-    def run_chat_ui():  # noqa: PLR0912
+    def st_chat():  # noqa: PLR0912
         """
         Render a simple chat interface using Streamlit with message history.
 
@@ -272,7 +280,7 @@ if st:
         - "messages": list of message dictionaries (role: 'user' or 'assistant', content: str)
         """
         # Sidebar for controlling expanders and categories
-        api_key_config_ui()
+        st_add_sidebar_api_key()
 
         # Placeholder
         with st.empty().container(border=True):
@@ -435,4 +443,4 @@ if st:
     # ---------------------- Entrypoint ----------------------
 
     if __name__ == "__main__":
-        run_chat_ui()
+        st_chat()

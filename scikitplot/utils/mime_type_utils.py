@@ -1,7 +1,7 @@
 """mime_type_utils.py."""
 
-import os
-import pathlib
+import os as _os
+import pathlib as _pathlib
 from mimetypes import guess_type
 
 
@@ -38,8 +38,8 @@ def get_text_extensions():
 
 
 def _guess_mime_type(file_path):
-    filename = pathlib.Path(file_path).name
-    extension = os.path.splitext(filename)[-1].replace(".", "")  # noqa: PTH122
+    filename = _pathlib.Path(file_path).name
+    extension = _os.path.splitext(filename)[-1].replace(".", "")  # noqa: PTH122
     # for MLmodel/mlproject with no extensions
     if extension == "":
         extension = filename

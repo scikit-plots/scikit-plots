@@ -1,3 +1,5 @@
+# Pytest customization conftest.py
+
 # pylint: skip-file
 # ruff: noqa: PGH004
 # ruff: noqa
@@ -5,20 +7,18 @@
 # type: ignore
 # mypy: ignore-errors
 
-# Pytest customization conftest.py
+import gc as _gc
+import json as _json
+import os as _os
+import tempfile as _tempfile
+import warnings as _warnings
 
-import gc
-import json
-import os
-import tempfile
-import warnings
+import hypothesis as _hypothesis
+import pytest as _pytest
 
-import hypothesis
-import pytest
-
-import numpy as np
-import numpy.testing as np_testing
-import pandas as pd
+import numpy as _np
+import numpy.testing as _np_testing
+import pandas as _pd
 
 from ._lib import _pep440
 from ._lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE
@@ -29,7 +29,7 @@ from ._lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE
 
 # Following the approach of Scipy's conftest.py...
 try:
-    import pytest_run_parallel  # noqa:F401
+    import pytest_run_parallel as _pytest_run_parallel  # noqa:F401
 
     PARALLEL_RUN_AVAILABLE = True
 except Exception:
@@ -77,26 +77,26 @@ def pytest_configure(config):
 def pytest_runtest_setup(item):
     # Before each test
     # Trigger garbage collection
-    gc.collect()
+    _gc.collect()
 
     mark = item.get_closest_marker("xslow")
     if mark is not None:
         try:
-            v = int(os.environ.get("SKPLT_XSLOW", "0"))
+            v = int(_os.environ.get("SKPLT_XSLOW", "0"))
         except ValueError:
             v = False
         if not v:
-            pytest.skip(
+            _pytest.skip(
                 "very slow test; set environment variable SKPLT_XSLOW=1 to run it"
             )
     mark = item.get_closest_marker("xfail_on_32bit")
-    if mark is not None and np.intp(0).itemsize < 8:
-        pytest.xfail(f"Fails on our 32-bit test platform(s): {mark.args[0]}")
+    if mark is not None and _np.intp(0).itemsize < 8:
+        _pytest.xfail(f"Fails on our 32-bit test platform(s): {mark.args[0]}")
 
     # Older versions of threadpoolctl have an issue that may lead to this
     # warning being emitted, see gh-14441
-    with np_testing.suppress_warnings() as sup:
-        sup.filter(pytest.PytestUnraisableExceptionWarning)
+    with _np_testing.suppress_warnings() as sup:
+        sup.filter(_pytest.PytestUnraisableExceptionWarning)
 
         try:
             from threadpoolctl import threadpool_limits
@@ -112,13 +112,13 @@ def pytest_runtest_setup(item):
             # sklearn does (it can rely on threadpoolctl and its builtin OpenMP helper
             # functions)
             try:
-                xdist_worker_count = int(os.environ["PYTEST_XDIST_WORKER_COUNT"])
+                xdist_worker_count = int(_os.environ["PYTEST_XDIST_WORKER_COUNT"])
             except KeyError:
                 # raises when pytest-xdist is not installed
                 return
 
-            if not os.getenv("OMP_NUM_THREADS"):
-                max_openmp_threads = os.cpu_count() // 2  # use nr of physical cores
+            if not _os.getenv("OMP_NUM_THREADS"):
+                max_openmp_threads = _os.cpu_count() // 2  # use nr of physical cores
                 threads_per_worker = max(max_openmp_threads // xdist_worker_count, 1)
                 try:
                     threadpool_limits(threads_per_worker, user_api="blas")
@@ -131,20 +131,20 @@ def pytest_runtest_setup(item):
 def pytest_runtest_teardown(item, nextitem):
     # After each test
     # Trigger garbage collection
-    gc.collect()
+    _gc.collect()
 
 
 ######################################################################
 ## pytest: run_gc
 ######################################################################
 
-# @pytest.fixture(autouse=True)
+# @_pytest.fixture(autouse=True)
 # def run_gc():
 #     # Run garbage collection before each test
-#     gc.collect()
+#     _gc.collect()
 #     yield
 #     # Run garbage collection after each test
-#     gc.collect()
+#     _gc.collect()
 
 ######################################################################
 ## pytest: num_parallel_threads
@@ -152,18 +152,18 @@ def pytest_runtest_teardown(item, nextitem):
 
 if not PARALLEL_RUN_AVAILABLE:
 
-    @pytest.fixture
+    @_pytest.fixture
     def num_parallel_threads():
         return 1
 
 
 ######################################################################
-## pytest fixture: plotting
+## _pytest fixture: plotting
 ######################################################################
 
 
 # Following the approach of Seaborn's conftest.py...
-@pytest.fixture(autouse=True)
+@_pytest.fixture(autouse=True)
 def close_figs():
     yield
     import matplotlib.pyplot as plt
@@ -171,24 +171,24 @@ def close_figs():
     plt.close("all")
 
 
-@pytest.fixture(autouse=True)
+@_pytest.fixture(autouse=True)
 def random_seed():
     # seed = sum(map(ord, "seaborn random global"))
-    np.random.seed(0)
+    _np.random.seed(0)
 
 
-@pytest.fixture
+@_pytest.fixture
 def rng():
     # seed = sum(map(ord, "seaborn random object"))
-    return np.random.RandomState(0)
+    return _np.random.RandomState(0)
 
 
 ######################################################################
-## pytest fixture: xarray
+## _pytest fixture: xarray
 ######################################################################
 
 
-@pytest.fixture
+@_pytest.fixture
 def xr():
     """
     Fixture to import xarray so that the test is skipped when xarray is not installed.
@@ -199,19 +199,19 @@ def xr():
     Request the xarray fixture by passing in ``xr`` as an argument to the test ::
 
         def test_imshow_xarray(xr):
-            ds = xr.DataArray(np.random.randn(2, 3))
+            ds = xr.DataArray(_np.random.randn(2, 3))
             im = plt.figure().subplots().imshow(ds)
-            np.testing.assert_array_equal(im.get_array(), ds)
+            _np.testing.assert_array_equal(im.get_array(), ds)
 
     """
-    return pytest.importorskip("xarray")
+    return _pytest.importorskip("xarray")
 
 
 ######################################################################
 ## if not import skip pandas
 ######################################################################
 
-# @pytest.fixture
+# @_pytest.fixture
 # def pd():
 #     """
 #     Fixture to import and configure pandas. Using this fixture, the test is skipped when
@@ -225,9 +225,9 @@ def xr():
 
 #             df = pd.DataFrame({'x':[1,2,3], 'y':[4,5,6]})
 #             im = plt.figure().subplots().matshow(df)
-#             np.testing.assert_array_equal(im.get_array(), df)
+#             _np.testing.assert_array_equal(im.get_array(), df)
 #     """
-#     pd = pytest.importorskip('pandas')
+#     _pd = _pytest.importorskip('pandas')
 #     try:
 #         from pandas.plotting import (
 #             deregister_matplotlib_converters as deregister
@@ -235,47 +235,47 @@ def xr():
 #         deregister()
 #     except ImportError:
 #         pass
-#     return pd
+#     return _pd
 
 ######################################################################
-## pytest fixture: numpy, pandas dataset
+## _pytest fixture: numpy, pandas dataset
 ######################################################################
 
 
-@pytest.fixture
+@_pytest.fixture
 def wide_df(rng):
     columns = list("abc")
-    index = pd.RangeIndex(10, 50, 2, name="wide_index")
+    index = _pd.RangeIndex(10, 50, 2, name="wide_index")
     values = rng.normal(size=(len(index), len(columns)))
-    return pd.DataFrame(values, index=index, columns=columns)
+    return _pd.DataFrame(values, index=index, columns=columns)
 
 
-@pytest.fixture
+@_pytest.fixture
 def wide_array(wide_df):
     return wide_df.to_numpy()
 
 
 # TODO s/flat/thin?
-@pytest.fixture
+@_pytest.fixture
 def flat_series(rng):
-    index = pd.RangeIndex(10, 30, name="t")
-    return pd.Series(rng.normal(size=20), index, name="s")
+    index = _pd.RangeIndex(10, 30, name="t")
+    return _pd.Series(rng.normal(size=20), index, name="s")
 
 
-@pytest.fixture
+@_pytest.fixture
 def flat_array(flat_series):
     return flat_series.to_numpy()
 
 
-@pytest.fixture
+@_pytest.fixture
 def flat_list(flat_series):
     return flat_series.to_list()
 
 
-@pytest.fixture(params=["series", "array", "list"])
+@_pytest.fixture(params=["series", "array", "list"])
 def flat_data(rng, request):
-    index = pd.RangeIndex(10, 30, name="t")
-    series = pd.Series(rng.normal(size=20), index, name="s")
+    index = _pd.RangeIndex(10, 30, name="t")
+    series = _pd.Series(rng.normal(size=20), index, name="s")
 
     if request.param == "series":
         data = series
@@ -286,43 +286,43 @@ def flat_data(rng, request):
     return data
 
 
-@pytest.fixture
+@_pytest.fixture
 def wide_list_of_series(rng):
     return [
-        pd.Series(rng.normal(size=20), np.arange(20), name="a"),
-        pd.Series(rng.normal(size=10), np.arange(5, 15), name="b"),
+        _pd.Series(rng.normal(size=20), _np.arange(20), name="a"),
+        _pd.Series(rng.normal(size=10), _np.arange(5, 15), name="b"),
     ]
 
 
-@pytest.fixture
+@_pytest.fixture
 def wide_list_of_arrays(wide_list_of_series):
     return [s.to_numpy() for s in wide_list_of_series]
 
 
-@pytest.fixture
+@_pytest.fixture
 def wide_list_of_lists(wide_list_of_series):
     return [s.to_list() for s in wide_list_of_series]
 
 
-@pytest.fixture
+@_pytest.fixture
 def wide_dict_of_series(wide_list_of_series):
     return {s.name: s for s in wide_list_of_series}
 
 
-@pytest.fixture
+@_pytest.fixture
 def wide_dict_of_arrays(wide_list_of_series):
     return {s.name: s.to_numpy() for s in wide_list_of_series}
 
 
-@pytest.fixture
+@_pytest.fixture
 def wide_dict_of_lists(wide_list_of_series):
     return {s.name: s.to_list() for s in wide_list_of_series}
 
 
-@pytest.fixture
+@_pytest.fixture
 def long_df(rng):
     n = 100
-    df = pd.DataFrame(
+    df = _pd.DataFrame(
         dict(
             x=rng.uniform(0, 20, n).round().astype("int"),
             y=rng.normal(size=n),
@@ -331,17 +331,17 @@ def long_df(rng):
             b=rng.choice(list("mnop"), n),
             c=rng.choice([0, 1], n, [0.3, 0.7]),
             d=rng.choice(
-                np.arange("2004-07-30", "2007-07-30", dtype="datetime64[Y]"), n
+                _np.arange("2004-07-30", "2007-07-30", dtype="datetime64[Y]"), n
             ),
             t=rng.choice(
-                np.arange("2004-07-30", "2004-07-31", dtype="datetime64[m]"), n
+                _np.arange("2004-07-30", "2004-07-31", dtype="datetime64[m]"), n
             ),
             s=rng.choice([2, 4, 8], n),
             f=rng.choice([0.2, 0.3], n),
         )
     )
     a_cat = df["a"].astype("category")
-    new_categories = np.roll(a_cat.cat.categories, 1)
+    new_categories = _np.roll(a_cat.cat.categories, 1)
     df["a_cat"] = a_cat.cat.reorder_categories(new_categories)
 
     df["s_cat"] = df["s"].astype("category")
@@ -350,36 +350,36 @@ def long_df(rng):
     return df
 
 
-@pytest.fixture
+@_pytest.fixture
 def long_dict(long_df):
     return long_df.to_dict()
 
 
-@pytest.fixture
+@_pytest.fixture
 def repeated_df(rng):
     n = 100
-    return pd.DataFrame(
+    return _pd.DataFrame(
         dict(
-            x=np.tile(np.arange(n // 2), 2),
+            x=_np.tile(_np.arange(n // 2), 2),
             y=rng.normal(size=n),
             a=rng.choice(list("abc"), n),
-            u=np.repeat(np.arange(2), n // 2),
+            u=_np.repeat(_np.arange(2), n // 2),
         )
     )
 
 
-@pytest.fixture
+@_pytest.fixture
 def null_df(rng, long_df):
     df = long_df.copy()
     for col in df:
-        if pd.api.types.is_integer_dtype(df[col]):
+        if _pd.api.types.is_integer_dtype(df[col]):
             df[col] = df[col].astype(float)
         idx = rng.permutation(df.index)[:10]
-        df.loc[idx, col] = np.nan
+        df.loc[idx, col] = _np.nan
     return df
 
 
-@pytest.fixture
+@_pytest.fixture
 def object_df(rng, long_df):
     df = long_df.copy()
     # objectify numeric columns
@@ -388,9 +388,9 @@ def object_df(rng, long_df):
     return df
 
 
-@pytest.fixture
+@_pytest.fixture
 def null_series(flat_series):
-    return pd.Series(index=flat_series.index, dtype="float64")
+    return _pd.Series(index=flat_series.index, dtype="float64")
 
 
 class MockInterchangeableDataFrame:
@@ -403,7 +403,7 @@ class MockInterchangeableDataFrame:
         return self._data.__dataframe__(*args, **kwargs)
 
 
-@pytest.fixture
+@_pytest.fixture
 def mock_long_df(long_df):
     return MockInterchangeableDataFrame(long_df)
 
@@ -413,7 +413,7 @@ def mock_long_df(long_df):
 ######################################################################
 
 # Array API backend handling
-xp_available_backends = {"numpy": np}
+xp_available_backends = {"numpy": _np}
 
 if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
     # fill the dict of backends with available libraries
@@ -435,7 +435,7 @@ if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
         torch.set_default_device(SKPLT_DEVICE)
 
         # default to float64 unless explicitly requested
-        default = os.getenv("SKPLT_DEFAULT_DTYPE", default="float64")
+        default = _os.getenv("SKPLT_DEFAULT_DTYPE", default="float64")
         if default == "float64":
             torch.set_default_dtype(torch.float64)
         elif default != "float32":
@@ -464,7 +464,7 @@ if SKPLT_ARRAY_API and isinstance(SKPLT_ARRAY_API, str):
 
     # by default, use all available backends
     if SKPLT_ARRAY_API.lower() not in ("1", "true"):
-        SKPLT_ARRAY_API_ = json.loads(SKPLT_ARRAY_API)
+        SKPLT_ARRAY_API_ = _json.loads(SKPLT_ARRAY_API)
 
         if "all" in SKPLT_ARRAY_API_:
             pass  # same as True
@@ -484,7 +484,7 @@ if "cupy" in xp_available_backends:
     SKPLT_DEVICE = "cuda"
 
     # this is annoying in CuPy 13.x
-    warnings.filterwarnings(
+    _warnings.filterwarnings(
         "ignore", "cupyx.jit.rawkernel is experimental", category=FutureWarning
     )
     from cupyx.scipy import signal
@@ -492,9 +492,9 @@ if "cupy" in xp_available_backends:
     del signal
 
 
-@pytest.fixture(
+@_pytest.fixture(
     params=[
-        pytest.param(v, id=k, marks=pytest.mark.array_api_backends)
+        _pytest.param(v, id=k, marks=_pytest.mark.array_api_backends)
         for k, v in xp_available_backends.items()
     ]
 )
@@ -521,11 +521,11 @@ def xp(request):
 
 
 # array_api_compatible = (
-#   pytest.mark.parametrize("xp", xp_available_backends.values())
+#   _pytest.mark.parametrize("xp", xp_available_backends.values())
 # )
-array_api_compatible = pytest.mark.array_api_compatible
+array_api_compatible = _pytest.mark.array_api_compatible
 
-skip_xp_invalid_arg = pytest.mark.skipif(
+skip_xp_invalid_arg = _pytest.mark.skipif(
     SKPLT_ARRAY_API,
     reason=(
         "Test involves masked arrays, object arrays, or other types "
@@ -571,7 +571,7 @@ def _backends_kwargs_from_request(request, skip_or_xfail):
     return backends, kwargs
 
 
-@pytest.fixture
+@_pytest.fixture
 def skip_xp_backends(xp, request):
     """
     skip_xp_backends(backend=None, reason=None, np_only=False, cpu_only=False, exceptions=None)
@@ -590,7 +590,7 @@ def skip_xp_backends(xp, request):
     skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="skip")
 
 
-@pytest.fixture
+@_pytest.fixture
 def xfail_xp_backends(xp, request):
     """
     xfail_xp_backends(backend=None, reason=None, np_only=False, cpu_only=False, exceptions=None)
@@ -642,7 +642,7 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="skip"):
         ``'skip'`` to skip, ``'xfail'`` to xfail.
 
     """
-    skip_or_xfail = getattr(pytest, skip_or_xfail)
+    skip_or_xfail = getattr(_pytest, skip_or_xfail)
     np_only = kwargs.get("np_only", False)
     cpu_only = kwargs.get("cpu_only", False)
     exceptions = kwargs.get("exceptions", [])
@@ -705,28 +705,28 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail="skip"):
 # Following the approach of NumPy's conftest.py...
 # Use a known and persistent tmpdir for hypothesis' caches, which
 # can be automatically cleared by the OS or user.
-hypothesis.configuration.set_hypothesis_home_dir(
-    os.path.join(tempfile.gettempdir(), ".hypothesis")
+_hypothesis.configuration.set_hypothesis_home_dir(
+    _os.path.join(_tempfile.gettempdir(), ".hypothesis")
 )
 # We register two custom profiles for SciPy - for details see
 # https://hypothesis.readthedocs.io/en/latest/settings.html
 # The first is designed for our own CI runs; the latter also
 # forces determinism and is designed for use via scipy.test()
-hypothesis.settings.register_profile(
+_hypothesis.settings.register_profile(
     name="nondeterministic", deadline=None, print_blob=True
 )
-hypothesis.settings.register_profile(
+_hypothesis.settings.register_profile(
     name="deterministic",
     deadline=None,
     print_blob=True,
     database=None,
     derandomize=True,
-    suppress_health_check=list(hypothesis.HealthCheck),
+    suppress_health_check=list(_hypothesis.HealthCheck),
 )
 # Profile is currently set by environment variable `SKPLT_HYPOTHESIS_PROFILE`
 # In the future, it would be good to work the choice into dev.py.
-SKPLT_HYPOTHESIS_PROFILE = os.environ.get("SKPLT_HYPOTHESIS_PROFILE", "deterministic")
-hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
+SKPLT_HYPOTHESIS_PROFILE = _os.environ.get("SKPLT_HYPOTHESIS_PROFILE", "deterministic")
+_hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 
 ######################################################################
 ## doctesting stuff
@@ -804,23 +804,23 @@ hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 #         # also control the random seed for each doctest.
 
 #         # XXX: this matches the refguide-check behavior, but is a tad strange:
-#         # makes sure that the seed the old-fashioned np.random* methods is
+#         # makes sure that the seed the old-fashioned _np.random* methods is
 #         # *NOT* reproducible but the new-style `default_rng()` *IS* reproducible.
 #         # Should these two be either both repro or both not repro?
 
 #         from scipy._lib._util import _fixed_default_rng
-#         import numpy as np
+#         import numpy as _np
 #         with _fixed_default_rng():
-#             np.random.seed(None)
-#             with warnings.catch_warnings():
+#             _np.random.seed(None)
+#             with _warnings.catch_warnings():
 #                 if test and test.name in known_warnings:
-#                     warnings.filterwarnings('ignore',
+#                     _warnings.filterwarnings('ignore',
 #                                             **known_warnings[test.name])
 #                     yield
 #                 elif test and test.name in legit:
 #                     yield
 #                 else:
-#                     warnings.simplefilter('error', Warning)
+#                     _warnings.simplefilter('error', Warning)
 #                     yield
 
 #     dt_config.user_context_mgr = warnings_errors_and_rng
@@ -833,7 +833,7 @@ hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 #         'scipy.optimize.show_options',  # does not have much to doctest
 #         'scipy.signal.normalize',       # manipulates warnings (XXX temp skip)
 #         'scipy.sparse.linalg.norm',     # XXX temp skip
-#         # these below test things which inherit from np.ndarray
+#         # these below test things which inherit from _np.ndarray
 #         # cross-ref https://github.com/numpy/numpy/issues/28019
 #         'scipy.io.matlab.MatlabObject.strides',
 #         'scipy.io.matlab.MatlabObject.dtype',
@@ -844,7 +844,7 @@ hypothesis.settings.load_profile(SKPLT_HYPOTHESIS_PROFILE)
 #     ])
 
 #     # these are affected by NumPy 2.0 scalar repr: rely on string comparison
-#     if np.__version__ < "2":
+#     if _np.__version__ < "2":
 #         dt_config.skiplist.update(set([
 #             'scipy.io.hb_read',
 #             'scipy.io.hb_write',

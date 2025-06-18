@@ -3,7 +3,7 @@
 # pylint: disable=unused-import
 # pylint: disable=consider-using-f-string
 
-import warnings
+import warnings as _warnings
 from functools import reduce, wraps  # noqa: F401
 from inspect import Parameter, isclass, signature  # noqa: F401
 
@@ -49,7 +49,7 @@ def _deprecate_positional_args(func=None, *, version="1.3"):
                 for name, arg in zip(kwonly_args[:extra_args], args[-extra_args:])
             ]
             args_msg = ", ".join(args_msg)
-            warnings.warn(
+            _warnings.warn(
                 (
                     f"Pass {args_msg} as keyword args. From version "
                     f"{version} passing these as positional arguments "

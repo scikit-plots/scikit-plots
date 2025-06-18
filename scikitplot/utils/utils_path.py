@@ -10,13 +10,12 @@ For saving result images (such as plots).
 # pylint: disable=broad-exception-caught
 # pylint: disable=unused-argument
 
-import os  # noqa: I001
-import re
-import shutil
+import os as _os
+import re as _re
+import shutil as _shutil
 
 # from pathlib import Path
 from datetime import datetime
-
 from typing import TYPE_CHECKING  # pylint: disable=wrong-import-order
 
 if TYPE_CHECKING:
@@ -89,10 +88,10 @@ def _filename_extension_normalizer(
         if ext is None:
             for allowed in allowed_exts:
                 if filename_lower.endswith(allowed.lower()):
-                    filename, matched_ext = os.path.splitext(filename)  # noqa: PTH122
+                    filename, matched_ext = _os.path.splitext(filename)  # noqa: PTH122
                     break
             if matched_ext is None:
-                filename, _ = os.path.splitext(filename)  # noqa: PTH122
+                filename, _ = _os.path.splitext(filename)  # noqa: PTH122
                 matched_ext = default_ext
         else:
             if not ext.startswith("."):
@@ -124,7 +123,7 @@ def _filename_sanitizer(filename: str) -> str:
         A sanitized filename safe for saving.
     """
     # Replace invalid characters with '_'
-    return re.sub(r'[<>:"/\\|?*]', "_", filename)
+    return _re.sub(r'[<>:"/\\|?*]', "_", filename)
 
 
 def _filename_uniquer(full_path, file_path, filename):
@@ -146,13 +145,13 @@ def _filename_uniquer(full_path, file_path, filename):
         A tuple containing the full path, file path, and filename,
         ensuring uniqueness.
     """
-    base, extension = os.path.splitext(filename)  # noqa: PTH122
+    base, extension = _os.path.splitext(filename)  # noqa: PTH122
     counter = 1
-    while os.path.exists(full_path):  # noqa: PTH110
+    while _os.path.exists(full_path):  # noqa: PTH110
         new_filename = f"{base}_{counter}{extension}"
-        full_path = os.path.join(file_path, new_filename)  # noqa: PTH118
+        full_path = _os.path.join(file_path, new_filename)  # noqa: PTH118
         counter += 1
-    filename = os.path.basename(full_path)  # noqa: PTH119
+    filename = _os.path.basename(full_path)  # noqa: PTH119
     return full_path, file_path, filename
 
 
@@ -229,19 +228,19 @@ def get_file_path(  # noqa: D417
 
     # Set the default file path if not provided
     if file_path is None:
-        file_path = os.path.join(os.getcwd(), "result_images")  # noqa: PTH109,PTH118
+        file_path = _os.path.join(_os.getcwd(), "result_images")  # noqa: PTH109,PTH118
 
     # Add subfolder to path if provided
     if subfolder:
-        file_path = os.path.join(  # noqa: PTH118
+        file_path = _os.path.join(  # noqa: PTH118
             file_path, _filename_sanitizer(subfolder)
         )  # noqa: PTH118
 
     # Ensure the directory exists
-    os.makedirs(file_path, exist_ok=True)  # noqa: PTH103
+    _os.makedirs(file_path, exist_ok=True)  # noqa: PTH103
 
     # Full path of the file
-    full_path = os.path.join(file_path, filename)  # noqa: PTH118
+    full_path = _os.path.join(file_path, filename)  # noqa: PTH118
 
     # Handle file overwriting if the flag is set to False
     if not overwrite:
@@ -290,7 +289,7 @@ def remove_paths(
     - Any exceptions raised during removal will be silently ignored.
     """
     if base_path is None:
-        base_path = os.getcwd()  # noqa: PTH109  # Default to current working directory
+        base_path = _os.getcwd()  # noqa: PTH109  # Default to current working directory
 
     if paths is None:
         paths = [
@@ -300,23 +299,23 @@ def remove_paths(
 
     for p in paths:
         try:
-            path_to_remove = os.path.join(base_path, p)  # noqa: PTH118
+            path_to_remove = _os.path.join(base_path, p)  # noqa: PTH118
 
             # Check if it's a file and remove it
-            if os.path.isfile(  # noqa: PTH113
+            if _os.path.isfile(  # noqa: PTH113
                 path_to_remove
-            ) and os.path.exists(  # noqa: PTH110, PTH113
+            ) and _os.path.exists(  # noqa: PTH110, PTH113
                 path_to_remove
             ):  # noqa: PTH110
-                os.remove(path_to_remove)  # noqa: PTH107
+                _os.remove(path_to_remove)  # noqa: PTH107
 
             # Check if it's a directory and remove it
-            elif os.path.isdir(  # noqa: PTH112
+            elif _os.path.isdir(  # noqa: PTH112
                 path_to_remove
-            ) and os.path.exists(  # noqa: PTH110, PTH112
+            ) and _os.path.exists(  # noqa: PTH110, PTH112
                 path_to_remove
             ):  # noqa: PTH110
-                shutil.rmtree(path_to_remove)
+                _shutil.rmtree(path_to_remove)
         except Exception:
             # Log the error silently or add specific logging if needed
             pass

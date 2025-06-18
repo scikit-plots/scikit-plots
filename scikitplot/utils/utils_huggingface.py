@@ -10,9 +10,9 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 
-import os
+import os as _os
 
-from .. import logger
+from .. import logger as _logger
 from ..exceptions import ScikitplotException
 
 # from openai import OpenAI
@@ -56,12 +56,12 @@ def hf_login(
 
         if cli:
             ## This prompts you interactively for your token
-            logger.info("Starting interactive Hugging Face login via CLI...")
+            _logger.info("Starting interactive Hugging Face login via CLI...")
             login()
-            logger.info("Successfully logged in via CLI.")
+            _logger.info("Successfully logged in via CLI.")
         else:
             # Prefer explicitly provided token over environment (non-interactive)
-            token = token or os.getenv("HUGGINGFACE_TOKEN")
+            token = token or _os.getenv("HUGGINGFACE_TOKEN")
 
             if not token:
                 raise ScikitplotException(
@@ -69,7 +69,7 @@ def hf_login(
                     "pass it directly to `hf_login(token=...)`."
                 )
 
-            logger.info("Logging in to Hugging Face Hub via token...")
+            _logger.info("Logging in to Hugging Face Hub via token...")
             ## Log in using the token (non-interactive)
             login(token=token)
             ## Or configure a HfApi client
@@ -77,7 +77,7 @@ def hf_login(
             #     token=token, # Token is not persisted on the machine.
             #     # endpoint="https://huggingface.co", # Can be a Private Hub endpoint.
             # )
-            logger.info("Hugging Face login successful.")
+            _logger.info("Hugging Face login successful.")
 
         # logout()
         ## Use root method
@@ -89,10 +89,10 @@ def hf_login(
             "huggingface_hub is not installed. "
             "Run `pip install huggingface_hub` to use this feature."
         )
-        logger.exception(msg)
+        _logger.exception(msg)
         raise ScikitplotException(msg) from e
 
     except Exception as e:
         msg = f"Failed to log in to Hugging Face Hub: {e}"
-        logger.exception(msg)
+        _logger.exception(msg)
         raise ScikitplotException(msg) from e

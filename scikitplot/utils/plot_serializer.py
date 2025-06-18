@@ -9,24 +9,24 @@
 # pylint: disable=disallowed-name
 # pylint: disable=broad-exception-caught
 
-import collections.abc as cab
-import json
-import os
+import collections.abc as _cab
+import json as _json
+import os as _os
 
-import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
-import numpy as np  # type: ignore[reportMissingModuleSource]
+import matplotlib as _mpl  # noqa: ICN001
+import matplotlib.pyplot as _plt  # noqa: ICN001
+import numpy as _np  # noqa: ICN001
 
 # ========== UTILITIES ==========
 
 
 def safe_json_converter(o):
     """Convert NumPy types to native Python types for JSON."""
-    if isinstance(o, (np.integer, np.int32, np.int64)):
+    if isinstance(o, (_np.integer, _np.int32, _np.int64)):
         return int(o)
-    if isinstance(o, (np.floating, np.float32, np.float64)):
+    if isinstance(o, (_np.floating, _np.float32, _np.float64)):
         return float(o)
-    if isinstance(o, np.ndarray):
+    if isinstance(o, _np.ndarray):
         return o.tolist()
     raise TypeError(f"Object of type {type(o)} is not JSON serializable")
 
@@ -40,16 +40,16 @@ def get_ax_from_input(input_plot=None):  # noqa: PLR0912
     Parameters
     ----------
     input_plot: Can be any of the following:
-        - None: returns the current active Axes (plt.gca())
-        - mpl.axes.Axes: returned as-is
-        - mpl.figure.Figure: returns the default Axes using fig.gca()
+        - None: returns the current active Axes (_plt.gca())
+        - _mpl.axes.Axes: returned as-is
+        - _mpl.figure.Figure: returns the default Axes using fig.gca()
         - tuple: expected form is (Figure, Axes) or (Figure, list/array of Axes)
         - Iterable: list, tuple, or numpy.ndarray of Axes or Figures
 
     Returns
     -------
     matplotlib.axes.Axes
-        A single mpl.axes.Axes object or a list of such objects.
+        A single _mpl.axes.Axes object or a list of such objects.
 
     Raises
     ------
@@ -59,17 +59,17 @@ def get_ax_from_input(input_plot=None):  # noqa: PLR0912
 
     # Case 1: No input → return current active Axes
     if input_plot is None:
-        return plt.gca()
+        return _plt.gca()
 
     # Case 2: Direct Axes instance
-    if isinstance(input_plot, mpl.axes.Axes):
+    if isinstance(input_plot, _mpl.axes.Axes):
         return input_plot
 
     # Case 3: A single Figure instance → return its main Axes
-    if isinstance(input_plot, mpl.figure.Figure):
+    if isinstance(input_plot, _mpl.figure.Figure):
         return input_plot.gca()
 
-    # Case 4: Tuple input, typically from plt.subplots()
+    # Case 4: Tuple input, typically from _plt.subplots()
     if isinstance(input_plot, tuple):
         if len(input_plot) != 2:  # noqa: PLR2004
             raise TypeError(
@@ -79,29 +79,29 @@ def get_ax_from_input(input_plot=None):  # noqa: PLR0912
         _, ax = input_plot
 
         # Subcase: second element is single Axes
-        if isinstance(ax, mpl.axes.Axes):
+        if isinstance(ax, _mpl.axes.Axes):
             return ax
 
         # Subcase: second element is a sequence of Axes (e.g., from subplots)
-        elif isinstance(ax, (list, tuple, np.ndarray)) and all(  # noqa: RET505
-            isinstance(a, mpl.axes.Axes) for a in ax
+        elif isinstance(ax, (list, tuple, _np.ndarray)) and all(  # noqa: RET505
+            isinstance(a, _mpl.axes.Axes) for a in ax
         ):
             return list(ax)
 
         raise TypeError("Second element of tuple must be an Axes or iterable of Axes")
 
     # Case 5: Handle numpy arrays of Axes by flattening
-    if isinstance(input_plot, np.ndarray):
+    if isinstance(input_plot, _np.ndarray):
         input_plot = input_plot.flatten().tolist()
 
     # Case 6: Handle lists/tuples of Figures or Axes
-    if isinstance(input_plot, cab.Iterable):
+    if isinstance(input_plot, _cab.Iterable):
         axes_list = []
 
         for item in input_plot:
-            if isinstance(item, mpl.axes.Axes):
+            if isinstance(item, _mpl.axes.Axes):
                 axes_list.append(item)
-            elif isinstance(item, mpl.figure.Figure):
+            elif isinstance(item, _mpl.figure.Figure):
                 # Extract all Axes from the figure
                 axes_list.extend(item.get_axes())
 
@@ -268,7 +268,7 @@ def serialize_plot(input_plot=None, pretty=True):
         if data is None:
             raise ValueError("Serialization returned no data.")
 
-        return json.dumps(
+        return _json.dumps(
             data, indent=4 if pretty else None, default=safe_json_converter
         )
 
@@ -292,7 +292,7 @@ def save_to_file(json_str, path):
         File path to save to
     """
     try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)  # noqa: PTH103, PTH120
+        _os.makedirs(_os.path.dirname(path), exist_ok=True)  # noqa: PTH103, PTH120
         with open(path, "w", encoding="utf-8") as f:  # noqa: PTH123
             f.write(json_str)
         print(f"[INFO] Saved plot JSON to: {path}")  # noqa: T201

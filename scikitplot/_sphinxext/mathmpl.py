@@ -1,3 +1,9 @@
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
+
 r"""
 A role and directive to display mathtext in Sphinx
 ==================================================
@@ -69,12 +75,6 @@ mathmpl_srcset : list of str, default: []
     etc.) to generate (1x is the default and always included.)
 
 """
-
-# pylint: skip-file
-# ruff: noqa: PGH004
-# ruff: noqa
-# flake8: noqa
-# type: ignore
 
 import hashlib
 from pathlib import Path
