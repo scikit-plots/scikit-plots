@@ -4,9 +4,13 @@
 #
 # if: "${{ github.repository == 'scikit-plots/scikit-plots' }}"
 ---
-name: CI Docs Preview Link Redirect CircleCI Artifacts
+name: CI Docs Preview Link CircleCI Artifact
 
-on: [status]
+on: # [status]  # [status, workflow_dispatch]
+  workflow_dispatch: # Allows manual triggering of the workflow
+  status:
+    branches: [ "main", "*.X" ]
+    types: [completed]
   # pull_request:
   #   types: [opened, synchronize, reopened]
 
@@ -24,11 +28,11 @@ permissions: read-all  # to fetch code (actions/checkout)
 env:
   ## Initially set IS_SKIP as false (you can set it to true here if you prefer a different default value)
   IS_SKIP: false  # ${{ env.IS_SKIP == 'false' }}
-  # ACTIONS_STEP_DEBUG: true
+  ACTIONS_STEP_DEBUG: true  # optional but helps debug
 
 jobs:
   circleci_artifacts_redirector_job:
-    name: "CI Docs CircleCI Artifacts Redirector: Post Artifact Link"
+    name: "CI Docs Preview Link Post CircleCI Artifact Redirector"
     runs-on: ubuntu-latest
 
     # To enable this workflow on a fork, comment out:
@@ -43,10 +47,14 @@ jobs:
       statuses: write
 
     steps:
+      # - name: Wait for CircleCI to finish
+      #   run: sleep 120  # wait for build_docs to finish and upload artifacts
+
       - name: Redirect to Post CircleCI artifact link
         # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
         uses: scientific-python/circleci-artifacts-redirector-action@7eafdb60666f57706a5525a2f5eb76224dc8779b # v1.1.0
         # if: ${{ env.IS_SKIP == 'false' }}  # Accessing IS_SKIP set earlier
+        continue-on-error: true
         with:
           # api_token: ${{ env.CIRCLE_TOKEN }}
           api-token: ${{ secrets.CIRCLE_TOKEN }}  # Only if CircleCI project is private
