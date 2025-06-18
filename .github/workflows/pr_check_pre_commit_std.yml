@@ -1,6 +1,6 @@
 # https://github.com/pre-commit/action
 ---
-name: PR Check Pre Commit Standards
+name: PRs Check Pre Commit Standards
 
 # ✅ Prevents accidental direct pushes to main. Enforces review + CI.
 on:
@@ -24,6 +24,9 @@ permissions:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
       - name: Checkout (cloned) repository with full history
