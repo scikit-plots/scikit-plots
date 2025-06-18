@@ -13,7 +13,9 @@
 # 36 - Build(for changes to the building process,
 # 14 - Release(ensure wheels build before release)
 ---
-name: CI Wheels Conda
+# Built distribution (binary or pure Python)
+# .whl Designed to be a pre-built, installable package — no build step needed on install.
+name: CI Wheels (.whl) Conda
 
 on:
   ## manually trigger the workflow from the GitHub Actions UI.
@@ -429,13 +431,14 @@ jobs:
             exit 1  # Optional: fail the step if no wheels are found
           fi
 
-      - name: Upload Wheelhouse Wheels Packages
+      - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: >-
             Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
           path: ./wheelhouse/*.whl
+          # if-no-files-found: error
           # include-hidden-files: true
 
       - name: Conda environment creation and activation anaconda-client
@@ -561,7 +564,8 @@ jobs:
           # Build sdist on lowest supported Python
           python-version: "3.10"  # due to array api compat
 
-      - name: Build sdist
+      # Source distribution (raw source code archive)
+      - name: Build Source Distribution (.tar.gz, sdist) of a Python package
         run: |
           pip install -r requirements/build.txt
 
