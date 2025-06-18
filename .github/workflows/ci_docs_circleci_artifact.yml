@@ -10,7 +10,7 @@ on: # [status]  # [status, workflow_dispatch]
   workflow_dispatch: # Allows manual triggering of the workflow
   status:
     branches: [ "main", "*.X" ]
-    types: [completed]
+    # types: [completed]  # ?
   # pull_request:
   #   types: [opened, synchronize, reopened]
 
