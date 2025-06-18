@@ -25,6 +25,23 @@ version: 2.1
 # Here is where the real jobs are defined.
 ##########################################
 
+# Add a Pipeline Parameter and Trigger
+# Project Settings → Triggers → Add Trigger
+# Fill out:
+# Trigger Source: GitHub App
+# Event: "Label added to PR"
+# Label: run-ci (your label name)
+# Parameters:
+# {
+#   "docs_preview": true
+# }
+# This tells CircleCI:
+# When a PR gets the label run-ci, start a pipeline with docs_preview: true.
+parameters:
+  docs_preview:
+    type: boolean
+    default: false
+
 # Aliases to reuse
 _defaults: &defaults
   ## https://circleci.com/docs/install-machine-runner-3-on-linux/
@@ -214,6 +231,11 @@ jobs:
     description: "Build new docs"
     steps:
       - run: echo "Hi I'm on a Container Runner!"
+      - run:
+          name: Show docs_preview flag
+          command: |
+            echo "docs_preview: << pipeline.parameters.docs_preview >>" || true
+
       ## run built-in
       - checkout
       - run: ./tools/circle/checkout_merge_commit.sh
@@ -350,7 +372,12 @@ jobs:
 
 workflows:
   # version: 2
-  default:
+
+  # Accept Separate Workflow
+  default:  # docs-preview
+    # Wrap default Job with This Parameter
+    # when:
+    #   equal: [true, << pipeline.parameters.docs_preview >>]
     jobs:
       # NOTE: If you rename this job, then you must update the `if` condition
       # and `circleci-jobs` option in `.github/workflows/circleci.yml`.
