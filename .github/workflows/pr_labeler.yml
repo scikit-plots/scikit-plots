@@ -5,7 +5,9 @@ name: "PRs Labeler Automatically"
 on:
   ## Can write comments / labels on PR from fork?
   ## Use pull_request_target trigger if you're targeting a pull request from a fork:
+  ## pull_request_target triggers run with the base repo code, and has write permissions.
   ## pull_request:  Safer alternative to pull_request_target:
+  ## pull_request triggers run with the PR code, but no write access to secrets or repo.
   pull_request_target: # zizmor: ignore[dangerous-triggers]
     # types: [opened, reopened, synchronize, edited]  # Triggers only on these events
 
@@ -32,6 +34,8 @@ jobs:
     # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
 
+    # Optional: Restrict to Safe Users (e.g., internal team only)
+    # if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Checkout (cloned) repository with full history
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
