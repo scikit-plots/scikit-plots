@@ -5,7 +5,7 @@
 
 """utils_env."""
 
-import os
+import os as _os
 
 from .utils_dot_env import run_load_dotenv
 from .utils_st_secrets import get_env_st_secrets
@@ -29,6 +29,6 @@ def get_env_var(env_var: str = "", fallback: str | None = None) -> str | None:
     """
     try:
         run_load_dotenv(override=False)
-        return os.getenv(env_var) or get_env_st_secrets(env_var, fallback)
+        return _os.getenv(env_var) or get_env_st_secrets(env_var, fallback)
     except Exception:
         return fallback

@@ -7,12 +7,12 @@
 
 # ruff: noqa: D103
 
-import os
-import pathlib
-import posixpath
-import re
-import urllib.parse
-import uuid
+import os as _os
+import pathlib as _pathlib
+import posixpath as _posixpath
+import re as _re
+import urllib as _urllib
+import uuid as _uuid
 from typing import Any
 
 from ..exceptions import ScikitplotException
@@ -52,7 +52,7 @@ def is_local_uri(uri, is_tracking_or_registry_uri=True):  # noqa: PLR0911
         # windows network drive path looks like: "\\<server name>\path\..."
         return False
 
-    parsed_uri = urllib.parse.urlparse(uri)
+    parsed_uri = _urllib.parse.urlparse(uri)
     scheme = parsed_uri.scheme
     if scheme == "":
         return True
@@ -77,7 +77,7 @@ def is_local_uri(uri, is_tracking_or_registry_uri=True):  # noqa: PLR0911
     if (  # noqa: SIM103
         is_windows()
         and len(scheme) == 1
-        and scheme.lower() == pathlib.Path(uri).drive.lower()[0]
+        and scheme.lower() == _pathlib.Path(uri).drive.lower()[0]
     ):  # noqa: SIM103
         return True
 
@@ -85,12 +85,12 @@ def is_local_uri(uri, is_tracking_or_registry_uri=True):  # noqa: PLR0911
 
 
 def is_file_uri(uri):
-    scheme = urllib.parse.urlparse(uri).scheme
+    scheme = _urllib.parse.urlparse(uri).scheme
     return scheme == "file"
 
 
 def is_http_uri(uri):
-    scheme = urllib.parse.urlparse(uri).scheme
+    scheme = _urllib.parse.urlparse(uri).scheme
     return scheme in {"http", "https"}
 
 
@@ -101,7 +101,7 @@ def is_databricks_uri(uri):
     Look like 'databricks' (default profile) or 'databricks://profile'
     or 'databricks://secret_scope:secret_key_prefix'.
     """
-    scheme = urllib.parse.urlparse(uri).scheme
+    scheme = _urllib.parse.urlparse(uri).scheme
     return scheme == "databricks" or uri == "databricks"
 
 
@@ -112,7 +112,7 @@ def is_fuse_or_uc_volumes_uri(uri):
     Multiple directory paths are collapsed into a single designator for root path validation.
     For example, "////Volumes/" will resolve to "/Volumes/" for validation purposes.
     """
-    resolved_uri = re.sub("/+", "/", uri).lower()
+    resolved_uri = _re.sub("/+", "/", uri).lower()
     return any(
         resolved_uri.startswith(x.lower())
         for x in [
@@ -126,28 +126,28 @@ def is_fuse_or_uc_volumes_uri(uri):
 
 
 def _is_uc_volumes_path(path: str) -> bool:
-    return re.match(r"^/[vV]olumes?/", path) is not None
+    return _re.match(r"^/[vV]olumes?/", path) is not None
 
 
 def is_uc_volumes_uri(uri: str) -> bool:
-    parsed_uri = urllib.parse.urlparse(uri)
+    parsed_uri = _urllib.parse.urlparse(uri)
     return parsed_uri.scheme == "dbfs" and _is_uc_volumes_path(parsed_uri.path)
 
 
 def is_valid_uc_volumes_uri(uri: str) -> bool:
-    parsed_uri = urllib.parse.urlparse(uri)
+    parsed_uri = _urllib.parse.urlparse(uri)
     return parsed_uri.scheme == "dbfs" and bool(
-        re.match(r"^/[vV]olumes?/[^/]+/[^/]+/[^/]+/[^/]+", parsed_uri.path)
+        _re.match(r"^/[vV]olumes?/[^/]+/[^/]+/[^/]+/[^/]+", parsed_uri.path)
     )
 
 
 def is_databricks_unity_catalog_uri(uri):
-    scheme = urllib.parse.urlparse(uri).scheme
+    scheme = _urllib.parse.urlparse(uri).scheme
     return _DATABRICKS_UNITY_CATALOG_SCHEME in (scheme, uri)  # noqa: PLR1714
 
 
 def is_oss_unity_catalog_uri(uri):
-    scheme = urllib.parse.urlparse(uri).scheme
+    scheme = _urllib.parse.urlparse(uri).scheme
     return scheme == "uc"
 
 
@@ -182,7 +182,7 @@ def get_db_info_from_uri(uri):
 
     Otherwise returns None.
     """
-    parsed_uri = urllib.parse.urlparse(uri)
+    parsed_uri = _urllib.parse.urlparse(uri)
     if parsed_uri.scheme in ("databricks", _DATABRICKS_UNITY_CATALOG_SCHEME):
         # netloc should not be an empty string unless URI is formatted incorrectly.
         if parsed_uri.netloc == "":
@@ -211,7 +211,7 @@ def get_databricks_profile_uri_from_artifact_uri(uri, result_scheme="databricks"
     if it is a proper Databricks profile specification, e.g.
     ``profile@databricks`` or ``secret_scope:key_prefix@databricks``.
     """
-    parsed = urllib.parse.urlparse(uri)
+    parsed = _urllib.parse.urlparse(uri)
     if not parsed.netloc or parsed.hostname != result_scheme:
         return None
     if not parsed.username:  # no profile or scope:key
@@ -228,17 +228,17 @@ def remove_databricks_profile_info_from_artifact_uri(artifact_uri):
     if it is a Databricks profile specification, e.g.
     ``profile@databricks`` or ``secret_scope:key_prefix@databricks``.
     """
-    parsed = urllib.parse.urlparse(artifact_uri)
+    parsed = _urllib.parse.urlparse(artifact_uri)
     if not parsed.netloc or parsed.hostname != "databricks":
         return artifact_uri
-    return urllib.parse.urlunparse(parsed._replace(netloc=""))
+    return _urllib.parse.urlunparse(parsed._replace(netloc=""))
 
 
 def add_databricks_profile_info_to_artifact_uri(artifact_uri, databricks_profile_uri):
     """Throws an exception if ``databricks_profile_uri`` is not valid."""
     if not databricks_profile_uri or not is_databricks_uri(databricks_profile_uri):
         return artifact_uri
-    artifact_uri_parsed = urllib.parse.urlparse(artifact_uri)
+    artifact_uri_parsed = _urllib.parse.urlparse(artifact_uri)
     # Do not overwrite the authority section if there is already one
     if artifact_uri_parsed.netloc:
         return artifact_uri
@@ -252,13 +252,13 @@ def add_databricks_profile_info_to_artifact_uri(artifact_uri, databricks_profile
             prefix = ":" + key_prefix if key_prefix else ""
             netloc = profile + prefix + "@databricks"
         new_parsed = artifact_uri_parsed._replace(netloc=netloc)
-        return urllib.parse.urlunparse(new_parsed)
+        return _urllib.parse.urlunparse(new_parsed)
     return artifact_uri
 
 
 def extract_and_normalize_path(uri):
-    parsed_uri_path = urllib.parse.urlparse(uri).path
-    normalized_path = posixpath.normpath(parsed_uri_path)
+    parsed_uri_path = _urllib.parse.urlparse(uri).path
+    normalized_path = _posixpath.normpath(parsed_uri_path)
     return normalized_path.lstrip("/")
 
 
@@ -292,7 +292,7 @@ def append_to_uri_path(uri, *paths):
     for subpath in paths:
         path = _join_posixpaths_and_append_absolute_suffixes(path, subpath)
 
-    parsed_uri = urllib.parse.urlparse(uri)
+    parsed_uri = _urllib.parse.urlparse(uri)
 
     # Validate query string not to contain any traversal path (../) before appending
     # to the end of the path, otherwise they will be resolved as part of the path.
@@ -314,7 +314,7 @@ def append_to_uri_path(uri, *paths):
 
     new_uri_path = _join_posixpaths_and_append_absolute_suffixes(parsed_uri.path, path)
     new_parsed_uri = parsed_uri._replace(path=new_uri_path)
-    return prefix + urllib.parse.urlunparse(new_parsed_uri)
+    return prefix + _urllib.parse.urlunparse(new_parsed_uri)
 
 
 def append_to_uri_query_params(
@@ -333,12 +333,12 @@ def append_to_uri_query_params(
     query_params :
         query_params
     """
-    parsed_uri = urllib.parse.urlparse(uri)
-    parsed_query = urllib.parse.parse_qsl(parsed_uri.query)
+    parsed_uri = _urllib.parse.urlparse(uri)
+    parsed_query = _urllib.parse.parse_qsl(parsed_uri.query)
     new_parsed_query = parsed_query + list(query_params)
-    new_query = urllib.parse.urlencode(new_parsed_query)
+    new_query = _urllib.parse.urlencode(new_parsed_query)
     new_parsed_uri = parsed_uri._replace(query=new_query)
-    return urllib.parse.urlunparse(new_parsed_uri)
+    return _urllib.parse.urlunparse(new_parsed_uri)
 
 
 def _join_posixpaths_and_append_absolute_suffixes(prefix_path, suffix_path):
@@ -371,8 +371,8 @@ def _join_posixpaths_and_append_absolute_suffixes(prefix_path, suffix_path):
     # If the specified prefix path is non-empty, we must relativize the suffix path by removing
     # the leading slash, if present. Otherwise, posixpath.join() would omit the prefix from the
     # joined path
-    suffix_path = suffix_path.lstrip(posixpath.sep)
-    return posixpath.join(prefix_path, suffix_path)
+    suffix_path = suffix_path.lstrip(_posixpath.sep)
+    return _posixpath.join(prefix_path, suffix_path)
 
 
 def is_databricks_acled_artifacts_uri(artifact_uri):
@@ -388,7 +388,7 @@ def is_databricks_model_registry_artifacts_uri(artifact_uri):
 
 
 def is_valid_dbfs_uri(uri):
-    parsed = urllib.parse.urlparse(uri)
+    parsed = _urllib.parse.urlparse(uri)
     if parsed.scheme != "dbfs":
         return False
     try:
@@ -413,7 +413,7 @@ def dbfs_hdfs_uri_to_fuse_path(dbfs_uri):
     -------
     A DBFS FUSE-style path, e.g. "/dbfs/my-directory"
     """
-    if not is_valid_dbfs_uri(dbfs_uri) and dbfs_uri == posixpath.abspath(dbfs_uri):
+    if not is_valid_dbfs_uri(dbfs_uri) and dbfs_uri == _posixpath.abspath(dbfs_uri):
         # Convert posixpaths (e.g. "/tmp/mlflow") to DBFS URIs by adding "dbfs:/" as a prefix
         dbfs_uri = "dbfs:" + dbfs_uri
     if not dbfs_uri.startswith(_DBFS_HDFS_URI_PREFIX):
@@ -426,16 +426,16 @@ def dbfs_hdfs_uri_to_fuse_path(dbfs_uri):
 
 
 def generate_tmp_dfs_path(dfs_tmp):
-    return posixpath.join(dfs_tmp, str(uuid.uuid4()))
+    return _posixpath.join(dfs_tmp, str(_uuid.uuid4()))
 
 
 def join_paths(*paths: str) -> str:
     stripped = (p.strip("/") for p in paths)
-    return "/" + posixpath.normpath(posixpath.join(*stripped))
+    return "/" + _posixpath.normpath(_posixpath.join(*stripped))
 
 
 _OS_ALT_SEPS = [
-    sep for sep in [os.sep, os.path.altsep] if sep is not None and sep != "/"
+    sep for sep in [_os.sep, _os.path.altsep] if sep is not None and sep != "/"
 ]
 
 
@@ -463,8 +463,8 @@ def validate_query_string(query):
 def _decode(url):
     # Keep decoding until the url stops changing (with a max of 10 iterations)
     for _ in range(10):
-        decoded = urllib.parse.unquote(url)
-        parsed = urllib.parse.urlunparse(urllib.parse.urlparse(decoded))
+        decoded = _urllib.parse.unquote(url)
+        parsed = _urllib.parse.urlunparse(_urllib.parse.urlparse(decoded))
         if parsed == url:
             return url
         url = parsed
@@ -481,15 +481,15 @@ def strip_scheme(uri: str) -> str:
     >>> strip_scheme("http://example.com")
     '//example.com'
     """
-    parsed = urllib.parse.urlparse(uri)
+    parsed = _urllib.parse.urlparse(uri)
     # `_replace` looks like a private method, but it's actually part of the public API:
     # https://docs.python.org/3/library/collections.html#collections.somenamedtuple._replace
-    return urllib.parse.urlunparse(parsed._replace(scheme=""))
+    return _urllib.parse.urlunparse(parsed._replace(scheme=""))
 
 
 def is_models_uri(uri: str) -> bool:
     try:
-        parsed = urllib.parse.urlparse(uri)
+        parsed = _urllib.parse.urlparse(uri)
     except ValueError:
         return False
 

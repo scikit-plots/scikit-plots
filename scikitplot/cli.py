@@ -1,10 +1,3 @@
-"""
-cli.py.
-
-Copied from mlflow.
-https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
-"""
-
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
@@ -14,6 +7,13 @@ https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
 # pylint: disable=unreachable
 
 # ruff: noqa: F401
+
+"""
+cli.py.
+
+Copied from mlflow.
+https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
+"""
 
 import contextlib
 import json
@@ -38,6 +38,10 @@ from .utils import cli_args
 from .utils.logging_utils import eprint
 from .utils.os import is_windows
 from .utils.process import ShellCommandException
+
+__all__ = [
+    "cli",
+]
 
 INVALID_PARAMETER_VALUE = 0
 
@@ -670,11 +674,35 @@ def doctor(mask_envs):
 ######################################################################
 
 
+@cli.command(
+    short_help="Launch the Streamlit app with the provided configuration options.",
+    context_settings={"ignore_unknown_options": True},
+)
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def st2(args):
+    """
+    Launch the Streamlit app with the provided configuration options.
+
+    For Docker or WSL 2 environments::
+
+        # Inside Docker: set address to "0.0.0.0" instead of "localhost"
+
+        python -m scikitplot.streamlit.run_app st --address 0.0.0.0
+
+        # (optionally persist) ~/.wslconfig
+
+        localhostforwarding=true
+    """
+    from ._ui_app.streamlit.run_ui_app_st import run_ui_app_st
+
+    run_ui_app_st(args)
+
+
 @cli.command()
 @click.option(
     "--file_path",
-    default="template_st_app.py",
-    help="Streamlit app file, default 'template_st_app.py'.",
+    default="template_ui_app_st.py",
+    help="Streamlit app file, default 'template_ui_app_st.py'.",
 )
 @click.option(
     "--address",
@@ -711,7 +739,7 @@ def st(file_path, address, port, dark_theme, lib_sample):
 
         localhostforwarding=true
     """
-    from .ui_app.streamlit.run_app import launch_streamlit
+    from ._ui_app.streamlit.run_ui_app_st import launch_streamlit  # run_ui_app_st
 
     try:
         click.echo(f"Launching {file_path} on port {port}")
@@ -737,17 +765,13 @@ def st(file_path, address, port, dark_theme, lib_sample):
 
 @cli.command()
 @click.option(
-    "--file_path",
-    default="template_st_app.py",
-    help="Streamlit app file, default 'template_st_app.py'.",
-)
-@click.option(
     "--share",
     "-s",
-    default="localhost",
-    help="Streamlit Host address, default 'localhost'.",
+    is_flag=True,
+    default=True,
+    help="Gradio public link serve.",
 )
-def gr(file_path, share):
+def gr(share):
     """
     Launch the gradio app with the provided configuration options.
 
@@ -761,11 +785,10 @@ def gr(file_path, share):
 
         localhostforwarding=true
     """
-    from .ui_app.gradio.template_gr_app import app
+    from ._ui_app.gradio.template_ui_app_gr import ui_app_gr
 
     try:
-        click.echo(f"Launching {file_path} on port {share}")
-        app.launch(share=True)
+        ui_app_gr.launch(share=True)
     except ShellCommandException:
         eprint(
             "Running the scikitplot gradio UI app failed. "
@@ -778,7 +801,11 @@ def gr(file_path, share):
 ## Add a COMMAND to Entry-point: from defined py
 ######################################################################
 
-with contextlib.suppress(AttributeError, ModuleNotFoundError, NameError):
+with contextlib.suppress(
+    AttributeError,
+    ModuleNotFoundError,
+    NameError,
+):
     cli.add_command(scikitplot.runs.commands)  # noqa: F821
     cli.add_command(scikitplot.db.commands)  # noqa: F821
 

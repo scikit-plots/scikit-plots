@@ -5,14 +5,14 @@
 # pylint: disable=broad-exception-raised
 # pylint: disable=import-outside-toplevel
 
-import codecs
-import json
-import os
-import pathlib
-import shutil
-import tempfile
+import codecs as _codecs
+import json as _json
+import os as _os
+import pathlib as _pathlib
+import shutil as _shutil
+import tempfile as _tempfile
 
-import yaml
+import yaml as _yaml
 
 try:
     from yaml import CSafeDumper as YamlSafeDumper
@@ -52,7 +52,7 @@ def write_yaml(
     if not exists(root):
         raise MissingConfigException(f"Parent directory '{root}' does not exist.")
 
-    file_path = os.path.join(root, file_name)
+    file_path = _os.path.join(root, file_name)
     yaml_file_name = file_path
     if ensure_yaml_extension and not file_path.endswith(".yaml"):
         yaml_file_name = file_path + ".yaml"
@@ -60,8 +60,8 @@ def write_yaml(
     if exists(yaml_file_name) and not overwrite:
         raise Exception(f"Yaml file '{file_path}' exists as '{yaml_file_name}")
 
-    with codecs.open(yaml_file_name, mode="w", encoding=ENCODING) as yaml_file:
-        yaml.dump(
+    with _codecs.open(yaml_file_name, mode="w", encoding=ENCODING) as yaml_file:
+        _yaml.dump(
             data,
             yaml_file,
             default_flow_style=False,
@@ -92,25 +92,25 @@ def overwrite_yaml(root, file_name, data, ensure_yaml_extension=True):
         If True, Will automatically add .yaml extension if not given.
     """
     tmp_file_path = None
-    original_file_path = os.path.join(root, file_name)
-    original_file_mode = os.stat(original_file_path).st_mode
+    original_file_path = _os.path.join(root, file_name)
+    original_file_mode = _os.stat(original_file_path).st_mode
     try:
-        tmp_file_fd, tmp_file_path = tempfile.mkstemp(suffix="file.yaml")
-        os.close(tmp_file_fd)
+        tmp_file_fd, tmp_file_path = _tempfile.mkstemp(suffix="file.yaml")
+        _os.close(tmp_file_fd)
         write_yaml(
             root=get_parent_dir(tmp_file_path),
-            file_name=os.path.basename(tmp_file_path),
+            file_name=_os.path.basename(tmp_file_path),
             data=data,
             overwrite=True,
             sort_keys=True,
             ensure_yaml_extension=ensure_yaml_extension,
         )
-        shutil.move(tmp_file_path, original_file_path)
+        _shutil.move(tmp_file_path, original_file_path)
         # restores original file permissions, see https://docs.python.org/3/library/tempfile.html#tempfile.mkstemp
-        os.chmod(original_file_path, original_file_mode)
+        _os.chmod(original_file_path, original_file_mode)
     finally:
-        if tmp_file_path is not None and os.path.exists(tmp_file_path):
-            os.remove(tmp_file_path)
+        if tmp_file_path is not None and _os.path.exists(tmp_file_path):
+            _os.remove(tmp_file_path)
 
 
 def read_yaml(root, file_name):
@@ -130,11 +130,11 @@ def read_yaml(root, file_name):
             f"Cannot read '{file_name}'. Parent dir '{root}' does not exist."
         )
 
-    file_path = os.path.join(root, file_name)
+    file_path = _os.path.join(root, file_name)
     if not exists(file_path):
         raise MissingConfigException(f"Yaml file '{file_path}' does not exist.")
-    with codecs.open(file_path, mode="r", encoding=ENCODING) as yaml_file:
-        return yaml.load(yaml_file, Loader=YamlSafeLoader)
+    with _codecs.open(file_path, mode="r", encoding=ENCODING) as yaml_file:
+        return _yaml.load(yaml_file, Loader=YamlSafeLoader)
 
 
 class UniqueKeyLoader(YamlSafeLoader):
@@ -169,11 +169,11 @@ def render_and_merge_yaml(root, template_name, context_name):
     from jinja2 import FileSystemLoader, StrictUndefined
     from jinja2.sandbox import SandboxedEnvironment
 
-    template_path = os.path.join(root, template_name)
-    context_path = os.path.join(root, context_name)
+    template_path = _os.path.join(root, template_name)
+    context_path = _os.path.join(root, context_name)
 
     for path in (template_path, context_path):
-        if not pathlib.Path(path).is_file():
+        if not _pathlib.Path(path).is_file():
             raise MissingConfigException(f"Yaml file '{path}' does not exist.")
 
     j2_env = SandboxedEnvironment(
@@ -184,17 +184,19 @@ def render_and_merge_yaml(root, template_name, context_name):
 
     def from_json(input_var):
         with open(input_var, encoding="utf-8") as f:
-            return json.load(f)
+            return _json.load(f)
 
     j2_env.filters["from_json"] = from_json
     # Compute final source of context file (e.g. my-profile.yml), applying Jinja filters
     # like from_json as needed to load context information from files, then load into a dict
     context_source = j2_env.get_template(context_name).render({})
-    context_dict = yaml.load(context_source, Loader=UniqueKeyLoader) or {}  # noqa: S506
+    context_dict = (
+        _yaml.load(context_source, Loader=UniqueKeyLoader) or {}  # noqa: S506
+    )
 
     # Substitute parameters from context dict into template
     source = j2_env.get_template(template_name).render(context_dict)
-    rendered_template_dict = yaml.load(source, Loader=UniqueKeyLoader)  # noqa: S506
+    rendered_template_dict = _yaml.load(source, Loader=UniqueKeyLoader)  # noqa: S506
     return merge_dicts(rendered_template_dict, context_dict)
 
 

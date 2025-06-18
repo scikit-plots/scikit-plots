@@ -12,9 +12,9 @@ Copied from MLflow project.
 # pylint: disable=missing-function-docstring
 # pylint: disable=line-too-long
 
-import os
-import tempfile
-from pathlib import Path
+import os as _os
+import tempfile as _tempfile
+from pathlib import Path as _Path
 
 
 class _EnvironmentVariable:
@@ -27,19 +27,19 @@ class _EnvironmentVariable:
 
     @property
     def defined(self):
-        return self.name in os.environ
+        return self.name in _os.environ
 
     def get_raw(self):
-        return os.getenv(self.name)
+        return _os.getenv(self.name)
 
     def set(self, value):
-        os.environ[self.name] = str(value)
+        _os.environ[self.name] = str(value)
 
     def unset(self):
-        os.environ.pop(self.name, None)
+        _os.environ.pop(self.name, None)
 
     def is_set(self):
-        return self.name in os.environ
+        return self.name in _os.environ
 
     def get(self):
         """
@@ -81,7 +81,7 @@ class _BooleanEnvironmentVariable(_EnvironmentVariable):
         if not self.defined:
             return self.default
 
-        val = os.getenv(self.name)
+        val = _os.getenv(self.name)
         lowercased = val.lower()
         if lowercased not in ["true", "false", "1", "0"]:
             raise ValueError(
@@ -105,7 +105,7 @@ SKPLT_REGISTRY_URI = _EnvironmentVariable("SKPLT_REGISTRY_URI", str, None)
 #: for more information.
 #: (default: ``/tmp/mlflow``)
 # Use a subdirectory inside a secure system temp dir
-default_tmp_path = Path(tempfile.gettempdir()) / "scikitplot"
+default_tmp_path = _Path(_tempfile.gettempdir()) / "scikitplot"
 SKPLT_DFS_TMP = _EnvironmentVariable("SKPLT_DFS_TMP", str, str(default_tmp_path))
 
 #: Specifies the maximum number of retries with exponential backoff for MLflow HTTP requests
@@ -425,7 +425,7 @@ SKPLT_UC_OSS_TOKEN = _EnvironmentVariable("SKPLT_UC_OSS_TOKEN", str, None)
 #: Specifies the root directory to create Python virtual environments in.
 #: (default: ``~/.mlflow/envs``)
 SKPLT_ENV_ROOT = _EnvironmentVariable(
-    "SKPLT_ENV_ROOT", str, str(Path.home().joinpath(".scikitplot", "envs"))
+    "SKPLT_ENV_ROOT", str, str(_Path.home().joinpath(".scikitplot", "envs"))
 )
 
 #: Specifies whether or not to use DBFS FUSE mount to store artifacts on Databricks
@@ -784,17 +784,17 @@ SKPLT_ARTIFACT_LOCATION_MAX_LENGTH = _EnvironmentVariable(
     "SKPLT_ARTIFACT_LOCATION_MAX_LENGTH", int, 2048
 )
 
-#: Path to SSL CA certificate file for MySQL connections
+#: _Path to SSL CA certificate file for MySQL connections
 #: Used when creating a SQLAlchemy engine for MySQL
 #: (default: ``None``)
 SKPLT_MYSQL_SSL_CA = _EnvironmentVariable("SKPLT_MYSQL_SSL_CA", str, None)
 
-#: Path to SSL certificate file for MySQL connections
+#: _Path to SSL certificate file for MySQL connections
 #: Used when creating a SQLAlchemy engine for MySQL
 #: (default: ``None``)
 SKPLT_MYSQL_SSL_CERT = _EnvironmentVariable("SKPLT_MYSQL_SSL_CERT", str, None)
 
-#: Path to SSL key file for MySQL connections
+#: _Path to SSL key file for MySQL connections
 #: Used when creating a SQLAlchemy engine for MySQL
 #: (default: ``None``)
 SKPLT_MYSQL_SSL_KEY = _EnvironmentVariable("SKPLT_MYSQL_SSL_KEY", str, None)
@@ -864,7 +864,7 @@ SKPLT_SEARCH_TRACES_MAX_THREADS = _EnvironmentVariable(
     # rather than CPU-bound, so we want more threads than CPU cores
     "SKPLT_SEARCH_TRACES_MAX_THREADS",
     int,
-    max(32, (os.cpu_count() or 1) * 4),
+    max(32, (_os.cpu_count() or 1) * 4),
 )
 
 

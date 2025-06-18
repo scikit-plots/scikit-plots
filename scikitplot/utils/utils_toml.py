@@ -1,17 +1,22 @@
 """utils_toml."""
 
-import os
-import pathlib
+import os as _os
+import pathlib as _pathlib
 
-from .. import logger
-from .._compat.python import toml, tomllib  # Loaded from compatibility layer
+from .. import logger as _logger
+from .._compat.python import (  # Loaded from compatibility layer
+    toml as _toml,
+)
+from .._compat.python import (
+    tomllib as _tomllib,
+)
 from ..exceptions import ScikitplotException
 
 # --- TOML ---
 
 
 def read_toml(
-    file_path: str | os.PathLike,
+    file_path: str | _os.PathLike,
 ) -> dict[str, any]:
     """
     Load a TOML configuration file into a Python dictionary.
@@ -45,15 +50,15 @@ def read_toml(
     """
     # For tomllib and tomli, the API expects binary mode and tomllib.load(f)
     # For toml package, tomllib.load() is toml.load() and expects text mode
-    path = pathlib.Path(file_path).expanduser().resolve()
+    path = _pathlib.Path(file_path).expanduser().resolve()
 
     try:
-        if tomllib:
+        if _tomllib:
             with open(path, "rb") as f:
-                return tomllib.load(f)
-        elif toml:
+                return _tomllib.load(f)
+        elif _toml:
             with open(path, "r", encoding="utf-8") as f:
-                return toml.load(f)
+                return _toml.load(f)
         else:
             raise ScikitplotException(
                 "No TOML parser available. Please install `tomli` or `toml`."
@@ -62,12 +67,12 @@ def read_toml(
         raise ScikitplotException(f"TOML file not found: {path}") from e
     except Exception as e:
         msg = f"Failed to read TOML file at {path}: {e}"
-        logger.exception(msg)
+        _logger.exception(msg)
         raise ScikitplotException(msg) from e
 
 
 def write_toml(
-    file_path: str | os.PathLike,
+    file_path: str | _os.PathLike,
     data: dict[str, any],
 ) -> str:
     """
@@ -103,19 +108,19 @@ def write_toml(
     """
     # For tomllib and tomli, the API expects binary mode and tomllib.load(f)
     # For toml package, tomllib.load() is toml.load() and expects text mode
-    path = pathlib.Path(file_path).expanduser().resolve()
+    path = _pathlib.Path(file_path).expanduser().resolve()
 
-    if not toml:
+    if not _toml:
         raise ScikitplotException(
             "Writing TOML requires the `toml` package. "
             "Install it via `pip install toml`."
         )
     try:
         with open(path, "w", encoding="utf-8") as f:
-            toml.dump(data, f)
-        logger.info(f"TOML config successfully saved to {path}")
+            _toml.dump(data, f)
+        _logger.info(f"TOML config successfully saved to {path}")
         return str(path)
     except Exception as e:
         msg = f"Failed to write TOML to {path}: {e}"
-        logger.exception(msg)
+        _logger.exception(msg)
         raise ScikitplotException(msg) from e

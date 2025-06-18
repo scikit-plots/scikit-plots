@@ -33,6 +33,12 @@ Token-Based Delimitations
 For models like DeepSeek R1, token-based delimitations can be used to identify reasoning steps. This is done by specifying the beginToken and endToken fields in the reasoning configuration.
 """
 
+__all__ = [
+    "LLM_MODEL_PROVIDER2API_KEY",
+    "LLM_MODEL_PROVIDER2CONFIG",
+    "get_config_provider",
+]
+
 # Enhanced LLM Model Registry for Chat Application
 # Default model registry used in the chat application.
 LLM_MODEL_PROVIDER2CONFIG: dict[str, list[dict[str, str]]] = {

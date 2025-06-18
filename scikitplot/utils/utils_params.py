@@ -17,11 +17,11 @@
 
 # import functools
 # import importlib
-import inspect
+import inspect as _inspect
 from typing import TYPE_CHECKING
 
 # import logging
-from .. import logger
+from .. import logger as _logger
 
 if TYPE_CHECKING:
     from typing import TypeVar
@@ -71,11 +71,11 @@ def _resolve_args_and_kwargs(*args, func=None, strict=False, **kwargs):
 
     Notes
     -----
-    - Uses `inspect.signature()` and argument binding utilities.
+    - Uses `_inspect.signature()` and argument binding utilities.
     - Useful for function wrappers, config validation, deferred execution, etc.
     """
     # Get the signature of the function
-    sig = inspect.signature(func)
+    sig = _inspect.signature(func)
 
     try:
         # Attempt to bind the provided args and kwargs
@@ -100,7 +100,7 @@ def _resolve_args_and_kwargs(*args, func=None, strict=False, **kwargs):
 
     # In non-strict mode, optionally log unknown kwargs if 'verbose' was passed
     if not strict and kwargs.get("verbose", False) and extra_kwargs:
-        logger.debug(f"Unexpected kwargs logged: {extra_kwargs}")
+        _logger.debug(f"Unexpected kwargs logged: {extra_kwargs}")
     # In strict mode, raise an error for any unknown extra kwargs
     if strict and extra_kwargs:
         raise TypeError(f"⚠️ Unexpected keyword arguments: {extra_kwargs}")
@@ -122,7 +122,7 @@ def _get_param_w_index(
         Positional arguments passed to the function.
 
     func : callable
-        The original function to inspect.
+        The original function to _inspect.
 
     params : list of str
         List of possible parameter names to search for.
@@ -143,7 +143,7 @@ def _get_param_w_index(
 
     """
     # Retrieve the signature of the wrapped function
-    signature = inspect.signature(func)
+    signature = _inspect.signature(func)
 
     # Initialize variable to hold parameter information
     param_key = None
@@ -157,7 +157,7 @@ def _get_param_w_index(
         if name in params:
             param_key = name
             # If the parameter has a default value, store it
-            if parameter.default is not inspect.Parameter.empty:
+            if parameter.default is not _inspect.Parameter.empty:
                 default = parameter.default
             break  # Stop once we find the first match
 

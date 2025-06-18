@@ -1,6 +1,6 @@
 """os.py."""
 
-import os
+import os as _os
 
 
 def is_windows():
@@ -13,4 +13,4 @@ def is_windows():
 
     """
     # return sys.platform.startswith("win")
-    return os.name == "nt"
+    return _os.name == "nt"

@@ -1,5 +1,14 @@
+# template_st_data_visualizer.py
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=broad-exception-caught
+# pylint: disable=unused-argument
+# pylint: disable=ungrouped-imports
+
 """
-Streamlit UI for exploring snsx catalog plots.
+Streamlit-based UI logic for exploring the plotting.
 
 This module launches a Streamlit web application that allows users to
 interactively explore plotting functions from the `snsx` library —
@@ -70,15 +79,6 @@ including task type, plot type, explainability level, and more.
 # - Future versions could support search and table views for easier browsing.
 # """
 
-# template_st_data_visualizer.py
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# pylint: disable=broad-exception-caught
-# pylint: disable=unused-argument
-# pylint: disable=ungrouped-imports
-
 # import petname
 # petname.Generate(3, separator="-")  # e.g., 'green-fox-jump'
 # import hashlib
@@ -90,7 +90,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from scikitplot import LazyImport, logger
-from scikitplot.ui_app.streamlit import get_sns_data, snsx_catalog
+
+__all__ = []
 
 _lock = RLock()
 
@@ -100,15 +101,20 @@ st = LazyImport("streamlit", package="streamlit")
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
-    from scikitplot.ui_app.streamlit.template_st_chat_ui import (
-        api_key_config_ui,
+    from scikitplot.ui_app.streamlit import get_sns_data, snsx_catalog
+    from scikitplot.ui_app.streamlit.template_ui_app_st_chat import (
         get_response,
+        st_add_sidebar_api_key,
     )
 
     if TYPE_CHECKING:
         from typing import Optional
 
         from streamlit.delta_generator import DeltaGenerator
+
+    __all__ += [
+        "st_data_visualizer",
+    ]
 
     ######################################################################
     ## get_plot_func
@@ -296,7 +302,7 @@ if st:
             expand_live = st.checkbox("Expand all live interaction", value=False)
         # Sidebar for controlling expanders and categories
         with st.sidebar:
-            api_key_config_ui()
+            st_add_sidebar_api_key()
         # Add a checkbox to the sidebar for demonstration
         # show_message = st.sidebar.checkbox("Show message", value=True)
         # if show_message:
@@ -662,7 +668,7 @@ if st:
     ## run Streamlit app
     ######################################################################
 
-    def run_data_visualizer_ui():
+    def st_data_visualizer():
         """
         Launch the Streamlit scikit-plots Plot Explorer app.
 
@@ -791,4 +797,4 @@ if st:
     # Run the app from command line
     if __name__ == "__main__":
         ## (Optionally) without login entry-point
-        run_data_visualizer_ui()
+        st_data_visualizer()

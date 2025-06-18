@@ -1,4 +1,12 @@
-"""scikit-plots documentation build config file, created by sphinx-quickstart.
+# sphinx conf
+# scikit-plots documentation build configuration file, created by
+# sphinx-quickstart on Sun Feb 12 17:56:21 2017.
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""
+scikit-plots documentation build config file, created by sphinx-quickstart.
 
 This file is executed with the current directory set to its containing dir
 by ``execfile()``, e.g. the working directory will be scikit-plots/docs.
@@ -15,13 +23,6 @@ See: https://www.sphinx-doc.org/en/master/usage/configuration.html
 for more details on configuring the documentation build.
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# sphinx conf
-# scikit-plots documentation build configuration file, created by
-# sphinx-quickstart on Sun Feb 12 17:56:21 2017.
-#
 ##########################################################################
 ## Imports
 ##########################################################################
@@ -193,8 +194,8 @@ extensions = [
     "matplotlib.sphinxext.figmpl_directive",
     "matplotlib.sphinxext.mathmpl",
     "matplotlib.sphinxext.plot_directive",  # Integrate Matplotlib plots into documentation.
-    # 'matplotlib.sphinxext.roles',           # required matplotlib 3.9.1
-    "scikitplot.sphinxext.roles",  # required matplotlib 3.9.1
+    # 'matplotlib.sphinxext.roles',  # required matplotlib 3.9.1
+    "scikitplot._sphinxext.roles",  # If matplotlib 3.9.1
     # IPython extensions (load after built-ins and matplotlib)
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",

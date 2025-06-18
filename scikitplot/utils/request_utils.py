@@ -9,15 +9,13 @@
 # pylint: disable=no-member
 # pylint: disable=consider-using-f-string
 
-import os
-import random
+import os as _os
+import random as _random
 from functools import lru_cache
 
-import requests
-import urllib3
+import requests as _requests
+import urllib3 as _urllib3
 from packaging.version import Version
-from requests.adapters import HTTPAdapter
-from requests.exceptions import HTTPError
 from urllib3.util import Retry
 
 # Response codes that generally indicate transient network failures and merit client retries,
@@ -54,7 +52,7 @@ class JitteredRetry(Retry):
         """
         backoff_value = super().get_backoff_time()
         if self.backoff_jitter != 0.0:
-            backoff_value += random.random() * self.backoff_jitter  # noqa: S311
+            backoff_value += _random.random() * self.backoff_jitter  # noqa: S311
         # The attribute `BACKOFF_MAX` was renamed to `DEFAULT_BACKOFF_MAX` in this commit:
         # https://github.com/urllib3/urllib3/commit/f69b1c89f885a74429cabdee2673e030b35979f0
         # which was part of the major release of 2.0 for urllib3 and the support for both
@@ -62,7 +60,7 @@ class JitteredRetry(Retry):
         # https://github.com/urllib3/urllib3/blob/1.26.9/src/urllib3/util/retry.py
         default_backoff = (
             Retry.BACKOFF_MAX
-            if Version(urllib3.__version__) < Version("1.26.9")
+            if Version(_urllib3.__version__) < Version("1.26.9")
             else Retry.DEFAULT_BACKOFF_MAX
         )
 
@@ -73,9 +71,9 @@ def augmented_raise_for_status(response):
     """Wrap the standard `requests.response.raise_for_status()` method and return reason."""
     try:
         response.raise_for_status()
-    except HTTPError as e:
+    except _requests.exceptions.HTTPError as e:
         if response.text:
-            raise HTTPError(
+            raise _requests.exceptions.HTTPError(
                 f"{e}. Response text: {response.text}",
                 request=e.request,
                 response=e.response,
@@ -143,7 +141,7 @@ def _cached_get_request_session(
         "raise_on_status": raise_on_status,
         "respect_retry_after_header": respect_retry_after_header,
     }
-    urllib3_version = Version(urllib3.__version__)
+    urllib3_version = Version(_urllib3.__version__)
     if urllib3_version >= Version("1.26.0"):
         retry_kwargs["allowed_methods"] = None
     else:
@@ -159,12 +157,12 @@ def _cached_get_request_session(
         SKPLT_HTTP_POOL_MAXSIZE,
     )
 
-    adapter = HTTPAdapter(
+    adapter = _requests.adapters.HTTPAdapter(
         pool_connections=SKPLT_HTTP_POOL_CONNECTIONS.get(),
         pool_maxsize=SKPLT_HTTP_POOL_MAXSIZE.get(),
         max_retries=retry,
     )
-    session = requests.Session()
+    session = _requests.Session()
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     return session
@@ -210,7 +208,7 @@ def _get_request_session(
         backoff_jitter,
         retry_codes,
         raise_on_status,
-        _pid=os.getpid(),
+        _pid=_os.getpid(),
         respect_retry_after_header=respect_retry_after_header,
     )
 
@@ -267,7 +265,10 @@ def _get_http_response_with_retries(  # noqa: D417
 
     # the environment variable is hardcoded here to avoid importing mlflow.
     # however, documentation is available in environment_variables.py
-    env_value = os.getenv("SKPLT_ALLOW_HTTP_REDIRECTS", "true").lower() in ["true", "1"]
+    env_value = _os.getenv("SKPLT_ALLOW_HTTP_REDIRECTS", "true").lower() in [
+        "true",
+        "1",
+    ]
     allow_redirects = env_value if allow_redirects is None else allow_redirects
 
     return session.request(method, url, allow_redirects=allow_redirects, **kwargs)

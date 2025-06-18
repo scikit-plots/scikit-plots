@@ -1,12 +1,19 @@
-"""build_app for Os Independent."""
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 # pylint: disable=import-error
 # pylint: disable=unused-import
+
+"""build_app for Os Independent."""
 
 import os  # noqa: F401
 import platform
 import shutil  # noqa: F401
 import subprocess
+
+__all__ = [
+    "run_build_app",
+]
 
 
 def run_build_app():

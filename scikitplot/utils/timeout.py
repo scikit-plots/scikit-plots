@@ -1,6 +1,6 @@
 """timeout.py."""
 
-import signal
+import signal as _signal
 from contextlib import contextmanager
 
 from ..exceptions import ScikitplotException
@@ -34,10 +34,10 @@ def run_with_timeout(seconds):
     def signal_handler(signum, frame):
         raise ScikitplotTimeoutError(f"Operation timed out after {seconds} seconds")
 
-    signal.signal(signal.SIGALRM, signal_handler)
-    signal.alarm(seconds)
+    _signal.signal(_signal.SIGALRM, signal_handler)
+    _signal.alarm(seconds)
 
     try:
         yield
     finally:
-        signal.alarm(0)  # Disable the alarm after the operation completes or times out
+        _signal.alarm(0)  # Disable the alarm after the operation completes or times out

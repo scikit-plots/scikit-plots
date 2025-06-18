@@ -1,24 +1,32 @@
-# template_gr_i_doremi_ui.py
+# template_ui_app_gr_doremi_i.py
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 # pylint: disable=line-too-long
 
-"""template_gr_i_doremi_ui."""
+"""template_ui_app_gr_doremi_i."""
 
 from scikitplot import (
-    LazyImport,  # logger
+    LazyImport,
+    # logger,
     doremi,
 )
+
+__all__ = []
 
 # import gradio as gr
 gr = LazyImport("gradio", package="gradio")
 
 if gr:
+    __all__ += [
+        "run_ui_app_gr_doremi_i",
+        "ui_app_gr_doremi_i",
+    ]
+
     # import spaces  # huggingface
     ## gr.Interface - Simpler and High-Level
-    gr_interface = gr.Interface(
+    ui_app_gr_doremi_i = gr.Interface(
         title="🎵 Simple Music Composer: Western and Solfège Notation",
         description="🎶 Generate a audio wave based on composition SHEET...",
         # Play generated audio (INPUTS: SHEET OUTPUTS: np.array)
@@ -51,9 +59,9 @@ if gr:
         """,
     )
 
-    def run_gr_interface_ui(share=True):
+    def run_ui_app_gr_doremi_i(share=True):
         """Launch gradio app."""
-        gr_interface.launch(share=share)
+        ui_app_gr_doremi_i.launch(share=share)
 
     if __name__ == "__main__":
-        run_gr_interface_ui(share=True)
+        run_ui_app_gr_doremi_i(share=True)

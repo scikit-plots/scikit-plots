@@ -2,7 +2,7 @@
 
 """file_info."""
 
-from ..entities._skplt_object import _ScikitplotObject
+from .._entities._skplt_object import _ScikitplotObject
 
 
 class FileInfo(_ScikitplotObject):

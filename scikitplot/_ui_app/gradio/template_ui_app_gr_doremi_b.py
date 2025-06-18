@@ -1,4 +1,4 @@
-# template_gr_b_doremi_ui.py
+# template_ui_app_gr_doremi_b.py
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -8,7 +8,7 @@
 # pylint: disable=no-member
 # ruff: noqa: F401
 
-"""template_gr_b_doremi_ui."""
+"""template_ui_app_gr_doremi_b."""
 
 import atexit
 import base64
@@ -21,9 +21,12 @@ from datetime import datetime
 # import numpy as np
 # from scipy.io.wavfile import write
 from scikitplot import (
-    LazyImport,  # logger
+    LazyImport,
+    # logger,
     doremi,
 )
+
+__all__ = []
 
 prefix = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -48,9 +51,14 @@ img_tag = f'<img src="data:image/svg+xml;base64,{svg_base64}" width="18" height=
 gr = LazyImport("gradio", package="gradio")
 
 if gr:
+    __all__ += [
+        "run_ui_app_gr_doremi_b",
+        "ui_app_gr_doremi_b",
+    ]
+
     # import spaces  # huggingface
     ## gr.Blocks - Flexible and Modular
-    with gr.Blocks() as gr_bocks:
+    with gr.Blocks() as ui_app_gr_doremi_b:
         # --- UI placeholders ---
         # ♪♪ Example UI
         gr.Markdown(
@@ -175,9 +183,9 @@ if gr:
             outputs=audio_output,  # one output by fn
         )
 
-    def run_gr_bocks_ui(share=True):
+    def run_ui_app_gr_doremi_b(share=True):
         """Launch gradio app."""
-        gr_bocks.launch(share=share)
+        ui_app_gr_doremi_b.launch(share=share)
 
     if __name__ == "__main__":
-        run_gr_bocks_ui(share=True)
+        run_ui_app_gr_doremi_b(share=True)

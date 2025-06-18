@@ -24,6 +24,11 @@ from typing import Union
 
 import numpy as np
 
+__all__ = [
+    "ENVELOPES",
+    "get_envelope",
+]
+
 
 # The Hann envelope is defined as:
 #     E(t) = 0.5 * (1 - cos(2 * pi * t / T)) for t in [0, T]

@@ -16,6 +16,12 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from .. import logger
 from ..exceptions import ScikitplotException
 
+__all__ = [
+    "CLIENT_FACTORY",
+    "get_client",
+    "hf_fallback_request",
+]
+
 # add numpydoc notes examples types and add each line comments
 
 ######################################################################

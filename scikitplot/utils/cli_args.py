@@ -1,15 +1,15 @@
 """Definitions of click options shared by several CLI commands."""
 
-import warnings
+import warnings as _warnings
 
-import click
+import click as _click
 
 from ..environment_variables import (
     SKPLT_DISABLE_ENV_MANAGER_CONDA_WARNING,
 )
 from ..utils import env_manager as _EnvManager  # noqa: N812
 
-MODEL_PATH = click.option(
+MODEL_PATH = _click.option(
     "--model-path",
     "-m",
     default=None,
@@ -26,7 +26,7 @@ _MODEL_URI_HELP_STRING = (
     " https://mlflow.org/docs/latest/tracking.html#artifact-stores"
 )
 
-MODEL_URI_BUILD_DOCKER = click.option(
+MODEL_URI_BUILD_DOCKER = _click.option(
     "--model-uri",
     "-m",
     metavar="URI",
@@ -35,7 +35,7 @@ MODEL_URI_BUILD_DOCKER = click.option(
     help="[Optional] " + _MODEL_URI_HELP_STRING,
 )
 
-MODEL_URI = click.option(
+MODEL_URI = _click.option(
     "--model-uri",
     "-m",
     metavar="URI",
@@ -43,14 +43,14 @@ MODEL_URI = click.option(
     help=_MODEL_URI_HELP_STRING,
 )
 
-MLFLOW_HOME = click.option(
+MLFLOW_HOME = _click.option(
     "--mlflow-home",
     default=None,
     metavar="PATH",
     help="Path to local clone of MLflow project. Use for development only.",
 )
 
-RUN_ID = click.option(
+RUN_ID = _click.option(
     "--run-id",
     "-r",
     default=None,
@@ -67,7 +67,7 @@ def _resolve_env_manager(_, __, env_manager):
             env_manager == _EnvManager.CONDA
             and not SKPLT_DISABLE_ENV_MANAGER_CONDA_WARNING.get()
         ):
-            warnings.warn(
+            _warnings.warn(
                 (
                     "Use of conda is discouraged. If you use it, please ensure that your use of "
                     "conda complies with Anaconda's terms of service "
@@ -85,10 +85,10 @@ def _resolve_env_manager(_, __, env_manager):
 
 
 def _create_env_manager_option(help_string, default=None):
-    return click.option(
+    return _click.option(
         "--env-manager",
         default=default,
-        type=click.UNPROCESSED,
+        type=_click.UNPROCESSED,
         callback=_resolve_env_manager,
         help=help_string,
     )
@@ -149,7 +149,7 @@ If no model-uri is provided, we use virtualenv.
 )
 
 
-INSTALL_MLFLOW = click.option(
+INSTALL_MLFLOW = _click.option(
     "--install-mlflow",
     is_flag=True,
     default=False,
@@ -159,7 +159,7 @@ INSTALL_MLFLOW = click.option(
     "the one used to invoke this command.",
 )
 
-HOST = click.option(
+HOST = _click.option(
     "--host",
     "-h",
     envvar="MLFLOW_HOST",
@@ -170,7 +170,7 @@ HOST = click.option(
     "server from other machines.",
 )
 
-PORT = click.option(
+PORT = _click.option(
     "--port",
     "-p",
     envvar="MLFLOW_PORT",
@@ -178,7 +178,7 @@ PORT = click.option(
     help="The port to listen on (default: 5000).",
 )
 
-TIMEOUT = click.option(
+TIMEOUT = _click.option(
     "--timeout",
     "-t",
     envvar="MLFLOW_SCORING_SERVER_REQUEST_TIMEOUT",
@@ -187,7 +187,7 @@ TIMEOUT = click.option(
 )
 
 # We use None to disambiguate manually selecting "4"
-WORKERS = click.option(
+WORKERS = _click.option(
     "--workers",
     "-w",
     envvar="MLFLOW_WORKERS",
@@ -195,7 +195,7 @@ WORKERS = click.option(
     help="Number of gunicorn worker processes to handle requests (default: 4).",
 )
 
-MODELS_WORKERS = click.option(
+MODELS_WORKERS = _click.option(
     "--workers",
     "-w",
     envvar="MLFLOW_MODELS_WORKERS",
@@ -203,7 +203,7 @@ MODELS_WORKERS = click.option(
     help="Number of uvicorn workers to handle requests when serving mlflow models (default: 1).",
 )
 
-ENABLE_MLSERVER = click.option(
+ENABLE_MLSERVER = _click.option(
     "--enable-mlserver",
     is_flag=True,
     default=False,
@@ -214,7 +214,7 @@ ENABLE_MLSERVER = click.option(
     ),
 )
 
-ARTIFACTS_DESTINATION = click.option(
+ARTIFACTS_DESTINATION = _click.option(
     "--artifacts-destination",
     envvar="MLFLOW_ARTIFACTS_DESTINATION",
     metavar="URI",
@@ -227,7 +227,7 @@ ARTIFACTS_DESTINATION = click.option(
     ),
 )
 
-SERVE_ARTIFACTS = click.option(
+SERVE_ARTIFACTS = _click.option(
     "--serve-artifacts/--no-serve-artifacts",
     envvar="MLFLOW_SERVE_ARTIFACTS",
     is_flag=True,
@@ -240,13 +240,13 @@ SERVE_ARTIFACTS = click.option(
     "specify `--no-serve-artifacts`. Default: True",
 )
 
-NO_CONDA = click.option(
+NO_CONDA = _click.option(
     "--no-conda",
     is_flag=True,
     help="If specified, use local environment.",
 )
 
-INSTALL_JAVA = click.option(
+INSTALL_JAVA = _click.option(
     "--install-java",
     is_flag=False,
     flag_value=True,

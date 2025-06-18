@@ -25,98 +25,12 @@ from .._compat.python import lru_cache
 from .._globals import _NoValue
 from ..exceptions import ScikitplotException
 
-# Returns the top-level package/module, not the submodule.
-# __import__(f'{__name__}.{name}')  # low-level function
-# Returns the submodule directly.
-# __import__(module_name, fromlist=[class_name])
 # import_module(f".{name}", package=package)  # high-level function
+# __import__(f'{__name__}.{name}')  # low-level function, not, not the submodule
+# __import__(module_name, fromlist=[class_name])  # Return submodule directly
+
 
 # --- nested module or attribute Import ---
-
-
-def _get_source_path(obj):
-    """
-    Return the source file path of a module or callable.
-
-    This function attempts to retrieve the source file path of a given object,
-    which may be a module, function, class, or other callable. It gracefully
-    handles multiple layers of decorators, user-defined proxies, and fallbacks
-    for built-ins or C-extension modules.
-
-    Parameters
-    ----------
-    obj : object
-        The object to inspect. Can be a module, function, method, class, or
-        any callable.
-
-    Returns
-    -------
-    str
-        The file path to the source code, or '?' if it cannot be determined.
-
-    Notes
-    -----
-    - For modules, `__file__` is returned.
-    - For callables, `inspect.unwrap` is used to get past multiple decorators.
-    - If the object is a built-in or C extension, the path may point to a
-      `.so`, `.pyd`, or `.dll` file.
-    - If the object has a `__code__` attribute, it is used as a fallback.
-    - If none of these methods succeed, `'?'` is returned.
-
-    Examples
-    --------
-    >>> import math
-    >>> _get_source_path(math)
-    '/usr/lib/python3.10/lib-dynload/math.cpython-310-x86_64-linux-gnu.so'
-
-    >>> def f():
-    ...     pass
-    >>> _get_source_path(f)
-    '<current_file>.py'
-
-    >>> import os
-    >>> _get_source_path(os.path)
-    '/usr/lib/python3.10/posixpath.py'
-    """
-    # Check if the object is a module (e.g., math, os)
-    if isinstance(obj, types.ModuleType):
-        # Use __file__ if available, fallback to '?'
-        return getattr(obj, "__file__", "?")  # returns '?' not raise
-
-    # Check if the object is callable (function, method, class, etc.)
-    if callable(obj):
-        # Handle custom proxy types like LazyImport that define get_real_func()
-        if hasattr(obj, "get_real_func") and callable(obj.get_real_func):
-            # Ignore errors in custom proxies
-            with contextlib.suppress(Exception):
-                obj = obj.get_real_func()
-
-        # Handle wrapped decorators using functools.wraps or __wrapped__
-        # Continue with the outer object if unwrap fails
-        with contextlib.suppress(Exception):
-            # obj = obj.__wrapped__
-            obj = inspect.unwrap(obj)
-
-        # Attempt to retrieve the source file directly
-        try:
-            # _, lineno = inspect.getsourcelines(obj)
-            return inspect.getfile(obj)
-        except Exception:
-            pass  # May be a built-in or a C-extension
-
-        # Fallback: try using the code object (for Python-defined functions)
-        if hasattr(obj, "__code__"):
-            try:
-                # lineno = obj.__code__.co_firstlineno
-                return inspect.getfile(obj.__code__)
-            except Exception:
-                pass  # __code__ exists but may not point to a valid file
-
-    # If all methods fail, return unknown
-    return "<?>"
-
-
-# Try importing as a submodule
 @lru_cache(maxsize=128)
 def nested_import(  # noqa: PLR0912
     name: str,
@@ -275,6 +189,88 @@ def nested_import(  # noqa: PLR0912
 
 
 # --- Lazily Import ---
+
+
+def _get_source_path(obj):
+    """
+    Return the source file path of a module or callable.
+
+    This function attempts to retrieve the source file path of a given object,
+    which may be a module, function, class, or other callable. It gracefully
+    handles multiple layers of decorators, user-defined proxies, and fallbacks
+    for built-ins or C-extension modules.
+
+    Parameters
+    ----------
+    obj : object
+        The object to inspect. Can be a module, function, method, class, or
+        any callable.
+
+    Returns
+    -------
+    str
+        The file path to the source code, or '?' if it cannot be determined.
+
+    Notes
+    -----
+    - For modules, `__file__` is returned.
+    - For callables, `inspect.unwrap` is used to get past multiple decorators.
+    - If the object is a built-in or C extension, the path may point to a
+      `.so`, `.pyd`, or `.dll` file.
+    - If the object has a `__code__` attribute, it is used as a fallback.
+    - If none of these methods succeed, `'?'` is returned.
+
+    Examples
+    --------
+    >>> import math
+    >>> _get_source_path(math)
+    '/usr/lib/python3.10/lib-dynload/math.cpython-310-x86_64-linux-gnu.so'
+
+    >>> def f():
+    ...     pass
+    >>> _get_source_path(f)
+    '<current_file>.py'
+
+    >>> import os
+    >>> _get_source_path(os.path)
+    '/usr/lib/python3.10/posixpath.py'
+    """
+    # Check if the object is a module (e.g., math, os)
+    if isinstance(obj, types.ModuleType):
+        # Use __file__ if available, fallback to '?'
+        return getattr(obj, "__file__", "?")  # returns '?' not raise
+
+    # Check if the object is callable (function, method, class, etc.)
+    if callable(obj):
+        # Handle custom proxy types like LazyImport that define get_real_func()
+        if hasattr(obj, "get_real_func") and callable(obj.get_real_func):
+            # Ignore errors in custom proxies
+            with contextlib.suppress(Exception):
+                obj = obj.get_real_func()
+
+        # Handle wrapped decorators using functools.wraps or __wrapped__
+        # Continue with the outer object if unwrap fails
+        with contextlib.suppress(Exception):
+            # obj = obj.__wrapped__
+            obj = inspect.unwrap(obj)
+
+        # Attempt to retrieve the source file directly
+        try:
+            # _, lineno = inspect.getsourcelines(obj)
+            return inspect.getfile(obj)
+        except Exception:
+            pass  # May be a built-in or a C-extension
+
+        # Fallback: try using the code object (for Python-defined functions)
+        if hasattr(obj, "__code__"):
+            try:
+                # lineno = obj.__code__.co_firstlineno
+                return inspect.getfile(obj.__code__)
+            except Exception:
+                pass  # __code__ exists but may not point to a valid file
+
+    # If all methods fail, return unknown
+    return "<?>"
 
 
 class LazyImport(types.ModuleType):

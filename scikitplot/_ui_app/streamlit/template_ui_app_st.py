@@ -1,13 +1,4 @@
-"""
-Streamlit home UI template_st_app.
-
-~/.streamlit/config.toml
-
-├── template_st_app.py        ← this file
-└── .streamlit/
-    └── config.toml
-
-"""
+# template_ui_app_st.py
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -19,11 +10,21 @@ Streamlit home UI template_st_app.
 # pylint: disable=broad-exception-caught
 # pylint: disable=line-too-long
 
-# template_st_app.py
-import importlib
-import os
+"""
+Streamlit home UI template_ui_app_st.
 
-from scikitplot import LazyImport  # logger
+~/.streamlit/config.toml
+
+├── template_ui_app_st.py        ← this file
+└── .streamlit/
+    └── config.toml
+"""
+
+# import importlib
+# import os
+from scikitplot import LazyImport
+
+__all__ = []
 
 # import streamlit as st
 st = LazyImport("streamlit", package="streamlit")
@@ -31,18 +32,20 @@ st = LazyImport("streamlit", package="streamlit")
 # Use st.cache_data for immutable data and st.cache_resource for reusable, expensive resources
 # Use @st.fragment to create modular, reusable UI blocks with proper state handling
 if st:
-    # st = st.resolved
-
-    from scikitplot.ui_app.streamlit import (  # noqa: F401
-        template_st_chat_ui,
-        template_st_data_visualizer_ui,
-        template_st_dataset_loader_ui,
-        template_st_login_ui,
+    from scikitplot._ui_app.streamlit import (
+        template_ui_app_st_chat,
+        template_ui_app_st_data_visualizer,
+        template_ui_app_st_dataset_loader,
+        template_ui_app_st_login,
     )
 
+    __all__ += [
+        "ui_app_st",
+    ]
+
     # --- home_ui ---
-    def run_home_ui():
-        """run_home_ui."""
+    def st_home():
+        """st_home."""
         st.title("🏠 Welcome to scikit-plots")
         st.markdown(
             """
@@ -59,31 +62,30 @@ if st:
     ## discover ui
     ######################################################################
 
-    def discover_ui_pages(folder=".", module="scikitplot.snsx_explorer"):
-        """discover_ui_pages."""
-        pages = {
-            "🏠 Home": "home",
-        }
-        for fname in os.listdir(folder):  # noqa: PTH208
-            if fname.endswith("_ui.py") and "login" not in fname:
-                sub_mod_name = fname[:-3]  # remove ext
-                page_name = (
-                    sub_mod_name.removeprefix("template_st_")
-                    .removesuffix("_ui")
-                    .replace("_", " ")
-                    .title()
-                )
-                module = importlib.import_module(f"{module}.{sub_mod_name}")
-                if hasattr(module, "run"):
-                    pages[f"📄 {page_name}"] = getattr(module, "run")  # noqa: B009
-        return pages
-
+    # def discover_ui_pages(folder=".", module="scikitplot.snsx_explorer"):
+    #     """discover_ui_pages."""
+    #     pages = {
+    #         "🏠 Home": "home",
+    #     }
+    #     for fname in os.listdir(folder):  # noqa: PTH208
+    #         if fname.endswith("_ui.py") and "login" not in fname:
+    #             sub_mod_name = fname[:-3]  # remove ext
+    #             page_name = (
+    #                 sub_mod_name.removeprefix("template_st_")
+    #                 .removesuffix("_ui")
+    #                 .replace("_", " ")
+    #                 .title()
+    #             )
+    #             module = importlib.import_module(f"{module}.{sub_mod_name}")
+    #             if hasattr(module, "run"):
+    #                 pages[f"📄 {page_name}"] = getattr(module, "run")  # noqa: B009
+    #     return pages
     # Define all available pages
     PAGES = {
-        "💬 Assistant Chat": template_st_chat_ui.run_chat_ui,
-        "📁 Dataset Load": template_st_dataset_loader_ui.run_dataset_loader_ui,
-        "📄 Visualization": template_st_data_visualizer_ui.run_data_visualizer_ui,
-        "🏠 Home Page": run_home_ui,
+        "💬 Assistant Chat": template_ui_app_st_chat.st_chat,
+        "📁 Dataset Load": template_ui_app_st_dataset_loader.st_dataset_loader,
+        "📄 Visualization": template_ui_app_st_data_visualizer.st_data_visualizer,
+        "🏠 Home Page": st_home,
         # Add more entries like "📊 Visualize": run_visualizer_ui, etc.
         # "🔐 Login": template_st_login_ui.run_login_form_ui,
     }
@@ -93,7 +95,7 @@ if st:
     ## Sidebar Logo
     ######################################################################
 
-    def sidebar_logo(
+    def st_add_sidebar_logo(
         url: str = "https://scikit-plots.github.io/dev",
         logo_url: str = "https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/scikit-plots-logo.svg",
         title: str = "scikit-plots",
@@ -196,7 +198,7 @@ if st:
     ## add_sidebar
     ######################################################################
 
-    def add_sidebar():
+    def st_add_sidebar():
         """
         Make sidebar.
 
@@ -234,7 +236,7 @@ if st:
     ## CONTENT UI
     ######################################################################
 
-    def run_app_ui():  # noqa: PLR0912
+    def ui_app_st():  # noqa: PLR0912
         """Launch the Streamlit login app."""
         page_keys = list(PAGES.keys())
         selected = page_keys[0]  # default to first
@@ -259,11 +261,11 @@ if st:
 
         ## ---- Login UI ----
         ## Show login page first
-        if not template_st_login_ui.run_login_form_ui():
+        if not template_ui_app_st_login.st_login():
             st.stop()  # 👈 prevent rest of the app from rendering
 
         ## ---- add_sidebar UI top ----
-        view_style = add_sidebar()
+        view_style = st_add_sidebar()
 
         # Placeholder
         with st.container(border=True):
@@ -301,9 +303,9 @@ if st:
                 pass
 
         ## ---- add_sidebar bottom Logo ----
-        sidebar_logo()
+        st_add_sidebar_logo()
 
     # Run the app from command line
     if __name__ == "__main__":
         ## app entry-point
-        run_app_ui()
+        ui_app_st()

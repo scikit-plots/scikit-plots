@@ -1,5 +1,15 @@
+# snsx/snsx_catalog.py
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=import-error
+# pylint: disable=unused-import
+# pylint: disable=unused-argument
+# pylint: disable=line-too-long
+
 """
-Explore `snsx` module.
+Central registry of ML-EDA plotting functions with metadata.
 
 Module contains metadata for the `snsx` plotting library,
 organizing ML-EDA and interpretability functions by:
@@ -14,24 +24,18 @@ Each function includes a short description and expected input parameters,
 enabling registry-driven documentation, Streamlit exploration, and dynamic UIs.
 
 Usage:
-    from snsx.catalog import snsx_catalog
+    from snsx.snsx_catalog import snsx_catalog
     for plot in snsx_catalog:
         print(plot['function'], plot['description'])
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# snsx/catalog.py
-
-# pylint: disable=import-error
-# pylint: disable=unused-import
-# pylint: disable=unused-argument
-# pylint: disable=line-too-long
-
 from abc import ABCMeta, abstractmethod  # noqa: F401
 from dataclasses import dataclass
 from enum import Enum
+
+__all__ = [
+    "snsx_catalog",
+]
 
 
 @dataclass

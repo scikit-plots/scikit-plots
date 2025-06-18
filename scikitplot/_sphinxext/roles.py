@@ -1,3 +1,9 @@
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
+
 """
 Custom roles for the Matplotlib documentation.
 
@@ -34,12 +40,6 @@ To fix this, you can add this module as extension to your sphinx :file:`conf.py`
     Direct use of these roles in other packages is not officially supported. We
     reserve the right to modify or remove these roles without prior notification.
 """
-
-# pylint: skip-file
-# ruff: noqa: PGH004
-# ruff: noqa
-# flake8: noqa
-# type: ignore
 
 from urllib.parse import urlsplit, urlunsplit
 

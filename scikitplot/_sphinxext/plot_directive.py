@@ -1,3 +1,9 @@
+# pylint: skip-file
+# ruff: noqa: PGH004
+# ruff: noqa
+# flake8: noqa
+# type: ignore
+
 """
 A directive for including a Matplotlib plot in a Sphinx document
 ================================================================
@@ -164,12 +170,6 @@ be customized by changing the *plot_template*.  See the source of
 :doc:`/api/sphinxext_plot_directive_api` for the templates defined in *TEMPLATE*
 and *TEMPLATE_SRCSET*.
 """
-
-# pylint: skip-file
-# ruff: noqa: PGH004
-# ruff: noqa
-# flake8: noqa
-# type: ignore
 
 import contextlib
 import doctest

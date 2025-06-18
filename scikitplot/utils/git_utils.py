@@ -3,11 +3,12 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 
-import logging
-import os
+# import logging
+import os as _os
 from typing import Optional
 
-_logger = logging.getLogger(__name__)
+# _logger = logging.getLogger(__name__)
+from .. import logger as _logger
 
 
 def get_git_repo_url(path: str) -> Optional[str]:
@@ -51,8 +52,8 @@ def get_git_commit(path: str) -> Optional[str]:
         )
         return None
     try:
-        if os.path.isfile(path):  # noqa: PTH113
-            path = os.path.dirname(os.path.abspath(path))  # noqa: PTH100, PTH120
+        if _os.path.isfile(path):  # noqa: PTH113
+            path = _os.path.dirname(_os.path.abspath(path))  # noqa: PTH100, PTH120
         repo = Repo(path, search_parent_directories=True)
         if path in repo.ignored(path):
             return None
@@ -79,8 +80,8 @@ def get_git_branch(path: str) -> Optional[str]:
         return None
 
     try:
-        if os.path.isfile(path):  # noqa: PTH113
-            path = os.path.dirname(path)  # noqa: PTH120
+        if _os.path.isfile(path):  # noqa: PTH113
+            path = _os.path.dirname(path)  # noqa: PTH120
         repo = Repo(path, search_parent_directories=True)
         return repo.active_branch.name
     except Exception:

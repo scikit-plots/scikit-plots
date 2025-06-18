@@ -1,9 +1,9 @@
-"""
-scikit-plots Factory API
-"""
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+"""
+Scikit-plots Factory API module.
+"""
 
 ######################################################################
 ## scikit-plots Factory API modules

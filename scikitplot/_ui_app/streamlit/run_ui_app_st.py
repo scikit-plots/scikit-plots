@@ -1,7 +1,12 @@
-"""
-Streamlit Launcher CLI for Scikit-Plot.
+# run_app.py
 
-This module provides a command-line interface (CLI) for launching the Scikit-Plot
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""
+Streamlit Launcher CLI for Scikit-Plots.
+
+This module provides a command-line interface (CLI) for launching the Scikit-Plots
 Streamlit app with configurable options such as host address, port, theme, and
 whether to load a sample library.
 
@@ -43,11 +48,6 @@ Requirements:
 - Streamlit must be installed (`pip install streamlit`)
 """
 
-# run_app.py
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 import argparse
 
 # import click
@@ -57,13 +57,19 @@ import sys
 
 from scikitplot import logger
 
+__all__ = [
+    "launch_streamlit",
+    "launch_streamlit",
+    "run_ui_app_st",
+]
+
 # ---------------------------
 # Common app launcher Function
 # ---------------------------
 
 
 def launch_streamlit(
-    file_path: str = "template_streamlit_app.py",
+    file_path: str = "template_ui_app_st.py",
     address: str = "localhost",
     port: str = "8501",
     dark_theme: bool = False,
@@ -75,7 +81,7 @@ def launch_streamlit(
     Parameters
     ----------
     file_path : str
-        Path to the Streamlit app file (default is "template_streamlit_app.py").
+        Path to the Streamlit app file (default is "template_ui_app_st.py").
     address : str
         Address on which to run the Streamlit app (default is 'localhost').
     port : str
@@ -94,9 +100,9 @@ def launch_streamlit(
     """
     # Determine app path based on whether a sample library should be used
     file_path = (
-        os.path.join(os.path.dirname(__file__), file_path)  # noqa: PTH118, PTH120
+        os.path.join(os.path.dirname(__file__), file_path)
         if lib_sample
-        else os.path.join(os.getcwd(), file_path)  # noqa: PTH109, PTH118
+        else os.path.join(os.getcwd(), file_path)
     )
 
     # if headless:
@@ -132,7 +138,7 @@ def launch_streamlit(
 
 
 # argparse parser
-def parse_arguments():
+def parse_arguments(args=None):
     """
     Parse the command-line arguments passed to the script.
 
@@ -146,8 +152,8 @@ def parse_arguments():
     # Add argument for specifying the Streamlit app file path
     parser.add_argument(
         "--file_path",
-        default="template_st_app.py",
-        help="Path to the Streamlit app file (default: 'template_st_app.py')",
+        default="template_ui_app_st.py",
+        help="Path to the Streamlit app file (default: 'template_ui_app_st.py')",
     )
     parser.add_argument(
         "--address",
@@ -179,27 +185,39 @@ def parse_arguments():
     )
     # Add argument for specifying if a sample library should be used
     # Sample library option as a boolean flag, default is False
+    # Option 1: Default is False, flag enables it
+    # If lib_sample should be False by default and True when passed:
+    # parser.add_argument(
+    #     "--lib_sample",
+    #     "-ls",
+    #     action="store_true",
+    #     # default=False,
+    #     help=(
+    #         "Use a sample library setting (default: False). Pass this flag to enable."
+    #     ),
+    # )
+    # Option 2: Default is True, flag disables it
+    # If lib_sample should be True by default and False when passed:
     parser.add_argument(
-        "--lib_sample",
-        "-ls",
-        action="store_true",
-        help=(
-            "Use a sample library setting (default: False). Pass this flag to enable."
-        ),
+        "--no_lib_sample",
+        "-nls",
+        action="store_false",
+        dest="lib_sample",
+        help="Disable the sample library setting (default: True).",
     )
     # Parse and return the arguments
     args, unknown = parser.parse_known_args()
     if unknown:
         logger.debug(f"unknown: {unknown}")
         # pass
-    return args or parser.parse_args()
+    return args or parser.parse_args(args=args)
 
 
-def run_app_st(click_opt=None):
-    """run_app_st."""
+def run_ui_app_st(args=None):
+    """run_ui_app_st."""
     # Entry point: parse args and launch Streamlit
     # Parse command-line arguments
-    args = parse_arguments()
+    args = parse_arguments(args=args)
     # Launch the Streamlit app with the parsed arguments
     launch_streamlit(
         args.file_path,
@@ -215,12 +233,12 @@ def run_app_st(click_opt=None):
 # ---------------------------
 
 # @click.command()
-# @click.option("--file_path", default="template_st_app.py", help="Streamlit app file")
+# @click.option("--file_path", default="template_ui_app_st.py", help="Streamlit app file")
 # @click.option("--address", "-a", default="localhost", help="Host address")
 # @click.option("--port", "-p", default="8501", help="Port")
 # @click.option("--dark_theme", "-d", is_flag=True, help="Enable dark theme")
 # @click.option("--lib_sample", "-ls", is_flag=True, help="Use sample lib")
-# def run_app_st(file_path, address, port, dark_theme, lib_sample):
+# def run_ui_app_st(file_path, address, port, dark_theme, lib_sample):
 #     launch_streamlit(
 #         file_path=file_path,
 #         address=address,
@@ -241,4 +259,4 @@ if __name__ == "__main__":
     #     run_click()
     # else:
     #     run_argparse()
-    run_app_st()
+    run_ui_app_st()

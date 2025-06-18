@@ -10,14 +10,14 @@ to work with the scikitplot library.
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 
-import inspect
+import inspect as _inspect
 
 # import logging
-import socket
-import subprocess
-import uuid
-from contextlib import closing
-from itertools import islice
+import socket as _socket
+import subprocess as _subprocess
+import uuid as _uuid
+from contextlib import closing as _closing
+from itertools import islice as _islice
 from sys import version_info
 
 from .. import logger as _logger
@@ -58,7 +58,7 @@ def _chunk_dict(d, chunk_size):
     """
     it = iter(d)
     for _ in range(0, len(d), chunk_size):
-        yield {k: d[k] for k in islice(it, chunk_size)}
+        yield {k: d[k] for k in _islice(it, chunk_size)}
 
 
 def _truncate_and_ellipsize(value, max_length):
@@ -159,9 +159,9 @@ def _inspect_original_var_name(var, fallback_name):
     try:
         original_var_name = fallback_name
 
-        frame = inspect.currentframe().f_back
+        frame = _inspect.currentframe().f_back
         while frame is not None:
-            arg_info = inspect.getargvalues(frame)
+            arg_info = _inspect.getargvalues(frame)
 
             fixed_args = [arg_info.locals[arg_name] for arg_name in arg_info.args]
             varlen_args = (
@@ -196,9 +196,9 @@ def _inspect_original_var_name(var, fallback_name):
 
 def find_free_port():
     """Find free socket port on local machine."""
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+    with _closing(_socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)) as s:
         s.bind(("", 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
 
@@ -206,15 +206,15 @@ def check_port_connectivity():
     """check_port_connectivity."""
     port = find_free_port()
     try:
-        with subprocess.Popen(  # noqa: S603, SIM117
+        with _subprocess.Popen(  # noqa: S603, SIM117
             ["nc", "-l", "-p", str(port)],  # noqa: S607
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=_subprocess.DEVNULL,
+            stderr=_subprocess.DEVNULL,
         ) as server:
-            with subprocess.Popen(  # noqa: S603
+            with _subprocess.Popen(  # noqa: S603
                 ["nc", "-zv", "localhost", str(port)],  # noqa: S607
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=_subprocess.DEVNULL,
+                stderr=_subprocess.DEVNULL,
             ) as client:
                 client.wait()
                 server.terminate()
@@ -328,7 +328,7 @@ def get_parent_module(module):
 def is_uuid(s: str) -> bool:
     """Return True if the specified string is a UUID, False otherwise."""
     try:
-        uuid.UUID(s)
+        _uuid.UUID(s)
         return True
     except ValueError:
         return False

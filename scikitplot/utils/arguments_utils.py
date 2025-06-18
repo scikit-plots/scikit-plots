@@ -1,6 +1,6 @@
 """arguments_utils.py."""
 
-import inspect
+import inspect as _inspect
 
 
 def _get_arg_names(f):
@@ -19,4 +19,4 @@ def _get_arg_names(f):
     """
     # `inspect.getargspec` or `inspect.getfullargspec` doesn't work properly for a wrapped function.
     # See https://hynek.me/articles/decorators#mangled-signatures for details.
-    return list(inspect.signature(f).parameters.keys())
+    return list(_inspect.signature(f).parameters.keys())

@@ -7,8 +7,8 @@
 
 # ruff: noqa: D103
 
-import re
-import shlex
+import re as _re
+import shlex as _shlex
 
 from ..utils.os import is_windows
 
@@ -107,19 +107,19 @@ def mslex_quote(s, for_cmd=True):  # noqa: PLR0911
     """
     if not s:
         return '""'
-    if not re.search(cmd_meta_or_space, s):
+    if not _re.search(cmd_meta_or_space, s):
         return s
-    if for_cmd and re.search(cmd_meta, s):
-        if not re.search(cmd_meta_inside_quotes, s):
-            m = re.search(r"\\+$", s)
+    if for_cmd and _re.search(cmd_meta, s):
+        if not _re.search(cmd_meta_inside_quotes, s):
+            m = _re.search(r"\\+$", s)
             if m:
                 return '"' + s + m.group() + '"'
             else:  # noqa: RET505
                 return '"' + s + '"'
-        if not re.search(r"[\s\"]", s):
-            return re.sub(cmd_meta, r"^\1", s)
-        return re.sub(cmd_meta, r"^\1", mslex_quote(s, for_cmd=False))
-    i = re.finditer(r"(\\*)(\"+)|(\\+)|([^\\\"]+)", s)
+        if not _re.search(r"[\s\"]", s):
+            return _re.sub(cmd_meta, r"^\1", s)
+        return _re.sub(cmd_meta, r"^\1", mslex_quote(s, for_cmd=False))
+    i = _re.finditer(r"(\\*)(\"+)|(\\+)|([^\\\"]+)", s)
 
     def parts():
         yield '"'
@@ -144,7 +144,7 @@ def mslex_quote(s, for_cmd=True):  # noqa: PLR0911
 
 
 def quote(s):  # noqa: D103
-    return mslex_quote(s) if is_windows() else shlex.quote(s)
+    return mslex_quote(s) if is_windows() else _shlex.quote(s)
 
 
 def _backtick_quote(s: str) -> str:
