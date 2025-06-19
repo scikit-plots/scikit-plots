@@ -32,9 +32,13 @@ permissions:
 
 jobs:
   lint:
-    if: github.repository == 'scikit-plots/scikit-plots' && github.event_name != 'push'
     runs-on: ubuntu-latest
     continue-on-error: true
+
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+    # if: github.repository == 'scikit-plots/scikit-plots' && github.event_name != 'push'
+
     steps:
       - name: Checkout (cloned) repository with full history
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

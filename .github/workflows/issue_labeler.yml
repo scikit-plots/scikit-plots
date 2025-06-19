@@ -25,8 +25,11 @@ jobs:
     name: "Issue Labeler/Notifier Automatically"
     runs-on: ubuntu-latest
 
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
     steps:
-      - name: Checkout (cloned) repository with full history
+      - name: "⬇️ Checkout (cloned) repository with full history"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false  # Prevents accidental credential exposure
@@ -36,7 +39,7 @@ jobs:
       # label based on Issue title
       - name: label based on PR title
         uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
-        if: github.repository == 'scikit-plots/scikit-plots'
+        # if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
         with:
           # repo-token: ${{ github.token }}

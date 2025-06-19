@@ -9,41 +9,41 @@
 
 <!-- GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
 <!-- <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 580px; margin: auto;">
-  <a href="https://pypi.org/project/scikit-plots" target="_blank">
+  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="PyPI Status" src="https://img.shields.io/pypi/v/scikit-plots">
   </a>
-  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="Anaconda Nightly Wheels Status" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
   </a>
-  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank">
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="Anaconda Nightly Release Date" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
   </a>
-  <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank">
+  <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="GitHub Actions CI Build Wheels Status" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg?event=workflow_dispatch">
   </a>
-  <a href="https://dl.circleci.com/status-badge/redirect/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main" target="_blank">
+  <a href="https://dl.circleci.com/status-badge/redirect/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="CircleCI Status" src="https://dl.circleci.com/status-badge/img/circleci/MzCciwxVsGS9w3PCUFjTaB/TPithCzV9DBEcZUACH7Zij/tree/main.svg?style=shield">
   </a>
-  <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank">
+  <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="pre-commit.ci Status" src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
   </a>
-  <a href="https://github.com/pre-commit/pre-commit" target="_blank">
+  <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="pre-commit Status" src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
   </a>
-  <a href="https://github.com/astral-sh/ruff" target="_blank">
+  <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="Ruff Version" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json">
   </a>
-  <a href="https://github.com/astral-sh/ruff" target="_blank">
+  <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000.svg">
   </a>
-  <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank">
+  <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     # <img style="display:auto;width:auto;height:17px;" alt="Coverage Status" src="https://codecov.io/gh/scikit-plots/scikit-plots/graph/badge.svg?token=D9ET8W1I2P"/>
     <img style="height:17px;" alt="Coverage Status" src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
   </a>
-  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
+  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="Zenodo DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
   </a>
-  <a href="https://pypi.org/project/scikit-plots" target="_blank">
+  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="pyversions" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
   </a>
 </div> -->
@@ -53,53 +53,58 @@
 
 <!-- [![build status](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml/badge.svg)](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml) -->
 <!--
-<a href="https://pypi.org/project/scikit-plots" target="_blank">
+<a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
 <img style="display:auto;width:auto;height:17px;" alt="PyPI Status" src="https://img.shields.io/pypi/v/scikit-plots">
 </a>
-<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
+<a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
 <img style="display:auto;width:auto;height:17px;" alt="Anaconda Nightly Wheels Status" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
 </a>
-<a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
+<a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
 <img style="display:auto;width:auto;height:17px;" alt="Zenodo DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
 </a> -->
 <p align="center">
-  <a href="https://pypi.org/project/scikit-plots" target="_blank">
+  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="PyPI Status" height="17" src="https://img.shields.io/pypi/v/scikit-plots">
   </a>
-  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank">
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="Anaconda Nightly Wheels Status" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
   </a>
-  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank">
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank" rel="noopener noreferrer">
     <img alt="Anaconda Nightly Release Date" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
   </a>
-  <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank">
+  <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank" rel="noopener noreferrer">
     <img alt="GitHub Actions CI Build Wheels Status" height="17" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg?event=workflow_dispatch">
   </a>
-  <a href="https://dl.circleci.com/status-badge/redirect/gh/scikit-plots/scikit-plots/tree/main" target="_blank">
+  <a href="https://dl.circleci.com/status-badge/redirect/gh/scikit-plots/scikit-plots/tree/main" target="_blank" rel="noopener noreferrer">
     <img alt="CircleCI Status" height="17" src="https://dl.circleci.com/status-badge/img/gh/scikit-plots/scikit-plots/tree/main.svg?style=shield">
   </a>
-  <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank">
+  <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank" rel="noopener noreferrer">
     <img alt="pre-commit.ci Status" height="17" src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
   </a>
-  <a href="https://github.com/pre-commit/pre-commit" target="_blank">
+  <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
     <img alt="pre-commit Status" height="17" src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
   </a>
-  <a href="https://github.com/astral-sh/ruff" target="_blank">
+  <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
     <img alt="Ruff Version" height="17" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json">
   </a>
-  <a href="https://github.com/astral-sh/ruff" target="_blank">
+  <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
     <img alt="Ruff" height="17" src="https://img.shields.io/badge/code%20style-ruff-000000.svg">
   </a>
-  <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank">
+  <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="Coverage Status" height="17" src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
   </a>
-  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank">
+  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
     <img alt="Zenodo DOI" height="17" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
   </a>
-  <a href="https://pypi.org/project/scikit-plots" target="_blank">
+  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="pyversions" height="17" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
   </a>
 </p>
+
+<a href="https://scikit-plots.github.io/dev/" target="_blank" rel="noopener noreferrer">
+<img style="display:auto;width:auto;height:230px;" alt="Scikit-plots"
+  src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/scikit-plots-logo.png">
+</a>
 
 
 ## Single line functions for detailed visualizations
@@ -406,7 +411,7 @@ for a history of notable changes to scikit-plots.
 **Reporting a bug? Suggesting a feature? Want to add your own plot to the library? Visit our.**
 
 <!--
-<a href="https://docs.astropy.org/en/latest/impact_health.html" target="_blank">
+<a href="https://docs.astropy.org/en/latest/impact_health.html" target="_blank" rel="noopener noreferrer">
 <img style="display:auto;width:auto;height:auto;" alt="User Statistics" src="https://github.com/astropy/repo_stats/blob/cache/cache/astropy_user_stats_light.png">
 </a> -->
 
@@ -430,7 +435,7 @@ our [dev container](https://github.com/scikit-plots/scikit-plots/blob/main/.devc
 with the required packages. For help, see the [GitHub Codespaces docs](https://docs.github.com/en/codespaces).
 
 <div align=center>
-  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fnotebook_cpu%2Fdevcontainer.json&geo=EuropeWest" target="_blank">
+  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fnotebook_cpu%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
   <img style="display:auto;width:auto;height:auto;" alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg">
   </a><br>
 </div>
@@ -452,10 +457,10 @@ and the [CITATION.bib](https://github.com/scikit-plots/scikit-plots/blob/main/CI
 
 # Supporting the Project (Upcoming)
 
-<a href="https://numfocus.org" target="_blank">
+<a href="https://numfocus.org" target="_blank" rel="noopener noreferrer">
 <img style="display:auto;width:auto;height:auto;" alt="Powered by NumFOCUS" src="https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A">
 </a>
-<a href="https://numfocus.org/donate-to-scikit-plots" target="_blank">
+<a href="https://numfocus.org/donate-to-scikit-plots" target="_blank" rel="noopener noreferrer">
 <img style="display:auto;width:auto;height:auto;" alt="Donate" src="https://img.shields.io/badge/Donate-to%20Scikit-plots-brightgreen.svg">
 </a>
 
