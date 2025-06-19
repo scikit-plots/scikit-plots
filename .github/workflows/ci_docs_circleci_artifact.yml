@@ -7,12 +7,27 @@
 name: CI Docs Preview Link Post CircleCI
 
 on: # [status]  # [status, workflow_dispatch]
-  workflow_dispatch: # Allows manual triggering of the workflow
-  status:
+  # workflow_dispatch: # Allows manual triggering of the workflow
+  # status:
     # branches: [ "main", "*.X" ]
     # types: [completed]  # ?
   # pull_request:
   #   types: [opened, synchronize, reopened]
+  #   # branches: [ "main", "*.X" ]
+  #   branches:
+  #     - main
+  #     ## Release branches
+  #     - maintenance/**
+  push:
+    branches-ignore:
+      - main
+      - master
+      - maintenance/**
+      - release/*
+      - staging
+      - gh-pages
+      - '*.x' # ignore versioned branches
+    # Only push events to PR branches will trigger this
 
 ## Top-level permissions (outside jobs)
 ## Job-level permissions (inside a specific job)
@@ -48,7 +63,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-      # pull-requests: write  # needed to remove PR labels
+      pull-requests: write  # needed to remove PR labels
       # issues: write
 
     steps:
@@ -82,6 +97,7 @@ jobs:
       #     echo "IS_SKIP=false" >> $GITHUB_OUTPUT
 
       - name: Redirect to Post CircleCI artifact link
+        id: docs_link
         # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
         uses: scientific-python/circleci-artifacts-redirector-action@7eafdb60666f57706a5525a2f5eb76224dc8779b # v1.1.0
         # Run step only if IS_SKIP is false
@@ -93,8 +109,61 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           artifact-path: 0/docs/build/html/stable/index.html
           circleci-jobs: build_docs
-          # → https://123-456.circle-artifacts.com/0/docs/build/html/stable/index.html
+          # "https://5-889608023-gh.circle-artifacts.com/0/docs/build/html/stable/index.html"
+          # "https://output.circle-artifacts.com/output/job/757e7260-762e-42e6-81b5-0b6d141f0d83/artifacts/0/docs/build/html/stable/index.html"
           job-title: 📘 Check the rendered Preview Docs here!
+          #   curl -H "Circle-Token: $CIRCLE_TOKEN" \
+          #   https://circleci.com/api/v2/project/gh/scikit-plots/scikit-plots/job/<job_number>/artifacts
+          #   https://circleci.com/api/v2/me
+          #   {
+          #   "items": [
+          #     {
+          #       "path": "docs/build/html/stable/index.html",
+          #       "url": "https://circle-production.s3.amazonaws.com/...."
+          #     }
+          #   ]
+          # }
+
+      - name: ✅ Set Commit Status for Docs
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        continue-on-error: true
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          args: |
+            targetUrl=${{ steps.docs_link.outputs.url }}
+          script: |
+            const targetUrl = args.targetUrl;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: "success",
+              context: "docs/circleci.org:scikit-plots",
+              target_url: targetUrl,
+              description: "Docs Preview is ready!"
+            });
+          # script: |
+          #   const targetUrl = "${{ steps.docs_link.outputs.url }}";
+          #   await github.rest.repos.createCommitStatus({
+          #     owner: context.repo.owner,
+          #     repo: context.repo.repo,
+          #     sha: context.payload.pull_request.head.sha,
+          #     state: "success",
+          #     context: "docs/circleci.org:scikit-plots",
+          #     target_url: targetUrl,
+          #     description: "Docs Preview is ready!"
+          #   });
+
+      - name: 💬 Comment rendered docs preview on PR
+        uses: marocchino/sticky-pull-request-comment@67d0dec7b07ed060a405f9b2a64b8ab319fdd7db # v2.9.2
+        # if: github.event_name == 'pull_request'
+        continue-on-error: true
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          header: docs-preview
+          message: |
+            📘 **Preview the rendered docs here**:
+            🔗 [Open Docs Preview](${{ steps.docs_link.outputs.url }})
 
       # - name: Remove 'run-ci' label from PR
       #   uses: actions/github-script@v7

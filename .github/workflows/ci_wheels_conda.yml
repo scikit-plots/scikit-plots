@@ -28,6 +28,7 @@ on:
   ## Pre-Merge Validation: Ensure that changes introduced in the PR won't break
   ## Pull Requests to Ensure Code Quality
   pull_request:
+    # branches: [ "main", "*.X" ]
     branches:
       - main
       ## Release branches

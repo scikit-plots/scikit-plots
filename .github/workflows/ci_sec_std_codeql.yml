@@ -15,9 +15,17 @@ name: "CI Security Standards CodeQL"
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
   pull_request:
-    branches: [ "main", "*.X" ]
+    # branches: [ "main", "*.X" ]
+    branches:
+      - main
+      ## Release branches
+      - maintenance/**
   push:
-    branches: [ "main", "*.X" ]
+    # branches: [ "main", "*.X" ]
+    branches:
+      - main
+      ## Release branches
+      - maintenance/**
   schedule:
     ## run every Wednesday at 6am UTC
     - cron: '0 6 * * 1'
