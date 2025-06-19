@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   labeler:
-    name: "🤖 Issue Labeler/Notifier Automatically"
+    name: "Issue Labeler/Notifier Automatically"
     runs-on: ubuntu-latest
 
     steps:

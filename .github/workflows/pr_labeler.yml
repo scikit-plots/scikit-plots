@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   labeler:
-    name: "🤖 PRs Labeler/Notifier Automatically"
+    name: "PRs Labeler/Notifier Automatically"
     runs-on: ubuntu-latest
 
     # To enable this workflow on a fork, comment out:
