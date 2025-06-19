@@ -22,6 +22,7 @@ on: # [status]  # [status, workflow_dispatch]
     branches-ignore:
       - main
       - master
+      - maintenance/**
       - release/*
       - staging
       - gh-pages
