@@ -3,31 +3,31 @@
 # To enable this workflow on a fork, comment out:
 #
 # if: "${{ github.repository == 'scikit-plots/scikit-plots' }}"
+#
+# github.repository → the base repo (your main repo)
+# github.event.pull_request.head.repo.full_name → the origin (PR source)
 ---
-name: CI Docs Preview Link Post CircleCI
+# CircleCI does not natively report artifact URLs back to GitHub PRs or commits.
+# You build HTML docs (or any artifact) on CircleCI.
+# You want reviewers to easily preview the rendered docs from the PR.
+# But CircleCI doesn't automatically post the preview URL to the GitHub PR.
+#
+# Why not just link directly? CircleCI artifact URLs:
+# Are non-predictable (they contain job UUIDs).
+# Expire in ~30 days.
+# Are only known after the job runs.
+name: "📘 CI Docs Preview Link Post CircleCI"
 
-on: # [status]  # [status, workflow_dispatch]
-  # workflow_dispatch: # Allows manual triggering of the workflow
-  # status:
+# GitHub has no internal knowledge of CircleCI steps — only the "status" update that CircleCI posts to GitHub
+# "status" too many action trigger
+on: # [status]
+  workflow_dispatch: # Allows manual triggering of the workflow
+  # status:  # Currently we dont need Useful for pull_request preview like "docs/readthedocs.org:"-style status check
     # branches: [ "main", "*.X" ]
-    # types: [completed]  # ?
-  # pull_request:
-  #   types: [opened, synchronize, reopened]
-  #   # branches: [ "main", "*.X" ]
-  #   branches:
-  #     - main
-  #     ## Release branches
-  #     - maintenance/**
-  push:
-    branches-ignore:
-      - main
-      - master
-      - maintenance/**
-      - release/*
-      - staging
-      - gh-pages
-      - '*.x' # ignore versioned branches
-    # Only push events to PR branches will trigger this
+    # branches:
+    #   - main
+    #   ## Release branches
+    #   - maintenance/**
 
 ## Top-level permissions (outside jobs)
 ## Job-level permissions (inside a specific job)
@@ -40,15 +40,20 @@ permissions: read-all  # to fetch code (actions/checkout)
 ## Global environment variables (available to all jobs and steps)
 ## Job-level environment variables (override global, scoped to this job)
 ## Step-level environment variables (override job + global, scoped to this step)
-env:
-  ## Initially set IS_SKIP as false (you can set it to true here if you prefer a different default value)
-  IS_SKIP: false  # ${{ env.IS_SKIP == 'false' }}
-  ACTIONS_STEP_DEBUG: true  # optional but helps debug
+# env:
+#   ## Initially set IS_SKIP as false (you can set it to true here if you prefer a different default value)
+#   IS_SKIP: false  # ${{ env.IS_SKIP == 'false' }}
 
 jobs:
   circleci_artifacts_redirector_job:
-    name: "CI Docs Preview Link Post CircleCI Artifact Redirector"
+    name: "📘 CI Docs Preview Link Post CircleCI Artifact Redirector"
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      statuses: write
+      pull-requests: write  # needed to remove PR labels
+      # issues: write
 
     # To enable this workflow on a fork, comment out:
     # if: "github.repository == 'numpy/numpy' && !contains(github.event.head_commit.message, '[circle skip]') && !contains(github.event.head_commit.message, '[skip circle]')  && github.event.context == 'ci/circleci: build'"
@@ -59,12 +64,6 @@ jobs:
       && !contains(github.event.head_commit.message, '[skip circle]')
       && github.event.context == 'ci/circleci: build_docs'
       && github.event.state == 'success'
-
-    permissions:
-      contents: read
-      statuses: write
-      pull-requests: write  # needed to remove PR labels
-      # issues: write
 
     steps:
       ## Can write comments / labels on PR from fork?
@@ -80,7 +79,6 @@ jobs:
       #     labels: |
       #       circle skip
       #       skip circle
-
       # - name: 'Determine if "circle skip" or "skip circle" label is present'
       #   id: check_skip
       #   env:
@@ -96,89 +94,67 @@ jobs:
       #     done
       #     echo "IS_SKIP=false" >> $GITHUB_OUTPUT
 
-      - name: Redirect to Post CircleCI artifact link
-        id: docs_link
+
+      - name: "🔗 Redirect to Post CircleCI Artifact Link"
+        id: docs_link_redirector
         # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
         uses: scientific-python/circleci-artifacts-redirector-action@7eafdb60666f57706a5525a2f5eb76224dc8779b # v1.1.0
         # Run step only if IS_SKIP is false
         # if: steps.check_skip.outputs.IS_SKIP == 'false'
         continue-on-error: true
+        # env:
+          # Capture the output of the redirector step by giving it an id, for example:
+          # ACTIONS_STEP_DEBUG: true  # optional but helps debug
         with:
           # api_token: ${{ env.CIRCLE_TOKEN }}
           api-token: ${{ secrets.CIRCLE_TOKEN }}  # Only if CircleCI project is private
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           artifact-path: 0/docs/build/html/stable/index.html
           circleci-jobs: build_docs
-          # "https://5-889608023-gh.circle-artifacts.com/0/docs/build/html/stable/index.html"
-          # "https://output.circle-artifacts.com/output/job/757e7260-762e-42e6-81b5-0b6d141f0d83/artifacts/0/docs/build/html/stable/index.html"
           job-title: 📘 Check the rendered Preview Docs here!
-          #   curl -H "Circle-Token: $CIRCLE_TOKEN" \
-          #   https://circleci.com/api/v2/project/gh/scikit-plots/scikit-plots/job/<job_number>/artifacts
-          #   https://circleci.com/api/v2/me
-          #   {
-          #   "items": [
-          #     {
-          #       "path": "docs/build/html/stable/index.html",
-          #       "url": "https://circle-production.s3.amazonaws.com/...."
-          #     }
-          #   ]
-          # }
 
-      - name: ✅ Set Commit Status for Docs
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
-        continue-on-error: true
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          args: |
-            targetUrl=${{ steps.docs_link.outputs.url }}
-          script: |
-            const targetUrl = args.targetUrl;
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: "success",
-              context: "docs/circleci.org:scikit-plots",
-              target_url: targetUrl,
-              description: "Docs Preview is ready!"
-            });
-          # script: |
-          #   const targetUrl = "${{ steps.docs_link.outputs.url }}";
-          #   await github.rest.repos.createCommitStatus({
-          #     owner: context.repo.owner,
-          #     repo: context.repo.repo,
-          #     sha: context.payload.pull_request.head.sha,
-          #     state: "success",
-          #     context: "docs/circleci.org:scikit-plots",
-          #     target_url: targetUrl,
-          #     description: "Docs Preview is ready!"
-          #   });
+      # - name: "🔗 Print redirected docs preview URL"
+      #   # "url": "https://output.circle-artifacts.com/output/job/[JOB-ID]/artifacts/0/docs/build/html/stable/index.html"
+      #   run: echo "Docs Preview URL ${{ steps.docs_link_redirector.outputs.url }}"
+      #   continue-on-error: true
 
-      - name: 💬 Comment rendered docs preview on PR
-        uses: marocchino/sticky-pull-request-comment@67d0dec7b07ed060a405f9b2a64b8ab319fdd7db # v2.9.2
-        # if: github.event_name == 'pull_request'
-        continue-on-error: true
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          header: docs-preview
-          message: |
-            📘 **Preview the rendered docs here**:
-            🔗 [Open Docs Preview](${{ steps.docs_link.outputs.url }})
 
-      # - name: Remove 'run-ci' label from PR
-      #   uses: actions/github-script@v7
+      # - name: ✅ Set Commit Status for Docs  # "docs/circleci.org:scikit-plots"
+      #   uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+      #   continue-on-error: true
       #   with:
       #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     args: |
+      #       targetUrl=${{ steps.docs_link_redirector.outputs.url }}
       #     script: |
-      #       const prNumber = github.context.payload?.commit?.pull_requests?.[0]?.number;
-      #       if (prNumber) {
-      #         await github.rest.issues.removeLabel({
-      #           owner: context.repo.owner,
-      #           repo: context.repo.repo,
-      #           issue_number: prNumber,
-      #           name: 'run-ci'
-      #         });
-      #         console.log(`Removed 'run-ci' label from PR #${prNumber}`);
-      #       } else {
-      #         console.log("No PR number found for this commit.");
-      #       }
+      #       const targetUrl = args.targetUrl;
+      #       await github.rest.repos.createCommitStatus({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         sha: context.sha,
+      #         state: "success",
+      #         context: "docs/circleci.org:scikit-plots",
+      #         target_url: targetUrl,
+      #         description: "Docs Preview is ready!"
+      #       });
+      #     # script: |
+      #     #   const targetUrl = "${{ steps.docs_link_redirector.outputs.url }}";
+      #     #   await github.rest.repos.createCommitStatus({
+      #     #     owner: context.repo.owner,
+      #     #     repo: context.repo.repo,
+      #     #     sha: context.payload.pull_request.head.sha,
+      #     #     state: "success",
+      #     #     context: "docs/circleci.org:scikit-plots",
+      #     #     target_url: targetUrl,
+      #     #     description: "Docs Preview is ready!"
+      #     #   });
+      # - name: 💬 Comment rendered docs preview on PR
+      #   uses: marocchino/sticky-pull-request-comment@67d0dec7b07ed060a405f9b2a64b8ab319fdd7db # v2.9.2
+      #   # if: github.event_name == 'pull_request'
+      #   continue-on-error: true
+      #   with:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     header: docs-preview
+      #     message: |
+      #       📘 **Preview the rendered docs here**:
+      #       🔗 [Open Docs Preview](${{ steps.docs_link_redirector.outputs.url }})

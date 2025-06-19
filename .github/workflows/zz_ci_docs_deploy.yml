@@ -1,4 +1,4 @@
-name: zz CI Docs Deploy
+name: 🪹 CI Docs Deploy
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow

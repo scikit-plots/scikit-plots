@@ -1,6 +1,6 @@
 # Issue Labeler
 ---
-name: "Issue Labeler"
+name: "🤖 Issue Labeler"
 
 on:
   issues:
@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   labeler:
-    name: labeler issue
+    name: "🤖 Issue Labeler/Notifier Automatically"
     runs-on: ubuntu-latest
 
     steps:

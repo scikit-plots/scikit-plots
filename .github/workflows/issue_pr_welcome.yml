@@ -1,6 +1,6 @@
 # "Greetings"
 ---
-name: "Issue-PR Greetings"
+name: "🤖 Issue-PR Greetings"
 
 on:
   issues:
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   greeting:
-    name: "greeting"
+    name: "Greeting Notifier"
     runs-on: ubuntu-latest
 
     # To enable this workflow on a fork, comment out:
