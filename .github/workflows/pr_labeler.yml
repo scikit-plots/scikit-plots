@@ -1,6 +1,6 @@
 # Labeler Pull Request
 ---
-name: "PRs Labeler Automatically"
+name: "🤖 PRs Labeler/Notifier"
 
 on:
   ## Can write comments / labels on PR from fork?
@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   labeler:
-    name: "labeler/ notifier"
+    name: "🤖 PRs Labeler/Notifier Automatically"
     runs-on: ubuntu-latest
 
     # To enable this workflow on a fork, comment out:

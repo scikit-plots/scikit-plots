@@ -9,7 +9,7 @@
 # the `language` matrix defined below to confirm you have the correct set of
 # supported CodeQL languages.
 #
-name: "CI Security Standards CodeQL"
+name: "🛡️ CI Security Standards CodeQL"
 
 ## CodeQL If using "Default Setup", remove custom workflows. 🚀
 on:
@@ -67,7 +67,7 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})  # Multiples
+    name: 🛡️ Analyze (${{ matrix.language }})  # Multiples
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources
@@ -142,7 +142,7 @@ jobs:
 
       # ******** NOTE ********
       # ℹ️ Command-line programs to run using the OS shell.
-      # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+      # 📘 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
       # 📚 https://git.io/JvXDl
       # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
       #    and modify them (or add more) to build your code if your project
@@ -160,20 +160,20 @@ jobs:
       #     echo '  make release'
       #     exit 1
 
-      - name: Manual Set up Python
+      - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         if: matrix.language == 'c-cpp'
         with:
           python-version: '3.11'
 
-      - name: Manual Build Library
+      - name: Build Library
         if: matrix.language == 'c-cpp'
         run: |
           # install your project if it's a package
           pip install -r requirements/all.txt
           pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
-      - name: CodeQL Perform Analysis
+      - name: "🧠 CodeQL Perform Analysis"
         uses: github/codeql-action/analyze@fca7ace96b7d713c7035871441bd52efbe39e27e # v3.28.19
         # continue-on-error: true
         with:
