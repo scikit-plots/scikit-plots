@@ -419,6 +419,12 @@ workflows:
           filters:
             branches:
               ignore: gh-pages
+              # - main
+              # - master
+              # - release/*
+              # - staging
+              # - gh-pages
+              # - '*.x' # ignore versioned branches
       # - run_benchmarks:
       #   requires:
       #     - build_scikitplot
