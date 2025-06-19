@@ -22,7 +22,7 @@ name: "📘 CI Docs Preview Link Post CircleCI"
 # "status" too many action trigger
 on: # [status]
   workflow_dispatch: # Allows manual triggering of the workflow
-  status:
+  # status:  # Currently we dont need Useful for pull_request preview like "docs/readthedocs.org:"-style status check
     # branches: [ "main", "*.X" ]
     # branches:
     #   - main
@@ -95,7 +95,7 @@ jobs:
       #     echo "IS_SKIP=false" >> $GITHUB_OUTPUT
 
 
-      - name: "🔗 Redirect to Post CircleCI artifact link"
+      - name: "🔗 Redirect to Post CircleCI Artifact Link"
         id: docs_link_redirector
         # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
         uses: scientific-python/circleci-artifacts-redirector-action@7eafdb60666f57706a5525a2f5eb76224dc8779b # v1.1.0
@@ -119,7 +119,7 @@ jobs:
       #   continue-on-error: true
 
 
-      # - name: ✅ Set Commit Status for Docs
+      # - name: ✅ Set Commit Status for Docs  # "docs/circleci.org:scikit-plots"
       #   uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
       #   continue-on-error: true
       #   with:
