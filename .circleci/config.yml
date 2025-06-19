@@ -421,6 +421,7 @@ workflows:
               ignore: gh-pages
               # - main
               # - master
+              # - maintenance/**
               # - release/*
               # - staging
               # - gh-pages
