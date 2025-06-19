@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# Copied: https://github.com/numpy/numpy/blob/main/tools/wheels/check_license.py
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 check_license.py [MODULE]
 
@@ -6,9 +11,6 @@ Check the presence of a LICENSE.txt in the installed module directory,
 and that it appears to contain text prevalent for a scikitplot binary
 distribution.
 """
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
 
 import argparse
 import pathlib
@@ -52,7 +54,8 @@ def main():
     except ImportError as e:
         # Catch ImportError and raise a more specific error with context
         raise RuntimeError(
-            f"Failed to import the module '{args.mod_name}'. Please check if the module is installed correctly."
+            f"Failed to import the module '{args.mod_name}'. "
+            "Please check if the module is installed correctly."
         ) from e
     except Exception as e:
         # Catch any other unexpected exceptions and raise them
@@ -61,7 +64,8 @@ def main():
         ) from e
 
     # Locate the LICENSE.txt file
-    # Try to find the .dist-info directory associated with the package, so find it there by Package name
+    # Try to find the .dist-info directory associated with the package,
+    # so find it there by Package name
     sitepkgs = pathlib.Path(
         mod.__file__
     ).parent.parent  # This should give you the site-packages path
@@ -75,7 +79,8 @@ def main():
 
     if not distinfo_paths:
         print(
-            f"ERROR: No file found under '*.dist-info' directory for module '{args.mod_name}' in '{sitepkgs}'"
+            f"ERROR: No file found under '*.dist-info' directory "
+            f"for module '{args.mod_name}' in '{sitepkgs}'"
         )
         sys.exit(1)
 

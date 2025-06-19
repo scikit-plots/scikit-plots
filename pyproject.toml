@@ -22,6 +22,39 @@
 ## https://mesonbuild.com/meson-python/projects-using-meson-python.html
 ##
 ## https://setuptools.pypa.io/en/stable/build_meta.html#dynamic-build-dependencies-and-other-build-meta-tweaks
+##
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | Marker                | Common Values                                 | Suggestions / Best Practices                           |
+## +=======================+===============================================+========================================================+
+## | sys_platform          | "linux", "darwin", "win32", "cygwin",         | Use for OS-level differences (e.g., native deps)       |
+## |                       | "aix", "emscripten", "wasi"                   | Lowercase, stable; prefer over platform_system         |
+## |                       |                                               | ;sys_platform == "win32" ;sys_platform != "emscripten" |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | platform_system       | "Linux", "Darwin", "Windows", "Java",         | Avoid if case-insensitivity matters                    |
+## |                       | "AIX", "Emscripten", "WASI"                   | Case-sensitive; varies between systems                 |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | platform_machine      | "x86_64", "i386", "arm64", "aarch64",         | Use to detect WASM ("wasm32", "wasm64"), ARM, etc.     |
+## |                       | "armv7l", "wasm32", "wasm64", "ppc64le", etc. | Combine with sys_platform for accurate filtering       |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | python_version        | "3.11", "3.10", "3.9", "3.8", "3.7", "3.6"    | Good for minimum/maximum version support               |
+## |                       |                                               | No patch info included   ;python_version >= "3.8"      |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | python_full_version   | "3.11.3", "3.10.9", etc.                      | Use when patch version matters (rare)                  |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | implementation_name   | "cpython", "pypy", "ironpython", "jython"     | Use when packages rely on implementation internals     |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | implementation_version| "3.11.3", "3.10.9", etc.                      | Rarely used; available for tight implementation checks |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | platform_release      | "5.15.0-1068-azure", "10", "22.3.1", etc.     | OS version; very platform-specific                     |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | platform_version      | Varies; often similar to platform_release     | Even more specific; rarely used in packaging           |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | os_name               | "posix", "nt", "java"                         | Reflects `os.name`; useful for basic OS family checks  |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+## | extra                 | Custom extras like "dev", "docs", "test"      | Used with `extras_require` or `optional-dependencies`  |
+## |                       |                                               | 'package; extra == "docs"'                             |
+## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
+##
 [build-system]
 # backend-path = ["_custom_build"]
 build-backend = "mesonpy"                   # Specifies the Python backend to use for building the package.
@@ -29,7 +62,7 @@ build-backend = "mesonpy"                   # Specifies the Python backend to us
 requires = [
   ## Building an env isolated one that build system information (how to package the project).
   "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
-  "ninja>=1.11.0",                          # The Ninja build system used to compile code
+  "ninja>=1.11.0",                          # The Ninja build system used to compile code ';sys_platform != "emscripten"'
   "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
 
   ## C/C++ bindings
@@ -43,8 +76,9 @@ requires = [
   ## Note that building against numpy 1.x works fine too - users and
   ## redistributors can do this by installing the numpy version they like and
   ## disabling build isolation.
+  ## py>=3.9 Numpy C-Api Headers by python module
   'numpy>=1.20,!=1.24.0;python_version<"3.9"',
-  'numpy>=2.0.0rc1;python_version>="3.9"',  # py>=3.9 Numpy C-Api Headers and python module
+  'numpy>=2.0.0;python_version>="3.9"',
 ]
 
 ######################################################################
@@ -166,6 +200,7 @@ readme = {file = 'README.md', content-type = 'text/markdown'}
 ## [[project.authors]]  # Usage individually, If Needed
 authors = [
   {name = "scikit-plots developers", email="scikit-plots-dev@googlegroups.com"},
+  # {name = "scikit-plots developers", email="scikit-plots@python.org"},
   # {name = "Reiichiro Nakano et al.", email = "reiichiro.s.nakano@gmail.com"},
   # {name = "Prateek Sharma", email = "s.prateek3080@gmail.com"},
   # ...
@@ -185,21 +220,23 @@ requires-python = ">=3.9"
 ## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#declaring-required-dependency
 ## { dependency = "numpy", version = ">=1.21.0" },
 dependencies = [  # pipreqs: Automatically scans the codebase and detects the used libraries.
-  ## py>=3.7 Dependencies pip installation (required and optional packages for your project).
+  ## By python>=3.7 Dependencies pip installation
   'numpy>=1.20,!=1.24.0;python_version<"3.9"',
-  'numpy>=2.0.0rc1;python_version>="3.9"',  # py>=3.9 Numpy C-Api Headers and python module
+  'numpy>=2.0.0;python_version>="3.9"',
   "scipy>=1.7.0",
   "pandas>=1.2.0",                          # Data Analysis
   "matplotlib>=3.4,!=3.6.1",                # Data Plotting
   "threadpoolctl>=3.1.0",
   "joblib>=1.2.0",
-  "scikit-learn>=1.3.0rc1",                 # Machine learning
-  ## visualkeras
-  "pillow>=6.2.0",                          # Image processing
-  ## visualkeras dep high-quality drawing, with anti-aliasing and alpha compositing
-  ## aggdraw only for non-wasm platforms
-  'aggdraw>=1.3.11;platform_system!="Emscripten" and platform_machine!="wasm32"',
   'importlib-metadata;python_version<"3.10"',
+  "scikit-learn>=1.3.0rc1",                 # Machine learning
+
+  ## visualkeras dep
+  "pillow>=6.2.0",                          # Image processing
+  ## visualkeras dep aggdraw only for non-wasm platforms not running in a WebAssembly environment
+  ## high-quality drawing, with anti-aliasing and alpha compositing
+  # 'aggdraw>=1.3.11;not (platform_system == "Emscripten" and (platform_machine == "wasm32" or platform_machine == "wasm64"))',
+  'aggdraw>=1.3.11;sys_platform!="emscripten"',
 
   # Web Interface
   # "docker<8,>=4.0.0",
@@ -248,9 +285,10 @@ build = [
   "build",                                  # Standard Python build tool
   "twine",                                  # Upload to PyPI
 
+  ## DO NOT EDIT Copy "requires" section
   ## Building an env isolated one that build system information (how to package the project).
   "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
-  "ninja>=1.11.0",                          # The Ninja build system used to compile code
+  "ninja>=1.11.0",                          # The Ninja build system used to compile code ';sys_platform != "emscripten"'
   "meson-python>=0.16.0",                   # A PEP 517 backend for building Python packages with Meson.
 
   ## C/C++ bindings
@@ -264,8 +302,9 @@ build = [
   ## Note that building against numpy 1.x works fine too - users and
   ## redistributors can do this by installing the numpy version they like and
   ## disabling build isolation.
+  ## py>=3.9 Numpy C-Api Headers by python module
   'numpy>=1.20,!=1.24.0;python_version<"3.9"',
-  'numpy>=2.0.0rc1;python_version>="3.9"',  # py>=3.9 Numpy C-Api Headers and python module
+  'numpy>=2.0.0;python_version>="3.9"',
 ]
 dev = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
@@ -998,16 +1037,27 @@ ignore = [
 # Note: the below skip command doesn't do much currently, the platforms to
 # build wheels for in CI are controlled in `.github/workflows/wheels.yml` and
 # `tools/ci/cirrus_wheels.yml`.
-build-frontend = "build"
 skip = ["*_i686", "*_ppc64le", "*_s390x", "*_universal2"]
+build-frontend = "build"
+# We're only testing with essential test dependencies, not optional ones.
+# Some of those require binary wheels (often missing for some platforms),
+# or they slow down the test suite runs too much or simply aren't necessary.
 
-# cibuildwheel to represent
+# /project will be the $PWD equivalent inside the docker used to build the wheel
 # {project} might be used for higher-level tasks, like referencing the project root.
-# {package} is used to refer to the specific package directory
-before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
+# {package} is used to refer to the specific package directory for cibuildwheel
 before-test = "pip install -r {project}/requirements/test.txt"
+# test-requires = [
+#   "pytest",
+#   "pytest-xdist",
+#   "threadpoolctl",
+#   "pooch",
+#   "hypothesis",
+# ]
 test-command = "bash {project}/tools/wheels/cibw_test_command.sh {project}"
-enable = ["cpython-freethreading", "pypy", "cpython-prerelease"]
+
+before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
+enable = ["cpython-freethreading", "cpython-prerelease", "pypy"]  # for >=v3.0.0
 
 # The build will use openblas64 everywhere, except on arm64 macOS >=14.0 (uses Accelerate)
 [tool.cibuildwheel.config-settings]
@@ -1015,20 +1065,22 @@ setup-args = ["-Duse-ilp64=true", "-Dallow-noblas=false"]
 build-dir = "build"
 
 [tool.cibuildwheel.linux]
-# environment = {}
 manylinux-x86_64-image = "manylinux_2_28"  # "manylinux2014"
 manylinux-aarch64-image = "manylinux_2_28"  # "manylinux2014"
 musllinux-x86_64-image = "musllinux_1_2"
 musllinux-aarch64-image = "musllinux_1_2"
 
+# environment = {}
+
 # Linux-specific environment variables
 [tool.cibuildwheel.linux.environment]
-# RUNNER_OS is a GitHub Actions specific env var; define it here so it works on Cirrus CI too
-RUNNER_OS="Linux"
 # /project will be the $PWD equivalent inside the docker used to build the wheel
 PKG_CONFIG_PATH = "/project/.openblas"
-LD_LIBRARY_PATH = "/project/.openblas/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 CIBW_ENVIRONMENT = "PKG_CONFIG_PATH=/project/.openblas"
+LD_LIBRARY_PATH = "/project/.openblas/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# RUNNER_OS is a GitHub Actions specific env var; define it here so it works on Cirrus CI too
+RUNNER_OS="Linux"
 
 [tool.cibuildwheel.macos]
 # universal2 wheels are not supported (see gh-21233), use `delocate-fuse` if you need them
@@ -1051,16 +1103,16 @@ CIBW_ENVIRONMENT_MACOS = "PKG_CONFIG_PATH=/project/.openblas"
 [tool.cibuildwheel.windows]
 config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=false"], build-dir="build"}
 repair-wheel-command = "bash -el ./tools/wheels/repair_windows.sh {wheel} {dest_dir}"
+
 # This does not work, use CIBW_ENVIRONMENT_WINDOWS
 # environment = {PKG_CONFIG_PATH="./.openblas"}
 
-[[tool.cibuildwheel.overrides]]
-select = [
-  "*-win32",
-  ## "*-win_amd64"
-]
-config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=true"], build-dir="build"}
-repair-wheel-command = ""  # Leave empty if no repair script is needed
+# [[tool.cibuildwheel.overrides]]
+# select = [
+#   "*-win32",  # not "*-win_amd64"
+# ]
+# config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=true"], build-dir="build"}
+# repair-wheel-command = ""  # Leave empty if no repair script is needed
 
 # Windows-specific environment variables
 [tool.cibuildwheel.windows.environment]

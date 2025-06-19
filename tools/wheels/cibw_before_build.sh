@@ -127,17 +127,23 @@ handle_free_threaded_build() {
     # python with a released version of cython
     # Handle Free-Threaded Python builds (if applicable)
     # local FREE_THREADED_BUILD
-    FREE_THREADED_BUILD=$(python -c "import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")
-    if [[ $FREE_THREADED_BUILD == "True" ]]; then
+    # FREE_THREADED_BUILD=$(python -c "import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")
+    # if [[ $FREE_THREADED_BUILD == "True" ]]; then
+    #     log_info "Free-threaded Python build detected. Installing additional build dependencies..."
+    #     python -m pip install -U --pre pip
+    #     python -m pip uninstall -y cython numpy
+    #     python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy || python -m pip install cython numpy
+    #     # TODO: Remove meson installation from source once a new release
+    #     # that includes https://github.com/mesonbuild/meson/pull/13851 is available
+    #     python -m pip install git+https://github.com/mesonbuild/meson
+    #     # python -m pip install git+https://github.com/serge-sans-paille/pythran
+    #     python -m pip install meson-python ninja pybind11 pythran
+    if [[ "$CIBW_FREE_THREADED_SUPPORT" =~ [tT]rue ]]; then
         log_info "Free-threaded Python build detected. Installing additional build dependencies..."
-        python -m pip install -U --pre pip
-        python -m pip uninstall -y cython numpy
-        python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy || python -m pip install cython numpy
-        # TODO: Remove meson installation from source once a new release
-        # that includes https://github.com/mesonbuild/meson/pull/13851 is available
-        python -m pip install git+https://github.com/mesonbuild/meson
-        # python -m pip install git+https://github.com/serge-sans-paille/pythran
-        python -m pip install meson-python ninja pybind11 pythran
+        # Numpy, scipy, Cython only have free-threaded wheels on scientific-python-nightly-wheels
+        # TODO: remove this after CPython 3.13 is released (scheduled October 2024)
+        # and our dependencies have free-threaded wheels on PyPI
+        export CIBW_BUILD_FRONTEND='pip; args: --pre --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" --only-binary :all:'
     else
         log_info "No free-threaded Python build detected. Skipping additional dependencies."
     fi
@@ -315,6 +321,7 @@ setup_windows() {
 ######################################################################
 # Function to handle macOS-specific setup
 setup_macos() {
+    # $(uname) == "Darwin"
     # Detect the system architecture
     local arch
     arch=$(uname -m)
@@ -364,6 +371,7 @@ setup_macos() {
             sudo installer -pkg /Volumes/gfortran/gfortran.pkg -target /
             type -p gfortran
         fi
+        # Install OpenBLAS
         # Define the Scipy OpenBLAS based on Platform
         local openblas_module
         # Determine architecture and install the appropriate requirements
@@ -379,16 +387,20 @@ setup_macos() {
             *)  log_error "Unknown architecture detected: $arch. Unable to proceed. Exiting..." ;;
         esac
         # Fix library paths for macOS openblas_lib_dir
-        openblas_lib_dir=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
-        log_info "OpenBLAS path: $openblas_lib_dir"
-        # lib_dir by openblas_lib_dir
-        # lib_loc=$openblas_lib_dir
-        # # Use the libgfortran from gfortran rather than the one in the wheel
-        # # since delocate gets confused if there is more than one
-        # # https://github.com/scipy/scipy/issues/20852
-        # install_name_tool -change @loader_path/../.dylibs/libgfortran.5.dylib @rpath/libgfortran.5.dylib $lib_loc/libsci*
-        # install_name_tool -change @loader_path/../.dylibs/libgcc_s.1.1.dylib @rpath/libgcc_s.1.1.dylib $lib_loc/libsci*
-        # install_name_tool -change @loader_path/../.dylibs/libquadmath.0.dylib @rpath/libquadmath.0.dylib $lib_loc/libsci*
+        lib_loc=$(python -c"import $openblas_module; print($openblas_module.get_lib_dir())")
+        log_info "OpenBLAS path: $lib_loc"
+        # Use the libgfortran from gfortran rather than the one in the wheel
+        # since delocate gets confused if there is more than one
+        # https://github.com/scipy/scipy/issues/20852
+        # shellcheck disable=SC2086
+        install_name_tool -change @loader_path/../.dylibs/libgfortran.5.dylib @rpath/libgfortran.5.dylib $lib_loc/libsci*
+        # shellcheck disable=SC2086
+        install_name_tool -change @loader_path/../.dylibs/libgcc_s.1.1.dylib @rpath/libgcc_s.1.1.dylib $lib_loc/libsci*
+        # shellcheck disable=SC2086
+        install_name_tool -change @loader_path/../.dylibs/libquadmath.0.dylib @rpath/libquadmath.0.dylib $lib_loc/libsci*
+
+        # shellcheck disable=SC2086
+        codesign -s - -f $lib_loc/libsci*
     fi
 }
 ######################################################################
@@ -406,6 +418,10 @@ main() {
     # Append LICENSE file based on the OS
     setup_license "$project_dir"
     # Install free-threaded Python dependencies if applicable
+    # TODO: These are no longer needed since Cython, Pythran and NumPy all have public releases that support free-threading now.
+    # Not needed anymore, but leave commented out in case we need to start pulling
+    # in a dev version of some dependency again.
+    # https://github.com/scipy/scipy/pull/23180
     handle_free_threaded_build
     # Set up Scipy OpenBLAS based on architecture
     setup_openblas "$project_dir"
