@@ -1,4 +1,4 @@
-name: 🪹 PR Check Milestone
+name: zz PR Check Milestone
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow

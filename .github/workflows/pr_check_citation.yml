@@ -1,6 +1,6 @@
 ## https://github.com/citation-file-format/cffconvert-github-action
 ---
-name: "📝 PRs Check Citation File"
+name: "PRs 📝 Citation File"
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
@@ -45,7 +45,7 @@ permissions:
 
 jobs:
   checker:
-    name: "Checker CITATION.cff"
+    name: "Check CITATION.cff"
     runs-on: ubuntu-latest
 
     # To enable this workflow on a fork, comment out:

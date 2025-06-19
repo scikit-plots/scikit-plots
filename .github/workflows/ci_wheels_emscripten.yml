@@ -1,4 +1,23 @@
-name: "📦 CI Wheels WASM (Emscripten/Pyodide)"  # WebAssembly frontend (via pyodide)
+# Concept	    Analogy                             	Role (Related To)
+# WASM	      Machine code                          The target binary format (WebAssembly VM, Browser)
+# WebAssembly	The CPU architecture                  Platform-independent bytecode spec (WASM, Browsers) = technology/platform.
+# Emscripten	The compiler (like GCC)               Compiles C/C++ → WebAssembly (Uses LLVM)
+# Pyodide	    Python interpreter running on WASM    Python compiled via Emscripten to WASM (Uses CPython + Emscripten) = an application/runtime built on WebAssembly.
+# +-------------------------------+
+# |       Your Browser           |
+# |                               |
+# |  +------------------------+   |
+# |  |  WebAssembly Runtime    |  <-- part of browser
+# |  |                        |   |
+# |  |  Runs .wasm binaries   |   |
+# |  +----------+-------------+   |
+# |             |                 |
+# |     +-------v---------+       |
+# |     |     Pyodide     |       | <-- .wasm file: CPython + Emscripten + numpy + ...
+# |     +-----------------+       |     Python compiled via Emscripten to WASM.
+# +-------------------------------+
+---
+name: "CI 📦 Wheels WebAssembly (Pyodide)"  # WebAssembly frontend (via pyodide)
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
@@ -10,11 +29,11 @@ on:
           Push wheels to Anaconda.org if the build succeeds
         required: false
         default: 'false'
-  pull_request:
-    branches:
-      - main
-      ## Release branches
-      - maintenance/**
+  # pull_request:
+  #   branches:
+  #     - main
+  #     ## Release branches
+  #     - maintenance/**
   # Note: this workflow gets triggered on the same schedule as the
   # wheels.yml workflow to upload WASM wheels to Anaconda.org.
   # schedule:
@@ -35,7 +54,7 @@ env:
 
 jobs:
   build-wasm-emscripten:
-    name: Build WebAssembly distribution for Pyodide
+    name: Build WASM (Python/Emscripten/WebAssembly/Pyodide)
     # runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
     runs-on: ubuntu-22.04  # python3.12
 

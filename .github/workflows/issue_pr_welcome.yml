@@ -1,6 +1,6 @@
 # "Greetings"
 ---
-name: "🤖 Issue-PR Greetings"
+name: "Issue-PR 🤖 Greetings"
 
 on:
   issues:

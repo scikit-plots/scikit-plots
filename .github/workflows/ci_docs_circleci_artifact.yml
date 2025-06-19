@@ -16,7 +16,7 @@
 # Are non-predictable (they contain job UUIDs).
 # Expire in ~30 days.
 # Are only known after the job runs.
-name: "📘 CI Docs Preview Link Post CircleCI"
+name: "CI 📘 Docs Preview Link Post CircleCI"
 
 # GitHub has no internal knowledge of CircleCI steps — only the "status" update that CircleCI posts to GitHub
 # "status" too many action trigger
