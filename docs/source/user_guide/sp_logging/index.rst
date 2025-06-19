@@ -23,6 +23,10 @@ First, import the logger, Get a root logger by module:
 
 .. jupyter-execute::
 
+    >>> import scikitplot as sp
+    >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
+    >>> logger.info("This is a info message from the sp logger.")
+
     >>> from scikitplot import logger
     >>> logger.setLevel(logger.INFO)  # default WARNING
     >>> logger.info("This is a info message from the sp logger.")
@@ -31,9 +35,9 @@ Get a root logger by func:
 
 .. jupyter-execute::
 
-    >>> from scikitplot import logger
-    >>> logger.setLevel(logger.INFO)  # default WARNING
-    >>> logger.info("This is a info message from the sp logger.")
+    >>> import scikitplot as sp
+    >>> sp.get_logger().setLevel(sp.sp_logging.INFO)  # default WARNING
+    >>> sp.get_logger().info("This is a info message from the sp logger.")
 
 .. note::
 

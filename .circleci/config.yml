@@ -45,6 +45,7 @@ version: 2.1
 # Here is where the real jobs are defined.
 ##########################################
 
+# https://support.circleci.com/hc/en-us/articles/360043638052-Conditional-steps-in-jobs-and-conditional-workflows
 # Add a Pipeline Parameter and Trigger
 # Project Settings → Triggers → Add Trigger
 # Fill out:
@@ -89,37 +90,37 @@ _defaults: &defaults
 #   codecov: codecov/codecov-action@v5
 
 commands:
-  check-label-run-ci:
-    description: Check if labels contain "run-ci" keyword; skip if not present or on error
-    steps:
-      - run:
-          name: Check for 'run-ci' label
-          command: |
-            set -euo pipefail  # safer bash: fail on error, undefined var, and fail pipe if any step fails
+  # check-label-run-ci:
+  #   description: Check if labels contain "run-ci" keyword; skip if not present or on error
+  #   steps:
+  #     - run:
+  #         name: Check for 'run-ci' label
+  #         command: |
+  #           set -euo pipefail  # safer bash: fail on error, undefined var, and fail pipe if any step fails
 
-            # Extract PR number from CIRCLE_PULL_REQUEST URL, if empty skip gracefully
-            if [ -z "${CIRCLE_PULL_REQUEST:-}" ]; then
-              echo "No pull request context detected; skipping label check."
-              exit 0
-            fi
-            PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | awk -F/ '{print $NF}')
+  #           # Extract PR number from CIRCLE_PULL_REQUEST URL, if empty skip gracefully
+  #           if [ -z "${CIRCLE_PULL_REQUEST:-}" ]; then
+  #             echo "No pull request context detected; skipping label check."
+  #             exit 0
+  #           fi
+  #           PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | awk -F/ '{print $NF}')
 
-            # Use GitHub API to fetch labels; handle errors gracefully without failing job
-            LABELS=$(curl -sSf -H "Authorization: token $GITHUB_TOKEN" \
-              "https://api.github.com/repos/your-org/your-repo/issues/$PR_NUMBER/labels" || echo "")
+  #           # Use GitHub API to fetch labels; handle errors gracefully without failing job
+  #           LABELS=$(curl -sSf -H "Authorization: token $GITHUB_TOKEN" \
+  #             "https://api.github.com/repos/your-org/your-repo/issues/$PR_NUMBER/labels" || echo "")
 
-            if [ -z "$LABELS" ]; then
-              echo "Warning: Unable to fetch labels or no labels found; proceeding with job."
-              exit 0
-            fi
+  #           if [ -z "$LABELS" ]; then
+  #             echo "Warning: Unable to fetch labels or no labels found; proceeding with job."
+  #             exit 0
+  #           fi
 
-            # Parse labels safely with jq; handle jq errors without failing
-            RUN_CI=$(echo "$LABELS" | jq -r '.[].name' 2>/dev/null || echo "" | grep -q "run-ci" && echo "true" || echo "false")
+  #           # Parse labels safely with jq; handle jq errors without failing
+  #           RUN_CI=$(echo "$LABELS" | jq -r '.[].name' 2>/dev/null || echo "" | grep -q "run-ci" && echo "true" || echo "false")
 
-            if [ "$RUN_CI" != "true" ]; then
-              echo "Label 'run-ci' not found. Skipping job."
-              circleci-agent step halt
-            fi
+  #           if [ "$RUN_CI" != "true" ]; then
+  #             echo "Label 'run-ci' not found. Skipping job."
+  #             circleci-agent step halt
+  #           fi
   check-skip:
     description: Check if commit message contains skip keyword
     steps:
@@ -455,23 +456,20 @@ workflows:
 
   # Accept Separatable Workflow
   default:
+
+    # Conditional run based on parameter:
+    # when: << pipeline.parameters.run_docs_build >>
+    when:
+      equal: [true, << pipeline.parameters.run_docs_build >>]
+
     jobs:
+      - build_scikitplot
       # NOTE: If you rename this job, then you must update the `if` condition
       # and `circleci-jobs` option in `.github/workflows/circleci.yml`.
-      # - build_scikitplot
-      - build_scikitplot:
-          # Conditional run based on parameter:
-          # when: << pipeline.parameters.run_docs_build >>
-          when:
-            equal: [true, << pipeline.parameters.run_docs_build >>]
       - build_docs:
-          when:
-            equal: [true, << pipeline.parameters.run_docs_build >>]
           requires:
             - build_scikitplot
       - deploy:
-          when:
-            equal: [true, << pipeline.parameters.run_docs_build >>]
           requires:
             - build_docs
           filters:
@@ -485,9 +483,25 @@ workflows:
               # - staging
               # - gh-pages
               # - '*.x' # ignore versioned branches
-      # - run_benchmarks:
-      #   requires:
-      #     - build_scikitplot
-      # - refguide_check:
-      #     requires:
-      #       - build_scikitplot
+
+  # # Conditional workflow that runs jobs only if run_docs_build == true
+  # test_workflow:
+  #   # Conditional run based on parameter:
+  #   # when: << pipeline.parameters.run_docs_build >>
+  #   when:
+  #     equal: [true, << pipeline.parameters.run_docs_build >>]
+
+  #   jobs:
+  #     # Conditional steps inside the job
+  #     # steps:
+  #     #   - when:
+  #     #       condition:
+  #     #         equal: [true, << pipeline.parameters.run_docs_build >>]
+  #     #       steps:
+  #     #         - run: echo "Running build_scikitplot job"
+  #     # - run_benchmarks:
+  #     #   requires:
+  #     #     - build_scikitplot
+  #     # - refguide_check:
+  #     #     requires:
+  #     #       - build_scikitplot
