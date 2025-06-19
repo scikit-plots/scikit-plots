@@ -493,7 +493,7 @@ jobs:
           upload_wheels  # Required WHEEL_FILE_PATH
 
   build_sdist:
-    name: "📦 Build Source (sdist) Package(s)"
+    name: "Build Source (sdist) Package(s)"
     needs: check_build_trigger
     if: >-
       contains(needs.check_build_trigger.outputs.COMMIT_MESSAGE, 'true') ||

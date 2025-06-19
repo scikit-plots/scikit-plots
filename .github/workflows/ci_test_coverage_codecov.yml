@@ -45,7 +45,7 @@ permissions:
 
 jobs:
   test_coverage:
-    name: "☂️ CI Test and Coverage Codecov Reports"
+    name: "CI Test and Coverage Codecov Reports"
     runs-on: ubuntu-latest
 
     # To enable this workflow on a fork, comment out:
