@@ -1,4 +1,4 @@
-name: "📦 CI Wheels WASM (Emscripten/Pyodide)"  # WebAssembly frontend (via pyodide)
+name: "CI 📦 Wheels WASM (Emscripten/Pyodide)"  # WebAssembly frontend (via pyodide)
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow

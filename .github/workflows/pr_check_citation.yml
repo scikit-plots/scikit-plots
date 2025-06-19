@@ -1,6 +1,6 @@
 ## https://github.com/citation-file-format/cffconvert-github-action
 ---
-name: "📝 PRs Check Citation File"
+name: "PRs Check 📝 Citation File"
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow

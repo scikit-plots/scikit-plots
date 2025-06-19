@@ -1,6 +1,6 @@
 # https://app.codecov.io/gh/scikit-plots/scikit-plots/new
 ---
-name: "☂️ CI Test and Coverage Codecov"
+name: "CI ☂️ Test and Coverage Codecov"
 
 on:
   push:

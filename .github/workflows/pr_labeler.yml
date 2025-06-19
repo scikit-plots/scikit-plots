@@ -1,6 +1,6 @@
 # Labeler Pull Request
 ---
-name: "🤖 PRs Labeler/Notifier"
+name: "PRs 🤖 Labeler/Notifier"
 
 on:
   ## Can write comments / labels on PR from fork?

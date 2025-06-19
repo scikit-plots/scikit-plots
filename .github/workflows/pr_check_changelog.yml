@@ -1,6 +1,6 @@
 ## https://github.com/scientific-python/action-towncrier-changelog
 ---
-name: "📝 PRs Check Changelog File"
+name: "PRs Check 📝 Changelog File"
 
 ## This check makes sure that the changelog is properly updated
 ## when a PR introduces a change in a test file.

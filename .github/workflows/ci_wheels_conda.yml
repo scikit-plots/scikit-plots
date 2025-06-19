@@ -15,7 +15,7 @@
 ---
 # Built distribution (binary or pure Python)
 # .whl Designed to be a pre-built, installable package — no build step needed on install.
-name: "📦 CI Wheels Conda"
+name: "CI 📦 Wheels Conda"
 
 on:
   ## manually trigger the workflow from the GitHub Actions UI.

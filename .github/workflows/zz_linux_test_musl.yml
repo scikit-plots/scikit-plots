@@ -1,4 +1,4 @@
-name: 🪹 Linux Test musllinux_x86_64
+name: zz Linux Test musllinux_x86_64
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
