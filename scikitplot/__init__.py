@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # mypy: disallow-any-generics
-# ruff: noqa: F401
+# ruff: noqa: D205,F401
 # pylint: disable=unused-import
 # pylint: disable=line-too-long
 
@@ -13,7 +13,7 @@ XGBoost, TensorFlow, and more.
 
 Documentation is available in the docstrings and online at
 https://scikit-plots.github.io.
-"""  # noqa: D205
+"""
 
 # _set = set  # 'seaborn.set' can be override raise error
 import builtins as _builtins
