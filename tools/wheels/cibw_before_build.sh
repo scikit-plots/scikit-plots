@@ -126,26 +126,32 @@ handle_free_threaded_build() {
     # CIBW_BUILD_FRONTEND when numpy is buildable under free-threaded
     # python with a released version of cython
     # Handle Free-Threaded Python builds (if applicable)
-    # local FREE_THREADED_BUILD
-    # FREE_THREADED_BUILD=$(python -c "import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")
-    # if [[ $FREE_THREADED_BUILD == "True" ]]; then
-    #     log_info "Free-threaded Python build detected. Installing additional build dependencies..."
-    #     python -m pip install -U --pre pip
-    #     python -m pip uninstall -y cython numpy
-    #     python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy || python -m pip install cython numpy
-    #     # TODO: Remove meson installation from source once a new release
-    #     # that includes https://github.com/mesonbuild/meson/pull/13851 is available
-    #     python -m pip install git+https://github.com/mesonbuild/meson
-    #     # python -m pip install git+https://github.com/serge-sans-paille/pythran
-    #     python -m pip install meson-python ninja pybind11 pythran
-    if [[ "$CIBW_FREE_THREADED_SUPPORT" =~ [tT]rue ]]; then
-        log_info "Free-threaded Python build detected. Installing additional build dependencies..."
+    local FREE_THREADED_BUILD
+    # Detect whether Python is a free-threaded (no-GIL) build using sysconfig
+    FREE_THREADED_BUILD=$(python -c "import sysconfig; print(bool(sysconfig.get_config_var('Py_GIL_DISABLED')))")
+    # ⚠️ DO NOT QUOTE the regex (right-hand side) inside [[ =~ ... ]]!
+    # ✅ This regex will match both "True" and "true"
+    # 📌 "$FREE_THREADED_BUILD" must be quoted to avoid globbing/splitting errors
+    # ${VAR:=default} — Assign default if unset or null, avoiding the "unbound variable" error even when not set.
+    # ${VAR:-default} — Use default if unset or null, but do NOT assign, if you only want to use a default value temporarily but keep the variable untouched.
+    if [[ "$FREE_THREADED_BUILD" == ^[tT]rue$ ]]; then
+        log_info "Free-threaded Python (GIL disabled) build detected. Installing additional build dependencies..."
+        # 👉 Add no-GIL/free-threaded Python specific build flags or config here
+        # python -m pip install -U --pre pip
+        # python -m pip uninstall -y cython numpy
+        # python -m pip install -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple cython numpy || python -m pip install cython numpy
+        # # TODO: Remove meson installation from source once a new release
+        # # that includes https://github.com/mesonbuild/meson/pull/13851 is available
+        # python -m pip install git+https://github.com/mesonbuild/meson
+        # # python -m pip install git+https://github.com/serge-sans-paille/pythran
+        # python -m pip install meson-python ninja pybind11 pythran
+
         # Numpy, scipy, Cython only have free-threaded wheels on scientific-python-nightly-wheels
         # TODO: remove this after CPython 3.13 is released (scheduled October 2024)
         # and our dependencies have free-threaded wheels on PyPI
-        export CIBW_BUILD_FRONTEND='pip; args: --pre --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" --only-binary :all:'
+        export CIBW_BUILD_FRONTEND='pip; args: --pre --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" --only-binary :all:'  #  --no-build-isolation
     else
-        log_info "No free-threaded Python build detected. Skipping additional dependencies."
+        log_info "No free-threaded Regular Python (GIL enabled) build detected. Skipping additional dependencies."
     fi
 }
 ######################################################################

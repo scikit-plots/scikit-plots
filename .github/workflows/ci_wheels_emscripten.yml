@@ -54,7 +54,7 @@ env:
 
 jobs:
   build-wasm-emscripten:
-    name: Build WASM (Emscripten/WebAssembly/Pyodide)
+    name: Build WASM (WebAssembly/Emscripten/Pyodide)
     # runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
     runs-on: ubuntu-22.04  # python3.12
 

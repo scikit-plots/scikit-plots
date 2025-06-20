@@ -1031,6 +1031,7 @@ ignore = [
 
 ######################################################################
 ## cibuildwheel
+## https://cibuildwheel.pypa.io/en/stable/options/
 ######################################################################
 
 [tool.cibuildwheel]
@@ -1057,6 +1058,8 @@ before-test = "pip install -r {project}/requirements/test.txt"
 test-command = "bash {project}/tools/wheels/cibw_test_command.sh {project}"
 
 before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
+
+# CIBW_ENABLE="cpython-prerelease cpython-freethreading"
 enable = ["cpython-freethreading", "cpython-prerelease", "pypy"]  # for >=v3.0.0
 
 # The build will use openblas64 everywhere, except on arm64 macOS >=14.0 (uses Accelerate)
