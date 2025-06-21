@@ -11,6 +11,7 @@ from ..utils.utils_path import remove_path
 from .decomposition import *  # into your current module's scope
 from .estimators import *
 from .metrics import *
+from . import plotters
 
 # Remove, filters out private/dunder names.
 __all__ = [s for s in sorted(globals().keys() | {*dir()}) if not s.startswith("_")]
