@@ -24,5 +24,8 @@
 .. |Fix| replace:: :raw-html:`<span class="badge text-bg-danger">Fix</span>` :raw-latex:`{\small\sc [Fix]}`
 .. |API| replace:: :raw-html:`<span class="badge text-bg-warning">API Change</span>` :raw-latex:`{\small\sc [API Change]}`
 
-
-.. _muhammed celik: https://github.com/celik-muhammed
+.. Label (target) used for internal referencing, use underscores or hyphens (no spaces allowed)
+.. Underscores are the official recommended separator in reST labels.
+.. Dashes are allowed but sometimes can conflict with word hyphens.
+.. See the section on `whatever <#muhammed-celik>`_ or See :ref:`a`.
+.. _muhammed-celik: https://github.com/celik-muhammed

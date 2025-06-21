@@ -51,6 +51,8 @@ We adopted the following release schedule:
 Reference Steps
 ^^^^^^^^^^^^^^^
 
+.. _inferred_ext: https://github.com/celik-muhammed/scikit-plots/tree/main/docs/source/_sphinx_ext/skplt_ext
+
 .. tab-set::
 
   {% for key in ["rc", "final", "bf"] %}

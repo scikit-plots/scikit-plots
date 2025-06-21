@@ -11,7 +11,8 @@
 
 """template_st_login."""
 
-from scikitplot import LazyImport  # logger
+# from scikitplot import logger
+from scikitplot._compat.optional_deps import LazyImport
 
 __all__ = []
 

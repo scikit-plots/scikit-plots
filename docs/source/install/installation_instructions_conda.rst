@@ -14,33 +14,38 @@ administrator permission required). Then run:
 
 .. prompt:: bash >>> auto
 
-  # (conda or mamba) Create New Env and install scikit-plots
-  conda create -n sklearn-env -c conda-forge scikit-plots
-  conda activate sklearn-env
+  # (conda or mamba) Create New Env and install ``scikit-plots``
+  mamba create -n py311 python=3.11 ipykernel -y
+  conda activate py311
 
 .. prompt:: bash >>> auto
 
-  # (conda or mamba) Install scikit-plots
-  conda install -c conda-forge scikit-plots
+  ## (conda or mamba) Install scikit-plots  (Upcoming)
+  conda install --yes -c conda-forge scikit-plots
 
 In order to check your installation, you can use:
 
 .. prompt:: bash >>> auto
 
-  conda list scikit-plots  # show scikit-plots version and location
-  conda list               # show all installed packages in the environment
+  # conda list               # show all installed packages in the environment
+  conda list scikit-plots    # show scikit-plots version and location
+
+  # Version Check
   python -c "import scikitplot; scikitplot.show_versions()"
+
+  # (Optionally) Version Check
   scikitplot --version
   scikitplot -v
 
-(Not Recommended) Also available Nightly Version can cause conflict:
+(Optionally) Also available Nightly Version **can be cause conflict** required ``New Environment``:
 
 .. prompt:: bash >>> auto
 
-  ## (Optionally) Install the lost packages
+  ## (Optionally) Install the lost packages "Runtime dependencies"
   ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
   curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
   pip install -r default.txt
 
-  ## Try After Ensure all dependencies installed
-  pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+  ## Try After Ensure all "Runtime dependencies" installed
+  # pip install --extra-index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots

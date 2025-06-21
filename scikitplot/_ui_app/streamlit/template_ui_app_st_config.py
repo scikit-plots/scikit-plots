@@ -11,7 +11,8 @@
 
 from typing import TYPE_CHECKING
 
-from scikitplot import LazyImport  # logger
+# from scikitplot import logger
+from scikitplot._compat.optional_deps import LazyImport
 
 if TYPE_CHECKING:
     from typing import Literal, Optional

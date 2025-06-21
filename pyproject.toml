@@ -3,10 +3,10 @@
 
 ## This file is the modern replacement for setup.py, used to configure how your Python package is built.
 ##
-## https://packaging.python.org/en/latest/discussions/setup-py-deprecated/#setup-py-deprecated
+## ⚠️ https://packaging.python.org/en/latest/discussions/setup-py-deprecated/#setup-py-deprecated
 ##
 ## https://packaging.python.org/en/latest/specifications/pyproject-toml/
-## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#a-full-example
+## 🛎️ https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#a-full-example
 ##
 ## The [build-system] section specifies the build system requirements.
 ## "setuptools.build_meta" is the default backend used by setuptools for building projects.
@@ -55,9 +55,13 @@
 ## |                       |                                               | 'package; extra == "docs"'                             |
 ## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
 ##
+## 🔻 https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#declaring-the-build-backend
 [build-system]
-# backend-path = ["_custom_build"]
+# backend-path = ["_custom_build"]          # If Needed
+
+# Purpose: Build backend that handles the package build process
 build-backend = "mesonpy"                   # Specifies the Python backend to use for building the package.
+
 ## Purpose: Specifies the build dependencies needed to create the package or run the build process.
 requires = [
   ## Building an env isolated one that build system information (how to package the project).
@@ -82,24 +86,20 @@ requires = [
 ]
 
 ######################################################################
-## project
+## 🔻 project: metadata about your project
+## https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html
+## https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html#dynamic-metadata
 ######################################################################
 
 ## The [project] section contains metadata about your project.
-## https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html
-## https://setuptools.pypa.io/en/stable/userguide/pyproject_config.html#dynamic-metadata
 [project]
 name = "scikit-plots"                       # The name of your project
 
-## https://github.com/mesonbuild/meson-python/blob/main/mesonpy/__init__.py#L743
-## https://github.com/pypa/setuptools/blob/646c71f9af7e9ba6677203acde4ccd0a478dfbf8/setuptools/config/expand.py#L62-L86
-dynamic = [
-  "version",          # Determined dynamically, inside one of meson.build, setup.cfg, setuptools.dynamic
-  # "license",
-  # "license-files",
-]
+## (Optionally)
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#description
 description = "An intuitive library that seamlessly adds plotting capabilities and functionality to any model objects or outputs, compatible with tools like scikit-learn, XGBoost, TensorFlow, and more."
 
+## (Optionally)
 ## Keywords to describe your project, useful for searchability
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#keywords
 ## https://packaging.python.org/en/latest/specifications/core-metadata/#keywords
@@ -118,6 +118,7 @@ keywords = [
   "transformers",
 ]
 
+## (Optionally)
 ## Classifiers help users understand the maturity, audience,
 ## and compatible environments for your project.
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#classifiers
@@ -173,28 +174,47 @@ classifiers = [
   "Topic :: Multimedia :: Graphics",
 ]
 
+## (Recommended)
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#static-vs-dynamic-metadata
+## https://github.com/mesonbuild/meson-python/blob/main/mesonpy/__init__.py#L743
+## https://github.com/pypa/setuptools/blob/646c71f9af7e9ba6677203acde4ccd0a478dfbf8/setuptools/config/expand.py#L62-L86
+dynamic = [
+  "version",                                # Determined dynamically by build-backend, inside one of (meson.build, setup.cfg, setuptools.dynamic)
+  # "license",
+  # "license-files",
+]
+
+## (Recommended)
+## The readme file this is what users will see on your project's PyPI page.
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#readme
+## readme = "README.md"
+readme = {file = 'README.md', content-type = 'text/markdown'}
+
+## (Optionally)
+## [[project.readme]]  # Usage individually, If Needed
+## file = 'README.md'
+## content-type = 'text/x-rst'
+
+## (Recommended)
 ## License information is critical. It's recommended to specify the license file.
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license-and-license-files
 ## https://packaging.python.org/en/latest/specifications/core-metadata/#license-file-multiple-use
+## license is an SPDX license expression consisting of one or more license identifiers.
+## license-files is a list of license file glob patterns.
+##
 ## TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
 ## at that point, no longer include them in `py3.install_sources()`
 ## [[project.license]]  # Usage individually, If Needed
 ## If defined required to fully compatible with SPDX license expression by license-files
 ## https://spdx.org/licenses/BSD-3-Clause.html  # 'MIT', 'Apache-2.0', 'GPL-3.0-or-later'
 license = { file = 'LICENSE' }  # Primary license file # This is the SPDX identifier for the license
-
+## (Optionally)
 ## [tool.meson-python]
 ## PEP-639 license-files field to be used only if the license field contains a valid SPDX license expression.
 # license-files = ['LICENSE', 'LICEN[CS]E*/*']
 
-## The readme file this is what users will see on your project's PyPI page.
-## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#readme
-## [[project.readme]]  # Usage individually, If Needed
-## file = 'README.md'
-## content-type = 'text/x-rst'
-## readme = "README.md"
-readme = {file = 'README.md', content-type = 'text/markdown'}
-
+## (Recommended)
 ## List the authors of the project
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#authors-maintainers
 ## [[project.authors]]  # Usage individually, If Needed
@@ -211,61 +231,85 @@ maintainers = [
   {name = "scikit-plots developers", email="scikit-plots-maintainers@googlegroups.com"},
 ]
 
+## (Recommended)
 ## Specify the minimum Python version required
 ## https://packaging.python.org/en/latest/specifications/core-metadata/#requires-python
 ## TODO: "3.10"  # due to array api compat
 requires-python = ">=3.9"
 
-## Purpose: Specifies the runtime dependencies needed for the project to run after it's installed.
+## (Recommended)
+## Purpose: Specifies the Runtime dependencies needed for the project to run after it's installed.
 ## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#declaring-required-dependency
-## { dependency = "numpy", version = ">=1.21.0" },
-dependencies = [  # pipreqs: Automatically scans the codebase and detects the used libraries.
-  ## By python>=3.7 Dependencies pip installation
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
+## ✅ Runtime dependencies go here — as a list of strings for pyproject.toml with PEP 621
+## Runtime dependencies needed for proper operation on Python 3.7+,
+## installed automatically via pip (pip install)
+dependencies = [
+  # --- Core Numerical Libraries ---
   'numpy>=1.20,!=1.24.0;python_version<"3.9"',
   'numpy>=2.0.0;python_version>="3.9"',
   "scipy>=1.7.0",
   "pandas>=1.2.0",                          # Data Analysis
   "matplotlib>=3.4,!=3.6.1",                # Data Plotting
+
+  # --- Performance / Parallelism ---
   "threadpoolctl>=3.1.0",
   "joblib>=1.2.0",
-  'importlib-metadata;python_version<"3.10"',
+
+  # --- Machine Learning ---
   "scikit-learn>=1.3.0rc1",                 # Machine learning
 
-  ## visualkeras dep
+  # --- Visualkeras Dependency ---
   "pillow>=6.2.0",                          # Image processing
-  ## visualkeras dep aggdraw only for non-wasm platforms not running in a WebAssembly environment
+  ## aggdraw Only for platforms other than WebAssembly
   ## high-quality drawing, with anti-aliasing and alpha compositing
   # 'aggdraw>=1.3.11;not (platform_system == "Emscripten" and (platform_machine == "wasm32" or platform_machine == "wasm64"))',
   'aggdraw>=1.3.11;sys_platform!="emscripten"',
 
-  # Web Interface
-  # "docker<8,>=4.0.0",
+  # --- Optional Web Interface Dependencies (commented out) ---
+  # "docker>=4.0.0,<8",
   # "streamlit",
-  # "requests<3,>=2.17.3",
+  # "requests>=2.17.3,<3",
   # "Flask<4",
   # "fastapi<1",
   # "uvicorn<1",
   # "waitress<4; platform_system == 'Windows'",
   # "gunicorn<24; platform_system != 'Windows'",
-  # "importlib_metadata<9,>=3.7.0,!=4.7.0",
-  # "pyyaml<7,>=5.1",
-  # "sqlalchemy<3,>=1.4.0",
-  # "sqlparse<1,>=0.4.0",0",
-  # "click<9,>=7.0",
+  # "importlib-metadata>=3.7.0,<9,!=4.7.0",  # Only if needed manually
+  # "pyyaml>=5.1,<7",
+  # "sqlalchemy>=1.4.0,<3",
+  # "sqlparse>=0.4.0,<1",
+  # "click>=7.0,<9",
   # "cloudpickle<4",
 ]
 
 ######################################################################
-## optional-dependencies
+## 🔻 optional-dependencies
 ## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs,gpu] -v
-######################################################################
-
-## Development dependencies (for linting, type checking, and general dev tools)
-## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#optional-dependencies
-## https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#direct-url-dependencies
 ## https://peps.python.org/pep-0508/
 ## https://peps.python.org/pep-0735/#deferred-ideas
+## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#optional-dependencies
+## https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#direct-url-dependencies
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
+######################################################################
+
+## (Optionally)
+## Development dependencies (for linting, type checking, and general dev tools)
+## Defines optional dependencies (extras) that can be installed separately
+## via `pip install yourpackage[extra_name]`
 [project.optional-dependencies]
+
+legacy = [
+  'numpy>=1.20,!=1.24.0;python_version<"3.9"',
+
+  'importlib-metadata;python_version<"3.10"',  # Backport needed for Python < '3.8'
+
+  # Read-only TOML parser for older Python
+  # Python TOML support became built-in (via tomllib) starting in Python >= 3.11.
+  # tomli — a newer, faster, read-only TOML parser focused on compliance.
+  # toml — a popular older TOML parsing library, supports both reading and writing.
+  'tomli;python_version<"3.11"',  # TOML parsing backports for Python < 3.11
+]
 ## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 ## Core dependencies that are used in multiple groups
 core = [
@@ -275,6 +319,7 @@ core = [
 ]
 ## Build dependencies (for packaging and building extensions)
 build = [
+  "scikit-plots[legacy]",                   # Pulls in the 'legacy' optional dependencies during build
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
 
   ## packaging
@@ -314,10 +359,7 @@ dev = [
   "pydantic",
   "pydevtool",                              # Development tools
   "pyyaml",
-  # toml — a popular older TOML parsing library, supports both reading and writing.
-  # tomli — a newer, faster, read-only TOML parser focused on compliance.
-  # >= 3.11	tomllib (built-in)	Read-only	No external dependency
-  'tomli;python_version<"3.11"',            # Python TOML support became built-in (via tomllib) starting in Python 3.11.
+
   "types-psutil",                           # Type stubs for psutil
   "typing_extensions",                      # Backports for older Python versions
   "requests",
@@ -332,6 +374,8 @@ dev = [
   "black",                                  # Code formatting
   "ruff",                                   # Linting
   "mypy",                                   # Type checking
+
+  # "pipreqs",                              # Automatically scans the codebase and detects the used libraries.
 ]
 ## Testing dependencies
 test = [
@@ -352,6 +396,7 @@ test = [
   "pyamg",                                  # Algebraic multigrid solvers
 
   "tenacity",                               # general-purpose retrying library, written in Python
+  "pyinstrument",                           # import time helper
 ]
 emscripten_test = [
   "hypothesis>=6.130.0",                    # Property-based testing
@@ -501,13 +546,14 @@ extra-index-url = "https://download.pytorch.org/whl/cu124"  # PyTorch custom ind
 # explicit = true
 
 ######################################################################
-## project.urls
+## 🔻 project.urls
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
+## https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
+## https://packaging.python.org/en/latest/specifications/core-metadata/#deprecated-fields
 ######################################################################
 
+## (Optionally)
 # Links to important pages related to the project
-# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
-# https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
-# https://packaging.python.org/en/latest/specifications/core-metadata/#deprecated-fields
 [project.urls]
 # homepage (Homepage)
 homepage        = "https://scikit-plots.github.io"
@@ -530,17 +576,21 @@ issues          = "https://github.com/scikit-plots/scikit-plots/issues"
 # Forked        = "https://github.com/reiinakano/scikit-plot"
 
 ######################################################################
-## Advanced plugins: CLI
-######################################################################
-
-# Advanced plugins: Creating executable scripts
+## 🔻 Advanced plugins: CLI
+## The difference between [project.scripts] and [project.gui-scripts] is only relevant on Windows.
+## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#creating-executable-scripts
 # https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#advanced-plugins
 # https://setuptools.pypa.io/en/stable/userguide/entry_point.html#entry-points-syntax
+######################################################################
+
+## (Optionally)
+# Creating executable scripts
 # [project.gui-scripts]
 # my-script-gui = "my_package[.module_gui]:function_gui"
 # [project.entry-points."spam.magical"]
 # tomatoes = "spam:main_tomatoes"
 
+## (Optionally)
 [project.scripts]
 # my-script-cli = "my_package[.module_cli]:function_cli"
 scikitplot = "scikitplot.cli:cli"
@@ -558,7 +608,7 @@ https = "scikitplot.deployments.scikitplot"
 openai = "scikitplot.deployments.openai"
 
 ######################################################################
-## pytest
+## 🔻 pytest
 ######################################################################
 
 # Configuration for the pytest testing framework
@@ -582,7 +632,7 @@ testpaths = [
 ]  # Directories where tests are located
 
 ######################################################################
-## Linters and Formatters
+## 🔻 Linters and Formatters
 ## 1. Ruff
 ## General-purpose linter (superset of Flake8, PyLint, etc.)
 ## ruff format --diff
@@ -1015,7 +1065,7 @@ ignore-words = ".codespellrc-ignore-words"
 ignore-words-list = ".codespellrc-ignore-words"
 
 ######################################################################
-## repo-review
+## 🔻 repo-review
 ######################################################################
 
 [tool.repo-review]
@@ -1030,7 +1080,7 @@ ignore = [
 ]
 
 ######################################################################
-## cibuildwheel
+## 🔻 cibuildwheel
 ## https://cibuildwheel.pypa.io/en/stable/options/
 ######################################################################
 
@@ -1145,7 +1195,7 @@ setup-args = ["--cross-file=$PWD/tools/ci/emscripten/emscripten.meson.cross", "-
 # dodoFile = "dev.py"
 
 ######################################################################
-## gilesbot
+## 🔻 gilesbot
 ## https://github.com/scientific-python/action-towncrier-changelog
 ######################################################################
 
@@ -1181,7 +1231,7 @@ setup-args = ["--cross-file=$PWD/tools/ci/emscripten/emscripten.meson.cross", "-
     whatsnew_pattern = '''docs/source/whats_new/[^/]+/[^/]+/v?\d+\.[^.]+\.rst'''
 
 ######################################################################
-## towncrier
+## 🔻 towncrier
 ## https://github.com/scientific-python/action-towncrier-changelog
 ######################################################################
 

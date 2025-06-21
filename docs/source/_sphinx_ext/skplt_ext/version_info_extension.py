@@ -69,15 +69,14 @@ def infer_next_release_versions(app: Sphinx):
         # Attempt to fetch and parse the JSON as before
         html_theme_options = app.config.html_theme_options
 
-        # Fetch the version switcher JSON; see `html_theme_options` for more details
         if "dev" in __version__:
             # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx-runtime-information
             staticdir = os.path.join(app.builder.srcdir, "_static")
             # Open and read the file
-            with open(f"{staticdir}/switcher.json") as f_in:
-                versions_json = json.loads(
-                    f_in.read()
-                )  # Use `.read()` to get the file content as a string
+            with open(f"{staticdir}/switcher.json", encoding="utf-8") as f_in:
+                # Use `.read()` to get the file content as a string
+                versions_json = json.loads(f_in.read())
+        # Fetch the version switcher JSON; see `html_theme_options` for more details
         else:
             versions_json = json.loads(
                 urlopen(html_theme_options["switcher"]["json_url"], timeout=10).read()
@@ -107,24 +106,24 @@ def infer_next_release_versions(app: Sphinx):
         if stable_entry and prev_entry:
             stable_version_prev = parse(prev_entry["version"])
             stable_version = parse(stable_entry["version"])
-
             next_major_minor = f"{stable_version.major}.{stable_version.minor + 1}"
 
-            # Update the previous version information
-            inferred["previous_tag"]["final"] = stable_version.base_version
-            inferred["previous_tag"]["bf"] = stable_version_prev.base_version
-            # Update the full version information
+            # Update the version information
+            # RC
             inferred["version_full"]["rc"] = f"{next_major_minor}.0rc1"
+            inferred["version_short"]["rc"] = next_major_minor
+            # Major/Minor final
             inferred["version_full"]["final"] = f"{next_major_minor}.0"
+            inferred["version_short"]["final"] = next_major_minor
+            inferred["previous_tag"]["final"] = stable_version.base_version
+            # Bug-fix
             inferred["version_full"][
                 "bf"
             ] = f"{stable_version.major}.{stable_version.minor}.{stable_version.micro + 1}"
-            # Update the short version information
-            inferred["version_short"]["rc"] = next_major_minor
-            inferred["version_short"]["final"] = next_major_minor
             inferred["version_short"][
                 "bf"
             ] = f"{stable_version.major}.{stable_version.minor}"
+            inferred["previous_tag"]["bf"] = stable_version_prev.base_version
         else:
             logger.warning(
                 "The versions JSON list is missing expected entries; skipping version inference"

@@ -3,8 +3,7 @@
 
 # mypy: disallow-any-generics
 # ruff: noqa: D205,F401
-# pylint: disable=unused-import
-# pylint: disable=line-too-long
+# pylint: disable=import-error,unused-import,unused-variable,no-name-in-module,line-too-long,import-outside-toplevel
 
 """
 An intuitive library that seamlessly adds plotting capabilities and functionality
@@ -15,36 +14,52 @@ Documentation is available in the docstrings and online at
 https://scikit-plots.github.io.
 """
 
-# _set = set  # 'seaborn.set' can be override raise error
-import builtins as _builtins
-from importlib import import_module as _import_module
-
 from numpy import __version__ as __numpy_version__
 
 ######################################################################
 ## scikit-plots modules and objects
 ######################################################################
 
+# PEP0440 compatible formatted version, see:
+# https://www.python.org/dev/peps/pep-0440/
+#
+# Generic release markers:
+#   X.Y.0   # For first release after an increment in Y
+#   X.Y.Z   # For bugfix releases
+#
+# Admissible pre-release markers:
+#   X.Y.ZaN   # Alpha release
+#   X.Y.ZbN   # Beta release
+#   X.Y.ZrcN  # Release Candidate
+#   X.Y.Z     # Final release
+#
+# Dev branch marker is: 'X.Y.dev' or 'X.Y.devN' where N is an integer.
+# 'X.Y.dev0' is the canonical version of 'X.Y.dev'
+#
 ## Format: MAJOR.MINOR.PATCH.devN
 ## Format: MAJOR.MINOR.PATCHrcN
 ## Format: MAJOR.MINOR.PATCH
+## Format: MAJOR.MINOR.PATCH.postN
 # __version__ = "0.3.7.post0"
-# __version__ = "0.3.9rc3"
-# __version__ = "0.4.0rc4"
-# __version__ = "0.4.0"
-__version__ = "0.5.0.dev0"
+# __version__ = "0.3.8.post0"
+# __version__ = "0.3.9.post0"
+# __version__ = "0.4.0.post1"
+# __version__ = "0.4.1"
+# __version__ = "0.4.2"
+__version__ = "0.5.dev0"
 
 # import logging as _logging
-from . import sp_logging as logger
-from .exceptions import ScikitplotException
-
 # logger.setLevel(logger.DEBUG)  # for debugging
+from . import sp_logging as logger
 
-try:  # Trt to import meson built files, modules (etc. *.in)
-    from ._lib import __array_api_version__
-    from ._lib._array_api import gpu_libraries
-    from ._lib._ccallback import LowLevelCallable  # Low-level callback function
-    from .config import __bibtex__, __citation__, show_config
+try:
+    # Trt to import meson built files, modules (etc. *.in)
+    # This is the first import of an extension module within SciPy. If there's
+    # a general issue with the install, such that extension modules are missing
+    # or cannot be imported, this is where we'll get a failure - so give an
+    # informative error message.
+    from ._lib._ccallback import LowLevelCallable
+    from .config.__config__ import show_config  # type: ignore[]
     from .version import (  # type: ignore[reportMissingModuleSource]
         # If a version with git hash was stored,
         # use that instead so override version if any.
@@ -52,7 +67,7 @@ try:  # Trt to import meson built files, modules (etc. *.in)
         __version__,
     )
 except (ImportError, ModuleNotFoundError):
-    _BUILT_WITH_MESON = show_config = None
+    _BUILT_WITH_MESON = None
     logger.warning(
         "BOOM! :: %s",
         (
@@ -65,97 +80,85 @@ except (ImportError, ModuleNotFoundError):
 else:
     _BUILT_WITH_MESON = True
 
-# Avoiding heavy imports top level module unless actually used
-# from .utils.lazy_load import LazyLoader
-from ._compat.optional_deps import LazyImport, nested_import
-
-# Lazily load scikitplot flavors to avoid excessive dependencies.
-# api = LazyImport(".api", package=__name__)
-# Export some module objects
-from ._globals import _Default, _Deprecated, _NoValue
-from ._testing._pytesttester import PytestTester  # Pytest testing
-from ._utils._show_versions import show_versions
-from .api import *  # noqa: F403
-from .config._config import config_context, get_config, set_config
-from .utils.utils_path import remove_paths
-from .utils.utils_plot_mpl import stack_mpl_figures
-
-test = PytestTester(__name__)
-del PytestTester
 
 ######################################################################
 ## Public Interface define explicitly `__all__`
 ######################################################################
 
-# Don't pollute namespace. Imported for internal use.
-# del os, sys, pathlib, warnings
 
 # public submodules are imported lazily, therefore are accessible from
 # __getattr__.
-_submodules = {
-    ## A package is a directory with an __init__.py file that can define what attributes it exposes.
-    "_api",
-    "_astropy",
-    "_build_utils",
-    # '_clv',
-    "_compat",
-    "_datasets",
-    "_decorates",
-    "_docstrings",
-    "_externals",
-    "_factory_api",
-    "_lib",
-    ## Experimental, we keep transform api module to compatibility seaborn core.
-    "_seaborn",
-    "_sphinxext",
-    "_testing",
-    "_tweedie",
-    "_utils",
-    "api",
-    "config",
-    "experimental",
-    "kds",
-    "llm_provider",
-    "misc",
-    "modelplotpy",
-    "pipeline",
-    "probscale",
-    "snsx",
-    "stats",
-    "utils",
-    "visualkeras",
-    ## A module is a .py file that is itself a module object when imported.
-    "_globals",
-    "_min_dependencies",
-    "_preprocess",
-    "environment_variables",
-    "ml_package_versions",
-    "sp_logging",
-    "version",
-}
+_submodules = sorted(
+    # Set-like <class 'dict_keys'>
+    globals().keys()
+    | {
+        ## A package is a directory with an __init__.py
+        "_api",
+        "_astropy",
+        "_build_utils",
+        # '_clv',
+        "_compat",
+        "_datasets",
+        "_decorates",
+        "_docstrings",
+        "_entities",
+        "_externals",
+        "_f2py",
+        "_factory_api",
+        "_lib",
+        ## Experimental, we keep transform api module to compatibility seaborn core.
+        "_seaborn",
+        "_sphinxext",
+        "_testing",
+        "_tweedie",
+        "_typing",
+        "_ui_app",
+        "_utils",
+        "api",
+        "config",
+        "doremi",
+        "experimental",
+        "kds",
+        "llm_provider",
+        "misc",
+        "modelplotpy",
+        "pipeline",
+        "probscale",
+        "snsx",  # TODO: Seaborn eXtended for ML (Refactor/Enhance the API module)
+        "stats",
+        "utils",
+        "visualkeras",
+        ## A module is a .py file that is itself a module object when imported.
+        "_globals",
+        "_min_dependencies",
+        "_preprocess",
+        "cli",
+        "environment_variables",
+        "exceptions",
+        "ml_package_versions",
+        "sp_logging",
+        "version",
+    }
+    | {
+        # attrs
+        "LowLevelCallable",
+        "__git_hash__",
+        "__numpy_version__",
+        "__version__",
+        "logger",
+        "online_help",
+        "show_config",
+        "test",
+    }
+)
+
 ## Define __all__ to control what gets imported with 'from module import *'.
 ## If __all__ is not defined, Python falls back to using the module's global namespace
 ## (as returned by dir() or globals().keys()) for 'from module import *'.
 ## This means that all names in the global namespace, except those starting with '_',
 ## will be imported by default.
 ## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
-_discard = {
-    "_discard",
-    "_submodules",
-    "_builtins",
-}
-__all__ = tuple(
-    sorted(
-        [
-            name
-            for name in (
-                _builtins.set(globals()).union(_submodules).difference(_discard)
-            )
-            ## Exclude private/internal names (those starting with '_') placeholder
-            if not (name.startswith("...") and not name.endswith("..."))
-        ]
-    )
-)
+__all__ = tuple(_submodules)
 
 
 ######################################################################
@@ -169,7 +172,7 @@ __all__ = tuple(
 ## Reference: https://docs.python.org/3/library/functions.html#dir
 ## dir() default behavior: Similar to globals().keys().
 ## To customize what dir() returns, define a custom __dir__() function within the module.
-def __dir__():
+def __dir__() -> list[str]:
     """
     Return a sorted list of custom attributes for the module.
 
@@ -192,15 +195,29 @@ def __dir__():
     ['attribute1', 'attribute2', 'attribute3']  # Example output
 
     """
-    return sorted(
-        _builtins.set(globals())
-        .union(__all__)
-        # Returns the api submodule directly.
-        # .union(dir(nested_import(".api", package=__name__)))
-        # .union(dir(_import_module(".api", package=__name__)))
-        .union(dir(__import__(__name__ + ".api", fromlist=[""])))
-        .difference(_discard)
-    )
+    # logger.info("List of scikitplot flavors...")
+    # return __all__
+    # Remove, filters out private/dunder names.
+    return [
+        s
+        for s in sorted(
+            # Set-like <class 'dict_keys'>
+            (globals().keys() | {})
+            # .union(__all__)
+            .union(_submodules)
+            # submodule directly
+            .union(dir(__import__(__name__ + ".api", fromlist=[""])))
+            # diff
+            .difference(
+                {
+                    "_submodules",
+                }
+            )
+        )
+        if not s.startswith("_")
+    ] + [
+        "__version__",
+    ]
 
 
 ## Dynamically import submodules only when they are accessed (lazy-loading mechanism).
@@ -240,25 +257,48 @@ def __getattr__(
     AttributeError
         If the attribute cannot be resolved.
     """
+    # logger.info(f"Try to load {name!r}")
     package = package or __name__
     try:
         # Check if it's already in the module's global scope
-        if name in globals():
+        if name in globals():  # ?frozenset
             return globals()[name]
+
+        # Avoid importing things that aren't needed for building
+        # which might import the main scikitplot module
+        if name == "test":
+            from ._testing._pytesttester import PytestTester  # Pytest testing
+
+            test = PytestTester(__name__)
+            del PytestTester
+            return test
+
         # Try importing as a submodule
         # import_module(f".{name}", package=package)  # high-level function, submodule directly
         # __import__(f'{__name__}.{name}')  # low-level function, not return submodule directly
         # __import__(module_name, fromlist=[class_name])  # Return submodule directly
-        try:
-            return _import_module(f"{package}.{name}")  # package
-        except ScikitplotException:
-            return nested_import(name, package)  # ~(4.5-11)s
+        # return __import__(f"{package}.{name}", fromlist=[""])  # submodule directly
+        from importlib import import_module
+
+        if name in dir(__import__(__name__ + ".api", fromlist=[""])):
+            from ._compat.optional_deps import nested_import
+
+            # return any object, If any
+            return nested_import(f"{package}.api.{name}")
+
+        # Lazily load scikitplot flavors to avoid excessive dependencies.
+        if name in ("visualkeras",):
+            # Avoiding heavy imports top level module unless actually used
+            from ._compat.optional_deps import LazyImport
+
+            # return any object, If any
+            return LazyImport(f"{package}.{name}")
+        return import_module(f"{package}.{name}")  # submodule directly
     except (
         AttributeError,
         ImportError,
         ModuleNotFoundError,
         RecursionError,
-        ScikitplotException,
     ) as e:
         suggestion_msg = ""
         if suggestion:
@@ -273,7 +313,7 @@ def __getattr__(
             # Generate suggestions for mistyped names.
             matches = get_close_matches(name, available)
             if matches:
-                suggestion_msg = f" Did you mean: {', '.join(matches)}?"
+                suggestion_msg += f" Did you mean: {', '.join(matches)}?"
         # Raise an error indicating the attribute could not be found,
         # with suggestions if any.
         raise AttributeError(
@@ -365,53 +405,6 @@ def online_help(
     except ModuleNotFoundError as e:
         logger.exception(f"Error opening documentation: {e}")
         return False
-
-
-######################################################################
-## globally seeding
-######################################################################
-
-
-# def setup_module(module) -> None:
-#     """
-#     Fixture to seed random number generators for reproducible tests.
-
-#     This function ensures a globally controllable random seed for Python's built-in `random`,
-#     and NumPy's RNG, optionally configurable via the `SKPLT_SEED` environment variable.
-
-#     Parameters
-#     ----------
-#     module : Any
-#         The test module passed by the testing framework (e.g., pytest). This parameter
-#         is required by the `setup_module` hook but is not directly used in this function.
-
-#     Notes
-#     -----
-#     - If `SKPLT_SEED` is not set in the environment, a random seed is generated.
-#     - This function supports both legacy and newer NumPy random APIs.
-#     """
-#     try:
-#         import os
-#         import random
-#         import numpy as np
-
-#         # Get seed from environment variable or generate one
-#         seed_env = os.environ.get("SKPLT_SEED")
-#         if seed_env is not None:
-#             seed = int(seed_env)
-#         else:
-#             seed = int(np.random.uniform() * np.iinfo(np.int32).max)  # noqa: NPY002
-
-#         print(f"I: Seeding RNGs with {seed}")  # noqa: T201, UP031
-
-#         # Seed both NumPy and Python RNG
-#         # np.random.Generator
-#         # Legacy NumPy seeding (safe across versions)
-#         np.random.seed(seed)  # noqa: NPY002
-#         random.seed(seed)
-
-#     except ScikitplotException as e:
-#         print(f"Warning: RNG seeding failed: {e}")  # noqa: T201
 
 
 ######################################################################

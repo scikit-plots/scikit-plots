@@ -21,28 +21,23 @@ Module Dependencies:
 # SPDX-License-Identifier: BSD-3-Clause
 
 # pylint: disable=import-error
-# pylint: disable=unused-import
 # pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=invalid-name
 # pylint: disable=import-outside-toplevel
+# pylint: disable=reimported
 
 # ruff: noqa: UP037
 
 from __future__ import annotations
 
-import inspect  # noqa: F401
-import json
+# import inspect
 import logging as _logging
 import os
-import pprint
 import sys
-import textwrap  # textwrap.dedent
 import threading  # Python 2 to thread.get_ident
-import time  # noqa: F401
 import traceback
-from datetime import datetime
 from logging import (
     CRITICAL,
     DEBUG,
@@ -52,8 +47,8 @@ from logging import (
     NOTSET,
     WARNING,
 )
-from logging import (  # pylint: disable=reimported
-    WARNING as WARN,  # logger WARN deprecated
+from logging import (
+    WARNING as WARN,  # logging WARN deprecated
 )
 from typing import TYPE_CHECKING
 
@@ -103,7 +98,6 @@ __all__ = [
     "warn",
     "warning",
     # "SpLogger",  # class based
-    # "sp_logger",  # class instance
 ]
 
 ######################################################################
@@ -436,6 +430,8 @@ def google2_log_prefix(level=None, timestamp=None, file_and_line=None):
     # pylint: enable=global-variable-not-assigned
 
     # Record current time
+    import time
+
     now = timestamp or time.time()
     now_tuple = time.localtime(now)
     now_microsecond = int(1e6 * (now % 1.0))
@@ -590,6 +586,8 @@ class GoogleLogFormatter(_logging.Formatter):
         str
             The formatted log message (either in literal str, JSON or pretty-print format).
         """
+        from datetime import datetime
+
         log_obj = {
             # "asctime": f"{self.formatTime(record, datefmt=self.datefmt)} ",
             "asctime": f"{datetime.now().strftime(self.datefmt)}: ",
@@ -604,6 +602,8 @@ class GoogleLogFormatter(_logging.Formatter):
         }
         try:
             if self.backend == "json":
+                import json
+
                 # Format JSON with custom options
                 return json.dumps(
                     log_obj,
@@ -613,6 +613,8 @@ class GoogleLogFormatter(_logging.Formatter):
                     ensure_ascii=False,
                 )
             if self.backend == "pprint":
+                import pprint
+
                 # Pretty printing format
                 return pprint.pformat(log_obj)
         except Exception:
@@ -729,19 +731,20 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
         Determines if the environment is a Jupyter notebook. For define `use_stderr`.
     """
 
-    def __init__(self, use_stderr: bool = not _is_jupyter_notebook()) -> None:
+    def __init__(self, use_stderr: bool | None = None) -> None:
         """
         Initialize the AlwaysStdErrHandler with the desired stream.
 
         Attributes
         ----------
-        _use_stderr : bool
+        _use_stderr : bool or None
             Stores the value of the `use_stderr` parameter.
+            If None use not _is_jupyter_notebook()
         _stream : IO[str]
             Points to the chosen stream (`sys.stderr` or `sys.stdout`).
 
         """
-        self._use_stderr = use_stderr
+        self._use_stderr = use_stderr or not _is_jupyter_notebook()
         self._stream = sys.stderr if use_stderr else sys.stdout
         super().__init__(stream=self._stream)
 
@@ -762,6 +765,8 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
     # )
     # Add a docstring to the inherited 'name' property if it doesn't already have one
     if not _logging.StreamHandler.name.__doc__:
+        import textwrap  # textwrap.dedent
+
         _logging.StreamHandler.name.__doc__ = textwrap.dedent(
             """
             This is the name property for StreamHandler.

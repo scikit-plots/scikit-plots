@@ -17,7 +17,8 @@ Streamlit Conversational UI.
 # import os
 from typing import Optional, Union
 
-from scikitplot import LazyImport, logger
+from scikitplot import logger
+from scikitplot._compat.optional_deps import LazyImport
 from scikitplot.llm_provider import (
     LLM_MODEL_PROVIDER2CONFIG,
     chat_provider,

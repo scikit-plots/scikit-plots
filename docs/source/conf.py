@@ -1,9 +1,14 @@
 # sphinx conf
 # scikit-plots documentation build configuration file, created by
-# sphinx-quickstart on Sun Feb 12 17:56:21 2017.
+# sphinx-quickstart on August 16th, 2024 20:37.
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=C0413
+# pylint: disable=import-error
+# pylint: disable=wrong-import-order
+# pylint: disable=line-too-long
 
 """
 scikit-plots documentation build config file, created by sphinx-quickstart.
@@ -93,26 +98,23 @@ copyright = f"2024 - {datetime.datetime.now().year} {author} (BSD-3 Clause Licen
 ## version
 ##########################################################################
 
-import switcher  # pylint: disable=C0413
+import switcher
 
 switcher.main()  # switcher.json
 
 # Import scikitplot information.
-import scikitplot as sp  # pylint: disable=C0413
-
-# _version_raw = sp.__version__
-_version_raw = sp.version.full_version  # Syntax: 0.5.dev0+git.20250114.96321ef
+import scikitplot as sp
 
 # from sklearn.externals._packaging.version import parse
-from scikitplot._externals._packaging.version import parse  # pylint: disable=C0413
+from scikitplot._externals._packaging.version import parse
 
+# Possible Doc Version Syntax expected after releases:
+# 0.4.0+git.20250114.96321ef       : <Version('0.4.0+git.20250114.96321ef')>
+# 0.4.0.post0+git.20250114.96321ef : <Version('0.4.0.post0+git.20250114.96321ef')>
+# 0.5.dev0+git.20250114.96321ef    : <Version('0.5.dev0+git.20250114.96321ef')>
+_version_raw = sp.version.full_version
 ## Version should follow PEP440
-_version_parsed = parse(_version_raw)  # Version('0.5.dev0+git.20250114.96321ef')
-_version_release = _version_parsed.release  # (0, 5)
-if _version_release is None:
-    raise ValueError(
-        f"Ill-formed version: {_version_raw!r}. Version should follow PEP440"
-    )
+_version_parsed = parse(_version_raw)  # <Version('0.5.dev0+git.20250114.96321ef')>
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -122,32 +124,42 @@ if _version_release is None:
 # The short X.Y version.
 # Base version: X.Y.Z
 # (this is the main version number, excluding pre-release and post-release tags)
-version = ".".join(_version_parsed.base_version.split(".")[:2])
+# _version_parsed.base_version = '0.4.0' or '0.5'
+# _version_parsed.release      = (0, 4, 0) or (0, 5)
+version = ".".join(_version_parsed.base_version.split(".")[:2])  # '0.4' or '0.5'
 print("Major.Minor Version:", version)
 
 # The full version, including alpha/beta/rc tags.
 # Removes post from release name
 # _is_postrelease = _version_parsed.is_postrelease
-# release = _version_parsed.base_version if _is_postrelease else _version_raw
-release = _version_raw
+if _version_parsed.is_postrelease:
+    release = _version_parsed.base_version  # '0.4.0'
+else:
+    # for dev sp.version.full_version or sp.version.short_version
+    release = _version_raw.split("+")[0].strip()  # without git section, If any
+
+# debug that building expected version
+logger.info("scikit-plots raw    : %s " % _version_raw)
+logger.info("scikit-plots version: %s " % version)
+logger.info("scikit-plots release: %s " % release)
+if release is None:
+    raise ValueError(
+        f"Ill-formed version: {_version_raw!r}. Version should follow PEP440"
+    )
 
 # Release mode enables optimizations and other related options.
 # is_release_build = tags.has('release')
 
-# debug that building expected version
-logger.info("scikit-plots raw    : %s " % _version_raw)
-logger.info("scikit-plots release: %s " % version)
-logger.info("scikit-plots version: %s " % release)
-
 ##########################################################################
-## gh_branch
+## binder_branch = gh_branch
 ##########################################################################
 
+# binder_branch
 _is_devrelease = _version_parsed.is_devrelease
 if _is_devrelease:
     gh_branch = "main"
 else:
-    major, minor = _version_release[:2]
+    major, minor = release[:2]
     gh_branch = f"maintenance/{major}.{minor}.X"
 
 ##########################################################################
@@ -528,11 +540,6 @@ html_theme = "pydata_sphinx_theme"  # scikit-learn
 # documentation.
 html_theme_options = {
     # -- General configuration ------------------------------------------------
-    # If the version compares greater than the preferred version
-    # (or if the version match contains the strings “dev”, “rc” or “pre”),
-    # the announcement will say they are viewing an unstable development version instead.
-    "show_version_warning_banner": ("dev" in _version_raw) or _is_devrelease,
-    "surface_warnings": True,
     "logo": {
         "alt_text": "scikit-plots homepage",
         "image_relative": "logos/scikit-plots-logo-small.png",
@@ -545,6 +552,11 @@ html_theme_options = {
     # -- Appearance Settings --------------------------------------------------
     "pygments_light_style": "tango",
     "pygments_dark_style": "monokai",
+    # If the version compares greater than the preferred version
+    # (or if the version match contains the strings "dev", "rc" or "pre"),
+    # the announcement will say they are viewing an unstable development version instead.
+    "show_version_warning_banner": True,  # ("dev" in _version_raw) or _is_devrelease,
+    "surface_warnings": True,
     # The switcher requires a JSON file with the list of documentation versions, which
     # is generated by the script `build_tools/circle/list_versions.py` and placed under
     # the `js/` static directory; it will then be copied to the `_static` directory in
@@ -557,7 +569,7 @@ html_theme_options = {
         # the stable and devdocs.
         # "json_url": "https://scikit-plots.github.io/dev/_static/versions.json",
         "json_url": "https://scikit-plots.github.io/dev/_static/switcher.json",
-        "version_match": _version_raw.split("+")[0].strip(),  # without git section
+        "version_match": release,  # without git section
     },
     # check_switcher may be set to False if docbuild pipeline fails. See
     # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html#configure-switcher-json-url
@@ -1338,9 +1350,8 @@ sphinx_gallery_conf = {
     # Linking to external packages for reference URLs
     "reference_url": {
         "scikitplot": None,  # Will link to local module documentation
-        "numpy": (
-            "https://numpy.org/doc/stable/"
-        ),  # Example linking to external package docs
+        # Example linking to external package docs
+        "numpy": "https://numpy.org/doc/stable/",
         "matplotlib": "https://matplotlib.org/stable/",
     },
     "show_memory": False,  # Set to True if memory_profiler is available and needed
@@ -1357,13 +1368,12 @@ sphinx_gallery_conf = {
     "binder": {
         "org": "scikit-plots",
         "repo": "scikit-plots",
-        "branch": (
-            gh_branch
-        ),  # Can be any branch, tag, or commit hash. Use a branch that hosts your docs.
-        "binderhub_url": "https://mybinder.org",  # URL of a binderhub deployment
+        # Can be any branch, tag, or commit hash. Use a branch that hosts your docs.
+        "branch": gh_branch,
         "dependencies": "./binder/requirements.txt",
-        # "notebooks_dir": "notebooks",
+        "binderhub_url": "https://mybinder.org",  # URL of a binderhub deployment
         "use_jupyter_lab": True,
+        # "notebooks_dir": "notebooks",
     },
     # Optional Additional options
     "inspect_global_variables": False,  # Avoid generating too many cross-links
@@ -1377,9 +1387,8 @@ sphinx_gallery_conf = {
     # Optionally sort the examples within subsections (uncomment if needed)
     # Optional sorting: sorts subsections based on titles
     # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
-    "subsection_order": FileNameSortKey(
-        examples_dirs
-    ),  # Use an instance of FileNameSortKey
+    # Use an instance of FileNameSortKey
+    "subsection_order": FileNameSortKey(examples_dirs),
     # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
     "within_subsection_order": "FileNameSortKey",
 }
