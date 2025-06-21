@@ -73,7 +73,7 @@ jobs:
         run: |
           # install your project if it's a package
           pip install -r requirements/all.txt
-          pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+          pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs,cpu] -v
 
       - name: "☂️ Run tests with coverage"
         run: |
