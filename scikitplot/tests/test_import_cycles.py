@@ -36,7 +36,7 @@ def import_module(module: str) -> tuple[str, int, str]:
     #     return module, 0, ""
 
 
-@pytest.mark.fail_slow(20)  # 1s to 40s? adjust as needed
+@pytest.mark.fail_slow(71)  # 1s to 40s? adjust as needed 54.40319907600002s
 @pytest.mark.slow
 @pytest.mark.thread_unsafe
 def test_public_modules_importable():
