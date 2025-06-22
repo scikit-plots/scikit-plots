@@ -3,10 +3,13 @@
 - https://github.com/pypa/readme_renderer
 -->
 
+<h1 align=center>
+  <a href="https://scikit-plots.github.io/dev/" target="_blank" rel="noopener noreferrer">
+    Welcome to Scikit-plots 101
+  </a>
+</h1>
 
-<h1 align=center>Welcome to Scikit-plots 101</h1>
-
-
+<div>
 <!-- GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
 <!-- <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 580px; margin: auto;">
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
@@ -100,31 +103,39 @@
     <img alt="pyversions" height="17" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
   </a>
 </p>
+</div>
 
-<a href="https://scikit-plots.github.io/dev/" target="_blank" rel="noopener noreferrer">
-<img style="display:auto;width:auto;height:230px;" alt="Scikit-plots"
-  src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/scikit-plots-logo.png">
-</a>
+<div>
+  <a href="https://scikit-plots.github.io/dev/" target="_blank" rel="noopener noreferrer">
+    <img alt="Scikit-plots" height="230" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/scikit-plots-logo.png">
+  </a>
+</div>
 
+<div>
+<h2> Single line functions for detailed visualizations </h2>
 
-## Single line functions for detailed visualizations
+<p> The quickest and easiest way to go from analysis... </p>
 
-The quickest and easiest way to go from analysis...
+<h2> Documentation, Examples and Try|Install Scikit-plots </h2>
 
-## Documentation, Examples and Try|Install Scikit-plots
+<h4>Explore the full features of Scikit-plots:
+  <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">
+    https://scikit-plots.github.io/dev/devel/index.html
+  </a>
+</h4>
+</div>
 
-**Explore the full features of Scikit-plots: https://scikit-plots.github.io/dev/devel/index.html**
+<h1> User Installation: </h1>
 
+<h2> PIP Installation by `pypi` or `github` </h2>
 
-# User Installation:
+<p> The easiest way to set up scikit-plots is to install it using pip with the following command: </p>
 
-## PIP Installation by `pypi` or `github`
+🧠 Gotchas:
 
-The easiest way to set up scikit-plots is to install it using pip with the following command:
+- ⚠️ (Recommended): Use a Virtual Environmentt (like ``venv``) to Avoid Conflicts (🚫 Don't use conda ``base`` — it's prone to conflicts.)
 
-⚠️ Recommended: Use a Virtual Environmentt (like ``venv``) to Avoid Conflicts (🚫 Don't use conda ``base`` — it's prone to conflicts.)
-
-✅ This avoids dependency issues and keeps your system stable.
+- ✅ This avoids dependency issues and keeps your system stable.
 
 ```sh
 # (conda or mamba) Create New Env and install ``scikit-plots``
@@ -139,7 +150,7 @@ conda activate py311
 
 ---
 
-### - by `pypi`:
+<h3> - by `pypi`: </h3>
 
 ```sh
 # Now Install scikit-plots (via pip, conda, or local source)
@@ -148,7 +159,7 @@ pip install scikit-plots
 
 ---
 
-### - by `pypi.anaconda.org`:
+<h3> - by `pypi.anaconda.org`: </h3>
 
 ```sh
 ## (Optionally) Install the lost packages "Runtime dependencies"
@@ -165,9 +176,9 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 
 ---
 
-### - by `GITHUB` Source to use `@<branches>` or `@<tags>` or `Source code archive URLs`, If any:
+<h3> - by `GITHUB` Source to use `@<branches>` or `@<tags>` or `Source code archive URLs`, If any: </h3>
 
-#### - by `GITHUB` Branches:
+<h4> - by `GITHUB` Branches: </h4>
 
 ```bash
 ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
@@ -182,7 +193,7 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3
 pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
 ```
 
-#### - by `GITHUB` Tags:
+<h4> - by `GITHUB` Tags: </h4>
 
 ```bash
 ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
@@ -191,21 +202,23 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
 pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 ```
 
-#### - by `GITHUB` Source code archive URLs (Also available PyPi, If any):
+<h4> - by `GITHUB` Source code archive URLs (Also available PyPi, If any): </h4>
 
-Source code archives are available at specific URLs for each repository.
+<p> Source code archives are available at specific URLs for each repository. </p>
 
-For example, consider the repository `scikit-plots/scikit-plots`.
+<p> For example, consider the repository `scikit-plots/scikit-plots`. </p>
 
-There are different URLs for downloading a branch, a tag, or a specific commit ID.
+<p> There are different URLs for downloading a branch, a tag, or a specific commit ID. </p>
 
-- https://github.com/scikit-plots/scikit-plots/tags
+- <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
+    https://github.com/scikit-plots/scikit-plots/tags
+  </a>
 
 **Note:** You can use either .zip or .tar.gz in the URLs above to request a zipball or tarball respectively.
 
 ---
 
-### Cloned Source Installation (REQUIRED OS/LIB BUILD PACKAGES)
+<h3> Cloned Source Installation (REQUIRED OS/LIB BUILD PACKAGES) </h3>
 
 - You can also install ``scikit-plots`` from source if you want to take advantage of the latest changes:
 
@@ -236,7 +249,7 @@ pip install -r ./requirements/build.txt
 pip install --no-cache-dir -e . -v
 ```
 
-#### - It is also possible to include optional dependencies:
+<h4> - It is also possible to include optional dependencies: </h4>
 
 ```sh
 ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
@@ -244,6 +257,7 @@ pip install --no-cache-dir -e . -v
 ## For More in Doc: https://scikit-plots.github.io/
 python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
 ```
+
 ```sh
 ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
 ## [cpu] refer tensorflow-cpu, transformers, tf-keras
@@ -251,9 +265,9 @@ python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,do
 pip install "scikit-plots[cpu]"
 ```
 
-
 <h2 align=center>Sample Plots</h2>
 
+<div>
 <!-- GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
 <!-- <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 580px; margin: auto;"> -->
 <!-- <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5em; max-width: 580px; margin: auto;"> -->
@@ -348,6 +362,7 @@ pip install "scikit-plots[cpu]"
     </td>
   </tr>
 </table>
+</div>
 
 
 Scikit-plots is the result of an unartistic data scientist's dreadful realization that *visualization is one of the most crucial components in the data science process, not just a mere afterthought*.

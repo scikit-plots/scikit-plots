@@ -3,6 +3,39 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# ruff: noqa: F405
+# Flake8: noqa: F401,F403
+# type: ignore[]
+# pylint: disable=import-error,import-self,undefined-all-variable
+
+"""
+Doremi
+=======
+
+A modular Python toolkit for musical note processing, sound synthesis, and
+notation handling. Supports Western and solfège notation, tone generation,
+frequency mapping, waveform synthesis, and more.
+
+See [1]_, [2]_, and [3]_ for model details.
+
+Examples
+--------
+>>> from scikitplot import doremi
+>>> doremi.compose_as_waveform()
+
+
+References
+----------
+.. [1] Smith, J. *Sound Synthesis for Musicians*. Audio Tech Publishing, 2021.
+       https://example.com/sound-synthesis-guide.pdf
+
+.. [2] 3Blue1Brown. *Fourier Series*. YouTube, 2017.
+       https://www.youtube.com/watch?v=spUNpyF58BY
+
+.. [3] muhammed celik. "How to Generate 440 Hz A(La) Note Sin Wave". Medium, May 10, 2022.
+       https://celik-muhammed.medium.com/how-to-generate-440-hz-a-la-note-sin-wave-with-44-1-1e41f6ed9653
+"""  # noqa: D205, D400
+
 # composer/
 # │
 # ├── __init__.py
@@ -13,31 +46,7 @@
 # ├── io.py                 # Export (MP3, WAV), serializers (YAML, JSON)
 # └── note.py               # Already exists, parsed notes
 
-"""
-Doremi
-=======
-
-A modular Python toolkit for musical note processing, sound synthesis, and
-notation handling. Supports Western and solfège notation, tone generation,
-frequency mapping, waveform synthesis, and more.
-
-Examples
---------
->>> from scikitplot import doremi
->>> doremi.compose_as_waveform()
-
-References
-----------
-.. [1]: Smith, J. *Sound Synthesis for Musicians*. Audio Tech Publishing, 2021.
-        https://example.com/sound-synthesis-guide.pdf
-
-.. [2]: 3Blue1Brown. *Fourier Series*. YouTube, 2017.
-        https://www.youtube.com/watch?v=spUNpyF58BY
-
-.. [3]: muhammed celik. "How to Generate 440 Hz A(La) Note Sin Wave". Medium, May 10, 2022.
-        https://celik-muhammed.medium.com/how-to-generate-440-hz-a-la-note-sin-wave-with-44-1-1e41f6ed9653
-"""  # noqa: D205, D400
-
+from .._testing._pytesttester import PytestTester  # Pytest testing
 from .composer import *  # noqa: F403
 from .config import *  # noqa: F403
 from .envelopes import ENVELOPES  # noqa: F401
@@ -46,3 +55,44 @@ from .note_io import *  # noqa: F403
 from .synthesis import *  # noqa: F403
 from .waveform_playback import *  # noqa: F403
 from .waveform_viz import *  # noqa: F403
+
+test = PytestTester(__name__)
+del PytestTester
+
+# __all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.
+__all__ = [
+    "A4_FREQ",
+    "DEFAULT_AMPLITUDE",
+    "DEFAULT_AMPLITUDE_INT",
+    "DEFAULT_BITRATE",
+    "DEFAULT_DURATION",
+    "DEFAULT_SAMPLE_RATE",
+    "DEFAULT_SOFT_CLIP_THRESHOLD",
+    "ENVELOPES",
+    "MAX_INT_16BIT",
+    "SHEET",
+    "compose_as_waveform",
+    "composer",
+    "config",
+    "envelopes",
+    "export_notes_to_files",
+    "export_sheet",
+    "frequency_to_sine_wave",
+    "listen_waveform",
+    "note",
+    "note_io",
+    "note_to_sine_wave",
+    "note_utils",
+    "play_waveform",
+    "plot_waveform",
+    "save_waveform",
+    "save_waveform_as_mp3",
+    "serialize_sheet",
+    "sheet_add_frequency",
+    "sheet_converter",
+    "sheet_to_note",
+    "synthesis",
+    "test",
+    "waveform_playback",
+    "waveform_viz",
+]

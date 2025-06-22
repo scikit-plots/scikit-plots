@@ -150,7 +150,7 @@ def nested_import(  # noqa: PLR0912
             # No module could be resolved
             # developer-friendly string (with quotes, escapes, etc.) "Format this using repr()"
             msg = f"Could not import any module prefix from {name!r} using package {package!r}"
-            logger.error(msg)
+            logger.info(msg)
             if not silent:
                 raise ImportError(msg)
 
@@ -175,7 +175,7 @@ def nested_import(  # noqa: PLR0912
         # If required, ensure the final object is callable
         if validate_callable and not callable(module):
             msg = f"Imported object {name!r} is not callable"
-            logger.error(msg)
+            logger.info(msg)
             raise ValueError(msg)
 
         if verbose:
@@ -430,7 +430,7 @@ class LazyImport(types.ModuleType):
             self._silent,
             self._verbose,
         )
-        logger.info(f"Loaded {self._package!r}.{self._name!r} as Module: {module!r}")
+        logger.info(f"Loaded '{self._package}.{self._name}' as Module: {module!r}")
         # prevent RecursionError
         # if isinstance(module, LazyImport):
         #     module = module.resolved

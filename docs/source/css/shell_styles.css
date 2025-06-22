@@ -2,7 +2,7 @@
 .hero-right {
     display: flex;
     flex-direction: column;
-    padding: 3px;
+    padding: 1px;
     background-color: var(--bd-content-bg);  /* Use theme's background color */
     color: var(--bd-text-color);  /* Use theme's text color */
 }
@@ -11,13 +11,13 @@
 .shell-title-container {
     text-align: center;
     align-items: center;
-    margin-bottom: 3px;
+    margin-bottom: 1px;
     font-size: 1rem;  /* 16px (default) */
 }
 
 /* Title text style */
 .shell-title {
-    font-size: 1.5rem;  /* Responsive font size */
+    font-size: 1.8rem;  /* Responsive font size */
     font-weight: bold;
     color: var(--bd-heading-color);  /* Theme heading color */
 }
@@ -31,16 +31,16 @@
     align-items: stretch;  /* Ensure all children stretch to the same height */
     margin: auto;
     width: 100%;  /* Full width of the parent container */
-    height: 69vh;  /* Set the parent container to take 100% of its container's height */
+    height: 66.6vh;  /* Set the parent container to take 100% of its container's height */
     max-width: 1500px;
-    min-height: 600px;
+    min-height: 500px;
 }
 
 /* Lesson text container */
 .shell-lesson {
     flex: 1;
     text-align: left;
-    padding: 0 3px;
+    padding: 0 1px;
     width: auto;
     height: 100%;
 }
@@ -78,8 +78,8 @@
 }
 
 .shell-lesson > p {
-    margin: 2px 0 2px 0;
-    font-size: 0.9rem;  /* Responsive font size */
+    margin: 1px 0 1px 0;
+    font-size: 1rem;  /* Responsive font size */
 }
 
 .shell-lesson > ul > li {
@@ -91,7 +91,7 @@
 }
 
 .code-container {
-    margin: 2px 0 2px 0;
+    margin: 1px 0 1px 0;
 }
 
 .numpy-shell {
@@ -134,6 +134,6 @@
     }
 
     .numpy-shell {
-        min-height: 600px;  /* Ensure shell has enough height */
+        min-height: 500px;  /* Ensure shell has enough height */
     }
 }
