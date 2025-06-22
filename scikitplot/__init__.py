@@ -50,7 +50,8 @@ __version__ = "0.5.dev0"
 
 # import logging as _logging
 # logger.setLevel(logger.DEBUG)  # for debugging
-from . import sp_logging as logger
+from . import sp_logging as logger  # not a module or namespace, global attr
+from .sp_logging import get_logger
 
 try:
     # Trt to import meson built files, modules (etc. *.in)
@@ -59,7 +60,7 @@ try:
     # or cannot be imported, this is where we'll get a failure - so give an
     # informative error message.
     from ._lib._ccallback import LowLevelCallable
-    from .config.__config__ import show_config  # type: ignore[]
+    from .config import *  # noqa: F401,F403  # type: ignore[]
     from .version import (  # type: ignore[reportMissingModuleSource]
         # If a version with git hash was stored,
         # use that instead so override version if any.
@@ -145,10 +146,18 @@ _submodules = sorted(
         "__git_hash__",
         "__numpy_version__",
         "__version__",
+        "get_logger",
         "logger",
         "online_help",
-        "show_config",
         "test",
+    }
+    | {
+        "__bibtex__",
+        "__citation__",
+        "config_context",
+        "get_config",
+        "set_config",
+        "show_config",
     }
 )
 
@@ -216,7 +225,11 @@ def __dir__() -> list[str]:
         )
         if not s.startswith("_")
     ] + [
+        "__git_hash__",
+        "__numpy_version__",
         "__version__",
+        "__bibtex__",
+        "__citation__",
     ]
 
 

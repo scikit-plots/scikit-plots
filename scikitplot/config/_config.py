@@ -9,6 +9,12 @@ import os
 import threading
 from contextlib import contextmanager
 
+__all__ = [
+    "get_config",
+    "set_config",
+    "config_context",
+]
+
 _global_config = {
     "assume_finite": bool(os.environ.get("SKPLT_ASSUME_FINITE", "False")),
     "working_memory": int(os.environ.get("SKPLT_WORKING_MEMORY", "1024")),
