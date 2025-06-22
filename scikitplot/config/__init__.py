@@ -1,7 +1,9 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=import-error,import-self
+# Flake8: noqa: F401,F403,F405
+# type: ignore[]
+# pylint: disable=import-error,import-self,undefined-all-variable
 
 """
 Configuration module for the package.
@@ -9,26 +11,24 @@ Configuration module for the package.
 This module consolidates configuration-related components.
 """
 
-from . import (
-    __config__,  # type: ignore[]
-    _citation,  # type: ignore[]
-    _config,
-)
-from .__config__ import *  # noqa: F401,F403  # type: ignore[]
-from ._citation import *  # noqa: F401,F403  # type: ignore[]
-from ._config import *  # noqa: F401,F403
+from .._testing._pytesttester import PytestTester  # Pytest testing
+from .__config__ import *
+from ._citation import *
+from ._config import *
 
-__all__ = sorted(
-    (
-        *__config__.__all__,
-        *_citation.__all__,
-        *_config.__all__,
-    )
-)
+test = PytestTester(__name__)
+del PytestTester
 
-# ['__bibtex__',
-#  '__citation__',
-#  'config_context',
-#  'get_config',
-#  'set_config',
-#  'show_config']
+# __all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.
+__all__ = [
+    # "_citation",
+    "__bibtex__",
+    "__citation__",
+    # "_config",
+    "config_context",
+    "get_config",
+    "set_config",
+    # "__config__",
+    "show_config",
+    "test",
+]

@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # mypy: disallow-any-generics
-# ruff: noqa: D205,F401
+# ruff: noqa: D205,F401,F403
+# Flake8: noqa: F403
+# type: ignore[]
 # pylint: disable=import-error,unused-import,unused-variable,no-name-in-module,line-too-long,import-outside-toplevel
 
 """
@@ -36,10 +38,11 @@ from numpy import __version__ as __numpy_version__
 # Dev branch marker is: 'X.Y.dev' or 'X.Y.devN' where N is an integer.
 # 'X.Y.dev0' is the canonical version of 'X.Y.dev'
 #
-## Format: MAJOR.MINOR.PATCH.devN
-## Format: MAJOR.MINOR.PATCHrcN
-## Format: MAJOR.MINOR.PATCH
-## Format: MAJOR.MINOR.PATCH.postN
+# https://libraries.io/pypi/scikit-plots/versions
+# Format: MAJOR.MINOR.PATCH.devN
+# Format: MAJOR.MINOR.PATCHrcN
+# Format: MAJOR.MINOR.PATCH
+# Format: MAJOR.MINOR.PATCH.postN
 # __version__ = "0.3.7.post0"
 # __version__ = "0.3.8.post0"
 # __version__ = "0.3.9.post0"
@@ -61,7 +64,7 @@ try:
     # informative error message.
     from ._lib._ccallback import LowLevelCallable
     from ._utils._show_versions import show_versions
-    from .config import *  # noqa: F401,F403  # type: ignore[]
+    from .config import *
     from .version import (  # type: ignore[reportMissingModuleSource]
         # If a version with git hash was stored,
         # use that instead so override version if any.
@@ -169,6 +172,20 @@ _submodules = sorted(
 ## This means that all names in the global namespace, except those starting with '_',
 ## will be imported by default.
 ## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
+# Scope: dir() with no arguments returns the all defined names in the current local scope.
+# Behavior: Includes functions, variables, classes, modules, __builtins__ that are defined so far.
+# Scope: globals() returns a dict of all symbols defined at the module level.
+# Behavior: Almost equivalent to dir() for a module context. No builtins included
+# More explicit about scope—only includes actual global symbols.
+# Keeps out internal modules, helpers, and unwanted globals
+# def build_all():
+#     import types
+#     return [
+#         name for name, val in globals().items()
+#         if not name.startswith("_")
+#         and not isinstance(val, types.ModuleType)
+#     ]
+# __all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.
 __all__ = tuple(_submodules)
 
 

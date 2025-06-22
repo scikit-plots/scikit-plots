@@ -14,6 +14,7 @@ References:
 - https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
 
 .. rst Comments one-line below multi-line
+.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#comments
 ..
 
    Headings and Sections:
@@ -24,21 +25,41 @@ References:
    ^ Fourth-level heading.
    " Fifth-level heading.
 
-:orphan:
+.. https://docutils.sourceforge.io/docs/ref/rst/roles.html#standard-roles
+.. https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
 
-- Sphinx issues a warning: WARNING: document isn't included in any toctree.
-- Sphinx suppresses the warning, and the file can still be built and accessed by its direct URL.
+.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#role
+.. role:: custom  # of using :custom:`interpreted text`
 
 .. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
-.. role:: raw-html(raw)
-   :format: html
-
 .. role:: raw-latex(raw)
    :format: latex
+.. https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
+.. role:: raw-html(raw)
+   :format: html
+.. :raw-html:`<br />`
 
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#substitutions
+.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#substitution-definitions
+.. |name| replace:: replacement *text*
 .. |br| raw:: html
 
   <br/>
+
+.. footnote-style reference in reStructuredText (reST)
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#toc-entry-35
+.. [#f1] Text of the first footnote.
+
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#citations
+.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#citations
+.. [Ref] Book or article reference, URL or whatever.
+
+.. https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-exclude_patterns
+.. Use exclude_patterns to explicitly exclude documents or directories from building completely.
+.. Use the `:orphan:` metadata to let a document be built, but notify Sphinx that it is not reachable via a toctree.
+.. Sphinx issues a warning: WARNING: document isn't included in any toctree.
+.. Sphinx suppresses the warning, and the file can still be built and accessed by its direct URL.
 
 -#}
 

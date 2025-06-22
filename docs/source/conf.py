@@ -1202,14 +1202,28 @@ autosummary_filename_map = {
 # See: https://github.com/phn/pytpm/issues/3#issuecomment-12133978
 # We do not need the table of class members because `sphinxext/override_pst_pagetoc.py`
 # will show them in the secondary sidebar
-numpydoc_show_class_members = False
-numpydoc_show_inherited_class_members = False
+# only the class-level docstring is shown, and methods/attributes will not appear
+numpydoc_show_class_members = False  # You don't need to write :members:, If True
+
+# members (methods/attributes) inherited from parent classes are shown in the class docs automatically
+# only show methods defined directly in that class, and will skip inherited ones
+numpydoc_show_inherited_class_members = False  # :inherited-members:
+
 # We want in-page toc of class members instead of a separate page for each entry
-numpydoc_class_members_toctree = False
+# Each class method or attribute appears on a separate page in the HTML documentation.
+numpydoc_class_members_toctree = False  # create separate pages for methods
 
 # Produce `plot::` directives for examples that contain `import matplotlib` or
 # `from matplotlib import`.
+# Any plots generated (e.g., via matplotlib.pyplot.plot) are automatically rendered and shown in the built docs.
 numpydoc_use_plots = True
+
+##########################################################################
+## Extension: napoleon
+##########################################################################
+
+# napoleon_google_docstring = False  # if you use numpy-style only
+# napoleon_numpy_docstring = True
 
 ##########################################################################
 ## Extension: sphinxext_plot_directive_api

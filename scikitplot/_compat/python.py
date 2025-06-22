@@ -9,8 +9,8 @@
 
 # ruff: noqa: F401
 
+# import importlib
 import functools
-import importlib
 import sys
 from sys import version_info
 
@@ -79,7 +79,7 @@ if not TOML_READ_SUPPORT:
         TOML_READ_SUPPORT = True
         TOML_SOURCE = "tomli"
     except ImportError:
-        logger.warning(
+        logger.info(
             "TOML read support requires `tomli` (for Python < 3.11) or `tomllib`."
         )
         tomllib = None
@@ -93,7 +93,7 @@ try:
         TOML_READ_SUPPORT = True
         TOML_SOURCE = "toml"
 except ImportError:
-    logger.warning(
+    logger.info(
         "TOML write support requires `toml` package. Install via `pip install toml`."
     )
     toml = None

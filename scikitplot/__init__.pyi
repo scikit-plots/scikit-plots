@@ -86,6 +86,20 @@ __git_hash__: Final[LiteralString]
 ## This means that all names in the global namespace, except those starting with '_',
 ## will be imported by default.
 ## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
+# Scope: dir() with no arguments returns the all defined names in the current local scope.
+# Behavior: Includes functions, variables, classes, modules, __builtins__ that are defined so far.
+# Scope: globals() returns a dict of all symbols defined at the module level.
+# Behavior: Almost equivalent to dir() for a module context. No builtins included
+# More explicit about scope—only includes actual global symbols.
+# Keeps out internal modules, helpers, and unwanted globals
+# def build_all():
+#     import types
+#     return [
+#         name for name, val in globals().items()
+#         if not name.startswith("_")
+#         and not isinstance(val, types.ModuleType)
+#     ]
+# __all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.
 # __all__ = tuple(
 #     sorted(
 #         [
