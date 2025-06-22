@@ -344,7 +344,7 @@ def validate_shapes(y_true, y_probas):
                     f"`y_probas` length {len(y_probas)}"
                 )
         elif y_probas.ndim == 2:  # Binary case (two class probabilities)
-            if len(y_true) != y_probas.shape[0]:
+            if len(y_true) != int(y_probas.shape[0]):
                 raise ValueError(
                     f"Shape mismatch `y_true` length {len(y_true)}, "
                     f"`y_probas` shape {y_probas.shape}"
@@ -359,14 +359,14 @@ def validate_shapes(y_true, y_probas):
                 "`y_probas` must be a 2D array for multi-class classification."
             )
 
-        if len(y_true) != y_probas.shape[0]:
+        if len(y_true) != int(y_probas.shape[0]):
             raise ValueError(
                 f"Shape mismatch `y_true` length {len(y_true)}, "
                 f"`y_probas` shape {y_probas.shape}"
             )
 
         # Check number of classes for one-hot encoding
-        if y_true.shape[1] != y_probas.shape[1]:
+        if int(y_true.shape[1]) != int(y_probas.shape[1]):
             raise ValueError(
                 f"Number of classes in `y_true` ({y_true.shape[1]}) does not match "
                 f"`y_probas` number of classes ({y_probas.shape[1]})"
@@ -518,8 +518,10 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
             return y_true[:, slice(None)]
 
         if (
-            class_index < 0 or class_index >= y_true.shape[1]
-        ):  # Make sure the index is within bounds
+            # Make sure the index is within bounds
+            class_index < 0
+            or class_index >= int(y_true.shape[1])
+        ):
             raise ValueError(
                 f"class_index {class_index} out of bounds for `y_true`. "
                 f"It must be between 0 and {y_true.shape[1] - 1}."
@@ -656,8 +658,10 @@ def validate_y_probas(y_probas, class_index=None):
             return y_probas[:, slice(None)]
 
         if (
-            class_index < 0 or class_index >= y_probas.shape[1]
-        ):  # Make sure the index is within bounds
+            # Make sure the index is within bounds
+            class_index < 0
+            or class_index >= int(y_probas.shape[1])
+        ):
             raise ValueError(
                 f"class_index {class_index} out of bounds for `y_probas`. "
                 f"It must be between 0 and {y_probas.shape[1] - 1}."

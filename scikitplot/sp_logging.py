@@ -889,11 +889,8 @@ def get_logger() -> "_logging.Logger":
 
     See Also
     --------
-    SpLogger :
-        A singleton logger class that provides a shared :py:class:`logging.Logger` instance
-        with customizable name, formatter, handler, logging level, and thread-safety.
-    sp_logger :
-        An instance of :py:class:`SpLogger` class, providing logging logger functionality.
+    logger :
+        An instance of :py:obj:`logger` class, providing logging logger functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance.
         For more: https://docs.python.org/3/library/logging.html
@@ -929,7 +926,7 @@ def get_logger() -> "_logging.Logger":
     You can also specify the logging verbosity.  In this case, the
     WARN level log will not be emitted:
 
-    >>> sp.get_logger().setLevel(sp.get_logger().WARNING)
+    >>> sp.get_logger().setLevel(sp.sp_logging.WARNING)
     >>> sp.get_logger().debug(
     ...     "This is a debug."
     ... )  # This will not be shown, as level is WARNING.
@@ -940,7 +937,7 @@ def get_logger() -> "_logging.Logger":
 
     Examples
     --------
-    Get the root logger from ``module attr``:
+    Get the root ``logger`` from ``module attr``:
 
     .. jupyter-execute::
 
@@ -948,13 +945,17 @@ def get_logger() -> "_logging.Logger":
         >>> logger.setLevel(logger.INFO)  # default WARNING
         >>> logger.info("This is a info message from the sp logger.")
 
-    Get the root logger from ``func``:
+        >>> import scikitplot as sp
+        >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
+        >>> sp.logger.info("This is a info message from the sp logger.")
+
+    Get the root ``logger`` from ``func``:
 
     .. jupyter-execute::
 
-        >>> from scikitplot import get_logger
-        >>> get_logger().setLevel(get_logger().INFO)  # default WARNING
-        >>> get_logger().info("This is a info message from the sp logger.")
+        >>> import scikitplot as sp
+        >>> sp.get_logger().setLevel(sp.sp_logging.INFO)  # default WARNING
+        >>> sp.get_logger().info("This is a info message from the sp logger.")
     """
     # Ensure the root logger is initialized
     # pylint: disable=global-statement
@@ -1371,8 +1372,8 @@ class SpLogger:
     --------
     get_logger :
         Function that provides a shared :py:class:`logging.Logger` instance.
-    sp_logger :
-        An instance of :py:class:`SpLogger` class, providing logging functionality.
+    logger :
+        An instance of :py:obj:`logger` class, providing logging functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance,
         for more https://docs.python.org/3/library/logging.html.
