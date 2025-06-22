@@ -60,6 +60,7 @@ try:
     # or cannot be imported, this is where we'll get a failure - so give an
     # informative error message.
     from ._lib._ccallback import LowLevelCallable
+    from ._utils._show_versions import show_versions
     from .config import *  # noqa: F401,F403  # type: ignore[]
     from .version import (  # type: ignore[reportMissingModuleSource]
         # If a version with git hash was stored,
@@ -149,6 +150,7 @@ _submodules = sorted(
         "get_logger",
         "logger",
         "online_help",
+        "show_versions",
         "test",
     }
     | {
