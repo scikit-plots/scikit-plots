@@ -195,6 +195,10 @@ def plot_learning_curve(
     if train_sizes is None:
         train_sizes = np.linspace(0.1, 1.0, 5)
 
+    # assert X is not None and len(X) > 0, "X is empty or None"
+    # assert y is not None and len(y) > 0, "y is empty or None"
+    # assert len(X) == len(y), "X and y length mismatch"
+
     train_sizes, train_scores, test_scores = learning_curve(
         ## default params
         estimator,

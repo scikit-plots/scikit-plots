@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
 # Sigmoid and Softmax functions
 from sklearn.calibration import calibration_curve
 
+from .... import logger
 from ..._utils.validation import validate_inputs, validate_plotting_kwargs_decorator
 from ....utils.utils_plot_mpl import save_plot_decorator
 from ...._docstrings import _docstring
@@ -288,13 +289,13 @@ def plot_calibration(
         if y_probas.ndim == 1:
             y_probas = y_probas[:, None]
             y_probas = np.column_stack([1 - y_probas, y_probas])
-        if (y_true_cur.ndim == y_probas.ndim) and (y_true_cur.shape == y_probas.shape):
-            pass
-        else:
-            raise ValueError(
-                f"Shape mismatch `y_true` shape {y_true.shape}, "
+
+        if y_true_cur.shape != y_probas.shape:
+            logger.error(
+                f"Shape mismatch: `y_true` shape {y_true_cur.shape}, "
                 f"`y_probas` shape {y_probas.shape}"
             )
+            raise ValueError("Shape mismatch between `y_true` and `y_probas`.")
 
         y_probas_list[idx] = y_probas
 

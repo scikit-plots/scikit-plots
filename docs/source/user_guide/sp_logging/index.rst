@@ -9,7 +9,7 @@ This module contains functions related to :py:mod:`~.sp_logging` (Scikit-plots L
 .. note::
 
     The Scikit-plots logging system is meant for internal scikit-plots usage.
-    For use in other packages, we recommend implementing your own logger instead.
+    For use in other packages, we recommend implementing your own ``logger`` instead.
 
 .. tip::
 
@@ -19,7 +19,7 @@ This module contains functions related to :py:mod:`~.sp_logging` (Scikit-plots L
 Configuring the logging system
 ----------------------------------------------------------------------
 
-Import the root ``logger`` from module ``attr``:
+Get the root ``logger`` from ``module attr``:
 
 .. jupyter-execute::
 
@@ -31,7 +31,7 @@ Import the root ``logger`` from module ``attr``:
     >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
     >>> sp.logger.info("This is a info message from the sp logger.")
 
-Get the root ``logger`` by ``func``:
+Get the root ``logger`` from ``func``:
 
 .. jupyter-execute::
 

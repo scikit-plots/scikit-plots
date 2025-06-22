@@ -24,6 +24,7 @@ from __future__ import (
 )
 
 import itertools
+import json
 
 import numpy as np  # type: ignore[reportMissingImports]
 import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
@@ -438,7 +439,7 @@ def plot_classifier_eval(
     ax[0].text(
         0,
         0.5,
-        "\n" * 3 + report,
+        "\n" * 3 + str(report),
         ha="left",
         va="center",
         fontfamily="monospace",

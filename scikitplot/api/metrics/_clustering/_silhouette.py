@@ -177,7 +177,7 @@ def plot_silhouette(
 
         ith_cluster_silhouette_values.sort()
 
-        size_cluster_i = ith_cluster_silhouette_values.shape[0]
+        size_cluster_i = int(ith_cluster_silhouette_values.shape[0])
         y_upper = y_lower + size_cluster_i
 
         color = plt.get_cmap(cmap)(float(i) / n_clusters)
