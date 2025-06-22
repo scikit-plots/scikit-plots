@@ -10,31 +10,31 @@
 
 # https://abseil.io/docs/python/quickstart.html
 # https://abseil.io/docs/python/guides/logging
-import logging
+# import logging
+# from absl import logging
+# logger = logging.getLogger(__name__)
 
-from absl import logging
+from scikitplot import sp_logging as logger
+from scikitplot import logger, get_logger
 
-_log = logging.getLogger(__name__)
-del logging
+# logger = get_logger()
+logger.setLevel(level=logger.INFO)  # default WARNING
+logger.warning("scikitplot warning!!!")
+logger.info("This is a info message from the sp logger.")
 
-# Only imports when type checking, not at runtime
-from typing import TYPE_CHECKING, Final, LiteralString
-
-# from typing_extensions import LiteralString
+# Only imports when type checking
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     # Heavy import, only for type checking
+    # Only imports when type checking, not at runtime
+    from typing import Final, LiteralString
+    from typing_extensions import LiteralString
+
     pass  # Usage as str type 'tf'
 
-from scikitplot import get_logger
-
-logger = get_logger()  # python logger, not have direct log level
-
-from scikitplot import sp_logging as logging  # class instance logger
-
-logger.setLevel(level=logging.INFO)  # default WARNING
-logger.warning("scikitplot warning!!!")
-logger.info("This is a info message from the sp logger.")
+__numpy_version__: Final[LiteralString]
+_BUILT_WITH_MESON: Final[bool]
 
 ######################################################################
 ## scikit-plots version
@@ -67,12 +67,83 @@ logger.info("This is a info message from the sp logger.")
 ## https://libraries.io/pypi/scikit-plots
 __version__: Final[LiteralString]
 __git_hash__: Final[LiteralString]
-__array_api_version__: Final[LiteralString]
 
-__bibtex__: Final[LiteralString]
-__citation__: Final[LiteralString]
+######################################################################
+## Public Interface define explicitly `__all__`
+######################################################################
 
-_BUILT_WITH_MESON: Final[bool]
+# Avoiding heavy imports top level module unless actually used
+# from .utils.lazy_load import LazyLoader
+# Lazily load scikitplot flavors to avoid excessive dependencies.
+# from ._compat.optional_deps import LazyImport, nested_import
 
 # Without __all__: All public names (not starting with _) are importedto supmodule.
 # {'_base', '_core', '_docstrings', '_orig_rc_params', '_statistics', '_stats'}
+
+## Define __all__ to control what gets imported with 'from module import *'.
+## If __all__ is not defined, Python falls back to using the module's global namespace
+## (as returned by dir() or globals().keys()) for 'from module import *'.
+## This means that all names in the global namespace, except those starting with '_',
+## will be imported by default.
+## Reference: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
+# __all__ = tuple(
+#     sorted(
+#         [
+#             name
+#             for name in (
+#                 {*globals().keys()}.union(_submodules).difference({"_submodules"})
+#             )
+#             ## Exclude private/internal names (those starting with '_') placeholder
+#             if not (name.startswith("...") and not name.endswith("..."))
+#         ]
+#     )
+# )
+
+######################################################################
+## globally seeding
+######################################################################
+
+# def setup_module(module) -> None:
+#     """
+#     Fixture to seed random number generators for reproducible tests.
+
+#     This function ensures a globally controllable random seed for Python's built-in `random`,
+#     and NumPy's RNG, optionally configurable via the `SKPLT_SEED` environment variable.
+
+#     Parameters
+#     ----------
+#     module : Any
+#         The test module passed by the testing framework (e.g., pytest). This parameter
+#         is required by the `setup_module` hook but is not directly used in this function.
+
+#     Notes
+#     -----
+#     - If `SKPLT_SEED` is not set in the environment, a random seed is generated.
+#     - This function supports both legacy and newer NumPy random APIs.
+#     """
+#     try:
+#         import os
+#         import random
+#         import numpy as np
+
+#         # Get seed from environment variable or generate one
+#         seed_env = os.environ.get("SKPLT_SEED")
+#         if seed_env is not None:
+#             seed = int(seed_env)
+#         else:
+#             seed = int(np.random.uniform() * np.iinfo(np.int32).max)  # noqa: NPY002
+
+#         print(f"I: Seeding RNGs with {seed}")  # noqa: T201, UP031
+
+#         # Seed both NumPy and Python RNG
+#         # np.random.Generator
+#         # Legacy NumPy seeding (safe across versions)
+#         np.random.seed(seed)  # noqa: NPY002
+#         random.seed(seed)
+
+#     except Exception as e:
+#         print(f"Warning: RNG seeding failed: {e}")  # noqa: T201
+
+######################################################################
+##
+######################################################################

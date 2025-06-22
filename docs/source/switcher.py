@@ -43,29 +43,13 @@ TEMPLATE_FILES = {
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def load_local_json(local_path: str) -> list:
+def load_json_data(local_path: str) -> list:
     """Load JSON data from local file."""
     with open(local_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_json_data(version: str, local_path: str, url: str) -> list:
-    """Load JSON data from local file if dev version, else try remote first."""
-    if "dev" in version:
-        print("Development version detected — using local JSON.")
-        return load_local_json(local_path)
-
-    try:
-        response = requests.get(url, timeout=5)
-        response.raise_for_status()
-        print("Loaded data from URL")
-        return response.json()
-    except (requests.RequestException, json.JSONDecodeError):
-        print("Failed to fetch from URL, falling back to local JSON")
-        return load_local_json(local_path)
-
-
-def fetch_json_data(local_path: str, url: str) -> list:
+def fetch_json_data(url: str, local_path: str) -> list[dict]:
     """Fetch JSON data from remote URL or fallback to local file."""
     try:
         response = requests.get(url, timeout=1)  # 5-second timeout
@@ -74,29 +58,32 @@ def fetch_json_data(local_path: str, url: str) -> list:
         return response.json()  # List of Dictionaries
     except (requests.RequestException, json.JSONDecodeError):
         print("Failed to fetch from URL, loading local JSON")
-        with open(local_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        return load_json_data(local_path)
 
 
 def get_context(version: str, data: list) -> dict:
     """Build context from version and existing data."""
     ## Regex to extract numbers and remove non-numeric characters
     numeric_new_version = int(re.sub(r"\D", "", version))
-    numeric_stable_version = int(re.sub(r"\D", "", data[1]["version"]))
+    numeric_stable_version = int(re.sub(r"\D", "", data[1]["version"]))  # 1 - stable
     ## You might want to compare with real stable
     is_prev = numeric_new_version < numeric_stable_version
 
+    # 0 - dev
     dev_version = version.split("+")[0] if "dev" in version else data[0]["version"]
+    # 1 - stable
     stable_version = (
         version.split("+")[0]
         if "dev" not in version and not is_prev
         else data[1]["version"]
     )
+    # 2 - prev_version
     prev_version = (
         version.split("+")[0]
         if "dev" not in version and is_prev and "0.3.7" not in version
         else data[2]["version"]
     )
+    # -1 - mini_version
     mini_version = version.split("+")[0] if "0.3.7" in version else data[-1]["version"]
 
     ## Context with a variable to pass into the template
@@ -127,7 +114,12 @@ def main():
     ## Create the template object
     # template = Template(template_str)
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
-    data = fetch_json_data(LOCAL_JSON_FILE, REMOTE_JSON_URL)
+
+    if "dev" not in __version__:
+        data = fetch_json_data(REMOTE_JSON_URL, LOCAL_JSON_FILE)
+    else:
+        data = load_json_data(LOCAL_JSON_FILE)
+
     context = get_context(__version__, data)
     render_templates(env, context, TEMPLATE_FILES)
 

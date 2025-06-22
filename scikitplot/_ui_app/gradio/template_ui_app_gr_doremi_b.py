@@ -20,11 +20,10 @@ from datetime import datetime
 
 # import numpy as np
 # from scipy.io.wavfile import write
-from scikitplot import (
-    LazyImport,
-    # logger,
-    doremi,
-)
+from scikitplot import doremi
+
+# from scikitplot import logger
+from scikitplot._compat.optional_deps import LazyImport
 
 __all__ = []
 

@@ -4,15 +4,7 @@ import os as _os
 import pathlib as _pathlib
 
 from .. import logger as _logger
-from .._compat.python import (  # Loaded from compatibility layer
-    toml as _toml,
-)
-from .._compat.python import (
-    tomllib as _tomllib,
-)
 from ..exceptions import ScikitplotException
-
-# --- TOML ---
 
 
 def read_toml(
@@ -48,6 +40,10 @@ def read_toml(
     >>> config["model"]["name"]
     'mistral-7b'
     """
+    # Loaded from compatibility layer
+    from .._compat.python import toml as _toml
+    from .._compat.python import tomllib as _tomllib
+
     # For tomllib and tomli, the API expects binary mode and tomllib.load(f)
     # For toml package, tomllib.load() is toml.load() and expects text mode
     path = _pathlib.Path(file_path).expanduser().resolve()
@@ -106,6 +102,9 @@ def write_toml(
     >>> path = write_toml("config_out.toml", data)
     >>> print(f"Saved to {path}")
     """
+    # Loaded from compatibility layer
+    from .._compat.python import toml as _toml
+
     # For tomllib and tomli, the API expects binary mode and tomllib.load(f)
     # For toml package, tomllib.load() is toml.load() and expects text mode
     path = _pathlib.Path(file_path).expanduser().resolve()

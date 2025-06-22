@@ -20,9 +20,8 @@ Streamlit home UI template_ui_app_st.
     └── config.toml
 """
 
-# import importlib
-# import os
-from scikitplot import LazyImport
+# from scikitplot import logger
+from scikitplot._compat.optional_deps import LazyImport
 
 __all__ = []
 

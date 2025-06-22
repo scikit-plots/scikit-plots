@@ -16,3 +16,5 @@ scikit-learn estimators. The specific requirements are documented per function.
 # Your package/module initialization code goes here
 from ._components import *
 from ._projection import *
+
+# TODO:from .tsne_plot

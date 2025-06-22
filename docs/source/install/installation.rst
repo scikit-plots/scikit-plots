@@ -29,6 +29,10 @@ There are different ways to install scikit-plots:
 Installing the latest release
 =============================
 
+⚠️ Recommended: Use a Virtual Environmentt (like ``venv``) to Avoid Conflicts (🚫 Don't use conda ``base`` — it's prone to conflicts.)
+
+✅ This avoids dependency issues and keeps your system stable.
+
 .. raw:: html
 
   <style>
@@ -87,6 +91,7 @@ Installing the latest release
             python -m pip freeze             # show all installed packages in the environment
             python -c "import scikitplot; scikitplot.show_versions()"
             scikitplot --version
+            scikitplot -V
             scikitplot -v
 
         .. tab-item:: Linux

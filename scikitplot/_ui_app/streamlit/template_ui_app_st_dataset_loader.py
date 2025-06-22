@@ -28,7 +28,8 @@ from sklearn.model_selection import (
     train_test_split,
 )
 
-from scikitplot import LazyImport, logger
+from scikitplot import logger
+from scikitplot._compat.optional_deps import LazyImport
 from scikitplot._datasets import (
     EXTENSION_LOADERS,
     load_data_meta,

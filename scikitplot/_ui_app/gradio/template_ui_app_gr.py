@@ -5,7 +5,8 @@
 
 """template_ui_app_gr."""
 
-from scikitplot import LazyImport  # logger
+# from scikitplot import logger
+from scikitplot._compat.optional_deps import LazyImport
 
 __all__ = []
 

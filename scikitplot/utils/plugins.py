@@ -1,20 +1,24 @@
 """plugins.py."""
 
-import importlib as _importlib
 import sys as _sys
 
+try:
+    from importlib.metadata import EntryPoint, entry_points
+except ImportError:
+    from importlib_metadata import EntryPoint, entry_points  # Backport for <3.8 or 3.10
 
-def _get_entry_points(group: str) -> list[_importlib.metadata.EntryPoint]:
+
+def _get_entry_points(group: str) -> list[EntryPoint]:
     if _sys.version_info >= (3, 10):
-        return _importlib.metadata.entry_points(group=group)
+        return entry_points(group=group)
 
-    entrypoints = _importlib.metadata.entry_points()
+    eps = entry_points()
     try:
-        return entrypoints.get(group, [])
+        return eps.get(group, [])
     except AttributeError:
-        return entrypoints.select(group=group)
+        return eps.select(group=group)
 
 
-def get_entry_points(group: str) -> list[_importlib.metadata.EntryPoint]:
-    """get_entry_points."""
+def get_entry_points(group: str) -> list[EntryPoint]:
+    """Return a list of registered entry points under the given group."""
     return _get_entry_points(group)

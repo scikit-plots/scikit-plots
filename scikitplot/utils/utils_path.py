@@ -260,11 +260,11 @@ def get_file_path(  # noqa: D417
 
 
 ######################################################################
-## remove_paths
+## remove
 ######################################################################
 
 
-def remove_paths(
+def remove_path(
     paths: "Optional[list[str]]" = None,
     base_path: "Optional[str]" = None,
 ) -> None:

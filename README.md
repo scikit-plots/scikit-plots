@@ -111,102 +111,145 @@
 
 The quickest and easiest way to go from analysis...
 
-### Documentation, Examples and Try|Install Scikit-plots
+## Documentation, Examples and Try|Install Scikit-plots
 
 **Explore the full features of Scikit-plots: https://scikit-plots.github.io/dev/devel/index.html**
 
 
-## User Installation:
+# User Installation:
 
-### PIP Installation by `pypi` or `github`
+## PIP Installation by `pypi` or `github`
 
 The easiest way to set up scikit-plots is to install it using pip with the following command:
 
-- by `pypi`:
-  ```sh
-  pip install -U scikit-plots
-  ```
+⚠️ Recommended: Use a Virtual Environmentt (like ``venv``) to Avoid Conflicts (🚫 Don't use conda ``base`` — it's prone to conflicts.)
 
-- by `pypi.anaconda.org`:
-  ```sh
-  ## (Optionally) Install the lost dependency packages
-  ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
-  curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
-  pip install -r default.txt
-  ```
-  ```sh
-  ## Try Ensure all dependencies installed
-  pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
-  ```
+✅ This avoids dependency issues and keeps your system stable.
 
-- by `GITHUB` Source to use `@<branches>` or `@<tags>` or `Source code archive URLs`, If any:
-  - Branches:
-    ```bash
-    ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
-    ## Latest in Development
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@main
-    ##
-    ## (Added C, Cpp, Fortran Support) Works with standard Python (CPython)
-    ##
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
-    ##
-    ## (Works with PyPy interpreter) Works with standard Python (CPython)
-    ##
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
-    ```
-  <br>
+```sh
+# (conda or mamba) Create New Env and install ``scikit-plots``
+# Create a new environment and install Python 3.11 with IPython kernel support
+mamba create -n py311 python=3.11 ipykernel -y
+```
 
-  - Tags:
-    ```bash
-    ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc3
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
-    pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
-    ```
+```sh
+# Activate the environment
+conda activate py311
+```
 
-  - Source code archive URLs (Also available PyPi, If any):
+---
 
-    Source code archives are available at specific URLs for each repository.
-    For example, consider the repository `scikit-plots/scikit-plots`.
-    There are different URLs for downloading a branch, a tag, or a specific commit ID.
+### - by `pypi`:
 
-    - https://github.com/scikit-plots/scikit-plots/tags
+```sh
+# Now Install scikit-plots (via pip, conda, or local source)
+pip install scikit-plots
+```
 
-    **Note:** You can use either .zip or .tar.gz in the URLs above to request a zipball or tarball respectively.
+---
+
+### - by `pypi.anaconda.org`:
+
+```sh
+## (Optionally) Install the lost packages "Runtime dependencies"
+## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
+## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+pip install -r default.txt
+```
+
+```sh
+## Try After Ensure all "Runtime dependencies" installed
+pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+```
+
+---
+
+### - by `GITHUB` Source to use `@<branches>` or `@<tags>` or `Source code archive URLs`, If any:
+
+#### - by `GITHUB` Branches:
+
+```bash
+## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
+## Latest in Development
+pip install git+https://github.com/scikit-plots/scikit-plots.git@main
+##
+## (Added C, Cpp, Fortran Support) Works with standard Python (CPython)
+pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
+##
+## (Works with PyPy interpreter) Works with standard Python (CPython)
+pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
+pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
+```
+
+#### - by `GITHUB` Tags:
+
+```bash
+## pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc5
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
+```
+
+#### - by `GITHUB` Source code archive URLs (Also available PyPi, If any):
+
+Source code archives are available at specific URLs for each repository.
+
+For example, consider the repository `scikit-plots/scikit-plots`.
+
+There are different URLs for downloading a branch, a tag, or a specific commit ID.
+
+- https://github.com/scikit-plots/scikit-plots/tags
+
+**Note:** You can use either .zip or .tar.gz in the URLs above to request a zipball or tarball respectively.
+
+---
 
 ### Cloned Source Installation (REQUIRED OS/LIB BUILD PACKAGES)
 
-- You can also install scikit-plots from source if you want to take advantage of the latest changes:
-  ```sh
-  ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
-  git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
-  cd scikit-plots
-  ```
-  ```sh
-  ## (Optionally) Add safe directories for git
-  bash docker/script/safe_dirs.sh
-  ## download submodules
-  git submodule update --init
-  ```
-  ```sh
-  # pip install -r ./requirements/all.txt
-  pip install -r ./requirements/build.txt
-  ## Install development version
-  pip install --no-cache-dir -e . -v
-  ```
+- You can also install ``scikit-plots`` from source if you want to take advantage of the latest changes:
 
-- #### It is also possible to include optional dependencies:
-  ```sh
-  ## (Optionally) Try Development [build,dev,test,doc]
-  ## For More in Doc: https://scikit-plots.github.io/
-  python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
-  ```
-  ```sh
-  ## [cpu] refer tensorflow-cpu, keras, transformers
-  ## [gpu] refer Cupy tensorflow lib require NVIDIA CUDA support
-  pip install "scikit-plots[cpu]"
-  ```
+```sh
+## Forked repo: https://github.com/scikit-plots/scikit-plots.git
+git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
+cd scikit-plots
+```
+
+```sh
+## (Optionally) Add safe directories for git
+# bash docker/script/safe_dirs.sh
+git config --global --add safe.directory '*'
+```
+
+```sh
+## download submodules
+git submodule update --init
+```
+
+```sh
+# pip install -r ./requirements/all.txt
+pip install -r ./requirements/build.txt
+```
+
+```sh
+## Install development version
+pip install --no-cache-dir -e . -v
+```
+
+#### - It is also possible to include optional dependencies:
+
+```sh
+## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
+## (Optionally) Try Development [build,dev,test,doc]
+## For More in Doc: https://scikit-plots.github.io/
+python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
+```
+```sh
+## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
+## [cpu] refer tensorflow-cpu, transformers, tf-keras
+## [gpu] refer Cupy tensorflow lib require NVIDIA CUDA support
+pip install "scikit-plots[cpu]"
+```
 
 
 <h2 align=center>Sample Plots</h2>

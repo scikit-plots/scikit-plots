@@ -182,7 +182,7 @@ newm:
 ## conda env export --from-history
 ## conda remove --name myenv --all
 newc:
-	conda create -n test python=3.11 ipykernel
+	conda create -n test python=3.11 ipykernel -y
 	# conda activate test  # activate our environment
 
 ######################################################################
@@ -375,68 +375,68 @@ grep:
 
 ## Add a Branch to the Local project
 ## maintenance/0.3.x
-branch:
-ifdef BR
-	@echo "Adding Local branch: '$(BR)' to main"
-	@git checkout main
-	@## git branch "$(BR)" && git checkout "$(BR)" || git switch "$(BR)"
-	@## This command creates a new branch and switches to it immediately.
-	@# git checkout -b "$(BR)"
-	@git switch -c "$(BR)"
-	@## Commit changes incrementally
-	@cat Readme.md > Readme_$(BR).md
-	@git add .
-	@git commit -m "$(BR) initial commit (endpoints) for consistency"
-else
-	@echo "BR is not defined"
-endif
+# branch:
+# ifdef BR
+# 	@echo "Adding Local branch: '$(BR)' to main"
+# 	@git checkout main
+# 	@## git branch "$(BR)" && git checkout "$(BR)" || git switch "$(BR)"
+# 	@## This command creates a new branch and switches to it immediately.
+# 	@# git checkout -b "$(BR)"
+# 	@git switch -c "$(BR)"
+# 	@## Commit changes incrementally
+# 	@cat Readme.md > Readme_$(BR).md
+# 	@git add .
+# 	@git commit -m "$(BR) initial commit (endpoints) for consistency"
+# else
+# 	@echo "BR is not defined"
+# endif
 
 ## Delete the branch locally use BR Environment for del.
-branch-del:
-ifdef BR
-	@echo "Deleting (safe) Local branch: '$(BR)'"
-	@# git branch -D "$(BR)"
-	@git branch -d "$(BR)"
-	@git branch
-else
-	@echo "BR is not defined"
-endif
+# branch-del:
+# ifdef BR
+# 	@echo "Deleting (safe) Local branch: '$(BR)'"
+# 	@# git branch -D "$(BR)"
+# 	@git branch -d "$(BR)"
+# 	@git branch
+# else
+# 	@echo "BR is not defined"
+# endif
 
 ## Delete the branch remotely use BR Environment for del.
-branch-delr:
-ifdef BR
-	@echo "Deleting Remote branch: '$(BR)'"
-	@git push origin --delete "$(BR)"
-	@git branch
-else
-	@echo "BR is not defined"
-endif
+# branch-delr:
+# ifdef BR
+# 	@echo "Deleting Remote branch: '$(BR)'"
+# 	@git push origin --delete "$(BR)"
+# 	@git branch
+# else
+# 	@echo "BR is not defined"
+# endif
 
 ## Delete a feature branch after merging
 ## Periodically delete old local branches that have already been merged to keep your workspace clean.
-branch-clean:
-ifdef BR
-	@echo "Deleting local old branches..."
-	@git branch --merged main | grep -v "main" | xargs git branch -d
-	@git branch
-else
-	@echo "BR is not defined"
-endif
+# branch-clean:
+# ifdef BR
+# 	@echo "Deleting local old branches..."
+# 	@git branch --merged main | grep -v "main" | xargs git branch -d
+# 	@git branch
+# else
+# 	@echo "BR is not defined"
+# endif
 
 ## Push the updated stable branch to the remote repository
 ## The -u (or --set-upstream) flag tells Git to link the current local branch to a branch on the remote (or create a new remote branch if it doesn't exist).
 ## Use git push -u origin <branch> When: Pushing a new branch to the remote for the first time.
 ## Use git push origin <branch> When: The branch already has an upstream tracking relationship, and you don't need to set it again.
-branch-push:
-ifdef BR
-	@echo "To check if your branch is tracked upstream, use:"
-	@git branch -vv
-	@echo "Adding Remote branch: '$(BR)'"
-	@git push -u origin "$(BR)"
-	@echo "$(BR) You’ve finished the work and are ready to merge into the main branch."
-else
-	@echo "BR is not defined"
-endif
+# branch-push:
+# ifdef BR
+# 	@echo "To check if your branch is tracked upstream, use:"
+# 	@git branch -vv
+# 	@echo "Adding Remote branch: '$(BR)'"
+# 	@git push -u origin "$(BR)"
+# 	@echo "$(BR) You’ve finished the work and are ready to merge into the main branch."
+# else
+# 	@echo "BR is not defined"
+# endif
 
 ######################################################################
 ## Git Tag
@@ -450,53 +450,53 @@ TAG_SAMPLE          = "v$(LAST_COMMIT_MESSAGE)"
 TAG_MESSAGE         = "Release version $(LAST_COMMIT_MESSAGE)"
 ## Tagging the latest commit
 ## For larger projects or those requiring stability guarantees, tagging in stable is safer.
-tag-sample:
-	@echo "Sample tag: '$(TAG_SAMPLE)' message: '$(TAG_MESSAGE)' by commit: '$(LAST_COMMIT_MESSAGE)'"
+# tag-sample:
+# 	@echo "Sample tag: '$(TAG_SAMPLE)' message: '$(TAG_MESSAGE)' by commit: '$(LAST_COMMIT_MESSAGE)'"
 
 ## Add a Tag to Stable Releases to the Local project
-tag:
-ifdef BR
-	@## Tagging in the stable Branch (Stability-First Workflow)
-	@#Best practice: Tag before PyPI publishing.
-	@echo "Adding tag to branch: '$(BR)'"
-	@git checkout "$(BR)"
-	@echo "Existing tags:"
-	@git tag
-	@echo "Adding local tag: $(TAG_SAMPLE) message: $(TAG_MESSAGE)"
-	@# git tag -a v0.4.0 -m "Release version 0.4.0"
-	@git tag -a "$(TAG_SAMPLE)" -m $(TAG_MESSAGE)
-	@echo "Local tagging completed."
-else
-	@echo "BR is not defined"
-endif
+# tag:
+# ifdef BR
+# 	@## Tagging in the stable Branch (Stability-First Workflow)
+# 	@#Best practice: Tag before PyPI publishing.
+# 	@echo "Adding tag to branch: '$(BR)'"
+# 	@git checkout "$(BR)"
+# 	@echo "Existing tags:"
+# 	@git tag
+# 	@echo "Adding local tag: $(TAG_SAMPLE) message: $(TAG_MESSAGE)"
+# 	@# git tag -a v0.4.0 -m "Release version 0.4.0"
+# 	@git tag -a "$(TAG_SAMPLE)" -m $(TAG_MESSAGE)
+# 	@echo "Local tagging completed."
+# else
+# 	@echo "BR is not defined"
+# endif
 
 ## Delete the Tag locally use TAG Environment for del.
-tag-del:
-ifdef TAG
-	@echo "Deleting Local tag: 'v$(TAG)'"
-	@git tag -d "v$(TAG)"
-	@git tag
-else
-	@echo "TAG is not defined"
-endif
+# tag-del:
+# ifdef TAG
+# 	@echo "Deleting Local tag: 'v$(TAG)'"
+# 	@git tag -d "v$(TAG)"
+# 	@git tag
+# else
+# 	@echo "TAG is not defined"
+# endif
 
 ## Delete the Tag remotely use TAG Environment for del.
-tag-delr:
-ifdef TAG
-	@echo "Deleting Remote tag: 'v$(TAG)'"
-	@git push origin --delete "v$(TAG)"
-	@git tag
-else
-	@echo "TAG is not defined"
-endif
+# tag-delr:
+# ifdef TAG
+# 	@echo "Deleting Remote tag: 'v$(TAG)'"
+# 	@git push origin --delete "v$(TAG)"
+# 	@git tag
+# else
+# 	@echo "TAG is not defined"
+# endif
 
 ## Push the tag to the remote repository
-tag-push:
-	@echo "Existing tags:"
-	@git tag
-	@echo "Adding to "remote repository" tag $(TAG_SAMPLE)..."
-	@git push origin $(TAG_SAMPLE) || git push --tags
-	@echo "Remote Repository Tagging completed."."
+# tag-push:
+# 	@echo "Existing tags:"
+# 	@git tag
+# 	@echo "Adding to "remote repository" tag $(TAG_SAMPLE)..."
+# 	@git push origin $(TAG_SAMPLE) || git push --tags
+# 	@echo "Remote Repository Tagging completed."."
 
 ## Release combines tagging and pushing the tag to remote
 # release: tag-sample tag tag-push
@@ -569,19 +569,32 @@ push:
 	@# pre-commit install
 	@git add . && git commit -m "fix dependency"  && git push
 
+######################################################################
+## TAG
+######################################################################
+
+VERSION := $(shell scikitplot -V | awk '{print $$3}')
+TAG="v$(VERSION)"
+
+tag:
+	@echo "$(TAG)"
+
 release:
-	@git tag -d "v0.4.0rc4" || true
+ifdef TAG
+	@echo "Remove tag locally: "$(TAG)""
+	@git tag -d "$(TAG)" || true
 
-	@## Creates the tag locally
-	git tag -a "v0.4.0rc4" -m "Release version 0.4.0rc4"
+	@echo "Creates tag locally"
+	git tag -a "$(TAG)" -m "Release version "$(TAG)"
 
-	@## Pushes the tag to your fork
-	git push origin "v0.4.0rc4"    # push just that tag
+	@echo "Pushes the tag to your fork"
+	@# git push --tags              # then push all tags
+	git push origin "$(TAG)"        # push just that tag
 
-	@## Pushes all tags to your fork
-	@## git push --tags            # then push all tags
-
-	@## Pushes tag to upstream (if allowed) v0.4.0rc4 (APR 29th, 2025)
-	git push upstream "v0.4.0rc4"    # push just that tag
+	@echo "Pushes tag to upstream (if allowed) "$(TAG)" (Month Dayth, Year)"
+	git push upstream "$(TAG)"      # push just that tag
 
 	@# git ls-remote --tags origin  # verify what's pushed by running
+else
+	@echo "TAG is not defined!"
+endif

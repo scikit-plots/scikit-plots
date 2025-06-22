@@ -25,6 +25,7 @@ References:
    " Fifth-level heading.
 
 :orphan:
+
 - Sphinx issues a warning: WARNING: document isn't included in any toctree.
 - Sphinx suppresses the warning, and the file can still be built and accessed by its direct URL.
 
@@ -38,11 +39,16 @@ References:
 .. |br| raw:: html
 
   <br/>
+
 -#}
 
 .. Used for setting metadata like the document's title for processing tools.
 .. title:: Homepage
 
+.. Label (target) used for internal referencing, use underscores or hyphens (no spaces allowed)
+.. Underscores are the official recommended separator in reST labels.
+.. Dashes are allowed but sometimes can conflict with word hyphens.
+.. See the section on `whatever <#root-index>`_ or See :ref:`root-index`.
 .. _root-index:
 
 .. Define the overall structure, that affects the prev-next buttons and the order

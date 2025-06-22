@@ -1,18 +1,18 @@
 [
   {
-    "name": "0.5.0.dev0 (dev)",
-    "version": "0.5.0.dev0",
+    "name": "0.5.dev0 (dev)",
+    "version": "0.5.dev0",
     "url": "https://scikit-plots.github.io/dev/"
   },
   {
-    "name": "0.4.0rc4 (stable)",
-    "version": "0.4.0rc4",
+    "name": "0.4.0 (stable)",
+    "version": "0.4.0",
     "url": "https://scikit-plots.github.io/stable/",
     "preferred": true
   },
   {
-    "name": "0.3.9rc3 (prev)",
-    "version": "0.3.9rc3",
+    "name": "0.3.9 (prev)",
+    "version": "0.3.9",
     "url": "https://scikit-plots.github.io/prev/"
   },
   {

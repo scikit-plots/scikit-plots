@@ -4,7 +4,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-import os
+# import os
 import sys
 import logging
 from pathlib import Path
@@ -49,28 +49,17 @@ def generate_requirement_file(name, req_list, *, extra_list=None):
     Path(req_fname).parent.mkdir(parents=True, exist_ok=True)
 
     comment = {
-        # remove once scikit-umfpack issues are resolved
-        "scikit-umfpack": "# scikit-umfpack  # circular dependency issues",
         "scikit-plots[core]": "-r core.txt",
         "scikit-plots[cpu]": "-r cpu.txt",
         "scikit-plots[gpu]": "-r gpu.txt",
+        "scikit-plots[legacy]": "-r legacy.txt",
         "scikit-plots[tpu]": "-r tpu.txt",
         "scikit-plots[ci32_requirements]": "-r ci32_requirements.txt",
+        # TODO:remove once scikit-umfpack issues are resolved
+        "scikit-umfpack": "# scikit-umfpack  # circular dependency issues",
     }
 
-    req_list = [
-        (
-            comment[x]
-            if x
-            in [
-                "scikit-umfpack",
-                "scikit-plots[core]",
-                "scikit-plots[ci32_requirements]",
-            ]
-            else x
-        )
-        for x in req_list
-    ]
+    req_list = [(comment[x] if x in comment else x) for x in req_list]
 
     ## filter build
     # if name == "build":
@@ -87,11 +76,16 @@ def generate_requirement_file(name, req_list, *, extra_list=None):
 def main():
     pyproject = toml.loads((repo_dir / "pyproject.toml").read_text())
 
-    default = generate_requirement_file("default", pyproject["project"]["dependencies"])
-    generate_requirement_file(
-        "build", pyproject["build-system"]["requires"], extra_list=default
+    default = generate_requirement_file(
+        "default",
+        pyproject["project"]["dependencies"],
+        extra_list=["-r legacy.txt"],
     )
-
+    # generate_requirement_file(
+    #     "build",
+    #     pyproject["build-system"]["requires"],
+    #     extra_list=default,
+    # )
     for key, opt_list in pyproject["project"]["optional-dependencies"].items():
         generate_requirement_file(key, opt_list)
 
