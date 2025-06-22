@@ -929,7 +929,7 @@ def get_logger() -> "_logging.Logger":
     You can also specify the logging verbosity.  In this case, the
     WARN level log will not be emitted:
 
-    >>> sp.get_logger().setLevel(sp.sp_logging.WARNING)
+    >>> sp.get_logger().setLevel(sp.get_logger().WARNING)
     >>> sp.get_logger().debug(
     ...     "This is a debug."
     ... )  # This will not be shown, as level is WARNING.
@@ -940,7 +940,7 @@ def get_logger() -> "_logging.Logger":
 
     Examples
     --------
-    Use a root logger by module:
+    Get the root logger from ``module attr``:
 
     .. jupyter-execute::
 
@@ -948,13 +948,13 @@ def get_logger() -> "_logging.Logger":
         >>> logger.setLevel(logger.INFO)  # default WARNING
         >>> logger.info("This is a info message from the sp logger.")
 
-    Get a root logger by func:
+    Get the root logger from ``func``:
 
     .. jupyter-execute::
 
-        >>> from scikitplot import logger
-        >>> logger.setLevel(logger.INFO)  # default WARNING
-        >>> logger.info("This is a info message from the sp logger.")
+        >>> from scikitplot import get_logger
+        >>> get_logger().setLevel(get_logger().INFO)  # default WARNING
+        >>> get_logger().info("This is a info message from the sp logger.")
     """
     # Ensure the root logger is initialized
     # pylint: disable=global-statement

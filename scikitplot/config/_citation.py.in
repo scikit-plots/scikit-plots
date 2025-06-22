@@ -14,8 +14,6 @@ from scikitplot import logger
 _built_with_meson = True
 
 __all__ = [
-  "CITATION",
-  "_get_bibtex",
   "__bibtex__",
   "__citation__",
 ]

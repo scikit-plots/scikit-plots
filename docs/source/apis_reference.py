@@ -97,16 +97,17 @@ under `sklearn.datasets`.
 APIS_REFERENCE: dict[str, dict[str, any]] = {
     "scikitplot": {
         "short_summary": "Settings and information visualization tools.",
-        "description": None,
+        # "description": None,
         "sections": [
             {
                 "title": (
                     "Configure global settings and get information about the working environment."
                 ),
+                # "description": None,
                 "autosummary": [
                     "config_context",
                     "get_config",
-                    # "logger",
+                    "get_logger",
                     "set_config",
                     "show_config",
                     "show_versions",
