@@ -19,19 +19,19 @@ This module contains functions related to :py:mod:`~.sp_logging` (Scikit-plots L
 Configuring the logging system
 ----------------------------------------------------------------------
 
-First, import the logger, Get a root logger by module:
+Import the root ``logger`` from module ``attr``:
 
 .. jupyter-execute::
-
-    >>> import scikitplot as sp
-    >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
-    >>> logger.info("This is a info message from the sp logger.")
 
     >>> from scikitplot import logger
     >>> logger.setLevel(logger.INFO)  # default WARNING
     >>> logger.info("This is a info message from the sp logger.")
 
-Get a root logger by func:
+    >>> import scikitplot as sp
+    >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
+    >>> sp.logger.info("This is a info message from the sp logger.")
+
+Get the root ``logger`` by ``func``:
 
 .. jupyter-execute::
 
