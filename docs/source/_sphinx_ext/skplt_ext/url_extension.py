@@ -1,6 +1,7 @@
 # skplt_ext/url_extension.py
 
 import importlib
+import textwrap
 import os
 from pathlib import Path
 from urllib.parse import quote
@@ -76,16 +77,28 @@ def get_repl_url():
     base_url = "https://scikit-plots.github.io/demo/repl/"
 
     # Read the code from initial_repl.py
-    code_file_path = os.path.join(os.path.dirname(__file__), "_pkg_wasm_webassembly.py")
+    code_file_path = os.path.join(
+        os.path.dirname(__file__), "_pkg_wasm_webassembly.py.txt"
+    )
 
     try:
-        with open(code_file_path) as f:
+        with open(code_file_path, encoding="utf-8") as f:
             # Read the code from the file (strip extra whitespace)
             code = f.read().strip()
-    except FileNotFoundError:
-        raise FileNotFoundError(
-            f"{code_file_path} not found. Please ensure the file exists."
+    except FileNotFoundError as e:
+        code = textwrap.dedent(
+            """try: import micropip; await micropip.install("scikit-plots", keep_going=True)
+            # Fallback to a specific version if the latest fails
+            except Exception: await micropip.install("scikit-plots==0.3.9rc3", keep_going=True)
+            # Now import and print version (scikitplot -V)
+            import scikitplot; print("scikit-plots version:", scikitplot.__version__)"""
         )
+        logger.exception(
+            f"{code_file_path} not found. Please ensure the file exists. {e}"
+        )
+        # raise FileNotFoundError(
+        #     f"{code_file_path} not found. Please ensure the file exists."
+        # ) from e
 
     # URL-encode the code for inclusion in the URL query parameters
     params = {

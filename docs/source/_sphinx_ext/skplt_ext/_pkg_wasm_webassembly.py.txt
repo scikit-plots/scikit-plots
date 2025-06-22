@@ -1,0 +1,5 @@
+try: import micropip; await micropip.install("scikit-plots", keep_going=True)
+# Fallback to a specific version if the latest fails
+except Exception: await micropip.install("scikit-plots==0.3.9rc3", keep_going=True)
+# Now import and print version (scikitplot -V)
+import scikitplot; print("scikit-plots version:", scikitplot.__version__)
