@@ -369,6 +369,7 @@ def validate_shapes(y_true, y_probas):
 
     # Check for multi-class classification
     elif y_true.ndim == 2:
+        # if y_probas.ndim != np.unique(y_true):
         if y_probas.ndim != 2:
             raise ValueError(
                 "`y_probas` must be a 2D array for multi-class classification."
@@ -387,11 +388,11 @@ def validate_shapes(y_true, y_probas):
                 f"`y_probas` number of classes ({y_probas.shape[1]})"
             )
 
-        if np.unique(y_true).size != y_probas.shape[1]:
-            raise ValueError(
-                f"Number of classes in `y_true` ({np.unique(y_true).size}) does not match "
-                f"`y_probas` number of classes ({y_probas.shape[1]})"
-            )
+        # if np.unique(y_true).size != y_probas.shape[1]:
+        #     raise ValueError(
+        #         f"Number of classes in `y_true` ({np.unique(y_true).size}) does not match "
+        #         f"`y_probas` number of classes ({y_probas.shape[1]})"
+        #     )
 
     else:
         raise ValueError("Invalid shape for `y_true`.")
@@ -536,15 +537,15 @@ def validate_y_true(y_true, pos_label=None, class_index=None) -> np.ndarray:
         return y_true_bin
 
     # Handle multi-class classification, return 2D
-    # if (
-    #     # Make sure the index is within bounds
-    #     class_index < 0
-    #     or class_index >= y_true_bin.shape[1]
-    # ):
-    #     raise ValueError(
-    #         f"class_index {class_index} out of bounds for `y_true`. "
-    #         f"It must be between 0 and {y_true_bin.shape[1] - 1}."
-    #     )
+    if (
+        # Make sure the index is within bounds
+        class_index < 0
+        or class_index >= y_true_bin.shape[1]
+    ):
+        raise ValueError(
+            f"class_index {class_index} out of bounds for `y_true`. "
+            f"It must be between 0 and {y_true_bin.shape[1] - 1}."
+        )
     return y_true_bin[:, class_index]
 
 

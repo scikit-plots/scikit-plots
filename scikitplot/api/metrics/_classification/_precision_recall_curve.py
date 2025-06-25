@@ -388,19 +388,19 @@ def plot_precision_recall(
     # equalize ndim for y_true and y_probas 2D
     if y_true.ndim == 1:
         # Binarize the true labels only
-        # y_true = y_true[:, None]  # np.newaxis, slice(None)
-        # y_true = np.column_stack([1 - y_true, y_true])
-        classes = np.unique(y_true)
-        y_true = label_binarize(y_true, classes=classes)
+        # NumPy slicing using None (or np.newaxis) to add a new axis, slice(None)
+        y_true = y_true[:, None]  # or y_true.reshape(-1, 1)
+        y_true = np.column_stack([1 - y_true, y_true])
 
     # y_probas should be 2D (n_samples, n_classes) or 1D (n_samples,)
     if y_probas.ndim == 1:
         # If binary classification with probabilities for positive class only
         # Convert to 2D by stacking prob for negative class as 1 - prob
-        # y_probas = y_probas[:, None]
+        # NumPy slicing using None (or np.newaxis) to add a new axis, slice(None)
+        # y_probas = y_probas[:, None]  # or y_true.reshape(-1, 1)
         y_probas = np.column_stack([1 - y_probas, y_probas])
 
-    if y_true.shape != y_probas.shape:
+    if not ((y_true.ndim == y_probas.ndim) and (y_true.shape == y_probas.shape)):
         raise ValueError(
             f"Shape mismatch `y_true` shape {y_true.shape}, "
             f"`y_probas` shape {y_probas.shape}"

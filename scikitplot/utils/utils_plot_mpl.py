@@ -94,6 +94,8 @@ def safe_tight_layout(fig=None, *, warn=True):
         yield fig
     finally:
         try:
+            # import warnings
+            # warnings.filterwarnings("ignore", message=".*Tight layout not applied.*")
             fig.tight_layout()
         except Exception as e:
             if warn:
