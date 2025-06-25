@@ -1,3 +1,11 @@
+# code that needs to be compatible with both Python 2 and Python 3
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
 """
 The :mod:`~scikitplot.metrics` module includes plots for machine learning
 evaluation metrics e.g. confusion matrix, silhouette scores, etc.
@@ -9,33 +17,27 @@ The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# code that needs to be compatible with both Python 2 and Python 3
-
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-
 from collections.abc import KeysView, ValuesView
 
-import numpy as np  # type: ignore[reportMissingImports]
-import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 
-# Sigmoid and Softmax functions
 from sklearn.calibration import calibration_curve
+from sklearn.preprocessing import label_binarize
 
 from .... import logger
+from ...._docstrings import _docstring
 from ..._utils.validation import validate_inputs, validate_plotting_kwargs_decorator
 from ....utils.utils_plot_mpl import save_plot_decorator
-from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
 __all__ = [
     "plot_calibration",
 ]
+
+ListLike = (list, tuple, set, KeysView, ValuesView, np.ndarray)
 
 
 @validate_plotting_kwargs_decorator
@@ -49,8 +51,8 @@ def plot_calibration(
     pos_label=None,  # for binary y_true
     class_index=None,  # for multi-class y_probas
     class_names=None,
-    multi_class=None,
-    to_plot_class_index=[1],
+    # multi_class=None,
+    to_plot_class_index=1,
     estimator_names=None,
     n_bins=10,
     strategy="uniform",
@@ -109,7 +111,7 @@ def plot_calibration(
         Index of the class of interest for multiclass classification. Ignored for
         binary classification. Related to `multi_class` parameter. Not Implemented.
 
-    to_plot_class_index : list-like, optional, default=[1]
+    to_plot_class_index : int, list-like, optional, default=1
         Specific classes to plot. If a given class does not exist, it will be ignored.
         If None, all classes are plotted.
 
@@ -249,27 +251,13 @@ def plot_calibration(
     # Proceed with your preprocess logic here
     # Handle the case where estimator_names are not provided
     if estimator_names is None:
-        estimator_names = [f"Clf_{i + 1}" for i, model in enumerate(y_probas_list)]
+        estimator_names = [f"Clf_{i + 1}" for i, _model in enumerate(y_probas_list)]
 
-    if isinstance(
-        estimator_names, (list, KeysView, ValuesView, np.ndarray)
-    ) and isinstance(y_probas_list, (list, KeysView, ValuesView, np.ndarray)):
-        try:
-            estimator_names = list(estimator_names)
-            y_probas_list = list(map(np.asarray, y_probas_list))
-        except Exception as e:
-            raise ValueError(
-                f"`estimator_names` type {type(estimator_names)} must be a None "
-                f"or list of (str, model), `y_probas_list` type {type(y_probas_list)} "
-                f"must be a list of probability arrays."
-            ) from e
-
-        # Check if the length of estimator_names matches y_probas_list
-        if len(estimator_names) != len(y_probas_list):
-            raise ValueError(
-                f"Length of `estimator_names` ({len(estimator_names)}) does not match "
-                f"length of `y_probas_list` ({len(y_probas_list)})."
-            )
+    if isinstance(estimator_names, ListLike) and isinstance(y_probas_list, ListLike):
+        estimator_names = np.asanyarray(list(estimator_names), dtype=str)
+        # Safely stack values from a list-like
+        # y_probas_list = np.stack([np.asanyarray(v) for v in y_probas_list])
+        y_probas_list = np.asanyarray(list(map(np.asanyarray, y_probas_list)))
     else:
         raise ValueError(
             f"`estimator_names` type {type(estimator_names)} must be a None "
@@ -278,32 +266,56 @@ def plot_calibration(
         )
 
     for idx, y_probas in enumerate(y_probas_list):
+        # np.asarray(...) Not copy, validate shape, or add axes. It's a lightweight,
+        # shallow wrapper — useful, but limited.
+        y_probas = np.asanyarray(y_probas)
         # Convert input to numpy arrays for efficient processing
         y_true_cur, y_probas = validate_inputs(
-            y_true, y_probas, pos_label=pos_label, class_index=class_index
+            y_true,
+            y_probas,
+            pos_label=pos_label,
+            class_index=class_index,
         )
         # equalize ndim for y_true and y_probas 2D
         if y_true_cur.ndim == 1:
-            y_true_cur = y_true_cur[:, None]
-            y_true_cur = np.column_stack([1 - y_true_cur, y_true_cur])
+            # Binarize the true labels only
+            # y_true = y_true[:, None]
+            # y_true = np.column_stack([1 - y_true, y_true])
+            # Force as proper 2D NumPy array
+            classes = np.unique(y_true_cur)
+            y_true_cur = np.asanyarray(label_binarize(y_true_cur, classes=classes))
+
+        # y_probas should be 2D (n_samples, n_classes) or 1D (n_samples,)
         if y_probas.ndim == 1:
-            y_probas = y_probas[:, None]
+            # If binary classification with probabilities for positive class only
+            # Convert to 2D by stacking prob for negative class as 1 - prob
+            # y_probas = y_probas[:, None]
             y_probas = np.column_stack([1 - y_probas, y_probas])
 
         if y_true_cur.shape != y_probas.shape:
             logger.error(
-                f"Shape mismatch: `y_true` shape {y_true_cur.shape}, "
-                f"`y_probas` shape {y_probas.shape}"
+                f"Shape mismatch: `y_true` shape {y_true_cur.shape!r}, "
+                f"`y_probas` shape {y_probas.shape!r}"
             )
-            raise ValueError("Shape mismatch between `y_true` and `y_probas`.")
+            # raise ValueError("Shape mismatch between `y_true` and `y_probas`.")
 
         y_probas_list[idx] = y_probas
 
     y_true = y_true_cur
     # Get unique classes and filter the ones to plot
+    # if isinstance(y_true, np.ndarray) and y_true.ndim == 2:
+    #     classes = np.arange(y_true.shape[1])
+    # else:
+    #     raise ValueError("y_true must be a 2D NumPy array")
+    logger.error(y_true.shape[1])
     classes = np.arange(y_true.shape[1])
     to_plot_class_index = (
         classes if to_plot_class_index is None else to_plot_class_index
+    )
+    to_plot_class_index = (
+        [to_plot_class_index]
+        if isinstance(to_plot_class_index, int)
+        else to_plot_class_index
     )
     indices_to_plot = np.isin(element=classes, test_elements=to_plot_class_index)
 
@@ -315,7 +327,7 @@ def plot_calibration(
     # )
     # Proceed with your plotting logic here
     # Initialize dictionaries to store results
-    fig, ax = kwargs.get("fig"), kwargs.get("ax")
+    _fig, ax = kwargs.get("fig"), kwargs.get("ax")
     fraction_of_positives_dict, mean_predicted_value_dict = {}, {}
 
     # Loop through classes and classifiers
@@ -366,8 +378,7 @@ def plot_calibration(
 
     # Enable grid and display legend
     ax.grid(True)
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(loc="lower right", title="Classifier Model", alignment="left")
-    # plt.tight_layout()
     return ax

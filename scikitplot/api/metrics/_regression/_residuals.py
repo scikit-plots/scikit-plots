@@ -1,3 +1,10 @@
+# code that needs to be compatible with both Python 2 and Python 3
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=broad-exception-caught
+
 """
 The :mod:`~scikitplot.metrics` module includes plots for machine learning
 evaluation metrics e.g. confusion matrix, silhouette scores, etc.
@@ -9,20 +16,12 @@ The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# code that needs to be compatible with both Python 2 and Python 3
-
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-
-import numpy as np  # type: ignore[reportMissingImports]
-import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 # Sigmoid and Softmax functions
-from scipy import stats  # type: ignore[reportMissingModuleSource]
+from scipy import stats
 
 # from sklearn.metrics import (
 # )
@@ -37,9 +36,9 @@ from scipy import stats  # type: ignore[reportMissingModuleSource]
 # import tweedie
 from scikitplot.stats import tweedie
 
+from ...._docstrings import _docstring
 from ..._utils.validation import validate_plotting_kwargs_decorator
 from ....utils.utils_plot_mpl import save_plot_decorator
-from ...._docstrings import _docstring
 
 # Q-Q plot with fitted normal distribution
 # sm.qqplot
@@ -193,8 +192,8 @@ def plot_residuals_distribution(
     ## Preprocessing
     ##################################################################
     # Proceed with your preprocess logic here
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
+    y_true = np.asanyarray(y_true)
+    y_pred = np.asanyarray(y_pred)
 
     # Compute residuals (y - y_hat)
     residuals = y_true - y_pred
@@ -424,7 +423,7 @@ def plot_residuals_distribution(
     for axis in ax:
         # axis.grid(True)
         if show_labels:
-            handles, labels = axis.get_legend_handles_labels()
+            handles, _labels = axis.get_legend_handles_labels()
             if handles:
                 axis.legend(
                     loc="lower left", fontsize=text_fontsize, title="", alignment="left"
@@ -436,4 +435,5 @@ def plot_residuals_distribution(
 
     # Improve layout and show plots
     plt.tight_layout(rect=[0, 0, 1, 0.95])
+    fig.tight_layout()
     return fig

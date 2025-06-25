@@ -1,3 +1,10 @@
+# code that needs to be compatible with both Python 2 and Python 3
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=broad-exception-caught
+
 """
 The :mod:`~scikitplot.metrics` module includes plots for machine learning
 evaluation metrics e.g. confusion matrix, silhouette scores, etc.
@@ -9,29 +16,21 @@ The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
+import numpy as np
 
-# code that needs to be compatible with both Python 2 and Python 3
-
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-
-import numpy as np  # type: ignore[reportMissingImports]
-
-# import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+# import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 # Sigmoid and Softmax functions
-from sklearn.metrics import (  # type: ignore[reportMissingModuleSource]
+from sklearn.metrics import (
     silhouette_samples,
     silhouette_score,
 )
-from sklearn.preprocessing import LabelEncoder  # type: ignore[reportMissingModuleSource]
+from sklearn.preprocessing import LabelEncoder
 
+from ...._docstrings import _docstring
 from ..._utils.validation import validate_plotting_kwargs_decorator
 from ....utils.utils_plot_mpl import save_plot_decorator
-from ...._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func
@@ -47,7 +46,7 @@ def plot_silhouette(
     cluster_labels,
     *,
     metric="euclidean",
-    copy=True,
+    # copy=True,
     ## plotting params
     title="Silhouette Analysis",
     title_fontsize="large",
@@ -133,6 +132,7 @@ def plot_silhouette(
        :align: center
        :alt: Silhouette Plot
 
+        >>> from sklearn.datasets import make_blobs
         >>> from sklearn.cluster import KMeans
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> import scikitplot as skplt
@@ -149,8 +149,9 @@ def plot_silhouette(
     ## Preprocessing
     ##################################################################
     # Proceed with your preprocess logic here
-
-    cluster_labels = np.asarray(cluster_labels)
+    # np.asarray(...) Not copy, validate shape, or add axes. It's a lightweight,
+    # shallow wrapper — useful, but limited.
+    cluster_labels = np.asanyarray(cluster_labels)
 
     le = LabelEncoder()
     cluster_labels_encoded = le.fit_transform(cluster_labels)
@@ -177,7 +178,7 @@ def plot_silhouette(
 
         ith_cluster_silhouette_values.sort()
 
-        size_cluster_i = int(ith_cluster_silhouette_values.shape[0])
+        size_cluster_i = ith_cluster_silhouette_values.shape[0]
         y_upper = y_lower + size_cluster_i
 
         color = plt.get_cmap(cmap)(float(i) / n_clusters)
@@ -220,9 +221,10 @@ def plot_silhouette(
     ax.set_ylim([0, len(X) + (n_clusters + 1) * 10 + 10])
 
     # Display legend
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(loc="best", fontsize=text_fontsize)
 
-    # plt.tight_layout()
+    plt.tight_layout()
+    fig.tight_layout()
     return ax

@@ -79,9 +79,16 @@ def notebook_modification_function(notebook_content, notebook_filename):
 
 def reset_others(gallery_conf, fname):
     """Reset plotting functions."""
+    # import matplotlib
+    try:
+        import gc
+    except Exception:
+        pass
+    else:
+        gc.collect()
     # sklearn
     try:
-        pass
+        import sklearn
     except Exception:
         pass
     else:

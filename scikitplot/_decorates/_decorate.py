@@ -744,12 +744,11 @@ class BaseDecorator(metaclass=DecorateMeta):
         """
         # Class.method() or obj.method()
         try:
+            # _kwargs = {**self.kwargs, **_kwargs} if self.use_decorator_param else kwargs
             _args, _kwargs = _resolve_args_and_kwargs(
                 *args,
-                func=func,
-                **kwargs,
+                **{**kwargs, "func": func},
             )
-            # _kwargs = {**self.kwargs, **_kwargs} if self.use_decorator_param else kwargs
             return _args, _kwargs
         except TypeError as e:
             logger.warning(

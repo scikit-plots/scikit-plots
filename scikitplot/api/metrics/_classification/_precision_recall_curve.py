@@ -207,7 +207,7 @@ def plot_precision_recall(
     y_true,
     y_probas,
     *,
-    pos_label=None,  # for binary y_true
+    # pos_label=None,  # for binary y_true
     class_index=None,  # for multi-class y_probas
     class_names=None,
     multi_class=None,
@@ -230,7 +230,7 @@ def plot_precision_recall(
     """
     Generates the Precision-Recall AUC Curves from labels and predicted scores/probabilities.
 
-    The Precision-Recall curve plots the precision against the recall for different threshold values.
+    Precision-Recall curve plots the precision against the recall for different threshold values.
     The area under the curve (AUC) represents the classifier's performance. This function supports
     both binary and multiclass classification tasks.
 
@@ -387,14 +387,20 @@ def plot_precision_recall(
     # Convert input to numpy arrays for efficient processing
     # equalize ndim for y_true and y_probas 2D
     if y_true.ndim == 1:
-        y_true = y_true[:, None]
-        y_true = np.column_stack([1 - y_true, y_true])
+        # Binarize the true labels only
+        # y_true = y_true[:, None]  # np.newaxis, slice(None)
+        # y_true = np.column_stack([1 - y_true, y_true])
+        classes = np.unique(y_true)
+        y_true = label_binarize(y_true, classes=classes)
+
+    # y_probas should be 2D (n_samples, n_classes) or 1D (n_samples,)
     if y_probas.ndim == 1:
-        y_probas = y_probas[:, None]
+        # If binary classification with probabilities for positive class only
+        # Convert to 2D by stacking prob for negative class as 1 - prob
+        # y_probas = y_probas[:, None]
         y_probas = np.column_stack([1 - y_probas, y_probas])
-    if (y_true.ndim == y_probas.ndim) and (y_true.shape == y_probas.shape):
-        pass
-    else:
+
+    if y_true.shape != y_probas.shape:
         raise ValueError(
             f"Shape mismatch `y_true` shape {y_true.shape}, "
             f"`y_probas` shape {y_probas.shape}"
@@ -404,6 +410,11 @@ def plot_precision_recall(
     classes = np.arange(y_true.shape[1])
     to_plot_class_index = (
         classes if to_plot_class_index is None else to_plot_class_index
+    )
+    to_plot_class_index = (
+        [to_plot_class_index]
+        if isinstance(to_plot_class_index, int)
+        else to_plot_class_index
     )
     indices_to_plot = np.isin(element=classes, test_elements=to_plot_class_index)
 
@@ -549,7 +560,7 @@ def plot_precision_recall(
     # Enable grid and display legend
     ax.grid(True)
     if show_labels:
-        handles, labels = ax.get_legend_handles_labels()
+        handles, _labels = ax.get_legend_handles_labels()
         if handles:
             ax.legend(
                 loc="lower left",
@@ -562,5 +573,6 @@ def plot_precision_recall(
     # equalize the scales
     # plt.axis('equal')
     # ax.set_aspect(aspect='equal', adjustable='box')
-    # plt.tight_layout()
+    plt.tight_layout()
+    fig.tight_layout()
     return ax

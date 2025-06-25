@@ -9,12 +9,18 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+
 # %%
-# Force garbage collection
+# Installing dependencies
+# https://sphinx-gallery.github.io/stable/configuration.html#using-multiple-code-blocks-to-create-a-single-figure
+#
+#     .. code-block:: bash
+#
+#       %%bash
+#       # (e.g. %%bash or %%writefile) will be turned into a runnable code block.
+#       # pip install -q tensorflow
+#       # apt-get -qq install curl
 
-import gc
-
-gc.collect()
 
 # %%
 

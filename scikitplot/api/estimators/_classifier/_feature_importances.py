@@ -1,3 +1,11 @@
+# code that needs to be compatible with both Python 2 and Python 3
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
 """
 The :py:mod:`~scikitplot.estimators` module includes plots built specifically for
 scikit-learn estimator (classifier/regressor) instances e.g. Random Forest.
@@ -12,15 +20,10 @@ The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
 
-# code that needs to be compatible with both Python 2 and Python 3
+import numpy as np
 
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-
-import numpy as np  # type: ignore[reportMissingImports]
-
-# import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+# import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 from ..._utils.validation import (
     validate_plotting_kwargs_decorator,
@@ -193,19 +196,19 @@ def plot_feature_importances(
 
     # Determine the appropriate attribute for feature importances or coefficients
     if hasattr(estimator, "feature_importances_"):
-        importances = np.asarray(estimator.feature_importances_)
+        importances = np.asanyarray(estimator.feature_importances_)
     # LDA (scikit-learn < 0.24)
     elif hasattr(estimator, "coef_"):
         if estimator.coef_.ndim > 1:  # Multi-class case
             if class_index is None:
                 importances = np.mean(np.abs(estimator.coef_), axis=0)
             else:
-                importances = np.asarray(estimator.coef_)[class_index]
+                importances = np.asanyarray(estimator.coef_)[class_index]
         else:
-            importances = np.asarray(estimator.coef_).ravel()
+            importances = np.asanyarray(estimator.coef_).ravel()
     # PCA
     elif hasattr(estimator, "explained_variance_ratio_"):
-        importances = np.asarray(estimator.explained_variance_ratio_)
+        importances = np.asanyarray(estimator.explained_variance_ratio_)
     else:
         raise TypeError(
             "The estimator does not have an attribute for feature "
@@ -215,17 +218,17 @@ def plot_feature_importances(
     if feature_names is None:
         # sklearn models
         if hasattr(estimator, "feature_names_in_"):
-            feature_names = np.asarray(estimator.feature_names_in_, dtype=object)
+            feature_names = np.asanyarray(estimator.feature_names_in_, dtype=object)
         # catboost
         elif hasattr(estimator, "feature_names_"):
-            feature_names = np.asarray(estimator.feature_names_, dtype=object)
+            feature_names = np.asanyarray(estimator.feature_names_, dtype=object)
         else:
             # Ensure feature_names are strings
-            feature_names = np.asarray(
+            feature_names = np.asanyarray(
                 np.arange(len(importances), dtype=int), dtype=object
             )
     else:
-        feature_names = np.asarray(feature_names, dtype=object)
+        feature_names = np.asanyarray(feature_names, dtype=object)
 
     # Generate indices
     indices = np.arange(len(importances))
@@ -322,5 +325,7 @@ def plot_feature_importances(
         ax.set_xlim([ax.get_xlim()[0], ax.get_xlim()[1] * 1.2])
 
     plt.legend([f"n_features_out_: {len(importances)}"])
-    # plt.tight_layout()
+
+    plt.tight_layout()
+    fig.tight_layout()
     return ax, feature_names

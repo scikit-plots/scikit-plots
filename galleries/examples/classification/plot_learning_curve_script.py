@@ -10,6 +10,9 @@ used by a scikit-learn classifier.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # %%
+# Import scikit-plots
+# ------------------------
+
 from sklearn.datasets import (
     load_digits as data_10_classes,
 )
@@ -25,13 +28,23 @@ import matplotlib.pyplot as plt
 import scikitplot as sp
 
 # %%
+# Loading the dataset
+# ------------------------
+
 # Load the data
 X, y = data_10_classes(return_X_y=True, as_frame=False)
+
+# %%
+# Model Training
+# --------------
 
 # Create an instance of the LogisticRegression
 model = LogisticRegression(max_iter=int(1e5), random_state=0)
 
 # %%
+# Plot!
+# ------------------------
+
 # Plot!
 ax = sp.estimators.plot_learning_curve(
     model,
