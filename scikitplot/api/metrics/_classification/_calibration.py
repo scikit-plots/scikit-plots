@@ -257,7 +257,15 @@ def plot_calibration(
         estimator_names = np.asanyarray(list(estimator_names), dtype=str)
         # Safely stack values from a list-like
         # y_probas_list = np.stack([np.asanyarray(v) for v in y_probas_list])
-        y_probas_list = np.asanyarray(list(map(np.asanyarray, y_probas_list)))
+        # y_probas_list = np.asanyarray(list(map(np.asanyarray, y_probas_list)))
+        y_probas_list = list(map(np.asanyarray, y_probas_list))
+
+        # Check if the length of estimator_names matches y_probas_list
+        if len(estimator_names) != len(y_probas_list):
+            raise ValueError(
+                f"Length of `estimator_names` ({len(estimator_names)}) does not match "
+                f"length of `y_probas_list` ({len(y_probas_list)})."
+            )
     else:
         raise ValueError(
             f"`estimator_names` type {type(estimator_names)} must be a None "

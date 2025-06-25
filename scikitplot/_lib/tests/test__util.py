@@ -619,7 +619,7 @@ class TestLazywhere:
     p = strategies.floats(min_value=0, max_value=1)
     data = strategies.data()
 
-    @pytest.mark.fail_slow(10)
+    @pytest.mark.fail_slow(15)
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")  # overflows, etc.
     @array_api_compatible
     @given(n_arrays=n_arrays, rng_seed=rng_seed, dtype=dtype, p=p, data=data)

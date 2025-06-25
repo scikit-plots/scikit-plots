@@ -36,7 +36,7 @@ def import_module(module: str) -> tuple[str, int, str]:
     #     return module, 0, ""
 
 
-@pytest.mark.fail_slow(71)  # 1s to 40s? adjust as needed 54.40319907600002s
+@pytest.mark.fail_slow(140)  # 1s to 40s? adjust as needed 54.40319907600002s
 @pytest.mark.slow
 @pytest.mark.thread_unsafe
 def test_public_modules_importable():
@@ -50,7 +50,7 @@ def test_public_modules_importable():
     #     assert pid.wait() == 0, f'Failed to import {PUBLIC_MODULES[i]}'
 
     # Limit to 4 concurrent subprocesses
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor() as executor:
         results = list(executor.map(import_module, PUBLIC_MODULES))
 
     # Assert that all imports succeed

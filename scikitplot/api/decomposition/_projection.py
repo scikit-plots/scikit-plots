@@ -173,7 +173,7 @@ def plot_pca_2d_projection(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Proceed with your plotting logic here
-    fig, ax = kwargs.get("fig"), kwargs.get("ax")
+    _fig, ax = kwargs.get("fig"), kwargs.get("ax")
     colors = plt.get_cmap(cmap)(np.linspace(0, 1, len(classes)))
     for label, color in zip(classes, colors):
         ax.scatter(
@@ -254,7 +254,4 @@ def plot_pca_2d_projection(
             title="Classes",
             alignment="left",
         )
-
-    plt.tight_layout()
-    fig.tight_layout()
     return ax

@@ -413,7 +413,7 @@ doc = [
   "sphinx-copybutton",                      # Copy button for code blocks
   "sphinx-design",                          # Modern design elements
   "sphinx-gallery",                         # Gallery examples
-  "sphinx-prompt",                          # Shell prompts
+  "sphinx-prompt",                          # Shell prompts can be created using a prompt directive:
   "sphinx-remove-toctrees",                 # Customize toctrees
   "sphinx-rtd-theme",                       # ReadTheDocs theme
   "sphinx-tabs",                            # Tabbed content

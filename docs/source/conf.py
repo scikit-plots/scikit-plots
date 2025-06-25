@@ -28,6 +28,8 @@ See: https://www.sphinx-doc.org/en/master/usage/configuration.html
 for more details on configuring the documentation build.
 """
 
+# %%
+#
 ##########################################################################
 ## Imports
 ##########################################################################
@@ -73,6 +75,8 @@ except ImportError:
 # Use datetime.UTC if available (Python 3.11+), else fallback to datetime.timezone.utc
 UTC = getattr(datetime, "UTC", datetime.timezone.utc)  # datetime.datetime.now(tz=UTC)
 
+# %%
+#
 ##########################################################################
 ## Project information
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -94,6 +98,8 @@ author = "scikit-plots developers"
 # copyright = u'2017, Reiichiro S. Nakano'
 copyright = f"2024 - {datetime.datetime.now().year} {author} (BSD-3 Clause License)"
 
+# %%
+#
 ##########################################################################
 ## version
 ##########################################################################
@@ -150,6 +156,8 @@ if release is None:
 # Release mode enables optimizations and other related options.
 # is_release_build = tags.has('release')
 
+# %%
+#
 ##########################################################################
 ## binder_branch = gh_branch
 ##########################################################################
@@ -162,6 +170,10 @@ else:
     major, minor = release[:2]
     gh_branch = f"maintenance/{major}.{minor}.X"
 
+logger.info(f"gh_branch: {gh_branch}")
+
+# %%
+#
 ##########################################################################
 ## General configuration
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -183,11 +195,14 @@ else:
 # - If you encounter issues, consider changing the order to resolve potential conflicts.
 extensions = [
     # Core extensions
+    #
     "sphinx.ext.autodoc",  # Include documentation from docstrings
     "sphinx.ext.autosummary",  # Generate autodoc summaries
     "numpydoc",  # Support for NumPy-style docstrings, Needs to be loaded *after* autodoc.
     "sphinx.ext.napoleon",  # Support for NumPy and Google style docstrings
+    #
     # Built-in extensions (load early)
+    #
     "sphinx.ext.ifconfig",  # Include content based on configuration
     "sphinx.ext.extlinks",  # Markup to shorten external links by extlinks
     "sphinx.ext.intersphinx",  # Link to other projects’ documentation
@@ -202,7 +217,9 @@ extensions = [
     # "sphinx.ext.coverage",          # Collect doc coverage stats
     # "sphinx.ext.githubpages",       # Publish HTML docs in GitHub Pages
     "sphinx.ext.doctest",  # Test snippets in the documentation
+    #
     # Matplotlib extensions (load after built-ins)
+    #
     "matplotlib.sphinxext.figmpl_directive",
     "matplotlib.sphinxext.mathmpl",
     "matplotlib.sphinxext.plot_directive",  # Integrate Matplotlib plots into documentation.
@@ -211,9 +228,13 @@ extensions = [
     # IPython extensions (load after built-ins and matplotlib)
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",
+    #
     # Third-party extensions (load after built-ins and matplotlib/IPython)
+    #
     # https://sphinx-extensions.readthedocs.io/en/latest/
-    "sphinx-prompt",  # Add prompts and outputs to your documentation
+    # https://sphinx-extensions.readthedocs.io/en/latest/sphinx-prompt.html
+    # "sphinx-prompt",  # Add prompts and outputs to your documentation
+    "sphinx_prompt",  # Add prompts and outputs to your documentation
     "sphinxext.opengraph",  # Add OpenGraph metadata for better sharing of documentation.
     "sphinx_copybutton",  # Add a "copy" button to code blocks in the documentation
     "sphinx_design",  # Add design components and elements to documentation.
@@ -224,8 +245,10 @@ extensions = [
     "sphinx_gallery.gen_gallery",  # Generate galleries of example scripts and figures.
     "sphinxcontrib.sass",  # Support for SASS stylesheets in Sphinx documentation.
     "sphinxcontrib.inkscapeconverter",  # Convert SVGs created by Inkscape.
+    #
     # Custom extensions (these should be placed last to avoid conflicts)
     # See _sphinx_ext/
+    #
     # local matplotlib: Custom extensions
     "_sphinx_ext.mpl_ext.redirect_from",
     "_sphinx_ext.mpl_ext.github",
@@ -247,6 +270,8 @@ extensions = [
     "_sphinx_ext.sklearn_ext.add_js_css_files",  # Custom extension
 ]
 
+# %%
+#
 ##########################################################################
 ## Add extension mathjax or imgmath for maths
 ##########################################################################
@@ -262,6 +287,8 @@ else:
     extensions.append("sphinx.ext.mathjax")
     mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
 
+# %%
+#
 ##########################################################################
 ## Add extension jupyterlite_sphinx and jupyter_sphinx
 ## https://sphinx-gallery.github.io/stable/configuration.html#generate-jupyterlite-links-for-gallery-notebooks-experimental
@@ -285,6 +312,8 @@ except ImportError:
     )
     with_jupyterlite = False
 
+# %%
+#
 ##########################################################################
 ## check dependencies
 ##########################################################################
@@ -302,9 +331,8 @@ def _check_dependencies():
     }
     for module_name in module_names:
         try:
-            # import importlib
-            # module = importlib.import_module(module_name)
-            module = __import__(module_name)
+            # module = __import__(module_name)
+            module = importlib.import_module(module_name)
             print(module)
         except Exception as e:
             raise ImportError(
@@ -332,6 +360,8 @@ def _check_dependencies():
 
 _check_dependencies()
 
+# %%
+#
 ##########################################################################
 ## READ_THE_DOCS configuration
 ##########################################################################
@@ -363,6 +393,8 @@ _check_dependencies()
 #         subprocess.run(["npm", "install"], cwd=path_root)
 #         subprocess.run(["npm", "run", "build"], cwd=path_root)
 
+# %%
+#
 ##########################################################################
 ## configuration
 ##########################################################################
@@ -401,6 +433,8 @@ today = _human_utc
 
 copyright += f" {_version_raw} {_iso_utc}"
 
+# %%
+#
 ##########################################################################
 ## Options for highlighting
 ##########################################################################
@@ -408,6 +442,8 @@ copyright += f" {_version_raw} {_iso_utc}"
 # The name of the Pygments (syntax highlighting) style to use.
 # pygments_style = "sphinx"
 
+# %%
+#
 ##########################################################################
 ## Options for HTTP requests
 ##########################################################################

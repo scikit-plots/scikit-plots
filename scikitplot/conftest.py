@@ -16,12 +16,17 @@ import warnings as _warnings
 import hypothesis as _hypothesis
 import pytest as _pytest
 
+# Set the backend of matplotlib to prevent build errors.
+import matplotlib as _mpl
+import matplotlib.pyplot as _plt
 import numpy as _np
 import numpy.testing as _np_testing
 import pandas as _pd
 
 from ._lib import _pep440
 from ._lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE
+
+_mpl.use("Agg")  # Use non-interactive backend before pyplot is imported
 
 ######################################################################
 ## pytest_configure
@@ -166,9 +171,7 @@ if not PARALLEL_RUN_AVAILABLE:
 @_pytest.fixture(autouse=True)
 def close_figs():
     yield
-    import matplotlib.pyplot as plt
-
-    plt.close("all")
+    _plt.close("all")
 
 
 @_pytest.fixture(autouse=True)
