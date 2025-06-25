@@ -1,3 +1,11 @@
+# code that needs to be compatible with both Python 2 and Python 3
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+
 """
 The :mod:`~scikitplot.decomposition` module includes plots built specifically
 for scikit-learn estimators that are used for dimensionality reduction
@@ -12,15 +20,11 @@ The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
 
-# code that needs to be compatible with both Python 2 and Python 3
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-
-import numpy as np  # type: ignore[reportMissingImports]
-import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
-
+from ..._docstrings import _docstring
 from .._utils.validation import (
     validate_plotting_kwargs_decorator,
     # validate_shapes_decorator,
@@ -29,7 +33,6 @@ from .._utils.validation import (
     # validate_y_probas_bounds_decorator,
 )
 from ...utils.utils_plot_mpl import save_plot_decorator
-from ..._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all above func
@@ -160,8 +163,8 @@ def plot_pca_2d_projection(
     # Proceed with your preprocess logic here
     transformed_x = clf.transform(X)
     # Get unique classes from y, preserving order of class occurrence in y (pd.unique)
-    _, class_indexes = np.unique(np.array(y), return_index=True)
-    classes = np.array(y)[np.sort(class_indexes)]
+    _, class_indexes = np.unique(np.asanyarray(y), return_index=True)
+    classes = np.asanyarray(y)[np.sort(class_indexes)]
 
     ##################################################################
     ## Plotting
@@ -241,7 +244,7 @@ def plot_pca_2d_projection(
     # ax.yaxis.set_major_formatter( mpl.ticker.FormatStrFormatter('%.1f') )
 
     # Display legend
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(
             loc="best",
@@ -251,4 +254,7 @@ def plot_pca_2d_projection(
             title="Classes",
             alignment="left",
         )
+
+    plt.tight_layout()
+    fig.tight_layout()
     return ax

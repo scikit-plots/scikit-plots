@@ -17,12 +17,13 @@ enforcing Python 3-like behavior in Python 2.
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
 
-import numpy as np  # type: ignore[reportMissingImports]
-import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
+from ..._docstrings import _docstring
 from .._utils.validation import validate_plotting_kwargs_decorator
 from ...utils.utils_plot_mpl import save_plot_decorator
-from ..._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all above func
@@ -216,7 +217,7 @@ def plot_pca_component_variance(
 
     # Enable grid and display legend
     ax.grid(True)
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(
             loc="lower right",
@@ -224,4 +225,6 @@ def plot_pca_component_variance(
             title="Components",
             alignment="left",
         )
+    plt.tight_layout()
+    fig.tight_layout()
     return ax

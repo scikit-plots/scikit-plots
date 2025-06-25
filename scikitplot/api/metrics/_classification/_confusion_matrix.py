@@ -23,12 +23,12 @@ from __future__ import (
     unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 )
 
+# import json
 import itertools
-import json
 
-import numpy as np  # type: ignore[reportMissingImports]
-import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
+# import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 
 from sklearn.metrics import (
     classification_report,
@@ -182,8 +182,8 @@ def plot_confusion_matrix(
     ## Preprocessing
     ##################################################################
     # Proceed with your preprocess logic here
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
 
     cm = confusion_matrix(y_true, y_pred, labels=labels)
     if labels is None:
@@ -223,7 +223,7 @@ def plot_confusion_matrix(
     #     ax=ax, fig=fig, figsize=figsize, subplot_position=111
     # )
     # Set title, labels, and formatting
-    fig, ax = kwargs.get("fig"), kwargs.get("ax")
+    _fig, ax = kwargs.get("fig"), kwargs.get("ax")
     image = ax.imshow(cm, interpolation="nearest", cmap=plt.get_cmap(cmap))
     if show_colorbar is True:
         plt.colorbar(mappable=image)
@@ -259,7 +259,6 @@ def plot_confusion_matrix(
     ax.set_yticklabels(true_classes, fontsize=text_fontsize)
 
     ax.grid(False)
-    # plt.tight_layout()
     return ax
 
 
@@ -401,14 +400,14 @@ def plot_classifier_eval(
     ## Preprocessing
     ##################################################################
     # Proceed with your preprocess logic here
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
 
     classes = unique_labels(y_true, y_pred)
     if labels is None:
         labels = classes
     else:
-        labels = np.asarray(labels)
+        labels = np.array(labels)
         validate_labels(classes, labels, "labels")
 
     # Generate the classification report

@@ -30,6 +30,10 @@ import matplotlib.pyplot as plt
 # Import scikit-plot
 import scikitplot as sp
 
+# %%
+# Loading the dataset
+# ------------------------
+
 # Load the data
 X, y = data_3_classes(return_X_y=True, as_frame=False)
 X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)

@@ -4,7 +4,7 @@
 -->
 
 <h1 align=center>
-  <a href="https://scikit-plots.github.io/dev/" target="_blank" rel="noopener noreferrer">
+  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     Welcome to Scikit-plots 101
   </a>
 </h1>
@@ -107,7 +107,7 @@
 
 <div>
   <a href="https://scikit-plots.github.io/dev/" target="_blank" rel="noopener noreferrer">
-    <img alt="Scikit-plots" height="230" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/scikit-plots-logo.png">
+    <img alt="Scikit-plots" height="230" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/scikit-plots-logo-medium.png">
   </a>
 </div>
 
@@ -125,17 +125,21 @@
 </h4>
 </div>
 
+<hr>
+
 <h1> User Installation: </h1>
 
 <h2> PIP Installation by `pypi` or `github` </h2>
 
 <p> The easiest way to set up scikit-plots is to install it using pip with the following command: </p>
 
-🧠 Gotchas:
+<h4> 🧠 Gotchas: </h4>
 
-- ⚠️ (Recommended): Use a Virtual Environmentt (like ``venv``) to Avoid Conflicts (🚫 Don't use conda ``base`` — it's prone to conflicts.)
-
-- ✅ This avoids dependency issues and keeps your system stable.
+<ul>
+  <li>⚠️ (Recommended): Use a Virtual Environmentt (like <code>venv</code>) to Avoid Conflicts.</li>
+  <li>🚫 Don't use conda <code>base</code> — it's prone to conflicts.</li>
+  <li>✅ This avoids dependency issues and keeps your system stable.</li>
+</ul>
 
 ```sh
 # (conda or mamba) Create New Env and install ``scikit-plots``
@@ -148,7 +152,7 @@ mamba create -n py311 python=3.11 ipykernel -y
 conda activate py311
 ```
 
----
+<hr>
 
 <h3> - by `pypi`: </h3>
 
@@ -157,7 +161,7 @@ conda activate py311
 pip install scikit-plots
 ```
 
----
+<hr>
 
 <h3> - by `pypi.anaconda.org`: </h3>
 
@@ -174,7 +178,7 @@ pip install -r default.txt
 pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
 ```
 
----
+<hr>
 
 <h3> - by `GITHUB` Source to use `@<branches>` or `@<tags>` or `Source code archive URLs`, If any: </h3>
 
@@ -216,7 +220,7 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 
 **Note:** You can use either .zip or .tar.gz in the URLs above to request a zipball or tarball respectively.
 
----
+<hr>
 
 <h3> Cloned Source Installation (REQUIRED OS/LIB BUILD PACKAGES) </h3>
 
@@ -264,6 +268,8 @@ python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,do
 ## [gpu] refer Cupy tensorflow lib require NVIDIA CUDA support
 pip install "scikit-plots[cpu]"
 ```
+
+<hr>
 
 <h2 align=center>Sample Plots</h2>
 
@@ -363,6 +369,8 @@ pip install "scikit-plots[cpu]"
   </tr>
 </table>
 </div>
+
+<hr>
 
 
 Scikit-plots is the result of an unartistic data scientist's dreadful realization that *visualization is one of the most crucial components in the data science process, not just a mere afterthought*.

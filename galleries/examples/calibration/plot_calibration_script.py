@@ -13,6 +13,9 @@ used by a scikit-learn classifier.
 # %run ./examples/calibration/plot_calibration_script.py
 
 # %%
+# Import scikit-plots
+# ------------------------
+
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
@@ -30,6 +33,9 @@ import matplotlib.pyplot as plt
 import scikitplot as sp
 
 # %%
+# Loading the dataset
+# ------------------------
+
 # Load the data
 X, y = make_classification(
     n_samples=100000,
@@ -44,6 +50,9 @@ X, y = make_classification(
 X_train, y_train, X_val, y_val = X[:1000], y[:1000], X[1000:], y[1000:]
 
 # %%
+# Model Training
+# --------------
+
 # Create an instance of the LogisticRegression
 lr_probas = (
     LogisticRegression(max_iter=int(1e5), random_state=0)
@@ -77,6 +86,9 @@ probas_dict = {
 probas_dict
 
 # %%
+# Plot!
+# ------------------------
+
 # Plot!
 fig, ax = plt.subplots(figsize=(12, 6))
 ax = sp.metrics.plot_calibration(

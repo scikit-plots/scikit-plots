@@ -41,16 +41,121 @@ if TYPE_CHECKING:
 # _logger = logging.getLogger(__name__)
 
 
+######################################################################
+## safe tight_layout
+######################################################################
+
+
 @_contextlib.contextmanager
-def safe_tight_layout(fig=None):
-    """Apply tight_layout safely after yielding, logging a warning if it fails."""
+def safe_tight_layout(fig=None, *, warn=True):
+    """
+    Apply `tight_layout()` safely to a Matplotlib figure after the context block.
+
+    This context manager ensures that `tight_layout()` is called after rendering
+    code inside the `with` block. If `tight_layout()` raises an exception, a warning
+    is logged (unless `warn` is False).
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure, optional
+        The figure to apply `tight_layout()` to. If None, uses the current figure.
+    warn : bool, default=True
+        Whether to log a warning if `tight_layout()` fails.
+
+    Yields
+    ------
+    matplotlib.figure.Figure
+        The figure object being managed.
+    None
+        Allows code to run inside the context block.
+
+    Notes
+    -----
+    A function-based version using @contextmanager
+
+    This is useful when layout issues might occur due to dynamic content (e.g., variable
+    label sizes or interactive plots). It avoids hard crashes caused by layout failures
+    and logs helpful diagnostics.
+
+    Examples
+    --------
+    >>> import matplotlib.pyplot as plt
+    >>> from your_module import safe_tight_layout
+    >>> fig, ax = plt.subplots()
+    >>> with safe_tight_layout(fig) as f:
+    ...     # print(f)  # prints None, "anything"
+    ...     ax.plot([1, 2, 3], [4, 5, 6])
+    ...     ax.set_title("Safe Layout")
+    """
+    fig = fig or _plt.gcf()
     try:
-        yield
+        # yield  # None
+        # yield "anything"
+        yield fig
     finally:
         try:
-            (fig or _plt).tight_layout()
+            fig.tight_layout()
         except Exception as e:
-            _logger.warning("tight_layout() failed: %s", e)
+            if warn:
+                _logger.warning("tight_layout() failed: %s", e)
+
+
+class SafeTightLayout:
+    """
+    Context manager to safely apply `tight_layout()` to a Matplotlib figure.
+
+    Applies `tight_layout()` when exiting the context block. If the layout
+    adjustment fails, a warning is logged unless `warn=False`.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure, optional
+        The figure on which to apply `tight_layout()`. If None, the current figure is used.
+    warn : bool, default=True
+        Whether to log a warning if `tight_layout()` fails.
+
+    Yields
+    ------
+    matplotlib.figure.Figure
+        The figure object being managed.
+    None
+        Allows code to run inside the context block.
+
+    Notes
+    -----
+    A class-based version using SafeTightLayout
+
+    This is useful when layout issues might occur due to dynamic content (e.g., variable
+    label sizes or interactive plots). It avoids hard crashes caused by layout failures
+    and logs helpful diagnostics.
+
+    Examples
+    --------
+    >>> import matplotlib.pyplot as plt
+    >>> from your_module import SafeTightLayout
+    >>> fig, ax = plt.subplots()
+    >>> with SafeTightLayout(fig) as fig:
+    ...     ax.plot([0, 1], [1, 0])
+    ...     ax.set_xlabel("X-axis")
+    ...     ax.set_ylabel("Y-axis")
+    """
+
+    def __init__(self, fig=None, *, warn=True):
+        self.fig = fig or _plt.gcf()
+        self.warn = warn
+
+    def __enter__(self):
+        """__enter__."""
+        # return self
+        return self.fig
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """__exit__."""
+        try:
+            self.fig.tight_layout()
+        except Exception as e:
+            if self.warn:
+                _logger.warning("tight_layout() failed: %s", e)
 
 
 ######################################################################
@@ -182,6 +287,7 @@ def save_plot_decorator(
             with safe_tight_layout():
                 # Call the actual plotting function
                 result = inner_func(*args, **kwargs)
+            # result = inner_func(*args, **kwargs)
             # _plt.tight_layout()
             # _plt.draw()
             # _plt.pause(0.1)

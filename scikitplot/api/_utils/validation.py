@@ -1,3 +1,8 @@
+# code that needs to be compatible with both Python 2 and Python 3
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Utility Functions for Validation
 
@@ -19,28 +24,33 @@ This module is part of the scikit-plots library and is intended for internal use
 to facilitate the validation and processing of inputs.
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# code that needs to be compatible with both Python 2 and Python 3
-
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-# pylint: disable=logging-fstring-interpolation
+# +------------------+---------------------+--------------------------------------------+---------------------------------------------+
+# | Function         | Copies Data?        | Preserves Subclasses (e.g., masked array)? | Primary Use Case                            |
+# +==================+=====================+============================================+=============================================+
+# | ``np.array``     | ✅ Yes             | ❌ No                                      | Always returns ``ndarray``; optionally      |
+# |                  | (by default)        |                                            | copies input                                |
+# +------------------+---------------------+--------------------------------------------+---------------------------------------------+
+# | ``np.asarray``   | ❌ No (if already  | ❌ No                                      | Avoids unnecessary copy; returns base       |
+# |                  | ``ndarray``)        |                                            | ``ndarray`` only                            |
+# +------------------+---------------------+--------------------------------------------+---------------------------------------------+
+# | ``np.asanyarray``| ❌ No (if already  | ✅ Yes                                     | Like ``asarray``, but preserves subclasses  |
+# |                  | ``ndarray``)        |                                            | like ``np.matrix`` or ``np.ma.masked_array``|
+# +------------------+---------------------+--------------------------------------------+---------------------------------------------+
 
 # import inspect
 import functools
 import importlib
-import logging
 from collections.abc import Sequence
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
-import matplotlib as mpl  # type: ignore[reportMissingModuleSource]
-import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
-import numpy as np  # type: ignore[reportMissingModuleSource]
-from sklearn.preprocessing import label_binarize  # type: ignore[reportMissingModuleSource]
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.preprocessing import label_binarize
 
+from ... import logger
+from ...exceptions import ScikitplotException
 from ...utils.utils_params import (
     _get_args_kwargs,
     _get_param_w_index,
@@ -50,33 +60,32 @@ from ..._docstrings import _docstring
 
 if TYPE_CHECKING:
     from typing import (  # noqa: F401
-        Any,
         Callable,
-        List,
         Optional,
         Type,
         Union,
     )
 
-    # F = TypeVar("F", bound=Callable[..., Any])
+    # F = TypeVar("F", bound=Callable[..., any])
 
+# import logging
 # Configure logging as needed
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
 
 __all__ = [
+    "validate_inputs",
     "validate_plotting_decorator",
     "validate_plotting_kwargs",
     "validate_plotting_kwargs_decorator",
     "validate_shapes",
     "validate_shapes_decorator",
-    "validate_y_true",
-    "validate_y_true_decorator",
     "validate_y_probas",
-    "validate_y_probas_decorator",
     "validate_y_probas_bounds",
     "validate_y_probas_bounds_decorator",
-    "validate_inputs",
+    "validate_y_probas_decorator",
+    "validate_y_true",
+    "validate_y_true_decorator",
 ]
 
 ######################################################################
@@ -134,7 +143,8 @@ def validate_plotting_decorator(func):
     def wrapper(*args, **kwargs):
         # Check if matplotlib is installed
         if importlib.util.find_spec("matplotlib.pyplot") is None:
-            raise ImportError("Matplotlib is required for plotting.")
+            logger.error("Matplotlib is required for plotting.")
+            raise ScikitplotException("Matplotlib is required for plotting.")
         # Continue with the original function
         return func(*args, **kwargs)
 
@@ -295,7 +305,10 @@ def validate_plotting_kwargs(
 def validate_plotting_kwargs_decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        (_args, _kwargs) = _resolve_args_and_kwargs(*args, func=func, **kwargs)
+        _args, _kwargs = _resolve_args_and_kwargs(
+            *args,
+            **{**kwargs, "func": func},
+        )
         # Call the validation function to ensure proper fig and ax are set
         fig, ax = validate_plotting_kwargs(
             **_kwargs,
@@ -332,8 +345,10 @@ def validate_shapes(y_true, y_probas):
     ValueError
         If shapes of y_true and y_probas do not match or are not valid.
     """
-    y_true = np.asarray(y_true)
-    y_probas = np.asarray(y_probas)
+    # np.asarray(...) Not copy, validate shape, or add axes. It's a lightweight,
+    # shallow wrapper — useful, but limited.
+    y_true = np.asanyarray(y_true)
+    y_probas = np.asanyarray(y_probas)
 
     # Check for binary classification
     if y_true.ndim == 1:
@@ -372,11 +387,11 @@ def validate_shapes(y_true, y_probas):
                 f"`y_probas` number of classes ({y_probas.shape[1]})"
             )
 
-        # if np.unique(y_true).size != y_probas.shape[1]:
-        #     raise ValueError(
-        #         f'Number of classes in `y_true` ({np.unique(y_true).size}) does not match '
-        #         f'`y_probas` number of classes ({y_probas.shape[1]})'
-        #     )
+        if np.unique(y_true).size != y_probas.shape[1]:
+            raise ValueError(
+                f"Number of classes in `y_true` ({np.unique(y_true).size}) does not match "
+                f"`y_probas` number of classes ({y_probas.shape[1]})"
+            )
 
     else:
         raise ValueError("Invalid shape for `y_true`.")
@@ -406,16 +421,20 @@ def validate_shapes_decorator(func):
         # Find and validate y_true and y_probas
         # Ensure you explicitly specify params before unpacking
         _, _, y_true = _get_param_w_index(
-            func=func,
-            params=["y_true", "y"],  # No need to pass 'func'
             *args,  # Unpack args here
-            **kwargs,  # Unpack kwargs
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["y_true", "y"],
+            },
         )
         _, _, y_probas = _get_param_w_index(
-            func=func,
-            params=["y_probas"],  # Specify params after func
             *args,  # Unpack args here
-            **kwargs,  # Unpack kwargs
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["y_probas"],
+            },
         )
 
         # Validate only if both parameters are found
@@ -436,7 +455,7 @@ def validate_shapes_decorator(func):
 ######################################################################
 
 
-def validate_y_true(y_true, pos_label=None, class_index=None):
+def validate_y_true(y_true, pos_label=None, class_index=None) -> np.ndarray:
     """
     Validate and process y_true.
 
@@ -447,21 +466,20 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
     y_true : array-like
         True labels. Can be string, numeric, or mixed types.
     pos_label : scalar, optional
-        The positive label for binary classification. If None, it defaults to
-        `classes[1]`.
+        The positive label for binary classification. Defaults to second unique class.
     class_index : int, optional
         Index of the class for which to extract as positive label in multi-class case.
-        If None, returns all class labels in the 2D case. Ignored if y_probas is 1D.
+        If None, returns all class labels in 2D form.
 
     Returns
     -------
     numpy.ndarray
-        Processed y_true, either as boolean or binarized for multi-class.
+        Processed y_true: boolean array for binary or one-hot encoded for multiclass.
 
     Raises
     ------
     ValueError
-        If y_true does not meet the expected criteria.
+        If y_true is invalid or has fewer than two classes.
 
     Examples
     --------
@@ -477,17 +495,16 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
             "`y_true` must be of type bool, str, numeric, or a mix (object) type."
         )
 
-    y_true = np.asarray(y_true)
+    # np.asarray(...) Not copy, validate shape, or add axes. It's a lightweight,
+    # shallow wrapper — useful, but limited.
+    y_true = np.asanyarray(y_true)
 
     # Ensure y_true can handle string, numeric, or mixed types
     if not (
-        isinstance(y_true, (list, np.ndarray))
-        and (
-            np.issubdtype(y_true.dtype, np.object_)
-            or np.issubdtype(y_true.dtype, np.number)
-            or np.issubdtype(y_true.dtype, np.str_)
-            or np.issubdtype(y_true.dtype, np.bool_)
-        )
+        np.issubdtype(y_true.dtype, np.object_)
+        or np.issubdtype(y_true.dtype, np.number)
+        or np.issubdtype(y_true.dtype, np.str_)
+        or np.issubdtype(y_true.dtype, np.bool_)
     ):
         raise ValueError(
             "`y_true` must be of type bool, str, numeric, or a mix (object) type."
@@ -495,6 +512,8 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
 
     # Identify unique classes in y_true
     classes = np.unique(y_true)
+    if len(classes) < 2:
+        raise ValueError("`y_true` must contain more than one distinct class.")
 
     # Handle binary classification, return 2D selected classes
     if len(classes) == 2:
@@ -509,26 +528,24 @@ def validate_y_true(y_true, pos_label=None, class_index=None):
         y_true = y_true == pos_label
         return y_true
 
+    # case for multi-class
+    y_true_bin = label_binarize(y_true, classes=classes)
+    if class_index is None:
+        # Return all columns if class_index is None
+        # may use None instead of np.newaxis. These are the same objects:
+        return y_true_bin
+
     # Handle multi-class classification, return 2D
-    if len(classes) > 2:
-        y_true = label_binarize(y_true, classes=classes)
-        if class_index is None:
-            # Return all columns if class_index is None
-            # may use None instead of np.newaxis. These are the same objects:
-            return y_true[:, slice(None)]
-
-        if (
-            # Make sure the index is within bounds
-            class_index < 0
-            or class_index >= y_true.shape[1]
-        ):
-            raise ValueError(
-                f"class_index {class_index} out of bounds for `y_true`. "
-                f"It must be between 0 and {y_true.shape[1] - 1}."
-            )
-        return y_true[:, class_index]
-
-    raise ValueError("`y_true` must contain more than one distinct class.")
+    # if (
+    #     # Make sure the index is within bounds
+    #     class_index < 0
+    #     or class_index >= y_true_bin.shape[1]
+    # ):
+    #     raise ValueError(
+    #         f"class_index {class_index} out of bounds for `y_true`. "
+    #         f"It must be between 0 and {y_true_bin.shape[1] - 1}."
+    #     )
+    return y_true_bin[:, class_index]
 
 
 def validate_y_true_decorator(func):
@@ -555,18 +572,30 @@ def validate_y_true_decorator(func):
     def wrapper(*args, **kwargs):
         # Find and validate y_true
         y_true_name, y_true_index, y_true = _get_param_w_index(
-            func=func,  # Keep this first to avoid ambiguity
-            params=["y_true", "y"],  # Specify params after func
             *args,  # Unpack args here
-            **kwargs,  # Unpack kwargs
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["y_true", "y"],
+            },
         )
 
         # Extract pos_label and class_index from kwargs (if provided)
         _, _, pos_label = _get_param_w_index(
-            func=func, params=["pos_label"], *args, **kwargs
+            *args,  # Unpack args here
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["pos_label"],
+            },
         )
         _, _, class_index = _get_param_w_index(
-            func=func, params=["class_index"], *args, **kwargs
+            *args,  # Unpack args here
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["class_index"],
+            },
         )
 
         # Call the validate_y_true function to validate y_true
@@ -575,11 +604,13 @@ def validate_y_true_decorator(func):
         # Ensure validated_y_true is passed correctly
         if validated_y_true is not None:
             new_args, new_kwargs = _get_args_kwargs(
-                param_key=y_true_name,
-                param_index=y_true_index,
-                param_value=validated_y_true,
-                *args,
-                **kwargs,
+                *args,  # Unpack args here
+                **{
+                    **kwargs,
+                    "param_key": y_true_name,
+                    "param_index": y_true_index,
+                    "param_value": validated_y_true,
+                },
             )
         else:
             new_args, new_kwargs = args, kwargs
@@ -595,7 +626,10 @@ def validate_y_true_decorator(func):
 ######################################################################
 
 
-def validate_y_probas(y_probas, class_index=None):
+def validate_y_probas(
+    y_probas: np.ndarray | list,
+    class_index: int | None = None,
+) -> np.ndarray:
     """
     Validate the `y_probas` parameter.
 
@@ -637,7 +671,9 @@ def validate_y_probas(y_probas, class_index=None):
     if not hasattr(y_probas, "__iter__"):
         raise ValueError("`y_probas` must be of type float type.")
 
-    y_probas = np.asarray(y_probas)
+    # np.asarray(...) Not copy, validate shape, or add axes. It's a lightweight,
+    # shallow wrapper — useful, but limited.
+    y_probas = np.asanyarray(y_probas)
 
     if not np.issubdtype(y_probas.dtype, np.number):
         raise ValueError("`y_probas` must be an array of numerical values.")
@@ -648,26 +684,28 @@ def validate_y_probas(y_probas, class_index=None):
 
     # In 1D case, ignore class_index and return y_probas as is
     if y_probas.ndim == 1:
+        # 1D probabilities, typically binary classifier probability for positive class
         return y_probas
 
     # Handle multi-class probabilities
-    if y_probas.ndim == 2:
-        if class_index is None:
-            # Return all columns if class_index is None
-            # may use None instead of np.newaxis. These are the same objects:
-            return y_probas[:, slice(None)]
+    if class_index is None:
+        # Return all columns if class_index is None
+        # may use None instead of np.newaxis. These are the same objects:
+        # return y_probas[:, slice(None)]
+        return y_probas[:, :]
 
-        if (
-            # Make sure the index is within bounds
-            class_index < 0
-            or class_index >= y_probas.shape[1]
-        ):
-            raise ValueError(
-                f"class_index {class_index} out of bounds for `y_probas`. "
-                f"It must be between 0 and {y_probas.shape[1] - 1}."
-            )
+    # 2D array case for multi-class probabilities
+    if (
+        # Make sure the index is within bounds
+        class_index < 0
+        or class_index >= y_probas.shape[1]
+    ):
+        raise ValueError(
+            f"class_index {class_index} out of bounds for `y_probas`. "
+            f"It must be between 0 and {y_probas.shape[1] - 1}."
+        )
 
-        return y_probas[:, class_index]  # Return specified class probabilities
+    return y_probas[:, class_index]  # Return specified class probabilities
 
 
 def validate_y_probas_decorator(func):
@@ -694,15 +732,22 @@ def validate_y_probas_decorator(func):
     def wrapper(*args, **kwargs):
         # Find and validate y_probas
         y_probas_name, y_probas_index, y_probas = _get_param_w_index(
-            func=func,  # Keep this first to avoid ambiguity
-            params=["y_probas"],  # Specify params after func
             *args,  # Unpack args here
-            **kwargs,  # Unpack kwargs
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["y_probas"],
+            },
         )
 
         # Extract class_index from kwargs (default to 0 if not provided)
         _, _, class_index = _get_param_w_index(
-            func=func, params=["class_index"], *args, **kwargs
+            *args,  # Unpack args here
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["class_index"],
+            },
         )
 
         # Call the validate_y_probas function to validate y_probas
@@ -711,11 +756,13 @@ def validate_y_probas_decorator(func):
         # Ensure validated_y_true is passed correctly
         if validated_y_probas is not None:
             new_args, new_kwargs = _get_args_kwargs(
-                param_key=y_probas_name,
-                param_index=y_probas_index,
-                param_value=validated_y_probas,
-                *args,
-                **kwargs,
+                *args,  # Unpack args here
+                **{
+                    **kwargs,
+                    "param_key": y_probas_name,
+                    "param_index": y_probas_index,
+                    "param_value": validated_y_probas,
+                },
             )
         else:
             new_args, new_kwargs = args, kwargs
@@ -800,7 +847,9 @@ def validate_y_probas_bounds(y_probas, method="minmax", axis=0):
             )
         return y_probas
 
-    y_probas = np.asarray(y_probas)
+    # np.asarray(...) Not copy, validate shape, or add axes. It's a lightweight,
+    # shallow wrapper — useful, but limited.
+    y_probas = np.asanyarray(y_probas)
 
     # Check if input is numerical
     if not np.issubdtype(y_probas.dtype, np.number):
@@ -858,15 +907,31 @@ def validate_y_probas_bounds_decorator(func):
     def wrapper(*args, **kwargs):
         # Find and validate y_probas
         y_probas_name, y_probas_index, y_probas = _get_param_w_index(
-            func=func,  # Keep this first to avoid ambiguity
-            params=["y_probas"],  # Specify params after func
             *args,  # Unpack args here
-            **kwargs,  # Unpack kwargs
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["y_probas"],
+            },
         )
 
         # Retrieve method and axis from kwargs
-        _, _, method = _get_param_w_index(func=func, params=["method"], *args, **kwargs)
-        _, _, axis = _get_param_w_index(func=func, params=["axis"], *args, **kwargs)
+        _, _, method = _get_param_w_index(
+            *args,  # Unpack args here
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["method"],
+            },
+        )
+        _, _, axis = _get_param_w_index(
+            *args,  # Unpack args here
+            **{
+                **kwargs,
+                "func": func,
+                "params": ["axis"],
+            },
+        )
 
         # Validate y_probas and apply bounds scaling
         validated_y_probas = validate_y_probas_bounds(
@@ -874,27 +939,37 @@ def validate_y_probas_bounds_decorator(func):
         )
 
         # Create new args and kwargs with validated y_probas
-        new_args, new_kwargs = _get_args_kwargs(
-            param_key=y_probas_name,
-            param_index=y_probas_index,
-            param_value=validated_y_probas,
-            *args,
-            **kwargs,
-        )
+        if validated_y_probas is not None:
+            new_args, new_kwargs = _get_args_kwargs(
+                *args,  # Unpack args here
+                **{
+                    **kwargs,
+                    "param_key": y_probas_name,
+                    "param_index": y_probas_index,
+                    "param_value": validated_y_probas,
+                },
+            )
+        else:
+            new_args, new_kwargs = args, kwargs
 
-        # Call the original function if validation passes
+        # Call the original function with updated args and kwargs
         return func(*new_args, **new_kwargs)
 
     return wrapper
 
 
 ######################################################################
-## validate_inputs
+## validate inputs
 ######################################################################
 
 
 def validate_inputs(
-    y_true, y_probas, pos_label=None, class_index=None, method="minmax", axis=0
+    y_true,
+    y_probas,
+    pos_label=None,
+    class_index=None,
+    method="minmax",
+    axis=0,
 ):
     """
     Validate the inputs for y_true and y_probas, and apply bounds validation if necessary.
@@ -926,17 +1001,25 @@ def validate_inputs(
     ValueError
         If any of the validation checks fail.
     """
+    y_true = np.asanyarray(y_true)
+    y_probas = np.asanyarray(y_probas)
+
     # Validate shapes
     validate_shapes(y_true, y_probas)
+    logger.debug(f"y_true shape: {y_true.shape}")
+    logger.debug(f"y_probas shape: {y_probas.shape}")
 
     # Validate y_true
     y_true = validate_y_true(y_true, pos_label, class_index)
+    logger.debug(f"y_true shape: {y_true.shape}")
 
     # Validate y_probas
     y_probas = validate_y_probas(y_probas, class_index)
+    logger.debug(f"y_probas shape: {y_probas.shape}")
 
     # Validate bounds on y_probas
     y_probas = validate_y_probas_bounds(y_probas, method=method, axis=axis)
+    logger.debug(f"y_probas shape: {y_probas.shape}")
 
     return y_true, y_probas
 

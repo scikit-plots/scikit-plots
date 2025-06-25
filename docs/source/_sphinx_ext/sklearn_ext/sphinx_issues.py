@@ -1,5 +1,5 @@
 """
-A Sphinx extension for linking to your project's issue tracker.
+A Sphinx extension for linking to your project's issues tracker.
 
 Copyright 2014 Steven Loria
 
@@ -94,18 +94,18 @@ class IssueRole:
         return f"#{issue_no}"
 
     def make_node(self, name, issue_no, config, options=None):
-        name_map = {"pr": "pull", "issue": "issues", "commit": "commit"}
+        name_map = {"pr": "pull", "issues": "issues", "commit": "commit"}
         options = options or {}
         repo_match = self.EXTERNAL_REPO_REGEX.match(issue_no)
         if repo_match:  # External repo
-            username, repo, symbol, issue = repo_match.groups()
+            username, repo, symbol, issues = repo_match.groups()
             if name not in name_map:
                 raise ValueError(f"External repo linking not supported for :{name}:")
             path = name_map.get(name)
             ref = "https://github.com/{issues_github_path}/{path}/{n}".format(
-                issues_github_path=f"{username}/{repo}", path=path, n=issue
+                issues_github_path=f"{username}/{repo}", path=path, n=issues
             )
-            formatted_issue = self.format_text(issue).lstrip("#")
+            formatted_issue = self.format_text(issues).lstrip("#")
             text = "{username}/{repo}{symbol}{formatted_issue}".format(**locals())
             link = nodes.reference(text=text, refuri=ref, **options)
             return link
@@ -145,16 +145,16 @@ class IssueRole:
         return ret, []
 
 
-"""Sphinx role for linking to an issue. Must have
+"""Sphinx role for linking to an issues. Must have
 `issues_uri` or `issues_github_path` configured in ``conf.py``.
 Examples: ::
-    :issue:`123`
-    :issue:`42,45`
-    :issue:`sloria/konch#123`
+    :issues:`123`
+    :issues:`42,45`
+    :issues:`sloria/konch#123`
 """
 issue_role = IssueRole(
     uri_config_option="issues_uri",
-    format_kwarg="issue",
+    format_kwarg="issues",
     github_uri_template="https://github.com/{issues_github_path}/issues/{n}",
 )
 
@@ -192,10 +192,10 @@ commit_role = IssueRole(
 
 def setup(app):
     # Format template for issues URI
-    # e.g. 'https://github.com/sloria/marshmallow/issues/{issue}
+    # e.g. 'https://github.com/sloria/marshmallow/issues/{issues}
     app.add_config_value("issues_uri", default=None, rebuild="html")
     # Format template for PR URI
-    # e.g. 'https://github.com/sloria/marshmallow/pull/{issue}
+    # e.g. 'https://github.com/sloria/marshmallow/pull/{issues}
     app.add_config_value("issues_pr_uri", default=None, rebuild="html")
     # Format template for commit URI
     # e.g. 'https://github.com/sloria/marshmallow/commits/{commit}
@@ -205,11 +205,11 @@ def setup(app):
     # Format template for user profile URI
     # e.g. 'https://github.com/{user}'
     app.add_config_value("issues_user_uri", default=None, rebuild="html")
-    app.add_role("issue", issue_role)
+    app.add_role("issues", issue_role)
     app.add_role("pr", pr_role)
     app.add_role("user", user_role)
     app.add_role("commit", commit_role)
-    app.add_role("cve", cve_role)
+    app.add_role("cves", cve_role)
     return {
         "version": __version__,
         "parallel_read_safe": True,

@@ -1,3 +1,10 @@
+# code that needs to be compatible with both Python 2 and Python 3
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=broad-exception-caught
+
 """
 The :py:mod:`~scikitplot.estimators` module includes plots built specifically for
 scikit-learn estimator (classifier/regressor) instances e.g. Random Forest.
@@ -12,13 +19,9 @@ The imports below ensure consistent behavior across different Python versions by
 enforcing Python 3-like behavior in Python 2.
 """
 
-# code that needs to be compatible with both Python 2 and Python 3
-
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-
-import numpy as np  # type: ignore[reportMissingImports]
-from sklearn.model_selection import learning_curve  # type: ignore[reportMissingModuleSource]
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import learning_curve
 
 from ..._utils.validation import (
     validate_plotting_kwargs_decorator,
@@ -260,7 +263,10 @@ def plot_learning_curve(
     ax.tick_params(labelsize=text_fontsize)
     ax.grid()
 
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _labels = ax.get_legend_handles_labels()
     if handles:
         ax.legend(loc="best", fontsize=text_fontsize)
+
+    plt.tight_layout()
+    fig.tight_layout()
     return ax
