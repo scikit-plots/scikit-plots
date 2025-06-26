@@ -10,14 +10,6 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # %%
-# Force garbage collection
-
-import gc
-
-gc.collect()
-
-# %%
-
 # pip install protobuf==5.29.4
 import tensorflow as tf
 
@@ -27,7 +19,6 @@ tf.keras.backend.clear_session()
 from scikitplot import visualkeras
 
 # %%
-
 # create VGG16
 image_size = 224
 model = tf.keras.models.Sequential()
@@ -85,7 +76,6 @@ model.add(tf.keras.layers.Dense(1000, activation="softmax"))
 
 # %%
 # Now visualize the model!
-
 from collections import defaultdict
 
 color_map = defaultdict(dict)
@@ -97,13 +87,11 @@ color_map[tf.keras.layers.Dense]["fill"] = "green"
 color_map[tf.keras.layers.Flatten]["fill"] = "teal"
 
 # %%
-
 from PIL import ImageFont
 
 ImageFont.load_default()
 
 # %%
-
 img_vgg16 = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
@@ -113,7 +101,6 @@ img_vgg16 = visualkeras.layered_view(
 )
 
 # %%
-
 img_vgg16_legend = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
@@ -130,7 +117,6 @@ img_vgg16_legend = visualkeras.layered_view(
 img_vgg16_legend
 
 # %%
-
 img_vgg16_spacing_layers = visualkeras.layered_view(
     model,
     type_ignore=[],
@@ -142,7 +128,6 @@ img_vgg16_spacing_layers = visualkeras.layered_view(
 img_vgg16_spacing_layers
 
 # %%
-
 img_vgg16_type_ignore = visualkeras.layered_view(
     model,
     type_ignore=[
@@ -158,7 +143,6 @@ img_vgg16_type_ignore = visualkeras.layered_view(
 img_vgg16_type_ignore
 
 # %%
-
 img_vgg16_color_map = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
@@ -170,7 +154,6 @@ img_vgg16_color_map = visualkeras.layered_view(
 img_vgg16_color_map
 
 # %%
-
 img_vgg16_flat = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],
@@ -182,7 +165,6 @@ img_vgg16_flat = visualkeras.layered_view(
 img_vgg16_flat
 
 # %%
-
 img_vgg16_scaling = visualkeras.layered_view(
     model,
     type_ignore=[visualkeras.SpacingDummyLayer],

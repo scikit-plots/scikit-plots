@@ -1,36 +1,48 @@
 """
-Reset utility functions to restore global states for popular ML/plotting libraries.
+Utility functions to reset global states for common ML and plotting libraries.
 
-This is useful when building galleries (e.g., with Sphinx-Gallery), testing pipelines, or ensuring
-state consistency across example scripts, notebooks, or web apps (e.g., Streamlit, Dash).
+This module is useful when building galleries (e.g., with Sphinx-Gallery),
+running tests, or maintaining consistent environments across scripts,
+notebooks, and web apps (e.g., Streamlit, Dash).
 
-Includes support for:
+Currently supported libraries:
 - scikit-learn
 - matplotlib
 - seaborn
 - numpy
 
-Usage (Sphinx-Gallery):
-------------------------
-sphinx_gallery_conf = {
-    # ...
-    'reset_modules': 'scikitplot._reset.reset',
-    'reset_modules': 'scikitplot.reset',
-}
+Examples
+--------
+**Usage in Sphinx-Gallery configuration**:
 
-Optional: Use atexit or test fixtures:
---------------------------------------
-import atexit
-atexit.register(reset)
+.. code-block:: python
 
-# In test/conftest.py
-import pytest
-from scikitplot._reset import reset
+   sphinx_gallery_conf = {
+       # ...
+       "reset_modules": "scikitplot.reset",
+   }
 
-@pytest.fixture(autouse=True)
-def clean_modules():
-    yield
-    reset()
+**Optional: Register via atexit**:
+
+.. code-block:: python
+
+   import atexit
+   from scikitplot._reset import reset
+
+   atexit.register(reset)
+
+**With pytest (e.g., in `tests/conftest.py`)**:
+
+.. code-block:: python
+
+   import pytest
+   from scikitplot._reset import reset
+
+
+   @pytest.fixture(autouse=True)
+   def clean_modules():
+       yield
+       reset()
 """
 
 import matplotlib as mpl
@@ -125,67 +137,66 @@ def reset(_gallery_conf=None, _fname=None):
     """
     Reset global state for NumPy, scikit-learn, matplotlib, and seaborn.
 
-    This function is designed to restore key scientific computing and visualization
-    libraries to their **default configurations**. It helps prevent state leakage
-    between different scripts, examples, or plotting sessions.
+    This function restores common scientific computing and visualization libraries
+    to their **default configurations**, preventing state leakage between scripts,
+    examples, or plotting sessions.
 
-    This is particularly useful in:
-        - Documentation builds using Sphinx-Gallery
-        - Interactive notebook development (Jupyter, Colab)
-        - Streamlit or Dash applications (reproducibility between reruns)
-        - Automated testing pipelines
-        - Educational or demo environments with sequential examples
+    It is especially useful in:
+    - Documentation builds (e.g., with Sphinx-Gallery)
+    - Interactive notebooks (Jupyter, Colab)
+    - Streamlit or Dash apps (ensuring consistent reruns)
+    - Automated testing pipelines
+    - Educational or demo environments
 
-    What this resets:
-    -----------------
-    - **NumPy**: Restores default error handling (`np.seterr`)
-      and print formatting (`np.set_printoptions`).
-    - **scikit-learn**: Resets global configuration via `sklearn.set_config`
-      (e.g., `assume_finite`, working memory size).
-    - **matplotlib**: Closes all open figures, resets `rcParams`, and applies the default style.
-    - **seaborn** (if installed): Resets to default theme and styling to avoid residual settings.
+    What gets reset:
+    - **NumPy**: Restores default error handling (`np.seterr`) and print formatting
+      (`np.set_printoptions`).
+    - **scikit-learn**: Resets global configuration via `sklearn.set_config`, including
+      options like `assume_finite` and `working_memory`.
+    - **matplotlib**: Closes all open figures, resets `rcParams`, and reapplies the default style.
+    - **seaborn** (if installed): Restores default theme and style to avoid residual settings.
 
     Parameters
     ----------
     _gallery_conf : dict, optional
-        Required by Sphinx-Gallery's `reset_modules` hook, but ignored in this function.
+        Required for compatibility with Sphinx-Gallery's `reset_modules` hook.
+        Not used internally.
 
     _fname : str, optional
-        Filename of the example being executed. Included for compatibility with Sphinx-Gallery,
-        but not used internally.
+        Filename of the current example (provided by Sphinx-Gallery).
+        Not used internally.
 
     Notes
     -----
-    - This function is safe to call repeatedly; it is **idempotent**.
-    - In Sphinx-Gallery, you can register this with:
+    - This function is **idempotent** and safe to call multiple times.
+    - To use with Sphinx-Gallery, register it as:
 
-        >>> sphinx_gallery_conf = {
-        >>>     'reset_modules': 'scikitplot._reset.reset',
-        >>>     'reset_modules': 'scikitplot.reset',
-        >>> }
+      >>> sphinx_gallery_conf = {
+      ...     "reset_modules": "scikitplot.reset",
+      ... }
 
-    - For testing or production environments, you may register it via `atexit` or use
-      as a pytest fixture:
+    - You can also register it with `atexit` or use it in a `pytest` fixture:
 
-        >>> import atexit
-        >>> atexit.register(reset)
+      >>> import atexit
+      >>> atexit.register(reset)
 
-        >>> @pytest.fixture(autouse=True)
-        >>> def clean_state():
-        >>>     yield
-        >>>     reset()
+      >>> import pytest
+      >>> @pytest.fixture(autouse=True)
+      ... def clean_state():
+      ...     yield
+      ...     reset()
 
     Examples
     --------
     >>> from scikitplot._reset import reset
-    >>> reset()  # safely clean state between plotting functions
+    >>> reset()  # safely restore global state between examples
 
     See Also
     --------
-    reset_numpy : Resets NumPy global state
-    reset_sklearn : Resets scikit-learn configuration
-    reset_matplotlib : Resets matplotlib figures and config
-    reset_seaborn : Resets seaborn theme (if available)
+    reset_numpy : Reset NumPy global state
+    reset_sklearn : Reset scikit-learn configuration
+    reset_matplotlib : Reset matplotlib figures and configuration
+    reset_seaborn : Reset seaborn theme (if available)
     """
     reset_numpy()
     reset_sklearn()

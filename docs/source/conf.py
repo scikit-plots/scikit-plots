@@ -508,11 +508,64 @@ default_role = "literal"
 # .. |project| replace:: {project}
 # .. include:: /global/roles.rst
 # """.format(project=project)
+#
+# We use |scikit-learn| for classical ML, and |PyTorch| or |TensorFlow| for deep learning.
+# To track experiments, `wandb`_ or `MLflow`_ can be used alongside `Optuna`_ for hyperparameter tuning.
 rst_prolog = f"""
 .. |psf| replace:: Python Software Foundation
 .. |full_version| replace:: {_version_raw}
 .. |emoji| unicode:: U+1F680
    :trim:
+
+.. |Python| replace:: `Python <https://www.python.org>`_
+.. |PEP8| replace:: `PEP8 <https://www.python.org/dev/peps/pep-0008>`_
+.. |conda| replace:: `conda <https://docs.conda.io/en/latest/>`_
+.. |pytest| replace:: `pytest <https://docs.pytest.org/en/stable/>`_
+.. |NumPy| replace:: `NumPy <https://numpy.org/>`_
+.. |SciPy| replace:: `SciPy <https://scipy.org/>`_
+.. |pandas| replace:: `pandas <https://pandas.pydata.org/>`_
+.. |Matplotlib| replace:: `matplotlib <https://matplotlib.org/>`_
+.. |seaborn| replace:: `seaborn <https://seaborn.pydata.org/>`_
+.. |scikit-learn| replace:: `scikit-learn <https://scikit-learn.org/stable/>`_
+.. |xgboost| replace:: `XGBoost <https://xgboost.readthedocs.io/>`_
+.. |lightgbm| replace:: `LightGBM <https://lightgbm.readthedocs.io/>`_
+.. |catboost| replace:: `CatBoost <https://catboost.ai/>`_
+.. |tensorflow| replace:: `TensorFlow <https://www.tensorflow.org/>`_
+.. |keras| replace:: `Keras <https://keras.io/>`_
+.. |pytorch| replace:: `PyTorch <https://pytorch.org/>`_
+.. |jax| replace:: `JAX <https://jax.readthedocs.io/>`_
+.. |optuna| replace:: `Optuna <https://optuna.org/>`_
+.. |mlflow| replace:: `MLflow <https://mlflow.org/>`_
+.. |transformers| replace:: `🤗 Transformers <https://huggingface.co/docs/transformers/>`_
+.. |datasets| replace:: `🤗 Datasets <https://huggingface.co/docs/datasets/>`_
+.. |skorch| replace:: `skorch <https://skorch.readthedocs.io/>`_
+.. |onnx| replace:: `ONNX <https://onnx.ai/>`_
+.. |wandb| replace:: `Weights & Biases <https://wandb.ai/>`_
+
+.. _Python: https://www.python.org/
+.. _PEP8: https://peps.python.org/pep-0008/
+.. _conda: https://docs.conda.io/en/latest/
+.. _pytest: https://docs.pytest.org/en/stable/
+.. _NumPy: https://numpy.org/
+.. _SciPy: https://scipy.org/
+.. _pandas: https://pandas.pydata.org/
+.. _Matplotlib: https://matplotlib.org/
+.. _seaborn: https://seaborn.pydata.org/
+.. _scikit-learn: https://scikit-learn.org/stable/
+.. _xgboost: https://xgboost.readthedocs.io/
+.. _lightgbm: https://lightgbm.readthedocs.io/
+.. _catboost: https://catboost.ai/
+.. _tensorflow: https://www.tensorflow.org/
+.. _keras: https://keras.io/
+.. _pytorch: https://pytorch.org/
+.. _jax: https://jax.readthedocs.io/
+.. _optuna: https://optuna.org/
+.. _mlflow: https://mlflow.org/
+.. _transformers: https://huggingface.co/docs/transformers/
+.. _datasets: https://huggingface.co/docs/datasets/
+.. _skorch: https://skorch.readthedocs.io/
+.. _onnx: https://onnx.ai/
+.. _wandb: https://wandb.ai/
 """
 
 # will be included at the end of every source file that is read.
@@ -1322,10 +1375,11 @@ numpydoc_use_plots = True
 # Options for the `::plot` directive:
 # https://matplotlib.org/stable/api/sphinxext_plot_directive_api.html
 plot_formats = [
+    # ('png', 100),
+    # ('hires.png', 350),
     "png",
     # "svg",
     # "pdf",
-    # ('hires.png', 350),
 ]
 # By default, include the source code generating plots in documentation
 plot_include_source = True
@@ -1336,17 +1390,23 @@ plot_html_show_source_link = True
 
 # A dictionary containing any non-standard rcParams that should be applied before each plot.
 plot_rcparams = {
-    "figure.figsize": (9, 5),
+    "figure.figsize": (10, 4),
     "figure.dpi": 101,
 }
+
 # Code that should be executed before each plot.
 # Default also includes a numpy and matplotlib import
-plot_pre_code = textwrap.dedent(
-    """\
-    import gc; gc.collect()
-    import numpy as np; np.random.seed(0)
-    import matplotlib.pyplot as plt"""
-)
+# 🧹 Reset-related:
+plot_pre_code = """
+import gc; gc.collect()
+import importlib
+import sys
+
+# List of modules to reload to reset state
+for mod in ['numpy', 'matplotlib.pyplot', 'scikitplot']:
+    if mod in sys.modules:
+        importlib.reload(sys.modules[mod])
+"""
 
 ##########################################################################
 ### Extension: matplotlib GitHub extension
@@ -1377,7 +1437,7 @@ sass_targets = {
 # Used to pass Python variables into HTML templates (Jinja2-based)
 # — like layout.html, page.html, or theme-specific templates
 # such as alabaster, sphinx_rtd_theme, etc.
-# ✅ This only affects HTML output, not RST content.
+# ✅ This only affects HTML output, not RST content or jinja template.
 html_context = {
     # "github_user": "scikit-plots",
     # "github_repo": "scikit-plots",
@@ -1519,6 +1579,8 @@ sphinx_gallery_conf = {
         "seaborn",
         # "scikitplot.reset",  # (sklearn, matplotlib, seaborn, numpy)
     ),
+    # By default, Sphinx-Gallery will reset modules before each example is run.
+    "reset_modules_order": "both",  # 'before' or 'after'
     # Optionally sort the examples within subsections (uncomment if needed)
     # Optional sorting: sorts subsections based on titles
     # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
@@ -1529,8 +1591,6 @@ sphinx_gallery_conf = {
     # Making cell magic executable in notebooks
     # https://sphinx-gallery.github.io/stable/configuration.html#making-cell-magic-executable-in-notebooks
     "promote_jupyter_magic": True,
-    # By default, Sphinx-Gallery will reset modules before each example is run.
-    "reset_modules_order": "both",
     # Build examples in parallel
     "parallel": 2,
 }
@@ -1594,7 +1654,7 @@ extlinks = {
 ## Convert .rst.template files to .rst
 ##########################################################################
 
-# add rst templates
+# add rst templates kwargs variables
 release_versions_rst_templates = [
     (
         "devel/index",  # rst_template_name

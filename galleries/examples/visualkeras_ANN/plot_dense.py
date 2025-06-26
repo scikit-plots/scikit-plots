@@ -10,14 +10,6 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # %%
-# Force garbage collection
-
-import gc
-
-gc.collect()
-
-# %%
-
 # pip install protobuf==5.29.4
 import tensorflow as tf
 
@@ -30,7 +22,6 @@ import tensorflow.python as tf_python
 tf_python.keras.backend.clear_session()
 
 # %%
-
 model = tf_python.keras.models.Sequential()
 model.add(tf_python.keras.layers.InputLayer(input_shape=(100,)))
 
@@ -44,11 +35,9 @@ model.compile(optimizer="rmsprop", loss="binary_crossentropy", metrics=["accurac
 model.summary()
 
 # %%
-
 from scikitplot import visualkeras
 
 # %%
-
 img_spam = visualkeras.graph_view(
     model,
     # to_file="result_images/spam_dense_x.png",
@@ -58,7 +47,6 @@ img_spam = visualkeras.graph_view(
 img_spam
 
 # %%
-
 img_spam = visualkeras.layered_view(
     model,
     min_z=1,
@@ -77,7 +65,6 @@ img_spam = visualkeras.layered_view(
 img_spam
 
 # %%
-
 img_spam = visualkeras.layered_view(
     model,
     min_z=1,
@@ -96,7 +83,6 @@ img_spam = visualkeras.layered_view(
 img_spam
 
 # %%
-
 img_spam = visualkeras.layered_view(
     model,
     min_z=1,

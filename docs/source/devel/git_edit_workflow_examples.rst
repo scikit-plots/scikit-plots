@@ -376,7 +376,7 @@ be included, such as:
 
 Both of these are mentioned in `pull request 1917`_, so it does not hurt to check
 them. In this case, they also provide an opportunity to illustrate a feature
-of the |pytest| framework.
+of the `pytest`_ framework.
 
 The second case is easier, so it will be handled first following the
 development cycle we used above:
@@ -406,7 +406,7 @@ In this case, we opted for raising a `TypeError`, because
 the user needs to know that the coordinate they created is not going to
 behave like an array of one coordinate if they try to index it later on.
 
-The |pytest| framework makes testing for an exception relatively
+The `pytest`_ framework makes testing for an exception relatively
 easy; you put the code you expect to fail in a ``with`` block::
 
     c = ICRS(0, 0, unit=(u.degree, u.degree))
@@ -474,12 +474,12 @@ of ``astropy``; the url will be something like
 Once there, select the branch that contains your fix from the branches
 dropdown:
 
-    .. image:: worked_example_switch_branch.png
+    .. image:: images/worked_example_switch_branch.png
 
 After selecting the correct branch, click on the "Pull Request" button,
 as shown below:
 
-    .. image:: pull_button.png
+    .. image:: images/pull_button.png
 
 Name your pull request something sensible. Include the issue number with a
 leading ``#`` in the description of the pull request so that a link is
@@ -525,6 +525,7 @@ You may be asked to make changes in the discussion of the pull request. Make
 those changes in your local copy, commit them to your local repo, and push them
 to GitHub. GitHub will automatically update your pull request.
 
+.. _pytest: https://docs.pytest.org/en/stable/
 .. _Issue 1761: https://github.com/astropy/astropy/issues/1761
 .. _pull request 1917: https://github.com/astropy/astropy/pull/1917
 .. _Sphinx primer: https://www.sphinx-doc.org/
