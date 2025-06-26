@@ -9,14 +9,8 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# %%
-# Force garbage collection
-import gc
-
-gc.collect()
 
 # %%
-
 # pip install protobuf==5.29.4
 import tensorflow as tf
 
@@ -26,7 +20,6 @@ tf.keras.backend.clear_session()
 from scikitplot import visualkeras
 
 # %%
-
 model = tf.keras.applications.ResNet50V2(
     include_top=True,
     weights=None,  # "imagenet" or 'path/'
@@ -40,7 +33,6 @@ model = tf.keras.applications.ResNet50V2(
 # model.summary()
 
 # %%
-
 img_resnet50v2 = visualkeras.layered_view(
     model,
     legend=True,

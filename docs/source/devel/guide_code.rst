@@ -24,9 +24,9 @@ Interface and Dependencies
 * The core package should be importable with no
   dependencies other than components already in the Astropy core, the
   `Python Standard Library <https://docs.python.org/3/library/index.html>`_,
-  and |NumPy| |minimum_numpy_version| or later.
+  and `NumPy`_ |minimum_numpy_version| or later.
 
-* Additional dependencies - such as |SciPy|, |Matplotlib|, or other
+* Additional dependencies - such as `SciPy`_, `Matplotlib`_, or other
   third-party packages - are allowed for sub-modules or in function
   calls, but they must be noted in the package documentation and
   should only affect the relevant component.  In functions and
@@ -150,14 +150,14 @@ Coding Style/Conventions
             ]
 
 
-* Our testing infrastructure currently enforces a subset of the |PEP8| style guide. In
+* Our testing infrastructure currently enforces a subset of the `PEP8`_ style guide. In
   addition, these checks also enforce `isort <https://pycqa.github.io/isort/>`_ to sort
   the module imports and a large set of style-checks supported by ruff_.
 
   * We provide a `pre-commit <https://pre-commit.com/>`_ configuration which
     automatically enforces and fixes (whenever possible) the coding style, see
     :ref:`pre-commit` for details on how to set up and use this. We note that the
-    particular set of |PEP8| and style-related checks that are used in Astropy do not
+    particular set of `PEP8`_ and style-related checks that are used in Astropy do not
     need to be used in affiliated packages. In particular, the set of ruff_ checks is
     not required for affiliated packages.
 
@@ -434,9 +434,15 @@ the hierarchy.
 .. note:: For more information on the benefits of `super`, see
           https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
 
+..
+
+  See the `matplotlib documentation`_ for more info.
+  .. _matplotlib documentation: https://matplotlib.org/
+
+.. _PEP8: https://peps.python.org/pep-0008/
 .. _Numpy: https://numpy.org/
 .. _Scipy: https://www.scipy.org/
-.. _matplotlib: https://matplotlib.org/
+.. _Matplotlib: https://matplotlib.org/
 .. _Cython: https://cython.org/
 .. _PyPI: https://pypi.org/project
 .. _ruff: https://docs.astral.sh/ruff/

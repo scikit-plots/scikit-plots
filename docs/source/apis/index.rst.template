@@ -3,8 +3,18 @@
 .. _scikit-plots-apis:
 
 .. Welcome to Scikit-plots 101 |br| |release| - |today|
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
-   centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
+..
+    substitutions don’t work in .. raw:: html
+    .. raw:: html
+
+    <div style="text-align: center"><strong>
+    Welcome to Scikit-plots 101<br>|full_version| - |today|
+    </strong></div>
+..
+    https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
+    .. centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |full_version| - |today|
+    .. centered::
+        **Scikit-plots Documentation** :raw-html:`<br />` |full_version| - |today|
 
 .. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
 .. role:: raw-html(raw)
@@ -14,14 +24,9 @@
 
    <br/>
 
-..
-    :raw-html:`<div style="text-align: center"><strong>` Welcome to Scikit-plots 101
-    |br| |full_version| - |today| :raw-html:`</strong></div>`
-
-.. raw:: html
-
-   <div style="text-align: center"><strong>
-   Scikit-plots APIs<br>|full_version| - |today|
+:raw-html:`<div style="text-align: center"><strong>` Scikit-plots APIs
+|br| |full_version| - |today|
+:raw-html:`</strong></div>`
 
 .. _apis_ref-index:
 

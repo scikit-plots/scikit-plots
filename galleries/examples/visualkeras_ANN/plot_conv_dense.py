@@ -9,7 +9,6 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-
 # %%
 # Installing dependencies
 # https://sphinx-gallery.github.io/stable/configuration.html#using-multiple-code-blocks-to-create-a-single-figure
@@ -23,7 +22,6 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 
 
 # %%
-
 # pip install protobuf==5.29.4
 import tensorflow as tf
 
@@ -31,7 +29,6 @@ import tensorflow as tf
 tf.keras.backend.clear_session()
 
 # %%
-
 model = tf.keras.models.Sequential()
 model.add(tf.keras.layers.InputLayer(input_shape=(100,)))
 
@@ -60,7 +57,6 @@ model.compile(optimizer="rmsprop", loss="binary_crossentropy", metrics=["accurac
 model.summary()
 
 # %%
-
 import matplotlib.pyplot as plt
 from scikitplot import visualkeras
 

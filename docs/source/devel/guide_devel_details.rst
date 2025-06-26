@@ -189,11 +189,11 @@ it into Astropy:
 #. Use the 'Switch Branches' dropdown menu to select the branch with your
    changes:
 
-   .. image:: branch_dropdown.png
+   .. image:: images/branch_dropdown.png
 
 #. Click on the 'Pull request' button:
 
-   .. image:: pull_button.png
+   .. image:: images/pull_button.png
 
    Enter a title for the set of changes, and some explanation of what you've
    done. If there is anything you'd like particular attention for, like a

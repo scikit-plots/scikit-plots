@@ -11,14 +11,6 @@ used by a :py:class:`~tensorflow.keras.Model` or :py:class:`~torch.nn.Module` or
 # SPDX-License-Identifier: BSD-3-Clause
 
 # %%
-# Force garbage collection
-
-import gc
-
-gc.collect()
-
-# %%
-
 # pip install protobuf==5.29.4
 import tensorflow as tf
 
@@ -30,7 +22,6 @@ from transformers import TFAutoModel
 from scikitplot import visualkeras
 
 # %%
-
 # Load the Hugging Face transformer model
 transformer_model = TFAutoModel.from_pretrained("microsoft/mpnet-base")
 
@@ -43,7 +34,6 @@ def wrap_transformer_model(inputs):
 
 
 # %%
-
 # Define Keras model inputs
 input_ids = tf.keras.Input(shape=(128,), dtype=tf.int32, name="input_ids")
 attention_mask = tf.keras.Input(shape=(128,), dtype=tf.int32, name="attention_mask")
@@ -113,7 +103,6 @@ wrapped_model.summary(
 )
 
 # %%
-
 # Visualize the wrapped model
 img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
     wrapped_model,
