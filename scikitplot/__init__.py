@@ -63,6 +63,7 @@ try:
     # or cannot be imported, this is where we'll get a failure - so give an
     # informative error message.
     from ._lib._ccallback import LowLevelCallable
+    from ._reset import reset
     from ._utils._show_versions import show_versions
     from .config import *
     from .version import (  # type: ignore[reportMissingModuleSource]
@@ -137,6 +138,7 @@ _submodules = sorted(
         "_globals",
         "_min_dependencies",
         "_preprocess",
+        "_reset",
         "cli",
         "environment_variables",
         "exceptions",
@@ -152,6 +154,7 @@ _submodules = sorted(
         "__version__",
         "get_logger",
         "logger",
+        "reset",
         "online_help",
         "show_versions",
         "test",

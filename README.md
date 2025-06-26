@@ -118,25 +118,40 @@
 
 <h2> Documentation, Examples and Try|Install Scikit-plots </h2>
 
-<h4>Explore the full features of Scikit-plots:
+<h5>Explore the full features of Scikit-plots:
   <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">
     https://scikit-plots.github.io/dev/devel/index.html
   </a>
-</h4>
+</h5>
 </div>
 
 <hr>
 
 <h1> User Installation: </h1>
 
-<h2> PIP Installation by `pypi` or `github` </h2>
+<h2> PIP Installation by
+  <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
+    <code>pypi</code>
+  </a>
+  or
+  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>GITHUB</code>
+  </a>
+</h2>
 
 <p> The easiest way to set up scikit-plots is to install it using pip with the following command: </p>
 
 <h4> 🧠 Gotchas: </h4>
 
 <ul>
-  <li>⚠️ (Recommended): Use a Virtual Environmentt (like <code>venv</code>) to Avoid Conflicts.</li>
+  <li>⚠️ (Recommended): Use a Virtual Environmentt (like
+    <a href="https://docs.python.org/3/library/venv.html" target="_blank" rel="noopener noreferrer">
+      <code>venv</code>
+    </a>
+    <a href="https://pypi.org/project/pipenv/" target="_blank" rel="noopener noreferrer">
+      <code>pipenv</code>
+    </a>
+    ) to Avoid Conflicts.</li>
   <li>🚫 Don't use conda <code>base</code> — it's prone to conflicts.</li>
   <li>✅ This avoids dependency issues and keeps your system stable.</li>
 </ul>
@@ -154,7 +169,12 @@ conda activate py311
 
 <hr>
 
-<h3> - by `pypi`: </h3>
+<h3>
+  - by
+  <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
+    <code>pypi</code>:
+  </a>
+</h3>
 
 ```sh
 # Now Install scikit-plots (via pip, conda, or local source)
@@ -163,7 +183,21 @@ pip install scikit-plots
 
 <hr>
 
-<h3> - by `pypi.anaconda.org`: </h3>
+<h3>
+  - by
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>pypi.anaconda.org</code>:
+  </a>
+</h3>
+
+<h3>
+  - by <code>pypi.anaconda.org</code> (with
+  <a href="https://scikit-plots.github.io/dev/install/dependencies.html#runtime-dependencies"
+     target="_blank"
+     rel="noopener noreferrer">
+    required runtime dependencies
+  </a>)
+</h3>
 
 ```sh
 ## (Optionally) Install the lost packages "Runtime dependencies"
@@ -180,9 +214,25 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 
 <hr>
 
-<h3> - by `GITHUB` Source to use `@<branches>` or `@<tags>` or `Source code archive URLs`, If any: </h3>
+<h3>
+  - From
+  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>GITHUB</code>:
+  </a>
+  use
+  <code>@&lt;branch&gt;</code>
+  or
+  <code>@&lt;tag&gt;</code>
+  to specify a version
+</h3>
 
-<h4> - by `GITHUB` Branches: </h4>
+<h4>
+  - by
+  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>GITHUB</code>
+  </a>
+  Branches:
+</h4>
 
 ```bash
 ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
@@ -197,7 +247,13 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3
 pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
 ```
 
-<h4> - by `GITHUB` Tags: </h4>
+<h4>
+  - by
+  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>GITHUB</code>
+  </a>
+  Tags:
+</h4>
 
 ```bash
 ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
@@ -206,25 +262,54 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
 pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 ```
 
-<h4> - by `GITHUB` Source code archive URLs (Also available PyPi, If any): </h4>
+<hr>
 
-<p> Source code archives are available at specific URLs for each repository. </p>
+<h3>
+  - Alternatively, use
+  <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
+    <code>Source code archive URLs</code> <code>.zip</code> or <code>.tar.gz</code>
+  </a>
+  (also available on PyPI, if any)
+</h3>
 
-<p> For example, consider the repository `scikit-plots/scikit-plots`. </p>
+<h4>
+  - From <code>GITHUB</code> Source Code Archive URLs (also available on PyPI, if applicable):
+</h4>
 
-<p> There are different URLs for downloading a branch, a tag, or a specific commit ID. </p>
+<p>
+  Source code archives are available at specific URLs for each repository.
+</p>
 
-- <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
+<p>
+  For example, consider the repository <code>scikit-plots/scikit-plots</code>.
+</p>
+
+<p>
+  You can download the source code by referencing a branch, tag, or specific commit ID.
+</p>
+
+<p>
+  <strong>Note:</strong>
+  To download the source code as an archive, you can append <code>.zip</code> or <code>.tar.gz</code> to a tag URL — for example:
+  <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
     https://github.com/scikit-plots/scikit-plots/tags
   </a>
-
-**Note:** You can use either .zip or .tar.gz in the URLs above to request a zipball or tarball respectively.
+</p>
 
 <hr>
 
-<h3> Cloned Source Installation (REQUIRED OS/LIB BUILD PACKAGES) </h3>
+<h3>
+  Installing from Cloned Source (with
+  <a href="https://scikit-plots.github.io/dev/install/dependencies.html#build-dependencies"
+     target="_blank"
+     rel="noopener noreferrer">
+    required build dependencies
+  </a>)
+</h3>
 
-- You can also install ``scikit-plots`` from source if you want to take advantage of the latest changes:
+<h5>
+  Alternatively, you can install <code>scikit-plots</code> directly from the source repository to benefit from the most recent changes:
+</h5>
 
 ```sh
 ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
@@ -271,7 +356,11 @@ pip install "scikit-plots[cpu]"
 
 <hr>
 
-<h2 align=center>Sample Plots</h2>
+<h2 align=center>
+  <a href="https://scikit-plots.github.io/dev/auto_examples/index.html" target="_blank" rel="noopener noreferrer">
+    Sample Plots
+  </a>
+</h2>
 
 <div>
 <!-- GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
@@ -290,13 +379,14 @@ pip install "scikit-plots[cpu]"
   </div>
 
   <div style="display: flex; width: 100%; justify-content: space-between;">
-    <img style="width: 49.5%;" alt="plot_classifier_eval.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_classifier_eval-1.png">
+    <img style="width: 49.5%;" alt="plot_classifier_eval.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_classifier_eval_script_001.png">
+    <img style="width: 49.5%;" alt="plot_classifier_eval.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_classifier_eval_script_002.png">
     <img style="width: 49.5%;" alt="plot_feature_importances.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_feature_importances-1.png">
   </div>
 
   <div style="display: flex; width: 100%; justify-content: space-between;">
-    <img style="width: 49.5%;" alt="plot_roc.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_roc-1.png">
-    <img style="width: 49.5%;" alt="plot_precision_recall.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_precision_recall-1.png">
+    <img style="width: 49.5%;" alt="plot_roc.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_roc_script_001.png">
+    <img style="width: 49.5%;" alt="plot_precision_recall.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_precision_recall_script_001.png">
   </div>
 
   <div style="display: flex; width: 100%; justify-content: space-between;">
@@ -306,12 +396,12 @@ pip install "scikit-plots[cpu]"
 
   <div style="display: flex; width: 100%; justify-content: space-between;">
     <img style="width: 49.5%;" alt="plot_elbow.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_elbow-1.png">
-    <img style="width: 49.5%;" alt="plot_silhouette.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_silhouette-1.png">
+    <img style="width: 49.5%;" alt="plot_silhouette.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_silhouette_script_001.png">
   </div>
 
   <div style="display: flex; width: 100%; justify-content: space-between;">
-    <img style="width: 49.5%;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-kds-plot_cumulative_gain-1.png">
-    <img style="width: 49.5%;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-kds-plot_lift-1.png">
+    <img style="width: 49.5%;" alt="plot_cumulative_gain.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_cumulative_gain_script_001.png">
+    <img style="width: 49.5%;" alt="plot_lift.png" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_lift_script_001.png">
   </div>
 </div> -->
 
@@ -321,18 +411,19 @@ pip install "scikit-plots[cpu]"
 <table align="center">
   <tr>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_classifier_eval-1.png" alt="plot_classifier_eval.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_feature_importances-1.png" alt="plot_feature_importances.png" width="100%">
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_feature_importances-1.png" alt="plot_feature_importances.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_classifier_eval_script_001.png" alt="plot_classifier_eval.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_classifier_eval_script_002.png" alt="plot_classifier_eval.png" width="100%">
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_roc-1.png" alt="plot_roc.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_roc_script_001.png" alt="plot_roc.png" width="100%">
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_precision_recall-1.png" alt="plot_precision_recall.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_precision_recall_script_001.png" alt="plot_precision_recall.png" width="100%">
     </td>
   </tr>
   <tr>
@@ -348,23 +439,23 @@ pip install "scikit-plots[cpu]"
       <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_elbow-1.png" alt="plot_elbow.png" width="100%">
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_silhouette-1.png" alt="plot_silhouette.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_silhouette_script_001.png" alt="plot_silhouette.png" width="100%">
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-kds-plot_cumulative_gain-1.png" alt="plot_cumulative_gain.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_cumulative_gain_script_001.png" alt="plot_cumulative_gain.png" width="100%">
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-kds-plot_lift-1.png" alt="plot_lift.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_lift_script_001.png" alt="plot_lift.png" width="100%">
     </td>
   </tr>
   <tr>
     <td align="center" width="45%">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-estimators-plot_learning_curve-1.png" alt="plot_learning_curve.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_learning_curve_script_001.png" alt="plot_learning_curve.png" width="100%">
     </td>
     <td align="center" width="45%">
-      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/scikitplot-api-metrics-plot_calibration-1.png" alt="plot_calibration_curve.png" width="100%">
+      <img src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_plot_calibration_script_001.png" alt="plot_calibration_curve.png" width="100%">
     </td>
   </tr>
 </table>

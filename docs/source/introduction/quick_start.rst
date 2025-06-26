@@ -20,7 +20,7 @@ A Simple Example
 
 Let's start with a basic example where we use a Random Forest classifier to evaluate the digits dataset provided by Scikit-learn.
 
-A common way to assess a classifier's performance is through its confusion matrix. Here’s how we can do it:
+A common way to assess a classifier's performance is through its confusion matrix. Here's how we can do it:
 
 1. **Load the Dataset**:
    We'll use the digits dataset, which contains features and labels for classification.
@@ -37,14 +37,15 @@ A common way to assess a classifier's performance is through its confusion matri
 5. **Display the Plot**:
    Optionally, use :py:func:`~matplotlib.pyplot.show` to display the plot.
 
-Here’s the code to illustrate the process:
+Here's the code to illustrate the process:
 
 .. plot:: introduction/quick_start.py
-   :align: center
-   :context: close-figs
    :include-source:
+   :align: center
 
-The resulting confusion matrix shows how well the classifier performs. In this case, it struggles with digits 1, 8, and 9. Fine-tuning the Random Forest’s hyperparameters might improve performance.
+.. :context: close-figs
+
+The resulting confusion matrix shows how well the classifier performs. In this case, it struggles with digits 1, 8, and 9. Fine-tuning the Random Forest's hyperparameters might improve performance.
 
 
 One More Example
@@ -59,9 +60,10 @@ Try Deep Learning Models like `Tensorflow <https://www.tensorflow.org>`_ or `Pyt
 Here's a quick example to generate the precision-recall curves of a :py:class:`~tensorflow.keras.Model` or :py:class:`~torch.nn.Module` or :py:class:`~transformers.TFPreTrainedModel` model on a sample dataset.
 
 .. plot:: introduction/quick_start_tf.py
-   :align: center
-   :context: close-figs
    :include-source:
+   :align: center
+
+.. :context: close-figs
 
 Just pass the ground truth labels and predicted probabilities to
 :py:func:`~scikitplot.api.metrics.plot_precision_recall` to generate the precision-recall curves.

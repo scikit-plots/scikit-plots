@@ -1,3 +1,6 @@
+.. https://docs.astropy.org/en/latest/development/quickstart.html
+.. https://github.com/astropy/astropy/blob/main/docs/index_dev.rst
+
 .. _quickstart_contributing:
 
 ======================================================================
@@ -253,7 +256,7 @@ resulting in lost time (yours and CI resources).
     >>> pre-commit run # (with `--all-files` option not recommended)
 
 Now all of the styling checks will be run each time you commit changes, ensuring that
-the CI formatting checks for your :ref:`pull request <quickstart-pull-request>` will
+the CI formatting checks for your :ref:`pull request <quickstart_pull_request>` will
 pass.
 
 .. tip:: To learn more about pre-commit, see the :ref:`pre-commit` section.

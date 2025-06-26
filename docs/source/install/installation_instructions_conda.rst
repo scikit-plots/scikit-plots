@@ -20,7 +20,7 @@ administrator permission required). Then run:
 
 .. prompt:: bash >>> auto
 
-  ## (conda or mamba) Install scikit-plots  (Upcoming)
+  ## (conda or mamba) Install scikit-plots (Upcoming)
   conda install --yes -c conda-forge scikit-plots
 
 In order to check your installation, you can use:
@@ -33,8 +33,9 @@ In order to check your installation, you can use:
   # Version Check
   python -c "import scikitplot; scikitplot.show_versions()"
 
-  # (Optionally) Version Check
+  # (Optionally) CLI Version Check
   scikitplot --version
+  scikitplot -V
   scikitplot -v
 
 (Optionally) Also available Nightly Version **can be cause conflict** required ``New Environment``:

@@ -29,7 +29,9 @@ There are different ways to install scikit-plots:
 Installing the latest release
 =============================
 
-⚠️ Recommended: Use a Virtual Environmentt (like ``venv``) to Avoid Conflicts (🚫 Don't use conda ``base`` — it's prone to conflicts.)
+⚠️ Recommended: Use a Virtual Environmentt (like ``venv`` ``pipenv``) to Avoid Conflicts
+
+🚫 Don't use conda ``base`` — it's prone to conflicts.
 
 ✅ This avoids dependency issues and keeps your system stable.
 
@@ -89,7 +91,11 @@ Installing the latest release
 
             python -m pip show scikit-plots  # show scikit-plots version and location
             python -m pip freeze             # show all installed packages in the environment
+
+            # Version Check
             python -c "import scikitplot; scikitplot.show_versions()"
+
+            # (Optionally) CLI Version Check
             scikitplot --version
             scikitplot -V
             scikitplot -v
@@ -126,8 +132,13 @@ Installing the latest release
 
             python3 -m pip show scikit-plots  # show scikit-plots version and location
             python3 -m pip freeze             # show all installed packages in the environment
+
+            # Version Check
             python3 -c "import scikitplot; scikitplot.show_versions()"
+
+            # (Optionally) CLI Version Check
             scikitplot --version
+            scikitplot -V
             scikitplot -v
 
         .. tab-item:: MacOS
@@ -155,8 +166,13 @@ Installing the latest release
 
             python -m pip show scikit-plots  # show scikit-plots version and location
             python -m pip freeze             # show all installed packages in the environment
+
+            # Version Check
             python -c "import scikitplot; scikitplot.show_versions()"
+
+            # (Optionally) CLI Version Check
             scikitplot --version
+            scikitplot -V
             scikitplot -v
 
     .. tab-item:: conda

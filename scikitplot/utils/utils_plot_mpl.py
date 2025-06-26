@@ -87,13 +87,13 @@ def safe_tight_layout(fig=None, *, warn=True):
     ...     ax.plot([1, 2, 3], [4, 5, 6])
     ...     ax.set_title("Safe Layout")
     """
-    fig = fig or _plt.gcf()
     try:
         # yield  # None
         # yield "anything"
         yield fig
     finally:
         try:
+            fig = fig or _plt.gcf()
             # import warnings
             # warnings.filterwarnings("ignore", message=".*Tight layout not applied.*")
             fig.tight_layout()
