@@ -1,23 +1,26 @@
 .. _welcome:
 
+.. Welcome to Scikit-plots 101 |br| |release| - |today|
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
+   centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
+
 .. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
 .. role:: raw-html(raw)
    :format: html
-
-.. role:: raw-latex(raw)
-   :format: latex
 
 .. |br| raw:: html
 
    <br/>
 
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
-   centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
+..
+    :raw-html:`<div style="text-align: center"><strong>` Welcome to Scikit-plots 101
+    |br| |full_version| - |today| :raw-html:`</strong></div>`
 
-.. Welcome to Scikit-plots 101 |br| |release| - |today|
-:raw-html:`<div style="text-align: center"><strong>`
-Welcome to Scikit-plots 101 |br| |full_version| - |today|
-:raw-html:`</strong></div>`
+.. raw:: html
+
+   <div style="text-align: center"><strong>
+   Welcome to Scikit-plots 101<br>|full_version| - |today|
+   </strong></div>
 
 .. _introduction-index:
 

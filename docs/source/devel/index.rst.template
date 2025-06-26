@@ -1,25 +1,26 @@
 .. _scikit-plots-contributing:
 
+.. Welcome to Scikit-plots 101 |br| |release| - |today|
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
+   centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
+
 .. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
 .. role:: raw-html(raw)
    :format: html
-
-.. role:: raw-latex(raw)
-   :format: latex
 
 .. |br| raw:: html
 
    <br/>
 
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
-   centered:: Scikit-plots Documentation :raw-html:`<br />` |release|
+..
+    :raw-html:`<div style="text-align: center"><strong>` Welcome to Scikit-plots 101
+    |br| |full_version| - |today| :raw-html:`</strong></div>`
 
-.. Scikit-plots Contributing |br| |release| - |today|
-:raw-html:`<div style="text-align: center"><strong>`
-Scikit-plots Contributing |br| |full_version| - |today|
-:raw-html:`</strong></div>`
+.. raw:: html
 
-.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+   <div style="text-align: center"><strong>
+   Scikit-plots Contributing<br>|full_version| - |today|
+   </strong></div>
 
 .. _developers-guide-index:
 
@@ -56,14 +57,14 @@ detailing unclear documentation and writing new examples, helping the community,
 reporting and fixing bugs, requesting and implementing new features...
 
 
-{% if is_development %}
+{% if is_devrelease %}
 
 
 .. Note:: Some Parts of this guides were adapted from the
-    `matplotlib developer documentation <https://matplotlib.org/devdocs/devel/index.html>`_.
-    `pandas developer documentation <https://pandas.pydata.org/pandas-docs/stable/development/index.html>`_.
-    `astropy developer documentation <https://docs.astropy.org/en/latest/index_dev.html>`_.
-    `scikit-learn developer documentation <https://scikit-learn.org/dev/developers/index.html>`_.
+    `matplotlib developer documentation <https://matplotlib.org/devdocs/devel/index.html>`__,
+    `pandas developer documentation <https://pandas.pydata.org/pandas-docs/stable/development/index.html>`__,
+    `astropy developer documentation <https://docs.astropy.org/en/latest/index_dev.html>`__,
+    `scikit-learn developer documentation <https://scikit-learn.org/dev/developers/index.html>`__
     Scikit-plots is grateful to the these teams for their documentation efforts.
 
 
