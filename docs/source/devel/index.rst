@@ -55,6 +55,17 @@ detailing unclear documentation and writing new examples, helping the community,
 reporting and fixing bugs, requesting and implementing new features...
 
 
+{% if is_development %}
+
+
+.. Note:: Some Parts of this guides were adapted from the
+    `matplotlib developer documentation <https://matplotlib.org/devdocs/devel/index.html>`_.
+    `pandas developer documentation <https://pandas.pydata.org/pandas-docs/stable/development/index.html>`_.
+    `astropy developer documentation <https://docs.astropy.org/en/latest/index_dev.html>`_.
+    `scikit-learn developer documentation <https://scikit-learn.org/dev/developers/index.html>`_.
+    Scikit-plots is grateful to the these teams for their documentation efforts.
+
+
 Quickstart Contribute Guide
 ================================
 
@@ -78,6 +89,7 @@ Here you'll find all the guidance and resources you need to quickly start contri
          :caption: quickstart
 
          Quickstart Contribute Guide <guide_qu_contribute.rst>
+         Contributing Code: A Worked Example <git_edit_workflow_examples.rst>
 
    .. grid-item-card::
       :shadow: none
@@ -269,6 +281,39 @@ and managing a development environment and workflow:
          Troubleshooting Guide <guide_troubleshooting.rst>
 
 
+   .. grid-item-card::
+      :shadow: none
+
+      **Coding Guide**
+      ^^^^
+      .. toctree::
+         :maxdepth: 2
+
+         Coding Guide <guide_code.rst>
+
+
+   .. grid-item-card::
+      :shadow: none
+
+      **C or Cython Extensions Guide**
+      ^^^^
+      .. toctree::
+         :maxdepth: 2
+
+         C or Cython Extensions Guide <guide_ccython.rst>
+
+
+   .. grid-item-card::
+      :shadow: none
+
+      **Development Details Guide**
+      ^^^^
+      .. toctree::
+         :maxdepth: 2
+
+         Development Details Guide <guide_devel_details.rst>
+
+
 .. _contribution_guideline:
 
 Policies and Guidelines for Consistent Maintenance and Workflow Management
@@ -296,6 +341,7 @@ manage, or release manage, these guidelines describe how our current process wor
          guide_code_style_write
          guide_code_api_ver_change
          guide_code_testing
+         Command-Line Scripts Guide <guide_cli_scripts.rst>
 
    .. grid-item-card::
       :shadow: none
@@ -348,4 +394,21 @@ manage, or release manage, these guidelines describe how our current process wor
          guide_triage
          guide_pr
 
+   .. grid-item-card::
+      :shadow: none
+
+      **Git Resources Guide**
+      ^^^
+      .. toctree::
+         :maxdepth: 1
+
+         Git Resources Guide guide_git_resources.rst
+
 .. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+
+{%else%}
+
+To read the developer documentation, you will need to go to the
+`latest developer version of the documentation <https://scikit-plots.github.io/dev/devel/index.html>`_.
+
+{%endif%}

@@ -198,7 +198,7 @@ ps = obj.plotting_scope(
 # what % of the actual target class observations can we expect to target?
 
 # plot the cumulative gains plot and annotate the plot at decile = 3
-mp.plot_cumgains(ps, highlight_ntile=3, save_fig=True)
+ax = mp.plot_cumgains(ps, highlight_ntile=3, save_fig=True)
 
 # %%
 #
@@ -221,7 +221,7 @@ mp.plot_cumgains(ps, highlight_ntile=3, save_fig=True)
 # how many times better is that than using no model at all?
 
 # plot the cumulative lift plot and annotate the plot at decile = 3
-mp.plot_cumlift(ps, highlight_ntile=3, save_fig=True)
+ax = mp.plot_cumlift(ps, highlight_ntile=3, save_fig=True)
 
 # %%
 #
@@ -247,7 +247,7 @@ mp.plot_cumlift(ps, highlight_ntile=3, save_fig=True)
 # what is the expected % of target class observations in that decile?
 
 # plot the response plot and annotate the plot at decile = 3
-mp.plot_response(ps, highlight_ntile=3, save_fig=True)
+ax = mp.plot_response(ps, highlight_ntile=3, save_fig=True)
 
 
 # %%
@@ -260,7 +260,7 @@ mp.plot_response(ps, highlight_ntile=3, save_fig=True)
 # what is the expected % of target class observations in the selection?
 
 # plot the cumulative response plot and annotate the plot at decile = 3
-mp.plot_cumresponse(ps, highlight_ntile=3, save_fig=True)
+ax = mp.plot_cumresponse(ps, highlight_ntile=3, save_fig=True)
 
 
 # %%
@@ -270,7 +270,7 @@ mp.plot_cumresponse(ps, highlight_ntile=3, save_fig=True)
 # We can easily save it to a file to include it in a presentation or share it with colleagues.
 
 # plot all four evaluation plots and save to file
-mp.plot_all(
+ax = mp.plot_all(
     ps,
     save_fig=True,
     overwrite=False,
@@ -306,7 +306,7 @@ mp.plot_all(
 # what is the expected % return on investment of the campaign?
 
 # Return on Investment (ROI) plot
-mp.plot_roi(
+ax = mp.plot_roi(
     ps,
     fixed_costs=1000,
     variable_costs_per_unit=10,
@@ -327,7 +327,7 @@ mp.plot_roi(
 # what are the expected revenues and investments of the campaign?
 
 # Costs & Revenues plot, highlighted at max roi instead of max profit
-mp.plot_costsrevs(
+ax = mp.plot_costsrevs(
     ps,
     fixed_costs=1000,
     variable_costs_per_unit=10,
@@ -349,7 +349,7 @@ mp.plot_costsrevs(
 # what is the expected profit of the campaign?
 
 # Profit plot , highlighted at custom ntile instead of at max profit
-mp.plot_profit(
+ax = mp.plot_profit(
     ps,
     fixed_costs=1000,
     variable_costs_per_unit=10,
@@ -376,7 +376,7 @@ mp.plot_profit(
 ps2 = obj.plotting_scope(scope="compare_models", select_dataset_label=["test_data"])
 
 # plot the cumulative response plot and annotate the plot at decile = 3
-mp.plot_cumresponse(ps2, highlight_ntile=3, save_fig=True)
+ax = mp.plot_cumresponse(ps2, highlight_ntile=3, save_fig=True)
 
 # %%
 

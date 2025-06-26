@@ -802,7 +802,7 @@ def plot_response(
     else:
         xlabper = 5
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(10, 5))
     plt.suptitle("Response", fontsize=16)
     ax.set_xlabel(description_label)
     ax.set_ylabel("response")
@@ -1197,7 +1197,7 @@ def plot_cumresponse(
     else:
         xlabper = 5
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_xlabel(description_label)
     ax.set_ylabel("cumulative response")
     plt.suptitle("Cumulative response", fontsize=16)
@@ -1584,7 +1584,7 @@ def plot_cumlift(
     else:
         xlabper = 5
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_xlabel(description_label)
     ax.set_ylabel("cumulative lift")
     plt.suptitle("Cumulative lift", fontsize=16)
@@ -1950,7 +1950,7 @@ def plot_cumgains(
     else:
         xlabper = 5
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_xlabel(description_label)
     ax.set_ylabel("cumulative gains")
     plt.suptitle("Cumulative gains", fontsize=16)
@@ -2720,7 +2720,7 @@ def plot_costsrevs(
     else:
         xlabper = 5
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_xlabel(description_label)
     ax.set_ylabel("costs / revenue")
     plt.suptitle("Costs / Revenues", fontsize=16)
@@ -3137,7 +3137,7 @@ def plot_profit(
     else:
         xlabper = 5
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_xlabel(description_label)
     ax.set_ylabel("profit")
     plt.suptitle("Profit", fontsize=16)
@@ -3541,7 +3541,7 @@ def plot_roi(
     else:
         xlabper = 5
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_xlabel(description_label)
     ax.set_ylabel("% roi")
     plt.suptitle("Return on Investment (ROI)", fontsize=16)

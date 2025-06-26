@@ -7,6 +7,7 @@
 # type: ignore
 # mypy: ignore-errors
 
+import atexit as _atexit
 import gc as _gc
 import json as _json
 import os as _os
@@ -25,8 +26,18 @@ import pandas as _pd
 
 from ._lib import _pep440
 from ._lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE
+from ._reset import reset
 
 _mpl.use("Agg")  # Use non-interactive backend before pyplot is imported
+
+# Auto-clean with atexit
+# _atexit.register(reset)
+
+# @pytest.fixture(autouse=True)
+# def clean_modules():
+#     yield
+#     reset()
+
 
 ######################################################################
 ## pytest_configure

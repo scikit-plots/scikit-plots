@@ -200,10 +200,10 @@ def setup(app: Sphinx):
             st in __version__
             for st in (
                 "dev",
-                "alpha",
                 "a",
-                "beta",
+                "alpha",
                 "b",
+                "beta",
                 "post",
             )
         ):

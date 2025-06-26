@@ -14,8 +14,9 @@
 .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
    centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
 
+.. Welcome to Scikit-plots 101 |br| |release| - |today|
 :raw-html:`<div style="text-align: center"><strong>`
-Welcome to Scikit-plots 101 |br| |release| - |today|
+Welcome to Scikit-plots 101 |br| |full_version| - |today|
 :raw-html:`</strong></div>`
 
 .. _introduction-index:

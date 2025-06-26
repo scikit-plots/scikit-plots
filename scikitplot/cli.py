@@ -96,6 +96,21 @@ def cli():
 
 
 ######################################################################
+## Reset all global state
+######################################################################
+
+
+@cli.command()
+def reset():
+    """Reset all global state (sklearn, matplotlib, seaborn, numpy)."""
+    from . import _reset
+
+    click.echo("Resetting modules...")
+    _reset.reset()
+    click.echo("Modules reset complete.")
+
+
+######################################################################
 ## Add a COMMAND to Entry-point: doctor()
 ######################################################################
 
