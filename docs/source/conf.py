@@ -124,6 +124,7 @@ _version_raw = sp.version.full_version
 ## Version should follow PEP440
 _version_parsed = parse(_version_raw)  # <Version('0.5.dev0+git.20250114.96321ef')>
 
+# Short X.Y version
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
@@ -137,6 +138,7 @@ _version_parsed = parse(_version_raw)  # <Version('0.5.dev0+git.20250114.96321ef
 version = ".".join(_version_parsed.base_version.split(".")[:2])  # '0.4' or '0.5'
 print("Major.Minor Version:", version)
 
+# Full version
 # The full version, including alpha/beta/rc tags.
 # Removes post from release name
 # _is_postrelease = _version_parsed.is_postrelease
@@ -495,6 +497,28 @@ default_role = "literal"
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
 # show_authors = False
+
+# rst_prolog for docs text substitution
+# will be included at the beginning of every source file that is read.
+# Purpose:
+# Injects reStructuredText substitution definitions into every RST source file.
+# This lets you write |project| in any .rst file and have it replaced with the value.
+# ✅ This affects RST parsing, and therefore any output format (HTML, PDF via LaTeX, etc.).
+# rst_prolog = """
+# .. |project| replace:: {project}
+# .. include:: /global/roles.rst
+# """.format(project=project)
+rst_prolog = """
+.. |psf| replace:: Python Software Foundation
+.. |full_version| replace:: {_version_raw}
+.. |emoji| unicode:: U+1F680
+   :trim:
+"""
+
+# will be included at the end of every source file that is read.
+# rst_epilog = """
+# .. |footer_note| replace:: Built with ♥ by SuperTeam.
+# """
 
 ##########################################################################
 ### Options for object signatures
@@ -1345,9 +1369,15 @@ sass_targets = {
 # HTML context populated by the extension
 # --------------------------------------------------------------------
 
+# html_context for UI and templates
 # Adds Configuration Variables Directly from conf.py into templates
 # Pass the `repl_url` to the HTML context so it can be used in templates
 # These will be populated by the extension
+# Purpose:
+# Used to pass Python variables into HTML templates (Jinja2-based)
+# — like layout.html, page.html, or theme-specific templates
+# such as alabaster, sphinx_rtd_theme, etc.
+# ✅ This only affects HTML output, not RST content.
 html_context = {
     # "github_user": "scikit-plots",
     # "github_repo": "scikit-plots",
@@ -1361,9 +1391,8 @@ html_context = {
     #     # Add more entries as needed
     #   ]
     # },
-    "is_development": _is_devrelease,  # or version_info_extension.py 'releaselevel'
-    "full_version": _version_raw,
 }
+# version_info_extension.py 'releaselevel'
 # See https://github.com/scikit-learn/scikit-learn/pull/22550
 html_context["is_devrelease"] = _is_devrelease
 
@@ -1488,7 +1517,7 @@ sphinx_gallery_conf = {
         "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
         "matplotlib",
         "seaborn",
-        "scikitplot.reset",  # (sklearn, matplotlib, seaborn, numpy)
+        # "scikitplot.reset",  # (sklearn, matplotlib, seaborn, numpy)
     ),
     # Optionally sort the examples within subsections (uncomment if needed)
     # Optional sorting: sorts subsections based on titles

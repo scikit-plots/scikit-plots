@@ -108,6 +108,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "config_context",
                     "get_config",
                     "get_logger",
+                    "logger",
                     "reset",
                     "set_config",
                     "show_config",

@@ -160,7 +160,8 @@ def reset(_gallery_conf=None, _fname=None):
     - In Sphinx-Gallery, you can register this with:
 
         >>> sphinx_gallery_conf = {
-        >>>     'reset_modules': 'scikitplot._reset.reset'
+        >>>     'reset_modules': 'scikitplot._reset.reset',
+        >>>     'reset_modules': 'scikitplot.reset',
         >>> }
 
     - For testing or production environments, you may register it via `atexit` or use
