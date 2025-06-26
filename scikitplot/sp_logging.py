@@ -889,8 +889,8 @@ def get_logger() -> "_logging.Logger":
 
     See Also
     --------
-    scikitplot.logger :
-        An instance of :py:mod:`sp_logging` class, providing logging logger functionality.
+    logger :
+        An alias of :py:mod:`sp_logging` module, providing logging functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance.
         For more: https://docs.python.org/3/library/logging.html
@@ -1372,8 +1372,8 @@ class SpLogger:
     --------
     get_logger :
         Function that provides a shared :py:class:`logging.Logger` instance.
-    scikitplot.logger :
-        An instance of :py:mod:`sp_logging` class, providing logging functionality.
+    logger :
+        An alias of :py:mod:`sp_logging` module, providing logging functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance,
         for more https://docs.python.org/3/library/logging.html.
