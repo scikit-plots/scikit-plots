@@ -7,7 +7,7 @@
 # type: ignore
 # mypy: ignore-errors
 
-import atexit
+import atexit as _atexit
 import gc as _gc
 import json as _json
 import os as _os
@@ -31,7 +31,7 @@ from ._reset import reset
 _mpl.use("Agg")  # Use non-interactive backend before pyplot is imported
 
 # Auto-clean with atexit
-# atexit.register(reset)
+# _atexit.register(reset)
 
 # @pytest.fixture(autouse=True)
 # def clean_modules():
