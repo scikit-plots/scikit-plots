@@ -508,7 +508,7 @@ default_role = "literal"
 # .. |project| replace:: {project}
 # .. include:: /global/roles.rst
 # """.format(project=project)
-rst_prolog = """
+rst_prolog = f"""
 .. |psf| replace:: Python Software Foundation
 .. |full_version| replace:: {_version_raw}
 .. |emoji| unicode:: U+1F680
@@ -1391,10 +1391,10 @@ html_context = {
     #     # Add more entries as needed
     #   ]
     # },
+    # version_info_extension.py 'releaselevel'
+    # See https://github.com/scikit-learn/scikit-learn/pull/22550
+    "is_devrelease": _is_devrelease,
 }
-# version_info_extension.py 'releaselevel'
-# See https://github.com/scikit-learn/scikit-learn/pull/22550
-html_context["is_devrelease"] = _is_devrelease
 
 # redirects dictionary maps from old links to new links
 old_links_dict = {
@@ -1597,6 +1597,13 @@ extlinks = {
 # add rst templates
 release_versions_rst_templates = [
     (
+        "devel/index",  # rst_template_name
+        "devel/index",  # rst_target_name
+        {  # kwargs
+            "is_devrelease": _is_devrelease,
+        },
+    ),
+    (
         "devel/guide_maintainer",  # rst_template_name
         "devel/guide_maintainer",  # rst_target_name
         {},  # kwargs
@@ -1631,9 +1638,9 @@ url_rst_templates = [
     (
         "index",  # rst_template_name
         "index",  # rst_target_name
-        {
+        {  # kwargs
             "development_link": development_link,
-        },  # kwargs
+        },
     )
 ]
 

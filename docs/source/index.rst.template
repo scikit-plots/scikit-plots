@@ -25,6 +25,28 @@ References:
    ^ Fourth-level heading.
    " Fifth-level heading.
 
+.. raw:: html
+
+   <div style="text-align: center"><strong>
+   Welcome to Scikit-plots 101<br>|full_version| - |today|
+   </strong></div>
+
+.. Use RST with Centering via CSS
+.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+.. container:: center-text
+
+   **Welcome to Scikit-plots 101**
+   |full_version| – |today|
+
+..
+   .center-text {
+      text-align: center;
+      font-weight: bold;
+   }
+
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
+   centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
+
 .. https://docutils.sourceforge.io/docs/ref/rst/roles.html#standard-roles
 .. https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
 

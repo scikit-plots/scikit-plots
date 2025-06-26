@@ -43,6 +43,8 @@ Here's the code to illustrate the process:
    :include-source:
    :align: center
 
+   This shows how to quickly generate a plot using Scikit-plots.
+
 .. :context: close-figs
 
 The resulting confusion matrix shows how well the classifier performs. In this case, it struggles with digits 1, 8, and 9. Fine-tuning the Random Forest's hyperparameters might improve performance.
@@ -62,6 +64,8 @@ Here's a quick example to generate the precision-recall curves of a :py:class:`~
 .. plot:: introduction/quick_start_tf.py
    :include-source:
    :align: center
+
+   This shows how to quickly generate a plot using Scikit-plots with TensorFlow.
 
 .. :context: close-figs
 
