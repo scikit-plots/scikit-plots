@@ -15,6 +15,7 @@ Usage (Sphinx-Gallery):
 sphinx_gallery_conf = {
     # ...
     'reset_modules': 'scikitplot._reset.reset',
+    'reset_modules': 'scikitplot.reset',
 }
 
 Optional: Use atexit or test fixtures:

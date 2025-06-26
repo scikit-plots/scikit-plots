@@ -1488,7 +1488,7 @@ sphinx_gallery_conf = {
         "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
         "matplotlib",
         "seaborn",
-        "scikitplot._reset.reset_all",  # (sklearn, matplotlib, seaborn, numpy)
+        "scikitplot.reset",  # (sklearn, matplotlib, seaborn, numpy)
     ),
     # Optionally sort the examples within subsections (uncomment if needed)
     # Optional sorting: sorts subsections based on titles
