@@ -3,7 +3,7 @@
   "intro": [
     {
       "title": "Try scikit-plots",
-      "text": "Use the interactive shell to try scikit-plots in the browser"
+      "text": "Use the interactive shell to try `scikit-plots` in the browser."
     },
   ]
 } %}
@@ -16,12 +16,108 @@
       <div class="shell-title">{{ item.title }}</div>
       <div class="shell-content-message">
         <p>{{ item.text }}</p>
-        <p style="font-size:11px;">&#x1F6C8;
-          <span style="color:blue;">Pyodide</span> uses older, compatible versions of some PyPI packages;
+        <!-- 🔔 &#x1F514; -->
+        <p style="font-size:12.5px;">🔔
+          <b>Note:</b>
+          <span style="color:turquoise;">Pyodide</span> uses older, compatible versions of some PyPI packages;
           <span style="color:red;">latest versions may not be supported</span>.
         </p>
       </div>
     {%- endfor %}
+  </div>
+  <div>
+    <!-- Import Font Awesome icons for the link buttons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+      /* Wrapper around the list, ensures it's aligned properly */
+      .demo-links-wrapper {
+        width: 100%;               /* Take up full width */
+        text-align: right;         /* Align inline elements (like text or span) to the right */
+        padding: 0.5rem 0;           /* Add top and bottom padding */
+      }
+      /* The actual list container holding all the buttons */
+      .demo-links {
+        display: flex;             /* Use flex layout for horizontal alignment */
+        justify-content: flex-end; /* Align items to the right */
+        gap: 0.5rem;               /* Space between each list item */
+        list-style: none;          /* Remove bullet points */
+        padding: 0;                /* Remove default padding */
+        margin: 0;                 /* Remove default margin */
+        flex-wrap: wrap;           /* Wrap to new line on small screens */
+        align-items: center;       /* Vertically align items */
+      }
+      /* Style each individual item (button-like appearance) */
+      .demo-links li {
+        background: #f9f9f9;       /* Light gray background */
+        padding: 0.1rem 0.8rem;    /* Space inside the item */
+        border-radius: 8px;        /* Rounded corners */
+        font-family: system-ui, sans-serif; /* Use system font for consistency */
+        font-size: 0.85rem;        /* Slightly smaller font size */
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
+        transition: background 0.3s ease, color 0.3s ease; /* Smooth hover effect */
+      }
+      /* Style both anchor tags and spans inside the list */
+      .demo-links a,
+      .demo-links span {
+        display: flex;             /* Align icon and text horizontally */
+        align-items: center;       /* Vertically center content */
+        gap: 0.1rem;               /* Space between icon and text */
+        text-decoration: none;     /* Remove underline from links */
+        color: #333;               /* Dark gray text color */
+        font-weight: 500;          /* Slightly bold text */
+      }
+      /* Hover effect for links and spans */
+      .demo-links a:hover,
+      .demo-links span:hover {
+        color: #0056b3;            /* Change text color to blue on hover */
+        background-color: #e6f0ff; /* Light blue background on hover */
+        border-radius: 8px;        /* Ensure corners stay rounded */
+      }
+      /* Style icons (optional: can tweak size here) */
+      .demo-links i {
+        font-size: 1rem;           /* Standard icon size */
+      }
+    </style>
+    <!-- Start of the visual list -->
+    <div class="demo-links-wrapper">
+      <ul class="demo-links">
+        <!-- Non-clickable label-style item -->
+        <li>
+          <!-- Using span instead of label (label is for form inputs) -->
+          <span title="Opens all links in a new browser tab">
+            <i class="fa-solid fa-external-link"></i>       <!-- Link icon -->
+            Open in new tab                                 <!-- Text next to icon -->
+          </span>
+        </li>
+        <!-- JupyterLab link item -->
+        <li>
+          <a href="./lite/lab/index.html?path=auto_examples%2Fcalibration%2Fplot_calibration_script.ipynb"
+            target="_blank"
+            title="Try JupyterLab, a multi-document app">  <!-- Open in new tab -->
+            <i class="fa-solid fa-flask"></i>               <!-- Flask icon -->
+            Lab                                             <!-- Text label -->
+          </a>
+        </li>
+        <!-- RetroLab link item -->
+        <li>
+          <a href="./lite/notebooks/index.html?path=auto_examples%2Fcalibration%2Fplot_calibration_script.ipynb"
+            target="_blank"
+            title="Try RetroLab, a single-document app">
+            <i class="fa-solid fa-book"></i>                <!-- Book icon -->
+            Retro                                           <!-- Text label -->
+          </a>
+        </li>
+        <!-- REPL link item -->
+        <li>
+          <a href="./lite/repl/index.html?kernel=python&code=import%20this"
+            target="_blank"
+            title="Try REPL, a minimal console app">
+            <i class="fa-solid fa-terminal"></i>            <!-- Terminal icon -->
+            REPL                                            <!-- Text label -->
+          </a>
+        </li>
+      </ul>
+    </div>
   </div>
   <!-- Include code sample and editor section -->
   <div class="numpy-shell-container">

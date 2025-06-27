@@ -173,7 +173,7 @@ if release is None:
 if _is_devrelease:
     gh_branch = "main"
 else:
-    major, minor = release[:2]
+    major, minor = version.split(".")
     gh_branch = f"maintenance/{major}.{minor}.X"
 
 logger.info(f"gh_branch: {gh_branch}")
@@ -542,6 +542,7 @@ rst_prolog = f"""
 .. _skorch: https://skorch.readthedocs.io/
 .. _onnx: https://onnx.ai/
 .. _wandb: https://wandb.ai/
+.. _Weights & Biases: https://wandb.ai/
 
 .. |Python| replace:: Python_
 .. |PEP8| replace:: PEP8_
@@ -566,7 +567,7 @@ rst_prolog = f"""
 .. |datasets| replace:: 🤗 Datasets_
 .. |skorch| replace:: skorch_
 .. |onnx| replace:: ONNX_
-.. |wandb| replace:: Weights & Biases_
+.. |wandb| replace:: `Weights & Biases`_
 
 .. |emoji| unicode:: U+1F680
    :trim:
@@ -1407,7 +1408,7 @@ import importlib
 import sys
 
 # List of modules to reload to reset state
-for mod in ['numpy', 'matplotlib.pyplot', 'scikitplot']:
+for mod in ['matplotlib.pyplot', 'scikitplot']:
     if mod in sys.modules:
         importlib.reload(sys.modules[mod])
 """

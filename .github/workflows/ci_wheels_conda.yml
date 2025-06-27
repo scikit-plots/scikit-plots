@@ -141,6 +141,9 @@ jobs:
           fi
 
   ## Build the wheels for Linux, Windows and macOS for Python 3.9 and newer
+  ## https://peps.python.org/pep-0425/
+  ## https://peps.python.org/pep-0427/
+  ## The wheel filename is {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}.whl.
   build_wheels:
     name: >-
       Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
@@ -656,7 +659,7 @@ jobs:
           upload_wheels  # Required WHEEL_FILE_PATH
 
   build_wasm:
-    name: Build WASM (WebAssembly/Emscripten/Pyodide) Package
+    name: Build WASM (WebAssembly/Emscripten/Pyodide) Package for Pyodide
     # runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
     runs-on: ubuntu-22.04  # python3.12
     needs: check_build_trigger

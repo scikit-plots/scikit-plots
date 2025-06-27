@@ -5,8 +5,8 @@
     "url": "https://scikit-plots.github.io/dev/"
   },
   {
-    "name": "0.4.0 (stable)",
-    "version": "0.4.0",
+    "name": "0.4.0.post1 (stable)",
+    "version": "0.4.0.post1",
     "url": "https://scikit-plots.github.io/stable/",
     "preferred": true
   },

@@ -172,6 +172,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Multimedia :: Graphics",
+  "Typing :: Typed",
 ]
 
 ## (Recommended)

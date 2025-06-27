@@ -18,9 +18,9 @@ DEFAULT_URL_RST_TEMPLATES = [
     (
         "index",  # rst_template_name
         "index",  # rst_target_name
-        {
+        {  # kwargs
             "development_link": "devel/index",
-        },  # kwargs
+        },
     )
 ]
 
@@ -74,7 +74,8 @@ def preprocess_templates(app: Sphinx):
 
 def get_repl_url():
     """Function to generate the REPL URL from the code in `initial_repl.py`."""
-    base_url = "https://scikit-plots.github.io/demo/repl/"
+    # base_url = "https://scikit-plots.github.io/demo/repl/"
+    base_url = "https://jupyterlite-pyodide-kernel.readthedocs.io/en/latest/_static/repl/index.html"
 
     # Read the code from initial_repl.py
     code_file_path = os.path.join(
@@ -108,7 +109,8 @@ def get_repl_url():
     }
 
     # Construct the full URL with the parameters
-    repl_url = f"{base_url}?toolbar={params['toolbar']}&kernel={params['kernel']}&code={params['code']}"
+    # repl_url = f"{base_url}?toolbar={params['toolbar']}&kernel={params['kernel']}&code={params['code']}"
+    repl_url = f"{base_url}?kernel={params['kernel']}&code={params['code']}"
 
     # Return the repl_url
     return repl_url

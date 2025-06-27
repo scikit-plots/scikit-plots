@@ -1,5 +1,19 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# pylint: disable=import-error
+# pylint: disable=unused-argument
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
+# pylint: disable=invalid-name
+# pylint: disable=import-outside-toplevel
+# pylint: disable=reimported
+# pylint: disable=too-many-lines
+
+# ruff: noqa: UP037
+
 """
-Logging utilities.
+:py:mod:`scikitplot.sp_logging` (alias, :py:mod:`scikitplot.logger`) module provide logging utilities.
 
 Inspired by `"Tensorflow's logging system"
 <https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94>`_.
@@ -15,20 +29,7 @@ Scikit-plots logging helpers, supports vendoring.
 
 Module Dependencies:
 - Python standard library: :py:mod:`logging`
-"""  # pylint: disable=too-many-lines
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# pylint: disable=import-error
-# pylint: disable=unused-argument
-# pylint: disable=broad-exception-caught
-# pylint: disable=logging-fstring-interpolation
-# pylint: disable=invalid-name
-# pylint: disable=import-outside-toplevel
-# pylint: disable=reimported
-
-# ruff: noqa: UP037
+"""
 
 from __future__ import annotations
 
@@ -889,8 +890,8 @@ def get_logger() -> "_logging.Logger":
 
     See Also
     --------
-    logger :
-        An alias of :py:mod:`sp_logging` module, providing logging functionality.
+    scikitplot.logger :
+        An alias of :py:mod:`scikitplot.sp_logging` module, providing logging functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance.
         For more: https://docs.python.org/3/library/logging.html
