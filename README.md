@@ -275,17 +275,11 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 <h3>
   📁 From Source
   Installation by
-  <code> Archive</code>
+  <code>Archive</code>
   or
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     <code>GIT Clone</code>
   </a>
-  (with
-  <a href="https://scikit-plots.github.io/dev/install/dependencies.html#build-dependencies"
-     target="_blank"
-     rel="noopener noreferrer">
-    required build dependencies
-  </a>)
 </h3>
 
 <h4>🐍 Pitfalls:</h4>
