@@ -78,15 +78,16 @@
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="Anaconda Nightly Wheels Status" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
   </a>
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank" rel="noopener noreferrer">
+    <img alt="Anaconda Nightly Release Date" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
+  </a>
+  <!-- Daily, Weekly, or Monthly downloads -->
   <!-- <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="Conda Downloads" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg">
   </a> -->
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <img alt="Conda Nightly Downloads" height="17" src="https://img.shields.io/conda/dn/scikit-plots-wheels-staging-nightly/scikit-plots?label=Conda%20Nightly%20Downloads
+    <img alt="Conda Nightly Downloads" height="17" src="https://img.shields.io/conda/dn/scikit-plots-wheels-staging-nightly/scikit-plots?label=conda_nightly_downloads
     ">
-  </a>
-  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank" rel="noopener noreferrer">
-    <img alt="Anaconda Nightly Release Date" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
   </a>
   <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank" rel="noopener noreferrer">
     <img alt="GitHub Actions CI Build Wheels Status" height="17" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg?event=workflow_dispatch">
