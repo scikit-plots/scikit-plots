@@ -186,17 +186,15 @@ pip install scikit-plots
 <h3>
   - by
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>pypi.anaconda.org</code>:
+    <code>pypi.anaconda.org</code>
   </a>
-</h3>
-
-<h3>
-  - by <code>pypi.anaconda.org</code> (with
+  (with
   <a href="https://scikit-plots.github.io/dev/install/dependencies.html#runtime-dependencies"
      target="_blank"
      rel="noopener noreferrer">
     required runtime dependencies
-  </a>)
+  </a>
+  ):
 </h3>
 
 ```sh
@@ -221,8 +219,10 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
   </a>
   use
   <code>@&lt;branch&gt;</code>
-  or
+  ,
   <code>@&lt;tag&gt;</code>
+  or
+  <code>Source Code Archive URLs</code>
   to specify a version
 </h3>
 
@@ -264,36 +264,29 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 
 <hr>
 
-<h3>
-  - Alternatively, use
-  <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
-    <code>Source code archive URLs</code> <code>.zip</code> or <code>.tar.gz</code>
-  </a>
-  (also available on PyPI, if any)
-</h3>
-
 <h4>
-  - From <code>GITHUB</code> Source Code Archive URLs (also available on PyPI, if applicable):
+  - by
+  <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
+    <code>GITHUB Source Code Archive URLs</code>
+    ( <code>.zip</code> or <code>.tar.gz</code> )
+  </a>
 </h4>
 
 <p>
   Source code archives are available at specific URLs for each repository.
-</p>
-
-<p>
-  For example, consider the repository <code>scikit-plots/scikit-plots</code>.
-</p>
-
-<p>
-  You can download the source code by referencing a branch, tag, or specific commit ID.
-</p>
-
-<p>
-  <strong>Note:</strong>
-  To download the source code as an archive, you can append <code>.zip</code> or <code>.tar.gz</code> to a tag URL — for example:
+  For example, consider the repository
   <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
-    https://github.com/scikit-plots/scikit-plots/tags
+    <code>scikit-plots/scikit-plots</code>
   </a>
+  .
+</p>
+
+<p>
+  You can download the source code by referencing a <code>branch</code>, <code>tag</code>, or specific <code>commit ID</code>.
+</p>
+
+<p>
+  Alternatively, <code>Source Code Archive(s) (.zip or .tar.gz)</code> (also available on <code>PyPI</code>, if applicable):
 </p>
 
 <hr>
@@ -338,7 +331,9 @@ pip install -r ./requirements/build.txt
 pip install --no-cache-dir -e . -v
 ```
 
-<h4> - It is also possible to include optional dependencies: </h4>
+<h4>
+  - It is also possible to include optional dependencies:
+</h4>
 
 ```sh
 ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements

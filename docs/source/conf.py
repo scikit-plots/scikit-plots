@@ -511,36 +511,10 @@ default_role = "literal"
 #
 # We use |scikit-learn| for classical ML, and |PyTorch| or |TensorFlow| for deep learning.
 # To track experiments, `wandb`_ or `MLflow`_ can be used alongside `Optuna`_ for hyperparameter tuning.
+# .. |PEP8| replace:: `PEP8 <https://www.python.org/dev/peps/pep-0008>`_
 rst_prolog = f"""
 .. |psf| replace:: Python Software Foundation
 .. |full_version| replace:: {_version_raw}
-.. |emoji| unicode:: U+1F680
-   :trim:
-
-.. |Python| replace:: `Python <https://www.python.org>`_
-.. |PEP8| replace:: `PEP8 <https://www.python.org/dev/peps/pep-0008>`_
-.. |conda| replace:: `conda <https://docs.conda.io/en/latest/>`_
-.. |pytest| replace:: `pytest <https://docs.pytest.org/en/stable/>`_
-.. |NumPy| replace:: `NumPy <https://numpy.org/>`_
-.. |SciPy| replace:: `SciPy <https://scipy.org/>`_
-.. |pandas| replace:: `pandas <https://pandas.pydata.org/>`_
-.. |Matplotlib| replace:: `matplotlib <https://matplotlib.org/>`_
-.. |seaborn| replace:: `seaborn <https://seaborn.pydata.org/>`_
-.. |scikit-learn| replace:: `scikit-learn <https://scikit-learn.org/stable/>`_
-.. |xgboost| replace:: `XGBoost <https://xgboost.readthedocs.io/>`_
-.. |lightgbm| replace:: `LightGBM <https://lightgbm.readthedocs.io/>`_
-.. |catboost| replace:: `CatBoost <https://catboost.ai/>`_
-.. |tensorflow| replace:: `TensorFlow <https://www.tensorflow.org/>`_
-.. |keras| replace:: `Keras <https://keras.io/>`_
-.. |pytorch| replace:: `PyTorch <https://pytorch.org/>`_
-.. |jax| replace:: `JAX <https://jax.readthedocs.io/>`_
-.. |optuna| replace:: `Optuna <https://optuna.org/>`_
-.. |mlflow| replace:: `MLflow <https://mlflow.org/>`_
-.. |transformers| replace:: `🤗 Transformers <https://huggingface.co/docs/transformers/>`_
-.. |datasets| replace:: `🤗 Datasets <https://huggingface.co/docs/datasets/>`_
-.. |skorch| replace:: `skorch <https://skorch.readthedocs.io/>`_
-.. |onnx| replace:: `ONNX <https://onnx.ai/>`_
-.. |wandb| replace:: `Weights & Biases <https://wandb.ai/>`_
 
 .. _Python: https://www.python.org/
 .. _PEP8: https://peps.python.org/pep-0008/
@@ -566,6 +540,34 @@ rst_prolog = f"""
 .. _skorch: https://skorch.readthedocs.io/
 .. _onnx: https://onnx.ai/
 .. _wandb: https://wandb.ai/
+
+.. |Python| replace:: Python_
+.. |PEP8| replace:: PEP8_
+.. |conda| replace:: conda_
+.. |pytest| replace:: pytest_
+.. |NumPy| replace:: NumPy_
+.. |SciPy| replace:: SciPy_
+.. |pandas| replace:: pandas_
+.. |Matplotlib| replace:: Matplotlib_
+.. |seaborn| replace:: seaborn_
+.. |scikit-learn| replace:: scikit-learn_
+.. |xgboost| replace:: XGBoost_
+.. |lightgbm| replace:: LightGBM_
+.. |catboost| replace:: CatBoost_
+.. |tensorflow| replace:: TensorFlow_
+.. |keras| replace:: Keras_
+.. |pytorch| replace:: PyTorch_
+.. |jax| replace:: JAX_
+.. |optuna| replace:: Optuna_
+.. |mlflow| replace:: MLflow_
+.. |transformers| replace:: 🤗 Transformers_
+.. |datasets| replace:: 🤗 Datasets_
+.. |skorch| replace:: skorch_
+.. |onnx| replace:: ONNX_
+.. |wandb| replace:: Weights & Biases_
+
+.. |emoji| unicode:: U+1F680
+   :trim:
 """
 
 # will be included at the end of every source file that is read.
