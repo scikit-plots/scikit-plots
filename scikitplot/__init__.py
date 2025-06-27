@@ -38,18 +38,21 @@ from numpy import __version__ as __numpy_version__
 # Dev branch marker is: 'X.Y.dev' or 'X.Y.devN' where N is an integer.
 # 'X.Y.dev0' is the canonical version of 'X.Y.dev'
 #
+# scikit-plots Releases (Next) (Docs)
 # https://libraries.io/pypi/scikit-plots/versions
 # Format: MAJOR.MINOR.PATCH.devN
 # Format: MAJOR.MINOR.PATCHrcN
 # Format: MAJOR.MINOR.PATCH
 # Format: MAJOR.MINOR.PATCH.postN
-# __version__ = "0.3.7.post0"
-# __version__ = "0.3.8.post0"
-# __version__ = "0.3.9.post0"
-# __version__ = "0.4.0.post1"
-# __version__ = "0.4.1"
-# __version__ = "0.4.2"
-__version__ = "0.5.dev0"
+# __version__ = "0.3.7.post0"  # 0.3.7
+# __version__ = "0.3.8.post0"  # 0.3.8
+# __version__ = "0.3.9.post0"  # 0.3.9
+__version__ = "0.4.0.post1"  # 0.4.0
+# __version__ = "0.4.1rc0"  # 0.4.1
+# __version__ = "0.4.2rc0"  # 0.4.2
+# __version__ = "0.5.1rc0"  # 0.5.1
+# __version__ = "0.5.2rc0"  # 0.5.2
+# __version__ = "0.5.dev0"  # dev
 
 # import logging as _logging
 # logger.setLevel(logger.DEBUG)  # for debugging

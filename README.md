@@ -112,11 +112,11 @@
 </div>
 
 <div>
-<h2> Single line functions for detailed visualizations </h2>
+<h3> Single line functions for detailed visualizations </h3>
 
 <p> The quickest and easiest way to go from analysis... </p>
 
-<h2> 📘 Documentation, Examples and Try|Install Scikit-plots </h2>
+<h3> 📘 Documentation, Examples and Try|Install Scikit-plots </h3>
 
 <h5>Explore the full features of Scikit-plots:
   <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">

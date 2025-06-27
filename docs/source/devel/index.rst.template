@@ -32,6 +32,8 @@
 Contributing Guidelines to scikit-plots
 ======================================================================
 
+.. docs/source/_sphinx_ext/skplt_ext/version_info_extension.py
+
 .. ifconfig:: releaselevel != 'dev'
 
    .. important::

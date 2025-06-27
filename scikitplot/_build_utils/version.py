@@ -14,9 +14,15 @@ try:
     version_line = next(line for line in data if line.startswith("__version__"))
     # print(re.search(r'__version__\s*=\s*[\"\\'](.*?)[\"\\']', f.read()).group(1))
     version = (
-        version_line.strip().split(" = ")[1].replace('"', "").replace("'", "").strip()
+        version_line.strip()
+        .split("=")[1]  # grabs the RHS of the assignment.
+        .split("#")[0]  # removes any inline comment.
+        .replace('"', "")
+        .replace("'", "")
+        .strip()
+        .strip("\"'")  # cleans up whitespace and quotes.
     )
-except:
+except Exception:
     version = "0.0.0"
 if __name__ == "__main__":
     print(version)

@@ -154,12 +154,17 @@ def add_safe_directory(repo_path=None):
 
 def init_version():
     """Extract version number from `__init__.py`"""
-    scikitplot_init = os.path.join(os.path.dirname(__file__), "../__init__.py")
+    scikitplot_init = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../__init__.py")
+    )
     with open(scikitplot_init, encoding="utf-8") as fid:
         data = fid.readlines()
     version_line = next(line for line in data if line.startswith("__version__"))
 
-    version = version_line.strip().split("=")[1].strip()
+    # grabs the RHS of the assignment.
+    # removes any inline comment.
+    # cleans up whitespace and quotes.
+    version = version_line.strip().split("=")[1].split("#")[0].strip()
     version = version.replace('"', "").replace("'", "").strip()
     return version
 
@@ -171,7 +176,10 @@ def toml_version():
         data = fid.readlines()
     version_line = next(line for line in data if line.startswith("version ="))
 
-    version = version_line.strip().split("=")[1].strip()
+    # grabs the RHS of the assignment.
+    # removes any inline comment.
+    # cleans up whitespace and quotes.
+    version = version_line.strip().split("=")[1].split("#")[0].strip()
     version = version.replace('"', "").replace("'", "").strip()
     return version
 
@@ -182,7 +190,9 @@ def toml_version():
 
 
 def git_version(
-    version: str, format: str = "%H %aI", short: bool = True
+    version: str,
+    format: str = "%H %aI",
+    short: bool = True,
 ) -> Tuple[str, str]:
     """
     Append the last commit information (hash and date) to the development version string.

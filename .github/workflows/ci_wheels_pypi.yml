@@ -11,49 +11,59 @@ on:
       conda_source:  # Specify whether to conda pkg source
         description: 'conda pkg source'
         required: true           # 👈 This makes the input mandatory
-        default: 'scikit-plots-wheels-staging-nightly'  # Default
         type: choice
+        default: 'scikit-plots-wheels-staging-nightly'  # 👈 Default
         options:
-          - 'scikit-plots-wheels-staging-nightly'  # Default *.whl source
           - 'scikit-plots-wheels-staging'
+          - 'scikit-plots-wheels-staging-nightly'  # Default *.whl source
       pypi_repo:  # Specify whether to publish to TestPyPI or PyPI
         description: 'Repository to upload to (test.pypi or pypi)'
-        required: true           # 👈 This makes the input mandatory
-        default: 'test.pypi'      # 👈 Default is still used if user doesn't change it
+        required: true            # 👈 This makes the input mandatory
         type: choice
+        default: 'test.pypi'      # 👈 Default is still used if user doesn't change it
         options:
-          - 'test.pypi'  # Default to TestPyPI for safety
           - 'pypi'
+          - 'test.pypi'  # Default to TestPyPI for safety
       version:  # Specify the version of the package to upload
         description: 'Version to upload to PyPI (e.g., 1.0.0)'
-        required: true           # 👈 This makes the input mandatory
-        default: '0.4.0rc2'      # 👈 Default is still used if user doesn't change it
+        required: true  # 👈 This makes the input mandatory
+        default: '0.4.0.post1'  # 👈 Default is still used if user doesn't change it
         type: choice
         options:
-          - '0.4.0.dev0'
-          - '0.4.0.dev1'
-          - '0.4.0rc0'
-          - '0.4.0rc1'
-          - '0.4.0rc2'
-          - '0.4.0rc3'
-          - '0.4.0rc4'
-          - '0.4.0rc5'
-          - '0.4.0'
-          - '0.4.1.dev0'
-          - '0.4.1.dev1'
+          # 0.3.7
+          - '0.3.7.post0'
+          - '0.3.7.post1'
+          # 0.3.8
+          - '0.3.8.post0'
+          - '0.3.8.post1'
+          # 0.3.9
+          - '0.3.9.post0'
+          - '0.3.9.post1'
+          # 0.4.0
+          - '0.4.0.post1'  # 👈
+          - '0.4.0.post2'
+          # 0.4.1
           - '0.4.1rc0'
-          - '0.4.1rc1'
           - '0.4.1'
-          - '0.5.0.dev0'
-          - '0.5.0.dev1'
+          - '0.4.1.post0'
+          - '0.4.1.post1'
+          # 0.4.2
+          - '0.4.2rc0'
+          - '0.4.2'
+          - '0.4.2.post0'
+          - '0.4.2.post1'
+          # 0.5.0
           - '0.5.0rc0'
-          - '0.5.0rc1'
           - '0.5.0'
-          - '0.5.1.dev0'
-          - '0.5.1.dev1'
+          - '0.5.0.post0'
+          - '0.5.0.post1'
+          # 0.5.1
           - '0.5.1rc0'
-          - '0.5.1rc1'
           - '0.5.1'
+          - '0.5.1.post0'
+          - '0.5.1.post1'
+          # dev
+          - '0.5.dev0'
 
 ## Top-level permissions (outside jobs)
 ## Job-level permissions (inside a specific job)
