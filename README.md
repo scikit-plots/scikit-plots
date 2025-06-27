@@ -272,7 +272,7 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 
 <hr>
 
-<h3>
+<h2>
   📁 From Source
   Installation by
   <code>Archive</code>
@@ -280,7 +280,7 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     <code>GIT Clone</code>
   </a>
-</h3>
+</h2>
 
 <h4>🐍 Pitfalls:</h4>
 
@@ -299,8 +299,8 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
   are also available for direct installation via <code>PyPI (sdist)</code>, if applicable.</li>
 </ul>
 
-<h4>
-  - by
+<h3>
+  - By
   <a href="https://pypi.org/project/scikit-plots/#files" target="_blank" rel="noopener noreferrer">
     Source Distribution (<code>.tar.gz</code>)
   </a>
@@ -310,7 +310,7 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
      rel="noopener noreferrer">
     required build dependencies
   </a>)
-</h4>
+</h3>
 
 ```sh
 ## pip install package	Installs wheel (.whl) if available, else source
@@ -324,8 +324,8 @@ pip install --no-binary=scikit-plots scikit-plots
 pip install --no-binary=:all: scikit-plots
 ```
 
-<h4>
-  - by
+<h3>
+  - By
   <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
     <code>GITHUB Source Code Archive URLs</code>:
   </a>
@@ -336,7 +336,7 @@ pip install --no-binary=:all: scikit-plots
      rel="noopener noreferrer">
     required build dependencies
   </a>)
-</h4>
+</h3>
 
 <p>
   Source code archives are available at specific URLs for each repository.
@@ -347,8 +347,8 @@ pip install --no-binary=:all: scikit-plots
   .
 </p>
 
-<h4>
-  - by
+<h3>
+  - By
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     <code>GitHub Source Code Repository Cloned</code>:
   </a>
@@ -358,7 +358,7 @@ pip install --no-binary=:all: scikit-plots
      rel="noopener noreferrer">
     required build dependencies
   </a>)
-</h4>
+</h3>
 
 ```sh
 ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
@@ -387,9 +387,9 @@ pip install -r ./requirements/build.txt
 pip install --no-cache-dir -e . -v
 ```
 
-<h4>
-  - It is also possible to include optional dependencies:
-</h4>
+<h2>
+  🧊🔧 It is also possible to include optional dependencies:
+</h2>
 
 ```sh
 ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
