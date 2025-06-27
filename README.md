@@ -327,6 +327,19 @@ pip install --no-binary=:all: scikit-plots
 <h3>
   - By
   <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
+    <code>GITHUB Source Code</code>:
+  </a>
+  (with
+  <a href="https://scikit-plots.github.io/dev/install/dependencies.html#build-dependencies"
+     target="_blank"
+     rel="noopener noreferrer">
+    required build dependencies
+  </a>)
+</h3>
+
+<h4>
+  - by
+  <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
     <code>GITHUB Source Code Archive URLs</code>:
   </a>
   ( <code>.zip</code> or <code>.tar.gz</code> )
@@ -336,7 +349,7 @@ pip install --no-binary=:all: scikit-plots
      rel="noopener noreferrer">
     required build dependencies
   </a>)
-</h3>
+</h4>
 
 <p>
   Source code archives are available at specific URLs for each repository.
@@ -347,8 +360,8 @@ pip install --no-binary=:all: scikit-plots
   .
 </p>
 
-<h3>
-  - By
+<h4>
+  - by
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     <code>GitHub Source Code Repository Cloned</code>:
   </a>
@@ -358,7 +371,7 @@ pip install --no-binary=:all: scikit-plots
      rel="noopener noreferrer">
     required build dependencies
   </a>)
-</h3>
+</h4>
 
 ```sh
 ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
