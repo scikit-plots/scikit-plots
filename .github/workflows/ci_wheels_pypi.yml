@@ -127,11 +127,30 @@ jobs:
             scikit-plots \
             https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/
 
+      # ✅ Step 5: Dry run — list Pyodide/WASM wheels to be removed
+      - name: "[Dry Run] Show Pyodide/WASM wheels that would be deleted"
+        run: |
+          echo "Dry Run: These files match *pyodide*.whl or *wasm*.whl:"
+          find dist/ -type f \( -name '*pyodide*.whl' -o -name '*wasm*.whl' \) -print || echo "No matching files found."
+
+      # ✅ Step 6: Remove unsupported Pyodide/WASM wheels
+      - name: Remove Pyodide/WASM wheels from dist/
+        run: |
+          echo "Removing unsupported pyodide/wasm wheels from dist/"
+          find dist/ -type f \( -name '*pyodide*.whl' -o -name '*wasm*.whl' \) -print -delete || echo "Nothing to delete."
+
+      # ✅ Step 7: List remaining valid files
+      - name: List downloaded files in dist/
+        run: |
+          echo "Contents of dist/ directory:"
+          # ls -lh dist/
+          ls -lhtr dist/
+
       # - name: Check dist has the correct number of artifacts
       #   run: |
       #     python build_tools/github/check_wheels.py
 
-      # Step 5a: Publish the package to TestPyPI (if selected)
+      # Step 8a: Publish the package to TestPyPI (if selected)
       - name: Publish package distributions to TestPyPI
         if: ${{ github.event.inputs.pypi_repo == 'test.pypi' }}
         ## https://docs.pypi.org/trusted-publishers/adding-a-publisher/
@@ -142,7 +161,7 @@ jobs:
           print-hash: true
           repository-url: https://test.pypi.org/legacy/  # Change to TestPyPI if needed
 
-      # Step 5b: Publish the package to PyPI (if selected)
+      # Step 8b: Publish the package to PyPI (if selected)
       - name: Publish package distributions to  PyPI
         if: ${{ github.event.inputs.pypi_repo == 'pypi' }}
         ## https://docs.pypi.org/trusted-publishers/adding-a-publisher/

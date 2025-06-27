@@ -93,16 +93,17 @@ clean: clean_basic
 	@rm -rf $(BUILDDIR)/*
 	@echo "Removed $(BUILDDIR)/*"
 	@rm -rf $(SOURCEDIR)/css/styles/
-	@echo "Removed $(SOURCEDIR)/css/styles/"
-	@rm -rf "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/devel/guide_maintainer.rst" "$(SOURCEDIR)/api{,s}/*.rst"
-	@echo "Removed "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/devel/guide_maintainer.rst" "$(SOURCEDIR)/api{,s}/*.rst" "
-	@rm -rf $(SOURCEDIR)/auto_examples/
-	@echo "Removed $(SOURCEDIR)/auto_examples/"
-	@rm -rf $(SOURCEDIR)/modules/generated/ $(SOURCEDIR)/generated/
-	@echo "Removed $(SOURCEDIR)/modules/generated/ $(SOURCEDIR)/generated/"
-	@rm -rf $(SOURCEDIR)/jupyterlite_contents/
+	@echo "Removed "$(SOURCEDIR)/css/styles/""
+	@rm -rf "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/api{,s}/*.rst"
+	@rm -rf "$(SOURCEDIR)/devel/index.rst" "$(SOURCEDIR)/devel/guide_maintainer.rst"
+	@echo "Removed "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/devel/guide_maintainer.rst" "$(SOURCEDIR)/api{,s}/*.rst""
+	@rm -rf "$(SOURCEDIR)/auto_examples/" "$(SOURCEDIR)/sg_execution_times.rst"
+	@echo "Removed "$(SOURCEDIR)/auto_examples/" "$(SOURCEDIR)/sg_execution_times.rst""
+	@rm -rf "$(SOURCEDIR)/modules/generated/" "$(SOURCEDIR)/generated/"
+	@echo "Removed "$(SOURCEDIR)/modules/generated/" "$(SOURCEDIR)/generated/""
+	@rm -rf "$(SOURCEDIR)/jupyterlite_contents/"
 	@echo "Removed $(SOURCEDIR)/jupyterlite_contents/"
-	@rm -rf $(SOURCEDIR)/_tags/
+	@rm -rf "$(SOURCEDIR)/_tags/"
 	@echo "Removed $(SOURCEDIR)/_tags/"
 
 # Define a target to get the absolute path

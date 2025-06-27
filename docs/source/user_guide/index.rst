@@ -54,6 +54,15 @@ User Guide
 
             ./decile_wise_perf/index.rst
 
+    .. grid-item-card::
+        :padding: 3
+
+        **Logging System**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./sp_logging/index.rst
 
     .. grid-item-card::
         :padding: 3
@@ -78,32 +87,22 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **DoReMi**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./doremi/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Logging System**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./sp_logging/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
         **Dispatching**
         ^^^
         .. toctree::
             :maxdepth: 2
 
             ./_lib/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **DoReMi**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./doremi/index.rst
 
 
 .. _under-development:
@@ -116,9 +115,9 @@ Under Development
    :maxdepth: 1
    :titlesonly:
 
-   ./_astropy/index.rst
    ./experimental/index.rst
-   ./_seaborn/index.rst
    ./probscale/index.rst
+   ./_astropy/index.rst
+   ./_seaborn/index.rst
    ./_tweedie/index.rst
    ./__lightnumpy/index.rst

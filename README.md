@@ -65,12 +65,25 @@
 <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
 <img style="display:auto;width:auto;height:17px;" alt="Zenodo DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
 </a> -->
+
+<!-- https://img.shields.io -->
 <p align="center">
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="PyPI Status" height="17" src="https://img.shields.io/pypi/v/scikit-plots">
   </a>
+  <!-- Daily, Weekly, or Monthly downloads -->
+  <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
+    <img alt="PyPI Downloads" height="17" src="https://img.shields.io/pypi/dm/scikit-plots?label=PyPI%20Downloads">
+  </a>
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="Anaconda Nightly Wheels Status" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg">
+  </a>
+  <!-- <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <img alt="Conda Downloads" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg">
+  </a> -->
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <img alt="Conda Nightly Downloads" height="17" src="https://img.shields.io/conda/dn/scikit-plots-wheels-staging-nightly/scikit-plots?label=Conda%20Nightly%20Downloads
+    ">
   </a>
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank" rel="noopener noreferrer">
     <img alt="Anaconda Nightly Release Date" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
@@ -93,6 +106,9 @@
   <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
     <img alt="Ruff" height="17" src="https://img.shields.io/badge/code%20style-ruff-000000.svg">
   </a>
+  <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
+    <img alt="Typing" height="17" src="https://img.shields.io/pypi/types/scikit-plots">
+  </a>
   <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="Coverage Status" height="17" src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
   </a>
@@ -101,6 +117,9 @@
   </a>
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="pyversions" height="17" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
+  </a>
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <img alt="license" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg">
   </a>
 </p>
 </div>
