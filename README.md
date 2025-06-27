@@ -116,7 +116,7 @@
 
 <p> The quickest and easiest way to go from analysis... </p>
 
-<h2> Documentation, Examples and Try|Install Scikit-plots </h2>
+<h2> 📘 Documentation, Examples and Try|Install Scikit-plots </h2>
 
 <h5>Explore the full features of Scikit-plots:
   <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">
@@ -127,11 +127,18 @@
 
 <hr>
 
-<h1> User Installation: </h1>
+<h1> 🐛 User Installation: </h1>
 
-<h2> PIP Installation by
+<h2>
+  📦 From
+  <code>PIP</code>
+  Installation by
   <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
     <code>pypi</code>
+  </a>
+  ,
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>pypi.anaconda.org</code>
   </a>
   or
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
@@ -170,7 +177,7 @@ conda activate py311
 <hr>
 
 <h3>
-  - by
+  - By
   <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
     <code>pypi</code>:
   </a>
@@ -184,7 +191,7 @@ pip install scikit-plots
 <hr>
 
 <h3>
-  - by
+  - By
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <code>pypi.anaconda.org</code>
   </a>
@@ -213,11 +220,10 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 <hr>
 
 <h3>
-  - From
+  - By
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     <code>GITHUB</code>:
   </a>
-  use
   <code>@&lt;branch&gt;</code>
   ,
   <code>@&lt;tag&gt;</code>
@@ -232,6 +238,7 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
     <code>GITHUB</code>
   </a>
   Branches:
+  <code>@&lt;branch&gt;</code>
 </h4>
 
 ```bash
@@ -253,6 +260,7 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3
     <code>GITHUB</code>
   </a>
   Tags:
+  <code>@&lt;tag&gt;</code>
 </h4>
 
 ```bash
@@ -264,12 +272,76 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 
 <hr>
 
+<h3>
+  📁 From Source
+  Installation by
+  <code> Archive</code>
+  or
+  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>GIT Clone</code>
+  </a>
+  (with
+  <a href="https://scikit-plots.github.io/dev/install/dependencies.html#build-dependencies"
+     target="_blank"
+     rel="noopener noreferrer">
+    required build dependencies
+  </a>)
+</h3>
+
+<h4>🐍 Pitfalls:</h4>
+
+<ul>
+  <li>💡 You can download
+  <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
+    <code>GitHub Source Code Archives</code> (<code>.zip</code> or <code>.tar.gz</code>)
+  </a>
+  by specifying a <code>branch</code>, <code>tag</code>, or a specific <code>commit ID</code>.</li>
+  <li>🛠️ After unzipping the <code>GitHub Source Code Archive</code> (similar to cloning), remember require to run <code>git submodule update</code> to initialize submodules.</li>
+  <li>🔄 Alternatively, you can install <code>scikit-plots</code> directly from the <code>GitHub Source Code Repository</code> to access the latest updates.</li>
+  <li>↔️ Alternatively,
+  <a href="https://pypi.org/project/scikit-plots/#files" target="_blank" rel="noopener noreferrer">
+    Source Distribution (<code>.tar.gz</code>)
+  </a>
+  are also available for direct installation via <code>PyPI (sdist)</code>, if applicable.</li>
+</ul>
+
+<h4>
+  - by
+  <a href="https://pypi.org/project/scikit-plots/#files" target="_blank" rel="noopener noreferrer">
+    Source Distribution (<code>.tar.gz</code>)
+  </a>
+  (with/without
+  <a href="https://scikit-plots.github.io/dev/install/dependencies.html#build-dependencies"
+     target="_blank"
+     rel="noopener noreferrer">
+    required build dependencies
+  </a>)
+</h4>
+
+```sh
+## pip install package	Installs wheel (.whl) if available, else source
+## pip install --no-binary=package package  # Forces source installation only the specified package
+pip install --no-binary=scikit-plots scikit-plots
+```
+
+```sh
+## pip install --no-binary=:all: package  # Forces source installation for Package + all dependencies
+## This forces scikit-plots and all its dependencies to be installed from source (from .tar.gz).
+pip install --no-binary=:all: scikit-plots
+```
+
 <h4>
   - by
   <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
-    <code>GITHUB Source Code Archive URLs</code>
-    ( <code>.zip</code> or <code>.tar.gz</code> )
+    <code>GITHUB Source Code Archive URLs</code>:
   </a>
+  ( <code>.zip</code> or <code>.tar.gz</code> )
+  (with
+  <a href="https://scikit-plots.github.io/dev/install/dependencies.html#build-dependencies"
+     target="_blank"
+     rel="noopener noreferrer">
+    required build dependencies
+  </a>)
 </h4>
 
 <p>
@@ -281,28 +353,18 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
   .
 </p>
 
-<p>
-  You can download the source code by referencing a <code>branch</code>, <code>tag</code>, or specific <code>commit ID</code>.
-</p>
-
-<p>
-  Alternatively, <code>Source Code Archive(s) (.zip or .tar.gz)</code> (also available on <code>PyPI</code>, if applicable):
-</p>
-
-<hr>
-
-<h3>
-  Installing from Cloned Source (with
+<h4>
+  - by
+  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>GitHub Source Code Repository Cloned</code>:
+  </a>
+  (with
   <a href="https://scikit-plots.github.io/dev/install/dependencies.html#build-dependencies"
      target="_blank"
      rel="noopener noreferrer">
     required build dependencies
   </a>)
-</h3>
-
-<h5>
-  Alternatively, you can install <code>scikit-plots</code> directly from the source repository to benefit from the most recent changes:
-</h5>
+</h4>
 
 ```sh
 ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
