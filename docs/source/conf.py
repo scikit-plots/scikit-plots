@@ -148,10 +148,13 @@ else:
     # for dev sp.version.full_version or sp.version.short_version
     release = _version_raw.split("+")[0].strip()  # without git section, If any
 
+_is_devrelease = _version_parsed.is_devrelease
+
 # debug that building expected version
-logger.info("scikit-plots raw    : %s " % _version_raw)
-logger.info("scikit-plots version: %s " % version)
-logger.info("scikit-plots release: %s " % release)
+logger.info("scikit-plots raw          : %s " % _version_raw)
+logger.info("scikit-plots version      : %s " % version)
+logger.info("scikit-plots release      : %s " % release)
+logger.info("scikit-plots is_devrelease: %s " % _is_devrelease)
 if release is None:
     raise ValueError(
         f"Ill-formed version: {_version_raw!r}. Version should follow PEP440"
@@ -167,7 +170,6 @@ if release is None:
 ##########################################################################
 
 # binder_branch
-_is_devrelease = _version_parsed.is_devrelease
 if _is_devrelease:
     gh_branch = "main"
 else:
@@ -687,7 +689,7 @@ html_theme_options = {
         # the stable and devdocs.
         # "json_url": "https://scikit-plots.github.io/dev/_static/versions.json",
         "json_url": "https://scikit-plots.github.io/dev/_static/switcher.json",
-        "version_match": release,  # without git section
+        "version_match": release,  # without git section choose by release
     },
     # check_switcher may be set to False if docbuild pipeline fails. See
     # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html#configure-switcher-json-url

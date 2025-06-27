@@ -196,15 +196,16 @@ def setup(app: Sphinx):
     try:
         # The full version, including alpha/beta/rc tags.
         # version = getattr(app.config, 'version', __version__)
+        # if parse(__version__).is_devrelease
         if any(
             st in __version__
             for st in (
-                "dev",
-                "a",
-                "alpha",
-                "b",
-                "beta",
-                "post",
+                "dev",  # only devrelease
+                # "a",
+                # "alpha",
+                # "b",
+                # "beta",
+                # "post",
             )
         ):
             bulid_type = "dev"
