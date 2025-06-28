@@ -54,6 +54,21 @@ Installing the latest release
     }
   </style>
 
+..
+    # Code syntax
+    :: >>>
+    python, r, c, cpp, sql, bash, shell, make, cmake, docker,
+    html, markdown, javascript, json, yaml, toml, ini, diff, text, etc.
+    .. 	General-purpose code (highlighting only)
+    .. code-block:: python
+    .. 'sphinx_prompt' Simulates interactive terminal prompts
+    .. prompt:: bash $
+    .. prompt:: python >>>
+    .. prompt:: ipython In [1]:
+    .. prompt:: sh $
+    .. prompt:: powershell PS C:\>
+    .. prompt:: docker root@container:~#
+
 .. div:: install-instructions
 
   .. tab-set::
@@ -77,9 +92,7 @@ Installing the latest release
           Note that the virtual environment is optional but strongly recommended, in
           order to avoid potential conflicts with other packages.
 
-          .. .. code-block:: python
-
-          .. prompt:: powershell >>> auto
+          .. prompt:: powershell
 
             python -m venv sklearn-env
             sklearn-env\Scripts\activate  # (or dot .) activate
@@ -87,7 +100,7 @@ Installing the latest release
 
           In order to check your installation, you can use:
 
-          .. prompt:: powershell >>> auto
+          .. prompt:: powershell
 
             python -m pip show scikit-plots  # show scikit-plots version and location
             python -m pip freeze             # show all installed packages in the environment
@@ -107,7 +120,7 @@ Installing the latest release
           Python 3 is usually installed by default on most Linux distributions. To
           check if you have it installed, try:
 
-          .. prompt:: bash >>> auto
+          .. prompt:: bash
 
             python3 --version
             pip3 --version
@@ -120,7 +133,7 @@ Installing the latest release
           Note that the virtual environment is optional but strongly recommended, in
           order to avoid potential conflicts with other packages.
 
-          .. prompt:: bash >>> auto
+          .. prompt:: bash
 
             python3 -m venv sklearn-env
             source sklearn-env/bin/activate  # (or dot .) activate
@@ -128,7 +141,7 @@ Installing the latest release
 
           In order to check your installation, you can use:
 
-          .. prompt:: bash >>> auto
+          .. prompt:: bash
 
             python3 -m pip show scikit-plots  # show scikit-plots version and location
             python3 -m pip freeze             # show all installed packages in the environment
@@ -154,7 +167,7 @@ Installing the latest release
           Note that the virtual environment is optional but strongly recommended, in
           order to avoid potential conflicts with other packages.
 
-          .. prompt:: bash >>> auto
+          .. prompt:: bash
 
             python -m venv sklearn-env
             source sklearn-env/bin/activate  # (or dot .) activate
@@ -162,7 +175,7 @@ Installing the latest release
 
           In order to check your installation, you can use:
 
-          .. prompt:: bash >>> auto
+          .. prompt:: bash
 
             python -m pip show scikit-plots  # show scikit-plots version and location
             python -m pip freeze             # show all installed packages in the environment

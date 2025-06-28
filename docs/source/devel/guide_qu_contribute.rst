@@ -91,33 +91,59 @@ and hitting the ``Fork`` button.
 
 Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your machine:
 
-.. code-block:: shell
+..
+    # Code syntax
+    :: >>>
+    python, r, c, cpp, sql, bash, shell, make, cmake, docker,
+    html, markdown, javascript, json, yaml, toml, ini, diff, text, etc.
+    .. 	General-purpose code (highlighting only)
+    .. code-block:: python
+    .. 'sphinx_prompt' Simulates interactive terminal prompts
+    .. prompt:: bash $
+    .. prompt:: python >>>
+    .. prompt:: ipython In [1]:
+    .. prompt:: sh $
+    .. prompt:: powershell PS C:\>
+    .. prompt:: docker root@container:~#
+
+.. prompt:: bash
 
     ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
     git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
     cd scikit-plots
 
 
-Initialize and Fetch Submodules (Not Needed Every Time):
---------------------------------------------------------
+Initialize and Fetch Submodules:
+--------------------------------
 
-.. code-block:: shell
+.. note::
 
+    Not Needed Every Time.
+
+.. prompt:: bash
+
+    ## (Recommended) Add in git safe dirs
     ## Or use `git config ...` to add `scikit-plots` in git safe dirs
-    bash docker/script/safe_dirs.sh  # add safe directories for git
+    # bash docker/script/safe_dirs.sh  # add safe directories for git
+    git config --global --add safe.directory '*'
 
-    ## Initialize and clone any missing submodules, set up the working tree
+.. prompt:: bash
+
+    ## (Recommended) Initialize and clone any missing submodules, set up the working tree
     ## Almost always used after cloning a repo with submodules.
     git submodule update --init --recursive
 
-    ## Update submodules to the latest commit on their configured remote branch
+.. prompt:: bash
+
+    ## (if Necessary) Update submodules to the latest commit on their configured remote branch
     ## Used when you want your submodules to move to their latest remote commit.
     git submodule update --remote --recursive # (not needed every time)
 
 Adding and Fetching Upstream Remote:
 
-.. code-block:: shell
+.. prompt:: bash
 
+    ## (Recommended) Add remote upstream
     git remote add upstream https://github.com/scikit-plots/scikit-plots.git
     git fetch upstream --tags
 
@@ -126,7 +152,10 @@ This creates the directory ``scikit-plots`` and connects your repository to the 
 
 You can see the remote repositories as follows::
 
-    >>> git remote --verbose
+.. prompt:: bash
+
+    ## (Recommended) Check remote upstream
+    git remote --verbose
 
 You will see something like::
 
@@ -164,13 +193,18 @@ If you do not already have ``conda`` installed, `download and install miniforge
 your system but the end result is to provide a ``conda`` executable that you can use
 to create and manage isolated Python environments.
 
-Now create and activate an ``py311`` conda environment using the following::
+Now create and activate an ``py311`` conda environment using the following:
 
-   >>> # (Optionally) Docker also created env `py311` ready to use
-   >>> # (Optionally) Can be run on mamba (or conda) `conda base` or `venv` env
-   >>> conda info -e
-   >>> mamba create -n py311 python=3.11 ipykernel graphviz -y
-   >>> conda activate py311
+.. prompt:: bash
+
+    ## (Recommended) Check Docker also can be created env `py311` to use
+    conda info -e
+    conda activate py311
+
+.. prompt:: bash
+
+    ## (Recommended) Can be run on mamba (or conda) `conda base` or `venv` env
+    mamba create -n py311 python=3.11 ipykernel graphviz -y
 
 Note the ``graphviz`` package is required for building the documentation.
 
@@ -181,32 +215,50 @@ Now you can install the development version of ``scikit-plots`` into your new en
 will install the latest version of ``scikit-plots`` from your local git repo, along with
 all the dependencies needed to build and fully test ``scikit-plots``::
 
-   >>> ## (Optionally) setup one line scikit-plots development version
-   >>> make dev
+   >>> ## (if Necessary) setup one line scikit-plots development version
+   >>> # make dev
 
-   >>> ## Setup scikit-plots lib dep
-   >>> # pip install -r ./requirements/all.txt
-   >>> # pip install -r ./requirements/cpu.txt
-   >>> pip install -r ./requirements/build.txt
+.. prompt:: bash
 
-   >>> ## Setup scikit-plots lib dep
-   >>> pip install --no-build-isolation --no-cache-dir -e . -v
+   ## (Recommended) Setup scikit-plots lib dep
+   # pip install -r ./requirements/build.txt
+   # pip install -r ./requirements/cpu.txt
+   pip install -r ./requirements/all.txt
 
-   >>> ## (Optionally) It is also possible to include optional dependencies:
-   >>> ## cpu refer tensorflow-cpu, keras, transformers
-   >>> python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
+.. prompt:: bash
+
+   ## (Recommended) Setup scikit-plots lib
+   pip install --no-build-isolation --no-cache-dir -e . -v
+
+.. prompt:: bash
+
+   ## (Optionally) It is also possible to include optional dependencies:
+   ## cpu refer tensorflow-cpu, keras, transformers
+   python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
 
 .. _contributing_check_build:
 
 Checking the build scikit-plots
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-At this point you should be able to ``import scikitplot`` from your locally built version::
+At this point you should be able to ``import scikitplot`` from your locally built version:
 
-   >>> python -c 'import scikitplot; scikitplot.show_config()'
+.. prompt:: bash
 
-   >>> ## Checking the build without root
-   >>> bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
+   ## Checking the build without root
+   bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
+
+.. prompt:: bash
+
+   ## Checking version
+   python -c 'import scikitplot; scikitplot.show_config()'
+
+.. prompt:: bash
+
+   ## Checking version
+   scikitplot --version
+   scikitplot -V
+   scikitplot -v
 
 Next you may want to try running some or all of the ``scikitplot`` unit tests.
 Running the full test suite can take a few minutes, so you may want to start with a
@@ -239,18 +291,18 @@ resulting in lost time (yours and CI resources).
     >>> ## It triggered when committing `git commit ...` if pass then next pushing changes
     >>> pre-commit install
 
-(Optionally) Manually one-by-one testing (not needed every time)::
+(if Necessary) Manually one-by-one testing (not needed every time)::
 
-    >>> ## (Optionally) Manually one-by-one testing:
+    >>> ## (if Necessary) Manually one-by-one testing:
     >>> ## If the test is successful one by one
     >>> ## but there is an error in the entire test, check the inconsistency
     >>> # pre-commit run ruff-format --verbose # (with `--all-files` option not recommended)
     >>> pre-commit run ruff
     >>> pre-commit run black
 
-(Optionally) Update and reinstall pre-commit hooks (not needed every time)::
+(if Necessary) Update and reinstall pre-commit hooks (not needed every time)::
 
-    >>> ## (Optionally) Update and reinstall pre-commit hooks (not needed every time), If Needed
+    >>> ## (if Necessary) Update and reinstall pre-commit hooks (not needed every time), If Needed
     >>> pre-commit autoupdate  # (not needed every time)
     >>> pre-commit clean && pre-commit install
     >>> pre-commit run # (with `--all-files` option not recommended)
@@ -260,6 +312,18 @@ the CI formatting checks for your :ref:`pull request <quickstart_pull_request>` 
 pass.
 
 .. tip:: To learn more about pre-commit, see the :ref:`pre-commit` section.
+
+▶️ Quick check `first-run-notice.txt`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt>`_
+
+.. dropdown:: first-run-notice.txt
+   :open:
+   :class-container: sdd
+
+   .. literalinclude:: ../../../docker/script/first-run-notice.txt
+      :language: none
 
 .. _contributing_pull_request:
 
@@ -316,7 +380,7 @@ Use when you have no local commits diverging from upstream/main::
              \
               X---Y  (local main)  ❌ (Fast-forward not possible)
 
-(Optionally) Rebases:
+(if Necessary) Rebases:
 ----------------------
 
 - Rebases your local commits on top of the latest upstream/main
@@ -404,14 +468,14 @@ code or documentation! At a high level this breaks into a few parts:
 
 You can see a summary of the changes you've currently made by running:
 
-.. code-block:: shell
+.. prompt:: bash
 
     git status
 
 You can then commit your all your changes to your local repository with an explanatory
 `commit message <https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html>`_:
 
-.. code-block:: shell
+.. prompt:: bash
 
     git add files-that-you-changed ...
     git commit -m "your commit message goes here"

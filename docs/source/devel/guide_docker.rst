@@ -138,19 +138,14 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 ▶️ Run post_create_commands.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: sh
+`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt>`_
 
-   ##👉 (recommended) Only Installed by `Codespaces default` option
-   ##✅ directories to mark as safe
-   ##✅ fetching submodules
-   ##✅ add remote upstream
-   ##✅ fetch tags from upstream
-   ##✅ create a new environment with python 3.11
-   ##✅ install required packages
-   ##✅ install pre-commit hooks
-   ##✅ install the development version of scikit-plots
-   # bash .devcontainer/script/post_create_commands.sh  # (not needed every time)
-   bash docker/script/post_create_commands.sh  # (not needed every time)
+.. dropdown:: first-run-notice.txt
+   :open:
+   :class-container: sdd
+
+   .. literalinclude:: ../../../docker/script/first-run-notice.txt
+      :language: none
 
 🚯 Stop Containers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

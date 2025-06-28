@@ -114,18 +114,22 @@ bash docker/script/setup_vscode_ext.sh  # (not needed every time)
 
 ### ▶️ Run post_create_commands.sh
 
+[See Also: first-run-notice.txt](https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt)
+
 ```sh
-##👉 (recommended) Only Installed by `Codespaces default` option
-##✅ directories to mark as safe
-##✅ fetching submodules
-##✅ add remote upstream
-##✅ fetch tags from upstream
-##✅ create a new environment with python 3.11
-##✅ install required packages
-##✅ install pre-commit hooks
-##✅ install the development version of scikit-plots
-# bash .devcontainer/script/post_create_commands.sh  # (not needed every time)
-bash docker/script/post_create_commands.sh  # (not needed every time)
+##🛠️ (recommended) Apply in bash `post_create_commands.sh`
+## 👉 Only Installed with option `DevContainer Pre-ins (default)`.
+## 👉 Some steps can be skipped when container creation due to storage size limitations
+## ⚠️ `: No space left on device`
+##✅ directories to mark as safe like ( git config --global --add safe.directory '*' )
+##✅ fetching submodules ( git submodule update --init )
+##✅ add remote upstream ( git remote add upstream https://github.com/scikit-plots/scikit-plots.git )
+##✅ fetch tags from upstream ( git fetch upstream --tags )
+##✅ create a new environment with python 3.11 ( mamba create -n "py311" python=3.11 ipykernel -y )
+##✅ install required packages ( pip install -r ./requirements/all.txt )
+##✅ install pre-commit hooks ( pre-commit install )
+##✅ install the development version of scikit-plots ( pip install --no-build-isolation --no-cache-dir -e . )
+bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
 ```
 
 ### 🚯 Stop Containers

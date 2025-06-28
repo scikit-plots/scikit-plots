@@ -10,24 +10,29 @@
 
     ##💽 (Optionally) Memory size: df -h && du -h --max-depth=1
 
-    ##👉 (recommended) Only Installed by `Codespaces default` option
-    ##✅ directories to mark as safe
-    ##✅ fetching submodules
-    ##✅ add remote upstream
-    ##✅ fetch tags from upstream
-    ##✅ create a new environment with python 3.11
-    ##✅ install required packages
-    ##✅ install pre-commit hooks
-    ##✅ install the development version of scikit-plots
+    ##🛠️ (recommended) Apply in bash `post_create_commands.sh`
+    ## 👉 Only Installed with option `DevContainer Pre-ins (default)`.
+    ## 👉 Some steps can be skipped when container creation due to storage size limitations
+    ## ⚠️ `: No space left on device`
+    ##✅ directories to mark as safe like ( git config --global --add safe.directory '*' )
+    ##✅ fetching submodules ( git submodule update --init )
+    ##✅ add remote upstream ( git remote add upstream https://github.com/scikit-plots/scikit-plots.git )
+    ##✅ fetch tags from upstream ( git fetch upstream --tags )
+    ##✅ create a new environment with python 3.11 ( mamba create -n "py311" python=3.11 ipykernel -y )
+    ##✅ install required packages ( pip install -r ./requirements/all.txt )
+    ##✅ install pre-commit hooks ( pre-commit install )
+    ##✅ install the development version of scikit-plots ( pip install --no-build-isolation --no-cache-dir -e . )
     bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
 
     ##👉 Open to new terminal mamba (or conda)
+    conda info -e
     mamba activate py311
 
     ##✅ Checking the build without root
     bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
 
     ##✅ Install tensorflow-cpu, if needed
+    pip install -r ./requirements/all.txt
     pip install -r ./requirements/cpu.txt
 
     ##✍ Continue to creating a branch

@@ -8,24 +8,39 @@
   .. warning::
       Not Implemented...
 
+..
+    # Code syntax
+    :: >>>
+    python, r, c, cpp, sql, bash, shell, make, cmake, docker,
+    html, markdown, javascript, json, yaml, toml, ini, diff, text, etc.
+    .. 	General-purpose code (highlighting only)
+    .. code-block:: python
+    .. 'sphinx_prompt' Simulates interactive terminal prompts
+    .. prompt:: bash $
+    .. prompt:: python >>>
+    .. prompt:: ipython In [1]:
+    .. prompt:: sh $
+    .. prompt:: powershell PS C:\>
+    .. prompt:: docker root@container:~#
+
 Install conda using the
 `miniforge installers <https://github.com/conda-forge/miniforge#miniforge>`__ (no
 administrator permission required). Then run:
 
-.. prompt:: bash >>> auto
+.. prompt:: bash
 
   # (conda or mamba) Create New Env and install ``scikit-plots``
   mamba create -n py311 python=3.11 ipykernel -y
   conda activate py311
 
-.. prompt:: bash >>> auto
+.. prompt:: bash
 
   ## (conda or mamba) Install scikit-plots (Upcoming)
   conda install --yes -c conda-forge scikit-plots
 
 In order to check your installation, you can use:
 
-.. prompt:: bash >>> auto
+.. prompt:: bash
 
   # conda list               # show all installed packages in the environment
   conda list scikit-plots    # show scikit-plots version and location
@@ -40,7 +55,7 @@ In order to check your installation, you can use:
 
 (Optionally) Also available Nightly Version **can be cause conflict** required ``New Environment``:
 
-.. prompt:: bash >>> auto
+.. prompt:: bash
 
   ## (Optionally) Install the lost packages "Runtime dependencies"
   ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
