@@ -1,0 +1,14 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# 🛠 How to Use It
+# -----------------------------------------------------------------------------
+# Minimal base environment with just Python and IPython kernel support
+# -----------------------------------------------------------------------------
+---
+name: py311
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - ipykernel

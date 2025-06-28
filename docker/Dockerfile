@@ -32,6 +32,9 @@ FROM ${BASE_IMAGE}
 ## ARG may specified again because the FROM directive resets ARGs
 ## (but their default value is retained if set previously)
 
+ARG EXTENDED_PACKAGES=false
+ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES}
+
 LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
 ## ARG NB_USER="jovyan"
 ## ARG NB_UID="1000"
@@ -158,11 +161,6 @@ RUN apt-get update --yes \
     tree \
     ## Multimedia tools for matplotlib animations
     ffmpeg \
-    ## Vector graphics editor
-    inkscape \
-    ## Graph visualization software
-    ## Graph visualization software: dot -V
-    graphviz \
     ## image viewer
     imagemagick \
     ## Build tools
@@ -206,33 +204,57 @@ RUN apt-get update --yes \
     libblis-dev \
     ## LAPACK (Linear Algebra PACKage) - library for linear algebra operations
     liblapack-dev \
-    ## General-purpose C++ development
-    ## Boost C++ Libraries - a set of portable C++ source libraries
-    libboost-all-dev \
     ## CPU-Based Parallel Computing (Multithreading & SIMD)
     ## Intel's Parallel Computing C++ Libraries
     ## OpenMP - Open standard for parallel programming on multi-core CPUs.
     libomp-dev \
     ## TBB (Threading Building Blocks) - Intel's Threading Building Blocks for task-based parallelism in C++.
     libtbb-dev \
+    ## Graph visualization software
+    ## Graph visualization software: dot -V
+    graphviz \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
-    || { echo "Failed to install common dependencies"; exit 1; } \
+    || { echo "Failed to install common dependencies"; exit 1; }; \
   ## Install separately and ignore failure
-  ## MKL (Intel Math Kernel Library) - Optimized math library for scientific computing with multi-threading support.
-  && apt-get install --yes --no-install-recommends libmkl-dev || true \
-  ## GPU-Based Parallel Computing
-  ## CUDA – NVIDIA's framework for parallel programming on GPUs.
-  ## OpenCL – Open standard for parallel programming on heterogeneous platforms (CPUs, GPUs, FPGAs).
-  ## ROCm – AMD’s alternative to CUDA for GPU acceleration.
-  ## Vulkan (MoltenVK) – Alternative to OpenGL & CUDA
-  ## Metal Performance Shaders (MPS) – Apple’s GPU Framework
-  ## TensorFlow with Metal Backend (ML-Specific)
-  && fix-permissions "$HOME" \
-  && fix-permissions "$CONDA_DIR" \
+  ## MKL (Intel Math Kernel Library)
+  apt-get install --yes --no-install-recommends libmkl-dev || true; \
   ## Cleanup to reduce image size
-  && apt-get clean \
+  fix-permissions "$HOME" \
+  && fix-permissions "$CONDA_DIR"; \
+  apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   ;
+
+## Add a second conditional RUN block for large or optional packages:
+RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
+    echo "Installing extended packages..."; \
+    ## GPU-Based Parallel Computing
+    ## CUDA – NVIDIA's framework for parallel programming on GPUs.
+    ## OpenCL – Open standard for parallel programming on heterogeneous platforms (CPUs, GPUs, FPGAs).
+    ## ROCm – AMD’s alternative to CUDA for GPU acceleration.
+    ## Vulkan (MoltenVK) – Alternative to OpenGL & CUDA
+    ## Metal Performance Shaders (MPS) – Apple’s GPU Framework
+    ## TensorFlow with Metal Backend (ML-Specific)
+    apt-get update --yes && apt-get install --yes --no-install-recommends \
+        ## General-purpose C++ development
+        ## Boost C++ Libraries - a set of portable C++ source libraries
+        libboost-all-dev \
+        ## MKL (Intel Math Kernel Library) - Optimized math library for scientific computing with multi-threading support.
+        libmkl-dev \
+        ## Graph visualization software
+        ## Graph visualization software: dot -V
+        graphviz \
+        ## Vector graphics editor
+        inkscape \
+    || true; \
+    ## Cleanup to reduce image size
+    fix-permissions "$HOME" \
+    && fix-permissions "$CONDA_DIR"; \
+    apt-get clean \
+    && rm -rf /var/lib/apt/lists/*; \
+  else \
+    echo "Skipping extended packages."; \
+  fi
 
 ######################################################################
 ## (Optionally) GPU dependencies (e.g. NVIDIA)
@@ -268,13 +290,11 @@ RUN mkdir -p /home/$NB_USER/work || true && \
 ## Optionally, Ensure mamba installations (if needed)
 ## RUN conda install -n base conda-forge::mamba -y
 ## RUN conda install -n base -c conda-forge mamba -y
-## Install packages inside the base
+## Install packages inside the env "base" Core/base packages
 # RUN mamba install --yes \
 #     -c defaults \
 #     -c anaconda \
 #     -c conda-forge \
-#     # -c nvidia \
-#     # cuda \
 #     ## jupyter extensions
 #     'notebook>=6.0.3' \
 #     'jupyterhub>=1.1.0' \
@@ -284,20 +304,20 @@ RUN mkdir -p /home/$NB_USER/work || true && \
 #     'ipywidgets' \
 #     'widgetsnbextension' \
 #     ## data manuplation
-#     'requests' \
+#     # 'numpy' \
 #     'scipy' \
 #     'pandas' \
+#     ## data reading/saving
+#     'requests' \
+#     'click' \
+#     'pyyaml' \
 #     'xlrd' \
 #     'openpyxl' \
 #     'pyarrow' \
-#     ## data
-#     'pyyaml' \
-#     'click' \
 #     ## data visualiation
 #     'matplotlib-base' \
 #     'seaborn' \
 #     'pillow' \
-#     'aggdraw' \
 #     ## models
 #     'scikit-learn' \
 #     'statsmodels' \
@@ -309,44 +329,6 @@ RUN mkdir -p /home/$NB_USER/work || true && \
 #     ## model saving
 #     'joblib' \
 #     'h5py' \
-#     ## model tracking
-#     'sqlalchemy' \
-#     'sqlparse' \
-#     'mlflow' \
-#     ## model deploy
-#     'streamlit' \
-#     'fastapi' \
-#     'flask' \
-#     'uvicorn' \
-#     # 'Windows'
-#     'waitress' \
-#     # 'unix'
-#     'gunicorn' \
-#     ## to generate a requirements.txt
-#     'pipreqs' \
-#     # testing
-#     'pytest' \
-#     'hypothesis' \
-#     # development
-#     'setuptools' \
-#     'wheel' \
-#     'build' \
-#     'pre_commit' \
-#     # C/C++ development
-#     'conda-lock' \
-#     'meson' \
-#     'ninja' \
-#     'meson-python' \
-#     'cython' \
-#     'pybind11' \
-#     'pythran' \
-#     # dev
-#     'sphinx' \
-#     'pytest' \
-#     'hypothesis' \
-#     'numpydoc' \
-#     'cython-lint' \
-#     'pandas-stubs' \
 #   ## Clean mamba and fix permissions
 #   && mamba clean --all -f -y || true \
 #   ## Fix permissions as jovyan
@@ -358,20 +340,90 @@ RUN mkdir -p /home/$NB_USER/work || true && \
 #   && rm -rf "$CONDA_DIR/share/jupyter/lab/staging" \
 #   ;
 
+# ## ➕ Add Conditional Install for Extended Packages
+# RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
+#     echo "Installing extended mamba packages..."; \
+#     mamba install --yes \
+#       -c defaults \
+#       -c anaconda \
+#       -c conda-forge \
+#       # -c nvidia \
+#       # cuda \
+#       ## data visualiation
+#       'aggdraw' \
+#       ## model tracking
+#       'mlflow' \
+#       'sqlalchemy' \
+#       'sqlparse' \
+#       ## model deploy
+#       'streamlit' \
+#       'fastapi' \
+#       'flask' \
+#       'uvicorn' \
+#       # 'Windows'
+#       'waitress' \
+#       # 'unix'
+#       'gunicorn' \
+#       # development
+#       'setuptools' \
+#       'wheel' \
+#       'build' \
+#       'pre_commit' \
+#       # C/C++ development
+#       'conda-lock' \
+#       'meson' \
+#       'ninja' \
+#       'meson-python' \
+#       'cython' \
+#       'pybind11' \
+#       'pythran' \
+#       # dev
+#       'sphinx' \
+#       'numpydoc' \
+#       # testing
+#       'hypothesis' \
+#       'pytest' \
+#       'cython-lint' \
+#       'pandas-stubs' \
+#       ## to generate a requirements.txt
+#       'pipreqs' \
+#     && mamba clean --all -f -y || true; \
+#   fi
+
 ## Create conda environment from environment.yml and clean cache
-COPY "./docker/environment.yml" "/tmp/environment.yml"
-# RUN mamba create -n py311 python=3.11 ipykernel -y
-RUN mamba env create -f "/tmp/environment.yml" \
+COPY "./docker/conda_env/environment.yml" "/tmp/environment.yml"
+COPY "./docker/conda_env/base.yml" "/tmp/base.yml"
+COPY "./docker/conda_env/default.yml" "/tmp/default.yml"
+COPY "./docker/conda_env/extended.yml" "/tmp/extended.yml"
+
+# RUN mamba create -n "py311" python=3.11 ipykernel -y
+RUN mamba env create -n "py311" -f "/tmp/base.yml" \
   || { echo "Failed to create environment py311"; exit 1; } \
-  && conda info --env \
+  && conda info --envs
+
+# Update environment with default.yml (always applied)
+RUN mamba env update -n "py311" -f "/tmp/default.yml" \
+  || { echo "Failed to apply default environment"; exit 0; }
+
+# Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true)
+RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
+    echo "Installing extended packages..."; \
+    mamba env update -n "py311" -f "/tmp/extended.yml" \
+    || { echo "Failed to apply extended environment"; exit 0; }; \
+  else \
+    echo "Skipping extended packages."; \
+  fi
+
+# Final cleanup
+RUN conda info --env \
   ## Clean mamba and fix permissions
-  && mamba clean --all -f -y || true \
+  && mamba clean --all -f -y || true; \
   ## Fix permissions as jovyan
   # echo "yourpassword" | sudo chown -R $(whoami):$(id -gn whoami) ~
-  && fix-permissions "/home/${NB_USER}" \
-  && fix-permissions "${CONDA_DIR}" \
+  fix-permissions "/home/${NB_USER}" \
+  && fix-permissions "${CONDA_DIR}"; \
   ## yarn used by Yarn, a JavaScript package manager, to store its cache
-  && rm -rf "/home/${NB_USER}/.cache" \
+  rm -rf "/home/${NB_USER}/.cache" \
   && rm -rf "$CONDA_DIR/share/jupyter/lab/staging" \
   ;
 

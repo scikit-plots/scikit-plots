@@ -1,0 +1,74 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# 🛠 How to Use It
+# -----------------------------------------------------------------------------
+# This file installs optional/extended packages.
+# Use it *after* installing default.yml:
+#
+#   conda env update --name your-env-name --file extended.yml
+#
+# Or create a new environment with both files:
+#   conda create --name my-env
+#   conda env update --name my-env --file default.yml
+#   conda env update --name my-env --file extended.yml
+#
+# Extended includes:
+# - Model tracking (MLflow, SQLAlchemy)
+# - Deployment tools (FastAPI, Streamlit, Gunicorn)
+# - Dev/test/documentation tooling
+# -----------------------------------------------------------------------------
+---
+name: py311
+channels:
+  - conda-forge
+  - anaconda
+  - defaults
+
+dependencies:
+  - python=3.11
+  - ipykernel
+
+  # 🖼️ Additional Visualization
+  # - aggdraw              # Antialiased drawing for PIL
+
+  # 📊 Model Tracking and DB
+  - mlflow               # Model tracking
+  - sqlalchemy           # SQL ORM
+  - sqlparse             # SQL formatting
+
+  # 🚀 Model Deployment
+  - streamlit            # Web apps for ML
+  - fastapi              # Async API framework
+  - flask                # Minimal API framework
+  - uvicorn              # ASGI server for FastAPI
+  - waitress             # WSGI for Windows
+  - gunicorn             # WSGI for Unix
+
+  # ⚙️ Development Tools
+  - setuptools
+  - wheel
+  - build
+  - pre_commit
+
+  # 🛠️ C/C++ Dev & Compilation
+  - conda-lock
+  - meson
+  - ninja
+  - meson-python
+  - cython
+  - pybind11
+  - pythran
+
+  # 📚 Documentation
+  - sphinx
+  - numpydoc
+
+  # 🧪 Testing
+  - hypothesis
+  - pytest
+  - cython-lint
+  - pandas-stubs
+
+  # 📦 Requirements generation
+  - pipreqs

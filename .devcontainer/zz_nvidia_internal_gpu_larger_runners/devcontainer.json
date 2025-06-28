@@ -80,7 +80,7 @@
 
         // Multimedia tools
         "ffmpeg",    // Needed for matplotlib animations
-        "inkscape",  // Vector graphics editor
+        // "inkscape",  // Vector graphics editor
 
         // Build tools
         "make",
@@ -101,6 +101,9 @@
         "clang-format",  // Formats C++ and other languages
         "clang-tidy",    // Static analysis for C++
 
+        // Boost C++ Libraries
+        // "libboost-all-dev"
+
         // Linear algebra and numerical libraries
         "libblas-dev",
         "libopenblas-dev",
@@ -108,12 +111,9 @@
         "libblis-dev",
 
         // Parallel computing libraries
-        "libomp-dev",
+        // "libmkl-dev",
         "libtbb-dev",
-        "libmkl-dev",
-
-        // Boost C++ Libraries
-        "libboost-all-dev"
+        "libomp-dev"
       ]
     }
   },
