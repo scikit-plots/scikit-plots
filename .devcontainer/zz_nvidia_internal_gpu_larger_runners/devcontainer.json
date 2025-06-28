@@ -118,25 +118,43 @@
     }
   },
   // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
+  // "placeholderCommand": "do something (e.g. str, list, dict)..."
   // If this is a single string, it will be run in a shell.
-  // If this is an array of strings, it will be run as a single command without shell. Use script file.
-  // If this is an object, each provided command will be run in parallel.
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
+  // If this is an array of strings, it will be run as a single command without shell. Recommended use with script file.
+  // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],
+  // If this is an dict object, each provided command will be run in parallel. Recommended for multiple task.
+  "initializeCommand": {
+    // "placeholderTask": "do something (e.g. str, list)..."
+    "message": "echo 'Runing initializeCommand...'"
+    // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
+  },
   "onCreateCommand": {
+    // "placeholderTask": "do something (e.g. str, list)..."
     "message": "echo 'Runing onCreateCommand...'"
     // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
     // "setup_conda_env_create": "bash .devcontainer/script/setup_conda_env_create.sh"
+  },
+  "updateContentCommand": {
+    // "placeholderTask": "do something (e.g. str, list)..."
+    "message": "echo 'Runing updateContentCommand...'"
+  },
+  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
+  "postCreateCommand": {
+    // "placeholderTask": "do something (e.g. str, list)..."
+    "message": "echo 'Runing postCreateCommand...'"
     // "post_create_commands": ["bash", ".devcontainer/script/post_create_commands.sh"]
   },
-  // "updateContentCommand": "echo 'Runing updateContentCommand...'",
-  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
-  // "postCreateCommand": ["bash", ".devcontainer/script/post_create_commands.sh"],
   "postStartCommand": {
+    // "placeholderTask": "do something (e.g. str, list)..."
     "message": "echo 'Runing postStartCommand...'"
     // "notice": "cat .devcontainer/script/first-run-notice.txt"
     // "open": "bash -c 'code .devcontainer/script/first-run-notice.txt'"
   },
-  // "postAttachCommand": ["bash", "-c", "'Runing postStartCommand...'"],
+  "postAttachCommand": {
+    // "placeholderTask": "do something (e.g. str, list)..."
+    "message": "echo 'Runing postAttachCommand...'"
+  },
   "waitFor": "postCreateCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8890],
@@ -198,7 +216,7 @@
         // "HashiCorp.terraform",                 // terraform
         // "ms-azuretools.vscode-azureterraform", // azureterraform
         "ms-azuretools.vscode-docker",            // Docker for Visual Studio Code
-        "circleci.circleci"
+        // "circleci.circleci"
 
         // === GenAI ===
         // "genaiscript.genaiscript-vscode"          // GenAIScript
@@ -218,8 +236,8 @@
     "codespaces": {
       "openFiles": [
         ".devcontainer/script/first-run-notice.txt",
-        "README.md",
-        "docs/source/devel/codespaces.md"
+        "docs/source/devel/codespaces.md",
+        "README.md"
       ]
     }
   }
