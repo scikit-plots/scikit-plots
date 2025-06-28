@@ -3,7 +3,10 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-set -x  # Enable debugging
+set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
+set -x  # Enable debugging (prints commands as they run)
+set -euxo pipefail
+
 ## newlines equivalent to single semicolon ; on terminal or in shell script.
 
 ## Installing NVIDIA...
