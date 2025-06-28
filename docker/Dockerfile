@@ -401,11 +401,11 @@ RUN mamba env create -n "py311" -f "/tmp/base.yml" \
   || { echo "Failed to create environment py311"; exit 1; } \
   && conda info --envs
 
-# Update environment with default.yml (always applied)
+# Update environment with default.yml (always applied), Fails and exits script cleanly
 RUN mamba env update -n "py311" -f "/tmp/default.yml" \
   || { echo "Failed to apply default environment"; exit 0; }
 
-# Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true)
+# Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
 RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     echo "Installing extended packages..."; \
     mamba env update -n "py311" -f "/tmp/extended.yml" \
@@ -416,7 +416,7 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
 
 # Final cleanup
 RUN conda info --env \
-  ## Clean mamba and fix permissions
+  ## Clean mamba and fix permissions, Fails but continues
   && mamba clean --all -f -y || true; \
   ## Fix permissions as jovyan
   # echo "yourpassword" | sudo chown -R $(whoami):$(id -gn whoami) ~
