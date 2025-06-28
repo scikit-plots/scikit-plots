@@ -154,6 +154,7 @@
     // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
     // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
     "message4": "echo 'Runing postCreateCommand...'"
+    // TODO: "ERROR: ... : no space left on device"
     // "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || exit 0"
     // "post_create_commands": ["bash", "-c", ".devcontainer/script/post_create_commands.sh || exit 0"]
   },
