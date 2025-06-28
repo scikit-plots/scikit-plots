@@ -15,7 +15,7 @@
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "Notebook Pre-ins (recommended)",
+  "name": "Notebook Pre-Ins (recommended)",
   // "image": "mcr.microsoft.com/devcontainers/universal:2",
   // "build": {
     // Path is relative to the devcontainer.json file.
@@ -94,26 +94,41 @@
         "python3-dev",
 
         // Compilers and build dependencies
-        "gfortran",
-        "gcc",
-        "g++",
-        "clang",
-        // "clang-format",  // Formats C++ and other languages
-        // "clang-tidy",    // Static analysis for C++
+        "gfortran",            // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
+        "gcc",                 // C (GNU Compiler Collection) — Compiles standard C code
+        "g++",                 // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
 
-        // Boost C++ Libraries
-        // "libboost-all-dev"
+        // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+        // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
+        // "clang",            // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+        // "clang-format",     // LLVM tools Formats C++ and other languages
+        // "clang-tidy",       // LLVM tools Static analysis for C++
 
-        // Linear algebra and numerical libraries
-        "libopenblas-dev",
-        // "libblas-dev",
-        // "liblapack-dev",
-        // "libblis-dev",
+        // Linear Algebra and Numerical Libraries
+        // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
+        "libopenblas-dev",    // For high-performance matrix/vector ops (used in NumPy, SciPy)
+        // Reference BLAS implementation (baseline, less optimized)
+        // "libblas-dev",        // Standard BLAS, may be overridden by OpenBLAS dynamically
+        // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
+        // "liblapack-dev",      // Required for scientific and engineering computations
+        // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
+        // "libblis-dev",        // Optional, can be tuned for specific architectures
 
-        // Parallel computing libraries
-        // "libmkl-dev",
-        // "libtbb-dev",
-        "libomp-dev"
+        // Parallel Computing Libraries
+        // Intel MKL – Highly optimized math kernels (not always open source)
+        // "libmkl-dev",         // May conflict with OpenBLAS; check compatibility
+        // Intel TBB – Task-based parallelism in C++
+        // "libtbb-dev",         // Used in threading, e.g., OpenCV, oneAPI
+        // OpenMP – Multithreading support for C/C++/Fortran
+        "libomp-dev"          // Enables `#pragma omp` parallelism in C/C++/Fortran
+
+        // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
+        // Installs the entire Boost C++ library development suite (headers + libs)
+        // Boost is a large set of C++ libraries that extend the standard library.
+        // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
+        // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
+        // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
+        // "libboost-all-dev"  // Boost headers and prebuilt libs
       ]
     }
   },

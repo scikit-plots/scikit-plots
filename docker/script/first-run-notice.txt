@@ -10,8 +10,7 @@
 
     ##💽 (Optionally) Memory size: df -h && du -h --max-depth=1
 
-    ##🛠️ (recommended) Apply in bash `post_create_commands.sh`
-    ## 👉 Only Installed with option `DevContainer Pre-ins (default)`.
+    ##🛠️ (recommended) Apply in bash `setup_conda_env_create.sh` `post_create_commands.sh`
     ## 👉 Some steps can be skipped when container creation due to storage size limitations
     ## ⚠️ `: No space left on device`
     ##✅ directories to mark as safe like ( git config --global --add safe.directory '*' )
