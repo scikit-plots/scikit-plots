@@ -111,6 +111,10 @@ else
     echo "'py311' environment already exists. Skipping creation."
 fi
 
+# Update environment with default.yml (always applied)
+# $MAMBA_CMD env update -n "py311" -f "./docker/conda_env/default.yml" \
+#   || { echo "Failed to apply default environment"; exit 0; }
+
 ## Activate the environment and install required packages
 ## Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
 ## Double quotes for the outer string and escaping the inner double quotes or use single
@@ -119,21 +123,24 @@ bash -i -c "
   $MAMBA_CMD info -e | grep '*' || exit 1
 
   echo -e '\033[1;32m## Installing development dependencies...\033[0m'
-  # pip install -r ./requirements/cpu.txt
-  # pip install -r ./requirements/build.txt
-  pip install -r ./requirements/all.txt
+  # 👉 Some steps can be skipped when container creation due to storage size limitations
+  # Use || exit 0: exits cleanly if the command fails (stops the script) (skip logic).
+  # pip install -r ./requirements/all.txt || exit 0
+  # pip install -r ./requirements/cpu.txt || exit 0
+  pip install -r ./requirements/build.txt || exit 0
 
   # Install pre-commit
   echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m'
-  pip install pre-commit
+  # Use || true: absorbs the error, continues
+  pip install pre-commit || true
 
   # Install pre-commit hooks in the repository
   echo -e '\033[1;32m## Installing pre-commit hooks inside the repository...\033[0m'
-  ( cd /workspaces/scikit-plots/ || true && pre-commit install )
+  ( cd /workspaces/scikit-plots/ || true && pre-commit install || true )
 
   echo -e '\033[1;32m## Install the development version of scikit-plots...\033[0m'
   # Install the development version of scikit-plots
-  pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+  pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v || exit 0
 "
 
 ## Show next steps to user

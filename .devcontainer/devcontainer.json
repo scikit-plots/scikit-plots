@@ -89,21 +89,21 @@
         "gcc",
         "g++",
         "clang",
-        "clang-format",  // Formats C++ and other languages
-        "clang-tidy",    // Static analysis for C++
+        // "clang-format",  // Formats C++ and other languages
+        // "clang-tidy",    // Static analysis for C++
 
         // Boost C++ Libraries
         // "libboost-all-dev"
 
         // Linear algebra and numerical libraries
-        "libblas-dev",
         "libopenblas-dev",
-        "liblapack-dev",
-        "libblis-dev",
+        // "libblas-dev",
+        // "liblapack-dev",
+        // "libblis-dev",
 
         // Parallel computing libraries
         // "libmkl-dev",
-        "libtbb-dev",
+        // "libtbb-dev",
         "libomp-dev"
       ]
     }
@@ -134,7 +134,8 @@
   "postCreateCommand": {
     // "placeholderTask": "do something (e.g. str, list)..."
     "message": "echo 'Runing postCreateCommand...'",
-    "post_create_commands": ["bash", ".devcontainer/script/post_create_commands.sh"]
+    // Optional: run a shell script after container is created
+    "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || exit 0"
   },
   "postStartCommand": {
     // "placeholderTask": "do something (e.g. str, list)..."
