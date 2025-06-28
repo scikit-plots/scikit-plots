@@ -1,0 +1,72 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# 🛠 How to Use It
+# -----------------------------------------------------------------------------
+# Create the base environment from this file:
+#   conda env create -f default.yml
+#
+# Or update an existing environment:
+#   conda env update --name your-env-name --file default.yml
+#
+# This file installs core packages including:
+# - Jupyter and essential extensions
+# - Data manipulation and visualization
+# - Common ML libraries and tools
+#
+# To add optional or extended packages, see: extended.yml
+# -----------------------------------------------------------------------------
+---
+name: py311
+channels:
+  - conda-forge
+  - anaconda
+  - defaults
+
+dependencies:
+  - python=3.11
+  - ipykernel
+
+  # 📘 Jupyter and extensions
+  - notebook>=6.0.3      # Classic Jupyter notebook
+  - jupyterhub>=1.1.0    # Multi-user Jupyter server
+  - jupyterlab>=2.1.5    # Modern Jupyter UI
+  - jupyterlab-git       # Git integration
+  - ipympl               # Matplotlib support in Jupyter
+  - ipywidgets           # Interactive widgets
+  - widgetsnbextension   # Widget rendering in classic notebook
+
+  # 📊 Data manipulation
+  - pandas               # Tabular data analysis
+  - scipy                # Scientific computing
+
+  # 📥 File I/O and formats
+  - requests             # HTTP for APIs
+  - click                # CLI utilities
+  - pyyaml               # YAML parsing
+  - xlrd                 # Read Excel files (.xls)
+  - openpyxl             # Read/write Excel files (.xlsx)
+  - pyarrow              # Apache Arrow and Parquet
+
+  # 📈 Data visualization
+  - matplotlib-base      # 2D plotting
+  - seaborn              # Statistical visualization
+  - pillow               # Image processing
+
+  # 🧠 Machine Learning
+  - scikit-learn         # General ML
+  - statsmodels          # Statistical modeling
+  - catboost             # Gradient boosting (CatBoost)
+  - xgboost              # Gradient boosting (XGBoost)
+
+  # 🔍 Hyperparameter Optimization
+  - optuna               # Bayesian optimization
+  - hyperopt             # Optimization library
+
+  # 💾 Model saving
+  - joblib               # Model serialization
+  - h5py                 # HDF5 file format
+
+  # 🔧 Optional pip section (can be removed if unused)
+  # - pip:
+  #     - your-package

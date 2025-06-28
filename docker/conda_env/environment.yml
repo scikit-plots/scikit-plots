@@ -1,0 +1,131 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# 🛠 How to Use It
+# -----------------------------------------------------------------------------
+# Create the environment with only default (base) packages:
+#   conda env create -f environment.yml
+#
+# Create the environment with both base and extended packages:
+#   conda create --name py311 --file environment.yml --group extended
+#
+# Add the optional extended packages later to an existing environment:
+#   conda install --name py311 --file environment.yml --group extended
+#
+# Note:
+# - Requires conda >= 23.1 (support for optional-dependencies)
+# - Some tools (e.g. micromamba) may not support groups, in which case use two files (default.yml, extended.yml)
+# -----------------------------------------------------------------------------
+
+# variables:
+#   VAR1: valueA
+---
+name: py311
+channels:
+  - defaults
+  - anaconda
+  - conda-forge
+  # - nvidia
+
+dependencies:
+  # === Base Dependencies ===
+  - python=3.11
+  - ipykernel
+
+  # 📘 Jupyter and extensions
+  - notebook>=6.0.3
+  - jupyterhub>=1.1.0
+  - jupyterlab>=2.1.5
+  - jupyterlab-git
+  - ipympl
+  - ipywidgets
+  - widgetsnbextension
+
+  # 📊 Data Manipulation
+  - pandas
+  - scipy
+
+  # 📥 File I/O and formats
+  - requests
+  - click
+  - pyyaml
+  - xlrd
+  - openpyxl
+  - pyarrow
+
+  # 📈 Visualization
+  - matplotlib-base
+  - seaborn
+  - pillow
+
+  # 🧠 Machine Learning Models
+  - scikit-learn
+  - statsmodels
+  - catboost
+  - xgboost
+
+  # 🔍 Hyperparameter Optimization
+  - optuna
+  - hyperopt
+
+  # 💾 Model saving
+  - joblib
+  - h5py
+
+  # Comment out this line and download Rtools and add <path>\ucrt64\bin\ to your path:
+  # https://cran.r-project.org/bin/windows/Rtools/rtools40.html
+  # - compilers  # Currently unavailable for Windows.
+
+  # Add pip for pip dependencies
+  - pip
+  # 📦 pip: optional dependencies via pip section
+  # - pip:
+  #     - your-package
+
+# === Extended Dependencies (Optional) ===
+# 🧩 Optional: extended group (can be installed later)
+optional-dependencies:
+  extended:
+    # 🖼️ Visualization
+    # - aggdraw
+
+    # 📊 Model Tracking and SQL
+    - mlflow
+    - sqlalchemy
+    - sqlparse
+
+    # 🚀 Deployment
+    - streamlit
+    - fastapi
+    - flask
+    - uvicorn
+    - waitress
+    - gunicorn
+
+    # 🛠️ Dev Tools
+    - pre_commit
+    - setuptools
+    - wheel
+    - build
+
+    # 🧰 Compilers and Build
+    - conda-lock
+    - meson
+    - ninja
+    - meson-python
+    - cython
+    - pybind11
+    - pythran
+
+    # 🧪 Testing
+    - pytest
+    - hypothesis
+    - codecov
+    - cython-lint
+
+    # 📚 Docs
+    - sphinx
+    - numpydoc
+
+    # 📦 Misc
+    - pipreqs
