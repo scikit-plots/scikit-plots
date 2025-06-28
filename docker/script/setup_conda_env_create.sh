@@ -2,7 +2,9 @@
 
 # Copied scipy project
 
-set -e
+set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
+set -x  # Enable debugging (prints commands as they run)
+set -euxo pipefail
 
 "${SHELL}" <(curl -Ls micro.mamba.pm/install.sh) < /dev/null
 

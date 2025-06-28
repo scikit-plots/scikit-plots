@@ -1,9 +1,9 @@
 // Authors: The scikit-plots developers
 // SPDX-License-Identifier: BSD-3-Clause
+// https://containers.dev/overview
+// https://containers.dev/implementers/json_schema/
 // See the full list here: https://aka.ms/ghcs-default-image
 // Learn more here: https://aka.ms/configure-codespace
-// https://containers.dev/implementers/json_reference/
-// https://code.visualstudio.com/docs/reference/variables-reference#_predefined-variables-example
 {
   // More info about Features: https://containers.dev/features
   "hostRequirements": {
@@ -29,6 +29,7 @@
   "runServices": ["app_nvidia_host_gpu_driver"],
   // "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   // runArgs only for github Desktop
+  // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
   "runArgs": ["--gpus","all"],
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "remoteUser": "root",
@@ -36,6 +37,7 @@
   // "updateRemoteUserUID ": "true",
   // "workspaceFolder": "/workspace",
   "features": {
+    // https://containers.dev/features
     // Enable Docker-in-Docker to allow running Docker inside the container
     // "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     // Provides a lightweight desktop environment (e.g., for GUI applications)
@@ -116,45 +118,66 @@
       ]
     }
   },
-  // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
-  // "placeholderCommand": "do something (e.g. str, list, dict)..."
+  // https://containers.dev/implementers/json_schema/
   // If this is a single string, it will be run in a shell.
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   // If this is an array of strings, it will be run as a single command without shell. Recommended use with script file.
   // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],
   // If this is an dict object, each provided command will be run in parallel. Recommended for multiple task.
+  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "initializeCommand": {
-    // "placeholderTask": "do something (e.g. str, list)..."
-    "message": "echo 'Runing initializeCommand...'"
+    // "placeholderTask": "do something (e.g. str, array aka list)..."
+    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
+    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
+    "message1": "echo 'Runing initializeCommand...'"
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
   },
+  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "onCreateCommand": {
-    // "placeholderTask": "do something (e.g. str, list)..."
-    "message": "echo 'Runing onCreateCommand...'"
+    // "placeholderTask": "do something (e.g. str, array aka list)..."
+    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
+    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
+    "message2": "echo 'Runing onCreateCommand...'"
     // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
-    // "setup_conda_env_create": "bash .devcontainer/script/setup_conda_env_create.sh"
+    // "conda_env_create": ["bash", "-c", ".devcontainer/script/setup_conda_env_create.sh || exit 0"]
   },
+  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "updateContentCommand": {
-    // "placeholderTask": "do something (e.g. str, list)..."
-    "message": "echo 'Runing updateContentCommand...'"
+    // "placeholderTask": "do something (e.g. str, array aka list)..."
+    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
+    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
+    "message3": "echo 'Runing updateContentCommand...'"
   },
+  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
   "postCreateCommand": {
-    // "placeholderTask": "do something (e.g. str, list)..."
-    "message": "echo 'Runing postCreateCommand...'"
-    // "post_create_commands": ["bash", ".devcontainer/script/post_create_commands.sh"]
+    // "placeholderTask": "do something (e.g. str, array aka list)..."
+    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
+    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
+    "message4": "echo 'Runing postCreateCommand...'"
+    // "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || exit 0"
+    // "post_create_commands": ["bash", "-c", ".devcontainer/script/post_create_commands.sh || exit 0"]
   },
+  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "postStartCommand": {
-    // "placeholderTask": "do something (e.g. str, list)..."
-    "message": "echo 'Runing postStartCommand...'"
-    // "notice": "cat .devcontainer/script/first-run-notice.txt"
-    // "open": "bash -c 'code .devcontainer/script/first-run-notice.txt'"
+    // "placeholderTask": "do something (e.g. str, array aka list)..."
+    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
+    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
+    "message5": "echo 'Runing postStartCommand...'"
+    // "notice_txt": "cat .devcontainer/script/first-run-notice.txt"
+    // "open_txt": "bash -c 'code .devcontainer/script/first-run-notice.txt'"
   },
+  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "postAttachCommand": {
-    // "placeholderTask": "do something (e.g. str, list)..."
-    "message": "echo 'Runing postAttachCommand...'"
+    // "placeholderTask": "do something (e.g. str, array aka list)..."
+    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
+    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
+    "message6": "echo 'Runing postAttachCommand...'"
+    // "server": "npm start",
+    // "db": ["mysql", "-u", "root", "-p", "my database"]
   },
-  "waitFor": "postCreateCommand",
+  // Defaults to updateContentCommand.
+  "waitFor": "updateContentCommand",
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8889],
   "portsAttributes": {
