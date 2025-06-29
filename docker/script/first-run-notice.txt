@@ -24,8 +24,11 @@
     bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
 
     ##👉 Open to new terminal mamba (or conda)
+    conda init
     conda info -e
+    # (DevContainer) mamba activate /workspaces/scikit-plots/venv
     mamba activate py311
+    mamba activate base
 
     ##✅ Checking the build without root
     bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"

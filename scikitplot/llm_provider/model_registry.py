@@ -39,6 +39,19 @@ __all__ = [
     "get_config_provider",
 ]
 
+# API key mapping per provider
+LLM_MODEL_PROVIDER2API_KEY = {
+    "huggingface": "HUGGINGFACE_TOKEN",
+    "openai": "OPENAI_API_KEY",
+    "groq": "GROQ_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "cohere": "COHERE_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+    "llama": "LLAMA_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
+}
+
 # Enhanced LLM Model Registry for Chat Application
 # Default model registry used in the chat application.
 LLM_MODEL_PROVIDER2CONFIG: dict[str, list[dict[str, str]]] = {
@@ -447,19 +460,6 @@ LLM_MODEL_PROVIDER2CONFIG: dict[str, list[dict[str, str]]] = {
             "docs_url": "https://platform.openai.com/docs/models/gpt-3-5",
         },
     ],
-}
-
-# API key mapping per provider
-LLM_MODEL_PROVIDER2API_KEY = {
-    "huggingface": "HUGGINGFACE_TOKEN",
-    "openai": "OPENAI_API_KEY",
-    "groq": "GROQ_API_KEY",
-    "anthropic": "ANTHROPIC_API_KEY",
-    "cohere": "COHERE_API_KEY",
-    "gemini": "GEMINI_API_KEY",
-    "llama": "LLAMA_API_KEY",
-    "deepseek": "DEEPSEEK_API_KEY",
-    "mistral": "MISTRAL_API_KEY",
 }
 
 
