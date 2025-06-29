@@ -44,23 +44,23 @@
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": [
         // Text editors and utilities
-        "vim",
-        "nano",
+        // "vim",
+        // "nano",
         "wget",
         "curl",
 
         // Git and related tools
-        "git",
-        "git-lfs",
+        // "git",
+        // "git-lfs",
 
         // Archive utilities
-        "unzip",
-        "gzip",
-        "bzip2",
-        "p7zip-full",
-        "p7zip-rar",
-        "unrar",
-        "tar",
+        // "unzip",
+        // "gzip",
+        // "bzip2",
+        // "p7zip-full",
+        // "p7zip-rar",
+        // "unrar",
+        // "tar",
 
         // Documentation tools
         "pandoc",  // Converts notebooks to HTML
@@ -69,27 +69,27 @@
         "tree",
 
         // Graph visualization software
-        "graphviz",
+        // "graphviz",
 
         // Multimedia tools
         // "ffmpeg",    // Needed for matplotlib animations
         // "inkscape",  // Vector graphics editor
 
         // Build tools
-        "make",
-        "cmake",
-        "ninja-build",
-        "pkg-config",
+        // "make",
+        // "cmake",
+        // "ninja-build",
+        // "pkg-config",
 
         // Python-related tools
-        "python3-pip",
-        "python3-venv",
-        "python3-dev",
+        // "python3-pip",
+        // "python3-venv",
+        // "python3-dev",
 
         // Compilers and build dependencies
         "gfortran",            // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
         "gcc",                 // C (GNU Compiler Collection) — Compiles standard C code
-        "g++",                 // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
+        "g++"                 // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
 
         // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
         // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
@@ -99,7 +99,7 @@
 
         // Linear Algebra and Numerical Libraries
         // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
-        "libopenblas-dev",    // For high-performance matrix/vector ops (used in NumPy, SciPy)
+        // "libopenblas-dev",    // For high-performance matrix/vector ops (used in NumPy, SciPy)
         // Reference BLAS implementation (baseline, less optimized)
         // "libblas-dev",        // Standard BLAS, may be overridden by OpenBLAS dynamically
         // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
@@ -113,7 +113,7 @@
         // Intel TBB – Task-based parallelism in C++
         // "libtbb-dev",         // Used in threading, e.g., OpenCV, oneAPI
         // OpenMP – Multithreading support for C/C++/Fortran
-        "libomp-dev"          // Enables `#pragma omp` parallelism in C/C++/Fortran
+        // "libomp-dev"          // Enables `#pragma omp` parallelism in C/C++/Fortran
 
         // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
         // Installs the entire Boost C++ library development suite (headers + libs)
@@ -263,7 +263,7 @@
         "editor.tabSize": 4,
 
         // "python.pythonPath": "/usr/bin/python3"
-        // "python.defaultInterpreterPath": "/opt/conda/bin/python",
+        "python.defaultInterpreterPath": "/opt/conda/bin/python",
         "python.testing.unittestEnabled": false,
         "python.testing.pytestEnabled": true
       }
