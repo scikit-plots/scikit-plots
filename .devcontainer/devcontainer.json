@@ -19,7 +19,7 @@
   // Use a basic Ubuntu-based image
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   // codespaces codespaces image
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",  // also include "conda", also create "venv"
   // runArgs only for github Desktop
   // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
   // "runArgs": ["--gpus","all"],
