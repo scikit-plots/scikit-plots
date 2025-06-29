@@ -12,7 +12,7 @@
 
     ##🛠️ (recommended) Apply in bash `setup_conda_env_create.sh` `post_create_commands.sh`
     ## 👉 Some steps can be skipped when container creation due to storage size limitations
-    ## ⚠️ `: No space left on device`
+    ## ⚠️ `ERROR: ... : No space left on device`
     ##✅ directories to mark as safe like ( git config --global --add safe.directory '*' )
     ##✅ fetching submodules ( git submodule update --init )
     ##✅ add remote upstream ( git remote add upstream https://github.com/scikit-plots/scikit-plots.git )

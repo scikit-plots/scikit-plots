@@ -280,6 +280,22 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.llm_provider": {
+        "short_summary": "Large Language Models.",
+        "description": _get_guide("llm_provider-index"),
+        "sections": [
+            {
+                "title": "Large Language Models",
+                "description": None,
+                "autosummary": [
+                    "LLM_MODEL_PROVIDER2API_KEY",
+                    "LLM_MODEL_PROVIDER2CONFIG",
+                    "get_response",
+                    "load_mlflow_gateway_config",
+                ],
+            },
+        ],
+    },
     "scikitplot.modelplotpy": {
         "short_summary": "Predictive model insights",
         "description": _get_guide("modelplotpy-index", "modelplotpy_financial-index"),

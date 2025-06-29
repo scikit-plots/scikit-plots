@@ -37,6 +37,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **Decile-Wise Perf**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./decile_wise_perf/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **Metric Perf**
         ^^^
         .. toctree::
@@ -47,12 +57,12 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Decile-Wise Perf**
+        **Large Language Models**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./decile_wise_perf/index.rst
+            ./llm_provider/index.rst
 
     .. grid-item-card::
         :padding: 3
@@ -67,7 +77,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **stats**
+        **Stats**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -77,7 +87,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **visualkeras**
+        **Visualkeras**
         ^^^
         .. toctree::
             :maxdepth: 3
