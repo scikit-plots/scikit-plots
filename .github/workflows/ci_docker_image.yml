@@ -122,7 +122,8 @@ jobs:
           REPO_NAME=$(basename "$GITHUB_REPOSITORY")
 
           # Compose the full Docker image name using Docker Hub username
-          IMAGE_NAME="${DOCKERHUB_USERNAME}/${REPO_NAME}"
+          # IMAGE_NAME="${DOCKERHUB_USERNAME}/${REPO_NAME}"
+          IMAGE_NAME="scikitplot/${REPO_NAME}"
 
           # Generate a short SHA tag (e.g., sha-abc1234)
           SHA_TAG="sha-${GITHUB_SHA::7}"
