@@ -127,27 +127,26 @@ jobs:
           # Generate a short SHA tag (e.g., sha-abc1234)
           SHA_TAG="sha-${GITHUB_SHA::7}"
 
-          # Initialize optional tags default values
+          # Initialize optional tags with default empty values
           BRANCH_TAG=""
           VERSION_TAG=""
           DEV_TAG=""
 
-          # Handle Git tag events (e.g., v1.0.0)
+          # Handle Git tag events (e.g., refs/tags/v1.0.0)
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION_TAG="${GITHUB_REF#refs/tags/}"  # Strip 'refs/tags/'
-            BRANCH_TAG="latest"                     # Also tag as 'latest'
-          # Handle branch events (e.g., main, feature/foo)
+          # Handle branch events (e.g., refs/heads/main, refs/heads/feature/foo)
           elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
             REF_BRANCH="${GITHUB_REF#refs/heads/}"  # Strip 'refs/heads/'
 
-            # Replace slashes or invalid characters for Docker tag
-            # Whitelist regex pattern (e.g., only alphanum, dash, dot, underscore)
+            # Sanitize branch name for Docker tag: replace '/' with '-', remove invalid chars
             # SAFE_PATTERN='^[a-zA-Z0-9._/-]+$'
-            SAFE_BRANCH=$(echo "$REF_BRANCH" | tr '/' '-' | tr -cs 'a-zA-Z0-9._-' '-')
+            SAFE_BRANCH=$(echo "$REF_BRANCH" | tr '/' '-' | sed 's/[^a-zA-Z0-9._-]//g')
             BRANCH_TAG="$SAFE_BRANCH"
 
-            # Tag as 'dev' if the branch is 'main' branch
+            # Tag as 'dev' if the branch is 'main'
             if [[ "$REF_BRANCH" == "main" ]]; then
+              BRANCH_TAG="latest"                     # Also tag as 'latest'
               DEV_TAG="dev"
             fi
           fi
@@ -195,6 +194,8 @@ jobs:
         if: success()
         continue-on-error: true
         run: |
+          set -euo pipefail
+          # Build and run container detached
           # docker compose -f "$COMPOSE_FILE" build "$COMPOSE_SERVICE"
           # docker compose -f "$COMPOSE_FILE" up -d "$COMPOSE_SERVICE"
           docker compose -f "$COMPOSE_FILE" up -d --build "$COMPOSE_SERVICE"
@@ -214,8 +215,10 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Get the image name or ID from running container
           # SERVICE_IMAGE="$IMAGE:latest"
-          SERVICE_IMAGE=$(docker compose -f "$COMPOSE_FILE" config | grep image | awk '{print $2}')
+          # SERVICE_IMAGE=$(docker inspect --format='{{.Image}}' "$COMPOSE_SERVICE"_main)  # get the image ID or image name
+          SERVICE_IMAGE=$(docker inspect --format='{{index .Config.Image}}' "$COMPOSE_SERVICE"_main)  # get the image name:tag
 
           # Tag the image with 'latest' and other tags
           docker tag "$SERVICE_IMAGE" "$IMAGE:latest"
