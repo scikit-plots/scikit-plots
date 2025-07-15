@@ -102,8 +102,16 @@ jobs:
       - name: Determine Docker image tags
         id: vars
         run: |
+          set -euo pipefail
+
+          # Sanitize function to remove invalid characters for Docker tags
           # SAFE_TAG='^[a-zA-Z0-9._-]+$'
           # SAFE_REPO='^[a-zA-Z0-9._/-]+$'
+          sanitize() {
+            echo "$1" | sed 's/[^a-zA-Z0-9._-]//g'
+          }
+          # IMAGE_SAFE=$(sanitize "$IMAGE")
+
           # Get the GitHub repository name (e.g., scikit-plots)
           REPO_NAME=$(basename "$GITHUB_REPOSITORY")
 
