@@ -84,6 +84,7 @@ RUN apt-get update \
   apt-get install -yq --no-install-recommends sudo gosu \
   ## && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
+  ## docker run -it --rm scikitplot/scikit-plots:latest bash -c "echo 'jovyan' | sudo -S apt update"
   && echo "jovyan:jovyan" | chpasswd; \
   ## Cleanup to reduce image size
   apt-get clean \

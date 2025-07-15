@@ -89,6 +89,9 @@
     <img alt="Conda Nightly Downloads" height="17" src="https://img.shields.io/conda/dn/scikit-plots-wheels-staging-nightly/scikit-plots?label=conda_nightly_downloads
     ">
   </a> -->
+  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <img alt="Docker Pulls" height="17" src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots">
+  </a>
   <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/wheels.yml?query=event%3Aworkflow_dispatch" target="_blank" rel="noopener noreferrer">
     <img alt="GitHub Actions CI Build Wheels Status" height="17" src="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg?event=workflow_dispatch">
   </a>

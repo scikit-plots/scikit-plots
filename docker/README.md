@@ -1,9 +1,9 @@
-# 🚀 Docker
+# 🐋 Docker
 
 ### 💡 Work on `Docker Desktop` or `Github Codespaces`
 
-Github Codespaces:
-------------------
+🏷️ Github Codespaces:
+---------------------
 
 (Connect IDE Interface Vscode or Jupyter Notebook)
 
@@ -28,8 +28,8 @@ width="322" height="305">
 src="https://docs.github.com/assets/cb-66206/mw-1440/images/help/codespaces/advanced-options.webp"
 width="60%" height="80%">
 
-Docker Desktop:
----------------
+🏷️ Docker Desktop:
+------------------
 
 (Connect IDE Interface Vscode or Jupyter Notebook)
 
@@ -59,9 +59,20 @@ code .
  │   ├── 📝 install_gpu_nvidia_cuda.sh  # GPU setup script
 ```
 
-## 🏷️ Quick Start (Docker Compose)
+## 🐳 Quick Start (Docker Compose)
 
-### 💡 The easiest way to launch the environment is using Docker Compose.
+### (Optionally) 📦 Prebuilt Image from Docker Hub
+
+You can use the prebuilt image directly from Docker Hub:
+
+📄 Docker Hub: https://hub.docker.com/r/scikitplot/scikit-plots
+
+```sh
+# docker pull scikitplot/scikit-plots
+docker run -it --rm scikitplot/scikit-plots bash
+```
+
+### 🏷️ Using Docker Compose: The easiest way to launch the environment.
 
 ▶️ Run Docker Env Jupyter Notebook (CPU only)
 
