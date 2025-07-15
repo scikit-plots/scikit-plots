@@ -9,6 +9,8 @@
 ## docker ps
 ## docker logs CONTAINER_ID_OR_NAME
 ## docker exec -it CONTAINER_ID_OR_NAME bash
+## docker run -it --rm --user root CONTAINER_ID_OR_NAME bash -c "apt update"
+## docker run -it --rm CONTAINER_ID_OR_NAME bash -c "echo 'jovyan' | sudo -S apt update"
 ---
 
 ## Defines networks that can be used by services in the Docker Compose file

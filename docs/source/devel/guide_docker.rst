@@ -15,7 +15,7 @@ Docker Containerization Guidelines
    https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md
 
 
-🚀 Docker Containerization
+🐋 Docker Containerization
 ---------------------------------------
 
 💡 Work on Docker Desktop or Github Codespaces
@@ -31,8 +31,8 @@ Here's how containerization works:
 - **Consistency**: The application inside the container runs the same way regardless of where it's deployed, ensuring consistency across environments.
 
 
-Github Codespaces Guide
-------------------------
+🏷️ Github Codespaces Guide
+----------------------------
 
 (Connect IDE Interface Vscode or Jupyter Notebook)
 
@@ -61,8 +61,8 @@ Github Codespaces Guide
    src="https://docs.github.com/assets/cb-66206/mw-1440/images/help/codespaces/advanced-options.webp"
    width="60%" height="80%">
 
-Docker Desktop Guide
----------------------
+🏷️ Docker Desktop Guide
+-------------------------
 
 .. code-block:: sh
 
@@ -79,10 +79,25 @@ This repository contains Docker & Docker Compose configurations for running Jupy
 
 You can run containers with either host-installed CUDA or pre-installed CUDA inside the container.
 
-🏷️ Docker Compose Quickstart Guide
+🐳 Docker Compose Quickstart Guide
 -----------------------------------
 
-💡 The easiest way to launch the environment is using Docker Compose.
+(Optionally) 📦 Prebuilt Image from Docker Hub
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seealso::
+
+   You can use the prebuilt image directly from Docker Hub:
+
+   📄 Docker Hub: `https://hub.docker.com/r/scikitplot/scikit-plots`__
+
+.. code-block:: sh
+
+   # docker pull scikitplot/scikit-plots
+   docker run -it --rm scikitplot/scikit-plots bash
+
+
+🏷️ Using Docker Compose: The easiest way to launch the environment.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ▶️ Run Docker Env Jupyter Notebook (CPU only)

@@ -9,6 +9,7 @@
 ## docker ps
 ## docker logs CONTAINER_ID_OR_NAME
 ## docker exec -it CONTAINER_ID_OR_NAME bash
+## docker run -it --rm --user root CONTAINER_ID_OR_NAME bash -c "apt update"
 ---
 
 # (Optionally) Docker Compose file format version
