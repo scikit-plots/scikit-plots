@@ -75,8 +75,8 @@ jobs:
     # Set your DockerHub username as a fixed env var
     # https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
     env:
-      # DOCKERHUB_USERNAME: scikit-plots
-      # DOCKERHUB_TOKEN : scikit-plots
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN : ${{ secrets.DOCKERHUB_TOKEN }}
       # DOCKER_CONTEXT: .     # Docker context path (default to repo root)
       COMPOSE_FILE: docker/docker-compose.yml
       COMPOSE_SERVICE: notebook_cpu
