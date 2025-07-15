@@ -73,7 +73,7 @@ jobs:
       DOCKERHUB_USERNAME: scikitplot
       COMPOSE_FILE: docker/docker-compose.yml
       COMPOSE_SERVICE: notebook_cpu
-      DOCKER_CONTEXT: .     # Docker context path (default to repo root)
+      # DOCKER_CONTEXT: .     # Docker context path (default to repo root)
 
     # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
