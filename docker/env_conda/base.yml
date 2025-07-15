@@ -9,6 +9,15 @@
 name: py311
 channels:
   - conda-forge
+  - anaconda
+  - defaults
+
 dependencies:
   - python=3.11
   - ipykernel
+
+  # 📦 Optional pip section (can be removed if unused)
+  # - pip
+  # - pip:
+  #     - -r requirements.txt
+  #     - your-package

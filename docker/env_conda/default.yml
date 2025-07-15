@@ -67,6 +67,8 @@ dependencies:
   - joblib               # Model serialization
   - h5py                 # HDF5 file format
 
-  # 🔧 Optional pip section (can be removed if unused)
+  # 📦 Optional pip section (can be removed if unused)
+  # - pip
   # - pip:
+  #     - -r requirements.txt
   #     - your-package

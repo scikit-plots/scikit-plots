@@ -29,9 +29,6 @@ dependencies:
   - python=3.11
   - ipykernel
 
-  # 🖼️ Additional Visualization
-  # - aggdraw              # Antialiased drawing for PIL
-
   # 📊 Model Tracking and DB
   - mlflow               # Model tracking
   - sqlalchemy           # SQL ORM
@@ -72,3 +69,14 @@ dependencies:
 
   # 📦 Requirements generation
   - pipreqs
+  - pipenv
+
+  # 📦 Optional pip section (can be removed if unused)
+  - pip
+  - pip:
+      # - -r requirements.txt
+      # - your-package
+      - aggdraw
+
+  # 🖼️ Additional Visualization
+  # - aggdraw              # Antialiased drawing for PIL

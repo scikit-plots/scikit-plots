@@ -24,11 +24,12 @@ online at https://www.astropy.org/.
 
 .. prompt:: bash >>> auto
 
-   # (optionally) Only astropy stats
-   import scikitplot._astropy.stats as stats
-   from scikitplot._astropy import stats
-
    # (recommended) scikit-plots stats also include astropy stats
    from astropy import stats
-   from scikitplot import stats
+
+   # (optionally) Only astropy stats
    import scikitplot.stats as stats
+   from scikitplot import stats
+
+   import scikitplot._astropy.stats as stats
+   from scikitplot._astropy import stats

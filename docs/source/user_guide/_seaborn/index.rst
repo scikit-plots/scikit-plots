@@ -24,9 +24,9 @@ online at https://seaborn.pydata.org/index.html.
 
 .. prompt:: bash >>> auto
 
+   # (recommended)
+   import seaborn as sns
+
    # (optionally) scikit-plots also include seaborn
    import scikitplot._seaborn as sns
    from scikitplot import _seaborn as sns
-
-   # (recommended)
-   import seaborn as sns
