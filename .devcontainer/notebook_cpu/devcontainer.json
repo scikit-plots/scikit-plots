@@ -65,8 +65,8 @@
         "gzip",
         "bzip2",
         "p7zip-full",
-        "p7zip-rar",
-        "unrar",
+        // "p7zip-rar",
+        // "unrar",
         "tar",
 
         // Documentation tools
