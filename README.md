@@ -183,6 +183,8 @@
   <li>✅ This avoids dependency issues and keeps your system stable.</li>
 </ul>
 
+Conda:
+
 ```sh
 # (conda or mamba) Create New Env and install ``scikit-plots``
 # Create a new environment and install Python 3.11 with IPython kernel support
@@ -192,6 +194,21 @@ mamba create -n py311 python=3.11 ipykernel -y
 ```sh
 # Activate the environment
 conda activate py311
+```
+
+(Optionally) Pipenv install all dependencies:
+
+```sh
+## (Optionally) Pipenv dep
+## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/Pipfile
+curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/Pipfile
+curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/Pipfile.lock
+pip install pipenv && pipenv install
+```
+
+```sh
+# Activate the environment
+pipenv shell
 ```
 
 <hr>
@@ -225,7 +242,7 @@ pip install scikit-plots
 </h3>
 
 ```sh
-## (Optionally) Install the lost packages "Runtime dependencies"
+## (Optionally) Install the lost packages "Runtime dependencies" or use `pipenv`
 ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
 ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
 curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
@@ -411,13 +428,19 @@ git submodule update --init
 ```
 
 ```sh
+# Ensure venv (e.g. conda, venv, pipenv)
 # pip install -r ./requirements/all.txt
 pip install -r ./requirements/build.txt
 ```
 
 ```sh
-## Install development version
-pip install --no-cache-dir -e . -v
+## Install scikit-plots
+pip install --no-cache-dir . -v
+```
+
+```sh
+## (Optionally) Install development version
+python -m pip install --no-cache-dir -e .[build,dev,test,doc] -v
 ```
 
 <h2>

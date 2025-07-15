@@ -22,10 +22,10 @@ online at https://github.com/thequackdaddy/tweedie.
 
 .. prompt:: bash >>> auto
 
-   # (optionally) Only _tweedie
-   import scikitplot._tweedie as _tweedie
-   from scikitplot import _tweedie
-
    # (recommended) scikitplot stats also include _tweedie
    import scikitplot.stats as stats
    from scikitplot import stats
+
+   # (optionally) Only _tweedie
+   import scikitplot._tweedie as _tweedie
+   from scikitplot import _tweedie

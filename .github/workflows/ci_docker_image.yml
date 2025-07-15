@@ -1,0 +1,277 @@
+# Git Context	Tags Generated
+# Push to main       	 :latest, :main, :sha-abc1234, :dev
+# Push to dev	         :latest, :dev, :sha-abc1234 (if extended)
+# Push to feature/foo	 :latest, :feature-foo, :sha-abc1234
+# Push tag v1.0.0	     :latest, :v1.0.0, :sha-abc1234
+#
+# Pushing images
+# You can push a new image to this repository using the CLI:
+# docker tag local-image:tagname new-repo:tagname
+# docker push new-repo:tagname
+# Make sure to replace tagname with your desired image repository tag.
+#
+# https://hub.docker.com/u/scikitplot
+# https://hub.docker.com/r/scikitplot/scikit-plots
+# docker login -u scikitplot
+# Example:
+# scikitplot/<repo>:latest
+# docker build -t scikitplot/scikit-plots:latest .
+# docker push scikitplot/scikit-plots:latest
+# docker build -t scikitplot/scikit-plots:sha-abc1234 .
+# docker push scikitplot/scikit-plots:sha-abc1234
+# docker build -t scikitplot/scikit-plots:dev .
+# docker push scikitplot/scikit-plots:dev
+# docker build -t scikitplot/scikit-plots:v1.0.0 .
+---
+name: CI 🐋 Docker Build and Push  #  (Auto-Tagging with scikitplot)
+
+# Trigger the workflow on push to any branch or tag
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+  # push:
+  #   branches:
+  #     - '**'    # Matches all branches, including main, dev, feature/*
+  #   tags:
+  #     - '*'     # Matches all Git tags (e.g., v1.0.0)
+
+
+## simultaneity
+## This ensures that only one deployment to "production" can happen at a time.
+## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
+concurrency:
+  ## Ensures that only one instance of this workflow runs per branch or PR at a time.
+  ## The 'group' key defines a unique concurrency group:
+  ## - github.workflow: Name of the workflow file.
+  ## - github.head_ref: (Only on pull_request) The name of the branch from which the PR was created (source branch). Example: "feature/add-login"
+  ## - github.run_id: (Always) A unique numeric ID for each run of a workflow. Useful as a fallback for uniqueness. Example: 6432789156
+  ## - github.ref: (Always) The full ref path of the branch or tag that triggered the workflow. Examples: For a push to a branch: "refs/heads/main" For a PR: "refs/pull/42/merge" For a tag: "refs/tags/v1.0.0"
+  ## - github.ref_name: (Always) Just the final part of the ref path (branch or tag name, does not exist for PRs). Examples: For a push to a branch: "main" For a tag: "v1.0.0"
+  ## This ensures: PRs use head_ref, Pushes/Tags use ref or ref_name, Fallback to run_id in edge cases
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  ## If you push multiple times quickly, older runs would continue even though newer ones have started.
+  ## Canceling previous runs reduces resource usage and speeds up feedback.
+  ## If a new run is triggered for the same group, cancel the in-progress one.
+  cancel-in-progress: true
+
+
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+permissions:
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
+
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest  # Use Ubuntu runner for Docker tasks
+
+    # Set your DockerHub username as a fixed env var
+    env:
+      DOCKERHUB_USERNAME: scikitplot
+      COMPOSE_FILE: docker/docker-compose.yml
+      COMPOSE_SERVICE: notebook_cpu
+      DOCKER_CONTEXT: .     # Docker context path (default to repo root)
+
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
+    steps:
+      # Ensure required secrets exist
+      - name: Check Docker Hub secrets
+        run: |
+          if [[ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
+            echo "❌ Missing DOCKERHUB_TOKEN"
+            exit 0
+          fi
+
+      # Checkout the Git repository into the runner
+      - name: "⬇️ Checkout (cloned) repository with full history"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          lfs: true
+          ## Gets the correct commit message for pull request
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Determine tags for Docker image based on Git context
+      - name: Determine Docker image tags
+        id: vars
+        run: |
+          # SAFE_TAG='^[a-zA-Z0-9._-]+$'
+          # SAFE_REPO='^[a-zA-Z0-9._/-]+$'
+          # Get the GitHub repository name (e.g., scikit-plots)
+          REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+
+          # Compose the full Docker image name using Docker Hub username
+          IMAGE_NAME="${DOCKERHUB_USERNAME}/${REPO_NAME}"
+
+          # Generate a short SHA tag (e.g., sha-abc1234)
+          SHA_TAG="sha-${GITHUB_SHA::7}"
+
+          # Initialize optional tags default values
+          BRANCH_TAG=""
+          VERSION_TAG=""
+          DEV_TAG=""
+
+          # Handle Git tag events (e.g., v1.0.0)
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION_TAG="${GITHUB_REF#refs/tags/}"  # Strip 'refs/tags/'
+            BRANCH_TAG="latest"                     # Also tag as 'latest'
+          # Handle branch events (e.g., main, feature/foo)
+          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            REF_BRANCH="${GITHUB_REF#refs/heads/}"  # Strip 'refs/heads/'
+
+            # Replace slashes or invalid characters for Docker tag
+            # Whitelist regex pattern (e.g., only alphanum, dash, dot, underscore)
+            # SAFE_PATTERN='^[a-zA-Z0-9._/-]+$'
+            SAFE_BRANCH=$(echo "$REF_BRANCH" | tr '/' '-' | tr -cs 'a-zA-Z0-9._-' '-')
+            BRANCH_TAG="$SAFE_BRANCH"
+
+            # Tag as 'dev' if the branch is 'main' branch
+            if [[ "$REF_BRANCH" == "main" ]]; then
+              DEV_TAG="dev"
+            fi
+          fi
+
+          # Output variables for use in later steps
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=$SHA_TAG" >> "$GITHUB_OUTPUT"
+          echo "branch_tag=$BRANCH_TAG" >> "$GITHUB_OUTPUT"
+          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          echo "dev_tag=$DEV_TAG" >> "$GITHUB_OUTPUT"
+
+      # Authenticate with Docker Hub (scikitplot user)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        continue-on-error: true
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # # Set up Docker Buildx (build engine)
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      # # Cache Docker layers to speed up build (optional but speeds things up)
+      # - name: Cache Docker layers
+      #   uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      #   with:
+      #     path: /tmp/.buildx-cache
+      #     key: ${{ runner.os }}-docker-${{ github.sha }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-docker-
+
+      # # Define the DockerFile file path
+      # - name: Build using DockerFile
+      #   run: |
+      #     IMAGE=${{ steps.vars.outputs.image_name }}
+      #     # Always tag as 'latest'
+      #     docker build -t "$IMAGE:latest" $DOCKER_CONTEXT
+      #     # Also tag with SHA for traceability
+      #     docker tag "$IMAGE:latest" "$IMAGE:${{ steps.vars.outputs.sha_tag }}"
+
+      # Define the Docker Compose file path and service name
+      - name: Build service using Docker Compose
+        if: success()
+        continue-on-error: true
+        run: |
+          # docker compose -f "$COMPOSE_FILE" build "$COMPOSE_SERVICE"
+          # docker compose -f "$COMPOSE_FILE" up -d "$COMPOSE_SERVICE"
+          docker compose -f "$COMPOSE_FILE" up -d --build "$COMPOSE_SERVICE"
+
+      # Build the Docker image and apply all necessary (multiple) tags
+      - name: Retag image for Docker Hub
+        if: success()
+        continue-on-error: true
+        shell: bash
+        env:
+          # Read variables from step outputs safely
+          IMAGE: ${{ steps.vars.outputs.image_name }}
+          SHA_TAG: ${{ steps.vars.outputs.sha_tag }}
+          BRANCH_TAG: ${{ steps.vars.outputs.branch_tag }}
+          VERSION_TAG: ${{ steps.vars.outputs.version_tag }}
+          DEV_TAG: ${{ steps.vars.outputs.dev_tag }}
+        run: |
+          set -euo pipefail
+
+          # SERVICE_IMAGE="$IMAGE:latest"
+          SERVICE_IMAGE=$(docker compose -f "$COMPOSE_FILE" config | grep image | awk '{print $2}')
+
+          # Tag the image with 'latest' and other tags
+          docker tag "$SERVICE_IMAGE" "$IMAGE:latest"
+
+          # Also tag with SHA for traceability
+          docker tag "$SERVICE_IMAGE" "$IMAGE:$SHA_TAG"
+
+          # Optional: tag with branch name
+          if [[ -n "$IMAGE:$BRANCH_TAG" ]]; then
+            docker tag "$SERVICE_IMAGE" "$IMAGE:$BRANCH_TAG"
+          fi
+          # Optional: tag with Git version
+          if [[ -n "$IMAGE:$VERSION_TAG" ]]; then
+            docker tag "$SERVICE_IMAGE" "$IMAGE:$VERSION_TAG"
+          fi
+          # Optional: tag as 'dev' (only on main branch)
+          if [[ -n "$IMAGE:$DEV_TAG" ]]; then
+            docker tag "$SERVICE_IMAGE" "$IMAGE:$DEV_TAG"
+          fi
+
+      # 🐳 Push all tags to Docker Hub
+      - name: 🐳 Push all tags with retry and continue on fail
+        if: success()
+        continue-on-error: true
+        shell: bash
+        env:
+          # Read variables from step outputs safely
+          IMAGE: ${{ steps.vars.outputs.image_name }}
+          SHA_TAG: ${{ steps.vars.outputs.sha_tag }}
+          BRANCH_TAG: ${{ steps.vars.outputs.branch_tag }}
+          VERSION_TAG: ${{ steps.vars.outputs.version_tag }}
+          DEV_TAG: ${{ steps.vars.outputs.dev_tag }}
+        run: |
+          set -euo pipefail
+
+          # Function to safely push a Docker image tag with retries
+          # and continue on failure (non-fatal)
+          function safe_push() {
+            TAG=$1
+            echo "👉 Pushing :$TAG"
+            for i in {1..3}; do
+              docker push "$IMAGE:$TAG" && echo "✅ :$TAG pushed" && return 0 || {
+                echo "🔴 Failed :$TAG (attempt $i/3)... retrying"
+                sleep 5
+              }
+            done
+            echo "⚠️ Giving up on :$TAG (non-fatal)"
+            return 0
+          }
+
+          # Push 'latest' tag
+          safe_push latest
+
+          # Push short SHA tag
+          safe_push "$SHA_TAG"
+
+          # Push branch name tag (if defined)
+          if [[ -n "$BRANCH_TAG" ]]; then
+            safe_push "$BRANCH_TAG"
+          fi
+          # Push Git version tag (if defined)
+          if [[ -n "$VERSION_TAG" ]]; then
+            safe_push "$VERSION_TAG"
+          fi
+          # Push dev tag (only if main branch)
+          if [[ "$IMAGE:$DEV_TAG" == "dev" ]]; then
+            safe_push dev
+          fi
+
+      - name: Tear down Docker Compose
+        if: always()
+        continue-on-error: true
+        run: |
+          docker compose -f "$COMPOSE_FILE" down --remove-orphans --volumes

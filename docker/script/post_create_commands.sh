@@ -113,7 +113,7 @@ else
 fi
 
 # Update environment with default.yml (always applied)
-# $MAMBA_CMD env update -n "py311" -f "./docker/conda_env/default.yml" \
+# $MAMBA_CMD env update -n "py311" -f "./docker/env_conda/default.yml" \
 #   || { echo "Failed to apply default environment"; exit 0; }
 
 ## Activate the environment and install required packages

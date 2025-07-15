@@ -8,6 +8,11 @@
 
    * https://huggingface.co/scikit-plots
    * https://huggingface.co/spaces/scikit-plots/model-sight
+
+.. tip::
+
+    * https://docs.litellm.ai/docs
+    * https://docs.litellm.ai/docs/providers/huggingface
 """
 
 from .._testing._pytesttester import PytestTester  # Pytest testing

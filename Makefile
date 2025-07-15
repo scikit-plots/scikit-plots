@@ -542,7 +542,7 @@ sym:
 	@rm -rf ".devcontainer/script" "environment.yml"
 	@# mkdir -p ".devcontainer/script"
 	@ln -rsf "docker/script/" ".devcontainer/script"
-	@ln -rsf "./docker/conda_env/environment.yml" "environment.yml"
+	@ln -rsf "./docker/env_conda/environment.yml" "environment.yml"
 	@echo "Created symbolic links..."
 
 ######################################################################

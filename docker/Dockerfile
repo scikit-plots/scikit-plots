@@ -79,21 +79,20 @@ RUN apt-get update \
   ## && locale-gen && update-locale LANG=en_US.UTF-8 \
   ## Generate C.UTF-8 locale
   && locale-gen C.UTF-8 \
-  && dpkg-reconfigure -f noninteractive locales \
+  && dpkg-reconfigure -f noninteractive locales; \
   ## Install sudo and set up a passwordless sudo user
-  && apt-get install -yq --no-install-recommends sudo gosu \
+  apt-get install -yq --no-install-recommends sudo gosu \
   ## && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
-  && echo "jovyan:jovyan" | chpasswd \
+  && echo "jovyan:jovyan" | chpasswd; \
   ## Cleanup to reduce image size
-  && apt-get clean \
+  apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   ;
 
 ## Set the timezone for the container to UTC+3 (Europe/Moscow)
 ## ENV TZ=Europe/Moscow
 # ENV TZ=Europe/Istanbul
-
 ## Install tzdata non-interactively, set timezone, and clean up to reduce image size
 # RUN apt-get update && \
 #   apt-get install -y --no-install-recommends tzdata && \
@@ -121,14 +120,15 @@ RUN apt-get update \
 RUN apt-get update --yes \
   && apt-get --fix-broken install --yes --no-install-recommends \
     --allow-downgrades \
+    ## CA certificates for secure HTTPS connections
+    ca-certificates \
+    ## Provides the add-apt-repository command (useful for adding PPAs)
+    software-properties-common \
     ## Common useful utilities
     ## Essential packages for building software
     ## for cython: https://cython.readthedocs.io/en/latest/src/quickstart/install.html
+    ## installs gcc, g++, make, libc-dev for compiling native extensions
     build-essential \
-    ## Provides the add-apt-repository command (useful for adding PPAs)
-    software-properties-common \
-    ## CA certificates for secure HTTPS connections
-    ca-certificates \
     # zsh \
     # lsb-core \
     # lsb-release \
@@ -236,16 +236,16 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     ## Metal Performance Shaders (MPS) – Apple’s GPU Framework
     ## TensorFlow with Metal Backend (ML-Specific)
     apt-get update --yes && apt-get install --yes --no-install-recommends \
-        ## General-purpose C++ development
-        ## Boost C++ Libraries - a set of portable C++ source libraries
-        libboost-all-dev \
-        ## MKL (Intel Math Kernel Library) - Optimized math library for scientific computing with multi-threading support.
-        libmkl-dev \
-        ## Graph visualization software
-        ## Graph visualization software: dot -V
-        graphviz \
-        ## Vector graphics editor
-        inkscape \
+      ## General-purpose C++ development
+      ## Boost C++ Libraries - a set of portable C++ source libraries
+      libboost-all-dev \
+      ## MKL (Intel Math Kernel Library) - Optimized math library for scientific computing with multi-threading support.
+      libmkl-dev \
+      ## Graph visualization software
+      ## Graph visualization software: dot -V
+      graphviz \
+      ## Vector graphics editor
+      inkscape \
     || true; \
     ## Cleanup to reduce image size
     fix-permissions "$HOME" \
@@ -280,8 +280,8 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
 USER ${NB_UID}
 
 ## Setup work directory for backward-compatibility
-RUN mkdir -p /home/$NB_USER/work || true && \
-    fix-permissions /home/$NB_USER
+RUN mkdir -p /home/$NB_USER/work || true \
+  && fix-permissions /home/$NB_USER
 
 ######################################################################
 ## default environment (e.g. conda, mamba, pipenv)
@@ -391,10 +391,10 @@ RUN mkdir -p /home/$NB_USER/work || true && \
 #   fi
 
 ## Create conda environment from environment.yml and clean cache
-COPY "./docker/conda_env/environment.yml" "/tmp/environment.yml"
-COPY "./docker/conda_env/base.yml" "/tmp/base.yml"
-COPY "./docker/conda_env/default.yml" "/tmp/default.yml"
-COPY "./docker/conda_env/extended.yml" "/tmp/extended.yml"
+COPY "./docker/env_conda/environment.yml" "/tmp/environment.yml"
+COPY "./docker/env_conda/base.yml" "/tmp/base.yml"
+COPY "./docker/env_conda/default.yml" "/tmp/default.yml"
+COPY "./docker/env_conda/extended.yml" "/tmp/extended.yml"
 
 # RUN mamba create -n "py311" python=3.11 ipykernel -y
 RUN mamba env create -n "py311" -f "/tmp/base.yml" \
@@ -457,3 +457,4 @@ CMD start-notebook.py --port ${JUPYTER_PORT}
 
 ## Setup work directory for backward-compatibility (if needed)
 WORKDIR "${HOME}/work"
+# RUN sudo chown -R jovyan .

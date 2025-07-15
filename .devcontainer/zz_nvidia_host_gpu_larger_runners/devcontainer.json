@@ -16,7 +16,7 @@
     "gpu": "optional"
   },
   // https://docs.github.com/en/enterprise-cloud@latest/actions/using-github-hosted-runners/using-larger-runners/about-larger-runners
-  "name": "Host GPU Dev (for larger runners)",
+  "name": "GPU Dev as Host (for larger runners)",
   // "image": "mcr.microsoft.com/devcontainers/universal:2",
   // "build": {
     // Path is relative to the devcontainer.json file.
@@ -25,8 +25,8 @@
     // "args": {}
   // },
   "dockerComposeFile": "../../docker/docker-compose.yml",
-  "service": "app_nvidia_host_gpu_driver",
-  "runServices": ["app_nvidia_host_gpu_driver"],
+  "service": "nvidia_host_gpu",
+  "runServices": ["nvidia_host_gpu"],
   // "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   // runArgs only for github Desktop
   // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
@@ -154,7 +154,7 @@
     // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
     "message2": "echo 'Runing onCreateCommand...'"
     // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
-    // "conda_env_create": ["bash", "-c", ".devcontainer/script/setup_conda_env_create.sh || exit 0"]
+    // "env_conda_create": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
   },
   // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "updateContentCommand": {
@@ -253,7 +253,7 @@
         // === continuous integration and continuous deployment (CI/CD) platform used to automate software builds, tests, and deployments ===
         // "HashiCorp.terraform",                 // terraform
         // "ms-azuretools.vscode-azureterraform", // azureterraform
-        "ms-azuretools.vscode-docker",            // Docker for Visual Studio Code
+        "ms-azuretools.vscode-docker"            // Docker for Visual Studio Code
         // "circleci.circleci"
 
         // === GenAI ===

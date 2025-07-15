@@ -13,7 +13,7 @@
 # ruff: noqa: UP037
 
 """
-:py:mod:`scikitplot.sp_logging` (alias, :py:mod:`scikitplot.logger`) module provide logging utilities.
+:py:mod:`~.sp_logging` (alias, :py:obj:`~.logger`) module provide logging utilities.
 
 Inspired by `"Tensorflow's logging system"
 <https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94>`_.
@@ -891,7 +891,7 @@ def get_logger() -> "_logging.Logger":
     See Also
     --------
     scikitplot.logger :
-        An alias of :py:mod:`scikitplot.sp_logging` module, providing logging functionality.
+        An alias of :py:mod:`~.sp_logging` module, providing logging functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance.
         For more: https://docs.python.org/3/library/logging.html

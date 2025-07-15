@@ -15,20 +15,27 @@
     "storage": "32gb",
     "gpu": "optional"
   },
-  "name": "DevContainer (default)",
-  // Use a basic Ubuntu-based image
-  // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
-  // codespaces codespaces image
-  "image": "mcr.microsoft.com/devcontainers/universal:2",  // also include "conda", also create "venv"
+  "name": "python_cpu (fast-minimal)",
+  // "image": "mcr.microsoft.com/devcontainers/universal:2",
+  // "build": {
+    // Path is relative to the devcontainer.json file.
+    // "dockerfile": "../../docker/Dockerfile",
+    // "context": "../..",
+    // "args": {}
+  // },
+  "dockerComposeFile": "../../docker/docker-compose.yml",
+  "service": "python_cpu",
+  "runServices": ["python_cpu"],
+  // "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   // runArgs only for github Desktop
   // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
-  // "runArgs": ["--gpus","all"],
+  "runArgs": ["--gpus","all"],
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "remoteUser": "root",
   // "containerUser": "root",
   // "updateRemoteUserUID ": "true",
   // "workspaceFolder": "/workspace",
-  "features": {  // TODO:⚠️ `ERROR: ... : No space left on device`
+  "features": {
     // https://containers.dev/features
     // Enable Docker-in-Docker to allow running Docker inside the container
     // "ghcr.io/devcontainers/features/docker-in-docker:2": {},
@@ -41,89 +48,89 @@
     // GitHub CLI for interacting with GitHub from the terminal
     // "ghcr.io/devcontainers/features/github-cli:1": {},
     // Installs various APT packages required for development
-    // "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-    //   "packages": [
-    //     // Text editors and utilities
-    //     "vim",
-    //     "nano",
-    //     "wget",
-    //     "curl",
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "packages": [
+        // Text editors and utilities
+        "vim",
+        "nano",
+        "wget",
+        "curl",
 
-    //     // Git and related tools
-    //     "git",
-    //     "git-lfs",
+        // Git and related tools
+        "git",
+        "git-lfs",
 
-    //     // Archive utilities
-    //     "unzip",
-    //     "gzip",
-    //     "bzip2",
-    //     "p7zip-full",
-    //     "p7zip-rar",
-    //     "unrar",
-    //     "tar",
+        // Archive utilities
+        "unzip",
+        "gzip",
+        "bzip2",
+        "p7zip-full",
+        "p7zip-rar",
+        "unrar",
+        "tar",
 
-    //     // Documentation tools
-    //     "pandoc",  // Converts notebooks to HTML
+        // Documentation tools
+        "pandoc",  // Converts notebooks to HTML
 
-    //     // File and directory utilities
-    //     "tree",
+        // File and directory utilities
+        "tree",
 
-    //     // Graph visualization software
-    //     "graphviz",
+        // Graph visualization software
+        "graphviz",
 
-    //     // Multimedia tools
-    //     "ffmpeg",    // Needed for matplotlib animations
-    //     // "inkscape",  // Vector graphics editor
+        // Multimedia tools
+        "ffmpeg",    // Needed for matplotlib animations
+        // "inkscape",  // Vector graphics editor
 
-    //     // Build tools
-    //     "make",
-    //     "cmake",
-    //     "ninja-build",
-    //     "pkg-config",
+        // Build tools
+        "make",
+        "cmake",
+        "ninja-build",
+        "pkg-config",
 
-    //     // Python-related tools
-    //     "python3-pip",
-    //     "python3-venv",
-    //     "python3-dev",
+        // Python-related tools
+        "python3-pip",
+        "python3-venv",
+        "python3-dev",
 
-    //     // Compilers and build dependencies
-    //     "gfortran",            // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
-    //     "gcc",                 // C (GNU Compiler Collection) — Compiles standard C code
-    //     "g++",                 // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
+        // Compilers and build dependencies
+        "gfortran",            // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
+        "gcc",                 // C (GNU Compiler Collection) — Compiles standard C code
+        "g++",                 // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
 
-    //     // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
-    //     // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
-    //     // "clang",            // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
-    //     // "clang-format",     // LLVM tools Formats C++ and other languages
-    //     // "clang-tidy",       // LLVM tools Static analysis for C++
+        // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+        // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
+        // "clang",            // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+        // "clang-format",     // LLVM tools Formats C++ and other languages
+        // "clang-tidy",       // LLVM tools Static analysis for C++
 
-    //     // Linear Algebra and Numerical Libraries
-    //     // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
-    //     "libopenblas-dev",    // For high-performance matrix/vector ops (used in NumPy, SciPy)
-    //     // Reference BLAS implementation (baseline, less optimized)
-    //     // "libblas-dev",        // Standard BLAS, may be overridden by OpenBLAS dynamically
-    //     // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
-    //     // "liblapack-dev",      // Required for scientific and engineering computations
-    //     // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
-    //     // "libblis-dev",        // Optional, can be tuned for specific architectures
+        // Linear Algebra and Numerical Libraries
+        // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
+        "libopenblas-dev",    // For high-performance matrix/vector ops (used in NumPy, SciPy)
+        // Reference BLAS implementation (baseline, less optimized)
+        // "libblas-dev",        // Standard BLAS, may be overridden by OpenBLAS dynamically
+        // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
+        // "liblapack-dev",      // Required for scientific and engineering computations
+        // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
+        // "libblis-dev",        // Optional, can be tuned for specific architectures
 
-    //     // Parallel Computing Libraries
-    //     // Intel MKL – Highly optimized math kernels (not always open source)
-    //     // "libmkl-dev",         // May conflict with OpenBLAS; check compatibility
-    //     // Intel TBB – Task-based parallelism in C++
-    //     // "libtbb-dev",         // Used in threading, e.g., OpenCV, oneAPI
-    //     // OpenMP – Multithreading support for C/C++/Fortran
-    //     "libomp-dev"          // Enables `#pragma omp` parallelism in C/C++/Fortran
+        // Parallel Computing Libraries
+        // Intel MKL – Highly optimized math kernels (not always open source)
+        // "libmkl-dev",         // May conflict with OpenBLAS; check compatibility
+        // Intel TBB – Task-based parallelism in C++
+        // "libtbb-dev",         // Used in threading, e.g., OpenCV, oneAPI
+        // OpenMP – Multithreading support for C/C++/Fortran
+        "libomp-dev"          // Enables `#pragma omp` parallelism in C/C++/Fortran
 
-    //     // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
-    //     // Installs the entire Boost C++ library development suite (headers + libs)
-    //     // Boost is a large set of C++ libraries that extend the standard library.
-    //     // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
-    //     // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
-    //     // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
-    //     // "libboost-all-dev"  // Boost headers and prebuilt libs
-    //   ]
-    // }
+        // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
+        // Installs the entire Boost C++ library development suite (headers + libs)
+        // Boost is a large set of C++ libraries that extend the standard library.
+        // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
+        // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
+        // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
+        // "libboost-all-dev"  // Boost headers and prebuilt libs
+      ]
+    }
   },
   // https://containers.dev/implementers/json_schema/
   // If this is a single string, it will be run in a shell.
@@ -144,10 +151,9 @@
     // "placeholderTask": "do something (e.g. str, array aka list)..."
     // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
     // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
-    "message2": "echo 'Runing onCreateCommand...'",
-    "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
-    // TODO: ⚠️ `ERROR: ... : No space left on device`
-    // "env_conda_create": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
+    "message2": "echo 'Runing onCreateCommand...'"
+    // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
+    // "conda_env_create": ["bash", "-c", ".devcontainer/script/setup_conda_env_create.sh || exit 0"]
   },
   // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "updateContentCommand": {
@@ -163,7 +169,7 @@
     // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
     // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
     "message4": "echo 'Runing postCreateCommand...'"
-    // TODO: ⚠️ `ERROR: ... : No space left on device`
+    // TODO: "ERROR: ... : no space left on device"
     // "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || exit 0"
     // "post_create_commands": ["bash", "-c", ".devcontainer/script/post_create_commands.sh || exit 0"]
   },
@@ -203,50 +209,50 @@
         // === Python Development ===
         "ms-python.python",                       // Python language support
         "ms-toolsai.jupyter",                     // Jupyter Notebook support
-        // "ms-toolsai.vscode-jupyter-slideshow",    // Jupyter Slide Show
+        "ms-toolsai.vscode-jupyter-slideshow",    // Jupyter Slide Show
 
         // === Formatter extension ===
-        // "ms-python.isort",                        // Import sorting extension
-        // "ms-python.autopep8",                     // autopep8 formatter
-        // "ms-python.flake8",                       // Flake8 extension
-        // "ms-python.black-formatter",              // Black code formatter
-        // "ms-python.mypy-type-checker",            // Mypy extension
-        // "ms-python.pylint",                       // Pylint extension
-        "charliermarsh.ruff"                     // Ruff linter
+        "ms-python.isort",                        // Import sorting extension
+        "ms-python.autopep8",                     // autopep8 formatter
+        "ms-python.flake8",                       // Flake8 extension
+        "ms-python.black-formatter",              // Black code formatter
+        "ms-python.mypy-type-checker",            // Mypy extension
+        "ms-python.pylint",                       // Pylint extension
+        "charliermarsh.ruff",                     // Ruff linter
         // "ms-pyright.pyright",                     // Static Type Checker for Python
 
         // === Markdown & Docs ===
-        // "yzhang.markdown-all-in-one",             // Markdown enhancements
-        // "stkb.rewrap",                            // Auto-wrap text and comments
-        // "bierner.markdown-mermaid",               // Support for Mermaid diagrams in Markdown
+        "yzhang.markdown-all-in-one",             // Markdown enhancements
+        "stkb.rewrap",                            // Auto-wrap text and comments
+        "bierner.markdown-mermaid",               // Support for Mermaid diagrams in Markdown
 
         // === Shell & Terminal ===
-        // "timonwong.shellcheck",                   // Shell script linting
-        // "foxundermoon.shell-format",              // Shell script formatting
-        // "ms-vscode.makefile-tools",               // Makefile support
+        "timonwong.shellcheck",                   // Shell script linting
+        "foxundermoon.shell-format",              // Shell script formatting
+        "ms-vscode.makefile-tools",               // Makefile support
         // "ms-vscode.cmake-tools",                  // CMake Tools
 
         // === Web Development ===
-        // "ms-vscode.live-server",                  // Live Server
-        // "ritwickdey.liveserver",                  // Alternative Live Server
-        // "esbenp.prettier-vscode",                 // Prettier formatter for JS, HTML, etc.
+        "ms-vscode.live-server",                  // Live Server
+        "ritwickdey.liveserver",                  // Alternative Live Server
+        "esbenp.prettier-vscode",                 // Prettier formatter for JS, HTML, etc.
 
         // === Git & Productivity ===
-        // "eamodio.gitlens",                        // Git supercharged
-        // "donjayamanne.githistory",                // View git history
-        // "github.vscode-pull-request-github",      // GitHub PRs and Issues
-        // "mhutchie.git-graph",                     // Interactive Git graph
+        "eamodio.gitlens",                        // Git supercharged
+        "donjayamanne.githistory",                // View git history
+        "github.vscode-pull-request-github",      // GitHub PRs and Issues
+        "mhutchie.git-graph",                     // Interactive Git graph
 
         // === C/C++ Development ===
         // "ms-vscode.cpptools",                     // C/C++ IntelliSense, debugging, etc.
-        // "ms-vscode.cpptools-extension-pack",      // C/C++ IntelliSense, debugging, etc.
-        // "llvm-vs-code-extensions.vscode-clangd",  // Clang language server
-        // "jeff-hykin.better-cpp-syntax",           // Better syntax highlighting
+        "ms-vscode.cpptools-extension-pack",      // C/C++ IntelliSense, debugging, etc.
+        "llvm-vs-code-extensions.vscode-clangd",  // Clang language server
+        "jeff-hykin.better-cpp-syntax",           // Better syntax highlighting
 
         // === continuous integration and continuous deployment (CI/CD) platform used to automate software builds, tests, and deployments ===
         // "HashiCorp.terraform",                 // terraform
         // "ms-azuretools.vscode-azureterraform", // azureterraform
-        // "ms-azuretools.vscode-docker",            // Docker for Visual Studio Code
+        "ms-azuretools.vscode-docker"            // Docker for Visual Studio Code
         // "circleci.circleci"
 
         // === GenAI ===
@@ -263,8 +269,8 @@
         "markdown.preview.autoShowPreviewToSide": true,
         "editor.tabSize": 4,
 
-        // "python.pythonPath": "/usr/bin/python3",
-        // "python.defaultInterpreterPath": "/opt/conda/bin/python",
+        // "python.pythonPath": "/usr/bin/python3"
+        "python.defaultInterpreterPath": "/opt/conda/bin/python",
         "python.testing.unittestEnabled": false,
         "python.testing.pytestEnabled": true
       }
