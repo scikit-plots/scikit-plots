@@ -27,8 +27,8 @@ networks:
   back_tier:
     # driver: bridge  # Use the default bridge network for inter-service communication
   front_tier: {}  # Docker will auto-create this network if it doesn't exist
-  llm-rag-workshop_back_tier:  # This defines a custom network named 'llm-rag-workshop_back_tier'
-    external: true  # Tells Docker Compose to use an existing external network (not create a new one)
+  # llm-rag-workshop_back_tier:  # This defines a custom network named 'llm-rag-workshop_back_tier'
+  #   external: true  # Tells Docker Compose to use an existing external network (not create a new one)
 
 
 # --------------------------------------------------------------------
@@ -99,7 +99,7 @@ services:
     networks:
       - "back_tier"  # Connect to the defined network for backend services
       - "front_tier"  # Connect to the defined network for frontend services
-      - "llm-rag-workshop_back_tier"  # Connect to the external network for LLM RAG workshop
+      # - "llm-rag-workshop_back_tier"  # Connect to the external network for LLM RAG workshop
 
     ## Works only with Docker 20.10.0+ and the host-gateway feature enabled.
     ## macOS & Windows (host.docker.internal is built-in DNS name that maps to the host machine.)

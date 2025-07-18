@@ -160,7 +160,7 @@ jobs:
         if: success()
         continue-on-error: true
         run: |
-          # set -euo pipefail
+          set -euo pipefail
 
           SERVICE=${{ matrix.service[0] }}
           IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
@@ -180,7 +180,7 @@ jobs:
           VERSION: ${{ steps.gitref.outputs.version_tag }}
           BRANCH: ${{ steps.gitref.outputs.branch_tag }}
         run: |
-          # set -euo pipefail
+          set -euo pipefail
 
           SERVICE=${{ matrix.service[0] }}
           IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
@@ -201,11 +201,12 @@ jobs:
           # for REF_TAG in "${{ join(matrix.tag, '" "') }}"; do
 
           ## ✅ Best for: Complex nested arrays — if matrix.tag items are sublists of [TAG, REF_TAG, ALIAS].
-          MATRIX_JSON='${{ toJSON(matrix.tag) }}'
+          MATRIX_JSON=${{ toJSON(matrix.tag) }}
 
           # Loop through each tag entry as a compact JSON object
           # for arr in "$(echo "$MATRIX_JSON" | jq -c '.')" ; do
           #   IFS=',' read -r TAG REF_TAG ALIAS <<< "$(echo "$arr" | jq -r '. | join(",")')"
+
           echo "$MATRIX_JSON" | jq -c '.[]' | while read -r arr; do
             TAG=$(echo "$arr" | jq -r '.tag')
             REF_TAG=$(echo "$arr" | jq -r '.ref_tag')
