@@ -12,21 +12,22 @@ conda init --all || true
 # Install micromamba via official install script silently, only if not installed
 # micromamba not "conda" keyword compatipable but same syntax
 # "${SHELL}" <(curl -Ls micro.mamba.pm/install.sh) < /dev/null
-if ! command -v micromamba &> /dev/null; then
-  echo "🔧 Installing micromamba..."
+# if ! command -v micromamba &> /dev/null; then
+echo "🔧 Installing micromamba..."
 
-  # Check for curl or fallback to wget
-  if command -v curl &> /dev/null; then
-    # curl -Ls https://micro.mamba.pm/install.sh | bash
-    "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
-  elif command -v wget &> /dev/null; then
-    wget -qO- https://micro.mamba.pm/install.sh | bash
-  else
-    echo "❌ Neither curl nor wget is available to download micromamba."
-    echo "Please install curl or wget first."
-    exit 1
-  fi
+# Check for curl or fallback to wget
+if command -v curl &> /dev/null; then
+  # curl -Ls https://micro.mamba.pm/install.sh | bash
+  "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
+elif command -v wget &> /dev/null; then
+  wget -qO- https://micro.mamba.pm/install.sh | bash
+else
+  echo "❌ Neither curl nor wget is available to download micromamba."
+  echo "Please install curl or wget first."
+  exit 1
 fi
+# fi
+
 # Dynamically get shell name (bash, zsh, fish, etc.)
 shell_name=$(basename "$SHELL")
 # Source shell config to enable 'micromamba activate' command in current shell
@@ -65,7 +66,7 @@ micromamba activate py311 || true
 # Configure micromamba envs directory to simplify env discovery by conda/micromamba
 mkdir -p "/opt/conda" "$HOME/micromamba/envs" || true
 echo "envs_dirs:
-  - \"$HOME/micromamba/envs\"" > /opt/conda/.condarc
+  - $HOME/micromamba/envs" > /opt/conda/.condarc
 
 # Clean up caches and package manager artifacts to reduce disk usage
 sudo apt-get clean || true

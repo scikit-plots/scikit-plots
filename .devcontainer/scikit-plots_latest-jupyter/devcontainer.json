@@ -203,7 +203,16 @@
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
   },
   "onCreateCommand": {
-    "message2": "echo 'Runing onCreateCommand...'",
+    "message2": "echo 'Runing onCreateCommand...'"
+  },
+  "updateContentCommand": {
+    "message3": "echo 'Runing updateContentCommand...'"
+  },
+  "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
+    "message4": "echo 'Runing postCreateCommand...'",
+    "install_apt": "apt update -y && apt install sudo gosu curl build-essential -y",
+    // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
+    "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
     // For list optional "bash" if Ensure proper shebang (#!/bin/bash).
     "all_post_create": [
       // Nested-Dependant Commands
@@ -219,15 +228,6 @@
     // "notice_dyn": "python -m docker.script.first_run_notice | sudo tee /workspaces/.codespaces/shared/first-run-notice.txt > /dev/null"
     // "notice": "sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
-  "updateContentCommand": {
-    "message3": "echo 'Runing updateContentCommand...'"
-  },
-  "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
-    "message4": "echo 'Runing postCreateCommand...'",
-    "install_apt": "apt update -y && apt install sudo gosu curl build-essential -y",
-    // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
-    "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true"
-  },
   "postStartCommand": {
     "message5": "echo 'Runing postStartCommand...'"
   },
@@ -236,7 +236,7 @@
     // "server": "npm start",
     // "db": ["mysql", "-u", "root", "-p", "my database"]
   },
-  // "waitFor": "updateContentCommand",  // "The user command to wait for before continuing execution in the background while the UI is starting up. The default is \"updateContentCommand\"."
+  "waitFor": "postCreateCommand",  // "The user command to wait for before continuing execution in the background while the UI is starting up. The default is \"updateContentCommand\"."
 
   // Configure tool-specific properties.
   // "Tool-specific configuration. Each tool should use a JSON object subproperty with a unique name to group its customizations."
