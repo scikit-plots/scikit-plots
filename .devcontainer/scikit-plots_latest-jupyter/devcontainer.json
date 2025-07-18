@@ -79,6 +79,11 @@
     // Installs various APT packages required for development
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "packages": [
+        // switch users safely
+        "sudo", // can be heavy & buggy
+        // 👷 Use gosu user ... inside Dockerfile or scripts to run as a different user safely
+        "gosu", // designed for Docker (safer alternative to sudo in Docker)
+
         // Text editors and utilities
         "vim",
         "nano",
@@ -191,8 +196,7 @@
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
   },
   "onCreateCommand": {
-    "message2": "echo 'Runing onCreateCommand...'",
-    "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
+    "message2": "echo 'Runing onCreateCommand...'"
     // "on_create_env_conda": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
   },
   "updateContentCommand": {
@@ -200,8 +204,17 @@
   },
   "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
     "message4": "echo 'Runing postCreateCommand...'"
+    // "post_create_env_conda": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
     // "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || exit 0"
     // "post_create_commands": ["bash", "-c", ".devcontainer/script/post_create_commands.sh || exit 0"]
+    //
+    // "install_apt": "bash -c 'apt update -y && apt install sudo gosu -y'",
+    // "notice" Different container base image works differently See: https://github.com/orgs/community/discussions/43534
+    // appears that text in "/usr/local/etc/vscode-dev-containers/first-run-notice.txt" takes precedence over text in "/workspaces/.codespaces/shared/first-run-notice.txt"
+    // https://github.com/devcontainers/features/blob/main/src/common-utils/scripts/rc_snippet.sh
+    // "notice_hack": "bash -c 'mkdir -p $HOME/.config/vscode-dev-containers/ && touch $HOME/.config/vscode-dev-containers/first-run-notice-already-displayed'"
+    // "notice_dyn": "bash -c 'python -m docker.script.first_run_notice | sudo tee /workspaces/.codespaces/shared/first-run-notice.txt > /dev/null'"
+    // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
   },
   "postStartCommand": {
     "message5": "echo 'Runing postStartCommand...'"
@@ -248,24 +261,24 @@
 
         // === Git & Productivity ===
         "github.vscode-pull-request-github"          // GitHub PRs and Issues
-        // "eamodio.gitlens",                         // Git supercharged
-        // "donjayamanne.githistory",                 // View git history
-        // "mhutchie.git-graph",                      // Interactive Git graph
+        // "eamodio.gitlens",                            // Git supercharged
+        // "donjayamanne.githistory",                    // View git history
+        // "mhutchie.git-graph",                         // Interactive Git graph
 
         // === C/C++ Development ===
-        // "ms-vscode.cpptools",                      // C/C++ IntelliSense, debugging, etc.
-        // "ms-vscode.cpptools-extension-pack",       // C/C++ IntelliSense, debugging, etc.
-        // "llvm-vs-code-extensions.vscode-clangd",   // Clang language server
-        // "jeff-hykin.better-cpp-syntax",            // Better syntax highlighting
+        // "ms-vscode.cpptools",                         // C/C++ IntelliSense, debugging, etc.
+        // "ms-vscode.cpptools-extension-pack",          // C/C++ IntelliSense, debugging, etc.
+        // "llvm-vs-code-extensions.vscode-clangd",      // Clang language server
+        // "jeff-hykin.better-cpp-syntax",               // Better syntax highlighting
 
         // === continuous integration and continuous deployment (CI/CD) platform used to automate software builds, tests, and deployments ===
-        // "ms-azuretools.vscode-docker",             // Docker for Visual Studio Code
-        // "ms-azuretools.vscode-azureterraform",     // azureterraform
-        // "HashiCorp.terraform",                     // terraform
+        // "ms-azuretools.vscode-docker",                // Docker for Visual Studio Code
+        // "ms-azuretools.vscode-azureterraform",        // azureterraform
+        // "HashiCorp.terraform",                        // terraform
         // "circleci.circleci",
 
         // === GenAI ===
-        // "genaiscript.genaiscript-vscode",          // GenAIScript
+        // "genaiscript.genaiscript-vscode",             // GenAIScript
 
         // === Markdown & Docs ===
         // "yzhang.markdown-all-in-one",                 // Markdown enhancements
@@ -273,10 +286,10 @@
         // "bierner.markdown-mermaid",                   // Support for Mermaid diagrams in Markdown
 
         // === Learn extension ===
-        // "docsmsft.docs-markdown",                  // Learn Markdown Extension
-        // "ms-vscode.copilot-mermaid-diagram",       // vscode-mermAId
-        // "docsmsft.docs-yaml",                      // Docs YAML Extension
-        // "azurepaas-tools.vscode-learncloud",       // Learn Cloud
+        // "docsmsft.docs-markdown",                     // Learn Markdown Extension
+        // "ms-vscode.copilot-mermaid-diagram",          // vscode-mermAId
+        // "docsmsft.docs-yaml",                         // Docs YAML Extension
+        // "azurepaas-tools.vscode-learncloud",          // Learn Cloud
       ],
       "settings": {
         "terminal.integrated.shell.linux": "/bin/bash",

@@ -126,6 +126,11 @@ ENV LANGUAGE=C.UTF-8
 #   ;
 
 ## Set the default user and group for the Jupyter notebook
+## whoami   # e.g., vscode
+## id -u    # 0 = root, anything else = non-root
+## -eq -ne -gt -lt -ge -le
+## [ "$(id -u)" -eq 0 ] "👑 Already root. Running apt directly..."
+## [ "$(id -u)" -ne 0 ] "🔒 Not root. Switching to root with gosu..."
 ## ARG NB_USER=jovyan
 ## ARG NB_UID=1000
 ## ARG NB_GID=100
