@@ -174,7 +174,8 @@ jobs:
       # Build the Docker image and apply all necessary (multiple) tags
       - name: 🐳 Tag and Push Docker image
         # correctly filters for valid combinations
-        if: contains( matrix.service[0], matrix.tag[0] )
+        # if: contains( matrix.service[0], matrix.tag[0] )
+        if: contains( matrix.service[0], matrix.tag.tag )
         env:
           REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
           VERSION: ${{ steps.gitref.outputs.version_tag }}
