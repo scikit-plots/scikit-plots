@@ -89,30 +89,27 @@ echo -e "\033[1;32m## Fetching tags from upstream...\033[0m"
 git fetch upstream --tags
 
 ######################################################################
-## env
+## Install env "py311" and scikit-plots dev version
+## Use micromamba See: env_micromamba.sh
 ######################################################################
-
 # Choose mamba if available, otherwise fallback to conda
-MAMBA_CMD=$(command -v mamba || command -v conda)
-# Check if mamba or conda is available
-if [ -z "$MAMBA_CMD" ]; then
-  echo "Error: Neither mamba nor conda is available on your PATH."
-  exit 1
-fi
-
+# MAMBA_CMD=$(command -v mamba || command -v conda)
+## Check if mamba or conda is available
+# if [ -z "$MAMBA_CMD" ]; then
+#   echo "Error: Neither mamba nor conda is available on your PATH."
+#   exit 1
+# fi
 ## Initialize mamba (e.g., conda, miniconda, micromamba)
-$MAMBA_CMD init --all || true
-
-# Check if 'py311' env exists
-if ! conda env list | grep -qE '(^|\s)py311(\s|$)'; then
-  ## Create a new environment with python 3.11 and ipykernel if it doesn't already exist
-  echo "Creating 'py311' environment with Python 3.11 and ipykernel using: $MAMBA_CMD"
-  $MAMBA_CMD create -n py311 python=3.11 ipykernel -y || true
-else
-    echo "'py311' environment already exists. Skipping creation."
-fi
-
-# Update environment with default.yml (always applied)
+# $MAMBA_CMD init --all || true
+## Check if 'py311' env exists
+# if ! conda env list | grep -qE '(^|\s)py311(\s|$)'; then
+#   ## Create a new environment with python 3.11 and ipykernel if it doesn't already exist
+#   echo "Creating 'py311' environment with Python 3.11 and ipykernel using: $MAMBA_CMD"
+#   $MAMBA_CMD create -n py311 python=3.11 ipykernel -y || true
+# else
+#     echo "'py311' environment already exists. Skipping creation."
+# fi
+## Update environment with default.yml (always applied)
 # $MAMBA_CMD env update -n "py311" -f "./docker/env_conda/default.yml" \
 #   || { echo "Failed to apply default environment"; exit 0; }
 
@@ -120,10 +117,10 @@ fi
 ## Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
 ## Double quotes for the outer string and escaping the inner double quotes or use single
 bash -i -c "
-  # ⚠️ If mamba isn't initialized in the shell (as often happens in Docker/CI)
-  # 👉 Some steps can be skipped when container creation due to storage size limitations
-  # Use || exit 0: exits cleanly if the command fails (stops the script) (skip logic).
-  # source $MAMBA_ROOT_PREFIX/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || exit 0
+  ## ⚠️ If mamba isn't initialized in the shell (as often happens in Docker/CI)
+  ## 👉 Some steps can be skipped when container creation due to storage size limitations
+  ## Use || exit 0: exits cleanly if the command fails (stops the script) (skip logic).
+  ## source $MAMBA_ROOT_PREFIX/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || exit 0
   conda activate py311 || exit 0
   conda info -e | grep '*' || exit 0
 

@@ -8,7 +8,7 @@
 ⭐⭐ =====================================  IMPORTANT!!  ===================================== ⭐⭐
   To complete setup of your development environment to run the following script in the terminal:
 
-    ## ⚠️ `ERROR: ... : No space left on device`
+    ## ⚠️ If `ERROR: ... : No space left on device`
     ## 💽 (Optionally) Codespaces: View Creation Log: cat /workspaces/.codespaces/.persistedshare/creation.log
     ## 💽 (Optionally) Memory size: cat /etc/os-release && df -h && du -h --max-depth=1
     ## 👉 Some steps can be skipped when container creation due to storage size limitations here quick manually

@@ -205,24 +205,26 @@
   },
   "onCreateCommand": {
     "message2": "echo 'Runing onCreateCommand...'"
-    // "on_create_env_conda": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
   },
   "updateContentCommand": {
     "message3": "echo 'Runing updateContentCommand...'"
   },
   "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
-    "message4": "echo 'Runing postCreateCommand...'"
-    // "post_create_env_conda": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
-    // "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || exit 0"
-    // "post_create_commands": ["bash", "-c", ".devcontainer/script/post_create_commands.sh || exit 0"]
-    //
-    // "install_apt": "bash -c 'apt update -y && apt install sudo gosu -y'",
+    "message4": "echo 'Runing postCreateCommand...'",
+    "install_apt": "bash -c 'apt update -y && apt install sudo gosu curl build-essential -y'",
+    // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
+    "conda_mamba_init": "bash -c 'conda init --all || true'",
+    // For list optional "bash" if Ensure proper shebang (#!/bin/bash).
+    "env_conda": ["bash", "-c", "bash .devcontainer/script/env_micromamba.sh || true"],
+    // See: first-run-notice.txt
+    "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || true"
+    // For Images "mcr.microsoft.com/devcontainers/..."
     // "notice" Different container base image works differently See: https://github.com/orgs/community/discussions/43534
     // appears that text in "/usr/local/etc/vscode-dev-containers/first-run-notice.txt" takes precedence over text in "/workspaces/.codespaces/shared/first-run-notice.txt"
     // https://github.com/devcontainers/features/blob/main/src/common-utils/scripts/rc_snippet.sh
     // "notice_hack": "bash -c 'mkdir -p $HOME/.config/vscode-dev-containers/ && touch $HOME/.config/vscode-dev-containers/first-run-notice-already-displayed'"
     // "notice_dyn": "bash -c 'python -m docker.script.first_run_notice | sudo tee /workspaces/.codespaces/shared/first-run-notice.txt > /dev/null'"
-    // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
+    // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true'"
   },
   "postStartCommand": {
     "message5": "echo 'Runing postStartCommand...'"
