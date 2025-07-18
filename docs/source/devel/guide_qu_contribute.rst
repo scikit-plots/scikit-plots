@@ -113,6 +113,30 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
     cd scikit-plots
 
 
+.. tip::
+
+    Actually we run below script step-by-step in following Documentation.
+    (See Also: `https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt`__)
+
+    .. prompt:: bash
+
+        bash docker/script/post_create_commands.sh
+
+
+▶️ Quick check first-run-notice.txt
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt>`_
+
+.. dropdown:: first-run-notice.txt
+   :open:
+   :class-container: sdd
+
+   .. literalinclude:: ../../../docker/script/first-run-notice.txt
+      :language: none
+
+
+
 Initialize and Fetch Submodules:
 --------------------------------
 
@@ -312,18 +336,6 @@ the CI formatting checks for your :ref:`pull request <quickstart_pull_request>` 
 pass.
 
 .. tip:: To learn more about pre-commit, see the :ref:`pre-commit` section.
-
-▶️ Quick check `first-run-notice.txt`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt>`_
-
-.. dropdown:: first-run-notice.txt
-   :open:
-   :class-container: sdd
-
-   .. literalinclude:: ../../../docker/script/first-run-notice.txt
-      :language: none
 
 .. _contributing_pull_request:
 

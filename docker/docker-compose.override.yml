@@ -46,6 +46,8 @@ services:
     # env_file:
     #   - .env  # Load environment from file
     environment:
+      # This overrides the ENV at runtime. So the container will have:
+      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       - TZ=Etc/GMT  # Set timezone to Greenwich Mean Time (GMT)
@@ -148,6 +150,8 @@ services:
     # env_file:
     #   - .env  # Load environment from file
     environment:
+      # This overrides the ENV at runtime. So the container will have:
+      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       - TZ=Etc/GMT  # Set timezone to Greenwich Mean Time (GMT)

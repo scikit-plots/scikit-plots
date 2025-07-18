@@ -87,9 +87,6 @@ dependencies:
 # 🧩 Optional: extended group (can be installed later)
 optional-dependencies:
   extended:
-    # 🖼️ Visualization
-    # - aggdraw
-
     # 📊 Model Tracking and SQL
     - mlflow
     - sqlalchemy

@@ -40,7 +40,7 @@ Here's how containerization works:
 
 .. raw:: html
 
-   <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fnotebook_cpu%2Fdevcontainer.json&geo=EuropeWest" target="_blank">
+   <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-jupyter%2Fdevcontainer.json&geo=EuropeWest" target="_blank">
    <img style="display:auto;width:auto;height:auto;" alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg">
    </a>
 
@@ -104,7 +104,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 
 .. code-block:: sh
 
-   docker compose up --build notebook_cpu
+   docker compose up --build scikit-plots_latest-jupyter
 
 ▶️ Run Docker Env Jupyter Notebook (With NVIDIA Host GPU)
 
@@ -134,7 +134,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 
 .. code-block:: sh
 
-   # docker-compose up --build notebook_cpu
+   # docker-compose up --build scikit-plots_latest-jupyter
 
    docker ps  # check running containers
    docker logs CONTAINER_ID_OR_NAME  # find jupyter (token) http address 127.0....
@@ -174,7 +174,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 
 This project is based on Docker Compose and includes multiple services:
 
-🔹 notebook_cpu (CPU-Only)
+🔹 scikit-plots_latest-jupyter (CPU-Only)
 
 Runs Jupyter Notebook using jupyter/tensorflow-notebook:latest
 

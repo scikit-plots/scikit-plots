@@ -11,8 +11,9 @@
     ##💽 (Optionally) Memory size: df -h && du -h --max-depth=1
 
     ##🛠️ (recommended) Apply in bash `setup_env_conda_create.sh` `post_create_commands.sh`
-    ## 👉 Some steps can be skipped when container creation due to storage size limitations
     ## ⚠️ `ERROR: ... : No space left on device`
+    ## 👉 Some steps can be skipped when container creation due to storage size limitations here quick manually
+    ## For More: https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html
     ##✅ directories to mark as safe like ( git config --global --add safe.directory '*' )
     ##✅ fetching submodules ( git submodule update --init )
     ##✅ add remote upstream ( git remote add upstream https://github.com/scikit-plots/scikit-plots.git )
@@ -21,20 +22,21 @@
     ##✅ install required packages ( pip install -r ./requirements/all.txt )
     ##✅ install pre-commit hooks ( pre-commit install )
     ##✅ install the development version of scikit-plots ( pip install --no-build-isolation --no-cache-dir -e . )
-    bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
+    bash "docker/script/post_create_commands.sh"  # (not needed every time)
 
     ##👉 Open to new terminal mamba (or conda)
     conda init
     conda info -e
-    # (DevContainer) mamba activate /workspaces/scikit-plots/venv
-    mamba activate py311
-    mamba activate base
+
+    ## (DevContainer) mamba activate /workspaces/scikit-plots/venv
+    conda activate base
+    conda activate py311
 
     ##✅ Checking the build without root
     bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
 
     ##✅ Install tensorflow-cpu, if needed
-    pip install -r ./requirements/all.txt
+    # pip install -r ./requirements/all.txt
     pip install -r ./requirements/cpu.txt
 
     ##✍ Continue to creating a branch

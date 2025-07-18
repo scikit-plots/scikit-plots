@@ -23,6 +23,32 @@
 ## <target>: <if-defined-previously-run-this-target>
 ##     @<command> The commands to execute, indented with a tab (not spaces).
 
+# +------------------+---------------------------------+-----------------------------------------------------------------------+
+# | Syntax           | Name                            | Description                                                           |
+# +==================+=================================+=======================================================================+
+# | `VAR := value`   | Simple (Immediate)              | Evaluates `value` **immediately** and stores the result.              |
+# |                  | Cache the result now            | Used when value should not change even if dependencies do later.      |
+# +------------------+---------------------------------+-----------------------------------------------------------------------+
+# | `VAR = value`    | Recursive (Lazy)                | Evaluates `value` **each time** the variable is used.                 |
+# |                  | Delay evaluation until later    | Useful when value depends on something that may change later.         |
+# +------------------+---------------------------------+-----------------------------------------------------------------------+
+# | `VAR ?= value`   | Conditional                     | Assigns value **only if** `VAR` is not already defined.               |
+# |                  | Allow the user to override      | Good for allowing overrides from command line or environment.         |
+# +------------------+---------------------------------+-----------------------------------------------------------------------+
+# | `VAR += value`   | Append                          | Adds `value` to the existing `VAR`, with a space separator.           |
+# |                  | Add more values to a variable   | Can be used with both `=` and `:=` variables.                         |
+# +------------------+---------------------------------+-----------------------------------------------------------------------+
+# Simple (evaluated now)
+NOW := $(shell date)
+# Recursive (evaluated every time)
+LATER = $(shell date)
+# Conditional assignment
+# Default DEBUG to false, override with command line if needed, Optional debug/info message
+DEBUG ?= false
+INFO ?= false
+# Append values
+# CFLAGS += -Wall
+
 ## (Optional) Ensures that the project is rebuilt from a clean state.
 all: clean publish
 	@echo "all completed."
@@ -60,14 +86,32 @@ help:
 	@echo "  branch-clean    Periodically delete old local branches that have already been merged to keep your workspace clean."
 	@echo "  branch-push     Only new Creation stable branch Push to the remote repository. Including -u (or --set-upstream) flag."
 	@echo ""
-	@echo "  tag-sample      Tag sample by the latest commit or TAG Environment. Usage: make tag-sample [TAG=1.0.0]"
-	@echo "  tag             Add a Tag to the Local project check 'tag-sample'. Usage: make tag BR=maintenance/x.x.x [TAG=1.0.0]"
-	@echo "  tag-del         Delete the Local Tag use TAG Environment for del. Usage: make tag-del TAG=1.0.0"
-	@echo "  tag-delr        Delete the Remote Tag use TAG Environment for del. Usage: make tag-delr TAG=1.0.0"
+	@echo "  tag             Tag sample by the latest commit or scikitplot version Environment. Usage: make tag DEBUG=true"
+	@echo "  tag-add         Add a Tag to the Local project before check 'make tag'. Usage: make tag"
+	@echo "  tag-del         Delete the Local Tag use GIT_TAG Environment for del. Usage: make tag-del GIT_TAG=1.0.0"
+	@echo "  tag-delr        Delete the Remote Tag use GIT_TAG Environment for del. Usage: make tag-delr GIT_TAG=1.0.0"
 	@echo "  tag-push        Push the tag to the remote repository"
 	@echo ""
 	@echo "  check-publish   Checking the distribution files (Readme.md) for PyPI with twine."
 	@echo "  publish         to publish the project on PyPI"
+
+######################################################################
+## sync-time
+## ERROR: Clock skew detected. File /home/jovyan/work/build/cp311/meson-private/coredata.dat has a time stamp 7.9016s in the future.
+######################################################################
+
+# @echo "Attempting time sync..."  # Print an informational message
+# # Check if 'timedatectl' exists, and if so, run it to enable NTP.
+# # If it's not available (e.g., WSL or Docker), print a fallback message.
+# @which timedatectl >/dev/null 2>&1 && sudo timedatectl set-ntp true || echo "timedatectl not available"
+# # Check if 'ntpdate' exists, and if so, run it to immediately sync the clock.
+# # If it fails (e.g., due to permissions), print a fallback message.
+# @which ntpdate >/dev/null 2>&1 && sudo ntpdate pool.ntp.org || echo "ntpdate failed or not permitted"
+sync-time:
+	@#🔁 1. Sync file timestamps (inside container)
+	@# find /home/jovyan/work/build -type f -exec touch {} +
+	@# 🧹 2. (Recommended) Delete and rebuild
+	@rm -rf /home/jovyan/work/build
 
 ######################################################################
 ## Cleaning
@@ -186,6 +230,13 @@ newc:
 	# conda activate test  # activate our environment
 
 ######################################################################
+## Submodules
+## git config --global --add safe.directory /home/jovyan/work/contribution/scikit-plots/third_party
+## git submodule foreach --recursive git pull
+## git submodule update --init --recursive --remote
+######################################################################
+
+######################################################################
 ## Install scikit-plots
 ######################################################################
 
@@ -297,24 +348,26 @@ sdist:
 # 	@echo "All py Script executed."
 
 ######################################################################
-## Submodule
+## Publishing to PyPI
 ######################################################################
 
-## Submodule Update
-# update-mod:
-# ifdef MOD
-# 	@## NumCpp
-# 	@echo "Submodule: '$(MOD)' Updating..."
-# 	@git config --global --add safe.directory /home/jovyan/work/contribution/scikit-plots/third_party/$(MOD)
-# 	@git submodule sync
-# 	@git submodule update --init --recursive
-# 	@echo "'$(MOD)' Update completed."
-# else
-# 	@echo "MOD is not defined"
-# endif
+# Publish to PyPI (example for Python projects)
+check-publish:
+	@echo "Taaging is completed? Make sure before Publish on PyPI."
+	@## *twine* for the PyPI upload
+	@# pip install --no-cache-dir twine
+	@echo "Checking the distribution files (Readme.md) for PyPI with twine."
+	@twine check dist/*
+	@echo "Uploading the distribution files to PyPI."
+	@twine upload dist/*
+	@echo "PyPI publish completed."
 
-## git submodule foreach --recursive git pull
-# git submodule update --init --recursive --remote
+# Publish to PyPI (example for Python projects)
+publish: check-publish
+	@echo "Uploading the distribution files to PyPI."
+	@# twine upload dist/* --username __token__ --password <your_api_token>
+	@twine upload dist/*
+	@echo "PyPI publish completed."
 
 ######################################################################
 ## Git reset
@@ -368,6 +421,143 @@ grep:
 	@#grep -rn "interp(" .
 	@#Use git grep (faster in Git repos)
 	@git grep -n "interp("
+
+######################################################################
+## Git Tag
+## Use := for immediate expansion consistently.
+## Use $(shell ...) only when needed.
+## Use $(if ...) for fallback logic cleanly.
+######################################################################
+
+# VERSION := $(shell scikitplot -V | awk '{print $$3}')
+# Get scikitplot version if installed, else fallback to 0.0.0
+VERSION := $(shell command -v scikitplot >/dev/null 2>&1 && scikitplot -V | awk '{print $$3}' || echo "0.0.0")
+
+# Git info
+# Check the short commit hash
+LAST_COMMIT_ID := $(shell git rev-parse --short HEAD)
+# Get last commit message (plain text)
+LAST_COMMIT_MESSAGE := $(shell git log -1 --pretty=%B)
+# Extract version-like string from commit message (v1.2.3 or 1.2.3) from the commit message using shell + grep
+VERSION_EXT := $(shell echo "$(LAST_COMMIT_MESSAGE)" | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+
+## $(if condition,then-part[,else-part]) $(if $(VERSION),$(VERSION),)
+# Decide which version to use:
+# If VERSION != 0.0.0, use VERSION
+# Else if VERSION_EXT exists, use VERSION_EXT
+# Else empty (will be handled below)
+VERSION_USED := $(if $(filter-out 0.0.0,$(VERSION)),$(VERSION),$(VERSION_EXT))
+
+# Ensure version has 'v' prefix; default to v0.0.0 if empty
+GIT_TAG := $(shell \
+  if [ -z "$(VERSION_USED)" ]; then \
+    echo "v0.0.0"; \
+  elif echo "$(VERSION_USED)" | grep -q '^v'; then \
+    echo "$(VERSION_USED)"; \
+  else \
+    echo "v$(VERSION_USED)"; \
+  fi \
+)
+# Compose release message
+GIT_TAG_MESSAGE := Release version $(GIT_TAG)
+
+# Debug output if DEBUG is true or VERSION is 0.0.0 (scikitplot missing)
+ifeq ($(or $(DEBUG),$(filter 0.0.0,$(VERSION))),true)
+  $(info [DEBUG] Using scikitplot version: $(VERSION))
+  # $(warning "Warning: scikitplot is not installed. VERSION is set to MISSING.")
+endif
+# Debug output if DEBUG is true
+ifeq ($(DEBUG),true)
+  $(info [DEBUG] scikitplot version: $(VERSION))
+  $(info [DEBUG] Last commit ID: $(LAST_COMMIT_ID))
+  $(info [DEBUG] Last commit message: $(LAST_COMMIT_MESSAGE))
+  $(info [DEBUG] Extracted version from commit: $(VERSION_EXT))
+  $(info [DEBUG] Version used: $(VERSION_USED))
+  $(info [DEBUG] Final tag (with v prefix): $(GIT_TAG))
+  $(info [DEBUG] Tag message: $(GIT_TAG_MESSAGE))
+endif
+
+# make tag               # Quiet mode
+# make tag DEBUG=true    # Show debug messages
+tag:
+	@if [ "$(DEBUG)" = "true" ]; then \
+		echo "[DEBUG] GIT_TAG is $(GIT_TAG)"; \
+	fi
+	@echo "$(GIT_TAG)"
+
+release:
+ifdef GIT_TAG
+	@echo "Remove tag locally: "$(GIT_TAG)""
+	@git tag -d "$(GIT_TAG)" || true
+
+	@echo "Creates tag locally"
+	git tag -a "$(GIT_TAG)" -m "Release version "$(GIT_TAG)"
+
+	@echo "Pushes the tag to your fork"
+	@# git push --tags              # then push all tags
+	git push origin "$(GIT_TAG)"        # push just that tag
+
+	@echo "Pushes tag to upstream (if allowed) "$(GIT_TAG)" (Month Dayth, Year)"
+	git push upstream "$(GIT_TAG)"      # push just that tag
+
+	@# git ls-remote --tags origin  # verify what's pushed by running
+else
+	@echo "GIT_TAG is not defined!"
+endif
+
+## Tagging the latest commit
+## For larger projects or those requiring stability guarantees, tagging in stable is safer.
+# tag-sample:
+# 	@echo "Sample tag: '$(TAG_SAMPLE)' message: '$(TAG_MESSAGE)' by commit: '$(LAST_COMMIT_MESSAGE)'"
+
+## Add a Tag to Stable Releases to the Local project
+# tag:
+# ifdef BR
+# 	@## Tagging in the stable Branch (Stability-First Workflow)
+# 	@#Best practice: Tag before PyPI publishing.
+# 	@echo "Adding tag to branch: '$(BR)'"
+# 	@git checkout "$(BR)"
+# 	@echo "Existing tags:"
+# 	@git tag
+# 	@echo "Adding local tag: $(TAG_SAMPLE) message: $(TAG_MESSAGE)"
+# 	@# git tag -a v0.4.0 -m "Release version 0.4.0"
+# 	@git tag -a "$(TAG_SAMPLE)" -m $(TAG_MESSAGE)
+# 	@echo "Local tagging completed."
+# else
+# 	@echo "BR is not defined"
+# endif
+
+## Delete the Tag locally use GIT_TAG Environment for del.
+# tag-del:
+# ifdef GIT_TAG
+# 	@echo "Deleting Local tag: 'v$(GIT_TAG)'"
+# 	@git tag -d "v$(GIT_TAG)"
+# 	@git tag
+# else
+# 	@echo "GIT_TAG is not defined"
+# endif
+
+## Delete the Tag remotely use GIT_TAG Environment for del.
+# tag-delr:
+# ifdef GIT_TAG
+# 	@echo "Deleting Remote tag: 'v$(GIT_TAG)'"
+# 	@git push origin --delete "v$(GIT_TAG)"
+# 	@git tag
+# else
+# 	@echo "GIT_TAG is not defined"
+# endif
+
+## Push the tag to the remote repository
+# tag-push:
+# 	@echo "Existing tags:"
+# 	@git tag
+# 	@echo "Adding to "remote repository" tag $(TAG_SAMPLE)..."
+# 	@git push origin $(TAG_SAMPLE) || git push --tags
+# 	@echo "Remote Repository Tagging completed."."
+
+## Release combines tagging and pushing the tag to remote
+# release: tag-sample tag tag-push
+# 	@echo "Ready to Publish on PyPI"
 
 ######################################################################
 ## Git Branch
@@ -439,113 +629,6 @@ grep:
 # endif
 
 ######################################################################
-## Git Tag
-######################################################################
-
-## Generate a version based on the short commit hash and message
-LAST_COMMIT_ID      = $(shell git rev-parse --short HEAD)
-## $(if condition,then-part[,else-part]) $(if $(TAG),$(TAG),)
-LAST_COMMIT_MESSAGE = "$(if $(TAG),$(TAG),$(shell git log -1 --pretty=%B))"
-TAG_SAMPLE          = "v$(LAST_COMMIT_MESSAGE)"
-TAG_MESSAGE         = "Release version $(LAST_COMMIT_MESSAGE)"
-## Tagging the latest commit
-## For larger projects or those requiring stability guarantees, tagging in stable is safer.
-# tag-sample:
-# 	@echo "Sample tag: '$(TAG_SAMPLE)' message: '$(TAG_MESSAGE)' by commit: '$(LAST_COMMIT_MESSAGE)'"
-
-## Add a Tag to Stable Releases to the Local project
-# tag:
-# ifdef BR
-# 	@## Tagging in the stable Branch (Stability-First Workflow)
-# 	@#Best practice: Tag before PyPI publishing.
-# 	@echo "Adding tag to branch: '$(BR)'"
-# 	@git checkout "$(BR)"
-# 	@echo "Existing tags:"
-# 	@git tag
-# 	@echo "Adding local tag: $(TAG_SAMPLE) message: $(TAG_MESSAGE)"
-# 	@# git tag -a v0.4.0 -m "Release version 0.4.0"
-# 	@git tag -a "$(TAG_SAMPLE)" -m $(TAG_MESSAGE)
-# 	@echo "Local tagging completed."
-# else
-# 	@echo "BR is not defined"
-# endif
-
-## Delete the Tag locally use TAG Environment for del.
-# tag-del:
-# ifdef TAG
-# 	@echo "Deleting Local tag: 'v$(TAG)'"
-# 	@git tag -d "v$(TAG)"
-# 	@git tag
-# else
-# 	@echo "TAG is not defined"
-# endif
-
-## Delete the Tag remotely use TAG Environment for del.
-# tag-delr:
-# ifdef TAG
-# 	@echo "Deleting Remote tag: 'v$(TAG)'"
-# 	@git push origin --delete "v$(TAG)"
-# 	@git tag
-# else
-# 	@echo "TAG is not defined"
-# endif
-
-## Push the tag to the remote repository
-# tag-push:
-# 	@echo "Existing tags:"
-# 	@git tag
-# 	@echo "Adding to "remote repository" tag $(TAG_SAMPLE)..."
-# 	@git push origin $(TAG_SAMPLE) || git push --tags
-# 	@echo "Remote Repository Tagging completed."."
-
-## Release combines tagging and pushing the tag to remote
-# release: tag-sample tag tag-push
-# 	@echo "Ready to Publish on PyPI"
-
-######################################################################
-## Publishing to PyPI
-######################################################################
-
-# Publish to PyPI (example for Python projects)
-check-publish:
-	@echo "Taaging is completed? Make sure before Publish on PyPI."
-	@## *twine* for the PyPI upload
-	@# pip install --no-cache-dir twine
-	@echo "Checking the distribution files (Readme.md) for PyPI with twine."
-	@twine check dist/*
-	@echo "Uploading the distribution files to PyPI."
-	@twine upload dist/*
-	@echo "PyPI publish completed."
-
-# Publish to PyPI (example for Python projects)
-publish: check-publish
-	@echo "Uploading the distribution files to PyPI."
-	@# twine upload dist/* --username __token__ --password <your_api_token>
-	@twine upload dist/*
-	@echo "PyPI publish completed."
-
-######################################################################
-## Publishing to docker hub
-######################################################################
-
-publish-docker:
-	# docker login
-	## docker tag <existing_image_name>:<existing_tag> <new_image_name>:<new_tag>
-	# docker tag jupyter_notebook-base_notebook:latest skplt/scikit-plots-dev:latest
-	# docker push skplt/scikit-plots-dev:latest
-
-######################################################################
-## symbolic links
-######################################################################
-
-sym:
-	@rm -rf ".devcontainer/script" "environment.yml"
-	@# mkdir -p ".devcontainer/script"
-	@ln -rsf "docker/script/" ".devcontainer/script"
-	@ln -rsf "./docker/env_conda/environment.yml" "environment.yml"
-	@echo "Created symbolic links..."
-
-######################################################################
 ## New Branch with the Latest Changes
 ## forked repository 'origin', original repository 'upstream '
 ######################################################################
@@ -570,31 +653,12 @@ push:
 	@git add . && git commit -m "fix dependency"  && git push
 
 ######################################################################
-## TAG
+## symbolic links
 ######################################################################
 
-VERSION := $(shell scikitplot -V | awk '{print $$3}')
-TAG="v$(VERSION)"
-
-tag:
-	@echo "$(TAG)"
-
-release:
-ifdef TAG
-	@echo "Remove tag locally: "$(TAG)""
-	@git tag -d "$(TAG)" || true
-
-	@echo "Creates tag locally"
-	git tag -a "$(TAG)" -m "Release version "$(TAG)"
-
-	@echo "Pushes the tag to your fork"
-	@# git push --tags              # then push all tags
-	git push origin "$(TAG)"        # push just that tag
-
-	@echo "Pushes tag to upstream (if allowed) "$(TAG)" (Month Dayth, Year)"
-	git push upstream "$(TAG)"      # push just that tag
-
-	@# git ls-remote --tags origin  # verify what's pushed by running
-else
-	@echo "TAG is not defined!"
-endif
+sym:
+	@rm -rf ".devcontainer/script" "environment.yml"
+	@# mkdir -p ".devcontainer/script"
+	@ln -rsf "docker/script/" ".devcontainer/script"
+	@ln -rsf "./docker/env_conda/environment.yml" "environment.yml"
+	@echo "Created symbolic links..."
