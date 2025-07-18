@@ -213,15 +213,13 @@
     "message4": "echo 'Runing postCreateCommand...'",
     "install_apt": "apt update -y && apt install sudo gosu curl build-essential -y",
     // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
-    "conda_mamba_init": "conda init --all || true",
+    "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
     // For list optional "bash" if Ensure proper shebang (#!/bin/bash).
     "all_post_create": [
       // Nested-Dependant Commands
-      // "bash",
-      // "-c",
-      // "bash .devcontainer/script/env_micromamba.sh || true && bash .devcontainer/scripts/post_create_commands.sh || true"
-      "bash .devcontainer/script/env_micromamba.sh || true",
-      "bash .devcontainer/scripts/post_create_commands.sh || true"
+      "bash",
+      "-c",
+      "bash .devcontainer/script/env_micromamba.sh || true && bash .devcontainer/scripts/post_create_commands.sh || true"
     ]
     // For Images "mcr.microsoft.com/devcontainers/..."
     // "notice" Different container base image works differently See: https://github.com/orgs/community/discussions/43534
