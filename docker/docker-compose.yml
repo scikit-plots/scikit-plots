@@ -120,7 +120,7 @@ services:
         exec bash"
 
     # 👇 if using Compose V2 CLI this enables GPU access (Compose V2+	YAML equivalent of --gpus all)
-    gpus: all  # ← this is the preferred modern way to request all GPUs
+    # gpus: all  # ← this is the preferred modern way to request all GPUs
     # command: nvidia-smi  # GPU test command
 
     # ⚠️ Deprecated* Alternatively, Compose V1 only (Legacy)
