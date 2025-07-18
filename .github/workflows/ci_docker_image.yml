@@ -202,8 +202,7 @@ jobs:
 
           ## ✅ Best for: Complex nested arrays — if matrix.tag items are sublists of [TAG, REF_TAG, ALIAS].
           ## ✅ Note the single quotes '...' around the full JSON block — that makes it a proper Bash string.
-          ## If you're assigning a GitHub Actions expression like toJSON(...) and want it evaluated, use double quotes:
-          MATRIX_JSON="${{ toJSON(matrix.tag) }}"
+          MATRIX_JSON='${{ toJSON(matrix.tag) }}'
 
           # Loop through each tag entry as a compact JSON object
           # for arr in "$(echo "$MATRIX_JSON" | jq -c '.')" ; do
