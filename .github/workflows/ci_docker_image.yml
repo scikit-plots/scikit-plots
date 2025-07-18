@@ -209,7 +209,11 @@ jobs:
           # for arr in "$(echo "$MATRIX_JSON" | jq -c '.')" ; do
           #   IFS=',' read -r TAG REF_TAG ALIAS <<< "$(echo "$arr" | jq -r '. | join(",")')"
 
-          echo "$MATRIX_JSON" | jq -c '.[]' | while read -r arr; do
+          # Support both object or array with conditional logic
+          # If it's an object, wrap it in an array so '.[]' works
+          FORMATTED_JSON=$(echo "$MATRIX_JSON" | jq -c 'if type=="array" then . else [.] end')
+
+          echo "$FORMATTED_JSON" | jq -c '.[]' | while read -r arr; do
             TAG=$(echo "$arr" | jq -r '.tag')
             REF_TAG=$(echo "$arr" | jq -r '.ref_tag')
             ALIAS=$(echo "$arr" | jq -r '.alias // empty')
