@@ -1,14 +1,20 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+######################################################################
 ## Dockerfile
 ## References: https://hub.docker.com/r/jupyter/base-notebook/dockerfile
 ## https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#image-relationships
 ## https://github.com/jupyter/docker-stacks/blob/main/images/base-notebook/Dockerfile#L58
-
+##
 ## Use the official Jupyter Docker Stacks
 ## jupyter do not come with CUDA drivers or GPU support by default
 ## https://github.com/jupyter/docker-stacks/blob/main/images/docker-stacks-foundation/Dockerfile
+## "ubuntu:focal" or "ubuntu:20.04"
+## "ubuntu:jammy" or "ubuntu:22.04"
+## "ubuntu:bookworm" or "ubuntu:24.04"
+## "ubuntu:devel"
+## "ubuntu:rolling"
 ## "ubuntu:latest"
 ## "jupyter/docker-stacks-foundation:latest"
 ## "jupyter/base-notebook:latest"
@@ -20,25 +26,40 @@
 ## "jupyter/datascience-notebook:latest"
 ## "jupyter/pyspark-notebook:latest"
 ## "jupyter/all-spark-notebook:latest"
+######################################################################
 
-## Ubuntu 20.04 (focal)
-## https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
-## OS/ARCH: linux/amd64
-## ARG ROOT_CONTAINER=ubuntu:focal-20200703@sha256:d5a6519d9f048100123c568eb83f7ef5bfcad69b01424f420f17c932b00dea76
+## ARG: You can override it during the docker build with --build-arg.
+## Ubuntu 20.04 (focal), https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
 ARG BASE_IMAGE=jupyter/scipy-notebook:latest
 
 ## Use the argument to specify the base image
-FROM ${BASE_IMAGE}
-## ARG may specified again because the FROM directive resets ARGs
+FROM ${BASE_IMAGE} AS base
+## ⚠️ ARG may specified again because the FROM directive resets ARGs
 ## (but their default value is retained if set previously)
 
-ARG EXTENDED_PACKAGES=false
-ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES}
-
+# LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
 LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
-## ARG NB_USER="jovyan"
-## ARG NB_UID="1000"
-## ARG NB_GID="100"
+# LABEL org.opencontainers.image.authors="The scikit-plots developers <scikit-plots.github.io/dev>"
+# LABEL org.opencontainers.image.vendor="The scikit-plots developers <scikit-plots.github.io/dev>"
+# LABEL org.opencontainers.image.title="scikit-plots"
+# LABEL org.opencontainers.image.description="Scikit-plots Docker image with Jupyter Notebook support"
+# LABEL org.opencontainers.image.documentation="https://scikit-plots.github.io/dev"
+# LABEL org.opencontainers.image.source="https://github.com/scikit-plots/scikit-plots"
+# LABEL org.opencontainers.image.url="https://hub.docker.com/r/scikitplot/scikit-plots"
+# LABEL org.opencontainers.image.licenses="BSD-3-Clause"
+# LABEL org.opencontainers.image.version="latest"
+# LABEL org.opencontainers.image.revision="latest"
+
+## Set environment variable to avoid interactive prompts during builds
+## Prevent apt install tzinfo from asking our location (assumes UTC)
+ENV DEBIAN_FRONTEND=noninteractive
+
+## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
+ARG EXTENDED_PACKAGES=false
+ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
+
+## Switch to the root user to install dependencies
+USER root
 
 ## Fix DL4006
 ## Needed for string substitution in RUN commands
@@ -46,64 +67,89 @@ LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
 ## Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-## Switch to the root user to install dependencies
-USER root
-
-## Set environment variable to avoid interactive prompts during builds
-ENV DEBIAN_FRONTEND=noninteractive
-
 ######################################################################
 ## Set system locale and timezone
 ######################################################################
 
-## Set the system locale to en_US.UTF-8
-## ENV LANG=en_US.UTF-8 \
-##     LC_ALL=en_US.UTF-8 \
-##     LANGUAGE=en_US.UTF-8
+## Set the timezone for the container to UTC+3 (Europe/Moscow)
+## ENV TZ=Europe/Moscow or ENV TZ=Europe/Istanbul
+# ARG TZ=Etc/UTC
+# ENV TZ=$TZ
+## Install tzdata non-interactively, set timezone, and clean up to reduce image size
+# RUN apt-get update \
+#   ## Generate timezone data
+#   && apt-get install -y --no-install-recommends tzdata && \
+#   ## Configure timezone (use default if $TZ is not set)
+#   ln -snf /usr/share/zoneinfo/${TZ:-Etc/UTC} /etc/localtime && \
+#   echo "${TZ:-Etc/UTC}" > /etc/timezone && \
+#   dpkg-reconfigure -f noninteractive tzdata; \
+#   ## Cleanup to reduce image size
+#   apt-get clean \
+#   && rm -rf /var/lib/apt/lists/* \
+#   ;
+
+## Set the system locale to en_US.UTF-8 (English, UTF-8 encoding)
+# ENV LANG=en_US.UTF-8 \
+#     LC_ALL=en_US.UTF-8 \
+#     LANGUAGE=en_US.UTF-8
+## Install minimal locales support and generate C.UTF-8 locale
+# RUN apt-get update \
+#   ## Generate locales (this may be required depending on the system)
+#   && apt-get install -y --no-install-recommends locales \
+#   ## Generate en_US.UTF-8 locale
+#   && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+#   && locale-gen \
+#   && update-locale LANG=en_US.UTF-8 \
+#   && dpkg-reconfigure -f noninteractive locales; \
+#   ## Cleanup to reduce image size
+#   apt-get clean \
+#   && rm -rf /var/lib/apt/lists/* \
+#   ;
+
 ## Set the system locale to C.UTF-8 (POSIX-compliant with Unicode support)
-ENV LANG=C.UTF-8
-## Ensures that all locale categories (LC_*) are set to C.UTF-8,
-## so the environment is fully UTF-8 enabled.
-ENV LC_ALL=C.UTF-8
+## Ensures that all locale categories (LC_*) are set to C.UTF-8, so the environment is fully UTF-8 enabled.
 ## LANGUAGE is used on win32
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 ENV LANGUAGE=C.UTF-8
 ## Install minimal locales support and generate C.UTF-8 locale
-## Install all OS dependencies for notebook server that starts but lacks all
-## features (e.g., download as all possible file formats)
+# RUN apt-get update \
+#   ## Generate locales (this may be required depending on the system)
+#   ## "C" locale (basic settings) while supporting the full range of Unicode characters (UTF-8).
+#   && apt-get install -y --no-install-recommends locales \
+#   ## Generate C.UTF-8 locale
+#   && locale-gen C.UTF-8 \
+#   && dpkg-reconfigure -f noninteractive locales; \
+#   ## Cleanup to reduce image size
+#   apt-get clean \
+#   && rm -rf /var/lib/apt/lists/* \
+#   ;
+
+## Set the default user and group for the Jupyter notebook
+## ARG NB_USER=jovyan
+## ARG NB_UID=1000
+## ARG NB_GID=100
+ARG NB_PASS=jovyan
+# ENV HOME=/home/${NB_USER}
 ## Ensure sudo is installed and allow ${NB_USER} to use it without a password
 RUN apt-get update \
-  ## Generate locales (this may be required depending on the system)
-  ## "C" locale (basic settings) while supporting the full range of Unicode characters (UTF-8).
-  && apt-get install -y --no-install-recommends locales \
-  ## &&  echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
-  ## && locale-gen && update-locale LANG=en_US.UTF-8 \
-  ## Generate C.UTF-8 locale
-  && locale-gen C.UTF-8 \
-  && dpkg-reconfigure -f noninteractive locales; \
-  ## Install sudo and set up a passwordless sudo user
-  apt-get install -yq --no-install-recommends sudo gosu \
-  ## && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
-  && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
+  ## Install sudo, gosu and set up a passwordless sudo user
+  && apt-get install -y --no-install-recommends sudo gosu \
+  ## && useradd -m -s /bin/bash $NB_USER && \
+  ## Set the password for ${NB_USER} to "jovyan" (or any other password you prefer)
+  ## ⚠️ Note: This is not secure, consider using a more secure method for production
+  ## echo "yourpassword" | sudo chown -R $(whoami):$(id -gn whoami) ~
   ## docker run -it --rm scikitplot/scikit-plots:latest bash -c "echo 'jovyan' | sudo -S apt update"
-  && echo "jovyan:jovyan" | chpasswd; \
+  && echo "$NB_USER:$NB_PASS" | chpasswd \
+  ## Requires password to sudo for ${NB_USER}
+  && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
+  ## Allow passwordless sudo for ${NB_USER}
+  ## && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
+  ; \
   ## Cleanup to reduce image size
   apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   ;
-
-## Set the timezone for the container to UTC+3 (Europe/Moscow)
-## ENV TZ=Europe/Moscow
-# ENV TZ=Europe/Istanbul
-## Install tzdata non-interactively, set timezone, and clean up to reduce image size
-# RUN apt-get update && \
-#   apt-get install -y --no-install-recommends tzdata && \
-#   ## Configure timezone
-#   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-#   echo $TZ > /etc/timezone && \
-#   dpkg-reconfigure -f noninteractive tzdata && \
-#   ## Cleanup to reduce image size
-#   apt-get clean && \
-#   rm -rf /var/lib/apt/lists/*
 
 ######################################################################
 ## OS dependencies
@@ -119,17 +165,19 @@ RUN apt-get update \
 
 ## Install common dependencies
 RUN apt-get update --yes \
-  && apt-get --fix-broken install --yes --no-install-recommends \
-    --allow-downgrades \
+  && apt-get install -y --no-install-recommends \
+    --fix-broken --allow-downgrades \
     ## CA certificates for secure HTTPS connections
     ca-certificates \
     ## Provides the add-apt-repository command (useful for adding PPAs)
     software-properties-common \
-    ## Common useful utilities
     ## Essential packages for building software
     ## for cython: https://cython.readthedocs.io/en/latest/src/quickstart/install.html
     ## installs gcc, g++, make, libc-dev for compiling native extensions
     build-essential \
+    ## Tool for configuring compile-time flags for libraries
+    pkg-config \
+    ## Common useful utilities
     # zsh \
     # lsb-core \
     # lsb-release \
@@ -142,14 +190,14 @@ RUN apt-get update --yes \
     git \
     git-lfs \
     ## Archive utilities
-    unzip \
-    gzip \
     ## bzip2 is necessary to extract the micromamba executable.
     bzip2 \
+    gzip \
     p7zip-full \
     p7zip-rar \
-    unrar \
     tar \
+    unrar \
+    unzip \
     ## Documentation tools
     ## pandoc is used to convert notebooks to html files
     pandoc \
@@ -171,8 +219,6 @@ RUN apt-get update --yes \
     cmake \
     ## Build system that focuses on speed
     ninja-build \
-    ## Tool for configuring compile-time flags for libraries
-    pkg-config \
     ## Python-related tools
     ## Python package installer for Python 3
     python3-pip \
@@ -219,9 +265,10 @@ RUN apt-get update --yes \
   ## Install separately and ignore failure
   ## MKL (Intel Math Kernel Library)
   apt-get install --yes --no-install-recommends libmkl-dev || true; \
-  ## Cleanup to reduce image size
+  ## Fix permissions as root
   fix-permissions "$HOME" \
   && fix-permissions "$CONDA_DIR"; \
+  ## Cleanup to reduce image size
   apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   ;
@@ -248,11 +295,13 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
       ## Vector graphics editor
       inkscape \
     || true; \
-    ## Cleanup to reduce image size
+    ## Fix permissions as root
     fix-permissions "$HOME" \
     && fix-permissions "$CONDA_DIR"; \
+    ## Cleanup to reduce image size
     apt-get clean \
-    && rm -rf /var/lib/apt/lists/*; \
+    && rm -rf /var/lib/apt/lists/* \
+    ; \
   else \
     echo "Skipping extended packages."; \
   fi
@@ -273,169 +322,89 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
 #   || echo "Script not found, skipping..." \
 #   '
 
+## ASCII banner for scikit-plots
+# COPY ./docker/script/bashrc /etc/bash.bashrc
+# RUN chmod a+rwx /etc/bash.bashrc || true
+RUN if [ -f ./docker/script/bashrc ]; then \
+      cp ./docker/script/bashrc /etc/bash.bashrc; \
+      chmod a+rwx /etc/bash.bashrc; \
+    else \
+      echo "Bashrc file not found, skipping copy."; \
+    fi
+
 ######################################################################
 ## default user
 ######################################################################
 
-## Switch back to the notebook default user jovyan to avoid accidental container runs as root
+## Switch back to the notebook default user "jovyan" to avoid accidental container runs as root
 USER ${NB_UID}
 
+## Fix permissions as jovyan
 ## Setup work directory for backward-compatibility
-RUN mkdir -p /home/$NB_USER/work || true \
-  && fix-permissions /home/$NB_USER
+RUN fix-permissions "$HOME" \
+  && mkdir -p /home/$NB_USER/work || true
 
 ######################################################################
 ## default environment (e.g. conda, mamba, pipenv)
 ######################################################################
 
-## Optionally, Ensure mamba installations (if needed)
-## RUN conda install -n base conda-forge::mamba -y
-## RUN conda install -n base -c conda-forge mamba -y
-## Install packages inside the env "base" Core/base packages
-# RUN mamba install --yes \
-#     -c defaults \
-#     -c anaconda \
-#     -c conda-forge \
-#     ## jupyter extensions
-#     'notebook>=6.0.3' \
-#     'jupyterhub>=1.1.0' \
-#     'jupyterlab>=2.1.5' \
-#     'jupyterlab-git' \
-#     'ipympl'\
-#     'ipywidgets' \
-#     'widgetsnbextension' \
-#     ## data manuplation
-#     # 'numpy' \
-#     'scipy' \
-#     'pandas' \
-#     ## data reading/saving
-#     'requests' \
-#     'click' \
-#     'pyyaml' \
-#     'xlrd' \
-#     'openpyxl' \
-#     'pyarrow' \
-#     ## data visualiation
-#     'matplotlib-base' \
-#     'seaborn' \
-#     'pillow' \
-#     ## models
-#     'scikit-learn' \
-#     'statsmodels' \
-#     'catboost' \
-#     'xgboost' \
-#     ## model optimizations
-#     'optuna' \
-#     'hyperopt' \
-#     ## model saving
-#     'joblib' \
-#     'h5py' \
-#   ## Clean mamba and fix permissions
-#   && mamba clean --all -f -y || true \
-#   ## Fix permissions as jovyan
-#   # echo "yourpassword" | sudo chown -R $(whoami):$(id -gn whoami) ~
-#   && fix-permissions "/home/${NB_USER}" \
-#   && fix-permissions "${CONDA_DIR}" \
-#   ## yarn used by Yarn, a JavaScript package manager, to store its cache
-#   && rm -rf "/home/${NB_USER}/.cache" \
-#   && rm -rf "$CONDA_DIR/share/jupyter/lab/staging" \
-#   ;
-
-# ## ➕ Add Conditional Install for Extended Packages
-# RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
-#     echo "Installing extended mamba packages..."; \
-#     mamba install --yes \
-#       -c defaults \
-#       -c anaconda \
-#       -c conda-forge \
-#       # -c nvidia \
-#       # cuda \
-#       ## data visualiation
-#       'aggdraw' \
-#       ## model tracking
-#       'mlflow' \
-#       'sqlalchemy' \
-#       'sqlparse' \
-#       ## model deploy
-#       'streamlit' \
-#       'fastapi' \
-#       'flask' \
-#       'uvicorn' \
-#       # 'Windows'
-#       'waitress' \
-#       # 'unix'
-#       'gunicorn' \
-#       # development
-#       'setuptools' \
-#       'wheel' \
-#       'build' \
-#       'pre_commit' \
-#       # C/C++ development
-#       'conda-lock' \
-#       'meson' \
-#       'ninja' \
-#       'meson-python' \
-#       'cython' \
-#       'pybind11' \
-#       'pythran' \
-#       # dev
-#       'sphinx' \
-#       'numpydoc' \
-#       # testing
-#       'hypothesis' \
-#       'pytest' \
-#       'cython-lint' \
-#       'pandas-stubs' \
-#       ## to generate a requirements.txt
-#       'pipreqs' \
-#     && mamba clean --all -f -y || true; \
-#   fi
-
 ## Create conda environment from environment.yml and clean cache
-COPY "./docker/env_conda/environment.yml" "/tmp/environment.yml"
 COPY "./docker/env_conda/base.yml" "/tmp/base.yml"
 COPY "./docker/env_conda/default.yml" "/tmp/default.yml"
 COPY "./docker/env_conda/extended.yml" "/tmp/extended.yml"
+COPY "./docker/env_conda/environment.yml" "/tmp/environment.yml"
+
+## Optionally, Ensure mamba installations (if needed)
+## RUN conda install -n base conda-forge::mamba -y
+# RUN conda install -n base -c conda-forge mamba -y
 
 # RUN mamba create -n "py311" python=3.11 ipykernel -y
 RUN mamba env create -n "py311" -f "/tmp/base.yml" \
-  || { echo "Failed to create environment py311"; exit 1; } \
-  && conda info --envs
+  || { echo "Failed to create environment py311"; exit 1; }; \
+  conda info --envs; \
+  ## Clean mamba and fix permissions, Fails but continues
+  mamba clean --all -f -y || true; \
+  rm -rf ${HOME}/.cache || true; \
+  ## Fix permissions as jovyan
+  fix-permissions "$HOME" \
+  && fix-permissions "${CONDA_DIR}" \
+  ;
 
 # Update environment with default.yml (always applied), Fails and exits script cleanly
 RUN mamba env update -n "py311" -f "/tmp/default.yml" \
-  || { echo "Failed to apply default environment"; exit 0; }
+  || { echo "Failed to apply default environment"; exit 0; }; \
+  ## Clean mamba and fix permissions, Fails but continues
+  mamba clean --all -f -y || true; \
+  rm -rf ${HOME}/.cache || true; \
+  ## Fix permissions as jovyan
+  fix-permissions "$HOME" \
+  && fix-permissions "${CONDA_DIR}" \
+  ;
 
 # Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
 RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     echo "Installing extended packages..."; \
     mamba env update -n "py311" -f "/tmp/extended.yml" \
     || { echo "Failed to apply extended environment"; exit 0; }; \
+    ## Clean mamba and fix permissions, Fails but continues
+    mamba clean --all -f -y || true; \
+    rm -rf ${HOME}/.cache || true; \
+    ## Fix permissions as jovyan
+    fix-permissions "$HOME" \
+    && fix-permissions "${CONDA_DIR}" \
+    ; \
   else \
     echo "Skipping extended packages."; \
   fi
 
-# Final cleanup
-RUN conda info --env \
-  ## Clean mamba and fix permissions, Fails but continues
-  && mamba clean --all -f -y || true; \
-  ## Fix permissions as jovyan
-  # echo "yourpassword" | sudo chown -R $(whoami):$(id -gn whoami) ~
-  fix-permissions "/home/${NB_USER}" \
-  && fix-permissions "${CONDA_DIR}"; \
-  ## yarn used by Yarn, a JavaScript package manager, to store its cache
-  rm -rf "/home/${NB_USER}/.cache" \
-  && rm -rf "$CONDA_DIR/share/jupyter/lab/staging" \
-  ;
-
 ## Set shell to use conda run — safer than `conda activate`
 # SHELL ["conda", "run", "-n", "py311", "/bin/bash", "-c"]
-# Example: Run a command inside the env
-# RUN python --version
 
 ######################################################################
 ## JUPYTER
 ######################################################################
+
+FROM base AS jupyter
 
 ## Set environment variable with a default port, allowing override
 ENV JUPYTER_PORT=${JUPYTER_PORT:-8888}
@@ -448,14 +417,16 @@ EXPOSE 9000-9001
 
 ## Configure container startup
 ENTRYPOINT ["tini", "-g", "--"]
-# CMD ["start-notebook.sh"]
 ## Set the command to start Jupyter lab with the specified port
-CMD start-notebook.py --port ${JUPYTER_PORT}
+# CMD ["bash", "-c", "source /etc/bash.bashrc && jupyter notebook --notebook-dir=/tf --ip 0.0.0.0 --no-browser --allow-root"]
+# CMD ["start-notebook.sh"]
+CMD source /etc/bash.bashrc && start-notebook.py --port ${JUPYTER_PORT}
 
 ######################################################################
 ## WORKDIR
 ######################################################################
 
 ## Setup work directory for backward-compatibility (if needed)
+# WORKDIR /home/$NB_USER/work
 WORKDIR "${HOME}/work"
 # RUN sudo chown -R jovyan .

@@ -15,12 +15,12 @@
 # (Optionally) Docker Compose file format version
 # version: '3.8'
 
-# docker network ls
+# docker network ls | grep llm-rag-workshop_back_tier
 # docker network create --driver bridge back_tier
 # docker network create --driver bridge front_tier
-# docker network create --driver bridge llm-rag-workshop_back_tier
+# docker network create llm-rag-workshop_back_tier
 # docker network inspect llm-rag-workshop_back_tier
-# docker exec -it python_cpu_main curl http://ollama:11434
+# docker exec -it "scikit-plots_latest-python-3.11-slim" curl http://ollama:11434
 ## Defines networks that can be used by services in the Docker Compose file
 networks:
   ## Declares a network named "back_tier"
@@ -73,9 +73,9 @@ networks:
 ## Declares services (containers) that will be run by Docker Compose
 services:
 
-  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'python_cpu'
-  python_cpu:  # Name of the service (can be any name you choose)
-    container_name: "python_cpu_main"
+  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-python-3.11-slim'
+  "scikit-plots_latest-python-3.11-slim":  # Name of the service (can be any name you choose)
+    container_name: "scikit-plots_latest-python-3.11-slim"
     stdin_open: true  # Keeps STDIN open (for interactive mode)
     tty: true  # Allocates a pseudo-TTY
     ## Restart policy: always restart the container if it stops
@@ -91,6 +91,8 @@ services:
     # env_file:
     #   - .env  # Load environment from file
     environment:
+      # This overrides the ENV at runtime. So the container will have:
+      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
     ports:
       - "8890:8890"  # Exposing port placeholder for Jupyter Notebook (default 8888)
@@ -106,11 +108,19 @@ services:
       - "host.docker.internal:host-gateway"  # Makes host accessible as "host.docker.internal"
 
     ## if both provided default only work entrypoint so command used to as entrypoint argument
-    entrypoint: bash  # bash -c "<everything inside the quotes>"
+    # entrypoint: bash  # bash -c "<everything inside the quotes>"
     # command:
+    # This entrypoint checks if 'curl' is installed; if not, installs it, then opens a bash shell
+    entrypoint: >-
+      bash -c "
+        command -v curl >/dev/null 2>&1 || (
+          apt-get update &&
+          apt-get install -y curl build-essential
+        );
+        exec bash"
 
     # 👇 if using Compose V2 CLI this enables GPU access (Compose V2+	YAML equivalent of --gpus all)
-    # gpus: all  # ← this is the preferred modern way to request all GPUs
+    gpus: all  # ← this is the preferred modern way to request all GPUs
     # command: nvidia-smi  # GPU test command
 
     # ⚠️ Deprecated* Alternatively, Compose V1 only (Legacy)
@@ -124,9 +134,9 @@ services:
     #         - capabilities: [gpu]
 
 
-  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'notebook_cpu'
-  "notebook_cpu":  # Name of the service (can be any name you choose)
-    container_name: "notebook_cpu_main"
+  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-jupyter'
+  "scikit-plots_latest-jupyter":  # Name of the service (can be any name you choose)
+    container_name: "scikit-plots_latest-jupyter"
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
     # tty: true  # Allocates a pseudo-TTY
     ## Restart policy: always restart the container if it stops
@@ -141,6 +151,7 @@ services:
       dockerfile: ./docker/Dockerfile  # 15+Gb compressed image
       args:
         BASE_IMAGE: "${BASE_IMAGE:-jupyter/tensorflow-notebook:latest}"
+        NB_PASS: "jovyan"
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
     ## by image source default for jupyter images "/home/jovyan/work"
@@ -151,6 +162,8 @@ services:
     # env_file:
     #   - .env  # Load environment from file
     environment:
+      # This overrides the ENV at runtime. So the container will have:
+      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
     ports:
@@ -163,9 +176,9 @@ services:
       - "front_tier"  # Connect to the defined network for frontend services
 
 
-  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'notebook_cpu_extended'
-  "notebook_cpu_extended":  # Name of the service (can be any name you choose)
-    container_name: "notebook_cpu_extended_main"
+  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-gpu-jupyter'
+  "scikit-plots_latest-gpu-jupyter":  # Name of the service (can be any name you choose)
+    container_name: "scikit-plots_latest-gpu-jupyter"
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
     # tty: true  # Allocates a pseudo-TTY
     ## Restart policy: always restart the container if it stops
@@ -180,6 +193,7 @@ services:
       dockerfile: ./docker/Dockerfile
       args:
         BASE_IMAGE: "${BASE_IMAGE:-jupyter/tensorflow-notebook:latest}"
+        NB_PASS: "jovyan"
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
     ## by image source default for jupyter images "/home/jovyan/work"
@@ -190,6 +204,8 @@ services:
     # env_file:
     #   - .env  # Load environment from file
     environment:
+      # This overrides the ENV at runtime. So the container will have:
+      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       - JUPYTER_PORT=8889

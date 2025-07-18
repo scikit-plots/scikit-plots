@@ -1,42 +1,70 @@
 // Authors: The scikit-plots developers
 // SPDX-License-Identifier: BSD-3-Clause
-// https://containers.dev/overview
-// https://containers.dev/implementers/json_schema/
-// See the full list here: https://aka.ms/ghcs-default-image
-// Learn more here: https://aka.ms/configure-codespace
+
+// 🛠️ https://containers.dev
+// 📚 https://containers.dev/implementers/spec/#devcontainerjson
+// ⚠️ https://containers.dev/implementers/json_schema/#base-schema
+// 📚 More info about Features:  https://containers.dev/features
+// 📚 More info about Variables: https://containers.dev/implementers/json_reference/#variables-in-devcontainerjson
+// https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
+
+// https://oracle.github.io/nosql-dotnet-sdk/api/Oracle.NoSQL.SDK.JsonInputOptions.html
+
+// 📚 See the full list here: https://aka.ms/ghcs-default-image
+// 📚 Learn more here: https://aka.ms/configure-codespace
+
+// Base Schema
 {
-  // More info about Features: https://containers.dev/features
-  "hostRequirements": {
-    // free limit 1 core 120 hours
-    // 2-core, 8gb ram, 32 gb
-    // 4-core, 16gb ram, 32 gb
-    "cpus": 4,
-    "memory": "16gb",
-    "storage": "32gb",
-    "gpu": "optional"
-  },
-  // https://docs.github.com/en/enterprise-cloud@latest/actions/using-github-hosted-runners/using-larger-runners/about-larger-runners
-  "name": "GPU Dev as Internal (for larger runners)",
-  // "image": "mcr.microsoft.com/devcontainers/universal:2",
+  // "$schema": "http://json-schema.org/draft-07/schema#",
+  // "description": "Defines a dev container",
+  // "allowComments": true,  // Gets or sets a value indicating whether comments are allowed in the JSON input.
+	// "allowTrailingCommas": true,  // Gets or sets a value indicating whether trailing commas are allowed in the JSON input.
+  // "definitions":
+
+
+  // "dockerfileContainer":
   // "build": {
     // Path is relative to the devcontainer.json file.
     // "dockerfile": "../../docker/Dockerfile",
     // "context": "../..",
     // "args": {}
   // },
-  // Path is relative to the devcontainer.json file.
+
+  // "buildOptions":
+  // "target": {}  // "Target stage in a multi-stage build."
+  // "args": {}  // "Build arguments."
+
+  // "imageContainer":
+  // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Use a basic Ubuntu-based image
+  // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv"
+
+  // "composeContainer":
   "dockerComposeFile": "../../docker/docker-compose.yml",
   "service": "nvidia_internal_gpu",
   "runServices": ["nvidia_internal_gpu"],
-  // "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  // runArgs only for github Desktop
-  // https://containers.dev/implementers/json_reference/#formatting-string-vs-array-properties
-  "runArgs": ["--gpus","all"],
-  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-  // "remoteUser": "root",
+  // "workspaceFolder": "/workspace",  // "The path of the workspace folder inside the container. This is typically the target path of a volume mount in the docker-compose.yml."
+
+
+  // "nonComposeBase":
   // "containerUser": "root",
-  // "updateRemoteUserUID ": "true",
-  // "workspaceFolder": "/workspace",
+  "runArgs": ["--gpus","all"],  // runArgs for github Desktop
+  // "workspaceFolder": "/workspace",  // "The path of the workspace folder inside the container."
+  // "workspaceMount": "/workspace",  // "The --mount parameter for docker run. The default is to mount the project folder at /workspaces/$project."
+
+
+  // "devContainerCommon":
+  // https://docs.github.com/en/enterprise-cloud@latest/actions/using-github-hosted-runners/using-larger-runners/about-larger-runners
+  "name": "GPU Dev as Internal (for larger runners)",  // "A name for the dev container which can be displayed to the user."
+  // "Host hardware requirements."
+  "hostRequirements": {
+    // GitHub Codespaces free limit 1 core 120 hours, 2-core, 8gb ram, 32 gb, 4-core, 16gb ram, 32 gb
+    "cpus": 2,
+    "memory": "8gb",
+    "storage": "32gb",
+    "gpu": "optional"
+  },
+  // "Features to add to the dev container."
+  // ⚠️ `ERROR: ... : No space left on device`
   "features": {
     // https://containers.dev/features
     // Enable Docker-in-Docker to allow running Docker inside the container
@@ -56,220 +84,210 @@
         "vim",
         "nano",
         "wget",
-        "curl",
+        "curl"
 
-        // Git and related tools
-        "git",
-        "git-lfs",
+        // // Git and related tools
+        // "git",
+        // "git-lfs",
 
-        // Archive utilities
-        "unzip",
-        "gzip",
-        "bzip2",
-        "p7zip-full",
-        // "p7zip-rar",
-        // "unrar",
-        "tar",
+        // // Archive utilities
+        // "bzip2",
+        // "gzip",
+        // "p7zip-full",
+        // // "p7zip-rar",
+        // "tar",
+        // // "unrar",
+        // "unzip",
 
-        // Documentation tools
-        "pandoc",  // Converts notebooks to HTML
+        // // Documentation tools
+        // "pandoc",  // Converts notebooks to HTML
 
-        // File and directory utilities
-        "tree",
+        // // File and directory utilities
+        // "tree",
 
-        // Graph visualization software
-        "graphviz",
+        // // Graph visualization software
+        // "graphviz",
 
-        // Multimedia tools
-        "ffmpeg",    // Needed for matplotlib animations
-        // "inkscape",  // Vector graphics editor
+        // // Multimedia tools
+        // "ffmpeg",    // Needed for matplotlib animations
+        // // "inkscape",  // Vector graphics editor
 
-        // Build tools
-        "make",
-        "cmake",
-        "ninja-build",
-        "pkg-config",
+        // // Build tools
+        // "make",
+        // "cmake",
+        // "ninja-build",
+        // "pkg-config",
 
-        // Python-related tools
-        "python3-pip",
-        "python3-venv",
-        "python3-dev",
+        // // Python-related tools
+        // "python3-pip",
+        // "python3-venv",
+        // "python3-dev",
 
-        // Compilers and build dependencies
-        "gfortran",            // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
-        "gcc",                 // C (GNU Compiler Collection) — Compiles standard C code
-        "g++",                 // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
+        // // Compilers and build dependencies
+        // "build-essential",     // Essential build tools (gcc, g++, make, etc.)
+        // "gcc",                 // C (GNU Compiler Collection) — Compiles standard C code
+        // "g++",                 // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
+        // "gfortran",            // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
 
-        // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
-        // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
-        "clang",            // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
-        "clang-format",     // LLVM tools Formats C++ and other languages
-        "clang-tidy",       // LLVM tools Static analysis for C++
+        // // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+        // // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
+        // // "clang",            // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+        // // "clang-format",     // LLVM tools Formats C++ and other languages
+        // // "clang-tidy",       // LLVM tools Static analysis for C++
 
-        // Linear Algebra and Numerical Libraries
-        // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
-        "libopenblas-dev",    // For high-performance matrix/vector ops (used in NumPy, SciPy)
-        // Reference BLAS implementation (baseline, less optimized)
-        // "libblas-dev",        // Standard BLAS, may be overridden by OpenBLAS dynamically
-        // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
-        // "liblapack-dev",      // Required for scientific and engineering computations
-        // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
-        // "libblis-dev",        // Optional, can be tuned for specific architectures
+        // // Linear Algebra and Numerical Libraries
+        // // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
+        // "libopenblas-dev",    // For high-performance matrix/vector ops (used in NumPy, SciPy)
+        // // Reference BLAS implementation (baseline, less optimized)
+        // // "libblas-dev",        // Standard BLAS, may be overridden by OpenBLAS dynamically
+        // // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
+        // // "liblapack-dev",      // Required for scientific and engineering computations
+        // // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
+        // // "libblis-dev",        // Optional, can be tuned for specific architectures
 
-        // Parallel Computing Libraries
-        // Intel MKL – Highly optimized math kernels (not always open source)
-        // "libmkl-dev",         // May conflict with OpenBLAS; check compatibility
-        // Intel TBB – Task-based parallelism in C++
-        // "libtbb-dev",         // Used in threading, e.g., OpenCV, oneAPI
-        // OpenMP – Multithreading support for C/C++/Fortran
-        "libomp-dev"          // Enables `#pragma omp` parallelism in C/C++/Fortran
+        // // Parallel Computing Libraries
+        // // Intel MKL – Highly optimized math kernels (not always open source)
+        // // "libmkl-dev",         // May conflict with OpenBLAS; check compatibility
+        // // Intel TBB – Task-based parallelism in C++
+        // // "libtbb-dev",         // Used in threading, e.g., OpenCV, oneAPI
+        // // OpenMP – Multithreading support for C/C++/Fortran
+        // "libomp-dev"          // Enables `#pragma omp` parallelism in C/C++/Fortran
 
-        // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
-        // Installs the entire Boost C++ library development suite (headers + libs)
-        // Boost is a large set of C++ libraries that extend the standard library.
-        // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
-        // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
-        // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
-        // "libboost-all-dev"  // Boost headers and prebuilt libs
+        // // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
+        // // Installs the entire Boost C++ library development suite (headers + libs)
+        // // Boost is a large set of C++ libraries that extend the standard library.
+        // // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
+        // // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
+        // // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
+        // // "libboost-all-dev"  // Boost headers and prebuilt libs
       ]
     }
   },
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [8888],
+  "portsAttributes": {
+    "8888": {
+      "label": "desktop"
+    }
+  },
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "updateRemoteUserUID ": "true",  // "Controls whether on Linux the container's user should be updated with the local user's UID and GID. On by default when opening from a local folder."
+  // "remoteUser": "root",  // "The username to use for spawning processes in the container including lifecycle scripts and any remote editor/IDE server process. The default is the same user as the container."
+
+  // ⚠️ `ERROR: ... : No space left on device`
   // https://containers.dev/implementers/json_schema/
   // If this is a single string, it will be run in a shell.
-  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
   // If this is an array of strings, it will be run as a single command without shell. Recommended use with script file.
-  // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],
   // If this is an dict object, each provided command will be run in parallel. Recommended for multiple task.
-  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
+  // "placeholderCommand": {  // "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
+  //   // (optional) Single string form: Might break if the container has a minimal shell or /bin/sh != bash
+  //   // (recommended) Array form with "bash -c": run the given string using "bash -c", which executes the whole line as a single shell command — just like in a terminal.
+  //   // "placeholderTask": "do something (e.g. str, array aka list)..."
+  //   // "message_sample": "echo 'Runing placeholderCommand...'"
+  // },
+  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
+  // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],
   "initializeCommand": {
-    // "placeholderTask": "do something (e.g. str, array aka list)..."
-    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
-    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
     "message1": "echo 'Runing initializeCommand...'"
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
   },
-  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "onCreateCommand": {
-    // "placeholderTask": "do something (e.g. str, array aka list)..."
-    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
-    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
-    "message2": "echo 'Runing onCreateCommand...'"
-    // "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
-    // "env_conda_create": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
+    "message2": "echo 'Runing onCreateCommand...'",
+    "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
+    // "on_create_env_conda": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
   },
-  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "updateContentCommand": {
-    // "placeholderTask": "do something (e.g. str, array aka list)..."
-    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
-    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
     "message3": "echo 'Runing updateContentCommand...'"
   },
-  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
-  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
-  "postCreateCommand": {
-    // "placeholderTask": "do something (e.g. str, array aka list)..."
-    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
-    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
+  "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
     "message4": "echo 'Runing postCreateCommand...'"
-    // TODO: "ERROR: ... : no space left on device"
     // "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || exit 0"
     // "post_create_commands": ["bash", "-c", ".devcontainer/script/post_create_commands.sh || exit 0"]
   },
-  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "postStartCommand": {
-    // "placeholderTask": "do something (e.g. str, array aka list)..."
-    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
-    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
     "message5": "echo 'Runing postStartCommand...'"
-    // "notice_txt": "cat .devcontainer/script/first-run-notice.txt"
-    // "open_txt": "bash -c 'code .devcontainer/script/first-run-notice.txt'"
   },
-  // "placeholderCommand": "do something (e.g. str, array aka list, object aka dict[str, [str, list]])..."
   "postAttachCommand": {
-    // "placeholderTask": "do something (e.g. str, array aka list)..."
-    // Single string form: Might break if the container has a minimal shell or /bin/sh != bash
-    // (recommended) Array form with bash -c: run the given string using bash -c, which executes the whole line as a single shell command — just like in a terminal.
     "message6": "echo 'Runing postAttachCommand...'"
     // "server": "npm start",
     // "db": ["mysql", "-u", "root", "-p", "my database"]
   },
-  // Defaults to updateContentCommand.
-  "waitFor": "updateContentCommand",
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [8890],
-  "portsAttributes": {
-    "8890": {
-      "label": "desktop"
-    }
-  },
+  // "waitFor": "updateContentCommand",  // "The user command to wait for before continuing execution in the background while the UI is starting up. The default is \"updateContentCommand\"."
+
   // Configure tool-specific properties.
+  // "Tool-specific configuration. Each tool should use a JSON object subproperty with a unique name to group its customizations."
   "customizations": {
     // Configure properties specific to VS Code.
     "vscode": {
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
         // === Python Development ===
-        "ms-python.python",                       // Python language support
-        "ms-toolsai.jupyter",                     // Jupyter Notebook support
-        "ms-toolsai.vscode-jupyter-slideshow",    // Jupyter Slide Show
+        "ms-python.python",                           // Python language support
+        "ms-toolsai.jupyter",                         // Jupyter Notebook support
+        "ms-toolsai.vscode-jupyter-slideshow",        // Jupyter Slide Show
 
         // === Formatter extension ===
-        "ms-python.isort",                        // Import sorting extension
-        "ms-python.autopep8",                     // autopep8 formatter
-        "ms-python.flake8",                       // Flake8 extension
-        "ms-python.black-formatter",              // Black code formatter
-        "ms-python.mypy-type-checker",            // Mypy extension
-        "ms-python.pylint",                       // Pylint extension
-        "charliermarsh.ruff",                     // Ruff linter
-        // "ms-pyright.pyright",                     // Static Type Checker for Python
-
-        // === Markdown & Docs ===
-        "yzhang.markdown-all-in-one",             // Markdown enhancements
-        "stkb.rewrap",                            // Auto-wrap text and comments
-        "bierner.markdown-mermaid",               // Support for Mermaid diagrams in Markdown
+        "ms-python.isort",                            // Import sorting extension
+        "ms-python.autopep8",                         // autopep8 formatter
+        "ms-python.flake8",                           // Flake8 extension
+        "ms-python.black-formatter",                  // Black code formatter
+        "ms-python.mypy-type-checker",                // Mypy extension
+        "ms-python.pylint",                           // Pylint extension
+        "charliermarsh.ruff",                         // Ruff linter
+        // "ms-pyright.pyright",                         // Static Type Checker for Python
 
         // === Shell & Terminal ===
-        "timonwong.shellcheck",                   // Shell script linting
-        "foxundermoon.shell-format",              // Shell script formatting
-        "ms-vscode.makefile-tools",               // Makefile support
-        // "ms-vscode.cmake-tools",                  // CMake Tools
+        "ms-vscode.makefile-tools",                   // Makefile support
+        // "ms-vscode.cmake-tools",                      // CMake Tools
+        // "foxundermoon.shell-format",                  // Shell script formatting
+        // "timonwong.shellcheck",                       // Shell script linting
 
         // === Web Development ===
-        "ms-vscode.live-server",                  // Live Server
-        "ritwickdey.liveserver",                  // Alternative Live Server
-        "esbenp.prettier-vscode",                 // Prettier formatter for JS, HTML, etc.
+        "ms-vscode.live-server",                      // Live Server
+        // "ritwickdey.liveserver",                      // Alternative Live Server
+        // "esbenp.prettier-vscode",                     // Prettier formatter for JS, HTML, etc.
 
         // === Git & Productivity ===
-        "eamodio.gitlens",                        // Git supercharged
-        "donjayamanne.githistory",                // View git history
-        "github.vscode-pull-request-github",      // GitHub PRs and Issues
-        "mhutchie.git-graph",                     // Interactive Git graph
+        "github.vscode-pull-request-github"          // GitHub PRs and Issues
+        // "eamodio.gitlens",                         // Git supercharged
+        // "donjayamanne.githistory",                 // View git history
+        // "mhutchie.git-graph",                      // Interactive Git graph
 
         // === C/C++ Development ===
-        // "ms-vscode.cpptools",                     // C/C++ IntelliSense, debugging, etc.
-        "ms-vscode.cpptools-extension-pack",      // C/C++ IntelliSense, debugging, etc.
-        "llvm-vs-code-extensions.vscode-clangd",  // Clang language server
-        "jeff-hykin.better-cpp-syntax",           // Better syntax highlighting
+        // "ms-vscode.cpptools",                      // C/C++ IntelliSense, debugging, etc.
+        // "ms-vscode.cpptools-extension-pack",       // C/C++ IntelliSense, debugging, etc.
+        // "llvm-vs-code-extensions.vscode-clangd",   // Clang language server
+        // "jeff-hykin.better-cpp-syntax",            // Better syntax highlighting
 
         // === continuous integration and continuous deployment (CI/CD) platform used to automate software builds, tests, and deployments ===
-        // "HashiCorp.terraform",                 // terraform
-        // "ms-azuretools.vscode-azureterraform", // azureterraform
-        "ms-azuretools.vscode-docker"            // Docker for Visual Studio Code
-        // "circleci.circleci"
+        // "ms-azuretools.vscode-docker",             // Docker for Visual Studio Code
+        // "ms-azuretools.vscode-azureterraform",     // azureterraform
+        // "HashiCorp.terraform",                     // terraform
+        // "circleci.circleci",
 
         // === GenAI ===
-        // "genaiscript.genaiscript-vscode"          // GenAIScript
+        // "genaiscript.genaiscript-vscode",          // GenAIScript
+
+        // === Markdown & Docs ===
+        // "yzhang.markdown-all-in-one",                 // Markdown enhancements
+        // "stkb.rewrap",                                // Auto-wrap text and comments
+        // "bierner.markdown-mermaid",                   // Support for Mermaid diagrams in Markdown
 
         // === Learn extension ===
-        // "docsmsft.docs-markdown",                 // Learn Markdown Extension
-        // "ms-vscode.copilot-mermaid-diagram",      // vscode-mermAId
-        // "docsmsft.docs-yaml",                     // Docs YAML Extension
-        // "azurepaas-tools.vscode-learncloud",      // Learn Cloud
+        // "docsmsft.docs-markdown",                  // Learn Markdown Extension
+        // "ms-vscode.copilot-mermaid-diagram",       // vscode-mermAId
+        // "docsmsft.docs-yaml",                      // Docs YAML Extension
+        // "azurepaas-tools.vscode-learncloud",       // Learn Cloud
       ],
       "settings": {
         "terminal.integrated.shell.linux": "/bin/bash",
         "markdown.preview.autoShowPreviewToSide": true,
-        "editor.tabSize": 4
+        "editor.tabSize": 4,
+
+        // "python.pythonPath": "/usr/bin/python3",
+        // "python.defaultInterpreterPath": "/opt/conda/bin/python",  // for notebook
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true
       }
     },
     "codespaces": {

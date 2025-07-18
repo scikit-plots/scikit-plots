@@ -36,7 +36,7 @@ do
 done
 
 ## If any command failed, allow all directories as safe
-if [ "$FALLBACK" = "1" ]; then
+if [ "${FALLBACK:-""}" = "1" ]; then
   echo "Some directories failed. Allowing all directories as safe..."
   ## Alternative: Bypass Ownership Checks (If Safe)
   # sudo chown -R "$(whoami):$(id -gn whoami)" ~/.gitconfig || true
@@ -100,7 +100,7 @@ if [ -z "$MAMBA_CMD" ]; then
   exit 1
 fi
 
-## Initialize mamba (or conda)
+## Initialize mamba (e.g., conda, miniconda, micromamba)
 $MAMBA_CMD init --all || true
 
 # Check if 'py311' env exists
@@ -120,12 +120,14 @@ fi
 ## Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
 ## Double quotes for the outer string and escaping the inner double quotes or use single
 bash -i -c "
-  $MAMBA_CMD activate py311 || exit 1
-  $MAMBA_CMD info -e | grep '*' || exit 1
-
-  echo -e '\033[1;32m## Installing development dependencies...\033[0m'
+  # ⚠️ If mamba isn't initialized in the shell (as often happens in Docker/CI)
   # 👉 Some steps can be skipped when container creation due to storage size limitations
   # Use || exit 0: exits cleanly if the command fails (stops the script) (skip logic).
+  # source $MAMBA_ROOT_PREFIX/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || exit 0
+  conda activate py311 || exit 0
+  conda info -e | grep '*' || exit 0
+
+  echo -e '\033[1;32m## Installing development dependencies...\033[0m'
   # pip install -r ./requirements/all.txt || exit 0
   # pip install -r ./requirements/cpu.txt || exit 0
   pip install -r ./requirements/build.txt || exit 0

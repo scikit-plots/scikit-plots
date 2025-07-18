@@ -36,12 +36,12 @@
 
   // "imageContainer":
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Use a basic Ubuntu-based image
-  "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv"
+  // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv"
 
   // "composeContainer":
-  // "dockerComposeFile": "../../docker/docker-compose.yml",
-  // "service": "scikit-plots_latest-jupyter",
-  // "runServices": ["scikit-plots_latest-jupyter"],
+  "dockerComposeFile": "../../docker/docker-compose.yml",
+  "service": "scikit-plots_latest-python-3.11-slim",
+  "runServices": ["scikit-plots_latest-python-3.11-slim"],
   // "workspaceFolder": "/workspace",  // "The path of the workspace folder inside the container. This is typically the target path of a volume mount in the docker-compose.yml."
 
 
@@ -53,7 +53,7 @@
 
 
   // "devContainerCommon":
-  "name": "DevContainer (default)",  // "A name for the dev container which can be displayed to the user."
+  "name": "python-3.x (fast-minimal)",  // "A name for the dev container which can be displayed to the user."
   // "Host hardware requirements."
   "hostRequirements": {
     // GitHub Codespaces free limit 1 core 120 hours, 2-core, 8gb ram, 32 gb, 4-core, 16gb ram, 32 gb

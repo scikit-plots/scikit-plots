@@ -9,6 +9,7 @@
 # docker tag local-image:tagname new-repo:tagname
 # docker push new-repo:tagname
 # Make sure to replace tagname with your desired image repository tag.
+# docker tag <existing_image_name>:<existing_tag> <new_image_name>:<new_tag>
 #
 # https://hub.docker.com/u/scikitplot
 # https://hub.docker.com/r/scikitplot/scikit-plots
@@ -35,8 +36,11 @@ on:
   # push:
   #   branches:
   #     - '**'    # Matches all branches, including main, dev, feature/*
+  #     - main
+  #     - maintenance/**
   #   tags:
   #     - '*'     # Matches all Git tags (e.g., v1.0.0)
+  #     - 'v*.*.*'
 
 
 ## simultaneity
@@ -72,29 +76,47 @@ jobs:
   docker:
     runs-on: ubuntu-latest  # Use Ubuntu runner for Docker tasks
 
+    ## https://docs.github.com/en/actions/reference/evaluate-expressions-in-workflows-and-actions
+    # if: startsWith-endsWith( matrix.service[0], 'jupyter' ), contains( matrix.service[0], 'python-3.11' )
+    # if: contains( matrix.service[0], matrix.tag[0] )
+    strategy:
+      fail-fast: false  # Allow all jobs to run even if one fails
+      matrix:
+        service:
+          # [compose_service_name, dockerhub_org, dockerhub_image]
+          - [scikit-plots_latest-python-3.11-slim, scikitplot, scikit-plots]
+          - [scikit-plots_latest-jupyter, scikitplot, scikit-plots]
+        tag: [
+          # Branches main maintenance/0.3.x  maintenance/0.3.7
+          # [tag_name, optional_tag_only_suffix, alias, ...]
+          # [python-3.11, ref_tags-python-3.11, latest-python-3.11],  # if based on service Python 3.11
+          # [jupyter, ref_tags-jupyter, latest-jupyter, latest],  # if based on service Jupyter
+          { tag: "python-3.11", ref_tag: "ref_tags-python-3.11", alias: "latest-python-3.11" },
+          { tag: "jupyter", ref_tag: "ref_tags-jupyter", alias: "latest-jupyter", alias2: "latest" },
+        ]
+
     # Set your DockerHub username as a fixed env var
     # https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
     env:
+      # REPO_NAME: ${{ github.event.repository.name }}  # or in shell: $(basename "$GITHUB_REPOSITORY")
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN : ${{ secrets.DOCKERHUB_TOKEN }}
-      # DOCKER_CONTEXT: .     # Docker context path (default to repo root)
       COMPOSE_FILE: docker/docker-compose.yml
-      COMPOSE_SERVICE: notebook_cpu
 
     # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
       # Ensure required secrets exist
-      - name: Check Docker Hub secrets
-        run: |
-          if [[ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
-            echo "❌ Missing DOCKERHUB_TOKEN"
-            exit 0
-          fi
+      # - name: Check Docker Hub secrets
+      #   run: |
+      #     if [[ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
+      #       echo "❌ Missing DOCKERHUB_TOKEN"
+      #       exit 0
+      #     fi
 
       # Checkout the Git repository into the runner
-      - name: "⬇️ Checkout (cloned) repository with full history"
+      - name: "📥 Checkout (cloned) repository with full history"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false  # Prevents accidental credential exposure
@@ -102,71 +124,158 @@ jobs:
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
           lfs: true
           ## Gets the correct commit message for pull request
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      # Determine tags for Docker image based on Git context
-      - name: Determine Docker image tags
-        id: vars
-        run: |
-          set -euo pipefail
-
-          # Sanitize function to remove invalid characters for Docker tags
-          # SAFE_TAG='^[a-zA-Z0-9._-]+$'
-          # SAFE_REPO='^[a-zA-Z0-9._/-]+$'
-          sanitize() {
-            echo "$1" | sed 's/[^a-zA-Z0-9._-]//g'
-          }
-          # IMAGE_SAFE=$(sanitize "$IMAGE")
-
-          # Get the GitHub repository name (e.g., scikit-plots)
-          REPO_NAME=$(basename "$GITHUB_REPOSITORY")
-
-          # Compose the full Docker image name using Docker Hub username
-          # IMAGE_NAME="${DOCKERHUB_USERNAME}/${REPO_NAME}"
-          IMAGE_NAME="scikitplot/${REPO_NAME}"
-
-          # Generate a short SHA tag (e.g., sha-abc1234)
-          SHA_TAG="sha-${GITHUB_SHA::7}"
-
-          # Initialize optional tags with default empty values
-          BRANCH_TAG=""
-          VERSION_TAG=""
-          DEV_TAG=""
-
-          # Handle Git tag events (e.g., refs/tags/v1.0.0)
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            VERSION_TAG="${GITHUB_REF#refs/tags/}"  # Strip 'refs/tags/'
-          # Handle branch events (e.g., refs/heads/main, refs/heads/feature/foo)
-          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
-            REF_BRANCH="${GITHUB_REF#refs/heads/}"  # Strip 'refs/heads/'
-
-            # Sanitize branch name for Docker tag: replace '/' with '-', remove invalid chars
-            # SAFE_PATTERN='^[a-zA-Z0-9._/-]+$'
-            SAFE_BRANCH=$(echo "$REF_BRANCH" | tr '/' '-' | sed 's/[^a-zA-Z0-9._-]//g')
-            BRANCH_TAG="$SAFE_BRANCH"
-
-            # Tag as 'dev' if the branch is 'main'
-            if [[ "$REF_BRANCH" == "main" ]]; then
-              BRANCH_TAG="latest"                     # Also tag as 'latest'
-              DEV_TAG="dev"
-            fi
-          fi
-
-          # Output variables for use in later steps
-          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
-          echo "sha_tag=$SHA_TAG" >> "$GITHUB_OUTPUT"
-          echo "branch_tag=$BRANCH_TAG" >> "$GITHUB_OUTPUT"
-          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
-          echo "dev_tag=$DEV_TAG" >> "$GITHUB_OUTPUT"
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       # Authenticate with Docker Hub (scikitplot user)
       # https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
-      - name: Log in to Docker Hub
+      - name: 🔐 Login to Docker Hub
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         continue-on-error: true
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🧠 Extract Git context
+        id: gitref
+        run: |
+          REF_TYPE=""
+          VERSION_TAG=""
+          BRANCH_TAG=""
+
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            REF_TYPE="tag"
+            VERSION_TAG="${GITHUB_REF#refs/tags/v}"  # strip leading 'v'
+          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            REF_TYPE="branch"
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+            BRANCH_TAG="${BRANCH_NAME//\//-}"  # Replace slashes with dashes
+          fi
+
+          echo "ref_type=$REF_TYPE" >> "$GITHUB_OUTPUT"
+          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          echo "branch_tag=$BRANCH_TAG" >> "$GITHUB_OUTPUT"
+
+      # Define the Docker Compose file path and service name
+      - name: 🔧 Build Docker image via Compose service
+        if: success()
+        continue-on-error: true
+        run: |
+          # set -euo pipefail
+
+          SERVICE=${{ matrix.service[0] }}
+          IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
+          echo "🔨 Building $IMAGE_NAME from service $SERVICE..."
+
+          # Build and run container detached
+          # docker compose -f "$COMPOSE_FILE" build "$SERVICE"
+          # docker compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+          docker compose -f "$COMPOSE_FILE" up -d --build "$SERVICE"
+
+      # Build the Docker image and apply all necessary (multiple) tags
+      - name: 🐳 Tag and Push Docker image
+        # correctly filters for valid combinations
+        if: contains( matrix.service[0], matrix.tag[0] )
+        env:
+          REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
+          VERSION: ${{ steps.gitref.outputs.version_tag }}
+          BRANCH: ${{ steps.gitref.outputs.branch_tag }}
+        run: |
+          # set -euo pipefail
+
+          SERVICE=${{ matrix.service[0] }}
+          IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
+
+          # IMAGE_ID=$(docker inspect --format='{{.Image}}' "$SERVICE"_main)  # get the image ID or image name
+          # IMAGE_ID=$(docker inspect --format='{{index .Config.Image}}' "$SERVICE"_main)  # get the image name:tag
+          IMAGE_ID=$(docker inspect --format='{{.Id}}' "$SERVICE")
+
+          echo "🔎 Tagging context: $REF_TYPE (version=$VERSION, branch=$BRANCH)"
+
+          # Access tag details from matrix object
+          # TAG="${{ matrix.tag.tag }}"
+          # REF_TAG="${{ matrix.tag.ref_tag }}"
+          # ALIAS="${{ matrix.tag.alias }}"
+          # ALIAS2="${{ matrix.tag.alias2 || '' }}"
+
+          ## ✅ Best for: Simple, flat tag lists.
+          # for REF_TAG in "${{ join(matrix.tag, '" "') }}"; do
+
+          ## ✅ Best for: Complex nested arrays — if matrix.tag items are sublists of [TAG, REF_TAG, ALIAS].
+          MATRIX_JSON='${{ toJSON(matrix.tag) }}'
+
+          # Loop through each tag entry as a compact JSON object
+          # for arr in "$(echo "$MATRIX_JSON" | jq -c '.')" ; do
+          #   IFS=',' read -r TAG REF_TAG ALIAS <<< "$(echo "$arr" | jq -r '. | join(",")')"
+          echo "$MATRIX_JSON" | jq -c '.[]' | while read -r arr; do
+            TAG=$(echo "$arr" | jq -r '.tag')
+            REF_TAG=$(echo "$arr" | jq -r '.ref_tag')
+            ALIAS=$(echo "$arr" | jq -r '.alias // empty')
+            ALIAS2=$(echo "$arr" | jq -r '.alias2 // empty')
+
+            echo "▶️ TAG=$TAG"
+            echo "📦 REF_TAG=$REF_TAG"
+            echo "🔖 ALIAS=$ALIAS"
+            echo "🪪 ALIAS2=$ALIAS2"
+
+            # Skip ref-only tags unless this is a tag build
+            if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" != "tag" ]]; then
+              echo "⏭️ Skipping tag: $TAG (only used for Git tag builds)"
+              continue
+            fi
+
+            # Determine final tag based on context
+            if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" == "tag" ]]; then
+              SUFFIX="${REF_TAG#ref_tags-}"         # e.g., 'jupyter'
+              FINAL_TAG="${VERSION}-${SUFFIX}"      # e.g., '1.2.3-jupyter'
+            elif [[ "$BRANCH" == "main" ]]; then
+              FINAL_TAG="$ALIAS"                    # e.g., 'latest-jupyter', 'latest-python-3.11'
+            elif [[ "$BRANCH" == maintenance-* ]]; then
+              BRANCH_VERSION="${BRANCH#maintenance-}"  # e.g., '0.3.x'
+              FINAL_TAG="${BRANCH_VERSION}-${TAG}"     # e.g., '0.3.x-jupyter'
+            else
+              echo "⏭️ Unknown branch pattern: $BRANCH — skipping tag $TAG"
+              continue
+            fi
+
+            echo "🏷️ Tagging image as $IMAGE_NAME:$FINAL_TAG"
+            docker tag "$IMAGE_ID" "$IMAGE_NAME:$FINAL_TAG"
+
+            echo "📤 Pushing $IMAGE_NAME:$FINAL_TAG"
+            docker push "$IMAGE_NAME:$FINAL_TAG"
+
+            # ➕ Tag and push alias2 if it exists (e.g., 'latest')
+            if [[ -n "$ALIAS2" ]]; then
+              echo "🏷️ Tagging alias2 as $IMAGE_NAME:$ALIAS2"
+              docker tag "$IMAGE_ID" "$IMAGE_NAME:$ALIAS2"
+              echo "📤 Pushing $IMAGE_NAME:$ALIAS2"
+              docker push "$IMAGE_NAME:$ALIAS2"
+            fi
+          done
+
+          # # Function to safely push a Docker image tag with retries
+          # # and continue on failure (non-fatal)
+          # function safe_push() {
+          #   TAG=$1
+          #   echo "👉 Pushing :$TAG"
+          #   for i in {1..3}; do
+          #     docker push "$IMAGE_NAME:$TAG" && echo "✅ :$TAG pushed" && return 0 || {
+          #       echo "🔴 Failed :$TAG (attempt $i/3)... retrying"
+          #       sleep 5
+          #     }
+          #   done
+          #   echo "⚠️ Giving up on :$TAG (non-fatal)"
+          #   return 0
+          # }
+
+      - name: 🧹 Tear down Docker Compose
+        if: always()
+        continue-on-error: true
+        run: |
+          docker compose -f "$COMPOSE_FILE" down --remove-orphans --volumes
+
+      ################################################################
+      ## DockerFile
+      ################################################################
 
       # # Set up Docker Buildx (build engine)
       # - name: Set up Docker Buildx
@@ -190,107 +299,67 @@ jobs:
       #     # Also tag with SHA for traceability
       #     docker tag "$IMAGE:latest" "$IMAGE:${{ steps.vars.outputs.sha_tag }}"
 
-      # Define the Docker Compose file path and service name
-      - name: Build service using Docker Compose
-        if: success()
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          # Build and run container detached
-          # docker compose -f "$COMPOSE_FILE" build "$COMPOSE_SERVICE"
-          # docker compose -f "$COMPOSE_FILE" up -d "$COMPOSE_SERVICE"
-          docker compose -f "$COMPOSE_FILE" up -d --build "$COMPOSE_SERVICE"
+      ################################################################
+      ## Docker tags
+      ################################################################
 
-      # Build the Docker image and apply all necessary (multiple) tags
-      - name: Retag image for Docker Hub
-        if: success()
-        continue-on-error: true
-        shell: bash
-        env:
-          # Read variables from step outputs safely
-          IMAGE: ${{ steps.vars.outputs.image_name }}
-          SHA_TAG: ${{ steps.vars.outputs.sha_tag }}
-          BRANCH_TAG: ${{ steps.vars.outputs.branch_tag }}
-          VERSION_TAG: ${{ steps.vars.outputs.version_tag }}
-          DEV_TAG: ${{ steps.vars.outputs.dev_tag }}
-        run: |
-          set -euo pipefail
+      # Determine tags for Docker image based on Git context
+      # - name: Determine Docker image tags
+      #   id: vars
+      #   run: |
+      #     set -euo pipefail
 
-          # Get the image name or ID from running container
-          # SERVICE_IMAGE="$IMAGE:latest"
-          # SERVICE_IMAGE=$(docker inspect --format='{{.Image}}' "$COMPOSE_SERVICE"_main)  # get the image ID or image name
-          SERVICE_IMAGE=$(docker inspect --format='{{index .Config.Image}}' "$COMPOSE_SERVICE"_main)  # get the image name:tag
+      #     # Sanitize function to remove invalid characters for Docker tags
+      #     # SAFE_TAG='^[a-zA-Z0-9._-]+$'
+      #     # SAFE_REPO='^[a-zA-Z0-9._/-]+$'
+      #     # IMAGE_SAFE=$(sanitize "$IMAGE")
+      #     sanitize() {
+      #       echo "$1" | sed 's/[^a-zA-Z0-9._-]//g'
+      #     }
 
-          # Tag the image with 'latest' and other tags
-          docker tag "$SERVICE_IMAGE" "$IMAGE:latest"
+      #     # Get the GitHub repository name (e.g., scikit-plots)
+      #     REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+      #     # "${VAR//-/}" remove all "-" character
+      #     # "${VAR%?}" or "${VAR::-1}" remove the last character
+      #     ORG_NAME="${REPO_NAME//-/}"; ORG_NAME="${ORG_NAME%?}"
 
-          # Also tag with SHA for traceability
-          docker tag "$SERVICE_IMAGE" "$IMAGE:$SHA_TAG"
+      #     # Compose the full Docker image name using Docker Hub username
+      #     # IMAGE_NAME="${DOCKERHUB_USERNAME}/${REPO_NAME}"
+      #     IMAGE_NAME="${ORG_NAME}/${{ matrix.service }}"
 
-          # Optional: tag with branch name
-          if [[ -n "$IMAGE:$BRANCH_TAG" ]]; then
-            docker tag "$SERVICE_IMAGE" "$IMAGE:$BRANCH_TAG"
-          fi
-          # Optional: tag with Git version
-          if [[ -n "$IMAGE:$VERSION_TAG" ]]; then
-            docker tag "$SERVICE_IMAGE" "$IMAGE:$VERSION_TAG"
-          fi
-          # Optional: tag as 'dev' (only on main branch)
-          if [[ -n "$IMAGE:$DEV_TAG" ]]; then
-            docker tag "$SERVICE_IMAGE" "$IMAGE:$DEV_TAG"
-          fi
+      #     # Generate a short SHA tag (e.g., sha-abc1234)
+      #     TAG_SAFE=$(echo "${{ matrix.tag }}" | sed 's/[^a-zA-Z0-9._-]//g')
+      #     SHA_TAG="sha-${GITHUB_SHA::7}"
 
-      # 🐳 Push all tags to Docker Hub
-      - name: 🐳 Push all tags with retry and continue on fail
-        if: success()
-        continue-on-error: true
-        shell: bash
-        env:
-          # Read variables from step outputs safely
-          IMAGE: ${{ steps.vars.outputs.image_name }}
-          SHA_TAG: ${{ steps.vars.outputs.sha_tag }}
-          BRANCH_TAG: ${{ steps.vars.outputs.branch_tag }}
-          VERSION_TAG: ${{ steps.vars.outputs.version_tag }}
-          DEV_TAG: ${{ steps.vars.outputs.dev_tag }}
-        run: |
-          set -euo pipefail
+      #     # Initialize optional tags with default empty values
+      #     BRANCH_TAG=""
+      #     DEV_TAG=""
+      #     VERSION_TAG=""
 
-          # Function to safely push a Docker image tag with retries
-          # and continue on failure (non-fatal)
-          function safe_push() {
-            TAG=$1
-            echo "👉 Pushing :$TAG"
-            for i in {1..3}; do
-              docker push "$IMAGE:$TAG" && echo "✅ :$TAG pushed" && return 0 || {
-                echo "🔴 Failed :$TAG (attempt $i/3)... retrying"
-                sleep 5
-              }
-            done
-            echo "⚠️ Giving up on :$TAG (non-fatal)"
-            return 0
-          }
+      #     # Handle Git tag events (e.g., refs/tags/v1.0.0)
+      #     if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+      #       VERSION_TAG="${GITHUB_REF#refs/tags/}"  # Strip 'refs/tags/'
+      #     # Handle branch events (e.g., refs/heads/main, refs/heads/feature/foo)
+      #     elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+      #       REF_BRANCH="${GITHUB_REF#refs/heads/}"  # Strip 'refs/heads/'
 
-          # Push 'latest' tag
-          safe_push latest
+      #       # Sanitize branch name for Docker tag: replace '/' with '-', remove invalid chars
+      #       # SAFE_PATTERN='^[a-zA-Z0-9._/-]+$'
+      #       SAFE_BRANCH=$(echo "$REF_BRANCH" | tr '/' '-' | sed 's/[^a-zA-Z0-9._-]//g')
+      #       BRANCH_TAG="$SAFE_BRANCH"
 
-          # Push short SHA tag
-          safe_push "$SHA_TAG"
+      #       # Tag as 'dev' if the branch is 'main'
+      #       if [[ "$REF_BRANCH" == "main" ]]; then
+      #         BRANCH_TAG="latest-jupyter"
+      #         DEV_TAG="latest"
+      #       fi
+      #     fi
 
-          # Push branch name tag (if defined)
-          if [[ -n "$BRANCH_TAG" ]]; then
-            safe_push "$BRANCH_TAG"
-          fi
-          # Push Git version tag (if defined)
-          if [[ -n "$VERSION_TAG" ]]; then
-            safe_push "$VERSION_TAG"
-          fi
-          # Push dev tag (only if main branch)
-          if [[ "$IMAGE:$DEV_TAG" == "dev" ]]; then
-            safe_push dev
-          fi
+      #     # Output variables for use in later steps
+      #     echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+      #     echo "sha_tag=$SHA_TAG" >> "$GITHUB_OUTPUT"
+      #     echo "branch_tag=$BRANCH_TAG" >> "$GITHUB_OUTPUT"
+      #     echo "dev_tag=$DEV_TAG" >> "$GITHUB_OUTPUT"
+      #     echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Tear down Docker Compose
-        if: always()
-        continue-on-error: true
-        run: |
-          docker compose -f "$COMPOSE_FILE" down --remove-orphans --volumes
+      ################################################################
