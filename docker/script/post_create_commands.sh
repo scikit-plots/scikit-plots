@@ -91,56 +91,86 @@ git fetch upstream --tags
 ######################################################################
 ## Install env "py311" and scikit-plots dev version
 ## Use micromamba See: env_micromamba.sh
+# "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
+# micromamba not "conda" keyword compatipable but same syntax
 ######################################################################
-# Choose mamba if available, otherwise fallback to conda
-# MAMBA_CMD=$(command -v mamba || command -v conda)
-## Check if mamba or conda is available
-# if [ -z "$MAMBA_CMD" ]; then
-#   echo "Error: Neither mamba nor conda is available on your PATH."
-#   exit 1
-# fi
-## Initialize mamba (e.g., conda, miniconda, micromamba)
-# $MAMBA_CMD init --all || true
-## Check if 'py311' env exists
-# if ! conda env list | grep -qE '(^|\s)py311(\s|$)'; then
-#   ## Create a new environment with python 3.11 and ipykernel if it doesn't already exist
-#   echo "Creating 'py311' environment with Python 3.11 and ipykernel using: $MAMBA_CMD"
-#   $MAMBA_CMD create -n py311 python=3.11 ipykernel -y || true
-# else
-#     echo "'py311' environment already exists. Skipping creation."
-# fi
-## Update environment with default.yml (always applied)
-# $MAMBA_CMD env update -n "py311" -f "./docker/env_conda/default.yml" \
-#   || { echo "Failed to apply default environment"; exit 0; }
+
+# env_conda py311 conda             # uses Python 3.11 (default)
+# env_conda py38 micromamba 3.8     # uses Python 3.8 explicitly
+env_conda() {
+  local env_name=$1
+  local conda_cmd=$2
+  local python_version=${3:-3.11}   # Default to 3.11 if not specified
+
+  # echo "Checking if environment '\''$env_name'\'' exists..."
+  printf "Checking if environment '%s' exists...\n" "$env_name"
+
+  if ! $conda_cmd env list | grep -qE "(^|[[:space:]])${env_name}([[:space:]]|$)"; then
+    # echo "Creating '\''$env_name'\'' with Python 3.11 and ipykernel using $conda_cmd..."
+    printf "Creating '%s' with Python %s and ipykernel using %s...\n" "$env_name" "$python_version" "$conda_cmd"
+    $conda_cmd create -n "$env_name" python="$python_version" ipykernel -y || true
+  else
+    # echo "Environment '\''$env_name'\'' already exists. Skipping creation."
+    printf "Environment '%s' already exists. Skipping creation.\n" "$env_name"
+  fi
+
+  # echo "Updating environment '\''$env_name'\'' with default.yml..."
+  printf "Updating environment '%s' with default.yml...\n" "$env_name"
+  # $conda_cmd env update -n "$env_name" -f "./docker/env_conda/default.yml" || { echo "Failed to update environment"; exit 0; }
+  $conda_cmd env update -n "$env_name" -f "./docker/env_conda/default.yml" || { printf "Failed to update environment\n"; exit 0; }
+}
 
 ## Activate the environment and install required packages
 ## Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
 ## Double quotes for the outer string and escaping the inner double quotes or use single
 bash -i -c "
-  ## ⚠️ If mamba isn't initialized in the shell (as often happens in Docker/CI)
-  ## 👉 Some steps can be skipped when container creation due to storage size limitations
-  ## Use || exit 0: exits cleanly if the command fails (stops the script) (skip logic).
-  ## source $MAMBA_ROOT_PREFIX/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || exit 0
-  conda activate py311 || exit 0
-  conda info -e | grep '*' || exit 0
+set -euo pipefail
 
-  echo -e '\033[1;32m## Installing development dependencies...\033[0m'
-  # pip install -r ./requirements/all.txt || exit 0
-  # pip install -r ./requirements/cpu.txt || exit 0
-  pip install -r ./requirements/build.txt || exit 0
+## ⚠️ If mamba isn't initialized in the shell (as often happens in Docker/CI)
+## 👉 Some steps can be skipped when container creation due to storage size limitations
+## Use || exit 0: exits cleanly if the command fails (stops the script).
+## Use || true: absorbs the error, continues ( skip logic).
+## source $MAMBA_ROOT_PREFIX/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
 
-  # Install pre-commit
-  echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m'
-  # Use || true: absorbs the error, continues
-  pip install pre-commit || true
+## Try micromamba first (faster and more portable), then fallback to conda
+## Choose micromamba if available, otherwise fallback to conda
+# echo -e '\033[1;34m>> Checking and activating environment...\033[0m'
+printf '\033[1;34m>> Checking and activating environment...\033[0m\n'
+if command -v micromamba &> /dev/null; then
+  echo '🔹 Using micromamba'
+  # micromamba activate py311 || true
+  micromamba activate py311 || (env_conda py311 micromamba && micromamba activate py311) || true
+  micromamba info -e | grep '*' || true
+elif command -v conda &> /dev/null; then
+  echo '🔹 Using conda'
+  # conda activate py311 || true
+  conda activate py311 || (env_conda py311 conda && conda activate py311) || true
+  conda info -e | grep '*' || true
+else
+  echo '❌ Neither micromamba nor conda found. Skipping...'
+  exit 0
+fi
 
-  # Install pre-commit hooks in the repository
-  echo -e '\033[1;32m## Installing pre-commit hooks inside the repository...\033[0m'
-  ( cd /workspaces/scikit-plots/ || true && pre-commit install || true )
+# echo -e '\033[1;32m## Installing development dependencies...\033[0m'
+printf '\033[1;32m## Installing development dependencies...\033[0m\n'
+# pip install -r ./requirements/all.txt || true
+# pip install -r ./requirements/cpu.txt || true
+pip install -r ./requirements/build.txt || true
 
-  echo -e '\033[1;32m## Install the development version of scikit-plots...\033[0m'
-  # Install the development version of scikit-plots
-  pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v || exit 0
+# Install pre-commit
+# echo -e '\033[1;32m## Installing pre-commit...\033[0m\n'
+printf '\033[1;32m## Installing pre-commit...\033[0m\n'
+pip install pre-commit || true
+
+# Install pre-commit hooks in the repository
+# echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
+printf '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
+( cd /workspaces/scikit-plots/ || true && pre-commit install || true )
+
+# echo -e '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
+printf '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
+# Install the development version of scikit-plots
+pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v || true
 "
 
 ## Show next steps to user
