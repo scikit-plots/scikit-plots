@@ -51,7 +51,7 @@ micromamba activate py311 || true
 # Configure env dirs
 # Enables users to activate environment without having to specify the full path
 # Configure micromamba envs directory to simplify env discovery by conda/micromamba
-mkdir -p "$HOME/micromamba/envs" || true
+mkdir -p "/opt/conda" "$HOME/micromamba/envs" || true
 echo "envs_dirs:
   - \"$HOME/micromamba/envs\"" > /opt/conda/.condarc
 
