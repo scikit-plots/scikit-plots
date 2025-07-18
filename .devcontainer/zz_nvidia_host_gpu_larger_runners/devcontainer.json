@@ -47,7 +47,14 @@
 
   // "nonComposeBase":
   // "containerUser": "root",
-  "runArgs": ["--gpus","all"],  // runArgs for github Desktop
+  // Use if runtime args required (e.g., GPU for PyTorch, TensorFlow)
+  "runArgs": [
+    // "--cap-add=SYS_PTRACE",                  // ✅ Allow debugging tools (e.g., gdb, strace) to trace processes
+    // "--security-opt=seccomp=unconfined"      // ⚠️ Disable syscall filtering to avoid security restrictions in dev tools
+
+    // ⚠️ Uncomment only if a GPU is available (e.g. on host with NVIDIA runtime)
+    "--gpus", "all"                        // Enables GPU access inside container (requires Docker + NVIDIA setup)
+  ],
   // "workspaceFolder": "/workspace",  // "The path of the workspace folder inside the container."
   // "workspaceMount": "/workspace",  // "The --mount parameter for docker run. The default is to mount the project folder at /workspaces/$project."
 
