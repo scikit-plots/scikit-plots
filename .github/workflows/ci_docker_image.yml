@@ -188,9 +188,21 @@ jobs:
           SERVICE=${{ matrix.service[0] }}
           IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
 
-          # IMAGE_ID=$(docker inspect --format='{{.Image}}' "$SERVICE"_main)  # get the image ID or image name
-          # IMAGE_ID=$(docker inspect --format='{{index .Config.Image}}' "$SERVICE"_main)  # get the image name:tag
-          IMAGE_ID=$(docker inspect --format='{{.Id}}' "$SERVICE")
+          ## docker ps -a --format '{{.Names}}'
+          ## $(docker inspect --format='{{index .Config.Image}}' "scikit-plots_latest-jupyter")
+          ## Returns the ID of the thing you're inspecting.
+          ## If $SERVICE is a container, it returns the container ID.
+          ## If $SERVICE is an image, it returns the image ID (e.g. sha256:abcd...).
+          # IMAGE_ID=$(docker inspect --format='{{.Id}}' "$SERVICE")  # returns the unique "container ID", not the image ID.
+
+          ## the image name or ID that was used to start that container.
+          ## IMAGE_ID=$(docker inspect --format='{{index .Config.Image}}' "$SERVICE")  # returns the Image name/tag (string) used to start container
+          # IMAGE_ID=$(docker inspect --format='{{ .Config.Image }}' "$SERVICE")  # returns the Image name/tag (string) used to start container
+
+          ## Returns the image ID (sha256...) that the container was created from.
+          ## So for your tagging/pushing logic, the most correct would be:
+          ## Does not return the container ID — it traces back to the image used.
+          IMAGE_ID=$(docker inspect --format='{{.Image}}' "$SERVICE")  # returns the "actual SHA" digest of the image (e.g. sha256:...) used to create the container that was pulled or created image
 
           # echo "🧪 DEBUG: REF_TYPE=$REF_TYPE | BRANCH=$BRANCH | REF_TAG=$REF_TAG"
           echo "🔎 Tagging context: $REF_TYPE (version=$VERSION, branch=$BRANCH)"
