@@ -157,7 +157,9 @@ jobs:
 
       # Define the Docker Compose file path and service name
       - name: 🔧 Build Docker image via Compose service
-        if: success()
+        # correctly filters for valid combinations
+        # if: contains( matrix.service[0], matrix.tag[0] )
+        if: contains( matrix.service[0], matrix.tag.tag )
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -205,11 +207,14 @@ jobs:
           ## ✅ Best for: Complex nested arrays — if matrix.tag items are sublists of [TAG, REF_TAG, ALIAS].
           ## ✅ Note the single quotes '...' around the full JSON block — that makes it a proper Bash string.
           ## Get matrix.tag as full JSON
-          # MATRIX_JSON='${{ toJSON(matrix.tag) }}'
-          MATRIX_JSON=$(cat <<EOF
-          ${{ toJSON(matrix.tag) }}
-          EOF
-          )
+          MATRIX_JSON='${{ toJSON(matrix.tag) }}'
+          # read -r -d '' MATRIX_JSON <<'EOF'
+          # {
+          #   "tag": "python-3.11",
+          #   "ref_tag": "ref_tags-python-3.11",
+          #   "alias": "latest-python-3.11"
+          # }
+          # EOF
 
           # Loop through each tag entry as a compact JSON object
           # for arr in "$(echo "$MATRIX_JSON" | jq -c '.')" ; do
