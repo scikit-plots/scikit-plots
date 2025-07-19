@@ -9,7 +9,7 @@ set -euxo pipefail
 
 # Ensure os packages installed
 # shellcheck disable=SC1090
-(source "$HOME/.$(basename "$SHELL")rc") || true
+source "$HOME/.$(basename "$SHELL")rc" || true
 (apt update -y && apt install -y sudo gosu git curl build-essential gfortran) || true
 
 ######################################################################
@@ -146,12 +146,12 @@ printf '\033[1;34m>> Checking and activating environment...\033[0m\n'
 if command -v micromamba &> /dev/null; then
   echo '🔹 Using micromamba'
   # micromamba activate py311 || true
-  micromamba activate py311 || (env_conda py311 micromamba && micromamba activate py311) || true
+  micromamba activate py311 || env_conda py311 micromamba && micromamba activate py311 || true
   micromamba info -e | grep '*' || true
 elif command -v conda &> /dev/null; then
   echo '🔹 Using conda'
   # conda activate py311 || true
-  conda activate py311 || (env_conda py311 conda && conda activate py311) || true
+  conda activate py311 || env_conda py311 conda && conda activate py311 || true
   conda info -e | grep '*' || true
 else
   echo '❌ Neither micromamba nor conda found. Skipping...'
@@ -172,12 +172,12 @@ pip install pre-commit || true
 # Install pre-commit hooks in the repository
 # echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
 printf '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
-( (cd /workspaces/scikit-plots || true) && pre-commit install || true )
+( cd /workspaces/scikit-plots || true && pre-commit install || true )
 
 # echo -e '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 printf '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 # Install the development version of scikit-plots
-(pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v) || true
+python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v || true
 "
 
 ## Show next steps to user
@@ -187,7 +187,7 @@ echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
 
 ## (Optionally) Open new terminal activate py311
-(micromamba info -e) || true
-(conda info -e )|| true
+micromamba info -e || true
+conda info -e || true
 
-(scikitplot -V) || true
+scikitplot -V || true
