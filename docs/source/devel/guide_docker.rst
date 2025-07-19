@@ -148,18 +148,18 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
    ## (Optionally) Install common vscode extensions
    ##✅ C/C++/Python and Jupyter Notebook
    ##✅ Linter and Formatter
-   bash docker/script/setup_vscode_ext.sh  # (not needed every time)
+   bash docker/scripts/setup_vscode_ext.sh  # (not needed every time)
 
 ▶️ Run post_create_commands.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt>`_
+`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt>`_
 
 .. dropdown:: first-run-notice.txt
    :open:
    :class-container: sdd
 
-   .. literalinclude:: ../../../docker/script/first-run-notice.txt
+   .. literalinclude:: ../../../docker/scripts/first-run-notice.txt
       :language: none
 
 🚯 Stop Containers
@@ -231,8 +231,8 @@ If you need more control, you can use Docker CLI commands.
    ├── docker-compose.yml              # Primary Docker Compose file
    ├── docker-compose.override.yml     # Optional override file (auto-included if present)
    ├── Dockerfile                      # Custom Dockerfile
-   ├── script/
-   │   ├── install_gpu_nvidia_cuda.sh  # GPU setup script
+   ├── scripts/
+   │   ├── install_gpu_nvidia_cuda.sh  # GPU setup scripts
 
 🖥️ Useful References
 --------------------------------

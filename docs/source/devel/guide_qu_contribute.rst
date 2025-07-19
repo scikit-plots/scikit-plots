@@ -115,24 +115,24 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
 .. tip::
 
-    Actually we run below script step-by-step in following Documentation.
-    (See Also: `https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt`__)
+    Actually we run below scripts step-by-step in following Documentation.
+    (See Also: `https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt`__)
 
     .. prompt:: bash
 
-        bash docker/script/post_create_commands.sh
+        bash docker/scripts/post_create_commands.sh
 
 
 ▶️ Quick check first-run-notice.txt
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt>`_
+`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt>`_
 
 .. dropdown:: first-run-notice.txt
    :open:
    :class-container: sdd
 
-   .. literalinclude:: ../../../docker/script/first-run-notice.txt
+   .. literalinclude:: ../../../docker/scripts/first-run-notice.txt
       :language: none
 
 
@@ -148,7 +148,7 @@ Initialize and Fetch Submodules:
 
     ## (Recommended) Add in git safe dirs
     ## Or use `git config ...` to add `scikit-plots` in git safe dirs
-    # bash docker/script/safe_dirs.sh  # add safe directories for git
+    # bash docker/scripts/safe_dirs.sh  # add safe directories for git
     git config --global --add safe.directory '*'
 
 .. prompt:: bash
