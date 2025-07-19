@@ -17,9 +17,10 @@ set -euxo pipefail
 
 ## Dynamically get shell name (bash, zsh, fish, etc.)
 echo "shell_name=$(basename "$SHELL")"
+echo "CWD_DIR=$PWD"
+echo "REAL_DIR=$(realpath ./)"
 echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
 echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "$PWD"
 
 # shellcheck disable=SC1090
 source "$HOME/.$(basename "$SHELL")rc" || true
@@ -42,7 +43,7 @@ echo "📝 Setting up first-run notice (if possible)..."
 if sudo -n true 2>/dev/null; then
     sudo mkdir -p /usr/local/etc/vscode-dev-containers
     # Optional: Install notice file
-    sudo cp "$PWD/.devcontainer/scripts/first-run-notice.txt" /usr/local/etc/vscode-dev-containers/first-run-notice.txt || echo "⚠️ Could not copy notice"
+    sudo cp "$(realpath .)/.devcontainer/scripts/first-run-notice.txt" /usr/local/etc/vscode-dev-containers/first-run-notice.txt || echo "⚠️ Could not copy notice"
 else
     echo "⚠️ Skipping first-run notice setup (sudo not available or no permission)"
 fi
@@ -52,14 +53,14 @@ fi
 ######################################################################
 
 echo "🔁 Sourcing micromamba env setup..."
-. "$PWD/.devcontainer/scripts/env_micromamba.sh" || echo "⚠️ Micromamba env setup failed or skipped"
+. "$(realpath .)/.devcontainer/scripts/env_micromamba.sh" || echo "⚠️ Micromamba env setup failed or skipped"
 
 ######################################################################
 ## post-create steps (if possible)
 ######################################################################
 
 echo "🚀 Running post-create steps..."
-. "$PWD/.devcontainer/scripts/post_create_commands.sh" || echo "⚠️ Post-create steps failed or skipped"
+. "$(realpath .)/.devcontainer/scripts/post_create_commands.sh" || echo "⚠️ Post-create steps failed or skipped"
 
 ######################################################################
 ## . (if possible)
