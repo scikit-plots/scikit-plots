@@ -13,6 +13,11 @@
     ## 💽 (Optionally) Memory size: cat /etc/os-release && df -h && du -h --max-depth=1
     ## 👉 Some steps can be skipped when container creation due to storage size limitations here quick manually
 
+    ## ✅ Check the scikit-plots version
+    ## 👇
+    scikitplot -V
+    bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
+
     ## 🛠️ (recommended) Apply in bash `setup_env_conda_create.sh` `post_create_commands.sh`
     ## 📘 For More: https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html
     ## ✅ directories to mark as safe like ( git config --global --add safe.directory '*' )
@@ -40,11 +45,6 @@
     conda activate base
     conda activate py311
     micromamba activate py311
-
-    ## ✅ Checking the build without root
-    ## 👇
-    scikitplot -V
-    bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
 
     ## ✅ Install tensorflow-cpu, if needed
     ## pip install -r ./requirements/all.txt

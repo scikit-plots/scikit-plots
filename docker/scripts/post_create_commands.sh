@@ -45,7 +45,7 @@ if [ "${FALLBACK:-""}" = "1" ]; then
   echo "Some directories failed. Allowing all directories as safe..."
   ## Alternative: Bypass Ownership Checks (If Safe)
   # sudo chown -R "$(whoami):$(id -gn whoami)" ~/.gitconfig || true
-  git config --global --add safe.directory '*'
+  git config --global --add safe.directory '*' || true
 fi
 
 echo -e "\033[1;32m## Safe directory configuration complete.\033[0m"
@@ -143,20 +143,26 @@ set -euo pipefail
 # echo -e '\033[1;34m>> Checking and activating environment...\033[0m'
 printf '\033[1;34m>> Checking and activating environment...\033[0m\n'
 
-if command -v micromamba &> /dev/null; then
-  echo '🔹 Using micromamba'
-  # micromamba activate py311 || true
-  micromamba activate py311 || env_conda py311 micromamba && micromamba activate py311 || true
-  micromamba info -e | grep '*' || true
-elif command -v conda &> /dev/null; then
-  echo '🔹 Using conda'
-  # conda activate py311 || true
-  conda activate py311 || env_conda py311 conda && conda activate py311 || true
-  conda info -e | grep '*' || true
-else
-  echo '❌ Neither micromamba nor conda found. Skipping...'
-  exit 0
+# >>> Conda/Mamba environment auto-activation >>>
+# Only run in interactive shell
+# Auto-activate py311 if it exists, otherwise fallback to base
+# if micromamba env list | grep -qE '(^|[[:space:]])py311([[:space:]]|$)'; then
+if [[ $- == *i* ]]; then
+  if command -v micromamba >/dev/null 2>&1 && [[ -d '${MAMBA_ROOT_PREFIX}/envs/py311' ]]; then
+    micromamba activate py311
+  elif command -v conda >/dev/null 2>&1 && [[ -d '/opt/conda/envs/py311' ]]; then
+    conda activate py311
+  elif command -v micromamba >/dev/null 2>&1; then
+    micromamba activate base
+  elif command -v conda >/dev/null 2>&1; then
+    conda activate base
+  else
+    echo '❌ No compatible conda/mamba environment found.' >&2
+    # Don't use exit 0 in .bashrc — it can break the shell
+    exit 0
+  fi
 fi
+# <<< Conda/Mamba environment auto-activation <<<
 
 # echo -e '\033[1;32m## Installing development dependencies...\033[0m'
 printf '\033[1;32m## Installing development dependencies...\033[0m\n'
@@ -172,12 +178,15 @@ pip install pre-commit || true
 # Install pre-commit hooks in the repository
 # echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
 printf '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
+
+set +u  # Temporarily disable unbound variable error
 ( cd /workspaces/scikit-plots || true && pre-commit install || true )
+set -u  # Re-enable afterwards (if needed)
 
 # echo -e '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 printf '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 # Install the development version of scikit-plots
-python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v || true
+pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v || true
 "
 
 ## Show next steps to user

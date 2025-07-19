@@ -30,7 +30,7 @@ fi
 
 add_auto_micromamba_env() {
   local rc_file=${1:-"$HOME/.bashrc"}  # default to user .bashrc
-  local marker="# Auto-activate py311 if it exists, otherwise fallback to base"
+  local marker="# >>> Conda/Mamba environment auto-activation >>>"
 
   if grep -Fxq "$marker" "$rc_file"; then
     echo "✅ Auto-activation block already exists in $rc_file. Skipping..."
@@ -38,12 +38,25 @@ add_auto_micromamba_env() {
     echo "🔧 Adding auto-activation block to $rc_file"
     cat << 'EOF' >> "$rc_file"
 
+# >>> Conda/Mamba environment auto-activation >>>
+# Only run in interactive shell
 # Auto-activate py311 if it exists, otherwise fallback to base
-if micromamba env list | grep -qE '(^|[[:space:]])py311([[:space:]]|$)'; then
-  micromamba activate py311
-else
-  micromamba activate base
+# if micromamba env list | grep -qE '(^|[[:space:]])py311([[:space:]]|$)'; then
+if [[ $- == *i* ]]; then
+  if command -v micromamba >/dev/null 2>&1 && [[ -d "${MAMBA_ROOT_PREFIX}/envs/py311" ]]; then
+    micromamba activate py311
+  elif command -v conda >/dev/null 2>&1 && [[ -d "/opt/conda/envs/py311" ]]; then
+    conda activate py311
+  elif command -v micromamba >/dev/null 2>&1; then
+    micromamba activate base
+  elif command -v conda >/dev/null 2>&1; then
+    conda activate base
+  else
+    echo "❌ No compatible conda/mamba environment found." >&2
+    # Don't use exit 0 in .bashrc — it can break the shell
+  fi
 fi
+# <<< Conda/Mamba environment auto-activation <<<
 EOF
   fi
 }
@@ -94,7 +107,7 @@ echo "envs_dirs:
   - $HOME/micromamba/envs" > /opt/conda/.condarc
 
 # Clean up caches and package manager artifacts to reduce disk usage
-sudo apt-get clean || true
+apt-get clean || true
 pip cache purge || true
 rm -rf ~/.cache/* || true
 
