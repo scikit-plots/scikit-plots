@@ -339,6 +339,7 @@ RUN if [ -f ./docker/scripts/bashrc ]; then \
 
 ######################################################################
 ## default user
+## cut -d: -f1 /etc/passwd
 ######################################################################
 
 ## Switch back to the notebook default user "jovyan" to avoid accidental container runs as root

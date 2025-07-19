@@ -49,6 +49,7 @@
   // "containerUser": "root",
   // Use if runtime args required (e.g., GPU for PyTorch, TensorFlow)
   "runArgs": [
+    "--user", "root"                            // You do not need an explicit su or sudo in your scripts to switch users.
     // "--cap-add=SYS_PTRACE",                  // ✅ Allow debugging tools (e.g., gdb, strace) to trace processes
     // "--security-opt=seccomp=unconfined"      // ⚠️ Disable syscall filtering to avoid security restrictions in dev tools
 
@@ -84,95 +85,95 @@
     // GitHub CLI for interacting with GitHub from the terminal
     // "ghcr.io/devcontainers/features/github-cli:1": {},
     // Installs various APT packages required for development
-    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-      "packages": [
-        // switch users safely
-        "sudo",                                       // can be heavy & buggy
-        // 👷 Use gosu user ... inside Dockerfile or scripts to run as a different user safely
-        "gosu",                                       // designed for Docker (safer alternative to sudo in Docker)
+    // "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+    //   "packages": [
+    //     // switch users safely
+    //     "sudo",                                       // can be heavy & buggy
+    //     // 👷 Use gosu user ... inside Dockerfile or scripts to run as a different user safely
+    //     "gosu",                                       // designed for Docker (safer alternative to sudo in Docker)
 
-        // Text editors and utilities
-        "vim",
-        "nano",
-        "wget",
-        "curl",
+    //     // Text editors and utilities
+    //     "vim",
+    //     "nano",
+    //     "wget",
+    //     "curl",
 
-        // Git and related tools
-        "git",
-        // "git-lfs",
+    //     // Git and related tools
+    //     "git",
+    //     // "git-lfs",
 
-        // Archive utilities
-        // "bzip2",
-        // "gzip",
-        // "p7zip-full",
-        // // "p7zip-rar",
-        // "tar",
-        // // "unrar",
-        // "unzip",
+    //     // Archive utilities
+    //     // "bzip2",
+    //     // "gzip",
+    //     // "p7zip-full",
+    //     // // "p7zip-rar",
+    //     // "tar",
+    //     // // "unrar",
+    //     // "unzip",
 
-        // Documentation tools
-        // "pandoc",                                     // Converts notebooks to HTML
+    //     // Documentation tools
+    //     // "pandoc",                                     // Converts notebooks to HTML
 
-        // File and directory utilities
-        // "tree",
+    //     // File and directory utilities
+    //     // "tree",
 
-        // // Graph visualization software
-        // "graphviz",
+    //     // // Graph visualization software
+    //     // "graphviz",
 
-        // Multimedia tools
-        // "ffmpeg",                                     // Needed for matplotlib animations
-        // // "inkscape",                                   // Vector graphics editor
+    //     // Multimedia tools
+    //     // "ffmpeg",                                     // Needed for matplotlib animations
+    //     // // "inkscape",                                   // Vector graphics editor
 
-        // Build tools
-        // "make",
-        // "cmake",
-        // "ninja-build",
-        // "pkg-config",
+    //     // Build tools
+    //     // "make",
+    //     // "cmake",
+    //     // "ninja-build",
+    //     // "pkg-config",
 
-        // Python-related tools
-        // "python3-pip",
-        // "python3-venv",
-        // "python3-dev",
+    //     // Python-related tools
+    //     // "python3-pip",
+    //     // "python3-venv",
+    //     // "python3-dev",
 
-        // Compilers and build dependencies
-        "build-essential",                            // Essential build tools (gcc, g++, make, etc.)
-        // "gcc",                                        // C (GNU Compiler Collection) — Compiles standard C code
-        // "g++",                                        // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
-        "gfortran"                                   // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
+    //     // Compilers and build dependencies
+    //     "build-essential",                            // Essential build tools (gcc, g++, make, etc.)
+    //     // "gcc",                                        // C (GNU Compiler Collection) — Compiles standard C code
+    //     // "g++",                                        // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
+    //     "gfortran"                                   // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
 
-        // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
-        // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
-        // "clang",                                      // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
-        // "clang-format",                               // LLVM tools Formats C++ and other languages
-        // "clang-tidy",                                 // LLVM tools Static analysis for C++
+    //     // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+    //     // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
+    //     // "clang",                                      // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+    //     // "clang-format",                               // LLVM tools Formats C++ and other languages
+    //     // "clang-tidy",                                 // LLVM tools Static analysis for C++
 
-        // Linear Algebra and Numerical Libraries
-        // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
-        // "libopenblas-dev",                            // For high-performance matrix/vector ops (used in NumPy, SciPy)
-        // Reference BLAS implementation (baseline, less optimized)
-        // "libblas-dev",                                // Standard BLAS, may be overridden by OpenBLAS dynamically
-        // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
-        // "liblapack-dev",                              // Required for scientific and engineering computations
-        // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
-        // "libblis-dev",                                // Optional, can be tuned for specific architectures
+    //     // Linear Algebra and Numerical Libraries
+    //     // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
+    //     // "libopenblas-dev",                            // For high-performance matrix/vector ops (used in NumPy, SciPy)
+    //     // Reference BLAS implementation (baseline, less optimized)
+    //     // "libblas-dev",                                // Standard BLAS, may be overridden by OpenBLAS dynamically
+    //     // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
+    //     // "liblapack-dev",                              // Required for scientific and engineering computations
+    //     // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
+    //     // "libblis-dev",                                // Optional, can be tuned for specific architectures
 
-        // Parallel Computing Libraries
-        // Intel MKL – Highly optimized math kernels (not always open source)
-        // "libmkl-dev",                                 // May conflict with OpenBLAS; check compatibility
-        // Intel TBB – Task-based parallelism in C++
-        // "libtbb-dev",                                 // Used in threading, e.g., OpenCV, oneAPI
-        // OpenMP – Multithreading support for C/C++/Fortran
-        // "libomp-dev"                                 // Enables `#pragma omp` parallelism in C/C++/Fortran
+    //     // Parallel Computing Libraries
+    //     // Intel MKL – Highly optimized math kernels (not always open source)
+    //     // "libmkl-dev",                                 // May conflict with OpenBLAS; check compatibility
+    //     // Intel TBB – Task-based parallelism in C++
+    //     // "libtbb-dev",                                 // Used in threading, e.g., OpenCV, oneAPI
+    //     // OpenMP – Multithreading support for C/C++/Fortran
+    //     // "libomp-dev"                                 // Enables `#pragma omp` parallelism in C/C++/Fortran
 
-        // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
-        // Installs the entire Boost C++ library development suite (headers + libs)
-        // Boost is a large set of C++ libraries that extend the standard library.
-        // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
-        // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
-        // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
-        // "libboost-all-dev"                           // Boost headers and prebuilt libs
-      ]
-    }
+    //     // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
+    //     // Installs the entire Boost C++ library development suite (headers + libs)
+    //     // Boost is a large set of C++ libraries that extend the standard library.
+    //     // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
+    //     // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
+    //     // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
+    //     // "libboost-all-dev"                           // Boost headers and prebuilt libs
+    //   ]
+    // }
   },
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8888],
@@ -181,9 +182,10 @@
       "label": "desktop"
     }
   },
+  // This will run the container as root but then switch to "jovyan" for your dev session.
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "updateRemoteUserUID ": "true",  // "Controls whether on Linux the container's user should be updated with the local user's UID and GID. On by default when opening from a local folder."
-  // "remoteUser": "root",  // "The username to use for spawning processes in the container including lifecycle scripts and any remote editor/IDE server process. The default is the same user as the container."
+  "remoteUser": "jovyan",  // "The username to use for spawning processes in the container including lifecycle scripts and any remote editor/IDE server process. The default is the same user as the container."
 
   // ⚠️ `ERROR: ... : No space left on device`
   // https://containers.dev/implementers/json_schema/

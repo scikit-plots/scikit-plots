@@ -4,15 +4,32 @@
 Docker Containerization Guidelines
 ======================================================================
 
+
 .. important::
 
-   When the ``Docker Env`` is ready to use, the details of which are available below,
-   click to continue to the quickstart section
-   :ref:`Checking the build scikit-plots <contributing_check_build>`.
+   By default, all Docker containers are pre-configured and ready to use.
+
+   The **editable development version** of `scikit-plots` is already installed,
+   so you can verify the installation immediately by running:
+
+   ::
+
+      scikitplot -V
+
+
+.. important::
+
+   Once the **Docker environment** is ready to use, you can proceed to the
+   quickstart section to verify the build:
+
+   See :ref:`Checking the scikit-plots build <contributing_check_build>`.
+
 
 .. seealso::
 
-   https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md
+   * `"first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt>`_
+
+   * `"docker/README.md" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md>`_
 
 
 🐋 Docker Containerization
@@ -91,6 +108,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 
    📄 Docker Hub: `https://hub.docker.com/r/scikitplot/scikit-plots`__
 
+
 .. code-block:: sh
 
    # docker pull scikitplot/scikit-plots
@@ -162,12 +180,14 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
    .. literalinclude:: ../../../docker/scripts/first-run-notice.txt
       :language: none
 
+
 🚯 Stop Containers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: sh
 
    docker compose down
+
 
 🐳 Docker Compose Configuration
 --------------------------------
