@@ -35,12 +35,11 @@ echo "📦 Installing dev tools (if sudo available)..."
 # Install micromamba via official install script silently, only if not installed
 # if ! command -v micromamba &> /dev/null; then
 echo "🔧 Installing micromamba or conda..."
-
 # Initialize conda for all shells (optional if you use conda alongside micromamba)
 # "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
 conda init --all || true
 
-## Installing micromamba via curl or fallback to wget
+## 1. Install micromamba via curl or fallback to wget
 if command -v curl &> /dev/null; then
   # curl -Ls https://micro.mamba.pm/install.sh | bash
   # "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
@@ -53,26 +52,27 @@ else
   # exit 1
 fi
 # fi
-## Configure env dirs
+
+## 2. Initialize micromamba shell support
+## Initialize micromamba shell integration for bash (auto-detect install path)
+## micromamba shell init -s <shell_name> -p <micromamba_install_path>
+## micromamba shell init -s bash -p ~/micromamba
+micromamba shell init -s "$(basename "$SHELL")" || true
+
+# Create env if not exists
+if ! micromamba env list | grep -q py311; then
+  micromamba env create -f environment.yml --yes || true
+fi
+## 2. Configure envs_dirs
 ## Enables users to activate environment without having to specify the full path
 ## Configure micromamba envs directory to simplify env discovery by conda/micromamba
 mkdir -p "/opt/conda" "$HOME/micromamba/envs" || true
 echo "envs_dirs:
   - $HOME/micromamba/envs" > /opt/conda/.condarc
-# Ensure shell hook is active in current session
-# $ eval "$(micromamba shell hook --shell bash)"
-# echo micromamba shell hook --shell "$(basename "$SHELL")"
-eval "$(micromamba shell hook --shell "$(basename "$SHELL")")"
-# Initialize micromamba shell integration for bash (auto-detect install path)
-# micromamba shell init -s <shell_name> -p <micromamba_install_path>
-# micromamba shell init -s bash -p ~/micromamba
-micromamba shell init -s "$(basename "$SHELL")" || true
-# Create env if not exists
-if ! micromamba env list | grep -q py311; then
-  micromamba env create -f environment.yml --yes || true
-fi
 # Note that `micromamba activate scipy-dev` doesn't work, it must be run by the
 # user (same applies to `conda activate`)
+
+## 3. Source the shell profile (to apply init changes)
 ## Conda/Mamba environment auto-activation
 add_auto_micromamba_env() {
   local rc_file=${1:-"$HOME/.bashrc"}  # default to user .bashrc
@@ -117,11 +117,18 @@ add_auto_micromamba_env "$HOME/.$(basename "$SHELL")rc"
 ## Source shell config to enable activation (user must restart shell for persistent effect)
 ## Source shell config to ensure changes are loaded (optional, depends on context)
 ## This is safe in interactive or login scripts, but not always necessary in non-interactive CI scripts.
-if [ -f "$HOME/.$(basename "$SHELL")rc" ]; then
-    source "$HOME/.$(basename "$SHELL")rc" || true  # ~/.bashrc or ~/.zshrc for zsh
-fi
-# Try to activate env, ignore failure if not present yet
-# micromamba activate py311 || true
+# if [ -f "$HOME/.$(basename "$SHELL")rc" ]; then
+source "$HOME/.$(basename "$SHELL")rc" || true  # ~/.bashrc or ~/.zshrc for zsh
+# fi
+
+## 4. Enable micromamba command integration in the current session
+## Ensure shell hook is active in current session
+## $ eval "$(micromamba shell hook --shell bash)"
+## echo micromamba shell hook --shell "$(basename "$SHELL")"
+eval "$(micromamba shell hook --shell "$(basename "$SHELL")")"
+
+## 5. Ensure to Activate the environment (e.g., py311), ignore failure if not present yet
+micromamba activate py311 || true
 
 ######################################################################
 ## Clean up caches (if possible)
