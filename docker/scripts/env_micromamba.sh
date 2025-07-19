@@ -28,6 +28,7 @@ echo "📦 Installing dev tools (if sudo available)..."
 ## Conda/Mamba environment
 # micromamba not "conda" keyword compatipable but same syntax
 ######################################################################
+set +u   # Disable strict unbound mode
 
 # Install micromamba via official install script silently, only if not installed
 # if ! command -v micromamba &> /dev/null; then
@@ -74,7 +75,14 @@ add_auto_micromamba_env() {
 # if micromamba env list | grep -qE '(^|[[:space:]])py311([[:space:]]|$)'; then
 # Only run in interactive shell, If Needed
 # if [[ $- == *i* ]]; then
-if command -v micromamba >/dev/null 2>&1 && [[ -d "${MAMBA_ROOT_PREFIX:-$HOME/micromamba}/envs/py311" ]]; then
+#
+# Only set MAMBA_ROOT_PREFIX if it's not already set
+# readonly locks it, this locks the variable so it cannot be reassigned accidentally later in the script.
+# readonly MAMBA_ROOT_PREFIX
+# echo "${MAMBA_ROOT_PREFIX:-$HOME/micromamba}"
+# : is a no-op command used here to safely assign a default.
+: "${MAMBA_ROOT_PREFIX:=$HOME/micromamba}"
+if command -v micromamba >/dev/null 2>&1 && [[ -d "$MAMBA_ROOT_PREFIX/envs/py311" ]]; then
   micromamba activate py311
 elif command -v conda >/dev/null 2>&1 && [[ -d "/opt/conda/envs/py311" ]]; then
   conda activate py311

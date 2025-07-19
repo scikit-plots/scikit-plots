@@ -13,12 +13,12 @@
     ## 💽 (Optionally) Memory size: cat /etc/os-release && df -h && du -h --max-depth=1
     ## 👉 Some steps can be skipped when container creation due to storage size limitations here quick manually
 
-    ## ✅ Check the scikit-plots version
+    ## ✅ Check the scikit-plots version, If activated Conda-Micromamba env (e.g., "py311", "base")
     ## 👇
     scikitplot -V
     bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
 
-    ## 🛠️ (recommended) Apply in bash `setup_env_conda_create.sh` `post_create_commands.sh`
+    ## 🛠️ (recommended) Apply in bash `all_post_create.sh` or apply step-by-step
     ## 📘 For More: https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html
     ## ✅ directories to mark as safe like ( git config --global --add safe.directory '*' )
     ## ✅ fetching submodules ( git submodule update --init )
@@ -29,16 +29,18 @@
     ## ✅ install pre-commit hooks ( pre-commit install )
     ## ✅ install the development version of scikit-plots ( pip install --no-build-isolation --no-cache-dir -e . )
     ## 👇
-    bash "docker/scripts/env_micromamba.sh"  # (not needed every time)
-    bash "docker/scripts/post_create_commands.sh"  # (not needed every time)
+    # bash "docker/scripts/env_micromamba.sh"  # (not needed every time)
+    # bash "docker/scripts/post_create_commands.sh"  # (not needed every time)
+    bash "docker/scripts/all_post_create.sh"  # (not needed every time)
 
-    ## 👉 Open to new terminal mamba (or conda)
+    ## ⚠️ Open to new terminal mamba (or conda)
     ## Use micromamba See: env_micromamba.sh
     ## "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
     ## Micromamba not "conda" keyword compatipable but same syntax
     ## 👇
     conda init
     conda info -e
+    micromamba info -e
 
     ## (DevContainer) mamba activate /workspaces/scikit-plots/venv
     ## 👇
