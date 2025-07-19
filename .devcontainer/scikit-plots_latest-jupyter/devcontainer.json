@@ -56,7 +56,7 @@
     // "--entrypoint", "bash"                           // Override entrypoint to bash
 
     // Uncomment below lines if you need root user inside container
-    "--user", "root"                                 // Run container as root (avoid su/sudo in scripts)
+    // "--user", "root"                                 // Run container as root (avoid su/sudo in scripts)
 
     // ⚠️ Uncomment to enable GPU support (requires host NVIDIA + Docker setup)
     // "--gpus", "all"                                   // Enable GPU access inside the container
@@ -190,7 +190,7 @@
   // This will run the container as root but then switch to "jovyan" for your dev session.
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "updateRemoteUserUID ": "true",  // "Controls whether on Linux the container's user should be updated with the local user's UID and GID. On by default when opening from a local folder."
-  "remoteUser": "jovyan",  // "The username to use for spawning processes in the container including lifecycle scripts and any remote editor/IDE server process. The default is the same user as the container."
+  // "remoteUser": "jovyan",  // "The username to use for spawning processes in the container including lifecycle scripts and any remote editor/IDE server process. The default is the same user as the container."
 
   // ⚠️ `ERROR: ... : No space left on device`
   // https://containers.dev/implementers/json_schema/

@@ -53,10 +53,10 @@
   "runArgs": [
     // "--cap-add=SYS_PTRACE",                           // Allow debugging tools (e.g., gdb, strace)
     // "--security-opt", "seccomp=unconfined",           // Disable syscall filtering for debugging tools
-    "--entrypoint", "bash",                           // Override entrypoint to bash
+    // "--entrypoint", "bash",                           // Override entrypoint to bash
 
     // Uncomment below lines if you need root user inside container
-    "--user", "root"                                 // Run container as root (avoid su/sudo in scripts)
+    // "--user", "root"                                 // Run container as root (avoid su/sudo in scripts)
 
     // ⚠️ Uncomment to enable GPU support (requires host NVIDIA + Docker setup)
     // "--gpus", "all"                                   // Enable GPU access inside the container
@@ -210,8 +210,8 @@
   "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
     "message1": "echo '✅ Running initializeCommand...'",
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
-    "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true",
-    "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
+    "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true"
+    // "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
   "onCreateCommand": {
     "message2": "echo '✅ Running onCreateCommand...'"

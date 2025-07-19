@@ -54,10 +54,10 @@
   "runArgs": [
     // "--cap-add=SYS_PTRACE",                           // Allow debugging tools (e.g., gdb, strace)
     // "--security-opt", "seccomp=unconfined",           // Disable syscall filtering for debugging tools
-    "--entrypoint", "bash",                           // Override entrypoint to bash
+    "--entrypoint", "bash"                           // Override entrypoint to bash
 
     // Uncomment below lines if you need root user inside container
-    "--user", "root"                                 // Run container as root (avoid su/sudo in scripts)
+    // "--user", "root"                                 // Run container as root (avoid su/sudo in scripts)
 
     // ⚠️ Uncomment to enable GPU support (requires host NVIDIA + Docker setup)
     // "--gpus", "all"                                   // Enable GPU access inside the container
