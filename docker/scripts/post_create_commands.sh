@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -7,13 +7,20 @@ set -e  # Exit script on error (Disable 'exit on error' temporarily for debuggin
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
-# Make sudo Passwordless for the User
-sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
+## Dynamically get shell name (bash, zsh, fish, etc.)
+echo "shell_name=$(basename "$SHELL")"
 
-# Ensure os packages installed
 # shellcheck disable=SC1090
 source "$HOME/.$(basename "$SHELL")rc" || true
-(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true
+
+## Make sudo Passwordless for the User
+sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
+
+## Ensure os packages installed
+echo "📦 Installing dev tools (if sudo available)..."
+(sudo -n true && sudo apt-get update -y \
+    && sudo apt-get install -y sudo gosu git curl build-essential gfortran) \
+    || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################
 ## git safe_dirs.sh
@@ -192,14 +199,25 @@ printf '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v || true
 "
 
+######################################################################
+## Provide more information
+######################################################################
+
 ## Show next steps to user
 echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 
 ## Provide more information about the next steps
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
 
+######################################################################
+## info (if possible)
+######################################################################
+
 ## (Optionally) Open new terminal activate py311
 micromamba info -e || true
 conda info -e || true
-
 scikitplot -V || true
+
+######################################################################
+## . (if possible)
+######################################################################

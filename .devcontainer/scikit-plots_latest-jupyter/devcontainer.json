@@ -35,6 +35,7 @@
   // "args": {}  // "Build arguments."
 
   // "imageContainer":
+  // https://github.com/github/codespaces-host-images/blob/main/README.md
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Use a basic Ubuntu-based image
   // "image": "mcr.microsoft.com/devcontainers/base:alpine",  // Use a basic Ubuntu-based image, user vscode
   // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace
@@ -197,27 +198,31 @@
   //   // (optional) Single string form: Might break if the container has a minimal shell or /bin/sh != bash
   //   // (recommended) Array form with "bash -c": run the given string using "bash -c", which executes the whole line as a single shell command — just like in a terminal.
   //   // "placeholderTask": "do something (e.g. str, array aka list)..."
-  //   // "message_sample": "echo 'Runing placeholderCommand...'"
+  //   // "message_sample": "echo 'Running placeholderCommand...'"
   // },
-  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
-  // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],
-  "initializeCommand": {
-    "message1": "echo 'Runing initializeCommand...'"
+  // "initializeCommand": "bash -i .devcontainer/scripts/all_post_create.sh",
+  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",  // str
+  // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],  // list
+  "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
+    "message1": "echo '✅ Running initializeCommand...'"
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
   },
   "onCreateCommand": {
-    "message2": "echo 'Runing onCreateCommand...'"
+    "message2": "echo '✅ Running onCreateCommand...'"
   },
   "updateContentCommand": {
-    "message3": "echo 'Runing updateContentCommand...'"
+    "message3": "echo '✅ Running updateContentCommand...'"
   },
-  "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
-    "message4": "echo 'Runing postCreateCommand...'",
-    "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true",
+  "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created.
+    "message4": "echo '✅ Running postCreateCommand...'",
+    // For list optional "bash" if Ensure proper shebang (#!/bin/bash) in script.
+    // "all_post_create": "bash -i -c '. .devcontainer/scripts/env_micromamba.sh || true; . .devcontainer/scripts/post_create_commands.sh || true'",
+    "all_post_create": "bash -i .devcontainer/scripts/all_post_create.sh"
+    //
     // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
-    "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
-    // For list optional "bash" if Ensure proper shebang (#!/bin/bash).
-    "all_post_create": "bash -i -c '. .devcontainer/scripts/env_micromamba.sh || true; . .devcontainer/scripts/post_create_commands.sh || true'"
+    // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
+    // Os Dep
+    // "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true"
     // For Images "mcr.microsoft.com/devcontainers/..."
     // "notice" Different container base image works differently See: https://github.com/orgs/community/discussions/43534
     // appears that text in "/usr/local/etc/vscode-dev-containers/first-run-notice.txt" takes precedence over text in "/workspaces/.codespaces/shared/first-run-notice.txt"
@@ -227,10 +232,10 @@
     // "notice": "sudo -n true && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
   "postStartCommand": {
-    "message5": "echo 'Runing postStartCommand...'"
+    "message5": "echo '✅ Running postStartCommand...'"
   },
   "postAttachCommand": {
-    "message6": "echo 'Runing postAttachCommand...'"
+    "message6": "echo '✅ Running postAttachCommand...'"
     // "server": "npm start",
     // "db": ["mysql", "-u", "root", "-p", "my database"]
   },
