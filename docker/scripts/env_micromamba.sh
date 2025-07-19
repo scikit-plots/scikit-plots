@@ -15,9 +15,6 @@ echo "REAL_DIR=$(realpath ./)"
 echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
 echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck disable=SC1090
-source "$HOME/.$(basename "$SHELL")rc" || true
-
 ## Make sudo Passwordless for the User
 sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 
@@ -35,9 +32,6 @@ echo "📦 Installing dev tools (if sudo available)..."
 # Install micromamba via official install script silently, only if not installed
 # if ! command -v micromamba &> /dev/null; then
 echo "🔧 Installing micromamba or conda..."
-# Initialize conda for all shells (optional if you use conda alongside micromamba)
-# "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
-conda init --all || true
 
 ## 1. Install micromamba via curl or fallback to wget
 if command -v curl &> /dev/null; then
@@ -54,19 +48,25 @@ fi
 # fi
 
 ## 2. Initialize micromamba shell support
+# Initialize conda for all shells (optional if you use conda alongside micromamba)
+# "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
+conda init --all || true
 ## Initialize micromamba shell integration for bash (auto-detect install path)
 ## micromamba shell init -s <shell_name> -p <micromamba_install_path>
 ## micromamba shell init -s bash -p ~/micromamba
 micromamba shell init -s "$(basename "$SHELL")" || true
 
+# Also install base
+micromamba install -n base python=3.11 ipykernel pip -y || true
 # Create env if not exists
 if ! micromamba env list | grep -q py311; then
   micromamba env create -f environment.yml --yes || true
 fi
+
 ## 2. Configure envs_dirs
 ## Enables users to activate environment without having to specify the full path
 ## Configure micromamba envs directory to simplify env discovery by conda/micromamba
-mkdir -p "/opt/conda" "$HOME/micromamba/envs" || true
+mkdir -p "$HOME/micromamba/envs" "/opt/conda" || true
 echo "envs_dirs:
   - $HOME/micromamba/envs" > /opt/conda/.condarc
 # Note that `micromamba activate scipy-dev` doesn't work, it must be run by the

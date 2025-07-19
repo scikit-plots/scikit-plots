@@ -14,9 +14,6 @@ echo "REAL_DIR=$(realpath ./)"
 echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
 echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck disable=SC1090
-source "$HOME/.$(basename "$SHELL")rc" || true
-
 ## Make sudo Passwordless for the User
 sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 
@@ -156,8 +153,8 @@ set -euo pipefail
 ## Choose micromamba if available, otherwise fallback to conda
 # echo -e '\033[1;34m>> Checking and activating environment...\033[0m'
 printf '\033[1;34m>> Checking and activating environment...\033[0m\n'
-micromamba activate py311 || true
 source $HOME/.$(basename "$SHELL")rc || true
+micromamba activate py311 || true
 
 # echo -e '\033[1;32m## Installing development dependencies...\033[0m'
 printf '\033[1;32m## Installing development dependencies...\033[0m\n'
@@ -199,8 +196,8 @@ echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github
 ######################################################################
 
 ## (Optionally) Open new terminal activate py311
-micromamba info -e || true
 conda info -e || true
+micromamba info -e || true
 scikitplot -V || true
 
 ######################################################################
