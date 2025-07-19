@@ -188,7 +188,7 @@
   // This will run the container as root but then switch to "vscode" for your dev session.
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "updateRemoteUserUID ": "true",  // "Controls whether on Linux the container's user should be updated with the local user's UID and GID. On by default when opening from a local folder."
-  "remoteUser": "root",  // "The username to use for spawning processes in the container including lifecycle scripts and any remote editor/IDE server process. The default is the same user as the container."
+  // "remoteUser": "root",  // "The username to use for spawning processes in the container including lifecycle scripts and any remote editor/IDE server process. The default is the same user as the container."
 
   // ⚠️ `ERROR: ... : No space left on device`
   // https://containers.dev/implementers/json_schema/
