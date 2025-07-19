@@ -184,3 +184,5 @@ echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github
 
 ## (Optionally) Open new terminal activate `py311`
 echo -e "conda info -e"
+
+echo -e "scikitplot -V || true"
