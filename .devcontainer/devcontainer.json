@@ -52,13 +52,17 @@
   // "nonComposeBase":
   // "containerUser": "root",
   // Use if runtime args required (e.g., GPU for PyTorch, TensorFlow)
+  // https://docs.docker.com/reference/cli/docker/container/run/
   "runArgs": [
-    // "--user", "root",                           // You do not need an explicit su or sudo in your scripts to switch users.
-    // "--cap-add=SYS_PTRACE",                  // ✅ Allow debugging tools (e.g., gdb, strace) to trace processes
-    // "--security-opt=seccomp=unconfined"      // ⚠️ Disable syscall filtering to avoid security restrictions in dev tools
+    // "--cap-add=SYS_PTRACE",                           // Allow debugging tools (e.g., gdb, strace)
+    // "--security-opt", "seccomp=unconfined",           // Disable syscall filtering for debugging tools
+    "--entrypoint", "bash"                           // Override entrypoint to bash
 
-    // ⚠️ Uncomment only if a GPU is available (e.g. on host with NVIDIA runtime)
-    // "--gpus", "all"                        // Enables GPU access inside container (requires Docker + NVIDIA setup)
+    // Uncomment below lines if you need root user inside container
+    // "--user", "root",                   // Run container as root (avoid su/sudo in scripts)
+
+    // ⚠️ Uncomment to enable GPU support (requires host NVIDIA + Docker setup)
+    // "--gpus", "all"                    // Enable GPU access inside the container
   ],
   // "workspaceFolder": "/workspace",  // "The path of the workspace folder inside the container."
   // "workspaceMount": "/workspace",  // "The --mount parameter for docker run. The default is to mount the project folder at /workspaces/$project."
