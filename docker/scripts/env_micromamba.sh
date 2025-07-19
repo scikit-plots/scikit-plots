@@ -10,6 +10,9 @@ set -euxo pipefail
 
 ## Dynamically get shell name (bash, zsh, fish, etc.)
 echo "shell_name=$(basename "$SHELL")"
+echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
+echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "$PWD"
 
 # shellcheck disable=SC1090
 source "$HOME/.$(basename "$SHELL")rc" || true
