@@ -28,8 +28,33 @@ else
 fi
 # fi
 
+add_auto_micromamba_env() {
+  local rc_file=${1:-"$HOME/.bashrc"}  # default to user .bashrc
+  local marker="# Auto-activate py311 if it exists, otherwise fallback to base"
+
+  if grep -Fxq "$marker" "$rc_file"; then
+    echo "✅ Auto-activation block already exists in $rc_file. Skipping..."
+  else
+    echo "🔧 Adding auto-activation block to $rc_file"
+    cat << 'EOF' >> "$rc_file"
+
+# Auto-activate py311 if it exists, otherwise fallback to base
+if micromamba env list | grep -qE '(^|[[:space:]])py311([[:space:]]|$)'; then
+  micromamba activate py311
+else
+  micromamba activate base
+fi
+EOF
+  fi
+}
+
 # Dynamically get shell name (bash, zsh, fish, etc.)
 shell_name=$(basename "$SHELL")
+
+# Or to a global/system file
+# add_auto_micromamba_env /etc/bash.bashrc
+add_auto_micromamba_env "$HOME/.${shell_name}rc"
+
 # Source shell config to enable 'micromamba activate' command in current shell
 # Note: The user must run 'micromamba activate <env>' manually after login
 # or source shell config, automatic activation is not supported.

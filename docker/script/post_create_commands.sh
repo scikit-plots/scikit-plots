@@ -7,8 +7,11 @@ set -e  # Exit script on error (Disable 'exit on error' temporarily for debuggin
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
+# Ensure os packages installed
+apt-get install -y git curl build-essential gfortran || true
+
 ######################################################################
-## safe_dirs.sh
+## git safe_dirs.sh
 ######################################################################
 
 # export GIT_CONFIG_GLOBAL=~/.gitconfig
@@ -46,7 +49,7 @@ fi
 echo -e "\033[1;32m## Safe directory configuration complete.\033[0m"
 
 ######################################################################
-## post_create_commands
+## git fetching submodules
 ######################################################################
 
 echo -e "\033[1;32m## Initializing local configuration and fetching submodules...\033[0m"
@@ -89,7 +92,7 @@ echo -e "\033[1;32m## Fetching tags from upstream...\033[0m"
 git fetch upstream --tags
 
 ######################################################################
-## Install env "py311" and scikit-plots dev version
+## Installing editable scikit-plots dev version to env "py311"
 ## Use micromamba See: env_micromamba.sh
 # "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
 # micromamba not "conda" keyword compatipable but same syntax
