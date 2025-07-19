@@ -5,6 +5,9 @@ set -e  # Exit script on error (Disable 'exit on error' temporarily for debuggin
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
+# Make sudo Passwordless for the User
+sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
+
 # Initialize conda for all shells (optional if you use conda alongside micromamba)
 # "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
 conda init --all || true
@@ -43,7 +46,7 @@ add_auto_micromamba_env() {
 # Auto-activate py311 if it exists, otherwise fallback to base
 # if micromamba env list | grep -qE '(^|[[:space:]])py311([[:space:]]|$)'; then
 if [[ $- == *i* ]]; then
-  if command -v micromamba >/dev/null 2>&1 && [[ -d "${MAMBA_ROOT_PREFIX}/envs/py311" ]]; then
+  if command -v micromamba >/dev/null 2>&1 && [[ -d "${MAMBA_ROOT_PREFIX:-$HOME/micromamba}/envs/py311" ]]; then
     micromamba activate py311
   elif command -v conda >/dev/null 2>&1 && [[ -d "/opt/conda/envs/py311" ]]; then
     conda activate py311
@@ -107,7 +110,7 @@ echo "envs_dirs:
   - $HOME/micromamba/envs" > /opt/conda/.condarc
 
 # Clean up caches and package manager artifacts to reduce disk usage
-apt-get clean || true
+(sudo -n true && sudo apt-get clean) || true
 pip cache purge || true
 rm -rf ~/.cache/* || true
 

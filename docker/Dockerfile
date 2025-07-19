@@ -149,6 +149,7 @@ RUN apt-get update \
   ## Requires password to sudo for ${NB_USER}
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
   ## Allow passwordless sudo for ${NB_USER}
+  ## echo 'ALL ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/nopasswd
   ## && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   ; \
   ## Cleanup to reduce image size

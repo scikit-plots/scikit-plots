@@ -7,10 +7,13 @@ set -e  # Exit script on error (Disable 'exit on error' temporarily for debuggin
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
+# Make sudo Passwordless for the User
+sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
+
 # Ensure os packages installed
 # shellcheck disable=SC1090
 source "$HOME/.$(basename "$SHELL")rc" || true
-(apt update -y && apt install -y sudo gosu git curl build-essential gfortran) || true
+(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true
 
 ######################################################################
 ## git safe_dirs.sh
@@ -136,7 +139,7 @@ set -euo pipefail
 ## 👉 Some steps can be skipped when container creation due to storage size limitations
 ## Use || exit 0: exits cleanly if the command fails (stops the script).
 ## Use || true: absorbs the error, continues ( skip logic).
-## source $MAMBA_ROOT_PREFIX/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
+## source ${MAMBA_ROOT_PREFIX:-$HOME/micromamba}/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
 
 ## Try micromamba first (faster and more portable), then fallback to conda
 ## Choose micromamba if available, otherwise fallback to conda
@@ -148,7 +151,7 @@ printf '\033[1;34m>> Checking and activating environment...\033[0m\n'
 # Auto-activate py311 if it exists, otherwise fallback to base
 # if micromamba env list | grep -qE '(^|[[:space:]])py311([[:space:]]|$)'; then
 if [[ $- == *i* ]]; then
-  if command -v micromamba >/dev/null 2>&1 && [[ -d '${MAMBA_ROOT_PREFIX}/envs/py311' ]]; then
+  if command -v micromamba >/dev/null 2>&1 && [[ -d '${MAMBA_ROOT_PREFIX:-$HOME/micromamba}/envs/py311' ]]; then
     micromamba activate py311
   elif command -v conda >/dev/null 2>&1 && [[ -d '/opt/conda/envs/py311' ]]; then
     conda activate py311
