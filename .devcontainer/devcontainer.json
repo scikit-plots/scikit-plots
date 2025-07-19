@@ -205,13 +205,14 @@
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",  // str
   // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],  // list
   "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
-    "message1": "echo '✅ Running initializeCommand...'"
+    "message1": "echo '✅ Running initializeCommand...'",
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
+    "onCreateCommand": "bash -i .devcontainer/scripts/all_post_create.sh || true"
   },
-  "onCreateCommand": "bash -i .devcontainer/scripts/all_post_create.sh",
-  // "onCreateCommand": {
-  //   "message2": "echo '✅ Running onCreateCommand...'"
-  // },
+  // "onCreateCommand": "bash -i .devcontainer/scripts/all_post_create.sh",
+  "onCreateCommand": {
+    "message2": "echo '✅ Running onCreateCommand...'"
+  },
   "updateContentCommand": {
     "message3": "echo '✅ Running updateContentCommand...'"
   },
