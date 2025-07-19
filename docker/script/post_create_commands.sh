@@ -8,7 +8,7 @@ set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
 # Ensure os packages installed
-apt-get install -y git curl build-essential gfortran || true
+(apt update -y && apt install -y sudo gosu git curl build-essential gfortran) || true
 
 ######################################################################
 ## git safe_dirs.sh
