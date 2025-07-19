@@ -95,7 +95,7 @@ git fetch upstream --tags
 ## Installing editable scikit-plots dev version to env "py311"
 ## Use micromamba See: env_micromamba.sh
 # "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
-# micromamba not "conda" keyword compatipable but same syntax
+# Micromamba not "conda" keyword compatipable but same syntax
 ######################################################################
 
 # env_conda py311 conda             # uses Python 3.11 (default)
@@ -124,8 +124,9 @@ env_conda() {
 }
 
 ## Activate the environment and install required packages
-## Use `bash -i` to ensure the script runs in an interactive shell and respects environment changes
+## Use bash -i to ensure the script runs in an interactive shell and respects environment changes
 ## Double quotes for the outer string and escaping the inner double quotes or use single
+## awk '/"/ && !/\\"/ && !/".*"/ { print NR ": " $0 }' .devcontainer/scripts/post_create_commands.sh
 bash -i -c "
 set -euo pipefail
 
@@ -182,7 +183,8 @@ echo -e "\033[1;34m## Continue to the section below: 'Creating a Branch'\033[0m"
 ## Provide more information about the next steps
 echo -e "\033[1;34m## Read more at: \033[0m\033[1;36mhttps://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch\033[0m"
 
-## (Optionally) Open new terminal activate `py311`
-echo -e "conda info -e"
+## (Optionally) Open new terminal activate py311
+micromamba info -e || true
+conda info -e || true
 
-echo -e "scikitplot -V || true"
+scikitplot -V || true
