@@ -200,11 +200,14 @@
   //   // "placeholderTask": "do something (e.g. str, array aka list)..."
   //   // "message_sample": "echo 'Running placeholderCommand...'"
   // },
+  // ⚠️ Some images Runs only "initializeCommand" not to run other below Commands (e.g., devcontainers, jupyter)
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",  // str
   // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],  // list
   "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
-    "message1": "echo '✅ Running initializeCommand...'"
+    "message1": "echo '✅ Running initializeCommand...'",
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
+    "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true",
+    "notice": "sudo -n true && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
   "onCreateCommand": {
     "message2": "echo '✅ Running onCreateCommand...'"

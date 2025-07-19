@@ -53,7 +53,7 @@
   // "containerUser": "root",
   // Use if runtime args required (e.g., GPU for PyTorch, TensorFlow)
   "runArgs": [
-    // "--user", "root"                            // You do not need an explicit su or sudo in your scripts to switch users.
+    // "--user", "root",                           // You do not need an explicit su or sudo in your scripts to switch users.
     // "--cap-add=SYS_PTRACE",                  // ✅ Allow debugging tools (e.g., gdb, strace) to trace processes
     // "--security-opt=seccomp=unconfined"      // ⚠️ Disable syscall filtering to avoid security restrictions in dev tools
 
@@ -202,14 +202,15 @@
   //   // "placeholderTask": "do something (e.g. str, array aka list)..."
   //   // "message_sample": "echo 'Running placeholderCommand...'"
   // },
+  // ⚠️ Some images Runs only "initializeCommand" not to run other below Commands (e.g., devcontainers, jupyter)
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",  // str
   // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],  // list
   "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
     "message1": "echo '✅ Running initializeCommand...'",
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
-    "onCreateCommand": "bash -i -c '. .devcontainer/scripts/all_post_create.sh || true'"
+    "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true",
+    "notice": "sudo -n true && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
-  // "onCreateCommand": "bash -i .devcontainer/scripts/all_post_create.sh",
   "onCreateCommand": {
     "message2": "echo '✅ Running onCreateCommand...'"
   },
@@ -217,10 +218,10 @@
     "message3": "echo '✅ Running updateContentCommand...'"
   },
   "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created.
-    "message4": "echo '✅ Running postCreateCommand...'"
+    "message4": "echo '✅ Running postCreateCommand...'",
     // For list optional "bash" if Ensure proper shebang (#!/bin/bash) in script.
     // "all_post_create": "bash -i -c '. .devcontainer/scripts/env_micromamba.sh || true; . .devcontainer/scripts/post_create_commands.sh || true'",
-    // "all_post_create": "bash -i -c '. .devcontainer/scripts/all_post_create.sh || true'"
+    "all_post_create": "bash -i -c '. .devcontainer/scripts/all_post_create.sh || true'"
     //
     // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
     // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
@@ -253,32 +254,32 @@
       "extensions": [
         // === Python Development ===
         "ms-python.python",                           // Python language support
-        "ms-toolsai.jupyter"                          // Jupyter Notebook support
-        // "ms-toolsai.vscode-jupyter-slideshow",        // Jupyter Slide Show
+        "ms-toolsai.jupyter",                         // Jupyter Notebook support
+        "ms-toolsai.vscode-jupyter-slideshow",        // Jupyter Slide Show
 
         // === Formatter extension ===
-        // "ms-python.isort",                            // Import sorting extension
-        // "ms-python.autopep8",                         // autopep8 formatter
-        // "ms-python.flake8",                           // Flake8 extension
-        // "ms-python.black-formatter",                  // Black code formatter
-        // "ms-python.mypy-type-checker",                // Mypy extension
-        // "ms-python.pylint",                           // Pylint extension
-        // "charliermarsh.ruff",                         // Ruff linter
+        "ms-python.isort",                            // Import sorting extension
+        "ms-python.autopep8",                         // autopep8 formatter
+        "ms-python.flake8",                           // Flake8 extension
+        "ms-python.black-formatter",                  // Black code formatter
+        "ms-python.mypy-type-checker",                // Mypy extension
+        "ms-python.pylint",                           // Pylint extension
+        "charliermarsh.ruff",                         // Ruff linter
         // "ms-pyright.pyright",                         // Static Type Checker for Python
 
         // === Shell & Terminal ===
-        // "ms-vscode.makefile-tools",                   // Makefile support
+        "ms-vscode.makefile-tools",                   // Makefile support
         // "ms-vscode.cmake-tools",                      // CMake Tools
         // "foxundermoon.shell-format",                  // Shell script formatting
         // "timonwong.shellcheck",                       // Shell script linting
 
         // === Web Development ===
-        // "ms-vscode.live-server",                      // Live Server
+        "ms-vscode.live-server",                      // Live Server
         // "ritwickdey.liveserver",                      // Alternative Live Server
         // "esbenp.prettier-vscode",                     // Prettier formatter for JS, HTML, etc.
 
         // === Git & Productivity ===
-        // "github.vscode-pull-request-github",          // GitHub PRs and Issues
+        "github.vscode-pull-request-github"          // GitHub PRs and Issues
         // "eamodio.gitlens",                            // Git supercharged
         // "donjayamanne.githistory",                    // View git history
         // "mhutchie.git-graph",                         // Interactive Git graph

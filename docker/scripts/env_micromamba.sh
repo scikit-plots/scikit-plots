@@ -25,7 +25,7 @@ echo "📦 Installing dev tools (if sudo available)..."
     || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################
-## Conda/Mamba environment
+## 📦 Installing Conda/Mamba environment
 # micromamba not "conda" keyword compatipable but same syntax
 ######################################################################
 set +u   # Disable strict unbound mode

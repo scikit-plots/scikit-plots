@@ -111,11 +111,19 @@ services:
     # entrypoint: bash  # bash -c "<everything inside the quotes>"
     # command:
     # This entrypoint checks if 'curl' is installed; if not, installs it, then opens a bash shell
+    # sudo -n true &&
     entrypoint: >-
       bash -c "
         command -v curl >/dev/null 2>&1 || (
-          apt-get update &&
-          apt-get install sudo gosu git curl build-essential gfortran || true
+          echo '📦 Installing dev tools (if sudo available)...';
+          (apt-get update -y &&
+          apt-get install -y sudo gosu git curl build-essential gfortran) ||
+          echo '⚠️ Failed or skipped installing dev tools';
+        );
+        command -v micromamba >/dev/null 2>&1 || (
+          echo '📦 Installing Conda/Mamba environment...';
+          (bash -i -c '. docker/scripts/all_post_create.sh || true') ||
+          echo '⚠️ Failed or skipped installing dev tools';
         );
         exec bash"
 
