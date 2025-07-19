@@ -39,6 +39,7 @@
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Use a basic Ubuntu-based image
   // "image": "mcr.microsoft.com/devcontainers/base:alpine",  // Use a basic Ubuntu-based image, user vscode
   // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace
+  // "image": "python-3.11-slim",
 
   // "composeContainer":
   "dockerComposeFile": "../../docker/docker-compose.yml",
