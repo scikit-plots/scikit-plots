@@ -119,7 +119,7 @@ services:
         command -v curl >/dev/null 2>&1 || {
           echo '📦 Installing dev tools (if sudo available)...';
           { apt-get update -y &&
-            apt-get install -y sudo gosu git curl procps build-essential gfortran; } ||
+            apt-get install -y sudo gosu git curl procps build-essential gfortran ninja-build; } ||
           echo '⚠️ Failed or skipped installing dev tools';
         };
 

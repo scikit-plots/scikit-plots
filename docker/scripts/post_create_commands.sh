@@ -24,7 +24,7 @@ sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 ## Ensure os packages installed
 echo "📦 Installing dev tools (if sudo available)..."
 { sudo -n true && sudo apt-get update -y \
-  && sudo apt-get install -y sudo gosu git curl build-essential gfortran; } \
+  && sudo apt-get install -y sudo gosu git curl build-essential gfortran ninja-build; } \
   || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################
@@ -182,7 +182,7 @@ printf '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
 printf '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 # Install the development version of scikit-plots
 pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v || \
-pip install --no-cache-dir -e .[build,dev,test,doc] -v || \
+pip install --no-build-isolation --no-cache-dir -e . -v || \
 { echo '⚠️ Failed to install scikit-plots'; true; }
 
 set +u  # Temporarily disable unbound variable error

@@ -26,7 +26,7 @@ sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 ## ps (usually from procps or procps-ng)
 echo "📦 Installing dev tools (if sudo available)..."
 { sudo -n true && sudo apt-get update -y \
-  && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran; } \
+  && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran ninja-build; } \
   || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################
@@ -40,6 +40,7 @@ set +u   # Disable strict unbound mode
 echo "🔧 Installing micromamba or conda..."
 
 ## 1. Install micromamba via curl or fallback to wget
+## ps (usually from procps or procps-ng)
 # if ! command -v micromamba &> /dev/null; then
 if command -v curl &> /dev/null; then
   # curl -Ls https://micro.mamba.pm/install.sh | bash

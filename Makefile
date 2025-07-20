@@ -291,6 +291,7 @@ dev: clean dep
 	@echo "Installing Packages to local library (editable or not) for checking..."
 	@# python -m pip install --no-cache-dir .
 	@# python -m pip install --no-cache-dir --use-pep517 .
+	@# ➡️ Works only if "ninja" and "all build deps" are installed in the environment (--no-build-isolation).
 	@# python -m pip install --no-build-isolation --no-cache-dir .
 	@# python -m pip install --no-build-isolation --no-cache-dir --editable . -vvv
 	@# python -m pip install --no-build-isolation --no-cache-dir -e . -v

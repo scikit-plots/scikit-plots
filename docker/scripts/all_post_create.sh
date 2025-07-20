@@ -32,7 +32,7 @@ sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 ## Ensure os packages installed
 echo "📦 Installing dev tools (if sudo available)..."
 { sudo -n true && sudo apt-get update -y \
-  && sudo apt-get install -y sudo gosu git curl build-essential gfortran; } \
+  && sudo apt-get install -y sudo gosu git curl build-essential gfortran ninja-build; } \
   || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################

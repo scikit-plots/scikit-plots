@@ -135,7 +135,7 @@
         // Build tools
         // "make",
         // "cmake",
-        // "ninja-build",
+        "ninja-build",
         // "pkg-config",
 
         // Python-related tools
@@ -227,7 +227,7 @@
     // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
     // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
     // Os Dep
-    // "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran) || true"
+    // "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran ninja-build) || true"
     // For Images "mcr.microsoft.com/devcontainers/..."
     // "notice" Different container base image works differently See: https://github.com/orgs/community/discussions/43534
     // appears that text in "/usr/local/etc/vscode-dev-containers/first-run-notice.txt" takes precedence over text in "/workspaces/.codespaces/shared/first-run-notice.txt"
