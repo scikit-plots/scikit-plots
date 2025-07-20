@@ -23,9 +23,10 @@ echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 
 ## Ensure os packages installed
+## ps (usually from procps or procps-ng)
 echo "📦 Installing dev tools (if sudo available)..."
 { sudo -n true && sudo apt-get update -y \
-  && sudo apt-get install -y sudo gosu git curl build-essential gfortran; } \
+  && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran; } \
   || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################
@@ -42,6 +43,7 @@ echo "🔧 Installing micromamba or conda..."
 # if ! command -v micromamba &> /dev/null; then
 if command -v curl &> /dev/null; then
   # curl -Ls https://micro.mamba.pm/install.sh | bash
+  # curl -Ls https://micro.mamba.pm/install.sh | "${SHELL}" || echo "⚠️ micromamba install failed"
   # "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
   "${SHELL}" <(curl -Ls micro.mamba.pm/install.sh) < /dev/null
 elif command -v wget &> /dev/null; then

@@ -103,6 +103,7 @@
     //     "nano",
     //     "wget",
     //     "curl",
+    //     "procps",
 
     //     // Git and related tools
     //     "git",
@@ -210,7 +211,7 @@
   "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
     "message1": "echo '✅ Running initializeCommand...'",
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
-    "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true"
+    "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran) || true"
     // "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
   "onCreateCommand": {
@@ -228,7 +229,7 @@
     // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
     // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
     // Os Dep
-    // "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true"
+    // "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran) || true"
     // For Images "mcr.microsoft.com/devcontainers/..."
     // "notice" Different container base image works differently See: https://github.com/orgs/community/discussions/43534
     // appears that text in "/usr/local/etc/vscode-dev-containers/first-run-notice.txt" takes precedence over text in "/workspaces/.codespaces/shared/first-run-notice.txt"

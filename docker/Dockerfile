@@ -192,6 +192,7 @@ RUN apt-get update --yes \
     nano \
     wget \
     curl \
+    procps \
     ## Git and related tools
     git \
     git-lfs \
