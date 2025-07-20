@@ -3,6 +3,10 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+## Inside bash -c '...' string	\$p
+# { ...; } || fallback runs in current shell — can exit or affect current environment.
+# ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
+
 set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
@@ -19,9 +23,9 @@ sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 
 ## Ensure os packages installed
 echo "📦 Installing dev tools (if sudo available)..."
-(sudo -n true && sudo apt-get update -y \
-    && sudo apt-get install -y sudo gosu git curl build-essential gfortran) \
-    || echo "⚠️ Failed or skipped installing dev tools"
+{ sudo -n true && sudo apt-get update -y \
+  && sudo apt-get install -y sudo gosu git curl build-essential gfortran; } \
+  || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################
 ## git safe_dirs.sh
@@ -136,6 +140,9 @@ env_conda() {
   $conda_cmd env update -n "$env_name" -f "./docker/env_conda/default.yml" || { printf "Failed to update environment\n"; exit 0; }
 }
 
+# shellcheck disable=SC1090
+source "$HOME/.$(basename "$SHELL")rc" || true
+
 ## Activate the environment and install required packages
 ## Use bash -i to ensure the script runs in an interactive shell and respects environment changes
 ## Double quotes for the outer string and escaping the inner double quotes or use single
@@ -147,13 +154,13 @@ set -euo pipefail
 ## 👉 Some steps can be skipped when container creation due to storage size limitations
 ## Use || exit 0: exits cleanly if the command fails (stops the script).
 ## Use || true: absorbs the error, continues ( skip logic).
-## source ${MAMBA_ROOT_PREFIX:-$HOME/micromamba}/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
+## source \${MAMBA_ROOT_PREFIX:-\$HOME/micromamba}/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
 
 ## Try micromamba first (faster and more portable), then fallback to conda
 ## Choose micromamba if available, otherwise fallback to conda
 # echo -e '\033[1;34m>> Checking and activating environment...\033[0m'
 printf '\033[1;34m>> Checking and activating environment...\033[0m\n'
-source $HOME/.$(basename "$SHELL")rc || true
+source \$HOME/.\$(basename \"\$SHELL\")rc
 micromamba activate py311 || true
 
 # echo -e '\033[1;32m## Installing development dependencies...\033[0m'
@@ -174,13 +181,20 @@ printf '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
 # echo -e '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 printf '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 # Install the development version of scikit-plots
-pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v || true
+pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v || \
+pip install --no-cache-dir -e .[build,dev,test,doc] -v || \
+{ echo '⚠️ Failed to install scikit-plots'; true; }
 
 set +u  # Temporarily disable unbound variable error
 ## Check if the directory exists try to change into that directory, if fails do nothing and don't raise an error
-[ -d /workspaces/scikit-plots ] && cd /workspaces/scikit-plots || true
+## Inside bash -c '...' string	\$p
+for p in '/workspaces/scikit-plots' '/work/scikit-plots' '/home/jovyan/work/scikit-plots'; do
+  [ -d \$p ] && cd \$p
+  break
+done
+
 ## To safely install pre-commit hooks only if pre-commit is available.
-command -v pre-commit >/dev/null && pre-commit install || true
+command -v pre-commit >/dev/null && pre-commit install ||  { echo 'Failed to initialize pre-commit'; true; }
 set -u  # Re-enable afterwards (if needed)
 "
 

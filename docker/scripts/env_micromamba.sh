@@ -4,6 +4,10 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+## Inside bash -c '...' string	\$p
+# { ...; } || fallback runs in current shell — can exit or affect current environment.
+# ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
+
 set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
@@ -20,9 +24,9 @@ sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 
 ## Ensure os packages installed
 echo "📦 Installing dev tools (if sudo available)..."
-(sudo -n true && sudo apt-get update -y \
-    && sudo apt-get install -y sudo gosu git curl build-essential gfortran) \
-    || echo "⚠️ Failed or skipped installing dev tools"
+{ sudo -n true && sudo apt-get update -y \
+  && sudo apt-get install -y sudo gosu git curl build-essential gfortran; } \
+  || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################
 ## 📦 Installing Conda/Mamba environment
@@ -138,6 +142,8 @@ echo "envs_dirs:
 # user (same applies to `conda activate`)
 
 ## 6. Ensure to Activate the environment (e.g., py311), ignore failure if not present yet
+# shellcheck disable=SC1090
+source "$HOME/.$(basename "$SHELL")rc" || true
 micromamba activate "$ENV_NAME" || true
 
 ######################################################################

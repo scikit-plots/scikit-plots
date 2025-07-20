@@ -11,6 +11,10 @@
 
 # .devcontainer/scripts/all_post_create.sh
 
+## Inside bash -c '...' string	\$p
+# { ...; } || fallback runs in current shell — can exit or affect current environment.
+# ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
+
 set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
@@ -22,17 +26,14 @@ echo "REAL_DIR=$(realpath ./)"
 echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
 echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck disable=SC1090
-source "$HOME/.$(basename "$SHELL")rc" || true
-
 ## Make sudo Passwordless for the User
 sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
 
-## Ensure os base ppackages installed
+## Ensure os packages installed
 echo "📦 Installing dev tools (if sudo available)..."
-(sudo -n true && sudo apt-get update -y \
-    && sudo apt-get install -y sudo gosu git curl build-essential gfortran) \
-    || echo "⚠️ Failed or skipped installing dev tools"
+{ sudo -n true && sudo apt-get update -y \
+  && sudo apt-get install -y sudo gosu git curl build-essential gfortran; } \
+  || echo "⚠️ Failed or skipped installing dev tools"
 
 ######################################################################
 ## first-run notice (if possible)

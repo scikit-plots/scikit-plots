@@ -112,19 +112,23 @@ services:
     # command:
     # This entrypoint checks if 'curl' is installed; if not, installs it, then opens a bash shell
     # sudo -n true &&
+    # { ... } runs in current shell — can exit or affect current environment.
+    # ( ... ) runs in a subshell — changes inside don't affect the parent script.
     entrypoint: >-
       bash -c "
-        command -v curl >/dev/null 2>&1 || (
+        command -v curl >/dev/null 2>&1 || {
           echo '📦 Installing dev tools (if sudo available)...';
-          (apt-get update -y &&
-           apt-get install -y sudo gosu git curl build-essential gfortran) ||
+          { apt-get update -y &&
+            apt-get install -y sudo gosu git curl build-essential gfortran; } ||
           echo '⚠️ Failed or skipped installing dev tools';
-        );
-        command -v micromamba >/dev/null 2>&1 || (
+        };
+
+        command -v micromamba >/dev/null 2>&1 || {
           echo '📦 Installing Conda/Mamba environment...';
           bash docker/scripts/all_post_create.sh ||
           echo '⚠️ Failed or skipped installing dev tools';
-        );
+        };
+
         exec bash"
 
     # 👇 if using Compose V2 CLI this enables GPU access (Compose V2+	YAML equivalent of --gpus all)
