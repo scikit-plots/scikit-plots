@@ -1,4 +1,4 @@
-#!/usr/bin/env bash  # noqa: EXE003
+#!/usr/bin/env bash
 #
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #

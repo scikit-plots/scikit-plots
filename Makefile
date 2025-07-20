@@ -291,6 +291,7 @@ dev: clean dep
 	@echo "Installing Packages to local library (editable or not) for checking..."
 	@# python -m pip install --no-cache-dir .
 	@# python -m pip install --no-cache-dir --use-pep517 .
+	@# ➡️ Works only if "ninja" and "all build deps" are installed in the environment (--no-build-isolation).
 	@# python -m pip install --no-build-isolation --no-cache-dir .
 	@# python -m pip install --no-build-isolation --no-cache-dir --editable . -vvv
 	@# python -m pip install --no-build-isolation --no-cache-dir -e . -v
@@ -340,7 +341,7 @@ sdist:
 # 	@cd scikitplot && pytest tests/
 # 	@echo "pytest completed."
 
-## Run this target to execute py script to save generating plots images.
+## Run this target to execute py scripts to save generating plots images.
 # examples: clean-basic
 # 	@echo "Generating plots images..."
 # 	@#cd galleries/examples && python classification/plot_feature_importances_script.py
@@ -657,8 +658,8 @@ push:
 ######################################################################
 
 sym:
-	@rm -rf ".devcontainer/script" "environment.yml"
-	@# mkdir -p ".devcontainer/script"
-	@ln -rsf "docker/script/" ".devcontainer/script"
+	@rm -rf ".devcontainer/scripts" "environment.yml"
+	@# mkdir -p ".devcontainer/scripts"
+	@ln -rsf "docker/scripts/" ".devcontainer/scripts"
 	@ln -rsf "./docker/env_conda/environment.yml" "environment.yml"
 	@echo "Created symbolic links..."

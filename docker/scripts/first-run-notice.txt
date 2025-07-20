@@ -1,0 +1,59 @@
+👋 Welcome to `scikit-plots` in GitHub Codespaces!
+
+🔍 To explore VS Code to its fullest, search using the Command Palette (Cmd/Ctrl + Shift + P or F1).
+
+ℹ️  Look at https://scikit-plots.github.io/dev/introduction/quick_start.html
+  for more contribution details https://scikit-plots.github.io/dev/devel/index.html.
+
+⭐⭐ =====================================  IMPORTANT!!  ===================================== ⭐⭐
+  To complete setup of your development environment to run the following script in the terminal:
+
+    ## ⚠️ If `ERROR: ... : No space left on device`
+    ## 💽 (Optionally) Codespaces: View Creation Log: cat /workspaces/.codespaces/.persistedshare/creation.log
+    ## 💽 (Optionally) Memory size: cat /etc/os-release && df -h && du -h --max-depth=1
+    ## 👉 Some steps can be skipped when container creation due to storage size limitations here quick manually
+
+    ## ✅ Check the scikit-plots version, If activated Conda-Micromamba env (e.g., "py311", "base")
+    ## 👇
+    scikitplot -V
+    bash -c "cd ~ && python -c 'import scikitplot; scikitplot.show_config()'"
+
+    ## 🛠️ (recommended) Apply in bash `all_post_create.sh` or apply step-by-step
+    ## 📘 For More: https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html
+    ## ✅ directories to mark as safe like ( git config --global --add safe.directory '*' )
+    ## ✅ fetching submodules ( git submodule update --init )
+    ## ✅ add remote upstream ( git remote add upstream https://github.com/scikit-plots/scikit-plots.git )
+    ## ✅ fetch tags from upstream ( git fetch upstream --tags )
+    ## ✅ create a new environment with python 3.11 ( mamba create -n "py311" python=3.11 ipykernel -y )
+    ## ✅ install required packages ( pip install -r ./requirements/all.txt )
+    ## ✅ install pre-commit hooks ( pre-commit install )
+    ## ✅ install the development version of scikit-plots ( pip install --no-build-isolation --no-cache-dir -e . )
+    ## 👇
+    # bash "docker/scripts/env_micromamba.sh"  # (not needed every time)
+    # bash "docker/scripts/post_create_commands.sh"  # (not needed every time)
+    bash "docker/scripts/all_post_create.sh"  # (not needed every time)
+
+    ## ⚠️ Open to new terminal mamba (or conda)
+    ## Use micromamba See: env_micromamba.sh
+    ## "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
+    ## Micromamba not "conda" keyword compatipable but same syntax
+    ## 👇
+    conda init
+    conda info -e
+    micromamba info -e
+
+    ## (DevContainer) mamba activate /workspaces/scikit-plots/venv
+    ## 👇
+    conda activate base
+    conda activate py311
+    micromamba activate py311
+
+    ## ✅ Install tensorflow-cpu, if needed
+    ## pip install -r ./requirements/all.txt
+    ## 👇
+    pip install -r ./requirements/cpu.txt
+
+    ## ✍ Continue to creating a branch
+    ## 🌐 Read more at: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch
+
+⭐⭐ ========================================================================================= ⭐⭐

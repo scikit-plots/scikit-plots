@@ -35,8 +35,10 @@
   // "args": {}  // "Build arguments."
 
   // "imageContainer":
+  // https://github.com/github/codespaces-host-images/blob/main/README.md
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Use a basic Ubuntu-based image
-  // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv"
+  // "image": "mcr.microsoft.com/devcontainers/base:alpine",  // Use a basic Ubuntu-based image, user vscode
+  // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace
 
   // "composeContainer":
   "dockerComposeFile": "../../docker/docker-compose.yml",
@@ -47,9 +49,20 @@
 
   // "nonComposeBase":
   // "containerUser": "root",
-  "runArgs": ["--gpus","all"],  // runArgs for github Desktop
-  // "workspaceFolder": "/workspace",  // "The path of the workspace folder inside the container."
-  // "workspaceMount": "/workspace",  // "The --mount parameter for docker run. The default is to mount the project folder at /workspaces/$project."
+  // Use if runtime args required (e.g., GPU for PyTorch, TensorFlow)
+  "runArgs": [
+    // "--cap-add=SYS_PTRACE",                           // Allow debugging tools (e.g., gdb, strace)
+    // "--security-opt", "seccomp=unconfined",           // Disable syscall filtering for debugging tools
+    // "--entrypoint", "bash",                           // Override entrypoint to bash
+
+    // Uncomment below lines if you need root user inside container
+    // "--user", "root"                                 // Run container as root (avoid su/sudo in scripts)
+
+    // ⚠️ Uncomment to enable GPU support (requires host NVIDIA + Docker setup)
+    // "--gpus", "all"                                   // Enable GPU access inside the container
+  ],
+  // "workspaceFolder": "/workspace",                    // "The path of the workspace folder inside the container."
+  // "workspaceMount": "/workspace",                     // "The --mount parameter for docker run. The default is to mount the project folder at /workspaces/$project."
 
 
   // "devContainerCommon":
@@ -78,90 +91,96 @@
     // GitHub CLI for interacting with GitHub from the terminal
     // "ghcr.io/devcontainers/features/github-cli:1": {},
     // Installs various APT packages required for development
-    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-      "packages": [
-        // Text editors and utilities
-        "vim",
-        "nano",
-        "wget",
-        "curl"
+    // "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+    //   "packages": [
+    //     // switch users safely
+    //     "sudo",                                       // can be heavy & buggy
+    //     // 👷 Use gosu user ... inside Dockerfile or scripts to run as a different user safely
+    //     "gosu",                                       // designed for Docker (safer alternative to sudo in Docker)
 
-        // // Git and related tools
-        // "git",
-        // "git-lfs",
+    //     // Text editors and utilities
+    //     "vim",
+    //     "nano",
+    //     "wget",
+    //     "curl",
+    //     "procps",
 
-        // // Archive utilities
-        // "bzip2",
-        // "gzip",
-        // "p7zip-full",
-        // // "p7zip-rar",
-        // "tar",
-        // // "unrar",
-        // "unzip",
+    //     // Git and related tools
+    //     "git",
+    //     // "git-lfs",
 
-        // // Documentation tools
-        // "pandoc",  // Converts notebooks to HTML
+    //     // Archive utilities
+    //     // "bzip2",
+    //     // "gzip",
+    //     // "p7zip-full",
+    //     // // "p7zip-rar",
+    //     // "tar",
+    //     // // "unrar",
+    //     // "unzip",
 
-        // // File and directory utilities
-        // "tree",
+    //     // Documentation tools
+    //     // "pandoc",                                     // Converts notebooks to HTML
 
-        // // Graph visualization software
-        // "graphviz",
+    //     // File and directory utilities
+    //     // "tree",
 
-        // // Multimedia tools
-        // "ffmpeg",    // Needed for matplotlib animations
-        // // "inkscape",  // Vector graphics editor
+    //     // // Graph visualization software
+    //     // "graphviz",
 
-        // // Build tools
-        // "make",
-        // "cmake",
-        // "ninja-build",
-        // "pkg-config",
+    //     // Multimedia tools
+    //     // "ffmpeg",                                     // Needed for matplotlib animations
+    //     // // "inkscape",                                   // Vector graphics editor
 
-        // // Python-related tools
-        // "python3-pip",
-        // "python3-venv",
-        // "python3-dev",
+    //     // Build tools
+    //     // "make",
+    //     // "cmake",
+    //     // "ninja-build",
+    //     // "pkg-config",
 
-        // // Compilers and build dependencies
-        // "build-essential",     // Essential build tools (gcc, g++, make, etc.)
-        // "gcc",                 // C (GNU Compiler Collection) — Compiles standard C code
-        // "g++",                 // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
-        // "gfortran",            // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
+    //     // Python-related tools
+    //     // "python3-pip",
+    //     // "python3-venv",
+    //     // "python3-dev",
 
-        // // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
-        // // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
-        // // "clang",            // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
-        // // "clang-format",     // LLVM tools Formats C++ and other languages
-        // // "clang-tidy",       // LLVM tools Static analysis for C++
+    //     // Compilers and build dependencies
+    //     "build-essential",                            // Essential build tools (gcc, g++, make, etc.)
+    //     // "gcc",                                        // C (GNU Compiler Collection) — Compiles standard C code
+    //     // "g++",                                        // C++ (GNU Compiler Collection) — Compiles C++ code (automatically links with libstdc++)
+    //     "gfortran"                                   // GNU Fortran compiler — used for scientific/legacy code (e.g. LAPACK)
 
-        // // Linear Algebra and Numerical Libraries
-        // // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
-        // "libopenblas-dev",    // For high-performance matrix/vector ops (used in NumPy, SciPy)
-        // // Reference BLAS implementation (baseline, less optimized)
-        // // "libblas-dev",        // Standard BLAS, may be overridden by OpenBLAS dynamically
-        // // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
-        // // "liblapack-dev",      // Required for scientific and engineering computations
-        // // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
-        // // "libblis-dev",        // Optional, can be tuned for specific architectures
+    //     // C, C++, Obj-C, OpenCL, etc.	LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+    //     // ℹ️ Note: clang does not automatically link against the C++ standard library — for C++ you should invoke it via clang++
+    //     // "clang",                                      // LLVM-based alternative to GCC — faster, modern tooling (formatting, lint)
+    //     // "clang-format",                               // LLVM tools Formats C++ and other languages
+    //     // "clang-tidy",                                 // LLVM tools Static analysis for C++
 
-        // // Parallel Computing Libraries
-        // // Intel MKL – Highly optimized math kernels (not always open source)
-        // // "libmkl-dev",         // May conflict with OpenBLAS; check compatibility
-        // // Intel TBB – Task-based parallelism in C++
-        // // "libtbb-dev",         // Used in threading, e.g., OpenCV, oneAPI
-        // // OpenMP – Multithreading support for C/C++/Fortran
-        // "libomp-dev"          // Enables `#pragma omp` parallelism in C/C++/Fortran
+    //     // Linear Algebra and Numerical Libraries
+    //     // OpenBLAS – Optimized BLAS implementation (multi-threaded, SIMD)
+    //     // "libopenblas-dev",                            // For high-performance matrix/vector ops (used in NumPy, SciPy)
+    //     // Reference BLAS implementation (baseline, less optimized)
+    //     // "libblas-dev",                                // Standard BLAS, may be overridden by OpenBLAS dynamically
+    //     // LAPACK – Advanced linear algebra: eigenvalues, SVD, etc.
+    //     // "liblapack-dev",                              // Required for scientific and engineering computations
+    //     // BLIS – Alternative to OpenBLAS (used in AMD EPYC optimizations)
+    //     // "libblis-dev",                                // Optional, can be tuned for specific architectures
 
-        // // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
-        // // Installs the entire Boost C++ library development suite (headers + libs)
-        // // Boost is a large set of C++ libraries that extend the standard library.
-        // // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
-        // // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
-        // // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
-        // // "libboost-all-dev"  // Boost headers and prebuilt libs
-      ]
-    }
+    //     // Parallel Computing Libraries
+    //     // Intel MKL – Highly optimized math kernels (not always open source)
+    //     // "libmkl-dev",                                 // May conflict with OpenBLAS; check compatibility
+    //     // Intel TBB – Task-based parallelism in C++
+    //     // "libtbb-dev",                                 // Used in threading, e.g., OpenCV, oneAPI
+    //     // OpenMP – Multithreading support for C/C++/Fortran
+    //     // "libomp-dev"                                 // Enables `#pragma omp` parallelism in C/C++/Fortran
+
+    //     // Boost C++ Libraries needs g++/clang++ — Required to use Boost libraries in C++ code
+    //     // Installs the entire Boost C++ library development suite (headers + libs)
+    //     // Boost is a large set of C++ libraries that extend the standard library.
+    //     // Includes things like: Boost.Filesystem, Boost.Thread, Boost.Asio, Boost.Python, etc.
+    //     // Used for advanced C++ projects (e.g., networking, multithreading, serialization).
+    //     // Boost components, prefer libboost-xyz-dev packages (e.g., libboost-filesystem-dev, libboost-thread-dev) to reduce image size.
+    //     // "libboost-all-dev"                           // Boost headers and prebuilt libs
+    //   ]
+    // }
   },
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8888],
@@ -170,6 +189,7 @@
       "label": "desktop"
     }
   },
+  // This will run the container as root but then switch to "root" for your dev session.
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "updateRemoteUserUID ": "true",  // "Controls whether on Linux the container's user should be updated with the local user's UID and GID. On by default when opening from a local folder."
   // "remoteUser": "root",  // "The username to use for spawning processes in the container including lifecycle scripts and any remote editor/IDE server process. The default is the same user as the container."
@@ -183,36 +203,50 @@
   //   // (optional) Single string form: Might break if the container has a minimal shell or /bin/sh != bash
   //   // (recommended) Array form with "bash -c": run the given string using "bash -c", which executes the whole line as a single shell command — just like in a terminal.
   //   // "placeholderTask": "do something (e.g. str, array aka list)..."
-  //   // "message_sample": "echo 'Runing placeholderCommand...'"
+  //   // "message_sample": "echo 'Running placeholderCommand...'"
   // },
-  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",
-  // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],
-  "initializeCommand": {
-    "message1": "echo 'Runing initializeCommand...'"
+  // ⚠️ Some images Runs only "initializeCommand" not to run other below Commands (e.g., devcontainers, jupyter)
+  // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",  // str
+  // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],  // list
+  "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
+    "message1": "echo '✅ Running initializeCommand...'",
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
+    "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran ninja-build) || true"
+    // "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
   "onCreateCommand": {
-    "message2": "echo 'Runing onCreateCommand...'",
-    "notice": "bash -c 'sudo cp .devcontainer/script/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt'"
-    // "on_create_env_conda": ["bash", "-c", ".devcontainer/script/setup_env_conda_create.sh || exit 0"]
+    "message2": "echo '✅ Running onCreateCommand...'"
   },
   "updateContentCommand": {
-    "message3": "echo 'Runing updateContentCommand...'"
+    "message3": "echo '✅ Running updateContentCommand...'"
   },
-  "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created. Can be cause memory error.
-    "message4": "echo 'Runing postCreateCommand...'"
-    // "post_create_commands": "bash .devcontainer/scripts/post_create_commands.sh || exit 0"
-    // "post_create_commands": ["bash", "-c", ".devcontainer/script/post_create_commands.sh || exit 0"]
+  "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created.
+    "message4": "echo '✅ Running postCreateCommand...'"
+    // For list optional "bash" if Ensure proper shebang (#!/bin/bash) in script.
+    // "all_post_create": "bash -i -c '. .devcontainer/scripts/env_micromamba.sh || true; . .devcontainer/scripts/post_create_commands.sh || true'",
+    // "all_post_create": "bash .devcontainer/scripts/all_post_create.sh || true"
+    //
+    // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
+    // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
+    // Os Dep
+    // "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl procps build-essential gfortran ninja-build) || true"
+    // For Images "mcr.microsoft.com/devcontainers/..."
+    // "notice" Different container base image works differently See: https://github.com/orgs/community/discussions/43534
+    // appears that text in "/usr/local/etc/vscode-dev-containers/first-run-notice.txt" takes precedence over text in "/workspaces/.codespaces/shared/first-run-notice.txt"
+    // https://github.com/devcontainers/features/blob/main/src/common-utils/scripts/rc_snippet.sh
+    // "notice_hack": "mkdir -p $HOME/.config/vscode-dev-containers/ && touch $HOME/.config/vscode-dev-containers/first-run-notice-already-displayed"
+    // "notice_dyn": "python -m docker.scripts.first_run_notice | sudo tee /workspaces/.codespaces/shared/first-run-notice.txt > /dev/null"
+    // "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
   "postStartCommand": {
-    "message5": "echo 'Runing postStartCommand...'"
+    "message5": "echo '✅ Running postStartCommand...'"
   },
   "postAttachCommand": {
-    "message6": "echo 'Runing postAttachCommand...'"
+    "message6": "echo '✅ Running postAttachCommand...'"
     // "server": "npm start",
     // "db": ["mysql", "-u", "root", "-p", "my database"]
   },
-  // "waitFor": "updateContentCommand",  // "The user command to wait for before continuing execution in the background while the UI is starting up. The default is \"updateContentCommand\"."
+  "waitFor": "postCreateCommand",  // "The user command to wait for before continuing execution in the background while the UI is starting up. The default is \"updateContentCommand\"."
 
   // Configure tool-specific properties.
   // "Tool-specific configuration. Each tool should use a JSON object subproperty with a unique name to group its customizations."
@@ -249,24 +283,24 @@
 
         // === Git & Productivity ===
         "github.vscode-pull-request-github"          // GitHub PRs and Issues
-        // "eamodio.gitlens",                         // Git supercharged
-        // "donjayamanne.githistory",                 // View git history
-        // "mhutchie.git-graph",                      // Interactive Git graph
+        // "eamodio.gitlens",                            // Git supercharged
+        // "donjayamanne.githistory",                    // View git history
+        // "mhutchie.git-graph",                         // Interactive Git graph
 
         // === C/C++ Development ===
-        // "ms-vscode.cpptools",                      // C/C++ IntelliSense, debugging, etc.
-        // "ms-vscode.cpptools-extension-pack",       // C/C++ IntelliSense, debugging, etc.
-        // "llvm-vs-code-extensions.vscode-clangd",   // Clang language server
-        // "jeff-hykin.better-cpp-syntax",            // Better syntax highlighting
+        // "ms-vscode.cpptools",                         // C/C++ IntelliSense, debugging, etc.
+        // "ms-vscode.cpptools-extension-pack",          // C/C++ IntelliSense, debugging, etc.
+        // "llvm-vs-code-extensions.vscode-clangd",      // Clang language server
+        // "jeff-hykin.better-cpp-syntax",               // Better syntax highlighting
 
         // === continuous integration and continuous deployment (CI/CD) platform used to automate software builds, tests, and deployments ===
-        // "ms-azuretools.vscode-docker",             // Docker for Visual Studio Code
-        // "ms-azuretools.vscode-azureterraform",     // azureterraform
-        // "HashiCorp.terraform",                     // terraform
+        // "ms-azuretools.vscode-docker",                // Docker for Visual Studio Code
+        // "ms-azuretools.vscode-azureterraform",        // azureterraform
+        // "HashiCorp.terraform",                        // terraform
         // "circleci.circleci",
 
         // === GenAI ===
-        // "genaiscript.genaiscript-vscode",          // GenAIScript
+        // "genaiscript.genaiscript-vscode",             // GenAIScript
 
         // === Markdown & Docs ===
         // "yzhang.markdown-all-in-one",                 // Markdown enhancements
@@ -274,10 +308,10 @@
         // "bierner.markdown-mermaid",                   // Support for Mermaid diagrams in Markdown
 
         // === Learn extension ===
-        // "docsmsft.docs-markdown",                  // Learn Markdown Extension
-        // "ms-vscode.copilot-mermaid-diagram",       // vscode-mermAId
-        // "docsmsft.docs-yaml",                      // Docs YAML Extension
-        // "azurepaas-tools.vscode-learncloud",       // Learn Cloud
+        // "docsmsft.docs-markdown",                     // Learn Markdown Extension
+        // "ms-vscode.copilot-mermaid-diagram",          // vscode-mermAId
+        // "docsmsft.docs-yaml",                         // Docs YAML Extension
+        // "azurepaas-tools.vscode-learncloud",          // Learn Cloud
       ],
       "settings": {
         "terminal.integrated.shell.linux": "/bin/bash",
@@ -292,7 +326,7 @@
     },
     "codespaces": {
       "openFiles": [
-        ".devcontainer/script/first-run-notice.txt",
+        ".devcontainer/scripts/first-run-notice.txt",
         "docs/source/devel/codespaces.md",
         "README.md"
       ]

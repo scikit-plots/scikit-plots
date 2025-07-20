@@ -55,8 +55,8 @@ code .
  ├── 📄 docker-compose.yml           # Primary Docker Compose file
  ├── 📄 docker-compose.override.yml  # Optional override file (auto-included if present)
  ├── 📄 Dockerfile                   # Custom Dockerfile
- ├── 🗜️ script/
- │   ├── 📝 install_gpu_nvidia_cuda.sh  # GPU setup script
+ ├── 🗜️ scripts/
+ │   ├── 📝 install_gpu_nvidia_cuda.sh  # GPU setup scripts
 ```
 
 ## 🐳 Quick Start (Docker Compose)
@@ -79,7 +79,7 @@ docker run -it --rm scikitplot/scikit-plots bash
 ```sh
 docker compose up --build scikit-plots_latest-jupyter
 
-bash docker/script/post_create_commands.sh
+bash docker/scripts/post_create_commands.sh
 ```
 
 ▶️ Run Docker Env Jupyter Notebook (With NVIDIA Host GPU)
@@ -119,13 +119,13 @@ docker exec -it CONTAINER_ID_OR_NAME bash  # Connect interactive terminal
 ## (Optionally) Install common vscode extensions
 ##✅ C/C++/Python and Jupyter Notebook
 ##✅ Linter and Formatter
-bash docker/script/setup_vscode_ext.sh  # (not needed every time)
+bash docker/scripts/setup_vscode_ext.sh  # (not needed every time)
 ```
 
 
 ### ▶️ Run post_create_commands.sh
 
-[See Also: first-run-notice.txt](https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt)
+[See Also: first-run-notice.txt](https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt)
 
 ```sh
 ##🛠️ (recommended) Apply in bash `post_create_commands.sh`
@@ -140,7 +140,7 @@ bash docker/script/setup_vscode_ext.sh  # (not needed every time)
 ##✅ install required packages ( pip install -r ./requirements/all.txt )
 ##✅ install pre-commit hooks ( pre-commit install )
 ##✅ install the development version of scikit-plots ( pip install --no-build-isolation --no-cache-dir -e . )
-bash ".devcontainer/script/post_create_commands.sh"  # (not needed every time)
+bash ".devcontainer/scripts/post_create_commands.sh"  # (not needed every time)
 ```
 
 ### 🚯 Stop Containers

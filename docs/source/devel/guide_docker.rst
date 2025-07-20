@@ -4,15 +4,32 @@
 Docker Containerization Guidelines
 ======================================================================
 
+
 .. important::
 
-   When the ``Docker Env`` is ready to use, the details of which are available below,
-   click to continue to the quickstart section
-   :ref:`Checking the build scikit-plots <contributing_check_build>`.
+   By default, all Docker containers are pre-configured and ready to use.
+
+   The **editable development version** of `scikit-plots` is already installed,
+   so you can verify the installation immediately by running:
+
+   ::
+
+      scikitplot -V
+
+
+.. important::
+
+   Once the **Docker environment** is ready to use, you can proceed to the
+   quickstart section to verify the build:
+
+   See :ref:`Checking the scikit-plots build <contributing_check_build>`.
+
 
 .. seealso::
 
-   https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md
+   * `"first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt>`_
+
+   * `"docker/README.md" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md>`_
 
 
 🐋 Docker Containerization
@@ -91,6 +108,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 
    📄 Docker Hub: `https://hub.docker.com/r/scikitplot/scikit-plots`__
 
+
 .. code-block:: sh
 
    # docker pull scikitplot/scikit-plots
@@ -148,19 +166,20 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
    ## (Optionally) Install common vscode extensions
    ##✅ C/C++/Python and Jupyter Notebook
    ##✅ Linter and Formatter
-   bash docker/script/setup_vscode_ext.sh  # (not needed every time)
+   bash docker/scripts/setup_vscode_ext.sh  # (not needed every time)
 
 ▶️ Run post_create_commands.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/script/first-run-notice.txt>`_
+`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt>`_
 
 .. dropdown:: first-run-notice.txt
    :open:
    :class-container: sdd
 
-   .. literalinclude:: ../../../docker/script/first-run-notice.txt
+   .. literalinclude:: ../../../docker/scripts/first-run-notice.txt
       :language: none
+
 
 🚯 Stop Containers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -168,6 +187,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 .. code-block:: sh
 
    docker compose down
+
 
 🐳 Docker Compose Configuration
 --------------------------------
@@ -231,8 +251,8 @@ If you need more control, you can use Docker CLI commands.
    ├── docker-compose.yml              # Primary Docker Compose file
    ├── docker-compose.override.yml     # Optional override file (auto-included if present)
    ├── Dockerfile                      # Custom Dockerfile
-   ├── script/
-   │   ├── install_gpu_nvidia_cuda.sh  # GPU setup script
+   ├── scripts/
+   │   ├── install_gpu_nvidia_cuda.sh  # GPU setup scripts
 
 🖥️ Useful References
 --------------------------------

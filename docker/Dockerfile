@@ -126,6 +126,11 @@ ENV LANGUAGE=C.UTF-8
 #   ;
 
 ## Set the default user and group for the Jupyter notebook
+## whoami   # e.g., vscode
+## id -u    # 0 = root, anything else = non-root
+## -eq -ne -gt -lt -ge -le
+## [ "$(id -u)" -eq 0 ] "👑 Already root. Running apt directly..."
+## [ "$(id -u)" -ne 0 ] "🔒 Not root. Switching to root with gosu..."
 ## ARG NB_USER=jovyan
 ## ARG NB_UID=1000
 ## ARG NB_GID=100
@@ -144,6 +149,7 @@ RUN apt-get update \
   ## Requires password to sudo for ${NB_USER}
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
   ## Allow passwordless sudo for ${NB_USER}
+  ## echo 'ALL ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/nopasswd
   ## && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   ; \
   ## Cleanup to reduce image size
@@ -160,7 +166,7 @@ RUN apt-get update \
 #     && sed -i '/jammy-security/s/^/#/' /etc/apt/sources.list
 
 ## Copy the permissions-fix script and make it executable
-# COPY "./docker/script/fix-permissions" /usr/local/bin/fix-permissions
+# COPY "./docker/scripts/fix-permissions" /usr/local/bin/fix-permissions
 # RUN chmod a+rx /usr/local/bin/fix-permissions
 
 ## Install common dependencies
@@ -186,6 +192,7 @@ RUN apt-get update --yes \
     nano \
     wget \
     curl \
+    procps \
     ## Git and related tools
     git \
     git-lfs \
@@ -311,22 +318,22 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
 ######################################################################
 
 ## Create a root-owned folder and copy the script there only if it exists
-# COPY --chown="${NB_UID}:${NB_GID}" "./script/install_gpu_nvidia_cuda.sh" "/script/install_gpu_nvidia_cuda.sh"
-# COPY "./docker/script/install_gpu_nvidia_cuda.sh" "/script/install_gpu_nvidia_cuda.sh"
-# RUN chmod a+rx "/script/install_gpu_nvidia_cuda.sh"
+# COPY --chown="${NB_UID}:${NB_GID}" "./scripts/install_gpu_nvidia_cuda.sh" "/scripts/install_gpu_nvidia_cuda.sh"
+# COPY "./docker/scripts/install_gpu_nvidia_cuda.sh" "/scripts/install_gpu_nvidia_cuda.sh"
+# RUN chmod a+rx "/scripts/install_gpu_nvidia_cuda.sh"
 ## Use a wrapper script to check for file existence before running it, ([ -f file ] && ... || ...)
 # RUN bash -c ' \
-#   [ -f /script/install_gpu_nvidia_cuda.sh ] \
-#   && chmod +x /script/install_gpu_nvidia_cuda.sh \
-#   # && /script/install_gpu_nvidia_cuda.sh \
+#   [ -f /scripts/install_gpu_nvidia_cuda.sh ] \
+#   && chmod +x /scripts/install_gpu_nvidia_cuda.sh \
+#   # && /scripts/install_gpu_nvidia_cuda.sh \
 #   || echo "Script not found, skipping..." \
 #   '
 
 ## ASCII banner for scikit-plots
-# COPY ./docker/script/bashrc /etc/bash.bashrc
+# COPY ./docker/scripts/bashrc /etc/bash.bashrc
 # RUN chmod a+rwx /etc/bash.bashrc || true
-RUN if [ -f ./docker/script/bashrc ]; then \
-      cp ./docker/script/bashrc /etc/bash.bashrc; \
+RUN if [ -f ./docker/scripts/bashrc ]; then \
+      cp ./docker/scripts/bashrc /etc/bash.bashrc; \
       chmod a+rwx /etc/bash.bashrc; \
     else \
       echo "Bashrc file not found, skipping copy."; \
@@ -334,6 +341,7 @@ RUN if [ -f ./docker/script/bashrc ]; then \
 
 ######################################################################
 ## default user
+## cut -d: -f1 /etc/passwd
 ######################################################################
 
 ## Switch back to the notebook default user "jovyan" to avoid accidental container runs as root

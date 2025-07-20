@@ -1,6 +1,47 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+# | Tool        | Create Environment                                         | ⚠️ Activate Environment    | Critical Notes                                                |
+# +=============+============================================================+============================+===============================================================+
+# | conda       | conda create -n py311 python=3.11                          | conda activate py311       | Full Anaconda distribution with many preinstalled packages.   |
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+# | miniconda   | conda create -n py311 python=3.11                          | conda activate py311       | Minimal installer. Lightweight. Recommended for most users.   |
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+# | mamba       | mamba create -n py311 python=3.11                          | conda activate py311       | Drop-in faster alternative to `conda`. Needs conda to run.    |
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+# | micromamba  | micromamba create -n py311 python=3.11                     | micromamba activate py311  | No Python or conda needed. Very fast. Shell hook required.    |
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+
+# Use conda if you want the full Anaconda experience on local machines. Full-featured but heavy. Best for GUI users or those needing full Anaconda.
+# Use miniconda for lighter installs with more manual control. Lightweight, clean base. Ideal for custom setups.
+# Use mamba for speed, especially when resolving complex dependencies interactively. Same usage as conda, but much faster. Great for large envs.
+# Use micromamba in containers, CI/CD, or when minimal overhead is critical. Tiny single binary, perfect for Docker, CI/CD, and scripting.
+
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Feature                 | conda      | miniconda    | mamba           | micromamba       | Critical Notes                                           |
+# +=========================+============+============+========+==============+=========================================================================+
+# | Size                    | Large      | Medium       | Large           | Very Small       | micromamba is ideal for minimal or embedded environments |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Language                | Python     | Python       | C++             | C++              | mamba/micromamba are faster due to compiled language     |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Installation            | GUI/CLI    | CLI          | via conda/pip   | Static binary    | micromamba: no Python needed, portable                   |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Speed                   | Slow       | Slow         | Fast            | Very Fast        | mamba/micromamba offer drastically faster performance    |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Conda env creation      | ✅         | ✅          | ✅              | ✅              | All support full conda environments                      |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Scripting / Docker      | ⚠️ Heavy   | ⚠️ Moderate | ⚠️ Heavy        | ✅ Lightweight  | micromamba is best suited for Docker and automation      |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Activation support      | ✅         | ✅          | ✅              | ✅ (via hook)   | micromamba requires manual shell integration             |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Use in CI/CD            | ⚠️ Slower  | ⚠️ Moderate | ✅ Fast         | ✅ Best         | micromamba is ideal for CI/CD pipelines                  |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | GPU support             | ✅         | ✅          | ✅              | ✅              | All support CUDA & GPU packages                          |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Platform support        | All        | All          | All             | All              | micromamba supports Linux/macOS/Windows (via shell)      |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+
 # 🛠 How to Use It
 # -----------------------------------------------------------------------------
 # Create the environment with only default (base) packages:
@@ -21,11 +62,14 @@
 #   VAR1: valueA
 ---
 name: py311
+
+# Default priority (non-strict), Strict priority locks package selection to channels by order, improving stability.
+channel_priority: strict
 channels:
-  - defaults
-  - anaconda
-  - conda-forge
-  # - nvidia
+  - conda-forge    # ✅ Preferred: community-driven, most packages, up-to-date, great for mamba/micromamba
+  - nvidia             # NVIDIA GPU libraries and drivers
+  - defaults       # ☑️ Standard Official Anaconda-maintained packages fallback
+  - anaconda       # ⚠️ Optional, if you need Anaconda snapshot of defaults; only include if reproducing Anaconda dist
 
 dependencies:
   # === Base Dependencies ===
