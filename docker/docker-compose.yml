@@ -122,7 +122,7 @@ services:
         );
         command -v micromamba >/dev/null 2>&1 || (
           echo '📦 Installing Conda/Mamba environment...';
-          (bash -i -c '. docker/scripts/all_post_create.sh || true') ||
+          docker/scripts/all_post_create.sh ||
           echo '⚠️ Failed or skipped installing dev tools';
         );
         exec bash"

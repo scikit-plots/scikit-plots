@@ -215,7 +215,7 @@
     "install_apt": "(sudo -n true && sudo apt-get update -y && sudo apt-get install -y sudo gosu git curl build-essential gfortran) || true",
     "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/first-run-notice.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt || true"
   },
-  "onCreateCommand": ".devcontainer/scripts/all_post_create.sh",
+  "onCreateCommand": ".devcontainer/scripts/all_post_create.sh || true",
   // "onCreateCommand": {
   //   "message2": "echo '✅ Running onCreateCommand...'"
   // },
@@ -226,7 +226,7 @@
   //   "message4": "echo '✅ Running postCreateCommand...'"
   //   // For list optional "bash" if Ensure proper shebang (#!/bin/bash) in script.
   //   // "all_post_create": "bash -i -c '. .devcontainer/scripts/env_micromamba.sh || true; . .devcontainer/scripts/post_create_commands.sh || true'",
-  //   // "all_post_create": "bash -i -c '. .devcontainer/scripts/all_post_create.sh || true'"
+  //   // "all_post_create": ".devcontainer/scripts/all_post_create.sh || true"
   //   //
   //   // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
   //   // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",

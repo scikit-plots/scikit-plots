@@ -171,14 +171,17 @@ pip install pre-commit || true
 # echo -e '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
 printf '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
 
-set +u  # Temporarily disable unbound variable error
-( cd /workspaces/scikit-plots || true && pre-commit install || true )
-set -u  # Re-enable afterwards (if needed)
-
 # echo -e '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 printf '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
 # Install the development version of scikit-plots
 pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v || true
+
+set +u  # Temporarily disable unbound variable error
+## Check if the directory exists try to change into that directory, if fails do nothing and don't raise an error
+[ -d /workspaces/scikit-plots ] && cd /workspaces/scikit-plots || true
+## To safely install pre-commit hooks only if pre-commit is available.
+command -v pre-commit >/dev/null && pre-commit install || true
+set -u  # Re-enable afterwards (if needed)
 "
 
 ######################################################################
