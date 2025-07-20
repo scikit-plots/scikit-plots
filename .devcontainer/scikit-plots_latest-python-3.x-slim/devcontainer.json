@@ -221,7 +221,7 @@
     "message4": "echo '✅ Running postCreateCommand...'",
     // For list optional "bash" if Ensure proper shebang (#!/bin/bash) in script.
     // "all_post_create": "bash -i -c '. .devcontainer/scripts/env_micromamba.sh || true; . .devcontainer/scripts/post_create_commands.sh || true'",
-    "all_post_create": ".devcontainer/scripts/all_post_create.sh || true"
+    "all_post_create": "bash .devcontainer/scripts/all_post_create.sh || true"
     //
     // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
     // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
