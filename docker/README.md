@@ -125,7 +125,7 @@ bash docker/scripts/setup_vscode_ext.sh  # (not needed every time)
 
 ### ▶️ Run post_create_commands.sh
 
-[See Also: first-run-notice.txt](https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt)
+[See Also: bash-first-run-notice.txt](https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt)
 
 ```sh
 ##🛠️ (recommended) Apply in bash `post_create_commands.sh`

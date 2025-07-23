@@ -57,19 +57,28 @@
 #
 # To add optional or extended packages, see: extended.yml
 # -----------------------------------------------------------------------------
----
-name: py311
 
-# Default priority (non-strict), Strict priority locks package selection to channels by order, improving stability.
-channel_priority: strict
+## ✅ How to Set channel_priority Correctly
+## 📄 Example .condarc
+## Default priority (non-strict), Strict priority locks package selection to channels by order, improving stability.
+# channel_priority: strict
+
+## You can place .condarc in:
+## Your home directory: ~/.condarc
+## Or set it system-wide (e.g., /etc/conda/.condarc)
+## Or pass via command line:
+##   - conda config --set channel_priority strict
+---
+name: py312
+
 channels:
   - conda-forge    # ✅ Preferred: community-driven, most packages, up-to-date, great for mamba/micromamba
-  - nvidia             # NVIDIA GPU libraries and drivers
+  # - nvidia             # NVIDIA GPU libraries and drivers
   - defaults       # ☑️ Standard Official Anaconda-maintained packages fallback
   - anaconda       # ⚠️ Optional, if you need Anaconda snapshot of defaults; only include if reproducing Anaconda dist
 
 dependencies:
-  - python=3.11
+  - python=3.12
   - ipykernel
 
   # 📘 Jupyter and extensions
@@ -115,5 +124,5 @@ dependencies:
   # 📦 Optional pip section (can be removed if unused)
   # - pip
   # - pip:
-  #     - -r requirements.txt
-  #     - your-package
+  #     # - your-package
+  #     - -r requirements/build.txt

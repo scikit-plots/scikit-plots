@@ -78,22 +78,39 @@ jobs:
 
     ## https://docs.github.com/en/actions/reference/evaluate-expressions-in-workflows-and-actions
     # if: startsWith-endsWith( matrix.service[0], 'jupyter' ), contains( matrix.service[0], 'python-3.11' )
-    # if: contains( matrix.service[0], matrix.tag[0] )
+    # if: contains( matrix.service[0], matrix.tag[0] ) if: contains( matrix.service[0], matrix.tag.tag )  # Optional: Runtime Filtering Instead
     strategy:
       fail-fast: false  # Allow all jobs to run even if one fails
       matrix:
+        # Matrix Inputs (multi-line object):
         service:
           # [compose_service_name, dockerhub_org, dockerhub_image]
-          - [scikit-plots_latest-python-3.11-slim, scikitplot, scikit-plots]
-          - [scikit-plots_latest-jupyter, scikitplot, scikit-plots]
+          - [scikit-plots_latest-python-3.11-slim, scikitplot, scikit-plots]  # install latest release on PyPI
+          - [scikit-plots_latest-jupyter, scikitplot, scikit-plots]  # install latest release on PyPI
+        # Matrix Inputs (inline object):
         tag: [
           # Branches main maintenance/0.3.x  maintenance/0.3.7
           # [tag_name, optional_tag_only_suffix, alias, ...]
           # [python-3.11, ref_tags-python-3.11, latest-python-3.11],  # if based on service Python 3.11
           # [jupyter, ref_tags-jupyter, latest-jupyter, latest],  # if based on service Jupyter
-          { tag: "python-3.11", ref_tag: "ref_tags-python-3.11", alias: "latest-python-3.11" },
-          { tag: "jupyter", ref_tag: "ref_tags-jupyter", alias: "latest-jupyter", alias2: "latest" },
+          { tag: "python-3.11", ref_tag: "ref_tags-python-3.11", alias: "latest-python-3.11" },  # Python-based tags
+          { tag: "jupyter", ref_tag: "ref_tags-jupyter", alias: "latest-jupyter", alias2: "latest" },  # Jupyter-based tags
         ]
+        exclude:
+          # (Optional) Don't build Exclusion (multi-line object):
+          - service: [scikit-plots_latest-python-3.11-slim, scikitplot, scikit-plots]
+            tag:
+              tag: "jupyter"
+              ref_tag: "ref_tags-jupyter"
+              alias: "latest-jupyter"
+              alias2: "latest"  # <-- This key is **not required to match** unless you include it in `exclude`
+          # (Optional) Don't build Exclusion (inline object):
+          - service: [scikit-plots_latest-jupyter, scikitplot, scikit-plots]
+            tag: {
+              tag: "python-3.11",
+              ref_tag: "ref_tags-python-3.11",
+              alias: "latest-python-3.11"
+            }
 
     # Set your DockerHub username as a fixed env var
     # https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
@@ -102,6 +119,8 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN : ${{ secrets.DOCKERHUB_TOKEN }}
       COMPOSE_FILE: docker/docker-compose.yml
+      PY_VERSION: 3.11
+      SCIKITPLOT_VERSION: 0.4.0.post1  # install latest release on PyPI
 
     # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
@@ -158,7 +177,6 @@ jobs:
       # Define the Docker Compose file path and service name
       - name: 🔧 Build Docker image via Compose service
         # correctly filters for valid combinations
-        # if: contains( matrix.service[0], matrix.tag[0] )
         if: contains( matrix.service[0], matrix.tag.tag )
         continue-on-error: true
         run: |
@@ -168,15 +186,34 @@ jobs:
           IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
           echo "🔨 Building $IMAGE_NAME from service $SERVICE..."
 
-          # Build and run container detached
-          # docker compose -f "$COMPOSE_FILE" build "$SERVICE"
-          # docker compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+          ## Build and run container detached
+          ## docker compose -f "$COMPOSE_FILE" build "$SERVICE"
+          ## docker compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+          ## SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION:-} so for dev use SCIKITPLOT_VERSION= docker compose ...??
           docker compose -f "$COMPOSE_FILE" up -d --build "$SERVICE"
+
+          ## then we pushing created containers image
+          ##
+          ## docker ps -a --format '{{.Names}}'
+          ## echo $(docker inspect --format='{{.Image}}' "scikit-plots_latest-jupyter")
+          ## echo $(docker inspect --format='{{index .Config.Image}}' "scikit-plots_latest-jupyter")
+          ##
+          ## (Optionally) Save the Container as a New Image as service name (If Needed)
+          ## This commits current container state, but it doesn't include volumes or changes outside the container filesystem.
+          ## If container name is not unique, you might need to include container ID in the tag.
+          ## docker commit my-python-container my-custom-image:tagname
+          # timestamp=$(date +%Y%m%d_%H%M%S)
+          # for id in $(docker ps -aq); do
+          #   # Get compose service name
+          #   name=$(docker inspect --format='{{.Name}}' "$id" | sed 's|/||')
+          #   # docker commit "$id" "${name}:backup-${timestamp}"
+          #   docker commit "$id" "${name}"
+          #   echo "Committed $id as ${name}"
+          # done
 
       # Build the Docker image and apply all necessary (multiple) tags
       - name: 🐳 Tag and Push Docker image
         # correctly filters for valid combinations
-        # if: contains( matrix.service[0], matrix.tag[0] )
         if: contains( matrix.service[0], matrix.tag.tag )
         env:
           REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
@@ -188,20 +225,19 @@ jobs:
           SERVICE=${{ matrix.service[0] }}
           IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
 
-          ## docker ps -a --format '{{.Names}}'
-          ## $(docker inspect --format='{{index .Config.Image}}' "scikit-plots_latest-jupyter")
           ## Returns the ID of the thing you're inspecting.
           ## If $SERVICE is a container, it returns the container ID.
           ## If $SERVICE is an image, it returns the image ID (e.g. sha256:abcd...).
           # IMAGE_ID=$(docker inspect --format='{{.Id}}' "$SERVICE")  # returns the unique "container ID", not the image ID.
-
           ## the image name or ID that was used to start that container.
           ## IMAGE_ID=$(docker inspect --format='{{index .Config.Image}}' "$SERVICE")  # returns the Image name/tag (string) used to start container
           # IMAGE_ID=$(docker inspect --format='{{ .Config.Image }}' "$SERVICE")  # returns the Image name/tag (string) used to start container
-
           ## Returns the image ID (sha256...) that the container was created from.
           ## So for your tagging/pushing logic, the most correct would be:
           ## Does not return the container ID — it traces back to the image used.
+          ##
+          ## So Save image that used to create the container that was pulled or created image
+          ## echo $(docker inspect --format='{{.Image}}' "scikit-plots_latest-jupyter")
           IMAGE_ID=$(docker inspect --format='{{.Image}}' "$SERVICE")  # returns the "actual SHA" digest of the image (e.g. sha256:...) used to create the container that was pulled or created image
 
           # echo "🧪 DEBUG: REF_TYPE=$REF_TYPE | BRANCH=$BRANCH | REF_TAG=$REF_TAG"
@@ -270,7 +306,7 @@ jobs:
             # Determine final tag based on context
             if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" == "tag" ]]; then
               SUFFIX="${REF_TAG#ref_tags-}"         # e.g., 'jupyter'
-              FINAL_TAG="${VERSION}-${SUFFIX}"      # e.g., '1.2.3-jupyter'
+              FINAL_TAG="${VERSION}-${SUFFIX}"      # e.g., '1.2.3-jupyter', 'latest-jupyter'
             elif [[ "$BRANCH" == "main" ]]; then
               FINAL_TAG="$ALIAS"                    # e.g., 'latest-jupyter', 'latest-python-3.11'
             elif [[ "$BRANCH" == maintenance-* ]]; then
@@ -331,6 +367,13 @@ jobs:
       #     docker build -t "$IMAGE:latest" $DOCKER_CONTEXT
       #     # Also tag with SHA for traceability
       #     docker tag "$IMAGE:latest" "$IMAGE:${{ steps.vars.outputs.sha_tag }}"
+
+      # - name: Build multi-stage Docker image
+      #   run: |
+      #     docker build \
+      #       --file Dockerfile.python \
+      #       --build-arg PY_VERSION=${{ matrix.python_version }} \
+      #       --tag yourdockerhubusername/my-python-app:${{ matrix.tag }} .
 
       ################################################################
       ## Docker tags

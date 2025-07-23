@@ -1,0 +1,70 @@
+## ✅ Declare default only once before FROM if you want a default.
+ARG PY_VERSION=3.11
+
+## Use an official Python runtime as a parent image
+FROM python:${PY_VERSION}-slim
+# ✅ Valid and recommended to redeclare ARG after FROM without default to get the passed/default value correctly.
+ARG PY_VERSION
+# ❌ Avoid redeclaring with a default after FROM, it overrides build-arg.
+# ARG PY_VERSION=3.11        # <-- This overrides any build-arg passed earlier!
+
+# Use ENV with shell-style expansion to get ENV_NAME=py3.11
+# Replace '.' in PY_VERSION to get py311 instead of py3.11
+ENV ENV_NAME=py${PY_VERSION//./}
+
+ARG SCIKITPLOT_VERSION=0.4.0.post1
+ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
+
+## Set environment variables
+## 🐳 Used to detect if running inside Docker (similar to checking /.dockerenv)
+## Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
+ENV IS_DOCKERENV=true
+
+## Recommended Python environment variables (uncomment if needed)
+## Prevent Python from writing .pyc files
+# ENV PYTHONDONTWRITEBYTECODE=1
+## Make output immediate (no buffering)
+# ENV PYTHONUNBUFFERED=1
+
+## Install system dependencies (including bash and sudo)
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+		bash \
+		sudo \
+		gosu \
+		wget \
+		curl \
+		procps \
+		git \
+		build-essential \
+		gfortran \
+		ninja-build \
+		## newlines equivalent to single semicolon ; on terminal or in shell script.
+		|| { echo "Failed to install common dependencies"; exit 1; }; \
+  ## Cleanup to reduce image size
+  apt-get clean \
+  && rm -rf /var/lib/apt/lists/* \
+  ;
+
+## Set working directory inside the container
+WORKDIR /work
+
+## Copy your project files to leverage Docker cache
+COPY docker /work/docker
+COPY docker/env_conda/environment.yml /work/
+COPY requirements /work/requirements/
+
+RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf /work/docker"
+
+## -------- Final Stage --------
+# FROM python:${PY_VERSION}-slim
+## Copy micromamba installation and environment from builder stage
+# COPY --from=builder /root/micromamba /root/micromamba
+# COPY --from=builder /work /work
+## Copy any other needed files from builder stage if outside /work, adjust as needed
+## Optionally install runtime deps only (if different)
+
+## Optional: Expose port for Jupyter (adjust if needed)
+EXPOSE 8890
+
+ENTRYPOINT ["bash"]

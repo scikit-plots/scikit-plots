@@ -49,6 +49,10 @@ INFO ?= false
 # Append values
 # CFLAGS += -Wall
 
+helper:
+	@echo make helper
+	@make -h
+
 ## (Optional) Ensures that the project is rebuilt from a clean state.
 all: clean publish
 	@echo "all completed."
@@ -432,7 +436,15 @@ grep:
 
 # VERSION := $(shell scikitplot -V | awk '{print $$3}')
 # Get scikitplot version if installed, else fallback to 0.0.0
-VERSION := $(shell command -v scikitplot >/dev/null 2>&1 && scikitplot -V | awk '{print $$3}' || echo "0.0.0")
+ifeq ($(OS),Windows_NT)
+  NULL_DEVICE := NUL
+else
+  NULL_DEVICE := /dev/null
+endif
+# VERSION := $(shell python -c "import importlib; print(getattr(importlib.import_module('scikitplot'), '__version__', '0.0.0'))")
+# VERSION := $(shell python -c "import scikitplot; print(scikitplot.__version__) if hasattr(scikitplot, '__version__') else print('0.0.0')" 2>$(NULL_DEVICE) || echo "0.0.0")
+# VERSION := $(shell python -c "try: import scikitplot; print(scikitplot.__version__) except Exception: print('0.0.0')" 2>$(NULL_DEVICE) || echo 0.0.0)
+VERSION := $(shell command -v scikitplot >$(NULL_DEVICE) 2>&1 && scikitplot -V | awk '{print $$3}' || echo 0.0.0)
 
 # Git info
 # Check the short commit hash
@@ -447,19 +459,49 @@ VERSION_EXT := $(shell echo "$(LAST_COMMIT_MESSAGE)" | grep -oE 'v?[0-9]+\.[0-9]
 # If VERSION != 0.0.0, use VERSION
 # Else if VERSION_EXT exists, use VERSION_EXT
 # Else empty (will be handled below)
+# Use VERSION unless it's 0.0.0, in which case fallback to VERSION_EXT
 VERSION_USED := $(if $(filter-out 0.0.0,$(VERSION)),$(VERSION),$(VERSION_EXT))
 
-# Ensure version has 'v' prefix; default to v0.0.0 if empty
-GIT_TAG := $(shell \
-  if [ -z "$(VERSION_USED)" ]; then \
+# $(patsubst pattern, replacement, text)
+# UNQUOTED := $(strip $(patsubst %",$(patsubst "\"%,\
+#     $(patsubst %',$(patsubst "'%,\
+#     $(VAR)))))
+# Remove leading quote (either " or ')
+# # RESULT now has no leading/trailing quotes
+# VERSION_USED := $(strip $(VERSION_USED))
+# VERSION_USED := $(patsubst "v%,%,$(VERSION_USED))  # removes leading double quote
+# VERSION_USED := $(patsubst "\"%,%,$(VERSION_USED))  # removes leading double quote
+# VERSION_USED := $(patsubst "'%,%,$(VERSION_USED)) # removes leading single quote
+# # Remove trailing quote (either " or ')
+# VERSION_USED := $(patsubst %\" ,%,$(VERSION_USED))  # removes trailing double quote
+# VERSION_USED := $(patsubst %',%,$(VERSION_USED))    # removes trailing single quote
+
+# Ensure version has a 'v' prefix; default to v0.0.0 if undefined or  empty
+GIT_TAG := v$(patsubst v%,%,$(VERSION_USED))
+
+# If VERSION_USED is empty, default to "v0.0.0"
+# If VERSION_USED starts with 'v', use as-is
+# Else prefix with 'v'
+
+# Force bash to run the shell command explicitly:
+GIT_TAG := $(shell bash -c '\
+  if [ -z "${VERSION_USED:-}" ]; then \
     echo "v0.0.0"; \
-  elif echo "$(VERSION_USED)" | grep -q '^v'; then \
+  elif echo "$(VERSION_USED)" | grep -q "^v"; then \
     echo "$(VERSION_USED)"; \
   else \
     echo "v$(VERSION_USED)"; \
-  fi \
-)
-# Compose release message
+  fi')
+
+# using pure Make functions (no shell):
+# GIT_TAG := $(if $(VERSION_USED), \
+#              $(if $(filter v%,$(VERSION_USED)),\
+#                  $(VERSION_USED),\
+#                  v$(VERSION_USED)), \
+#              v0.0.0)
+# GIT_TAG := $(strip $(GIT_TAG))
+
+# # Compose release message
 GIT_TAG_MESSAGE := Release version $(GIT_TAG)
 
 # Debug output if DEBUG is true or VERSION is 0.0.0 (scikitplot missing)
@@ -480,11 +522,11 @@ endif
 
 # make tag               # Quiet mode
 # make tag DEBUG=true    # Show debug messages
+# 	@if [ "$(DEBUG)" = "true" ]; then \
+# 		echo "[DEBUG] GIT_TAG is $(GIT_TAG)"; \
+# 	fi
 tag:
-	@if [ "$(DEBUG)" = "true" ]; then \
-		echo "[DEBUG] GIT_TAG is $(GIT_TAG)"; \
-	fi
-	@echo "$(GIT_TAG)"
+	@echo TAG: "$(GIT_TAG)"
 
 release:
 ifdef GIT_TAG
@@ -663,3 +705,6 @@ sym:
 	@ln -rsf "docker/scripts/" ".devcontainer/scripts"
 	@ln -rsf "./docker/env_conda/environment.yml" "environment.yml"
 	@echo "Created symbolic links..."
+	@# find . -type l -exec readlink -f {} \; -exec ls -l {} \;
+	@# find . -type l -exec ls -l {} +
+	@find . -type l

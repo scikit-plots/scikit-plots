@@ -37,6 +37,9 @@ FROM ${BASE_IMAGE} AS base
 ## ⚠️ ARG may specified again because the FROM directive resets ARGs
 ## (but their default value is retained if set previously)
 
+ARG SCIKITPLOT_VERSION=0.4.0.post1
+ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
+
 # LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
 LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
 # LABEL org.opencontainers.image.authors="The scikit-plots developers <scikit-plots.github.io/dev>"
@@ -154,8 +157,7 @@ RUN apt-get update \
   ; \
   ## Cleanup to reduce image size
   apt-get clean \
-  && rm -rf /var/lib/apt/lists/* \
-  ;
+  && rm -rf /var/lib/apt/lists/*
 
 ######################################################################
 ## OS dependencies
@@ -272,13 +274,9 @@ RUN apt-get update --yes \
   ## Install separately and ignore failure
   ## MKL (Intel Math Kernel Library)
   apt-get install --yes --no-install-recommends libmkl-dev || true; \
-  ## Fix permissions as root
-  fix-permissions "$HOME" \
-  && fix-permissions "$CONDA_DIR"; \
   ## Cleanup to reduce image size
   apt-get clean \
-  && rm -rf /var/lib/apt/lists/* \
-  ;
+  && rm -rf /var/lib/apt/lists/*
 
 ## Add a second conditional RUN block for large or optional packages:
 RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
@@ -301,10 +299,7 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
       graphviz \
       ## Vector graphics editor
       inkscape \
-    || true; \
-    ## Fix permissions as root
-    fix-permissions "$HOME" \
-    && fix-permissions "$CONDA_DIR"; \
+    || { echo "Failed to install extended packages"; }; \
     ## Cleanup to reduce image size
     apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -329,16 +324,6 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
 #   || echo "Script not found, skipping..." \
 #   '
 
-## ASCII banner for scikit-plots
-# COPY ./docker/scripts/bashrc /etc/bash.bashrc
-# RUN chmod a+rwx /etc/bash.bashrc || true
-RUN if [ -f ./docker/scripts/bashrc ]; then \
-      cp ./docker/scripts/bashrc /etc/bash.bashrc; \
-      chmod a+rwx /etc/bash.bashrc; \
-    else \
-      echo "Bashrc file not found, skipping copy."; \
-    fi
-
 ######################################################################
 ## default user
 ## cut -d: -f1 /etc/passwd
@@ -347,66 +332,51 @@ RUN if [ -f ./docker/scripts/bashrc ]; then \
 ## Switch back to the notebook default user "jovyan" to avoid accidental container runs as root
 USER ${NB_UID}
 
-## Fix permissions as jovyan
-## Setup work directory for backward-compatibility
-RUN fix-permissions "$HOME" \
-  && mkdir -p /home/$NB_USER/work || true
-
 ######################################################################
 ## default environment (e.g. conda, mamba, pipenv)
 ######################################################################
 
-## Create conda environment from environment.yml and clean cache
-COPY "./docker/env_conda/base.yml" "/tmp/base.yml"
-COPY "./docker/env_conda/default.yml" "/tmp/default.yml"
-COPY "./docker/env_conda/extended.yml" "/tmp/extended.yml"
-COPY "./docker/env_conda/environment.yml" "/tmp/environment.yml"
+## Copy your project files to leverage Docker cache
+COPY docker /work/docker
+COPY docker/env_conda/environment.yml /work/
+COPY requirements /work/requirements/
 
+# micromamba and post create steps
+RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf /work/docker"
+
+# mamba as conda
+COPY ./docker/env_conda/ /tmp/
 ## Optionally, Ensure mamba installations (if needed)
 ## RUN conda install -n base conda-forge::mamba -y
-# RUN conda install -n base -c conda-forge mamba -y
-
-# RUN mamba create -n "py311" python=3.11 ipykernel -y
-RUN mamba env create -n "py311" -f "/tmp/base.yml" \
-  || { echo "Failed to create environment py311"; exit 1; }; \
-  conda info --envs; \
+## RUN conda install -n base -c conda-forge mamba -y
+## RUN mamba create -n "py312" python=3.11 ipykernel -y
+RUN mamba env create -n "py312" -f "/tmp/base.yml" \
+  || { echo "Failed to create environment py312"; }; \
   ## Clean mamba and fix permissions, Fails but continues
   mamba clean --all -f -y || true; \
-  rm -rf ${HOME}/.cache || true; \
-  ## Fix permissions as jovyan
-  fix-permissions "$HOME" \
-  && fix-permissions "${CONDA_DIR}" \
-  ;
-
-# Update environment with default.yml (always applied), Fails and exits script cleanly
-RUN mamba env update -n "py311" -f "/tmp/default.yml" \
-  || { echo "Failed to apply default environment"; exit 0; }; \
+  rm -rf ${HOME}/.cache || true
+## Update environment with default.yml (always applied), Fails and exits script cleanly
+RUN mamba env update -n "py312" -f "/tmp/default.yml" \
+  || { echo "Failed to apply default environment"; }; \
   ## Clean mamba and fix permissions, Fails but continues
   mamba clean --all -f -y || true; \
-  rm -rf ${HOME}/.cache || true; \
-  ## Fix permissions as jovyan
-  fix-permissions "$HOME" \
-  && fix-permissions "${CONDA_DIR}" \
-  ;
-
-# Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
+  rm -rf ${HOME}/.cache || true
+## Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
 RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     echo "Installing extended packages..."; \
-    mamba env update -n "py311" -f "/tmp/extended.yml" \
-    || { echo "Failed to apply extended environment"; exit 0; }; \
+    mamba env update -n "py312" -f "/tmp/extended.yml" \
+    || { echo "Failed to apply extended environment"; }; \
     ## Clean mamba and fix permissions, Fails but continues
     mamba clean --all -f -y || true; \
-    rm -rf ${HOME}/.cache || true; \
-    ## Fix permissions as jovyan
-    fix-permissions "$HOME" \
-    && fix-permissions "${CONDA_DIR}" \
+    rm -rf ${HOME}/.cache || true \
     ; \
   else \
     echo "Skipping extended packages."; \
   fi
 
-## Set shell to use conda run — safer than `conda activate`
-# SHELL ["conda", "run", "-n", "py311", "/bin/bash", "-c"]
+## Fix permissions as jovyan
+RUN fix-permissions "$HOME" \
+  && fix-permissions "${CONDA_DIR}" || true
 
 ######################################################################
 ## JUPYTER
@@ -426,9 +396,11 @@ EXPOSE 9000-9001
 ## Configure container startup
 ENTRYPOINT ["tini", "-g", "--"]
 ## Set the command to start Jupyter lab with the specified port
-# CMD ["bash", "-c", "source /etc/bash.bashrc && jupyter notebook --notebook-dir=/tf --ip 0.0.0.0 --no-browser --allow-root"]
+## CMD ["bash", "-c", "source /etc/bash.bashrc && jupyter notebook --notebook-dir=/tf --ip 0.0.0.0 --no-browser --allow-root"]
+## CMD bash -c 'source ~/.bash-bashrc 2>/dev/null || true; exec start-notebook.py --port "${JUPYTER_PORT:-8888}"'
+## CMD bash -c '[ -f ~/.bash-bashrc ] && source ~/.bash-bashrc; exec start-notebook.py --port "${JUPYTER_PORT:-8888}"'
 # CMD ["start-notebook.sh"]
-CMD source /etc/bash.bashrc && start-notebook.py --port ${JUPYTER_PORT}
+CMD bash -c 'start-notebook.py --port "${JUPYTER_PORT:-8888}"'
 
 ######################################################################
 ## WORKDIR

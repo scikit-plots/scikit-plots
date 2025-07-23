@@ -27,7 +27,7 @@ Docker Containerization Guidelines
 
 .. seealso::
 
-   * `"first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt>`_
+   * `"bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_
 
    * `"docker/README.md" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md>`_
 
@@ -171,13 +171,13 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 ▶️ Run post_create_commands.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt>`_
+`"See Also: bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_
 
-.. dropdown:: first-run-notice.txt
+.. dropdown:: bash-first-run-notice.txt
    :open:
    :class-container: sdd
 
-   .. literalinclude:: ../../../docker/scripts/first-run-notice.txt
+   .. literalinclude:: ../../../docker/scripts/bash-first-run-notice.txt
       :language: none
 
 

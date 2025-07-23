@@ -28,12 +28,15 @@ services:
   "nvidia_host_gpu":
     container_name: "nvidia_host_gpu_main"
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
-    # tty: true  # Allocates a pseudo-TTY
+    # tty: true  # Allocates a pseudo-TTY,  Keeps container running with interactive terminal
     ## Restart policy: always restart the container if it stops
     # restart: "always"
     ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
     ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
     image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    ## (Optionally) Use Dockerfile
+    # build: ...
+    ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
     ## by image source default for jupyter images "/home/jovyan/work"
@@ -109,7 +112,7 @@ services:
     ## https://docs.docker.com/engine/containers/resource_constraints/#gpu
 
     # 👇 if using Compose V2 CLI this enables GPU access (Compose V2+	YAML equivalent of --gpus all)
-    gpus: all  # ← this is the preferred modern way to request all GPUs
+    # gpus: all  # ← this is the preferred modern way to request all GPUs
     # command: nvidia-smi  # GPU test command
 
     # ⚠️ Deprecated* Alternatively, Compose V1 only (Legacy)
@@ -132,12 +135,15 @@ services:
   "nvidia_internal_gpu":
     container_name: "nvidia_internal_gpu_main"
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
-    # tty: true  # Allocates a pseudo-TTY
+    # tty: true  # Allocates a pseudo-TTY,  Keeps container running with interactive terminal
     ## Restart policy: always restart the container if it stops
     # restart: "always"
     ## nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04    # CUDA-enabled base image compressed 5.5+Gb
     ## nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04  # CUDA-enabled base image compressed 2.7+Gb
     image: nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04  # CUDA-enabled base image (CUDA preinstalled in the container)
+    ## (Optionally) Use Dockerfile
+    # build: ...
+    ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
     ## by image source default for jupyter images "/home/jovyan/work"
@@ -186,6 +192,7 @@ services:
     #     python3 -m venv ~/venv
     #     . ~/venv/bin/activate  # source or . (dot Works in both bash and sh)
     #     ## If a command is provided → runs that command or run default below
+    #     ## exec "$@"
     #     exec /bin/bash -c "$@"
     # command:  # as arg mutuble
     #   - "/bin/bash"
@@ -203,7 +210,7 @@ services:
     ## https://docs.docker.com/engine/containers/resource_constraints/#gpu
 
     # 👇 if using Compose V2 CLI this enables GPU access (Compose V2+	YAML equivalent of --gpus all)
-    gpus: all  # ← this is the preferred modern way to request all GPUs
+    # gpus: all  # ← this is the preferred modern way to request all GPUs
     # command: nvidia-smi  # GPU test command
 
     # ⚠️ Deprecated* Alternatively, Compose V1 only (Legacy)

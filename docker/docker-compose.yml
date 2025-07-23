@@ -73,21 +73,24 @@ networks:
 ## Declares services (containers) that will be run by Docker Compose
 services:
 
-  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-python-3.11-slim'
-  "scikit-plots_latest-python-3.11-slim":  # Name of the service (can be any name you choose)
-    container_name: "scikit-plots_latest-python-3.11-slim"
+  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-python-3.12-slim'
+  "scikit-plots_latest-python-3.12-slim":  # Name of the service (can be any name you choose)
+    container_name: "scikit-plots_latest-python-3.12-slim"
     stdin_open: true  # Keeps STDIN open (for interactive mode)
-    tty: true  # Allocates a pseudo-TTY
+    tty: true  # Allocates a pseudo-TTY,  Keeps container running with interactive terminal
     ## Restart policy: always restart the container if it stops
     # restart: "always"
-    image: python:3.11-slim  # 130+Mb (No internal CUDA, relies on host CUDA)
+    image: python:3.12-slim  # 130+Mb (No internal CUDA, relies on host CUDA)
+    ## (Optionally) Use Dockerfile
+    # build: ...
+    ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
     ## by image source default for jupyter images "/home/jovyan/work"
     ## by image source default for codespaces images "/workspaces"
     working_dir: /work
     volumes:
-      - ..:/work
+      - ..:/work  # Optional: bind mount your code for live edits
     # env_file:
     #   - .env  # Load environment from file
     environment:
@@ -114,22 +117,21 @@ services:
     # sudo -n true &&
     # { ... } runs in current shell — can exit or affect current environment.
     # ( ... ) runs in a subshell — changes inside don't affect the parent script.
+    # git curl procps build-essential gfortran ninja-build
     entrypoint: >-
       bash -c "
-        command -v curl >/dev/null 2>&1 || {
-          echo '📦 Installing dev tools (if sudo available)...';
-          { apt-get update -y &&
-            apt-get install -y sudo gosu git curl procps build-essential gfortran ninja-build; } ||
-          echo '⚠️ Failed or skipped installing dev tools';
+        command -v sudo >/dev/null 2>&1 || {
+          echo '📦 Installing sudo...';
+          { apt-get update -y;
+            apt-get install -y sudo gosu git;
+          } || echo '⚠️ Failed or skipped installing sudo';
         };
 
-        command -v micromamba >/dev/null 2>&1 || {
-          echo '📦 Installing Conda/Mamba environment...';
-          bash docker/scripts/all_post_create.sh ||
-          echo '⚠️ Failed or skipped installing dev tools';
-        };
-
-        exec bash"
+        ## Add bash-first-run-notice.txt
+        [ -f docker/scripts/bash_first_run_notice.sh ] && \
+        { . docker/scripts/bash_first_run_notice.sh; } || true
+        exec bash
+        fi"
 
     # 👇 if using Compose V2 CLI this enables GPU access (Compose V2+	YAML equivalent of --gpus all)
     # gpus: all  # ← this is the preferred modern way to request all GPUs
@@ -145,12 +147,60 @@ services:
     #       devices:
     #         - capabilities: [gpu]
 
+  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-python-3.11-slim'
+  "scikit-plots_latest-python-3.11-slim":  # Name of the service (can be any name you choose)
+    container_name: "scikit-plots_latest-python-3.11-slim"
+    stdin_open: true  # Keeps STDIN open (for interactive mode)
+    tty: true  # Allocates a pseudo-TTY,  Keeps container running with interactive terminal
+    ## Restart policy: always restart the container if it stops
+    # restart: "always"
+    # image: python:3.11-slim  # 130+Mb (No internal CUDA, relies on host CUDA)
+    ## (Optionally) Use Dockerfile
+    # build: ...
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.python  # fast mini image
+      args:
+        PY_VERSION: "${PY_VERSION:-3.11}"
+        # SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-}"  # for dev or SCIKITPLOT_VERSION=
+        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post1}"  # for release
+    ## Change User
+    # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
+    ## Adjust the working directory as needed
+    ## by image source default for jupyter images "/home/jovyan/work"
+    ## by image source default for codespaces images "/workspaces"
+    working_dir: /work
+    volumes:
+      - ..:/work  # Optional: bind mount your code for live edits
+    # env_file:
+    #   - .env  # Load environment from file
+    environment:
+      # This overrides the ENV at runtime. So the container will have:
+      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
+      - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
+    ports:
+      - "8890:8890"  # Exposing port placeholder for Jupyter Notebook (default 8888)
+    networks:
+      - "back_tier"  # Connect to the defined network for backend services
+      - "front_tier"  # Connect to the defined network for frontend services
+      # - "llm-rag-workshop_back_tier"  # Connect to the external network for LLM RAG workshop
+
+    ## Works only with Docker 20.10.0+ and the host-gateway feature enabled.
+    ## macOS & Windows (host.docker.internal is built-in DNS name that maps to the host machine.)
+    ## Only needed for Linux, You must manually map it using extra_hosts, like this:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Makes host accessible as "host.docker.internal"
+
+    ## if both provided default only work entrypoint so command used to as entrypoint argument
+    # entrypoint: bash  # bash -c "<everything inside the quotes>"
+    # command:
+
 
   ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-jupyter'
   "scikit-plots_latest-jupyter":  # Name of the service (can be any name you choose)
     container_name: "scikit-plots_latest-jupyter"
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
-    # tty: true  # Allocates a pseudo-TTY
+    # tty: true  # Allocates a pseudo-TTY,  Keeps container running with interactive terminal
     ## Restart policy: always restart the container if it stops
     restart: "always"
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
@@ -158,12 +208,17 @@ services:
     ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
     ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
     # image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    ## (Optionally) Use Dockerfile
+    # build: ...
     build:
       context: ../
       dockerfile: ./docker/Dockerfile  # 15+Gb compressed image
       args:
         BASE_IMAGE: "${BASE_IMAGE:-jupyter/tensorflow-notebook:latest}"
         NB_PASS: "jovyan"
+        # SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-}"  # for dev or SCIKITPLOT_VERSION=
+        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post1}"  # for release
+    ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
     ## by image source default for jupyter images "/home/jovyan/work"
@@ -192,7 +247,7 @@ services:
   "scikit-plots_latest-gpu-jupyter":  # Name of the service (can be any name you choose)
     container_name: "scikit-plots_latest-gpu-jupyter"
     # stdin_open: true  # Keeps STDIN open (for interactive mode)
-    # tty: true  # Allocates a pseudo-TTY
+    # tty: true  # Allocates a pseudo-TTY,  Keeps container running with interactive terminal
     ## Restart policy: always restart the container if it stops
     restart: "always"
     ## If the host has CUDA installed, the container can use it without installing CUDA inside.
@@ -200,12 +255,15 @@ services:
     ## ubuntu:latest  # Use a lightweight base image (No internal CUDA, relies on host CUDA)
     ## python:3.12-slim  # Use the Python slim image (lightweight) (No internal CUDA, relies on host CUDA)
     # image: "jupyter/tensorflow-notebook:latest"  # Image compressed 1.8+Gb (No internal CUDA, relies on host CUDA)
+    ## (Optionally) Use Dockerfile
+    # build: ...
     build:
       context: ../
       dockerfile: ./docker/Dockerfile
       args:
         BASE_IMAGE: "${BASE_IMAGE:-jupyter/tensorflow-notebook:latest}"
         NB_PASS: "jovyan"
+    ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
     ## by image source default for jupyter images "/home/jovyan/work"
