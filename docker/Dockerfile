@@ -340,18 +340,17 @@ USER ${NB_UID}
 ## WORKDIR /home/$NB_USER/work "${HOME}/work"
 WORKDIR ~/work
 # RUN sudo chown -R jovyan .
-
-######################################################################
-## default environment (e.g. conda, mamba, pipenv)
-######################################################################
-
 ## Copy your project files to leverage Docker cache under (/work, ~/work or /workspace)
-COPY docker ~/work/docker
+COPY docker ~/work/docker/
 COPY docker/env_conda/environment.yml ~/work/
 COPY requirements ~/work/requirements/
 
 # micromamba and post create steps
-RUN bash -i -c ". ~/work/docker/scripts/all_post_create.sh && rm -rf ~/work/docker"
+RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf ~/work/docker"
+
+######################################################################
+## default environment (e.g. conda, mamba, pipenv)
+######################################################################
 
 # mamba as conda
 COPY ./docker/env_conda/ /tmp/
