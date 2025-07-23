@@ -31,6 +31,10 @@ ENV IS_DOCKERENV=true
 ## Install system dependencies (including bash and sudo)
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
+    # - `tini` is installed as a helpful container entrypoint,
+    #   that reaps zombie processes and such of the actual executable we want to start
+    #   See https://github.com/krallin/tini#why-tini for details
+    tini \
 		bash \
 		sudo \
 		gosu \
@@ -41,11 +45,15 @@ RUN apt-get update \
 		build-essential \
 		gfortran \
 		ninja-build \
+		locales \
 		## newlines equivalent to single semicolon ; on terminal or in shell script.
 		|| { echo "Failed to install common dependencies"; exit 1; }; \
   ## Cleanup to reduce image size
   apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
+	&& echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+	&& echo "C.UTF-8 UTF-8" >> /etc/locale.gen \
+	&& locale-gen || true \
   ;
 
 ######################################################################
@@ -75,7 +83,14 @@ RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
 ## Optional: Expose port for Jupyter (adjust if needed)
 EXPOSE 8890
 
+## Configure container entrypoint
 ENTRYPOINT ["bash"]
+## "tini" — the tini binary (often installed to /usr/bin/tini)
+## -g — makes tini adopt grandchild processes too (ensures full reaping of orphaned zombies)
+## -- — standard POSIX way to signal the end of options
+# ENTRYPOINT ["tini", "-g", "--"]
+## Configure container startup
+# CMD ["bash"]
 
 ######################################################################
 ## WORKDIR

@@ -612,7 +612,7 @@ exclude_patterns = [
 master_doc = "index"
 
 # The encoding of source files.
-# source_encoding = 'utf-8-sig'
+# source_encoding = 'utf-8-sig'  # paste Unicode (⚠️, ✅, 🐢, ⚡️ etc.) directly in the .rst file. ✅ ✅ ❌ ⚠️ 🐢 ⚡ 🐍 🪶 🧪 🚀 ⏱️ 💡 ⚖️ 🧪 🧠 🚫
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:

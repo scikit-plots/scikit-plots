@@ -1,8 +1,11 @@
+
+.. https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
+
 .. _scikit-plots-contributing:
 
 .. Welcome to Scikit-plots 101 |br| |release| - |today|
 ..
-    substitutions don’t work in .. raw:: html
+    substitutions don'’t work in .. raw:: html
     .. raw:: html
 
     <div style="text-align: center"><strong>
@@ -111,6 +114,7 @@ Here you'll find all the guidance and resources you need to quickly start contri
          :caption: docker
 
          Docker Guidelines <guide_docker.rst>
+         Python Env Manager Guide <guide_python_env_manager.rst>
 
 
 .. _submitting-a-bug-report:

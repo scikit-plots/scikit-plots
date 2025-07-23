@@ -139,6 +139,9 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV LANGUAGE=C.UTF-8
 ## Install minimal locales support and generate C.UTF-8 locale
+## echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+## echo "C.UTF-8 UTF-8" >> /etc/locale.gen && \
+## locale-gen
 # RUN apt-get update \
 #   ## Generate locales (this may be required depending on the system)
 #   ## "C" locale (basic settings) while supporting the full range of Unicode characters (UTF-8).
@@ -203,6 +206,10 @@ RUN apt-get update --yes \
     ca-certificates \
     ## Provides the add-apt-repository command (useful for adding PPAs)
     software-properties-common \
+    # - `tini` is installed as a helpful container entrypoint,
+    #   that reaps zombie processes and such of the actual executable we want to start
+    #   See https://github.com/krallin/tini#why-tini for details
+    # tini \
     ## Essential packages for building software
     ## for cython: https://cython.readthedocs.io/en/latest/src/quickstart/install.html
     ## installs gcc, g++, make, libc-dev for compiling native extensions
@@ -417,14 +424,15 @@ EXPOSE 9000-9001
 # Copy local files as late as possible to avoid cache busting
 # COPY run-hooks.sh start.sh /usr/local/bin/
 # COPY start-notebook.py start-notebook.sh start-singleuser.py start-singleuser.sh /usr/local/bin/
-## Configure container startup
+
+## Configure container entrypoint
+## "tini" — the tini binary (often installed to /usr/bin/tini)
+## -g — makes tini adopt grandchild processes too (ensures full reaping of orphaned zombies)
+## -- — standard POSIX way to signal the end of options
 # ENTRYPOINT ["tini", "-g", "--"]
-# "tini" — the tini binary (often installed to /usr/bin/tini)
-# -g — makes tini adopt grandchild processes too (ensures full reaping of orphaned zombies)
-# -- — standard POSIX way to signal the end of options
 # "start.sh" — your actual container start script (e.g. to start Jupyter, Conda env, etc.)
 ENTRYPOINT ["tini", "-g", "--", "start.sh"]
-# Configure container startup by
+## Configure container startup
 # CMD bash -c 'start-notebook.py --port "${JUPYTER_PORT:-8888}"'
 # CMD ["start-notebook.py"]
 CMD ["start-notebook.py", "--port ${JUPYTER_PORT:-8888}"]

@@ -1,13 +1,15 @@
-"""
-produce json:
-https://github.com/scikit-plots/scikit-plots.github.io/blob/main/dev/_static/switcher.json
-"""
+# -*- coding: utf-8 -*-
+
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
+"""
+produce json:
+https://github.com/scikit-plots/scikit-plots.github.io/blob/main/dev/_static/switcher.json
+"""
 
 import os
 import re

@@ -1,6 +1,8 @@
 :orphan:
-
-.. # This file is included. So it needs to be marked as orphan to suppress warnings.
+..
+  # This file is included. So it needs to be marked as orphan to suppress warnings.
+  .. include:: installation_instructions_conda.rst
+      :start-after: :orphan:
 
 .. _installation_instructions_conda:
 

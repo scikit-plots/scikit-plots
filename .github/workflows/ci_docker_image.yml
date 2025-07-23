@@ -93,8 +93,9 @@ jobs:
           # [tag_name, optional_tag_only_suffix, alias, ...]
           # [python-3.11, ref_tags-python-3.11, latest-python-3.11],  # if based on service Python 3.11
           # [jupyter, ref_tags-jupyter, latest-jupyter, latest],  # if based on service Jupyter
-          { tag: "python-3.11", ref_tag: "ref_tags-python-3.11", alias: "latest-python-3.11" },  # Python-based tags
-          { tag: "jupyter", ref_tag: "ref_tags-jupyter", alias: "latest-jupyter", alias2: "latest" },  # Jupyter-based tags
+          # { tag: "python-3.14", ref_tag: "ref_tags-python-3.14", alias: "latest-python-3.14", alias2: "latest" },  # Python-based tags
+          { tag: "python-3.11", ref_tag: "ref_tags-python-3.11", alias: "latest-python-3.11", alias2: "latest" },  # Python-based tags
+          { tag: "jupyter", ref_tag: "ref_tags-jupyter", alias: "latest-jupyter" },  # Jupyter-based tags
         ]
         exclude:
           # (Optional) Don't build Exclusion (multi-line object):

@@ -102,7 +102,7 @@
     <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
     <img alt="Anaconda Nightly Wheels License" height="17" src="https://img.shields.io/conda/l/scikit-plots-wheels-staging-nightly/scikit-plots?logo=anaconda&label=conda%20|%20License&labelColor=gray&color=blue">
   </a>
-  <!-- 🐋 Docker -->
+  <!-- 🐋 Docker 🐳 -->
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="🐋 Docker Image Version (tag)" height="17" src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Latest%20Version&color=blue">
   </a>
@@ -173,6 +173,21 @@
   </a>
 </h5>
 </div>
+
+<hr>
+
+<h2> 🐋 Scikit-plots Runtime Docker Images: </h2>
+
+🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
+
+```bash
+# docker run -it --rm scikitplot/scikit-plots:latest-python-3.11
+docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -i -c "scikitplot -V"
+```
+
+<a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+  🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
+</a>
 
 <hr>
 

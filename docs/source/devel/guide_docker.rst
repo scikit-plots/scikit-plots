@@ -27,9 +27,11 @@ Docker Containerization Guidelines
 
 .. seealso::
 
-   * `"bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_
+   * `"🐳 Run the latest scikit-plots container — with full or partial preinstallation — interactively" <https://hub.docker.com/r/scikitplot/scikit-plots>`_
 
-   * `"docker/README.md" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md>`_
+   * `"🐋 docker/README.md" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md>`_
+
+   * `"💡 bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_
 
 
 🐋 Docker Containerization
