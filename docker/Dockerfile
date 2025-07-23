@@ -27,6 +27,10 @@
 ## "jupyter/pyspark-notebook:latest"
 ## "jupyter/all-spark-notebook:latest"
 ######################################################################
+## Images hosted on Docker Hub are no longer updated. Please, use quay.io image⁠: https://quay.io/repository/jupyter/tensorflow-notebook
+## Pull this container with the following Docker command:
+## docker pull quay.io/jupyter/tensorflow-notebook
+######################################################################
 
 ## ARG: You can override it during the docker build with --build-arg.
 ## Ubuntu 20.04 (focal), https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
@@ -61,6 +65,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG EXTENDED_PACKAGES=false
 ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
 
+######################################################################
+## default user jupyter ${NB_UID}
+## cut -d: -f1 /etc/passwd
+######################################################################
 ## Switch to the root user to install dependencies
 USER root
 
@@ -73,6 +81,21 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ######################################################################
 ## Set system locale and timezone
 ######################################################################
+
+# ARG NB_USER="jovyan"
+# ARG NB_UID="1000"
+# ARG NB_GID="100"
+## Configure environment
+# ENV CONDA_DIR=/opt/conda \
+#     SHELL=/bin/bash \
+#     NB_USER="${NB_USER}" \
+#     NB_UID=${NB_UID} \
+#     NB_GID=${NB_GID} \
+#     LC_ALL=C.UTF-8 \
+#     LANG=C.UTF-8 \
+#     LANGUAGE=C.UTF-8
+# ENV PATH="${CONDA_DIR}/bin:${PATH}" \
+#     HOME="/home/${NB_USER}"
 
 ## Set the timezone for the container to UTC+3 (Europe/Moscow)
 ## ENV TZ=Europe/Moscow or ENV TZ=Europe/Istanbul
@@ -144,10 +167,12 @@ RUN apt-get update \
   ## Install sudo, gosu and set up a passwordless sudo user
   && apt-get install -y --no-install-recommends sudo gosu \
   ## && useradd -m -s /bin/bash $NB_USER && \
+  ## $$ useradd --no-log-init --create-home --shell /bin/bash --uid "${NB_UID}" --no-user-group "${NB_USER}"
   ## Set the password for ${NB_USER} to "jovyan" (or any other password you prefer)
   ## ⚠️ Note: This is not secure, consider using a more secure method for production
   ## echo "yourpassword" | sudo chown -R $(whoami):$(id -gn whoami) ~
   ## docker run -it --rm scikitplot/scikit-plots:latest bash -c "echo 'jovyan' | sudo -S apt update"
+  ## RUN echo "jovyan:yourpassword" | chpasswd
   && echo "$NB_USER:$NB_PASS" | chpasswd \
   ## Requires password to sudo for ${NB_USER}
   && echo "${NB_USER} ALL=(ALL) ALL" | tee -a /etc/sudoers \
@@ -161,15 +186,14 @@ RUN apt-get update \
 
 ######################################################################
 ## OS dependencies
+## Copy the permissions-fix script and make it executable
+# COPY "./docker/scripts/fix-permissions" /usr/local/bin/fix-permissions
+# RUN chmod a+rx /usr/local/bin/fix-permissions
 ######################################################################
 
 ## If Time Zone Error
 # RUN sed -i '/jammy-updates/s/^/#/' /etc/apt/sources.list \
 #     && sed -i '/jammy-security/s/^/#/' /etc/apt/sources.list
-
-## Copy the permissions-fix script and make it executable
-# COPY "./docker/scripts/fix-permissions" /usr/local/bin/fix-permissions
-# RUN chmod a+rx /usr/local/bin/fix-permissions
 
 ## Install common dependencies
 RUN apt-get update --yes \
@@ -308,83 +332,72 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     echo "Skipping extended packages."; \
   fi
 
-######################################################################
-## (Optionally) GPU dependencies (e.g. NVIDIA)
-######################################################################
-
-## Create a root-owned folder and copy the script there only if it exists
-# COPY --chown="${NB_UID}:${NB_GID}" "./scripts/install_gpu_nvidia_cuda.sh" "/scripts/install_gpu_nvidia_cuda.sh"
-# COPY "./docker/scripts/install_gpu_nvidia_cuda.sh" "/scripts/install_gpu_nvidia_cuda.sh"
-# RUN chmod a+rx "/scripts/install_gpu_nvidia_cuda.sh"
-## Use a wrapper script to check for file existence before running it, ([ -f file ] && ... || ...)
-# RUN bash -c ' \
-#   [ -f /scripts/install_gpu_nvidia_cuda.sh ] \
-#   && chmod +x /scripts/install_gpu_nvidia_cuda.sh \
-#   # && /scripts/install_gpu_nvidia_cuda.sh \
-#   || echo "Script not found, skipping..." \
-#   '
-
-######################################################################
-## default user
-## cut -d: -f1 /etc/passwd
-######################################################################
-
 ## Switch back to the notebook default user "jovyan" to avoid accidental container runs as root
 USER ${NB_UID}
+# RUN sudo chown -R jovyan .
+# COPY --chown="${NB_UID}:${NB_GID}" initial-condarc "${CONDA_DIR}/.condarc"
+# Add an R mimetype option to specify how the plot returns from R to the browser
+# COPY --chown=${NB_UID}:${NB_GID} Rprofile.site /opt/conda/lib/R/etc/
 
 ######################################################################
 ## WORKDIR
+# RUN echo $HOME && whoami
 ######################################################################
 
-## Setup work directory for backward-compatibility (if needed)
-## WORKDIR /home/$NB_USER/work "${HOME}/work"
-WORKDIR ~/work
-# RUN sudo chown -R jovyan .
-## Copy your project files to leverage Docker cache under (/work, ~/work or /workspace)
-COPY docker ~/work/docker/
-COPY docker/env_conda/environment.yml ~/work/
-COPY requirements ~/work/requirements/
+## Set working directory inside the container
+WORKDIR /tmp
+COPY docker ./docker/
+COPY docker/env_conda/environment.yml ./
+COPY requirements ./requirements/
 
 # micromamba and post create steps
-RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf ~/work/docker"
+RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
 
 ######################################################################
 ## default environment (e.g. conda, mamba, pipenv)
 ######################################################################
 
-# mamba as conda
-COPY ./docker/env_conda/ /tmp/
-## Optionally, Ensure mamba installations (if needed)
+# Install JupyterHub, JupyterLab, NBClassic and Jupyter Notebook
+# Generate a Jupyter Server config
+# Cleanup temporary files
+# Correct permissions
+# Do all this in a single RUN command to avoid duplicating all of the
+# files across image layers when the permissions change
+#
+## Optionally, Ensure mamba as conda installations (if needed)
 ## RUN conda install -n base conda-forge::mamba -y
 ## RUN conda install -n base -c conda-forge mamba -y
 ## RUN mamba create -n "py312" python=3.11 ipykernel -y
-RUN mamba env create -n "py312" -f "/tmp/base.yml" \
-  || { echo "Failed to create environment py312"; }; \
-  ## Clean mamba and fix permissions, Fails but continues
-  mamba clean --all -f -y || true; \
-  rm -rf ${HOME}/.cache || true
+RUN { mamba env create -n "py312" -f "./docker/env_conda/base.yml" || echo "Failed to apply base environment"; } \
+  ## Clean mamba, If fails continue
+  && { mamba clean --all -f -y || true; } \
+  && { jupyter lab clean || true; } \
+  && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
+  && { rm -rf ${HOME}/.cache || true; }
 ## Update environment with default.yml (always applied), Fails and exits script cleanly
-RUN mamba env update -n "py312" -f "/tmp/default.yml" \
-  || { echo "Failed to apply default environment"; }; \
-  ## Clean mamba and fix permissions, Fails but continues
-  mamba clean --all -f -y || true; \
-  rm -rf ${HOME}/.cache || true
+RUN { mamba env update -n "py312" -f "./docker/env_conda/default.yml" || echo "Failed to apply default environment"; } \
+  ## Clean mamba, If fails continue
+  && { mamba clean --all -f -y || true; } \
+  && { jupyter lab clean || true; } \
+  && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
+  && { rm -rf ${HOME}/.cache || true; }
 ## Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
 RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     echo "Installing extended packages..."; \
-    mamba env update -n "py312" -f "/tmp/extended.yml" \
-    || { echo "Failed to apply extended environment"; }; \
-    ## Clean mamba and fix permissions, Fails but continues
-    mamba clean --all -f -y || true; \
-    rm -rf ${HOME}/.cache || true \
+    { mamba env update -n "py312" -f "./docker/env_conda/extended.yml" || echo "Failed to apply extended environment"; } \
+    ## Clean mamba, If fails continue
+    && { mamba clean --all -f -y || true; } \
+    && { jupyter lab clean || true; } \
+    && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
+    && { rm -rf ${HOME}/.cache || true; } \
     ; \
   else \
     echo "Skipping extended packages."; \
   fi
 
-## Fix permissions as jovyan
-RUN fix-permissions "$HOME" \
-  && fix-permissions "${CONDA_DIR}" || true
+## Fix permissions on "$HOME" as jovyan
+RUN { fix-permissions "/home/${NB_USER}" \
+  && fix-permissions "${CONDA_DIR}"; } || true
 
 ######################################################################
 ## JUPYTER
@@ -401,11 +414,46 @@ EXPOSE 8888-8890
 EXPOSE 5000-5001
 EXPOSE 9000-9001
 
+# Copy local files as late as possible to avoid cache busting
+# COPY run-hooks.sh start.sh /usr/local/bin/
+# COPY start-notebook.py start-notebook.sh start-singleuser.py start-singleuser.sh /usr/local/bin/
 ## Configure container startup
-ENTRYPOINT ["tini", "-g", "--"]
+# ENTRYPOINT ["tini", "-g", "--"]
+# "tini" — the tini binary (often installed to /usr/bin/tini)
+# -g — makes tini adopt grandchild processes too (ensures full reaping of orphaned zombies)
+# -- — standard POSIX way to signal the end of options
+# "start.sh" — your actual container start script (e.g. to start Jupyter, Conda env, etc.)
+ENTRYPOINT ["tini", "-g", "--", "start.sh"]
+# Configure container startup by
+# CMD bash -c 'start-notebook.py --port "${JUPYTER_PORT:-8888}"'
+# CMD ["start-notebook.py"]
+CMD ["start-notebook.py", "--port ${JUPYTER_PORT:-8888}"]
+
 ## Set the command to start Jupyter lab with the specified port
 ## CMD ["bash", "-c", "source /etc/bash.bashrc && jupyter notebook --notebook-dir=/tf --ip 0.0.0.0 --no-browser --allow-root"]
 ## CMD bash -c 'source ~/.bash-bashrc 2>/dev/null || true; exec start-notebook.py --port "${JUPYTER_PORT:-8888}"'
 ## CMD bash -c '[ -f ~/.bash-bashrc ] && source ~/.bash-bashrc; exec start-notebook.py --port "${JUPYTER_PORT:-8888}"'
-# CMD ["start-notebook.sh"]
-CMD bash -c 'start-notebook.py --port "${JUPYTER_PORT:-8888}"'
+
+######################################################################
+## WORKDIR jupyter "${HOME}"
+# RUN echo $HOME && whoami
+# Copy your project files to leverage Docker cache under (${HOME}, ~${HOME}/work, /work or /workspace)
+######################################################################
+
+USER ${NB_UID}
+
+## Set working directory inside the container
+WORKDIR "${HOME}"
+COPY docker/env_conda/environment.yml ./
+COPY docker/env_pipenv/ ./env_pipenv/
+COPY requirements ./requirements/
+
+# macOS Rosetta virtualization creates junk directory which gets owned by root further up.
+# It'll get re-created, but as USER runner after the next directive so hopefully should not cause permission issues.
+#
+# More info: https://github.com/jupyter/docker-stacks/issues/2296
+RUN rm -rf "/home/${NB_USER}/.cache/"
+
+## Setup work directory for backward-compatibility (if needed)
+## WORKDIR "${HOME}" "${HOME}/work" /home/$NB_USER/work
+# WORKDIR "${HOME}/work"
