@@ -116,23 +116,23 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 .. tip::
 
     Actually we run below scripts step-by-step in following Documentation.
-    (See Also: `https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt`__)
+    (See Also: `https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt`__)
 
     .. prompt:: bash
 
         bash docker/scripts/post_create_commands.sh
 
 
-▶️ Quick check first-run-notice.txt
+▶️ Quick check bash-first-run-notice.txt
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`"See Also: first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/first-run-notice.txt>`_
+`"See Also: bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_
 
-.. dropdown:: first-run-notice.txt
+.. dropdown:: bash-first-run-notice.txt
    :open:
    :class-container: sdd
 
-   .. literalinclude:: ../../../docker/scripts/first-run-notice.txt
+   .. literalinclude:: ../../../docker/scripts/bash-first-run-notice.txt
       :language: none
 
 

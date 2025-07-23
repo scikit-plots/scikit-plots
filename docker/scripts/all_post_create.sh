@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
 # Shebang Syntax Summary:
 # ✅ #!/usr/bin/env bash — Recommended for portability, Open-source scripts, multi-platform devcontainers
 # ✅ #!/bin/bash — Recommended for strict system environments, Controlled systems, Docker, CI/CD
 # ✅ #!/bin/sh — POSIX-compliant shell — minimal and fast, but lacks many Bash features.
 # ✅ #!/usr/bin/env python3 — For Python scripts using env.
 # ✅ #!/usr/bin/env -S bash -e — Bash with options (modern env). Advanced with arguments (less common, Bash-only).
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# .devcontainer/scripts/all_post_create.sh
-
-## Inside bash -c '...' string	\$p
+#
+## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
+## Inside bash -c '...' string	\$p, if needed
 # { ...; } || fallback runs in current shell — can exit or affect current environment.
 # ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
 
@@ -35,34 +35,65 @@ echo "📦 Installing dev tools (if sudo available)..."
   && sudo apt-get install -y sudo gosu git curl build-essential gfortran ninja-build; } \
   || echo "⚠️ Failed or skipped installing dev tools"
 
+# green
+print_info() {
+  echo -e "\033[1;32m$1\033[0m"
+}
+# yellow-orange
+print_warn() {
+  echo -e "\033[1;33m$1\033[0m"
+}
+# red
+print_error() {
+  echo -e "\033[1;31m$1\033[0m"
+}
+# blue
+print_url() {
+  echo -e "\033[1;34m$1\033[0m"
+}
+# purple
+print_info2() {
+  echo -e "\033[1;36m$1\033[0m"
+}
+
 ######################################################################
-## first-run notice (if possible)
+## Micromamba env setup (if possible)
 ######################################################################
 
-echo "📝 Setting up first-run notice (if possible)..."
-# Use sudo non-interactively if available
-if sudo -n true 2>/dev/null; then
-    sudo mkdir -p /usr/local/etc/vscode-dev-containers
-    # Optional: Install notice file
-    sudo cp "$(realpath .)/.devcontainer/scripts/first-run-notice.txt" /usr/local/etc/vscode-dev-containers/first-run-notice.txt || echo "⚠️ Could not copy notice"
+MAMBA_ENV_SCRIPT="$(realpath ./docker/scripts/env_micromamba.sh)"
+echo -e "\033[1;34m🔁 Sourcing micromamba env setup...\033[0m"
+
+if [ -f "$MAMBA_ENV_SCRIPT" ]; then
+  # shellcheck disable=SC1090
+  . "$MAMBA_ENV_SCRIPT" || echo -e "\033[1;33m⚠️ Micromamba env script ran but failed\033[0m"
 else
-    echo "⚠️ Skipping first-run notice setup (sudo not available or no permission)"
+  echo -e "\033[1;33m⚠️ Micromamba env script not found at $MAMBA_ENV_SCRIPT\033[0m"
 fi
 
 ######################################################################
-## micromamba env (if possible)
+## First-Run Notice and ASCII banner for scikit-plots (if possible)
 ######################################################################
 
-echo "🔁 Sourcing micromamba env setup..."
-. "$(realpath .)/.devcontainer/scripts/env_micromamba.sh" || echo "⚠️ Micromamba env setup failed or skipped"
+FIRST_RUN_NOTICE_SCRIPT="$(realpath ./docker/scripts/bash_first_run_notice.sh)"
+echo -e "\033[1;34m🚀 Running First-Run Notice setup...\033[0m"
+
+if [ -f "$FIRST_RUN_NOTICE_SCRIPT" ]; then
+  # shellcheck disable=SC1090
+  . "$FIRST_RUN_NOTICE_SCRIPT" || echo -e "\033[1;33m⚠️ First-Run Notice script ran but failed\033[0m"
+else
+  echo -e "\033[1;33m⚠️ First-Run Notice script not found at $FIRST_RUN_NOTICE_SCRIPT\033[0m"
+fi
 
 ######################################################################
-## post-create steps (if possible)
+## Post-create steps (if possible)
 ######################################################################
 
-echo "🚀 Running post-create steps..."
-. "$(realpath .)/.devcontainer/scripts/post_create_commands.sh" || echo "⚠️ Post-create steps failed or skipped"
+POST_CREATE_SCRIPT="$(realpath ./docker/scripts/post_create_commands.sh)"
+echo -e "\033[1;34m🚀 Running post-create steps...\033[0m"
 
-######################################################################
-## . (if possible)
-######################################################################
+if [ -f "$POST_CREATE_SCRIPT" ]; then
+  # shellcheck disable=SC1090
+  . "$POST_CREATE_SCRIPT" || echo -e "\033[1;33m⚠️ Post-create script ran but failed\033[0m"
+else
+  echo -e "\033[1;33m⚠️ Post-create script not found at $POST_CREATE_SCRIPT\033[0m"
+fi
