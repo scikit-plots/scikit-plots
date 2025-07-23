@@ -54,7 +54,7 @@ COPY docker /work/docker
 COPY docker/env_conda/environment.yml /work/
 COPY requirements /work/requirements/
 
-RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf /work/docker"
+RUN bash -i -c ". /work/docker/scripts/all_post_create.sh && rm -rf /work/docker"
 
 ## -------- Final Stage --------
 # FROM python:${PY_VERSION}-slim

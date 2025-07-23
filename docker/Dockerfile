@@ -342,7 +342,7 @@ COPY docker/env_conda/environment.yml ~/work/
 COPY requirements ~/work/requirements/
 
 # micromamba and post create steps
-RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf ~/work/docker"
+RUN bash -i -c ". ~/work/docker/scripts/all_post_create.sh && rm -rf ~/work/docker"
 
 # mamba as conda
 COPY ./docker/env_conda/ /tmp/
