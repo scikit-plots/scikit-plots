@@ -26,6 +26,8 @@ ENV IS_DOCKERENV=true
 ## Make output immediate (no buffering)
 # ENV PYTHONUNBUFFERED=1
 
+# USER root
+
 ## Install system dependencies (including bash and sudo)
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
@@ -48,17 +50,17 @@ RUN apt-get update \
 
 ######################################################################
 ## WORKDIR
+# RUN echo $HOME && whoami
 ######################################################################
 
 ## Set working directory inside the container
-WORKDIR /work
-## Copy your project files to leverage Docker cache under (/work, ~/work or /workspace)
-COPY docker /work/docker/
-COPY docker/env_conda/environment.yml /work/
-COPY requirements /work/requirements/
+WORKDIR /tmp
+COPY docker ./docker/
+COPY docker/env_conda/environment.yml ./
+COPY requirements ./requirements/
 
 # micromamba and post create steps
-RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf /work/docker"
+RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
 
 ######################################################################
 ## -------- Final Stage --------
@@ -74,3 +76,15 @@ RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf /work/docker"
 EXPOSE 8890
 
 ENTRYPOINT ["bash"]
+
+######################################################################
+## WORKDIR
+# RUN echo $HOME && whoami
+# Copy your project files to leverage Docker cache under (${HOME}, ~${HOME}/work, /work or /workspace)
+######################################################################
+
+## Set working directory inside the container
+WORKDIR /work
+COPY docker/env_conda/environment.yml ./
+COPY docker/env_pipenv/ ./env_pipenv/
+COPY requirements ./requirements/
