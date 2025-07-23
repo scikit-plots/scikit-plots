@@ -46,6 +46,10 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   ;
 
+######################################################################
+## WORKDIR
+######################################################################
+
 ## Set working directory inside the container
 WORKDIR /work
 
@@ -56,7 +60,9 @@ COPY requirements /work/requirements/
 
 RUN bash -i -c ". /work/docker/scripts/all_post_create.sh && rm -rf /work/docker"
 
+######################################################################
 ## -------- Final Stage --------
+######################################################################
 # FROM python:${PY_VERSION}-slim
 ## Copy micromamba installation and environment from builder stage
 # COPY --from=builder /root/micromamba /root/micromamba

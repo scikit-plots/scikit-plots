@@ -333,6 +333,15 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
 USER ${NB_UID}
 
 ######################################################################
+## WORKDIR
+######################################################################
+
+## Setup work directory for backward-compatibility (if needed)
+## WORKDIR /home/$NB_USER/work "${HOME}/work"
+WORKDIR ~/work
+# RUN sudo chown -R jovyan .
+
+######################################################################
 ## default environment (e.g. conda, mamba, pipenv)
 ######################################################################
 
@@ -401,12 +410,3 @@ ENTRYPOINT ["tini", "-g", "--"]
 ## CMD bash -c '[ -f ~/.bash-bashrc ] && source ~/.bash-bashrc; exec start-notebook.py --port "${JUPYTER_PORT:-8888}"'
 # CMD ["start-notebook.sh"]
 CMD bash -c 'start-notebook.py --port "${JUPYTER_PORT:-8888}"'
-
-######################################################################
-## WORKDIR
-######################################################################
-
-## Setup work directory for backward-compatibility (if needed)
-## WORKDIR /home/$NB_USER/work "${HOME}/work"
-WORKDIR ~/work
-# RUN sudo chown -R jovyan .
