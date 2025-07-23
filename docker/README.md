@@ -2,6 +2,20 @@
 
 ### 💡 Work on `Docker Desktop` or `Github Codespaces`
 
+<h2> 🐋 Scikit-plots Runtime Docker Images: </h2>
+
+🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
+
+```bash
+# docker run -it --rm scikitplot/scikit-plots:latest-python-3.11
+docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -i -c "scikitplot -V"
+```
+
+<a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+  🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
+</a>
+
+
 🏷️ Github Codespaces:
 ---------------------
 
