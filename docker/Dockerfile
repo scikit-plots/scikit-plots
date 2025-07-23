@@ -336,13 +336,13 @@ USER ${NB_UID}
 ## default environment (e.g. conda, mamba, pipenv)
 ######################################################################
 
-## Copy your project files to leverage Docker cache
-COPY docker /work/docker
-COPY docker/env_conda/environment.yml /work/
-COPY requirements /work/requirements/
+## Copy your project files to leverage Docker cache under (/work, ~/work or /workspace)
+COPY docker ~/work/docker
+COPY docker/env_conda/environment.yml ~/work/
+COPY requirements ~/work/requirements/
 
 # micromamba and post create steps
-RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf /work/docker"
+RUN bash -i -c ". docker/scripts/all_post_create.sh && rm -rf ~/work/docker"
 
 # mamba as conda
 COPY ./docker/env_conda/ /tmp/
@@ -407,6 +407,6 @@ CMD bash -c 'start-notebook.py --port "${JUPYTER_PORT:-8888}"'
 ######################################################################
 
 ## Setup work directory for backward-compatibility (if needed)
-# WORKDIR /home/$NB_USER/work
-WORKDIR "${HOME}/work"
+## WORKDIR /home/$NB_USER/work "${HOME}/work"
+WORKDIR ~/work
 # RUN sudo chown -R jovyan .

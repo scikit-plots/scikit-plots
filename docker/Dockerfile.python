@@ -49,7 +49,7 @@ RUN apt-get update \
 ## Set working directory inside the container
 WORKDIR /work
 
-## Copy your project files to leverage Docker cache
+## Copy your project files to leverage Docker cache under (/work, ~/work or /workspace)
 COPY docker /work/docker
 COPY docker/env_conda/environment.yml /work/
 COPY requirements /work/requirements/
