@@ -154,7 +154,8 @@ source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
 # $ eval "$(micromamba shell hook --shell bash)"
 # ──────────────────────────────────────────────────────────────
 ## echo micromamba shell hook --shell "$(basename "$SHELL")"
-eval "$(micromamba shell hook --shell "$(basename "$SHELL")")"
+## Fallback to bash if SHELL is unset or unknown
+eval "$(micromamba shell hook --shell "$(basename "${SHELL:-/bin/bash}")")"
 
 # ──────────────────────────────────────────────────────────────
 # 5. Ensure environment exists and is registered
@@ -174,12 +175,13 @@ if command -v micromamba >/dev/null 2>&1; then
     echo "🆕 Creating micromamba environment: $ENV_NAME"
     # micromamba create -n py311 python=3.11 ipykernel pip -y
     # micromamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
-    micromamba env create -f environment.yml --yes || { echo "⚠️ Failed to creation Micromamba environment"; } \
+    micromamba env create -f environment.yml --yes \
     ## Clean micromamba, If fails continue
     && { micromamba clean --all -f -y || true; } \
     && { jupyter lab clean || true; } \
     && { rm -rf "${HOME}/.cache/yarn" || true; } \
-    && { rm -rf ${HOME}/.cache || true; }
+    && { rm -rf ${HOME}/.cache || true; } \
+    || { echo "⚠️ Failed to creation Micromamba environment"; }
   else
     echo "✅ micromamba environment '$ENV_NAME' already exists."
   fi
@@ -192,12 +194,13 @@ elif command -v conda >/dev/null 2>&1; then
     # conda create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
     # conda env create -f base.yml || { echo "Failed to creation environment"; }
     # conda env update -n "$ENV_NAME" -f "./docker/env_conda/default.yml" || { echo "Failed to update environment"; }
-    conda env create -f environment.yml --yes || { echo "⚠️ Failed to creation Conda environment"; } \
+    conda env create -f environment.yml --yes \
     ## Clean conda, If fails continue
     && { conda clean --all -f -y || true; } \
     && { jupyter lab clean || true; } \
     && { rm -rf "${HOME}/.cache/yarn" || true; } \
-    && { rm -rf ${HOME}/.cache || true; }
+    && { rm -rf ${HOME}/.cache || true; } \
+    || { echo "⚠️ Failed to creation Conda environment"; }
   else
     echo "✅ conda environment '$ENV_NAME' already exists."
   fi
