@@ -71,6 +71,20 @@ else
 fi
 
 ######################################################################
+## Conda env setup (if possible)
+######################################################################
+
+CONDA_ENV_SCRIPT="$(realpath ./docker/scripts/env_conda.sh)"
+echo -e "\033[1;34m🔁 Sourcing conda env setup...\033[0m"
+
+if [ -f "$CONDA_ENV_SCRIPT" ]; then
+  # shellcheck disable=SC1090
+  . "$CONDA_ENV_SCRIPT" || echo -e "\033[1;33m⚠️ Conda env script ran but failed\033[0m"
+else
+  echo -e "\033[1;33m⚠️ Conda env script not found at $CONDA_ENV_SCRIPT\033[0m"
+fi
+
+######################################################################
 ## First-Run Notice and ASCII banner for scikit-plots (if possible)
 ######################################################################
 

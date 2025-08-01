@@ -60,7 +60,6 @@ RUN apt-get update \
 ## WORKDIR
 # RUN echo $HOME && whoami
 ######################################################################
-
 ## Set working directory inside the container
 WORKDIR /tmp
 COPY docker ./docker/
