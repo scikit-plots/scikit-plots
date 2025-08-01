@@ -98,7 +98,7 @@ services:
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
     ports:
-      - "8890:8890"  # Exposing port placeholder for Jupyter Notebook (default 8888)
+      - "8892:8892"  # Exposing port placeholder for Jupyter Notebook (default 8888)
     networks:
       - "back_tier"  # Connect to the defined network for backend services
       - "front_tier"  # Connect to the defined network for frontend services
@@ -179,7 +179,7 @@ services:
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
     ports:
-      - "8890:8890"  # Exposing port placeholder for Jupyter Notebook (default 8888)
+      - "8891:8891"  # Exposing port placeholder for Jupyter Notebook (default 8888)
     networks:
       - "back_tier"  # Connect to the defined network for backend services
       - "front_tier"  # Connect to the defined network for frontend services
