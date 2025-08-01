@@ -58,8 +58,8 @@ print_info2() {
 set +u   # Disable strict mode (for unset variables)
 
 # Set default environment name if not provided
-PY_VERSION="${PY_VERSION:-3.11}"  # Default Python version
-ENV_NAME="${ENV_NAME:-py311}"  # Default environment name
+PY_VERSION="${PY_VERSION:-3.11}"  # Default Python version "3.11"
+ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"  # Default environment name "py311"
 
 # ──────────────────────────────────────────────────────────────
 # 1. Install micromamba if not already available
@@ -89,16 +89,32 @@ else
 fi
 
 # ──────────────────────────────────────────────────────────────
-# 2. Initialize shell integration for conda/micromamba
+# Apply shell config changes:
+# ⚠️ Please restart your shell to activate micromamba or run the following:
+# source ~/.bashrc (or ~/.zshrc, ~/.xonshrc, ~/.config/fish/config.fish, ...)
 # ──────────────────────────────────────────────────────────────
+SHELL_RC=~/."$(basename "$SHELL")"rc
 
+if [ -f "$SHELL_RC" ]; then
+  echo "📄 Sourcing shell config: $SHELL_RC"
+  # shellcheck disable=SC1090
+  # . ~/.bashrc or . ~/.zshrc for zsh
+  # . ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+  source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
+else
+  echo "⚠️ Shell config file not found: $SHELL_RC"
+fi
+
+# ──────────────────────────────────────────────────────────────
+# 2. Initialize shell integration for conda/micromamba
+# ~/.bashrc or ~/.zshrc for zsh
+# ──────────────────────────────────────────────────────────────
 # Optional: also initialize conda hooks (for compatibility with existing conda setups)
-conda init --all || true
-
+conda init --all || echo "⚠️ Failed to initialize conda hooks"
 ## Initialize micromamba for the current shell
 ## Initialize micromamba shell integration for bash (auto-detect install path)
 ## micromamba shell init -s bash -p ~/micromamba
-micromamba shell init -s "$(basename "$SHELL")" || true
+micromamba shell init -s "$(basename "$SHELL")" || echo "⚠️ Failed to initialize micromamba hooks"
 
 # ──────────────────────────────────────────────────────────────
 # 3. Source updated shell configuration (Apply shell config changes)
@@ -107,17 +123,10 @@ micromamba shell init -s "$(basename "$SHELL")" || true
 # - ⚠️ You can activate manually: micromamba activate "$ENV_NAME"
 # - 📄 Or add `micromamba activate "$ENV_NAME"` at the end of your .bashrc
 # ──────────────────────────────────────────────────────────────
-SHELL_RC=~/.$(basename "$SHELL")rc
-
-if [ -f "$SHELL_RC" ]; then
-  echo "📄 Sourcing shell config: $SHELL_RC"
-  # shellcheck disable=SC1090
-  # ~/.bashrc or ~/.zshrc for zsh
-  # source ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-  . "$SHELL_RC" || echo "⚠️  Failed to source $SHELL_RC"
-else
-  echo "⚠️  Shell config file not found: $SHELL_RC"
-fi
+# Re-source shell config to ensure activation takes effect
+# shellcheck disable=SC1090
+# . ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
 
 # ──────────────────────────────────────────────────────────────
 # 4. Enable micromamba hook for current session
@@ -143,8 +152,9 @@ if command -v micromamba >/dev/null 2>&1; then
 
   if ! micromamba env list | grep -q "$ENV_NAME"; then
     echo "🆕 Creating micromamba environment: $ENV_NAME"
+    # micromamba create -n py311 python=3.11 ipykernel pip -y
     # micromamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
-    micromamba env create -f environment.yml --yes || { echo "Failed to creation Micromamba environment"; }
+    micromamba env create -f environment.yml --yes || { echo "⚠️ Failed to creation Micromamba environment"; }
   else
     echo "✅ micromamba environment '$ENV_NAME' already exists."
   fi
@@ -157,7 +167,7 @@ elif command -v conda >/dev/null 2>&1; then
     # conda create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
     # conda env create -f base.yml || { echo "Failed to creation environment"; }
     # conda env update -n "$ENV_NAME" -f "./docker/env_conda/default.yml" || { echo "Failed to update environment"; }
-    conda env create -f environment.yml || { echo "Failed to creation Conda environment"; }
+    conda env create -f environment.yml || { echo "⚠️ Failed to creation Conda environment"; }
   else
     echo "✅ conda environment '$ENV_NAME' already exists."
   fi
@@ -173,7 +183,7 @@ fi
 mkdir -p ~/micromamba/envs "/opt/conda" || true
 # echo "envs_dirs:
 #   - ${HOME:-~/}/micromamba/envs" > /opt/conda/.condarc
-cat <<EOF > "/opt/conda/.condarc"
+cat <<EOF > "/opt/conda/.condarc" || echo "⚠️ /opt/conda/.condarc: Permission denied"
 envs_dirs:
   - ~/micromamba/envs
 EOF
@@ -184,14 +194,13 @@ EOF
 
 # Re-source shell config to ensure activation takes effect
 # shellcheck disable=SC1090
-# source ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-. ~/."$(basename "$SHELL")"rc || true
+# . ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
 
 # Optional: auto-activate environment for current session
 if command -v micromamba >/dev/null 2>&1; then
-  micromamba activate base || true
+  micromamba activate "$ENV_NAME" || micromamba activate base || echo "⚠️ Failed to activate environment micromamba"
 fi
-micromamba activate "$ENV_NAME" || true
 # Note that `micromamba activate py311` doesn't work, it must be run by the
 # user (same applies to `conda activate`) So try to bash activate to work:
 
@@ -205,7 +214,7 @@ pip cache purge || true
 rm -rf ~/.cache/* || true
 
 echo "✅ Setup complete. Restart your shell or run:"
-echo "   source ~/$SHELL_RC"
+echo "   source $SHELL_RC"
 echo "to activate the micromamba environment in new sessions."
 
 ######################################################################

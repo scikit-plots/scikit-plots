@@ -43,6 +43,7 @@
 # : is a no-op command used here to safely assign a default.
 : "${MAMBA_ROOT_PREFIX:-${HOME:-/root}/micromamba}"
 : "${ENV_NAME:-base}"
+## source \${MAMBA_ROOT_PREFIX:-~/micromamba}/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
 if command -v conda >/dev/null 2>&1 || command -v micromamba >/dev/null 2>&1; then
   if command -v micromamba >/dev/null 2>&1 && [[ -d "$MAMBA_ROOT_PREFIX/envs/$ENV_NAME" ]]; then
     micromamba activate "$ENV_NAME" || true
