@@ -176,7 +176,7 @@ elif command -v conda >/dev/null 2>&1; then
     # conda create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
     # conda env create -f base.yml || { echo "Failed to creation environment"; }
     # conda env update -n "$ENV_NAME" -f "./docker/env_conda/default.yml" || { echo "Failed to update environment"; }
-    conda env create -f environment.yml || { echo "⚠️ Failed to creation Conda environment"; } \
+    conda env create -f environment.yml --yes || { echo "⚠️ Failed to creation Conda environment"; } \
     ## Clean conda, If fails continue
     && { conda clean --all -f -y || true; } \
     && { jupyter lab clean || true; } \
