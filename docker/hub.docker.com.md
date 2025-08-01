@@ -79,23 +79,20 @@ docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -c bash
 
 ---
 
-## 👉 **latest-jupyter** (full pre-installed (e.g., conda, mamba, micromamba))
+## 👉 **latest-jupyter** (full pre-installed (e.g., conda, mamba))
 
 ### 🏷️ pre-installed os/python packages (default entrypoint tini)
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash
 ```
 
-🛠️ See also pre-installed conda/micromamba env:
+🛠️ See also pre-installed conda/mamba env:
 
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "conda info -e"
 ```
 ```sh
-docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "micromamba info -e"
-```
-```sh
-docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "pip list"
+docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "which python && pip list"
 ```
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "scikitplot -V"

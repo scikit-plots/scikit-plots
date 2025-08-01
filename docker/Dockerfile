@@ -353,7 +353,6 @@ USER ${NB_UID}
 ## WORKDIR
 # RUN echo $HOME && whoami
 ######################################################################
-
 ## Set working directory inside the container
 WORKDIR /tmp
 COPY docker ./docker/
@@ -361,55 +360,49 @@ COPY docker/env_conda/environment.yml ./
 COPY requirements ./requirements/
 
 # micromamba and post create steps
-RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
+# RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
+RUN bash -i -c "SKIP_MICROMAMBA=true . ./docker/scripts/all_post_create.sh"
 
 ######################################################################
 ## default environment (e.g. conda, mamba, pipenv)
 ######################################################################
-
-# Install JupyterHub, JupyterLab, NBClassic and Jupyter Notebook
-# Generate a Jupyter Server config
-# Cleanup temporary files
-# Correct permissions
-# Do all this in a single RUN command to avoid duplicating all of the
-# files across image layers when the permissions change
-#
+## Install JupyterHub, JupyterLab, NBClassic and Jupyter Notebook
+## Generate a Jupyter Server config
+## Cleanup temporary files
+## Correct permissions
+## Do all this in a single RUN command to avoid duplicating all of the
+## files across image layers when the permissions change
+##
 ## Optionally, Ensure mamba as conda installations (if needed)
 ## RUN conda install -n base conda-forge::mamba -y
 ## RUN conda install -n base -c conda-forge mamba -y
 ## RUN mamba create -n "py312" python=3.11 ipykernel -y
-RUN { mamba env create -n "py312" -f "./docker/env_conda/base.yml" || echo "Failed to apply base environment"; } \
-  ## Clean mamba, If fails continue
-  && { mamba clean --all -f -y || true; } \
-  && { jupyter lab clean || true; } \
-  && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
-  && { rm -rf ${HOME}/.cache || true; }
-## Conditionally apply default.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
-RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
-    echo "Installing default packages..."; \
-    { mamba env update -n "py312" -f "./docker/env_conda/default.yml" || echo "Failed to apply default environment"; } \
-    ## Clean mamba, If fails continue
-    && { mamba clean --all -f -y || true; } \
-    && { jupyter lab clean || true; } \
-    && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
-    && { rm -rf ${HOME}/.cache || true; } \
-    ; \
-  else \
-    echo "Skipping default packages."; \
-  fi
+# RUN { mamba env create -n "py312" -f "./docker/env_conda/base.yml" || echo "Failed to apply base environment"; } \
+#   ## Clean mamba, If fails continue
+#   && { mamba clean --all -f -y || true; } \
+#   && { jupyter lab clean || true; } \
+#   && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
+#   && { rm -rf ${HOME}/.cache || true; }
+## Update environment with default.yml (always applied), Fails and exits script cleanly
+# RUN { mamba env update -n "py312" -f "./docker/env_conda/default.yml" || echo "Failed to apply default environment"; } \
+#   ## Clean mamba, If fails continue
+#   && { mamba clean --all -f -y || true; } \
+#   && { jupyter lab clean || true; } \
+#   && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
+#   && { rm -rf ${HOME}/.cache || true; }
 ## Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
-RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
-    echo "Installing extended packages..."; \
-    { mamba env update -n "py312" -f "./docker/env_conda/extended.yml" || echo "Failed to apply extended environment"; } \
-    ## Clean mamba, If fails continue
-    && { mamba clean --all -f -y || true; } \
-    && { jupyter lab clean || true; } \
-    && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
-    && { rm -rf ${HOME}/.cache || true; } \
-    ; \
-  else \
-    echo "Skipping extended packages."; \
-  fi
+# RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
+#     echo "Installing extended packages..."; \
+#     { mamba env update -n "py312" -f "./docker/env_conda/extended.yml" || echo "Failed to apply extended environment"; } \
+#     ## Clean mamba, If fails continue
+#     && { mamba clean --all -f -y || true; } \
+#     && { jupyter lab clean || true; } \
+#     && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
+#     && { rm -rf ${HOME}/.cache || true; } \
+#     ; \
+#   else \
+#     echo "Skipping extended packages."; \
+#   fi
 
 ## Fix permissions on "$HOME" as jovyan
 RUN { fix-permissions "/home/${NB_USER}" \
