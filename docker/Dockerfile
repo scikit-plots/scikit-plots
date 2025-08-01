@@ -384,13 +384,19 @@ RUN { mamba env create -n "py312" -f "./docker/env_conda/base.yml" || echo "Fail
   && { jupyter lab clean || true; } \
   && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
   && { rm -rf ${HOME}/.cache || true; }
-## Update environment with default.yml (always applied), Fails and exits script cleanly
-RUN { mamba env update -n "py312" -f "./docker/env_conda/default.yml" || echo "Failed to apply default environment"; } \
-  ## Clean mamba, If fails continue
-  && { mamba clean --all -f -y || true; } \
-  && { jupyter lab clean || true; } \
-  && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
-  && { rm -rf ${HOME}/.cache || true; }
+## Conditionally apply default.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
+RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
+    echo "Installing default packages..."; \
+    { mamba env update -n "py312" -f "./docker/env_conda/default.yml" || echo "Failed to apply default environment"; } \
+    ## Clean mamba, If fails continue
+    && { mamba clean --all -f -y || true; } \
+    && { jupyter lab clean || true; } \
+    && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
+    && { rm -rf ${HOME}/.cache || true; } \
+    ; \
+  else \
+    echo "Skipping default packages."; \
+  fi
 ## Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
 RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     echo "Installing extended packages..."; \

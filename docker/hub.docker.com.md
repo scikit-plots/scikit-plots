@@ -16,8 +16,9 @@ See Also:
 
 ## Base Image Tags
 
-Images built are based on [`jupyter/tensorflow-notebook:latest`][scikit-plots-jupyter]
+Images built are based on [python:latest][scikit-plots-jupyter], [jupyter/tensorflow-notebook:latest][scikit-plots-jupyter], etc.
 
+[scikit-plots-python]: https://hub.docker.com/_/python/tags
 [scikit-plots-jupyter]: https://hub.docker.com/r/jupyter/tensorflow-notebook
 
 - `1.xx-`, `latest-`, and `nightly-` tags come with scikit-plots pre-installed. Versioned tags contain their version, the `latest-` tags contain the latest release (excluding pre-releases like release candidates, alphas, and betas), and the nightly images come with the latest scikit-plots nightly Python package.
@@ -32,61 +33,72 @@ Images built are based on [`jupyter/tensorflow-notebook:latest`][scikit-plots-ju
 
 ## 🐳 Running Containers
 
+### 👉 **latest** (partial pre-installed (e.g., gcc, g++, micromamba))
+
+#### pull
 ```sh
 docker pull scikitplot/scikit-plots:latest
+```
+
+#### run with/without pull
+```sh
+docker run scikitplot/scikit-plots:latest
+```
+
+#### run interactive shell (default entrypoint bash)
+```sh
+# docker run -it --rm scikitplot/scikit-plots:latest
+docker run -it --rm scikitplot/scikit-plots:latest -c bash
+```
+
+#### 🛠️ (without interactive shell) See default os python env package list
+```sh
+docker run -it --rm scikitplot/scikit-plots:latest -c "which python && pip list"
+```
+
+#### 🛠️ (with interactive shell) See also pre-installed micromamba python env package list
+```sh
+docker run -it --rm scikitplot/scikit-plots:latest -i -c "micromamba info -e"
+```
+```sh
+docker run -it --rm scikitplot/scikit-plots:latest -i -c "which python && pip list"
+```
+```sh
+docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
 ```
 
 ---
 
 ## 👉 **latest-python-3.11** alias (**latest**) (partial pre-installed (e.g., gcc, g++, micromamba))
 
-### fast-minimal
+### 🏷️ fast-minimal (default entrypoint bash)
 ```sh
-docker run -it --rm scikitplot/scikit-plots:latest-python-3.11
-```
-#### See os python env package list
-```sh
-docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -c "pip list"
-```
-#### See also pre-installed micromamba python env package list
-```sh
-docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -i -c "pip list"
-```
-```sh
-docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -i -c "micromamba info -e"
-```
-```sh
-docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -i -c "scikitplot -V"
+# docker run -it --rm scikitplot/scikit-plots:latest-python-3.11
+docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -c bash
 ```
 
 ---
 
 ## 👉 **latest-jupyter** (full pre-installed (e.g., conda, mamba, micromamba))
 
-### pre-installed os/python packages
+### 🏷️ pre-installed os/python packages (default entrypoint tini)
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash
 ```
 
-🛠️ See also pre-installed conda env:
+🛠️ See also pre-installed conda/micromamba env:
 
 ```sh
-docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -c "conda info -e"
+docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "conda info -e"
 ```
-
-🛠️ See also pre-installed micromamba env:
-
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "micromamba info -e"
 ```
 ```sh
-docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "scikitplot -V"
+docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "pip list"
 ```
-
-🛠️ See also pre-installed packages:
-
 ```sh
-docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -c "pip list"
+docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "scikitplot -V"
 ```
 
 🛠️ Update system packages
@@ -103,70 +115,71 @@ docker run -it --rm --user root scikitplot/scikit-plots:latest-jupyter bash -c "
 - (Recommended) Open Vscode and Attach to Running Container (Dev Containers)
 - (Optionally)  Open jupter notebook in browser
 
-### ✅ Cross-Compatible Docker Command
+### ✅ Cross-Compatible Docker Command path `$(pwd)`
 
-#### ⚠️ One-Line Command (PoweShell, CMD vs. Linux/macOS):
+#### ⚠️ One-Line Command path for POSIX shells (Git Bash `$(pwd -W)`, WSL/Linux/macOS `$(pwd)`) and PowerShell `$(pwd)`:
 ```sh
-docker run -it --rm -v "./:/work/notebooks" -p 8888:8888 scikitplot/scikit-plots:latest-jupyter
+# POSIX shells (Git Bash `$(pwd -W)`, WSL/Linux/macOS `$(pwd)`)
+docker run -it --rm -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work/notebooks" -p 8891:8891 scikitplot/scikit-plots:latest
+```
+```sh
+# PowerShell `$(pwd)`
+docker run -it --rm -v "$(pwd):/work/notebooks" -p 8891:8891 scikitplot/scikit-plots:latest
+```
+```sh
+# Optionally start jupyter notebook
+docker run -it --rm -v "$(pwd):/work/notebooks" -p 8891:8891 scikitplot/scikit-plots:latest -i -c "jupyter notebook --notebook-dir=/work --ip=0.0.0.0 --no-browser --allow-root --port=8891"
 ```
 
-#### ⚠️ Multi-Line Command (Git Bash vs. Linux/macOS):
-```sh
-# Detect if using Git Bash (check if pwd -W works) "$( (...) || ... )"
+#### ⚠️ ("\\") Multi-Line Command path for POSIX shells (Git Bash `$(pwd -W)`, WSL/Linux/macOS `$(pwd)`):
+```bash
+# Detect if using Git Bash (check if pwd -W works) - "$( (...) || ... )"
 # Uses $(...) for command substitution, not $(()) which is arithmetic.
 # Inner parentheses (...) group the logic in a subshell (a separate environment) run and capture output.
 docker run -it --rm \
-  -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || realpath ./ ):/work/notebooks" \
-  -p 8888:8888 \
-  scikitplot/scikit-plots:latest-jupyter
-```
-
-### ✅ POSIX like systems syntax (e.g., macOS, Ubuntu)
-```sh
-# ./ or $(realpath ./) or $(realpath ~/notebooks)
-docker run -it --rm \
-  -v "./:/work/notebooks" \
+  -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work/notebooks" \
   -p 8888:8888 \
   scikitplot/scikit-plots:latest-jupyter
 ```
 
 Run a Jupyter notebook server with your own notebook directory (assumed here to be `~/notebooks`). To use it, navigate to localhost:8888 in your browser.
 
-### ✅ WIN like systems syntax
+---
 
-#### ⚠️ in git bash
-```bash
-# In Git Bash, the shell tries to behave like Linux (POSIX-style).
-# pwd      # → /c/Users/you/project/notebooks (POSIX-style)
-# pwd -W   # → C:/Users/you/project/notebooks (Windows-style)
-# $(cd ./notebooks && pwd -W)
-docker run -it --rm \
-  -v "$(pwd -W):/work/notebooks" \
-  -p 8890:8890 \
-  scikitplot/scikit-plots:latest-python-3.11 -i -c \
-  "jupyter notebook --notebook-dir=/work --ip=0.0.0.0 --no-browser --allow-root --port=8890"
+### Drop-in volume-mount examples
+```sh
+# POSIX shells (Git Bash / WSL / Linux / macOS)
+docker run -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" image
+
+# PowerShell (man Resolve-Path)
+# docker run -v "$((Resolve-Path .).Path -replace '\\','/'):/work" image
+docker run -v "$(pwd):/work" image
+
+# CMD (help cd)
+docker run -v "%cd%:/work" image
 ```
 
-#### ⚠️ in PowerShell
-```powershell
-# $abs = (Resolve-Path ./).Path -replace '\\','/'
-# ./ or ${PWD} or ${abs}
-docker run -it --rm `
-  -v "./:/work/notebooks" `
-  -p 8890:8890 `
-  scikitplot/scikit-plots:latest-python-3.11 -i -c `
-  "jupyter notebook --notebook-dir=/work --ip=0.0.0.0 --no-browser --allow-root --port=8890"
-```
+| Shell          | Path Handling Tips                                           | CWD Syntax                                                              | Escape `\$()`, `\`               | Escape Newline (`\n`)             |
+|----------------|--------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------|-----------------------------------|
+| CMD            | Use full Windows paths like `C:\Users\Me\...` and quote them | `./`, `%cd%`                                                            | Use `^` to escape special chars  | Use `^` at end of line            |
+| PowerShell     | Wrap paths in `"`, use env vars like `$Env:VAR`              | `./`, `"$(pwd)"`, `"${PWD}"`, `"$PWD"`, `"$PWD.Path"`                   | Use backtick `` ` ``             | Use backtick `` ` `` at end       |
+| Git-Bash       | Defaults to `/c/Users/...`; use `$(pwd -W)` for Windows paths| `$(pwd -W)`, `"$(cd ~/notebooks && pwd -W)"`                            | Standard POSIX (`\`, `\$()`)     | Use `\` at end of line            |
+| WSL            | Use Linux-style paths like `/mnt/c/Users/...`                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
+| Linux/macOS    | Native POSIX paths work as-is                                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
 
-#### ⚠️ in CMD (Command Prompt)
-```cmd
-REM ./ or %cd%
-docker run -it --rm ^
-  -v "./:/work/notebooks" ^
-  -p 8890:8890 ^
-  scikitplot/scikit-plots:latest-python-3.11 -i -c ^
-  "jupyter notebook --notebook-dir=/work --ip=0.0.0.0 --no-browser --allow-root --port=8890"
-```
+**Notes:**
+- In powershell `$(pwd)` == `$PWD` == `(Resolve-Path ./).Path -replace '\\','/'`
+  - In powershell `Resolve-Path .` (or simply `$PWD`) gives the absolute path; the `-replace` swaps backslashes for forward slashes
+- In Git Bash, the shell tries to behave like Linux (POSIX-style).
+  - `pwd`      # → /c/Users/you/project/notebooks (POSIX-style)
+  - `pwd -W`   # → C:/Users/you/project/notebooks (Windows-style)
+- In POSIX shells (Git Bash, WSL, Linux/macOS): `$(pwd)` == `$PWD` == `$(realpath ./)`
+  - `echo $( bash -c 'uname -sr' )`
+  - `echo $( bash -c '(uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd' )`
+  - `echo $( (uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd )`
+  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || (wslpath >/dev/null 2>&1 && wslpath -w pwd) || pwd' )`
+  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || pwd' )`
+  - ✅ `echo $( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd )`
 
 ---
 

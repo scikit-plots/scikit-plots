@@ -81,7 +81,7 @@ RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
 ## Optionally install runtime deps only (if different)
 
 ## Optional: Expose port for Jupyter (adjust if needed)
-EXPOSE 8890
+EXPOSE 8891
 
 ## Configure container entrypoint
 ENTRYPOINT ["bash"]
