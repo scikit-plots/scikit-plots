@@ -298,16 +298,11 @@ RUN apt-get update --yes \
     ## Intel's Parallel Computing C++ Libraries
     ## OpenMP - Open standard for parallel programming on multi-core CPUs.
     libomp-dev \
-    ## TBB (Threading Building Blocks) - Intel's Threading Building Blocks for task-based parallelism in C++.
-    libtbb-dev \
     ## Graph visualization software
     ## Graph visualization software: dot -V
     graphviz \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; }; \
-  ## Install separately and ignore failure
-  ## MKL (Intel Math Kernel Library)
-  apt-get install --yes --no-install-recommends libmkl-dev || true; \
   ## Cleanup to reduce image size
   apt-get clean \
   && rm -rf /var/lib/apt/lists/*
@@ -324,16 +319,21 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     ## TensorFlow with Metal Backend (ML-Specific)
     apt-get update --yes && apt-get install --yes --no-install-recommends \
       ## General-purpose C++ development
+      ## TBB (Threading Building Blocks) - Intel's Threading Building Blocks for task-based parallelism in C++.
+      libtbb-dev \
       ## Boost C++ Libraries - a set of portable C++ source libraries
       libboost-all-dev \
       ## MKL (Intel Math Kernel Library) - Optimized math library for scientific computing with multi-threading support.
-      libmkl-dev \
+      # libmkl-dev \
       ## Graph visualization software
       ## Graph visualization software: dot -V
       graphviz \
       ## Vector graphics editor
       inkscape \
     || { echo "Failed to install extended packages"; }; \
+    ## Install separately and ignore failure
+    ## MKL (Intel Math Kernel Library)
+    apt-get install --yes --no-install-recommends libmkl-dev || true; \
     ## Cleanup to reduce image size
     apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
