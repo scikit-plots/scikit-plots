@@ -61,6 +61,7 @@ set +u   # Disable strict mode (for unset variables)
 # e.g. SKIP_MICROMAMBA=true ./setup.sh or SKIP_MICROMAMBA=true . ./setup.sh
 SKIP_MICROMAMBA="${SKIP_MICROMAMBA:-false}"
 # Normalize to lowercase and handle multiple truthy values
+# case "$(printf '%s' "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')" in
 case "${SKIP_MICROMAMBA,,}" in
   true|1|yes|on)
     echo "Skipping conda activation"
