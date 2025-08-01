@@ -152,6 +152,10 @@ print_info "✅ Git configuration done!"
 # "micromamba" not "conda" keyword compatipable but same syntax
 # "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
 ######################################################################
+# Re-source shell config to ensure activation takes effect
+# shellcheck disable=SC1090
+# . ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
 
 # Disable unbound variable errors (for safer fallback defaults)
 set +u   # Disable strict mode (for unset variables)
@@ -169,7 +173,12 @@ if command -v micromamba >/dev/null 2>&1; then
   if ! micromamba env list | grep -q "$ENV_NAME"; then
     echo "🆕 Creating micromamba environment: $ENV_NAME"
     # micromamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
-    micromamba env create -f environment.yml --yes || { echo "Failed to creation Micromamba environment"; }
+    micromamba env create -f environment.yml --yes || { echo "Failed to creation Micromamba environment"; } \
+    ## Clean micromamba, If fails continue
+    && { micromamba clean --all -f -y || true; } \
+    && { jupyter lab clean || true; } \
+    && { rm -rf "${HOME}/.cache/yarn" || true; } \
+    && { rm -rf ${HOME}/.cache || true; }
   else
     echo "✅ micromamba environment '$ENV_NAME' already exists."
   fi
@@ -182,7 +191,12 @@ elif command -v conda >/dev/null 2>&1; then
     # conda create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
     # conda env create -f base.yml || { echo "Failed to creation environment"; }
     # conda env update -n "$ENV_NAME" -f "./docker/env_conda/default.yml" || { echo "Failed to update environment"; }
-    conda env create -f environment.yml || { echo "Failed to creation Conda environment"; }
+    conda env create -f environment.yml --yes || { echo "Failed to creation Conda environment"; } \
+    ## Clean conda, If fails continue
+    && { conda clean --all -f -y || true; } \
+    && { jupyter lab clean || true; } \
+    && { rm -rf "${HOME}/.cache/yarn" || true; } \
+    && { rm -rf ${HOME}/.cache || true; }
   else
     echo "✅ conda environment '$ENV_NAME' already exists."
   fi
