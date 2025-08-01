@@ -165,7 +165,12 @@
 
 <p> The quickest and easiest way to go from analysis... </p>
 
-<h3> 📘 Documentation, Examples and Try|Install Scikit-plots </h3>
+
+<h3>
+  <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
+    📘 Documentation, Examples and Try|Install Scikit-plots:
+  </a>
+</h3>
 
 <h5>Explore the full features of Scikit-plots:
   <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">
@@ -176,7 +181,11 @@
 
 <hr>
 
-<h2> 🐋 Scikit-plots Runtime Docker Images: </h2>
+<h2>
+  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+    🐋 Scikit-plots Runtime Docker Images:
+  </a>
+</h2>
 
 🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
 
@@ -191,7 +200,7 @@ docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -i -c "scikitplot
 
 <hr>
 
-<h1> 🐛 User Installation: </h1>
+<h1> 📥 User Installation: </h1>
 
 <h2>
   📦 From
