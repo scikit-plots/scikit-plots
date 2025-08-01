@@ -159,7 +159,6 @@ if command -v mamba >/dev/null 2>&1; then
     # mamba create -n py311 python=3.11 ipykernel pip -y
     # mamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
     mamba env create -f environment.yml --yes \
-    ## Clean mamba, If fails continue
     && { conda clean --all -f -y || true; } \
     && { jupyter lab clean || true; } \
     && { rm -rf "${HOME}/.cache/yarn" || true; } \
@@ -178,7 +177,6 @@ elif command -v conda >/dev/null 2>&1; then
     # conda env create -f base.yml || { echo "Failed to creation environment"; }
     # conda env update -n "$ENV_NAME" -f "./docker/env_conda/default.yml" || { echo "Failed to update environment"; }
     conda env create -f environment.yml --yes \
-    ## Clean conda, If fails continue
     && { conda clean --all -f -y || true; } \
     && { jupyter lab clean || true; } \
     && { rm -rf "${HOME}/.cache/yarn" || true; } \
