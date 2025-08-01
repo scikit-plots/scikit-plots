@@ -31,10 +31,10 @@ ENV IS_DOCKERENV=true
 ## Install system dependencies (including bash and sudo)
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
-    # - `tini` is installed as a helpful container entrypoint,
-    #   that reaps zombie processes and such of the actual executable we want to start
-    #   See https://github.com/krallin/tini#why-tini for details
-    tini \
+		# - `tini` is installed as a helpful container entrypoint,
+		#   that reaps zombie processes and such of the actual executable we want to start
+		#   See https://github.com/krallin/tini#why-tini for details
+		tini \
 		bash \
 		sudo \
 		gosu \
