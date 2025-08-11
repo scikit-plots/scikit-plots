@@ -30,9 +30,10 @@ __all__ = [
 
 def calculate_bin_edges(
     a: ArrayLike,
-    bins: (
-        int | list[float] | Literal["blocks", "knuth", "scott", "freedman"] | None
-    ) = 10,
+    bins: int
+    | list[float]
+    | Literal["blocks", "knuth", "scott", "freedman"]
+    | None = 10,
     range: tuple[float, float] | None = None,
     weights: ArrayLike | None = None,
 ) -> NDArray[float]:
@@ -112,9 +113,10 @@ def calculate_bin_edges(
 
 def histogram(
     a: ArrayLike,
-    bins: (
-        int | list[float] | Literal["blocks", "knuth", "scott", "freedman"] | None
-    ) = 10,
+    bins: int
+    | list[float]
+    | Literal["blocks", "knuth", "scott", "freedman"]
+    | None = 10,
     range: tuple[float, float] | None = None,
     weights: ArrayLike | None = None,
     **kwargs,

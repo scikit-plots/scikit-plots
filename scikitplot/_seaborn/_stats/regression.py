@@ -12,7 +12,6 @@ class PolyFit(Stat):
     """
     Fit a polynomial of the given order and resample data onto predicted curve.
     """
-
     # This is a provisional class that is useful for building out functionality.
     # It may or may not change substantially in form or dissappear as we think
     # through the organization of the stats subpackage.
@@ -39,8 +38,13 @@ class PolyFit(Stat):
 
     def __call__(self, data, groupby, orient, scales):
 
-        return groupby.apply(data.dropna(subset=["x", "y"]), self._fit_predict)
+        return (
+            groupby
+            .apply(data.dropna(subset=["x", "y"]), self._fit_predict)
+        )
 
 
 @dataclass
-class OLSFit(Stat): ...
+class OLSFit(Stat):
+
+    ...

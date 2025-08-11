@@ -29,7 +29,6 @@ class Text(Mark):
     .. include:: ../docstrings/objects.Text.rst
 
     """
-
     text: MappableString = Mappable("")
     color: MappableColor = Mappable("k")
     alpha: MappableFloat = Mappable(1)

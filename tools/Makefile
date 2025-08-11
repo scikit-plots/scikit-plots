@@ -41,7 +41,7 @@ seaborn:
 		-r --progress
 
 # fix
-seaborn-f:
+seaborn-f: seaborn
 	@python ../scikitplot/_build_utils/fix_submodule_import.py \
 		-m 'seaborn' \
 		-r '../scikitplot/_seaborn'
@@ -116,7 +116,7 @@ astropy:
 		-r --progress
 
 # fix
-astropy-f:
+astropy-f: astropy
 	@python ../scikitplot/_build_utils/fix_submodule_import.py \
 		-m 'astropy' \
 		-r '../scikitplot/_astropy' \

@@ -1,5 +1,4 @@
 """Utility functions, mostly for internal use."""
-
 import os
 import inspect
 import warnings
@@ -19,16 +18,8 @@ from ._core.typing import deprecated
 from .external.version import Version
 from .external.appdirs import user_cache_dir
 
-__all__ = [
-    "desaturate",
-    "saturate",
-    "set_hls_values",
-    "move_legend",
-    "despine",
-    "get_dataset_names",
-    "get_data_home",
-    "load_dataset",
-]
+__all__ = ["desaturate", "saturate", "set_hls_values", "move_legend",
+           "despine", "get_dataset_names", "get_data_home", "load_dataset"]
 
 DATASET_SOURCE = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master"
 DATASET_NAMES_URL = f"{DATASET_SOURCE}/dataset_names.txt"
@@ -97,7 +88,7 @@ def _default_color(method, hue, color, kws, saturation=1):
     elif method.__name__ == "plot":
 
         color = normalize_kwargs(kws, mpl.lines.Line2D).get("color")
-        (scout,) = method([], [], scalex=False, scaley=False, color=color)
+        scout, = method([], [], scalex=False, scaley=False, color=color)
         color = scout.get_color()
         scout.remove()
 
@@ -133,7 +124,7 @@ def _default_color(method, hue, color, kws, saturation=1):
     elif method.__name__ == "bar":
 
         # bar() needs masked, not empty data, to generate a patch
-        (scout,) = method([np.nan], [np.nan], **kws)
+        scout, = method([np.nan], [np.nan], **kws)
         color = to_rgb(scout.get_facecolor())
         scout.remove()
         # Axes.bar adds both a patch and a container
@@ -279,20 +270,12 @@ def get_color_cycle():
         List of matplotlib colors in the current cycle, or dark gray if
         the current color cycle is empty.
     """
-    cycler = mpl.rcParams["axes.prop_cycle"]
-    return cycler.by_key()["color"] if "color" in cycler.keys else [".15"]
+    cycler = mpl.rcParams['axes.prop_cycle']
+    return cycler.by_key()['color'] if 'color' in cycler.keys else [".15"]
 
 
-def despine(
-    fig=None,
-    ax=None,
-    top=True,
-    right=True,
-    left=False,
-    bottom=False,
-    offset=None,
-    trim=False,
-):
+def despine(fig=None, ax=None, top=True, right=True, left=False,
+            bottom=False, offset=None, trim=False):
     """Remove the top and right spines from plot(s).
 
     fig : matplotlib figure, optional
@@ -333,12 +316,18 @@ def despine(
                     val = offset.get(side, 0)
                 except AttributeError:
                     val = offset
-                ax_i.spines[side].set_position(("outward", val))
+                ax_i.spines[side].set_position(('outward', val))
 
         # Potentially move the ticks
         if left and not right:
-            maj_on = any(t.tick1line.get_visible() for t in ax_i.yaxis.majorTicks)
-            min_on = any(t.tick1line.get_visible() for t in ax_i.yaxis.minorTicks)
+            maj_on = any(
+                t.tick1line.get_visible()
+                for t in ax_i.yaxis.majorTicks
+            )
+            min_on = any(
+                t.tick1line.get_visible()
+                for t in ax_i.yaxis.minorTicks
+            )
             ax_i.yaxis.set_ticks_position("right")
             for t in ax_i.yaxis.majorTicks:
                 t.tick2line.set_visible(maj_on)
@@ -346,8 +335,14 @@ def despine(
                 t.tick2line.set_visible(min_on)
 
         if bottom and not top:
-            maj_on = any(t.tick1line.get_visible() for t in ax_i.xaxis.majorTicks)
-            min_on = any(t.tick1line.get_visible() for t in ax_i.xaxis.minorTicks)
+            maj_on = any(
+                t.tick1line.get_visible()
+                for t in ax_i.xaxis.majorTicks
+            )
+            min_on = any(
+                t.tick1line.get_visible()
+                for t in ax_i.xaxis.minorTicks
+            )
             ax_i.xaxis.set_ticks_position("top")
             for t in ax_i.xaxis.majorTicks:
                 t.tick2line.set_visible(maj_on)
@@ -358,20 +353,24 @@ def despine(
             # clip off the parts of the spines that extend past major ticks
             xticks = np.asarray(ax_i.get_xticks())
             if xticks.size:
-                firsttick = np.compress(xticks >= min(ax_i.get_xlim()), xticks)[0]
-                lasttick = np.compress(xticks <= max(ax_i.get_xlim()), xticks)[-1]
-                ax_i.spines["bottom"].set_bounds(firsttick, lasttick)
-                ax_i.spines["top"].set_bounds(firsttick, lasttick)
+                firsttick = np.compress(xticks >= min(ax_i.get_xlim()),
+                                        xticks)[0]
+                lasttick = np.compress(xticks <= max(ax_i.get_xlim()),
+                                       xticks)[-1]
+                ax_i.spines['bottom'].set_bounds(firsttick, lasttick)
+                ax_i.spines['top'].set_bounds(firsttick, lasttick)
                 newticks = xticks.compress(xticks <= lasttick)
                 newticks = newticks.compress(newticks >= firsttick)
                 ax_i.set_xticks(newticks)
 
             yticks = np.asarray(ax_i.get_yticks())
             if yticks.size:
-                firsttick = np.compress(yticks >= min(ax_i.get_ylim()), yticks)[0]
-                lasttick = np.compress(yticks <= max(ax_i.get_ylim()), yticks)[-1]
-                ax_i.spines["left"].set_bounds(firsttick, lasttick)
-                ax_i.spines["right"].set_bounds(firsttick, lasttick)
+                firsttick = np.compress(yticks >= min(ax_i.get_ylim()),
+                                        yticks)[0]
+                lasttick = np.compress(yticks <= max(ax_i.get_ylim()),
+                                       yticks)[-1]
+                ax_i.spines['left'].set_bounds(firsttick, lasttick)
+                ax_i.spines['right'].set_bounds(firsttick, lasttick)
                 newticks = yticks.compress(yticks <= lasttick)
                 newticks = newticks.compress(newticks >= firsttick)
                 ax_i.set_yticks(newticks)
@@ -435,7 +434,6 @@ def move_legend(obj, loc, **kwargs):
     # Extract the components of the legend we need to reuse
     # Import here to avoid a circular import
     from ._compat import get_legend_handles
-
     handles = get_legend_handles(old_legend)
     labels = [t.get_text() for t in old_legend.get_texts()]
 
@@ -609,16 +607,13 @@ def load_dataset(name, cache=True, data_home=None, **kws):
 
     elif name == "diamonds":
         df["color"] = pd.Categorical(
-            df["color"],
-            ["D", "E", "F", "G", "H", "I", "J"],
+            df["color"], ["D", "E", "F", "G", "H", "I", "J"],
         )
         df["clarity"] = pd.Categorical(
-            df["clarity"],
-            ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1"],
+            df["clarity"], ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1"],
         )
         df["cut"] = pd.Categorical(
-            df["cut"],
-            ["Ideal", "Premium", "Very Good", "Good", "Fair"],
+            df["cut"], ["Ideal", "Premium", "Very Good", "Good", "Fair"],
         )
 
     elif name == "taxis":
@@ -671,10 +666,8 @@ def axes_ticklabels_overlap(ax):
         True when the labels on that axis overlap.
 
     """
-    return (
-        axis_ticklabels_overlap(ax.get_xticklabels()),
-        axis_ticklabels_overlap(ax.get_yticklabels()),
-    )
+    return (axis_ticklabels_overlap(ax.get_xticklabels()),
+            axis_ticklabels_overlap(ax.get_yticklabels()))
 
 
 def locator_to_legend_entries(locator, limits, dtype):
@@ -717,8 +710,8 @@ def relative_luminance(color):
 
     """
     rgb = mpl.colors.colorConverter.to_rgba_array(color)[:, :3]
-    rgb = np.where(rgb <= 0.03928, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
-    lum = rgb.dot([0.2126, 0.7152, 0.0722])
+    rgb = np.where(rgb <= .03928, rgb / 12.92, ((rgb + .055) / 1.055) ** 2.4)
+    lum = rgb.dot([.2126, .7152, .0722])
     try:
         return lum.item()
     except ValueError:

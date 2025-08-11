@@ -26,7 +26,6 @@ See the documentation for other :class:`Plot` methods to learn about the many
 ways that a plot can be enhanced and customized.
 
 """
-
 from ._core.plot import Plot  # noqa: F401
 
 from ._marks.base import Mark  # noqa: F401
@@ -45,4 +44,6 @@ from ._stats.regression import PolyFit  # noqa: F401
 
 from ._core.moves import Dodge, Jitter, Norm, Shift, Stack, Move  # noqa: F401
 
-from ._core.scales import Boolean, Continuous, Nominal, Temporal, Scale  # noqa: F401
+from ._core.scales import (  # noqa: F401
+    Boolean, Continuous, Nominal, Temporal, Scale
+)

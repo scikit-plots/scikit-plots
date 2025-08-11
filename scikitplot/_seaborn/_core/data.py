@@ -1,7 +1,6 @@
 """
 Components for parsing variable assignments and internally representing plot data.
 """
-
 from __future__ import annotations
 
 from collections.abc import Mapping, Sized
@@ -42,7 +41,6 @@ class PlotData:
         Dictionary mapping plot variable names to unique data source identifiers.
 
     """
-
     frame: DataFrame
     frames: dict[tuple, DataFrame]
     names: dict[str, str | None]

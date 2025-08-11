@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:  # TODO move to seaborn._core.typing?
     from .._core.plot import FacetSpec, PairSpec
     from matplotlib.figure import SubFigure
@@ -30,7 +29,6 @@ class Subplots:
         Data used to define figure setup.
 
     """
-
     def __init__(
         self,
         subplot_spec: dict,  # TODO define as TypedDict
@@ -101,7 +99,9 @@ class Subplots:
 
         self.n_subplots = self.subplot_spec["ncols"] * self.subplot_spec["nrows"]
 
-    def _handle_wrapping(self, facet_spec: FacetSpec, pair_spec: PairSpec) -> None:
+    def _handle_wrapping(
+        self, facet_spec: FacetSpec, pair_spec: PairSpec
+    ) -> None:
         """Update figure structure parameters based on facet/pair wrapping."""
         self.wrap = wrap = facet_spec.get("wrap") or pair_spec.get("wrap")
         if not wrap:
@@ -155,28 +155,24 @@ class Subplots:
         if isinstance(target, mpl.axes.Axes):
 
             if max(self.subplot_spec["nrows"], self.subplot_spec["ncols"]) > 1:
-                err = " ".join(
-                    [
-                        "Cannot create multiple subplots after calling `Plot.on` with",
-                        f"a {mpl.axes.Axes} object.",
-                        f" You may want to use a {mpl.figure.SubFigure} instead.",
-                    ]
-                )
+                err = " ".join([
+                    "Cannot create multiple subplots after calling `Plot.on` with",
+                    f"a {mpl.axes.Axes} object.",
+                    f" You may want to use a {mpl.figure.SubFigure} instead.",
+                ])
                 raise RuntimeError(err)
 
-            self._subplot_list = [
-                {
-                    "ax": target,
-                    "left": True,
-                    "right": True,
-                    "top": True,
-                    "bottom": True,
-                    "col": None,
-                    "row": None,
-                    "x": "x",
-                    "y": "y",
-                }
-            ]
+            self._subplot_list = [{
+                "ax": target,
+                "left": True,
+                "right": True,
+                "top": True,
+                "bottom": True,
+                "col": None,
+                "row": None,
+                "x": "x",
+                "y": "y",
+            }]
             self._figure = target.figure
             return self._figure
 

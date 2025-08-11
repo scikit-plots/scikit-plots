@@ -4,7 +4,6 @@ Custom exceptions for the seaborn.objects interface.
 This is very lightweight, but it's a separate module to avoid circular imports.
 
 """
-
 from __future__ import annotations
 
 
@@ -19,7 +18,6 @@ class PlotSpecError(RuntimeError):
     context (e.g., scaling errors could specify the variable that failed.)
 
     """
-
     @classmethod
     def _during(cls, step: str, var: str = "") -> PlotSpecError:
         """

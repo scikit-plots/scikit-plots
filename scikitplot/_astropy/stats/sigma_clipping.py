@@ -275,7 +275,7 @@ class SigmaClip:
         masked: bool | None = True,
         return_bounds: bool | None = False,
         copy: bool | None = True,
-    ) -> (
+    ) ->(
         NDArray
         | np.ma.MaskedArray
         | tuple[NDArray | np.ma.MaskedArray, float, float]
@@ -445,7 +445,7 @@ class SigmaClip:
         masked: bool | None = True,
         return_bounds: bool | None = False,
         copy: bool | None = True,
-    ) -> (
+    ) ->(
         NDArray
         | np.ma.MaskedArray
         | tuple[NDArray | np.ma.MaskedArray, float, float]
@@ -562,7 +562,7 @@ class SigmaClip:
         masked: bool | None = True,
         return_bounds: bool | None = False,
         copy: bool | None = True,
-    ) -> (
+    ) ->(
         NDArray
         | np.ma.MaskedArray
         | tuple[NDArray | np.ma.MaskedArray, float, float]
@@ -690,7 +690,7 @@ def sigma_clip(
     return_bounds: bool | None = False,
     copy: bool | None = True,
     grow: float | Literal[False] | None = False,
-) -> ArrayLike | tuple[ArrayLike, float, float] | tuple[ArrayLike, ...]:
+) -> ArrayLike | tuple[ArrayLike, float, float] | tuple[ArrayLike,...]:
     """
     Perform sigma-clipping on the provided data.
 

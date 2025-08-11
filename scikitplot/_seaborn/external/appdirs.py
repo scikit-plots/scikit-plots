@@ -54,19 +54,18 @@ import os
 
 unicode = str
 
-if sys.platform.startswith("java"):
+if sys.platform.startswith('java'):
     import platform
-
     os_name = platform.java_ver()[3][0]
-    if os_name.startswith("Windows"):  # "Windows XP", "Windows 7", etc.
-        system = "win32"
-    elif os_name.startswith("Mac"):  # "Mac OS X", etc.
-        system = "darwin"
-    else:  # "Linux", "SunOS", "FreeBSD", etc.
+    if os_name.startswith('Windows'): # "Windows XP", "Windows 7", etc.
+        system = 'win32'
+    elif os_name.startswith('Mac'): # "Mac OS X", etc.
+        system = 'darwin'
+    else: # "Linux", "SunOS", "FreeBSD", etc.
         # Setting this to "linux2" is not ideal, but only Windows or Mac
         # are actually checked for and the rest of the module expects
         # *sys.platform* style strings.
-        system = "linux2"
+        system = 'linux2'
 else:
     system = sys.platform
 
@@ -115,12 +114,12 @@ def user_cache_dir(appname=None, appauthor=None, version=None, opinion=True):
                 path = os.path.join(path, appname)
             if opinion:
                 path = os.path.join(path, "Cache")
-    elif system == "darwin":
-        path = os.path.expanduser("~/Library/Caches")
+    elif system == 'darwin':
+        path = os.path.expanduser('~/Library/Caches')
         if appname:
             path = os.path.join(path, appname)
     else:
-        path = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+        path = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
         if appname:
             path = os.path.join(path, appname)
     if appname and version:
@@ -128,8 +127,7 @@ def user_cache_dir(appname=None, appauthor=None, version=None, opinion=True):
     return path
 
 
-# ---- internal support stuff
-
+#---- internal support stuff
 
 def _get_win_folder_from_registry(csidl_name):
     """This is a fallback technique at best. I'm not sure if using the
@@ -146,7 +144,7 @@ def _get_win_folder_from_registry(csidl_name):
 
     key = _winreg.OpenKey(
         _winreg.HKEY_CURRENT_USER,
-        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
     )
     dir, type = _winreg.QueryValueEx(key, shell_folder_name)
     return dir
@@ -154,7 +152,6 @@ def _get_win_folder_from_registry(csidl_name):
 
 def _get_win_folder_with_pywin32(csidl_name):
     from win32com.shell import shellcon, shell
-
     dir = shell.SHGetFolderPath(0, getattr(shellcon, csidl_name), 0, 0)
     # Try to make this a unicode path because SHGetFolderPath does
     # not return unicode strings when there is unicode data in the
@@ -172,7 +169,6 @@ def _get_win_folder_with_pywin32(csidl_name):
         if has_high_char:
             try:
                 import win32api
-
                 dir = win32api.GetShortPathName(dir)
             except ImportError:
                 pass
@@ -207,22 +203,15 @@ def _get_win_folder_with_ctypes(csidl_name):
 
     return buf.value
 
-
 def _get_win_folder_with_jna(csidl_name):
     import array
     from com.sun import jna
     from com.sun.jna.platform import win32
 
     buf_size = win32.WinDef.MAX_PATH * 2
-    buf = array.zeros("c", buf_size)
+    buf = array.zeros('c', buf_size)
     shell = win32.Shell32.INSTANCE
-    shell.SHGetFolderPath(
-        None,
-        getattr(win32.ShlObj, csidl_name),
-        None,
-        win32.ShlObj.SHGFP_TYPE_CURRENT,
-        buf,
-    )
+    shell.SHGetFolderPath(None, getattr(win32.ShlObj, csidl_name), None, win32.ShlObj.SHGFP_TYPE_CURRENT, buf)
     dir = jna.Native.toString(buf.tostring()).rstrip("\0")
 
     # Downgrade to short path name if have highbit chars. See
@@ -233,28 +222,24 @@ def _get_win_folder_with_jna(csidl_name):
             has_high_char = True
             break
     if has_high_char:
-        buf = array.zeros("c", buf_size)
+        buf = array.zeros('c', buf_size)
         kernel = win32.Kernel32.INSTANCE
         if kernel.GetShortPathName(dir, buf, buf_size):
             dir = jna.Native.toString(buf.tostring()).rstrip("\0")
 
     return dir
 
-
 if system == "win32":
     try:
         import win32com.shell
-
         _get_win_folder = _get_win_folder_with_pywin32
     except ImportError:
         try:
             from ctypes import windll
-
             _get_win_folder = _get_win_folder_with_ctypes
         except ImportError:
             try:
                 import com.sun.jna
-
                 _get_win_folder = _get_win_folder_with_jna
             except ImportError:
                 _get_win_folder = _get_win_folder_from_registry

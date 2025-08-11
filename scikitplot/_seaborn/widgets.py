@@ -5,28 +5,18 @@ from matplotlib.colors import LinearSegmentedColormap
 try:
     from ipywidgets import interact, FloatSlider, IntSlider
 except ImportError:
-
     def interact(f):
         msg = "Interactive palettes require `ipywidgets`, which is not installed."
         raise ImportError(msg)
 
-
 from .miscplot import palplot
-from .palettes import (
-    color_palette,
-    dark_palette,
-    light_palette,
-    diverging_palette,
-    cubehelix_palette,
-)
+from .palettes import (color_palette, dark_palette, light_palette,
+                       diverging_palette, cubehelix_palette)
 
-__all__ = [
-    "choose_colorbrewer_palette",
-    "choose_cubehelix_palette",
-    "choose_dark_palette",
-    "choose_light_palette",
-    "choose_diverging_palette",
-]
+
+__all__ = ["choose_colorbrewer_palette", "choose_cubehelix_palette",
+           "choose_dark_palette", "choose_light_palette",
+           "choose_diverging_palette"]
 
 
 def _init_mutable_colormap():
@@ -47,9 +37,8 @@ def _update_lut(cmap, colors):
 def _show_cmap(cmap):
     """Show a continuous matplotlib colormap."""
     from .rcmod import axes_style  # Avoid circular import
-
     with axes_style("white"):
-        f, ax = plt.subplots(figsize=(8.25, 0.75))
+        f, ax = plt.subplots(figsize=(8.25, .75))
     ax.set(xticks=[], yticks=[])
     x = np.linspace(0, 1, 256)[np.newaxis, :]
     ax.pcolormesh(x, cmap=cmap)
@@ -95,35 +84,15 @@ def choose_colorbrewer_palette(data_type, as_cmap=False):
         cmap = _init_mutable_colormap()
 
     if data_type.startswith("s"):
-        opts = [
-            "Greys",
-            "Reds",
-            "Greens",
-            "Blues",
-            "Oranges",
-            "Purples",
-            "BuGn",
-            "BuPu",
-            "GnBu",
-            "OrRd",
-            "PuBu",
-            "PuRd",
-            "RdPu",
-            "YlGn",
-            "PuBuGn",
-            "YlGnBu",
-            "YlOrBr",
-            "YlOrRd",
-        ]
+        opts = ["Greys", "Reds", "Greens", "Blues", "Oranges", "Purples",
+                "BuGn", "BuPu", "GnBu", "OrRd", "PuBu", "PuRd", "RdPu", "YlGn",
+                "PuBuGn", "YlGnBu", "YlOrBr", "YlOrRd"]
         variants = ["regular", "reverse", "dark"]
 
         @interact
-        def choose_sequential(
-            name=opts,
-            n=(2, 18),
-            desat=FloatSlider(min=0, max=1, value=1),
-            variant=variants,
-        ):
+        def choose_sequential(name=opts, n=(2, 18),
+                              desat=FloatSlider(min=0, max=1, value=1),
+                              variant=variants):
             if variant == "reverse":
                 name += "_r"
             elif variant == "dark":
@@ -138,16 +107,14 @@ def choose_colorbrewer_palette(data_type, as_cmap=False):
                 palplot(pal)
 
     elif data_type.startswith("d"):
-        opts = ["RdBu", "RdGy", "PRGn", "PiYG", "BrBG", "RdYlBu", "RdYlGn", "Spectral"]
+        opts = ["RdBu", "RdGy", "PRGn", "PiYG", "BrBG",
+                "RdYlBu", "RdYlGn", "Spectral"]
         variants = ["regular", "reverse"]
 
         @interact
-        def choose_diverging(
-            name=opts,
-            n=(2, 16),
-            desat=FloatSlider(min=0, max=1, value=1),
-            variant=variants,
-        ):
+        def choose_diverging(name=opts, n=(2, 16),
+                             desat=FloatSlider(min=0, max=1, value=1),
+                             variant=variants):
             if variant == "reverse":
                 name += "_r"
             if as_cmap:
@@ -159,21 +126,12 @@ def choose_colorbrewer_palette(data_type, as_cmap=False):
                 palplot(pal)
 
     elif data_type.startswith("q"):
-        opts = [
-            "Set1",
-            "Set2",
-            "Set3",
-            "Paired",
-            "Accent",
-            "Pastel1",
-            "Pastel2",
-            "Dark2",
-        ]
+        opts = ["Set1", "Set2", "Set3", "Paired", "Accent",
+                "Pastel1", "Pastel2", "Dark2"]
 
         @interact
-        def choose_qualitative(
-            name=opts, n=(2, 16), desat=FloatSlider(min=0, max=1, value=1)
-        ):
+        def choose_qualitative(name=opts, n=(2, 16),
+                               desat=FloatSlider(min=0, max=1, value=1)):
             pal[:] = color_palette(name, n, desat)
             palplot(pal)
 
@@ -218,11 +176,11 @@ def choose_dark_palette(input="husl", as_cmap=False):
         cmap = _init_mutable_colormap()
 
     if input == "rgb":
-
         @interact
-        def choose_dark_palette_rgb(
-            r=(0.0, 1.0), g=(0.0, 1.0), b=(0.0, 1.0), n=(3, 17)
-        ):
+        def choose_dark_palette_rgb(r=(0., 1.),
+                                    g=(0., 1.),
+                                    b=(0., 1.),
+                                    n=(3, 17)):
             color = r, g, b
             if as_cmap:
                 colors = dark_palette(color, 256, input="rgb")
@@ -233,11 +191,11 @@ def choose_dark_palette(input="husl", as_cmap=False):
                 palplot(pal)
 
     elif input == "hls":
-
         @interact
-        def choose_dark_palette_hls(
-            h=(0.0, 1.0), l=(0.0, 1.0), s=(0.0, 1.0), n=(3, 17)  # noqa: E741
-        ):
+        def choose_dark_palette_hls(h=(0., 1.),
+                                    l=(0., 1.),  # noqa: E741
+                                    s=(0., 1.),
+                                    n=(3, 17)):
             color = h, l, s
             if as_cmap:
                 colors = dark_palette(color, 256, input="hls")
@@ -248,11 +206,11 @@ def choose_dark_palette(input="husl", as_cmap=False):
                 palplot(pal)
 
     elif input == "husl":
-
         @interact
-        def choose_dark_palette_husl(
-            h=(0, 359), s=(0, 99), l=(0, 99), n=(3, 17)  # noqa: E741
-        ):
+        def choose_dark_palette_husl(h=(0, 359),
+                                     s=(0, 99),
+                                     l=(0, 99),  # noqa: E741
+                                     n=(3, 17)):
             color = h, s, l
             if as_cmap:
                 colors = dark_palette(color, 256, input="husl")
@@ -303,11 +261,11 @@ def choose_light_palette(input="husl", as_cmap=False):
         cmap = _init_mutable_colormap()
 
     if input == "rgb":
-
         @interact
-        def choose_light_palette_rgb(
-            r=(0.0, 1.0), g=(0.0, 1.0), b=(0.0, 1.0), n=(3, 17)
-        ):
+        def choose_light_palette_rgb(r=(0., 1.),
+                                     g=(0., 1.),
+                                     b=(0., 1.),
+                                     n=(3, 17)):
             color = r, g, b
             if as_cmap:
                 colors = light_palette(color, 256, input="rgb")
@@ -318,11 +276,11 @@ def choose_light_palette(input="husl", as_cmap=False):
                 palplot(pal)
 
     elif input == "hls":
-
         @interact
-        def choose_light_palette_hls(
-            h=(0.0, 1.0), l=(0.0, 1.0), s=(0.0, 1.0), n=(3, 17)  # noqa: E741
-        ):
+        def choose_light_palette_hls(h=(0., 1.),
+                                     l=(0., 1.),  # noqa: E741
+                                     s=(0., 1.),
+                                     n=(3, 17)):
             color = h, l, s
             if as_cmap:
                 colors = light_palette(color, 256, input="hls")
@@ -333,11 +291,11 @@ def choose_light_palette(input="husl", as_cmap=False):
                 palplot(pal)
 
     elif input == "husl":
-
         @interact
-        def choose_light_palette_husl(
-            h=(0, 359), s=(0, 99), l=(0, 99), n=(3, 17)  # noqa: E741
-        ):
+        def choose_light_palette_husl(h=(0, 359),
+                                      s=(0, 99),
+                                      l=(0, 99),  # noqa: E741
+                                      n=(3, 17)):
             color = h, s, l
             if as_cmap:
                 colors = light_palette(color, 256, input="husl")
@@ -386,13 +344,17 @@ def choose_diverging_palette(as_cmap=False):
 
     @interact
     def choose_diverging_palette(
-        h_neg=IntSlider(min=0, max=359, value=220),
-        h_pos=IntSlider(min=0, max=359, value=10),
+        h_neg=IntSlider(min=0,
+                        max=359,
+                        value=220),
+        h_pos=IntSlider(min=0,
+                        max=359,
+                        value=10),
         s=IntSlider(min=0, max=99, value=74),
         l=IntSlider(min=0, max=99, value=50),  # noqa: E741
         sep=IntSlider(min=1, max=50, value=10),
         n=(2, 16),
-        center=["light", "dark"],
+        center=["light", "dark"]
     ):
         if as_cmap:
             colors = diverging_palette(h_neg, h_pos, s, l, sep, 256, center)
@@ -440,27 +402,23 @@ def choose_cubehelix_palette(as_cmap=False):
         cmap = _init_mutable_colormap()
 
     @interact
-    def choose_cubehelix(
-        n_colors=IntSlider(min=2, max=16, value=9),
-        start=FloatSlider(min=0, max=3, value=0),
-        rot=FloatSlider(min=-1, max=1, value=0.4),
-        gamma=FloatSlider(min=0, max=5, value=1),
-        hue=FloatSlider(min=0, max=1, value=0.8),
-        light=FloatSlider(min=0, max=1, value=0.85),
-        dark=FloatSlider(min=0, max=1, value=0.15),
-        reverse=False,
-    ):
+    def choose_cubehelix(n_colors=IntSlider(min=2, max=16, value=9),
+                         start=FloatSlider(min=0, max=3, value=0),
+                         rot=FloatSlider(min=-1, max=1, value=.4),
+                         gamma=FloatSlider(min=0, max=5, value=1),
+                         hue=FloatSlider(min=0, max=1, value=.8),
+                         light=FloatSlider(min=0, max=1, value=.85),
+                         dark=FloatSlider(min=0, max=1, value=.15),
+                         reverse=False):
 
         if as_cmap:
-            colors = cubehelix_palette(
-                256, start, rot, gamma, hue, light, dark, reverse
-            )
+            colors = cubehelix_palette(256, start, rot, gamma,
+                                       hue, light, dark, reverse)
             _update_lut(cmap, np.c_[colors, np.ones(256)])
             _show_cmap(cmap)
         else:
-            pal[:] = cubehelix_palette(
-                n_colors, start, rot, gamma, hue, light, dark, reverse
-            )
+            pal[:] = cubehelix_palette(n_colors, start, rot, gamma,
+                                       hue, light, dark, reverse)
             palplot(pal)
 
     if as_cmap:

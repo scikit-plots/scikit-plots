@@ -70,25 +70,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -------------------------------------------------------------------------------
 
 import numpy as np
-from numpy import (
-    asarray,
-    atleast_2d,
-    reshape,
-    zeros,
-    newaxis,
-    dot,
-    exp,
-    pi,
-    sqrt,
-    power,
-    atleast_1d,
-    sum,
-    ones,
-    cov,
-)
+from numpy import (asarray, atleast_2d, reshape, zeros, newaxis, dot, exp, pi,
+                   sqrt, power, atleast_1d, sum, ones, cov)
 from numpy import linalg
 
-__all__ = ["gaussian_kde"]
+
+__all__ = ['gaussian_kde']
 
 
 class gaussian_kde:
@@ -204,7 +191,6 @@ class gaussian_kde:
            Series A (General), 132, 272
 
     """
-
     def __init__(self, dataset, bw_method=None, weights=None):
         self.dataset = atleast_2d(asarray(dataset))
         if not self.dataset.size > 1:
@@ -219,7 +205,7 @@ class gaussian_kde:
                 raise ValueError("`weights` input should be one-dimensional.")
             if len(self._weights) != self.n:
                 raise ValueError("`weights` input should be of length n")
-            self._neff = 1 / sum(self._weights**2)
+            self._neff = 1/sum(self._weights**2)
 
         self.set_bandwidth(bw_method=bw_method)
 
@@ -267,13 +253,13 @@ class gaussian_kde:
             for i in range(self.n):
                 diff = scaled_dataset[:, i, newaxis] - scaled_points
                 energy = sum(diff * diff, axis=0) / 2.0
-                result += self.weights[i] * exp(-energy)
+                result += self.weights[i]*exp(-energy)
         else:
             # loop over points
             for i in range(m):
                 diff = scaled_dataset - scaled_points[:, i, newaxis]
                 energy = sum(diff * diff, axis=0) / 2.0
-                result[i] = sum(exp(-energy) * self.weights, axis=0)
+                result[i] = sum(exp(-energy)*self.weights, axis=0)
 
         result = result / self._norm_factor
 
@@ -289,7 +275,7 @@ class gaussian_kde:
         s : float
             Scott's factor.
         """
-        return power(self.neff, -1.0 / (self.d + 4))
+        return power(self.neff, -1./(self.d+4))
 
     def silverman_factor(self):
         """Compute the Silverman factor.
@@ -299,7 +285,7 @@ class gaussian_kde:
         s : float
             The silverman factor.
         """
-        return power(self.neff * (self.d + 2.0) / 4.0, -1.0 / (self.d + 4))
+        return power(self.neff*(self.d+2.0)/4.0, -1./(self.d+4))
 
     #  Default method to calculate bandwidth, can be overwritten by subclass
     covariance_factor = scotts_factor
@@ -332,20 +318,19 @@ class gaussian_kde:
         """
         if bw_method is None:
             pass
-        elif bw_method == "scott":
+        elif bw_method == 'scott':
             self.covariance_factor = self.scotts_factor
-        elif bw_method == "silverman":
+        elif bw_method == 'silverman':
             self.covariance_factor = self.silverman_factor
         elif np.isscalar(bw_method) and not isinstance(bw_method, str):
-            self._bw_method = "use constant"
+            self._bw_method = 'use constant'
             self.covariance_factor = lambda: bw_method
         elif callable(bw_method):
             self._bw_method = bw_method
             self.covariance_factor = lambda: self._bw_method(self)
         else:
-            msg = (
-                "`bw_method` should be 'scott', 'silverman', a scalar " "or a callable."
-            )
+            msg = "`bw_method` should be 'scott', 'silverman', a scalar " \
+                  "or a callable."
             raise ValueError(msg)
 
         self._compute_covariance()
@@ -356,15 +341,15 @@ class gaussian_kde:
         """
         self.factor = self.covariance_factor()
         # Cache covariance and inverse covariance of the data
-        if not hasattr(self, "_data_inv_cov"):
-            self._data_covariance = atleast_2d(
-                cov(self.dataset, rowvar=1, bias=False, aweights=self.weights)
-            )
+        if not hasattr(self, '_data_inv_cov'):
+            self._data_covariance = atleast_2d(cov(self.dataset, rowvar=1,
+                                               bias=False,
+                                               aweights=self.weights))
             self._data_inv_cov = linalg.inv(self._data_covariance)
 
         self.covariance = self._data_covariance * self.factor**2
         self.inv_cov = self._data_inv_cov / self.factor**2
-        self._norm_factor = sqrt(linalg.det(2 * pi * self.covariance))
+        self._norm_factor = sqrt(linalg.det(2*pi*self.covariance))
 
     def pdf(self, x):
         """
@@ -383,7 +368,7 @@ class gaussian_kde:
         try:
             return self._weights
         except AttributeError:
-            self._weights = ones(self.n) / self.n
+            self._weights = ones(self.n)/self.n
             return self._weights
 
     @property
@@ -391,5 +376,5 @@ class gaussian_kde:
         try:
             return self._neff
         except AttributeError:
-            self._neff = 1 / sum(self.weights**2)
+            self._neff = 1/sum(self.weights**2)
             return self._neff

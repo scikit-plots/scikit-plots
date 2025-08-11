@@ -310,6 +310,7 @@ legacy = [
   # tomli — a newer, faster, read-only TOML parser focused on compliance.
   # toml — a popular older TOML parsing library, supports both reading and writing.
   'tomli;python_version<"3.11"',  # TOML parsing backports for Python < 3.11
+  'tomli-w;python_version<"3.11"',  # A lil' TOML writer backports for Python < 3.11
 ]
 ## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 ## Core dependencies that are used in multiple groups
@@ -938,6 +939,7 @@ convention = "numpy"
 ## Linters and Formatters
 ## 3. Black
 ## Code formatter
+## black --verbose --check --diff .
 ######################################################################
 
 # Black is a code formatter; this section configures its behavior.
@@ -951,6 +953,8 @@ target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 preview = true                              # Enable Black's preview features
 
 extend-exclude = '''
+# A regex preceded with ^/ will apply only to files and directories
+# in the root of the project.
 /(
     \.eggs         # exclude a few common directories in the
   | \.git          # root of the project
@@ -965,7 +969,7 @@ extend-exclude = '''
   | third_party
   | tools
   | tests
-  | scikitplot/_astropy/stats/tests
+  | scikitplot/_astropy
   | scikitplot/_externals
   | scikitplot/_seaborn
   | scikitplot/modelplotpy
