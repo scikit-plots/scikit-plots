@@ -38,7 +38,8 @@
   // https://github.com/github/codespaces-host-images/blob/main/README.md
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Use a basic Ubuntu-based image
   // "image": "mcr.microsoft.com/devcontainers/base:alpine",  // Use a basic Ubuntu-based image, user vscode
-  "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace ⚠️ support only initializeCommand ??
+  // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace ⚠️ support only initializeCommand ??
+  "image": "scikitplot/scikit-plots:latest",  // "scikit-plots latest image"
 
   // "composeContainer":
   // The order of the files is important since later files override previous ones
@@ -211,17 +212,17 @@
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",  // str
   // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],  // list
   "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
-    "message1": "echo '✅ Running initializeCommand...'",
+    "message1": "echo '✅ Running initializeCommand...'"
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
     // DevContainer notice
     // "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/bash-first-run-notice.txt /usr/local/etc/vscode-dev-containers/bash-first-run-notice.txt || true"
-    "sp_init": "bash -c 'apt-get update && apt-get install -y sudo gosu && { . docker/scripts/bash_first_run_notice.sh; } || true'"
+    // "sp_init": "bash -c 'apt-get update && apt-get install -y sudo gosu && { . docker/scripts/bash_first_run_notice.sh; } || true'"
   },
   // VAR=value command for dev version
-  "onCreateCommand": "SCIKITPLOT_VERSION= bash .devcontainer/scripts/all_post_create.sh || true",
-  // "onCreateCommand": {
-  //   "message2": "echo '✅ Running onCreateCommand...'"
-  // },
+  // "onCreateCommand": "SCIKITPLOT_VERSION= bash .devcontainer/scripts/all_post_create.sh || true",
+  "onCreateCommand": {
+    "message2": "echo '✅ Running onCreateCommand...'"
+  },
   "updateContentCommand": {
     "message3": "echo '✅ Running updateContentCommand...'"
   },

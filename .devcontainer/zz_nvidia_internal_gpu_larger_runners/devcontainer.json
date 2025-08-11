@@ -209,11 +209,11 @@
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",  // str
   // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],  // list
   "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
-    "message1": "echo '✅ Running initializeCommand...'",
+    "message1": "echo '✅ Running initializeCommand...'"
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
     // DevContainer notice
     // "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/bash-first-run-notice.txt /usr/local/etc/vscode-dev-containers/bash-first-run-notice.txt || true"
-    "sp_init": "bash -c 'apt-get update && apt-get install -y sudo gosu && { . docker/scripts/bash_first_run_notice.sh; } || true'"
+    // "sp_init": "bash -c 'apt-get update && apt-get install -y sudo gosu && { . docker/scripts/bash_first_run_notice.sh; } || true'"
   },
   "onCreateCommand": {
     "message2": "echo '✅ Running onCreateCommand...'"

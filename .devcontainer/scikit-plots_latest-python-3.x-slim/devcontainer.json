@@ -40,11 +40,12 @@
   // "image": "mcr.microsoft.com/devcontainers/base:alpine",  // Use a basic Ubuntu-based image, user vscode
   // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace
   // "image": "python-3.11-slim",
+  "image": "scikitplot/scikit-plots:latest-python-3.11",  // "scikit-plots latest python 3.11 image"
 
   // "composeContainer":
-  "dockerComposeFile": "../../docker/docker-compose.yml",
-  "service": "scikit-plots_latest-python-3.11-slim",  // user root
-  "runServices": ["scikit-plots_latest-python-3.11-slim"],
+  // "dockerComposeFile": "../../docker/docker-compose.yml",
+  // "service": "scikit-plots_latest-python-3.11-slim",  // user root
+  // "runServices": ["scikit-plots_latest-python-3.11-slim"],
   // "workspaceFolder": "/workspace",  // "The path of the workspace folder inside the container. This is typically the target path of a volume mount in the docker-compose.yml."
 
 
@@ -219,10 +220,11 @@
     "message3": "echo '✅ Running updateContentCommand...'"
   },
   "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created.
-    "message4": "echo '✅ Running postCreateCommand...'",
+    "message4": "echo '✅ Running postCreateCommand...'"
     // For list optional "bash" if Ensure proper shebang (#!/bin/bash) in script. VAR=value command for dev version
     // "all_post_create": "bash -i -c '. .devcontainer/scripts/env_micromamba.sh || true; . .devcontainer/scripts/post_create_commands.sh || true'",
-    "all_post_create": "command -v micromamba >/dev/null 2>&1 || SCIKITPLOT_VERSION= bash .devcontainer/scripts/all_post_create.sh || true"  // ✅ Only run if micromamba is not installed.
+    //
+    // "all_post_create": "command -v micromamba >/dev/null 2>&1 || SCIKITPLOT_VERSION= bash .devcontainer/scripts/all_post_create.sh || true"  // ✅ Only run if micromamba is not installed.
     //
     // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
     // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
