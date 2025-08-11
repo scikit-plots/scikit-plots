@@ -32,8 +32,10 @@ include CITATION.cff
 
 ## Include the README and LICENSE files (important for documentation and legal information)
 recursive-include LICENSES *
+include COPYING
 include LICENSE
 include LICENSE.txt
+include LICENSE.rst
 include CODE_OF_CONDUCT.md
 include CONTRIBUTING.md
 

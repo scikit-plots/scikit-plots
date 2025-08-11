@@ -71,6 +71,7 @@
 <!-- https://simpleicons.org/ -->
 <!-- https://github.com/simple-icons/simple-icons/blob/master/slugs.md -->
 <p align="center">
+  <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
   <!-- pepy.tech -->
   <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
     <!-- [![PyPI Downloads](https://static.pepy.tech/badge/scikit-plots/month)](https://pepy.tech/projects/scikit-plots) -->
@@ -78,6 +79,11 @@
     <img alt="Pepy Total Downloads" height="17" src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=Pepy%20Total%20Downloads&color=olivegreen">
   </a>
   <!-- PyPI -->
+  <!-- https://opensource.com/article/21/3/python-package-index-json-apis-requests -->
+  <!-- https://www.piwheels.org/project/scikit-plots/json/ -->
+  <!-- https://pypi.org/pypi/scikit-plots/json  $.info.downloads.last_month -->
+  <!-- https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fpypi.org%2Fpypi%2Fscikit-plots%2Fjson&query=%24.info.downloads.last_month&style=flat-square&logo=pypi&label=PyPI%20%7C%20Downloads&color=olivegreen
+   -->
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="PyPI Version Status" height="17" src="https://img.shields.io/pypi/v/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Version&color=blue">
   </a>
@@ -788,5 +794,5 @@ reproducible scientific research. -->
 ## License
 
 Scikit-plots is licensed under a 3-clause BSD style license - see the
-[LICENSE](https://github.com/scikit-plots/scikit-plots/blob/main/LICENSE) file,
+[LICENSE](https://github.com/scikit-plots/scikit-plots/blob/main/LICENSE.txt) file,
 and [LICENSES](https://github.com/scikit-plots/scikit-plots/tree/main/LICENSES) files.

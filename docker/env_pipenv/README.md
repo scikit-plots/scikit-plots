@@ -33,7 +33,9 @@ pipenv shell
 RUN pip install pipenv && pipenv install --deploy --ignore-pipfile
 ```
 
-### 📦 Pipenv Basics
+### 📦 [Pipenv Quick Start Guide][quick_start]
+
+[quick_start]: https://pipenv.pypa.io/en/latest/quick_start.html
 
 | **Action**                                              | **Command**                                             |
 |---------------------------------------------------------|---------------------------------------------------------|

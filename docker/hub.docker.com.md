@@ -123,6 +123,16 @@ docker run -it --rm -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work/not
 # PowerShell `$(pwd)`
 docker run -it --rm -v "$(pwd):/work/notebooks" -p 8891:8891 scikitplot/scikit-plots:latest
 ```
+
+Mount the volume with :cached or :delegated (sometimes helps with sync lag)
+- :cached Prioritizes container view of files, :delegated Prioritizes host view of files.
+- Try :cached first if your container mostly reads code and rarely writes.
+- If you actively build and write files inside container and want host to see changes fast, try :delegated.
+
+```sh
+# PowerShell `$(pwd)`
+docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
+```
 ```sh
 # Optionally start jupyter notebook
 docker run -it --rm -v "$(pwd):/work/notebooks" -p 8891:8891 scikitplot/scikit-plots:latest -i -c "jupyter notebook --notebook-dir=/work --ip=0.0.0.0 --no-browser --allow-root --port=8891"

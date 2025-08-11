@@ -10,6 +10,7 @@ ARG PY_VERSION
 
 # Use ENV with shell-style expansion to get ENV_NAME=py3.11
 # Replace '.' in PY_VERSION to get py311 instead of py3.11
+# Bash-style string substitution syntax (${VAR//./})
 ENV ENV_NAME=py${PY_VERSION//./}
 
 ARG SCIKITPLOT_VERSION=0.4.0.post1
