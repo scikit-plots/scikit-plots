@@ -39,11 +39,12 @@
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Use a basic Ubuntu-based image
   // "image": "mcr.microsoft.com/devcontainers/base:alpine",  // Use a basic Ubuntu-based image, user vscode
   // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace
+  "image": "scikitplot/scikit-plots:latest-jupyter",  // "scikit-plots latest jupyter image"
 
   // "composeContainer":
-  "dockerComposeFile": "../../docker/docker-compose.yml",
-  "service": "scikit-plots_latest-jupyter",  // user jovyan
-  "runServices": ["scikit-plots_latest-jupyter"],
+  // "dockerComposeFile": "../../docker/docker-compose.yml",
+  // "service": "scikit-plots_latest-jupyter",  // user jovyan
+  // "runServices": ["scikit-plots_latest-jupyter"],
   // "workspaceFolder": "/workspace",  // "The path of the workspace folder inside the container. This is typically the target path of a volume mount in the docker-compose.yml."
 
 
@@ -208,7 +209,7 @@
   // "initializeCommand": "docker pull mcr.microsoft.com/devcontainers/universal:2",  // str
   // "initializeCommand": ["bash", "docker pull", "mcr.microsoft.com/devcontainers/universal:2"],  // list
   "initializeCommand": {  // dict[str, [str,list]] (Runs Parallelly)
-    "message1": "echo '✅ Running initializeCommand...'",
+    "message1": "echo '✅ Running initializeCommand...'"
     // "docker_pull": "docker pull mcr.microsoft.com/devcontainers/universal:2"
   },
   "onCreateCommand": {
@@ -218,10 +219,11 @@
     "message3": "echo '✅ Running updateContentCommand...'"
   },
   "postCreateCommand": {  // Use 'postCreateCommand' to run commands after the container is created.
-    "message4": "echo '✅ Running postCreateCommand...'",
+    "message4": "echo '✅ Running postCreateCommand...'"
     // For list optional "bash" if Ensure proper shebang (#!/bin/bash) in script. VAR=value command for dev version
     // "all_post_create": "bash -i -c '. .devcontainer/scripts/env_micromamba.sh || true; . .devcontainer/scripts/post_create_commands.sh || true'",
-    "all_post_create": "command -v conda >/dev/null 2>&1 || SCIKITPLOT_VERSION= bash .devcontainer/scripts/all_post_create.sh || true"  // ✅ Only run if micromamba is not installed.
+    //
+    // "all_post_create": "command -v conda >/dev/null 2>&1 || SCIKITPLOT_VERSION= bash .devcontainer/scripts/all_post_create.sh || true"  // ✅ Only run if micromamba is not installed.
     //
     // Conda Activate if conda pre-installed in container (e.g., like "mcr.microsoft.com/devcontainers/universal:2")
     // "conda_mamba_init": "command -v conda >/dev/null 2>&1 && conda init --all || true",
