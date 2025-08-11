@@ -60,6 +60,8 @@ documentation:
     - CITATION*
     - COPYING
     - LICENSE
+    - LICENSE.txt
+    - LICENSE.rst
     - LICENSES/*
     # Add 'Documentation' label to any change to .md files within the entire repository
     # - '**/*.md'

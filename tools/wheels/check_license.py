@@ -38,7 +38,7 @@ def main():
         "package_name", nargs="?", default="scikit-plots"
     )  # Package name format
     p.add_argument(
-        "license_name", nargs="?", default="COPYING"
+        "license_name", nargs="?", default="LICENSE.txt"
     )  # LICENSE file name format
     args = p.parse_args()
 
@@ -84,7 +84,7 @@ def main():
         )
         sys.exit(1)
 
-    # Use glob pattern to find LICENSE files including subdirectories
+    # Use glob pattern to find all LICENSE files including subdirectories
     license_files = list(sitepkgs.glob(f"{distinfo_path}/LICENSE*"))
     print(license_files)
 

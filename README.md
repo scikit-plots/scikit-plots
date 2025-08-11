@@ -794,5 +794,5 @@ reproducible scientific research. -->
 ## License
 
 Scikit-plots is licensed under a 3-clause BSD style license - see the
-[LICENSE](https://github.com/scikit-plots/scikit-plots/blob/main/COPYING) file,
+[LICENSE](https://github.com/scikit-plots/scikit-plots/blob/main/LICENSE.txt) file,
 and [LICENSES](https://github.com/scikit-plots/scikit-plots/tree/main/LICENSES) files.

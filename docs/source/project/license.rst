@@ -46,7 +46,7 @@ License agreement
    :open:
    :class-container: sdd
 
-   .. literalinclude:: ../../../COPYING
+   .. literalinclude:: ../../../LICENSE.txt
       :language: none
 
 

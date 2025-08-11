@@ -700,12 +700,11 @@ push:
 ######################################################################
 
 sym:
-	@# unlink ".devcontainer/scripts" "environment.yml" "LICENSE"
-	@rm -rf ".devcontainer/scripts" "environment.yml" "LICENSE"
+	@# unlink ".devcontainer/scripts" "environment.yml"
+	@rm -rf ".devcontainer/scripts" "environment.yml"
 	@# mkdir -p ".devcontainer/scripts"
 	@ln -rsf "docker/scripts/" ".devcontainer/scripts"
 	@ln -rsf "./docker/env_conda/environment.yml" "environment.yml"
-	@ln -rsf "COPYING" "LICENSE"
 	@echo "Created symbolic links..."
 	@# find . -type l -exec readlink -f {} \; -exec ls -l {} \;
 	@# find . -type l -exec ls -l {} +
