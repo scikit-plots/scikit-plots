@@ -24,7 +24,7 @@ project(
   ).stdout().strip(),
   meson_version: '>= 1.5.0',
   license: 'BSD-3-Clause',                      # Valid SPDX license expression: 'MIT', 'Apache-2.0', 'GPL-3.0-or-later'
-  # license-files: ['LICENSE', 'LICEN[CS]E*/*'],  # list[file] COPYING, COPYRIGHT
+  # license-files: ['COPYING', 'LICENSE', 'LICEN[CS]E*/*'],  # list[file] COPYING, COPYRIGHT
   default_options: [
     'b_ndebug=if-release',
     'buildtype=debugoptimized',

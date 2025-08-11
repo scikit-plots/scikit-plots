@@ -38,7 +38,7 @@ def main():
         "package_name", nargs="?", default="scikit-plots"
     )  # Package name format
     p.add_argument(
-        "license_name", nargs="?", default="LICENSE"
+        "license_name", nargs="?", default="COPYING"
     )  # LICENSE file name format
     args = p.parse_args()
 

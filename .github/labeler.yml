@@ -58,6 +58,7 @@ documentation:
     # Add 'Documentation' label to any file changes within 'docs' folder
     - docs/**/*
     - CITATION*
+    - COPYING
     - LICENSE
     - LICENSES/*
     # Add 'Documentation' label to any change to .md files within the entire repository

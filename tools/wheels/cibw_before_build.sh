@@ -108,13 +108,13 @@ setup_license() {
     [ -f "$os_license_file" ] && stat -c "LICENSE size: %s bytes" "$os_license_file" || echo "LICENSE file not found"
 
     if [[ -f $os_license_file ]]; then
-        cat "$os_license_file" >> "$project_dir/LICENSE" || log_warning "Failed to append LICENSE file."
-        log_info "Appended $os_license_file to: $(find "$project_dir" -name "LICENSE" -print -quit)"
+        cat "$os_license_file" >> "$project_dir/COPYING" || log_warning "Failed to append COPYING file."
+        log_info "Appended $os_license_file to: $(find "$project_dir" -name "COPYING" -print -quit)"
     else
         log_warning "OS LICENSE file not found: $project_dir. Skipping OS LICENSE adding."
     fi
 
-    [ -f "$project_dir/LICENSE" ] && du -h "$project_dir/LICENSE" || echo "LICENSE file not found"
+    [ -f "$project_dir/COPYING" ] && du -h "$project_dir/COPYING" || echo "COPYING file not found"
 }
 ######################################################################
 ## (All OS Platform) Handle Free-Threaded Python builds

@@ -298,8 +298,8 @@ dev: clean dep
 	@# ➡️ Works only if "ninja" and "all build deps" are installed in the environment (--no-build-isolation).
 	@# python -m pip install --no-build-isolation --no-cache-dir .
 	@# python -m pip install --no-build-isolation --no-cache-dir --editable . -vvv
-	@# python -m pip install --no-build-isolation --no-cache-dir -e . -v
-	@python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
+	@# python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
+	@find . -exec touch {} + && python -m pip install --no-build-isolation --no-cache-dir -e . -v
 
 ######################################################################
 ## Compiling by Meson step-by-step
@@ -700,10 +700,12 @@ push:
 ######################################################################
 
 sym:
-	@rm -rf ".devcontainer/scripts" "environment.yml"
+	@# unlink ".devcontainer/scripts" "environment.yml" "LICENSE"
+	@rm -rf ".devcontainer/scripts" "environment.yml" "LICENSE"
 	@# mkdir -p ".devcontainer/scripts"
 	@ln -rsf "docker/scripts/" ".devcontainer/scripts"
 	@ln -rsf "./docker/env_conda/environment.yml" "environment.yml"
+	@ln -rsf "COPYING" "LICENSE"
 	@echo "Created symbolic links..."
 	@# find . -type l -exec readlink -f {} \; -exec ls -l {} \;
 	@# find . -type l -exec ls -l {} +
