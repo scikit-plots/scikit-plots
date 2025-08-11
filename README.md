@@ -76,48 +76,53 @@
   <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
     <!-- [![PyPI Downloads](https://static.pepy.tech/badge/scikit-plots/month)](https://pepy.tech/projects/scikit-plots) -->
     <!-- [![PyPI Downloads](https://static.pepy.tech/badge/scikit-plots)](https://pepy.tech/projects/scikit-plots) -->
-    <img alt="Pepy Total Downloads" height="17" src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=Pepy%20Total%20Downloads&color=olivegreen">
+    <img alt="Pepy Total Downloads" height="17" src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=Total%20Downloads&color=olivegreen">
   </a>
-  <!-- PyPI -->
   <!-- https://opensource.com/article/21/3/python-package-index-json-apis-requests -->
   <!-- https://www.piwheels.org/project/scikit-plots/json/ -->
   <!-- https://pypi.org/pypi/scikit-plots/json  $.info.downloads.last_month -->
   <!-- https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fpypi.org%2Fpypi%2Fscikit-plots%2Fjson&query=%24.info.downloads.last_month&style=flat-square&logo=pypi&label=PyPI%20%7C%20Downloads&color=olivegreen
    -->
+  <!-- PyPI -->
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="PyPI Version Status" height="17" src="https://img.shields.io/pypi/v/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Version&color=blue">
   </a>
-  <!-- Daily, Weekly, or Monthly downloads -->
+  <!-- PyPI - Daily, Weekly, or Monthly downloads -->
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="PyPI Downloads" height="17" src="https://img.shields.io/pypi/dm/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Downloads&color=olivegreen">
   </a>
-  <!-- Conda Anaconda -->
+  <!-- Anaconda Conda -->
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
     <img alt="Anaconda Nightly Wheels Version" height="17" src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&color=orange">
   </a>
-  <!-- Daily, Weekly, or Monthly downloads -->
+  <!-- Anaconda Daily, Weekly, or Monthly downloads -->
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg -->
     <img alt="Anaconda Nightly Wheels Downloads" height="17" src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads&color=olivegreen">
   </a>
-  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <!-- Anaconda Nightly Wheels Release Date -->
+  <!-- <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="Anaconda Nightly Wheels Release Date" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg">
-  </a>
-  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
-    <img alt="Anaconda Nightly Wheels License" height="17" src="https://img.shields.io/conda/l/scikit-plots-wheels-staging-nightly/scikit-plots?logo=anaconda&label=conda%20|%20License&labelColor=gray&color=blue">
-  </a>
-  <!-- 🐋 Docker 🐳 -->
+  </a> -->
+  <!-- 🐋 Docker Image Version (tag) 🐳 -->
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <img alt="🐋 Docker Image Version (tag)" height="17" src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Latest%20Version&color=blue">
+    <img alt="🐋 Docker Image Version (tag)" height="17" src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Version&color=blue">
   </a>
+  <!-- 🐋 Docker Total Pulls 🐳 -->
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
     <!-- https://img.shields.io/docker/pulls/scikitplot/scikit-plots -->
-    <img alt="🐋 Docker Pulls" height="17" src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Pulls&color=blue">
+    <img alt="🐋 Docker Total Pulls" height="17" src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Total%20Pulls&color=blue">
   </a>
+  <!-- 🐋 Docker Image Size (tag) 🐳 -->
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <img alt="🐋 Docker Image Size (tag)" height="17" src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Latest%20Image%20Size&color=blue">
+    <img alt="🐋 Docker Image Size (tag)" height="17" src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=blue">
+  </a>
+  <!-- GitHub -->
+  <a href="https://github.com/scikit-plots/scikit-plots?tab=BSD-3-Clause-1-ov-file#readme" target="_blank" rel="noopener noreferrer">
+    <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
+    <!-- https://img.shields.io/conda/l/scikit-plots-wheels-staging-nightly/scikit-plots?logo=anaconda&label=conda%20|%20License&labelColor=gray&color=blue -->
+    <img alt="GitHub License" height="17" src="https://img.shields.io/github/license/scikit-plots/scikit-plots?style=flat-square&logo=github&label=License&labelColor=gray&color=green">
   </a>
   <!-- GitHub Actions -->
   <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank" rel="noopener noreferrer">
@@ -136,10 +141,10 @@
   <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
     <img alt="pre-commit Status" height="17" src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
   </a>
-  <!-- Ruff -->
+  <!-- Code Style - Ruff -->
   <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
     <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
-    <img alt="Ruff Version" height="17" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
+    <img alt="Code Style - Ruff" height="17" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
   </a>
   <!-- codecov -->
   <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
@@ -149,9 +154,9 @@
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img alt="PyPI - Types" height="17" src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
   </a>
-  <!-- pyversions -->
+  <!-- PyPI - pyversions -->
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <img alt="pyversions" height="17" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg">
+    <img alt="PyPI - pyversions" height="17" src="https://img.shields.io/pypi/pyversions/scikit-plots.svg?style=flat-square&logo=pypi&label=PyPI%20%7C%20Python&color=blue">
   </a>
   <!-- Zenodo -->
   <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
@@ -196,8 +201,12 @@
 🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
 
 ```bash
-# docker run -it --rm scikitplot/scikit-plots:latest-python-3.11
-docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -i -c "scikitplot -V"
+# docker run -it --rm scikitplot/scikit-plots:latest
+docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
+```
+```bash
+# docker run -it scikitplot/scikit-plots:latest
+docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
 ```
 
 <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
