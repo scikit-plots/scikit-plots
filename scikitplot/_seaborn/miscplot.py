@@ -19,14 +19,11 @@ def palplot(pal, size=1):
     """
     n = len(pal)
     _, ax = plt.subplots(1, 1, figsize=(n * size, size))
-    ax.imshow(
-        np.arange(n).reshape(1, n),
-        cmap=mpl.colors.ListedColormap(list(pal)),
-        interpolation="nearest",
-        aspect="auto",
-    )
-    ax.set_xticks(np.arange(n) - 0.5)
-    ax.set_yticks([-0.5, 0.5])
+    ax.imshow(np.arange(n).reshape(1, n),
+              cmap=mpl.colors.ListedColormap(list(pal)),
+              interpolation="nearest", aspect="auto")
+    ax.set_xticks(np.arange(n) - .5)
+    ax.set_yticks([-.5, .5])
     # Ensure nice border between colors
     ax.set_xticklabels(["" for _ in range(n)])
     # The proper way to set no ticks

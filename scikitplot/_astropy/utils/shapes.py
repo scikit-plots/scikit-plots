@@ -193,7 +193,7 @@ class ShapedLikeNDArray(NDArrayShapeMethods, metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def shape(self) -> tuple[int, ...]:
+    def shape(self) -> tuple[int,...]:
         """The shape of the underlying data."""
 
     @abc.abstractmethod
@@ -287,16 +287,14 @@ class ShapedLikeNDArray(NDArrayShapeMethods, metaclass=abc.ABCMeta):
     # defined in np.core.fromnumeric, but exclude alen as well as
     # sort and partition, which make copies before calling the method.
     _METHOD_FUNCTIONS = {
-        getattr(np, name): (
-            {
-                "amax": "max",
-                "amin": "min",
-                "around": "round",
-                "round_": "round",
-                "alltrue": "all",
-                "sometrue": "any",
-            }.get(name, name)
-        )
+        getattr(np, name): {
+            "amax": "max",
+            "amin": "min",
+            "around": "round",
+            "round_": "round",
+            "alltrue": "all",
+            "sometrue": "any",
+        }.get(name, name)
         for name in np_core.fromnumeric.__all__
         if name not in ["alen", "sort", "partition"]
     }
@@ -357,7 +355,7 @@ class IncompatibleShapeError(ValueError):
 
 
 @deprecated("7.0", alternative="np.broadcast_shapes")
-def check_broadcast(*shapes: tuple[int, ...]) -> tuple[int, ...]:
+def check_broadcast(*shapes: tuple[int, ...]) -> tuple[int,...]:
     """
     Determines whether two or more Numpy arrays can be broadcast with each
     other based on their shape tuple alone.
@@ -432,7 +430,7 @@ def simplify_basic_index(
     basic_index: int | slice | Sequence[int | slice | EllipsisType | None],
     *,
     shape: Sequence[int],
-) -> tuple[int | slice, ...]:
+) -> tuple[int | slice,...]:
     """
     Given a Numpy basic index, return a tuple of integers and slice objects
     with no default values (`None`) if possible.

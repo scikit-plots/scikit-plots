@@ -1,5 +1,4 @@
 """Base module for statistical transformations."""
-
 from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -7,7 +6,6 @@ from typing import ClassVar, Any
 import warnings
 
 from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from pandas import DataFrame
     from .._core.groupby import GroupBy
@@ -38,19 +36,14 @@ class Stat:
         if value not in options:
             *most, last = options
             option_str = ", ".join(f"{x!r}" for x in most[:-1]) + f" or {last!r}"
-            err = " ".join(
-                [
-                    f"The `{param}` parameter for `{self.__class__.__name__}` must be",
-                    f"one of {option_str}; not {value!r}.",
-                ]
-            )
+            err = " ".join([
+                f"The `{param}` parameter for `{self.__class__.__name__}` must be",
+                f"one of {option_str}; not {value!r}.",
+            ])
             raise ValueError(err)
 
     def _check_grouping_vars(
-        self,
-        param: str,
-        data_vars: list[str],
-        stacklevel: int = 2,
+        self, param: str, data_vars: list[str], stacklevel: int = 2,
     ) -> None:
         """Warn if vars are named in parameter without being present in the data."""
         param_vars = getattr(self, param)

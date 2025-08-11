@@ -178,13 +178,15 @@ def get_model_info(
         Tuple of resolved model ID and API key.
     """
     model_id = model_id or LLM_MODEL_PROVIDER2CONFIG[model_provider][0]["model_id"]
-    env_api_key = LLM_MODEL_PROVIDER2API_KEY.get(model_provider, "")
-    api_key = api_key if api_key else get_env_var(env_api_key)
+    env_name = LLM_MODEL_PROVIDER2API_KEY.get(
+        model_provider, ""
+    )  # e.g. "HUGGINGFACE_TOKEN"
+    api_key = api_key if api_key else get_env_var(env_name)
 
     if not api_key:
         logger.warning(
             f"[ERROR] API key missing for provider '{model_provider}'. "
-            f"Expected env key: {env_api_key}"
+            f"Expected env name: {env_name}"
         )
     return model_id, api_key
 

@@ -6,14 +6,11 @@ import numpy as np
 from numpy import ndarray
 import pandas as pd
 from pandas import DataFrame
-
 try:
     from scipy.stats import gaussian_kde
-
     _no_scipy = False
 except ImportError:
     from ..external.kde import gaussian_kde
-
     _no_scipy = True
 
 from .._core.groupby import GroupBy
@@ -86,7 +83,6 @@ class KDE(Stat):
     .. include:: ../docstrings/objects.KDE.rst
 
     """
-
     bw_adjust: float = 1
     bw_method: str | float | Callable[[gaussian_kde], float] = "scott"
     common_norm: bool | list[str] = True
@@ -174,11 +170,7 @@ class KDE(Stat):
         return groupby.apply(data, self._fit_and_evaluate, orient, support)
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
     ) -> DataFrame:
 
         if "weight" not in data:
@@ -196,7 +188,10 @@ class KDE(Stat):
                 self._check_var_list_or_boolean("common_grid", grouping_vars)
                 grid_vars = [v for v in self.common_grid if v in grouping_vars]
 
-            res = GroupBy(grid_vars).apply(data, self._transform, orient, grouping_vars)
+            res = (
+                GroupBy(grid_vars)
+                .apply(data, self._transform, orient, grouping_vars)
+            )
 
         # Normalize, potentially within groups
         if not grouping_vars or self.common_norm is True:

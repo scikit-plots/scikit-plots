@@ -15,6 +15,7 @@ Vendored from:
 - commit ba07d8287b4554754ac7178d177033ea3f75d489 (09/09/2021)
 """
 
+
 # This file is dual licensed under the terms of the Apache License, Version
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
@@ -29,7 +30,6 @@ __all__ = ["Version", "InvalidVersion", "VERSION_PATTERN"]
 
 
 # Vendored from https://github.com/pypa/packaging/blob/main/packaging/_structures.py
-
 
 class InfinityType:
     def __repr__(self) -> str:
@@ -122,6 +122,7 @@ VersionComparisonMethod = Callable[
 _Version = collections.namedtuple(
     "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
 )
+
 
 
 class InvalidVersion(ValueError):

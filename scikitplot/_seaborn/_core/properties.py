@@ -91,10 +91,8 @@ class Property:
 
     def get_mapping(self, scale: Scale, data: Series) -> Mapping:
         """Return a function that maps from data domain to property range."""
-
         def identity(x):
             return x
-
         return identity
 
     def standardize(self, val: Any) -> Any:
@@ -113,23 +111,19 @@ class Property:
         """Input check when values are provided as a list."""
         message = ""
         if len(levels) > len(values):
-            message = " ".join(
-                [
-                    f"\nThe {self.variable} list has fewer values ({len(values)})",
-                    f"than needed ({len(levels)}) and will cycle, which may",
-                    "produce an uninterpretable plot.",
-                ]
-            )
+            message = " ".join([
+                f"\nThe {self.variable} list has fewer values ({len(values)})",
+                f"than needed ({len(levels)}) and will cycle, which may",
+                "produce an uninterpretable plot."
+            ])
             values = [x for _, x in zip(levels, itertools.cycle(values))]
 
         elif len(values) > len(levels):
-            message = " ".join(
-                [
-                    f"The {self.variable} list has more values ({len(values)})",
-                    f"than needed ({len(levels)}), which may not be intended.",
-                ]
-            )
-            values = values[: len(levels)]
+            message = " ".join([
+                f"The {self.variable} list has more values ({len(values)})",
+                f"than needed ({len(levels)}), which may not be intended.",
+            ])
+            values = values[:len(levels)]
 
         # TODO look into custom PlotSpecWarning with better formatting
         if message:
@@ -145,7 +139,6 @@ class Property:
 
 class Coordinate(Property):
     """The position of visual marks with respect to the axes of the plot."""
-
     legend = False
     normed = False
 
@@ -157,7 +150,6 @@ class Coordinate(Property):
 
 class IntervalProperty(Property):
     """A numeric property where scale range can be defined as an interval."""
-
     legend = True
     normed = True
 
@@ -212,12 +204,10 @@ class IntervalProperty(Property):
             else:
                 actual = str(type(scale.values))
             scale_class = scale.__class__.__name__
-            err = " ".join(
-                [
-                    f"Values for {self.variable} variables with {scale_class} scale",
-                    f"must be 2-tuple; not {actual}.",
-                ]
-            )
+            err = " ".join([
+                f"Values for {self.variable} variables with {scale_class} scale",
+                f"must be 2-tuple; not {actual}.",
+            ])
             raise TypeError(err)
 
         def mapping(x):
@@ -265,12 +255,10 @@ class IntervalProperty(Property):
                 vmin, vmax = scale.values
             else:
                 scale_class = scale.__class__.__name__
-                err = " ".join(
-                    [
-                        f"Values for {self.variable} variables with {scale_class} scale",
-                        f"must be a dict, list or tuple; not {type(scale.values)}",
-                    ]
-                )
+                err = " ".join([
+                    f"Values for {self.variable} variables with {scale_class} scale",
+                    f"must be a dict, list or tuple; not {type(scale.values)}",
+                ])
                 raise TypeError(err)
 
             vmin, vmax = self._forward([vmin, vmax])
@@ -281,7 +269,6 @@ class IntervalProperty(Property):
 
 class PointSize(IntervalProperty):
     """Size (diameter) of a point mark, in points, with scaling by area."""
-
     _default_range = 2, 8  # TODO use rcparams?
 
     def _forward(self, values):
@@ -295,54 +282,48 @@ class PointSize(IntervalProperty):
 
 class LineWidth(IntervalProperty):
     """Thickness of a line mark, in points."""
-
     @property
     def default_range(self) -> tuple[float, float]:
         """Min and max values used by default for semantic mapping."""
         base = mpl.rcParams["lines.linewidth"]
-        return base * 0.5, base * 2
+        return base * .5, base * 2
 
 
 class EdgeWidth(IntervalProperty):
     """Thickness of the edges on a patch mark, in points."""
-
     @property
     def default_range(self) -> tuple[float, float]:
         """Min and max values used by default for semantic mapping."""
         base = mpl.rcParams["patch.linewidth"]
-        return base * 0.5, base * 2
+        return base * .5, base * 2
 
 
 class Stroke(IntervalProperty):
     """Thickness of lines that define point glyphs."""
-
-    _default_range = 0.25, 2.5
+    _default_range = .25, 2.5
 
 
 class Alpha(IntervalProperty):
     """Opacity of the color values for an arbitrary mark."""
-
-    _default_range = 0.3, 0.95
+    _default_range = .3, .95
     # TODO validate / enforce that output is in [0, 1]
 
 
 class Offset(IntervalProperty):
     """Offset for edge-aligned text, in point units."""
-
     _default_range = 0, 5
     _legend = False
 
 
 class FontSize(IntervalProperty):
     """Font size for textual marks, in points."""
-
     _legend = False
 
     @property
     def default_range(self) -> tuple[float, float]:
         """Min and max values used by default for semantic mapping."""
         base = mpl.rcParams["font.size"]
-        return base * 0.5, base * 2
+        return base * .5, base * 2
 
 
 # =================================================================================== #
@@ -352,7 +333,6 @@ class FontSize(IntervalProperty):
 
 class ObjectProperty(Property):
     """A property defined by arbitrary an object, with inherently nominal scaling."""
-
     legend = True
     normed = False
 
@@ -401,12 +381,10 @@ class ObjectProperty(Property):
         elif scale.values is None:
             values = self._default_values(n)
         else:
-            msg = " ".join(
-                [
-                    f"Scale values for a {self.variable} variable must be provided",
-                    f"in a dict or list; not {type(scale.values)}.",
-                ]
-            )
+            msg = " ".join([
+                f"Scale values for a {self.variable} variable must be provided",
+                f"in a dict or list; not {type(scale.values)}."
+            ])
             raise TypeError(msg)
 
         values = [self.standardize(x) for x in values]
@@ -415,7 +393,6 @@ class ObjectProperty(Property):
 
 class Marker(ObjectProperty):
     """Shape of points in scatter-type marks or lines with data points marked."""
-
     null_value = MarkerStyle("")
 
     # TODO should we have named marker "palettes"? (e.g. see d3 options)
@@ -443,15 +420,7 @@ class Marker(ObjectProperty):
         """
         # Start with marker specs that are well distinguishable
         markers = [
-            "o",
-            "X",
-            (4, 0, 45),
-            "P",
-            (4, 0, 0),
-            (4, 1, 0),
-            "^",
-            (4, 1, 45),
-            "v",
+            "o", "X", (4, 0, 45), "P", (4, 0, 0), (4, 1, 0), "^", (4, 1, 45), "v",
         ]
 
         # Now generate more from regular polygons of increasing order
@@ -468,7 +437,6 @@ class Marker(ObjectProperty):
 
 class LineStyle(ObjectProperty):
     """Dash pattern for line-type marks."""
-
     null_value = ""
 
     def standardize(self, val: str | DashPattern) -> DashPatternWithOffset:
@@ -493,11 +461,7 @@ class LineStyle(ObjectProperty):
         """
         # Start with dash specs that are well distinguishable
         dashes: list[str | DashPattern] = [
-            "-",
-            (4, 1.5),
-            (1, 1),
-            (3, 1.25, 1.5, 1.25),
-            (5, 1, 1, 1),
+            "-", (4, 1.5), (1, 1), (3, 1.25, 1.5, 1.25), (5, 1, 1, 1),
         ]
 
         # Now programmatically build as many as we need
@@ -593,7 +557,6 @@ class VerticalAlignment(TextAlignment):
 
 class Color(Property):
     """Color, as RGB(A), scalable with nominal palettes or continuous gradients."""
-
     legend = True
     normed = True
 
@@ -607,7 +570,6 @@ class Color(Property):
 
     def _standardize_color_sequence(self, colors: ArrayLike) -> ArrayLike:
         """Convert color sequence to RGB(A) array, preserving but not adding alpha."""
-
         def has_alpha(x):
             return to_rgba(x) != to_rgba(x, 1)
 
@@ -648,12 +610,10 @@ class Color(Property):
         # TODO Do we accept str like "log", "pow", etc. for semantics?
 
         if not isinstance(arg, str):
-            msg = " ".join(
-                [
-                    f"A single scale argument for {self.variable} variables must be",
-                    f"a string, dict, tuple, list, or callable, not {type(arg)}.",
-                ]
-            )
+            msg = " ".join([
+                f"A single scale argument for {self.variable} variables must be",
+                f"a string, dict, tuple, list, or callable, not {type(arg)}."
+            ])
             raise TypeError(msg)
 
         if arg in QUAL_PALETTES:
@@ -689,12 +649,10 @@ class Color(Property):
             mapping = scale.values
         else:
             scale_class = scale.__class__.__name__
-            msg = " ".join(
-                [
-                    f"Scale values for {self.variable} with a {scale_class} mapping",
-                    f"must be string, tuple, or callable; not {type(scale.values)}.",
-                ]
-            )
+            msg = " ".join([
+                f"Scale values for {self.variable} with a {scale_class} mapping",
+                f"must be string, tuple, or callable; not {type(scale.values)}."
+            ])
             raise TypeError(msg)
 
         def _mapping(x):
@@ -757,12 +715,10 @@ class Color(Property):
                 colors = color_palette("husl", n)
         else:
             scale_class = scale.__class__.__name__
-            msg = " ".join(
-                [
-                    f"Scale values for {self.variable} with a {scale_class} mapping",
-                    f"must be string, list, tuple, or dict; not {type(scale.values)}.",
-                ]
-            )
+            msg = " ".join([
+                f"Scale values for {self.variable} with a {scale_class} mapping",
+                f"must be string, list, tuple, or dict; not {type(scale.values)}."
+            ])
             raise TypeError(msg)
 
         return self._standardize_color_sequence(colors)
@@ -775,7 +731,6 @@ class Color(Property):
 
 class Fill(Property):
     """Boolean property of points/bars/patches that can be solid or outlined."""
-
     legend = True
     normed = False
 
@@ -793,12 +748,10 @@ class Fill(Property):
     def _default_values(self, n: int) -> list:
         """Return a list of n values, alternating True and False."""
         if n > 2:
-            msg = " ".join(
-                [
-                    f"The variable assigned to {self.variable} has more than two levels,",
-                    f"so {self.variable} values will cycle and may be uninterpretable",
-                ]
-            )
+            msg = " ".join([
+                f"The variable assigned to {self.variable} has more than two levels,",
+                f"so {self.variable} values will cycle and may be uninterpretable",
+            ])
             # TODO fire in a "nice" way (see above)
             warnings.warn(msg, UserWarning)
         return [x for x, _ in zip(itertools.cycle([True, False]), range(n))]
@@ -816,7 +769,8 @@ class Fill(Property):
         def mapping(x):
             ixs = np.asarray(np.nan_to_num(x), np.intp)
             return [
-                values[ix] if np.isfinite(x_i) else False for x_i, ix in zip(x, ixs)
+                values[ix] if np.isfinite(x_i) else False
+                for x_i, ix in zip(x, ixs)
             ]
 
         return mapping
@@ -830,12 +784,10 @@ class Fill(Property):
         elif scale.values is None:
             values = self._default_values(len(levels))
         else:
-            msg = " ".join(
-                [
-                    f"Scale values for {self.variable} must be passed in",
-                    f"a list or dict; not {type(scale.values)}.",
-                ]
-            )
+            msg = " ".join([
+                f"Scale values for {self.variable} must be passed in",
+                f"a list or dict; not {type(scale.values)}."
+            ])
             raise TypeError(msg)
 
         return values

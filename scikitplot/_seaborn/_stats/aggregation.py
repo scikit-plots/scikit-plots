@@ -34,22 +34,18 @@ class Agg(Stat):
     .. include:: ../docstrings/objects.Agg.rst
 
     """
-
     func: str | Callable[[Vector], float] = "mean"
 
     group_by_orient: ClassVar[bool] = True
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
     ) -> DataFrame:
 
         var = {"x": "y", "y": "x"}.get(orient)
         res = (
-            groupby.agg(data, {var: self.func})
+            groupby
+            .agg(data, {var: self.func})
             .dropna(subset=[var])
             .reset_index(drop=True)
         )
@@ -88,7 +84,6 @@ class Est(Stat):
     .. include:: ../docstrings/objects.Est.rst
 
     """
-
     func: str | Callable[[Vector], float] = "mean"
     errorbar: str | tuple[str, float] = ("ci", 95)
     n_boot: int = 1000
@@ -105,11 +100,7 @@ class Est(Stat):
         return pd.DataFrame([res])
 
     def __call__(
-        self,
-        data: DataFrame,
-        groupby: GroupBy,
-        orient: str,
-        scales: dict[str, Scale],
+        self, data: DataFrame, groupby: GroupBy, orient: str, scales: dict[str, Scale],
     ) -> DataFrame:
 
         boot_kws = {"n_boot": self.n_boot, "seed": self.seed}
@@ -120,7 +111,8 @@ class Est(Stat):
 
         var = {"x": "y", "y": "x"}[orient]
         res = (
-            groupby.apply(data, self._process, var, engine)
+            groupby
+            .apply(data, self._process, var, engine)
             .dropna(subset=[var])
             .reset_index(drop=True)
         )
@@ -134,4 +126,5 @@ class Est(Stat):
 class Rolling(Stat):
     ...
 
-    def __call__(self, data, groupby, orient, scales): ...
+    def __call__(self, data, groupby, orient, scales):
+        ...

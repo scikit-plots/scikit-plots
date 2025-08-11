@@ -84,6 +84,8 @@ repos:
   # Code Quality: Formatter black vs ruff-format can be conflict make sure both compatipable
   # - repo: https://github.com/psf/black
   # Using this mirror lets us use mypyc-compiled black, which is about 2x faster
+  # black --verbose --check --diff .
+  # pre-commit run black --verbose
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 25.1.0
     hooks:
@@ -99,10 +101,16 @@ repos:
         # language_version: python3.11
         types_or: [python, pyi]
         args:
+          # - --config=pyproject.toml   # Optional: use custom config file
           # - -t, --target-version
+          - --verbose                 # Show additional debugging or context info.
           - --check                   # Check if files are formatted. Exit with code 1 if reformatting is needed, but don’t change files.
           - --diff                    # Show a diff of what would change, without writing changes to disk. Often used with --check.
-        exclude: 'tests/'
+          ## Keep Sync: in YAML — pyproject.toml, Black uses pyproject.toml for configuration.
+          - --force-exclude
+          - '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/_astropy|scikitplot/_externals|scikitplot/_seaborn|scikitplot/modelplotpy|scikitplot/probscale|scikitplot/visualkeras|scikitplot/llm_backend)/'
+        # verbose: true  # Force Black to show which files were modified
+        # exclude: '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/_astropy|scikitplot/_externals|scikitplot/_seaborn|scikitplot/modelplotpy|scikitplot/probscale|scikitplot/visualkeras|scikitplot/llm_backend)/'
 
   # - repo: https://github.com/charliermarsh/ruff
   #   rev: v0.0.276  # Replace with the latest release version of Ruff

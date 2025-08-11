@@ -22,4 +22,5 @@
 # This file is up-to-date if the command git log --format="%aN <%aE>" | sort -u
 # does not list the same person multiple times.
 #
+GgitHub Actions <xxxxxxxx+github-actions[bot]@users.noreply.github.com>
 Muhammed ÇELİK <94930605+celik-muhammed@users.noreply.github.com>

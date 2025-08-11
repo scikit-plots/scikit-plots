@@ -1,5 +1,4 @@
 """Plotting functions for visualizing distributions."""
-
 from numbers import Number
 from functools import partial
 import math
@@ -42,6 +41,7 @@ from ._docstrings import (
     _core_docs,
 )
 
+
 __all__ = ["displot", "histplot", "kdeplot", "ecdfplot", "rugplot", "distplot"]
 
 # ==================================================================================== #
@@ -49,6 +49,7 @@ __all__ = ["displot", "histplot", "kdeplot", "ecdfplot", "rugplot", "distplot"]
 # ==================================================================================== #
 
 _dist_params = dict(
+
     multiple="""
 multiple : {{"layer", "stack", "fill"}}
     Method for drawing multiple elements when semantic mapping creates subsets.
@@ -133,14 +134,7 @@ class _DistributionPlotter(VectorPlotter):
 
     def _add_legend(
         self,
-        ax_obj,
-        artist,
-        fill,
-        element,
-        multiple,
-        alpha,
-        artist_kws,
-        legend_kws,
+        ax_obj, artist, fill, element, multiple, alpha, artist_kws, legend_kws,
     ):
         """Add artists that reflect semantic mappings and put then in a legend."""
         # TODO note that this doesn't handle numeric mappings like the relational plots
@@ -149,7 +143,9 @@ class _DistributionPlotter(VectorPlotter):
         for level in self._hue_map.levels:
             color = self._hue_map(level)
 
-            kws = self._artist_kws(artist_kws, fill, element, multiple, color, alpha)
+            kws = self._artist_kws(
+                artist_kws, fill, element, multiple, color, alpha
+            )
 
             # color gets added to the kws to workaround an issue with barplot's color
             # cycle integration but it causes problems in this context where we are
@@ -168,7 +164,7 @@ class _DistributionPlotter(VectorPlotter):
                 legend_data,
                 title=self.variables["hue"],
                 label_order=self.var_levels["hue"],
-                **legend_kws,
+                **legend_kws
             )
 
     def _artist_kws(self, kws, fill, element, multiple, color, alpha):
@@ -495,12 +491,10 @@ class _DistributionPlotter(VectorPlotter):
             # Pack the histogram data and metadata together
             edges = edges + (1 - shrink) / 2 * widths
             widths *= shrink
-            index = pd.MultiIndex.from_arrays(
-                [
-                    pd.Index(edges, name="edges"),
-                    pd.Index(widths, name="widths"),
-                ]
-            )
+            index = pd.MultiIndex.from_arrays([
+                pd.Index(edges, name="edges"),
+                pd.Index(widths, name="widths"),
+            ])
             hist = pd.Series(heights, index=index, name="heights")
 
             # Apply scaling to normalize across groups
@@ -524,7 +518,10 @@ class _DistributionPlotter(VectorPlotter):
             bin_vals = histograms.index.to_frame()
             edges = bin_vals["edges"]
             widths = bin_vals["widths"]
-            sticky_data = (edges.min(), edges.max() + widths.loc[edges.idxmax()])
+            sticky_data = (
+                edges.min(),
+                edges.max() + widths.loc[edges.idxmax()]
+            )
         else:
             sticky_data = []
 
@@ -536,11 +533,11 @@ class _DistributionPlotter(VectorPlotter):
         if fill:
             # Note: will need to account for other grouping semantics if added
             if "hue" in self.variables and multiple == "layer":
-                default_alpha = 0.5 if element == "bars" else 0.25
+                default_alpha = .5 if element == "bars" else .25
             elif kde:
-                default_alpha = 0.5
+                default_alpha = .5
             else:
-                default_alpha = 0.75
+                default_alpha = .75
         else:
             default_alpha = 1
         alpha = plot_kws.pop("alpha", default_alpha)  # TODO make parameter?
@@ -620,14 +617,14 @@ class _DistributionPlotter(VectorPlotter):
                     if fill:
                         artist = ax.fill_between(x, b, y, step=step, **artist_kws)
                     else:
-                        (artist,) = ax.plot(x, y, drawstyle=drawstyle, **artist_kws)
+                        artist, = ax.plot(x, y, drawstyle=drawstyle, **artist_kws)
                     artist.sticky_edges.x[:] = sticky_data
                     artist.sticky_edges.y[:] = sticky_stat
                 else:
                     if fill:
                         artist = ax.fill_betweenx(x, b, y, step=step, **artist_kws)
                     else:
-                        (artist,) = ax.plot(y, x, drawstyle=drawstyle, **artist_kws)
+                        artist, = ax.plot(y, x, drawstyle=drawstyle, **artist_kws)
                     artist.sticky_edges.x[:] = sticky_stat
                     artist.sticky_edges.y[:] = sticky_data
 
@@ -651,9 +648,8 @@ class _DistributionPlotter(VectorPlotter):
                     sticky_x, sticky_y = (0, np.inf), None
 
                 line_kws["color"] = to_rgba(sub_color, 1)
-                (line,) = ax.plot(
-                    *line_args,
-                    **line_kws,
+                line, = ax.plot(
+                    *line_args, **line_kws,
                 )
 
                 if sticky_x is not None:
@@ -666,13 +662,10 @@ class _DistributionPlotter(VectorPlotter):
             # Now we handle linewidth, which depends on the scaling of the plot
 
             # We will base everything on the minimum bin width
-            hist_metadata = pd.concat(
-                [
-                    # Use .items for generality over dict or df
-                    h.index.to_frame()
-                    for _, h in histograms.items()
-                ]
-            ).reset_index(drop=True)
+            hist_metadata = pd.concat([
+                # Use .items for generality over dict or df
+                h.index.to_frame() for _, h in histograms.items()
+            ]).reset_index(drop=True)
             thin_bar_idx = hist_metadata["widths"].idxmin()
             binwidth = hist_metadata.loc[thin_bar_idx, "widths"]
             left_edge = hist_metadata.loc[thin_bar_idx, "edges"]
@@ -690,13 +683,9 @@ class _DistributionPlotter(VectorPlotter):
                 ax.autoscale_view()
 
                 # Convert binwidth from data coordinates to pixels
-                pts_x, pts_y = (
-                    72
-                    / ax.figure.dpi
-                    * abs(
-                        ax.transData.transform([left_edge + binwidth] * 2)
-                        - ax.transData.transform([left_edge] * 2)
-                    )
+                pts_x, pts_y = 72 / ax.figure.dpi * abs(
+                    ax.transData.transform([left_edge + binwidth] * 2)
+                    - ax.transData.transform([left_edge] * 2)
                 )
                 if self.data_variable == "x":
                     binwidth_points = pts_x
@@ -705,7 +694,7 @@ class _DistributionPlotter(VectorPlotter):
 
                 # The relative size of the lines depends on the appearance
                 # This is a provisional value and may need more tweaking
-                default_linewidth = min(0.1 * binwidth_points, default_linewidth)
+                default_linewidth = min(.1 * binwidth_points, default_linewidth)
 
             # Set the attributes
             for bar in hist_artists:
@@ -719,7 +708,7 @@ class _DistributionPlotter(VectorPlotter):
 
                 # If not filling, don't let lines disappear
                 if not fill:
-                    min_linewidth = 0.5
+                    min_linewidth = .5
                     linewidth = max(linewidth, min_linewidth)
 
                 bar.set_linewidth(linewidth)
@@ -745,28 +734,15 @@ class _DistributionPlotter(VectorPlotter):
 
             ax_obj = self.ax if self.ax is not None else self.facets
             self._add_legend(
-                ax_obj,
-                artist,
-                fill,
-                element,
-                multiple,
-                alpha,
-                plot_kws,
-                {},
+                ax_obj, artist, fill, element, multiple, alpha, plot_kws, {},
             )
 
     def plot_bivariate_histogram(
         self,
-        common_bins,
-        common_norm,
-        thresh,
-        pthresh,
-        pmax,
-        color,
-        legend,
-        cbar,
-        cbar_ax,
-        cbar_kws,
+        common_bins, common_norm,
+        thresh, pthresh, pmax,
+        color, legend,
+        cbar, cbar_ax, cbar_kws,
         estimate_kws,
         **plot_kws,
     ):
@@ -915,14 +891,7 @@ class _DistributionPlotter(VectorPlotter):
             artist = partial(mpl.patches.Patch)
             ax_obj = self.ax if self.ax is not None else self.facets
             self._add_legend(
-                ax_obj,
-                artist,
-                True,
-                False,
-                "layer",
-                1,
-                artist_kws,
-                {},
+                ax_obj, artist, True, False, "layer", 1, artist_kws, {},
             )
 
     def plot_univariate_density(
@@ -981,9 +950,9 @@ class _DistributionPlotter(VectorPlotter):
 
         if fill:
             if multiple == "layer":
-                default_alpha = 0.25
+                default_alpha = .25
             else:
-                default_alpha = 0.75
+                default_alpha = .75
         else:
             default_alpha = 1
         alpha = plot_kws.pop("alpha", default_alpha)  # TODO make parameter?
@@ -1019,7 +988,7 @@ class _DistributionPlotter(VectorPlotter):
                     artist = ax.fill_between(support, fill_from, density, **artist_kws)
 
                 else:
-                    (artist,) = ax.plot(support, density, **artist_kws)
+                    artist, = ax.plot(support, density, **artist_kws)
 
                 artist.sticky_edges.x[:] = sticky_support
                 artist.sticky_edges.y[:] = sticky_density
@@ -1029,7 +998,7 @@ class _DistributionPlotter(VectorPlotter):
                 if fill:
                     artist = ax.fill_betweenx(support, fill_from, density, **artist_kws)
                 else:
-                    (artist,) = ax.plot(density, support, **artist_kws)
+                    artist, = ax.plot(density, support, **artist_kws)
 
                 artist.sticky_edges.x[:] = sticky_density
                 artist.sticky_edges.y[:] = sticky_support
@@ -1053,14 +1022,7 @@ class _DistributionPlotter(VectorPlotter):
 
             ax_obj = self.ax if self.ax is not None else self.facets
             self._add_legend(
-                ax_obj,
-                artist,
-                fill,
-                False,
-                multiple,
-                alpha,
-                plot_kws,
-                {},
+                ax_obj, artist, fill, False, multiple, alpha, plot_kws, {},
             )
 
     def plot_bivariate_density(
@@ -1149,13 +1111,13 @@ class _DistributionPlotter(VectorPlotter):
         # Transform from iso-proportions to iso-densities
         if common_norm:
             common_levels = self._quantile_to_level(
-                list(densities.values()),
-                levels,
+                list(densities.values()), levels,
             )
             draw_levels = {k: common_levels for k in densities}
         else:
             draw_levels = {
-                k: self._quantile_to_level(d, levels) for k, d in densities.items()
+                k: self._quantile_to_level(d, levels)
+                for k, d in densities.items()
             }
 
         # Define the coloring of the contours
@@ -1212,9 +1174,7 @@ class _DistributionPlotter(VectorPlotter):
             contour_kws.pop("label", None)
 
             cset = contour_func(
-                xx,
-                yy,
-                density,
+                xx, yy, density,
                 levels=draw_levels[key],
                 **contour_kws,
             )
@@ -1244,14 +1204,7 @@ class _DistributionPlotter(VectorPlotter):
 
             ax_obj = self.ax if self.ax is not None else self.facets
             self._add_legend(
-                ax_obj,
-                artist,
-                fill,
-                False,
-                "layer",
-                1,
-                artist_kws,
-                {},
+                ax_obj, artist, fill, False, "layer", 1, artist_kws, {},
             )
 
     def plot_univariate_ecdf(self, estimate_kws, legend, **plot_kws):
@@ -1264,9 +1217,7 @@ class _DistributionPlotter(VectorPlotter):
 
         # Loop through the subsets, transform and plot the data
         for sub_vars, sub_data in self.iter_data(
-            "hue",
-            reverse=True,
-            from_comp_data=True,
+            "hue", reverse=True, from_comp_data=True,
         ):
 
             # Compute the ECDF
@@ -1305,7 +1256,7 @@ class _DistributionPlotter(VectorPlotter):
                 top_edge = 1
 
             # Draw the line for this subset
-            (artist,) = ax.plot(*plot_args, **artist_kws)
+            artist, = ax.plot(*plot_args, **artist_kws)
             sticky_edges = getattr(artist.sticky_edges, stat_variable)
             sticky_edges[:] = 0, top_edge
 
@@ -1324,22 +1275,12 @@ class _DistributionPlotter(VectorPlotter):
             alpha = plot_kws.get("alpha", 1)
             ax_obj = self.ax if self.ax is not None else self.facets
             self._add_legend(
-                ax_obj,
-                artist,
-                False,
-                False,
-                None,
-                alpha,
-                plot_kws,
-                {},
+                ax_obj, artist, False, False, None, alpha, plot_kws, {},
             )
 
     def plot_rug(self, height, expand_margins, legend, **kws):
 
-        for (
-            sub_vars,
-            sub_data,
-        ) in self.iter_data(from_comp_data=True):
+        for sub_vars, sub_data, in self.iter_data(from_comp_data=True):
 
             ax = self._get_axes(sub_vars)
 
@@ -1368,14 +1309,7 @@ class _DistributionPlotter(VectorPlotter):
                 # TODO ideally i'd like the legend artist to look like a rug
                 legend_artist = partial(mpl.lines.Line2D, [], [])
                 self._add_legend(
-                    ax,
-                    legend_artist,
-                    False,
-                    False,
-                    None,
-                    1,
-                    {},
-                    {},
+                    ax, legend_artist, False, False, None, 1, {}, {},
                 )
 
     def _plot_single_rug(self, sub_data, var, height, ax, kws):
@@ -1397,18 +1331,22 @@ class _DistributionPlotter(VectorPlotter):
         if var == "x":
 
             trans = tx.blended_transform_factory(ax.transData, ax.transAxes)
-            xy_pairs = np.column_stack([np.repeat(vector, 2), np.tile([0, height], n)])
+            xy_pairs = np.column_stack([
+                np.repeat(vector, 2), np.tile([0, height], n)
+            ])
 
         if var == "y":
 
             trans = tx.blended_transform_factory(ax.transAxes, ax.transData)
-            xy_pairs = np.column_stack([np.tile([0, height], n), np.repeat(vector, 2)])
+            xy_pairs = np.column_stack([
+                np.tile([0, height], n), np.repeat(vector, 2)
+            ])
 
         # Draw the lines on the plot
         line_segs = xy_pairs.reshape([n, 2, 2])
-        ax.add_collection(
-            LineCollection(line_segs, transform=trans, colors=colors, **kws)
-        )
+        ax.add_collection(LineCollection(
+            line_segs, transform=trans, colors=colors, **kws
+        ))
 
         ax.autoscale_view(scalex=var == "x", scaley=var == "y")
 
@@ -1417,49 +1355,23 @@ class _DistributionPlotter(VectorPlotter):
 # External API
 # ==================================================================================== #
 
-
 def histplot(
-    data=None,
-    *,
+    data=None, *,
     # Vector variables
-    x=None,
-    y=None,
-    hue=None,
-    weights=None,
+    x=None, y=None, hue=None, weights=None,
     # Histogram computation parameters
-    stat="count",
-    bins="auto",
-    binwidth=None,
-    binrange=None,
-    discrete=None,
-    cumulative=False,
-    common_bins=True,
-    common_norm=True,
+    stat="count", bins="auto", binwidth=None, binrange=None,
+    discrete=None, cumulative=False, common_bins=True, common_norm=True,
     # Histogram appearance parameters
-    multiple="layer",
-    element="bars",
-    fill=True,
-    shrink=1,
+    multiple="layer", element="bars", fill=True, shrink=1,
     # Histogram smoothing with a kernel density estimate
-    kde=False,
-    kde_kws=None,
-    line_kws=None,
+    kde=False, kde_kws=None, line_kws=None,
     # Bivariate histogram parameters
-    thresh=0,
-    pthresh=None,
-    pmax=None,
-    cbar=False,
-    cbar_ax=None,
-    cbar_kws=None,
+    thresh=0, pthresh=None, pmax=None, cbar=False, cbar_ax=None, cbar_kws=None,
     # Hue mapping parameters
-    palette=None,
-    hue_order=None,
-    hue_norm=None,
-    color=None,
+    palette=None, hue_order=None, hue_norm=None, color=None,
     # Axes information
-    log_scale=None,
-    legend=True,
-    ax=None,
+    log_scale=None, legend=True, ax=None,
     # Other appearance keywords
     **kwargs,
 ):
@@ -1667,35 +1579,12 @@ Examples
 
 
 def kdeplot(
-    data=None,
-    *,
-    x=None,
-    y=None,
-    hue=None,
-    weights=None,
-    palette=None,
-    hue_order=None,
-    hue_norm=None,
-    color=None,
-    fill=None,
-    multiple="layer",
-    common_norm=True,
-    common_grid=False,
-    cumulative=False,
-    bw_method="scott",
-    bw_adjust=1,
-    warn_singular=True,
-    log_scale=None,
-    levels=10,
-    thresh=0.05,
-    gridsize=200,
-    cut=3,
-    clip=None,
-    legend=True,
-    cbar=False,
-    cbar_ax=None,
-    cbar_kws=None,
-    ax=None,
+    data=None, *, x=None, y=None, hue=None, weights=None,
+    palette=None, hue_order=None, hue_norm=None, color=None, fill=None,
+    multiple="layer", common_norm=True, common_grid=False, cumulative=False,
+    bw_method="scott", bw_adjust=1, warn_singular=True, log_scale=None,
+    levels=10, thresh=.05, gridsize=200, cut=3, clip=None,
+    legend=True, cbar=False, cbar_ax=None, cbar_kws=None, ax=None,
     **kwargs,
 ):
 
@@ -1717,35 +1606,29 @@ def kdeplot(
                 x, y = y, x
         else:
             action_taken = "assigning data to `x`."
-        msg = textwrap.dedent(
-            f"""\n
+        msg = textwrap.dedent(f"""\n
         The `vertical` parameter is deprecated; {action_taken}
         This will become an error in seaborn v0.14.0; please update your code.
-        """
-        )
+        """)
         warnings.warn(msg, UserWarning, stacklevel=2)
 
     # Handle deprecation of `bw`
     bw = kwargs.pop("bw", None)
     if bw is not None:
-        msg = textwrap.dedent(
-            f"""\n
+        msg = textwrap.dedent(f"""\n
         The `bw` parameter is deprecated in favor of `bw_method` and `bw_adjust`.
         Setting `bw_method={bw}`, but please see the docs for the new parameters
         and update your code. This will become an error in seaborn v0.14.0.
-        """
-        )
+        """)
         warnings.warn(msg, UserWarning, stacklevel=2)
         bw_method = bw
 
     # Handle deprecation of `kernel`
     if kwargs.pop("kernel", None) is not None:
-        msg = textwrap.dedent(
-            """\n
+        msg = textwrap.dedent("""\n
         Support for alternate kernels has been removed; using Gaussian kernel.
         This will become an error in seaborn v0.14.0; please update your code.
-        """
-        )
+        """)
         warnings.warn(msg, UserWarning, stacklevel=2)
 
     # Handle deprecation of shade_lowest
@@ -1753,12 +1636,10 @@ def kdeplot(
     if shade_lowest is not None:
         if shade_lowest:
             thresh = 0
-        msg = textwrap.dedent(
-            f"""\n
+        msg = textwrap.dedent(f"""\n
         `shade_lowest` has been replaced by `thresh`; setting `thresh={thresh}.
         This will become an error in seaborn v0.14.0; please update your code.
-        """
-        )
+        """)
         warnings.warn(msg, UserWarning, stacklevel=2)
 
     # Handle "soft" deprecation of shade `shade` is not really the right
@@ -1772,12 +1653,10 @@ def kdeplot(
     shade = kwargs.pop("shade", None)
     if shade is not None:
         fill = shade
-        msg = textwrap.dedent(
-            f"""\n
+        msg = textwrap.dedent(f"""\n
         `shade` is now deprecated in favor of `fill`; setting `fill={shade}`.
         This will become an error in seaborn v0.14.0; please update your code.
-        """
-        )
+        """)
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
     # Handle `n_levels`
@@ -1980,24 +1859,15 @@ Examples
 
 
 def ecdfplot(
-    data=None,
-    *,
+    data=None, *,
     # Vector variables
-    x=None,
-    y=None,
-    hue=None,
-    weights=None,
+    x=None, y=None, hue=None, weights=None,
     # Computation parameters
-    stat="proportion",
-    complementary=False,
+    stat="proportion", complementary=False,
     # Hue mapping parameters
-    palette=None,
-    hue_order=None,
-    hue_norm=None,
+    palette=None, hue_order=None, hue_norm=None,
     # Axes information
-    log_scale=None,
-    legend=True,
-    ax=None,
+    log_scale=None, legend=True, ax=None,
     # Other appearance keywords
     **kwargs,
 ):
@@ -2101,19 +1971,8 @@ Examples
 
 
 def rugplot(
-    data=None,
-    *,
-    x=None,
-    y=None,
-    hue=None,
-    height=0.025,
-    expand_margins=True,
-    palette=None,
-    hue_order=None,
-    hue_norm=None,
-    legend=True,
-    ax=None,
-    **kwargs,
+    data=None, *, x=None, y=None, hue=None, height=.025, expand_margins=True,
+    palette=None, hue_order=None, hue_norm=None, legend=True, ax=None, **kwargs
 ):
 
     # A note: I think it would make sense to add multiple= to rugplot and allow
@@ -2133,12 +1992,10 @@ def rugplot(
 
     if a is not None:
         data = a
-        msg = textwrap.dedent(
-            """\n
+        msg = textwrap.dedent("""\n
         The `a` parameter has been replaced; use `x`, `y`, and/or `data` instead.
         Please update your code; This will become an error in seaborn v0.14.0.
-        """
-        )
+        """)
         warnings.warn(msg, UserWarning, stacklevel=2)
 
     if axis is not None:
@@ -2147,12 +2004,10 @@ def rugplot(
         elif axis == "y":
             y = data
         data = None
-        msg = textwrap.dedent(
-            f"""\n
+        msg = textwrap.dedent(f"""\n
         The `axis` parameter has been deprecated; use the `{axis}` parameter instead.
         Please update your code; this will become an error in seaborn v0.14.0.
-        """
-        )
+        """)
         warnings.warn(msg, UserWarning, stacklevel=2)
 
     vertical = kwargs.pop("vertical", None)
@@ -2165,12 +2020,10 @@ def rugplot(
                 x, y = y, x
         else:
             action_taken = "assigning data to `x`."
-        msg = textwrap.dedent(
-            f"""\n
+        msg = textwrap.dedent(f"""\n
         The `vertical` parameter is deprecated; {action_taken}
         This will become an error in seaborn v0.14.0; please update your code.
-        """
-        )
+        """)
         warnings.warn(msg, UserWarning, stacklevel=2)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -2239,33 +2092,16 @@ Examples
 
 
 def displot(
-    data=None,
-    *,
+    data=None, *,
     # Vector variables
-    x=None,
-    y=None,
-    hue=None,
-    row=None,
-    col=None,
-    weights=None,
+    x=None, y=None, hue=None, row=None, col=None, weights=None,
     # Other plot parameters
-    kind="hist",
-    rug=False,
-    rug_kws=None,
-    log_scale=None,
-    legend=True,
+    kind="hist", rug=False, rug_kws=None, log_scale=None, legend=True,
     # Hue-mapping parameters
-    palette=None,
-    hue_order=None,
-    hue_norm=None,
-    color=None,
+    palette=None, hue_order=None, hue_norm=None, color=None,
     # Faceting parameters
-    col_wrap=None,
-    row_order=None,
-    col_order=None,
-    height=5,
-    aspect=1,
-    facet_kws=None,
+    col_wrap=None, row_order=None, col_order=None,
+    height=5, aspect=1, facet_kws=None,
     **kwargs,
 ):
 
@@ -2305,13 +2141,9 @@ def displot(
         facet_kws = {}
 
     g = FacetGrid(
-        data=grid_data,
-        row=row_name,
-        col=col_name,
-        col_wrap=col_wrap,
-        row_order=row_order,
-        col_order=col_order,
-        height=height,
+        data=grid_data, row=row_name, col=col_name,
+        col_wrap=col_wrap, row_order=row_order,
+        col_order=col_order, height=height,
         aspect=aspect,
         **facet_kws,
     )
@@ -2443,7 +2275,9 @@ def displot(
             right_index=True,
         )
     else:
-        wide_cols = {k: f"_{k}_" if v is None else v for k, v in p.variables.items()}
+        wide_cols = {
+            k: f"_{k}_" if v is None else v for k, v in p.variables.items()
+        }
         g.data = p.plot_data.rename(columns=wide_cols)
 
     return g
@@ -2553,25 +2387,10 @@ def _freedman_diaconis_bins(a):
         return int(np.ceil((a.max() - a.min()) / h))
 
 
-def distplot(
-    a=None,
-    bins=None,
-    hist=True,
-    kde=True,
-    rug=False,
-    fit=None,
-    hist_kws=None,
-    kde_kws=None,
-    rug_kws=None,
-    fit_kws=None,
-    color=None,
-    vertical=False,
-    norm_hist=False,
-    axlabel=None,
-    label=None,
-    ax=None,
-    x=None,
-):
+def distplot(a=None, bins=None, hist=True, kde=True, rug=False, fit=None,
+             hist_kws=None, kde_kws=None, rug_kws=None, fit_kws=None,
+             color=None, vertical=False, norm_hist=False, axlabel=None,
+             label=None, ax=None, x=None):
     """
     DEPRECATED
 
@@ -2590,10 +2409,11 @@ def distplot(
             "`kdeplot` (an axes-level function for kernel density plots)"
         )
     else:
-        axes_level_suggestion = "`histplot` (an axes-level function for histograms)"
+        axes_level_suggestion = (
+            "`histplot` (an axes-level function for histograms)"
+        )
 
-    msg = textwrap.dedent(
-        f"""
+    msg = textwrap.dedent(f"""
 
     `distplot` is a deprecated function and will be removed in seaborn v0.14.0.
 
@@ -2602,8 +2422,7 @@ def distplot(
 
     For a guide to updating your code to use the new functions, please see
     https://gist.github.com/mwaskom/de44147ed2974457ad6372750bbe5751
-    """
-    )
+    """)
     warnings.warn(msg, UserWarning, stacklevel=2)
 
     if ax is None:
@@ -2640,9 +2459,9 @@ def distplot(
     # Get the color from the current color cycle
     if color is None:
         if vertical:
-            (line,) = ax.plot(0, a.mean())
+            line, = ax.plot(0, a.mean())
         else:
-            (line,) = ax.plot(a.mean(), 0)
+            line, = ax.plot(a.mean(), 0)
         color = line.get_color()
         line.remove()
 
@@ -2665,7 +2484,8 @@ def distplot(
 
         orientation = "horizontal" if vertical else "vertical"
         hist_color = hist_kws.pop("color", color)
-        ax.hist(a, bins, orientation=orientation, color=hist_color, **hist_kws)
+        ax.hist(a, bins, orientation=orientation,
+                color=hist_color, **hist_kws)
         if hist_color != color:
             hist_kws["color"] = hist_color
 

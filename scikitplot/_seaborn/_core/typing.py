@@ -8,6 +8,7 @@ from numpy import ndarray  # TODO use ArrayLike?
 from pandas import Series, Index, Timestamp, Timedelta
 from matplotlib.colors import Colormap, Normalize
 
+
 ColumnName = Union[
     str, bytes, date, datetime, timedelta, bool, complex, Timestamp, Timedelta
 ]
@@ -30,10 +31,7 @@ NormSpec = Union[Tuple[Optional[float], Optional[float]], Normalize, None]
 PaletteSpec = Union[str, list, dict, Colormap, None]
 DiscreteValueSpec = Union[dict, list, None]
 ContinuousValueSpec = Union[
-    Tuple[float, float],
-    List[float],
-    Dict[Any, float],
-    None,
+    Tuple[float, float], List[float], Dict[Any, float], None,
 ]
 
 
