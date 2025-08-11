@@ -288,8 +288,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Large Language Models",
                 "description": None,
                 "autosummary": [
-                    "LLM_MODEL_PROVIDER2API_KEY",
-                    "LLM_MODEL_PROVIDER2CONFIG",
+                    "LLM_PROVIDER_CONFIG_MAP",
+                    "LLM_PROVIDER_ENV_CONNECTOR_MAP",
                     "get_response",
                     "load_mlflow_gateway_config",
                 ],

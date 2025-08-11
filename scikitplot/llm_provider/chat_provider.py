@@ -22,11 +22,11 @@ from .. import logger
 from ..utils.utils_env import get_env_var
 from ..utils.utils_stream import streamlit_stream_or_return
 from .clint_provider import get_client, hf_fallback_request
-from .model_registry import LLM_MODEL_PROVIDER2API_KEY, LLM_MODEL_PROVIDER2CONFIG
+from .model_registry import LLM_PROVIDER_CONFIG_MAP, LLM_PROVIDER_ENV_CONNECTOR_MAP
 
 __all__ = [
-    "LLM_MODEL_PROVIDER2API_KEY",
-    "LLM_MODEL_PROVIDER2CONFIG",
+    "LLM_PROVIDER_CONFIG_MAP",
+    "LLM_PROVIDER_ENV_CONNECTOR_MAP",
     "LLMResponder",
     "get_response",
 ]
@@ -177,8 +177,8 @@ def get_model_info(
     tuple[str, str]
         Tuple of resolved model ID and API key.
     """
-    model_id = model_id or LLM_MODEL_PROVIDER2CONFIG[model_provider][0]["model_id"]
-    env_name = LLM_MODEL_PROVIDER2API_KEY.get(
+    model_id = model_id or LLM_PROVIDER_CONFIG_MAP[model_provider][0]["model_id"]
+    env_name = LLM_PROVIDER_ENV_CONNECTOR_MAP.get(
         model_provider, ""
     )  # e.g. "HUGGINGFACE_TOKEN"
     api_key = api_key if api_key else get_env_var(env_name)

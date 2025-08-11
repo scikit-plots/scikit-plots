@@ -34,13 +34,13 @@ For models like DeepSeek R1, token-based delimitations can be used to identify r
 """
 
 __all__ = [
-    "LLM_MODEL_PROVIDER2API_KEY",
-    "LLM_MODEL_PROVIDER2CONFIG",
+    "LLM_PROVIDER_CONFIG_MAP",
+    "LLM_PROVIDER_ENV_CONNECTOR_MAP",
     "get_config_provider",
 ]
 
 # API key mapping per provider
-LLM_MODEL_PROVIDER2API_KEY = {
+LLM_PROVIDER_ENV_CONNECTOR_MAP = {
     "huggingface": "HUGGINGFACE_TOKEN",
     "openai": "OPENAI_API_KEY",
     "groq": "GROQ_API_KEY",
@@ -54,7 +54,7 @@ LLM_MODEL_PROVIDER2API_KEY = {
 
 # Enhanced LLM Model Registry for Chat Application
 # Default model registry used in the chat application.
-LLM_MODEL_PROVIDER2CONFIG: dict[str, list[dict[str, str]]] = {
+LLM_PROVIDER_CONFIG_MAP: dict[str, list[dict[str, str]]] = {
     "huggingface": [
         {
             "name": "Command R+ 08-2024",
@@ -491,4 +491,4 @@ def get_config_provider() -> dict[str, list[dict[str, str]]]:
     This list is non-exhaustive and can be extended with custom or local models.
     Ensure API keys are securely loaded (e.g., from environment variables or secrets).
     """
-    return LLM_MODEL_PROVIDER2CONFIG, LLM_MODEL_PROVIDER2API_KEY
+    return LLM_PROVIDER_CONFIG_MAP, LLM_PROVIDER_ENV_CONNECTOR_MAP

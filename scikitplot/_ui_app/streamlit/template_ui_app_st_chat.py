@@ -20,7 +20,7 @@ from typing import Optional, Union
 from scikitplot import logger
 from scikitplot._compat.optional_deps import LazyImport
 from scikitplot.llm_provider import (
-    LLM_MODEL_PROVIDER2CONFIG,
+    LLM_PROVIDER_CONFIG_MAP,
     chat_provider,
     load_mlflow_gateway_config,
 )
@@ -139,8 +139,8 @@ if st:
             # pylint: disable=global-statement
             # pylint: disable=global-variable-not-assigned
             # Remove the global statement if you're only reading
-            # global LLM_MODEL_PROVIDER2CONFIG  # noqa: PLW0602, PLW0603
-            st.session_state.llm_model_provider2config = LLM_MODEL_PROVIDER2CONFIG
+            # global LLM_PROVIDER_CONFIG_MAP  # noqa: PLW0602, PLW0603
+            st.session_state.llm_model_provider2config = LLM_PROVIDER_CONFIG_MAP
 
         with st.sidebar, st.empty().container(border=True):
             # st.subheader("🔐 API Key Configuration")
@@ -170,7 +170,7 @@ if st:
                     st.error(f"Failed to load config: {e}")
                     logger.error(f"Failed to load config: {e}")
             else:
-                st.session_state.llm_model_provider2config = LLM_MODEL_PROVIDER2CONFIG
+                st.session_state.llm_model_provider2config = LLM_PROVIDER_CONFIG_MAP
 
             # Select provider
             model_provider = st.selectbox(
