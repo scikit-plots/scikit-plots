@@ -24,8 +24,8 @@ from . import (
 )
 from .chat_provider import get_response
 from .model_registry import (
-    LLM_MODEL_PROVIDER2API_KEY,
-    LLM_MODEL_PROVIDER2CONFIG,
+    LLM_PROVIDER_CONFIG_MAP,
+    LLM_PROVIDER_ENV_CONNECTOR_MAP,
 )
 
 test = PytestTester(__name__)
@@ -34,8 +34,8 @@ del PytestTester
 # __all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.
 __all__ = [
     # 'model_registry',
-    "LLM_MODEL_PROVIDER2API_KEY",
-    "LLM_MODEL_PROVIDER2CONFIG",
+    "LLM_PROVIDER_CONFIG_MAP",
+    "LLM_PROVIDER_ENV_CONNECTOR_MAP",
     "chat_provider",
     "clint_provider",
     "get_response",
