@@ -1,6 +1,3 @@
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 # mypy: disallow-any-generics
 # ruff: noqa: D205,F401,F403
 # Flake8: noqa: F403
@@ -15,6 +12,9 @@ XGBoost, TensorFlow, and more.
 Documentation is available in the docstrings and online at
 https://scikit-plots.github.io.
 """
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 from numpy import __version__ as __numpy_version__
 

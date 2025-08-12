@@ -1,11 +1,12 @@
-# Pytest customization conftest.py
-
-# pylint: skip-file
-# ruff: noqa: PGH004
+# fmt: off
 # ruff: noqa
+# ruff: noqa: PGH004
 # flake8: noqa
-# type: ignore
+# pylint: skip-file
 # mypy: ignore-errors
+# type: ignore
+
+# Pytest customization conftest.py
 
 import atexit as _atexit
 import gc as _gc

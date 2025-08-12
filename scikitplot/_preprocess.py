@@ -1,7 +1,7 @@
-"""_preprocess."""
-
 # pylint: disable=broad-exception-caught
 # pylint: disable=consider-using-f-string
+
+"""_preprocess."""
 
 import functools
 import inspect

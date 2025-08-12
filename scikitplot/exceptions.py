@@ -1,6 +1,6 @@
-"""exceptions.py."""
-
 # pylint: disable=missing-function-docstring
+
+"""exceptions.py."""
 
 import json as _json
 from typing import Optional
