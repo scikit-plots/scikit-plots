@@ -1,27 +1,29 @@
+# pylint: disable=import-outside-toplevel
+
 # This module was copied from the numpy project.
+# https://github.com/numpy/numpy/blob/main/numpy/_globals.py
+
 """
 Module defining global singleton classes.
 
 This module raises a RuntimeError if an attempt to reload it is made. In that
 way the identities of the classes defined here are fixed and will remain so
-even if scikitplot itself is reloaded. In particular, a function like the following
-will still work correctly after scikitplot is reloaded::
+even if numpy itself is reloaded. In particular, a function like the following
+will still work correctly after numpy is reloaded::
 
     def foo(arg=np._NoValue):
         if arg is np._NoValue:
             ...
 
-That was not the case when the singleton classes were defined in the scikitplot
+That was not the case when the singleton classes were defined in the numpy
 ``__init__.py`` file. See gh-7844 for a discussion of the reload problem that
 motivated this module.
+
 """
 
-# pylint: disable=import-outside-toplevel
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Optional
+# from typing import TYPE_CHECKING
+# if TYPE_CHECKING:
+#     from typing import Optional
 
 __all__ = [
     "ModuleDeprecationWarning",
@@ -153,7 +155,7 @@ class SingletonBase:
 
     # Class attribute to hold the single instance of the class.
     # _instance: Union["SingletonBase", None] = None
-    _instance: "Optional[SingletonBase]" = None
+    _instance: "SingletonBase | None" = None
 
     # magic method to get called in an objects instantiation.
     def __new__(cls: "type[SingletonBase]", *args, **kwargs) -> "SingletonBase":
@@ -178,6 +180,7 @@ class SingletonBase:
             The single instance of the class.
 
         """
+        # ensure that only one instance exists
         if cls._instance is None:
             cls._instance = super().__new__(cls, *args, **kwargs)
         return cls._instance
@@ -199,79 +202,14 @@ class SingletonBase:
 
 
 ######################################################################
-## SingletonBaseEnum class
-# Inherits from both SingletonBase and enum.Enum.
-# Inherits serialization logic from SingletonBase (supports pickling).
-# Purpose: A specialized subclass of SingletonBase that also inherits from enum.Enum.
-# It combines the Singleton pattern with the ability
-# to create enumerated values where each enum value is a singleton instance.
-# Intended Use: Used for cases where you want to define singleton instances
-# that also have enum-like behavior (e.g., unique, immutable constants).
-# Use: when you need both singleton behavior and enum functionality
-# (e.g., predefined constant values like states or configurations).
-# SingletonBaseEnum is best when you need singleton instances
-# tied to an enumeration of predefined values.
-# It is perfect for cases where you want both singleton behavior
-# and enum features, but it comes with more complexity and constraints.
-######################################################################
-
-# class SingletonBaseEnum(SingletonBase, enum.Enum):
-#     """
-#     A base class for singleton pattern objects that also uses `enum.Enum`.
-
-#     This class combines the singleton pattern with enumeration features. Each value
-#     of the `enum.Enum` is a singleton instance of the class, ensuring that the same instance
-#     is returned whenever the same enum value is referenced.
-
-#     Attributes
-#     ----------
-#     _instance : Optional[SingletonBaseEnum]
-#         The single instance of the enum value, initially set to `None`.
-
-#     Methods
-#     -------
-#     __new__(cls) -> SingletonBaseEnum
-#         Overrides the default object creation to implement the singleton pattern.
-#         Ensures that only one instance of the enum value is created (singleton behavior).
-#     """
-#     _instance: Optional["SingletonBaseEnum"] = None
-
-#     def __new__(cls: type["SingletonBaseEnum"], value: Any) -> "SingletonBaseEnum":
-#         """
-#         Override the object creation method to implement the singleton pattern for enum values.
-
-#         This method ensures that each enum value has only one instance. If the instance
-#         does not exist, it creates it; otherwise, it returns the existing instance.
-
-#         Parameters
-#         ----------
-#         cls : type[SingletonBaseEnum]
-#             The class being instantiated.
-#         value : Any
-#             The value of the enum member.
-
-#         Returns
-#         -------
-#         SingletonBaseEnum
-#             The single instance of the enum value.
-#         """
-#         # all enum instances are actually created during class construction
-#         # without calling this method; this method is called by the metaclass'
-#         # __call__ (i.e. Color(3) ), and by pickle
-#         if cls._instance is None:
-#             # Create the singleton instance only once
-#             cls._instance = super().__new__(cls, value)
-#         return cls._instance
-
-######################################################################
-## Singleton Marker Types
+## Singleton special keyword types
 ## _DefaultType class
 ######################################################################
 
 
 class _DefaultType(SingletonBase):
     """
-    A marker representing the use of a default value.
+    A special keyword value representing the use of a default value.
 
     This class is used to indicate that a parameter is set to its default value.
     It helps to distinguish between cases where the user intentionally provided
@@ -316,7 +254,7 @@ _Default = _DefaultType()
 
 class _DeprecatedType(SingletonBase):
     """
-    A marker indicating that a value or feature is deprecated.
+    A special keyword value indicating that a value or feature is deprecated.
 
     This class is useful to signal that a parameter or feature is no longer recommended
     for use and may be removed in future versions of code or APIs.
@@ -359,7 +297,7 @@ _Deprecated = _DeprecatedType()
 
 class _NoValueType(SingletonBase):
     """
-    A special value indicating no user-defined input.
+    A special keyword value indicating no user-defined input.
 
     This class provides a unique marker to detect whether a user has provided
     a value to a function or if a default behavior should be applied.
@@ -408,59 +346,6 @@ class _NoValueType(SingletonBase):
 
 # Create class instance to direct use
 _NoValue = _NoValueType()
-
-######################################################################
-## Singleton for Resource Management
-######################################################################
-
-
-class ThreadPool(SingletonBase):
-    """Singleton for managing a thread pool."""
-
-    def __init__(self):
-        import concurrent.futures
-
-        if not hasattr(self, "executor"):
-            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
-
-    def submit_task(self, fn, *args, **kwargs):
-        """Submit a task to the thread pool."""
-        return self.executor.submit(fn, *args, **kwargs)
-
-
-# # Usage:
-# thread_pool = ThreadPool()
-
-# def task(x):
-#     return x * x
-
-# future = thread_pool.submit_task(task, 5)
-# print(future.result())  # Output: 25
-
-######################################################################
-## Singleton for DatabaseConnection
-######################################################################
-
-
-class DatabaseConnection(SingletonBase):
-    """Singleton class for managing a database connection."""
-
-    def __init__(self):
-        """Initialize the database connection."""
-        if not hasattr(self, "connection"):
-            self.connection = self.connect_to_database()
-
-    def connect_to_database(self):
-        """Simulate a database connection."""
-        return "Database Connection Established"
-
-    def get_connection(self):
-        """Return the single database connection."""
-        return self.connection
-
-
-# Usage:
-# db1 = DatabaseConnection()
 
 ######################################################################
 ##

@@ -6,6 +6,9 @@
 # mypy: ignore-errors
 # type: ignore
 
+# This module was copied from the matplotlib project.
+# https://github.com/matplotlib/matplotlib/tree/main/lib/matplotlib/_api
+
 """
 Helper functions for managing the Matplotlib API.
 
