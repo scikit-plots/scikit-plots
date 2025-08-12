@@ -21,13 +21,15 @@ motivated this module.
 
 """
 
+import enum
+
 # from typing import TYPE_CHECKING
 # if TYPE_CHECKING:
 #     from typing import Optional
+from ._utils import set_module as _set_module
 
 __all__ = [
-    "ModuleDeprecationWarning",
-    "VisibleDeprecationWarning",
+    "_CopyMode",
     "_Default",
     "_Deprecated",
     "_NoValue",
@@ -39,80 +41,49 @@ __all__ = [
 
 # Disallow reloading this module so as to preserve the identities of the
 # classes defined here.
-if "_IS_LOADED" in globals():
+if "_is_loaded" in globals():
     raise RuntimeError("Reloading scikitplot._globals is not allowed")
-_IS_LOADED = True
+_is_loaded = True
 
 ######################################################################
-## ModuleDeprecationWarning class
-######################################################################
-
-
-class ModuleDeprecationWarning(DeprecationWarning):
-    """
-    Module deprecation warning class.
-
-    This custom warning class is used to signal the deprecation of an entire module.
-    The `nose` testing framework treats ordinary `DeprecationWarning` as test failures,
-    which makes it challenging to deprecate whole modules. To address this, this special
-    `ModuleDeprecationWarning` is defined, which the `nose` tester will allow without
-    causing test failures.
-
-    This is especially useful when deprecating entire modules or submodules without
-    breaking existing tests.
-
-    Attributes
-    ----------
-    __module__ : str
-        The module in which this warning is defined, set to 'scikitplot'.
-
-    Methods
-    -------
-    __module__
-        A string representing the module that contains this warning.
-
-    """
-
-    # Set the module for the warning to 'scikitplot'
-    __module__: str = "scikitplot"
-
-
-# ModuleDeprecationWarning.__module__ = 'scikitplot'
-
-######################################################################
-## VisibleDeprecationWarning class
+## copy modes supported
 ######################################################################
 
 
-class VisibleDeprecationWarning(UserWarning):
+@_set_module("scikitplot")
+class _CopyMode(enum.Enum):
     """
-    Visible deprecation warning class.
+    An enumeration for the copy modes supported by numpy.copy() and numpy.array().
 
-    In Python, deprecation warnings are usually suppressed by default. This custom warning
-    class is designed to make deprecation warnings more visible, which is useful when
-    the usage is likely a user mistake or bug. This class ensures that the warning is shown
-    to the user more prominently, alerting them about deprecated functionality.
+    The following three modes are supported,
 
-    It is useful in situations where deprecation indicates potential issues with the
-    user's code and immediate attention is required.
+    - ALWAYS: This means that a deep copy of the input
+              array will always be taken.
+    - IF_NEEDED: This means that a deep copy of the input
+                 array will be taken only if necessary.
+    - NEVER: This means that the deep copy will never be taken.
+             If a copy cannot be avoided then a `ValueError` will be
+             raised.
 
-    Attributes
-    ----------
-    __module__ : str
-        The module in which this warning is defined, set to 'scikitplot'.
-
-    Methods
-    -------
-    __module__
-        A string representing the module that contains this warning.
+    Note that the buffer-protocol could in theory do copies.  NumPy currently
+    assumes an object exporting the buffer protocol will never do this.
 
     """
 
-    # Set the module for the warning to 'scikitplot'
-    __module__: str = "scikitplot"
+    ALWAYS = True
+    NEVER = False
+    IF_NEEDED = 2
 
+    def __bool__(self):
+        # For backwards compatibility
+        if self == _CopyMode.ALWAYS:
+            return True
 
-# VisibleDeprecationWarning.__module__ = 'scikitplot'
+        if self == _CopyMode.NEVER:
+            return False
+
+        raise ValueError(f"{self} is neither True nor False.")
+
 
 ######################################################################
 ## SingletonBase class
