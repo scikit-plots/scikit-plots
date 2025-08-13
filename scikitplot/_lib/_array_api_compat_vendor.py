@@ -3,7 +3,7 @@
 # to override functions of array_api_compat.
 
 from ._array_api import array_namespace as skplt_array_namespace
-from .array_api_compat import *  # noqa: F403
+from ..externals.array_api_compat import *  # noqa: F403
 
 # overrides array_api_compat.array_namespace inside array-api-extra
 array_namespace = skplt_array_namespace  # type: ignore[assignment]

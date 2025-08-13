@@ -33,10 +33,10 @@
   - any-glob-to-any-file:
     - "scikitplot/experimental/**/*"
 
-"scikitplot/_externals":
+"scikitplot/externals":
 - changed-files:
   - any-glob-to-any-file:
-    - "scikitplot/_externals/**/*"
+    - "scikitplot/externals/**/*"
 
 "scikitplot/_factory_api":
 - changed-files:

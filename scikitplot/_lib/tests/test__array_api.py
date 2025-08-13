@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from ...conftest import array_api_compatible
-from .. import array_api_extra as xpx
+from ...externals import array_api_extra as xpx
 from .._array_api import (
     _GLOBAL_CONFIG,
     _asarray,

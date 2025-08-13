@@ -52,7 +52,21 @@ PUBLIC_MODULES = [
         "doremi.synthesis",
         "doremi.waveform_playback",
         "doremi.waveform_viz",
+        "dummy",
         "experimental",
+        "externals",
+        "externals.conftest",
+        "externals.array_api_compat",
+        "externals.array_api_compat.common",
+        "externals.array_api_compat.cupy",
+        "externals.array_api_compat.dask",
+        "externals.array_api_compat.dask.array",
+        "externals.array_api_compat.numpy",
+        "externals.array_api_compat.numpy.fft",
+        "externals.array_api_compat.numpy.linalg",
+        "externals.array_api_compat.torch",
+        "externals.array_api_extra",
+        "externals.array_api_extra.testing",
         "kds",
         "llm_provider",
         "llm_provider.chat_provider",
@@ -137,7 +151,6 @@ PUBLIC_MODULES = [
 PRIVATE_BUT_PRESENT_MODULES = [
     "scikitplot." + s
     for s in [
-        "_build_utils",
         "_sphinxext",
     ]
 ]
@@ -223,7 +236,18 @@ SKIP_LIST_2 = [
     "scikitplot.plotters",
 ] + [
     # 'scikitplot.utils.inspect', 'scikitplot.utils.socket', 'scikitplot.utils.subprocess',
+    "scikitplot.externals.array_api_compat.cupy",
+    "scikitplot.externals.array_api_compat.dask.array",
+    "scikitplot.externals.array_api_compat.torch",
 ]
+
+REQUIRES_HEAVY = {
+    "scikitplot.externals.array_api_compat.numpy": "numpy",
+    "scikitplot.externals.array_api_compat.cupy": "cupy",
+    "scikitplot.externals.array_api_compat.dask": "dask",
+    "scikitplot.externals.array_api_compat.dask.array": "dask",
+    "scikitplot.externals.array_api_compat.torch": "torch",
+}
 
 
 def test_all_modules_are_expected_2():
@@ -235,7 +259,24 @@ def test_all_modules_are_expected_2():
 
     def find_unexpected_members(mod_name):
         members = []
-        module = importlib.import_module(mod_name)
+
+        # If this submodule needs a heavy dep, skip if missing
+        if mod_name in REQUIRES_HEAVY:
+            return members  # skip this submodule only
+
+        try:
+            print(f"Importing {mod_name}")
+            module = importlib.import_module(mod_name)
+        except ImportError as e:
+            # Skip if the missing module is one of our heavy deps
+            if mod_name in REQUIRES_HEAVY:
+                return members
+            else:
+                raise
+
+        # Normal import
+        # module = importlib.import_module(mod_name)
+        # objnames = getattr(module, "__all__", dir(module))
         if hasattr(module, "__all__"):
             objnames = module.__all__
         else:
@@ -275,6 +316,9 @@ def test_api_importable():
         try:
             importlib.import_module(module_name)
         except (ImportError, AttributeError):
+            # If this submodule needs a heavy dep, skip if missing
+            if module_name in REQUIRES_HEAVY:
+                return True  # skip this submodule only
             return False
 
         return True

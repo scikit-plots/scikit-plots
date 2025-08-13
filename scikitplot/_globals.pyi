@@ -7,7 +7,7 @@
 # type: ignore
 
 # This module was copied from the numpy project.
-# https://github.com/numpy/numpy/blob/main/numpy/_globals.py
+# https://github.com/numpy/numpy/blob/main/numpy/_globals.pyi
 
 __all__ = ["_CopyMode", "_NoValue"]
 

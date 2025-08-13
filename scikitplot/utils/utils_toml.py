@@ -64,6 +64,14 @@ except ImportError:
     )
     toml = None
 
+__all__ = [
+    "TOML_READ_SUPPORT",
+    "TOML_SOURCE",
+    "TOML_WRITE_SUPPORT",
+    "read_toml",
+    "write_toml",
+]
+
 
 def read_toml(
     file_path: str | _os.PathLike,

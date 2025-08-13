@@ -1,0 +1,15 @@
+// Sample VS Code settings for a Python project Testing using micromamba
+// Put in the `.vscode/settings.json` file in your project root
+{
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "terminal.integrated.profiles.linux": {
+        "bash": {
+            "path": "/bin/bash"
+        }
+    },
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "python.defaultInterpreterPath": "/root/micromamba/envs/py311/bin/python",
+    "python.testing.pytestPath": "/root/micromamba/envs/py311/bin/pytest",
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": true
+}

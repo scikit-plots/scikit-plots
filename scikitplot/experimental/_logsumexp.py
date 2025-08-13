@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from scikitplot._lib import array_api_extra as xpx
+from scikitplot.externals import array_api_extra as xpx
 from scikitplot._lib._array_api import (
     array_namespace,
     xp_broadcast_promote,

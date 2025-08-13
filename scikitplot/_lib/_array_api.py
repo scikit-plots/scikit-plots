@@ -35,16 +35,18 @@ if TYPE_CHECKING:
     ArrayLike: TypeAlias = Array | np_typing.ArrayLike
 
 # from scipy._lib import array_api_compat
-from . import array_api_compat
-from .array_api_compat import device as xp_device
-from .array_api_compat import is_array_api_obj
-from .array_api_compat import is_array_api_strict_namespace as is_array_api_strict
-from .array_api_compat import is_cupy_namespace as is_cupy
-from .array_api_compat import is_jax_namespace as is_jax
-from .array_api_compat import is_numpy_namespace as is_numpy
-from .array_api_compat import is_torch_namespace as is_torch
-from .array_api_compat import numpy as np_compat
-from .array_api_compat import size as xp_size
+from ..externals import array_api_compat
+from ..externals.array_api_compat import device as xp_device
+from ..externals.array_api_compat import is_array_api_obj
+from ..externals.array_api_compat import (
+    is_array_api_strict_namespace as is_array_api_strict,
+)
+from ..externals.array_api_compat import is_cupy_namespace as is_cupy
+from ..externals.array_api_compat import is_jax_namespace as is_jax
+from ..externals.array_api_compat import is_numpy_namespace as is_numpy
+from ..externals.array_api_compat import is_torch_namespace as is_torch
+from ..externals.array_api_compat import numpy as np_compat
+from ..externals.array_api_compat import size as xp_size
 
 ######################################################################
 ## array API xp ModuleType '.array_api_compat.common._helpers'

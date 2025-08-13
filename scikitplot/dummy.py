@@ -41,6 +41,11 @@ from sklearn.utils.validation import (
     validate_data,
 )
 
+__all__ = [
+    "DummyClassifier",
+    "DummyRegressor",
+]
+
 
 class DummyClassifier(MultiOutputMixin, ClassifierMixin, BaseEstimator):
     """DummyClassifier makes predictions that ignore the input features.

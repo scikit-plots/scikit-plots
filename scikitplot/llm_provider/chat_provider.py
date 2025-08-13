@@ -729,7 +729,7 @@ if __name__ == "__main__":
     args = parse_args()
 
     result = get_response(
-        messages=args.messages,
+        messages=args.message,
         model_provider=args.model_provider,
         model_id=args.model_id,
         temperature=args.temperature,

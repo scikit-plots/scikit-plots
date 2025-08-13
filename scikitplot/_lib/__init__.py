@@ -1,3 +1,5 @@
+# scikitplot/_lib/__init__.py
+
 """
 Module containing private utility functions
 ===========================================
@@ -40,20 +42,7 @@ Notes
   functions available in this module.
 """
 
-# scikitplot/_lib/__init__.py
-
-# https://data-apis.org/array-api/latest/index.html
-# https://github.com/data-apis/array-api-compat/blob/main/array_api_compat/numpy/__init__.py
-try:
-    from . import _ccallback_c as _ccallback_c
-    from .array_api_compat import __version__ as __array_api_compat_version__  # xpc
-    from .array_api_compat.numpy import __array_api_version__
-    from .array_api_extra import __version__ as __array_api_extra_version__  # xpx
-except:
-    __array_api_version__ = "2023.12"
-    __array_api_compat_version__ = "1.10.1.dev0"
-    __array_api_extra_version__ = "0.5.1.dev0"
-
+from . import _ccallback_c
 from ._testutils import PytestTester
 
 test = PytestTester(__name__)
