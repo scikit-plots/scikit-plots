@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Advanced file and folder copying utility with support for:
 

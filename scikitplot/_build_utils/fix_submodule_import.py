@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+
+# pylint: disable=broad-exception-caught
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Script to convert absolute imports to relative imports within a Python package.
 
@@ -10,11 +16,6 @@ Features:
 - Converts `from module.sub import name` to relative equivalents
 - Optionally replaces unquoted type hints like `Quantity` with quoted versions
 """
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# pylint: disable=broad-exception-caught
 
 import argparse
 import os

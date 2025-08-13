@@ -7,7 +7,10 @@
 # type: ignore
 
 # This module was copied from the numpy project.
-# https://github.com/numpy/numpy/blob/main/numpy/exceptions.pyi
+# https://github.com/numpy/numpy/blob/main/numpy/exceptions.py
+
+# This module was copied from the mlflow project.
+# https://github.com/mlflow/mlflow/blob/master/mlflow/exceptions.py
 
 """
 General exceptions and warnings used by scikit-plots.
@@ -432,8 +435,8 @@ class ScikitplotTraceDataException(ScikitplotTracingException):
     def __init__(
         self,
         error_code: str,
-        request_id: Optional[str] = None,
-        artifact_path: Optional[str] = None,
+        request_id: str | None = None,
+        artifact_path: str | None = None,
     ):
         if request_id:
             self.ctx = f"request_id={request_id}"
@@ -454,7 +457,7 @@ class ScikitplotTraceDataNotFound(ScikitplotTraceDataException):
     """Exception thrown when trace data is not found."""
 
     def __init__(
-        self, request_id: Optional[str] = None, artifact_path: Optional[str] = None
+        self, request_id: str | None = None, artifact_path: str | None = None
     ):
         super().__init__("NOT_FOUND", request_id, artifact_path)
 
@@ -463,6 +466,6 @@ class ScikitplotTraceDataCorrupted(ScikitplotTraceDataException):
     """Exception thrown when trace data is corrupted."""
 
     def __init__(
-        self, request_id: Optional[str] = None, artifact_path: Optional[str] = None
+        self, request_id: str | None = None, artifact_path: str | None = None
     ):
         super().__init__("INVALID_STATE", request_id, artifact_path)

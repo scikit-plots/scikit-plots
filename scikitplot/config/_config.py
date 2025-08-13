@@ -1,9 +1,15 @@
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+
+# This module was copied from the scikit-learn project.
+# https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/_config.py
+
 """Global configuration state and functions for management."""
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# Inspired by scikit-learn for experimental
 
 import os
 import threading

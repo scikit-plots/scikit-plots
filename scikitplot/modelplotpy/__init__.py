@@ -1,5 +1,16 @@
 # scikitplot/modelplotpy/__init__.py
 
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+
+# This module was copied from the modelplotpy project.
+# https://github.com/modelplot/modelplotpy
+
 """
 Visualizing predictive model insights for enhanced business decision-making.
 

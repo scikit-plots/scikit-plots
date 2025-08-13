@@ -4,6 +4,9 @@
 # type: ignore[]
 # pylint: disable=import-error,unused-import,unused-variable,no-name-in-module,line-too-long,import-outside-toplevel
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 An intuitive library that seamlessly adds plotting capabilities and functionality
 to any model objects or outputs, compatible with tools like scikit-learn,
@@ -12,9 +15,6 @@ XGBoost, TensorFlow, and more.
 Documentation is available in the docstrings and online at
 https://scikit-plots.github.io.
 """
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
 
 from numpy import __version__ as __numpy_version__
 

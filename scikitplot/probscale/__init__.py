@@ -1,11 +1,19 @@
+# scikitplot/probscale/__init__.py
+
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+
+# This module was copied from the matplotlib project.
+# https://github.com/matplotlib/mpl-probscale
+
 """
 Real probability scales for matplotlib.
 """
-
-# Copied module from matplotlib:
-# https://github.com/matplotlib/mpl-probscale
-
-# scikitplot/probscale/__init__.py
 
 from matplotlib import scale
 

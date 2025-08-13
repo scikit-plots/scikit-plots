@@ -6,9 +6,11 @@
 # mypy: ignore-errors
 # type: ignore
 
-from typing import Final, LiteralString
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 # from typing_extensions import LiteralString
+from typing import Final, LiteralString
 
 __all__ = (
     "__git_hash__",

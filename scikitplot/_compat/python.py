@@ -1,22 +1,24 @@
-"""python built-in compat."""
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=invalid-name
 
 # ruff: noqa: F401
 
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""python built-in compat."""
+
 # import importlib
 import functools
 import sys
-from sys import version_info
 
+# from sys import version_info
 from .. import logger
 
-PYTHON_VERSION = f"{version_info.major}.{version_info.minor}.{version_info.micro}"
+PYTHON_VERSION = (
+    f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+)
 
 # 3.9
 
@@ -50,50 +52,3 @@ def lru_cache(maxsize=128):
 def cache(func):
     """Preserve Func Signature and Docstring."""
     return functools.wraps(func)(_cache(func))
-
-
-# 3.11
-
-# `tomllib` and `tomli` require binary read mode (`'rb'`), while `toml` uses text mode.
-# Track TOML support
-TOML_READ_SUPPORT = False
-TOML_WRITE_SUPPORT = False
-TOML_SOURCE = None
-
-# Try importing tomllib (Python 3.11+)
-if sys.version_info >= (3, 11):
-    try:
-        import tomllib  # Python 3.11+ builtin, read-only
-
-        TOML_READ_SUPPORT = True
-        TOML_SOURCE = "tomllib"
-    except ImportError as e:
-        logger.exception("Failed to import built-in `tomllib`: %s", e)
-        tomllib = None
-
-# Fallback to `tomli` (read-only)
-if not TOML_READ_SUPPORT:
-    try:
-        import tomli as tomllib  # External tomli, API-compatible with tomllib
-
-        TOML_READ_SUPPORT = True
-        TOML_SOURCE = "tomli"
-    except ImportError:
-        logger.info(
-            "TOML read support requires `tomli` (for Python < 3.11) or `tomllib`."
-        )
-        tomllib = None
-
-# Fallback to `toml` (read/write)
-try:
-    import toml  # Supports both read & write
-
-    TOML_WRITE_SUPPORT = True
-    if not TOML_READ_SUPPORT:
-        TOML_READ_SUPPORT = True
-        TOML_SOURCE = "toml"
-except ImportError:
-    logger.info(
-        "TOML write support requires `toml` package. Install via `pip install toml`."
-    )
-    toml = None

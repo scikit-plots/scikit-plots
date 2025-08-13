@@ -1,3 +1,16 @@
+# scikitplot/_tweedie/__init__.py
+
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+
+# This module was copied from the tweedie project.
+# https://github.com/thequackdaddy/tweedie
+
 r"""
 Tweedie Distribution Module
 ===============================================
@@ -13,8 +26,6 @@ The primary focus of this package is the compound-Poisson behavior
 of the Tweedie distribution, particularly in the range `1 < p < 2`.
 However, it supports calculations for all valid values of the shape parameter `p`.
 """
-
-# scikitplot/_tweedie/__init__.py
 
 from ._tweedie_dist import *
 

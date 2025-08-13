@@ -1,3 +1,12 @@
+# pylint: disable=import-error
+# pylint: disable=unused-import
+# pylint: disable=unused-argument
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 BaseDecorator Framework.
 
@@ -17,15 +26,6 @@ Example usage:
 ...     print(f"Hello, {name}!")
 >>> greet("Alice")
 """  # pylint: disable=too-many-lines
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# pylint: disable=import-error
-# pylint: disable=unused-import
-# pylint: disable=unused-argument
-# pylint: disable=broad-exception-caught
-# pylint: disable=logging-fstring-interpolation
 
 ## Standard library imports
 import asyncio

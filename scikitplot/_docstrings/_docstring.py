@@ -1,13 +1,13 @@
-"""
-Utilities for docstring in scikit-plots.
-"""
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
+
+# This module was copied from the matplotlib project.
+# https://github.com/matplotlib/matplotlib/blob/main/lib/matplotlib/_docstring.py
+
+"""
+Utilities for docstring in scikit-plots.
+"""
 
 # import contextlib
 import functools

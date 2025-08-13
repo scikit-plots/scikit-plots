@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-"""Append the last commit information (hash and date) to the development version string."""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+"""Append the last commit information (hash and date) to the development version string."""
 
 import os
 import subprocess
