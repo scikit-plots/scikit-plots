@@ -4,28 +4,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 ######################################################################
-## ANSI colors
-######################################################################
-
-# ANSI colors for pretty output
-BOLD='\033[1m'
-RESET='\033[0m'
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-BLUE='\033[1;34m'
-YELLOW='\033[1;33m'
-MAGENTA='\033[1;35m'
-CYAN='\033[1;36m'
-
-## Get the directory relative to the top-level project directory
-# project_root = meson.project_source_root()
-## Get the directory relative to the current meson.build file
-# current_dir = meson.current_source_dir()
-## Get the directory relative to the build directory
-# build_dir = meson.current_build_dir()
-
-######################################################################
 ## submodules
+## ⚠️ Not Need anymore we copying all submodules before runtime from 'third_party'
 ######################################################################
 
 # Check if Git is available, use 'which' for Linux/macOS, 'where' for Windows

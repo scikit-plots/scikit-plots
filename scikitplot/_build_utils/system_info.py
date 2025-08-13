@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-"""Numpy distutils style library configuration dictionaries."""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+"""Numpy distutils style library configuration dictionaries."""
 
 
 def combine_dict(*dicts, **kwargs):

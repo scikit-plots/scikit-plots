@@ -1,6 +1,3 @@
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 # pylint: disable=import-error
 # pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
@@ -11,6 +8,9 @@
 # pylint: disable=too-many-lines
 
 # ruff: noqa: UP037
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 :py:mod:`~.sp_logging` (alias, :py:obj:`~.logger`) module provide logging utilities.

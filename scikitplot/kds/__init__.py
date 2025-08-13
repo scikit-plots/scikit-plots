@@ -1,5 +1,16 @@
 # scikitplot/kds/__init__.py
 
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+
+# This module was copied from the kds project.
+# https://github.com/tensorbored/kds
+
 """
 Quick report for business analysis
 

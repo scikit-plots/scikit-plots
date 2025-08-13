@@ -1,3 +1,14 @@
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+
+# This module was copied from the numpy project.
+# https://github.com/numpy/numpy/tree/main/numpy/f2py
+
 """
 Fortran to Python Interface Generator.
 

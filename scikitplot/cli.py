@@ -8,6 +8,9 @@
 
 # ruff: noqa: F401
 
+# This module was copied from the mlflow project.
+# https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
+
 """
 cli.py.
 

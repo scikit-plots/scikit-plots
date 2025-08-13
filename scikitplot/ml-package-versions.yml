@@ -1,3 +1,7 @@
+# This module was copied from the mlflow project.
+# https://github.com/mlflow/mlflow/blob/master/mlflow/ml_package_versions.py
+---
+
 sklearn:
   package_info:
     pip_release: "scikit-learn"

@@ -39,7 +39,7 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-json  # Attempts to load all json files to verify syntax.
-        exclude: "^(\\.devcontainer/.*\\.json|benchmarks/asv\\.conf\\.json)$"
+        exclude: "^(settings\\.json|\\.devcontainer/.*\\.json|benchmarks/asv\\.conf\\.json)$"
       - id: check-yaml  # Attempts to load all yaml files to verify syntax.
       - id: check-toml  # Attempts to load all TOML files to verify syntax.
       - id: check-xml   # Attempts to load all xml files to verify syntax.
@@ -79,7 +79,7 @@ repos:
           - flake8-bugbear  # Catches common situations that tend to create bugs.
         args: [--config=.flake8, --docstring-convention=all]  # '--exit-zero' Customize as needed.
         types: [file, python]
-        # exclude: ^scikitplot/(_externals/|_seaborn/)
+        # exclude: ^scikitplot/(externals/|_seaborn/)
 
   # Code Quality: Formatter black vs ruff-format can be conflict make sure both compatipable
   # - repo: https://github.com/psf/black
@@ -108,9 +108,9 @@ repos:
           - --diff                    # Show a diff of what would change, without writing changes to disk. Often used with --check.
           ## Keep Sync: in YAML — pyproject.toml, Black uses pyproject.toml for configuration.
           - --force-exclude
-          - '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/_astropy|scikitplot/_externals|scikitplot/_seaborn|scikitplot/modelplotpy|scikitplot/probscale|scikitplot/visualkeras|scikitplot/llm_backend)/'
+          - '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/_astropy|scikitplot/externals|scikitplot/_seaborn|scikitplot/modelplotpy|scikitplot/probscale|scikitplot/visualkeras|scikitplot/llm_backend)/'
         # verbose: true  # Force Black to show which files were modified
-        # exclude: '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/_astropy|scikitplot/_externals|scikitplot/_seaborn|scikitplot/modelplotpy|scikitplot/probscale|scikitplot/visualkeras|scikitplot/llm_backend)/'
+        # exclude: '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/_astropy|scikitplot/externals|scikitplot/_seaborn|scikitplot/modelplotpy|scikitplot/probscale|scikitplot/visualkeras|scikitplot/llm_backend)/'
 
   # - repo: https://github.com/charliermarsh/ruff
   #   rev: v0.0.276  # Replace with the latest release version of Ruff

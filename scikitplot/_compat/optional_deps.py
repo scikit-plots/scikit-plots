@@ -1,14 +1,15 @@
+# pylint: disable=broad-exception-caught
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments
+# pylint: disable=too-many-branches
+
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+
 """
 Checks for optional dependencies using lazy import.
 
 From `PEP 562 <https://www.python.org/dev/peps/pep-0562/>`_.
 """
-
-# pylint: disable=broad-exception-caught
-# pylint: disable=too-many-arguments
-# pylint: disable=too-many-positional-arguments
-# pylint: disable=too-many-branches
 
 import contextlib
 import inspect

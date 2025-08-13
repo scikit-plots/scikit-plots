@@ -114,7 +114,7 @@ switcher.main()  # switcher.json
 import scikitplot as sp
 
 # from sklearn.externals._packaging.version import parse
-from scikitplot._externals._packaging.version import parse
+from scikitplot.externals._packaging.version import parse
 
 # Possible Doc Version Syntax expected after releases:
 # 0.4.0+git.20250114.96321ef       : <Version('0.4.0+git.20250114.96321ef')>

@@ -1,10 +1,17 @@
-# pylint: skip-file
-# ruff: noqa: PGH004
+# fmt: off
 # ruff: noqa
+# ruff: noqa: PGH004
 # flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
 # type: ignore
 
+# This module was copied from the matplotlib project.
+# https://github.com/matplotlib/matplotlib/blob/main/lib/matplotlib/_c_internal_utils.pyi
+
 def display_is_valid() -> bool: ...
+def xdisplay_is_valid() -> bool: ...
+
 def Win32_GetForegroundWindow() -> int | None: ...
 def Win32_SetForegroundWindow(hwnd: int) -> None: ...
 def Win32_SetProcessDpiAwareness_max() -> None: ...

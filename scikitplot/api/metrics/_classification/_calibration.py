@@ -315,7 +315,6 @@ def plot_calibration(
     #     classes = np.arange(y_true.shape[1])
     # else:
     #     raise ValueError("y_true must be a 2D NumPy array")
-    logger.error(y_true.shape[1])
     classes = np.arange(y_true.shape[1])
     to_plot_class_index = (
         classes if to_plot_class_index is None else to_plot_class_index

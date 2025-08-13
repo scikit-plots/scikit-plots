@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Scipy variant of Cython command
 
@@ -8,9 +12,6 @@ Expects two arguments, infile and outfile.
 
 Other options passed through to cython command line parser.
 """
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
 
 import os
 import subprocess

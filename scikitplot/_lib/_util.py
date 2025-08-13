@@ -11,7 +11,7 @@ from typing import TypeAlias, TypeVar
 
 import numpy as np
 
-from . import array_api_extra as xpx
+from ..externals import array_api_extra as xpx
 from ._array_api import array_namespace, is_numpy, xp_size
 from ._docscrape import FunctionDoc, Parameter
 

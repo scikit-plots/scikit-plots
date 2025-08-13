@@ -13,7 +13,7 @@ from pytest import raises as assert_raises
 from scipy import cluster, interpolate, linalg, optimize, sparse, spatial, stats
 
 from ...conftest import array_api_compatible, skip_xp_invalid_arg
-from .. import array_api_extra as xpx
+from ...externals import array_api_extra as xpx
 from .._array_api import is_array_api_strict, is_numpy, xp_assert_close, xp_assert_equal
 from .._util import (
     FullArgSpec,
@@ -619,7 +619,7 @@ class TestLazywhere:
     p = strategies.floats(min_value=0, max_value=1)
     data = strategies.data()
 
-    @pytest.mark.fail_slow(15)
+    @pytest.mark.fail_slow(17)
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")  # overflows, etc.
     @array_api_compatible
     @given(n_arrays=n_arrays, rng_seed=rng_seed, dtype=dtype, p=p, data=data)

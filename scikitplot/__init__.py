@@ -1,11 +1,11 @@
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 # mypy: disallow-any-generics
 # ruff: noqa: D205,F401,F403
 # Flake8: noqa: F403
 # type: ignore[]
 # pylint: disable=import-error,unused-import,unused-variable,no-name-in-module,line-too-long,import-outside-toplevel
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 An intuitive library that seamlessly adds plotting capabilities and functionality
@@ -111,7 +111,6 @@ _submodules = sorted(
         "_decorates",
         "_docstrings",
         "_entities",
-        "_externals",
         "_f2py",
         "_factory_api",
         "_lib",
@@ -127,6 +126,7 @@ _submodules = sorted(
         "config",
         "doremi",
         "experimental",
+        "externals",
         "kds",
         "llm_provider",
         "misc",

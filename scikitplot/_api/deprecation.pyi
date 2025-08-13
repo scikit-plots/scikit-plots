@@ -1,7 +1,9 @@
-# pylint: skip-file
-# ruff: noqa: PGH004
+# fmt: off
 # ruff: noqa
+# ruff: noqa: PGH004
 # flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
 # type: ignore
 
 from collections.abc import Callable
@@ -74,7 +76,7 @@ def deprecate_method_override(
     *,
     allow_empty: bool = ...,
     since: str,
-    **kwargs: Unpack[NamedDeprecationKwargs],
+    **kwargs: Unpack[NamedDeprecationKwargs]
 ) -> Callable[_P, _R]: ...
 def suppress_matplotlib_deprecation_warning() -> (
     contextlib.AbstractContextManager[None]

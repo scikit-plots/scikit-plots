@@ -1,11 +1,15 @@
-# Pytest customization conftest.py
-
-# pylint: skip-file
-# ruff: noqa: PGH004
+# fmt: off
 # ruff: noqa
+# ruff: noqa: PGH004
 # flake8: noqa
-# type: ignore
+# pylint: skip-file
 # mypy: ignore-errors
+# type: ignore
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# Pytest customization conftest.py
 
 import atexit as _atexit
 import gc as _gc
@@ -546,6 +550,24 @@ skip_xp_invalid_arg = _pytest.mark.skipif(
         "that are not valid input when `SKPLT_ARRAY_API` is used."
     ),
 )
+
+# pytestmark = pytest.mark.skipif(
+#     any(
+#         pytest.importorskip(pkg, reason=f"{pkg} not installed") is None
+#         for pkg in ["cupy", "dask", "torch"]
+#     ),
+#     reason="Required module missing: cupy, dask, or torch"
+# )
+
+# # @requires_modules("cupy", "torch")
+# def requires_modules(*modules):
+#     """Decorator to skip test if any given module is missing."""
+#     def decorator(func):
+#         for m in modules:
+#             if pytest.importorskip(m, reason=f"{m} not installed") is None:
+#                 return pytest.mark.skip(reason=f"{m} not installed")(func)
+#         return func
+#     return decorator
 
 ######################################################################
 ## array API xp backends

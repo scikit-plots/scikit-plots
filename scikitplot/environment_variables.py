@@ -1,3 +1,9 @@
+# pylint: disable=missing-function-docstring
+# pylint: disable=line-too-long
+
+# This module was copied from the mlflow project.
+# https://github.com/mlflow/mlflow/blob/master/mlflow/environment_variables.py
+
 """
 Defines environment variables used in scikit-plots.
 
@@ -8,9 +14,6 @@ scikit-plots's environment variables adhere to the following naming conventions:
 Copied from MLflow project.
 - https://github.com/mlflow/mlflow/blob/master/mlflow/environment_variables.py
 """
-
-# pylint: disable=missing-function-docstring
-# pylint: disable=line-too-long
 
 import os as _os
 import tempfile as _tempfile

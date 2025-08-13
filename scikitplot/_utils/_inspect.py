@@ -1,3 +1,14 @@
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+
+# This module was copied from the numpy project.
+# https://github.com/numpy/numpy/blob/main/numpy/_utils/
+
 """Subset of inspect module from upstream python
 
 We use this instead of upstream because upstream inspect is slow to import, and
@@ -10,9 +21,8 @@ import importlib
 import inspect
 import pkgutil
 import types
-from pprint import pprint
 
-from scikitplot import sp_logging as logging
+from scikitplot import logger
 
 __all__ = [
     "getargspec",
@@ -88,7 +98,7 @@ def getargs(co):
     """
 
     if not iscode(co):
-        raise TypeError("arg is not a code object")
+        raise TypeError('arg is not a code object')
 
     nargs = co.co_argcount
     names = co.co_varnames
@@ -98,7 +108,7 @@ def getargs(co):
     # Which we do not need to support, so remove to avoid importing
     # the dis module.
     for i in range(nargs):
-        if args[i][:1] in ["", "."]:
+        if args[i][:1] in ['', '.']:
             raise TypeError("tuple function arguments are not supported")
     varargs = None
     if co.co_flags & CO_VARARGS:
@@ -123,7 +133,7 @@ def getargspec(func):
     if ismethod(func):
         func = func.__func__
     if not isfunction(func):
-        raise TypeError("arg is not a Python function")
+        raise TypeError('arg is not a Python function')
     args, varargs, varkw = getargs(func.__code__)
     return args, varargs, varkw, func.__defaults__
 
@@ -143,30 +153,27 @@ def getargvalues(frame):
 
 def joinseq(seq):
     if len(seq) == 1:
-        return "(" + seq[0] + ",)"
+        return '(' + seq[0] + ',)'
     else:
-        return "(" + ", ".join(seq) + ")"
+        return '(' + ', '.join(seq) + ')'
 
 
 def strseq(object, convert, join=joinseq):
-    """Recursively walk a sequence, stringifying each element."""
+    """Recursively walk a sequence, stringifying each element.
+
+    """
     if type(object) in [list, tuple]:
         return join([strseq(_o, convert, join) for _o in object])
     else:
         return convert(object)
 
 
-def formatargspec(
-    args,
-    varargs=None,
-    varkw=None,
-    defaults=None,
-    formatarg=str,
-    formatvarargs=lambda name: "*" + name,
-    formatvarkw=lambda name: "**" + name,
-    formatvalue=lambda value: "=" + repr(value),
-    join=joinseq,
-):
+def formatargspec(args, varargs=None, varkw=None, defaults=None,
+                  formatarg=str,
+                  formatvarargs=lambda name: '*' + name,
+                  formatvarkw=lambda name: '**' + name,
+                  formatvalue=lambda value: '=' + repr(value),
+                  join=joinseq):
     """Format an argument spec from the 4 values returned by getargspec.
 
     The first four arguments are (args, varargs, varkw, defaults).  The
@@ -187,20 +194,15 @@ def formatargspec(
         specs.append(formatvarargs(varargs))
     if varkw is not None:
         specs.append(formatvarkw(varkw))
-    return "(" + ", ".join(specs) + ")"
+    return '(' + ', '.join(specs) + ')'
 
 
-def formatargvalues(
-    args,
-    varargs,
-    varkw,
-    locals,
-    formatarg=str,
-    formatvarargs=lambda name: "*" + name,
-    formatvarkw=lambda name: "**" + name,
-    formatvalue=lambda value: "=" + repr(value),
-    join=joinseq,
-):
+def formatargvalues(args, varargs, varkw, locals,
+                    formatarg=str,
+                    formatvarargs=lambda name: '*' + name,
+                    formatvarkw=lambda name: '**' + name,
+                    formatvalue=lambda value: '=' + repr(value),
+                    join=joinseq):
     """Format an argument spec from the 4 values returned by getargvalues.
 
     The first four arguments are (args, varargs, varkw, locals).  The
@@ -209,17 +211,16 @@ def formatargvalues(
     argument is an optional function to format the sequence of arguments.
 
     """
-
-    def convert(name, locals=locals, formatarg=formatarg, formatvalue=formatvalue):
+    def convert(name, locals=locals,
+                formatarg=formatarg, formatvalue=formatvalue):
         return formatarg(name) + formatvalue(locals[name])
-
     specs = [strseq(arg, convert, join) for arg in args]
 
     if varargs:
         specs.append(formatvarargs(varargs) + formatvalue(locals[varargs]))
     if varkw:
         specs.append(formatvarkw(varkw) + formatvalue(locals[varkw]))
-    return "(" + ", ".join(specs) + ")"
+    return '(' + ', '.join(specs) + ')'
 
 
 ######################################################################
@@ -320,28 +321,28 @@ def inspect_module(module_name: str = "scikitplot._numcpp_api", debug=False):
 
     try:
         module = importlib.import_module(module_name)
-        logging.info(f"Successfully imported module: {module_name}")
+        logger.info(f"Successfully imported module: {module_name}")
     except ModuleNotFoundError:
-        logging.error(f"Module '{module_name}' not found.")
+        logger.error(f"Module '{module_name}' not found.")
         return results
 
     def recursive_scan(mod):
         if "tests" in mod.__name__:
-            logging.info(f"Skipping 'tests' module: {mod.__name__}")
+            logger.info(f"Skipping 'tests' module: {mod.__name__}")
             return
 
-        logging.info(f"Inspecting module: {mod.__name__}")
+        logger.info(f"Inspecting module: {mod.__name__}")
         for name in dir(mod):
             try:
                 attr = getattr(mod, name)
                 if inspect.isclass(attr):
                     results["classes"].append(f"{mod.__name__}.{name}")
-                    logging.info(f"Found class: {mod.__name__}.{name}")
+                    logger.info(f"Found class: {mod.__name__}.{name}")
                 elif callable(attr):
                     results["functions"].append(f"{mod.__name__}.{name}")
-                    logging.info(f"Found function or callable: {mod.__name__}.{name}")
+                    logger.info(f"Found function or callable: {mod.__name__}.{name}")
             except AttributeError:
-                logging.warning(f"Could not access attribute: {name}")
+                logger.warning(f"Could not access attribute: {name}")
 
         if hasattr(mod, "__path__"):
             for submodule_info in pkgutil.iter_modules(mod.__path__):
@@ -350,12 +351,13 @@ def inspect_module(module_name: str = "scikitplot._numcpp_api", debug=False):
                     submodule = importlib.import_module(submodule_name)
                     recursive_scan(submodule)
                 except ModuleNotFoundError:
-                    logging.warning(f"Could not import submodule: {submodule_name}")
+                    logger.warning(f"Could not import submodule: {submodule_name}")
 
     recursive_scan(module)
 
     if debug:
-        pprint(results)
+        # from pprint import pprint
+        logger.info(results)
     else:
         return results
 

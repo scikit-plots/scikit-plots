@@ -1,15 +1,24 @@
-# pylint: skip-file
-# ruff: noqa: PGH004
+# fmt: off
 # ruff: noqa
+# ruff: noqa: PGH004
 # flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
 # type: ignore
+
+# This module was copied from the numpy project.
+# https://github.com/numpy/numpy/blob/main/numpy/__config__.pyi
 
 from enum import Enum
 from types import ModuleType
-from typing import Final, TypedDict, overload, type_check_only
-from typing import Literal as L
-
-from typing_extensions import NotRequired
+from typing import (
+    Final,
+    Literal as L,
+    NotRequired,
+    TypedDict,
+    overload,
+    type_check_only,
+)
 
 _CompilerConfigDictValue = TypedDict(
     "_CompilerConfigDictValue",
@@ -98,10 +107,12 @@ class DisplayModes(Enum):
     dicts = "dicts"
 
 def _check_pyyaml() -> ModuleType: ...
+
 @overload
 def show(mode: L["stdout"] = "stdout") -> None: ...
 @overload
 def show(mode: L["dicts"]) -> _ConfigDict: ...
+
 @overload
 def show_config(mode: L["stdout"] = "stdout") -> None: ...
 @overload

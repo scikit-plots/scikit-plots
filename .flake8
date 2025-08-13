@@ -81,7 +81,6 @@ exclude =
     scikitplot/_astropy/**,                 # ← Ensure the `tools/` folder is ignored
     scikitplot/_build_utils/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/_clv/**,                     # ← Ensure the `tools/` folder is ignored
-    scikitplot/_externals/**,               # ← Ensure the `tools/` folder is ignored
     scikitplot/_factory_api/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/_lib/**,                     # ← Ensure the `tools/` folder is ignored
     scikitplot/_seaborn/**,                 # ← Ensure the `tools/` folder is ignored
@@ -89,6 +88,7 @@ exclude =
     scikitplot/_utils/**,                   # ← Ensure the `tools/` folder is ignored
     scikitplot/api/**,                      # ← Ensure the `tools/` folder is ignored
     scikitplot/experimental/**,             # ← Ensure the `tools/` folder is ignored
+    scikitplot/externals/**,                # ← Ensure the `tools/` folder is ignored
     scikitplot/kds/**,                      # ← Ensure the `tools/` folder is ignored
     scikitplot/modelplotpy/**,              # ← Ensure the `tools/` folder is ignored
     scikitplot/probscale/**,                # ← Ensure the `tools/` folder is ignored

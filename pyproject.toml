@@ -311,6 +311,7 @@ legacy = [
   # toml — a popular older TOML parsing library, supports both reading and writing.
   'tomli;python_version<"3.11"',  # TOML parsing backports for Python < 3.11
   'tomli-w;python_version<"3.11"',  # A lil' TOML writer backports for Python < 3.11
+  'toml;python_version<"3.11"',  # A lil' TOML reader/writer backports for Python < 3.11
 ]
 ## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 ## Core dependencies that are used in multiple groups
@@ -671,7 +672,6 @@ exclude = [
   "scikitplot/_astropy",
   "scikitplot/_build_utils",
   "scikitplot/_clv",
-  "scikitplot/_externals",
   "scikitplot/_factory_api",
   "scikitplot/_lib",
   "scikitplot/_seaborn",
@@ -680,6 +680,7 @@ exclude = [
   "scikitplot/api",
   "scikitplot/config",
   "scikitplot/experimental",
+  "scikitplot/externals",
   "scikitplot/probscale",
   "scikitplot/kds",
   "scikitplot/llm_backend",
@@ -724,7 +725,6 @@ exclude = [
   "scikitplot/_astropy",
   "scikitplot/_build_utils",
   "scikitplot/_clv",
-  "scikitplot/_externals",
   "scikitplot/_factory_api",
   "scikitplot/_lib",
   "scikitplot/_seaborn",
@@ -733,6 +733,7 @@ exclude = [
   "scikitplot/api",
   "scikitplot/config",
   "scikitplot/experimental",
+  "scikitplot/externals",
   "scikitplot/probscale",
   "scikitplot/kds",
   "scikitplot/llm_backend",
@@ -970,8 +971,8 @@ extend-exclude = '''
   | tools
   | tests
   | scikitplot/_astropy
-  | scikitplot/_externals
   | scikitplot/_seaborn
+  | scikitplot/externals
   | scikitplot/modelplotpy
   | scikitplot/probscale
   | scikitplot/visualkeras
@@ -1058,8 +1059,8 @@ skip = """
   tools/*,
   *.cff,
   scikitplot/_astropy/*,
-  scikitplot/_externals/*,
   scikitplot/_seaborn/*,
+  scikitplot/externals/*,
 """
 count = true
 # quiet-level = 3

@@ -1322,5 +1322,6 @@ message(
 ## Next
 ######################################################################
 
-subdir('third_party')
+# Not Need anymore we copying all submodules before runtime from 'third_party'
+# subdir('third_party')
 subdir('scikitplot')

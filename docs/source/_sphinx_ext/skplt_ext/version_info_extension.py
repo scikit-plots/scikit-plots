@@ -12,7 +12,7 @@ from sphinx.application import Sphinx
 from sphinx.util.logging import getLogger
 
 from scikitplot import __version__
-from scikitplot._externals._packaging.version import parse
+from scikitplot.externals._packaging.version import parse
 
 logger = getLogger(__name__)
 
