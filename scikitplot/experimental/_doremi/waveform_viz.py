@@ -62,7 +62,7 @@ def plot_waveform(
 
     .. jupyter-execute::
 
-        >>> from scikitplot import doremi
+        >>> from scikitplot.experimental import _doremi as doremi
 
     Sample Sheet:
 

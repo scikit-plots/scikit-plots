@@ -27,8 +27,8 @@ from typing import Union
 import numpy as np
 from pydantic import BaseModel, Field
 
-from .. import logger
-from .._docstrings._docstring import interpd
+from ... import logger
+from ..._docstrings._docstring import interpd
 from .config import DEFAULT_BITRATE, DEFAULT_SAMPLE_RATE
 from .note import SHEET, _is_rest, sheet_to_note
 from .note_io import save_waveform, save_waveform_as_mp3

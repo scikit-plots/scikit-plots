@@ -19,7 +19,7 @@ from typing import Optional, Union
 
 from scikitplot import logger
 from scikitplot._compat.optional_deps import LazyImport
-from scikitplot.llm_provider import (
+from scikitplot.experimental._llm_provider import (
     LLM_PROVIDER_CONFIG_MAP,
     chat_provider,
     load_mlflow_gateway_config,

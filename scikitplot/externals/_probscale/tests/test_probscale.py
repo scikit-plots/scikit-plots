@@ -11,7 +11,6 @@ except ImportError:  # pragma: no cover
 
 import pytest
 
-# import scikitplot.probscale as probscale
 from ..probscale import _minimal_norm
 
 # special tolerance for Github Action CI

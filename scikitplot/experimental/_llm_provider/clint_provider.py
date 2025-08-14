@@ -13,8 +13,8 @@ import importlib
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from .. import logger
-from ..exceptions import ScikitplotException
+from ... import logger
+from ...exceptions import ScikitplotException
 
 __all__ = [
     "CLIENT_FACTORY",

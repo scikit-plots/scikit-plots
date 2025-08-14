@@ -46,7 +46,7 @@ def sigmoid(x, axis=None):
     Examples
     --------
     >>> import numpy as np
-    >>> from scikitplot.experimental._logsumexp import sigmoid
+    >>> from scikitplot.cexperimental._logsumexp import sigmoid
     >>> x = np.array([0, 1, 2])
     >>> sigmoid(x)
     array([0.5       , 0.7310586 , 0.88079708])

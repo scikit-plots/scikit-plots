@@ -71,8 +71,8 @@ from typing import Literal, Optional, Union
 
 import pandas as pd
 
-from .. import logger
-from .._docstrings._docstring import interpd
+from ... import logger
+from ..._docstrings._docstring import interpd
 
 __all__ = [
     "SHEET",

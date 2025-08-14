@@ -94,7 +94,7 @@ clean: clean_basic
 	@echo "Removed $(BUILDDIR)/*"
 	@rm -rf $(SOURCEDIR)/css/styles/
 	@echo "Removed "$(SOURCEDIR)/css/styles/""
-	@rm -rf "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/api{,s}/*.rst"
+	@rm -rf "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/api"/*.rst "$(SOURCEDIR)/apis"/*.rst
 	@rm -rf "$(SOURCEDIR)/devel/index.rst" "$(SOURCEDIR)/devel/guide_maintainer.rst"
 	@echo "Removed "$(SOURCEDIR)/index.rst" "$(SOURCEDIR)/devel/guide_maintainer.rst" "$(SOURCEDIR)/api{,s}/*.rst""
 	@rm -rf "$(SOURCEDIR)/auto_examples/" "$(SOURCEDIR)/sg_execution_times.rst"

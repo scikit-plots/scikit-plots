@@ -300,10 +300,10 @@ def __getattr__(
             return test
 
         # Try importing as a submodule
-        # import_module(f".{name}", package=package)  # high-level function, submodule directly
-        # __import__(f'{__name__}.{name}')  # low-level function, not return submodule directly
-        # __import__(module_name, fromlist=[class_name])  # Return submodule directly
-        # return __import__(f"{package}.{name}", fromlist=[""])  # submodule directly
+        # import_module(f"{package}.{name}")              # high-level function, Return submodule directly
+        # import_module(f".{name}", package=package)      # high-level function, Return submodule directly
+        # __import__(f"{package}.{name}", fromlist=[""])  # Return submodule directly (module_name, fromlist=["" or class_name])
+        # __import__(f"{__name__}.{name}")                # low-level function, not return submodule directly
         from importlib import import_module
 
         if name in dir(__import__(__name__ + ".api", fromlist=[""])):

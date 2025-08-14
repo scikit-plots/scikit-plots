@@ -13,20 +13,15 @@
   - any-glob-to-any-file:
     - "scikitplot/_build_utils/**/*"
 
-"scikitplot/_clv":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_clv/**/*"
-
 "scikitplot/_compat":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_compat/**/*"
 
-"scikitplot/experimental":
+"scikitplot/cexperimental":
 - changed-files:
   - any-glob-to-any-file:
-    - "scikitplot/experimental/**/*"
+    - "scikitplot/cexperimental/**/*"
 
 "scikitplot/cexternals":
 - changed-files:
@@ -38,10 +33,30 @@
   - any-glob-to-any-file:
     - "scikitplot/cexternals/_astropy/**/*"
 
+"scikitplot/cexternals/_f2py":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/cexternals/_f2py/**/*"
+
+"scikitplot/experimental":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/experimental/**/*"
+
+"scikitplot/experimental/_clv":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/experimental/_clv/**/*"
+
 "scikitplot/externals":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/externals/**/*"
+
+"scikitplot/externals/_probscale":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/_probscale/**/*"
 
 "scikitplot/externals/_seaborn":
 - changed-files:
@@ -52,6 +67,11 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/externals/_sphinxext/**/*"
+
+"scikitplot/externals/_tweedie":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/_tweedie/**/*"
 
 "scikitplot/_factory_api":
 - changed-files:
@@ -78,11 +98,6 @@
   - any-glob-to-any-file:
     - "scikitplot/preprocessing/**/*"
 
-"scikitplot/probscale":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/probscale/**/*"
-
 "scikitplot/stats":
 - changed-files:
   - any-glob-to-any-file:
@@ -97,11 +112,6 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_testing/**/*"
-
-"scikitplot/_tweedie":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_tweedie/**/*"
 
 "scikitplot/_utils":
 - changed-files:

@@ -20,7 +20,7 @@ See [1]_, [2]_, and [3]_ for model details.
 
 Examples
 --------
->>> from scikitplot import doremi
+>>> from scikitplot.experimental import _doremi as doremi
 >>> doremi.compose_as_waveform()
 
 
@@ -46,7 +46,7 @@ References
 # ├── io.py                 # Export (MP3, WAV), serializers (YAML, JSON)
 # └── note.py               # Already exists, parsed notes
 
-from .._testing._pytesttester import PytestTester  # Pytest testing
+from ..._testing._pytesttester import PytestTester  # Pytest testing
 from .composer import *  # noqa: F403
 from .config import *  # noqa: F403
 from .envelopes import ENVELOPES  # noqa: F401

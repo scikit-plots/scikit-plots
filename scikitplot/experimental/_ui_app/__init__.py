@@ -14,7 +14,7 @@ Usage:
 - `python -m build_ui_app`  : Generate executable (requires PyInstaller).
 """  # noqa: D205
 
-from .. import logger
+from scikitplot import logger
 
 logger.setLevel(logger.INFO)
 del logger
