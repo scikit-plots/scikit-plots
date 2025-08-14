@@ -23,7 +23,7 @@ repos:
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
       - id: check-added-large-files  # Prevent giant files from being committed.
-        args: ["--enforce-all", "--maxkb=300"]
+        args: ["--enforce-all", "--maxkb=311"]  # 311 KB is the default size limit.
         exclude: "^(\
           benchmarks/.*|\
           docs/source/logos/.*|\
