@@ -42,7 +42,6 @@ import requests as _requests
 
 # import logging
 from .. import logger as _logger
-from .._entities import FileInfo
 from ..environment_variables import (
     _SKPLT_MPD_NUM_RETRIES,
     _SKPLT_MPD_RETRY_INTERVAL_SECONDS,
@@ -50,6 +49,7 @@ from ..environment_variables import (
     SKPLT_ENABLE_ARTIFACTS_PROGRESS_BAR,
 )
 from ..exceptions import ScikitplotException
+from ..experimental._entities import FileInfo
 
 # from ..utils import download_cloud_file_chunk
 from ..utils.os import is_windows

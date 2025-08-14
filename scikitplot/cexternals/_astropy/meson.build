@@ -1,4 +1,4 @@
-## scikit-plots/scikitplot/_astropy/meson.build
+## scikitplot/cexternals/_astropy/meson.build
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause

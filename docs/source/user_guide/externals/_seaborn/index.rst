@@ -28,5 +28,5 @@ online at https://seaborn.pydata.org/index.html.
    import seaborn as sns
 
    # (optionally) scikit-plots also include seaborn
-   import scikitplot._seaborn as sns
-   from scikitplot import _seaborn as sns
+   import scikitplot.externals._seaborn as sns
+   from scikitplot.externals import _seaborn as sns

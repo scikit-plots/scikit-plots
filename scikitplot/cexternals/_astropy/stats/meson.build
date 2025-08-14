@@ -1,4 +1,4 @@
-## scikit-plots/scikitplot/_astropy/stats/meson.build
+## scikitplot/cexternals/_astropy/stats/meson.build
 
 ######################################################################
 ## cython tree
@@ -69,7 +69,7 @@ stats_extension_metadata = {
     'c_args': cython_c_flags,                     # Additional C/C++ arguments
     # 'cpp_args': cython_cpp_flags,                 # Additional C/C++ arguments
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/_astropy/stats',        # Path where the module is located
+    'subdir': 'scikitplot/cexternals/_astropy/stats',        # Path where the module is located
   },
   # Define Python Module Name
   '_stats':
@@ -93,7 +93,7 @@ stats_extension_metadata = {
     'c_args': cython_c_flags,                     # Additional C/C++ arguments
     # 'cpp_args': cython_cpp_flags,                 # Additional C/C++ arguments
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/_astropy/stats',        # Path where the module is located
+    'subdir': 'scikitplot/cexternals/_astropy/stats',        # Path where the module is located
   },
 }
 # https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
@@ -122,7 +122,7 @@ endforeach
 ## Load submodule files
 # install_subdir(
 #   '../',
-#   install_dir: py.get_install_dir() / 'scikitplot/_astropy',
+#   install_dir: py.get_install_dir() / 'scikitplot/cexternals/_astropy',
 #   install_tag: 'python-runtime',
 # )
 

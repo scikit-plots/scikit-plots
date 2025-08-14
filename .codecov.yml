@@ -28,10 +28,7 @@ codecov:
 ignore:
 - "**/conftest.py"
 - "scikitplot/_build_utils"
-- "scikitplot/_astropy"
-- "scikitplot/_clv"
-- "scikitplot/_seaborn"
-- "scikitplot/_sphinxext"
-- "scikitplot/_ui_app"
+- "scikitplot/cexperimental"
+- "scikitplot/cexternals"
+- "scikitplot/experimental"
 - "scikitplot/externals"
-- "scikitplot/llm_provider"

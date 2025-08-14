@@ -103,37 +103,25 @@ _submodules = sorted(
     | {
         ## A package is a directory with an __init__.py
         "_api",
-        "_astropy",
         "_build_utils",
-        # '_clv',
         "_compat",
         "_datasets",
         "_decorates",
         "_docstrings",
-        "_entities",
-        "_f2py",
         "_factory_api",
         "_lib",
-        ## Experimental, we keep transform api module to compatibility seaborn core.
-        "_seaborn",
-        "_sphinxext",
         "_testing",
-        "_tweedie",
         "_typing",
-        "_ui_app",
         "_utils",
         "api",
+        "cexperimental",
+        "cexternals",
         "config",
-        "doremi",
         "experimental",
         "externals",
         "kds",
-        "llm_provider",
         "misc",
         "modelplotpy",
-        "pipeline",
-        "probscale",
-        "snsx",  # TODO: Seaborn eXtended for ML (Refactor/Enhance the API module)
         "stats",
         "utils",
         "visualkeras",
@@ -351,11 +339,11 @@ def __getattr__(
             # Generate suggestions for mistyped names.
             matches = get_close_matches(name, available)
             if matches:
-                suggestion_msg += f" Did you mean: {', '.join(matches)}?"
+                suggestion_msg += f"Did you mean: {', '.join(matches)}?\n\n"
         # Raise an error indicating the attribute could not be found,
         # with suggestions if any.
         raise AttributeError(
-            f"Module {package!r} has no attribute {name!r}.{{suggestion_msg}}\n\n{{e}}"
+            f"Module {package!r} has no attribute {name!r}. {suggestion_msg}{e}"
         ) from e
 
 

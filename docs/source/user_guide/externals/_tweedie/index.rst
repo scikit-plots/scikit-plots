@@ -27,5 +27,5 @@ online at https://github.com/thequackdaddy/tweedie.
    from scikitplot import stats
 
    # (optionally) Only _tweedie
-   import scikitplot._tweedie as _tweedie
-   from scikitplot import _tweedie
+   import scikitplot.externals._tweedie as _tweedie
+   from scikitplot.externals import _tweedie

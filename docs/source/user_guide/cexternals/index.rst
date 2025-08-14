@@ -1,7 +1,7 @@
-.. _experimental-index:
+.. _externals-index:
 
 ======================================================================
-Experimental (experimental)
+C-Externals
 ======================================================================
 
 .. grid:: 1 1 1 1
@@ -9,19 +9,19 @@ Experimental (experimental)
     .. grid-item-card::
         :padding: 3
 
-        **Do-Re-Mi**
+        **astropy stats**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./_doremi/index.rst
+            ./_astropy/index.rst
 
     .. grid-item-card::
         :padding: 3
 
-        **Large Language Models**
+        **lightnumpy**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./_llm_provider/index.rst
+            ./_lightnumpy/index.rst

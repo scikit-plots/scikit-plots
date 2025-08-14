@@ -1,1 +1,1 @@
-from .._astropy.utils.compat.numpycompat import *  # noqa: F403
+from ..cexternals._astropy.utils.compat.numpycompat import *  # noqa: F403

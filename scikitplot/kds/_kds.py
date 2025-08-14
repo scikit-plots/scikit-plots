@@ -32,7 +32,7 @@ from ..api._utils.validation import (
 )
 from ..utils.utils_plot_mpl import save_plot_decorator
 
-from .._seaborn._compat import groupby_apply_include_groups
+from ..externals._seaborn._compat import groupby_apply_include_groups
 from .._docstrings import _docstring
 
 ## Define __all__ to specify the public interface of the module, not required default all above func

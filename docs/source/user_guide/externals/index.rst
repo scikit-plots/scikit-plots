@@ -1,7 +1,7 @@
-.. _experimental-index:
+.. _externals-index:
 
 ======================================================================
-Experimental (experimental)
+Externals
 ======================================================================
 
 .. grid:: 1 1 1 1
@@ -9,19 +9,29 @@ Experimental (experimental)
     .. grid-item-card::
         :padding: 3
 
-        **Do-Re-Mi**
+        **probscale**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./_doremi/index.rst
+            ./_probscale/index.rst
 
     .. grid-item-card::
         :padding: 3
 
-        **Large Language Models**
+        **seaborn**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./_llm_provider/index.rst
+            ./_seaborn/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **tweedie**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./_tweedie/index.rst

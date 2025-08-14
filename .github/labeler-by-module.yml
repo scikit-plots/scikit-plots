@@ -8,11 +8,6 @@
   - any-glob-to-any-file:
     - "scikitplot/api/**/*"
 
-"scikitplot/_astropy":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_astropy/**/*"
-
 "scikitplot/_build_utils":
 - changed-files:
   - any-glob-to-any-file:
@@ -33,10 +28,30 @@
   - any-glob-to-any-file:
     - "scikitplot/experimental/**/*"
 
+"scikitplot/cexternals":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/cexternals/**/*"
+
+"scikitplot/cexternals/_astropy":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/cexternals/_astropy/**/*"
+
 "scikitplot/externals":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/externals/**/*"
+
+"scikitplot/externals/_seaborn":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/_seaborn/**/*"
+
+"scikitplot/externals/_sphinxext":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/_sphinxext/**/*"
 
 "scikitplot/_factory_api":
 - changed-files:
@@ -67,16 +82,6 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/probscale/**/*"
-
-"scikitplot/_seaborn":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/_seaborn/**/*"
-
-"scikitplot/sphinxext":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/sphinxext.py"
 
 "scikitplot/stats":
 - changed-files:
