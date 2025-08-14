@@ -215,6 +215,10 @@ commands:
             # python -m pip install --upgrade --user --progress-bar=off --pre pip
             # pip install -r ./requirements/build.txt
             pip install -r ./requirements/all.txt
+
+            # tf need for documentation examples
+            # pip install -r ./requirements/gpu.txt
+            pip install -r ./requirements/cpu.txt
   build-scikit-plots:
     description: build scikit-plots
     steps:
@@ -222,7 +226,7 @@ commands:
           name: "📦 build scikit-plots"
           command: |
             # cpu: tensorflow
-            pip install --no-cache-dir .[build,dev,test,doc,cpu]
+            pip install --no-cache-dir .[build,dev,test,doc]
   # upload-codecov:
   #   description: Upload coverage results to codecov
   #   steps:

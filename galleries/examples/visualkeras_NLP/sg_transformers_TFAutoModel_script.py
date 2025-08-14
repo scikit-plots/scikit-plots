@@ -5,6 +5,11 @@ visualkeras: transformers example
 An example showing the :py:func:`~scikitplot.visualkeras` function
 used by a :py:class:`~tensorflow.keras.Model` or :py:class:`~torch.nn.Module` or
 :py:class:`~transformers.TFPreTrainedModel` model.
+
+.. important::
+
+    ⚠️Deprecated transformers models are not supported to tensorflow use keras-nlp or keras-hub.
+    `🚫 transformers deprecated models <https://www.linkedin.com/feed/update/urn:li:activity:7338966863403528192/>`_.
 """
 
 # Authors: The scikit-plots developers

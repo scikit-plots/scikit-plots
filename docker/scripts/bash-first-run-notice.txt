@@ -62,7 +62,7 @@
   ⚠️ 👇 Check Codespace Container creation raise `ERROR: ... : No space left on device`
   $ cat /workspaces/.codespaces/.persistedshare/creation.log
 
-• 📦 warning: Clock skew detected. Your build may be incomplete (or try 1 days later):
+• 📦 warning: Clock skew detected. Your build may be incomplete (⏻ Restart Computer or try 1 days later):
   $ make clean && find . -exec touch {} + && python -m pip install --no-build-isolation --no-cache-dir -e . -v
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
