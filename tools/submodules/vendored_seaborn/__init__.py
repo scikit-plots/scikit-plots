@@ -42,7 +42,7 @@ __author__ = "Michael Waskom"
 __author_email__ = "mwaskom@gmail.com"
 
 # Define the seaborn git hash
-from .._build_utils.gitversion import git_remote_version
+from ..._build_utils.gitversion import git_remote_version
 
 __git_hash__ = git_remote_version(url="https://github.com/scikit-plots/seaborn")[0]
 del git_remote_version

@@ -191,31 +191,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
-    "scikitplot.doremi": {
-        "short_summary": "Musical note handling, synthesis, and notation.",
-        "description": _get_guide("doremi-index"),
-        "sections": [
-            {
-                "title": "Simple Music Composer",
-                "description": None,
-                "autosummary": [
-                    "ENVELOPES",
-                    "compose_as_waveform",
-                    "play_waveform",
-                    "plot_waveform",
-                    "save_waveform",
-                    "save_waveform_as_mp3",
-                    "sheet_to_note",
-                    "sheet_converter",
-                    "serialize_sheet",
-                    "export_sheet",
-                ],
-            },
-        ],
-    },
-    "scikitplot.experimental": {
-        "short_summary": "Experimental Python module based on C/CPP.",
-        "description": _get_guide("experimental-index"),
+    "scikitplot.cexperimental": {
+        "short_summary": "C-Experimental Python module based on C/CPP.",
+        "description": _get_guide("cexperimental-index"),
         "sections": [
             {
                 "title": "Cython Bindings samples",
@@ -257,6 +235,127 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.cexternals": {
+        "short_summary": "C-Externals Python module based on C/CPP.",
+        "description": _get_guide("cexternals-index"),
+        "sections": [
+            {
+                "title": "astropy stats",
+                "description": (
+                  _get_submodule("scikitplot.cexternals", "_astropy")
+                  + "\n\n"
+                  + _get_guide("astropy-index")
+                ),
+                "autosummary": [
+                    "stats.bayesian_blocks",
+                ],
+            },
+            {
+                "title": "NumPy f2py",
+                "description": (
+                  _get_submodule("scikitplot.cexternals", "_f2py")
+                  #   + "\n\n"
+                  #   + _get_guide("f2py-index")
+                ),
+                "autosummary": [
+                    "get_include",
+                ],
+            },
+        ],
+    },
+    "scikitplot.experimental": {
+        "short_summary": "Experimental Python module.",
+        "description": _get_guide("experimental-index"),
+        "sections": [
+            {
+                "title": "Musical note handling, synthesis, and notation.",
+                "description": (
+                  _get_submodule("scikitplot.experimental", "_doremi")
+                  + "\n\n"
+                  + _get_guide("doremi-index")
+                ),
+                "autosummary": [
+                    "ENVELOPES",
+                    "compose_as_waveform",
+                    "play_waveform",
+                    "plot_waveform",
+                    "save_waveform",
+                    "save_waveform_as_mp3",
+                    "sheet_to_note",
+                    "sheet_converter",
+                    "serialize_sheet",
+                    "export_sheet",
+                ],
+            },
+            {
+                "title": "Large Language Models.",
+                "description": (
+                  _get_submodule("scikitplot.experimental", "_llm_provider")
+                  + "\n\n"
+                  + _get_guide("llm_provider-index")
+                ),
+                "autosummary": [
+                    "LLM_PROVIDER_CONFIG_MAP",
+                    "LLM_PROVIDER_ENV_CONNECTOR_MAP",
+                    "get_response",
+                    "load_mlflow_gateway_config",
+                ],
+            },
+        ],
+    },
+    "scikitplot.externals": {
+        "short_summary": "External Python module.",
+        "description": _get_guide("externals-index"),
+        "sections": [
+            {
+                "title": "Real probability scales for matplotlib.",
+                "description": (
+                  _get_submodule("scikitplot.externals", "_probscale")
+                  + "\n\n"
+                  + _get_guide("probscale-index")
+                ),
+                "autosummary": [
+                    "ProbScale",
+                    "probplot",
+                    "plot_pos",
+                    "fit_line",
+                ],
+            },
+            {
+                "title": "Seaborn.",
+                "description": (
+                  _get_submodule("scikitplot.externals", "_seaborn")
+                  + "\n\n"
+                  + _get_guide("seaborn-index")
+                ),
+                "autosummary": [
+                    # "ProbScale",
+                ],
+            },
+            {
+                "title": "Matplotlib Sphinxext.",
+                "description": (
+                  _get_submodule("scikitplot.externals", "_sphinxext")
+                  #   + "\n\n"
+                  #   + _get_guide("seaborn-index")
+                ),
+                "autosummary": [
+                    # "ProbScale",
+                ],
+            },
+            {
+                "title": "Tweedie Family.",
+                "description": (
+                  _get_submodule("scikitplot.externals", "_tweedie")
+                  + "\n\n"
+                  + _get_guide("tweedie-index")
+                ),
+                "autosummary": [
+                    # "ProbScale",
+                ],
+            },
+        ],
+    },
     "scikitplot.kds": {
         "short_summary": "KeyToDataScience",
         "description": _get_guide("kds-index"),
@@ -276,22 +375,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "plot_lift_decile_wise",
                     "plot_ks_statistic",
                     "report",
-                ],
-            },
-        ],
-    },
-    "scikitplot.llm_provider": {
-        "short_summary": "Large Language Models.",
-        "description": _get_guide("llm_provider-index"),
-        "sections": [
-            {
-                "title": "Large Language Models",
-                "description": None,
-                "autosummary": [
-                    "LLM_PROVIDER_CONFIG_MAP",
-                    "LLM_PROVIDER_ENV_CONNECTOR_MAP",
-                    "get_response",
-                    "load_mlflow_gateway_config",
                 ],
             },
         ],
@@ -332,26 +415,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "plot_costsrevs",
                     "plot_profit",
                     "plot_roi",
-                ],
-            },
-        ],
-    },
-    "scikitplot.probscale": {
-        "short_summary": "Real probability scales for matplotlib.",
-        "description": _get_guide("probscale-index"),
-        "sections": [
-            {
-                "title": "probscale",
-                # "description": (
-                #   _get_submodule("scikitplot.probscale", "Probscale")
-                #   + "\n\n"
-                #   + _get_guide("probscale-index")
-                # ),
-                "autosummary": [
-                    "ProbScale",
-                    "probplot",
-                    "plot_pos",
-                    "fit_line",
                 ],
             },
         ],
@@ -414,7 +477,12 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "sections": [
             {
                 "title": "Astrostatistics: Bayesian Blocks for Time Series Analysis",
-                # "description": _get_submodule("scikitplot._astropy.stats", "bayesian_blocks"),
+                "description": (
+                  #   _get_submodule("scikitplot.cexternals", "_astropy")
+                  #   + "\n\n"
+                  #   +
+                  _get_guide("astropy-index")
+                ),
                 "autosummary": [
                     "Events",
                     "FitnessFunc",
@@ -425,7 +493,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
             {
                 "title": "Astrostatistics Tools",
-                "description": _get_submodule("scikitplot._astropy.stats", "funcs"),
+                "description": (
+                  _get_submodule("scikitplot.cexternals._astropy.stats", "funcs")
+                  + "\n\n"
+                  + _get_guide("astropy-index")
+                ),
                 "autosummary": [
                     "binned_binom_proportion",
                     "binom_conf_interval",
@@ -447,8 +519,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
             {
                 "title": "Astrostatistics: Selecting the bin width of histograms",
-                # "description": _get_submodule(
-                #     "scikitplot._astropy.stats", "histogram"
+                # "description": (
+                #   _get_submodule("scikitplot.cexternals._astropy.stats", "histogram")
+                #   + "\n\n"
+                #   + _get_guide("astropy-index")
                 # ),
                 "autosummary": [
                     "calculate_bin_edges",
@@ -460,8 +534,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
             {
                 "title": "Astrostatistics: Model Selection",
-                "description": _get_submodule(
-                    "scikitplot._astropy.stats", "info_theory"
+                "description": (
+                  _get_submodule("scikitplot.cexternals._astropy.stats", "info_theory")
+                  + "\n\n"
+                  + _get_guide("astropy-index")
                 ),
                 "autosummary": [
                     "akaike_info_criterion",
@@ -472,7 +548,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
             {
                 "title": "Discrete Distributions Tools",
-                "description": _get_submodule("scikitplot._tweedie", "_tweedie_dist"),
+                "description": (
+                  _get_submodule("scikitplot.externals._tweedie", "_tweedie_dist")
+                  + "\n\n"
+                  + _get_guide("tweedie-index")
+                ),
                 "autosummary": [
                     "tweedie_gen",
                     "tweedie",

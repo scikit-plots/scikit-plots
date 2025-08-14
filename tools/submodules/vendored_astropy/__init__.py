@@ -8,7 +8,7 @@ Documentation is available in the docstrings and
 online at https://www.astropy.org/.
 """
 
-# _astropy/__init__.py
+# cexternals/_astropy/__init__.py
 # https://docs.astropy.org/en/latest/index.html
 
 #######################################################################
@@ -19,7 +19,7 @@ __author__ = "Astropy Developers"
 __author_email__ = "astropy.team@gmail.com"
 
 # Define the astropy git hash
-from .._build_utils.gitversion import git_remote_version
+from ..._build_utils.gitversion import git_remote_version
 
 __git_hash__ = git_remote_version(url="https://github.com/scikit-plots/astropy")[0]
 del git_remote_version

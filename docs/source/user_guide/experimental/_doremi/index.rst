@@ -1,7 +1,7 @@
 .. _doremi-index:
 
 ======================================================================
-DoReMi
+Do-Re-Mi
 ======================================================================
 
 **doremi** is a modular Python library for musical note handling, sound synthesis, and notation processing.
@@ -32,7 +32,7 @@ Quick Example
 
 .. code-block:: python
 
-    >>> from scikitplot import doremi
+    >>> from scikitplot.experimental import _doremi as doremi
     >>> sheet = doremi.SHEET
     >>> waveform = doremi.doremi.compose_as_waveform()
     >>> file_path = doremi.save_waveform(waveform, "melody.wav")

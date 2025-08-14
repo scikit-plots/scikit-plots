@@ -81,6 +81,5 @@ subdir('config')
 subdir('_lib')
 
 # submodules
-subdir('_seaborn')
-subdir('_astropy')
-subdir('experimental')
+subdir('cexternals')
+subdir('cexperimental')

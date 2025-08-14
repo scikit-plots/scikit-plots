@@ -1139,7 +1139,7 @@ if not fs.exists(fortranobject_c)
     '  pip install numpy --no-binary :all:\n' +
     'Also ensure gfortran is installed.'
   )
-  fortranobject_c = meson.project_source_root() / 'scikitplot/_f2py/src/fortranobject.c'
+  fortranobject_c = meson.project_source_root() / 'scikitplot/cexternals/_f2py/src/fortranobject.c'
 endif
 
 npymath_path = _np_inc_dir_abs / '..' / 'lib'

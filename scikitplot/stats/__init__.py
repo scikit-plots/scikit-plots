@@ -9,5 +9,5 @@ masked statistics, and additional tools.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-from .._astropy.stats import *  # noqa: F401,F403
-from .._tweedie import *  # noqa: F401,F403
+from ..cexternals._astropy.stats import *  # noqa: F401,F403
+from ..externals._tweedie import *  # noqa: F401,F403

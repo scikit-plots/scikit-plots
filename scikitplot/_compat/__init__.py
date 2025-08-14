@@ -9,5 +9,5 @@ packages or code.
 
 # Importing this module will also install monkey-patches defined in it
 
-from .._seaborn._compat import *  # noqa: F403
+from ..externals._seaborn._compat import *  # noqa: F403
 from .numpycompat import *  # noqa: F403

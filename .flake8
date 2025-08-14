@@ -78,26 +78,19 @@ exclude =
     .tox,
     dev.py,
     ## module
-    scikitplot/_astropy/**,                 # ← Ensure the `tools/` folder is ignored
     scikitplot/_build_utils/**,             # ← Ensure the `tools/` folder is ignored
-    scikitplot/_clv/**,                     # ← Ensure the `tools/` folder is ignored
     scikitplot/_factory_api/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/_lib/**,                     # ← Ensure the `tools/` folder is ignored
-    scikitplot/_seaborn/**,                 # ← Ensure the `tools/` folder is ignored
-    scikitplot/_tweedie/**,                 # ← Ensure the `tools/` folder is ignored
     scikitplot/_utils/**,                   # ← Ensure the `tools/` folder is ignored
     scikitplot/api/**,                      # ← Ensure the `tools/` folder is ignored
+    scikitplot/cexperimental/**,             # ← Ensure the `tools/` folder is ignored
+    scikitplot/cexternals/**,                # ← Ensure the `tools/` folder is ignored
     scikitplot/experimental/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/externals/**,                # ← Ensure the `tools/` folder is ignored
     scikitplot/kds/**,                      # ← Ensure the `tools/` folder is ignored
     scikitplot/modelplotpy/**,              # ← Ensure the `tools/` folder is ignored
-    scikitplot/probscale/**,                # ← Ensure the `tools/` folder is ignored
     scikitplot/visualkeras/**,              # ← Ensure the `tools/` folder is ignored
-    scikitplot/_config.py
     scikitplot/_preprocess.py,
-    scikitplot/cbook.py,
-    scikitplot/conftest.py,
-    scikitplot/llm_backend/**,
 
 per-file-ignores =
     scikitplot/kds/_kds.py: D412, E225, E231, E261, E262, D412

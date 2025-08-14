@@ -669,21 +669,17 @@ exclude = [
   "dev.py",
   ## module
   "scikitplot/_api",
-  "scikitplot/_astropy",
   "scikitplot/_build_utils",
-  "scikitplot/_clv",
   "scikitplot/_factory_api",
   "scikitplot/_lib",
-  "scikitplot/_seaborn",
-  "scikitplot/_tweedie",
   "scikitplot/_utils",
   "scikitplot/api",
+  "scikitplot/cexperimental",
+  "scikitplot/cexternals",
   "scikitplot/config",
   "scikitplot/experimental",
   "scikitplot/externals",
-  "scikitplot/probscale",
   "scikitplot/kds",
-  "scikitplot/llm_backend",
   "scikitplot/modelplotpy",
   "scikitplot/visualkeras",
   "scikitplot/_testing",
@@ -722,21 +718,17 @@ exclude = [
   "dev.py",
   ## module
   "scikitplot/_api",
-  "scikitplot/_astropy",
   "scikitplot/_build_utils",
-  "scikitplot/_clv",
   "scikitplot/_factory_api",
   "scikitplot/_lib",
-  "scikitplot/_seaborn",
-  "scikitplot/_tweedie",
   "scikitplot/_utils",
   "scikitplot/api",
+  "scikitplot/cexperimental",
+  "scikitplot/cexternals",
   "scikitplot/config",
   "scikitplot/experimental",
   "scikitplot/externals",
-  "scikitplot/probscale",
   "scikitplot/kds",
-  "scikitplot/llm_backend",
   "scikitplot/modelplotpy",
   "scikitplot/visualkeras",
   "scikitplot/_testing",
@@ -970,13 +962,12 @@ extend-exclude = '''
   | third_party
   | tools
   | tests
-  | scikitplot/_astropy
-  | scikitplot/_seaborn
+  | scikitplot/cexperimental
+  | scikitplot/cexternals
+  | scikitplot/experimental
   | scikitplot/externals
   | scikitplot/modelplotpy
-  | scikitplot/probscale
   | scikitplot/visualkeras
-  | scikitplot/llm_backend
 )/
 '''
 
@@ -1053,14 +1044,13 @@ exclude= '''
 [tool.codespell]
 # specific files or directories (specified via their names or glob patterns):
 skip = """
+  *.cff,
   docs/credits.rst,
   galleries/*,
+  scikitplot/cexternals/*,
+  scikitplot/externals/*,
   third_party/*,
   tools/*,
-  *.cff,
-  scikitplot/_astropy/*,
-  scikitplot/_seaborn/*,
-  scikitplot/externals/*,
 """
 count = true
 # quiet-level = 3
@@ -1315,12 +1305,12 @@ setup-args = ["--cross-file=$PWD/tools/ci/emscripten/emscripten.meson.cross", "-
     path = "custom-top-level"
 
   [[tool.towncrier.section]]
-    name = ":mod:`scikitplot._astropy`"
-    path = "scikitplot._astropy"
+    name = ":mod:`scikitplot.cexternals._astropy`"
+    path = "scikitplot.cexternals._astropy"
 
   [[tool.towncrier.section]]
-    name = ":mod:`scikitplot._seaborn`"
-    path = "scikitplot._seaborn"
+    name = ":mod:`scikitplot.externals._seaborn`"
+    path = "scikitplot.externals._seaborn"
 
   [[tool.towncrier.section]]
     name = ":mod:`scikitplot.api`"

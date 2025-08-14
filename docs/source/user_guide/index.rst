@@ -57,26 +57,6 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Large Language Models**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./llm_provider/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Logging System**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./sp_logging/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
         **Stats**
         ^^^
         .. toctree::
@@ -97,22 +77,22 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Dispatching**
+        **Logging System**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./sp_logging/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **Array API Dispatching**
         ^^^
         .. toctree::
             :maxdepth: 2
 
             ./_lib/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **DoReMi**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./doremi/index.rst
 
 
 .. _under-development:
@@ -125,9 +105,7 @@ Under Development
    :maxdepth: 1
    :titlesonly:
 
+   ./cexperimental/index.rst
+   ./cexternals/index.rst
    ./experimental/index.rst
-   ./probscale/index.rst
-   ./_astropy/index.rst
-   ./_seaborn/index.rst
-   ./_tweedie/index.rst
-   ./__lightnumpy/index.rst
+   ./externals/index.rst
