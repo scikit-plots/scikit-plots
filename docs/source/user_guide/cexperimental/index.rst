@@ -50,6 +50,8 @@ The best way to truly understand ...
     >>> # Return the directory that contains the NumPy *.h header files.
     >>> np.get_include()
 
+
+
 LightNumPy C/Cpp-API Headers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

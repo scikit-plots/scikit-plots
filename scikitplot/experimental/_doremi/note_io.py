@@ -26,7 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .. import logger
+from ... import logger
 from .config import DEFAULT_AMPLITUDE_INT, DEFAULT_BITRATE, DEFAULT_SAMPLE_RATE
 from .note_utils import preprocess_waveform
 

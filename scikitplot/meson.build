@@ -59,7 +59,8 @@ endif
 # relative cimport from non-package directory is not allowed
 _root_cython_tree = [
   fs.copyfile('__init__.py'),             # Ensure __init__.py is copied early
-  fs.copyfile('experimental.pxd'),        # Cython definition file for C/C++ code
+  fs.copyfile('cexperimental.pxd'),       # Cython definition file for C/C++ code
+  fs.copyfile('cexternals.pxd'),          # Cython definition file for C/C++ code
 
   # Python stub files.
   fs.copyfile('__init__.pyi'),

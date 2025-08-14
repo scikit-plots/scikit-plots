@@ -16,7 +16,7 @@ import os
 import numpy as np
 from scipy.io import wavfile
 
-from .. import logger
+from ... import logger
 from .config import DEFAULT_SAMPLE_RATE
 
 __all__ = [

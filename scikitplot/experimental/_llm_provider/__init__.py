@@ -15,8 +15,8 @@
     * https://docs.litellm.ai/docs/providers/huggingface
 """
 
-from .._testing._pytesttester import PytestTester  # Pytest testing
-from ..utils.utils_mlflow import load_mlflow_gateway_config
+from ..._testing._pytesttester import PytestTester  # Pytest testing
+from ...utils.utils_mlflow import load_mlflow_gateway_config
 from . import (
     chat_provider,
     clint_provider,

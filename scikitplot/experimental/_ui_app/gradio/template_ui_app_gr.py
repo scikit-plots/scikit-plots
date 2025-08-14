@@ -19,8 +19,8 @@ if gr:
     ]
 
     # import spaces  # huggingface
-    from scikitplot._ui_app.gradio.template_ui_app_gr_doremi_b import ui_app_gr_doremi_b
-    from scikitplot._ui_app.gradio.template_ui_app_gr_doremi_i import ui_app_gr_doremi_i
+    from scikitplot.experimental._ui_app.gradio.template_ui_app_gr_doremi_b import ui_app_gr_doremi_b
+    from scikitplot.experimental._ui_app.gradio.template_ui_app_gr_doremi_i import ui_app_gr_doremi_i
 
     with gr.Blocks() as ui_app_gr:  # noqa: SIM117
         with gr.Tabs():

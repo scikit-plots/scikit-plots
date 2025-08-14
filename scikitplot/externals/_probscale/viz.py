@@ -146,7 +146,7 @@ def probplot(
         ... numpy.random.seed(0)
         >>> from matplotlib import pyplot
         >>> from scipy import stats
-        >>> import scikitplot.probscale as probscale
+        >>> import scikitplot.externals._probscale as probscale
         >>> data = numpy.random.normal(loc=5, scale=1.25, size=37)
         >>> fig = probscale.probplot(
         ...     data,
@@ -165,7 +165,7 @@ def probplot(
     .. plot::
         :context: close-figs
 
-        >>> import scikitplot.probscale as probscale
+        >>> import scikitplot.externals._probscale as probscale
         >>> data = numpy.random.normal(loc=5, scale=1.25, size=37)
         >>> fig = probscale.probplot(
         ...     data,

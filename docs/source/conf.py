@@ -230,7 +230,7 @@ extensions = [
     "matplotlib.sphinxext.mathmpl",
     "matplotlib.sphinxext.plot_directive",  # Integrate Matplotlib plots into documentation.
     # 'matplotlib.sphinxext.roles',  # required matplotlib 3.9.1
-    "scikitplot._sphinxext.roles",  # If matplotlib 3.9.1
+    "scikitplot.externals._sphinxext.roles",  # If matplotlib 3.9.1
     # IPython extensions (load after built-ins and matplotlib)
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",

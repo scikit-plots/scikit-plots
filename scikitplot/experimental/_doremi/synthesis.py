@@ -28,8 +28,8 @@ from typing import Union
 
 import numpy as np
 
-from .. import logger
-from .._compat.python import lru_cache
+from ... import logger
+from ..._compat.python import lru_cache
 from .config import DEFAULT_AMPLITUDE, DEFAULT_DURATION, DEFAULT_SAMPLE_RATE
 from .envelopes import get_envelope
 from .note import parse_note_token

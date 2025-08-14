@@ -20,7 +20,7 @@ from datetime import datetime
 
 # import numpy as np
 # from scipy.io.wavfile import write
-from scikitplot import doremi
+from scikitplot.experimental import _doremi as doremi
 
 # from scikitplot import logger
 from scikitplot._compat.optional_deps import LazyImport
@@ -88,7 +88,7 @@ if gr:
                     """
                 ### 📘 Related Resource  <br>
                 - [How to Generate 440 Hz A (La) Note Sin Wave](https://celik-muhammed.medium.com/how-to-generate-440-hz-a-la-note-sin-wave-with-44-1-1e41f6ed9653)  <br>
-                - [scikitplot.doremi](https://scikit-plots.github.io/dev/apis/scikitplot.doremi.html)  <br>
+                - [scikitplot.experimental._doremi](https://scikit-plots.github.io/dev/apis)  <br>
                 - [ScaleFreqs.xls](https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fpages.mtu.edu%2F~suits%2FScaleFreqs.xls)  <br>
                 """
                 )
