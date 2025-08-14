@@ -64,6 +64,7 @@
 
 • 📦 warning: Clock skew detected. Your build may be incomplete (⏻ Restart Computer or try 1 days later):
   $ make clean && find . -exec touch {} + && python -m pip install --no-build-isolation --no-cache-dir -e . -v
+  $ python -m pip install --no-build-isolation --no-cache-dir -e . -v
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✍  Starting Development

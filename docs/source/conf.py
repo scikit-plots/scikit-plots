@@ -1520,6 +1520,7 @@ examples_dirs = ["../../galleries/examples"]
 gallery_dirs = ["auto_examples"]
 
 # Sphinx Gallery Configuration
+# https://github.com/sphinx-gallery/sphinx-gallery/blob/master/sphinx_gallery/gen_gallery.py#L81
 sphinx_gallery_conf = {
     # Backreferences and linking to function docs
     # Links examples to APIs documentation
@@ -1541,7 +1542,7 @@ sphinx_gallery_conf = {
     "gallery_dirs": gallery_dirs,  # List of folders where galleries will be generated
     # "ignore_pattern": r'__init__\\.py',
     # Only run files with filenames matching this pattern (default is ".py")
-    # "filename_pattern": r'/plot',
+    # "filename_pattern": r'/plot',  # re.escape(os.sep) + "plot" gives: "/plot" or gives: "\\\\plot"
     # 'filename_pattern': r'^((?!(sg|skip)).)*$',
     # Binder integration
     # https://sphinx-gallery.github.io/stable/configuration.html#generate-binder-links-for-gallery-notebooks-experimental

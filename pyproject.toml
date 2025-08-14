@@ -459,8 +459,8 @@ cpu = [
   # "jax",#"jaxlib",                          # import jax.numpy as jnp
   ## On Python >= 3.13, it installs exactly tensorflow-cpu==2.15.0.
   ## "tensorflow-cpu==2.15.0; python_version >= '3.13'",  # import tensorflow as tf
-  "keras-hub",                              # import keras_hub
-  "keras-nlp",                              # import keras_nlp
+  # "keras-hub",                              # import keras_hub
+  # "keras-nlp",                              # import keras_nlp
   "tensorflow-cpu",                         # import tensorflow as tf
   ##
   "transformers",                           # import transformers  # ⚠️ newer transformers does not support some tf models use keras_nlp

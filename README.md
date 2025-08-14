@@ -712,8 +712,8 @@ sp.metrics.plot_precision_recall(
 ```
 
 <div align=center>
-  <img style="display:block;width:60%;height:auto;align:center;" alt="quick_start"
-    src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_images/sphx_glr_quick_start_tf_001.png">
+  <img style="display:block;width:60%;height:auto;align:center;" alt="quick_start_tf"
+    src="https://github.com/scikit-plots/scikit-plots.github.io/blob/main/dev/_static/plot_directive/introduction/quick_start_tf.png">
 </div>
 
 Pretty.
