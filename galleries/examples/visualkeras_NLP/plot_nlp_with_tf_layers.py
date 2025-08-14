@@ -17,13 +17,15 @@ import tensorflow as tf
 # Clear any session to reset the state of TensorFlow/Keras
 tf.keras.backend.clear_session()
 
-from transformers import TFAutoModel
+from transformers import TFAutoModel, AutoModel
 
 from scikitplot import visualkeras
 
 # %%
 # Load the Hugging Face transformer model
-transformer_model = TFAutoModel.from_pretrained("microsoft/mpnet-base")
+# transformer_model = AutoModel.from_pretrained("microsoft/mpnet-base")
+# transformer_model = TFAutoModel.from_pretrained("microsoft/mpnet-base")
+transformer_model = TFAutoModel.from_pretrained("bert-base-uncased")
 
 
 # Define a Keras-compatible wrapper for the Hugging Face model
@@ -39,10 +41,12 @@ input_ids = tf.keras.Input(shape=(128,), dtype=tf.int32, name="input_ids")
 attention_mask = tf.keras.Input(shape=(128,), dtype=tf.int32, name="attention_mask")
 
 # Pass inputs through the transformer model using a Lambda layer
+seq_len = transformer_model.config.max_position_embeddings  # usually 512 for BERT, here you used 128
+hidden_size = transformer_model.config.hidden_size
 last_hidden_state = tf.keras.layers.Lambda(
     wrap_transformer_model,
-    output_shape=(128, 768),  # Explicitly specify the output shape
-    name="microsoft_mpnet-base",
+    output_shape=(seq_len, hidden_size),  # Explicitly specify the output shape
+    name="bert-base-uncased",
 )([input_ids, attention_mask])
 
 # Reshape the output to fit into Conv2D (adding extra channel dimension) inside a Lambda layer
@@ -51,7 +55,8 @@ last_hidden_state = tf.keras.layers.Lambda(
 # reshaped_output = tf.keras.layers.Lambda(reshape_last_hidden_state)(last_hidden_state)
 # Use Reshape layer to reshape the output to fit into Conv2D (adding extra channel dimension)
 # Reshape to (batch_size, 128, 768, 1) for Conv2D input
-reshaped_output = tf.keras.layers.Reshape((-1, 128, 768))(last_hidden_state)
+# reshaped_output = tf.keras.layers.Reshape((seq_len, hidden_size, 1))(last_hidden_state)
+reshaped_output = tf.keras.layers.Reshape((-1, seq_len, hidden_size))(last_hidden_state)
 
 # Add different layers to the model
 x = tf.keras.layers.Conv2D(
@@ -104,7 +109,7 @@ wrapped_model.summary(
 
 # %%
 # Visualize the wrapped model
-img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
+img_nlp_with_tf_layers = visualkeras.layered_view(
     wrapped_model,
     legend=True,
     show_dimension=True,
@@ -116,14 +121,14 @@ img_nlp_mpnet_with_tf_layers = visualkeras.layered_view(
     scale_xy=1,
     font={"font_size": 99},
     text_callable="default",
-    # to_file="result_images/nlp_mpnet_with_tf_layers.png",
+    # to_file="result_images/nlp_with_tf_layers.png",
     save_fig=True,
-    save_fig_filename="nlp_mpnet_with_tf_layers.png",
+    save_fig_filename="nlp_with_tf_layers.png",
     overwrite=False,
     add_timestamp=True,
     verbose=True,
 )
-img_nlp_mpnet_with_tf_layers
+img_nlp_with_tf_layers
 
 # %%
 #
