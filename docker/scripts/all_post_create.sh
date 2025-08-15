@@ -19,6 +19,8 @@ set -e  # Exit script on error (Disable 'exit on error' temporarily for debuggin
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
+cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
+
 ## Dynamically get shell name (bash, zsh, fish, etc.)
 echo "shell_name=$(basename "$SHELL")"
 echo "CWD_DIR=$PWD"

@@ -535,19 +535,22 @@ tag:
 release:
 ifdef GIT_TAG
 	@echo "Remove tag locally: "$(GIT_TAG)""
+	@#git tag -d "v0.4.0rc0"
 	@git tag -d "$(GIT_TAG)" || true
 
 	@echo "Creates tag locally"
-	git tag -a "$(GIT_TAG)" -m "Release version "$(GIT_TAG)"
+	@#git tag -a "0.4.0.post2" -m "Release version 0.4.0.post2"
+	git tag -a "$(GIT_TAG)" -m "Release version $(GIT_TAG)"
 
 	@echo "Pushes the tag to your fork"
-	@# git push --tags              # then push all tags
+	@# git push --tags                   # then push all tags
 	git push origin "$(GIT_TAG)"        # push just that tag
 
 	@echo "Pushes tag to upstream (if allowed) "$(GIT_TAG)" (Month Dayth, Year)"
+	@#git push upstream "v0.4.0.post2"
 	git push upstream "$(GIT_TAG)"      # push just that tag
 
-	@# git ls-remote --tags origin  # verify what's pushed by running
+	@# git ls-remote --tags origin       # verify what's pushed by running
 else
 	@echo "GIT_TAG is not defined!"
 endif
