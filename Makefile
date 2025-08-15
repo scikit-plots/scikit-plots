@@ -299,7 +299,8 @@ dev: clean dep
 	@# python -m pip install --no-build-isolation --no-cache-dir .
 	@# python -m pip install --no-build-isolation --no-cache-dir --editable . -vvv
 	@# python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
-	@find . -exec touch {} + && python -m pip install --no-build-isolation --no-cache-dir -e . -v
+	@# find . -exec touch {} + && python -m pip install --no-build-isolation --no-cache-dir -e . -v
+	@python -m pip install --no-build-isolation --no-cache-dir -e . -v
 
 ######################################################################
 ## Compiling by Meson step-by-step
@@ -528,6 +529,9 @@ endif
 tag:
 	@echo TAG: "$(GIT_TAG)"
 
+# 💡 Rule of thumb:
+# 	Tag before commit → freeze the old state.
+# 	Tag after commit → mark the new state.
 release:
 ifdef GIT_TAG
 	@echo "Remove tag locally: "$(GIT_TAG)""

@@ -190,13 +190,17 @@
 </h5>
 </div>
 
-<hr>
+<!-- <hr> -->
 
 <h2>
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
     🐋 Scikit-plots Runtime Docker Images:
   </a>
 </h2>
+
+<a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+  🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
+</a>
 
 🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
 
@@ -209,35 +213,11 @@ docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
 docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
 ```
 
-<a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-  🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
-</a>
-
 <hr>
 
 <h1> 📥 User Installation: </h1>
 
-<h2>
-  📦 From
-  <code>PIP</code>
-  Installation by
-  <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
-    <code>pypi</code>
-  </a>
-  ,
-  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>pypi.anaconda.org</code>
-  </a>
-  or
-  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>GITHUB</code>
-  </a>
-</h2>
-
-<p> The easiest way to set up scikit-plots is to install it using pip with the following command: </p>
-
 <h4> 🧠 Gotchas: </h4>
-
 <ul>
   <li>⚠️ (Recommended): Use a Virtual Environmentt (like
     <a href="https://docs.python.org/3/library/venv.html" target="_blank" rel="noopener noreferrer">
@@ -279,7 +259,31 @@ pip install pipenv && pipenv install
 pipenv shell
 ```
 
-<hr>
+```sh
+## (conda or mamba) Install scikit-plots (Upcoming)
+conda install --yes -c conda-forge scikit-plots
+```
+
+<!-- <hr> -->
+
+<h2>
+  📦 From
+  <code>PIP</code>
+  Installation by
+  <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
+    <code>pypi</code>
+  </a>
+  ,
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>pypi.anaconda.org</code>
+  </a>
+  or
+  <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    <code>GITHUB</code>
+  </a>
+</h2>
+
+<p> The easiest way to set up scikit-plots is to install it using pip with the following command: </p>
 
 <h3>
   - By
@@ -485,14 +489,14 @@ cd scikit-plots
 ```
 
 ```sh
-## (Optionally) Add safe directories for git
+## (if Necessary) Add safe directories for git
 # bash docker/script/safe_dirs.sh
 git config --global --add safe.directory '*'
 ```
 
 ```sh
-## download submodules
-git submodule update --init
+## (Optionally) download submodules, Not Needed Every Time.
+git submodule update --init --recursive
 ```
 
 ```sh
@@ -506,15 +510,14 @@ pip install -r ./requirements/build.txt
 pip install --no-cache-dir . -v
 ```
 
-```sh
-## (Optionally) Install development version
-python -m pip install --no-cache-dir -e .[build,dev,test,doc] -v
-```
-
 <h2>
   🧊🔧 It is also possible to include optional dependencies:
 </h2>
 
+```sh
+## (Optionally) Install development version
+python -m pip install --no-cache-dir -e .[build,dev,test,doc] -v
+```
 ```sh
 ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
 ## (Optionally) Try Development [build,dev,test,doc]
