@@ -1,6 +1,6 @@
 try: import micropip; await micropip.install(
-"https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/0.5.dev0/scikit_plots-0.5.dev0-cp312-cp312-pyodide_2024_0_wasm32.whl",
-# "https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/0.4.0.post1/scikit_plots-0.4.0.post1-cp312-cp312-pyodide_2024_0_wasm32.whl",
+# "https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/0.5.dev0/scikit_plots-0.5.dev0-cp312-cp312-pyodide_2024_0_wasm32.whl",
+"https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/0.4.0.post2/scikit_plots-0.4.0.post2-cp312-cp312-pyodide_2024_0_wasm32.whl",
 keep_going=True, )
 # Fallback to a specific version if the latest fails
 except Exception: await micropip.install("scikit-plots==0.3.9rc3", keep_going=True)
