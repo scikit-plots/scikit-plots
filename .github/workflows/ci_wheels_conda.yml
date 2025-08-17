@@ -182,7 +182,7 @@ jobs:
           ## python[0] is used to specify the python versions made by cibuildwheel
           # ["pp310", "3.10"],  # pp310 (PyPy 3.10) Slower startup Just-In-Time (JIT) warm-up
           ## Min Py version "3.10" due to array api compat
-          ["cp38", "3.8"],  # CPython 3.8 – Stable, but partially without support for some cexternals, externals packages
+          ["cp38", "3.8"],  # CPython 3.8 – Stable, but partially without support for some cexternals, externals packages  # need clang llvm on macOS
           ["cp39", "3.9"],  # CPython 3.9 – Stable, but partially without support for some cexternals, externals packages
           ["cp310", "3.10"],  # CPython 3.10 – Broadest library support, stable
           ["cp311", "3.11"],  # CPython 3.11 – Faster, improved error messages
@@ -192,6 +192,18 @@ jobs:
           # Keep sync with cibuildwheel's supported Python versions by scikit-learn, numpy, scipy, pandas, etc.
         ]
         exclude:
+          # 3.8 is not supported on macOS and musllinux
+          - buildplat: [ubuntu-22.04, musllinux, x86_64]
+            python: "cp38"
+          - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+            python: "cp38"
+          - buildplat: [macos-14, macosx, arm64, openblas, "12.3"]
+            python: "cp38"
+          - buildplat: [macos-14, macosx, arm64, accelerate, "14.0"]
+            python: "cp38"
+          # 3.9 is not supported on musllinux
+          - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+            python: "cp39"
           # (Optional) Don't build PyPy 32-bit windows ("*-win32", "*-x86")
           # Don't build PyPy 32-bit windows
           - buildplat: [windows-2019, win32,]
