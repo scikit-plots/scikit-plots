@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 # modified from https://github.com/CamDavidsonPilon/lifelines/
 
+from pathlib import Path
 import pandas as pd
-from pkg_resources import resource_filename
+
+# HERE points to the directory containing this file
+HERE = Path(__file__).resolve().parent
 
 __all__ = [
     "load_cdnow_summary",
@@ -30,7 +33,7 @@ def load_dataset(filename, **kwargs):
     DataFrame
 
     """
-    return pd.read_csv(resource_filename("btyd", "datasets/" + filename), **kwargs)
+    return pd.read_csv(HERE / filename, **kwargs)
 
 
 def load_donations(**kwargs):
