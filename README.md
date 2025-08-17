@@ -176,6 +176,8 @@
 
 <p> The quickest and easiest way to go from analysis... </p>
 
+<p> ⚠️ Partially support Python 3.8 3.9 without some packages in cexternals, externals due to externals lib dep (e.g., astropy.stats, arrat-api-compat, arrat-api-extra) </p>
+
 
 <h3>
   <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
@@ -205,11 +207,11 @@
 🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
 
 ```bash
-# docker run -it --rm scikitplot/scikit-plots:latest
+## docker run -it --rm scikitplot/scikit-plots:latest
 docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
 ```
 ```bash
-# docker run -it scikitplot/scikit-plots:latest
+## docker run -it scikitplot/scikit-plots:latest
 docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
 ```
 
@@ -233,18 +235,30 @@ docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/sci
 
 Conda:
 
+See Also: [conda-environment-guidelines](https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html#conda-environment-guidelines)
+
 ```sh
-# (conda or mamba) Create New Env and install ``scikit-plots``
-# Create a new environment and install Python 3.11 with IPython kernel support
-mamba create -n py311 python=3.11 ipykernel -y
+## (conda, mamba or micromamba) Create New Env and install ``scikit-plots``
+## Create a new environment and install Python 3.11 with IPython kernel support
+# conda create -n py311 python=3.11 ipykernel -y
+micromamba create -n py311 python=3.11 ipykernel -y
 ```
 
 ```sh
-# Activate the environment
-conda activate py311
+## (conda, mamba or micromamba) Activate the environment
+# conda activate py311
+micromamba activate py311
+```
+
+```sh
+## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
+# conda install --yes -c conda-forge scikit-plots
+micromamba install --yes -c conda-forge scikit-plots
 ```
 
 (Optionally) Pipenv install all dependencies:
+
+See Also: [pipenv-environment-guidelines](https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html#pipenv-environment-guidelines)
 
 ```sh
 ## (Optionally) Pipenv dep
@@ -255,13 +269,8 @@ pip install pipenv && pipenv install
 ```
 
 ```sh
-# Activate the environment
+## (Optionally) Pipenv Activate the environment
 pipenv shell
-```
-
-```sh
-## (conda or mamba) Install scikit-plots (Upcoming)
-conda install --yes -c conda-forge scikit-plots
 ```
 
 <!-- <hr> -->
@@ -293,7 +302,7 @@ conda install --yes -c conda-forge scikit-plots
 </h3>
 
 ```sh
-# Now Install scikit-plots (via pip, conda, or local source)
+## Now Install scikit-plots (via pip, conda, or local source)
 pip install scikit-plots
 ```
 
@@ -500,7 +509,7 @@ git submodule update --init --recursive
 ```
 
 ```sh
-# Ensure venv (e.g. conda, venv, pipenv)
+## Ensure venv (e.g. conda, venv, pipenv)
 # pip install -r ./requirements/all.txt
 pip install -r ./requirements/build.txt
 ```
@@ -716,7 +725,7 @@ sp.metrics.plot_precision_recall(
 
 <div align=center>
   <img style="display:block;width:60%;height:auto;align:center;" alt="quick_start_tf"
-    src="https://github.com/scikit-plots/scikit-plots.github.io/blob/main/dev/_static/plot_directive/introduction/quick_start_tf.png">
+    src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_static/plot_directive/introduction/quick_start_tf.png">
 </div>
 
 Pretty.

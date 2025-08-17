@@ -152,7 +152,7 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3",
   # "Programming Language :: Python :: 3.7",
-  # "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -236,7 +236,7 @@ maintainers = [
 ## Specify the minimum Python version required
 ## https://packaging.python.org/en/latest/specifications/core-metadata/#requires-python
 ## TODO: "3.10"  # due to array api compat
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 
 ## (Recommended)
 ## Purpose: Specifies the Runtime dependencies needed for the project to run after it's installed.

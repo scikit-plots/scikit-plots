@@ -9,5 +9,23 @@ masked statistics, and additional tools.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-from ..cexternals._astropy.stats import *  # noqa: F401,F403
-from ..externals._tweedie import *  # noqa: F401,F403
+from __future__ import annotations
+
+from contextlib import suppress as _suppress
+
+from .. import logger as _logger
+from ..exceptions import ScikitplotException as _ScikitplotException
+
+try:
+    with _suppress(ImportError):
+        from ..cexternals._astropy.stats import *  # noqa: F401,F403
+except _ScikitplotException:
+    _logger.warning(
+        "Failed to import astropy.stats. Some features may not work as expected."
+    )
+
+try:
+    with _suppress(ImportError):
+        from ..externals._tweedie import *  # noqa: F401,F403
+except _ScikitplotException:
+    _logger.warning("Failed to import tweedie. Some features may not work as expected.")

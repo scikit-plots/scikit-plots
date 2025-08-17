@@ -377,7 +377,7 @@ def save_plot_decorator(
 def stack(
     *figs: tuple,
     orient: str = "vertical",
-    padding: float | None = None,
+    padding: "float | None" = None,
     **kwargs,
 ):
     """

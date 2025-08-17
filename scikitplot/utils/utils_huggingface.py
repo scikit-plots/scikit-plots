@@ -24,7 +24,7 @@ from ..exceptions import ScikitplotException
 
 def hf_login(
     cli: bool = False,
-    token: str | None = None,
+    token: "str | None" = None,
 ) -> None:
     """
     Authenticate with Hugging Face using the `huggingface_hub` login utility.

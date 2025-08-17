@@ -182,10 +182,14 @@ jobs:
           ## python[0] is used to specify the python versions made by cibuildwheel
           # ["pp310", "3.10"],  # pp310 (PyPy 3.10) Slower startup Just-In-Time (JIT) warm-up
           ## Min Py version "3.10" due to array api compat
+          ["cp38", "3.8"],  # CPython 3.8 – Stable, but partially without support for some cexternals, externals packages
+          ["cp39", "3.9"],  # CPython 3.9 – Stable, but partially without support for some cexternals, externals packages
           ["cp310", "3.10"],  # CPython 3.10 – Broadest library support, stable
           ["cp311", "3.11"],  # CPython 3.11 – Faster, improved error messages
           ["cp312", "3.12"],  # CPython 3.12 – Latest stable release
           ["cp313", "3.13"],  # CPython 3.13 – In development / pre-release
+          ["cp314", "3.14"],  # CPython 3.14 – In development / pre-release
+          ["cp314t", "3.14"],  # CPython 3.14 – In development / pre-release
           # ["cp313t", "3.13"],  # CPython 3.13 w/ limited support (e.g. for testing; see: https://github.com/scipy/scipy/issues/21970)
         ]
         exclude:

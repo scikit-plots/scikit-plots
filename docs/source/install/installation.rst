@@ -29,6 +29,8 @@ There are different ways to install scikit-plots:
 Installing the latest release
 =============================
 
+⚠️ Partially support Python 3.8 3.9 without some packages in cexternals, externals due to externals lib dep (e.g., astropy.stats, arrat-api-compat, arrat-api-extra)
+
 ⚠️ Recommended: Use a Virtual Environmentt (like ``venv`` ``pipenv``) to Avoid Conflicts
 
 🚫 Don't use conda ``base`` — it's prone to conflicts.
