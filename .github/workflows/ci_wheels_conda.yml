@@ -188,7 +188,7 @@ jobs:
           ["cp311", "3.11"],  # CPython 3.11 – Faster, improved error messages
           ["cp312", "3.12"],  # CPython 3.12 – Latest stable release
           ["cp313", "3.13"],  # CPython 3.13 – In development / pre-release
-          ["cp314", "3.14"],  # CPython 3.14 – In development / pre-release
+          ["cp314", "3.14"],  # CPython 3.14 – In development / pre-release  # fix pyamg
           ["cp314t", "3.14"],  # CPython 3.14 – In development / pre-release
           # ["cp313t", "3.13"],  # CPython 3.13 w/ limited support (e.g. for testing; see: https://github.com/scipy/scipy/issues/21970)
         ]
