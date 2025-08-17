@@ -539,7 +539,7 @@ ifdef GIT_TAG
 	@git tag -d "$(GIT_TAG)" || true
 
 	@echo "Creates tag locally"
-	@#git tag -a "0.4.0.post2" -m "Release version 0.4.0.post2"
+	@#git tag -a "0.4.0.post3" -m "Release version 0.4.0.post3"
 	git tag -a "$(GIT_TAG)" -m "Release version $(GIT_TAG)"
 
 	@echo "Pushes the tag to your fork"
