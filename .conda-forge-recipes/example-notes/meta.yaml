@@ -45,6 +45,18 @@
 #   #  fetching only the latest commit (or the commit specified by git_rev) and no history
 #   # git_depth: 1             # (optional) shallow clone for faster builds to speed up CI
 
+# source:
+#   # https://github.com/scikit-plots/scikit-plots/archive/refs/tags/v0.4.0.post2.tar.gz  # original source URL
+#   # url: https://github.com/scikit-plots/scikit-plots/archive/v0.4.0.post2.tar.gz
+#   url: https://github.com/{{ name }}/{{ name }}/archive/v{{ version }}.tar.gz
+#   # git archive --format=tar.gz HEAD | sha256sum
+#   # git archive --format=tar.gz f64edaac561779cb44b0052f67b715047ba299ce | sha256sum
+#   # To get the current SHA-256 checksum of that archive
+#   # curl -L -o scikit-plots-v0.4.0.post2.tar.gz https://github.com/scikit-plots/scikit-plots/archive/v0.4.0.post2.tar.gz
+#   # curl -L https://github.com/scikit-plots/scikit-plots/archive/v0.4.0.post2.tar.gz | sha256sum
+#   sha256: 9cc7eeac78b72b20c7d60bf2f51e409ca687ca92ed565b15010dea21f2660a83
+
+
 # build:
 #   number: 0
 #   # skip: true  # [python_impl == "pypy"]
