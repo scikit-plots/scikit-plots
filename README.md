@@ -176,6 +176,8 @@
 
 <p> The quickest and easiest way to go from analysis... </p>
 
+<p> ⚠️ Partially support Python 3.8 3.9 without some packages in cexternals, externals due to externals lib dep (e.g., astropy.stats, arrat-api-compat, arrat-api-extra) </p>
+
 
 <h3>
   <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
