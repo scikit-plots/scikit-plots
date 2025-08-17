@@ -1445,9 +1445,9 @@ def copytree_without_file_permissions(  # noqa: PLR0912
 
 
 def _copy_file_or_tree(
-    src: str | _pathlib.Path,
-    dst: str | _pathlib.Path,
-    dst_dir: Optional[str | _pathlib.Path] = None,
+    src: "str | _pathlib.Path",
+    dst: "str | _pathlib.Path",
+    dst_dir: "Optional[str | _pathlib.Path]" = None,
 ) -> str:
     """
     Copy a file or directory tree from `src` into the destination `dst`, optionally
@@ -2110,15 +2110,13 @@ def create_tar_gz_archive(
         # Compress the tar archive with gzip, omitting timestamp metadata
         # When gzipping the tar, don't include the tar's filename or modification time in the
         # zipped archive (see https://docs.python.org/3/library/gzip.html#gzip.GzipFile)
-        with (
-            open(unzipped_filename, "rb") as raw_tar,
-            _gzip.GzipFile(
-                filename="",
-                fileobj=open(output_filename, "wb"),
-                mode="wb",
-                mtime=0,
-            ) as gzipped_tar,
-        ):
+        # ⚠️ Cannot use parentheses within a `with` statement on Python 3.8 (syntax was added in Python 3.9)
+        with open(unzipped_filename, "rb") as raw_tar, _gzip.GzipFile(
+            filename="",
+            fileobj=open(output_filename, "wb"),
+            mode="wb",
+            mtime=0,
+        ) as gzipped_tar:
             gzipped_tar.write(raw_tar.read())
 
     finally:
@@ -2676,7 +2674,7 @@ def download_file_using_http_uri(
     http_uri: str,
     download_path: str,
     chunk_size: int = 100000000,  # 100_000_000,
-    headers: dict | None = None,
+    headers: "dict | None" = None,
 ) -> None:
     """
     Download a file from an HTTP URI to a local path in chunks to avoid high memory usage.

@@ -47,7 +47,7 @@ from numpy import __version__ as __numpy_version__
 # __version__ = "0.3.7.post0"  # 0.3.7
 # __version__ = "0.3.8.post0"  # 0.3.8
 # __version__ = "0.3.9.post0"  # 0.3.9
-__version__ = "0.4.0.post2"  # 0.4.0  # 👈 last tagged release
+__version__ = "0.4.0.post3"  # 0.4.0  # 👈 last tagged release
 # __version__ = "0.4.1rc0"  # 0.4.1
 # __version__ = "0.4.2rc0"  # 0.4.2
 # __version__ = "0.5.1rc0"  # 0.5.1
@@ -194,7 +194,7 @@ __all__ = tuple(_submodules)
 ## Reference: https://docs.python.org/3/library/functions.html#dir
 ## dir() default behavior: Similar to globals().keys().
 ## To customize what dir() returns, define a custom __dir__() function within the module.
-def __dir__() -> list[str]:
+def __dir__() -> "list[str]":
     """
     Return a sorted list of custom attributes for the module.
 

@@ -435,8 +435,8 @@ class ScikitplotTraceDataException(ScikitplotTracingException):
     def __init__(
         self,
         error_code: str,
-        request_id: str | None = None,
-        artifact_path: str | None = None,
+        request_id: "str | None" = None,
+        artifact_path: "str | None" = None,
     ):
         if request_id:
             self.ctx = f"request_id={request_id}"
@@ -457,7 +457,7 @@ class ScikitplotTraceDataNotFound(ScikitplotTraceDataException):
     """Exception thrown when trace data is not found."""
 
     def __init__(
-        self, request_id: str | None = None, artifact_path: str | None = None
+        self, request_id: "str | None" = None, artifact_path: "str | None" = None
     ):
         super().__init__("NOT_FOUND", request_id, artifact_path)
 
@@ -466,6 +466,6 @@ class ScikitplotTraceDataCorrupted(ScikitplotTraceDataException):
     """Exception thrown when trace data is corrupted."""
 
     def __init__(
-        self, request_id: str | None = None, artifact_path: str | None = None
+        self, request_id: "str | None" = None, artifact_path: "str | None" = None
     ):
         super().__init__("INVALID_STATE", request_id, artifact_path)

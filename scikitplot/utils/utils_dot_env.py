@@ -14,7 +14,7 @@ from ..exceptions import ScikitplotException
 
 
 def run_load_dotenv(
-    dotenv_path: str | _os.PathLike[str] = "",
+    dotenv_path: "str | _os.PathLike[str]" = "",
     override: bool = False,
     verbose: bool = False,
 ) -> list[str]:

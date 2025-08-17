@@ -11,7 +11,7 @@ from .utils_dot_env import run_load_dotenv
 from .utils_st_secrets import get_env_st_secrets
 
 
-def get_env_var(env_var: str = "", fallback: str | None = None) -> str | None:
+def get_env_var(env_var: str = "", fallback: "str | None" = None) -> "str | None":
     """
     Retrieve token from environment variable or Streamlit secrets.
 

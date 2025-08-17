@@ -628,8 +628,8 @@ def validate_y_true_decorator(func):
 
 
 def validate_y_probas(
-    y_probas: np.ndarray | list,
-    class_index: int | None = None,
+    y_probas: "np.ndarray | list",
+    class_index: "int | None" = None,
 ) -> np.ndarray:
     """
     Validate the `y_probas` parameter.

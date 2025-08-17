@@ -74,7 +74,7 @@ __all__ = [
 
 
 def read_toml(
-    file_path: str | _os.PathLike,
+    file_path: "str | _os.PathLike",
 ) -> dict[str, any]:
     """
     Load a TOML configuration file into a Python dictionary.
@@ -130,7 +130,7 @@ def read_toml(
 
 
 def write_toml(
-    file_path: str | _os.PathLike,
+    file_path: "str | _os.PathLike",
     data: dict[str, any],
 ) -> str:
     """

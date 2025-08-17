@@ -778,7 +778,7 @@ class LazyImport(types.ModuleType):
         except ScikitplotException:
             return False
 
-    def __dir__(self) -> list[str]:
+    def __dir__(self) -> "list[str]":
         """
         Provide intelligent tab autocompletion support.
 

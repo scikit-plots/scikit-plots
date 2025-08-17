@@ -732,7 +732,7 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
         Determines if the environment is a Jupyter notebook. For define `use_stderr`.
     """
 
-    def __init__(self, use_stderr: bool | None = None) -> None:
+    def __init__(self, use_stderr: "bool | None" = None) -> None:
         """
         Initialize the AlwaysStdErrHandler with the desired stream.
 
