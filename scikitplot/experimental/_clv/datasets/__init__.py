@@ -1,8 +1,27 @@
 # -*- coding: utf-8 -*-
 # modified from https://github.com/CamDavidsonPilon/lifelines/
 
+from pathlib import Path
 import pandas as pd
-from pkg_resources import resource_filename
+
+# HERE points to the directory containing this file
+HERE = Path(__file__).resolve().parent
+# Example: access a data file inside the package
+# data_file = HERE / "example_data.csv"
+
+# from pkg_resources import resource_filename
+# import sys
+# if sys.version_info >= (3, 9):
+#     # Python 3.9+ has importlib.resources built-in
+#     from importlib.resources import files
+# else:
+#     # Python <3.9: use backport package
+#     from importlib_resources import files  # pip install importlib-resources
+# Example usage:
+# files("mypackage") returns a pathlib.Path-like object for the package
+# .joinpath("data/myfile.txt") points to a resource inside the package
+# path = files("mypackage").joinpath("data/myfile.txt")
+
 
 __all__ = [
     "load_cdnow_summary",
@@ -30,7 +49,7 @@ def load_dataset(filename, **kwargs):
     DataFrame
 
     """
-    return pd.read_csv(resource_filename("btyd", "datasets/" + filename), **kwargs)
+    return pd.read_csv(HERE / filename, **kwargs)
 
 
 def load_donations(**kwargs):
