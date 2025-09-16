@@ -45,7 +45,7 @@ networks:
 # ✅ Recommended base image options based on use case:
 #
 # ▶️ CPU-only development:
-#     ✅ python:3.12-slim               # Small and clean for general Python apps
+#     ✅ python:3.11               # Small and clean for general Python apps
 #     ✅ ubuntu:latest                  # Use if you want full control (install Python + CUDA manually)
 #
 # ▶️ GPU-enabled development (host has CUDA + NVIDIA runtime):
@@ -73,14 +73,17 @@ networks:
 ## Declares services (containers) that will be run by Docker Compose
 services:
 
-  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-python-3.12-slim'
-  "scikit-plots_latest-python-3.12-slim":  # Name of the service (can be any name you choose)
-    container_name: "scikit-plots_latest-python-3.12-slim"
+
+  ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-python-3.11'
+  "scikit-plots_latest-python-3.11":  # Name of the service (can be any name you choose)
+    container_name: "scikit-plots_latest-python-3.11"
     stdin_open: true  # Keeps STDIN open (for interactive mode)
     tty: true  # Allocates a pseudo-TTY,  Keeps container running with interactive terminal
     ## Restart policy: always restart the container if it stops
     # restart: "always"
-    image: python:3.12-slim  # 130+Mb (No internal CUDA, relies on host CUDA)
+    ## mambaorg/micromamba:latest
+    # image: python:3.12-slim  # 130+Mb (No internal CUDA, relies on host CUDA)
+    image: scikitplot/scikit-plots:latest
     ## (Optionally) Use Dockerfile
     # build: ...
     ## Change User
@@ -118,20 +121,20 @@ services:
     # { ... } runs in current shell — can exit or affect current environment.
     # ( ... ) runs in a subshell — changes inside don't affect the parent script.
     # git curl procps build-essential gfortran ninja-build
-    entrypoint: >-
-      bash -c "
-        command -v sudo >/dev/null 2>&1 || {
-          echo '📦 Installing sudo...';
-          { apt-get update -y;
-            apt-get install -y sudo gosu git;
-          } || echo '⚠️ Failed or skipped installing sudo';
-        };
+    # entrypoint: >-
+    #   bash -c "
+    #     command -v sudo >/dev/null 2>&1 || {
+    #       echo '📦 Installing sudo...';
+    #       { apt-get update -y;
+    #         apt-get install -y sudo gosu git;
+    #       } || echo '⚠️ Failed or skipped installing sudo';
+    #     };
 
-        ## Add bash-first-run-notice.txt
-        [ -f docker/scripts/bash_first_run_notice.sh ] && \
-        { . docker/scripts/bash_first_run_notice.sh; } || true
-        exec bash
-        fi"
+    #     ## Add bash-first-run-notice.txt
+    #     [ -f docker/scripts/bash_first_run_notice.sh ] && \
+    #     { . docker/scripts/bash_first_run_notice.sh; } || true
+    #     exec bash
+    #     fi"
 
     # 👇 if using Compose V2 CLI this enables GPU access (Compose V2+	YAML equivalent of --gpus all)
     # gpus: all  # ← this is the preferred modern way to request all GPUs
@@ -146,6 +149,7 @@ services:
     #     reservations:
     #       devices:
     #         - capabilities: [gpu]
+
 
   ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-python-3.11-slim'
   "scikit-plots_latest-python-3.11-slim":  # Name of the service (can be any name you choose)
@@ -163,7 +167,7 @@ services:
       args:
         PY_VERSION: "${PY_VERSION:-3.11}"
         # SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-}"  # for dev or SCIKITPLOT_VERSION=
-        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post1}"  # for release
+        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post3}"  # for release
     ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
@@ -178,6 +182,8 @@ services:
       # This overrides the ENV at runtime. So the container will have:
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
+      # - SKIP_CONDA=true  # Skip conda installation
+      # - SKIP_MICROMAMBA=true  # Skip micromamba installation
     ports:
       - "8891:8891"  # Exposing port placeholder for Jupyter Notebook (default 8888)
     networks:
@@ -217,7 +223,7 @@ services:
         BASE_IMAGE: "${BASE_IMAGE:-jupyter/tensorflow-notebook:latest}"
         NB_PASS: "jovyan"
         # SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-}"  # for dev or SCIKITPLOT_VERSION=
-        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post1}"  # for release
+        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post3}"  # for release
     ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
@@ -233,6 +239,8 @@ services:
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
+      # - SKIP_CONDA=true  # Skip conda installation
+      # - SKIP_MICROMAMBA=true  # Skip micromamba installation
     ports:
       ## Map host port 8888 to container port 8888 (default)
       - "8888:8888"  # Exposing port for Jupyter Notebook (default 8888)
@@ -280,6 +288,8 @@ services:
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       - JUPYTER_PORT=8889
       - EXTENDED_PACKAGES=true  # 🏗️ Docker Build with Conditional Argument
+      # - SKIP_CONDA=true  # Skip conda installation
+      # - SKIP_MICROMAMBA=true  # Skip micromamba installation
     ports:
       ## Map host port 8888 to container port 8888 (default)
       - "8889:8889"  # Exposing port for Jupyter Notebook (default 8888)

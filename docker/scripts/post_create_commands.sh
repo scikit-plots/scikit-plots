@@ -3,20 +3,24 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 #
+## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
 ## Inside bash -c '...' string	\$p, if needed
-# { ...; } || fallback runs in current shell — can exit or affect current environment.
 # ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
+# { ...; } || fallback runs in current shell — can exit or affect current environment.
 
 set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
+cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
+cat uname -u || echo "No uname -u output available. Skipping system information."
+
 ## Dynamically get shell name (bash, zsh, fish, etc.)
-echo "shell_name=$(basename "$SHELL")"
 echo "CWD_DIR=$PWD"
 echo "REAL_DIR=$(realpath ./)"
-echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
-echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "SCRIPT_DIR=$(cd -- $(dirname ${BASH_SOURCE[0]}) && pwd)"
+echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
+echo "SHELL_NAME=$(basename $SHELL)"
 
 ## Make sudo Passwordless for the User
 sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
@@ -154,8 +158,8 @@ print_info "✅ Git configuration done!"
 ######################################################################
 # Re-source shell config to ensure activation takes effect
 # shellcheck disable=SC1090
-# . ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
+# . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
 
 # Disable unbound variable errors (for safer fallback defaults)
 set +u   # Disable strict mode (for unset variables)
@@ -216,10 +220,10 @@ fi
 
 ## Activate the environment and install required packages in new interactive shell
 bash -i -c "
-## ⚠️ If mamba isn't initialized in the shell (as often happens in Docker/CI)
-## 👉 Some steps can be skipped when container creation due to storage size limitations
 ## Use || exit 0: exits cleanly if the command fails (stops the script).
 ## Use || true: absorbs the error, continues ( skip logic).
+## 👉 Some steps can be skipped when container creation due to storage size limitations
+## ⚠️ If mamba isn't initialized in the shell (as often happens in Docker/CI)
 ## source \${MAMBA_ROOT_PREFIX:-~/micromamba}/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
 
 set -euo pipefail
@@ -230,7 +234,7 @@ set +u  # Temporarily disable unbound variable error
 printf '\033[1;34m>> Checking and activating environment...\033[0m\n'
 ## Try micromamba first (faster and more portable), then fallback to conda
 ## Choose micromamba if available, otherwise fallback to conda
-micromamba activate ${ENV_NAME:-py311} || conda activate ${ENV_NAME:-py311} || { . ~/.\"$(basename "$SHELL")\"rc || true; } || true
+micromamba activate ${ENV_NAME:-py311} || conda activate ${ENV_NAME:-py311} || { . ~/.$(basename $SHELL)rc; } || true
 
 ## echo -e '\033[1;32m## Installing development dependencies...\033[0m'
 printf '\033[1;32m## Installing development dependencies...\033[0m\n'
@@ -296,8 +300,8 @@ fi
 ######################################################################
 # Re-source shell config to ensure activation takes effect
 # shellcheck disable=SC1090
-# source ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-. ~/."$(basename "$SHELL")"rc || true
+# source ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+. ~/."$(basename $SHELL)"rc || true
 
 print_info2 "🔍 Conda Environments:"
 # conda info -e | grep -iw '\*' || true
@@ -313,7 +317,7 @@ scikitplot -V 2>/dev/null || echo "⚠️  scikitplot command not found"
 ## 📘 Next Steps and Contribution Guide
 ######################################################################
 print_info2 "➡️  Continue to the section below: 'Creating a Branch'"
-print_info2 "📖 Read more at: $(print_url "https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch")"
+print_info2 "📖 Read more at: $(print_url https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch)"
 
 ######################################################################
 ## . (if possible)

@@ -201,8 +201,10 @@ See: [Contributing Guidelines to scikit-plots][Contributing-Guidelines]
 git config --global --add safe.directory '*'
 ```
 ```sh
-## It triggered when committing `git commit ...` if pass then next pushing changes
+## Git hooks manager Initialize, Ensures code meets quality standards before it
+## Triggered when running `git commit ...;` if all checks pass, the commit proceeds, allowing you to push the changes.
 pre-commit install
 ```
 
 ✍️ Ready for Development...
+[install-the-development-version-of-scikit-plots](https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html#install-the-development-version-of-scikit-plots)

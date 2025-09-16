@@ -5,19 +5,22 @@
 #
 ## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
 ## Inside bash -c '...' string	\$p, if needed
-# { ...; } || fallback runs in current shell — can exit or affect current environment.
 # ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
+# { ...; } || fallback runs in current shell — can exit or affect current environment.
 
 set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
+cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
+cat uname -u || echo "No uname -u output available. Skipping system information."
+
 ## Dynamically get shell name (bash, zsh, fish, etc.)
-echo "shell_name=$(basename "$SHELL")"
 echo "CWD_DIR=$PWD"
 echo "REAL_DIR=$(realpath ./)"
-echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
-echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "SCRIPT_DIR=$(cd -- $(dirname ${BASH_SOURCE[0]}) && pwd)"
+echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
+echo "SHELL_NAME=$(basename $SHELL)"
 
 ## Make sudo Passwordless for the User
 sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
@@ -28,14 +31,25 @@ echo "📦 Installing dev tools (if sudo available)..."
   && sudo apt-get install -y sudo gosu git curl build-essential gfortran ninja-build; } \
   || echo "⚠️ Failed or skipped installing dev tools"
 
+# green
 print_info() {
   echo -e "\033[1;32m$1\033[0m"
 }
+# yellow-orange
 print_warn() {
   echo -e "\033[1;33m$1\033[0m"
 }
+# red
 print_error() {
   echo -e "\033[1;31m$1\033[0m"
+}
+# blue
+print_url() {
+  echo -e "\033[1;34m$1\033[0m"
+}
+# purple
+print_info2() {
+  echo -e "\033[1;36m$1\033[0m"
 }
 
 ######################################################################

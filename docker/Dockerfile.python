@@ -3,17 +3,18 @@ ARG PY_VERSION=3.11
 
 ## Use an official Python runtime as a parent image
 FROM python:${PY_VERSION}-slim
-# ✅ Valid and recommended to redeclare ARG after FROM without default to get the passed/default value correctly.
+## ✅ Valid and recommended to redeclare ARG after FROM without default to get the passed/default value correctly.
 ARG PY_VERSION
-# ❌ Avoid redeclaring with a default after FROM, it overrides build-arg.
-# ARG PY_VERSION=3.11        # <-- This overrides any build-arg passed earlier!
+## ❌ Avoid redeclaring with a default after FROM, it overrides build-arg.
+## ARG PY_VERSION=3.11        # <-- This overrides any build-arg passed earlier!
 
-# Use ENV with shell-style expansion to get ENV_NAME=py3.11
-# Replace '.' in PY_VERSION to get py311 instead of py3.11
-# Bash-style string substitution syntax (${VAR//./})
-ENV ENV_NAME=py${PY_VERSION//./}
+## Use ENV with shell-style expansion to get ENV_NAME=py3.11
+## Bash-style string substitution syntax (${VAR//./})
+## Replace '.' in PY_VERSION to get py311 instead of py3.11
+# ENV ENV_NAME=py${PY_VERSION//./}  # Not a valid syntax in Dockerfile, but works.
+RUN export ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"
 
-ARG SCIKITPLOT_VERSION=0.4.0.post1
+ARG SCIKITPLOT_VERSION=0.4.0.post3
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 
 ## Set environment variables
@@ -67,8 +68,9 @@ COPY docker ./docker/
 COPY docker/env_conda/environment.yml ./
 COPY requirements ./requirements/
 
-# micromamba and post create steps
-RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
+## micromamba and post create steps
+## Make sure there’s a space between the variable assignment and the . for sourcing.
+RUN bash -i -c "SKIP_CONDA=${SKIP_CONDA:=true} . ./docker/scripts/all_post_create.sh"
 
 ######################################################################
 ## -------- Final Stage --------

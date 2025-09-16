@@ -755,8 +755,8 @@ skip-magic-trailing-comma = false
 [tool.ruff.lint]
 # all rules can be found here: https://beta.ruff.rs/docs/rules/
 # This enables us to use CPY001: copyright header check
-
 preview = true
+
 # This enables us to use the explicit preview rules that we want only
 explicit-preview-rules = true  # Enable explicit preview rules
 
@@ -869,6 +869,13 @@ ignore = [
   "RUF100",                                 # Prevent Ruff from removing `# noqa`
   "S110",                                   # `try`-`except`-`pass` detected, consider logging the exception
   "UP015",                                  # Unnecessary open mode parameters
+]
+
+[tool.ruff.lint.pep8-naming]
+# https://docs.astral.sh/ruff/settings/#lint_pep8-naming_ignore-names
+extend-ignore-names = [
+  "X",
+  "X_*",
 ]
 
 # [tool.ruff.lint.per-file-ignores]
