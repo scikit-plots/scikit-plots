@@ -67,6 +67,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **Snsx**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./snsx/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **Stats**
         ^^^
         .. toctree::

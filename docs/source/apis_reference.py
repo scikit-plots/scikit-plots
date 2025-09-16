@@ -431,6 +431,41 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.preprocessing": {
+        "short_summary": "preprocessing",
+        "description": _get_guide("preprocessing-index"),
+        "sections": [
+            {
+                "title": "preprocessing",
+                # "description": (
+                #   _get_submodule("scikitplot.kds", "_kds")
+                #   + "\n\n"
+                #   + _get_guide("kds-index")
+                # ),
+                "autosummary": [
+                    "GetDummies",
+                ],
+            },
+        ],
+    },
+    "scikitplot.snsx": {
+        "short_summary": "Seaborn Extended",
+        "description": _get_guide("snsx-index"),
+        "sections": [
+            {
+                "title": "Seaborn Extended",
+                # "description": (
+                #   _get_submodule("scikitplot.kds", "_kds")
+                #   + "\n\n"
+                #   + _get_guide("kds-index")
+                # ),
+                "autosummary": [
+                    "prplot",
+                    "rocplot",
+                ],
+            },
+        ],
+    },
     "scikitplot.sp_logging": {
         "short_summary": "Scikit-plots Logging.",
         "description": _get_guide("sp_logging-index"),
