@@ -23,8 +23,24 @@
    * https://github.com/scikit-plots/scikit-plots
 
 
-📦 Conda Environment Guidelines
+📦 Conda/Anaconda Environment Guidelines
 ---------------------------------------
+
+.. seealso::
+
+   * `"Conda Documentation" <https://docs.conda.io/en/latest/>`_
+
+   * `"Installing Conda" <https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html>`_
+
+   * `"Installing Anaconda" <https://www.anaconda.com/docs/getting-started/anaconda/install>`_
+
+   * `"Installing Miniconda" <https://www.anaconda.com/docs/getting-started/miniconda/install>`_
+
+   * `"Installing Miniforge" <https://conda-forge.org/download/>`_
+
+   * `"Installing Mamba" <https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html>`_
+
+   * `"Installing Micromamba" <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html>`_
 
 🛠 The Main Tools (And What They're Good At)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

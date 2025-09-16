@@ -146,22 +146,22 @@ Initialize and Fetch Submodules:
 
 .. prompt:: bash
 
-    ## (Recommended) Add in git safe dirs
+    ## (if Necessary) Add in git safe dirs
     ## Or use `git config ...` to add `scikit-plots` in git safe dirs
     # bash docker/scripts/safe_dirs.sh  # add safe directories for git
     git config --global --add safe.directory '*'
 
 .. prompt:: bash
 
-    ## (Recommended) Initialize and clone any missing submodules, set up the working tree
+    ## (Optionally) Git Submodules Clone/Download/Initialize Configs, Not Needed Every Time.
     ## Almost always used after cloning a repo with submodules.
-    git submodule update --init --recursive
+    # git submodule update --init --recursive
 
 .. prompt:: bash
 
-    ## (if Necessary) Update submodules to the latest commit on their configured remote branch
+    ## (Optionally) Update submodules to the latest commit on their configured remote branch
     ## Used when you want your submodules to move to their latest remote commit.
-    git submodule update --remote --recursive # (not needed every time)
+    # git submodule update --init --recursive --remote  # (not needed every time)
 
 Adding and Fetching Upstream Remote:
 
@@ -227,8 +227,8 @@ Now create and activate an ``py311`` conda environment using the following:
 
 .. prompt:: bash
 
-    ## (Recommended) Can be run on mamba (or conda) `conda base` or `venv` env
-    mamba create -n py311 python=3.11 ipykernel graphviz -y
+    ## (Recommended) Can be run on conda (or mamba) `conda base` or `venv` env
+    conda create -n py311 python=3.11 ipykernel graphviz -y
 
 Note the ``graphviz`` package is required for building the documentation.
 
@@ -282,7 +282,6 @@ At this point you should be able to ``import scikitplot`` from your locally buil
    ## Checking version
    scikitplot --version
    scikitplot -V
-   scikitplot -v
 
 Next you may want to try running some or all of the ``scikitplot`` unit tests.
 Running the full test suite can take a few minutes, so you may want to start with a
@@ -312,7 +311,8 @@ resulting in lost time (yours and CI resources).
 
 (Recommended) Installation is straightforward. From the root of the ``scikit-plots`` repository, run::
 
-    >>> ## It triggered when committing `git commit ...` if pass then next pushing changes
+    >>> ## Git hooks manager Initialize, Ensures code meets quality standards before it
+    >>> ## Triggered when running `git commit ...;` if all checks pass, the commit proceeds, allowing you to push the changes.
     >>> pre-commit install
 
 (if Necessary) Manually one-by-one testing (not needed every time)::

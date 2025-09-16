@@ -122,6 +122,8 @@ _submodules = sorted(
         "kds",
         "misc",
         "modelplotpy",
+        "preprocessing",
+        "snsx",  # Seaborn-style Plotting.
         "stats",
         "utils",
         "visualkeras",

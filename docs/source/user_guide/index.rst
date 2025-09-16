@@ -57,6 +57,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **Preprocessing**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./preprocessing/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **Stats**
         ^^^
         .. toctree::

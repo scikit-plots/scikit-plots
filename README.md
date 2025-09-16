@@ -9,8 +9,10 @@
   </a>
 </h1>
 
+
+
 <div>
-<!-- GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
+<!-- ✔🚦 GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
 <!-- <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 580px; margin: auto;">
   <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
     <img style="height:17px;" alt="PyPI Status" src="https://img.shields.io/pypi/v/scikit-plots">
@@ -52,7 +54,7 @@
 </div> -->
 
 
-<!-- GitHub- & PyPI-Compatible Badge Grid -->
+<!-- ✔🚦 GitHub- & PyPI-Compatible Badge Grid -->
 
 <!-- [![build status](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml/badge.svg)](https://github.com/pre-commit/pre-commit/actions/workflows/main.yml) -->
 <!--
@@ -98,8 +100,8 @@
   </a>
   <!-- Anaconda Daily, Weekly, or Monthly downloads -->
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg -->
-    <img alt="Anaconda Nightly Wheels Downloads" height="17" src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads&color=olivegreen">
+    <img alt="Anaconda Nightly Wheels Downloads" height="17" src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads&color=green">
+    <!-- <img alt="Anaconda Nightly Wheels Downloads" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg"> -->
   </a>
   <!-- Anaconda Nightly Wheels Release Date -->
   <!-- <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
@@ -112,17 +114,17 @@
   <!-- 🐋 Docker Total Pulls 🐳 -->
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
     <!-- https://img.shields.io/docker/pulls/scikitplot/scikit-plots -->
-    <img alt="🐋 Docker Total Pulls" height="17" src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Total%20Pulls&color=blue">
+    <img alt="🐋 Docker Total Pulls" height="17" src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Total%20Pulls&color=olivegreen">
   </a>
   <!-- 🐋 Docker Image Size (tag) 🐳 -->
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <img alt="🐋 Docker Image Size (tag)" height="17" src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=blue">
+    <img alt="🐋 Docker Image Size (tag)" height="17" src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=orange">
   </a>
-  <!-- GitHub -->
+  <!-- GitHub License -->
   <a href="https://github.com/scikit-plots/scikit-plots?tab=BSD-3-Clause-1-ov-file#readme" target="_blank" rel="noopener noreferrer">
     <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
     <!-- https://img.shields.io/conda/l/scikit-plots-wheels-staging-nightly/scikit-plots?logo=anaconda&label=conda%20|%20License&labelColor=gray&color=blue -->
-    <img alt="GitHub License" height="17" src="https://img.shields.io/github/license/scikit-plots/scikit-plots?style=flat-square&logo=github&label=License&labelColor=gray&color=green">
+    <img alt="GitHub License" height="17" src="https://img.shields.io/github/license/scikit-plots/scikit-plots?style=flat-square&logo=github&label=License&labelColor=gray&color=blue">
   </a>
   <!-- GitHub Actions -->
   <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank" rel="noopener noreferrer">
@@ -165,44 +167,53 @@
 </p>
 </div>
 
+
+
+<!-- Scikit-plots favicon image -->
 <div>
   <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
     <img alt="Scikit-plots" height="230" src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/scikit-plots-logo-medium.png">
   </a>
 </div>
 
+
+
+<!-- Scikit-plots Docs -->
 <div>
-<h3> Single line functions for detailed visualizations </h3>
-
-<p> The quickest and easiest way to go from analysis... </p>
-
-<p> ⚠️ Partially support Python 3.8 3.9 without some packages in cexternals, externals due to externals lib dep (e.g., astropy.stats, arrat-api-compat, arrat-api-extra) </p>
-
-
-<h3>
+<h2>
   <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
-    📘 Documentation, Examples and Try|Install Scikit-plots:
+    📘 Docs, Examples Try/Install Scikit-plots:
   </a>
-</h3>
+</h2>
 
-<h5>Explore the full features of Scikit-plots:
+<h4>Single line functions for detailed visualizations. </h4>
+<p>The quickest and easiest way to go from analysis... </p>
+
+<p>
+  Explore the full features of Scikit-plots:
   <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">
     https://scikit-plots.github.io/dev/devel/index.html
   </a>
-</h5>
+</p>
+
+<p>⚠️ Partially support Python 3.8 3.9 without some packages in cexternals, externals due to externals lib dep (e.g., astropy.stats, arrat-api-compat, arrat-api-extra) </p>
 </div>
 
-<!-- <hr> -->
 
+
+<!-- Scikit-plots Docker -->
+<div>
 <h2>
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
     🐋 Scikit-plots Runtime Docker Images:
   </a>
 </h2>
 
-<a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-  🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
-</a>
+<p>
+  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+    🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
+  </a>
+</p>
 
 🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
 
@@ -214,10 +225,17 @@ docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
 ## docker run -it scikitplot/scikit-plots:latest
 docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
 ```
+</div>
 
-<hr>
 
-<h1> 📥 User Installation: </h1>
+
+<!-- Scikit-plots Installation -->
+<div>
+<h2>
+  <a href="https://scikit-plots.github.io/dev/install/installation.html" target="_blank" rel="noopener noreferrer">
+    📥 User Installation:
+  </a>
+</h2>
 
 <h4> 🧠 Gotchas: </h4>
 <ul>
@@ -233,9 +251,40 @@ docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/sci
   <li>✅ This avoids dependency issues and keeps your system stable.</li>
 </ul>
 
-Conda:
+<h3>
+  <a href="https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html" target="_blank" rel="noopener noreferrer">
+    Conda
+  </a>
+  ,
+  <a href="https://www.anaconda.com/docs/getting-started/anaconda/install" target="_blank" rel="noopener noreferrer">
+    Anaconda
+  </a>
+  ,
+  <a href="https://www.anaconda.com/docs/getting-started/miniconda/install" target="_blank" rel="noopener noreferrer">
+    Miniconda
+  </a>
+  ,
+  <a href="https://conda-forge.org/download/" target="_blank" rel="noopener noreferrer">
+    Miniforge
+  </a>
+  ,
+  <a href="https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html" target="_blank" rel="noopener noreferrer">
+    Mamba
+  </a>
+  ,
+  <a href="https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html" target="_blank" rel="noopener noreferrer">
+    Micromamba
+  </a>
+  :
+</h3>
 
-See Also: [conda-environment-guidelines](https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html#conda-environment-guidelines)
+<!-- See Also: [conda-environment-guidelines](https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html#conda-environment-guidelines) -->
+<p>
+  See Also:
+  <a href="https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html#conda-environment-guidelines" target="_blank" rel="noopener noreferrer">
+    conda-environment-guidelines
+  </a>
+</p>
 
 ```sh
 ## (conda, mamba or micromamba) Create New Env and install ``scikit-plots``
@@ -243,41 +292,52 @@ See Also: [conda-environment-guidelines](https://scikit-plots.github.io/dev/deve
 # conda create -n py311 python=3.11 ipykernel -y
 micromamba create -n py311 python=3.11 ipykernel -y
 ```
-
 ```sh
 ## (conda, mamba or micromamba) Activate the environment
 # conda activate py311
 micromamba activate py311
 ```
-
 ```sh
 ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
 # conda install --yes -c conda-forge scikit-plots
 micromamba install --yes -c conda-forge scikit-plots
 ```
 
-(Optionally) Pipenv install all dependencies:
+<h3>
+  (Optionally)
+  <a href="https://www.anaconda.com/docs/getting-started/anaconda/install" target="_blank" rel="noopener noreferrer">
+    Pipenv
+  </a>
+  <!-- ,  -->
+  install all dependencies:
+</h3>
 
-See Also: [pipenv-environment-guidelines](https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html#pipenv-environment-guidelines)
+<!-- See Also: [pipenv-environment-guidelines](https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html#pipenv-environment-guidelines) -->
+<p>
+  See Also:
+  <a href="https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html#pipenv-environment-guidelines" target="_blank" rel="noopener noreferrer">
+    pipenv-environment-guidelines
+  </a>
+</p>
 
 ```sh
-## (Optionally) Pipenv dep
+## (Optionally) Pipenv dep for Python 3.11
 ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/Pipfile
-curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/Pipfile
-curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/Pipfile.lock
+curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/py311/Pipfile
+curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/py311/Pipfile.lock
 pip install pipenv && pipenv install
 ```
-
 ```sh
 ## (Optionally) Pipenv Activate the environment
 pipenv shell
 ```
 
-<!-- <hr> -->
 
 <h2>
   📦 From
-  <code>PIP</code>
+  <a href="https://packaging.python.org/en/latest/key_projects/#pip" target="_blank" rel="noopener noreferrer">
+    <code>PIP</code>
+  </a>
   Installation by
   <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
     <code>pypi</code>
@@ -303,10 +363,9 @@ pipenv shell
 
 ```sh
 ## Now Install scikit-plots (via pip, conda, or local source)
+# pip index versions scikit-plots
 pip install scikit-plots
 ```
-
-<hr>
 
 <h3>
   - By
@@ -329,13 +388,10 @@ pip install scikit-plots
 curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
 pip install -r default.txt
 ```
-
 ```sh
 ## Try After Ensure all "Runtime dependencies" installed
 pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
 ```
-
-<hr>
 
 <h3>
   - By
@@ -383,17 +439,16 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3
 
 ```bash
 ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
-pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0rc5
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0.post3
 pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
 pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 ```
 
-<hr>
 
 <h2>
   📁 From Source
   Installation by
-  <code>Archive</code>
+  <code>Archive (.tar.gz)</code>
   or
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
     <code>GIT Clone</code>
@@ -403,18 +458,28 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 <h4>🐍 Pitfalls:</h4>
 
 <ul>
+  <li>📥 Archive (Gzipped Source Tarball <code>.tar.gz</code>) (e.g., <code>GitHub Source Code Archive</code>, <code>PyPI Source Code Archive</code>, <code>pypi.anaconda Source Code Archive</code>)</li>
   <li>💡 You can download
   <a href="https://github.com/scikit-plots/scikit-plots/tags" target="_blank" rel="noopener noreferrer">
     <code>GitHub Source Code Archives</code> (<code>.zip</code> or <code>.tar.gz</code>)
   </a>
   by specifying a <code>branch</code>, <code>tag</code>, or a specific <code>commit ID</code>.</li>
-  <li>🛠️ After unzipping the <code>GitHub Source Code Archive</code> (similar to cloning), remember require to run <code>git submodule update</code> to initialize submodules.</li>
-  <li>🔄 Alternatively, you can install <code>scikit-plots</code> directly from the <code>GitHub Source Code Repository</code> to access the latest updates.</li>
+  <li>🛠️ After unzipping the <code>GitHub Source Code Archive</code> (similar to cloning), remember require to run <code>git submodule update</code> to initialize submodules, If Needed.</li>
   <li>↔️ Alternatively,
   <a href="https://pypi.org/project/scikit-plots/#files" target="_blank" rel="noopener noreferrer">
-    Source Distribution (<code>.tar.gz</code>)
+    PyPI Source Code Distribution (<code>.tar.gz</code>)
   </a>
   are also available for direct installation via <code>PyPI (sdist)</code>, if applicable.</li>
+  <li>↔️ Alternatively,
+  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/files" target="_blank" rel="noopener noreferrer">
+    pypi.anaconda Source Code Distribution (<code>.tar.gz</code>)
+  </a>
+  are also available for direct installation via <code>pypi.anaconda (sdist)</code>, if applicable.</li>
+  <li>🔄 Alternatively,
+  <a href="https://git-scm.com/docs/git-clone" target="_blank" rel="noopener noreferrer">
+    (git clone ...)
+  </a>
+    you can install <code>scikit-plots</code> directly from the <code>GitHub Source Code Repository</code> to access the latest updates.</li>
 </ul>
 
 <h3>
@@ -435,11 +500,21 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 ## pip install --no-binary=package package  # Forces source installation only the specified package
 pip install --no-binary=scikit-plots scikit-plots
 ```
-
 ```sh
 ## pip install --no-binary=:all: package  # Forces source installation for Package + all dependencies
 ## This forces scikit-plots and all its dependencies to be installed from source (from .tar.gz).
 pip install --no-binary=:all: scikit-plots
+```
+```sh
+## (Optionally) Install offline downloaded a source distribution (.tar.gz) of scikit-plots
+## pip install --require-hashes -r requirements.txt
+## sha256sum scikit_plots-0.4.0.post3.tar.gz
+## shasum -a 256 scikit_plots-0.4.0.post3.tar.gz
+## Get-FileHash scikit_plots-0.4.0.post3.tar.gz -Algorithm SHA256
+## scikit-plots==0.4.0.post3 --hash=sha256:<your-computed-hash-here>
+## wget https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post3.tar.gz
+curl -O https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post3.tar.gz
+pip install ./scikit_plots-0.4.0.post3.tar.gz
 ```
 
 <h3>
@@ -496,52 +571,49 @@ pip install --no-binary=:all: scikit-plots
 git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
 cd scikit-plots
 ```
-
 ```sh
 ## (if Necessary) Add safe directories for git
 # bash docker/script/safe_dirs.sh
 git config --global --add safe.directory '*'
 ```
-
 ```sh
-## (Optionally) download submodules, Not Needed Every Time.
-git submodule update --init --recursive
+## (Optionally) Git Submodules Clone/Download/Initialize Configs, Not Needed Every Time.
+# git submodule update --init --recursive
 ```
-
 ```sh
-## Ensure venv (e.g. conda, venv, pipenv)
+## (Recommended) Ensure venv (e.g. conda, venv, pipenv)
 # pip install -r ./requirements/all.txt
 pip install -r ./requirements/build.txt
 ```
-
 ```sh
-## Install scikit-plots
+## Install the package in the current directory, ignore pip’s cache, and show detailed logs of the installation process.
 pip install --no-cache-dir . -v
 ```
 
+
 <h2>
-  🧊🔧 It is also possible to include optional dependencies:
+  🧊🔧 It is also possible to include optional dependencies with editable mode:
 </h2>
 
 ```sh
-## (Optionally) Install development version
-python -m pip install --no-cache-dir -e .[build,dev,test,doc] -v
+## (Optionally) Install the current package in editable mode, using the current environment for building, and ignore cached builds
+pip install --no-cache-dir --no-build-isolation -e . -v
 ```
 ```sh
+## (Optionally) Install the current package in editable mode, using the current environment for building, and ignore cached builds
 ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
-## (Optionally) Try Development [build,dev,test,doc]
-## For More in Doc: https://scikit-plots.github.io/
+## For More in Doc: https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html
 python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
 ```
-
 ```sh
 ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
 ## [cpu] refer tensorflow-cpu, transformers, tf-keras
 ## [gpu] refer Cupy tensorflow lib require NVIDIA CUDA support
 pip install "scikit-plots[cpu]"
 ```
+</div>
 
-<hr>
+
 
 <h2 align=center>
   <a href="https://scikit-plots.github.io/dev/auto_examples/index.html" target="_blank" rel="noopener noreferrer">
@@ -549,7 +621,8 @@ pip install "scikit-plots[cpu]"
   </a>
 </h2>
 
-<div>
+
+
 <!-- GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->
 <!-- <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; max-width: 580px; margin: auto;"> -->
 <!-- <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5em; max-width: 580px; margin: auto;"> -->
@@ -593,6 +666,8 @@ pip install "scikit-plots[cpu]"
 </div> -->
 
 
+
+<div>
 <!-- GitHub- & PyPI-Compatible Grid -->
 <!-- <p align="center"><strong>Sample Plot 1</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Sample Plot 2</strong></p> -->
 <table align="center">
@@ -647,6 +722,7 @@ pip install "scikit-plots[cpu]"
   </tr>
 </table>
 </div>
+
 
 <hr>
 

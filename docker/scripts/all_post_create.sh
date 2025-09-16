@@ -3,30 +3,31 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 #
+## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
+## Inside bash -c '...' string	\$p, if needed
+# ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
+# { ...; } || fallback runs in current shell — can exit or affect current environment.
+#
 # Shebang Syntax Summary:
 # ✅ #!/usr/bin/env bash — Recommended for portability, Open-source scripts, multi-platform devcontainers
 # ✅ #!/bin/bash — Recommended for strict system environments, Controlled systems, Docker, CI/CD
 # ✅ #!/bin/sh — POSIX-compliant shell — minimal and fast, but lacks many Bash features.
 # ✅ #!/usr/bin/env python3 — For Python scripts using env.
 # ✅ #!/usr/bin/env -S bash -e — Bash with options (modern env). Advanced with arguments (less common, Bash-only).
-#
-## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
-## Inside bash -c '...' string	\$p, if needed
-# { ...; } || fallback runs in current shell — can exit or affect current environment.
-# ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
 
 set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
 cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
+cat uname -u || echo "No uname -u output available. Skipping system information."
 
 ## Dynamically get shell name (bash, zsh, fish, etc.)
-echo "shell_name=$(basename "$SHELL")"
 echo "CWD_DIR=$PWD"
 echo "REAL_DIR=$(realpath ./)"
-echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
-echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "SCRIPT_DIR=$(cd -- $(dirname ${BASH_SOURCE[0]}) && pwd)"
+echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
+echo "SHELL_NAME=$(basename $SHELL)"
 
 ## Make sudo Passwordless for the User
 sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
@@ -60,6 +61,7 @@ print_info2() {
 
 ######################################################################
 ## Micromamba env setup (if possible)
+## env_micromamba.sh
 ######################################################################
 
 MAMBA_ENV_SCRIPT="$(realpath ./docker/scripts/env_micromamba.sh)"
@@ -74,6 +76,7 @@ fi
 
 ######################################################################
 ## Conda env setup (if possible)
+## env_conda.sh
 ######################################################################
 
 CONDA_ENV_SCRIPT="$(realpath ./docker/scripts/env_conda.sh)"
@@ -88,6 +91,7 @@ fi
 
 ######################################################################
 ## First-Run Notice and ASCII banner for scikit-plots (if possible)
+## bash_first_run_notice.sh
 ######################################################################
 
 FIRST_RUN_NOTICE_SCRIPT="$(realpath ./docker/scripts/bash_first_run_notice.sh)"
@@ -102,6 +106,7 @@ fi
 
 ######################################################################
 ## Post-create steps (if possible)
+## post_create_commands.sh
 ######################################################################
 
 POST_CREATE_SCRIPT="$(realpath ./docker/scripts/post_create_commands.sh)"
@@ -113,3 +118,7 @@ if [ -f "$POST_CREATE_SCRIPT" ]; then
 else
   echo -e "\033[1;33m⚠️ Post-create script not found at $POST_CREATE_SCRIPT\033[0m"
 fi
+
+######################################################################
+##
+######################################################################

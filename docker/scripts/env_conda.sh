@@ -3,20 +3,24 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 #
+## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
 ## Inside bash -c '...' string	\$p, if needed
-# { ...; } || fallback runs in current shell — can exit or affect current environment.
 # ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
+# { ...; } || fallback runs in current shell — can exit or affect current environment.
 
 set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
 set -euxo pipefail
 
+cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
+cat uname -u || echo "No uname -u output available. Skipping system information."
+
 ## Dynamically get shell name (bash, zsh, fish, etc.)
-echo "shell_name=$(basename "$SHELL")"
 echo "CWD_DIR=$PWD"
 echo "REAL_DIR=$(realpath ./)"
-echo "SHELL_DIR=$(cd -- "$(dirname "$0")" && pwd)"
-echo "SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "SCRIPT_DIR=$(cd -- $(dirname ${BASH_SOURCE[0]}) && pwd)"
+echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
+echo "SHELL_NAME=$(basename $SHELL)"
 
 ## Make sudo Passwordless for the User
 sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
@@ -54,22 +58,31 @@ print_info2() {
 # "micromamba" not "conda" keyword compatipable but same syntax
 ######################################################################
 
-# Disable unbound variable errors (for safer fallback defaults)
+## Disable unbound variable errors (for safer fallback defaults)
 set +u   # Disable strict mode (for unset variables)
 
-# Allow override from environment
-# e.g. SKIP_CONDA=true ./setup.sh or SKIP_CONDA=true . ./setup.sh
+## Allow override from environment
+## e.g. SKIP_CONDA=true ./setup.sh or SKIP_CONDA=true . ./setup.sh
 SKIP_CONDA="${SKIP_CONDA:-false}"
-# Normalize to lowercase and handle multiple truthy values
-# case "$(printf '%s' "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')" in
-case "${SKIP_CONDA,,}" in
+## Normalize to lowercase and handle multiple truthy values
+## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
+## case "$(printf '%s' "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')" in
+case "${SKIP_CONDA,,}" in   # ,, converts to lowercase
   true|1|yes|on)
     echo "Skipping conda activation"
     # Works whether script is sourced (returns) or executed (exits) directly
     return 0 2>/dev/null || exit 0
     ;;
+  false|0|no|off)
+    echo "Running Conda"
+    ;;
+  *)
+    echo "Unknown value for SKIP_CONDA: '$SKIP_CONDA'"
+    exit 0
+    ;;
 esac
-# ✅ Use POSIX-compatible:
+
+## ✅ Use POSIX-compatible:
 # if [[ "$SKIP_CONDA" == "true" ]]; then
 if [ "${SKIP_CONDA}" = "true" ]; then
   echo "Skipping conda activation"
@@ -77,7 +90,7 @@ if [ "${SKIP_CONDA}" = "true" ]; then
   return 0 2>/dev/null || exit 0
 fi
 
-# Set default environment name if not provided
+## Set default environment name if not provided
 PY_VERSION="${PY_VERSION:-3.11}"  # Default Python version "3.11"
 ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"  # Default environment name "py311"
 
@@ -113,14 +126,14 @@ ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"  # Default environment name "py311"
 # ⚠️ Please restart your shell to activate conda or run the following:
 # source ~/.bashrc (or ~/.zshrc, ~/.xonshrc, ~/.config/fish/config.fish, ...)
 # ──────────────────────────────────────────────────────────────
-SHELL_RC=~/."$(basename "$SHELL")"rc
+SHELL_RC=~/."$(basename $SHELL)"rc
 
 if [ -f "$SHELL_RC" ]; then
   echo "📄 Sourcing shell config: $SHELL_RC"
   # shellcheck disable=SC1090
   # . ~/.bashrc or . ~/.zshrc for zsh
-  # . ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-  source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
+  # . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+  source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
 else
   echo "⚠️ Shell config file not found: $SHELL_RC"
 fi
@@ -137,8 +150,8 @@ conda init --all || echo "⚠️ Failed to initialize conda hooks"
 # ──────────────────────────────────────────────────────────────
 # Re-source shell config to ensure activation takes effect
 # shellcheck disable=SC1090
-# . ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
+# . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
 
 # ──────────────────────────────────────────────────────────────
 # 5. Ensure environment exists and is registered
@@ -196,8 +209,8 @@ fi
 # ──────────────────────────────────────────────────────────────
 # Re-source shell config to ensure activation takes effect
 # shellcheck disable=SC1090
-# . ~/."$(basename "$SHELL")"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-source ~/."$(basename "$SHELL")"rc || echo "⚠️ Failed to source $SHELL_RC"
+# . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
 
 # Optional: auto-activate environment for current session
 if command -v conda >/dev/null 2>&1; then

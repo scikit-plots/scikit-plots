@@ -62,6 +62,8 @@ PUBLIC_MODULES = [
         "misc",
         "misc.plot_colortable",
         "modelplotpy",
+        "preprocessing",
+        "snsx",
         "stats",
         "utils",
         "utils.arguments_utils",

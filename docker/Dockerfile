@@ -44,7 +44,7 @@ FROM ${BASE_IMAGE} AS base
 ## ⚠️ ARG may specified again because the FROM directive resets ARGs
 ## (but their default value is retained if set previously)
 
-ARG SCIKITPLOT_VERSION=0.4.0.post1
+ARG SCIKITPLOT_VERSION=0.4.0.post3
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 
 # LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
@@ -359,9 +359,10 @@ COPY docker ./docker/
 COPY docker/env_conda/environment.yml ./
 COPY requirements ./requirements/
 
-# micromamba and post create steps
+## micromamba and post create steps
 # RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
-RUN bash -i -c "SKIP_MICROMAMBA=true . ./docker/scripts/all_post_create.sh"
+## Make sure there’s a space between the variable assignment and the . for sourcing.
+RUN bash -i -c "SKIP_MICROMAMBA=${SKIP_MICROMAMBA:=true} . ./docker/scripts/all_post_create.sh"
 
 ######################################################################
 ## default environment (e.g. conda, mamba, pipenv)

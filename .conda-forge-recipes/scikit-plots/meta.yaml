@@ -22,7 +22,7 @@ source:
   # url: https://github.com/scikit-plots/scikit-plots/archive/v0.4.0.post3.tar.gz
   url: https://github.com/{{ name }}/{{ name }}/archive/v{{ version }}.tar.gz
   # curl -L https://github.com/scikit-plots/scikit-plots/archive/v0.4.0.post3.tar.gz | sha256sum
-  sha256: 9cc7eeac78b72b20c7d60bf2f51e409ca687ca92ed565b15010dea21f2660a83
+  sha256: 4feec50c547007affeaedad51044b3c6a14ae39c838100c17681e0d0f0d4455b
 
 build:
   number: 0

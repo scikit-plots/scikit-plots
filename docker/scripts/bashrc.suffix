@@ -28,26 +28,43 @@
 # https://linux.die.net/man/1/bash
 #
 # ==============================================================================
-#
+
 # >>> Conda/Mamba environment auto-activation >>>
-# micromamba/conda activate logic
-# Auto-activate $ENV_NAME if it exists, otherwise fallback to base
-# if micromamba env list | grep -qE '(^|[[:space:]])$ENV_NAME([[:space:]]|$)'; then
-# Only run in interactive shell, If Needed
-# if [[ $- == *i* ]]; then
+## Only run in interactive shell, If Needed use (if [[ $- == *i* ]]; then ...; fi)
+## : → "do nothing" or "no-op" command, used to ensure the script runs without error.
+## Use `: "${VAR:=default}"` is roughly equivalent to `VAR="${VAR:-default}"` → Default assignment (ensure it's set).
+## Use `: "${VAR:-default}"` → Default expansion (no assignment)
+## Use `: "${VAR:+alternative}"` → Conditional expansion (if set, use alternative)
+## Use `: "${VAR:?message}"` like `: "${VAR:?VAR must be set}"` → Safety check: fail if unset or empty.
 #
-# Only set MAMBA_ROOT_PREFIX if it's not already set
-# readonly locks it, this locks the variable so it cannot be reassigned accidentally later in the script.
+## Auto-activate $ENV_NAME if it exists, otherwise fallback to base
+# export ENV_NAME="${ENV_NAME:-py311}"  # Default to py311 if ENV_NAME is not set
+: "${ENV_NAME:=py311}"  # Default to py311 if ENV_NAME is not set
+# echo "\${ENV_NAME:=base}"  # -> don't expand, treat ${...} as plain text.
+#
+## If CONDA_ROOT_PREFIX is set, use it, Otherwise, fallback to the default: /opt/conda
+## If MAMBA_ROOT_PREFIX is set, use it, Otherwise, fallback to the nested default: ${HOME:-/root}/micromamba
+# export CONDA_ROOT_PREFIX="${CONDA_ROOT_PREFIX:-/opt/conda}"  # /d/miniconda3 D:/miniconda3
+# export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-/d/micromamba}"  # D:/micromamba
+: "${CONDA_ROOT_PREFIX:=/opt/conda}"  # Default to /opt/conda if CONDA_ROOT_PREFIX is not set
+: "${MAMBA_ROOT_PREFIX:=${HOME:-/root}/micromamba}"  # Default to ~/micromamba if MAMBA_ROOT_PREFIX is not set
+#
+## readonly locks it, this locks the variable so it cannot be reassigned accidentally later in the script.
 # readonly MAMBA_ROOT_PREFIX
-# echo "\${MAMBA_ROOT_PREFIX:=\${HOME:-/root}/micromamba}"
-# : is a no-op command used here to safely assign a default.
-: "${MAMBA_ROOT_PREFIX:-${HOME:-/root}/micromamba}"
-: "${ENV_NAME:-base}"
-## source \${MAMBA_ROOT_PREFIX:-~/micromamba}/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
+#
+## (If Necessary) Hardcoded Load conda/micromamba environment auto-activation script
+## source (or .) runs the file in the current shell session.
+if [ -f "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" ]; then
+    # source ${CONDA_ROOT_PREFIX:-/opt/conda}/etc/profile.d/conda.sh && conda activate || true
+    # source ${MAMBA_ROOT_PREFIX:-~/micromamba}/etc/profile.d/conda.sh && conda activate || true
+    . "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" && conda activate || true
+fi
+## (If Necessary) Activate logic conda/micromamba is handled in env_conda.sh or env_micromamba.sh
+# if micromamba env list | grep -qE '(^|[[:space:]])$ENV_NAME([[:space:]]|$)'; then
 if command -v conda >/dev/null 2>&1 || command -v micromamba >/dev/null 2>&1; then
   if command -v micromamba >/dev/null 2>&1 && [[ -d "$MAMBA_ROOT_PREFIX/envs/$ENV_NAME" ]]; then
     micromamba activate "$ENV_NAME" || true
-  elif command -v conda >/dev/null 2>&1 && [[ -d "/opt/conda/envs/$ENV_NAME" ]]; then
+  elif command -v conda >/dev/null 2>&1 && [[ -d "$CONDA_ROOT_PREFIX/envs/$ENV_NAME" ]]; then
     conda activate "$ENV_NAME" || true
   elif command -v micromamba >/dev/null 2>&1; then
     micromamba activate base || true
@@ -62,6 +79,3 @@ else
   true
 fi
 # <<< Conda/Mamba environment auto-activation <<<
-#
-# ==============================================================================
-# <<< (bashrc.suffix) scikit-plots personal initialization <<<

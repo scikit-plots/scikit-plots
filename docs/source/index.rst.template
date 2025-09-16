@@ -71,6 +71,8 @@ References:
 
   <br/>
 
+.. https://pandemic-overview.readthedocs.io/en/latest/bareos/RestOverview.html#cross-linking-markup
+
 .. footnote-style reference in reStructuredText (reST)
 .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
 .. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#toc-entry-35
