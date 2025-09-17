@@ -47,6 +47,8 @@ for i in range(10):
     # })
     # ax = sp.prplot(df, x="true", y="prob", label=f"{i}")
 
+    # With raw arrays (no DataFrame)
+    # Works because seaborn normalizes arrays internally
     ax = sp.rocplot(
         x=np.random.normal(0.5, 0.1, 100).round(),
         y=np.random.normal(0.5, 0.1, 100),

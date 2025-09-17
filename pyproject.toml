@@ -874,6 +874,7 @@ ignore = [
 [tool.ruff.lint.pep8-naming]
 # https://docs.astral.sh/ruff/settings/#lint_pep8-naming_ignore-names
 extend-ignore-names = [
+  "df",
   "X",
   "X_*",
 ]

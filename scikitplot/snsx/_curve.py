@@ -158,16 +158,6 @@ class _CurvePlotter(VectorPlotter):
             kws["color"] = to_rgba(color, alpha)
         return kws
 
-    # def _quantile_to_level(self, data, quantile):
-    #     """Return data levels corresponding to quantile cuts of mass."""
-    #     isoprop = np.asarray(quantile)
-    #     values = np.ravel(data)
-    #     sorted_values = np.sort(values)[::-1]
-    #     normalized_values = np.cumsum(sorted_values) / values.sum()
-    #     idx = np.searchsorted(normalized_values, 1 - isoprop)
-    #     levels = np.take(sorted_values, idx, mode="clip")
-    #     return levels
-
     def _cmap_from_color(self, color):
         """Return a sequential colormap given a color seed."""
         # Like so much else here, this is broadly useful, but keeping it
@@ -181,6 +171,36 @@ class _CurvePlotter(VectorPlotter):
         ramp[:, 2] = np.linspace(35, 80, 256)
         colors = np.clip([husl.husl_to_rgb(*hsl) for hsl in ramp], 0, 1)
         return mpl.colors.ListedColormap(colors[::-1])
+
+    def _make_legend_proxies(self, artists, labels):
+        """
+        Convert PolyCollections from fill_between into Line2D proxies so legends remain clean.
+        """
+        # If artists are PolyCollections (from fill_between), create Line2D proxies
+        handles = []
+        for art in artists:
+            if isinstance(art, mpl.collections.PolyCollection):
+                # proxy line for legend using first artist's color and linestyle
+                # color_proxy = art.get_facecolor()[0] if len(art.get_facecolor()) else None
+                face = art.get_facecolor()
+                c = face[0] if len(face) > 0 else None  # (0, 0, 0, 1)
+                proxy = mpl.lines.Line2D([], [], color=c, linewidth=1.5)
+                handles.append(proxy)
+            else:
+                handles.append(art)
+        # filter out None labels
+        labels = [lbl if lbl is not None else "" for lbl in labels]
+        return handles, labels
+
+    # def _quantile_to_level(self, data, quantile):
+    #     """Return data levels corresponding to quantile cuts of mass."""
+    #     isoprop = np.asarray(quantile)
+    #     values = np.ravel(data)
+    #     sorted_values = np.sort(values)[::-1]
+    #     normalized_values = np.cumsum(sorted_values) / values.sum()
+    #     idx = np.searchsorted(normalized_values, 1 - isoprop)
+    #     levels = np.take(sorted_values, idx, mode="clip")
+    #     return levels
 
     # def _default_discrete(self):
     #     """Find default values for discrete hist estimation based on variable type."""
@@ -357,6 +377,7 @@ class _CurvePlotter(VectorPlotter):
         # y_score = sub_data[y_col]
 
         # Drop rows missing either true labels or predicted scores
+        # df.dropna(axis=1, how="all")  # Drop completely empty columns
         sub = sub_data.dropna(subset=["x", "y"])
         if sub.empty:
             return None, None, None
@@ -378,26 +399,6 @@ class _CurvePlotter(VectorPlotter):
         weights = sub["weights"].to_numpy() if "weights" in sub.columns else None
 
         return y_true, y_score, weights
-
-    def _make_legend_proxies(self, artists, labels):
-        """
-        Convert PolyCollections from fill_between into Line2D proxies so legends remain clean.
-        """
-        # If artists are PolyCollections (from fill_between), create Line2D proxies
-        handles = []
-        for art in artists:
-            if isinstance(art, mpl.collections.PolyCollection):
-                # proxy line for legend using first artist's color and linestyle
-                # color_proxy = art.get_facecolor()[0] if len(art.get_facecolor()) else None
-                face = art.get_facecolor()
-                c = face[0] if len(face) > 0 else None  # (0, 0, 0, 1)
-                proxy = mpl.lines.Line2D([], [], color=c, linewidth=1.5)
-                handles.append(proxy)
-            else:
-                handles.append(art)
-        # filter out None labels
-        labels = [lbl if lbl is not None else "" for lbl in labels]
-        return handles, labels
 
     def _plot_curve(
         self,
