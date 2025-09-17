@@ -453,7 +453,21 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("snsx-index"),
         "sections": [
             {
-                "title": "Seaborn Extended",
+                "title": ".kds to Seaborn",
+                "description": None,
+                # "description": (
+                #   _get_submodule("scikitplot.kds", "_kds")
+                #   + "\n\n"
+                #   + _get_guide("kds-index")
+                # ),
+                "autosummary": [
+                    "kdsplot",
+                    "print_labels",
+                ],
+            },
+            {
+                "title": ".api to Seaborn",
+                "description": None,
                 # "description": (
                 #   _get_submodule("scikitplot.kds", "_kds")
                 #   + "\n\n"
