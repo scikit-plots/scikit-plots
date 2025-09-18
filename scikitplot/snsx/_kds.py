@@ -20,8 +20,8 @@ Design principles:
 
 This module provides:
 - decile_table(...) : compute decile-level statistics
-- plot_lift(...) : cumulative lift curve
-- plot_lift_decile_wise(...) : lift per decile
+- plot_cumulative_lift(...) : cumulative lift curve
+- plot_decile_wise_lift(...) : lift per decile
 - plot_cumulative_gain(...) : cumulative gain curve
 - plot_ks_statistic(...) : KS statistic and helper markers
 - report(...) : convenience function producing decile table + subplots
@@ -69,78 +69,143 @@ __all__ = [
 
 def get_label_info() -> "dict[str, str]":  # noqa: UP037
     """
-    Return the legend for decile table column abbreviations.
+    Return a comprehensive legend for decile table columns.
 
-    Each key is a column name in the decile table, and its value is a
-    short explanation of what it means, plus critical notes on why/when/how to use it.
+    Each key represents a decile table column.
+    The value contains:
+    - Meaning: What the column represents
+    - Critical check / logic: How to interpret, why it matters, and potential pitfalls
     """
     return {
         "decile": (
-            "Ranked group (1=highest probability). Why: shows model discrimination. Fatal if top deciles don't capture positives."
+            "Meaning: Ranked group (1 = highest predicted probability). "
+            "Critical: Ensure sorted descending by model score. Fatal if top deciles don't capture positives."
         ),
         "prob_min": (
-            "Lowest predicted probability in the decile. Why: signals calibration. Fatal if too close to prob_max (model not ranking well)."
+            "Meaning: Lowest predicted probability in the decile. "
+            "Critical: Signals model calibration. Fatal if too close to prob_max (poor ranking)."
         ),
         "prob_max": (
-            "Highest predicted probability in the decile. Why: checks spread. Fatal if overlaps lower deciles (poor separation)."
+            "Meaning: Highest predicted probability in the decile. "
+            "Critical: Checks separation. Fatal if overlaps lower deciles (poor discrimination)."
         ),
         "prob_avg": (
-            "Average predicted probability in the decile. Why: good for calibration curves. Fatal if averages do not increase with decile."
-        ),
-        "cnt_resp": (
-            "Number of true responders. Why: measures captured positives. Fatal if counts are flat across deciles (model useless)."
+            "Meaning: Average predicted probability in the decile. "
+            "Critical: Useful for calibration curves; should decrease monotonically across deciles."
         ),
         "cnt_resp_total": (
-            "Total samples in the decile. Why: denominator for rates. Fatal if deciles differ in size — signals incorrect binning."
+            "Meaning: Total samples in the decile. "
+            "Critical: Denominator for rate_resp and cumulative % calculations. Fatal if deciles uneven."
+        ),
+        "cnt_resp": (
+            "Meaning: Actual responders in the decile. "
+            "Critical: Should never exceed cnt_resp_wiz. Flat counts across deciles indicate useless model."
         ),
         "cnt_resp_non": (
-            "Number of non-responders. Why: tracks negatives. Fatal if too high in top deciles (bad ranking)."
-        ),
-        "cnt_resp_wiz": (
-            "Ideal responders if model was perfect (sorted by actuals). Why: sets maximum benchmark. Fatal if actual is far below this."
+            "Meaning: Non-responders in the decile. "
+            "Critical: Used for KS/statistics. Too high in top deciles is a warning."
         ),
         "cnt_resp_rndm": (
-            "Expected responders if random. Why: baseline. Fatal if model only slightly above random."
+            "Meaning: Expected responders if randomly assigned. "
+            "Critical: Baseline for comparison. Fatal if model only slightly above random."
+        ),
+        "cnt_resp_wiz": (
+            "Meaning: Ideal responders if model were perfect. "
+            "Critical: Must be ≥ cnt_resp. Fatal if NaN or actual far below."
         ),
         "rate_resp": (
-            "Response rate (cnt_resp / total). Why: decile quality. Fatal if early deciles do not outperform later ones."
-        ),
-        "cum_resp": (
-            "Cumulative responders up to decile. Why: shows capture rate. Fatal if curve is too shallow."
-        ),
-        "cum_resp_pct": (
-            "Cumulative responder percentage. Why: needed for lift/gain charts. Fatal if curve near random line."
+            "Meaning: Response rate = cnt_resp / cnt_resp_total. "
+            "Critical: Measures decile quality. Early deciles should outperform later ones."
         ),
         "cum_resp_total": (
-            "Cumulative samples. Why: population coverage. Fatal if distribution biased."
+            "Meaning: Cumulative total samples. Critical: Tracks population coverage."
         ),
         "cum_resp_total_pct": (
-            "Cumulative population percentage. Why: axis for gain/ROC curves. Fatal if deciles unbalanced."
+            "Meaning: % cumulative population. "
+            "Critical: X-axis for lift/gain curves; check decile balance."
+        ),
+        "cum_resp": (
+            "Meaning: Cumulative responders up to this decile. "
+            "Critical: Should increase; max = total responders. Flat curve = weak model."
+        ),
+        "cum_resp_pct": (
+            "Meaning: % cumulative responders = cum_resp / total_responders * 100. "
+            "Critical: Wizard curve should be ≥ model; used in lift/gain charts."
         ),
         "cum_resp_non": (
-            "Cumulative non-responders. Why: tracks negatives. Fatal if they dominate early deciles."
+            "Meaning: Cumulative non-responders. "
+            "Critical: Used in KS statistic; early dominance is bad."
         ),
         "cum_resp_non_pct": (
-            "Cumulative non-responder %. Why: used in KS. Fatal if almost same as cum_resp_pct (model fails)."
+            "Meaning: % cumulative non-responders. "
+            "Critical: Should differ from cum_resp_pct; almost equal = model fails."
+        ),
+        "cum_resp_rndm": (
+            "Meaning: Cumulative expected responders if randomly assigned. "
+            "Critical: Baseline for cumulative lift. Fatal if model ≈ random curve."
+        ),
+        "cum_resp_rndm_pct": (
+            "Meaning: % cumulative random responders = cum_resp_rndm / total_responders * 100. "
+            "Critical: Random baseline curve (diagonal). Always linear from (0,0) to (100,100). "
+            "Fatal if model curve is near or below it."
         ),
         "cum_resp_wiz": (
-            "Cumulative ideal responders. Why: theoretical max. Fatal gap means weak targeting."
+            "Meaning: Cumulative ideal responders. "
+            "Critical: Should always ≥ model; never NaN."
         ),
         "cum_resp_wiz_pct": (
-            r"Cumulative % ideal responders. Why: benchmark. Fatal if actual far below."
+            "Meaning: % cumulative ideal responders. "
+            "Critical: Wizard benchmark for lift/gain curves; gaps indicate model weakness."
         ),
         "KS": (
-            "Kolmogorov-Smirnov statistic. Why: measures max separation. Fatal if very low (<0.2). Strong models often 0.3-0.5."
+            "Meaning: Kolmogorov-Smirnov statistic = cum_resp_pct - cum_resp_non_pct. "
+            "Critical: Max separation shows discriminative power. Fatal if very low (<0.2)."
         ),
-        "lift": (
-            "Cumulative lift vs random. Why: shows model gain. Fatal if <2 in top decile (weak business value)."
+        "cumulative_lift": (
+            "Meaning: Cumulative lift = cum_resp_pct / cum_resp_total_pct. "
+            "Critical: Shows model gain over random. Always cumulative. Fatal if <1 or <2 in top decile."
+        ),
+        "decile_wise_lift": (
+            "Meaning: Decile-wise lift = cnt_resp / cnt_resp_rndm. "
+            "Critical: Measures decile-level improvement vs random. Fatal if <1."
         ),
     }
 
 
-def print_labels(as_json: bool = True, indent: int = 2) -> None:
+def print_labels(
+    as_json: bool = True,
+    indent: int = 2,
+) -> None:
     """
     Pretty-print the legend of decile table column names.
+
+    ::
+
+        [
+            "decile",
+            "prob_min",
+            "prob_max",
+            "prob_avg",
+            "cnt_resp_total",
+            "cnt_resp",
+            "cnt_resp_non",
+            "cnt_resp_rndm",
+            "cnt_resp_wiz",
+            "rate_resp",
+            "cum_resp_total",
+            "cum_resp_total_pct",
+            "cum_resp",
+            "cum_resp_pct",
+            "cum_resp_non",
+            "cum_resp_non_pct",
+            "cum_resp_rndm",
+            "cum_resp_rndm_pct",
+            "cum_resp_wiz",
+            "cum_resp_wiz_pct",
+            "KS",
+            "cumulative_lift",
+            "decile_wise_lift",
+        ]
 
     Parameters
     ----------
@@ -148,6 +213,25 @@ def print_labels(as_json: bool = True, indent: int = 2) -> None:
         If True, pretty-print as JSON. If False, use Python's pprint.
     indent : int, default=2
         Indentation for JSON formatting.
+
+    See Also
+    --------
+    kdsplot : Given binary labels y_true (0/1) and probabilities y_score 1d array,
+        compute/plot a decile table.
+
+    References
+    ----------
+    .. [1] `https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382
+       <https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382>`_
+
+    .. [2] https://github.com/tensorbored/kds/blob/master/kds/metrics.py#L382
+
+    Examples
+    --------
+    .. jupyter-execute::
+
+        >>> import scikitplot.snsx as sp
+        >>> sp.print_labels()
     """
     labels = get_label_info()
 
@@ -372,7 +456,8 @@ class _DecilePlotter(VectorPlotter):
     # ---------------------------
     # Plot helpers
     # ---------------------------
-    def _plot_lift(self, dt: pd.DataFrame, legend, ax, **kws):
+    def _plot_cumulative_lift(self, dt: pd.DataFrame, legend, ax, **kws):
+        n_deciles = dt["decile"].max()
         artists, labels = [], []
         # Plot curve: fill area under curve if requested, otherwise plot line
         # if kws.pop("fill", None):
@@ -382,14 +467,33 @@ class _DecilePlotter(VectorPlotter):
         # else:
         #     # draw standard PR line plot
         #     (artist,) = ax.plot(y_true, y_score, **kws)
-        (artist,) = ax.plot(dt["decile"], dt["lift"], marker="o", label="Model", **kws)
-        artists.append(artist), labels.append("Model")
+        (artist,) = ax.plot(
+            dt["decile"],
+            dt["cumulative_lift"],
+            marker="o",
+            label="Model (Discriminative Power)",
+            **kws,
+        )
+        artists.append(artist), labels.append("Model (Discriminative Power)")
         # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
-        (artist,) = ax.plot([1, 10], [1, 1], "k--", label="Random")
-        artists.append(artist), labels.append("Random")
-        ax.set(xlabel="Decile", ylabel="Lift", title="Lift Curve")
+        (artist,) = ax.plot(
+            [1, n_deciles],
+            [1, 1],
+            "k--",
+            label="Random Baseline (Lift=1)",
+            zorder=-1,
+        )
+        artists.append(artist), labels.append("Random Baseline (Lift=1)")
+        ax.set(
+            # "Population %\n(sorted by predicted score, descending; decile/percentile)"
+            xlabel="Population %\n(sorted by score (desc), decile/percentile)",
+            # "Cumulative Lift Ratio\n(Lift@k = responders% up to k / population% up to k)"
+            ylabel="Cumulative Lift Ratio\n(Lift@k, top k%)",
+            # "Cumulative Lift Curve\n(Model vs Random Baseline = 1)"
+            title="Cumulative Lift Curve",
+        )
         # plt.title("Lift Curve")
-        # plt.xlabel("Decile")
+        # plt.xlabel("Decile")  # Population Percentage
         # plt.ylabel("Lift")
         ax.grid(True)
 
@@ -401,20 +505,31 @@ class _DecilePlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def _plot_lift_decile_wise(self, dt: pd.DataFrame, legend, ax, **kws):
+    def _plot_decile_wise_lift(self, dt: pd.DataFrame, legend, ax, **kws):
+        n_deciles = dt["decile"].max()
         artists, labels = [], []
         (artist,) = ax.plot(
             dt["decile"],
-            dt["cnt_resp"] / dt["cnt_resp_rndm"],
+            dt["decile_wise_lift"],
             marker="o",
-            label="Model",
+            label="Model (Discriminative Power)",
             **kws,
         )
-        artists.append(artist), labels.append("Model")
-        (artist,) = ax.plot([1, 10], [1, 1], "k--", label="Random")
-        artists.append(artist), labels.append("Random")
+        artists.append(artist), labels.append("Model (Discriminative Power)")
+        (artist,) = ax.plot(
+            [1, n_deciles],
+            [1, 1],
+            "k--",
+            label="Random Baseline (Lift=1)",
+            zorder=-1,
+        )
+        artists.append(artist), labels.append("Random Baseline (Lift=1)")
         ax.set(
-            xlabel="Decile", ylabel="Lift @ Decile-w", title="Lift Decile-wise Curve"
+            # "Population %\n(sorted by predicted score, descending; decile/percentile)"
+            xlabel="Population %\n(sorted by score (desc), decile/percentile)",
+            # "Decile-wise Lift Ratio\n(Lift = decile response rate / overall response rate)"
+            ylabel="Decile-wise Lift Ratio",
+            title="Decile-wise Lift Curve",
         )
         ax.grid(True)
 
@@ -427,25 +542,56 @@ class _DecilePlotter(VectorPlotter):
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
     def _plot_cumulative_gain(self, dt: pd.DataFrame, legend, ax, **kws):
+        n_deciles = dt["decile"].max()
         artists, labels = [], []
+        # Model curve = your actual model → discriminative power lies between random and wizard.
+        # Wizard baseline = perfect model, responders ranked first → theoretical maximum performance.
+        # Random baseline = no model, responders distributed evenly → Lift = 1 / diagonal line.
         (artist,) = ax.plot(
-            np.append(0, dt["decile"]),
-            np.append(0, dt["cum_resp_pct"]),
+            # np.append(0, dt["decile"]),
+            dt["decile"],
+            # np.append(0, dt["cum_resp_pct"]),
+            dt["cum_resp_pct"],
             marker="o",
-            label="Model",
+            label="Model (Discriminative Power)",
             **kws,
         )
-        artists.append(artist), labels.append("Model")
+        artists.append(artist), labels.append("Model (Discriminative Power)")
+        # Wizard model = a hypothetically perfect classifier.
+        # It always ranks all responders at the very top of the population
+        # It gives the theoretical upper bound of performance.
+        # If your model curve is close to wizard → very strong.
+        # If your model is close to random → useless.
         (artist,) = ax.plot(
-            np.append(0, dt["decile"]),
-            np.append(0, dt["cum_resp_wiz_pct"]),
+            # np.append(0, dt["decile"]),
+            dt["decile"],
+            # np.append(0, dt["cum_resp_wiz_pct"]),
+            dt["cum_resp_wiz_pct"],
             "c--",
-            label="Wizard",
+            # https://matplotlib.org/stable/gallery/lines_bars_and_markers/marker_reference.html#marker-reference
+            # ('.', 'o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X')
+            marker="2",
+            alpha=0.66,
+            label="Wizard Baseline (perfect model)",
+            # zorder=-1,
         )
-        artists.append(artist), labels.append("Wizard")
-        (artist,) = ax.plot([0, 10], [0, 100], "k--", label="Random")
-        artists.append(artist), labels.append("Random")
-        ax.set(xlabel="Decile", ylabel="% Responders", title="Cumulative Gain Curve")
+        artists.append(artist), labels.append("Wizard Baseline (perfect model)")
+        (artist,) = ax.plot(
+            [1, n_deciles],
+            [1, 100],
+            "k--",
+            label="Random Baseline (Gain=diagonal)",
+            zorder=-1,
+        )
+        artists.append(artist), labels.append("Random Baseline (Gain=diagonal)")
+        ax.set(
+            # "Population %\n(sorted by predicted score, descending; decile/percentile)"
+            xlabel="Population %\n(sorted by score (desc), decile/percentile)",
+            # "Cumulative Responders %\n(captured vs total responders)"
+            ylabel="Cumulative Responders %",
+            # "Cumulative Gain Curve\n(Model vs Random Baseline = diagonal)"
+            title="Cumulative Gain Curve",
+        )
         ax.grid(True)
 
         # Add legend (use axes of the first plotted subset)
@@ -457,18 +603,23 @@ class _DecilePlotter(VectorPlotter):
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
     def _plot_ks_statistic(self, dt: pd.DataFrame, legend, ax, **kws):
+        n_deciles = dt["decile"].max()
         artists, labels = [], []
         (artist,) = ax.plot(
-            np.append(0, dt["decile"]),
-            np.append(0, dt["cum_resp_pct"]),
+            # np.append(0, dt["decile"]),
+            dt["decile"],
+            # np.append(0, dt["cum_resp_pct"]),
+            dt["cum_resp_pct"],
             marker="o",
             label="Responders",
             **kws,
         )
         artists.append(artist), labels.append("Responders")
         (artist,) = ax.plot(
-            np.append(0, dt["decile"]),
-            np.append(0, dt["cum_resp_non_pct"]),
+            # np.append(0, dt["decile"]),
+            dt["decile"],
+            # np.append(0, dt["cum_resp_non_pct"]),
+            dt["cum_resp_non_pct"],
             marker="o",
             c="darkorange",
             label="Non-Responders",
@@ -490,9 +641,25 @@ class _DecilePlotter(VectorPlotter):
             marker="o",
             # label="KS Statistic: " + str(ks_max) + " at decile " + str(list(ks_decile)[0]),
             label=f"KS={ks_max:.2f} @ decile {ks_decile}",
+            zorder=-1,
         )
         artists.append(artist), labels.append(f"KS={ks_max:.4f} @ decile {ks_decile}")
-        ax.set(xlabel="Decile", ylabel="% Responders", title="KS Statistic")
+        (artist,) = ax.plot(
+            [1, n_deciles],
+            [1, 100],
+            "k--",
+            label="Random Baseline (Gain=diagonal)",
+            zorder=-1,
+        )
+        artists.append(artist), labels.append("Random Baseline (Gain=diagonal)")
+        ax.set(
+            # "Population %\n(sorted by predicted score, descending; decile/percentile)"
+            xlabel="Population %\n(sorted by score (desc), decile/percentile)",
+            # "Cumulative Distribution %"
+            ylabel="Cumulative Distribution %",
+            # "KS Statistic Curve\n(Difference between responders and non-responders)"
+            title="KS Statistic Curve",
+        )
         ax.grid(True)
 
         # Add legend (use axes of the first plotted subset)
@@ -513,8 +680,8 @@ class _DecilePlotter(VectorPlotter):
         axes = fig.subplots(2, 2)
 
         # Draw plots
-        self._plot_lift(dt, legend, axes[0, 0], **kws)
-        self._plot_lift_decile_wise(dt, legend, axes[0, 1], **kws)
+        self._plot_cumulative_lift(dt, legend, axes[0, 0], **kws)
+        self._plot_decile_wise_lift(dt, legend, axes[0, 1], **kws)
         self._plot_cumulative_gain(dt, legend, axes[1, 0], **kws)
         self._plot_ks_statistic(dt, legend, axes[1, 1], **kws)
         fig.tight_layout()
@@ -524,7 +691,7 @@ class _DecilePlotter(VectorPlotter):
     # ------------------------
     def compute_decile_table(  # noqa: PLR0912
         self,
-        kind: "Literal['df', 'lift', 'lift_decile_wise', 'cumulative_gain', 'ks_statistic', 'report'] | None" = None,  # noqa: UP037
+        kind: "Literal['df', 'cumulative_lift', 'decile_wise_lift', 'cumulative_gain', 'ks_statistic', 'report'] | None" = None,  # noqa: UP037
         fill=None,
         color=None,
         legend=None,
@@ -538,29 +705,32 @@ class _DecilePlotter(VectorPlotter):
 
         The function sorts observations by descending score, assigns decile index
         (1..n_deciles) using pandas qcut on the rank/index to ensure near-equal bins,
-        and computes standard decile-level stats::
+        and computes standard decile-level (features)::
 
             [
                 "decile",
                 "prob_min",
                 "prob_max",
                 "prob_avg",
-                "cnt_resp",
                 "cnt_resp_total",
+                "cnt_resp",
                 "cnt_resp_non",
-                "cnt_resp_wiz",
                 "cnt_resp_rndm",
+                "cnt_resp_wiz",
                 "rate_resp",
-                "cum_resp",
-                "cum_resp_pct",
                 "cum_resp_total",
                 "cum_resp_total_pct",
+                "cum_resp",
+                "cum_resp_pct",
                 "cum_resp_non",
                 "cum_resp_non_pct",
+                "cum_resp_rndm",
+                "cum_resp_rndm_pct",
                 "cum_resp_wiz",
                 "cum_resp_wiz_pct",
                 "KS",
-                "lift",
+                "cumulative_lift",
+                "decile_wise_lift",
             ]
 
         Returns DataFrame indexed by decile (sorted ascending).
@@ -624,14 +794,16 @@ class _DecilePlotter(VectorPlotter):
             else:
                 # binary case (most common)
                 # Defensive copy via DataFrame to use pandas utilities
-                dt = pd.DataFrame({"y_true": y_true, "y_score": y_score})  # .dropna()
-
+                dt = pd.DataFrame(
+                    {"y_true": y_true, "y_score": y_score},
+                )  # .dropna()
+                # Ranked group (1=highest probability)
+                # Ensure sorted descending by model score. Fatal if not.
                 # Sort probabilities by descending score so highest scores are in decile 1
                 dt = dt.sort_values(by="y_score", ascending=False).reset_index(
                     drop=True
                 )
-
-                # Assign deciles by index using qcut behavior. Use ranks (index) to avoid duplicate-edge errors.
+                # Assign deciles (pop_pct) by index using qcut behavior. Use ranks (index) to avoid duplicate-edge errors.
                 # qcut on the index will create near-equal sized bins; duplicates="drop" avoids failures with many ties.
                 try:
                     # dt["decile"] = pd.qcut(dt.index, q=n_deciles, labels=False, duplicates="drop") + 1
@@ -649,7 +821,9 @@ class _DecilePlotter(VectorPlotter):
                     )
 
                 # Aggregate per decile as decile table
+                rndm = np.sum(dt["y_true"]) / n_deciles  # scaler constant
                 agg = (
+                    # Changed in version 2.0.0: group_keys now defaults to True.
                     dt.groupby("decile", group_keys=False)
                     .apply(
                         lambda x: pd.Series(
@@ -657,18 +831,22 @@ class _DecilePlotter(VectorPlotter):
                                 np.min(x["y_score"]),
                                 np.max(x["y_score"]),
                                 np.mean(x["y_score"]),
-                                np.sum(x["y_true"]),
                                 np.size(x["y_score"]),
+                                np.sum(x["y_true"]),
                                 np.size(x["y_true"][x["y_true"] == 0]),
+                                rndm,  # noqa: B023
+                                np.sum(x["y_true"]),
                             ],
                             index=(
                                 [
                                     "prob_min",
                                     "prob_max",
                                     "prob_avg",
-                                    "cnt_resp",
                                     "cnt_resp_total",
+                                    "cnt_resp",
                                     "cnt_resp_non",
+                                    "cnt_resp_rndm",
+                                    "cnt_resp_wiz",
                                 ]
                             ),
                         ),
@@ -678,49 +856,58 @@ class _DecilePlotter(VectorPlotter):
                     )
                     .reset_index()
                 )
+                # agg = agg.sort_values(by='decile', ascending=False).reset_index(drop=True)
+                # agg = agg.sort_index()  # decile ascending 1..k
+
                 # Response compute non-resp
                 # agg["cnt_nonresp"] = agg["cnt_total"] - agg["cnt_resp"]
                 # Add random/wizard responders for benchmarking
-                # For Calculate additional columns
-                tmp = dt[["y_true"]].sort_values("y_true", ascending=False)
-                tmp["decile"] = np.linspace(
-                    1, n_deciles + 1, len(tmp), False, dtype=int
-                )
-                tmp = tmp.groupby(
-                    "decile",
-                    group_keys=False,  # Changed in version 2.0.0: group_keys now defaults to True.
-                    as_index=True,
-                )
-                agg["cnt_resp_wiz"] = tmp["y_true"].sum()  # ['y_true']
-                agg["cnt_resp_rndm"] = np.sum(dt["y_true"]) / n_deciles
+                # Calculate additional columns
+                # tmp = dt[["decile", "y_true"]].copy()
+                # tmp = tmp.groupby(
+                #     "decile",
+                #     group_keys=False,  # Changed in version 2.0.0: group_keys now defaults to True.
+                #     as_index=True,
+                # )
+                # agg["cnt_resp_wiz"] = tmp["y_true"].sum().reset_index(drop=True)  # ['y_true']
+                # agg["cnt_resp_rndm"] = np.sum(dt["y_true"]) / n_deciles  # scaler constant
+
+                # Direct decile quality metric
                 agg["rate_resp"] = (agg["cnt_resp"] / agg["cnt_resp_total"]) * 100.0
 
                 # cumulative columns and percentages: avoid division by zero
-                # agg = agg.sort_values(by='decile',ascending=False).reset_index(drop=True)
-                agg = agg.sort_index()  # decile ascending 1..k
-                agg["cum_resp"] = np.cumsum(agg["cnt_resp"])
-                agg["cum_resp_pct"] = (
-                    agg["cum_resp"] / np.sum(agg["cnt_resp"])
-                ) * 100.0
                 agg["cum_resp_total"] = np.cumsum(agg["cnt_resp_total"])
                 agg["cum_resp_total_pct"] = (
                     agg["cum_resp_total"] / np.sum(agg["cnt_resp_total"])
                 ) * 100.0
+                agg["cum_resp"] = np.cumsum(agg["cnt_resp"])
+                agg["cum_resp_pct"] = (
+                    agg["cum_resp"] / np.sum(agg["cnt_resp"])
+                ) * 100.0
                 agg["cum_resp_non"] = np.cumsum(agg["cnt_resp_non"])
                 agg["cum_resp_non_pct"] = (
                     agg["cum_resp_non"] / np.sum(agg["cnt_resp_non"])
+                ) * 100.0
+                agg["cum_resp_rndm"] = np.cumsum(agg["cnt_resp_rndm"])
+                agg["cum_resp_rndm_pct"] = (
+                    agg["cum_resp_rndm"] / np.sum(agg["cnt_resp_rndm"])
                 ) * 100.0
                 agg["cum_resp_wiz"] = np.cumsum(agg["cnt_resp_wiz"])
                 agg["cum_resp_wiz_pct"] = (
                     agg["cum_resp_wiz"] / np.sum(agg["cnt_resp_wiz"])
                 ) * 100.0
 
-                # KS and lift
+                # KS and cumulative_lift
                 agg["KS"] = (
                     agg["cum_resp_pct"] - agg["cum_resp_non_pct"]
                 )  # .round(round_digits)
                 # avoid division by zero in lift
-                agg["lift"] = agg["cum_resp_pct"] / agg["cum_resp_total_pct"]
+                agg["cumulative_lift"] = agg["cum_resp_pct"] / agg["cum_resp_total_pct"]
+                # This is mathematically equivalent to the formula below
+                # (just expressed using expected random responders instead of overall rate).
+                # overall_rate = agg["cnt_resp"].sum() / agg["cnt_resp_total"].sum()
+                # agg["decile_wise_lift"] = (agg["cnt_resp"] / agg["cnt_resp_total"]) / overall_rate
+                agg["decile_wise_lift"] = agg["cnt_resp"] / agg["cnt_resp_rndm"]
                 # agg = agg.fillna(0)  # replace NaNs from division by zeros
 
                 if "hue" in self.variables:
@@ -761,7 +948,7 @@ def kdsplot(  # noqa: D417
     *,
     x: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
     y: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
-    kind: "Literal['df', 'lift', 'lift_decile_wise', 'cumulative_gain', 'ks_statistic', 'report'] | None" = None,  # noqa: UP037
+    kind: "Literal['df', 'cumulative_lift', 'decile_wise_lift', 'cumulative_gain', 'ks_statistic', 'report'] | None" = None,  # noqa: UP037
     n_deciles: int = 10,
     round_digits: "int | None" = None,  # noqa: UP037
     hue: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
@@ -775,35 +962,38 @@ def kdsplot(  # noqa: D417
     legend=True,
     ax=None,
     **kwargs,
-) -> pd.DataFrame:
+) -> "pd.DataFrame | mpl.axes.Axes":  # mpl.figure.Figure  # noqa: UP037
     """
-    Given labels y_true (0/1) and probabilities y_score arrays, compute a decile table.
+    Given binary labels y_true (0/1) and probabilities y_score 1d array, compute/plot a decile table.
 
     The function sorts observations by descending score, assigns decile index
     (1..n_deciles) using pandas qcut on the rank/index to ensure near-equal bins,
-    and computes standard decile-level stats::
+    and computes standard decile-level stats (features)::
 
         [
             "decile",
             "prob_min",
             "prob_max",
             "prob_avg",
-            "cnt_resp",
             "cnt_resp_total",
+            "cnt_resp",
             "cnt_resp_non",
-            "cnt_resp_wiz",
             "cnt_resp_rndm",
+            "cnt_resp_wiz",
             "rate_resp",
-            "cum_resp",
-            "cum_resp_pct",
             "cum_resp_total",
             "cum_resp_total_pct",
+            "cum_resp",
+            "cum_resp_pct",
             "cum_resp_non",
             "cum_resp_non_pct",
+            "cum_resp_rndm",
+            "cum_resp_rndm_pct",
             "cum_resp_wiz",
             "cum_resp_wiz_pct",
             "KS",
-            "lift",
+            "cumulative_lift",
+            "decile_wise_lift",
         ]
 
     Parameters
@@ -820,17 +1010,24 @@ def kdsplot(  # noqa: D417
     verbose : bool, optional, default=False
         If True, prints a legend for the abbreviations of decile table column names.
 
-    Returns DataFrame indexed by decile (sorted ascending).
-
     Returns
     -------
-    pandas.DataFrame
-        The dataframe (decile-table) with the deciles and related information (decile-level metrics).
-        If hue/facet semantics were used, the returned table will include extra columns for those keys (e.g., 'hue').
+    pandas.DataFrame | matplotlib.axes.Axes
+        The dataframe (decile-table) with the indexed by deciles (sorted ascending)
+        and related information (decile-level metrics).
+        If hue/facet semantics were used, the returned table will include
+        extra columns for those keys (e.g., 'hue').
     """
     _check_argument(
         "kind",
-        ["df", "lift", "lift_decile_wise", "cumulative_gain", "ks_statistic", "report"],
+        [
+            "df",
+            "cumulative_lift",
+            "decile_wise_lift",
+            "cumulative_gain",
+            "ks_statistic",
+            "report",
+        ],
         kind,
     )
 
