@@ -15,33 +15,83 @@ import scikitplot.snsx as sp
 
 
 # %%
+import matplotlib.pyplot as plt
 import numpy as np; np.random.seed(0)  # reproducibility
 import pandas as pd
 
+from sklearn.datasets import (
+    load_iris as data_3_classes,
+)
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+
+# %%
+# Load the data
+X, y = data_3_classes(return_X_y=True, as_frame=False)
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
+
+# Create an instance of the LogisticRegression
+model = (
+    LogisticRegression(max_iter=int(1e5), random_state=0)
+    .fit(X_train, y_train)
+)
+
+# Perform predictions
+y_val_prob = model.predict_proba(X_val)
 # Create a DataFrame with predictions
 df = pd.DataFrame({
-    "y_true": np.random.normal(0.5, 0.1, 100).round(),
-    "y_score": np.random.normal(0.5, 0.15, 100),
-    "hue": np.random.normal(0.5, 0.4, 100).round(),
+    "y_true": y_val==1,  # target class (0,1,2)
+    "y_score": y_val_prob[:, 1],  # target class (0,1,2)
+    # "y_true": np.random.normal(0.5, 0.1, 100).round(),
+    # "y_score": np.random.normal(0.5, 0.15, 100),
+    # "hue": np.random.normal(0.5, 0.4, 100).round(),
 })
 
 
+
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score", kind="df", n_deciles=10, round_digits=2)
-p
+p = sp.kdsplot(
+    df,
+    x="y_true",
+    y="y_score",
+    kind="df",
+    n_deciles=10,
+    round_digits=3,
+    verbose=True,
+)
+p  # .columns.tolist()
+# p.iloc[:,range(9,21)]
+# p[["decile", "cnt_resp", "cnt_resp_wiz", "cum_resp_pct", "cum_resp_wiz_pct"]]
 
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score",kind="lift")
+# import scikitplot as sp
+# sp.kds.decile_table(
+#     y_val, y_val_prob[:, 1]
+# )
+
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score",kind="lift_decile_wise")
+p = sp.kdsplot(df, x="y_true", y="y_score", kind="cumulative_lift", n_deciles=10)
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score",kind="cumulative_gain")
+p = sp.kdsplot(df, x="y_true", y="y_score", kind="decile_wise_lift", n_deciles=10)
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score",kind="ks_statistic")
+p = sp.kdsplot(df, x="y_true", y="y_score", kind="cumulative_gain", n_deciles=10)
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score",kind="report", verbose=True)
+p = sp.kdsplot(df, x="y_true", y="y_score", kind="ks_statistic", n_deciles=10)
+
+# %%
+fig, ax = plt.subplots(figsize=(10, 10))
+p = sp.kdsplot(
+    df,
+    x="y_true",
+    y="y_score",
+    kind="report",
+    n_deciles=10,
+    verbose=True,
+)
+
+# %%
