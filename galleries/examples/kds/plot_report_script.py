@@ -1,15 +1,15 @@
 """
-=============================
-plot_lift with examples
-=============================
+plot_cumulative_gain with examples
+==================================
 
-An example showing the :py:func:`~scikitplot.kds.plot_lift` function used
+An example showing the :py:func:`~scikitplot.kds.plot_cumulative_gain` function used
 by a scikit-learn classifier.
 """
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# %%
 from sklearn.datasets import (
     load_breast_cancer as data_2_classes,
     # load_iris as data_3_classes,
@@ -17,9 +17,11 @@ from sklearn.datasets import (
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 
+import numpy as np
+
+np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
-import numpy as np; np.random.seed(0)  # reproducibility
 
 # Import scikit-plot
 import scikitplot as sp
@@ -34,8 +36,9 @@ model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_tra
 # Perform predictions
 y_val_prob = model.predict_proba(X_val)
 
-# Plot!
-ax = sp.kds.plot_lift(
+
+# %%
+sp.kds.decile_table(
     y_val,
     y_val_prob,
     save_fig=True,
@@ -43,6 +46,21 @@ ax = sp.kds.plot_lift(
     # overwrite=True,
     add_timestamp=True,
     # verbose=True,
+    display_term_tables=True,
+)
+
+
+# %%
+# Plot!
+ax = sp.kds.report(
+    y_val,
+    y_val_prob,
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    # verbose=True,
+    display_term_tables=True,
 )
 
 # %%
@@ -52,7 +70,6 @@ ax = sp.kds.plot_lift(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: lift curve
-#    domain: statistics
+#    plot-type: cum-gain curve
 #    level: beginner
 #    purpose: showcase

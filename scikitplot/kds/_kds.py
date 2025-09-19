@@ -273,13 +273,15 @@ def decile_table(
     tmp["decile"] = np.linspace(1, change_deciles + 1, len(tmp), False, dtype=int)
 
     dt["cnt_resp_rndm"] = np.sum(df["y_true"]) / change_deciles
-    dt["cnt_resp_wiz"] = tmp.groupby(
-        "decile",
-        group_keys=False,  # Changed in version 2.0.0: group_keys now defaults to True.
-        as_index=True,
-    )[
-        "y_true"
-    ].sum()  # ['y_true']
+    dt["cnt_resp_wiz"] = (
+        tmp.groupby(
+            "decile",
+            as_index=True,
+            group_keys=False,  # Changed in version 2.0.0: group_keys now defaults to True.
+        )["y_true"]
+        .sum()
+        .reset_index(drop=True)
+    )  # ['y_true']
 
     dt["resp_rate"] = round(dt["cnt_resp"] * 100 / dt["cnt_cust"], digits)
     dt["cum_cust"] = np.cumsum(dt["cnt_cust"])

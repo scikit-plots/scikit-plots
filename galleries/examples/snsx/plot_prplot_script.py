@@ -60,3 +60,15 @@ for i in range(10):
 
     # Override legend
     ax.legend(by_label.values(), by_label.keys(), title="Legend")
+
+
+# %%
+#
+# .. tags::
+#
+#    model-type: classification
+#    model-workflow: model evaluation
+#    plot-type: line
+#    plot-type: pr-auc curve
+#    level: beginner
+#    purpose: showcase
