@@ -1,8 +1,8 @@
 """
-plot_cumulative_gain with examples
+plot_report with examples
 ==================================
 
-An example showing the :py:func:`~scikitplot.kds.plot_cumulative_gain` function used
+An example showing the :py:func:`~scikitplot.kds.report` function used
 by a scikit-learn classifier.
 """
 
@@ -17,11 +17,9 @@ from sklearn.datasets import (
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 
-import numpy as np
-
-np.random.seed(0)  # reproducibility
 # importing pylab or pyplot
 import matplotlib.pyplot as plt
+import numpy as np; np.random.seed(0)  # reproducibility
 
 # Import scikit-plot
 import scikitplot as sp
