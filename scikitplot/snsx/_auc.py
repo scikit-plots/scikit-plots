@@ -5,7 +5,7 @@
 Seaborn-style PR and ROC curve plotting.
 
 This module provides:
-- A core `_CurvePlotter` class (subclass of VectorPlotter) for handling
+- A core `_AucPlotter` class (subclass of VectorPlotter) for handling
   data preparation and plotting PR/ROC curves.
 - User-facing functions `prplot()` and `rocplot()` that work just like
   seaborn's high-level API (e.g., scatterplot, lineplot).
@@ -17,27 +17,37 @@ Features:
 - Baselines (random chance lines or prevalence lines)
 """
 
+# code that needs to be compatible with both Python 2 and Python 3
+from __future__ import annotations
+
 # --------------------------------------------------------------------
 # Imports
 # --------------------------------------------------------------------
 import warnings
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from matplotlib.cbook import normalize_kwargs
 from matplotlib.colors import to_rgba
-from sklearn.metrics import auc, precision_recall_curve, roc_curve
+from sklearn.metrics import (
+    auc,
+    average_precision_score,
+    precision_recall_curve,
+    roc_curve,
+)
 
 try:
     from seaborn._base import VectorPlotter
     from seaborn.external import husl
-    from seaborn.utils import _default_color
+    from seaborn.utils import _check_argument, _default_color
 except:
     from ..externals._seaborn._base import VectorPlotter
     from ..externals._seaborn.external import husl
     from ..externals._seaborn.utils import (
+        _check_argument,
         _default_color,
     )
 
@@ -45,21 +55,21 @@ except:
 # --------------------------------------------------------------------
 # Core Plotter Class
 # --------------------------------------------------------------------
-class _CurvePlotter(VectorPlotter):
+class _AucPlotter(VectorPlotter):
     """
-    Seaborn-style Curve plotter internal class for PR / ROC curves plotting.
+    Seaborn-style Auc plotter internal class for PR / ROC curves plotting.
 
     Expects the VectorPlotter pipeline to have mapped incoming data into
     standardized columns "x", "y", optionally grouping (hue), legend creation,
     "weights", and subset iteration.
     """
 
-    wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012
+    wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
         "x": "@index",
         "y": "@values",
         "hue": "@columns",
     }
-    flat_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012
+    flat_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
         "x": "@index",
         "y": "@values",
     }
@@ -357,11 +367,19 @@ class _CurvePlotter(VectorPlotter):
     #     return densities
 
     # -------------------------
-    # Helpers
-    # -------------------------
-    def _prepare_subset(self, sub_data):
+    # Helpers - data extraction
+    # ------------------------
+    def _prepare_subset(
+        self,
+        sub_data: pd.DataFrame,
+    ) -> "tuple[np.ndarray, np.ndarray, np.ndarray]":  # noqa: UP037
         """
-        Prepare arrays (y_true, y_score, sample_weight) for one subset (hue level).
+        Extract y_true (binary labels) and y_score (probabilities) arrays from a subset DataFrame.
+
+        - Expects that VectorPlotter has already standardized columns to "x" and "y"
+          in `sub_data` when `from_comp_data=True` is used in iter_data (this matches
+          the approach used in seaborn's VectorPlotter pattern).
+        - Enforces types: y_true -> int (0/1), y_score -> float.
 
         Returns
         -------
@@ -378,6 +396,8 @@ class _CurvePlotter(VectorPlotter):
 
         # Drop rows missing either true labels or predicted scores
         # df.dropna(axis=1, how="all")  # Drop completely empty columns
+
+        # Drop rows missing either true labels or predicted scores
         sub = sub_data.dropna(subset=["x", "y"])
         if sub.empty:
             return None, None, None
@@ -400,229 +420,167 @@ class _CurvePlotter(VectorPlotter):
 
         return y_true, y_score, weights
 
-    def _plot_curve(
+    def _compute_auc(
         self,
-        ax,
-        x_vals,
-        y_vals,
-        auc_score,
-        color,
-        label_base,
-        fill,
-        alpha,
-        linestyle,
-        marker,
-        legend,
-    ):
-        """
-        Define common logic for plotting a curve (PR or ROC).
-        """
-        artist_kws = {"color": color, "alpha": alpha}
-        if linestyle is not None:
-            artist_kws["linestyle"] = linestyle
-        if marker is not None:
-            artist_kws["marker"] = marker
-        if legend:
-            artist_kws["label"] = f"{label_base} (AUC={auc_score:.4f})"
+        y_true,
+        y_score,
+        sample_weight,
+        kind,
+        sub_vars,
+    ) -> "float | None":  # noqa: UP037
+        # return
+        x, y, auc_score = None, None, None
 
-        if fill:
-            artist = ax.fill_between(x_vals, 0, y_vals, **artist_kws)
-        else:
-            (artist,) = ax.plot(x_vals, y_vals, **artist_kws)
-
-        return artist, artist_kws.get("label")
-
-    # -------------------------
-    # PR plotting
-    # -------------------------
-    def plot_prauc(  # noqa: PLR0912
-        self,
-        fill,
-        color,
-        legend,
-        baseline=False,
-        # multiple,
-        # element,
-        # common_norm,
-        # common_grid,
-        # common_bins,
-        # shrink,
-        # kde,
-        # kde_kws,
-        # line_kws,
-        # cbar_ax,
-        # cbar_kws,
-        # estimate_kws,
-        **plot_kws,
-    ):
-        """
-        Plot Precision-Recall curves for each hue/facet subset (one per hue level if hue assigned).
-
-        Parameters
-        ----------
-        color : color or None
-            Fallback color when no hue mapping is used.
-        fill : bool
-            Whether to fill a axis.
-        color : str
-            Line color.
-        legend : bool
-            Whether to draw a legend.
-        baseline : bool
-            Whether to draw a baseline.
-        plot_kws : dict
-            Extra keyword args forwarded to plotting functions and _artist_kws.
-            Recognized keys:
-              - fill (bool): if True, fill the area under the PR curve.
-              - alpha (float)
-              - linestyle / ls
-              - marker
-        """
-        # x_col = self.variables.get("x")
-        # y_col = self.variables.get("y")
-        # # If no x/y data return early
-        # if x_col is None or y_col is None:
-        #     return
-        # -- Default keyword dicts
-        # kde_kws = {} if kde_kws is None else kde_kws.copy()
-        # line_kws = {} if line_kws is None else line_kws.copy()
-        # estimate_kws = {} if estimate_kws is None else estimate_kws.copy()
-        # orient = self.data_variable
-
-        # Interpret plotting options
-        label = plot_kws.get("label", "")
-        alpha = plot_kws.get("alpha", 1.0)
-        linestyle = plot_kws.get("linestyle", plot_kws.get("ls"))
-        marker = plot_kws.get("marker", plot_kws.get("m"))
-        chance = bool(plot_kws.pop("chance", None))
-
-        artists, labels = [], []
-
-        # Iterate through subsets (handles hue + facets if used)
-        for sub_vars, sub_data in self.iter_data("hue", from_comp_data=True):
-            if sub_data.empty:
-                continue
-
-            # get axis for this subset
-            ax = self._get_axes(sub_vars)
-
-            # Label and color handling/determine
-            key = tuple(sub_vars.items())
-            if "hue" in self.variables:
-                level = sub_vars["hue"]
-                sub_color = self._hue_map(level)
-                label_base = str(level)
-            else:
-                # # Default color
-                # sub_color = color or self._hue_map(sub_vars["hue"], "color")
-                sub_color = color or _default_color(ax.plot, None, None, {})
-                label_base = "PR"
-
-            # prepare arrays
+        if kind and kind.lower() in ["roc"]:
             try:
-                y_true, y_score, sample_weight = self._prepare_subset(sub_data)
-            except ValueError as e:
+                # prepare coordinates (fpr on x, tpr on y)
+                # fpr is sorted ascending, tpr follows.
+                fpr, tpr, _ = roc_curve(
+                    y_true,
+                    y_score,
+                    sample_weight=sample_weight,  # pos_label=None
+                )
+                x, y, auc_score = fpr, tpr, auc(fpr, tpr)  # roc_auc
+            except Exception as e:
                 warnings.warn(
-                    f"Skipping subset {sub_vars} due to data error: {e}",
+                    f"Unable to compute PR curve for subset {sub_vars}: {e}",
                     UserWarning,
                     stacklevel=2,
                 )
-                continue
-            if y_true is None:
-                continue
-
-            # binary vs multiclass detection
-            classes = np.unique(y_true)
-            multiclass = len(classes) > 2  # noqa: PLR2004
-            # Compute PR curve
-            if multiclass:
-                # TODO:x or y → Seaborn expects 1D vectors (arrays, Series, lists), not a 2D DataFrame
-                # so multiclass not supported by DataFrame or Seaborn
+        elif kind and kind.lower() in ["pr"]:
+            # auc(recall, precision) vs average_precision_score
+            # The area under PR curve (trapezoidal rule with auc) is not the same as average precision (AP).
+            # average_precision_score(y_true, y_score) → step-wise interpolation (preferred in ML evaluation,
+            # auc(recall, precision) → trapezoidal integration
+            # precision_recall_curve always prepends a point (recall=0, precision=1.0) → this can artificially inflate the trapezoidal auc.
+            try:
+                # prepare coordinates (recall on x, precision on y)
+                # recall is sorted ascending, precision follows.
+                # recall: monotonically increasing from 0 → 1
+                # precision: non-monotonic, often zig-zagging, starting at 1.0
+                precision, recall, _ = precision_recall_curve(
+                    y_true,
+                    y_score,
+                    sample_weight=sample_weight,  # pos_label=None
+                )
+                # If recall is not strictly monotonic, enforce monotonicity:
+                # order = np.argsort(recall)
+                # recall, precision = recall[order], precision[order]
+                # Option 1: trapezoidal PR-AUC (not standard)
+                # pr_auc_trapz = auc(recall, precision)
+                # Option 2: average precision (preferred sklearn)
+                pr_auc_avg = average_precision_score(
+                    y_true,
+                    y_score,
+                    sample_weight=sample_weight,
+                )
+                x, y, auc_score = recall, precision, pr_auc_avg  # pick one
+            except Exception as e:
                 warnings.warn(
-                    f"Cannot label_binarize multiclass labels: {''}",
+                    f"Unable to compute PR curve for subset {sub_vars}: {e}",
                     UserWarning,
                     stacklevel=2,
                 )
-            else:
-                # binary case (most common)
-                try:
-                    # prepare coordinates (recall on x, precision on y)
-                    precision, recall, _ = precision_recall_curve(
-                        y_true,
-                        y_score,
-                        sample_weight=sample_weight,  # pos_label=None
-                    )
-                except Exception as e:
-                    warnings.warn(
-                        f"Unable to compute PR curve for subset {sub_vars}: {e}",
-                        UserWarning,
-                        stacklevel=2,
-                    )
-                    continue
-                auc_score = auc(recall, precision)  # pr_auc
+        return x, y, auc_score
 
-                # plot line and optional fill, Use element "line" for curve plotting
-                artist_kws = self._artist_kws(
-                    plot_kws, fill, "line", "layer", sub_color, alpha
-                )
-                _label = (
-                    f"{label} {label_base} (AUC={auc_score:.4f})".strip()
-                    if legend
-                    else None
-                )
-                artist_kws["label"] = _label
-                # Merge user requested line style/marker if present
-                if linestyle is not None:
-                    artist_kws["linestyle"] = linestyle
-                if marker is not None:
-                    artist_kws["marker"] = marker
-
-                # Plot curve: fill area under curve if requested, otherwise plot line
-                if fill:
-                    # fill_between expects x sorted ascending; recall is monotonic increasing
-                    artist_kws.setdefault(
-                        "alpha",
-                        artist_kws.get("alpha", alpha),
-                    )
-                    artist = ax.fill_between(recall, 0.0, precision, **artist_kws)
-                    # fill_between returns PolyCollection; put a proxy Line2D for legend if needed
-                    # but store the PolyCollection as artist for potential manipulation
-                else:
-                    # draw standard PR line plot
-                    (artist,) = ax.plot(recall, precision, **artist_kws)
-
-                # Save artist and label (include AUC if legend requested)
-                labels.append(_label)
-                artists.append(artist)
-
-            # Baseline: horizontal line at positive prevalence (x==1)
-            if baseline:
-                # pos_rate = np.average(y_true == 1, weights=sample_weight)
-                if sample_weight is None:
-                    pos_rate = float(np.mean(y_true == 1))
-                else:
-                    pos_rate = float(
-                        np.sum((y_true == 1) * sample_weight) / np.sum(sample_weight)
-                    )
-                # draw baseline
-                ax.axhline(
-                    pos_rate, color="gray", linestyle="--", linewidth=0.9, zorder=-1
-                )
-
-            # finalize subset axes, set axis properties
-            # Ensure axes limits and labels look right
-            ax.set_xlim(-0.01, 1.01)
-            ax.set_ylim(-0.012, 1.012)
-            ax.set_xlabel("Recall")
-            ax.set_ylabel("Precision")
-            ax.set_title("PR (Precision-Recall) Curve")
-            ax.grid(True)
-
-            # optional diagonal chance line
-            ax.plot(
-                [0, 1], [1, 0], linestyle="--", color="gray", linewidth=0.9, zorder=-1
+    def _plot_auc(
+        self,
+        x,
+        y,
+        sample_weight,
+        auc_score,
+        kind,
+        label_base,
+        legend,
+        ax,
+        baseline=False,
+        **kws,
+    ):
+        # Save artist and label (include statement if legend requested)
+        artists, labels = [], []
+        # # Plot curve: fill area under curve if requested, otherwise plot line
+        # if kws.pop("fill", None):
+        #     artist = ax.fill_between(x, 0.0, y, **kws)
+        #     # fill_between returns PolyCollection; put a proxy Line2D for legend if needed
+        #     # but store the PolyCollection as artist for potential manipulation
+        # else:
+        #     # draw standard AUC line plot
+        #     (artist,) = ax.plot(x, y, **kws)
+        # Model curve
+        label = (
+            f"{label_base} {kws.get('label', '')}"
+            + f" {kind}".upper()
+            + f" (AUC={auc_score:.4f})"
+        ).strip()
+        label = label if legend else None
+        kws["label"] = label
+        if kind and kind.lower() in ["roc"]:
+            (artist,) = ax.plot(
+                x,
+                y,
+                **kws,
             )
+        elif kind and kind.lower() in ["pr"]:
+            # use step plot to match sklearn docs
+            # scientifically, step is the correct representation for PR.
+            # where="post",  # for ax.step
+            kws["drawstyle"] = kws.get("steps-post", "steps-post")
+            (artist,) = ax.plot(
+                x,
+                y,
+                **kws,
+            )
+            # optional: add baseline
+            # positive_rate = np.mean(y_true)
+            # ax.hlines(positive_rate, 0, 1, colors="gray", linestyles="--", label="baseline")
+        # Save artist and label (include statement if legend requested)
+        artists.append(artist), labels.append(label)
+        # Plot the Random baseline, label='Baseline', Chance level (AUC = 0.5)
+        (artist,) = ax.plot(
+            [0, 1],
+            [0, 1] if kind == "roc" else [1, 0],  # else pr
+            # "k--",
+            c="gray",
+            ls="--",
+            # lw=1,
+            # label="Baseline (diagonal)",
+            zorder=-1,
+        )
+        # Save artist and label (include statement if legend requested)
+        # artists.append(artist), labels.append(label)
+        # Finalize subset axes, set axis properties, ensure axes limits and labels look right
+        # ax.set_xlim(-0.01, 1.01)
+        # ax.set_ylim(-0.012, 1.012)
+        if kind and kind.lower() in ["roc"]:
+            ax.set_xlabel("False Positive Rate")
+            ax.set_ylabel("True Positive Rate")
+            ax.set_title("ROC (Receiver Operating Characteristic) Curve")
+        elif kind and kind.lower() in ["pr"]:
+            ax.set(
+                xlabel="Recall",
+                ylabel="Precision",
+                title="PR (Precision-Recall) Curve",
+            )
+        ax.grid(True)
+        # plt.xlabel("Recall")
+        # plt.ylabel("Precision")
+        # plt.title("PR (Precision-Recall) Curve")
 
+        # Baseline: horizontal line at positive prevalence (x==1)
+        # if baseline:
+        #     # pos_rate = np.average(y_true == 1, weights=sample_weight)
+        #     if sample_weight is None:
+        #         pos_rate = float(np.mean(x == 1))
+        #     else:
+        #         pos_rate = float(
+        #             np.sum((x == 1) * sample_weight) / np.sum(sample_weight)
+        #         )
+        #     # draw baseline
+        #     ax.axhline(
+        #         pos_rate, color="gray", linestyle="--", linewidth=0.9, zorder=-1
+        #     )
+
+        # Save artist and label (include AUC if legend requested)
         # Add legend (use axes of the first plotted subset)
         if legend and artists:
             # Build simple legend entries: prefer Line2D proxies if fill used
@@ -632,13 +590,14 @@ class _CurvePlotter(VectorPlotter):
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
     # -------------------------
-    # ROC plotting
+    # AUC plotting
     # -------------------------
-    def plot_rocauc(  # noqa: PLR0912
+    def plot_aucplot(  # noqa: PLR0912
         self,
-        fill,
-        color,
-        legend,
+        kind: "Literal['pr', 'roc'] | None" = None,  # noqa: UP037
+        fill=None,
+        color=None,
+        legend=None,
         baseline=False,
         # multiple,
         # element,
@@ -652,13 +611,16 @@ class _CurvePlotter(VectorPlotter):
         # cbar_ax,
         # cbar_kws,
         # estimate_kws,
+        verbose=False,
         **plot_kws,
     ):
         """
-        Plot ROC curves for each hue/facet subset (one per hue level if hue assigned).
+        Plot AUC curves for each hue/facet subset (one per hue level if hue assigned).
 
         Parameters
         ----------
+        kind : {'pr', 'roc', None}, default=None
+            Draw pr or roc plot.
         color : color or None
             Fallback color when no hue mapping is used.
         fill : bool
@@ -669,10 +631,12 @@ class _CurvePlotter(VectorPlotter):
             Whether to draw a legend.
         baseline : bool
             Whether to draw a baseline.
-        plot_kws : dict
+        verbose : bool, optional, default=False
+            If True, prints.
+        **plot_kws : dict
             Extra keyword args forwarded to plotting functions and _artist_kws.
             Recognized keys:
-              - fill (bool): if True, fill the area under the PR curve.
+              - fill (bool): if True, fill the area under the AUC curve.
               - alpha (float)
               - linestyle / ls
               - marker
@@ -689,13 +653,14 @@ class _CurvePlotter(VectorPlotter):
         # orient = self.data_variable
 
         # Interpret plotting options
-        label = plot_kws.get("label", "")
+        # label = plot_kws.get("label", "")
         alpha = plot_kws.get("alpha", 1.0)
         linestyle = plot_kws.get("linestyle", plot_kws.get("ls"))
         marker = plot_kws.get("marker", plot_kws.get("m"))
         chance = bool(plot_kws.pop("chance", None))
 
-        artists, labels = [], []
+        # Save artist and label (include AUC if legend requested)
+        # artists, labels = [], []
 
         # Iterate through subsets (handles hue + facets if used)
         for sub_vars, sub_data in self.iter_data("hue", from_comp_data=True):
@@ -715,7 +680,7 @@ class _CurvePlotter(VectorPlotter):
                 # # Default color
                 # sub_color = color or self._hue_map(sub_vars["hue"], "color")
                 sub_color = color or _default_color(ax.plot, None, None, {})
-                label_base = "ROC"
+                label_base = ""
 
             # Prepare arrays
             try:
@@ -744,187 +709,51 @@ class _CurvePlotter(VectorPlotter):
                 )
             else:
                 # binary case (most common)
-                try:
-                    # prepare coordinates (fpr on x, tpr on y)
-                    fpr, tpr, _ = roc_curve(
-                        y_true,
-                        y_score,
-                        sample_weight=sample_weight,  # pos_label=None
-                    )
-                except Exception as e:
-                    warnings.warn(
-                        f"Unable to compute PR curve for subset {sub_vars}: {e}",
-                        UserWarning,
-                        stacklevel=2,
-                    )
+                x, y, auc_score = self._compute_auc(
+                    y_true,
+                    y_score,
+                    sample_weight,
+                    kind,
+                    sub_vars,
+                )
+                if x is None:
                     continue
-                auc_score = auc(fpr, tpr)  # roc_auc
 
                 # plot line and optional fill, Use element "line" for curve plotting
                 artist_kws = self._artist_kws(
                     plot_kws, fill, "line", "layer", sub_color, alpha
                 )
-                _label = (
-                    f"{label} {label_base} (AUC={auc_score:.4f})".strip()
-                    if legend
-                    else None
-                )
-                artist_kws["label"] = _label
                 # Merge user requested line style/marker if present
                 if linestyle is not None:
                     artist_kws["linestyle"] = linestyle
                 if marker is not None:
                     artist_kws["marker"] = marker
 
-                # Plot curve: fill area under curve if requested, otherwise plot line
-                if fill:
-                    # fill_between expects x sorted ascending; recall is monotonic increasing
-                    artist_kws.setdefault(
-                        "alpha",
-                        artist_kws.get("alpha", alpha),
-                    )
-                    artist = ax.fill_between(fpr, 0.0, tpr, **artist_kws)
-                    # fill_between returns PolyCollection; put a proxy Line2D for legend if needed
-                    # but store the PolyCollection as artist for potential manipulation
-                else:
-                    # draw standard ROC line plot
-                    (artist,) = ax.plot(fpr, tpr, **artist_kws)
-
-                # Save artist and label (include AUC if legend requested)
-                labels.append(_label)
-                artists.append(artist)
-
-            # baseline: horizontal line at positive prevalence
-            if baseline:
-                # pos_rate = np.average(y_true == 1, weights=sample_weight)
-                if sample_weight is None:
-                    pos_rate = float(np.mean(y_true == 1))
-                else:
-                    pos_rate = float(
-                        np.sum((y_true == 1) * sample_weight) / np.sum(sample_weight)
-                    )
-                # draw baseline
-                ax.axhline(
-                    pos_rate, color="gray", linestyle="--", linewidth=0.9, zorder=-1
+                self._plot_auc(
+                    x,
+                    y,
+                    sample_weight,
+                    auc_score,
+                    kind,
+                    label_base,
+                    legend,
+                    ax,
+                    baseline,
+                    **artist_kws,
                 )
 
-            # finalize subset axes, set axis properties
-            # Ensure axes limits and labels look right
-            ax.set_xlim(-0.01, 1.01)
-            ax.set_ylim(-0.012, 1.012)
-            ax.set_xlabel("False Positive Rate")
-            ax.set_ylabel("True Positive Rate")
-            ax.set_title("ROC (Receiver Operating Characteristic) Curve")
-            ax.grid(True)
-
-            # optional diagonal chance line
-            ax.plot(
-                [0, 1], [0, 1], linestyle="--", color="gray", linewidth=0.9, zorder=-1
-            )
-
-        # Add legend (use axes of the first plotted subset)
-        if legend and artists:
-            # Build simple legend entries: prefer Line2D proxies if fill used
-            # ax0 = self.ax if self.ax is not None else ax
-            # ax0.legend(artists, [lbl for lbl in labels], title=self.variables.get("hue", None))
-            handles, labels = self._make_legend_proxies(artists, labels)
-            ax.legend(handles, labels, title=self.variables.get("hue", None))
-
 
 # --------------------------------------------------------------------
-# Public API Wrappers
+# Public API functions (wrappers)
 # --------------------------------------------------------------------
-def prplot(  # noqa: D417
-    data=None,
+def aucplot(  # noqa: D417
+    data: "pd.DataFrame | None" = None,  # noqa: UP037
     *,
     # Vector variables
-    x=None,
-    y=None,
-    hue=None,
-    weights=None,
-    # computation parameters
-    common_norm=None,
-    # appearance parameters
-    fill=False,
-    # smoothing
-    line_kws=None,
-    # Hue mapping parameters
-    palette=None,
-    hue_order=None,
-    hue_norm=None,
-    color=None,
-    # Axes information
-    log_scale=None,
-    legend=True,
-    ax=None,
-    # Other appearance keywords
-    baseline=True,
-    **kwargs,
-):
-    """
-    Precision-Recall curve plot, Seaborn-style.
-
-    Parameters
-    ----------
-    data : DataFrame
-    x : str (true labels)
-    y : str (predicted probabilities)
-    hue : str, optional
-    fill : bool, default=False
-        Fill area under curve
-    baseline : bool, default=True
-        Show prevalence baseline
-    legend : bool, default=True
-    """
-    # _check_argument("kind", ["pr", "roc", ], kind)
-    p = _CurvePlotter(
-        data=data,
-        variables={"x": x, "y": y, "hue": hue, "weights": weights},
-    )
-    p.map_hue(palette=palette, order=hue_order, norm=hue_norm)
-
-    # ax = plt.gca() if ax is None else ax
-    if ax is None:
-        ax = plt.gca()
-
-    # Now attach the axes object to the plotter object
-    p._attach(ax, log_scale=log_scale)
-
-    method = ax.fill_between if fill else ax.plot
-    color = _default_color(method, hue, color, kwargs)
-    # color = kwargs.pop("color", kwargs.pop("c", None))
-    # if color is None and hue is None:
-    #     color = "C0"
-    # XXX else warn if hue is not None?
-
-    # kwargs["color"] = color
-    # fill = bool(kwargs.pop("fill", False))
-    # kwargs.setdefault("color", color)
-    # kwargs.setdefault("fill", fill)
-    # kwargs.setdefault("legend", legend)
-
-    # Check for a specification that lacks x/y data and return early
-    if not p.has_xy_data:
-        return ax
-
-    # --- Draw the plots
-    pr_kws = kwargs.copy()
-    # pr_kws["color"] = color
-    # _assign_default_kwargs(pr_kws, p.plot_prauc, prplot)
-    p.plot_prauc(color=color, legend=legend, fill=fill, baseline=baseline, **kwargs)
-    return ax
-
-
-# --------------------------------------------------------------------
-# Public API Wrappers
-# --------------------------------------------------------------------
-def rocplot(  # noqa: D417
-    data=None,
-    *,
-    # Vector variables
-    x=None,
-    y=None,
-    hue=None,
+    x: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
+    y: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
+    kind: "Literal['pr', 'roc'] | None" = None,  # noqa: UP037
+    hue: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
     weights=None,
     # computation parameters
     common_norm=None,
@@ -944,27 +773,40 @@ def rocplot(  # noqa: D417
     # Other appearance keywords
     baseline=False,
     **kwargs,
-):
+) -> mpl.axes.Axes:
     """
-    ROC curve plot, Seaborn-style.
+    AUC curve plot, Seaborn-style.
 
     Parameters
     ----------
-    data : DataFrame
-    x : str (true labels)
-    y : str (predicted probabilities)
-    hue : str, optional
+    data : pandas.DataFrame | None
+    x : str | pd.Series | np.ndarray | None
+        Ground truth (correct/actual) target values.
+    y : str | pd.Series | np.ndarray | None
+        Prediction probabilities for target class returned by a classifier/algorithm.
+    kind : {'pr', 'roc'}, default='roc'
+    hue : str | pd.Series | np.ndarray | None
     fill : bool, default=False
         Fill area under curve
     baseline : bool, default=False
         Show diagonal baseline
     legend : bool, default=True
     """
-    # _check_argument("kind", ["pr", "roc", ], kind)
-    p = _CurvePlotter(
+    kind = (kind and kind.lower().strip()) or "roc"
+    _check_argument(
+        "kind",
+        [
+            "pr",
+            "roc",
+        ],
+        kind,
+    )
+    # Build the VectorPlotter and attach data/variables in seaborn style
+    p = _AucPlotter(
         data=data,
         variables={"x": x, "y": y, "hue": hue, "weights": weights},
     )
+    # map hue palette/order if needed - we only need internal mapping for iter_data to work
     p.map_hue(palette=palette, order=hue_order, norm=hue_norm)
 
     # ax = plt.gca() if ax is None else ax
@@ -974,8 +816,8 @@ def rocplot(  # noqa: D417
     # Now attach the axes object to the plotter object
     p._attach(ax, log_scale=log_scale)
 
-    method = ax.fill_between if fill else ax.plot
-    color = _default_color(method, hue, color, kwargs)
+    # method = ax.fill_between if fill else ax.plot
+    # color = _default_color(method, hue, color, kwargs)
     # color = kwargs.pop("color", kwargs.pop("c", None))
     # if color is None and hue is None:
     #     color = "C0"
@@ -992,8 +834,15 @@ def rocplot(  # noqa: D417
         return ax
 
     # --- Draw the plots
-    pr_kws = kwargs.copy()
-    # pr_kws["color"] = color
+    auc_kws = kwargs.copy()
+    # auc_kws["color"] = color
     # _assign_default_kwargs(pr_kws, p.plot_rocauc, prplot)
-    p.plot_rocauc(color=color, legend=legend, fill=fill, baseline=baseline, **kwargs)
+    p.plot_aucplot(
+        kind=kind,
+        fill=fill,
+        color=color,
+        legend=legend,
+        baseline=baseline,
+        **auc_kws,
+    )
     return ax

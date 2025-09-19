@@ -489,6 +489,7 @@ class _DecilePlotter(VectorPlotter):
     # ---------------------------
     def _plot_decile_wise_lift(self, dt: pd.DataFrame, legend, ax, **kws):
         n_deciles = dt["decile"].max()
+        # Save artist and label (include statement if legend requested)
         artists, labels = [], []
         (artist,) = ax.plot(
             dt["decile"],
@@ -497,6 +498,7 @@ class _DecilePlotter(VectorPlotter):
             label="Model (Discriminative Power)",
             **kws,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Model (Discriminative Power)")
         (artist,) = ax.plot(
             [1, n_deciles],
@@ -505,6 +507,7 @@ class _DecilePlotter(VectorPlotter):
             label="Random Baseline (Lift=1)",
             zorder=-1,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Random Baseline (Lift=1)")
         ax.set(
             # "Population %\n(sorted by predicted score, descending; decile/percentile)"
@@ -542,6 +545,7 @@ class _DecilePlotter(VectorPlotter):
             label="Model (Discriminative Power)",
             **kws,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Model (Discriminative Power)")
         # Random baseline: always flat at 1
         # plt.plot(list(np.arange(1,11)), np.ones(10), 'k--',marker='o')
@@ -552,6 +556,7 @@ class _DecilePlotter(VectorPlotter):
             label="Random Baseline (Lift=1)",
             zorder=-1,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Random Baseline (Lift=1)")
         # Axis and title (parallels cumulative response / decile response plots)
         ax.set(
@@ -563,10 +568,10 @@ class _DecilePlotter(VectorPlotter):
             # "Cumulative Lift Curve\n(Model vs Random Baseline = 1)"
             title="Cumulative Lift Curve",
         )
-        # plt.title("Lift Curve")
+        ax.grid(True)
         # plt.xlabel("Decile")  # Population Percentage
         # plt.ylabel("Lift")
-        ax.grid(True)
+        # plt.title("Lift Curve")
 
         # Add legend (use axes of the first plotted subset)
         if legend and artists:
@@ -588,6 +593,7 @@ class _DecilePlotter(VectorPlotter):
             label="Model (Discriminative Power)",
             **kws,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Model (Discriminative Power)")
 
         # Random baseline: flat at overall response rate
@@ -600,6 +606,7 @@ class _DecilePlotter(VectorPlotter):
             label=f"Random Baseline (Response={overall_rate:.2f}% (overall average response rate))",
             zorder=-1,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist)
         labels.append(
             f"Random Baseline (Response={overall_rate:.2f}% (overall average response rate))"
@@ -636,6 +643,7 @@ class _DecilePlotter(VectorPlotter):
             label="Model (Discriminative Power)",
             **kws,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Model (Discriminative Power)")
         # Wizard model = a hypothetically perfect classifier.
         # It always ranks all responders at the very top of the population
@@ -655,6 +663,7 @@ class _DecilePlotter(VectorPlotter):
             label="Wizard Baseline (perfect model)",
             # zorder=-1,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Wizard Baseline (perfect model)")
         (artist,) = ax.plot(
             [1, n_deciles],
@@ -663,6 +672,7 @@ class _DecilePlotter(VectorPlotter):
             label="Random Baseline (Responders=diagonal)",
             zorder=-1,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Random Baseline (Responders=diagonal)")
         ax.set(
             # "Population %\n(sorted by predicted score, descending; decile/percentile)"
@@ -694,6 +704,7 @@ class _DecilePlotter(VectorPlotter):
             label="Model (Discriminative Power)",
             **kws,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Model (Discriminative Power)")
 
         # Wizard (perfect model): straight line, captures all responders as fast as possible
@@ -704,6 +715,7 @@ class _DecilePlotter(VectorPlotter):
             marker="2",
             label="Wizard Baseline (Perfect Model)",
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Wizard Baseline (Perfect Model)")
 
         # Random baseline: diagonal line (responders captured ~ proportional to population)
@@ -716,6 +728,7 @@ class _DecilePlotter(VectorPlotter):
             label="Random Baseline (Responders=diagonal)",
             zorder=-1,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Random Baseline (Responders=diagonal)")
 
         ax.set(
@@ -735,6 +748,7 @@ class _DecilePlotter(VectorPlotter):
 
     def _plot_ks_statistic(self, dt: pd.DataFrame, legend, ax, **kws):
         n_deciles = dt["decile"].max()
+        # Save artist and label (include AUC if legend requested)
         artists, labels = [], []
         (artist,) = ax.plot(
             # np.append(0, dt["decile"]),
@@ -745,6 +759,7 @@ class _DecilePlotter(VectorPlotter):
             label="Responders",
             **kws,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Responders")
         (artist,) = ax.plot(
             # np.append(0, dt["decile"]),
@@ -755,6 +770,7 @@ class _DecilePlotter(VectorPlotter):
             c="darkorange",
             label="Non-Responders",
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Non-Responders")
         ks_max = dt["KS"].max()
         ks_decile = dt.loc[
@@ -774,6 +790,7 @@ class _DecilePlotter(VectorPlotter):
             label=f"KS={ks_max:.2f} @ decile {ks_decile}",
             zorder=-1,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append(f"KS={ks_max:.4f} @ decile {ks_decile}")
         (artist,) = ax.plot(
             [1, n_deciles],
@@ -782,6 +799,7 @@ class _DecilePlotter(VectorPlotter):
             label="Random Baseline (Responders=diagonal)",
             zorder=-1,
         )
+        # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append("Random Baseline (Responders=diagonal)")
         ax.set(
             # "Population %\n(sorted by predicted score, descending; decile/percentile)"
@@ -830,7 +848,7 @@ class _DecilePlotter(VectorPlotter):
         round_digits: "int | None" = None,  # noqa: UP037
         verbose=True,
         **plot_kws,
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame | None":  # noqa: UP037
         """
         Given labels y_true (0/1) and probabilities y_score arrays, compute a decile table.
 
@@ -1081,7 +1099,7 @@ class _DecilePlotter(VectorPlotter):
 # Public API functions (wrappers)
 # -----------------------------------------------------------------------------
 def kdsplot(  # noqa: D417
-    data=None,
+    data: "pd.DataFrame | None" = None,  # noqa: UP037
     *,
     x: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
     y: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
@@ -1135,9 +1153,10 @@ def kdsplot(  # noqa: D417
 
     Parameters
     ----------
-    x : str, array-like
+    data : pandas.DataFrame | None
+    x : str | pd.Series | np.ndarray | None
         Ground truth (correct/actual) target values.
-    y : str, array-like
+    y : str | pd.Series | np.ndarray | None
         Prediction probabilities for target class returned by a classifier/algorithm.
     n_deciles : int, optional, default=10
         The number of partitions for creating the table. Defaults to 10 for deciles.

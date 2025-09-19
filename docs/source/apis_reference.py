@@ -461,8 +461,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #   + _get_guide("kds-index")
                 # ),
                 "autosummary": [
-                    "kdsplot",
                     "print_labels",
+                    "kdsplot",
                 ],
             },
             {
@@ -474,8 +474,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #   + _get_guide("kds-index")
                 # ),
                 "autosummary": [
-                    "prplot",
-                    "rocplot",
+                    "aucplot",
                 ],
             },
         ],
