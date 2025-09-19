@@ -1,8 +1,8 @@
 """
-plot_cumulative_gain with examples
+plot_report with examples
 ==================================
 
-An example showing the :py:func:`~scikitplot.kds.plot_cumulative_gain` function used
+An example showing the :py:func:`~scikitplot.kds.report` function used
 by a scikit-learn classifier.
 """
 
