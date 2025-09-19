@@ -11,7 +11,8 @@ by a scikit-learn classifier.
 # SPDX-License-Identifier: BSD-3-Clause
 
 from sklearn.datasets import (
-    load_iris as data_3_classes,
+    load_breast_cancer as data_2_classes,
+    # load_iris as data_3_classes,
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
@@ -24,7 +25,7 @@ import numpy as np; np.random.seed(0)  # reproducibility
 import scikitplot as sp
 
 # Load the data
-X, y = data_3_classes(return_X_y=True, as_frame=False)
+X, y = data_2_classes(return_X_y=True, as_frame=False)
 X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.5, random_state=0)
 
 # Create an instance of the LogisticRegression
