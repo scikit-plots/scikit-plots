@@ -36,8 +36,9 @@ model = LogisticRegression(max_iter=int(1e5), random_state=0).fit(X_train, y_tra
 # Perform predictions
 y_val_prob = model.predict_proba(X_val)
 
-# Plot!
-ax = sp.kds.plot_cumulative_gain(
+
+# %%
+sp.kds.decile_table(
     y_val,
     y_val_prob,
     save_fig=True,
@@ -45,6 +46,21 @@ ax = sp.kds.plot_cumulative_gain(
     # overwrite=True,
     add_timestamp=True,
     # verbose=True,
+    display_term_tables=True,
+)
+
+
+# %%
+# Plot!
+ax = sp.kds.report(
+    y_val,
+    y_val_prob,
+    save_fig=True,
+    save_fig_filename="",
+    # overwrite=True,
+    add_timestamp=True,
+    # verbose=True,
+    display_term_tables=True,
 )
 
 # %%

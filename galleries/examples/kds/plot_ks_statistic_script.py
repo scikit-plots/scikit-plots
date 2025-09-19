@@ -10,6 +10,8 @@ by a scikit-learn classifier.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+
+# %%
 from sklearn.datasets import (
     load_breast_cancer as data_2_classes,
 )
