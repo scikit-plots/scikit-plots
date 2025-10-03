@@ -14,3 +14,5 @@ snsx Seaborn eXtended (experimental)
 ======================================================================
 
 Examples relevant to the :py:mod:`~.snsx` module.
+
+.. _decile-index:

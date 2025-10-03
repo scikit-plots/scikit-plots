@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Multi-column multi-label string column one-hot encoder.
+Multi-column multi-label string column one-hot encoder [1]_.
 
 References
 ----------
@@ -24,7 +24,7 @@ from sklearn.utils.validation import check_is_fitted
 
 class GetDummies(BaseEstimator, TransformerMixin):
     """
-    Multi-column multi-label string column one-hot encoder.
+    Multi-column multi-label string column one-hot encoder [1]_.
 
     Custom transformer to expand string columns that contain multiple labels
     separated by `data_sep` into one-hot encoded columns by :func:`pandas.get_dummies`.

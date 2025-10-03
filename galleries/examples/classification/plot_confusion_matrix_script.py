@@ -68,6 +68,7 @@ ax = sp.metrics.plot_confusion_matrix(
 #
 #    model-type: classification
 #    model-workflow: model evaluation
-#    plot-type: matrix
+#    plot-type: heatmap
+#    plot-type: eval
 #    level: beginner
 #    purpose: showcase

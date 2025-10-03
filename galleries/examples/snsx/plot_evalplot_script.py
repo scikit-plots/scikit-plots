@@ -1,8 +1,8 @@
 """
-plot_decileplot_script with examples
+plot_evalplot_script with examples
 ==========================================
 
-An example showing the :py:func:`~scikitplot.snsx.decileplot` function
+An example showing the :py:func:`~scikitplot.snsx.evalplot` function
 used by a scikit-learn regressor.
 """
 
@@ -172,6 +172,6 @@ print(conf_matrix)
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: decile
+#    plot-type: eval
 #    level: beginner
 #    purpose: showcase

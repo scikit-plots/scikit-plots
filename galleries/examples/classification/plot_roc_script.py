@@ -68,6 +68,6 @@ ax = sp.metrics.plot_roc(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: roc-auc curve
+#    plot-type: auc
 #    level: beginner
 #    purpose: showcase

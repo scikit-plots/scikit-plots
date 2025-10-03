@@ -39,9 +39,39 @@ Externals (experimental)
     .. grid-item-card::
         :padding: 3
 
+        **sphinxext**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Matplotlib Sphinx Ext <./_sphinxext/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **tweedie**
         ^^^
         .. toctree::
             :maxdepth: 3
 
             ./_tweedie/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **Data API Standards**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            array_api_compat <./array_api_compat/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **Data API Standards**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            array_api_extra <./array_api_extra/index.rst>

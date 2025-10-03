@@ -15,6 +15,8 @@ Preprocessing (experimental)
 
 Examples relevant to the :py:mod:`~.preprocessing` module.
 
+.. _get_dummies-index:
+
 References
 ----------
 .. [1] `Çelik, M. (2023, December 9).

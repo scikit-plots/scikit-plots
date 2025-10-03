@@ -64,6 +64,6 @@ ax = sp.estimators.plot_learning_curve(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: learning curve
+#    plot-type: auc
 #    level: beginner
 #    purpose: showcase

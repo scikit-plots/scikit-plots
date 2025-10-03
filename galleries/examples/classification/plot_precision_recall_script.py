@@ -68,6 +68,6 @@ ax = sp.metrics.plot_precision_recall(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: pr-auc curve
+#    plot-type: auc
 #    level: beginner
 #    purpose: showcase
