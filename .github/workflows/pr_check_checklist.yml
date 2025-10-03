@@ -1,15 +1,17 @@
-## https://github.com/citation-file-format/cffconvert-github-action
+## https://github.com/n8n-io/contextual-qa-checklist-action/blob/master/.github/workflows/checklist.yml
+# https://github.com/wyozi/contextual-qa-checklist-action/blob/master/.github/workflows/checklist.yml
+# https://github.com/marketplace/actions/contextual-qa-checklists
 ---
-name: "PRs 📄 Citation File"  # 🗸 🗹 ✔️ ☑️ ✅ 📝 📄 🗒️ 📃 🧾
+name: "PRs 📝 Checklist"  # 🗸 🗹 ✔️ ☑️ ✅ 📝 📄 🗒️ 📃 🧾
 
 on:
-  workflow_dispatch: # Allows manual triggering of the workflow
-  pull_request:
-    paths:
-      - "CITATION.cff"
-  push:
-    paths:
-      - "CITATION.cff"
+  ## Can write comments / labels on PR from fork?
+  ## Use pull_request_target trigger if you're targeting a pull request from a fork:
+  ## pull_request_target triggers run with the base repo code, and has write permissions.
+  ## pull_request:  Safer alternative to pull_request_target:
+  ## pull_request triggers run with the PR code, but no write access to secrets or repo.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    # types: [opened, reopened, synchronize, edited]  # Triggers only on these events
 
 ## simultaneity
 ## This ensures that only one deployment to "production" can happen at a time.
@@ -37,15 +39,16 @@ concurrency:
 permissions:
   ## only required for workflows in private repositories
   contents: read  # for actions/checkout to fetch code
-  pull-requests: read
+  pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
+  issues: write   # Full access to read and modify PRs (e.g., labels, comments)
 
 ## Global environment variables (available to all jobs and steps)
 ## Job-level environment variables (override global, scoped to this job)
 ## Step-level environment variables (override job + global, scoped to this step)
 
 jobs:
-  checker:
-    name: "Check CITATION.cff"
+  checklist_checker:
+    name: contextual-qa-checklist-action job
     runs-on: ubuntu-latest
 
     # To enable this workflow on a fork, comment out:
@@ -63,7 +66,13 @@ jobs:
           ## Gets the correct commit message for pull request
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
-      - name: Check whether the citation metadata from CITATION.cff is valid
-        uses: citation-file-format/cffconvert-github-action@4cf11baa70a673bfdf9dad0acc7ee33b3f4b6084  # 2.0.0
+      - name: Checklist
+        # uses: ./
+        uses: wyozi/contextual-qa-checklist-action@5993c39162722635a557489a5c60f551cf99dd3a # v1.3.2
+        # if: github.repository == 'scikit-plots/scikit-plots'
+        continue-on-error: true
         with:
-          args: --validate
+          gh-token: ${{ secrets.GITHUB_TOKEN }}
+          # See options documentation below
+          # https://github.com/marketplace/actions/contextual-qa-checklists
+          # https://github.com/wyozi/contextual-qa-checklist-action/blob/master/.github/workflows/checklist.yml

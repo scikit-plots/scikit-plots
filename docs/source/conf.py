@@ -104,6 +104,7 @@ copyright = f"2024 - {datetime.datetime.now().year} {author} (BSD-3 Clause Licen
 #
 ##########################################################################
 ## version
+## https://devguide.python.org/documentation/markup/#substitutions
 ##########################################################################
 
 import switcher

@@ -26,14 +26,20 @@ Examples
 
 References
 ----------
-.. [1] Smith, J. *Sound Synthesis for Musicians*. Audio Tech Publishing, 2021.
-       https://example.com/sound-synthesis-guide.pdf
+.. [1] `Smith, J. (2021).
+   *Sound Synthesis for Musicians*.
+   Audio Tech Publishing. https://example.com/sound-synthesis-guide.pdf
+   <https://example.com/sound-synthesis-guide.pdf>`_
 
-.. [2] 3Blue1Brown. *Fourier Series*. YouTube, 2017.
-       https://www.youtube.com/watch?v=spUNpyF58BY
+.. [2] `3Blue1Brown. (2017).
+   *Fourier Series*.
+   YouTube. https://www.youtube.com/watch?v=spUNpyF58BY
+   <https://www.youtube.com/watch?v=spUNpyF58BY>`_
 
-.. [3] muhammed celik. "How to Generate 440 Hz A(La) Note Sin Wave". Medium, May 10, 2022.
-       https://celik-muhammed.medium.com/how-to-generate-440-hz-a-la-note-sin-wave-with-44-1-1e41f6ed9653
+.. [3] `Çelik, M. (2022, May 9).
+   "How to generate 440 Hz A(LA) Note Sin wave with 44.1"
+   Medium. https://celik-muhammed.medium.com/how-to-generate-440-hz-a-la-note-sin-wave-with-44-1-1e41f6ed9653
+   <https://celik-muhammed.medium.com/how-to-generate-440-hz-a-la-note-sin-wave-with-44-1-1e41f6ed9653>`_
 """  # noqa: D205, D400
 
 # composer/

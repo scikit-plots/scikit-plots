@@ -52,7 +52,7 @@ ax = sp.kds.plot_lift(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: lift curve
+#    plot-type: decile
 #    domain: statistics
 #    level: beginner
 #    purpose: showcase

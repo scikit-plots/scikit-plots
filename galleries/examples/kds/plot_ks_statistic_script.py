@@ -56,7 +56,7 @@ ax = sp.kds.plot_ks_statistic(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: ks-statistic curve
+#    plot-type: decile
 #    domain: statistics
 #    domain: KS (kolmogorov-smirnov)
 #    level: beginner

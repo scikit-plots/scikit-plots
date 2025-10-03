@@ -45,7 +45,7 @@ RUN pip install pipenv && pipenv install --deploy --ignore-pipfile
 | **Action**                                                                                                                 | **Command**                                                                       |
 |----------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
 | 🧩 **Project Initialization**                                                                                              |                                                                                   |
-| Create a new project environment with Pipenv                                                                               | `pipenv install --python 3.11`                                                    |
+| Create a new project environment with Pipenv                                                                               | `pipenv --python 3.11`                                                            |
 |                                                                                                                            |                                                                                   |
 | 🧼 **Environment Cleanup**                                                                                                 |                                                                                   |
 | Uninstall all dependencies                                                                                                 | `pipenv uninstall --all`                                                          |
@@ -57,6 +57,7 @@ RUN pip install pipenv && pipenv install --deploy --ignore-pipfile
 | Check installed packages                                                                                                   | `pipenv graph`                                                                    |
 |                                                                                                                            |                                                                                   |
 | 🧩 **Importing Existing Dependency Files**                                                                                 |                                                                                   |
+| Install package(s)                                                                                                         | `pipenv install requests`                                                         |
 | Import from `requirements.txt` to `Pipfile`                                                                                | `pipenv install -r ../../requirements/all.txt`                                    |
 | Import from `requirements.txt` to `Pipfile` (dev)                                                                          | `pipenv install --dev -r requirements_dev.txt`                                    |
 | Export back to `requirements.txt` from `Pipfile.lock`                                                                      | `pipenv requirements > requirements.txt`                                          |
@@ -71,7 +72,6 @@ RUN pip install pipenv && pipenv install --deploy --ignore-pipfile
 | Install packages just enforce present and up-to-date / strict mode (Fail fast if lockfile is missing/stale or out-of-date).| `pipenv install --deploy`                                                         |
 | Install packages control directly into the currently active Python interpreter or a new venv, No virtualenv is created.    | `pipenv install --system` or `PIPENV_IGNORE_VIRTUALENVS=1 pipenv install`         |
 | Install packages exactly the locked packages into the intended Python environment.                                         | `pipenv install --ignore-pipfile --deploy --system`                               |
-| Install package                                                                                                            | `pipenv install requests`                                                         |
 | Install package dev-only                                                                                                   | `pipenv install --dev pytest`                                                     |
 | Activate virtual environment current shell                                                                                 | `pipenv shell`                                                                    |
 | In virtual environment run Python command                                                                                  | `pipenv run python script.py`                                                     |

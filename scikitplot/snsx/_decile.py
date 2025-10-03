@@ -6,30 +6,42 @@
 # pylint: disable=logging-fstring-interpolation
 
 """
-Decile-based model evaluation module (Lift, Gains, KS statistics).
+Decile-based [2]_ model evaluation module (Lift, Gains, KS statistics).
 
-The :mod:`~scikitplot.kds` module includes plots for machine learning
+The :mod:`~scikitplot.snsx._decile` module includes plots for machine learning
 evaluation decile analysis e.g. Gain, Lift and Decile charts, etc.
 
-Seaborn-style decile analysis (Lift / Gain / KS) rewritten to use VectorPlotter.
-
-Design principles:
-- Accept `data=..., x=..., y=..., hue=...` like seaborn.
-- Compute decile-level statistics per hue/facet subset using VectorPlotter.iter_data.
-- Return pandas DataFrame for decile_table and Axes for plotting functions.
-
-This module provides:
-- decile_table(...) : compute decile-level statistics
-- plot_cumulative_lift(...) : cumulative lift curve
-- plot_decile_wise_lift(...) : lift per decile
-- plot_cumulative_gain(...) : cumulative gain curve
-- plot_ks_statistic(...) : KS statistic and helper markers
-- report(...) : convenience function producing decile table + subplots
+In descriptive statistics, a decile is any of the nine values that divide the sorted data
+into ten equal parts, so that each part represents 1/10 of the sample or population.
+A decile is one possible form of a quantile; others include the quartile and percentile.
+A decile rank arranges the data in order from lowest to highest and
+is done on a scale of one to ten where each successive number corresponds to
+an increase of 10 percentage points. See [2]_ for model details.
 
 References
 ----------
-[1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py
+.. [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py
+
+.. [2] `Wikipedia contributors. (2024).
+   "Decile"
+   Wikipedia. https://en.wikipedia.org/wiki/Decile
+   <https://en.wikipedia.org/wiki/Decile>`_
 """
+
+# Seaborn-style decile analysis (Lift / Gain / KS) rewritten to use VectorPlotter.
+#
+# Design principles:
+# - Accept `data=..., x=..., y=..., hue=...` like seaborn.
+# - Compute decile-level statistics per hue/facet subset using VectorPlotter.iter_data.
+# - Return pandas DataFrame for decile_table and Axes for plotting functions.
+#
+# This module provides:
+# - decile_table(...) : compute decile-level statistics
+# - plot_cumulative_lift(...) : cumulative lift curve
+# - plot_decile_wise_lift(...) : lift per decile
+# - plot_cumulative_gain(...) : cumulative gain curve
+# - plot_ks_statistic(...) : KS statistic and helper markers
+# - report(...) : convenience function producing decile table + subplots
 
 # code that needs to be compatible with both Python 2 and Python 3
 from __future__ import annotations
@@ -62,7 +74,7 @@ except:
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
-    "kdsplot",
+    "decileplot",
     "print_labels",
 ]
 
@@ -247,7 +259,7 @@ def print_labels(
 
     See Also
     --------
-    kdsplot : Given binary labels y_true (0/1) and probabilities y_score 1d array,
+    decileplot : Given binary labels y_true (0/1) and probabilities y_score 1d array,
         compute/plot a decile table.
 
     References
@@ -1098,7 +1110,7 @@ class _DecilePlotter(VectorPlotter):
 # -----------------------------------------------------------------------------
 # Public API functions (wrappers)
 # -----------------------------------------------------------------------------
-def kdsplot(  # noqa: D417
+def decileplot(  # noqa: D417
     data: "pd.DataFrame | None" = None,  # noqa: UP037
     *,
     x: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
@@ -1119,7 +1131,7 @@ def kdsplot(  # noqa: D417
     **kwargs,
 ) -> "pd.DataFrame | mpl.axes.Axes":  # mpl.figure.Figure  # noqa: UP037
     """
-    Given binary labels y_true (0/1) and probabilities y_score 1d array, compute/plot a decile table.
+    Given binary labels y_true (0/1) and probabilities y_score 1d array, compute/plot a decile [2]_ table.
 
     The function sorts observations by descending score, assigns decile index
     (1..n_deciles) using pandas qcut on the rank/index to ensure near-equal bins,
@@ -1173,6 +1185,15 @@ def kdsplot(  # noqa: D417
         and related information (decile-level metrics).
         If hue/facet semantics were used, the returned table will include
         extra columns for those keys (e.g., 'hue').
+
+    References
+    ----------
+    .. [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py
+
+    .. [2] `Wikipedia contributors. (2024).
+       "Decile"
+       Wikipedia. https://en.wikipedia.org/wiki/Decile
+       <https://en.wikipedia.org/wiki/Decile>`_
     """
     _check_argument(
         "kind",

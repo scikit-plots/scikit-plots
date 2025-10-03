@@ -1,8 +1,8 @@
 """
-plot_kdsplot_script with examples
+plot_decileplot_script with examples
 ==========================================
 
-An example showing the :py:func:`~scikitplot.snsx.kdsplot` function
+An example showing the :py:func:`~scikitplot.snsx.decileplot` function
 used by a scikit-learn regressor.
 """
 
@@ -54,7 +54,7 @@ df = pd.DataFrame({
 
 
 # %%
-p = sp.kdsplot(
+p = sp.decileplot(
     df,
     x="y_true",
     y="y_score",
@@ -71,26 +71,26 @@ p.iloc[:, range(9, 23)]
 
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score", kind="cumulative_lift", n_deciles=10)
+p = sp.decileplot(df, x="y_true", y="y_score", kind="cumulative_lift", n_deciles=10)
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score", kind="decile_wise_lift", n_deciles=10)
+p = sp.decileplot(df, x="y_true", y="y_score", kind="decile_wise_lift", n_deciles=10)
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score", kind="cumulative_gain", n_deciles=10)
+p = sp.decileplot(df, x="y_true", y="y_score", kind="cumulative_gain", n_deciles=10)
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score", kind="cumulative_response", n_deciles=10)
+p = sp.decileplot(df, x="y_true", y="y_score", kind="cumulative_response", n_deciles=10)
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score", kind="decile_wise_gain", n_deciles=10)
+p = sp.decileplot(df, x="y_true", y="y_score", kind="decile_wise_gain", n_deciles=10)
 
 # %%
-p = sp.kdsplot(df, x="y_true", y="y_score", kind="ks_statistic", n_deciles=10)
+p = sp.decileplot(df, x="y_true", y="y_score", kind="ks_statistic", n_deciles=10)
 
 # %%
 fig, ax = plt.subplots(figsize=(10, 10))
-p = sp.kdsplot(
+p = sp.decileplot(
     df,
     x="y_true",
     y="y_score",
@@ -108,6 +108,6 @@ p = sp.kdsplot(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: cum-gain curve
+#    plot-type: decile
 #    level: beginner
 #    purpose: showcase

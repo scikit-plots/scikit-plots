@@ -7,9 +7,9 @@
 # If the file is not tracked, there will be no output.
 
 # git clones, if needed
-.git_clones/*
-!.git_clones/.gitignore
-!.git_clones/README.md
+.git_clone*/*
+!.git_clone*/.gitignore
+!.git_clone*/README.md
 
 # Sphinx documentation
 # 'matplotlib.sphinxext.plot_directive'

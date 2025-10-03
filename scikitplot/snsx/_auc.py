@@ -15,6 +15,13 @@ Features:
 - Automatic legends with AUC scores
 - Optional filled area under curve
 - Baselines (random chance lines or prevalence lines)
+
+References
+----------
+.. [1] `scikit-learn contributors. (2025).
+   "sklearn.metrics"
+   scikit-learn. https://scikit-learn.org/stable/api/sklearn.metrics.html
+   <https://scikit-learn.org/stable/api/sklearn.metrics.html>`_
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
