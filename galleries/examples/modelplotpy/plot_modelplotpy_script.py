@@ -207,7 +207,7 @@ ax = mp.plot_cumgains(ps, highlight_ntile=3, save_fig=True)
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: cum-gain curve
+#    plot-type: decile
 #    level: beginner
 #    purpose: showcase
 
@@ -230,7 +230,7 @@ ax = mp.plot_cumlift(ps, highlight_ntile=3, save_fig=True)
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: lift curve
+#    plot-type: decile
 #    domain: statistics
 #    level: beginner
 #    purpose: showcase

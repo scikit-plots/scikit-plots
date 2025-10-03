@@ -1,0 +1,8 @@
+paths:
+  "*.py":
+    # - Did you update distributable with `yarn build-dist`?
+    - Experimental
+    - Does code have tests?
+    - Are possibly unused imports removed?
+  "CHECKLIST.yml":
+    - Are items grammatically correct?

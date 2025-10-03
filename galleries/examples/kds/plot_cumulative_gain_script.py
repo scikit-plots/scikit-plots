@@ -54,6 +54,6 @@ ax = sp.kds.plot_cumulative_gain(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: line
-#    plot-type: cum-gain curve
+#    plot-type: decile
 #    level: beginner
 #    purpose: showcase

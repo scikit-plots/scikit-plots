@@ -114,6 +114,7 @@ jobs:
     if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
+      ## 📥 Checkout the Git repository into the runner
       - name: "⬇️ Checkout (cloned) repository with full history"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -122,7 +123,7 @@ jobs:
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
           lfs: true
           ## Gets the correct commit message for pull request
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Get Commit Message
         id: id_commit_message  # $COMMIT_MESSAGE

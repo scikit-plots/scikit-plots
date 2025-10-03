@@ -6,6 +6,24 @@ on:
   issues:
     types: [opened, edited]
 
+## simultaneity
+## This ensures that only one deployment to "production" can happen at a time.
+## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
+concurrency:
+  ## Ensures that only one instance of this workflow runs per branch or PR at a time.
+  ## The 'group' key defines a unique concurrency group:
+  ## - github.workflow: Name of the workflow file.
+  ## - github.head_ref: (Only on pull_request) The name of the branch from which the PR was created (source branch). Example: "feature/add-login"
+  ## - github.run_id: (Always) A unique numeric ID for each run of a workflow. Useful as a fallback for uniqueness. Example: 6432789156
+  ## - github.ref: (Always) The full ref path of the branch or tag that triggered the workflow. Examples: For a push to a branch: "refs/heads/main" For a PR: "refs/pull/42/merge" For a tag: "refs/tags/v1.0.0"
+  ## - github.ref_name: (Always) Just the final part of the ref path (branch or tag name, does not exist for PRs). Examples: For a push to a branch: "main" For a tag: "v1.0.0"
+  ## This ensures: PRs use head_ref, Pushes/Tags use ref or ref_name, Fallback to run_id in edge cases
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  ## If you push multiple times quickly, older runs would continue even though newer ones have started.
+  ## Canceling previous runs reduces resource usage and speeds up feedback.
+  ## If a new run is triggered for the same group, cancel the in-progress one.
+  cancel-in-progress: true
+
 ## Top-level permissions (outside jobs)
 ## Job-level permissions (inside a specific job)
 ## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
@@ -29,12 +47,16 @@ jobs:
     if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
+      ## 📥 Checkout the Git repository into the runner
       - name: "⬇️ Checkout (cloned) repository with full history"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           # submodules: true  # Fetch Hugo themes (true OR recursive)
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          lfs: true
+          ## Gets the correct commit message for pull request
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       # label based on Issue title
       - name: label based on PR title

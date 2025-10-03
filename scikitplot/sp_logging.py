@@ -29,6 +29,14 @@ Scikit-plots logging helpers, supports vendoring.
 
 Module Dependencies:
 - Python standard library: :py:mod:`logging`
+
+
+References
+----------
+.. [1] `Tensorflow contributors. (2025).
+   "Tensorflow's logging system"
+   Tensorflow. https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94
+   <https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94>`_
 """
 
 from __future__ import annotations

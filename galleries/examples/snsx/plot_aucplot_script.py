@@ -95,7 +95,7 @@ for i in range(10):
     by_label = dict(zip(labels, handles))  # deduplicate
 
     # Override legend
-    ax.legend(by_label.values(), by_label.keys(), title="Legend")
+    ax.legend(by_label.values(), by_label.keys(), title="Val Dataset")
 
 
 # %%
@@ -122,7 +122,7 @@ for i in range(10):
     by_label = dict(zip(labels, handles))  # deduplicate
 
     # Override legend
-    ax.legend(by_label.values(), by_label.keys(), title="Legend")
+    ax.legend(by_label.values(), by_label.keys(), title="Val Dataset")
 
 
 # %%
