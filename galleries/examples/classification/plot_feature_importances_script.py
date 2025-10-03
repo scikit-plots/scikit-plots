@@ -72,5 +72,6 @@ ax, features = sp.estimators.plot_feature_importances(
 #    model-type: classification
 #    model-workflow: model evaluation
 #    plot-type: bar
+#    plot-type: eval
 #    level: beginner
 #    purpose: showcase

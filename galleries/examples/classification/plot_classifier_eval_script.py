@@ -84,7 +84,7 @@ fig2 = sp.metrics.plot_classifier_eval(
 #
 #    model-type: classification
 #    model-workflow: model evaluation
-#    plot-type: matrix
-#    plot-type: specialty
+#    plot-type: heatmap
+#    plot-type: eval
 #    level: beginner
 #    purpose: showcase

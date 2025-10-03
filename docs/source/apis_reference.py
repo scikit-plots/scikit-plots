@@ -204,7 +204,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.cexperimental": {
-        "short_summary": "C-Experimental Python module based on C/CPP.",
+        "short_summary": "C-Experimental Python modules based on C/CPP.",
         "description": _get_guide("cexperimental-index"),
         "sections": [
             {
@@ -248,11 +248,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.cexternals": {
-        "short_summary": "C-Externals Python module based on C/CPP.",
+        "short_summary": "C-Externals Python modules based on C/CPP.",
         "description": _get_guide("cexternals-index"),
         "sections": [
             {
-                "title": "astropy stats",
+                "title": "astropy stats as submodule.",
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_astropy")
                     + "\n\n"
@@ -263,7 +263,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "NumPy f2py",
+                "title": "NumPy f2py as submodule.",
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_f2py")
                     + "\n\n"
@@ -276,7 +276,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.experimental": {
-        "short_summary": "Experimental Python module.",
+        "short_summary": "Experimental Python modules.",
         "description": _get_guide("experimental-index"),
         "sections": [
             {
@@ -316,7 +316,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.externals": {
-        "short_summary": "External Python module.",
+        "short_summary": "External Python modules.",
         "description": _get_guide("externals-index"),
         "sections": [
             {
@@ -334,25 +334,25 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "Seaborn.",
+                "title": "Seaborn as submodule.",
                 "description": (
                     _get_submodule("scikitplot.externals", "_seaborn")
                     + "\n\n"
                     + _get_guide("seaborn-index")
                 ),
                 "autosummary": [
-                    # "_seaborn",
+                    "_seaborn",
                 ],
             },
             {
-                "title": "Matplotlib Sphinxext.",
+                "title": "Matplotlib Sphinxext Ext.",
                 "description": (
                     _get_submodule("scikitplot.externals", "_sphinxext")
-                    #   + "\n\n"
-                    #   + _get_guide("seaborn-index")
+                      + "\n\n"
+                      + _get_guide("sphinxext-index")
                 ),
                 "autosummary": [
-                    # "_sphinxext",
+                    "_sphinxext",
                 ],
             },
             {
@@ -363,13 +363,35 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("tweedie-index")
                 ),
                 "autosummary": [
-                    # "_tweedie",
+                    "_tweedie",
+                ],
+            },
+            {
+                "title": "data-apis array_api_compat as submodule.",
+                "description": (
+                    _get_submodule("scikitplot.externals", "array_api_compat")
+                    + "\n\n"
+                    + _get_guide("array_api_compat-index")
+                ),
+                "autosummary": [
+                    "array_api_compat",
+                ],
+            },
+            {
+                "title": "data-apis array_api_extra as submodule.",
+                "description": (
+                    _get_submodule("scikitplot.externals", "array_api_extra")
+                    + "\n\n"
+                    + _get_guide("array_api_extra-index")
+                ),
+                "autosummary": [
+                    "array_api_extra",
                 ],
             },
         ],
     },
     "scikitplot.kds": {
-        "short_summary": "KeyToDataScience",
+        "short_summary": "KeyToDataScience: kds",
         "description": _get_guide("kds-index"),
         "sections": [
             {
@@ -392,7 +414,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.modelplotpy": {
-        "short_summary": "Predictive model insights",
+        "short_summary": "ModelPlotPy: Predictive model insights",
         "description": _get_guide("modelplotpy-index", "modelplotpy_financial-index"),
         "sections": [
             {
@@ -432,16 +454,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.preprocessing": {
-        "short_summary": "preprocessing",
+        "short_summary": "Extended sklearn preprocessing.",
         "description": _get_guide("preprocessing-index"),
         "sections": [
             {
-                "title": "preprocessing",
-                # "description": (
-                #   _get_submodule("scikitplot.kds", "_kds")
-                #   + "\n\n"
-                #   + _get_guide("kds-index")
-                # ),
+                "title": "Extended sklearn feature preprocessing.",
+                "description": (
+                  _get_submodule("scikitplot.preprocessing", "_get_dummies")
+                  + "\n\n"
+                  + _get_guide("get_dummies-index")
+                ),
                 "autosummary": [
                     "GetDummies",
                 ],
@@ -449,32 +471,32 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.snsx": {
-        "short_summary": "Seaborn Extended",
+        "short_summary": "Seaborn Extended as snsX",
         "description": _get_guide("snsx-index"),
         "sections": [
             {
-                "title": ".kds to Seaborn",
+                "title": ".api.metrics to SeabornX",
                 "description": None,
                 # "description": (
-                #   _get_submodule("scikitplot.kds", "_kds")
+                #   _get_submodule("scikitplot.snsx", "_auc")
                 #   + "\n\n"
-                #   + _get_guide("kds-index")
-                # ),
-                "autosummary": [
-                    "decileplot",
-                    "print_labels",
-                ],
-            },
-            {
-                "title": ".api to Seaborn",
-                "description": None,
-                # "description": (
-                #   _get_submodule("scikitplot.kds", "_kds")
-                #   + "\n\n"
-                #   + _get_guide("kds-index")
+                #   + _get_guide("auc-index")
                 # ),
                 "autosummary": [
                     "aucplot",
+                    "evalplot",
+                ],
+            },
+            {
+                "title": ".kds to SeabornX",
+                "description": (
+                  _get_submodule("scikitplot.snsx", "_decile")
+                  + "\n\n"
+                  + _get_guide("decile-index")
+                ),
+                "autosummary": [
+                    "decileplot",
+                    "print_labels",
                 ],
             },
         ],
