@@ -19,7 +19,7 @@ References
 #     print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
 #     unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
 # )
-from __future__ import annotations
+from __future__ import annotations  # Allows string type hints
 
 # --------------------------------------------------------------------
 # Imports
@@ -42,15 +42,89 @@ from sklearn.utils.multiclass import unique_labels
 
 try:
     from seaborn._base import VectorPlotter
+    from seaborn._compat import groupby_apply_include_groups  # noqa: F401
+    from seaborn._docstrings import (
+        DocstringComponents,
+        _core_docs,
+    )
+    from seaborn._statistics import ECDF, KDE, Histogram
+    from seaborn._stats.counting import Hist  # noqa: F401
+    from seaborn.axisgrid import _facet_docs
     from seaborn.external import husl
     from seaborn.utils import _check_argument, _default_color
 except:
     from ..externals._seaborn._base import VectorPlotter
+    from ..externals._seaborn._compat import groupby_apply_include_groups  # noqa: F401
+    from ..externals._seaborn._docstrings import (
+        DocstringComponents,
+        _core_docs,
+    )
+    from ..externals._seaborn._statistics import ECDF, KDE, Histogram
+    from ..externals._seaborn._stats.counting import Hist  # noqa: F401
+    from ..externals._seaborn.axisgrid import _facet_docs
     from ..externals._seaborn.external import husl
     from ..externals._seaborn.utils import (
         _check_argument,
         _default_color,
     )
+
+
+# Define __all__ to specify the public interface of the module,
+# not required all module instances (default)
+__all__ = [
+    "evalplot",
+]
+
+
+# ==================================================================================== #
+# Module documentation
+# ==================================================================================== #
+
+_dist_params = dict(  # noqa: C408
+    multiple="""
+multiple : {{"layer", "stack", "fill"}}
+    Method for drawing multiple elements when semantic mapping creates subsets.
+    Only relevant with univariate data.
+    """,
+    log_scale="""
+log_scale : bool or number, or pair of bools or numbers
+    Set axis scale(s) to log. A single value sets the data axis for any numeric
+    axes in the plot. A pair of values sets each axis independently.
+    Numeric values are interpreted as the desired base (default 10).
+    When `None` or `False`, seaborn defers to the existing Axes scale.
+    """,
+    legend="""
+legend : bool
+    If False, suppress the legend for semantic variables.
+    """,
+    cbar="""
+cbar : bool
+    If True, add a colorbar to annotate the color mapping in a bivariate plot.
+    Note: Does not currently support plots with a ``hue`` variable well.
+    """,
+    cbar_ax="""
+cbar_ax : :class:`matplotlib.axes.Axes`
+    Pre-existing axes for the colorbar.
+    """,
+    cbar_kws="""
+cbar_kws : dict
+    Additional parameters passed to :meth:`matplotlib.figure.Figure.colorbar`.
+    """,
+)
+
+_param_docs = DocstringComponents.from_nested_components(
+    core=_core_docs["params"],
+    facets=DocstringComponents(_facet_docs),
+    dist=DocstringComponents(_dist_params),
+    kde=DocstringComponents.from_function_params(KDE.__init__),
+    hist=DocstringComponents.from_function_params(Histogram.__init__),
+    ecdf=DocstringComponents.from_function_params(ECDF.__init__),
+)
+
+
+# ==================================================================================== #
+# Internal API
+# ==================================================================================== #
 
 
 # --------------------------------------------------------------------
@@ -626,21 +700,25 @@ def evalplot(  # noqa: D417  # evalmap
     data: "pd.DataFrame | None" = None,  # noqa: UP037
     *,
     # Vector variables
-    x: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
-    y: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
+    x: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
+    y: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
+    hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
     kind: "Literal['all', 'classification_report', 'confusion_matrix'] | None" = None,  # noqa: UP037
-    hue: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
     weights=None,
-    # computation parameters
-    common_norm=None,
     # Hue mapping parameters
-    palette=None,
-    color=None,
     hue_order=None,
     hue_norm=None,
+    palette=None,
+    color=None,
+    # appearance parameters
+    fill=False,
+    # Other appearance keywords
+    baseline=False,
+    # smoothing
+    line_kws=None,
     # Axes information
     log_scale=None,
-    legend=False,
+    legend=True,
     ax=None,
     cbar=True,
     cbar_ax=None,
@@ -648,62 +726,16 @@ def evalplot(  # noqa: D417  # evalmap
     # smoothing
     text_kws=None,
     image_kws=None,
+    # computation parameters
+    digits: "int | None" = None,  # noqa: UP037
+    common_norm=None,
+    verbose: bool = False,
     **kwargs,
 ) -> mpl.axes.Axes:
-    """
-    Visualization of the Confusion Matrix [1]_ alongside a text report showing key classification metrics.
-
-    For guidance on interpreting these plots, refer to the
-    `Model Evaluation Guide <https://scikit-learn.org/stable/modules/model_evaluation.html#confusion-matrix>`_.
-
-    Parameters
-    ----------
-    data : pandas.DataFrame | None
-    x : str | pd.Series | np.ndarray | None
-        Ground truth (correct/actual) target values.
-    y : str | pd.Series | np.ndarray | None
-        Prediction probabilities for target class returned by a classifier/algorithm.
-    kind : {'all', 'classification_report', 'confusion_matrix'} or None, default='all'
-        Draw 'classification_report' or 'confusion_matrix' plot:
-
-        - if `'all'`, the plot is include all;
-    hue : str | pd.Series | np.ndarray | None
-    legend : bool, default=False
-    normalize : {'true', 'pred', 'all', None}, optional
-        Normalizes the confusion matrix according to the specified mode. Defaults to None.
-
-        - 'true': Normalizes by true (actual) values.
-        - 'pred': Normalizes by predicted values.
-        - 'all': Normalizes by total values.
-        - None: No normalization.
-    digits : int, optional, default=3
-        Number of digits for formatting floating point values in the plots.
-    text_kws : dict
-        Parameters that control the `'classification_report'` visualization, passed to
-        :py:func:`~matplotlib.axes.Axes.text`.
-    image_kws : dict
-        Parameters that control the `'confusion_matrix'` visualization, passed to
-        :py:func:`~matplotlib.axes.Axes.imshow`.
-
-        Recognized keys:
-
-        cmap : None, str or matplotlib.colors.Colormap, optional, default=None
-            Colormap used for plotting.
-            Options include 'viridis', 'PiYG', 'plasma', 'inferno', 'nipy_spectral', etc.
-            See Matplotlib Colormap documentation for available choices.
-
-            - https://matplotlib.org/stable/users/explain/colors/index.html
-            - plt.colormaps()
-            - plt.get_cmap()  # None == 'viridis'
-
-    References
-    ----------
-    .. [1] `scikit-learn contributors. (2025).
-       "sklearn.metrics"
-       scikit-learn. https://scikit-learn.org/stable/api/sklearn.metrics.html
-       <https://scikit-learn.org/stable/api/sklearn.metrics.html>`_
-    """
-    kind = (kind and kind.lower().strip()) or "roc"
+    # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+    # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+    # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+    kind = (kind and kind.lower().strip()) or "all"
     _check_argument(
         "kind",
         [
@@ -761,3 +793,100 @@ def evalplot(  # noqa: D417  # evalmap
         **eval_kws,
     )
     return ax
+
+
+evalplot.__doc__ = """\
+Visualization of the Confusion Matrix [1]_ alongside a text report showing key classification metrics.
+
+For guidance on interpreting these plots, refer to the
+`Model Evaluation Guide <https://scikit-learn.org/stable/modules/model_evaluation.html#confusion-matrix>`_.
+
+Parameters
+----------
+{params.core.data}
+{params.core.xy}
+{params.core.hue}
+kind : {{'all', 'classification_report', 'confusion_matrix'}} or None, default=None
+    Kind of plot to make.
+weights : vector or key in ``data``
+    If provided, observation weights used for computing the distribution function.
+{params.core.hue_order}
+{params.core.hue_norm}
+{params.core.palette}
+{params.core.color}
+fill : bool or None
+    If True, fill in the area under univariate density curves or between
+    bivariate contours. If None, the default depends on ``multiple``.
+{{line}}_kws : dictionaries
+    Additional keyword arguments to pass to ``plt.plot``.
+{params.dist.log_scale}
+{params.dist.legend}
+{params.core.ax}
+{params.dist.cbar}
+{params.dist.cbar_ax}
+{params.dist.cbar_kws}
+text_kws : dict
+    Parameters that control the `'classification_report'` visualization, passed to
+    :py:func:`~matplotlib.axes.Axes.text`.
+image_kws : dict
+    Parameters that control the `'confusion_matrix'` visualization, passed to
+    :py:func:`~matplotlib.axes.Axes.imshow`.
+    Recognized keys:
+
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', 'nipy_spectral', etc.
+        See Matplotlib Colormap documentation for available choices.
+
+        - https://matplotlib.org/stable/users/explain/colors/index.html
+        - plt.colormaps()
+        - plt.get_cmap()  # None == 'viridis'
+digits : int, optional, default=4
+    Number of digits for formatting output floating point values.
+    When ``output_dict`` is ``True``, this will be ignored and the
+    returned values will not be rounded.
+output_dict : bool, default=False
+    If True, return output as dict.
+zero_division : {{"warn", 0.0, 1.0, np.nan}}, default="warn"
+    Sets the value to return when there is a zero division. If set to
+    "warn", this acts as 0, but warnings are also raised.
+common_norm : bool
+    If True, scale each conditional density by the number of observations
+    such that the total area under all densities sums to 1. Otherwise,
+    normalize each density independently.
+verbose : bool, optional, default=False
+    Whether to be verbose.
+normalize : {{'true', 'pred', 'all', None}}, optional
+    Normalizes the confusion matrix according to the specified mode. Defaults to None.
+
+    - 'true': Normalizes by true (actual) values.
+    - 'pred': Normalizes by predicted values.
+    - 'all': Normalizes by total values.
+    - None: No normalization.
+kwargs
+    Other keyword arguments are passed to one of the following matplotlib
+    functions:
+
+    - :meth:`matplotlib.axes.Axes.plot`
+
+Returns
+-------
+{returns.ax}
+
+.. warning::
+
+    Some function parameters are experimental prototypes.
+    These may be modified, renamed, or removed in future library versions.
+    Use with caution and check documentation for the latest updates.
+
+References
+----------
+.. [1] `scikit-learn contributors. (2025).
+    "sklearn.metrics"
+    scikit-learn. https://scikit-learn.org/stable/api/sklearn.metrics.html
+    <https://scikit-learn.org/stable/api/sklearn.metrics.html>`_
+""".format(  # noqa: UP032
+    params=_param_docs,
+    returns=_core_docs["returns"],
+    # seealso=_core_docs["seealso"],
+)

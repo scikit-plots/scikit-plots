@@ -365,6 +365,8 @@ pipenv shell
 ## Now Install scikit-plots (via pip, conda, or local source)
 # pip index versions scikit-plots
 pip install scikit-plots
+# Cause numpy>=2.0.0 but support old numpy
+# pip install numpy==1.26.4
 ```
 
 <h3>
@@ -391,6 +393,8 @@ pip install -r default.txt
 ```sh
 ## Try After Ensure all "Runtime dependencies" installed
 pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+# Cause numpy>=2.0.0 but support old numpy
+# pip install numpy==1.26.4
 ```
 
 <h3>

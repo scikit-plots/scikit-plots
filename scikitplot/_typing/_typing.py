@@ -100,6 +100,14 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
 
+# npt.ArrayLike list, tuple, np.ndarray
+# npt.NDArray np.ndarray Series (vector, matrix, tensor)
+# np.generic NumPy skaler (np.float64, np.int32 vb.)
+# sp.spmatrix sparse matrix (csr, csc, coup, vs.)
+import matplotlib.typing as mpt  # Typing support  # noqa: F401
+import numpy.typing as npt  # Typing support  # noqa: F401
+import pandas._typing as pdt  # Typing support  # noqa: F401
+
 if TYPE_CHECKING:
     # ⚠️ "list[str]" use quotes to avoid runtime eval
     if sys.version_info >= (3, 9):
@@ -138,6 +146,7 @@ if TYPE_CHECKING:
         Literal,
         ModuleType,
         Optional,
+        Protocol,
         TypeVar,
         Union,
     )
