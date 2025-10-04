@@ -60,7 +60,7 @@ p = sp.decileplot(
     y="y_score",
     kind="df",
     n_deciles=10,
-    round_digits=4,
+    digits=4,
     verbose=True,
 )
 p
@@ -96,7 +96,7 @@ p = sp.decileplot(
     y="y_score",
     kind="report",
     n_deciles=10,
-    round_digits=6,
+    digits=6,
     verbose=True,
 )
 
