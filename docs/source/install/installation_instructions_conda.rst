@@ -39,6 +39,8 @@ administrator permission required). Then run:
 
   ## (conda or mamba) Install scikit-plots (Upcoming)
   conda install --yes -c conda-forge scikit-plots
+  # Cause numpy>=2.0.0 but support old numpy
+  # pip install numpy==1.26.4
 
 In order to check your installation, you can use:
 
@@ -53,7 +55,6 @@ In order to check your installation, you can use:
   # (Optionally) CLI Version Check
   scikitplot --version
   scikitplot -V
-  scikitplot -v
 
 (Optionally) Also available Nightly Version **can be cause conflict** required ``New Environment``:
 
@@ -67,3 +68,5 @@ In order to check your installation, you can use:
   ## Try After Ensure all "Runtime dependencies" installed
   # pip install --extra-index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
   pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+  # Cause numpy>=2.0.0 but support old numpy
+  pip install numpy==1.26.4

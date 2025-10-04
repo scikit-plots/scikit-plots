@@ -2,26 +2,44 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Seaborn-style PR and ROC curve plotting.
+Model Instance and/or Attributes Visualization.
 
-This module provides:
-- A core `_AucPlotter` class (subclass of VectorPlotter) for handling
-  data preparation and plotting PR/ROC curves.
-- User-facing functions `prplot()` and `rocplot()` that work just like
-  seaborn's high-level API (e.g., scatterplot, lineplot).
+Supported attributes:
 
-Features:
-- Multiple groups with `hue`
-- Automatic legends with AUC scores
-- Optional filled area under curve
-- Baselines (random chance lines or prevalence lines)
+- feature_names_in_
+- feature_importances_
+- coef_
+- eigenvalues_
+- eigenvectors_
+
+See Also
+--------
+FastICA : A fast algorithm for Independent Component Analysis.
+IncrementalPCA : Incremental Principal Component Analysis.
+NMF : Non-Negative Matrix Factorization.
+PCA : Principal component analysis (PCA).
+KernelPCA : Kernel Principal component analysis (KPCA).
+SparsePCA : Sparse Principal Components Analysis (SparsePCA).
+TruncatedSVD : Dimensionality reduction using truncated SVD.
+permutation_importance : Permutation importance for feature evaluation [BRE].
+partial_dependence : Compute Partial Dependence values.
+PartialDependenceDisplay : Partial dependence visualization.
+PartialDependenceDisplay.from_estimator : Plot Partial Dependence.
+DecisionBoundaryDisplay : Decision boundary visualization.
+DecisionBoundaryDisplay.from_estimator : Plot decision boundary given an estimator.
 
 References
 ----------
+.. [BRE] :doi:`L. Breiman, "Random Forests", Machine Learning, 45(1), 5-32,
+   2001. <10.1023/A:1010933404324>`
 .. [1] `scikit-learn contributors. (2025).
-   "sklearn.metrics"
-   scikit-learn. https://scikit-learn.org/stable/api/sklearn.metrics.html
-   <https://scikit-learn.org/stable/api/sklearn.metrics.html>`_
+   "sklearn.decomposition"
+   scikit-learn. https://scikit-learn.org/stable/api/sklearn.decomposition.html
+   <https://scikit-learn.org/stable/api/sklearn.decomposition.html>`_
+.. [2] `scikit-learn contributors. (2025).
+   "sklearn.inspection"
+   scikit-learn. https://scikit-learn.org/stable/api/sklearn.inspection.html
+   <https://scikit-learn.org/stable/api/sklearn.inspection.html>`_
 """
 
 # code that needs to be compatible with both Python 2 and Python 3
@@ -36,21 +54,31 @@ from __future__ import annotations  # Allows string type hints
 # --------------------------------------------------------------------
 # Imports
 # --------------------------------------------------------------------
+# import copy
 import warnings
+from textwrap import dedent
 from typing import ClassVar, Literal
 
 import matplotlib as mpl
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.cbook import normalize_kwargs
 from matplotlib.colors import to_rgba
 from sklearn.metrics import (
-    auc,
-    average_precision_score,
-    precision_recall_curve,
-    roc_curve,
+    classification_report,
+    confusion_matrix,
 )
+from sklearn.utils.multiclass import unique_labels
+
+try:
+    import statsmodels
+
+    assert statsmodels  # noqa: S101
+    _has_statsmodels = True
+except ImportError:
+    _has_statsmodels = False
 
 try:
     from seaborn._base import VectorPlotter
@@ -84,13 +112,37 @@ except:
 # Define __all__ to specify the public interface of the module,
 # not required all module instances (default)
 __all__ = [
-    "aucplot",
+    "modelplot",
 ]
 
 
 # ==================================================================================== #
 # Module documentation
 # ==================================================================================== #
+
+_model_docs = dict(  # noqa: C408
+    model_api=dedent(
+        """\
+        There are a number of mutually exclusive options for estimating the
+        regression model. See the :ref:`tutorial <regression_tutorial>` for more
+        information.\
+        """
+    ),
+    x_estimator=dedent(
+        """\
+        x_estimator : model
+            An instance so access the fitted model attribute(s).\
+        """
+    ),
+    scatter_line_kws=dedent(
+        """\
+        {scatter,line}_kws : dictionaries
+            Additional keyword arguments to pass to ``plt.scatter`` and
+            ``plt.plot``.\
+        """
+    ),
+)
+# _model_docs.update(_facet_docs)
 
 _dist_params = dict(  # noqa: C408
     multiple="""
@@ -131,6 +183,7 @@ _param_docs = DocstringComponents.from_nested_components(
     kde=DocstringComponents.from_function_params(KDE.__init__),
     hist=DocstringComponents.from_function_params(Histogram.__init__),
     ecdf=DocstringComponents.from_function_params(ECDF.__init__),
+    model=DocstringComponents(_model_docs),
 )
 
 
@@ -142,15 +195,16 @@ _param_docs = DocstringComponents.from_nested_components(
 # --------------------------------------------------------------------
 # Core Plotter Class
 # --------------------------------------------------------------------
-class _AucPlotter(VectorPlotter):
+class _ConfusionMatrixPlotter(VectorPlotter):
     """
-    Seaborn-style Auc plotter internal class for PR / ROC curves plotting.
+    Seaborn-style ConfusionMatrix visualization.
 
     Expects the VectorPlotter pipeline to have mapped incoming data into
     standardized columns "x", "y", optionally grouping (hue), legend creation,
     "weights", and subset iteration.
     """
 
+    # self.variables
     wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
         "x": "@index",
         "y": "@values",
@@ -289,170 +343,6 @@ class _AucPlotter(VectorPlotter):
         labels = [lbl if lbl is not None else "" for lbl in labels]
         return handles, labels
 
-    # def _quantile_to_level(self, data, quantile):
-    #     """Return data levels corresponding to quantile cuts of mass."""
-    #     isoprop = np.asarray(quantile)
-    #     values = np.ravel(data)
-    #     sorted_values = np.sort(values)[::-1]
-    #     normalized_values = np.cumsum(sorted_values) / values.sum()
-    #     idx = np.searchsorted(normalized_values, 1 - isoprop)
-    #     levels = np.take(sorted_values, idx, mode="clip")
-    #     return levels
-
-    # def _default_discrete(self):
-    #     """Find default values for discrete hist estimation based on variable type."""
-    #     if self.univariate:
-    #         discrete = self.var_types[self.data_variable] == "categorical"
-    #     else:
-    #         discrete_x = self.var_types["x"] == "categorical"
-    #         discrete_y = self.var_types["y"] == "categorical"
-    #         discrete = discrete_x, discrete_y
-    #     return discrete
-
-    # def _resolve_multiple(self, curves, multiple):
-    #     """Modify the density data structure to handle multiple densities."""
-
-    #     # Default baselines have all densities starting at 0
-    #     baselines = {k: np.zeros_like(v) for k, v in curves.items()}
-
-    #     # TODO we should have some central clearinghouse for checking if any
-    #     # "grouping" (terminnology?) semantics have been assigned
-    #     if "hue" not in self.variables:
-    #         return curves, baselines
-
-    #     if multiple in ("stack", "fill"):
-
-    #         # Setting stack or fill means that the curves share a
-    #         # support grid / set of bin edges, so we can make a dataframe
-    #         # Reverse the column order to plot from top to bottom
-    #         curves = pd.DataFrame(curves).iloc[:, ::-1]
-
-    #         # Find column groups that are nested within col/row variables
-    #         column_groups = {}
-    #         for i, keyd in enumerate(map(dict, curves.columns)):
-    #             facet_key = keyd.get("col", None), keyd.get("row", None)
-    #             column_groups.setdefault(facet_key, [])
-    #             column_groups[facet_key].append(i)
-
-    #         baselines = curves.copy()
-
-    #         for col_idxs in column_groups.values():
-    #             cols = curves.columns[col_idxs]
-
-    #             norm_constant = curves[cols].sum(axis="columns")
-
-    #             # Take the cumulative sum to stack
-    #             curves[cols] = curves[cols].cumsum(axis="columns")
-
-    #             # Normalize by row sum to fill
-    #             if multiple == "fill":
-    #                 curves[cols] = curves[cols].div(norm_constant, axis="index")
-
-    #             # Define where each segment starts
-    #             baselines[cols] = curves[cols].shift(1, axis=1).fillna(0)
-
-    #     if multiple == "dodge":
-
-    #         # Account for the unique semantic (non-faceting) levels
-    #         # This will require rethiniking if we add other semantics!
-    #         hue_levels = self.var_levels["hue"]
-    #         n = len(hue_levels)
-    #         f_fwd, f_inv = self._get_scale_transforms(self.data_variable)
-    #         for key in curves:
-
-    #             level = dict(key)["hue"]
-    #             hist = curves[key].reset_index(name="heights")
-    #             level_idx = hue_levels.index(level)
-
-    #             a = f_fwd(hist["edges"])
-    #             b = f_fwd(hist["edges"] + hist["widths"])
-    #             w = (b - a) / n
-    #             new_min = f_inv(a + level_idx * w)
-    #             new_max = f_inv(a + (level_idx + 1) * w)
-    #             hist["widths"] = new_max - new_min
-    #             hist["edges"] = new_min
-
-    #             curves[key] = hist.set_index(["edges", "widths"])["heights"]
-
-    #     return curves, baselines
-
-    # -------------------------------------------------------------------------------- #
-    # Computation
-    # -------------------------------------------------------------------------------- #
-    # def _compute_univariate_density(
-    #     self,
-    #     data_variable,
-    #     common_norm,
-    #     common_grid,
-    #     estimate_kws,
-    #     warn_singular=True,
-    # ):
-
-    #     # Initialize the estimator object
-    #     estimator = KDE(**estimate_kws)
-
-    #     if set(self.variables) - {"x", "y"}:
-    #         if common_grid:
-    #             all_observations = self.comp_data.dropna()
-    #             estimator.define_support(all_observations[data_variable])
-    #     else:
-    #         common_norm = False
-
-    #     all_data = self.plot_data.dropna()
-    #     if common_norm and "weights" in all_data:
-    #         whole_weight = all_data["weights"].sum()
-    #     else:
-    #         whole_weight = len(all_data)
-
-    #     densities = {}
-
-    #     for sub_vars, sub_data in self.iter_data("hue", from_comp_data=True):
-
-    #         # Extract the data points from this sub set and remove nulls
-    #         observations = sub_data[data_variable]
-
-    #         # Extract the weights for this subset of observations
-    #         if "weights" in self.variables:
-    #             weights = sub_data["weights"]
-    #             part_weight = weights.sum()
-    #         else:
-    #             weights = None
-    #             part_weight = len(sub_data)
-
-    #         # Estimate the density of observations at this level
-    #         variance = np.nan_to_num(observations.var())
-    #         singular = len(observations) < 2 or math.isclose(variance, 0)
-    #         try:
-    #             if not singular:
-    #                 # Convoluted approach needed because numerical failures
-    #                 # can manifest in a few different ways.
-    #                 density, support = estimator(observations, weights=weights)
-    #         except np.linalg.LinAlgError:
-    #             singular = True
-
-    #         if singular:
-    #             msg = (
-    #                 "Dataset has 0 variance; skipping density estimate. "
-    #                 "Pass `warn_singular=False` to disable this warning."
-    #             )
-    #             if warn_singular:
-    #                 warnings.warn(msg, UserWarning, stacklevel=4)
-    #             continue
-
-    #         # Invert the scaling of the support points
-    #         _, f_inv = self._get_scale_transforms(self.data_variable)
-    #         support = f_inv(support)
-
-    #         # Apply a scaling factor so that the integral over all subsets is 1
-    #         if common_norm:
-    #             density *= part_weight / whole_weight
-
-    #         # Store the density for this level
-    #         key = tuple(sub_vars.items())
-    #         densities[key] = pd.Series(density, index=support)
-
-    #     return densities
-
     # -------------------------
     # Helpers - data extraction
     # ------------------------
@@ -461,25 +351,25 @@ class _AucPlotter(VectorPlotter):
         sub_data: pd.DataFrame,
     ) -> "tuple[np.ndarray, np.ndarray, np.ndarray]":  # noqa: UP037
         """
-        Extract y_true (binary labels) and y_score (probabilities) arrays from a subset DataFrame.
+        Extract y_true (binary labels) and y_pred (prediction) arrays from a subset DataFrame.
 
         - Expects that VectorPlotter has already standardized columns to "x" and "y"
           in `sub_data` when `from_comp_data=True` is used in iter_data (this matches
           the approach used in seaborn's VectorPlotter pattern).
-        - Enforces types: y_true -> int (0/1), y_score -> float.
+        - Enforces types: y_true -> int (0/1), y_pred -> int.
 
         Returns
         -------
         y_true : ndarray of shape (n_samples,)
-        y_score : ndarray of shape (n_samples,)
+        y_pred : ndarray of shape (n_samples,)
         weights : ndarray or None
         """
         # Extract the data points from this sub set
-        # compute PR curve: y_true (x_col), y_score (y_col)
+        # compute PR curve: y_true (x_col), y_pred (y_col)
         # Map seaborn-style x/y/hue to our data
         # x_col, y_col = "x", "y"
         # y_true = sub_data[x_col].astype(int)
-        # y_score = sub_data[y_col]
+        # y_pred = sub_data[y_col]
 
         # Drop rows missing either true labels or predicted scores
         # df.dropna(axis=1, how="all")  # Drop completely empty columns
@@ -498,194 +388,257 @@ class _AucPlotter(VectorPlotter):
 
         # Scores must be float
         try:
-            y_score = np.asarray(sub["y"], dtype=float)
+            y_pred = np.asarray(sub["y"], dtype=int)
         except Exception as e:
             raise ValueError(f"Cannot convert y to float scores: {e}") from e
 
         # Extract weights if present
         weights = sub["weights"].to_numpy() if "weights" in sub.columns else None
 
-        return y_true, y_score, weights
+        return y_true, y_pred, weights
 
-    def _compute_auc(
+    def _compute_eval(
         self,
         y_true,
-        y_score,
+        y_pred,
         sample_weight,
         kind,
         sub_vars,
+        digits=4,
+        labels=None,
+        normalize=None,
     ) -> "float | None":  # noqa: UP037
         # return
-        x, y, auc_score = None, None, None
-
-        if kind and kind.lower() in ["roc"]:
+        xs, ys, ss = {}, {}, {}
+        classes = unique_labels(y_true, y_pred)
+        labels = classes if labels is None else np.array(labels)
+        if kind and kind.lower() in ["all", "classification_report"]:
             try:
-                # prepare coordinates (fpr on x, tpr on y)
-                # fpr is sorted ascending, tpr follows.
-                fpr, tpr, _ = roc_curve(
+                # Generate the classification report
+                s = classification_report(
                     y_true,
-                    y_score,
-                    sample_weight=sample_weight,  # pos_label=None
+                    y_pred,
+                    labels=labels,
+                    digits=digits,
+                    zero_division=np.nan,
                 )
-                x, y, auc_score = fpr, tpr, auc(fpr, tpr)  # roc_auc
+                xs["classification_report"] = 0
+                ys["classification_report"] = 0.5
+                ss["classification_report"] = str(s)
             except Exception as e:
                 warnings.warn(
-                    f"Unable to compute PR curve for subset {sub_vars}: {e}",
+                    f"Unable to compute classification_report for subset {sub_vars}: {e}",
                     UserWarning,
                     stacklevel=2,
                 )
-        elif kind and kind.lower() in ["pr"]:
-            # auc(recall, precision) vs average_precision_score
-            # The area under PR curve (trapezoidal rule with auc) is not the same as average precision (AP).
-            # average_precision_score(y_true, y_score) → step-wise interpolation (preferred in ML evaluation,
-            # auc(recall, precision) → trapezoidal integration
-            # precision_recall_curve always prepends a point (recall=0, precision=1.0) → this can artificially inflate the trapezoidal auc.
+        if kind and kind.lower() in ["all", "confusion_matrix"]:
             try:
-                # prepare coordinates (recall on x, precision on y)
-                # recall is sorted ascending, precision follows.
-                # recall: monotonically increasing from 0 → 1
-                # precision: non-monotonic, often zig-zagging, starting at 1.0
-                precision, recall, _ = precision_recall_curve(
-                    y_true,
-                    y_score,
-                    sample_weight=sample_weight,  # pos_label=None
+                # Generate the confusion matrix
+                cm = np.around(
+                    confusion_matrix(
+                        y_true,
+                        y_pred,
+                        labels=labels,
+                        normalize=normalize,
+                    ),
+                    decimals=2,
                 )
-                # If recall is not strictly monotonic, enforce monotonicity:
-                # order = np.argsort(recall)
-                # recall, precision = recall[order], precision[order]
-                # Option 1: trapezoidal PR-AUC (not standard)
-                # pr_auc_trapz = auc(recall, precision)
-                # Option 2: average precision (preferred sklearn)
-                pr_auc_avg = average_precision_score(
-                    y_true,
-                    y_score,
-                    sample_weight=sample_weight,
-                )
-                x, y, auc_score = recall, precision, pr_auc_avg  # pick one
+                xs["confusion_matrix"] = cm
+                ys["confusion_matrix"] = None
+                ss["confusion_matrix"] = None
             except Exception as e:
                 warnings.warn(
-                    f"Unable to compute PR curve for subset {sub_vars}: {e}",
+                    f"Unable to compute confusion_matrix for subset {sub_vars}: {e}",
                     UserWarning,
                     stacklevel=2,
                 )
-        return x, y, auc_score
+        return xs, ys, ss
 
-    def _plot_auc(
+    def _plot_evalplot(
         self,
-        x,
-        y,
+        xs,
+        ys,
         sample_weight,
-        auc_score,
+        classes,
+        ss: str,
         kind,
         label_base,
         legend,
         ax,
-        baseline=False,
+        cbar,
+        cbar_ax,
+        cbar_kws,
+        text_kws,
+        image_kws,
         **kws,
     ):
+        label = label_base if legend else None
+        kws.setdefault("label", kws.pop("label", label))
+
+        # text_kws = kws.pop('text_kws', {})
+        # ha: Horizontal alignment ('left', 'center', 'right').
+        # text_kws["ha"] = text_kws.pop("horizontalalignment", text_kws.pop("ha", 'left'))
+        text_kws.setdefault(
+            "ha", text_kws.pop("horizontalalignment", text_kws.pop("ha", "center"))
+        )
+        # va: Vertical alignment ('top', 'center', 'bottom').
+        text_kws.setdefault(
+            "va", text_kws.pop("verticalalignment", text_kws.pop("va", "center"))
+        )
+        text_kws.setdefault(
+            "fontfamily", text_kws.pop("fontfamily", "monospace")
+        )  # 'serif'
+        # text_kws.setdefault("fontname", text_kws.pop("fontname", mpl.rcParams["font.monospace"]))
+        text_kws.setdefault("fontsize", text_kws.pop("fontsize", 8))
+
+        # image_kws = kws.pop('image_kws', {})
+        # Choose a colormap
+        # image_kws["cmap"] = plt.get_cmap(image_kws.pop("cmap", None))
+        image_kws.setdefault("aspect", image_kws.pop("aspect", "auto"))  # "equal"
+        image_kws.setdefault("cmap", plt.get_cmap(image_kws.pop("cmap", None)))
+
+        fig = ax.figure
+        ax.axis("off")
         # Save artist and label (include statement if legend requested)
         artists, labels = [], []
-        # # Plot curve: fill area under curve if requested, otherwise plot line
-        # if kws.pop("fill", None):
-        #     artist = ax.fill_between(x, 0.0, y, **kws)
-        #     # fill_between returns PolyCollection; put a proxy Line2D for legend if needed
-        #     # but store the PolyCollection as artist for potential manipulation
-        # else:
-        #     # draw standard AUC line plot
-        #     (artist,) = ax.plot(x, y, **kws)
-        # Model curve
-        label = (
-            f"{label_base} {kws.get('label', '')}"
-            + f" {kind}".upper()
-            + f" (AUC={auc_score:.4f})"
-        ).strip()
-        label = label if legend else None
-        kws["label"] = label
-        if kind and kind.lower() in ["roc"]:
-            (artist,) = ax.plot(
+        axs = {}
+        if kind and kind.lower() in ["all"]:
+            # fig override subplot define (nrows, ncols, index)
+            # int, (int, int, index), or SubplotSpec, default: (1, 1, 1)
+            # Each subplot is placed in a grid defined by nrows x ncols at position idx
+            # plt.figure(figsize=kws.pop('figsize', (7.5, 1)))
+            width, height = fig.get_size_inches()
+            width, height = width * 0.85, height / 2.1  # np.log1p(3.5)
+            fig.set_size_inches(kws.pop("figsize", (width, height)), forward=True)
+            axs["classification_report"] = fig.add_subplot(1, 2, 1)
+            axs["confusion_matrix"] = fig.add_subplot(1, 2, 2)
+        if "classification_report" in xs:
+            # x, y
+            x = xs.pop("classification_report", None)
+            y = ys.pop("classification_report", None)
+            s = ss.pop("classification_report", None)
+            # Plot the classification report on the first subplot
+            ax = axs.pop("classification_report", ax)
+            ax.axis("off")
+            artist = ax.text(
                 x,
                 y,
-                **kws,
+                s,
+                **text_kws,
             )
-        elif kind and kind.lower() in ["pr"]:
-            # use step plot to match sklearn docs
-            # scientifically, step is the correct representation for PR.
-            # where="post",  # for ax.step
-            kws["drawstyle"] = kws.get("steps-post", "steps-post")
-            (artist,) = ax.plot(
+            # ax.set_aspect('auto')  # not work expected
+            # ax.set_xlabel("")
+            # ax.set_ylabel("")
+            ax.set_title("Classification Report", loc="center")  # x=-1e-1 pad=1
+        if "confusion_matrix" in xs:
+            # x, y
+            x = xs.pop("confusion_matrix", None)
+            y = ys.pop("confusion_matrix", None)
+            s = ss.pop("confusion_matrix", None)
+            # Plot the confusion matrix on the second subplot
+            ax = axs.pop("confusion_matrix", ax)
+            # artist = ax.matshow(cm, cmap=cmap_, aspect="auto")
+            artist = ax.imshow(
                 x,
-                y,
-                **kws,
+                **image_kws,
             )
-            # optional: add baseline
-            # positive_rate = np.mean(y_true)
-            # ax.hlines(positive_rate, 0, 1, colors="gray", linestyles="--", label="baseline")
-        # Save artist and label (include statement if legend requested)
-        artists.append(artist), labels.append(label)
-        # Plot the Random baseline, label='Baseline', Chance level (AUC = 0.5)
-        (artist,) = ax.plot(
-            [0, 1],
-            [0, 1] if kind == "roc" else [1, 0],  # else pr
-            # "k--",
-            c="gray",
-            ls="--",
-            # lw=1,
-            # label="Baseline (diagonal)",
-            zorder=-1,
-        )
-        # Save artist and label (include statement if legend requested)
-        # artists.append(artist), labels.append(label)
-        # Finalize subset axes, set axis properties, ensure axes limits and labels look right
-        # ax.set_xlim(-0.01, 1.01)
-        # ax.set_ylim(-0.012, 1.012)
-        if kind and kind.lower() in ["roc"]:
-            ax.set_xlabel("False Positive Rate")
-            ax.set_ylabel("True Positive Rate")
-            ax.set_title("ROC (Receiver Operating Characteristic) Curve")
-        elif kind and kind.lower() in ["pr"]:
+            # ax.set_aspect('auto')
             ax.set(
-                xlabel="Recall",
-                ylabel="Precision",
-                title="PR (Precision-Recall) Curve",
+                xlabel="Predicted Labels",
+                ylabel="True Labels",
+                title="Confusion Matrix",
             )
-        ax.grid(True)
-        # plt.xlabel("Recall")
-        # plt.ylabel("Precision")
-        # plt.title("PR (Precision-Recall) Curve")
+            ax.set_xticks(np.arange(len(classes)))
+            ax.set_yticks(np.arange(len(classes)))
+            ax.set_xticklabels(
+                classes,
+                fontsize=text_kws["fontsize"],
+            )
+            ax.set_yticklabels(
+                classes,
+                fontsize=text_kws["fontsize"],
+                # rotation=0,
+            )
+            # ax.grid(True)
 
-        # Baseline: horizontal line at positive prevalence (x==1)
-        # if baseline:
-        #     # pos_rate = np.average(y_true == 1, weights=sample_weight)
-        #     if sample_weight is None:
-        #         pos_rate = float(np.mean(x == 1))
-        #     else:
-        #         pos_rate = float(
-        #             np.sum((x == 1) * sample_weight) / np.sum(sample_weight)
-        #         )
-        #     # draw baseline
-        #     ax.axhline(
-        #         pos_rate, color="gray", linestyle="--", linewidth=0.9, zorder=-1
-        #     )
+            # Remove the edge of the matshow
+            ax.spines["top"].set_visible(False)
+            ax.spines["bottom"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+            ax.spines["right"].set_visible(False)
 
-        # Save artist and label (include AUC if legend requested)
+            # Move x-axis labels to the bottom and y-axis labels to the right
+            ax.xaxis.set_label_position("bottom")
+            ax.xaxis.tick_bottom()
+            ax.yaxis.set_label_position("left")
+            ax.yaxis.tick_left()
+
+            # Add colorbar
+            # from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+            # ax1_divider = make_axes_locatable(ax1)
+            # # Add an Axes to the right of the main Axes.
+            # cax1 = ax1_divider.append_axes("right", size="7%", pad="2%")
+            # cb1 = fig.colorbar(im1, cax=cax1)
+            cbar = fig.colorbar(mappable=artist, ax=ax)  # shrink=0.8
+            # Also remove the colorbar edge
+            cbar.outline.set_edgecolor("none")
+
+            # Annotate the matrix with dynamic text color
+            threshold = x.max() / 2.0
+            for (i, j), val in np.ndenumerate(x):
+                # val == cm[i, j]
+                cmap_method = (
+                    image_kws["cmap"].get_over
+                    if val > threshold
+                    else image_kws["cmap"].get_under
+                )
+                # Get the color at the top end of the colormap
+                rgba = cmap_method()  # Get the RGB values
+
+                # Calculate the luminance of this color
+                luminance = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2]
+
+                # If luminance is low (dark color), use white text; otherwise, use black text
+                text_color = {True: "w", False: "k"}[(luminance < 0.5)]  # noqa: PLR2004
+                ax.text(
+                    j,
+                    i,
+                    f"{val}",
+                    color=text_color,
+                    # transform=ax.transAxes,
+                    **text_kws,
+                )
+        # Save artist and label (include statement if legend requested)
+        # Get the color cycle from Matplotlib
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        artist = mpatches.Patch(color=colors[0], label=label, zorder=3)
+        artists.append(artist), labels.append(label)
+
         # Add legend (use axes of the first plotted subset)
+        # https://matplotlib.org/stable/users/explain/axes/legend_guide.html#controlling-the-legend-entries
         if legend and artists:
             # Build simple legend entries: prefer Line2D proxies if fill used
-            # ax0 = self.ax if self.ax is not None else ax
+            ax0 = self.ax if self.ax is not None else ax
             # ax0.legend(artists, [lbl for lbl in labels], title=self.variables.get("hue", None))
             handles, labels = self._make_legend_proxies(artists, labels)
-            ax.legend(handles, labels, title=self.variables.get("hue", None))
+            ax0.legend(
+                handles,
+                labels,
+                title=self.variables.get("hue", None),
+                loc="lower left",
+                bbox_to_anchor=(-0.3, -0.1),
+            )
+        # ax.figure.tight_layout()
+        # plt.tight_layout()
 
     # -------------------------
     # AUC plotting
     # -------------------------
-    def plot_aucplot(  # noqa: PLR0912
+    def plot_evalplot(  # noqa: PLR0912
         self,
-        kind: "Literal['pr', 'roc'] | None" = None,  # noqa: UP037
-        fill=None,
-        color=None,
-        legend=None,
-        baseline=False,
+        kind: "Literal['all', 'classification_report', 'confusion_matrix'] | None",  # noqa: UP037
+        color,
+        legend,
         # multiple,
         # element,
         # common_norm,
@@ -695,49 +648,25 @@ class _AucPlotter(VectorPlotter):
         # kde,
         # kde_kws,
         # line_kws,
-        # cbar_ax,
-        # cbar_kws,
-        # estimate_kws,
+        cbar,
+        cbar_ax,
+        cbar_kws,
+        text_kws,
+        image_kws,
         verbose=False,
         **plot_kws,
     ):
-        """
-        Plot AUC curves for each hue/facet subset (one per hue level if hue assigned).
-
-        Parameters
-        ----------
-        kind : {'pr', 'roc', None}, default=None
-            Draw pr or roc plot.
-        color : color or None
-            Fallback color when no hue mapping is used.
-        fill : bool
-            Whether to fill a axis.
-        color : str
-            Line color.
-        legend : bool
-            Whether to draw a legend.
-        baseline : bool
-            Whether to draw a baseline.
-        verbose : bool, optional, default=False
-            If True, prints.
-        **plot_kws : dict
-            Extra keyword args forwarded to plotting functions and _artist_kws.
-            Recognized keys:
-              - fill (bool): if True, fill the area under the AUC curve.
-              - alpha (float)
-              - linestyle / ls
-              - marker
-        """
         # x_col = self.variables.get("x")
         # y_col = self.variables.get("y")
         # # If no x/y data return early
         # if x_col is None or y_col is None:
         #     return
-        # -- Default keyword dicts
-        # kde_kws = {} if kde_kws is None else kde_kws.copy()
-        # line_kws = {} if line_kws is None else line_kws.copy()
-        # estimate_kws = {} if estimate_kws is None else estimate_kws.copy()
         # orient = self.data_variable
+
+        # -- Default keyword dicts
+        cbar_kws = {} if cbar_kws is None else cbar_kws.copy()
+        text_kws = {} if text_kws is None else text_kws.copy()
+        image_kws = {} if image_kws is None else image_kws.copy()
 
         # Interpret plotting options
         # label = plot_kws.get("label", "")
@@ -767,11 +696,11 @@ class _AucPlotter(VectorPlotter):
                 # # Default color
                 # sub_color = color or self._hue_map(sub_vars["hue"], "color")
                 sub_color = color or _default_color(ax.plot, None, None, {})
-                label_base = ""
+                label_base = "Eval Report"
 
             # Prepare arrays
             try:
-                y_true, y_score, sample_weight = self._prepare_subset(sub_data)
+                y_true, y_pred, sample_weight = self._prepare_subset(sub_data)
             except ValueError as e:
                 warnings.warn(
                     f"Skipping subset {sub_vars} due to data error: {e}",
@@ -783,64 +712,64 @@ class _AucPlotter(VectorPlotter):
                 continue
 
             # binary vs multiclass detection
+            # classes = unique_labels(y_true, y_pred)  # both sorted
             classes = np.unique(y_true)
-            multiclass = len(classes) > 2  # noqa: PLR2004
-            # Compute ROC curve
-            if multiclass:
-                # TODO:x or y → Seaborn expects 1D vectors (arrays, Series, lists), not a 2D DataFrame
-                # so multiclass not supported by DataFrame or Seaborn
-                warnings.warn(
-                    f"Cannot label_binarize multiclass labels: {''}",
-                    UserWarning,
-                    stacklevel=2,
-                )
-            else:
-                # binary case (most common)
-                x, y, auc_score = self._compute_auc(
-                    y_true,
-                    y_score,
-                    sample_weight,
-                    kind,
-                    sub_vars,
-                )
-                if x is None:
-                    continue
+            # multiclass = len(classes) > 2  # noqa: PLR2004
 
-                # plot line and optional fill, Use element "line" for curve plotting
-                artist_kws = self._artist_kws(
-                    plot_kws, fill, "line", "layer", sub_color, alpha
-                )
-                # Merge user requested line style/marker if present
-                if linestyle is not None:
-                    artist_kws["linestyle"] = linestyle
-                if marker is not None:
-                    artist_kws["marker"] = marker
-
-                self._plot_auc(
-                    x,
-                    y,
-                    sample_weight,
-                    auc_score,
-                    kind,
-                    label_base,
-                    legend,
-                    ax,
-                    baseline,
-                    **artist_kws,
-                )
+            # plt.matshow(a) # Or `plt.imshow(a)`
+            # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.imshow.html#matplotlib.axes.Axes.imshow
+            # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.matshow.html#matplotlib.axes.Axes.matshow
+            # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html
+            x, y, s = self._compute_eval(
+                y_true,
+                y_pred,
+                sample_weight,
+                kind,
+                sub_vars,
+            )
+            if x is None:
+                continue
+            # plot line and optional fill, Use element "line" for curve plotting
+            artist_kws = self._artist_kws(
+                plot_kws, None, "line", "layer", sub_color, alpha
+            )
+            # Merge user requested line style/marker if present
+            if linestyle is not None:
+                artist_kws["linestyle"] = linestyle
+            if marker is not None:
+                artist_kws["marker"] = marker
+            # plot
+            self._plot_evalplot(
+                x,
+                y,
+                sample_weight,
+                classes,
+                s,
+                kind,
+                label_base,
+                legend,
+                ax,
+                cbar=cbar,
+                cbar_ax=cbar_ax,
+                cbar_kws=cbar_kws,
+                text_kws=text_kws,
+                image_kws=image_kws,
+                **artist_kws,
+            )
 
 
 # --------------------------------------------------------------------
 # Public API functions (wrappers)
 # --------------------------------------------------------------------
-def aucplot(  # noqa: D417
+def modelplot(  # noqa: D417  # evalmap
     data: "pd.DataFrame | None" = None,  # noqa: UP037
     *,
     # Vector variables
     x: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
     y: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
     hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    kind: "Literal['pr', 'roc'] | None" = None,  # noqa: UP037
+    x_estimator=None,
+    kind: "Literal['feature_importances', 'coef'] | None" = None,  # noqa: UP037
     weights=None,
     # Hue mapping parameters
     hue_order=None,
@@ -857,6 +786,12 @@ def aucplot(  # noqa: D417
     log_scale=None,
     legend=True,
     ax=None,
+    cbar=True,
+    cbar_ax=None,
+    cbar_kws=None,
+    # smoothing
+    text_kws=None,
+    image_kws=None,
     # computation parameters
     digits: "int | None" = None,  # noqa: UP037
     common_norm=None,
@@ -866,17 +801,17 @@ def aucplot(  # noqa: D417
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
     # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
     # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
-    kind = (kind and kind.lower().strip()) or "roc"
+    kind = (kind and kind.lower().strip()) or "feature_importances"
     _check_argument(
         "kind",
         [
-            "pr",
-            "roc",
+            "feature_importances",
+            "coef",
         ],
         kind,
     )
     # Build the VectorPlotter and attach data/variables in seaborn style
-    p = _AucPlotter(
+    p = _ConfusionMatrixPlotter(
         data=data,
         variables={"x": x, "y": y, "hue": hue, "weights": weights},
     )
@@ -908,34 +843,42 @@ def aucplot(  # noqa: D417
         return ax
 
     # --- Draw the plots
-    auc_kws = kwargs.copy()
-    # auc_kws["color"] = color
-    # _assign_default_kwargs(pr_kws, p.plot_rocauc, prplot)
-    p.plot_aucplot(
+    eval_kws = kwargs.copy()
+    # eval_kws["color"] = color
+    # _assign_default_kwargs(eval_kws, p.plot_evalplot, evalplot)
+    p.plot_evalplot(
         kind=kind,
-        fill=fill,
         color=color,
         legend=legend,
-        baseline=baseline,
-        **auc_kws,
+        cbar=cbar,
+        cbar_ax=cbar_ax,
+        cbar_kws=cbar_kws,
+        text_kws=text_kws,
+        image_kws=image_kws,
+        **eval_kws,
     )
     return ax
 
 
-aucplot.__doc__ = """\
-AUC curve plot, Seaborn-style.
+modelplot.__doc__ = """\
+Model Instance and/or Attributes Visualization.
+
+Supported attributes:
+
+- feature_names_in_
+- feature_importances_
+- coef_
+- eigenvalues_
+- eigenvectors_
 
 Parameters
 ----------
+{params.model.x_estimator}
 {params.core.data}
 {params.core.xy}
 {params.core.hue}
-kind : {{'pr', 'roc'}} or None, default=None
+kind : {{'all', 'classification_report', 'confusion_matrix'}} or None, default=None
     Kind of plot to make.
-
-    - if `'pr'`, the plot is pr curve;
-    - if `'roc'`, the plot is roc curve;
-    - if `None`, the plot is roc curve.
 weights : vector or key in ``data``
     If provided, observation weights used for computing the distribution function.
 {params.core.hue_order}
@@ -950,6 +893,25 @@ fill : bool or None
 {params.dist.log_scale}
 {params.dist.legend}
 {params.core.ax}
+{params.dist.cbar}
+{params.dist.cbar_ax}
+{params.dist.cbar_kws}
+text_kws : dict
+    Parameters that control the `'classification_report'` visualization, passed to
+    :py:func:`~matplotlib.axes.Axes.text`.
+image_kws : dict
+    Parameters that control the `'confusion_matrix'` visualization, passed to
+    :py:func:`~matplotlib.axes.Axes.imshow`.
+    Recognized keys:
+
+    cmap : None, str or matplotlib.colors.Colormap, optional, default=None
+        Colormap used for plotting.
+        Options include 'viridis', 'PiYG', 'plasma', 'inferno', 'nipy_spectral', etc.
+        See Matplotlib Colormap documentation for available choices.
+
+        - https://matplotlib.org/stable/users/explain/colors/index.html
+        - plt.colormaps()
+        - plt.get_cmap()  # None == 'viridis'
 digits : int, optional, default=4
     Number of digits for formatting output floating point values.
     When ``output_dict`` is ``True``, this will be ignored and the
@@ -965,6 +927,13 @@ common_norm : bool
     normalize each density independently.
 verbose : bool, optional, default=False
     Whether to be verbose.
+normalize : {{'true', 'pred', 'all', None}}, optional
+    Normalizes the confusion matrix according to the specified mode. Defaults to None.
+
+    - 'true': Normalizes by true (actual) values.
+    - 'pred': Normalizes by predicted values.
+    - 'all': Normalizes by total values.
+    - None: No normalization.
 kwargs
     Other keyword arguments are passed to one of the following matplotlib
     functions:
@@ -980,6 +949,35 @@ Returns
     Some function parameters are experimental prototypes.
     These may be modified, renamed, or removed in future library versions.
     Use with caution and check documentation for the latest updates.
+
+See Also
+--------
+FastICA : A fast algorithm for Independent Component Analysis.
+IncrementalPCA : Incremental Principal Component Analysis.
+NMF : Non-Negative Matrix Factorization.
+PCA : Principal component analysis (PCA).
+KernelPCA : Kernel Principal component analysis (KPCA).
+SparsePCA : Sparse Principal Components Analysis (SparsePCA).
+TruncatedSVD : Dimensionality reduction using truncated SVD.
+permutation_importance : Permutation importance for feature evaluation [BRE].
+partial_dependence : Compute Partial Dependence values.
+PartialDependenceDisplay : Partial dependence visualization.
+PartialDependenceDisplay.from_estimator : Plot Partial Dependence.
+DecisionBoundaryDisplay : Decision boundary visualization.
+DecisionBoundaryDisplay.from_estimator : Plot decision boundary given an estimator.
+
+References
+----------
+.. [BRE] :doi:`L. Breiman, "Random Forests", Machine Learning, 45(1), 5-32,
+   2001. <10.1023/A:1010933404324>`
+.. [1] `scikit-learn contributors. (2025).
+   "sklearn.decomposition"
+   scikit-learn. https://scikit-learn.org/stable/api/sklearn.decomposition.html
+   <https://scikit-learn.org/stable/api/sklearn.decomposition.html>`_
+.. [2] `scikit-learn contributors. (2025).
+   "sklearn.inspection"
+   scikit-learn. https://scikit-learn.org/stable/api/sklearn.inspection.html
+   <https://scikit-learn.org/stable/api/sklearn.inspection.html>`_
 """.format(  # noqa: UP032
     params=_param_docs,
     returns=_core_docs["returns"],

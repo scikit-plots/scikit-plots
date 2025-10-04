@@ -44,7 +44,13 @@ References
 # - report(...) : convenience function producing decile table + subplots
 
 # code that needs to be compatible with both Python 2 and Python 3
-from __future__ import annotations
+# from __future__ import (
+#     absolute_import,  # Ensures that all imports are absolute by default, avoiding ambiguity.
+#     division,  # Changes the division operator `/` to always perform true division.
+#     print_function,  # Treats `print` as a function, consistent with Python 3 syntax.
+#     unicode_literals,  # Makes all string literals Unicode by default, similar to Python 3.
+# )
+from __future__ import annotations  # Allows string type hints
 
 import json
 import warnings
@@ -53,30 +59,100 @@ from typing import ClassVar, Literal
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.typing as mpt  # Typing support  # noqa: F401
 import numpy as np
+import numpy.typing as npt  # Typing support  # noqa: F401
 import pandas as pd
+import pandas._typing as pdt  # Typing support  # noqa: F401
 from matplotlib.cbook import normalize_kwargs
 from matplotlib.colors import to_rgba
 
 try:
     from seaborn._base import VectorPlotter
-    from seaborn._compat import groupby_apply_include_groups
+    from seaborn._compat import groupby_apply_include_groups  # noqa: F401
+    from seaborn._docstrings import (
+        DocstringComponents,
+        _core_docs,
+    )
+    from seaborn._statistics import ECDF, KDE, Histogram
+    from seaborn._stats.counting import Hist  # noqa: F401
+    from seaborn.axisgrid import _facet_docs
     from seaborn.external import husl
     from seaborn.utils import _check_argument, _default_color
 except:
     from ..externals._seaborn._base import VectorPlotter
-    from ..externals._seaborn._compat import groupby_apply_include_groups
+    from ..externals._seaborn._compat import groupby_apply_include_groups  # noqa: F401
+    from ..externals._seaborn._docstrings import (
+        DocstringComponents,
+        _core_docs,
+    )
+    from ..externals._seaborn._statistics import ECDF, KDE, Histogram
+    from ..externals._seaborn._stats.counting import Hist  # noqa: F401
+    from ..externals._seaborn.axisgrid import _facet_docs
     from ..externals._seaborn.external import husl
     from ..externals._seaborn.utils import (
         _check_argument,
         _default_color,
     )
 
-## Define __all__ to specify the public interface of the module, not required default all above func
+
+# Define __all__ to specify the public interface of the module,
+# not required all module instances (default)
 __all__ = [
     "decileplot",
     "print_labels",
 ]
+
+
+# ==================================================================================== #
+# Module documentation
+# ==================================================================================== #
+
+_dist_params = dict(  # noqa: C408
+    multiple="""
+multiple : {{"layer", "stack", "fill"}}
+    Method for drawing multiple elements when semantic mapping creates subsets.
+    Only relevant with univariate data.
+    """,
+    log_scale="""
+log_scale : bool or number, or pair of bools or numbers
+    Set axis scale(s) to log. A single value sets the data axis for any numeric
+    axes in the plot. A pair of values sets each axis independently.
+    Numeric values are interpreted as the desired base (default 10).
+    When `None` or `False`, seaborn defers to the existing Axes scale.
+    """,
+    legend="""
+legend : bool
+    If False, suppress the legend for semantic variables.
+    """,
+    cbar="""
+cbar : bool
+    If True, add a colorbar to annotate the color mapping in a bivariate plot.
+    Note: Does not currently support plots with a ``hue`` variable well.
+    """,
+    cbar_ax="""
+cbar_ax : :class:`matplotlib.axes.Axes`
+    Pre-existing axes for the colorbar.
+    """,
+    cbar_kws="""
+cbar_kws : dict
+    Additional parameters passed to :meth:`matplotlib.figure.Figure.colorbar`.
+    """,
+)
+
+_param_docs = DocstringComponents.from_nested_components(
+    core=_core_docs["params"],
+    facets=DocstringComponents(_facet_docs),
+    dist=DocstringComponents(_dist_params),
+    kde=DocstringComponents.from_function_params(KDE.__init__),
+    hist=DocstringComponents.from_function_params(Histogram.__init__),
+    ecdf=DocstringComponents.from_function_params(ECDF.__init__),
+)
+
+
+# ==================================================================================== #
+# Internal API
+# ==================================================================================== #
 
 
 def get_label_info() -> "dict[str, str]":  # noqa: UP037
@@ -857,7 +933,7 @@ class _DecilePlotter(VectorPlotter):
         color=None,
         legend=None,
         n_deciles: int = 10,
-        round_digits: "int | None" = None,  # noqa: UP037
+        digits: "int | None" = None,  # noqa: UP037
         verbose=True,
         **plot_kws,
     ) -> "pd.DataFrame | None":  # noqa: UP037
@@ -1067,7 +1143,7 @@ class _DecilePlotter(VectorPlotter):
                 # KS and cumulative_lift
                 agg["KS"] = (
                     agg["cum_resp_pct"] - agg["cum_resp_non_pct"]
-                )  # .round(round_digits)
+                )  # .round(digits)
                 # avoid division by zero in lift
                 agg["cumulative_lift"] = agg["cum_resp_pct"] / agg["cum_resp_total_pct"]
                 # This is mathematically equivalent to the formula below
@@ -1104,7 +1180,7 @@ class _DecilePlotter(VectorPlotter):
                     _plot(agg, legend, ax, **artist_kws)
 
         agg = pd.concat(dfs, ignore_index=True)
-        return agg.round(round_digits) if round_digits else agg
+        return agg.round(digits) if digits else agg
 
 
 # -----------------------------------------------------------------------------
@@ -1113,88 +1189,37 @@ class _DecilePlotter(VectorPlotter):
 def decileplot(  # noqa: D417
     data: "pd.DataFrame | None" = None,  # noqa: UP037
     *,
-    x: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
-    y: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
+    x: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
+    y: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
+    hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
     kind: "Literal['df', 'cumulative_lift', 'decile_wise_lift', 'cumulative_gain', 'decile_wise_gain', 'cumulative_response', 'ks_statistic', 'report'] | None" = None,  # noqa: UP037
-    n_deciles: int = 10,
-    round_digits: "int | None" = None,  # noqa: UP037
-    hue: "str | pd.Series | np.ndarray | None" = None,  # noqa: UP037
     weights=None,
-    verbose: bool = False,
+    n_deciles: int = 10,
+    # Hue mapping parameters
+    hue_order=None,
+    hue_norm=None,
+    palette=None,
+    color=None,
     # appearance parameters
     fill=False,
+    # Other appearance keywords
+    baseline=False,
     # smoothing
     line_kws=None,
-    color=None,
+    # Axes information
+    log_scale=None,
     legend=True,
     ax=None,
+    # computation parameters
+    digits: "int | None" = None,  # noqa: UP037
+    common_norm=None,
+    verbose: bool = False,
     **kwargs,
 ) -> "pd.DataFrame | mpl.axes.Axes":  # mpl.figure.Figure  # noqa: UP037
-    """
-    Given binary labels y_true (0/1) and probabilities y_score 1d array, compute/plot a decile [2]_ table.
-
-    The function sorts observations by descending score, assigns decile index
-    (1..n_deciles) using pandas qcut on the rank/index to ensure near-equal bins,
-    and computes standard decile-level stats (features)::
-
-        [
-            "decile",
-            "prob_min",
-            "prob_max",
-            "prob_avg",
-            "cnt_resp_total",
-            "cnt_resp",
-            "cnt_resp_non",
-            "cnt_resp_rndm",
-            "cnt_resp_wiz",
-            "rate_resp",  # (alias to decile_wise_response, decile_wise_gain)
-            "cum_resp_total",
-            "cum_resp_total_pct",
-            "cum_resp",  #  (alias to cumulative_gain)
-            "cum_resp_pct",
-            "cum_resp_non",
-            "cum_resp_non_pct",
-            "cum_resp_rndm",
-            "cum_resp_rndm_pct",
-            "cum_resp_wiz",
-            "cum_resp_wiz_pct",
-            "KS",
-            "cumulative_lift",
-            "decile_wise_lift",
-        ]
-
-    Parameters
-    ----------
-    data : pandas.DataFrame | None
-    x : str | pd.Series | np.ndarray | None
-        Ground truth (correct/actual) target values.
-    y : str | pd.Series | np.ndarray | None
-        Prediction probabilities for target class returned by a classifier/algorithm.
-    n_deciles : int, optional, default=10
-        The number of partitions for creating the table. Defaults to 10 for deciles.
-    round_digits : int, optional, default=None
-        The decimal precision for the result.
-        return df.round(round_digits)
-    verbose : bool, optional, default=False
-        If True, prints a legend for the abbreviations of decile table column names.
-
-    Returns
-    -------
-    pandas.DataFrame | matplotlib.axes.Axes
-        The dataframe (decile-table) with the indexed by deciles (sorted ascending)
-        and related information (decile-level metrics).
-        If hue/facet semantics were used, the returned table will include
-        extra columns for those keys (e.g., 'hue').
-
-    References
-    ----------
-    .. [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py
-
-    .. [2] `Wikipedia contributors. (2024).
-       "Decile"
-       Wikipedia. https://en.wikipedia.org/wiki/Decile
-       <https://en.wikipedia.org/wiki/Decile>`_
-    """
+    # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+    # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+    # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+    kind = (kind and kind.lower().strip()) or "report"
     _check_argument(
         "kind",
         [
@@ -1249,7 +1274,7 @@ def decileplot(  # noqa: D417
     dt = p.compute_decile_table(
         kind=kind,
         n_deciles=n_deciles,
-        round_digits=round_digits,
+        digits=digits,
         verbose=verbose,
         color=color,
         legend=legend,
@@ -1270,3 +1295,112 @@ def decileplot(  # noqa: D417
         except Exception:
             print(dt)  # noqa: T201
     return ax
+
+
+decileplot.__doc__ = """\
+Given binary labels y_true (0/1) and probabilities y_score 1d array, compute/plot a decile [2]_ table.
+
+The function sorts observations by descending score, assigns decile index
+(1..n_deciles) using pandas qcut on the rank/index to ensure near-equal bins,
+and computes standard decile-level stats (features)::
+
+    [
+        "decile",
+        "prob_min",
+        "prob_max",
+        "prob_avg",
+        "cnt_resp_total",
+        "cnt_resp",
+        "cnt_resp_non",
+        "cnt_resp_rndm",
+        "cnt_resp_wiz",
+        "rate_resp",  # (alias to decile_wise_response, decile_wise_gain)
+        "cum_resp_total",
+        "cum_resp_total_pct",
+        "cum_resp",  #  (alias to cumulative_gain)
+        "cum_resp_pct",
+        "cum_resp_non",
+        "cum_resp_non_pct",
+        "cum_resp_rndm",
+        "cum_resp_rndm_pct",
+        "cum_resp_wiz",
+        "cum_resp_wiz_pct",
+        "KS",
+        "cumulative_lift",
+        "decile_wise_lift",
+    ]
+
+Parameters
+----------
+{params.core.data}
+{params.core.xy}
+{params.core.hue}
+kind : {{'df', 'cumulative_lift', 'decile_wise_lift', 'cumulative_gain', 'decile_wise_gain', 'cumulative_response', 'ks_statistic', 'report'}} or None, default=None
+    Kind of plot to make.
+
+    - if `'df'`, not plot return as pandas.DataFrame;
+    - if ``None``, the plot is roc curve.
+weights : vector or key in ``data``
+    If provided, observation weights used for computing the distribution function.
+n_deciles : int, optional, default=10
+    The number of partitions for creating the table. Defaults to 10 for deciles.
+{params.core.hue_order}
+{params.core.hue_norm}
+{params.core.palette}
+{params.core.color}
+fill : bool or None
+    If True, fill in the area under univariate density curves or between
+    bivariate contours. If None, the default depends on ``multiple``.
+{{line}}_kws : dictionaries
+    Additional keyword arguments to pass to ``plt.plot``.
+{params.dist.log_scale}
+{params.dist.legend}
+{params.core.ax}
+digits : int, optional, default=4
+    Number of digits for formatting output floating point values.
+    When ``output_dict`` is ``True``, this will be ignored and the
+    returned values will not be rounded.
+output_dict : bool, default=False
+    If True, return output as dict.
+zero_division : {{'warn', 0.0, 1.0, np.nan}}, default='warn'
+    Sets the value to return when there is a zero division. If set to
+    'warn', this acts as 0, but warnings are also raised.
+common_norm : bool
+    If True, scale each conditional density by the number of observations
+    such that the total area under all densities sums to 1. Otherwise,
+    normalize each density independently.
+verbose : bool, optional, default=False
+    Whether to be verbose.
+kwargs
+    Other keyword arguments are passed to one of the following matplotlib
+    functions:
+
+    - :meth:`matplotlib.axes.Axes.plot`
+
+Returns
+-------
+pandas.DataFrame | matplotlib.axes.Axes | dict
+    The dataframe (decile-table) with the indexed by deciles (sorted ascending)
+    and related information (decile-level metrics).
+    If hue/facet semantics were used, the returned table will include
+    extra columns for those keys (e.g., 'hue').
+
+.. warning::
+
+    Some function parameters are experimental prototypes.
+    These may be modified, renamed, or removed in future library versions.
+    Use with caution and check documentation for the latest updates.
+
+References
+----------
+.. [1] https://github.com/tensorbored/kds/blob/master/kds/metrics.py
+
+.. [2] `Wikipedia contributors. (2024).
+    "Decile"
+    Wikipedia. https://en.wikipedia.org/wiki/Decile
+    <https://en.wikipedia.org/wiki/Decile>`_
+""".format(  # noqa: UP032
+    params=_param_docs,
+    # returns=_core_docs["returns"],
+    # seealso=_core_docs["seealso"],
+)

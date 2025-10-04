@@ -98,7 +98,9 @@ Installing the latest release
 
             python -m venv sklearn-env
             sklearn-env\Scripts\activate  # (or dot .) activate
-            pip install -U scikit-plots
+            pip install scikit-plots
+            # Cause numpy>=2.0.0 but support old numpy
+            pip install numpy==1.26.4
 
           In order to check your installation, you can use:
 
@@ -113,7 +115,6 @@ Installing the latest release
             # (Optionally) CLI Version Check
             scikitplot --version
             scikitplot -V
-            scikitplot -v
 
         .. tab-item:: Linux
           :class-label: tab-4
@@ -154,7 +155,6 @@ Installing the latest release
             # (Optionally) CLI Version Check
             scikitplot --version
             scikitplot -V
-            scikitplot -v
 
         .. tab-item:: MacOS
           :class-label: tab-4
@@ -173,7 +173,9 @@ Installing the latest release
 
             python -m venv sklearn-env
             source sklearn-env/bin/activate  # (or dot .) activate
-            pip install -U scikit-plots
+            pip install scikit-plots
+            # Cause numpy>=2.0.0 but support old numpy
+            pip install numpy==1.26.4
 
           In order to check your installation, you can use:
 
@@ -188,7 +190,6 @@ Installing the latest release
             # (Optionally) CLI Version Check
             scikitplot --version
             scikitplot -V
-            scikitplot -v
 
     .. tab-item:: conda
       :class-label: tab-6
