@@ -51,6 +51,8 @@ from sklearn.metrics import (
     precision_recall_curve,
     roc_curve,
 )
+from sklearn.utils.multiclass import unique_labels  # noqa: F401
+from sklearn.utils.validation import check_array, check_consistent_length
 
 try:
     from seaborn._base import VectorPlotter
@@ -507,82 +509,93 @@ class _AucPlotter(VectorPlotter):
 
         return y_true, y_score, weights
 
-    def _compute_auc(
+    def _compute_pr(
         self,
         y_true,
         y_score,
         sample_weight,
-        kind,
-        sub_vars,
-    ) -> "float | None":  # noqa: UP037
-        # return
-        x, y, auc_score = None, None, None
+        # sub_vars,
+    ) -> "tuple[np.ndarray, np.ndarray, float] | None":  # noqa: UP037
+        # pick one
+        # auc(recall, precision) vs average_precision_score
+        # The area under PR curve (trapezoidal rule with auc) is not the same as average precision (AP).
+        # average_precision_score(y_true, y_score) → step-wise interpolation (preferred in ML evaluation,
+        # auc(recall, precision) → trapezoidal integration
+        # precision_recall_curve always prepends a point (recall=0, precision=1.0) → this can artificially inflate the trapezoidal auc.
+        try:
+            # prepare coordinates (recall on x, precision on y)
+            # recall is sorted ascending, precision follows.
+            # recall: monotonically increasing from 0 → 1
+            # precision: non-monotonic, often zig-zagging, starting at 1.0
+            precision, recall, _ = precision_recall_curve(
+                y_true,
+                y_score,
+                sample_weight=sample_weight,  # pos_label=None
+            )
+            # If recall is not strictly monotonic, enforce monotonicity:
+            # order = np.argsort(recall)
+            # recall, precision = recall[order], precision[order]
+            # Option 1: trapezoidal PR-AUC (not standard)
+            # pr_auc_trapz = auc(recall, precision)
+            # Option 2: average precision (preferred sklearn)
+            pr_auc_avg = average_precision_score(
+                y_true,
+                y_score,
+                sample_weight=sample_weight,
+            )
+            return recall, precision, pr_auc_avg
+        except Exception as e:
+            warnings.warn(
+                f"Unable to compute PR curve for subset {''}: {e}",
+                UserWarning,
+                stacklevel=2,
+            )
+            return None, None, None
 
-        if kind and kind.lower() in ["roc"]:
-            try:
-                # prepare coordinates (fpr on x, tpr on y)
-                # fpr is sorted ascending, tpr follows.
-                fpr, tpr, _ = roc_curve(
-                    y_true,
-                    y_score,
-                    sample_weight=sample_weight,  # pos_label=None
-                )
-                x, y, auc_score = fpr, tpr, auc(fpr, tpr)  # roc_auc
-            except Exception as e:
-                warnings.warn(
-                    f"Unable to compute PR curve for subset {sub_vars}: {e}",
-                    UserWarning,
-                    stacklevel=2,
-                )
-        elif kind and kind.lower() in ["pr"]:
-            # auc(recall, precision) vs average_precision_score
-            # The area under PR curve (trapezoidal rule with auc) is not the same as average precision (AP).
-            # average_precision_score(y_true, y_score) → step-wise interpolation (preferred in ML evaluation,
-            # auc(recall, precision) → trapezoidal integration
-            # precision_recall_curve always prepends a point (recall=0, precision=1.0) → this can artificially inflate the trapezoidal auc.
-            try:
-                # prepare coordinates (recall on x, precision on y)
-                # recall is sorted ascending, precision follows.
-                # recall: monotonically increasing from 0 → 1
-                # precision: non-monotonic, often zig-zagging, starting at 1.0
-                precision, recall, _ = precision_recall_curve(
-                    y_true,
-                    y_score,
-                    sample_weight=sample_weight,  # pos_label=None
-                )
-                # If recall is not strictly monotonic, enforce monotonicity:
-                # order = np.argsort(recall)
-                # recall, precision = recall[order], precision[order]
-                # Option 1: trapezoidal PR-AUC (not standard)
-                # pr_auc_trapz = auc(recall, precision)
-                # Option 2: average precision (preferred sklearn)
-                pr_auc_avg = average_precision_score(
-                    y_true,
-                    y_score,
-                    sample_weight=sample_weight,
-                )
-                x, y, auc_score = recall, precision, pr_auc_avg  # pick one
-            except Exception as e:
-                warnings.warn(
-                    f"Unable to compute PR curve for subset {sub_vars}: {e}",
-                    UserWarning,
-                    stacklevel=2,
-                )
-        return x, y, auc_score
-
-    def _plot_auc(
+    def _compute_roc(
         self,
-        x,
-        y,
+        y_true,
+        y_score,
         sample_weight,
-        auc_score,
-        kind,
+        # sub_vars,
+    ) -> "tuple[np.ndarray, np.ndarray, float] | None":  # noqa: UP037
+        try:
+            # prepare coordinates (fpr on x, tpr on y)
+            # fpr is sorted ascending, tpr follows.
+            fpr, tpr, _ = roc_curve(
+                y_true,
+                y_score,
+                sample_weight=sample_weight,  # pos_label=None
+            )
+            return fpr, tpr, auc(fpr, tpr)  # roc_auc
+        except Exception as e:
+            warnings.warn(
+                f"Unable to compute PR curve for subset {''}: {e}",
+                UserWarning,
+                stacklevel=2,
+            )
+            return None, None, None
+
+    def _plot_pr(
+        self,
+        y_true,
+        y_score,
+        sample_weight,
+        classes,
         label_base,
         legend,
         ax,
+        fmt,
+        digits,
         baseline=False,
         **kws,
     ):
+        # binary case (most common)
+        x, y, auc_score = self._compute_pr(
+            y_true,
+            y_score,
+            sample_weight,
+        )
         # Save artist and label (include statement if legend requested)
         artists, labels = [], []
         # # Plot curve: fill area under curve if requested, otherwise plot line
@@ -594,38 +607,44 @@ class _AucPlotter(VectorPlotter):
         #     # draw standard AUC line plot
         #     (artist,) = ax.plot(x, y, **kws)
         # Model curve
+        # ("{:" + self.fmt + "}").format(val)
+        # {val:fmt} If nested formatting in Python f-strings f"{val:{fmt}}"
+        # Double braces {{ or }} → escape to literal { or }.
         label = (
-            f"{label_base} {kws.get('label', '')}"
-            + f" {kind}".upper()
-            + f" (AUC={auc_score:.4f})"
+            f"{label_base} {kws.pop('label', '')}"
+            + f" {'pr'}".upper()
+            + f" (AUC={auc_score:{fmt}})"
         ).strip()
         label = label if legend else None
         kws["label"] = label
-        if kind and kind.lower() in ["roc"]:
-            (artist,) = ax.plot(
-                x,
-                y,
-                **kws,
-            )
-        elif kind and kind.lower() in ["pr"]:
-            # use step plot to match sklearn docs
-            # scientifically, step is the correct representation for PR.
-            # where="post",  # for ax.step
-            kws["drawstyle"] = kws.get("steps-post", "steps-post")
-            (artist,) = ax.plot(
-                x,
-                y,
-                **kws,
-            )
-            # optional: add baseline
-            # positive_rate = np.mean(y_true)
-            # ax.hlines(positive_rate, 0, 1, colors="gray", linestyles="--", label="baseline")
+        # Plot
+        # use step plot to match sklearn docs
+        # scientifically, step is the correct representation for PR.
+        # where="post",  # for ax.step
+        kws["drawstyle"] = kws.pop("steps-post", "steps-post")
+        (artist,) = ax.plot(
+            x,
+            y,
+            **kws,
+        )
         # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append(label)
+        ax.grid(True)
+        ax.set(
+            xlabel="Recall",
+            ylabel="Precision",
+            title="PR (Precision-Recall) Curve",
+        )
+        # plt.xlabel("Recall")
+        # plt.ylabel("Precision")
+        # plt.title("PR (Precision-Recall) Curve")
+        # Finalize subset axes, set axis properties, ensure axes limits and labels look right
+        # ax.set_xlim(-0.01, 1.01)
+        # ax.set_ylim(-0.012, 1.012)
         # Plot the Random baseline, label='Baseline', Chance level (AUC = 0.5)
         (artist,) = ax.plot(
             [0, 1],
-            [0, 1] if kind == "roc" else [1, 0],  # else pr
+            [1, 0],  # pr
             # "k--",
             c="gray",
             ls="--",
@@ -633,27 +652,10 @@ class _AucPlotter(VectorPlotter):
             # label="Baseline (diagonal)",
             zorder=-1,
         )
-        # Save artist and label (include statement if legend requested)
-        # artists.append(artist), labels.append(label)
-        # Finalize subset axes, set axis properties, ensure axes limits and labels look right
-        # ax.set_xlim(-0.01, 1.01)
-        # ax.set_ylim(-0.012, 1.012)
-        if kind and kind.lower() in ["roc"]:
-            ax.set_xlabel("False Positive Rate")
-            ax.set_ylabel("True Positive Rate")
-            ax.set_title("ROC (Receiver Operating Characteristic) Curve")
-        elif kind and kind.lower() in ["pr"]:
-            ax.set(
-                xlabel="Recall",
-                ylabel="Precision",
-                title="PR (Precision-Recall) Curve",
-            )
-        ax.grid(True)
-        # plt.xlabel("Recall")
-        # plt.ylabel("Precision")
-        # plt.title("PR (Precision-Recall) Curve")
-
+        # optional: add baseline
         # Baseline: horizontal line at positive prevalence (x==1)
+        # positive_rate = np.mean(y_true)
+        # ax.hlines(positive_rate, 0, 1, colors="gray", linestyles="--", label="baseline")
         # if baseline:
         #     # pos_rate = np.average(y_true == 1, weights=sample_weight)
         #     if sample_weight is None:
@@ -666,7 +668,6 @@ class _AucPlotter(VectorPlotter):
         #     ax.axhline(
         #         pos_rate, color="gray", linestyle="--", linewidth=0.9, zorder=-1
         #     )
-
         # Save artist and label (include AUC if legend requested)
         # Add legend (use axes of the first plotted subset)
         if legend and artists:
@@ -675,6 +676,200 @@ class _AucPlotter(VectorPlotter):
             # ax0.legend(artists, [lbl for lbl in labels], title=self.variables.get("hue", None))
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
+
+    def _plot_roc(
+        self,
+        y_true,
+        y_score,
+        sample_weight,
+        classes,
+        label_base,
+        legend,
+        ax,
+        fmt,
+        digits,
+        baseline=False,
+        **kws,
+    ):
+        # binary case (most common)
+        x, y, auc_score = self._compute_roc(
+            y_true,
+            y_score,
+            sample_weight,
+        )
+        # Save artist and label (include statement if legend requested)
+        artists, labels = [], []
+        # Model curve
+        # ("{:" + self.fmt + "}").format(val)
+        # {val:fmt} If nested formatting in Python f-strings f"{val:{fmt}}"
+        # Double braces {{ or }} → escape to literal { or }.
+        label = (
+            f"{label_base} {kws.pop('label', '')}"
+            + f" {'roc'}".upper()
+            + f" (AUC={auc_score:{fmt}})"
+        ).strip()
+        label = label if legend else None
+        kws["label"] = label
+        # Plot
+        (artist,) = ax.plot(
+            x,
+            y,
+            **kws,
+        )
+        # Save artist and label (include statement if legend requested)
+        artists.append(artist), labels.append(label)
+        ax.grid(True)
+        ax.set_xlabel("False Positive Rate")
+        ax.set_ylabel("True Positive Rate")
+        ax.set_title("ROC (Receiver Operating Characteristic) Curve")
+        # Plot the Random baseline, label='Baseline', Chance level (AUC = 0.5)
+        (artist,) = ax.plot(
+            [0, 1],
+            [0, 1],  # roc
+            # "k--",
+            c="gray",
+            ls="--",
+            # lw=1,
+            # label="Baseline (diagonal)",
+            zorder=-1,
+        )
+        # Save artist and label (include AUC if legend requested)
+        # Add legend (use axes of the first plotted subset)
+        if legend and artists:
+            # Build simple legend entries: prefer Line2D proxies if fill used
+            # ax0 = self.ax if self.ax is not None else ax
+            # ax0.legend(artists, [lbl for lbl in labels], title=self.variables.get("hue", None))
+            handles, labels = self._make_legend_proxies(artists, labels)
+            ax.legend(handles, labels, title=self.variables.get("hue", None))
+
+    def assert_binary_compat(  # noqa: PLR0912
+        self,
+        y_true,
+        y_score=None,
+        y_pred=None,
+        threshold=0.5,
+        allow_probs=True,
+    ):
+        """
+        Validate compatibility of y_true, y_score, and y_pred for binary classification input consistency.
+
+        Supports:
+            - (y_true, y_pred)
+            - (y_true, y_score) → auto-derives y_pred from y_score if needed.
+
+        Ensures:
+            • same length and shape
+            • no NaN / inf values
+            • binary {0,1} targets
+            • valid [0,1] probability ranges when allow_probs=True
+            • consistent return of (y_true, y_score, y_pred)
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,)
+            True binary target values {0, 1}.
+
+        y_score : array-like of shape (n_samples,), optional
+            Predicted scores or probabilities. Used if `y_pred` is not given.
+
+        y_pred : array-like of shape (n_samples,), optional
+            Predicted binary labels {0, 1}. If not provided, will be derived from
+            `y_score` using `threshold`.
+
+        threshold : float, default=0.5
+            Threshold used to convert `y_score` to binary labels when `y_pred` is None.
+
+        allow_probs : bool, default=False
+            Whether `y_score` can contain probabilities in [0, 1].
+            When True, `y_pred` is derived as (y_score > threshold) like :py:func:`numpy.argmax`.
+
+        Returns
+        -------
+        tuple of ndarray of shape (n_samples,)
+            (y_true, y_score, y_pred)
+
+            • `y_score` may be None if not provided.
+            • `y_pred` is always returned and guaranteed strictly binary {0, 1}.
+
+        Raises
+        ------
+        ValueError
+            If input arrays are incompatible, contain NaN/inf, or non-binary values.
+
+        Examples
+        --------
+        >>> assert_binary_compat([0, 1, 0], [0.1, 0.9, 0.3])  # auto thresholds
+        >>> assert_binary_compat([0, 1, 0], y_pred=[0, 1, 0])  # direct
+        >>> assert_binary_compat([0, 1, 0], [0.1, 0.9, 0.3], allow_probs=True)
+        """
+        # --- Input normalization ---
+        # Convert if provided (keeps None otherwise)
+        y_true = np.asarray(y_true).ravel()
+        y_score = np.asarray(y_score).ravel() if y_score is not None else None
+        y_pred = np.asarray(y_pred).ravel() if y_pred is not None else None
+
+        # --- Normalize and validate inputs ---
+        y_true = check_array(y_true, ensure_2d=False, dtype=int)
+        y_score = (
+            check_array(y_score, ensure_2d=False, dtype=float)
+            if y_score is not None
+            else None
+        )
+        y_pred = (
+            check_array(y_pred, ensure_2d=False, dtype=int)
+            if y_pred is not None
+            else None
+        )
+
+        # --- Validate presence/combination ---
+        if y_score is None and y_pred is None:
+            raise ValueError(
+                "Either y_score or y_pred must be provided (not both None)."
+            )
+        if y_score is not None and y_pred is not None:
+            raise ValueError("Provide only one of y_score or y_pred, not both.")
+
+        # --- Auto-Derive y_pred if y_score is given ---
+        if y_score is not None:
+            if allow_probs:
+                if not ((y_score >= 0) & (y_score <= 1)).all():
+                    raise ValueError(
+                        "y_score must be within [0, 1] when allow_probs=True"
+                    )
+                y_pred = np.asarray(y_score > threshold, dtype=int)  # .astype(int)
+            else:
+                unique_score = np.unique(y_score)
+                if not np.isin(unique_score, [0, 1]).all():
+                    raise ValueError(
+                        f"y_score must be binary when allow_probs=False; got unique values {unique_score}"
+                    )
+                y_pred = np.asarray(y_score, dtype=int)  # .astype(int)
+
+        # --- Validate binary y_true ---
+        unique_true = np.unique(y_true)
+        if not np.isin(unique_true, [0, 1]).all():
+            raise ValueError(f"y_true must be binary; got unique values: {unique_true}")
+
+        # --- Validate binary y_pred ---
+        unique_pred = np.unique(y_pred)
+        if not np.isin(unique_pred, [0, 1]).all():
+            raise ValueError(f"y_pred must be binary; got unique values: {unique_pred}")
+
+        # --- Length consistency ---
+        check_consistent_length(y_true, y_pred)
+
+        # --- NaN / Inf checks (faster in one call) ---
+        # assert np.isfinite(y_true).all(), "y_true contains NaN or inf"  # noqa: S101
+        if not (np.isfinite(y_true).all() and np.isfinite(y_pred).all()):
+            raise ValueError("y_true or y_pred contains NaN or inf values")
+
+        # --- Sanity & consistency checks ---
+        n_true, n_pred = len(y_true), len(y_pred)
+        if n_true != n_pred:
+            raise ValueError(f"Length mismatch: y_true={n_true}, y_pred={n_pred}")
+
+        # --- Return consistent tuple ---
+        return y_true, y_score, y_pred
 
     # -------------------------
     # AUC plotting
@@ -698,41 +893,19 @@ class _AucPlotter(VectorPlotter):
         # cbar_ax,
         # cbar_kws,
         # estimate_kws,
+        annot=None,
+        fmt=".4g",
+        annot_kws=None,
+        digits: "int | None" = None,  # noqa: UP037
         verbose=False,
         **plot_kws,
     ):
-        """
-        Plot AUC curves for each hue/facet subset (one per hue level if hue assigned).
-
-        Parameters
-        ----------
-        kind : {'pr', 'roc', None}, default=None
-            Draw pr or roc plot.
-        color : color or None
-            Fallback color when no hue mapping is used.
-        fill : bool
-            Whether to fill a axis.
-        color : str
-            Line color.
-        legend : bool
-            Whether to draw a legend.
-        baseline : bool
-            Whether to draw a baseline.
-        verbose : bool, optional, default=False
-            If True, prints.
-        **plot_kws : dict
-            Extra keyword args forwarded to plotting functions and _artist_kws.
-            Recognized keys:
-              - fill (bool): if True, fill the area under the AUC curve.
-              - alpha (float)
-              - linestyle / ls
-              - marker
-        """
         # x_col = self.variables.get("x")
         # y_col = self.variables.get("y")
         # # If no x/y data return early
         # if x_col is None or y_col is None:
         #     return
+
         # -- Default keyword dicts
         # kde_kws = {} if kde_kws is None else kde_kws.copy()
         # line_kws = {} if line_kws is None else line_kws.copy()
@@ -769,9 +942,19 @@ class _AucPlotter(VectorPlotter):
                 sub_color = color or _default_color(ax.plot, None, None, {})
                 label_base = ""
 
+            # plot line and optional fill, Use element "line" for curve plotting
+            artist_kws = self._artist_kws(
+                plot_kws, fill, "line", "layer", sub_color, alpha
+            )
+            # Merge user requested line style/marker if present
+            if linestyle is not None:
+                artist_kws["linestyle"] = linestyle
+            if marker is not None:
+                artist_kws["marker"] = marker
+
             # Prepare arrays
             try:
-                y_true, y_score, sample_weight = self._prepare_subset(sub_data)
+                y_true, y_score, _sw = self._prepare_subset(sub_data)
             except ValueError as e:
                 warnings.warn(
                     f"Skipping subset {sub_vars} due to data error: {e}",
@@ -779,10 +962,17 @@ class _AucPlotter(VectorPlotter):
                     stacklevel=2,
                 )
                 continue
+            y_true, y_score, _ = self.assert_binary_compat(
+                y_true,
+                y_score,
+                # threshold=threshold,
+                # allow_probs=allow_probs,
+            )
             if y_true is None:
                 continue
 
             # binary vs multiclass detection
+            # classes = unique_labels(y_true, y_pred)  # both sorted
             classes = np.unique(y_true)
             multiclass = len(classes) > 2  # noqa: PLR2004
             # Compute ROC curve
@@ -795,39 +985,25 @@ class _AucPlotter(VectorPlotter):
                     stacklevel=2,
                 )
             else:
-                # binary case (most common)
-                x, y, auc_score = self._compute_auc(
-                    y_true,
-                    y_score,
-                    sample_weight,
-                    kind,
-                    sub_vars,
-                )
-                if x is None:
-                    continue
-
-                # plot line and optional fill, Use element "line" for curve plotting
-                artist_kws = self._artist_kws(
-                    plot_kws, fill, "line", "layer", sub_color, alpha
-                )
-                # Merge user requested line style/marker if present
-                if linestyle is not None:
-                    artist_kws["linestyle"] = linestyle
-                if marker is not None:
-                    artist_kws["marker"] = marker
-
-                self._plot_auc(
-                    x,
-                    y,
-                    sample_weight,
-                    auc_score,
-                    kind,
-                    label_base,
-                    legend,
-                    ax,
-                    baseline,
-                    **artist_kws,
-                )
+                # plt.matshow(a) # Or `plt.imshow(a)`
+                # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.imshow.html#matplotlib.axes.Axes.imshow
+                # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.matshow.html#matplotlib.axes.Axes.matshow
+                # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html
+                _plot = getattr(self, f"_plot_{kind}", None)
+                if _plot:
+                    _plot(
+                        y_true,
+                        y_score,
+                        _sw,
+                        classes,
+                        label_base,  # labels,
+                        legend,
+                        ax,
+                        fmt,
+                        digits,
+                        baseline,
+                        **artist_kws,
+                    )
 
 
 # --------------------------------------------------------------------
@@ -857,13 +1033,19 @@ def aucplot(  # noqa: D417
     log_scale=None,
     legend=True,
     ax=None,
+    # smoothing
+    annot=None,
+    fmt=".4g",  # ''
+    annot_kws=None,
     # computation parameters
     digits: "int | None" = None,  # noqa: UP037
     common_norm=None,
     verbose: bool = False,
     **kwargs,
 ) -> mpl.axes.Axes:
+    # https://rsted.info.ucl.ac.be/
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+    # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
     # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
     # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
     kind = (kind and kind.lower().strip()) or "roc"
@@ -913,9 +1095,13 @@ def aucplot(  # noqa: D417
     # _assign_default_kwargs(pr_kws, p.plot_rocauc, prplot)
     p.plot_aucplot(
         kind=kind,
-        fill=fill,
+        digits=digits,
         color=color,
         legend=legend,
+        fill=fill,
+        annot=annot,
+        fmt=fmt,
+        annot_kws=annot_kws,
         baseline=baseline,
         **auc_kws,
     )

@@ -27,6 +27,8 @@ serve to show the default.
 See: https://www.sphinx-doc.org/en/master/usage/configuration.html
 for more details on configuring the documentation build.
 """
+# https://gdevops.frama.io/documentation/formats/input/rest_sphinx/confpy/confpy.html#
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
 
 # %%
 #

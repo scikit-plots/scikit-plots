@@ -19,9 +19,13 @@ of the NumPy License.
 
 NO WARRANTY IS EXPRESSED OR IMPLIED.  USE AT YOUR OWN RISK.
 
-See Also
---------
-`https://stdlib.fortran-lang.org/lists/modules.html`_
+References
+----------
+.. [1] `https://stdlib.fortran-lang.org/lists/modules.html`_
+.. [2] `https://numpy.org/doc/stable/f2py/index.html`_
+.. [3] `https://scipy.github.io/old-wiki/pages/Cookbook/f2py_and_NumPy.html`_
+.. [4] `https://scipy-cookbook.readthedocs.io/items/F2Py.html`_
+.. [5] `https://scipy-cookbook.readthedocs.io/items/idx_interfacing_with_other_languages.html`_
 """
 
 __all__ = ["get_include"]
@@ -74,5 +78,12 @@ def get_include():
     --------
     numpy.get_include : function that returns the numpy include directory
 
+    References
+    ----------
+    .. [1] `https://stdlib.fortran-lang.org/lists/modules.html`_
+    .. [2] `https://numpy.org/doc/stable/f2py/index.html`_
+    .. [3] `https://scipy.github.io/old-wiki/pages/Cookbook/f2py_and_NumPy.html`_
+    .. [4] `https://scipy-cookbook.readthedocs.io/items/F2Py.html`_
+    .. [5] `https://scipy-cookbook.readthedocs.io/items/idx_interfacing_with_other_languages.html`_
     """
     return os.path.join(os.path.dirname(__file__), "src")

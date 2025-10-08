@@ -1,4 +1,4 @@
-try: dev="0.5.dev0"; stable="0.4.0.post4"; import micropip; await micropip.install(
+try: dev="0.5.dev0"; stable="0.4.0.post5"; import micropip; await micropip.install(
 f"https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/"
 f"scikit-plots/{dev}/scikit_plots-{dev}-cp312-cp312-pyodide_2024_0_wasm32.whl",
 keep_going=True, )

@@ -28,7 +28,6 @@ import warnings
 from typing import ClassVar, Literal
 
 import matplotlib as mpl
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -39,6 +38,7 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 from sklearn.utils.multiclass import unique_labels
+from sklearn.utils.validation import check_array, check_consistent_length
 
 try:
     from seaborn._base import VectorPlotter
@@ -291,7 +291,8 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         - Expects that VectorPlotter has already standardized columns to "x" and "y"
           in `sub_data` when `from_comp_data=True` is used in iter_data (this matches
           the approach used in seaborn's VectorPlotter pattern).
-        - Enforces types: y_true -> int (0/1), y_pred -> int.
+        - Enforces types: y_true -> int (0/1), y_score -> float.
+        - Internally y_pred -> int.
 
         Returns
         -------
@@ -314,16 +315,15 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         if sub.empty:
             return None, None, None
 
-        # Coerce true labels to integers (0/1 for binary classification)
         try:
-            # extract array
-            y_true = np.asarray(sub["x"]).astype(int)
+            # Coerce true labels to integers array (0/1 for binary classification)
+            y_true = np.asarray(sub["x"], dtype=int)  # .astype(int)
         except Exception as e:
             raise ValueError(f"Cannot convert x to integer labels: {e}") from e
 
-        # Scores must be float
         try:
-            y_pred = np.asarray(sub["y"], dtype=int)
+            # Scores must be float
+            y_pred = np.asarray(sub["y"], dtype=float)  # .astype(int)
         except Exception as e:
             raise ValueError(f"Cannot convert y to float scores: {e}") from e
 
@@ -332,72 +332,71 @@ class _ConfusionMatrixPlotter(VectorPlotter):
 
         return y_true, y_pred, weights
 
-    def _compute_eval(
+    def _compute_classification_report(
         self,
         y_true,
         y_pred,
         sample_weight,
-        kind,
-        sub_vars,
-        digits=4,
         labels=None,
+        digits=4,
         normalize=None,
-    ) -> "float | None":  # noqa: UP037
-        # return
-        xs, ys, ss = {}, {}, {}
-        classes = unique_labels(y_true, y_pred)
-        labels = classes if labels is None else np.array(labels)
-        if kind and kind.lower() in ["all", "classification_report"]:
-            try:
-                # Generate the classification report
-                s = classification_report(
+        # sub_vars=None,
+    ) -> "tuple[int, float, str] | None":  # noqa: UP037
+        try:
+            # Generate the classification report
+            s = classification_report(
+                y_true,
+                y_pred,
+                labels=labels,
+                digits=digits,
+                zero_division=np.nan,
+            )
+            return 0, 0.5, str(s)
+        except Exception as e:
+            warnings.warn(
+                f"Unable to compute classification_report for subset : {e}",
+                UserWarning,
+                stacklevel=2,
+            )
+            return None, None, None
+
+    def _compute_confusion_matrix(
+        self,
+        y_true,
+        y_pred,
+        sample_weight,
+        labels=None,
+        digits=4,
+        normalize=None,
+        # sub_vars=None,
+    ) -> "tuple[np.ndarray, None, None] | None":  # noqa: UP037
+        try:
+            # Generate the confusion matrix
+            cm = np.around(
+                confusion_matrix(
                     y_true,
                     y_pred,
                     labels=labels,
-                    digits=digits,
-                    zero_division=np.nan,
-                )
-                xs["classification_report"] = 0
-                ys["classification_report"] = 0.5
-                ss["classification_report"] = str(s)
-            except Exception as e:
-                warnings.warn(
-                    f"Unable to compute classification_report for subset {sub_vars}: {e}",
-                    UserWarning,
-                    stacklevel=2,
-                )
-        if kind and kind.lower() in ["all", "confusion_matrix"]:
-            try:
-                # Generate the confusion matrix
-                cm = np.around(
-                    confusion_matrix(
-                        y_true,
-                        y_pred,
-                        labels=labels,
-                        normalize=normalize,
-                    ),
-                    decimals=2,
-                )
-                xs["confusion_matrix"] = cm
-                ys["confusion_matrix"] = None
-                ss["confusion_matrix"] = None
-            except Exception as e:
-                warnings.warn(
-                    f"Unable to compute confusion_matrix for subset {sub_vars}: {e}",
-                    UserWarning,
-                    stacklevel=2,
-                )
-        return xs, ys, ss
+                    normalize=normalize,
+                ),
+                decimals=2,
+            )
+            return cm, None, None
+        except Exception as e:
+            warnings.warn(
+                f"Unable to compute confusion_matrix for subset : {e}",
+                UserWarning,
+                stacklevel=2,
+            )
+            return None, None, None
 
-    def _plot_evalplot(
+    def _plot_classification_report(
         self,
-        xs,
-        ys,
+        y_true,
+        y_pred,
         sample_weight,
         classes,
-        ss: str,
-        kind,
-        label_base,
+        labels,
         legend,
         ax,
         cbar,
@@ -405,11 +404,81 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         cbar_kws,
         text_kws,
         image_kws,
+        annot_kws,
+        digits,
         **kws,
     ):
-        label = label_base if legend else None
-        kws.setdefault("label", kws.pop("label", label))
+        # x, y
+        x, y, s = self._compute_classification_report(
+            y_true,
+            y_pred,
+            sample_weight,
+            labels,
+            digits,
+        )
+        # text_kws = kws.pop('text_kws', {})
+        # ha: Horizontal alignment ('left', 'center', 'right').
+        # text_kws["ha"] = text_kws.pop("horizontalalignment", text_kws.pop("ha", 'left'))
+        text_kws.setdefault(
+            "ha", text_kws.pop("horizontalalignment", text_kws.pop("ha", "center"))
+        )
+        # va: Vertical alignment ('top', 'center', 'bottom').
+        text_kws.setdefault(
+            "va", text_kws.pop("verticalalignment", text_kws.pop("va", "center"))
+        )
+        text_kws.setdefault(
+            "fontfamily", text_kws.pop("fontfamily", "monospace")
+        )  # 'serif'
+        # text_kws.setdefault("fontname", text_kws.pop("fontname", mpl.rcParams["font.monospace"]))
+        text_kws.setdefault("fontsize", text_kws.pop("fontsize", 8))
 
+        # image_kws = kws.pop('image_kws', {})
+        # Choose a colormap
+        # image_kws["cmap"] = plt.get_cmap(image_kws.pop("cmap", None))
+        image_kws.setdefault("aspect", image_kws.pop("aspect", "auto"))  # "equal"
+        image_kws.setdefault("cmap", plt.get_cmap(image_kws.pop("cmap", None)))
+
+        # Save artist and label (include statement if legend requested)
+        # artists, labels = [], []
+        # Plot the classification report on the first subplot
+        ax.axis("off")
+        artist = ax.text(
+            x,
+            y,
+            s,
+            **text_kws,
+        )
+        # ax.set_aspect('auto')  # not work expected
+        # ax.set_xlabel("")
+        # ax.set_ylabel("")
+        ax.set_title("Classification Report", loc="center")  # x=-1e-1 pad=1
+
+    def _plot_confusion_matrix(
+        self,
+        y_true,
+        y_pred,
+        sample_weight,
+        classes,
+        labels,
+        legend,
+        ax,
+        cbar,
+        cbar_ax,
+        cbar_kws,
+        text_kws,
+        image_kws,
+        annot_kws,
+        digits,
+        **kws,
+    ):
+        # x, y
+        x, _, _ = self._compute_confusion_matrix(
+            y_true,
+            y_pred,
+            sample_weight,
+            labels,
+            digits,
+        )
         # text_kws = kws.pop('text_kws', {})
         # ha: Horizontal alignment ('left', 'center', 'right').
         # text_kws["ha"] = text_kws.pop("horizontalalignment", text_kws.pop("ha", 'left'))
@@ -434,144 +503,311 @@ class _ConfusionMatrixPlotter(VectorPlotter):
 
         fig = ax.figure
         ax.axis("off")
+
         # Save artist and label (include statement if legend requested)
-        artists, labels = [], []
-        axs = {}
-        if kind and kind.lower() in ["all"]:
-            # fig override subplot define (nrows, ncols, index)
-            # int, (int, int, index), or SubplotSpec, default: (1, 1, 1)
-            # Each subplot is placed in a grid defined by nrows x ncols at position idx
-            # plt.figure(figsize=kws.pop('figsize', (7.5, 1)))
-            width, height = fig.get_size_inches()
-            width, height = width * 0.85, height / 2.1  # np.log1p(3.5)
-            fig.set_size_inches(kws.pop("figsize", (width, height)), forward=True)
-            axs["classification_report"] = fig.add_subplot(1, 2, 1)
-            axs["confusion_matrix"] = fig.add_subplot(1, 2, 2)
-        if "classification_report" in xs:
-            # x, y
-            x = xs.pop("classification_report", None)
-            y = ys.pop("classification_report", None)
-            s = ss.pop("classification_report", None)
-            # Plot the classification report on the first subplot
-            ax = axs.pop("classification_report", ax)
-            ax.axis("off")
-            artist = ax.text(
-                x,
-                y,
-                s,
+        # artists, labels = [], []
+        # Plot the confusion matrix on the second subplot
+        # artist = ax.matshow(cm, cmap=cmap_, aspect="auto")
+        artist = ax.imshow(
+            x,
+            **image_kws,
+        )
+        # ax.set_aspect('auto')
+        ax.set(
+            xlabel="Predicted Labels",
+            ylabel="True Labels",
+            title="Confusion Matrix",
+        )
+        ax.set_xticks(np.arange(len(classes)))
+        ax.set_yticks(np.arange(len(classes)))
+        ax.set_xticklabels(
+            classes,
+            fontsize=text_kws["fontsize"],
+        )
+        ax.set_yticklabels(
+            classes,
+            fontsize=text_kws["fontsize"],
+            # rotation=0,
+        )
+        # ax.grid(True)
+
+        # Remove the edge of the matshow
+        ax.spines["top"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        # Move x-axis labels to the bottom and y-axis labels to the right
+        ax.xaxis.set_label_position("bottom")
+        ax.xaxis.tick_bottom()
+        ax.yaxis.set_label_position("left")
+        ax.yaxis.tick_left()
+
+        # Add colorbar
+        # from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        # ax1_divider = make_axes_locatable(ax1)
+        # # Add an Axes to the right of the main Axes.
+        # cax1 = ax1_divider.append_axes("right", size="7%", pad="2%")
+        # cb1 = fig.colorbar(im1, cax=cax1)
+        cbar = fig.colorbar(mappable=artist, ax=ax)  # shrink=0.8
+        # Also remove the colorbar edge
+        cbar.outline.set_edgecolor("none")
+
+        # Annotate the matrix with dynamic text color
+        threshold = x.max() / 2.0
+        for (i, j), val in np.ndenumerate(x):
+            # val == cm[i, j]
+            cmap_method = (
+                image_kws["cmap"].get_over
+                if val > threshold
+                else image_kws["cmap"].get_under
+            )
+            # Get the color at the top end of the colormap
+            rgba = cmap_method()  # Get the RGB values
+
+            # Calculate the luminance of this color
+            luminance = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2]
+
+            # If luminance is low (dark color), use white text; otherwise, use black text
+            text_color = {True: "w", False: "k"}[(luminance < 0.5)]  # noqa: PLR2004
+            ax.text(
+                j,
+                i,
+                f"{val}",
+                color=text_color,
+                # transform=ax.transAxes,
                 **text_kws,
             )
-            # ax.set_aspect('auto')  # not work expected
-            # ax.set_xlabel("")
-            # ax.set_ylabel("")
-            ax.set_title("Classification Report", loc="center")  # x=-1e-1 pad=1
-        if "confusion_matrix" in xs:
-            # x, y
-            x = xs.pop("confusion_matrix", None)
-            y = ys.pop("confusion_matrix", None)
-            s = ss.pop("confusion_matrix", None)
-            # Plot the confusion matrix on the second subplot
-            ax = axs.pop("confusion_matrix", ax)
-            # artist = ax.matshow(cm, cmap=cmap_, aspect="auto")
-            artist = ax.imshow(
-                x,
-                **image_kws,
-            )
-            # ax.set_aspect('auto')
-            ax.set(
-                xlabel="Predicted Labels",
-                ylabel="True Labels",
-                title="Confusion Matrix",
-            )
-            ax.set_xticks(np.arange(len(classes)))
-            ax.set_yticks(np.arange(len(classes)))
-            ax.set_xticklabels(
-                classes,
-                fontsize=text_kws["fontsize"],
-            )
-            ax.set_yticklabels(
-                classes,
-                fontsize=text_kws["fontsize"],
-                # rotation=0,
-            )
-            # ax.grid(True)
 
-            # Remove the edge of the matshow
-            ax.spines["top"].set_visible(False)
-            ax.spines["bottom"].set_visible(False)
-            ax.spines["left"].set_visible(False)
-            ax.spines["right"].set_visible(False)
+    def _plot_all(
+        self,
+        y_true,
+        y_pred,
+        _sw,
+        classes,
+        labels,
+        legend,
+        ax,
+        cbar,
+        cbar_ax,
+        cbar_kws,
+        text_kws,
+        image_kws,
+        annot_kws,
+        digits,
+        **kws,
+    ):
+        """1x2 dashboard with all metrics."""
+        # fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+        # Get the parent figure from the given Axes
+        fig = ax.figure
+        # ax.axis("off")
+        # fig override subplot define (nrows, ncols, index)
+        # int, (int, int, index), or SubplotSpec, default: (1, 1, 1)
+        # Each subplot is placed in a grid defined by nrows x ncols at position idx
+        # plt.figure(figsize=kws.pop('figsize', (7.5, 1)))
+        width, height = fig.get_size_inches()
+        width, height = width * 0.85, height / 2.1  # np.log1p(3.5)
+        fig.set_size_inches(kws.pop("figsize", (width, height)), forward=True)
 
-            # Move x-axis labels to the bottom and y-axis labels to the right
-            ax.xaxis.set_label_position("bottom")
-            ax.xaxis.tick_bottom()
-            ax.yaxis.set_label_position("left")
-            ax.yaxis.tick_left()
-
-            # Add colorbar
-            # from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-            # ax1_divider = make_axes_locatable(ax1)
-            # # Add an Axes to the right of the main Axes.
-            # cax1 = ax1_divider.append_axes("right", size="7%", pad="2%")
-            # cb1 = fig.colorbar(im1, cax=cax1)
-            cbar = fig.colorbar(mappable=artist, ax=ax)  # shrink=0.8
-            # Also remove the colorbar edge
-            cbar.outline.set_edgecolor("none")
-
-            # Annotate the matrix with dynamic text color
-            threshold = x.max() / 2.0
-            for (i, j), val in np.ndenumerate(x):
-                # val == cm[i, j]
-                cmap_method = (
-                    image_kws["cmap"].get_over
-                    if val > threshold
-                    else image_kws["cmap"].get_under
+        # Replace single Axes with a 2x2 grid inside the same figure
+        # plt.gcf().clf()  # clear any existing axes, clar figure
+        # plt.clf()  # clear any existing axes, clar figure
+        fig.clf()  # clear any existing axes
+        axes = fig.subplots(1, 2)
+        # Draw plots
+        for _ax, kind in zip(
+            (axes[0], axes[1]), ("classification_report", "confusion_matrix")
+        ):
+            # plt.matshow(a) # Or `plt.imshow(a)`
+            # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.imshow.html#matplotlib.axes.Axes.imshow
+            # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.matshow.html#matplotlib.axes.Axes.matshow
+            # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html
+            _plot = getattr(self, f"_plot_{kind}", None)
+            if _plot:
+                _plot(
+                    y_true,
+                    y_pred,
+                    _sw,
+                    classes,
+                    labels,
+                    legend,
+                    _ax,
+                    cbar,
+                    cbar_ax,
+                    cbar_kws,
+                    text_kws,
+                    image_kws,
+                    annot_kws,
+                    digits,
+                    **kws,
                 )
-                # Get the color at the top end of the colormap
-                rgba = cmap_method()  # Get the RGB values
+        # fig.tight_layout()
 
-                # Calculate the luminance of this color
-                luminance = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2]
+        # # Save artist and label (include statement if legend requested)
+        # artists, labels = [], []
+        # # Save artist and label (include statement if legend requested)
+        # # Get the color cycle from Matplotlib
+        # colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        # artist = mpatches.Patch(color=colors[0], label="eval", zorder=3)
+        # # ("{:" + self.fmt + "}").format(val)
+        # # {val:fmt} If nested formatting in Python f-strings f"{val:{fmt}}"
+        # # Double braces {{ or }} → escape to literal { or }.
+        # artists.append(artist), labels.append("eval")
 
-                # If luminance is low (dark color), use white text; otherwise, use black text
-                text_color = {True: "w", False: "k"}[(luminance < 0.5)]  # noqa: PLR2004
-                ax.text(
-                    j,
-                    i,
-                    f"{val}",
-                    color=text_color,
-                    # transform=ax.transAxes,
-                    **text_kws,
-                )
-        # Save artist and label (include statement if legend requested)
-        # Get the color cycle from Matplotlib
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        artist = mpatches.Patch(color=colors[0], label=label, zorder=3)
-        artists.append(artist), labels.append(label)
+        # # Add legend (use axes of the first plotted subset)
+        # # https://matplotlib.org/stable/users/explain/axes/legend_guide.html#controlling-the-legend-entries
+        # if legend and artists:
+        #     # Build simple legend entries: prefer Line2D proxies if fill used
+        #     ax0 = self.ax if self.ax is not None else ax
+        #     # ax0.legend(artists, [lbl for lbl in labels], title=self.variables.get("hue", None))
+        #     handles, labels = self._make_legend_proxies(artists, labels)
+        #     ax0.legend(
+        #         handles,
+        #         labels,
+        #         title=self.variables.get("hue", None),
+        #         loc="lower left",
+        #         bbox_to_anchor=(-0.3, -0.1),
+        #     )
 
-        # Add legend (use axes of the first plotted subset)
-        # https://matplotlib.org/stable/users/explain/axes/legend_guide.html#controlling-the-legend-entries
-        if legend and artists:
-            # Build simple legend entries: prefer Line2D proxies if fill used
-            ax0 = self.ax if self.ax is not None else ax
-            # ax0.legend(artists, [lbl for lbl in labels], title=self.variables.get("hue", None))
-            handles, labels = self._make_legend_proxies(artists, labels)
-            ax0.legend(
-                handles,
-                labels,
-                title=self.variables.get("hue", None),
-                loc="lower left",
-                bbox_to_anchor=(-0.3, -0.1),
+    def assert_binary_compat(  # noqa: PLR0912
+        self,
+        y_true,
+        y_score=None,
+        y_pred=None,
+        threshold=0.5,
+        allow_probs=False,
+    ):
+        """
+        Validate compatibility of y_true, y_score, and y_pred for binary classification input consistency.
+
+        Supports:
+            - (y_true, y_pred)
+            - (y_true, y_score) → auto-derives y_pred from y_score if needed.
+
+        Ensures:
+            • same length and shape
+            • no NaN / inf values
+            • binary {0,1} targets
+            • valid [0,1] probability ranges when allow_probs=True
+            • consistent return of (y_true, y_score, y_pred)
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,)
+            True binary target values {0, 1}.
+
+        y_score : array-like of shape (n_samples,), optional
+            Predicted scores or probabilities. Used if `y_pred` is not given.
+
+        y_pred : array-like of shape (n_samples,), optional
+            Predicted binary labels {0, 1}. If not provided, will be derived from
+            `y_score` using `threshold`.
+
+        threshold : float, default=0.5
+            Threshold used to convert `y_score` to binary labels when `y_pred` is None.
+
+        allow_probs : bool, default=False
+            Whether `y_score` can contain probabilities in [0, 1].
+            When True, `y_pred` is derived as (y_score > threshold) like :py:func:`numpy.argmax`.
+
+        Returns
+        -------
+        tuple of ndarray of shape (n_samples,)
+            (y_true, y_score, y_pred)
+
+            • `y_score` may be None if not provided.
+            • `y_pred` is always returned and guaranteed strictly binary {0, 1}.
+
+        Raises
+        ------
+        ValueError
+            If input arrays are incompatible, contain NaN/inf, or non-binary values.
+
+        Examples
+        --------
+        >>> assert_binary_compat([0, 1, 0], [0.1, 0.9, 0.3])  # auto thresholds
+        >>> assert_binary_compat([0, 1, 0], y_pred=[0, 1, 0])  # direct
+        >>> assert_binary_compat([0, 1, 0], [0.1, 0.9, 0.3], allow_probs=True)
+        """
+        # --- Input normalization ---
+        # Convert if provided (keeps None otherwise)
+        y_true = np.asarray(y_true).ravel()
+        y_score = np.asarray(y_score).ravel() if y_score is not None else None
+        y_pred = np.asarray(y_pred).ravel() if y_pred is not None else None
+
+        # --- Normalize and validate inputs ---
+        y_true = check_array(y_true, ensure_2d=False, dtype=int)
+        y_score = (
+            check_array(y_score, ensure_2d=False, dtype=float)
+            if y_score is not None
+            else None
+        )
+        y_pred = (
+            check_array(y_pred, ensure_2d=False, dtype=int)
+            if y_pred is not None
+            else None
+        )
+
+        # --- Validate presence/combination ---
+        if y_score is None and y_pred is None:
+            raise ValueError(
+                "Either y_score or y_pred must be provided (not both None)."
             )
-        # ax.figure.tight_layout()
-        # plt.tight_layout()
+        if y_score is not None and y_pred is not None:
+            raise ValueError("Provide only one of y_score or y_pred, not both.")
+
+        # --- Auto-Derive y_pred if y_score is given ---
+        if y_score is not None:
+            if allow_probs:
+                if not ((y_score >= 0) & (y_score <= 1)).all():
+                    raise ValueError(
+                        "y_score must be within [0, 1] when allow_probs=True"
+                    )
+                y_pred = np.asarray(y_score > threshold, dtype=int)  # .astype(int)
+            else:
+                unique_score = np.unique(y_score)
+                if not np.isin(unique_score, [0, 1]).all():
+                    raise ValueError(
+                        f"y_score must be binary when allow_probs=False; got unique values {unique_score}"
+                    )
+                y_pred = np.asarray(y_score, dtype=int)  # .astype(int)
+
+        # --- Validate binary y_true ---
+        unique_true = np.unique(y_true)
+        if not np.isin(unique_true, [0, 1]).all():
+            raise ValueError(f"y_true must be binary; got unique values: {unique_true}")
+
+        # --- Validate binary y_pred ---
+        unique_pred = np.unique(y_pred)
+        if not np.isin(unique_pred, [0, 1]).all():
+            raise ValueError(f"y_pred must be binary; got unique values: {unique_pred}")
+
+        # --- Length consistency ---
+        check_consistent_length(y_true, y_pred)
+
+        # --- NaN / Inf checks (faster in one call) ---
+        # assert np.isfinite(y_true).all(), "y_true contains NaN or inf"  # noqa: S101
+        if not (np.isfinite(y_true).all() and np.isfinite(y_pred).all()):
+            raise ValueError("y_true or y_pred contains NaN or inf values")
+
+        # --- Sanity & consistency checks ---
+        n_true, n_pred = len(y_true), len(y_pred)
+        if n_true != n_pred:
+            raise ValueError(f"Length mismatch: y_true={n_true}, y_pred={n_pred}")
+
+        # --- Return consistent tuple ---
+        return y_true, y_score, y_pred
 
     # -------------------------
-    # AUC plotting
+    # Evaluation plotting
     # -------------------------
     def plot_evalplot(  # noqa: PLR0912
         self,
         kind: "Literal['all', 'classification_report', 'confusion_matrix'] | None",  # noqa: UP037
+        labels,
+        threshold,
+        allow_probs,
         color,
         legend,
         # multiple,
@@ -588,9 +824,11 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         cbar_kws,
         text_kws,
         image_kws,
+        annot_kws,
+        digits,
         verbose=False,
         **plot_kws,
-    ):
+    ) -> None:
         # x_col = self.variables.get("x")
         # y_col = self.variables.get("y")
         # # If no x/y data return early
@@ -602,6 +840,38 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         cbar_kws = {} if cbar_kws is None else cbar_kws.copy()
         text_kws = {} if text_kws is None else text_kws.copy()
         image_kws = {} if image_kws is None else image_kws.copy()
+
+        # -- Default keyword dicts
+        # annot_kws = plot_kws.pop('annot_kws', {})
+        annot_kws = {} if annot_kws is None else annot_kws.copy()
+        # ha: Horizontal alignment ('left', 'center', 'right').
+        # annot_kws["ha"] = annot_kws.pop("horizontalalignment", annot_kws.pop("ha", 'left'))
+        annot_kws.setdefault(
+            "ha", annot_kws.pop("horizontalalignment", annot_kws.pop("ha", "center"))
+        )
+        # va: Vertical alignment ('top', 'center', 'bottom').
+        annot_kws.setdefault(
+            "va", annot_kws.pop("verticalalignment", annot_kws.pop("va", "center"))
+        )
+        annot_kws.setdefault(
+            "fontfamily", annot_kws.pop("fontfamily", "monospace")
+        )  # 'serif'
+        # annot_kws.setdefault("fontname", annot_kws.pop("fontname", mpl.rcParams["font.monospace"]))
+        annot_kws.setdefault(
+            "fontsize", annot_kws.pop("fontsize", annot_kws.pop("size", 9))
+        )
+        annot_kws.setdefault(
+            "weight", annot_kws.pop("weight", "heavy")
+        )  # "bold", "normal"
+        # annot_kws.setdefault("color", annot_kws.pop("color", annot_kws.pop("c", sub_color)))
+        # annot_kws.setdefault("textcoords", annot_kws.pop("textcoords", "offset points"))
+        annot_kws.setdefault(
+            "bbox",
+            annot_kws.pop(
+                "bbox",
+                dict(boxstyle="square", pad=0, lw=0, fc=(1, 1, 1, 0.7)),  # noqa: C408
+            ),
+        )
 
         # Interpret plotting options
         # label = plot_kws.get("label", "")
@@ -633,9 +903,26 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                 sub_color = color or _default_color(ax.plot, None, None, {})
                 label_base = "Eval Report"
 
-            # Prepare arrays
+            annot_kws.setdefault(
+                "color", annot_kws.pop("color", annot_kws.pop("c", sub_color))
+            )
+
+            # plot line and optional fill, Use element "line" for curve plotting
+            artist_kws = self._artist_kws(
+                plot_kws, None, "line", "layer", sub_color, alpha
+            )
+            label = label_base if legend else None
+            artist_kws.setdefault("label", artist_kws.pop("label", label))
+            # Merge user requested line style/marker if present
+            if linestyle is not None:
+                artist_kws["linestyle"] = linestyle
+            if marker is not None:
+                artist_kws["marker"] = marker
+
+            # prepare arrays
             try:
-                y_true, y_pred, sample_weight = self._prepare_subset(sub_data)
+                # y_true, y_score, sample_weight
+                y_true, y_score, _sw = self._prepare_subset(sub_data)  # noqa: RUF059
             except ValueError as e:
                 warnings.warn(
                     f"Skipping subset {sub_vars} due to data error: {e}",
@@ -643,54 +930,53 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                     stacklevel=2,
                 )
                 continue
+            y_true, _, y_pred = self.assert_binary_compat(
+                y_true,
+                y_score,
+                threshold=threshold,
+                allow_probs=allow_probs,
+            )
             if y_true is None:
                 continue
 
             # binary vs multiclass detection
-            # classes = unique_labels(y_true, y_pred)  # both sorted
-            classes = np.unique(y_true)
-            # multiclass = len(classes) > 2  # noqa: PLR2004
-
-            # plt.matshow(a) # Or `plt.imshow(a)`
-            # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.imshow.html#matplotlib.axes.Axes.imshow
-            # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.matshow.html#matplotlib.axes.Axes.matshow
-            # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html
-            x, y, s = self._compute_eval(
-                y_true,
-                y_pred,
-                sample_weight,
-                kind,
-                sub_vars,
-            )
-            if x is None:
-                continue
-            # plot line and optional fill, Use element "line" for curve plotting
-            artist_kws = self._artist_kws(
-                plot_kws, None, "line", "layer", sub_color, alpha
-            )
-            # Merge user requested line style/marker if present
-            if linestyle is not None:
-                artist_kws["linestyle"] = linestyle
-            if marker is not None:
-                artist_kws["marker"] = marker
-            # plot
-            self._plot_evalplot(
-                x,
-                y,
-                sample_weight,
-                classes,
-                s,
-                kind,
-                label_base,
-                legend,
-                ax,
-                cbar=cbar,
-                cbar_ax=cbar_ax,
-                cbar_kws=cbar_kws,
-                text_kws=text_kws,
-                image_kws=image_kws,
-                **artist_kws,
-            )
+            # classes = np.unique(y_true)
+            classes = unique_labels(y_true, y_pred)  # both sorted
+            labels = classes if labels is None else np.array(labels)
+            multiclass = len(classes) > 2  # noqa: PLR2004
+            # Compute PR curve
+            if multiclass:
+                # TODO:x or y → Seaborn expects 1D vectors (arrays, Series, lists), not a 2D DataFrame
+                # so multiclass not supported by DataFrame or Seaborn
+                warnings.warn(
+                    f"Cannot label_binarize multiclass labels: {''}",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            else:
+                # plt.matshow(a) # Or `plt.imshow(a)`
+                # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.imshow.html#matplotlib.axes.Axes.imshow
+                # https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.matshow.html#matplotlib.axes.Axes.matshow
+                # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html
+                _plot = getattr(self, f"_plot_{kind}", None)
+                if _plot:
+                    _plot(
+                        y_true,
+                        y_pred,
+                        _sw,
+                        classes,
+                        labels,
+                        legend,
+                        ax,
+                        cbar,
+                        cbar_ax,
+                        cbar_kws,
+                        text_kws,
+                        image_kws,
+                        annot_kws,
+                        digits,
+                        **artist_kws,
+                    )
 
 
 # --------------------------------------------------------------------
@@ -705,6 +991,9 @@ def evalplot(  # noqa: D417  # evalmap
     hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
     kind: "Literal['all', 'classification_report', 'confusion_matrix'] | None" = None,  # noqa: UP037
     weights=None,
+    labels=None,
+    threshold: float = 0.5,
+    allow_probs: bool = False,
     # Hue mapping parameters
     hue_order=None,
     hue_norm=None,
@@ -718,7 +1007,7 @@ def evalplot(  # noqa: D417  # evalmap
     line_kws=None,
     # Axes information
     log_scale=None,
-    legend=True,
+    legend=False,
     ax=None,
     cbar=True,
     cbar_ax=None,
@@ -726,13 +1015,18 @@ def evalplot(  # noqa: D417  # evalmap
     # smoothing
     text_kws=None,
     image_kws=None,
+    annot=None,
+    fmt="",
+    annot_kws=None,
     # computation parameters
-    digits: "int | None" = None,  # noqa: UP037
+    digits: "int | None" = 4,  # noqa: UP037
     common_norm=None,
     verbose: bool = False,
     **kwargs,
 ) -> mpl.axes.Axes:
+    # https://rsted.info.ucl.ac.be/
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+    # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
     # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
     # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
     kind = (kind and kind.lower().strip()) or "all"
@@ -783,6 +1077,9 @@ def evalplot(  # noqa: D417  # evalmap
     # _assign_default_kwargs(eval_kws, p.plot_evalplot, evalplot)
     p.plot_evalplot(
         kind=kind,
+        labels=labels,
+        threshold=threshold,
+        allow_probs=allow_probs,
         color=color,
         legend=legend,
         cbar=cbar,
@@ -790,6 +1087,8 @@ def evalplot(  # noqa: D417  # evalmap
         cbar_kws=cbar_kws,
         text_kws=text_kws,
         image_kws=image_kws,
+        annot_kws=annot_kws,
+        digits=digits or 2,
         **eval_kws,
     )
     return ax
@@ -810,6 +1109,11 @@ kind : {{'all', 'classification_report', 'confusion_matrix'}} or None, default=N
     Kind of plot to make.
 weights : vector or key in ``data``
     If provided, observation weights used for computing the distribution function.
+threshold : float, default=0.5 allow_probs: bool = False,
+    Used to observation `'y'` derive as `'y_pred'`.
+    Behavior like 'y > thr' see :py:func:`numpy.argmax`.
+allow_probs : bool, default=False
+    If provided, observation `'y'` assume probability to derive as `'y_pred'` by `'threshold'`.
 {params.core.hue_order}
 {params.core.hue_norm}
 {params.core.palette}
@@ -863,6 +1167,16 @@ normalize : {{'true', 'pred', 'all', None}}, optional
     - 'pred': Normalizes by predicted values.
     - 'all': Normalizes by total values.
     - None: No normalization.
+annot : bool or rectangular dataset, optional
+    If True, write the data value in each cell. If an array-like with the
+    same shape as ``data``, then use this to annotate the heatmap instead
+    of the data. Note that DataFrames will match on position, not index.
+fmt : str, optional, default=''
+    String formatting code to use when adding annotations
+    (e.g., '.2g', '.4g').
+annot_kws : dict of key, value mappings, optional
+    Keyword arguments for :meth:`matplotlib.axes.Axes.text` when ``annot``
+    is True.
 kwargs
     Other keyword arguments are passed to one of the following matplotlib
     functions:

@@ -18,6 +18,7 @@ import scikitplot.snsx as sp
 ax = sp.aucplot(
     x=[0, 1, 1, 0, 1, 1, 0, 1, 1, 0],
     y=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    fmt=''
 )
 
 
@@ -26,6 +27,7 @@ ax = sp.aucplot(
     x=[0, 1, 1, 0, 1, 1, 0, 1, 1, 0],
     y=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     kind="pr",
+    fmt=''
 )
 
 
@@ -34,6 +36,7 @@ import matplotlib.pyplot as plt
 import numpy as np; np.random.seed(0)  # reproducibility
 import pandas as pd
 
+from sklearn.datasets import make_classification
 from sklearn.datasets import (
     load_breast_cancer as data_2_classes,
     load_iris as data_3_classes,
@@ -45,15 +48,32 @@ from sklearn.model_selection import train_test_split
 
 # %%
 # Load the data
-X, y = data_10_classes(return_X_y=True, as_frame=False)
 # X, y = data_3_classes(return_X_y=True, as_frame=False)
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=0)
+# X, y = data_2_classes(return_X_y=True, as_frame=False)
+
+# Generate a sample dataset
+X, y = make_classification(n_samples=5000, n_features=20, n_informative=15,
+                          n_redundant=2, n_classes=2, n_repeated=0,
+                          class_sep=1.5, flip_y=0.01, weights=[0.85, 0.15],
+                          random_state=0)
+
+# %%
+X_train, X_val, y_train, y_val = train_test_split(
+    X, y, stratify=y, test_size=0.2, random_state=0
+)
 np.unique(y)
 
 # %%
 # Create an instance of the LogisticRegression
 model = (
-    LogisticRegression(max_iter=int(1), random_state=0)
+    LogisticRegression(
+        # max_iter=int(1e5),
+        # C=10,
+        # penalty='l1',
+        # solver='liblinear',
+        class_weight='balanced',
+        random_state=0
+    )
     .fit(X_train, y_train)
 )
 # Perform predictions
@@ -62,10 +82,13 @@ y_val_prob = model.predict_proba(X_val)
 df = pd.DataFrame({
     "y_true": y_val==1,  # target class (0,1,2)
     "y_score": y_val_prob[:, 1],  # target class (0,1,2)
+    # np.argmax
+    "y_pred": y_val_prob[:, 1] > 0.5,  # target class (0,1,2)
     # "y_true": np.random.normal(0.5, 0.1, 100).round(),
     # "y_score": np.random.normal(0.5, 0.15, 100),
     # "hue": np.random.normal(0.5, 0.4, 100).round(),
 })
+df
 
 
 # %%
@@ -79,15 +102,18 @@ ax = sp.aucplot(
     y="y_score",
     kind="pr",
     label=f"class 1",
+    # fmt=''
 )
 
 
 # %%
-for i in range(10):
+for i in range(2):
     ax = sp.aucplot(
         x=y_val==i,
         y=y_val_prob[:, i],
+        # kind="roc",
         label=f"class {i}",
+        # fmt=''
     )
 
     # --- Collect unique handles and labels ---
@@ -99,12 +125,13 @@ for i in range(10):
 
 
 # %%
-for i in range(10):
+for i in range(2):
     ax = sp.aucplot(
         x=y_val==i,
         y=y_val_prob[:, i],
         kind="pr",
         label=f"class {i}",
+        # fmt=''
     )
 
     # # With raw arrays (no DataFrame)
