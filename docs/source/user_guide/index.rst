@@ -1,15 +1,5 @@
 .. _scikit-plots-documentation:
 
-..
-  https://devguide.python.org/documentation/markup/#sections
-  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
-  # with overline, for parts    : ######################################################################
-  * with overline, for chapters : **********************************************************************
-  = for sections                : ======================================================================
-  - for subsections             : ----------------------------------------------------------------------
-  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
 .. https://devguide.python.org/documentation/markup/#substitutions
 .. Welcome to Scikit-plots 101 |br| |release| - |today|
 ..
@@ -36,6 +26,22 @@
 :raw-html:`<div style="text-align: center"><strong>` Scikit-plots Documentation
 |br| |full_version| - |today|
 :raw-html:`</strong></div>`
+
+..
+  https://devguide.python.org/documentation/markup/#sections
+  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
+  # with overline, for parts    : ######################################################################
+  * with overline, for chapters : **********************************************************************
+  = for sections                : ======================================================================
+  - for subsections             : ----------------------------------------------------------------------
+  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+.. # https://rsted.info.ucl.ac.be/
+.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+.. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+.. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
 .. _user-guide-index:
 

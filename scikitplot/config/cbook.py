@@ -12,6 +12,13 @@
 """
 A collection of utility functions and classes.  Originally, many
 (but not all) were from the Python Cookbook -- hence the name cbook.
+
+See Also
+--------
+https://scipy.github.io/old-wiki/pages/Cookbook/f2py_and_NumPy.html
+https://scipy-cookbook.readthedocs.io/items/F2Py.html
+https://scipy-cookbook.readthedocs.io/items/idx_interfacing_with_other_languages.html
+https://pandas.pydata.org/pandas-docs/stable/user_guide/cookbook.html
 """
 
 import collections
