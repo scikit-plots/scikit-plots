@@ -2,8 +2,8 @@
 plot_report with examples
 ==================================
 
-An example showing the :py:func:`~scikitplot.kds.report` function used
-by a scikit-learn classifier.
+An example showing the :py:func:`~scikitplot.kds.report` function
+with a scikit-learn classifier (e.g., :py:class:`~sklearn.linear_model.LogisticRegression`) instance.
 """
 
 # Authors: The scikit-plots developers

@@ -3,7 +3,7 @@ plot_decileplot_script with examples
 ==========================================
 
 An example showing the :py:func:`~scikitplot.snsx.decileplot` function
-used by a scikit-learn regressor.
+with a scikit-learn classifier (e.g., :py:class:`~sklearn.linear_model.LogisticRegression`) instance.
 """
 
 # Authors: The scikit-plots developers

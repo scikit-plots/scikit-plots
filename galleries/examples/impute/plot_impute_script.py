@@ -2,8 +2,8 @@
 plot_impute with examples
 ==================================
 
-An example showing the :py:func:`~scikitplot.impute.report` function used
-by a scikit-learn classifier.
+Examples related to the :py:class:`~scikitplot.impute.AnnoyKNNImputer` class
+with a scikit-learn regressor (e.g., :py:class:`~sklearn.linear_model.LinearRegression`) instance.
 
 .. seealso::
 
@@ -13,9 +13,10 @@ by a scikit-learn classifier.
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+
 # %%
 import time
-import numpy as np
+import numpy as np; np.random.seed(0)  # reproducibility
 
 from sklearn.datasets import make_classification, make_regression
 from sklearn.datasets import (
@@ -35,9 +36,98 @@ X_california = X_california[:300]
 y_california = y_california[:300]
 
 # Generate a sample dataset
-X, y = make_regression(n_samples=2500, n_features=20, n_informative=15,
-                       n_targets=1, bias=0, noise=0,
-                       shuffle=True, coef=False, random_state=0)
+def make_realistic_regression(
+    n_samples=3000,
+    n_features=20,
+    n_informative=15,
+    noise=10.0,
+    bias=10.0,
+    corr_strength=0.15,
+    nonlinear_strength=0.5,
+    outlier_fraction=0.05,
+    missing_fraction=0.0,
+    categorical_features=6,
+    random_state=None,
+):
+    """
+    Generate a more realistic synthetic regression dataset.
+
+    Parameters
+    ----------
+    n_samples : int
+        Number of samples.
+    n_features : int
+        Number of numerical features.
+    n_informative : int
+        Number of informative (truly predictive) features.
+    noise : float
+        Standard deviation of Gaussian noise added to the target.
+    bias : float
+        Constant bias term in target generation.
+    corr_strength : float
+        Std. dev. of correlated noise added to create redundancy.
+    nonlinear_strength : float
+        Strength of nonlinear feature transformations (0 disables).
+    outlier_fraction : float
+        Fraction of samples with outlier targets.
+    missing_fraction : float
+        Fraction of missing entries (NaN) in X.
+    categorical_features : int
+        Number of discrete/categorical columns to append.
+    random_state : int or None
+        Random seed for reproducibility.
+    """
+
+    rng = np.random.default_rng(random_state)
+
+    # Step 1: Linear base dataset
+    X, y = make_regression(
+        n_samples=n_samples,
+        n_features=n_features,
+        n_informative=n_informative,
+        noise=noise,
+        bias=bias,
+        random_state=random_state,
+    )
+
+    # Step 2: Add nonlinear transformations
+    if nonlinear_strength > 0:
+        X_nl = X.copy()
+        X_nl[:, 0] = np.exp(nonlinear_strength * 0.01 * X[:, 0])
+        X_nl[:, 1] = np.sin(nonlinear_strength * X[:, 1])
+        X_nl[:, 2] = (X[:, 2] ** 2) * nonlinear_strength
+        X = np.hstack([X, X_nl])
+
+    # Step 3: Add correlated (redundant) features
+    if corr_strength > 0:
+        corr_features = X[:, :min(5, X.shape[1])] + rng.normal(
+            0, corr_strength, size=(n_samples, min(5, X.shape[1]))
+        )
+        X = np.hstack([X, corr_features])
+
+    # Step 4: Add outliers in target
+    if outlier_fraction > 0:
+        n_outliers = int(n_samples * outlier_fraction)
+        idx = rng.choice(n_samples, n_outliers, replace=False)
+        y[idx] += rng.normal(0, noise * 10, size=n_outliers)
+
+    # Step 5: Add missing values
+    if missing_fraction > 0:
+        missing_mask = rng.random(X.shape) < missing_fraction
+        X[missing_mask] = np.nan
+
+    # Step 6: Add categorical/discrete features
+    if categorical_features > 0:
+        cats = rng.integers(0, 3, size=(n_samples, categorical_features))
+        X = np.hstack([X, cats])
+
+    return X, y
+
+X, y = make_realistic_regression(
+    random_state=0,
+)
+print(X.shape, np.isnan(X).mean(), y[:5])
+
 
 # %%
 X_train, X_val, y_train, y_val = train_test_split(
@@ -97,13 +187,14 @@ def get_score(X, y, imputer=None):
 
 x_labels = []
 
-mses_diabetes = np.zeros(7)
-stds_diabetes = np.zeros(7)
-mses_california = np.zeros(7)
-stds_california = np.zeros(7)
-mses_train = np.zeros(7)
-stds_train = np.zeros(7)
-time_data = np.zeros(7)
+n_size = 7
+mses_diabetes = np.zeros(n_size)
+stds_diabetes = np.zeros(n_size)
+mses_california = np.zeros(n_size)
+stds_california = np.zeros(n_size)
+mses_train = np.zeros(n_size)
+stds_train = np.zeros(n_size)
+time_data = np.zeros(n_size)
 
 
 # %%
@@ -129,10 +220,11 @@ mses_california[1], stds_california[1] = get_score(
 mses_train[1], stds_train[1] = get_score(
     X_miss_train, y_miss_train, imputer
 )
-x_labels.append("Zero Imputation")
+x_labels.append("Zero\nImputation\n(constant)")
 T = time.time() - t0
 print(T)
 time_data[1] = T
+
 
 # %%
 t0 = time.time()
@@ -146,10 +238,11 @@ mses_california[2], stds_california[2] = get_score(
 mses_train[2], stds_train[2] = get_score(
     X_miss_train, y_miss_train, imputer
 )
-x_labels.append("Mean Imputation")
+x_labels.append("Mean\nImputation")
 T = time.time() - t0
 print(T)
 time_data[2] = T
+
 
 # %%
 t0 = time.time()
@@ -163,15 +256,15 @@ mses_california[3], stds_california[3] = get_score(
 mses_train[3], stds_train[3] = get_score(
     X_miss_train, y_miss_train, imputer
 )
-x_labels.append("Median Imputation")
+x_labels.append("Median\nImputation")
 T = time.time() - t0
 print(T)
 time_data[3] = T
 
+
 # %%
 t0 = time.time()
-imputer = IterativeImputer(add_indicator=True)
-
+imputer = KNNImputer(add_indicator=True)
 mses_diabetes[4], stds_diabetes[4] = get_score(
     X_miss_diabetes, y_miss_diabetes, imputer
 )
@@ -181,14 +274,31 @@ mses_california[4], stds_california[4] = get_score(
 mses_train[4], stds_train[4] = get_score(
     X_miss_train, y_miss_train, make_pipeline(RobustScaler(), imputer)
 )
-x_labels.append("Iterative Imputation")
+x_labels.append("KNN\nImputation")
 T = time.time() - t0
 print(T)
 time_data[4] = T
 
+
+# %%
+import scikitplot as sp
+sp.__version__
+
+
+# %%
+from scikitplot.impute import AnnoyKNNImputer
+# print(AnnoyKNNImputer.__doc__)
+
+
 # %%
 t0 = time.time()
-imputer = KNNImputer(add_indicator=True)
+imputer = AnnoyKNNImputer(
+    add_indicator=True,
+    n_trees=5,
+    search_k=1000,
+    n_neighbors=5,
+    index_nan_strategy='mean',
+)
 mses_diabetes[5], stds_diabetes[5] = get_score(
     X_miss_diabetes, y_miss_diabetes, imputer
 )
@@ -198,50 +308,42 @@ mses_california[5], stds_california[5] = get_score(
 mses_train[5], stds_train[5] = get_score(
     X_miss_train, y_miss_train, make_pipeline(RobustScaler(), imputer)
 )
-x_labels.append("KNN Imputation")
+x_labels.append("AnnoyKNN\nImputation\n(Tree Based)")
 T = time.time() - t0
 print(T)
 time_data[5] = T
 
-# %%
-import scikitplot as sp
-sp.__version__
-
-# %%
-from scikitplot.impute import AnnoyKNNImputer
-print(AnnoyKNNImputer.__doc__)
 
 # %%
 t0 = time.time()
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=5, search_k=50)
+imputer = IterativeImputer(add_indicator=True)
+
 mses_diabetes[6], stds_diabetes[6] = get_score(
     X_miss_diabetes, y_miss_diabetes, imputer
 )
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=5, search_k=50)
 mses_california[6], stds_california[6] = get_score(
     X_miss_california, y_miss_california, make_pipeline(RobustScaler(), imputer)
 )
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0)
 mses_train[6], stds_train[6] = get_score(
     X_miss_train, y_miss_train, make_pipeline(RobustScaler(), imputer)
 )
-x_labels.append("AnnoyKNN Imputation")
+x_labels.append("Iterative\nImputation\n(BayesianRidge)")
 T = time.time() - t0
 print(T)
 time_data[6] = T
 
-# %%
-mses_diabetes = mses_diabetes * -1
-mses_california = mses_california * -1
-mses_train = mses_train * -1
 
 # %%
 import matplotlib.pyplot as plt
 
+mses_diabetes = np.abs(mses_diabetes)  # * -1
+mses_california = np.abs(mses_california)
+mses_train = np.abs(mses_train)
+
 n_bars = len(mses_diabetes)
 xval = np.arange(n_bars)
 
-colors = ["r", "g", "b", "orange", "k", "m", "c"]
+colors = ["r", "g", "b", "m", "c", "orange", "olive", "gray"]
 
 # plot diabetes results
 plt.figure(figsize=(18, 6))

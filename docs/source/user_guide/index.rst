@@ -99,7 +99,7 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            ./snsx/index.rst
+            SeabornX <./snsx/index.rst>
 
     .. grid-item-card::
         :padding: 3
