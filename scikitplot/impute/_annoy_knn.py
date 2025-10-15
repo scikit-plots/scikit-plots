@@ -189,12 +189,9 @@ class AnnoyKNNImputer(_BaseImputer):
     -----
     - Annoy builds an approximate index, so imputations are not exact.
     - After fitting, the Annoy index is kept in memory for fast queries.
-
-    Notes
-    -----
-    Annoy itself does **not** natively support a general `'minkowski'` metric,
-    but `'euclidean'` (p=2) and `'manhattan'` (p=1) are special cases of
-    the Minkowski distance.
+    - Annoy itself does not natively support a general `'minkowski'` metric,
+      but `'euclidean'` (p=2) and `'manhattan'` (p=1) are special cases of
+      the Minkowski distance.
 
     See Also
     --------
