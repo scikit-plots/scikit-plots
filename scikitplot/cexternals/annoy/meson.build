@@ -51,11 +51,13 @@ if host_machine.system() != 'windows'
 endif
 
 # https://mesonbuild.com/Release-notes-for-0-62-0.html#d-features-in-declare_dependency
-foreach name : ['lua*', 'lua53', 'lua5.3', 'lua-5.3']
+foreach name : ['lua', 'lua53', 'lua5.3', 'lua-5.3']
   dep_lua = dependency(name, version: '>=5.1', required: false)
   if dep_lua.found()
 	  dep_list += [dep_lua]
     break
+  # else
+  #   dep_lua = disabler()
   endif
 endforeach
 if not dep_lua.found()
