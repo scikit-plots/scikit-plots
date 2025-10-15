@@ -410,7 +410,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                   _get_submodule("scikitplot.impute", "_annoy_knn")
                   + "\n\n"
-                  + _get_guide("impute-index")
+                  + _get_guide("annoy_knn_imputer-index")
                 ),
                 "autosummary": [
                     "AnnoyKNNImputer",

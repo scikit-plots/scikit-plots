@@ -65,7 +65,6 @@ ax = sp.metrics.plot_silhouette(
 # .. tags::
 #
 #    model-type: clustering
-#    model-type: k-means
 #    model-workflow: model evaluation
 #    plot-type: bar
 #    plot-type: silhouette
