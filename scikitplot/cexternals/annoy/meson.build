@@ -123,6 +123,8 @@ if os_name == 'darwin'
   endif
 endif
 
+## annoy-simd-cp313-win_amd64.whl → AVX baseline
+## annoy-simd-cp313-win_amd64_avx512.whl → HPC optimized
 ## Optional AVX/AVX512 optimizations
 ## Check AVX512 first: if the CPU supports it, only the AVX512 block runs.
 ## Use elif: ensures AVX block is skipped if AVX512 was already applied.
@@ -138,6 +140,8 @@ if cc.has_argument('-mavx')
     '-mavx',
     '-DANNOYLIB_USE_AVX',
   ]
+else
+  message('⚠️ No SIMD acceleration available, falling back to scalar mode')
 endif
 
 # Make sure we have the right definition when compiling as a shared library on Windows.

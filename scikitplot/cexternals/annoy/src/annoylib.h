@@ -15,10 +15,10 @@
 // Add include guard or #pragma once to annoylib.h
 #pragma once
 // Or, if you prefer classic guards:
-#ifndef ANNOYLIB_H
-#define ANNOYLIB_H
+// #ifndef ANNOY_ANNOYLIB_H
+// #define ANNOY_ANNOYLIB_H
 // ... existing content ...
-#endif  // ANNOYLIB_H
+// #endif  // ANNOY_ANNOYLIB_H
 
 #ifndef ANNOY_ANNOYLIB_H
 #define ANNOY_ANNOYLIB_H
@@ -107,6 +107,12 @@ typedef signed __int64    int64_t;
 #else // See #293, #358
 #define annoylib_popcount cole_popcount
 #endif
+
+
+// ---------------- SIMD feature toggles ----------------
+// Define ANNOYLIB_USE_AVX512 or ANNOYLIB_USE_AVX externally,
+// e.g. via compiler flag (-DANNOYLIB_USE_AVX512)
+// This header does not auto-detect, to prevent illegal instructions?
 
 #if !defined(NO_MANUAL_VECTORIZATION) && defined(__GNUC__) && (__GNUC__ >6) && defined(__AVX512F__)  // See #402
 #define ANNOYLIB_USE_AVX512
@@ -208,7 +214,96 @@ inline T euclidean_distance(const T* x, const T* y, int f) {
   return d;
 }
 
-#ifdef ANNOYLIB_USE_AVX
+// Mutually Exclusive Guards (Best Practice)
+// AVX (2011+) works on most CPUs.
+// AVX512 (2017+) crashes on unsupported hardware (illegal instruction).
+// Conda-forge's build policy recommends not using AVX512 for universal wheels.
+// Build one wheel with AVX for default users.
+// Build one with AVX512 for HPC users or special tags (manylinux_2_28_avx512).
+
+// AVX512 code
+// #ifdef ANNOYLIB_USE_AVX512
+#if defined(ANNOYLIB_USE_AVX512)
+// -------- AVX512 code --------
+
+template<>
+inline float dot<float>(const float* x, const float *y, int f) {
+  float result = 0;
+  if (f > 15) {
+    __m512 d = _mm512_setzero_ps();
+    for (; f > 15; f -= 16) {
+      //AVX512F includes FMA
+      d = _mm512_fmadd_ps(_mm512_loadu_ps(x), _mm512_loadu_ps(y), d);
+      x += 16;
+      y += 16;
+    }
+    // Sum all floats in dot register.
+    result += _mm512_reduce_add_ps(d);
+  }
+  // Don't forget the remaining values.
+  for (; f > 0; f--) {
+    result += *x * *y;
+    x++;
+    y++;
+  }
+  return result;
+}
+
+template<>
+inline float manhattan_distance<float>(const float* x, const float* y, int f) {
+  float result = 0;
+  int i = f;
+  if (f > 15) {
+    __m512 manhattan = _mm512_setzero_ps();
+    for (; i > 15; i -= 16) {
+      const __m512 x_minus_y = _mm512_sub_ps(_mm512_loadu_ps(x), _mm512_loadu_ps(y));
+      manhattan = _mm512_add_ps(manhattan, _mm512_abs_ps(x_minus_y));
+      x += 16;
+      y += 16;
+    }
+    // Sum all floats in manhattan register.
+    result = _mm512_reduce_add_ps(manhattan);
+  }
+  // Don't forget the remaining values.
+  for (; i > 0; i--) {
+    result += fabsf(*x - *y);
+    x++;
+    y++;
+  }
+  return result;
+}
+
+template<>
+inline float euclidean_distance<float>(const float* x, const float* y, int f) {
+  float result=0;
+  if (f > 15) {
+    __m512 d = _mm512_setzero_ps();
+    for (; f > 15; f -= 16) {
+      const __m512 diff = _mm512_sub_ps(_mm512_loadu_ps(x), _mm512_loadu_ps(y));
+      d = _mm512_fmadd_ps(diff, diff, d);
+      x += 16;
+      y += 16;
+    }
+    // Sum all floats in dot register.
+    result = _mm512_reduce_add_ps(d);
+  }
+  // Don't forget the remaining values.
+  for (; f > 0; f--) {
+    float tmp = *x - *y;
+    result += tmp * tmp;
+    x++;
+    y++;
+  }
+  return result;
+}
+
+// #endif
+
+// AVX code
+// #ifdef ANNOYLIB_USE_AVX
+#elif defined(ANNOYLIB_USE_AVX)
+// -------- AVX code --------
+
 // Horizontal single sum of 256bit vector.
 inline float hsum256_ps_avx(__m256 v) {
   const __m128 x128 = _mm_add_ps(_mm256_extractf128_ps(v, 1), _mm256_castps256_ps128(v));
@@ -289,80 +384,9 @@ inline float euclidean_distance<float>(const float* x, const float* y, int f) {
   return result;
 }
 
-#endif
-
-#ifdef ANNOYLIB_USE_AVX512
-template<>
-inline float dot<float>(const float* x, const float *y, int f) {
-  float result = 0;
-  if (f > 15) {
-    __m512 d = _mm512_setzero_ps();
-    for (; f > 15; f -= 16) {
-      //AVX512F includes FMA
-      d = _mm512_fmadd_ps(_mm512_loadu_ps(x), _mm512_loadu_ps(y), d);
-      x += 16;
-      y += 16;
-    }
-    // Sum all floats in dot register.
-    result += _mm512_reduce_add_ps(d);
-  }
-  // Don't forget the remaining values.
-  for (; f > 0; f--) {
-    result += *x * *y;
-    x++;
-    y++;
-  }
-  return result;
-}
-
-template<>
-inline float manhattan_distance<float>(const float* x, const float* y, int f) {
-  float result = 0;
-  int i = f;
-  if (f > 15) {
-    __m512 manhattan = _mm512_setzero_ps();
-    for (; i > 15; i -= 16) {
-      const __m512 x_minus_y = _mm512_sub_ps(_mm512_loadu_ps(x), _mm512_loadu_ps(y));
-      manhattan = _mm512_add_ps(manhattan, _mm512_abs_ps(x_minus_y));
-      x += 16;
-      y += 16;
-    }
-    // Sum all floats in manhattan register.
-    result = _mm512_reduce_add_ps(manhattan);
-  }
-  // Don't forget the remaining values.
-  for (; i > 0; i--) {
-    result += fabsf(*x - *y);
-    x++;
-    y++;
-  }
-  return result;
-}
-
-template<>
-inline float euclidean_distance<float>(const float* x, const float* y, int f) {
-  float result=0;
-  if (f > 15) {
-    __m512 d = _mm512_setzero_ps();
-    for (; f > 15; f -= 16) {
-      const __m512 diff = _mm512_sub_ps(_mm512_loadu_ps(x), _mm512_loadu_ps(y));
-      d = _mm512_fmadd_ps(diff, diff, d);
-      x += 16;
-      y += 16;
-    }
-    // Sum all floats in dot register.
-    result = _mm512_reduce_add_ps(d);
-  }
-  // Don't forget the remaining values.
-  for (; f > 0; f--) {
-    float tmp = *x - *y;
-    result += tmp * tmp;
-    x++;
-    y++;
-  }
-  return result;
-}
-
+#else
+// -------- Fallback (no AVX) --------
+// You can keep the pure C++ scalar versions or leave blank
 #endif
 
 
