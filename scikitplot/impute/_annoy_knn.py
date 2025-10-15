@@ -195,7 +195,7 @@ class AnnoyKNNImputer(_BaseImputer):
 
     See Also
     --------
-    KNNImputer : Multivariate imputer that estimates missing features using
+    sklearn.impute.KNNImputer : Multivariate imputer that estimates missing features using
         nearest samples.
 
     References

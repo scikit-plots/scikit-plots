@@ -67,7 +67,6 @@ ax = sp.estimators.plot_elbow(
 # .. tags::
 #
 #    model-type: clustering
-#    model-type: k-means
 #    model-workflow: model evaluation
 #    plot-type: line
 #    plot-type: WSS (within-cluster sum of squares)

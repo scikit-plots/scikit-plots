@@ -58,6 +58,5 @@ ax = sp.kds.plot_ks_statistic(
 #    plot-type: line
 #    plot-type: decile
 #    domain: statistics
-#    domain: KS (kolmogorov-smirnov)
 #    level: beginner
 #    purpose: showcase

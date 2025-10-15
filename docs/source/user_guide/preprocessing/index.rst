@@ -16,12 +16,18 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+======================================================================
 Preprocessing (experimental)
 ======================================================================
 
 Examples relevant to the :py:mod:`~.preprocessing` module.
 
 .. _get_dummies-index:
+
+GetDummies
+**********************************************************************
+
+This module contains some functions related to :py:class:`~.GetDummies`.
 
 References
 ----------
