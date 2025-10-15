@@ -60,17 +60,14 @@ from textwrap import dedent
 from typing import ClassVar, Literal
 
 import matplotlib as mpl
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.cbook import normalize_kwargs
 from matplotlib.colors import to_rgba
 from sklearn.metrics import (
-    classification_report,
     confusion_matrix,
 )
-from sklearn.utils.multiclass import unique_labels
 
 try:
     import statsmodels
@@ -195,16 +192,16 @@ _param_docs = DocstringComponents.from_nested_components(
 # --------------------------------------------------------------------
 # Core Plotter Class
 # --------------------------------------------------------------------
-class _ConfusionMatrixPlotter(VectorPlotter):
+class _ModelPlotter(VectorPlotter):
     """
-    Seaborn-style ConfusionMatrix visualization.
+    Seaborn-style Model visualization.
 
     Expects the VectorPlotter pipeline to have mapped incoming data into
     standardized columns "x", "y", optionally grouping (hue), legend creation,
     "weights", and subset iteration.
     """
 
-    # self.variables
+    # minimal structural hints for wide vs flat data (keeps consistency with VectorPlotter)
     wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
         "x": "@index",
         "y": "@values",
@@ -220,6 +217,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         data=None,
         variables=None,
     ):
+        # self.variables
         variables = {} if variables is None else variables
         super().__init__(data=data, variables=variables)
 
@@ -379,90 +377,60 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         if sub.empty:
             return None, None, None
 
-        # Coerce true labels to integers (0/1 for binary classification)
         try:
-            # extract array
-            y_true = np.asarray(sub["x"]).astype(int)
+            # Coerce true labels to integers array (0/1 for binary classification)
+            y_true = np.asarray(sub["x"], dtype=int)  # .astype(int)
         except Exception as e:
             raise ValueError(f"Cannot convert x to integer labels: {e}") from e
 
         # Scores must be float
         try:
-            y_pred = np.asarray(sub["y"], dtype=int)
+            y_score = np.asarray(sub["y"], dtype=float)  # .astype(float)
         except Exception as e:
             raise ValueError(f"Cannot convert y to float scores: {e}") from e
 
         # Extract weights if present
         weights = sub["weights"].to_numpy() if "weights" in sub.columns else None
 
-        return y_true, y_pred, weights
+        return y_true, y_score, weights
 
-    def _compute_eval(
+    def _compute_confusion_matrix(
         self,
         y_true,
         y_pred,
         sample_weight,
-        kind,
-        sub_vars,
-        digits=4,
         labels=None,
+        digits=4,
         normalize=None,
-    ) -> "float | None":  # noqa: UP037
-        # return
-        xs, ys, ss = {}, {}, {}
-        classes = unique_labels(y_true, y_pred)
-        labels = classes if labels is None else np.array(labels)
-        if kind and kind.lower() in ["all", "classification_report"]:
-            try:
-                # Generate the classification report
-                s = classification_report(
+        # sub_vars=None,
+    ) -> "tuple[np.ndarray, None, None] | None":  # noqa: UP037
+        try:
+            # Generate the confusion matrix
+            cm = np.around(
+                confusion_matrix(
                     y_true,
                     y_pred,
                     labels=labels,
-                    digits=digits,
-                    zero_division=np.nan,
-                )
-                xs["classification_report"] = 0
-                ys["classification_report"] = 0.5
-                ss["classification_report"] = str(s)
-            except Exception as e:
-                warnings.warn(
-                    f"Unable to compute classification_report for subset {sub_vars}: {e}",
-                    UserWarning,
-                    stacklevel=2,
-                )
-        if kind and kind.lower() in ["all", "confusion_matrix"]:
-            try:
-                # Generate the confusion matrix
-                cm = np.around(
-                    confusion_matrix(
-                        y_true,
-                        y_pred,
-                        labels=labels,
-                        normalize=normalize,
-                    ),
-                    decimals=2,
-                )
-                xs["confusion_matrix"] = cm
-                ys["confusion_matrix"] = None
-                ss["confusion_matrix"] = None
-            except Exception as e:
-                warnings.warn(
-                    f"Unable to compute confusion_matrix for subset {sub_vars}: {e}",
-                    UserWarning,
-                    stacklevel=2,
-                )
-        return xs, ys, ss
+                    normalize=normalize,
+                ),
+                decimals=2,
+            )
+            return cm, None, None
+        except Exception as e:
+            warnings.warn(
+                f"Unable to compute confusion_matrix for subset : {e}",
+                UserWarning,
+                stacklevel=2,
+            )
+            return None, None, None
 
-    def _plot_evalplot(
+    def _plot_confusion_matrix(
         self,
-        xs,
-        ys,
+        y_true,
+        y_pred,
         sample_weight,
         classes,
-        ss: str,
-        kind,
-        label_base,
+        labels,
         legend,
         ax,
         cbar,
@@ -470,11 +438,18 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         cbar_kws,
         text_kws,
         image_kws,
+        annot_kws,
+        digits,
         **kws,
     ):
-        label = label_base if legend else None
-        kws.setdefault("label", kws.pop("label", label))
-
+        # x, y
+        x, _, _ = self._compute_confusion_matrix(
+            y_true,
+            y_pred,
+            sample_weight,
+            labels,
+            digits,
+        )
         # text_kws = kws.pop('text_kws', {})
         # ha: Horizontal alignment ('left', 'center', 'right').
         # text_kws["ha"] = text_kws.pop("horizontalalignment", text_kws.pop("ha", 'left'))
@@ -499,144 +474,88 @@ class _ConfusionMatrixPlotter(VectorPlotter):
 
         fig = ax.figure
         ax.axis("off")
+
         # Save artist and label (include statement if legend requested)
-        artists, labels = [], []
-        axs = {}
-        if kind and kind.lower() in ["all"]:
-            # fig override subplot define (nrows, ncols, index)
-            # int, (int, int, index), or SubplotSpec, default: (1, 1, 1)
-            # Each subplot is placed in a grid defined by nrows x ncols at position idx
-            # plt.figure(figsize=kws.pop('figsize', (7.5, 1)))
-            width, height = fig.get_size_inches()
-            width, height = width * 0.85, height / 2.1  # np.log1p(3.5)
-            fig.set_size_inches(kws.pop("figsize", (width, height)), forward=True)
-            axs["classification_report"] = fig.add_subplot(1, 2, 1)
-            axs["confusion_matrix"] = fig.add_subplot(1, 2, 2)
-        if "classification_report" in xs:
-            # x, y
-            x = xs.pop("classification_report", None)
-            y = ys.pop("classification_report", None)
-            s = ss.pop("classification_report", None)
-            # Plot the classification report on the first subplot
-            ax = axs.pop("classification_report", ax)
-            ax.axis("off")
-            artist = ax.text(
-                x,
-                y,
-                s,
+        # artists, labels = [], []
+        # Plot the confusion matrix on the second subplot
+        # artist = ax.matshow(cm, cmap=cmap_, aspect="auto")
+        artist = ax.imshow(
+            x,
+            **image_kws,
+        )
+        # ax.set_aspect('auto')
+        ax.set(
+            xlabel="Predicted Labels",
+            ylabel="True Labels",
+            title="Confusion Matrix",
+        )
+        ax.set_xticks(np.arange(len(classes)))
+        ax.set_yticks(np.arange(len(classes)))
+        ax.set_xticklabels(
+            classes,
+            fontsize=text_kws["fontsize"],
+        )
+        ax.set_yticklabels(
+            classes,
+            fontsize=text_kws["fontsize"],
+            # rotation=0,
+        )
+        # ax.grid(True)
+
+        # Remove the edge of the matshow
+        ax.spines["top"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        # Move x-axis labels to the bottom and y-axis labels to the right
+        ax.xaxis.set_label_position("bottom")
+        ax.xaxis.tick_bottom()
+        ax.yaxis.set_label_position("left")
+        ax.yaxis.tick_left()
+
+        # Add colorbar
+        # from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        # ax1_divider = make_axes_locatable(ax1)
+        # # Add an Axes to the right of the main Axes.
+        # cax1 = ax1_divider.append_axes("right", size="7%", pad="2%")
+        # cb1 = fig.colorbar(im1, cax=cax1)
+        cbar = fig.colorbar(mappable=artist, ax=ax)  # shrink=0.8
+        # Also remove the colorbar edge
+        cbar.outline.set_edgecolor("none")
+
+        # Annotate the matrix with dynamic text color
+        threshold = x.max() / 2.0
+        for (i, j), val in np.ndenumerate(x):
+            # val == cm[i, j]
+            cmap_method = (
+                image_kws["cmap"].get_over
+                if val > threshold
+                else image_kws["cmap"].get_under
+            )
+            # Get the color at the top end of the colormap
+            rgba = cmap_method()  # Get the RGB values
+
+            # Calculate the luminance of this color
+            luminance = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2]
+
+            # If luminance is low (dark color), use white text; otherwise, use black text
+            text_color = {True: "w", False: "k"}[(luminance < 0.5)]  # noqa: PLR2004
+            ax.text(
+                j,
+                i,
+                f"{val}",
+                color=text_color,
+                # transform=ax.transAxes,
                 **text_kws,
             )
-            # ax.set_aspect('auto')  # not work expected
-            # ax.set_xlabel("")
-            # ax.set_ylabel("")
-            ax.set_title("Classification Report", loc="center")  # x=-1e-1 pad=1
-        if "confusion_matrix" in xs:
-            # x, y
-            x = xs.pop("confusion_matrix", None)
-            y = ys.pop("confusion_matrix", None)
-            s = ss.pop("confusion_matrix", None)
-            # Plot the confusion matrix on the second subplot
-            ax = axs.pop("confusion_matrix", ax)
-            # artist = ax.matshow(cm, cmap=cmap_, aspect="auto")
-            artist = ax.imshow(
-                x,
-                **image_kws,
-            )
-            # ax.set_aspect('auto')
-            ax.set(
-                xlabel="Predicted Labels",
-                ylabel="True Labels",
-                title="Confusion Matrix",
-            )
-            ax.set_xticks(np.arange(len(classes)))
-            ax.set_yticks(np.arange(len(classes)))
-            ax.set_xticklabels(
-                classes,
-                fontsize=text_kws["fontsize"],
-            )
-            ax.set_yticklabels(
-                classes,
-                fontsize=text_kws["fontsize"],
-                # rotation=0,
-            )
-            # ax.grid(True)
-
-            # Remove the edge of the matshow
-            ax.spines["top"].set_visible(False)
-            ax.spines["bottom"].set_visible(False)
-            ax.spines["left"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-
-            # Move x-axis labels to the bottom and y-axis labels to the right
-            ax.xaxis.set_label_position("bottom")
-            ax.xaxis.tick_bottom()
-            ax.yaxis.set_label_position("left")
-            ax.yaxis.tick_left()
-
-            # Add colorbar
-            # from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-            # ax1_divider = make_axes_locatable(ax1)
-            # # Add an Axes to the right of the main Axes.
-            # cax1 = ax1_divider.append_axes("right", size="7%", pad="2%")
-            # cb1 = fig.colorbar(im1, cax=cax1)
-            cbar = fig.colorbar(mappable=artist, ax=ax)  # shrink=0.8
-            # Also remove the colorbar edge
-            cbar.outline.set_edgecolor("none")
-
-            # Annotate the matrix with dynamic text color
-            threshold = x.max() / 2.0
-            for (i, j), val in np.ndenumerate(x):
-                # val == cm[i, j]
-                cmap_method = (
-                    image_kws["cmap"].get_over
-                    if val > threshold
-                    else image_kws["cmap"].get_under
-                )
-                # Get the color at the top end of the colormap
-                rgba = cmap_method()  # Get the RGB values
-
-                # Calculate the luminance of this color
-                luminance = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2]
-
-                # If luminance is low (dark color), use white text; otherwise, use black text
-                text_color = {True: "w", False: "k"}[(luminance < 0.5)]  # noqa: PLR2004
-                ax.text(
-                    j,
-                    i,
-                    f"{val}",
-                    color=text_color,
-                    # transform=ax.transAxes,
-                    **text_kws,
-                )
-        # Save artist and label (include statement if legend requested)
-        # Get the color cycle from Matplotlib
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        artist = mpatches.Patch(color=colors[0], label=label, zorder=3)
-        artists.append(artist), labels.append(label)
-
-        # Add legend (use axes of the first plotted subset)
-        # https://matplotlib.org/stable/users/explain/axes/legend_guide.html#controlling-the-legend-entries
-        if legend and artists:
-            # Build simple legend entries: prefer Line2D proxies if fill used
-            ax0 = self.ax if self.ax is not None else ax
-            # ax0.legend(artists, [lbl for lbl in labels], title=self.variables.get("hue", None))
-            handles, labels = self._make_legend_proxies(artists, labels)
-            ax0.legend(
-                handles,
-                labels,
-                title=self.variables.get("hue", None),
-                loc="lower left",
-                bbox_to_anchor=(-0.3, -0.1),
-            )
-        # ax.figure.tight_layout()
-        # plt.tight_layout()
 
     # -------------------------
     # AUC plotting
     # -------------------------
-    def plot_evalplot(  # noqa: PLR0912
+    def plot_modelplot(  # noqa: PLR0912
         self,
-        kind: "Literal['all', 'classification_report', 'confusion_matrix'] | None",  # noqa: UP037
+        kind: "Literal['feature_importances'] | None",  # noqa: UP037
         color,
         legend,
         # multiple,
@@ -739,7 +658,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
             if marker is not None:
                 artist_kws["marker"] = marker
             # plot
-            self._plot_evalplot(
+            self._plot_modelplot(
                 x,
                 y,
                 sample_weight,
@@ -761,7 +680,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
 # --------------------------------------------------------------------
 # Public API functions (wrappers)
 # --------------------------------------------------------------------
-def modelplot(  # noqa: D417  # evalmap
+def modelplot(  # noqa: D417  # estimatorplot
     data: "pd.DataFrame | None" = None,  # noqa: UP037
     *,
     # Vector variables
@@ -769,8 +688,7 @@ def modelplot(  # noqa: D417  # evalmap
     y: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
     hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
     x_estimator=None,
-    kind: "Literal['feature_importances', 'coef'] | None" = None,  # noqa: UP037
-    weights=None,
+    kind: "Literal['feature_importances'] | None" = None,  # noqa: UP037
     # Hue mapping parameters
     hue_order=None,
     hue_norm=None,
@@ -806,14 +724,13 @@ def modelplot(  # noqa: D417  # evalmap
         "kind",
         [
             "feature_importances",
-            "coef",
         ],
         kind,
     )
     # Build the VectorPlotter and attach data/variables in seaborn style
-    p = _ConfusionMatrixPlotter(
+    p = _ModelPlotter(
         data=data,
-        variables={"x": x, "y": y, "hue": hue, "weights": weights},
+        variables={"x": x, "y": y, "hue": hue},
     )
     # map hue palette/order if needed - we only need internal mapping for iter_data to work
     p.map_hue(palette=palette, order=hue_order, norm=hue_norm)
@@ -845,8 +762,8 @@ def modelplot(  # noqa: D417  # evalmap
     # --- Draw the plots
     eval_kws = kwargs.copy()
     # eval_kws["color"] = color
-    # _assign_default_kwargs(eval_kws, p.plot_evalplot, evalplot)
-    p.plot_evalplot(
+    # _assign_default_kwargs(eval_kws, p.plot_modelplot, modelplot)
+    p.plot_modelplot(
         kind=kind,
         color=color,
         legend=legend,
@@ -860,6 +777,7 @@ def modelplot(  # noqa: D417  # evalmap
     return ax
 
 
+# estimatorplot
 modelplot.__doc__ = """\
 Model Instance and/or Attributes Visualization.
 
@@ -868,6 +786,7 @@ Supported attributes:
 - feature_names_in_
 - feature_importances_
 - coef_
+- explained_variance_ratio_
 - eigenvalues_
 - eigenvectors_
 
@@ -877,10 +796,8 @@ Parameters
 {params.core.data}
 {params.core.xy}
 {params.core.hue}
-kind : {{'all', 'classification_report', 'confusion_matrix'}} or None, default=None
+kind : {{'feature_importances'}} or None, default=None
     Kind of plot to make.
-weights : vector or key in ``data``
-    If provided, observation weights used for computing the distribution function.
 {params.core.hue_order}
 {params.core.hue_norm}
 {params.core.palette}

@@ -23,6 +23,7 @@ project(
     check: true,
   ).stdout().strip(),
   meson_version: '>= 1.5.0',
+  # https://spdx.org/licenses/
   license: 'BSD-3-Clause',                      # Valid SPDX license expression: 'MIT', 'Apache-2.0', 'GPL-3.0-or-later'
   # license-files: ['LICENSE.txt', 'LICEN[CS]E*/*'],  # list[file] COPYING, COPYRIGHT
   default_options: [
@@ -419,33 +420,39 @@ endif
 
 # List of global arguments for C and C++
 _global_args = [
-  '-DDEBUG',                        # Define DEBUG macro for conditional debug printing or logging
-  '-W',                             # Enable all warnings
-  '-Werror=unused-variable',        # Treat unused variables as errors to enforce code quality
-  '-Wno-cast-align',                # Suppress warnings if a pointer is cast to a type with different alignment
-  '-Wno-cast-qual',                 # Suppress warnings if a pointer is cast to a type with different qualifiers
-  '-Wno-conversion',                # Suppress warnings about type conversions
-  '-Wno-double-promotion',          # Suppress warnings if a float is promoted to double
-  '-Wno-error=unused-function',     # Suppress errors for unused functions
-  '-Wno-float-equal',               # Suppress warnings if floating-point values are compared for equality
-  '-Wno-format-truncation',         # Suppress warnings about format string truncations
-  '-Wno-misleading-indentation',    # Suppress warnings about misleading indentation
-  '-Wno-parentheses',               # Suppress warnings about unnecessary parentheses
-  '-Wno-pointer-arith',             # Suppress warnings about pointer arithmetic
-  '-Wno-redundant-decls',           # Suppress warnings about redundant declarations
-  '-Wno-sequence-point',            # Suppress warnings about potential sequence point issues
-  '-Wno-shadow',                    # Suppress warnings if a local variable shadows another variable
-  '-Wno-sign-compare',              # Suppress warnings about comparisons between signed and unsigned integers
-  '-Wno-switch',                    # Suppress warnings about switch statement cases that are not handled
-  '-Wno-undef',                     # Suppress warnings if an undefined macro is used
-  '-Wno-unused-but-set-parameter',  # Suppress warnings about parameters that are set but not used
-  '-Wno-unused-function',           # Suppress warnings about unused functions
-  '-Wno-unused-label',              # Suppress warnings about unused labels
-  '-Wno-unused-parameter',          # Suppress warnings about unused parameters
-  '-Wno-unused-result',             # Suppress warnings about unused results
-  '-Wno-unused-variable',           # Suppress warnings about unused variables
-  '-Wno-write-strings',             # Treat string literals as `const char[]`
-  '-Wno-discarded-qualifiers',      # to suppress warnings about discarded qualifiers (like const, volatile, etc.).
+  '-DDEBUG',                                          # Define DEBUG macro for conditional debug printing or logging
+  '-W',                                               # Enable all warnings
+  '-Werror=unused-variable',                          # Treat unused variables as errors to enforce code quality
+  '-Wno-cast-align',                                  # Suppress warnings if a pointer is cast to a type with different alignment
+  '-Wno-cast-qual',                                   # Suppress warnings if a pointer is cast to a type with different qualifiers
+  '-Wno-conversion',                                  # Suppress warnings about type conversions
+  '-Wno-double-promotion',                            # Suppress warnings if a float is promoted to double
+  '-Wno-float-equal',                                 # Suppress warnings if floating-point values are compared for equality
+  '-Wno-format-truncation',                           # Suppress warnings about format string truncations
+  '-Wno-misleading-indentation',                      # Suppress warnings about misleading indentation
+  '-Wno-parentheses',                                 # Suppress warnings about unnecessary parentheses
+  '-Wno-pointer-arith',                               # Suppress warnings about pointer arithmetic
+  '-Wno-redundant-decls',                             # Suppress warnings about redundant declarations
+  '-Wno-sequence-point',                              # Suppress warnings about potential sequence point issues
+  '-Wno-shadow',                                      # Suppress warnings if a local variable shadows another variable
+  '-Wno-sign-compare',                                # Suppress warnings about comparisons between signed and unsigned integers
+  '-Wno-switch',                                      # Suppress warnings about switch statement cases that are not handled
+  '-Wno-undef',                                       # Suppress warnings if an undefined macro is used
+  '-Wno-unused-but-set-parameter',                    # Suppress warnings about parameters that are set but not used
+  '-Wno-error=reorder',                               # Suppress errors for unused functions
+  '-Wno-error=unused-function',                       # Suppress errors for unused functions
+  '-Wno-unused-function',                             # Suppress warnings about unused functions
+  '-Wno-cast-function-type',                          # Suppress warnings about unused functions
+  '-Wno-duplicate-decl-specifier',                    # Force the compiler to ignore multiple definitions of inline functions
+  '-Wno-redundant-decls',                             # Force the compiler to ignore multiple definitions of inline functions
+  '-Wno-missing-field-initializers',                  # Suppress warnings about unused functions
+  '-Wno-unused-label',                                # Suppress warnings about unused labels
+  '-Wno-unused-parameter',                            # Suppress warnings about unused parameters
+  '-Wno-unused-result',                               # Suppress warnings about unused results
+  '-Wno-unused-variable',                             # Suppress warnings about unused variables
+  '-Wno-write-strings',                               # Treat string literals as `const char[]`
+  '-Wno-discarded-qualifiers',                        # to suppress warnings about discarded qualifiers (like const, volatile, etc.).
+  '-Wno-maybe-uninitialized',    # Suppress warnings about variables that might be used uninitialized
 ]
 # Additional arguments for C
 _global_c_args = cc.get_supported_arguments(
@@ -666,6 +673,14 @@ endif
 
 ######################################################################
 ## python
+# meson introspect ./build/cp311/ --dependencies
+# meson introspect ./build/cp311/ --buildoptions | grep python
+## https://bobbyhadz.com/blog/python-fatal-error-python-h-no-such-file-or-directory
+# sudo apt-get install python-dev build-essential   # python2.x
+# sudo apt-get install python3-dev build-essential  # python3.x
+# sudo find / -iname 'Python.h'
+# sudo apt install mlocate
+# locate Python.h
 ######################################################################
 
 # Import the Python module from Meson to interact with the Python installation
@@ -677,7 +692,13 @@ mod_py = import('python')
 py = mod_py.find_installation(pure: false)  # Find system Python
 
 # Get the Python Dependencies
-dep_py = py.dependency()
+# dep = dependency('python3', required: true)
+dep_py = py.dependency(required: true)
+assert(meson.get_compiler('c').has_header('Python.h', dependencies: dep_py))
+
+# Wrap the include path as an include_directories object
+python_inc = include_directories(py.get_path('include'))
+have_python_header = cc.has_header('Python.h', include_directories: python_inc)
 
 # Emit a warning for 32-bit Python installs on Windows; users are getting
 # unexpected from-source builds there because we no longer provide wheels.
@@ -754,6 +775,8 @@ if get_option('pythran').enabled()
   # activation bug the default <prefix>/include/ may not be visible (see
   # gh-15698). Hence look for xsimd explicitly.
   dep_xsimd = dependency('xsimd', required: false)
+else
+  dep_xsimd = null_dep
 endif
 
 ######################################################################
@@ -1317,6 +1340,24 @@ message(
   ' scikitplot files installed successfully: ' +
   '@0@'.format(py.get_install_dir())
 )
+
+dep_all = [
+  null_dep,
+  blas_dep,
+  lapack_dep,
+  atomic_dep,
+  fortranobject_dep,
+  dep_math,
+  dep_py,
+  dep_pybind11,
+  dep_xsimd,
+  dep_thread,
+  dep_np,
+]
+link_with = [
+  npymath_lib,
+  fortranobject_lib,
+]
 
 ######################################################################
 ## Next

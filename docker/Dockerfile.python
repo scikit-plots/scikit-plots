@@ -44,10 +44,20 @@ RUN apt-get update \
 		curl \
 		procps \
 		git \
+		pkg-config \
 		build-essential \
 		gfortran \
 		ninja-build \
 		locales \
+		unzip \
+		# lua5.3 → CLI interpreter
+		# liblua5.3-0 → runtime library
+		# liblua5.3-dev → headers & static libraries for compilation
+		# luarocks → Lua package manager
+		lua5.3 \
+		liblua5.3-0 \
+		liblua5.3-dev \
+		luarocks \
 		## newlines equivalent to single semicolon ; on terminal or in shell script.
 		|| { echo "Failed to install common dependencies"; exit 1; }; \
   ## Cleanup to reduce image size

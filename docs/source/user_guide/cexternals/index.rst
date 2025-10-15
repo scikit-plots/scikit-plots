@@ -25,6 +25,16 @@ C-Externals (experimental)
     .. grid-item-card::
         :padding: 3
 
+        **annoy**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./annoy/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **astropy stats**
         ^^^
         .. toctree::

@@ -121,8 +121,8 @@ ax = sp.metrics.plot_calibration(
 #
 #    model-type: classification
 #    model-workflow: model evaluation
-#    component: fitted model
+#    component: model
 #    plot-type: line
-#    plot-type: calibration plot
+#    plot-type: model
 #    level: beginner
 #    purpose: showcase

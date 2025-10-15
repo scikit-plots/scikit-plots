@@ -273,6 +273,17 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_f2py.get_include",
                 ],
             },
+            {
+                "title": "Spotify annoy as submodule.",
+                "description": (
+                    _get_submodule("scikitplot.cexternals", "annoy")
+                    + "\n\n"
+                    + _get_guide("annoy-index")
+                ),
+                "autosummary": [
+                    "annoy.AnnoyIndex",
+                ],
+            },
         ],
     },
     "scikitplot.experimental": {
@@ -386,6 +397,23 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ),
                 "autosummary": [
                     "array_api_extra",
+                ],
+            },
+        ],
+    },
+    "scikitplot.impute": {
+        "short_summary": "Missing value imputation.",
+        "description": _get_guide("impute-index"),
+        "sections": [
+            {
+                "title": "Knn-based imputation.",
+                "description": (
+                  _get_submodule("scikitplot.impute", "_annoy_knn")
+                  + "\n\n"
+                  + _get_guide("impute-index")
+                ),
+                "autosummary": [
+                    "AnnoyKNNImputer",
                 ],
             },
         ],

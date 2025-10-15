@@ -74,6 +74,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **Data Imputation**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./impute/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **Preprocessing**
         ^^^
         .. toctree::

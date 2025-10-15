@@ -397,6 +397,13 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 # pip install numpy==1.26.4
 ```
 
+<p>
+  See Also:
+  <a href="https://doc.pypy.org/en/latest/cpython_differences.html" target="_blank" rel="noopener noreferrer">
+    cpython ppython differences
+  </a>
+</p>
+
 <h3>
   - By
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
