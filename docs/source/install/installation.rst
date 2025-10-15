@@ -141,6 +141,8 @@ Installing the latest release
             python3 -m venv sklearn-env
             source sklearn-env/bin/activate  # (or dot .) activate
             pip3 install -U scikit-plots
+            # Cause numpy>=2.0.0 but support old numpy
+            pip3 install numpy==1.26.4
 
           In order to check your installation, you can use:
 
