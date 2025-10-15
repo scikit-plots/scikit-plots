@@ -74,8 +74,7 @@ ax = sp.decomposition.plot_pca_2d_projection(
 #    model-type: classification
 #    model-workflow: feature engineering
 #    plot-type: scatter
-#    plot-type: 2D
-#    plot-type: principal component
 #    plot-type: PCA
+#    plot-type: 2D
 #    level: beginner
 #    purpose: showcase

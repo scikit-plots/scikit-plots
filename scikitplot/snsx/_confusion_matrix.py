@@ -139,7 +139,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
     "weights", and subset iteration.
     """
 
-    # self.variables
+    # minimal structural hints for wide vs flat data (keeps consistency with VectorPlotter)
     wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
         "x": "@index",
         "y": "@values",
@@ -155,6 +155,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         data=None,
         variables=None,
     ):
+        # self.variables
         variables = {} if variables is None else variables
         super().__init__(data=data, variables=variables)
 
@@ -323,7 +324,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
 
         try:
             # Scores must be float
-            y_pred = np.asarray(sub["y"], dtype=float)  # .astype(int)
+            y_pred = np.asarray(sub["y"], dtype=float)  # .astype(float)
         except Exception as e:
             raise ValueError(f"Cannot convert y to float scores: {e}") from e
 
@@ -874,7 +875,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         )
 
         # Interpret plotting options
-        # label = plot_kws.get("label", "")
+        # label = plot_kws.pop("label", "")
         alpha = plot_kws.get("alpha", 1.0)
         linestyle = plot_kws.get("linestyle", plot_kws.get("ls"))
         marker = plot_kws.get("marker", plot_kws.get("m"))

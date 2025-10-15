@@ -42,6 +42,13 @@ outputs
 # scipy openblas
 **.openblas
 
+# testing
+*.ann
+*.tree
+*.annoy
+*.idx
+*.hdf5
+
 # enviroment
 .env
 
@@ -68,12 +75,13 @@ lib64/
 parts/
 sdist/
 var/
-*.egg-info/
 .installed.cfg
+*.egg-info/
 *.egg
 
 # C extensions
 **.so
+**.o
 
 # Byte-compiled / optimized / DLL files
 **__pycache__/

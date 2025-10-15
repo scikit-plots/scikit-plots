@@ -71,6 +71,6 @@ ax = sp.estimators.plot_elbow(
 #    model-workflow: model evaluation
 #    plot-type: line
 #    plot-type: WSS (within-cluster sum of squares)
-#    plot-type: inertia (sum of squared distances)
+#    plot-type: Inertia (sum of squared distances)
 #    level: beginner
 #    purpose: showcase

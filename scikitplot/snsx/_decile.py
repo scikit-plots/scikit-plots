@@ -404,6 +404,7 @@ class _DecilePlotter(VectorPlotter):
         data=None,
         variables=None,
     ):
+        # self.variables
         variables = {} if variables is None else variables
         super().__init__(data=data, variables=variables)
 
@@ -563,16 +564,15 @@ class _DecilePlotter(VectorPlotter):
         if sub.empty:
             return None, None, None
 
-        # Coerce true labels to integers (0/1 for binary classification)
         try:
-            # extract array
-            y_true = np.asarray(sub["x"]).astype(int)
+            # Coerce true labels to integers array (0/1 for binary classification)
+            y_true = np.asarray(sub["x"], dtype=int)  # .astype(int)
         except Exception as e:
             raise ValueError(f"Cannot convert x to integer labels: {e}") from e
 
         # Scores must be float
         try:
-            y_score = np.asarray(sub["y"], dtype=float)
+            y_score = np.asarray(sub["y"], dtype=float)  # .astype(float)
         except Exception as e:
             raise ValueError(f"Cannot convert y to float scores: {e}") from e
 
@@ -1488,7 +1488,7 @@ class _DecilePlotter(VectorPlotter):
         )
 
         # Interpret plotting options
-        label = plot_kws.get("label", "")
+        label = plot_kws.pop("label", "")
         alpha = plot_kws.get("alpha", 1.0)
         linestyle = plot_kws.get("linestyle", plot_kws.get("ls"))
         marker = plot_kws.get("marker", plot_kws.get("m"))

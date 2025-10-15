@@ -47,12 +47,12 @@ from numpy import __version__ as __numpy_version__
 # __version__ = "0.3.7.post0"  # 0.3.7
 # __version__ = "0.3.8.post0"  # 0.3.8
 # __version__ = "0.3.9.post0"  # 0.3.9
-__version__ = "0.4.0.post5"  # 0.4.0  # 👈 (tagged) last release
+# __version__ = "0.4.0.post5"  # 0.4.0  # 👈 (tagged) last release
 # __version__ = "0.4.1rc0"  # 0.4.1
 # __version__ = "0.4.2rc0"  # 0.4.2
 # __version__ = "0.5.1rc0"  # 0.5.1
 # __version__ = "0.5.2rc0"  # 0.5.2
-# __version__ = "0.5.dev0"  # dev
+__version__ = "0.5.dev0"  # dev
 
 # import logging as _logging
 # logger.setLevel(logger.DEBUG)  # for debugging
@@ -119,6 +119,7 @@ _submodules = sorted(
         "config",
         "experimental",
         "externals",
+        "impute",
         "kds",
         "misc",
         "modelplotpy",

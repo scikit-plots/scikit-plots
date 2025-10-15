@@ -203,7 +203,7 @@ readme = {file = 'README.md', content-type = 'text/markdown'}
 ## https://packaging.python.org/en/latest/specifications/core-metadata/#license-file-multiple-use
 ## license is an SPDX license expression consisting of one or more license identifiers.
 ## license-files is a list of license file glob patterns.
-##
+## https://spdx.org/licenses/
 ## TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
 ## at that point, no longer include them in `py3.install_sources()`
 ## [[project.license]]  # Usage individually, If Needed
@@ -400,6 +400,11 @@ test = [
 
   # "gmpy2",
   # "pyamg",                                  # Algebraic multigrid solvers manual setup due to not support latest py314
+
+  # nose extends unittest to make testing easier.
+  # https://nose.readthedocs.io/en/latest/usage.html
+  # nose                                      # tox.ini nosetests
+  # h5py                                      # https://docs.h5py.org/en/stable/quick.html#quick
 ]
 emscripten_test = [
   "hypothesis>=6.130.0",                    # Property-based testing
