@@ -27,8 +27,12 @@ References
 """
 
 # This module is a dummy wrapper around the underlying C++ module.
-from .annoylib import Annoy as AnnoyIndex
+from .annoylib import Annoy
+
+# alias of Annoy
+AnnoyIndex = Annoy
 
 __all__ = [
+    'Annoy',
     'AnnoyIndex',
 ]

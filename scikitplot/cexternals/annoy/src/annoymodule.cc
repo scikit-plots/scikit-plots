@@ -26,6 +26,8 @@ typedef signed __int32    int32_t;
 
 #if defined(ANNOYLIB_USE_AVX512)
 #define AVX_INFO "Using 512-bit AVX instructions"
+#elif defined(ANNOYLIB_USE_AVX)
+#define AVX_INFO "Using 256-bit AVX/AVX2 instructions"
 #elif defined(ANNOYLIB_USE_AVX128)
 #define AVX_INFO "Using 128-bit AVX instructions"
 #else

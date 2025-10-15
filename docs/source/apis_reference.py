@@ -281,6 +281,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("annoy-index")
                 ),
                 "autosummary": [
+                    "annoy.Annoy",
                     "annoy.AnnoyIndex",
                 ],
             },

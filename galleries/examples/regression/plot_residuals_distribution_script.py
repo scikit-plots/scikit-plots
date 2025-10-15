@@ -3,7 +3,7 @@ plot_residuals_distribution with examples
 ==========================================
 
 An example showing the :py:func:`~scikitplot.api.metrics.plot_residuals_distribution` function
-used by a scikit-learn regressor.
+with a scikit-learn regressor (e.g., :py:class:`~sklearn.linear_model.LinearRegression`) instance.
 """
 
 # Authors: The scikit-plots developers
