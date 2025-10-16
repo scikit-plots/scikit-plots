@@ -130,6 +130,24 @@ aapi:
 	@bash ./maint_tools/vendor_array_api_compat.sh
 	@bash ./maint_tools/vendor_array_api_extra.sh
 
+# "https://github.com/data-apis/array-api-compat.git"  # xpc
+aac:
+	@bash ./maint_tools/vendor_repo.sh \
+		--url "https://github.com/data-apis/array-api-compat.git" \
+		--version "1.12" \
+		--target "../scikitplot/externals/array_api_compat" \
+		--src-subdir "array_api_compat" \
+		--readme-name "vendor_repo.sh"
+
+# "https://github.com/data-apis/array-api-extra.git"  # xpx
+aae:
+	@bash ./maint_tools/vendor_repo.sh \
+		--url "https://github.com/data-apis/array-api-extra.git" \
+		--version "v0.7.1" \
+		--target "../scikitplot/externals/array_api_extra" \
+		--src-subdir "src/array_api_extra" \
+		--readme-name "vendor_repo.sh"
+
 numcpp:
 	@bash ./maint_tools/vendor_repo.sh \
 		--url "https://github.com/dpilger26/NumCpp.git" \

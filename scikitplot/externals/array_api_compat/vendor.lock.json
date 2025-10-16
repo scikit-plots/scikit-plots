@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/data-apis/array-api-compat.git",
+  "version": "1.12",
+  "commit_hash": "8005d6d02c0f1717881de37a710871bb955eb5cd",
+  "tree_mode": "bash-sha256sum",
+  "tree_hash": "5581135fe8989d7dafff4ec1e3276098b8b372269c257573b92c7f96f04dbf9a",
+  "generated_utc": "2025-10-16T23:42:53Z"
+}
