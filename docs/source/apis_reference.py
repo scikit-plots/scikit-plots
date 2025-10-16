@@ -1,53 +1,167 @@
-"""Configuration for the APIs reference documentation."""
+# pylint: disable=pointless-string-statement
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# pylint: disable=pointless-string-statement
+"""Configuration for the APIs reference documentation."""
+
+import importlib
+import inspect
+import textwrap
 
 
-def _get_guide(*refs, is_developer=False):
+def _get_guide(*refs, is_developer=False, title=None, capitalize=True):
     """
-    Get the rst to refer to user/developer guide.
+    Build a readable RST-style reference sentence for the User/Developer guide.
 
-    `refs` is several references that can be used in the :ref:`...` directive.
+    Parameters
+    ----------
+    *refs : str
+        One or more section reference names usable in :ref:`...` directives.
+    is_developer : bool, default=False
+        If True, refers to the Developer Guide; otherwise, the User Guide.
+    title : str, optional
+        Custom title for the guide (overrides automatic User/Developer title).
+    capitalize : bool, default=True
+        Whether to capitalize the guide title ("User guide" vs "user guide").
+
+    Returns
+    -------
+    str
+        A formatted sentence linking to the specified guide sections.
     """
-    if len(refs) == 1:
+
+    # Defensive validation — help catch silent issues
+    if not refs:
+        raise ValueError("At least one reference name must be provided.")
+    if not all(isinstance(r, str) and r.strip() for r in refs):
+        raise TypeError("All references must be non-empty strings.")
+
+    # Handle custom or automatic guide name
+    guide_name = title or ("Developer" if is_developer else "User")
+    if not capitalize:
+        guide_name = guide_name.lower()
+
+    # Smart handling of plural/singular language
+    num_refs = len(refs)
+    if num_refs == 1:
         ref_desc = f":ref:`{refs[0]}` section"
-    elif len(refs) == 2:
+    elif num_refs == 2:
         ref_desc = f":ref:`{refs[0]}` and :ref:`{refs[1]}` sections"
     else:
-        ref_desc = ", ".join(f":ref:`{ref}`" for ref in refs[:-1])
-        ref_desc += f", and :ref:`{refs[-1]}` sections"
+        # Oxford comma and final conjunction
+        joined = ", ".join(f":ref:`{r}`" for r in refs[:-1])
+        ref_desc = f"{joined}, and :ref:`{refs[-1]}` sections"
 
-    guide_name = "Developer" if is_developer else "User"
+    # Optionally include punctuation and clarity markers
     return f"**{guide_name} guide.** See the {ref_desc} for further details."
 
 
-def _get_submodule(module_name, submodule_name):
+def _get_submodule(
+    module_name: str,
+    submodule_name: str,
+    *,
+    include_docstring: bool = True,
+    strict: bool = True,
+    format: str = "rst",
+) -> str:
     """
-    Get the submodule docstring and automatically add the hook.
+    Dynamically import a submodule and generate its Sphinx documentation directive.
 
-    `module_name` is e.g. `sklearn.feature_extraction`, and `submodule_name` is e.g.
-    `image`, so we get the docstring and hook for `sklearn.feature_extraction.image`
-    submodule. `module_name` is used to reset the current module because autosummary
-    automatically changes the current module.
+    This is designed for use with Sphinx's autosummary/autodoc extensions,
+    ensuring the current module context is properly restored after import.
+
+    Parameters
+    ----------
+    module_name : str
+        Parent module path (e.g. "sklearn.feature_extraction").
+    submodule_name : str
+        Submodule name (e.g. "image").
+    include_docstring : bool, default=True
+        Whether to include the submodule's top-level docstring in the output.
+    strict : bool, default=False
+        If True, re-raises all exceptions; otherwise, returns a warning comment
+        when the submodule fails to import.
+    format : {"rst", "markdown"}, default="rst"
+        Output format. If "markdown", generates markdown-style references.
+
+    Returns
+    -------
+    str
+        A formatted text block for documentation inclusion.
+
+    Examples
+    --------
+    >>> # Basic (RST, with docstring)
+    >>> print(_get_submodule("sklearn.feature_extraction", "image"))
+
+    >>> # Markdown, no docstring
+    >>> print(_get_submodule("sklearn.feature_extraction", "image", include_docstring=False, format="markdown"))
+
+    >>> # Graceful failure
+    >>> print(_get_submodule("sklearn.nonexistent", "fake", strict=False))
     """
+    full_name = f"{module_name}.{submodule_name}"
+    # 1️⃣ Verify the submodule spec exists (exact, no guessing)
+    spec = importlib.util.find_spec(full_name)
+    if spec is None:
+        msg = f"Submodule '{full_name}' not found (not importable)."
+        if strict:
+            raise ModuleNotFoundError(msg)
+        return f".. warning:: {msg}"
     try:
-        # Import the submodule to get its docstring
-        # from importlib import import_module; import_module(f"scikitplot.experimental._llm_provider")
-        __import__(f"{module_name}.{submodule_name}", fromlist=[""])
-    except ImportError as e:
-        raise ImportError(
-            f"Failed to import submodule '{submodule_name}' from module '{module_name}'. "
-            "Ensure the module is installed and available."
-        ) from e
+        # 2️⃣ Import only after spec is verified
+        # submod = __import__(full_name, fromlist=[""])
+        submod = importlib.import_module(full_name)
 
+        # 3️⃣ Verify the module actually corresponds to a real file
+        if not spec.origin or spec.origin == "built-in":
+            raise ValueError(f"Submodule '{full_name}' has no source file (built-in or namespace).")
+
+        # 4️⃣ Verify docstring existence (exact presence check)
+        doc = inspect.getdoc(submod) if include_docstring else None
+        doc = textwrap.indent(doc or "No module docstring found.", "   ")
+    except ImportError as e:
+        if strict:
+            raise ImportError(
+                f"Failed to import submodule '{submodule_name}' from module '{module_name}'. "
+                "Ensure the module is installed and available."
+            ) from e
+        msg = (
+            f".. warning:: Failed to import submodule `{full_name}` — {type(e).__name__}: {e}"
+            if format == "rst"
+            else f"> **Warning:** Could not import `{full_name}` ({e})."
+        )
+        # return msg
+    except ValueError as e:
+        pass
+    # Extract docstring if desired
+    # doc = (submod.__doc__ or "").strip() if include_docstring else ""
+    # if not doc:
+    #     doc = (
+    #         "*No module docstring found.*"
+    #         if format == "markdown"
+    #         else ".. note:: No module docstring found."
+    #     )
+    # # Choose formatting style
+    # if format == "rst":
+    #     parts = [
+    #         f".. automodule:: {full_name}",
+    #         f".. currentmodule:: {module_name}",
+    #         # "",
+    #         # f"   {doc.replace(chr(10), chr(10) + '   ')}",  # indent docstring for valid RST nesting
+    #     ]
+    #     return "\n".join(parts)
+    # else:  # markdown mode
+    #     return f"### `{full_name}`\n\n{doc}\n\n_Current module_: `{module_name}`\n"
+
+    # 5️⃣ Output canonical Sphinx directive (no guessing)
     # .. automodule:: scikitplot.experimental._doremi
     # .. currentmodule:: scikitplot.experimental
     lines = [
-        f".. automodule:: {module_name}.{submodule_name}",
-        f".. currentmodule:: {module_name}",
+        f".. automodule:: {full_name}",
+        f".. currentmodule:: {module_name}\n",
+        # f"{doc}\n"
     ]
     return "\n\n".join(lines)
 
@@ -283,6 +397,20 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "annoy.Annoy",
                     "annoy.AnnoyIndex",
+                ],
+            },
+        ],
+    },
+    "scikitplot.exceptions": {
+        "short_summary": "Exceptions and warnings.",
+        "description": None,
+        "sections": [
+            {
+                "title": None,
+                "autosummary": [
+                    "ModuleDeprecationWarning",
+                    "ScikitplotException",
+                    "VisibleDeprecationWarning",
                 ],
             },
         ],

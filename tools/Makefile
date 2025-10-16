@@ -129,3 +129,11 @@ astropy-f: astropy
 aapi:
 	@bash ./maint_tools/vendor_array_api_compat.sh
 	@bash ./maint_tools/vendor_array_api_extra.sh
+
+numcpp:
+	@bash ./maint_tools/vendor_repo.sh \
+		--url "https://github.com/dpilger26/NumCpp.git" \
+		--version "Version_2.14.2" \
+		--target "../scikitplot/cexternals/NumCpp" \
+		--src-subdir "include" \
+		--readme-name "vendor_repo.sh"

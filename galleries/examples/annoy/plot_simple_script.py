@@ -1,5 +1,5 @@
 """
-annoy with examples
+annoy (simple) with examples
 ==================================
 
 An example showing the :py:func:`~scikitplot.cexternals.annoy` function.
