@@ -699,8 +699,8 @@ dep_py = py.dependency(required: true)
 assert(meson.get_compiler('c').has_header('Python.h', dependencies: dep_py))
 
 # Wrap the include path as an include_directories object
-python_inc = include_directories(py.get_path('include'))
-have_python_header = cc.has_header('Python.h', include_directories: python_inc)
+inc_dir_py = include_directories(py.get_path('include'))
+have_python_header = cc.has_header('Python.h', include_directories: inc_dir_py)
 
 # Emit a warning for 32-bit Python installs on Windows; users are getting
 # unexpected from-source builds there because we no longer provide wheels.

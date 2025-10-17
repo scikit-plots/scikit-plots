@@ -6,3 +6,4 @@
 # submodules
 subdir('_astropy')
 subdir('annoy')
+subdir('NumCpp')
