@@ -257,13 +257,18 @@ Vendored repository information
 - Tree Hash:  $TREE_HASH
 - Retrieved:  $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-To update, run:
+To update (git clone), run:
   bash ./tools/maint_tools/$README_NAME \\
     --url "$URL" \\
     --version "$VERSION" \\
     --target "$TARGET" \\
     --src-subdir "$SRC_SUBDIR" \\
     --readme-name "$README_NAME"
+
+To update only the tree hash (no git clone):
+  bash ./tools/maint_tools/$README_NAME \\
+    --target "$TARGET" \\
+    --update-hash
 
 To verify in CI:
   bash ./tools/maint_tools/$README_NAME --target "$TARGET" --check
