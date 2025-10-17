@@ -17,7 +17,7 @@ that enable fast numerical, algorithmic, or geometric operations used by
 Scikit-Plot's advanced visualization and machine learning utilities.
 
 Included vendor modules:
-    - _astropy, _f2py, annoy, NumCpp
+    - _astropy, _f2py, _numcpp, annoy
 
 Each submodule is optional and imported safely when available.
 """
@@ -26,8 +26,8 @@ import contextlib as _contextlib
 __all__ = [
     "_astropy",
     "_f2py",
+    "_numcpp",
     "annoy",
-    "NumCpp",
 ]
 
 for _m in __all__:

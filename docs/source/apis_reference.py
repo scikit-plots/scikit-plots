@@ -388,6 +388,19 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "NumCpp header's as submodule.",
+                "description": (
+                    _get_submodule("scikitplot.cexternals", "_numcpp")
+                    + "\n\n"
+                    + _get_guide("numcpp_index")
+                ),
+                "autosummary": [
+                    "_numcpp.get_include",
+                    "_numcpp.nc",
+                    "_numcpp.nc_develop",
+                ],
+            },
+            {
                 "title": "Spotify annoy as submodule.",
                 "description": (
                     _get_submodule("scikitplot.cexternals", "annoy")
@@ -397,19 +410,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "annoy.Annoy",
                     "annoy.AnnoyIndex",
-                ],
-            },
-            {
-                "title": "NumCpp header's as submodule.",
-                "description": (
-                    _get_submodule("scikitplot.cexternals", "NumCpp")
-                    + "\n\n"
-                    + _get_guide("numcpp_index")
-                ),
-                "autosummary": [
-                    "NumCpp.get_include",
-                    "NumCpp.nc",
-                    "NumCpp.nc_develop",
                 ],
             },
         ],

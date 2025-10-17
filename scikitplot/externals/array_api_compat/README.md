@@ -6,7 +6,7 @@ Vendored repository information
 - Commit:     8005d6d02c0f1717881de37a710871bb955eb5cd
 - Tree Mode:  bash-sha256sum
 - Tree Hash:  9e8fc6a2bbc3975506e365357718056d31f9eb6ece79a41461a1ca5057cd5d91
-- Retrieved:  2025-10-17T20:42:27Z
+- Retrieved:  2025-10-17T22:15:27Z
 
 To update (git clone), run:
   bash ./tools/maint_tools/vendor_repo.sh \

@@ -36,8 +36,8 @@ __all__ = [
 for _m in __all__:
     with _contextlib.suppress(ImportError):
         # import importlib
-        # importlib.import_module(f"scikitplot.externals.NumCpp.{_m}")
-        __import__(f"scikitplot.externals.NumCpp.{_m}", globals(), locals())
+        # importlib.import_module(f"scikitplot.externals._numcpp.{_m}")
+        __import__(f"scikitplot.externals._numcpp.{_m}", globals(), locals())
 
 
 def get_include() -> str:
@@ -53,35 +53,35 @@ def get_include() -> str:
     -----
     When using ``setuptools``, for example in ``setup.py``::
 
-        import scikitplot.cexternals.NumCpp as NumCpp
+        import scikitplot.cexternals._numcpp as nc
         ...
         Extension('extension_name', ...
-                  include_dirs=NumCpp.[get_include()])
+                  include_dirs=nc.[get_include()])
         ...
 
     Examples
     --------
-    >>> import scikitplot.cexternals.NumCpp as NumCpp
-    >>> NumCpp.get_include()
-    '/path/to/scikitplot/cexternals/NumCpp/include'  # may vary
+    >>> import scikitplot.cexternals._numcpp as nc
+    >>> nc.get_include()
+    '/path/to/scikitplot/cexternals/_numcpp/include'  # may vary
 
     >>> import importlib.resources
     >>> import pathlib
-    >>> include_dir = pathlib.Path(importlib.resources.files('scikitplot.cexternals.NumCpp')) / 'include'
+    >>> include_dir = pathlib.Path(importlib.resources.files('scikitplot.cexternals._numcpp')) / 'include'
     """
     import os
     import scikitplot
     if scikitplot.show_config is None:
         # running from lightnumpy source directory
-        d = os.path.join(os.path.dirname(scikitplot.__file__), "cexternals/NumCpp", "include")
+        d = os.path.join(os.path.dirname(scikitplot.__file__), "cexternals/_numcpp", "include")
     else:
         # using installed lightnumpy core headers
-        # import scikitplot.cexternals.NumCpp as NumCpp
-        # dirname = NumCpp.__path__  # NumCpp.__file__
+        # import scikitplot.cexternals._numcpp as nc
+        # dirname = nc.__path__  # nc.__file__
         d = os.path.join(os.path.dirname(__file__), 'include')
 
     if not os.path.isdir(d):
         raise FileNotFoundError(
-            f"'scikitplot.cexternals.NumCpp' C and C++ headers directory not found: {d}"
+            f"'scikitplot.cexternals._numcpp' C and C++ headers directory not found: {d}"
         )
     return d

@@ -44,7 +44,7 @@ jobs:
 
           VENDORS=(
             "./scikitplot/cexternals/_astropy"
-            "./scikitplot/cexternals/NumCpp"
+            "./scikitplot/cexternals/_numcpp"
             "./scikitplot/externals/_seaborn"
             "./scikitplot/externals/array_api_compat"
             "./scikitplot/externals/array_api_extra"

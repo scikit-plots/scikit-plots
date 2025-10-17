@@ -60,4 +60,4 @@ C-Externals (experimental)
         .. toctree::
             :maxdepth: 3
 
-            ./numcpp/index.rst
+            ./_numcpp/index.rst

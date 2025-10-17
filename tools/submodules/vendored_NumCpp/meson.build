@@ -1,4 +1,4 @@
-## scikitplot/cexternals/NumCpp/meson.build
+## scikitplot/cexternals/_numcpp/meson.build
 ######################################################################
 ## NumCpp: C++ Header-Only Library + Python/Cython Integration
 ######################################################################
@@ -8,20 +8,20 @@
 ######################################################################
 
 # Resolve absolute include path robustly
-numcpp_root = meson.current_source_dir()
-numcpp_include_path = numcpp_root / 'include'
+_numcpp_root = meson.current_source_dir()
+_numcpp_include_path = _numcpp_root / 'include'
 
 # Safety check — prevent accidental directory traversal
-if not fs.exists(numcpp_include_path)
-  error('❌ NumCpp include path not found: ' + numcpp_include_path)
-elif numcpp_include_path.contains('..')
-  error('❌ Unsafe include path traversal detected: ' + numcpp_include_path)
+if not fs.exists(_numcpp_include_path)
+  error('❌ NumCpp include path not found: ' + _numcpp_include_path)
+elif _numcpp_include_path.contains('..')
+  error('❌ Unsafe include path traversal detected: ' + _numcpp_include_path)
 endif
 
 # Install all public headers under site-packages
 # install_subdir(
 #   'include',
-#   install_dir: py.get_install_dir() / 'scikitplot/cexternals/NumCpp',
+#   install_dir: py.get_install_dir() / 'scikitplot/cexternals/_numcpp',
 # )
 
 ######################################################################
@@ -39,10 +39,10 @@ _numcpp_cython_tree = [
 ######################################################################
 
 # include_directories for Specific Subfolders (header-only)
-ndarray_inc_dir = [
+_ndarray_inc_dir = [
   'develop/NdArray',
 ]
-numcpp_inc_dir = [
+_numcpp_inc_dir = [
   'include',
   # 'src',
 ]
@@ -55,8 +55,8 @@ numcpp_inc_dir = [
 # Specify Include directories where your headers are located
 # include_directories(header) -> static_library(mix), library(mix), declare_dependency(mix)
 # ⚠️ Make sure your develop headers take priority:
-inc_dir_ndarray = include_directories(ndarray_inc_dir)
-inc_dir_numcpp = include_directories(numcpp_inc_dir)
+inc_dir_ndarray = include_directories(_ndarray_inc_dir)
+inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 
 ######################################################################
 ## Compiler Flags and Dependencies
@@ -117,11 +117,11 @@ dep_list = [
 ## .c → plain C
 ## .cpp or .cc → C++
 ## .cxx or .C → also C++ (less common)
-numcpp_extension_metadata = {
+_numcpp_extension_metadata = {
   ## Define Python Module Name
   ## Check: ELF 64-bit LSB shared object, dynamically linked
-  # file builddir/scikitplot/cexternals/NumCpp/numcpp.so
-  'nc':  ## Build static numcpp core library (C++)
+  # file builddir/scikitplot/cexternals/_numcpp/nc.so
+  'nc':  ## Build static nc core library (C++)
   {
     # Only your actual C++/Pybind11 binding sources
     'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint
@@ -147,10 +147,10 @@ numcpp_extension_metadata = {
     ],
     'link_args': [],                              # 👈 add this
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/cexternals/NumCpp',     # Path where the module is located
+    'subdir': 'scikitplot/cexternals/_numcpp',     # Path where the module is located
   },
-  # file builddir/scikitplot/cexternals/NumCpp/ndarray.so
-  'nc_develop':  ## Build static ndarray core library (C++)
+  # file builddir/scikitplot/cexternals/_numcpp/nc_develop.so
+  'nc_develop':  ## Build static nc_develop core library (C++)
   {
     # Only your actual C++/Pybind11 binding sources
     'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint
@@ -179,15 +179,15 @@ numcpp_extension_metadata = {
     ],
     'link_args': [],                              # 👈 add this
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/cexternals/NumCpp',     # Path where the module is located
+    'subdir': 'scikitplot/cexternals/_numcpp',     # Path where the module is located
   },
 }
 # https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
 # Loop over each defined extension and create the corresponding module
-foreach ext_name, ext_dict : numcpp_extension_metadata
+foreach ext_name, ext_dict : _numcpp_extension_metadata
   pyext_module = py.extension_module(
     ext_name,                                                      # The name of the extension module
-    ext_dict.get('sources') + _numcpp_cython_tree,                   # Sources and dependencies
+    ext_dict.get('sources') + _numcpp_cython_tree,                 # Sources and dependencies
     include_directories: ext_dict.get('include_directories', []),  # Include directories
     dependencies: ext_dict.get('dependencies', []),                # Additional dependencies if any
     link_with: ext_dict.get('link_with', []),                      # Libraries to link with

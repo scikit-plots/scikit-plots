@@ -58,13 +58,13 @@ numcpp:
 		--url "https://github.com/dpilger26/NumCpp.git" \
 		--version "Version_2.14.2" \
 		--target "../third_party/NumCpp" \
-    	--move-to "../scikitplot/cexternals/NumCpp" \
+    	--move-to "../scikitplot/cexternals/_numcpp" \
 		--nested-folder "" \
 		--src-subdirs include develop/NdArray develop/main.cpp \
 		--readme-name "vendor_repo.sh"
 
 	@# overwrite NumCpp modified files
-	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_NumCpp/' '../scikitplot/cexternals/NumCpp' -r --progress
+	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_numcpp/' '../scikitplot/cexternals/_numcpp' -r --progress
 
 ######################################################################
 ## complex submodule: (c)externals
@@ -184,7 +184,7 @@ upt:
 		--target "/work/scikitplot/cexternals/_astropy" \
 		--update-hash
 	@bash ./maint_tools/vendor_repo.sh \
-		--target "/work/scikitplot/cexternals/NumCpp" \
+		--target "/work/scikitplot/cexternals/_numcpp" \
 		--update-hash
 	@bash ./maint_tools/vendor_repo.sh \
 		--target "/work/scikitplot/externals/_seaborn" \

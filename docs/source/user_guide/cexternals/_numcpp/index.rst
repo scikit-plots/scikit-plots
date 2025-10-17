@@ -4,7 +4,7 @@
 NumCpp (experimental)
 ======================================================================
 
-This module contains some functions related to :py:mod:`~.NumCpp` under :py:mod:`~.cexternals`.
+This module contains some functions related to :py:mod:`~._numcpp` under :py:mod:`~.cexternals`.
 
 .. seealso::
 
