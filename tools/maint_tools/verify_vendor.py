@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# verify_vendor.py
 """
 verify_vendor.py
 ================
