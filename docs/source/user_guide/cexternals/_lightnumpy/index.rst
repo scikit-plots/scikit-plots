@@ -4,7 +4,7 @@
 LightNumPy (experimental)
 ======================================================================
 
-A lightweight version of NumPy or Cupy (or similar functionality).
+A lightweight version of NumPy or Cupy (or similar functionality). See :py:mod:`~._numcpp`.
 
 .. # https://rsted.info.ucl.ac.be/
 .. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup

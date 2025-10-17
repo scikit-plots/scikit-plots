@@ -557,10 +557,6 @@ _regression_docs = dict(
         If ``True``, the regression line is bounded by the data limits. If
         ``False``, it extends to the ``x`` axis limits.
     """),
-    dropna=dedent("""\
-    dropna : bool, optional
-        If ``True``, remove observations with missing data from the plot.
-    """),
     xy_jitter=dedent("""\
     {x,y}_jitter : floats, optional
         Add uniform random noise of this size to either the ``x`` or ``y``
@@ -733,11 +729,6 @@ lmplot.__doc__ = dedent("""\
     facet_kws : dict
         Dictionary of keyword arguments for :class:`FacetGrid`.
 
-    Returns
-    -------
-    :class:`FacetGrid`
-        The :class:`FacetGrid` object with the plot on it for further tweaking.
-
     See Also
     --------
     regplot : Plot data and a conditional model fit.
@@ -792,7 +783,7 @@ regplot.__doc__ = dedent("""\
 
     Parameters
     ----------
-    x, y : string, series, or vector array
+    x, y: string, series, or vector array
         Input variables. If strings, these should correspond with column names
         in ``data``. When pandas objects are used, axes will be labeled with
         the series name.
@@ -813,7 +804,6 @@ regplot.__doc__ = dedent("""\
     {logx}
     {xy_partial}
     {truncate}
-    {dropna}
     {xy_jitter}
     label : string
         Label to apply to either the scatterplot or regression line (if

@@ -171,7 +171,7 @@ commands:
             ## download submodules
             # git submodule init
             # git submodule update
-            git submodule update --init --recursive
+            git submodule update --init --recursive || true
   apt-install:
     description: Install system dependencies
     steps:

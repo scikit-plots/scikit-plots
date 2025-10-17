@@ -626,8 +626,6 @@ class _CategoricalPlotter(VectorPlotter):
         props["whisker"].setdefault("solid_capstyle", "butt")
         props["flier"].setdefault("markersize", fliersize)
 
-        orientation = {"x": "vertical", "y": "horizontal"}[self.orient]
-
         ax = self.ax
 
         for sub_vars, sub_data in self.iter_data(iter_vars,
@@ -684,20 +682,14 @@ class _CategoricalPlotter(VectorPlotter):
                 # Set width to 0 to avoid going out of domain
                 widths=data["width"] if linear_orient_scale else 0,
                 patch_artist=fill,
+                vert=self.orient == "x",
                 manage_ticks=False,
                 boxprops=boxprops,
                 medianprops=medianprops,
                 whiskerprops=whiskerprops,
                 flierprops=flierprops,
                 capprops=capprops,
-                # Added in matplotlib 3.10; see below
-                # orientation=orientation
-                **(
-                    {"vert": orientation == "vertical"}
-                    if _version_predates(mpl, "3.10.0")
-                    else {"orientation": orientation}
-                ),
-                # added in matplotlib 3.6.0; see below
+                # Added in matplotlib 3.6.0; see below
                 # capwidths=capwidth,
                 **(
                     {} if _version_predates(mpl, "3.6.0")
@@ -1846,7 +1838,7 @@ violinplot.__doc__ = dedent("""\
         the data within each group.
 
         .. versionadded:: v0.13.0
-    bw_adjust : float
+    bw_adjust: float
         Factor that scales the bandwidth to use more or less smoothing.
 
         .. versionadded:: v0.13.0
@@ -2023,7 +2015,7 @@ boxenplot.__doc__ = dedent("""\
 
         - `"tukey"`: Use log2(n) - 3 levels, covering similar range as boxplot whiskers
         - `"proportion"`: Leave approximately `outlier_prop` fliers
-        - `"trustworthy"`: Extend to level with confidence of at least `trust_alpha`
+        - `"trusthworthy"`: Extend to level with confidence of at least `trust_alpha`
         - `"full"`: Use log2(n) + 1 levels and extend to most extreme points
     outlier_prop : float
         Proportion of data expected to be outliers; used when `k_depth="proportion"`.
@@ -2036,17 +2028,17 @@ boxenplot.__doc__ = dedent("""\
     {native_scale}
     {formatter}
     {legend}
-    box_kws : dict
+    box_kws: dict
         Keyword arguments for the box artists; passed to
         :class:`matplotlib.patches.Rectangle`.
 
         .. versionadded:: v0.12.0
-    line_kws : dict
+    line_kws: dict
         Keyword arguments for the line denoting the median; passed to
         :meth:`matplotlib.axes.Axes.plot`.
 
         .. versionadded:: v0.12.0
-    flier_kws : dict
+    flier_kws: dict
         Keyword arguments for the scatter denoting the outlier observations;
         passed to :meth:`matplotlib.axes.Axes.scatter`.
 
@@ -2303,13 +2295,10 @@ swarmplot.__doc__ = dedent("""\
         brightness is determined by the color palette used for the body
         of the points.
     {linewidth}
-    {hue_norm}
     {log_scale}
     {native_scale}
     {formatter}
     {legend}
-    warn_thresh : float
-        The proportion of points that must overlap to trigger a warning.
     {ax_in}
     kwargs : key, value mappings
         Other keyword arguments are passed through to
@@ -2567,7 +2556,6 @@ pointplot.__doc__ = dedent("""\
     {stat_api_params}
     {color}
     {palette}
-    {hue_norm}
     markers : string or list of strings
         Markers to use for each of the `hue` levels.
     linestyles : string or list of strings
@@ -2723,7 +2711,6 @@ countplot.__doc__ = dedent("""\
     {color}
     {palette}
     {saturation}
-    {fill}
     {hue_norm}
     stat : {{'count', 'percent', 'proportion', 'probability'}}
         Statistic to compute; when not `'count'`, bar heights will be normalized so that
@@ -2732,7 +2719,6 @@ countplot.__doc__ = dedent("""\
         .. versionadded:: v0.13.0
     {width}
     {dodge}
-    {gap}
     {log_scale}
     {native_scale}
     {formatter}
@@ -3199,7 +3185,6 @@ catplot.__doc__ = dedent("""\
     {col_wrap}
     {height}
     {aspect}
-    {log_scale}
     {native_scale}
     {formatter}
     {orient}

@@ -1,5 +1,5 @@
 """
-plot_impute with examples
+annoy impute with examples
 ==================================
 
 Examples related to the :py:class:`~scikitplot.impute.AnnoyKNNImputer` class
@@ -294,9 +294,9 @@ from scikitplot.impute import AnnoyKNNImputer
 t0 = time.time()
 imputer = AnnoyKNNImputer(
     add_indicator=True,
-    n_trees=5,
-    search_k=1000,
-    n_neighbors=5,
+    # n_trees=5,
+    # search_k=1000,
+    # n_neighbors=5,
     index_nan_strategy='mean',
 )
 mses_diabetes[5], stds_diabetes[5] = get_score(

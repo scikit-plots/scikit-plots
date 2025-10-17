@@ -190,7 +190,7 @@ annoy_extension_metadata = {
     ],
     'include_directories': [                      # Include dirs for compilation
       inc_dir_annoy,
-      python_inc,
+      inc_dir_py,
     ],
     'dependencies': dep_list,                     # External libraries and dependencies
     'link_with': [                                # Link with the created static library
@@ -202,7 +202,7 @@ annoy_extension_metadata = {
       'cython_language=cpp',                        # Ensure Cython knows to generate C code
       'optimization=3',                           # Optimization level '-O3'
     ],
-    'cython_args': cython_c_args,
+    'cython_args': cython_cpp_args,
     'c_args': cython_c_flags,                     # Additional C/C++ arguments
     'cpp_args': [                                 # Additional C/C++ arguments
       cython_cpp_flags,

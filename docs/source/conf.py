@@ -1567,7 +1567,7 @@ sphinx_gallery_conf = {
         # 'filepath_prefix': '<prefix>'
     },
     # Optional Additional options
-    "line_numbers": True,  # sphinx_gallery_line_numbers = True
+    "line_numbers": False,  # sphinx_gallery_line_numbers = True
     "first_notebook_cell": (
         "# This cell is added by Sphinx-Gallery\n"
         "# It can be customized to whatever you like\n"

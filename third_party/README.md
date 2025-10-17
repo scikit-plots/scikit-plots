@@ -108,7 +108,10 @@ To remove a submodule you need to:
     ```
     # Remove the submodule entry from .git/config
     # git submodule deinit -f <path/to/submodule>
-    git submodule deinit -f scikitplot/_lib/array-api-compat
+    git submodule deinit -f third_party/array-api-compat
+    git submodule deinit -f third_party/array-api-extra
+    git submodule deinit -f third_party/astropy
+    git submodule deinit -f third_party/seaborn
     ```
 - Verify Deinitialization Check if the submodule is deinitialized.
     ```
@@ -139,19 +142,28 @@ Remove the Submodule Follow the steps to remove the submodule entirely:
     ```
     # Remove the Submodule Remove the submodule from the index (cached area)
     # git rm --cached <path/to/submodule>
-    git rm --cached vendored_numcpp/NumCpp
+    git rm --cached third_party/array-api-compat
+    git rm --cached third_party/array-api-extra
+    git rm --cached third_party/astropy
+    git rm --cached third_party/seaborn
     ```
 - Delete the Submodule's Directory After successfully removing it from the Git index, delete the actual submodule directory
     ```
     # Remove the Physical Directory
     # rm -rf <path/to/submodule>
-    rm -rf vendored_numcpp/NumCpp
+    rm -rf third_party/array-api-compat
+    rm -rf third_party/array-api-extra
+    rm -rf third_party/astropy
+    rm -rf third_party/seaborn
     ```
 - Clean Up Git Metadata Git stores metadata about submodules in .git/modules/. You need to remove the corresponding metadata
     ```
     # Remove Submodule Metadata
     # rm -rf .git/modules/<path/to/submodule>
-    rm -rf .git/modules/vendored_numcpp/NumCpp
+    rm -rf .git/modules/third_party/array-api-compat
+    rm -rf .git/modules/third_party/array-api-extra
+    rm -rf .git/modules/third_party/astropy
+    rm -rf .git/modules/third_party/seaborn
 
     git submodule status
     ```
