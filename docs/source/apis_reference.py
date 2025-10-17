@@ -399,6 +399,19 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "annoy.AnnoyIndex",
                 ],
             },
+            {
+                "title": "NumCpp header's as submodule.",
+                "description": (
+                    _get_submodule("scikitplot.cexternals", "NumCpp")
+                    + "\n\n"
+                    + _get_guide("numcpp_index")
+                ),
+                "autosummary": [
+                    "NumCpp.get_include",
+                    "NumCpp.nc",
+                    "NumCpp.nc_develop",
+                ],
+            },
         ],
     },
     "scikitplot.exceptions": {
@@ -451,6 +464,17 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_llm_provider.LLM_PROVIDER_ENV_CONNECTOR_MAP",
                     "_llm_provider.get_response",
                     "_llm_provider.load_mlflow_gateway_config",
+                ],
+            },
+            {
+                "title": "sklearn's pipeline.",
+                "description": (
+                    _get_submodule("scikitplot.experimental", "pipeline")
+                    + "\n\n"
+                    + _get_guide("pipeline-index")
+                ),
+                "autosummary": [
+                    "pipeline.pipeline",
                 ],
             },
         ],
