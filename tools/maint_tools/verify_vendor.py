@@ -241,7 +241,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    root = Path(args.root)
+    root = Path(args.root).resolve()
     lock_files = find_lock_files(root)
     if not lock_files:
         print(_color(f"⚠ No vendor.lock.json files found under {root}", "yellow"))

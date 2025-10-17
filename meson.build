@@ -1,12 +1,13 @@
-## scikit-plots/meson.build
-## Building C/C++/Rust/native extensions or full native projects
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+## scikit-plots/meson.build
+## Building C/C++/Rust/native extensions or full native projects
 
 ######################################################################
 ## Project
 ## https://mesonbuild.com/Syntax.html#syntax
+## https://github.com/mesonbuild/meson/blob/master/docs/markdown/Syntax.md
 ######################################################################
 
 # Project configuration
@@ -438,6 +439,7 @@ _global_args = [
   '-Wno-sign-compare',                                # Suppress warnings about comparisons between signed and unsigned integers
   '-Wno-switch',                                      # Suppress warnings about switch statement cases that are not handled
   '-Wno-undef',                                       # Suppress warnings if an undefined macro is used
+  # '-Wunused',                                       # Suppress warnings
   '-Wno-unused-but-set-parameter',                    # Suppress warnings about parameters that are set but not used
   '-Wno-error=reorder',                               # Suppress errors for unused functions
   '-Wno-error=unused-function',                       # Suppress errors for unused functions

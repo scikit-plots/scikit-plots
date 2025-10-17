@@ -1,10 +1,7 @@
 # .github/workflows/vendor-check.yml
-# - name: Verify vendored dependencies
-#   run: |
-#     ./tools/maint_tools/vendor_repo.sh --target "scikitplot/externals/array_api_compat" --check
-#     ./tools/maint_tools/vendor_repo.sh --target "scikitplot/externals/array_api_extra" --check
 
 - name: Verify vendored dependencies
   run: |
     # bash ./tools/maint_tools/vendor_repo.sh --target "/work/scikitplot/cexternals/NumCpp" --check
-    python ./tools/maint_tools/verify_vendor.py "/work/scikitplot/cexternals/NumCpp"  # --json --pretty
+    # python ./tools/maint_tools/verify_vendor.py "/work/scikitplot/cexternals/NumCpp"  # --json --pretty
+    python ./tools/maint_tools/verify_vendor.py

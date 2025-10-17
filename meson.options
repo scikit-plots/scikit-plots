@@ -1,8 +1,8 @@
-# Build options
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# Build options
+# https://github.com/mesonbuild/meson/blob/master/docs/markdown/Syntax.md
 # Most non-trivial builds require user-settable options.
 # As an example a program may have two different data backends that are selectable at build time.
 # Meson provides for this by having an option definition file.

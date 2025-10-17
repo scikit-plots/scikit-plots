@@ -5,15 +5,17 @@ Vendored repository information
 - Version:    Version_2.14.2
 - Commit:     7d390df4ae94268e58222278529b22ebae2ee663
 - Tree Mode:  bash-sha256sum
-- Tree Hash:  799e6f9d918c5de14e0e5dcd73266b5ff526cd5d5a1163a02f358d313a921f5c
-- Retrieved:  2025-10-17T00:09:32Z
+- Tree Hash:  e34f1e85d2f0da62cd8ae66575fd39f1224ec272cbe82205d05c539adb48a7c5
+- Retrieved:  2025-10-17T08:05:15Z
 
 To update (git clone), run:
   bash ./tools/maint_tools/vendor_repo.sh \
     --url "https://github.com/dpilger26/NumCpp.git" \
     --version "Version_2.14.2" \
-    --target "/work/scikitplot/cexternals/NumCpp" \
-    --src-subdir "include" \
+    --target "/work/third_party/NumCpp" \
+    --move-to "/work/scikitplot/cexternals/NumCpp" \
+    --nested-folder "" \
+    --src-subdirs "include develop/NdArray develop/main.cpp" \
     --readme-name "vendor_repo.sh"
 
 To update only the tree hash (no git clone):

@@ -5,11 +5,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import warnings
-
-# from collections import namedtuple
+from collections import namedtuple
 from numbers import Real  # Integral
 from time import time
-from typing import namedtuple
 
 import numpy as np
 from scipy import stats
@@ -48,7 +46,7 @@ from sklearn.utils.validation import (
     validate_data,
 )
 
-_ImputerTriplet = namedtuple(
+_ImputerTriplet = namedtuple(  # noqa: PYI024
     "_ImputerTriplet", ["feat_idx", "neighbor_feat_idx", "estimator"]
 )
 

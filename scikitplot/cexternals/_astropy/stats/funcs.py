@@ -9,25 +9,16 @@ This module should generally not be used directly.  Everything in
 should be used for access.
 """
 
-from __future__ import annotations
-
 import math
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import Literal, SupportsFloat, TypeVar
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from ..utils.compat.optional_deps import HAS_BOTTLENECK, HAS_SCIPY
 
 from . import _stats
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import Literal, SupportsFloat, TypeVar
-
-    from numpy.typing import ArrayLike, NDArray
-
-    # type for variables generated with the mpmath library
-    FloatLike = TypeVar("FloatLike", bound=SupportsFloat)
 
 __all__ = [
     "binned_binom_proportion",
@@ -54,6 +45,8 @@ __doctest_requires__ = {
     "poisson_conf_interval": ["scipy"],
 }
 
+# type for variables generated with the mpmath library
+FloatLike = TypeVar("FloatLike", bound=SupportsFloat)
 
 gaussian_sigma_to_fwhm = 2.0 * math.sqrt(2.0 * math.log(2.0))
 """

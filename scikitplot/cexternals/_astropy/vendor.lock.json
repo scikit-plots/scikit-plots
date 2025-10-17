@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/astropy/astropy.git",
+  "version": "v7.1.1",
+  "commit_hash": "1c4beefc2da81e02f9b7cfdb3994713e0ffa763b",
+  "tree_mode": "bash-sha256sum",
+  "tree_hash": "b7196598eb04c7757b237ea18ba5f9d1d40370a5361cc2946b3f2e4441b84a33",
+  "generated_utc": "2025-10-17T07:50:56Z"
+}
