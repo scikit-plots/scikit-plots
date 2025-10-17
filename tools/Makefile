@@ -29,24 +29,6 @@ discard:
 	# git checkout -f
 
 # copy submodules into lib
-seaborn:
-	@## seaborn
-	@python ../scikitplot/_build_utils/copyfiles.py \
-		'../third_party/seaborn/seaborn/' '../scikitplot/externals/_seaborn' \
-		-r --progress --clean
-
-	@## vendored_seaborn
-	@python ../scikitplot/_build_utils/copyfiles.py \
-		'./submodules/vendored_seaborn/' '../scikitplot/externals/_seaborn' \
-		-r --progress
-
-# fix
-seaborn-f: seaborn
-	@python ../scikitplot/_build_utils/fix_submodule_import.py \
-		-m 'seaborn' \
-		-r '../scikitplot/externals/_seaborn'
-
-# copy submodules into lib
 astropy:
 	@## astropy/extern
 	@python ../scikitplot/_build_utils/copyfiles.py \
@@ -155,3 +137,18 @@ numcpp:
 		--target "../scikitplot/cexternals/NumCpp" \
 		--src-subdir "include" \
 		--readme-name "vendor_repo.sh"
+
+# copy submodules into lib
+seaborn:
+	@# python ../scikitplot/_build_utils/copyfiles.py \
+		'../third_party/seaborn/seaborn/' '../scikitplot/externals/_seaborn' \
+		-r --progress --clean
+	@## overwrite seaborn modified files
+	@python ../scikitplot/_build_utils/copyfiles.py \
+		'./submodules/vendored_seaborn/' '../scikitplot/externals/_seaborn' \
+		-r --progress
+# fix
+seaborn-f: seaborn
+	@python ../scikitplot/_build_utils/fix_submodule_import.py \
+		-m 'seaborn' \
+		-r '../scikitplot/externals/_seaborn'
