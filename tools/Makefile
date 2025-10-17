@@ -175,3 +175,20 @@ ast: astropy2
 
 verify:
 	@python ./maint_tools/verify_vendor.py ..
+
+upt:
+	@bash ./maint_tools/vendor_repo.sh \
+		--target "/work/scikitplot/cexternals/_astropy" \
+		--update-hash
+	@bash ./maint_tools/vendor_repo.sh \
+		--target "/work/scikitplot/cexternals/NumCpp" \
+		--update-hash
+	@bash ./maint_tools/vendor_repo.sh \
+		--target "/work/scikitplot/externals/_seaborn" \
+		--update-hash
+	@bash ./maint_tools/vendor_repo.sh \
+		--target "/work/scikitplot/externals/array_api_compat" \
+		--update-hash
+	@bash ./maint_tools/vendor_repo.sh \
+		--target "/work/scikitplot/externals/array_api_extra" \
+		--update-hash
