@@ -45,8 +45,6 @@ PUBLIC_MODULES = [
         "cexternals.annoy",
         "cexternals.annoy.annoylib",
         "cexternals.NumCpp",
-        "cexternals.NumCpp.nc",
-        "cexternals.NumCpp.nc_develop",
         "config",
         "config.cbook",
         "experimental",
