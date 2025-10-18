@@ -1,7 +1,7 @@
 .. _numcpp_index:
 
 ======================================================================
-NumCpp (experimental)
+NumCpp C++ template array library (experimental)
 ======================================================================
 
 This module contains some functions related to :py:mod:`~._numcpp` under :py:mod:`~.cexternals`.

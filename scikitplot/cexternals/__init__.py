@@ -10,28 +10,30 @@
 
 # External, bundled dependencies.
 """
-External C/C++ or compiled libraries vendored for high-performance extensions.
+C-External libraries vendored for high-performance extensions for Scikit-Plots.
 
-These components wrap native or template-based libraries (e.g. Annoy, NumCpp)
-that enable fast numerical, algorithmic, or geometric operations used by
-Scikit-Plot's advanced visualization and machine learning utilities.
+This package contains optimized C/C++ and template-based libraries that are
+bundled with Scikit-Plots to provide fast numerical, geometric, and algorithmic
+capabilities used in advanced visualization and machine learning workflows.
 
-Included vendor modules:
-    - _astropy, _f2py, _numcpp, annoy
+These modules wrap native backends (e.g. Annoy, NumCpp, F2PY-generated code)
+through Python extension interfaces to ensure consistent performance and
+availability across environments, without relying on separate system installs.
 
-Each submodule is optional and imported safely when available.
+Notes
+-----
+- All modules are optional and imported safely when available.
+- Vendored code may be experimental or limited to internal use.
+- APIs may change in future releases without deprecation warnings.
+
+_astropy  : Astronomy utilities and array backends (vendored subset)
+_f2py     : Fortran-Python interface support
+_numcpp   : NumCpp C++ template array library
+annoy     : Approximate nearest neighbor search implementation
 """
-import contextlib as _contextlib
+## Your package/module initialization code goes here
+from . import annoy
 
 __all__ = [
-    "_astropy",
-    "_f2py",
-    "_numcpp",
     "annoy",
 ]
-
-for _m in __all__:
-    with _contextlib.suppress(ImportError):
-        # import importlib
-        # importlib.import_module(f"scikitplot.externals.{_m}")
-        __import__(f"scikitplot.externals.{_m}", globals(), locals())

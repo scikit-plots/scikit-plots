@@ -32,6 +32,7 @@ repos:
           .*searchindex.dat|\
           .*CDNOW_master.txt|\
           .*example_transactions.csv|\
+          scikitplot/cexternals/annoy/ann.png|\
         )$"
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.

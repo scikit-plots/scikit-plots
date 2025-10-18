@@ -1,6 +1,11 @@
+import os
+
 import numpy
 
-from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
 
 
 def _test_building_with_threads(n_jobs):

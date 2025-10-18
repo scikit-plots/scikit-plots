@@ -12,12 +12,16 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+import os
 import random
 
 import numpy
 import pytest
 
-from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
 
 
 def test_get_nns_by_vector():
@@ -150,10 +154,10 @@ def test_load_save_get_item_vector():
 
     numpy.testing.assert_array_almost_equal(i.get_item_vector(0), [1.1, 2.2, 3.3])
     assert i.build(10)
-    assert i.save("blah.ann")
+    assert i.save(f"{HERE}/blah.ann")
     numpy.testing.assert_array_almost_equal(i.get_item_vector(1), [4.4, 5.5, 6.6])
     j = AnnoyIndex(f, "angular")
-    assert j.load("blah.ann")
+    assert j.load(f"{HERE}/blah.ann")
     numpy.testing.assert_array_almost_equal(j.get_item_vector(2), [7.7, 8.8, 9.9])
 
 
@@ -230,9 +234,9 @@ def test_only_one_item():
     idx = AnnoyIndex(100, "angular")
     idx.add_item(0, numpy.random.randn(100))
     idx.build(n_trees=10)
-    idx.save("foo.idx")
+    idx.save(f"{HERE}/foo.idx")
     idx = AnnoyIndex(100, "angular")
-    idx.load("foo.idx")
+    idx.load(f"{HERE}/foo.idx")
     assert idx.get_n_items() == 1
     assert idx.get_nns_by_vector(
         vector=numpy.random.randn(100), n=50, include_distances=False
@@ -242,9 +246,9 @@ def test_only_one_item():
 def test_no_items():
     idx = AnnoyIndex(100, "angular")
     idx.build(n_trees=10)
-    idx.save("foo.idx")
+    idx.save(f"{HERE}/foo.idx")
     idx = AnnoyIndex(100, "angular")
-    idx.load("foo.idx")
+    idx.load(f"{HERE}/foo.idx")
     assert idx.get_n_items() == 0
     assert (
         idx.get_nns_by_vector(
@@ -259,7 +263,7 @@ def test_single_vector():
     a = AnnoyIndex(3, "angular")
     a.add_item(0, [1, 0, 0])
     a.build(10)
-    a.save("1.ann")
+    a.save(f"{HERE}/1.ann")
     indices, dists = a.get_nns_by_vector([1, 0, 0], 3, include_distances=True)
     assert indices == [0]
     assert dists[0] ** 2 == pytest.approx(0.0)

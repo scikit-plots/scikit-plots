@@ -1,8 +1,5 @@
 ## scikitplot/cexternals/annoy/meson.build
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 ######################################################################
 ## cython tree
 ######################################################################
@@ -21,10 +18,10 @@ _annoy_cython_tree = [
 ######################################################################
 
 # include_directories for Specific Subfolders
-annoy_inc_dir = [
+_annoy_inc_dir = [
+  # 'here/include',
   # 'include',
   'src',
-  # 'here/include',
 ]
 
 ######################################################################
@@ -34,13 +31,14 @@ annoy_inc_dir = [
 # Use the include directory in your build setup
 # Specify Include directories where your headers are located
 # include_directories(header) -> static_library(mix), library(mix), declare_dependency(mix)
-inc_dir_annoy = include_directories(annoy_inc_dir)
+inc_dir_annoy = include_directories(_annoy_inc_dir)
 
 ######################################################################
 ## Define dependencies and Compiler Flags
 # meson introspect ./build/cp311/ --dependencies
 # meson introspect ./build/cp311/ --buildoptions | grep python
 ######################################################################
+_env = environment()
 
 # Define dependencies
 dep_list = dep_all
@@ -150,8 +148,6 @@ endif
 # 	compile_args = [ '-DLUA_BUILD_AS_DLL' ]
 # endif
 
-_env = environment()
-
 message('Final compile args: ' + ' '.join(extra_compile_args))
 message('Final link args: ' + ' '.join(extra_link_args))
 
@@ -184,7 +180,8 @@ annoy_extension_metadata = {
   # file builddir/scikitplot/cexternals/annoy/annoylib.so
   'annoylib':  ## Build static Annoy core library (C++)
   {
-    'sources': [                                  # C++ source file with Python/Pybind11 bindings
+    # Only module your actual C++/Python/Pybind11 binding sources
+    'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint
       'src/annoymodule.cc',  # (Python binding)
       # 'src/annoyluamodule.cc',  # (Lua binding)
     ],

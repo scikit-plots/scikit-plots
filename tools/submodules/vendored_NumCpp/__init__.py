@@ -3,41 +3,55 @@
 # SPDX-License-Identifier: MIT
 
 """
-NumCpp: A Templatized Header-Only C++ Implementation of NumPy
-================================================================
-Author: David Pilger <dpilger26@gmail.com>
-License: MIT | Language: C++17-23 | Boost ≥ 1.73
-Supported Compilers: MSVC 2022, GCC 13-14, Clang 18-19
+NumCpp: A Header-Only C++ Library with a NumPy-Compatible API.
 
-NumCpp provides a NumPy-like API for C++, offering `NdArray` containers,
-slicing, broadcasting, random generation, and mathematical operations.
-It closely mirrors Python's NumPy syntax:
-  np.arange(3,7)  ↔  nc::arange<int>(3,7)
-  np.sum(a)       ↔  nc::sum(a)
-  np.linalg.inv(a)↔  nc::linalg::inv(a)
+**Author:** David Pilger <dpilger26@gmail.com>
+**License:** MIT
+**Language Standard:** C++17-C++23
+**Dependencies:** Boost ≥ 1.73
+**Supported Compilers:** MSVC 2022, GCC 13-14, Clang 18-19
 
-Includes modules for:
-- Initialization (linspace, zeros, ones, eye)
+NumCpp is a templatized, header-only C++ library that provides a NumPy-style
+interface for numerical computing. It features an `NdArray` class with full
+support for slicing, broadcasting, random generation, vectorization, and
+linear algebra, closely mirroring Python's NumPy API.
+
+Notes
+-----
+This library is header-only and requires no separate compilation. It is
+designed for high-performance numerical computing in C++ with a familiar
+NumPy-like syntax.
+
+Core Features:
+
+- Array creation: `arange`, `linspace`, `zeros`, `ones`, `eye`
+- Broadcasting and slicing
+- Mathematical and statistical functions
 - Random number generation
-- Logical, comparison, reduction, and linear algebra ops
-- File I/O and printing utilities
+- Linear algebra (`linalg` module)
+- Comparison, logical, and reduction operations
+- File I/O, printing, endian utilities
+
+Example Equivalents:
+
+=======================  ===========================
+NumPy (Python)           NumCpp (C++)
+=======================  ===========================
+np.arange(3, 7)          nc::arange<int>(3, 7)
+np.sum(a)               nc::sum(a)
+np.linalg.inv(a)        nc::linalg::inv(a)
+=======================  ===========================
 
 See Also
 --------
-Docs & source: https://github.com/dpilger26/NumCpp
+Project Repository: https://github.com/dpilger26/NumCpp
 """
-import contextlib as _contextlib
 
-__all__ = [
-    "nc",
-    "nc_develop",
-]
-
-for _m in __all__:
-    with _contextlib.suppress(ImportError):
-        # import importlib
-        # importlib.import_module(f"scikitplot.externals._numcpp.{_m}")
-        __import__(f"scikitplot.externals._numcpp.{_m}", globals(), locals())
+# __all__ = [
+#     "get_include",
+#     "nc",
+#     "nc_develop",
+# ]
 
 
 def get_include() -> str:

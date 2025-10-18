@@ -12,9 +12,14 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+import os
+
 import numpy
 
-from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
 
 
 def test_seeding():

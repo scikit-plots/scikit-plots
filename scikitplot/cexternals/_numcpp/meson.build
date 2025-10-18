@@ -121,9 +121,9 @@ _numcpp_extension_metadata = {
   ## Define Python Module Name
   ## Check: ELF 64-bit LSB shared object, dynamically linked
   # file builddir/scikitplot/cexternals/_numcpp/nc.so
-  'nc':  ## Build static nc core library (C++)
+  'nc':  ## Build static NumCpp core library (C++)
   {
-    # Only your actual C++/Pybind11 binding sources
+    # Only module your actual C++/Python/Pybind11 binding sources
     'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint
       'src/nc.cpp',
     ],
@@ -150,7 +150,7 @@ _numcpp_extension_metadata = {
     'subdir': 'scikitplot/cexternals/_numcpp',     # Path where the module is located
   },
   # file builddir/scikitplot/cexternals/_numcpp/nc_develop.so
-  'nc_develop':  ## Build static nc_develop core library (C++)
+  'nc_develop':  ## Build static NumCpp core library (C++)
   {
     # Only your actual C++/Pybind11 binding sources
     'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint

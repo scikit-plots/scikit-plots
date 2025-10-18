@@ -12,11 +12,15 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+import os
 
 import numpy
 import pytest
 
-from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
 
 
 def test_basic_conversion():
@@ -60,9 +64,9 @@ def test_save_load():
     i.add_item(0, u)
     i.add_item(1, v)
     i.build(10)
-    i.save("blah.ann")
+    i.save(f"{HERE}/blah.ann")
     j = AnnoyIndex(f, "hamming")
-    j.load("blah.ann")
+    j.load(f"{HERE}/blah.ann")
     rs, ds = j.get_nns_by_item(0, 99, include_distances=True)
     assert rs == [0, 1]
     assert ds[0] == pytest.approx(0)
@@ -115,9 +119,9 @@ def test_zero_vectors():
         idx.add_item(i, v)
 
     idx.build(10)
-    idx.save("idx.ann")
+    idx.save(f"{HERE}/idx.ann")
     idx = AnnoyIndex(f, "hamming")
-    idx.load("idx.ann")
+    idx.load(f"{HERE}/idx.ann")
     js, ds = idx.get_nns_by_item(0, 5, include_distances=True)
     assert js[0] == 0
     assert ds[:4] == [0, 1, 1, 22]

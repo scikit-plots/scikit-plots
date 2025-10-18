@@ -8,31 +8,31 @@
 # mypy: ignore-errors
 # type: ignore
 
-# Experimental, bundled dependencies.
 """
 Experimental submodules for Scikit-Plots.
 
-These vendored modules provide optional functionality (plotting, stats, array APIs, etc.)
-that Scikit-Plots can use, but may not be installed in all environments.
+This package contains optional or in-development modules that extend
+Scikit-Plots functionality in areas such as customer lifetime analytics,
+LLM-based components, and UI tooling. These modules are provided on an
+experimental basis and may change or be removed in future releases.
 
-Submodules included:
-    _clv, _doremi, _entities, _llm_provider, _ui_app, pipeline
+Notes
+-----
+- These modules are not guaranteed to be stable.
+- Importing them is optional; missing dependencies are handled gracefully.
+- APIs may change without notice.
 
-Each submodule can be imported safely; missing ones are ignored.
+_clv            : Customer lifetime value analysis
+_doremi         : Domain-specific modeling utilities
+_entities       : Structured data entity representations
+_llm_provider   : Large language model integration utilities
+_snsx           : Extended Seaborn-based plotting tools
+_ui_app         : Experimental user interface components
+pipeline        : Experimental ML pipeline tools
 """
-import contextlib as _contextlib
+## Your package/module initialization code goes here
+from . import pipeline
 
 __all__ = [
-    "_clv",
-    "_doremi",
-    "_entities",
-    "_llm_provider",
-    "_ui_app",
     "pipeline",
 ]
-
-for _m in __all__:
-    with _contextlib.suppress(ImportError):
-        # import importlib
-        # importlib.import_module(f"scikitplot.experimental.{_m}")
-        __import__(f"scikitplot.experimental.{_m}", globals(), locals())

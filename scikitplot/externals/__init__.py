@@ -13,33 +13,39 @@
 
 # External, bundled dependencies.
 """
-External Python-level dependencies vendored for stability and reproducibility.
+External dependencies vendored for stability and reproducibility for Scikit-Plots.
 
-These modules provide optional functionality (plotting, stats, array APIs, etc.)
-that Scikit-Plot integrates tightly with, but cannot rely on being installed in
-all environments. Vendoring ensures consistent behavior across versions.
+This package contains third-party Python modules that Scikit-Plots depends on for
+plotting, statistics, array APIs, and numerical utilities. These modules are
+bundled directly to ensure consistent behavior across different environments,
+even when the original libraries are missing or version-incompatible.
 
-Included vendor modules:
-    - _packaging, _probscale, _scipy, _seaborn, _sphinxext, _tweedie
-    - array_api_compat, array_api_extra
+Notes
+-----
+- These modules are *vendored*, meaning they are included in the source tree
+  and isolated from system-wide installations.
+- They are loaded only when required.
+- Missing optional components are handled gracefully without raising import errors.
 
-Each submodule may be safely imported; missing ones are silently ignored.
+Vendored subpackages include (but are not limited to):
+    _packaging        : Lightweight packaging utilities
+    _probscale        : Probability scale transformations
+    _scipy            : Minimal SciPy functionality for internal use
+    _seaborn          : Core plotting extensions
+    _sphinxext        : Sphinx documentation tools
+    _tweedie          : Tweedie distribution helpers
+    array_api_compat  : Compatibility layer for array API standards
+    array_api_extra   : Extensions to array API compatibility
 """
-import contextlib as _contextlib
+## Your package/module initialization code goes here
+
+## Optionally import modules if available
+try: from . import array_api_compat
+except ImportError: pass
+try: from . import array_api_extra
+except ImportError: pass
 
 __all__ = [
-    "_packaging",
-    "_probscale",
-    "_scipy",
-    "_seaborn",
-    "_sphinxext",
-    "_tweedie",
     "array_api_compat",
     "array_api_extra",
 ]
-
-for _m in __all__:
-    with _contextlib.suppress(ImportError):
-        # import importlib
-        # importlib.import_module(f"scikitplot.externals.{_m}")
-        __import__(f"scikitplot.externals.{_m}", globals(), locals())
