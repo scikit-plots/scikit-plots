@@ -72,7 +72,9 @@ ignore:
   - "**/conftest.py"
   - "scikitplot/_build_utils"
   - "scikitplot/cexperimental"
-  - "scikitplot/cexternals"
-  - "!scikitplot/cexternals/annoy"
+  # ✅ Do not ignore the whole "cexternals" folder if you want coverage for annoy
+  # - "scikitplot/cexternals"
+  - "scikitplot/cexternals/_*"  # → matches any directory starting with _
+  - "scikitplot/cexternals/_*/**/*"  # → recursively ignore everything inside those directories
   - "scikitplot/experimental"
   - "scikitplot/externals"
