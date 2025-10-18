@@ -42,7 +42,7 @@ outputs
 # scipy openblas
 **.openblas
 
-# testing
+# annoy testing
 *.ann
 *.tree
 *.annoy

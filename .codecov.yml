@@ -1,7 +1,6 @@
 # https://docs.codecov.com/docs/codecovyml-reference
 # https://docs.codecov.com/docs/codecovyml-reference#coveragestatus
 # https://docs.codecov.com/docs/commit-status#project-status
----
 coverage:
   status:
     project:
@@ -9,16 +8,20 @@ coverage:
         # Commits pushed to main should not make the overall
         # project coverage decrease by more than 1%:
         # basic settings
-        target: auto
-        threshold: 1%
-        base: auto
+        # https://docs.codecov.com/docs/common-recipe-list#set-status-checks-to-block-coverage
+        # target: 80%    # the required coverage value
+        target: auto  # auto compares coverage to the previous base commit
+        # adjust accordingly based on how flaky your tests are
+        # this allows a 1% drop from the previous base commit coverage
+        threshold: 1%  # the leniency in hitting the target
         # advanced settings
         # branches:
         #   - master
-        if_ci_failed: error #success, failure, error, ignore
-        informational: false
-        only_pulls: false
+        # if_ci_failed: error #success, failure, error, ignore
+        # informational: false
+        # only_pulls: false
     patch:
+      # https://docs.codecov.com/docs/commit-status#patch-status
       default:
         # Be tolerant on slight code coverage diff on PRs to limit
         # noisy red coverage status on github PRs.
