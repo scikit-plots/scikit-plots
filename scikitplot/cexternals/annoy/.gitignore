@@ -11,8 +11,8 @@ MANIFEST
 *.py[cod]
 *.idea
 
-# # testing
-# !tests/test.tree
+# testing
+!**/test.tree
 *.ann
 *.tree
 *.annoy

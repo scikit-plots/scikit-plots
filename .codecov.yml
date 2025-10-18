@@ -1,13 +1,23 @@
-comment: false
-
+# https://docs.codecov.com/docs/codecovyml-reference
+# https://docs.codecov.com/docs/codecovyml-reference#coveragestatus
+# https://docs.codecov.com/docs/commit-status#project-status
+---
 coverage:
   status:
     project:
-      default:
+      default: # This can be anything, but it needs to exist as the name
         # Commits pushed to main should not make the overall
         # project coverage decrease by more than 1%:
+        # basic settings
         target: auto
         threshold: 1%
+        base: auto
+        # advanced settings
+        # branches:
+        #   - master
+        if_ci_failed: error #success, failure, error, ignore
+        informational: false
+        only_pulls: false
     patch:
       default:
         # Be tolerant on slight code coverage diff on PRs to limit
@@ -18,17 +28,48 @@ coverage:
         threshold: 1%
 
 codecov:
+  # The user that you will use to serve as the bot connection to Codecov
+  # This bot user must have permissions on the repo and Codecov (by logging in)
+  # bot: <bot-username> #this is a username for Github/Gitlab/Bitbucket
+
+  # archive:
+  #   # How to disable archiving - In your codecov.yml, set the following line to false as follows:
+  #   uploads: false
+
   notify:
+    # notification blocks. See: https://docs.codecov.io/docs/codecovyml-reference#section-coverage-notify
     # Prevent coverage status to upload multiple times for parallel and long
     # running CI pipelines. This configuration is particularly useful on PRs
     # to avoid confusion. Note that this value is set to the number of Azure
     # Pipeline jobs uploading coverage reports.
     after_n_builds: 6
+    wait_for_ci: yes
+    manual_trigger: true
 
+  #max_report_age can be listed in hours '#h' (hours) or '#d' (days)
+  max_report_age: '12h' #equates to 12 hours
+
+# https://docs.codecov.com/docs/codecovyml-reference#comment
+# https://docs.codecov.com/docs/pull-request-comments
+# comment:                  # this is a top-level key
+#   layout: " diff, flags, files"
+#   behavior: default
+#   require_changes: false  # learn more in the Requiring Changes section below
+#   require_base: false        # [true :: must have a base report to post]
+#   require_head: true       # [true :: must have a head report to post]
+#   hide_project_coverage: false # [true :: only show coverage on the git diff]
+comment: false  # Disable comment
+
+# https://docs.codecov.com/docs/codecovyml-reference#ignore
+# https://docs.codecov.com/docs/ignoring-paths
 ignore:
-- "**/conftest.py"
-- "scikitplot/_build_utils"
-- "scikitplot/cexperimental"
-- "scikitplot/cexternals"
-- "scikitplot/experimental"
-- "scikitplot/externals"
+  # - "path/to/folder"  # ignore folders and all its contents
+  # - "test_*.rb"       # wildcards accepted
+  # - "**/*.py"         # glob accepted
+  - "**/conftest.py"
+  - "scikitplot/_build_utils"
+  - "scikitplot/cexperimental"
+  - "scikitplot/cexternals"
+  - "!scikitplot/cexternals/annoy"
+  - "scikitplot/experimental"
+  - "scikitplot/externals"
