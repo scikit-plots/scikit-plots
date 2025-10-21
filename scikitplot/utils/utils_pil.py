@@ -1,12 +1,13 @@
-"""utils_pil.py."""
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
+# ruff: noqa: PLC0415
 # pylint: disable=import-error
 # pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
+
+"""utils_pil.py."""
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 # import inspect
 # import logging
@@ -450,12 +451,12 @@ def save_image_pil_kwargs(
             if str(backend).lower() in ("matplotlib", "true", "none", None):
                 try:
                     if _plt.get_fignums():
-                        fig = (
+                        _fig = (
                             _plt.gcf()
                         )  # Get current figure (create one if none exists)
                         ax = _plt.gca()  # Get current axes (create one if none exists)
                     else:
-                        fig, ax = (
+                        _fig, ax = (
                             _plt.subplots()
                         )  # Attempt to show and save using matplotlib
 

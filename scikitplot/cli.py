@@ -1,3 +1,5 @@
+# ruff: noqa: PLC0415
+# ruff: noqa: F401
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
@@ -5,8 +7,6 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=line-too-long
 # pylint: disable=unreachable
-
-# ruff: noqa: F401
 
 # This module was copied from the mlflow project.
 # https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py

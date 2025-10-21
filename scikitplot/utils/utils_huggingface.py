@@ -1,14 +1,15 @@
-"""huggingface helper."""
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
+# ruff: noqa: PLC0415
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
 # pylint: disable=no-name-in-module
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
+
+"""huggingface helper."""
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 import os as _os
 

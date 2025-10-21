@@ -1,3 +1,4 @@
+# ruff: noqa: PLC0415
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation

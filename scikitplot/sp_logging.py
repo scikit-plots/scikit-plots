@@ -1,3 +1,5 @@
+# ruff: noqa: PLC0415
+# ruff: noqa: UP037
 # pylint: disable=import-error
 # pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
@@ -6,8 +8,6 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=reimported
 # pylint: disable=too-many-lines
-
-# ruff: noqa: UP037
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -551,8 +551,8 @@ class GoogleLogFormatter(_logging.Formatter):
         datefmt: str = "%Y-%m-%d %H:%M:%S",
         default_time_format: str = "%Y-%m-%d %H:%M:%S",
         default_msec_format: str = "%s,%03d",
-        backend: "Optional[str]" = None,
-        use_datetime: "Optional[bool]" = True,
+        backend: "str | None" = None,
+        use_datetime: "bool | None" = True,
     ) -> None:
         """Initialize the GoogleLogFormatter with the desired Formatter."""
         # formatTime time module's strftime() function does not support microseconds
@@ -633,9 +633,9 @@ class GoogleLogFormatter(_logging.Formatter):
 
 
 def _make_default_formatter(
-    formatter: "Optional[_logging.Formatter | str]" = "GOOGLE_FORMAT",
-    time_format: "Optional[str]" = None,
-    use_datetime: "Optional[bool]" = True,
+    formatter: "_logging.Formatter | str | None" = "GOOGLE_FORMAT",
+    time_format: "str | None" = None,
+    use_datetime: "bool | None" = True,
 ) -> "_logging.Formatter":
     """
     Create and return a default logging Formatter instance based on the provided formatter type.
@@ -782,7 +782,7 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
 
             Returns
             -------
-            Optional[str]
+            str | None
                 The current handler object name if provided, otherwise None.
         """
         )
@@ -828,8 +828,8 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
 
 
 def _make_default_handler(
-    handler: "Optional[_logging.Handler]" = None,
-    formatter: "Optional[_logging.Formatter]" = None,
+    handler: "_logging.Handler | None" = None,
+    formatter: "_logging.Formatter | None" = None,
 ) -> "_logging.Handler":
     """
     Create and return a default logging Handler.
