@@ -235,7 +235,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "get_config",
                     "get_logger",
                     "logger",
-                    "reset",
                     "set_config",
                     "show_config",
                     "show_versions",
@@ -410,6 +409,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "annoy.Annoy",
                     "annoy.AnnoyIndex",
+                    "annoy.annoylib",
                 ],
             },
         ],
@@ -559,7 +559,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("impute-index"),
         "sections": [
             {
-                "title": "Knn-based imputation.",
+                "title": "Vector-based Knn imputation.",
                 "description": (
                   _get_submodule("scikitplot.impute", "_annoy_knn")
                   + "\n\n"

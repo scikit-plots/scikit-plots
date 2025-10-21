@@ -1,5 +1,5 @@
 # mypy: disallow-any-generics
-# ruff: noqa: D205,F401,F403
+# ruff: noqa: D205,F401,F403,PLC0415
 # Flake8: noqa: F403
 # type: ignore[]
 # pylint: disable=import-error,unused-import,unused-variable,no-name-in-module,line-too-long,import-outside-toplevel
@@ -66,7 +66,6 @@ try:
     # or cannot be imported, this is where we'll get a failure - so give an
     # informative error message.
     from ._lib._ccallback import LowLevelCallable
-    from ._reset import reset
     from ._utils._show_versions import show_versions
     from .config import *
     from .version import (  # type: ignore[reportMissingModuleSource]
@@ -148,7 +147,6 @@ _submodules = sorted(
         "__version__",
         "get_logger",
         "logger",
-        "reset",
         "online_help",
         "show_versions",
         "test",

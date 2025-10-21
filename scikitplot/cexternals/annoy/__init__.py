@@ -27,14 +27,15 @@ that are mmapped into memory so that many processes may share the same data.
 
 References
 ----------
-.. [1] https://pypi.org/project/annoy
+.. [1] `Spotify AB. (2013, Feb 20).
+   "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://pypi.org/project/annoy
+   <https://pypi.org/project/annoy>`_
 """
 
 # This module is a dummy wrapper around the underlying C++ module.
-from .annoylib import Annoy
-
-# alias of Annoy
-AnnoyIndex = Annoy
+from .annoylib import Annoy  # keep for doc
+from .annoylib import Annoy as AnnoyIndex  # alias of Annoy
 
 # Define the annoy version
 # https://github.com/spotify/annoy/blob/main/setup.py

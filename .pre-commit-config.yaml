@@ -15,11 +15,12 @@ ci:
 repos:
   # Critical Checks: Sensitive data, large files, and merge conflicts
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       # - id: requirements-txt-fixer
       # - id: check-docstring-first
       - id: no-commit-to-branch  # Default is master and main.
+        # args: ["--branch=main"]
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
       - id: check-added-large-files  # Prevent giant files from being committed.
@@ -37,7 +38,7 @@ repos:
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-json  # Attempts to load all json files to verify syntax.
         exclude: "^(settings\\.json|\\.devcontainer/.*\\.json|benchmarks/asv\\.conf\\.json)$"
@@ -48,7 +49,7 @@ repos:
 
   # Conflict Prevention: Filename and symlink issues
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-case-conflict  # Checks for file naming conflicts on case-insensitive filesystems.
       - id: check-symlinks  # Checks for symlinks which do not point to anything.
@@ -57,7 +58,7 @@ repos:
 
   # Cleanliness and Formatting: Whitespace, line endings, and file endings
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       # This hook replaces double quoted strings with single quoted strings.
       # - id: double-quote-string-fixer
@@ -124,10 +125,10 @@ repos:
 
   # Code Quality: Linting and Formating Static Analysis
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.13
+    rev: v0.14.0
     hooks:
       - id: ruff  # Run the linter.
-        args: ["--verbose", "--fix", "--show-fixes", "--output-format=full"]  # --unsafe-fixes
+        args: ["--fix", "--show-fixes", "--output-format=full", "--verbose"]  # --unsafe-fixes
         # types_or: [ python, pyi ]
       # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
       - id: ruff-format  # Run the formatter.
@@ -139,6 +140,11 @@ repos:
           # - --config=pyproject.toml   # Optional: use custom config file
         # verbose: true  # Force Ruff to show which files were modified
         # types_or: [ python, pyi ]
+
+  # - repo: https://github.com/pre-commit/mirrors-prettier
+  #   rev: v4.0.0-alpha.8
+  #   hooks:
+  #     - id: prettier
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.16.0

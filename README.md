@@ -397,12 +397,6 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 # pip install numpy==1.26.4
 ```
 
-<p>
-  See Also:
-  <a href="https://doc.pypy.org/en/latest/cpython_differences.html" target="_blank" rel="noopener noreferrer">
-    cpython ppython differences
-  </a>
-</p>
 
 <h3>
   - By
@@ -865,6 +859,46 @@ with the required packages. For help, see the [GitHub Codespaces docs](https://d
   <img style="display:auto;width:auto;height:auto;" alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg">
   </a><br>
 </div>
+
+<!--
+<table>
+  <thead>
+    <tr>
+      <th>Reference</th>
+      <th>Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CPython (default implementation)</td>
+      <td><a href="https://github.com/python/cpython" target="_blank">GitHub</a></td>
+    </tr>
+    <tr>
+      <td>PyPy (alternative Python interpreter)</td>
+      <td><a href="https://github.com/pypy/pypy" target="_blank">GitHub</a></td>
+    </tr>
+    <tr>
+      <td>Differences between CPython and PyPy</td>
+      <td><a href="https://doc.pypy.org/en/latest/cpython_differences.html" target="_blank">Documentation</a></td>
+    </tr>
+    <tr>
+      <td>Python Support for Free Threading</td>
+      <td><a href="https://docs.python.org/3/howto/free-threading-python.html" target="_blank">Docs</a></td>
+    </tr>
+    <tr>
+      <td>C API Extension Support for Free Threading</td>
+      <td><a href="https://docs.python.org/3/howto/free-threading-extensions.html" target="_blank">Docs</a></td>
+    </tr>
+    <tr>
+      <td>Python Free-Threading Guide</td>
+      <td><a href="https://py-free-threading.github.io/" target="_blank">Guide</a></td>
+    </tr>
+    <tr>
+      <td>Installing Free-Threaded Python</td>
+      <td><a href="https://py-free-threading.github.io/installing-cpython/" target="_blank">Installation</a></td>
+    </tr>
+  </tbody>
+</table> -->
 
 
 ## Acknowledging (Governance) and Citing Scikit-plots

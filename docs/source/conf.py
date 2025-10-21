@@ -1586,7 +1586,6 @@ sphinx_gallery_conf = {
         "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
         "matplotlib",
         "seaborn",
-        # "scikitplot.reset",  # (sklearn, matplotlib, seaborn, numpy)
     ),
     # By default, Sphinx-Gallery will reset modules before each example is run.
     "reset_modules_order": "both",  # 'before' or 'after'

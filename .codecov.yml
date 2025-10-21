@@ -71,6 +71,8 @@ ignore:
   # - "**/*.py"         # glob accepted
   - "**/conftest.py"
   - "scikitplot/_build_utils"
+  - "scikitplot/_min_dependencies.py"
+  - "scikitplot/ml_package_versions.py"
   - "scikitplot/cexperimental"
   # ✅ Do not ignore the whole "cexternals" folder if you want coverage for annoy
   # - "scikitplot/cexternals"

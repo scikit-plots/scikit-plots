@@ -30,9 +30,9 @@ configure_file(
   input: '_version.py.in',
   output: '_version.py',
   configuration: conf_ast,
-  install: true,
-  install_dir: py.get_install_dir() / 'scikitplot/cexternals/_astropy',
-  install_tag: 'python-runtime',
+  # install: true,
+  # install_dir: py.get_install_dir() / 'scikitplot/cexternals/_astropy',
+  # install_tag: 'python-runtime',
 )
 
 ######################################################################
