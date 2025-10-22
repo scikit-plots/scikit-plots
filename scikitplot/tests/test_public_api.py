@@ -47,6 +47,7 @@ PUBLIC_MODULES = [
         "config",
         "config.cbook",
         "experimental",
+        "experimental.enable_annoyknn_imputer",
         "experimental.pipeline",
         "experimental.pipeline.pipeline",
         "externals",
