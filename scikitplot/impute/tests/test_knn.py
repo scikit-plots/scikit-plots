@@ -454,6 +454,9 @@ def test_knn_imputer_callable_metric():
 # Note that we use working_memory=0 to ensure that chunking is tested, even
 # for a small dataset. However, it should raise a UserWarning that we ignore.
 @pytest.mark.filterwarnings("ignore:adhere to working_memory")
+@pytest.mark.filterwarnings("ignore:Could not adhere to working_memory config:UserWarning")
+@pytest.mark.filterwarnings("ignore:.*working_memory.*UserWarning")
+@pytest.mark.filterwarnings(r"ignore:.*working_memory config.*:UserWarning")
 def test_knn_imputer_with_simple_example(na, working_memory):
     X = np.array(
         [
@@ -540,6 +543,7 @@ def test_knn_imputer_drops_all_nan_features(na):
     assert_allclose(knn.transform(X2), X2_expected)
 
 
+@pytest.mark.filterwarnings("ignore:Could not adhere to working_memory config:UserWarning")
 @pytest.mark.parametrize("working_memory", [None, 0])
 @pytest.mark.parametrize("na", [-1, np.nan])
 def test_knn_imputer_distance_weighted_not_enough_neighbors(na, working_memory):

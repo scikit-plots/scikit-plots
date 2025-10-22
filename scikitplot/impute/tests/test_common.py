@@ -109,6 +109,8 @@ def test_imputers_add_indicator_sparse(imputer, marker, csr_container):
 
 
 # ConvergenceWarning will be raised by the IterativeImputer
+# @pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore:Skipping features without any observed values")
 @pytest.mark.filterwarnings("ignore::sklearn.exceptions.ConvergenceWarning")
 @pytest.mark.parametrize("imputer", imputers(), ids=lambda x: x.__class__.__name__)
 @pytest.mark.parametrize("add_indicator", [True, False])
@@ -138,6 +140,8 @@ def test_imputers_pandas_na_integer_array_support(imputer, add_indicator):
     assert_allclose(X_trans_expected, X_trans)
 
 
+# @pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore:Skipping features without any observed values")
 @pytest.mark.parametrize("imputer", imputers(), ids=lambda x: x.__class__.__name__)
 @pytest.mark.parametrize("add_indicator", [True, False])
 def test_imputers_feature_names_out_pandas(imputer, add_indicator):
@@ -177,6 +181,8 @@ def test_imputers_feature_names_out_pandas(imputer, add_indicator):
         assert_array_equal(expected_names, names)
 
 
+# @pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore:Skipping features without any observed values")
 @pytest.mark.parametrize("keep_empty_features", [True, False])
 @pytest.mark.parametrize("imputer", imputers(), ids=lambda x: x.__class__.__name__)
 def test_keep_empty_features(imputer, keep_empty_features):
