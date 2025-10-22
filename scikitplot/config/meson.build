@@ -105,8 +105,8 @@ configure_file(
   input: '__config__.py.in',
   output: '__config__.py',
   configuration: conf_data,
-  install_dir: py.get_install_dir() / 'scikitplot/config',
   install: true,
+  install_dir: py.get_install_dir() / 'scikitplot/config',
   install_tag: 'python-runtime',
 )
 

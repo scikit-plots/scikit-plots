@@ -12,11 +12,16 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+import os
+
 import multiprocessing.pool
 
 import numpy
 
-from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
 
 
 def test_threads():
@@ -26,9 +31,12 @@ def test_threads():
         i.add_item(j, numpy.random.normal(size=f))
     i.build(10)
 
-    pool = multiprocessing.pool.ThreadPool()
-
     def query_f(j):
         i.get_nns_by_item(1, 1000)
 
-    pool.map(query_f, range(n))
+    # pool = multiprocessing.pool.ThreadPool()
+    with multiprocessing.pool.ThreadPool() as pool:
+        pool.map(query_f, range(n))
+        # ✅ Proper cleanup
+        # pool.close()
+        # pool.join()

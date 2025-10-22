@@ -1567,7 +1567,7 @@ sphinx_gallery_conf = {
         # 'filepath_prefix': '<prefix>'
     },
     # Optional Additional options
-    "line_numbers": True,  # sphinx_gallery_line_numbers = True
+    "line_numbers": False,  # sphinx_gallery_line_numbers = True
     "first_notebook_cell": (
         "# This cell is added by Sphinx-Gallery\n"
         "# It can be customized to whatever you like\n"
@@ -1586,7 +1586,6 @@ sphinx_gallery_conf = {
         "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
         "matplotlib",
         "seaborn",
-        # "scikitplot.reset",  # (sklearn, matplotlib, seaborn, numpy)
     ),
     # By default, Sphinx-Gallery will reset modules before each example is run.
     "reset_modules_order": "both",  # 'before' or 'after'

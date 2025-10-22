@@ -12,12 +12,16 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+import os
 import random
 
 import numpy
 import pytest
 
-from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
 
 
 def dot_metric(a, b):

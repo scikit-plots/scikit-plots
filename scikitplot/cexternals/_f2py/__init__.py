@@ -30,10 +30,6 @@ References
 
 __all__ = ["get_include"]
 
-import os
-
-# from ..exceptions import VisibleDeprecationWarning
-
 
 def get_include():
     """
@@ -86,4 +82,5 @@ def get_include():
     .. [4] `https://scipy-cookbook.readthedocs.io/items/F2Py.html`_
     .. [5] `https://scipy-cookbook.readthedocs.io/items/idx_interfacing_with_other_languages.html`_
     """
+    import os
     return os.path.join(os.path.dirname(__file__), "src")

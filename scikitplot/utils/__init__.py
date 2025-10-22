@@ -1,14 +1,15 @@
+# ruff: noqa: PLC0415
+# pylint: disable=import-outside-toplevel
+# pylint: disable=broad-exception-caught
+
+# scikitplot/utils/__init__.py
+
 """
 Development Utilities for Module.
 
 The :py:mod:`~scikitplot.utils` module contains a number of utility functions
 to work with the scikitplot library.
 """
-
-# scikitplot/utils/__init__.py
-
-# pylint: disable=import-outside-toplevel
-# pylint: disable=broad-exception-caught
 
 import inspect as _inspect
 

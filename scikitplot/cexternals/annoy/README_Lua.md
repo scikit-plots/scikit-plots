@@ -10,7 +10,6 @@ written by Peter Melnichenko.
 ```
   pip install hererocks
   hererocks here --lua 5.1 --luarocks 2.2
-  hererocks here --lua 5.4 --luarocks latest --no-readline
 ```
 
 This command installs Lua and LuaRocks locally to directory `here`.

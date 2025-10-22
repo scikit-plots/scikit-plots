@@ -51,3 +51,13 @@ C-Externals (experimental)
             :maxdepth: 3
 
             ./_lightnumpy/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **NumCpp**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            NumCpp <./_numcpp/index.rst>

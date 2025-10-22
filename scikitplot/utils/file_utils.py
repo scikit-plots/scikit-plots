@@ -1,3 +1,4 @@
+# ruff: noqa: PLC0415
 # pylint: disable=broad-exception-caught
 # pylint: disable=broad-exception-raised
 # pylint: disable=import-outside-toplevel
@@ -2855,8 +2856,9 @@ def download_chunk_direct(chunk: _Chunk, headers: dict, http_uri: str) -> None:
 
     with open(chunk.path, "r+b") as f:
         f.seek(chunk.start)
-        for block in response.iter_content(1024 * 1024):  # 1MB
-            f.write(block)
+        f.writelines(response.iter_content(1024 * 1024))
+        # for block in response.iter_content(1024 * 1024):  # 1MB
+        #     f.write(block)
 
 
 def parallelized_download_file(

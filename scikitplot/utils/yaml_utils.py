@@ -1,9 +1,10 @@
-"""yaml_utils."""
-
+# ruff: noqa: PLC0415
 # pylint: disable=line-too-long
 # pylint: disable=broad-exception-caught
 # pylint: disable=broad-exception-raised
 # pylint: disable=import-outside-toplevel
+
+"""yaml_utils."""
 
 import codecs as _codecs
 import json as _json

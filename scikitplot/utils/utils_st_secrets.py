@@ -1,10 +1,11 @@
+# ruff: noqa: PLC0415
+# pylint: disable=import-outside-toplevel
+# pylint: disable=broad-exception-caught
+
 """secret_utils."""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-
-# pylint: disable=import-outside-toplevel
-# pylint: disable=broad-exception-caught
 
 import os as _os
 

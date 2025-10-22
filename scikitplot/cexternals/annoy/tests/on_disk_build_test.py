@@ -16,13 +16,16 @@ import os
 
 import pytest
 
-from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp():
-    if os.path.exists("on_disk.ann"):
-        os.remove("on_disk.ann")
+    if os.path.exists(f"{HERE}/on_disk.ann"):
+        os.remove(f"{HERE}/on_disk.ann")
 
 
 def add_items(i):
@@ -40,13 +43,13 @@ def check_nns(i):
 def test_on_disk():
     f = 2
     i = AnnoyIndex(f, "euclidean")
-    i.on_disk_build("on_disk.ann")
+    i.on_disk_build(f"{HERE}/on_disk.ann")
     add_items(i)
     i.build(10)
     check_nns(i)
     i.unload()
-    i.load("on_disk.ann")
+    i.load(f"{HERE}/on_disk.ann")
     check_nns(i)
     j = AnnoyIndex(f, "euclidean")
-    j.load("on_disk.ann")
+    j.load(f"{HERE}/on_disk.ann")
     check_nns(j)

@@ -1,7 +1,8 @@
-"""git_utils.py."""
-
+# ruff: noqa: PLC0415
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
+
+"""git_utils.py."""
 
 # import logging
 import os as _os

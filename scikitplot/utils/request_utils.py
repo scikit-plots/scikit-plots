@@ -1,13 +1,14 @@
+# ruff: noqa: PLC0415
+# pylint: disable=import-outside-toplevel
+# pylint: disable=line-too-long
+# pylint: disable=no-member
+# pylint: disable=consider-using-f-string
+
 """request_utils.py."""
 
 # DO NO IMPORT MLFLOW IN THIS FILE.
 # This file is imported by download_cloud_file_chunk.py.
 # Importing mlflow is time-consuming and we want to avoid that in artifact download subprocesses.
-
-# pylint: disable=import-outside-toplevel
-# pylint: disable=line-too-long
-# pylint: disable=no-member
-# pylint: disable=consider-using-f-string
 
 import os as _os
 import random as _random

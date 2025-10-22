@@ -1,5 +1,5 @@
 """
-plot_impute with examples
+annoy impute with examples
 ==================================
 
 Examples related to the :py:class:`~scikitplot.impute.AnnoyKNNImputer` class
@@ -170,7 +170,7 @@ from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer, KNNImputer, SimpleImputer
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import MaxAbsScaler, RobustScaler
 
 N_SPLITS = 4
 
@@ -185,9 +185,8 @@ def get_score(X, y, imputer=None):
     )
     return scores.mean(), scores.std()
 
-x_labels = []
-
 n_size = 7
+x_labels = np.zeros(n_size, dtype=object)
 mses_diabetes = np.zeros(n_size)
 stds_diabetes = np.zeros(n_size)
 mses_california = np.zeros(n_size)
@@ -202,7 +201,7 @@ t0 = time.time()
 mses_diabetes[0], stds_diabetes[0] = get_score(X_diabetes, y_diabetes)
 mses_california[0], stds_california[0] = get_score(X_california, y_california)
 mses_train[0], stds_train[0] = get_score(X_train, y_train)
-x_labels.append("Full Data")
+x_labels[0] = "Full Data"
 T = time.time() - t0
 print(T)
 time_data[0] = T
@@ -220,7 +219,7 @@ mses_california[1], stds_california[1] = get_score(
 mses_train[1], stds_train[1] = get_score(
     X_miss_train, y_miss_train, imputer
 )
-x_labels.append("Zero\nImputation\n(constant)")
+x_labels[1] = "Zero\nImputation\n(constant)"
 T = time.time() - t0
 print(T)
 time_data[1] = T
@@ -238,7 +237,7 @@ mses_california[2], stds_california[2] = get_score(
 mses_train[2], stds_train[2] = get_score(
     X_miss_train, y_miss_train, imputer
 )
-x_labels.append("Mean\nImputation")
+x_labels[2] = "Mean\nImputation"
 T = time.time() - t0
 print(T)
 time_data[2] = T
@@ -256,7 +255,7 @@ mses_california[3], stds_california[3] = get_score(
 mses_train[3], stds_train[3] = get_score(
     X_miss_train, y_miss_train, imputer
 )
-x_labels.append("Median\nImputation")
+x_labels[3] = "Median\nImputation"
 T = time.time() - t0
 print(T)
 time_data[3] = T
@@ -266,18 +265,37 @@ time_data[3] = T
 t0 = time.time()
 imputer = KNNImputer(add_indicator=True)
 mses_diabetes[4], stds_diabetes[4] = get_score(
-    X_miss_diabetes, y_miss_diabetes, imputer
+    X_miss_diabetes, y_miss_diabetes, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
 mses_california[4], stds_california[4] = get_score(
-    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), imputer)
+    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
 mses_train[4], stds_train[4] = get_score(
-    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), imputer)
+    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
-x_labels.append("KNN\nImputation")
+x_labels[4] = "KNN\nImputation"
 T = time.time() - t0
 print(T)
 time_data[4] = T
+
+
+# %%
+t0 = time.time()
+imputer = IterativeImputer(add_indicator=True)
+
+mses_diabetes[5], stds_diabetes[5] = get_score(
+    X_miss_diabetes, y_miss_diabetes, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+)
+mses_california[5], stds_california[5] = get_score(
+    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+)
+mses_train[5], stds_train[5] = get_score(
+    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+)
+x_labels[5] = "Iterative\nImputation\n(BayesianRidge)"
+T = time.time() - t0
+print(T)
+time_data[5] = T
 
 
 # %%
@@ -286,48 +304,27 @@ sp.__version__
 
 
 # %%
+from scikitplot.experimental import enable_annoyknn_imputer
 from scikitplot.impute import AnnoyKNNImputer
 # print(AnnoyKNNImputer.__doc__)
 
 
 # %%
 t0 = time.time()
-imputer = AnnoyKNNImputer(
-    add_indicator=True,
-    n_trees=5,
-    search_k=1000,
-    n_neighbors=5,
-    index_nan_strategy='mean',
-)
-mses_diabetes[5], stds_diabetes[5] = get_score(
-    X_miss_diabetes, y_miss_diabetes, imputer
-)
-mses_california[5], stds_california[5] = get_score(
-    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), imputer)
-)
-mses_train[5], stds_train[5] = get_score(
-    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), imputer)
-)
-x_labels.append("AnnoyKNN\nImputation\n(Tree Based)")
-T = time.time() - t0
-print(T)
-time_data[5] = T
-
-
-# %%
-t0 = time.time()
-imputer = IterativeImputer(add_indicator=True)
-
+# 'angular', 'euclidean', 'manhattan', 'hamming', 'dot'
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_trees=5, metric='dot')
 mses_diabetes[6], stds_diabetes[6] = get_score(
-    X_miss_diabetes, y_miss_diabetes, imputer
+    X_miss_diabetes, y_miss_diabetes, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_trees=10, metric='dot')
 mses_california[6], stds_california[6] = get_score(
-    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), imputer)
+    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_trees=20, metric='angular')
 mses_train[6], stds_train[6] = get_score(
-    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), imputer)
+    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
-x_labels.append("Iterative\nImputation\n(BayesianRidge)")
+x_labels[6] = "AnnoyKNN\nImputation\n(Vector Based)"
 T = time.time() - t0
 print(T)
 time_data[6] = T
@@ -363,7 +360,7 @@ for j, td in zip(xval, time_data):
 
 # Add bar value labels
 for bar in bars1:
-    ax1.bar_label(bar, fmt="%.3f", label_type='center', padding=-20)
+    ax1.bar_label(bar, fmt="%.3f", label_type='center', padding=-45)
 
 ax1.set_title("Imputation Techniques with Diabetes Data")
 ax1.set_xlim(left=np.min(mses_diabetes) * 0.9, right=np.max(mses_diabetes) * 1.1)
@@ -389,7 +386,7 @@ for j, td in zip(xval, time_data):
 
 # Add bar value labels
 for bar in bars2:
-    ax2.bar_label(bar, fmt="%.3f", label_type='center', padding=-20)
+    ax2.bar_label(bar, fmt="%.3f", label_type='center', padding=-45)
 
 ax2.set_title("Imputation Techniques with California Data")
 ax2.set_yticks(xval)
@@ -414,7 +411,7 @@ for j, td in zip(xval, time_data):
 
 # Add bar value labels
 for bar in bars3:
-    ax3.bar_label(bar, fmt="%.3f", label_type='center', padding=-20)
+    ax3.bar_label(bar, fmt="%.3f", label_type='center', padding=-45)
 
 ax3.set_title("Imputation Techniques with Train Data")
 ax3.set_yticks(xval)
@@ -425,6 +422,12 @@ ax3.set_yticklabels([""] * n_bars)
 plt.legend(title='Time')
 plt.tight_layout()
 plt.show()
+
+# %%
+# AnnoyKNNImputer performance and accuracy are highly sensitive to both the
+# selected distance metric and the number of trees used to build the Annoy index.
+# An inappropriate metric or insufficient number of trees may lead to poor
+# neighbor retrieval and degraded imputation quality.
 
 # %%
 #

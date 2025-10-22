@@ -16,19 +16,39 @@ import os
 import random
 
 import pytest
+try:
+    from urllib import urlretrieve
+except ImportError:
+    from urllib.request import urlretrieve  # Python 3
 
-from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
+
+
+def _get_test_data(url=None):
+    # 'https://github.com/spotify/annoy/raw/refs/heads/main/test/test.tree'
+    url = url or 'https://github.com/spotify/annoy/raw/main/test/test.tree'
+    filename = os.path.join(HERE, os.path.basename(url))
+
+    if not os.path.exists(filename):
+        print("downloading", url, "->", filename)
+        urlretrieve(url, filename)
+
+
+_get_test_data()
 
 
 def test_not_found_tree():
     i = AnnoyIndex(10, "angular")
     with pytest.raises(IOError):
-        i.load("nonexists.tree")
+        i.load(f"{HERE}/nonexists.tree")
 
 
 def test_binary_compatibility():
     i = AnnoyIndex(10, "angular")
-    i.load("test/test.tree")
+    i.load(f"{HERE}/test.tree")
 
     # This might change in the future if we change the search algorithm, but in that case let's update the test
     assert i.get_nns_by_item(0, 10) == [0, 85, 42, 11, 54, 38, 53, 66, 19, 31]
@@ -38,14 +58,14 @@ def test_load_unload():
     # Issue #108
     i = AnnoyIndex(10, "angular")
     for x in range(100000):
-        i.load("test/test.tree")
+        i.load(f"{HERE}/test.tree")
         i.unload()
 
 
 def test_construct_load_destruct():
     for x in range(100000):
         i = AnnoyIndex(10, "angular")
-        i.load("test/test.tree")
+        i.load(f"{HERE}/test.tree")
 
 
 def test_construct_destruct():
@@ -60,31 +80,31 @@ def test_save_twice():
     for i in range(100):
         t.add_item(i, [random.gauss(0, 1) for z in range(10)])
     t.build(10)
-    t.save("t1.ann")
-    t.save("t2.ann")
+    t.save(f"{HERE}/t1.ann")
+    t.save(f"{HERE}/t2.ann")
 
 
 def test_load_save():
     # Issue #61
     i = AnnoyIndex(10, "angular")
-    i.load("test/test.tree")
+    i.load(f"{HERE}/test.tree")
     u = i.get_item_vector(99)
-    i.save("i.tree")
+    i.save(f"{HERE}/i.tree")
     v = i.get_item_vector(99)
     assert u == v
     j = AnnoyIndex(10, "angular")
-    j.load("test/test.tree")
+    j.load(f"{HERE}/test.tree")
     w = i.get_item_vector(99)
     assert u == w
     # Ensure specifying if prefault is allowed does not impact result
-    j.save("j.tree", True)
+    j.save(f"{HERE}/j.tree", True)
     k = AnnoyIndex(10, "angular")
-    k.load("j.tree", True)
+    k.load(f"{HERE}/j.tree", True)
     x = k.get_item_vector(99)
     assert u == x
-    k.save("k.tree", False)
+    k.save(f"{HERE}/k.tree", False)
     l = AnnoyIndex(10, "angular")
-    l.load("k.tree", False)
+    l.load(f"{HERE}/k.tree", False)
     y = l.get_item_vector(99)
     assert u == y
 
@@ -95,19 +115,19 @@ def test_save_without_build():
         t.add_item(i, [random.gauss(0, 1) for z in range(10)])
     # Note: in earlier version, this was allowed (see eg #61)
     with pytest.raises(Exception):
-        t.save("x.tree")
+        t.save(f"{HERE}/x.tree")
 
 
 def test_unbuild_with_loaded_tree():
     i = AnnoyIndex(10, "angular")
-    i.load("test/test.tree")
+    i.load(f"{HERE}/test.tree")
     with pytest.raises(Exception):
         i.unbuild()
 
 
 def test_seed():
     i = AnnoyIndex(10, "angular")
-    i.load("test/test.tree")
+    i.load(f"{HERE}/test.tree")
     i.set_seed(42)
 
 
@@ -140,7 +160,7 @@ def test_item_vector_after_save():
     assert a.get_n_items() == 4
     assert a.get_item_vector(3) == [0, 0, 1]
     assert set(a.get_nns_by_item(1, 999)) == set([1, 2, 3])
-    a.save("something.annoy")
+    a.save(f"{HERE}/something.annoy")
     assert a.get_n_items() == 4
     assert a.get_item_vector(3) == [0, 0, 1]
     assert set(a.get_nns_by_item(1, 999)) == set([1, 2, 3])
@@ -148,7 +168,7 @@ def test_item_vector_after_save():
 
 def test_prefault():
     i = AnnoyIndex(10, "angular")
-    i.load("test/test.tree", prefault=True)
+    i.load(f"{HERE}/test.tree", prefault=True)
     assert i.get_nns_by_item(0, 10) == [0, 85, 42, 11, 54, 38, 53, 66, 19, 31]
 
 
@@ -168,11 +188,11 @@ def test_overwrite_index():
         v = [random.gauss(0, 1) for z in range(f)]
         t.add_item(i, v)
     t.build(10)
-    t.save("test.ann")
+    t.save(f"{HERE}/test.ann")
 
     # Load index file
     t2 = AnnoyIndex(f, "angular")
-    t2.load("test.ann")
+    t2.load(f"{HERE}/test.ann")
 
     # Overwrite index file
     t3 = AnnoyIndex(f, "angular")
@@ -183,9 +203,9 @@ def test_overwrite_index():
     if os.name == "nt":
         # Can't overwrite on Windows
         with pytest.raises(IOError):
-            t3.save("test.ann")
+            t3.save(f"{HERE}/test.ann")
     else:
-        t3.save("test.ann")
+        t3.save(f"{HERE}/test.ann")
         # Get nearest neighbors
         v = [random.gauss(0, 1) for z in range(f)]
         t2.get_nns_by_vector(v, 1000)  # Should not crash
@@ -193,7 +213,7 @@ def test_overwrite_index():
 
 def test_get_n_trees():
     i = AnnoyIndex(10, "angular")
-    i.load("test/test.tree")
+    i.load(f"{HERE}/test.tree")
     assert i.get_n_trees() == 10
 
 
@@ -221,14 +241,14 @@ def test_dimension_mismatch():
     for i in range(1000):
         t.add_item(i, [random.gauss(0, 1) for z in range(100)])
     t.build(10)
-    t.save("test.annoy")
+    t.save(f"{HERE}/test.annoy")
 
     u = AnnoyIndex(200, "angular")
     with pytest.raises(IOError):
-        u.load("test.annoy")
+        u.load(f"{HERE}/test.annoy")
     u = AnnoyIndex(50, "angular")
     with pytest.raises(IOError):
-        u.load("test.annoy")
+        u.load(f"{HERE}/test.annoy")
 
 
 def test_add_after_save():
@@ -237,7 +257,7 @@ def test_add_after_save():
     for i in range(1000):
         t.add_item(i, [random.gauss(0, 1) for z in range(100)])
     t.build(10)
-    t.save("test.annoy")
+    t.save(f"{HERE}/test.annoy")
 
     # Used to segfault:
     v = [random.gauss(0, 1) for z in range(100)]
@@ -268,7 +288,7 @@ def test_very_large_index():
         m.add_item(n_vectors + i, [random.gauss(0, 1) for z in range(f)])
     n_trees = 10
     m.build(n_trees)
-    path = "test_big.annoy"
+    path = f"{HERE}/test_big.annoy"
     m.save(path)  # Raises on Windows
 
     # Sanity check size of index

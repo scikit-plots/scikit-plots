@@ -1,0 +1,20 @@
+*.egg-info/
+*.egg/
+*.so
+*.o
+build/
+dist/
+.vscode/
+*.pdb
+
+MANIFEST
+*.py[cod]
+*.idea
+
+# testing
+!**/test.tree
+*.ann
+*.tree
+*.annoy
+*.idx
+*.hdf5

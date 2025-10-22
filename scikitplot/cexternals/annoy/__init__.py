@@ -16,23 +16,35 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Annoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
+High-dimensional Approximate Nearest Neighbors (ANN) queries in C++/Python optimized
+for memory usage and loading/saving to disk.
+
+Python module (written in C++) for high-dimensional approximate nearest neigbor (ANN) queries.
+Spotify-Annoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
 to search for points in space that are close to a given query point.
 It also creates large read-only file-based data structures
 that are mmapped into memory so that many processes may share the same data.
 
 References
 ----------
-.. [1] https://pypi.org/project/annoy
+.. [1] `Spotify AB. (2013, Feb 20).
+   "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://pypi.org/project/annoy
+   <https://pypi.org/project/annoy>`_
 """
 
 # This module is a dummy wrapper around the underlying C++ module.
-from .annoylib import Annoy
+from .annoylib import Annoy  # keep for doc
+from .annoylib import Annoy as AnnoyIndex  # alias of Annoy
 
-# alias of Annoy
-AnnoyIndex = Annoy
+# Define the annoy version
+# https://github.com/spotify/annoy/blob/main/setup.py
+__version__ = "1.17.3"
+__author__ = "Erik Bernhardsson"
+__author_email__ = "mail@erikbern.com"
 
 __all__ = [
     'Annoy',
     'AnnoyIndex',
+    'annoylib',
 ]

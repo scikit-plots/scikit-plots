@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/mwaskom/seaborn.git",
+  "version": "v0.13.2",
+  "commit_hash": "9521ea1f29b5ce1df1aa2ed6f65f3bd1c63884bb",
+  "tree_mode": "bash-sha256sum",
+  "tree_hash": "56eba161e33b9b5854e808e1cad0ab573af327b467f697c852690364885f1fcc",
+  "generated_utc": "2025-10-17T22:15:27Z"
+}

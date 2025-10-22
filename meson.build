@@ -1,12 +1,13 @@
-## scikit-plots/meson.build
-## Building C/C++/Rust/native extensions or full native projects
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+## scikit-plots/meson.build
+## Building C/C++/Rust/native extensions or full native projects
 
 ######################################################################
 ## Project
 ## https://mesonbuild.com/Syntax.html#syntax
+## https://github.com/mesonbuild/meson/blob/master/docs/markdown/Syntax.md
 ######################################################################
 
 # Project configuration
@@ -438,6 +439,7 @@ _global_args = [
   '-Wno-sign-compare',                                # Suppress warnings about comparisons between signed and unsigned integers
   '-Wno-switch',                                      # Suppress warnings about switch statement cases that are not handled
   '-Wno-undef',                                       # Suppress warnings if an undefined macro is used
+  # '-Wunused',                                       # Suppress warnings
   '-Wno-unused-but-set-parameter',                    # Suppress warnings about parameters that are set but not used
   '-Wno-error=reorder',                               # Suppress errors for unused functions
   '-Wno-error=unused-function',                       # Suppress errors for unused functions
@@ -697,8 +699,8 @@ dep_py = py.dependency(required: true)
 assert(meson.get_compiler('c').has_header('Python.h', dependencies: dep_py))
 
 # Wrap the include path as an include_directories object
-python_inc = include_directories(py.get_path('include'))
-have_python_header = cc.has_header('Python.h', include_directories: python_inc)
+inc_dir_py = include_directories(py.get_path('include'))
+have_python_header = cc.has_header('Python.h', include_directories: inc_dir_py)
 
 # Emit a warning for 32-bit Python installs on Windows; users are getting
 # unexpected from-source builds there because we no longer provide wheels.

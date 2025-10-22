@@ -1,9 +1,9 @@
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 # Flake8: noqa: F401,F403,F405
 # type: ignore[]
 # pylint: disable=import-error,import-self,undefined-all-variable
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 Configuration module for the package.

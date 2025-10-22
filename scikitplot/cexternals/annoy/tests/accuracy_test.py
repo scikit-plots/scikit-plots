@@ -13,23 +13,24 @@
 # the License.
 
 from __future__ import print_function
-
 import os
 
 import h5py
-
-from annoy import AnnoyIndex
-
 try:
     from urllib import urlretrieve
 except ImportError:
     from urllib.request import urlretrieve  # Python 3
 
+# from annoy import AnnoyIndex
+from scikitplot.cexternals.annoy import AnnoyIndex
+
+HERE = os.path.dirname(__file__)  # "tests"
+
 
 def _get_index(dataset, custom_distance=None, custom_dim=None):
     url = 'http://ann-benchmarks.com/%s.hdf5' % dataset
-    vectors_fn = os.path.join("test", dataset + ".hdf5")
-    index_fn = os.path.join("test", dataset + ".annoy")
+    vectors_fn = os.path.join(HERE, dataset + ".hdf5")
+    index_fn = os.path.join(HERE, dataset + ".annoy")
 
     if not os.path.exists(vectors_fn):
         print("downloading", url, "->", vectors_fn)
@@ -44,7 +45,7 @@ def _get_index(dataset, custom_distance=None, custom_dim=None):
          f = custom_dim
     if custom_distance:
         dataset = dataset.rsplit('-', 2)[0] + "-%d-%s" % (f, custom_distance)
-        index_fn = os.path.join('test', dataset + '.annoy')
+        index_fn = os.path.join(HERE, dataset + '.annoy')
 
 
     annoy = AnnoyIndex(f, distance)

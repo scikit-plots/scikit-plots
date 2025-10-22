@@ -1,10 +1,11 @@
+# ruff: noqa: PLC0415
+# pylint: disable=import-outside-toplevel
+# pylint: disable=too-many-locals
+
 """load_mlflow_gateway_config."""
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-
-# pylint: disable=import-outside-toplevel
-# pylint: disable=too-many-locals
 
 import os as _os
 
