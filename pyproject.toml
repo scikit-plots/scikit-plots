@@ -381,8 +381,8 @@ dev = [
 
   # "pipreqs",                              # Automatically scans the codebase and detects the used libraries.
 ]
-## Testing dependencies
-test = [
+## Testing dependencies, Free-threaded (No-GIL) Python builds, suffix 't'
+test_nogil = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
 
   "hypothesis",                             # Property-based testing
@@ -394,18 +394,27 @@ test = [
   "pytest-timeout",
   "pytest-xdist",                           # Use Multiple CPUs to speed up
 
-  "asv",
-  "mpmath",
+  "asv",                                    # Benchmarking
+  "mpmath",                                 # Arbitrary precision math
   "tenacity",                               # general-purpose retrying library, written in Python
-  "pyinstrument",                           # import time helper
+  "pyinstrument",                           # Performance profiler time helper
 
   # "gmpy2",
   # "pyamg",                                  # Algebraic multigrid solvers manual setup due to not support latest py314
 
   # nose extends unittest to make testing easier.
   # https://nose.readthedocs.io/en/latest/usage.html
-  # "nose",                                   # tox.ini nosetests
-  "h5py",                                   # https://docs.h5py.org/en/stable/quick.html#quick
+  # "nose",                                   # Legacy unittest extensions tox.ini nosetests
+]
+## Testing dependencies, Optional / unsupported in free-threaded builds
+## Standard testing dependencies (Python 3.8 → 3.14)
+test = [
+  "scikit-plots[test_nogil]",               # Reference the 'test' group as a dependency
+
+  ## Free-threaded builds (3.13t, 3.14t) should skip 'h5py' completely.
+  # "h5py",                                   # https://docs.h5py.org/en/stable/quick.html#quick
+  'h5py<=3.11.0;python_version<="3.9"',    #   - <=3.10 for older Python (<3.9)
+  'h5py;python_version>"3.9"',             #   - >=3.9 allowed for standard builds (not free-threaded)
 ]
 emscripten_test = [
   "hypothesis>=6.130.0",                    # Property-based testing
@@ -1110,13 +1119,11 @@ build-frontend = "build"
 # /project will be the $PWD equivalent inside the docker used to build the wheel
 # {project} might be used for higher-level tasks, like referencing the project root.
 # {package} is used to refer to the specific package directory for cibuildwheel
-before-test = "pip install -r {project}/requirements/test.txt"
+# "pip install -r {project}/requirements/test.txt || pip install -r {project}/requirements/test_nogil.txt"
+before-test = "python {project}/tools/wheels/setup_test_deps.py"  # python setup_test_deps.py {project}
 # test-requires = [
-#   "pytest",
-#   "pytest-xdist",
-#   "threadpoolctl",
-#   "pooch",
 #   "hypothesis",
+#   "pytest",
 # ]
 test-command = "bash {project}/tools/wheels/cibw_test_command.sh {project}"
 
