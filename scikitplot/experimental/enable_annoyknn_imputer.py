@@ -22,3 +22,5 @@ from ..impute._iterative_annoy_knn import IterativeAnnoyKNNImputer
 setattr(impute, "AnnoyKNNImputer", AnnoyKNNImputer)
 setattr(impute, "IterativeAnnoyKNNImputer", IterativeAnnoyKNNImputer)
 impute.__all__ += ["AnnoyKNNImputer", "IterativeAnnoyKNNImputer"]
+
+__all__ = []
