@@ -71,6 +71,8 @@ def test_imputers_add_indicator(marker, imputer):
 
 
 # ConvergenceWarning will be raised by the IterativeImputer
+# @pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore:Skipping features without any observed values")
 @pytest.mark.filterwarnings("ignore::sklearn.exceptions.ConvergenceWarning")
 @pytest.mark.parametrize("marker", [np.nan, -1])
 @pytest.mark.parametrize(
