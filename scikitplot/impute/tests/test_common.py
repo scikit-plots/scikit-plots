@@ -36,6 +36,8 @@ def test_imputation_missing_value_in_test_array(imputer):
 
 
 # ConvergenceWarning will be raised by the IterativeImputer
+# @pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore:Skipping features without any observed values")
 @pytest.mark.filterwarnings("ignore::sklearn.exceptions.ConvergenceWarning")
 @pytest.mark.parametrize("marker", [np.nan, -1, 0])
 @pytest.mark.parametrize("imputer", imputers(), ids=lambda x: x.__class__.__name__)
