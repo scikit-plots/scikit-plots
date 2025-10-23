@@ -1116,7 +1116,7 @@ build-frontend = "build"
 # Some of those require binary wheels (often missing for some platforms),
 # or they slow down the test suite runs too much or simply aren't necessary.
 
-# /project will be the $PWD equivalent inside the docker used to build the wheel
+# `project` will be the $PWD equivalent inside the docker used to build the wheel
 # {project} might be used for higher-level tasks, like referencing the project root.
 # {package} is used to refer to the specific package directory for cibuildwheel
 before-test = "pip install -r {project}/requirements/test.txt || pip install -r {project}/requirements/test_nogil.txt || true"
@@ -1147,7 +1147,7 @@ musllinux-aarch64-image = "musllinux_1_2"
 
 # Linux-specific environment variables
 [tool.cibuildwheel.linux.environment]
-# /project will be the $PWD equivalent inside the docker used to build the wheel
+# `project` will be the $PWD equivalent inside the docker used to build the wheel
 PKG_CONFIG_PATH = "/project/.openblas"
 CIBW_ENVIRONMENT = "PKG_CONFIG_PATH=/project/.openblas"
 LD_LIBRARY_PATH = "/project/.openblas/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
@@ -1168,7 +1168,7 @@ repair-wheel-command = [
 
 # macOS-specific environment variables
 [tool.cibuildwheel.macos.environment]
-# /project will be the $PWD equivalent inside the docker used to build the wheel
+# `project` will be the $PWD equivalent inside the docker used to build the wheel
 PKG_CONFIG_PATH = "/project/.openblas"
 DYLD_LIBRARY_PATH = "/project/.openblas/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
 CIBW_ENVIRONMENT_MACOS = "PKG_CONFIG_PATH=/project/.openblas"
@@ -1189,13 +1189,13 @@ repair-wheel-command = "bash -el ./tools/wheels/repair_windows.sh {wheel} {dest_
 
 # Windows-specific environment variables
 [tool.cibuildwheel.windows.environment]
-# /project will be the $PWD equivalent inside the docker used to build the wheel
+# `project` will be the $PWD equivalent inside the docker used to build the wheel
 # This does not work because pkg-config does not like backslashes,
-PKG_CONFIG_PATH = "/project/.openblas"
-PATH = "/project/.openblas/lib${PATH:+:$PATH}"
+PKG_CONFIG_PATH = "project/.openblas"
+PATH = "project/.openblas/lib${PATH:+:$PATH}"
 # do this instead (which will override this setting)
 # set CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=PWD.replace('\\', '/')
-# CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH={project}/.openblas"
+# CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH=project/.openblas"
 
 [tool.cibuildwheel.pyodide]
 before-test = "pip install -r {project}/requirements/emscripten_test.txt"
