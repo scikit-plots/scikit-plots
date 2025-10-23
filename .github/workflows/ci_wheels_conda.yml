@@ -206,18 +206,8 @@ jobs:
             python: ["cp38", "3.8"]  # need scipy
           - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
             python: ["cp39", "3.9"]  # need scipy
-          # - buildplat: [macos-14, macosx, arm64, openblas, "12.3"]
-          #   python: ["cp38", "3.8"]  # need numpy-npymath
-          # - buildplat: [macos-14, macosx, arm64, accelerate, "14.0"]
-          #   python: ["cp38", "3.8"]  # need numpy-npymath
-          # 3.9 is not supported on musllinux
-          # No PyPy on musllinux images
-          # - buildplat: [ubuntu-22.04, musllinux_x86_64]
-          #   python: ["cp310", "3.10"]
-          # - buildplat: [ubuntu-22.04-arm, musllinux_aarch64]
-          #   python: ["cp310", "3.10"]
-          # - buildplat: [ macos13, macosx_x86_64, openblas ]
-          #   python: ["cp313t", "3.13"]
+          # - buildplat: [windows-11-arm, win, ARM64]
+          #   python: ["cp38", "3.8"]  # need ?
 
     env:  # Job level environment NAME: '', $NAME, ${{ env.NAME }}
       IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
@@ -496,13 +486,25 @@ jobs:
           ## for installation of anaconda-client, for upload to anaconda.org
           ## environment will be activated after creation, and in future bash steps
           ## environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
+          # environment-file: etc/example-explicit.conda.lock
+          # channels: conda-forge,defaults
+          # channel-priority: true
           # auto-activate-base: false
           conda-remove-defaults: true
           auto-update-conda: true
           show-channel-urls: true
           miniforge-version: latest
-          python-version: "3.11"
-          architecture: ${{ (matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64') && 'x64' || '' }}
+          python-version: '3.11'  # ${{ matrix.python[1] }}
+          # 'Architecture of Miniconda that should be installed. This is automatically
+          # detected by the runner. If you want to override it, you can use "x64",
+          # "x86", "arm64", "aarch64", "s390x".'
+          # architecture: ${{ (matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64') && 'x64' || '' }}
+
+      # - name: Check ARM
+      #   shell: bash -el {0}
+      #   run: |
+      #     conda install -y python
+      #     python -c "import platform; assert platform.machine() == 'aarch64', platform.machine()"
 
       - name: "📥 Upload Scikit-plots Wheels (.whl) Package(s) to Anaconda.org PyPI index"
         if: success()
