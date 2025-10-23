@@ -119,8 +119,6 @@ runs:
         # Set the path to pkgconf
         PKGCONF_PATH="$VCPKG_ROOT/installed/arm64-windows/tools/pkgconf"
         PKGCONFIG_EXE="$PKGCONF_PATH/pkg-config.exe"
-        # Prepending pkgconf to PATH
-        export PATH="$PKGCONF_PATH:$PATH"
 
         # Copying pkgconf.exe to pkg-config.exe for compatibility, Ensure pkg-config exists
         cp "$PKGCONF_PATH/pkgconf.exe" "$PKGCONFIG_EXE"
@@ -132,16 +130,16 @@ runs:
           exit 1
         fi
 
-        # Removing Strawberry Perl pkg-config from PATH if exists
-        # $(echo "$PATH" | tr ';' '\n' | grep -v 'Strawberry' | grep -v 'perl' | paste -sd ";" -)
-        PATH=$(echo "$PATH" | tr ':' '\n' | grep -vi 'strawberry' | grep -vi 'perl' | paste -sd ":" -)
-        export PATH="$PKGCONF_PATH:$PATH"
-        echo "Current PATH: $PATH"
-
         # Prepend to correct pkgconf PATH (Windows style) to GitHub Actions PATH
         # echo "$PKGCONF_PATH" >> $GITHUB_PATH
         echo "$PKGCONF_PATH" >> "$env:GITHUB_PATH"
 
+        # Prepending pkgconf to PATH
+        export PATH="$PKGCONF_PATH:$PATH"
+        # Removing Strawberry Perl pkg-config from PATH if exists
+        # $(echo "$PATH" | tr ';' '\n' | grep -v 'Strawberry' | grep -v 'perl' | paste -sd ";" -)
+        # PATH=$(echo "$PATH" | tr ':' '\n' | grep -vi 'strawberry' | grep -vi 'perl' | paste -sd ":" -)
+        echo "Current PATH: $PATH"
         echo "Verifying which pkg-config is executable and correct one..."
         command -v "$PKGCONFIG_EXE" || echo "pkg-config not found in PATH"
         "$PKGCONFIG_EXE" --version || echo "pkg-config failed to execute"
