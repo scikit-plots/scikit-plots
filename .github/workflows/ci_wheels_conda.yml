@@ -264,6 +264,21 @@ jobs:
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
+      - name: Install Visual Studio 2022 ARM64 C++ toolchain  # MSVC ARM64 Toolchain -> C/C++ compilation
+        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce #v2.0.0
+        with:
+          # This ensures MSBuild/toolchain is available for ARM64 builds
+          # x86 (default), x64, and arm64
+          msbuild-architecture: arm64
+          # vs-prerelease: true
+          # vs-version: '17.5.4' # Latest VS 2022
+
+      # MSVC → LLVM → pkgconf
+      - name: Set up Flang and pkgconf for ARM64
+        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
+        uses: ./.github/windows_arm64_steps
+
       - name: "🛠️ Windows Setup RTools (32|64-bit)"
         if: ${{ runner.os == 'Windows' }}
         # shell: pwsh
@@ -311,34 +326,6 @@ jobs:
           ## Debug the PKG_CONFIG_PATH and check if it's set correctly
           echo "$PKG_CONFIG_PATH" >> $GITHUB_OUTPUT
           echo "$CIBW_ENVIRONMENT" >> $GITHUB_OUTPUT
-
-      - name: Install Visual Studio 2022 ARM64 C++ toolchain
-        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
-        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce #v2.0.0
-        # shell: pwsh
-        with:
-          # vs-prerelease: true
-          # vs-version: '17.5.4' # Latest VS 2022
-          msbuild-architecture: arm64  # x86 (default), x64, and arm64
-
-      - name: Set environment variables for ARM64
-        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
-        # shell: pwsh
-        run: |
-            # echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            # echo "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            # echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            echo "CC=clang-cl" >> $env:GITHUB_ENV
-            echo "CXX=clang-cl" >> $env:GITHUB_ENV
-            echo "CFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
-            echo "CXXFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
-            echo "FC=flang-new" >> $env:GITHUB_ENV
-            echo "LINK=link.exe /MACHINE:ARM64" >> $env:GITHUB_ENV
-            echo "TARGET_ARCH=${{ matrix.buildplat[2] }}" >> $env:GITHUB_ENV
-
-      - name: Set up Flang and pkgconf for ARM64
-        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
-        uses: ./.github/windows_arm64_steps
 
       # --- matrix.buildplat ---
 
