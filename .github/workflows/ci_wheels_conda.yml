@@ -293,6 +293,21 @@ jobs:
           ## Verify pkg-config installation and its version
           pkg-config --version
 
+      - name: 🛠️ Windows Setup MSVC/Clang (Visual Studio) ARM64 C++ Toolchain  # MSVC -> C/C++ compilation
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce #v2.0.0
+        with:
+          # This ensures MSBuild/toolchain is available for ARM64 builds
+          # x86 (default), x64, and arm64
+          msbuild-architecture: arm64
+
+      - name: Set up Flang and LLVM → pkgconf for ARM64
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
+        uses: ./.github/windows_arm64_steps
+
+      - name: "🛠️ Windows Setup Environment Variables openblas (set PKG_CONFIG_PATH)"
+        if: ${{ runner.os == 'Windows' }}
+        run: |
           ## Set up the  $env:CIBW environment variable, in PowerShell (Windows)
           ## pkgconfig needs a complete path, and not just "./openblas" since the
           # $CIBW = "${{ github.workspace }}"
@@ -312,18 +327,6 @@ jobs:
           ## Debug the PKG_CONFIG_PATH and check if it's set correctly
           echo "$PKG_CONFIG_PATH" >> $GITHUB_OUTPUT
           echo "$CIBW_ENVIRONMENT" >> $GITHUB_OUTPUT
-
-      - name: 🛠️ Windows Setup MSVC/Clang (Visual Studio) ARM64 C++ Toolchain  # MSVC -> C/C++ compilation
-        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
-        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce #v2.0.0
-        with:
-          # This ensures MSBuild/toolchain is available for ARM64 builds
-          # x86 (default), x64, and arm64
-          msbuild-architecture: arm64
-
-      - name: Set up Flang and LLVM → pkgconf for ARM64
-        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
-        uses: ./.github/windows_arm64_steps
 
       # --- matrix.buildplat ---
 
