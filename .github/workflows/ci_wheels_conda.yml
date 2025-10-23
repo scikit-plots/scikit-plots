@@ -255,9 +255,6 @@ jobs:
         with:
           # python-version: "3.x"
           python-version: "3.11"
-          architecture: ${{ matrix.buildplat[2] == 'ARM64' && 'arm64' || env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
-          # cache: "pip"
-          # cache-dependency-path: "environment.yml"
 
       # --- RUNNER_OS ---
 
@@ -324,7 +321,10 @@ jobs:
             # echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
             echo "CC=clang-cl" >> $env:GITHUB_ENV
             echo "CXX=clang-cl" >> $env:GITHUB_ENV
+            echo "CFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
+            echo "CXXFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
             echo "FC=flang-new" >> $env:GITHUB_ENV
+            echo "LINK=link.exe /MACHINE:ARM64" >> $env:GITHUB_ENV
             echo "TARGET_ARCH=${{ matrix.buildplat[2] }}" >> $env:GITHUB_ENV
 
       - name: Set up Flang and pkgconf for ARM64

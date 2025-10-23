@@ -23,7 +23,13 @@ runs:
     - name: Install pkgconf via vcpkg
       shell: pwsh
       run: | # zizmor: ignore[github-env] safe: adding pkgconf to PATH
-        & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
+        REM & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
+        $env:vsVars = & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64 ^& set
+        $vsVars | ForEach-Object {
+            if ($_ -match "^(.*?)=(.*)$") {
+                "$($matches[1])=$($matches[2])" | Out-File -FilePath $env:GITHUB_ENV -Append
+            }
+        }
         $env:VCPKG_ROOT = "C:\vcpkg"
         Set-Location $env:VCPKG_ROOT
         ./vcpkg install pkgconf:arm64-windows
