@@ -1119,8 +1119,8 @@ build-frontend = "build"
 # /project will be the $PWD equivalent inside the docker used to build the wheel
 # {project} might be used for higher-level tasks, like referencing the project root.
 # {package} is used to refer to the specific package directory for cibuildwheel
-# "pip install -r {project}/requirements/test.txt || pip install -r {project}/requirements/test_nogil.txt"
-before-test = "python {project}/tools/wheels/setup_test_deps.py"  # python setup_test_deps.py {project}
+before-test = "pip install -r {project}/requirements/test.txt || pip install -r {project}/requirements/test_nogil.txt || true"
+# before-test = "python {project}/tools/wheels/setup_test_deps.py"
 # test-requires = [
 #   "hypothesis",
 #   "pytest",
