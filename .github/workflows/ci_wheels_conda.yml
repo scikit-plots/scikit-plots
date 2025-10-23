@@ -170,14 +170,14 @@ jobs:
           # should also be able to do multi-archs on a single entry, e.g.
           # [windows-latest, win*, "AMD64 x86"]. However, those two require a different compiler setup
           # so easier to separate out here.
-          - [ubuntu-22.04, manylinux, x86_64]
-          - [ubuntu-22.04, musllinux, x86_64]
-          - [ubuntu-24.04-arm, manylinux, aarch64]
-          - [ubuntu-24.04-arm, musllinux, aarch64]
-          - [macos-13, macosx, x86_64, openblas, "10.14"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
-          - [macos-13, macosx, x86_64, accelerate, "14.0"]
-          - [macos-14, macosx, arm64, openblas, "12.3"]
-          - [macos-14, macosx, arm64, accelerate, "14.0"]
+          # - [ubuntu-22.04, manylinux, x86_64]
+          # - [ubuntu-22.04, musllinux, x86_64]
+          # - [ubuntu-24.04-arm, manylinux, aarch64]
+          # - [ubuntu-24.04-arm, musllinux, aarch64]
+          # - [macos-13, macosx, x86_64, openblas, "10.14"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
+          # - [macos-13, macosx, x86_64, accelerate, "14.0"]
+          # - [macos-14, macosx, arm64, openblas, "12.3"]
+          # - [macos-14, macosx, arm64, accelerate, "14.0"]
           # - [macos-15-intel, macosx, x86_64, openblas, "14.0"]
           - [windows-2022, win, AMD64]  # Window 64 bit ("*-win_amd64", "*-x86_64")
           - [windows-11-arm, win, ARM64]  # Window 64 bit ("*-win_arm64", "*-x86_64")
@@ -281,7 +281,7 @@ jobs:
           }
           ## Verify Tools
           # echo cl /? >> $GITHUB_OUTPUT
-          echo gcc --version >> $GITHUB_OUTPUT
+          # echo gcc --version >> $GITHUB_OUTPUT
 
       - name: "🛠️ Windows Setup Environment Variables (set PKG_CONFIG_PATH)"
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
@@ -430,7 +430,6 @@ jobs:
       - name: "📦 Build Wheels Packages"
         # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
         uses: pypa/cibuildwheel@5f22145df44122af0f5a201f93cf0207171beca7 # v3.0.0
-        shell: bash -el {0}
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           ## Specify target platform
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
@@ -501,12 +500,6 @@ jobs:
           # detected by the runner. If you want to override it, you can use "x64",
           # "x86", "arm64", "aarch64", "s390x".'
           # architecture: ${{ (matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64') && 'x64' || '' }}
-
-      # - name: Check ARM
-      #   shell: bash -el {0}
-      #   run: |
-      #     conda install -y python
-      #     python -c "import platform; assert platform.machine() == 'aarch64', platform.machine()"
 
       - name: "📥 Upload Scikit-plots Wheels (.whl) Package(s) to Anaconda.org PyPI index"
         if: success()
