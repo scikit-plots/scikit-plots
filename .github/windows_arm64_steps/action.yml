@@ -23,16 +23,20 @@ runs:
     - name: Install pkgconf via vcpkg
       shell: pwsh
       run: | # zizmor: ignore[github-env] safe: adding pkgconf to PATH
-        REM & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
-        $env:vsVars = & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64 ^& set
-        $vsVars | ForEach-Object {
+        # Call vcvarsall.bat for ARM64 and capture environment
+        # & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
+        $vcvarsOutput = cmd /C '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64 && set'
+        $vcvarsOutput -split "`r?`n" | ForEach-Object {
             if ($_ -match "^(.*?)=(.*)$") {
-                "$($matches[1])=$($matches[2])" | Out-File -FilePath $env:GITHUB_ENV -Append
+                "$($matches[1].Trim())=$($matches[2].Trim())" | Out-File -FilePath $env:GITHUB_ENV -Append
             }
         }
+
+        # Set up vcpkg
         $env:VCPKG_ROOT = "C:\vcpkg"
         Set-Location $env:VCPKG_ROOT
         ./vcpkg install pkgconf:arm64-windows
+
         $pkgconfPath = "$env:VCPKG_ROOT\installed\arm64-windows\tools\pkgconf"
         Copy-Item "$pkgconfPath\pkgconf.exe" "$pkgconfPath\pkg-config.exe" -Force
         echo "$pkgconfPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
