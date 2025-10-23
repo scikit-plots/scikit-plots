@@ -258,36 +258,37 @@ jobs:
 
       # --- RUNNER_OS ---
 
-      - name: "🛠️ Windows Setup MSVC (32|64-bit)"  # 🔧
-        if: ${{ runner.os == 'Windows' }}
+      - name: "🛠️ Windows Setup MSVC/Clang (Visual Studio) (32|64-bit)"  # 🔧
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
-      - name: "🛠️ Windows Setup RTools (32|64-bit)"
-        if: ${{ runner.os == 'Windows' }}
-        # shell: pwsh
+      - name: "🛠️ Windows Setup RTools (MinGW/GCC) (32|64-bit)"  # R package compilation
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         run: |
           if ($env:IS_32_BIT -eq "true") {
             ## mingw-w32
-            choco install -y --no-progress --skip-automatic rtools
+            choco install rtools -y --no-progress --skip-automatic
             echo "c:\rtools40\i386\bin;" >> $env:GITHUB_PATH
             echo "PKG_CONFIG_PATH=c:/rtools40/i386/lib/pkgconfig" >> $env:GITHUB_ENV
           } else {
             ## mingw-w64
-            choco install -y --no-progress --skip-automatic rtools
+            # choco install rtools -y --no-progress --force --version=4.0.0.20220206
+            choco install rtools -y --no-progress --skip-automatic
             echo "c:\rtools40\ucrt64\bin;" >> $env:GITHUB_PATH
             echo "PKG_CONFIG_PATH=c:/rtools40/ucrt64/lib/pkgconfig" >> $env:GITHUB_ENV
           }
           ## Verify Tools
-          echo cl /? >> $GITHUB_OUTPUT
+          # echo cl /? >> $GITHUB_OUTPUT
           echo gcc --version >> $GITHUB_OUTPUT
 
       - name: "🛠️ Windows Setup Environment Variables (set PKG_CONFIG_PATH)"
-        if: ${{ runner.os == 'Windows' }}
-        # shell: pwsh
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         run: |
           ## Install "pkg-config" via Chocolatey
+          ## For x86/x64 Windows, pkgconfiglite is sufficient.
+          ## For ARM64 Windows, vcpkg pkgconf is mandatory because Chocolatey doesn't provide ARM64 binaries.
           choco install --no-progress --skip-automatic --stoponfirstfailure --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
           ## Verify pkg-config installation and its version
           pkg-config --version
@@ -312,32 +313,16 @@ jobs:
           echo "$PKG_CONFIG_PATH" >> $GITHUB_OUTPUT
           echo "$CIBW_ENVIRONMENT" >> $GITHUB_OUTPUT
 
-      - name: Install Visual Studio 2022 ARM64 C++ toolchain
-        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
+      - name: 🛠️ Windows Setup MSVC/Clang (Visual Studio) ARM64 C++ Toolchain  # MSVC -> C/C++ compilation
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce #v2.0.0
-        # shell: pwsh
         with:
-          # vs-prerelease: true
-          # vs-version: '17.5.4' # Latest VS 2022
-          msbuild-architecture: arm64  # x86 (default), x64, and arm64
+          # This ensures MSBuild/toolchain is available for ARM64 builds
+          # x86 (default), x64, and arm64
+          msbuild-architecture: arm64
 
-      - name: Set environment variables for ARM64
-        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
-        # shell: pwsh
-        run: |
-            # echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            # echo "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            # echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            echo "CC=clang-cl" >> $env:GITHUB_ENV
-            echo "CXX=clang-cl" >> $env:GITHUB_ENV
-            echo "CFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
-            echo "CXXFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
-            echo "FC=flang-new" >> $env:GITHUB_ENV
-            echo "LINK=link.exe /MACHINE:ARM64" >> $env:GITHUB_ENV
-            echo "TARGET_ARCH=${{ matrix.buildplat[2] }}" >> $env:GITHUB_ENV
-
-      - name: Set up Flang and pkgconf for ARM64
-        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
+      - name: Set up Flang and LLVM → pkgconf for ARM64
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
         uses: ./.github/windows_arm64_steps
 
       # --- matrix.buildplat ---
