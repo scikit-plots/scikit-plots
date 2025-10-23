@@ -452,7 +452,7 @@ main() {
     # Accept project dir as first argument, fallback to current dir
     # Define project directory, Get absolute project path
     local project_dir="${1:-$PWD}"
-    project_dir=$(realpath "$project_dir")
+    # project_dir=$(realpath "$project_dir")
     log_info "Project directory: $project_dir"
     # Clean up previous build artifacts
     clean_build

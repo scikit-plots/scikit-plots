@@ -270,13 +270,13 @@ jobs:
           if ($env:IS_32_BIT -eq "true") {
             ## mingw-w32
             choco install rtools -y --no-progress --skip-automatic
-            echo "c:\rtools40\i386\bin;" >> $env:GITHUB_PATH
+            echo "c:/rtools40/i386/bin" >> $env:GITHUB_PATH
             echo "PKG_CONFIG_PATH=c:/rtools40/i386/lib/pkgconfig" >> $env:GITHUB_ENV
           } else {
             ## mingw-w64
             # choco install rtools -y --no-progress --force --version=4.0.0.20220206
             choco install rtools -y --no-progress --skip-automatic
-            echo "c:\rtools40\ucrt64\bin;" >> $env:GITHUB_PATH
+            echo "c:/rtools40/ucrt64/bin" >> $env:GITHUB_PATH
             echo "PKG_CONFIG_PATH=c:/rtools40/ucrt64/lib/pkgconfig" >> $env:GITHUB_ENV
           }
           ## Verify Tools
@@ -305,24 +305,25 @@ jobs:
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
         uses: ./.github/windows_arm64_steps
 
-      - name: "🛠️ Windows Setup Environment Variables openblas (set PKG_CONFIG_PATH)"
+      - name: "🛠️ Windows Set openblas PKG_CONFIG_PATH"
         if: ${{ runner.os == 'Windows' }}
         run: |
           ## Set up the  $env:CIBW environment variable, in PowerShell (Windows)
           ## pkgconfig needs a complete path, and not just "./openblas" since the
-          # $CIBW = "${{ github.workspace }}"
+          # build is run in a tmp dir (?)
+          # Sync with  pyproject.toml -> [tool.cibuildwheel] PKG_CONFIG_PATH
           $CIBW = "${{ github.workspace }}/.openblas"
 
           ## Handle backslash in paths (convert to forward slash)
           ## build is run in a tmp dir (?)
           ## It seems somewhere in the env passing, `\` is not
           ## passed through, so convert it to '/'
-          $CIBW = $CIBW.Replace("\", "/")
+          $CIBW = $CIBW.replace("\", "/")
 
           ## Export PKG_CONFIG_PATH the environment variable for GitHub Actions "$env:GITHUB_ENV"
           echo "PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
-          echo CIBW_ENVIRONMENT="PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
-          echo CIBW_ENVIRONMENT_WINDOWS="PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
+          echo "CIBW_ENVIRONMENT=PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
+          echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
 
           ## Debug the PKG_CONFIG_PATH and check if it's set correctly
           echo "$PKG_CONFIG_PATH" >> $GITHUB_OUTPUT
