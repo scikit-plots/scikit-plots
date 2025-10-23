@@ -328,6 +328,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("cexperimental-index")
                 ),
                 "autosummary": [
+                    # "_cy_cexperimental",
                     "_cy_cexperimental.expit",
                     "_cy_cexperimental.log_expit",
                     "_cy_cexperimental.logit",
@@ -341,6 +342,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("cexperimental-index")
                 ),
                 "autosummary": [
+                    # "_py_cexperimental",
                     "_py_cexperimental.py_print",
                 ],
             },
@@ -352,6 +354,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("cexperimental-index")
                 ),
                 "autosummary": [
+                    # "_logsumexp",
                     "_logsumexp.sigmoid",
                     "_logsumexp.softmax",
                     "_logsumexp.logsumexp",
@@ -372,6 +375,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("astropy-index")
                 ),
                 "autosummary": [
+                    "_astropy",
                     "_astropy.stats",
                 ],
             },
@@ -383,6 +387,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("cexternals-index")
                 ),
                 "autosummary": [
+                    "_f2py",
                     "_f2py.get_include",
                 ],
             },
@@ -394,6 +399,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("numcpp_index")
                 ),
                 "autosummary": [
+                    "_numcpp",
                     "_numcpp.get_include",
                     "_numcpp.nc",
                     "_numcpp.nc_develop",
@@ -407,6 +413,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("annoy-index")
                 ),
                 "autosummary": [
+                    "annoy",
                     "annoy.Annoy",
                     "annoy.AnnoyIndex",
                     "annoy.annoylib",
@@ -440,6 +447,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("doremi-index")
                 ),
                 "autosummary": [
+                    # "_doremi",
                     "_doremi.ENVELOPES",
                     "_doremi.compose_as_waveform",
                     "_doremi.play_waveform",
@@ -460,6 +468,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("llm_provider-index")
                 ),
                 "autosummary": [
+                    # "_llm_provider",
                     "_llm_provider.LLM_PROVIDER_CONFIG_MAP",
                     "_llm_provider.LLM_PROVIDER_ENV_CONNECTOR_MAP",
                     "_llm_provider.get_response",
@@ -474,6 +483,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("pipeline-index")
                 ),
                 "autosummary": [
+                    # "pipeline",
                     "pipeline.pipeline",
                 ],
             },
@@ -491,6 +501,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     + _get_guide("probscale-index")
                 ),
                 "autosummary": [
+                    # "_probscale",
                     "_probscale.ProbScale",
                     "_probscale.probplot",
                     "_probscale.plot_pos",
@@ -566,7 +577,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                   + _get_guide("annoy_knn_imputer-index")
                 ),
                 "autosummary": [
-                    "AnnoyKNNImputer",
+                    # "_annoy_knn",
+                    "_annoy_knn.AnnoyKNNImputer",
                 ],
             },
         ],

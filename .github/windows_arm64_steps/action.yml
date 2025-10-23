@@ -4,6 +4,10 @@ runs:
   using: "composite"
   steps:
     - name: Install LLVM
+      # shell: sh -l {0}
+      # shell: bash -el {0}
+      # shell: cmd /C CALL {0}
+      # shell: powershell
       shell: pwsh
       run: | # zizmor: ignore[github-env] safe: adding LLVM_BIN to PATH
         Invoke-WebRequest https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/LLVM-20.1.8-woa64.exe -UseBasicParsing -OutFile LLVM-woa64.exe
