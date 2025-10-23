@@ -3,6 +3,21 @@ description: "Common setup steps for Win-ARM64 CI"
 runs:
   using: "composite"
   steps:
+    - name: "Set environment variables for ARM64 (CC/CXX/CFLAGS)"
+      # if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
+      # shell: pwsh
+      run: |
+        # echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        # echo "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        # echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "CC=clang-cl" >> $env:GITHUB_ENV
+        echo "CXX=clang-cl" >> $env:GITHUB_ENV
+        echo "CFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
+        echo "CXXFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
+        echo "FC=flang-new" >> $env:GITHUB_ENV
+        echo "TARGET_ARCH=${{ matrix.buildplat[2] }}" >> $env:GITHUB_ENV
+        # Write-Host "Exported CC/CXX/CFLAGS for ARM64."
+
     - name: Install LLVM (ARM64)  # LLVM (clang-cl, flang-new) -> Cross-toolchain & Fortran
       # shell: sh -l {0}
       # shell: bash -el {0}
@@ -36,21 +51,6 @@ runs:
             }
         }
         # Write-Host "✅ MSVC ARM64 environment exported to GITHUB_ENV and PATH."
-
-    - name: "Set environment variables for ARM64 (CC/CXX/CFLAGS)"
-      # if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
-      # shell: pwsh
-      run: |
-        # echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        # echo "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        # echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "CC=clang-cl" >> $env:GITHUB_ENV
-        echo "CXX=clang-cl" >> $env:GITHUB_ENV
-        echo "CFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
-        echo "CXXFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
-        echo "FC=flang-new" >> $env:GITHUB_ENV
-        echo "TARGET_ARCH=${{ matrix.buildplat[2] }}" >> $env:GITHUB_ENV
-        # Write-Host "Exported CC/CXX/CFLAGS for ARM64."
 
     - name: Install pkgconf (ARM64) via vcpkg
       shell: pwsh
