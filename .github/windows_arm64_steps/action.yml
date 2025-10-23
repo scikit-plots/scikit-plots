@@ -110,7 +110,7 @@ runs:
       run: | # zizmor: ignore[github-env] safe: adding
         set -e
 
-        export VCPKG_ROOT="C:/vcpkg"  # /c/vcpkg
+        export VCPKG_ROOT="/c/vcpkg"  # C:/vcpkg
         cd "$VCPKG_ROOT"
 
         # Install pkgconf for ARM64
@@ -118,11 +118,19 @@ runs:
 
         # Set the path to pkgconf
         PKGCONF_PATH="$VCPKG_ROOT/installed/arm64-windows/tools/pkgconf"
+        PKGCONFIG_EXE="$PKGCONF_PATH/pkg-config.exe"
         # Prepending pkgconf to PATH
         export PATH="$PKGCONF_PATH:$PATH"
 
-        # Copying pkgconf.exe to pkg-config.exe for compatibility
-        cp "$PKGCONF_PATH/pkgconf.exe" "$PKGCONF_PATH/pkg-config.exe"
+        # Copying pkgconf.exe to pkg-config.exe for compatibility, Ensure pkg-config exists
+        cp "$PKGCONF_PATH/pkgconf.exe" "$PKGCONFIG_EXE"
+        # Use absolute path to pkg-config
+        if [ -x "$PKGCONFIG_EXE" ]; then
+          echo "Found pkg-config at $PKGCONFIG_EXE"
+        else
+          echo "ERROR: pkg-config not found at $PKGCONFIG_EXE"
+          exit 1
+        fi
 
         # Removing Strawberry Perl pkg-config from PATH if exists
         # $(echo "$PATH" | tr ';' '\n' | grep -v 'Strawberry' | grep -v 'perl' | paste -sd ";" -)
@@ -130,10 +138,10 @@ runs:
         export PATH="$PKGCONF_PATH:$PATH"
         echo "Current PATH: $PATH"
 
-        # Add correct pkgconf path to GitHub Actions PATH
-        echo "$PKGCONF_PATH" >> $GITHUB_PATH
+        # Prepend to correct pkgconf PATH (Windows style) to GitHub Actions PATH
+        # echo "$PKGCONF_PATH" >> $GITHUB_PATH
         echo "$PKGCONF_PATH" >> "$env:GITHUB_PATH"
 
         echo "Verifying which pkg-config is executable and correct one..."
-        command -v pkg-config || echo "pkg-config not found in PATH"
-        pkg-config --version || echo "pkg-config failed to execute"
+        command -v "$PKGCONFIG_EXE" || echo "pkg-config not found in PATH"
+        "$PKGCONFIG_EXE" --version || echo "pkg-config failed to execute"

@@ -1191,8 +1191,8 @@ repair-wheel-command = "bash -el ./tools/wheels/repair_windows.sh {wheel} {dest_
 [tool.cibuildwheel.windows.environment]
 # /project will be the $PWD equivalent inside the docker used to build the wheel
 # This does not work because pkg-config does not like backslashes,
-PKG_CONFIG_PATH = "{project}/.openblas"
-PATH = "{project}/.openblas/lib;$PATH"
+PKG_CONFIG_PATH = "/project/.openblas"
+PATH = "/project/.openblas/lib${PATH:+:$PATH}"
 # do this instead (which will override this setting)
 # set CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=PWD.replace('\\', '/')
 # CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH={project}/.openblas"
