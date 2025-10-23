@@ -256,6 +256,8 @@ jobs:
           # python-version: "3.x"
           python-version: "3.11"
           architecture: ${{ matrix.buildplat[2] == 'ARM64' && 'arm64' || env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
+          # cache: "pip"
+          # cache-dependency-path: "environment.yml"
 
       # --- RUNNER_OS ---
 
