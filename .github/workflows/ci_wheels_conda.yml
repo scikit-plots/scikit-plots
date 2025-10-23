@@ -168,7 +168,7 @@ jobs:
         ## https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
           # should also be able to do multi-archs on a single entry, e.g.
-          # [windows-2025, win*, "AMD64 x86"]. However, those two require a different compiler setup
+          # [windows-latest, win*, "AMD64 x86"]. However, those two require a different compiler setup
           # so easier to separate out here.
           - [ubuntu-22.04, manylinux, x86_64]
           - [ubuntu-22.04, musllinux, x86_64]
@@ -206,8 +206,8 @@ jobs:
             python: ["cp38", "3.8"]  # need scipy
           - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
             python: ["cp39", "3.9"]  # need scipy
-          # - buildplat: [windows-11-arm, win, ARM64]
-          #   python: ["cp38", "3.8"]  # need ?
+          - buildplat: [windows-11-arm, win, ARM64]
+            python: ["cp38", "3.8"]  # need py
 
     env:  # Job level environment NAME: '', $NAME, ${{ env.NAME }}
       IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
@@ -255,6 +255,9 @@ jobs:
         with:
           # python-version: "3.x"
           python-version: "3.11"
+          architecture: ${{ matrix.buildplat[2] == 'ARM64' && 'arm64' || env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
+          # cache: "pip"
+          # cache-dependency-path: "environment.yml"
 
       # --- RUNNER_OS ---
 
@@ -314,10 +317,14 @@ jobs:
 
       - name: Set environment variables for ARM64
         if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
+        # shell: pwsh
         run: |
+            # echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            # echo "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            # echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
             echo "CC=clang-cl" >> $env:GITHUB_ENV
             echo "CXX=clang-cl" >> $env:GITHUB_ENV
-            echo "FC=flang" >> $env:GITHUB_ENV
+            echo "FC=flang-new" >> $env:GITHUB_ENV
             echo "TARGET_ARCH=${{ matrix.buildplat[2] }}" >> $env:GITHUB_ENV
 
       - name: Set up Flang and pkgconf for ARM64
