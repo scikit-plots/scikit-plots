@@ -104,9 +104,12 @@ runs:
     #     # echo "$pkgconfPath" >> $env:GITHUB_PATH
     #     echo "$pkgconfPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+    # Fix current pkg-config executable is coming from Strawberry Perl, not from vcpkg or LLVM
     - name: Install pkgconf (ARM64) via vcpkg
       shell: bash -el {0}
       run: |
+        set -e
+
         export VCPKG_ROOT="C:/vcpkg"
         cd "$VCPKG_ROOT"
 
@@ -116,8 +119,18 @@ runs:
         # Set the path to pkgconf
         PKGCONF_PATH="$VCPKG_ROOT/installed/arm64-windows/tools/pkgconf"
 
-        # Copy pkgconf.exe to pkg-config.exe for compatibility
+        # Copying pkgconf.exe to pkg-config.exe for compatibility
         cp "$PKGCONF_PATH/pkgconf.exe" "$PKGCONF_PATH/pkg-config.exe"
 
-        # Add pkgconf path to GitHub Actions PATH
+        # Removing Strawberry Perl pkg-config from PATH
+        CLEANED_PATH=$(echo "$PATH" | tr ';' '\n' | grep -vi 'strawberry' | paste -sd ";" -)
+        export PATH="$CLEANED_PATH"
+        echo "$PATH" > /tmp/cleaned_path.log
+
+        # Add correct pkgconf path to GitHub Actions PATH
         echo "$PKGCONF_PATH" >> "$env:GITHUB_PATH"
+
+        echo "Verifying pkg-config is executable and correct one..."
+        export PATH="$PKGCONF_PATH:$PATH"
+        which pkg-config || echo "pkg-config not found in PATH"
+        pkg-config --version || echo "pkg-config failed to execute"
