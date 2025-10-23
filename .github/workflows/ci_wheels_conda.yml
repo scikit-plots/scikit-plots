@@ -197,21 +197,21 @@ jobs:
         exclude:
           # (Optional) Don't build PyPy 32-bit windows ("*-win32", "*-x86")
           # Don't build PyPy 32-bit windows
-          - buildplat: [windows-2019, win32,]
-            python: ["pp310", "3.10"]
-          # # 3.8 is not supported on macOS and musllinux
-          # - buildplat: [ubuntu-22.04, musllinux, x86_64]
-          #   python: ["cp38", "3.8"]
-          # - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
-          #   python: ["cp38", "3.8"]
+          # - buildplat: [windows-2019, win32,]
+          #   python: ["pp310", "3.10"]
+          # 3.8 is not supported some lib
+          - buildplat: [ubuntu-22.04, musllinux, x86_64]
+            python: ["cp38", "3.8"]  # need scipy, numpy, pandas
+          - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+            python: ["cp38", "3.8"]  # need scipy
+          - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+            python: ["cp39", "3.9"]  # need scipy
           # - buildplat: [macos-14, macosx, arm64, openblas, "12.3"]
-          #   python: ["cp38", "3.8"]
+          #   python: ["cp38", "3.8"]  # need numpy-npymath
           # - buildplat: [macos-14, macosx, arm64, accelerate, "14.0"]
-          #   python: ["cp38", "3.8"]
-          # # 3.9 is not supported on musllinux
-          # - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
-          #   python: ["cp39", "3.9"]
-          # # No PyPy on musllinux images
+          #   python: ["cp38", "3.8"]  # need numpy-npymath
+          # 3.9 is not supported on musllinux
+          # No PyPy on musllinux images
           # - buildplat: [ubuntu-22.04, musllinux_x86_64]
           #   python: ["cp310", "3.10"]
           # - buildplat: [ubuntu-22.04-arm, musllinux_aarch64]

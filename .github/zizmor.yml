@@ -1,0 +1,18 @@
+# https://docs.zizmor.sh/configuration/#discovery
+# Create a file named zizmor.yml, You can put it in either:
+# Location	   File Path	         Effect
+# Preferred	   .github/zizmor.yml	 Only applies to workflows
+# Alternative	 zizmor.yml at root	 Applies globally to repo
+# 🚦 After adding the file
+# Just run zizmor normally. It will automatically pick up the config using local discovery.
+# You don't need --config unless you want to use global discovery.
+
+# Syntax Notes:
+# - filename → ignore all findings in the file
+# - filename:line → ignore findings on a specific line
+# - filename:line:col → ignore specific column too (1-based)
+
+rules:
+  github-env:
+    ignore:
+      - .github/windows_arm64_steps/action.yml

@@ -41,6 +41,25 @@ project(
     # 'werror=true',                 # Treat warnings as errors globally
   ],
 )
+
+######################################################################
+## ANSI colors
+######################################################################
+
+## ANSI colors for pretty output
+BOLD='\033[1m'
+RESET='\033[0m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
+YELLOW='\033[1;33m'
+MAGENTA='\033[1;35m'
+CYAN='\033[1;36m'
+
+######################################################################
+## meson
+######################################################################
+
 release_version = meson.project_version()
 
 ## Add .tarball-version during `meson dist`
@@ -59,18 +78,14 @@ meson.add_dist_script(
 # build_dir = meson.current_build_dir()
 
 ######################################################################
-## ANSI colors
+## meson
 ######################################################################
 
-## ANSI colors for pretty output
-BOLD='\033[1m'
-RESET='\033[0m'
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-BLUE='\033[1;34m'
-YELLOW='\033[1;33m'
-MAGENTA='\033[1;35m'
-CYAN='\033[1;36m'
+dep_all = []
+link_with = []
+
+null_dep = dependency('', required : false)
+dep_all += [null_dep]
 
 ######################################################################
 ## BLAS/LAPACK dependency
@@ -230,6 +245,8 @@ else
   endif
 endif
 
+dep_all += [blas_dep]
+
 if 'mkl' in blas.name() or blas.name() == 'accelerate' or blas_name == 'scipy-openblas'
   # For these libraries we know that they contain LAPACK, and it's desirable to
   # use that - no need to run the full detection twice.
@@ -255,6 +272,8 @@ if not have_lapack and not allow_noblas
 else
   lapack_dep = declare_dependency(dependencies: [lapack, blas_dep])
 endif
+
+dep_all += [lapack_dep]
 
 ######################################################################
 ## Fortran Compiler Setup
@@ -529,6 +548,8 @@ if dep_math.found()
   )
 endif
 
+dep_all += [dep_math]
+
 # Intel compilers default to fast-math, so disable it if we detect Intel
 # compilers. A word of warning: this may not work with the conda-forge
 # compilers, because those have the annoying habit of including lots of flags
@@ -590,7 +611,6 @@ endif
 # on 64-bit types or on RISC-V using 8-bit atomics, so we explicitly
 # check for both 64 bit and 8 bit operations.  The check is adapted from
 # SciPy, who copied it from Mesa.
-null_dep = dependency('', required : false)
 atomic_dep = null_dep
 code_non_lockfree = '''
   #include <stdint.h>
@@ -630,6 +650,8 @@ if cc.get_id() != 'msvc'
     endif
   endif
 endif
+
+dep_all += [atomic_dep]
 
 ######################################################################
 ## Platform OS detection
@@ -693,10 +715,16 @@ mod_py = import('python')
 # py = find_program('python3', 'python', required: true)  # Find Python cross-platform
 py = mod_py.find_installation(pure: false)  # Find system Python
 
+# Get Python version as a string, e.g. '3.8'
+ver_py = py.language_version()
+message('Python version:', ver_py)
+
 # Get the Python Dependencies
 # dep = dependency('python3', required: true)
 dep_py = py.dependency(required: true)
 assert(meson.get_compiler('c').has_header('Python.h', dependencies: dep_py))
+
+dep_all += [dep_py]
 
 # Wrap the include path as an include_directories object
 inc_dir_py = include_directories(py.get_path('include'))
@@ -761,6 +789,8 @@ endif
 # pybind11 — Seamless operability between C++11 and Python
 dep_pybind11 = dependency('pybind11', version: '>=2.13.0')
 
+dep_all += [dep_pybind11]
+
 ######################################################################
 ## pythran
 ######################################################################
@@ -780,6 +810,8 @@ if get_option('pythran').enabled()
 else
   dep_xsimd = null_dep
 endif
+
+dep_all += [dep_xsimd]
 
 ######################################################################
 ## pythran args
@@ -1043,6 +1075,8 @@ cython_cpp_flags = cython_c_flags + [
 
 dep_thread = dependency('threads', required: false)
 
+dep_all += [dep_thread]
+
 ######################################################################
 ## Fs-module
 ## https://mesonbuild.com/Fs-module.html
@@ -1146,6 +1180,8 @@ dep_np = declare_dependency(
   compile_args: _global_np_args,
 )
 
+dep_all += [dep_np]
+
 ######################################################################
 ## 'fortran' include dir
 ######################################################################
@@ -1167,8 +1203,19 @@ if not fs.exists(fortranobject_c)
   fortranobject_c = meson.project_source_root() / 'scikitplot/cexternals/_f2py/src/fortranobject.c'
 endif
 
-npymath_path = _np_inc_dir_abs / '..' / 'lib'
-npymath_lib = cc.find_library('npymath', dirs: npymath_path)
+if py.language_version() == '3.8' and host_machine.cpu_family() == 'aarch64'
+  message(
+    '\n' +
+    YELLOW + '[WARNING]' + RESET +
+    'Skipping numpy npymath build for Python 3.8'
+  )
+  npymath_lib = []
+else
+  npymath_path = _np_inc_dir_abs / '..' / 'lib'
+  npymath_lib = cc.find_library('npymath', dirs: npymath_path)
+endif
+
+link_with += [npymath_lib]
 
 ######################################################################
 ## dependency 'fortran'
@@ -1182,6 +1229,7 @@ fortranobject_lib = static_library('_fortranobject',
   include_directories: [inc_dir_np, inc_dir_f2py],  # nested accepts
   gnu_symbol_visibility: 'hidden',
 )
+link_with += [fortranobject_lib]
 fortranobject_dep = declare_dependency(
   link_with: fortranobject_lib,
   include_directories: [inc_dir_np, inc_dir_f2py],  # nested accepts
@@ -1241,6 +1289,8 @@ fortranobject_dep = declare_dependency(
   dependencies: fortranobject_dep,
   compile_args: _f2py_c_args,
 )
+
+dep_all += [fortranobject_dep]
 
 ######################################################################
 ## f2py
@@ -1342,24 +1392,6 @@ message(
   ' scikitplot files installed successfully: ' +
   '@0@'.format(py.get_install_dir())
 )
-
-dep_all = [
-  null_dep,
-  blas_dep,
-  lapack_dep,
-  atomic_dep,
-  fortranobject_dep,
-  dep_math,
-  dep_py,
-  dep_pybind11,
-  dep_xsimd,
-  dep_thread,
-  dep_np,
-]
-link_with = [
-  npymath_lib,
-  fortranobject_lib,
-]
 
 ######################################################################
 ## Next

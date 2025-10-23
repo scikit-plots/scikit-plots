@@ -413,8 +413,8 @@ test = [
 
   ## Free-threaded builds (3.13t, 3.14t) should skip 'h5py' completely.
   # "h5py",                                   # https://docs.h5py.org/en/stable/quick.html#quick
-  'h5py<=3.11.0;python_version<="3.9"',    #   - <=3.10 for older Python (<3.9)
-  'h5py;python_version>"3.9"',             #   - >=3.9 allowed for standard builds (not free-threaded)
+  'h5py<=3.11.0;python_version<"3.10"',     # <3.10 for older Python (<=3.9)
+  'h5py;python_version>="3.10"',            # >=3.10 allowed for standard builds
 ]
 emscripten_test = [
   "hypothesis>=6.130.0",                    # Property-based testing
