@@ -121,10 +121,10 @@ lang:cython:
 #     - '**/config/**/*'
 #     - scikitplot/extern/configobj/**/*
 
-# "scikitplot/sp_logging":
+# "scikitplot/logging":
 # - changed-files:
 #   - any-glob-to-any-file:
-#     - scikitplot/sp_logging/**/*
+#     - scikitplot/logging/**/*
 
 ######################################################################
 ## Testing

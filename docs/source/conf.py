@@ -1336,12 +1336,12 @@ autosummary_generate = True
 autosummary_filename_map = {
     # "sklearn.cluster.dbscan": "dbscan-function",
     "scikitplot.modelplotpy.ModelPlotPy": "modelplotpy-cls",
-    "scikitplot.sp_logging.critical": "critical-func",
-    "scikitplot.sp_logging.debug": "debug-func",
-    "scikitplot.sp_logging.error": "error-func",
-    "scikitplot.sp_logging.fatal": "fatal-func",
-    "scikitplot.sp_logging.warn": "warn-func",
-    "scikitplot.sp_logging.warning": "warning-func",
+    "scikitplot.logging.critical": "critical-func",
+    "scikitplot.logging.debug": "debug-func",
+    "scikitplot.logging.error": "error-func",
+    "scikitplot.logging.fatal": "fatal-func",
+    "scikitplot.logging.warn": "warn-func",
+    "scikitplot.logging.warning": "warning-func",
 }
 
 ##########################################################################

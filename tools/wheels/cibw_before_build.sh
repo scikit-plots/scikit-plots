@@ -39,7 +39,6 @@ set -e  # Exit immediately if a command exits with a non-zero status
 set -o pipefail  # Ensure pipeline errors are captured
 set -u  # Treat unset variables as an error
 set -x  # Print each command before executing it
-
 # Set environment variables to make our wheel build easier to reproduce byte
 # for byte from source. See https://reproducible-builds.org/. The long term
 # motivation would be to be able to detect supply chain attacks.
@@ -53,24 +52,56 @@ SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
 export SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH"
 export PYTHONHASHSEED=0
 ######################################################################
-## Define color and style variables for styled output.
+## Colors for Pretty Logs (ANSI Escape Codes)
 ######################################################################
+# =========================================
+# GitHub Actions Command
+# =========================================
+# GitHub Actions Command	Color	Meaning
+# ::error::	Red	Error
+# ::warning::	Yellow	Warning
+# ::notice::	Blue/Gray	Info
+# ::debug::	Gray	Debug
+# echo "::error::message"
 # Colors for Pretty Logs
-BOLD='\033[1m'
-RESET='\033[0m'  # No Color
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-BLUE='\033[1;34m'
-YELLOW='\033[1;33m'
-# MAGENTA='\033[1;35m'
-# CYAN='\033[1;36m'
+RESET='\033[0m'        # End of Color / Reset
+BOLD='\033[1m'         # Bold Text
+# Severity / Status Colors
+RED='\033[1;31m'       # \033[1m\033[1;31m[ERROR / FAILURE / DANGER]\033[0m Build failed, exception
+GREEN='\033[1;32m'     # \033[1m\033[1;32m[SUCCESS / PASS]\033[0m Compilation OK, done
+YELLOW='\033[1;33m'    # \033[1m\033[1;33m[WARNING / CAUTION]\033[0m Deprecated, risk detected
+BLUE='\033[1;34m'      # \033[1m\033[1;34m[INFO / PROCESSING]\033[0m Current step, notice
+MAGENTA='\033[1;35m'   # \033[1m\033[1;34m[HIGHLIGHT / SPECIAL]\033[0m Important feature or stage
+CYAN='\033[1;36m'      # \033[1m\033[1;34m[ACTION / STATUS / QUERY]\033[0m User action, pending info
 ######################################################################
 ## Logging functions for consistent output styling.
 ######################################################################
-log_info()    { echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${BLUE}[INFO]${RESET} $1"; }
-log_success() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${GREEN}[SUCCESS]${RESET} $1"; }
-log_warning() { echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${YELLOW}[WARNING]${RESET} $1"; }
-log_error()   { echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${RED}[ERROR]${RESET} $1" >&2; exit 1;}
+log_error() {  # For build failed, exception
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${RED}[ERROR]${RESET} $1" >&2; exit 1;
+}
+log_success() {  # For compilation OK, done
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${GREEN}[SUCCESS]${RESET} $1"
+}
+log_warn() {  # For deprecated, risk detected
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${YELLOW}[WARNING]${RESET} $1"
+}
+log_info() {  # For current step, notice
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${BLUE}[INFO]${RESET} $1"
+}
+log_highlight() {  # For important features, key stages
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${MAGENTA}[HIGHLIGHT]${RESET} $1"
+}
+log_status() {  # For status updates, pending operations, queries
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${CYAN}[STATUS]${RESET} $1"
+}
+log_info "$(uname)"
+log_info "$(uname -m)"
+log_info "$RUNNER_OS"
+######################################################################
+## Example: Print all environment variables
+######################################################################
+log_highlight "Printing all environment variables..."
+printenv
 ######################################################################
 ## Utility Functions
 ######################################################################
@@ -298,7 +329,7 @@ setup_openblas() {
             generate_openblas_pkgconfig "scipy_openblas32"
             copy_shared_libs "scipy_openblas32"
             ;;
-        x86_64|amd64|*arm64*|aarch64)
+        x86_64|*amd64*|*arm64*|aarch64)
             log_info "Detected 64-bit architecture."
             # Install CI 64-bit specific requirements and generate OpenBLAS pkg-config file
             install_requirements "requirements/ci_requirements.txt"
@@ -414,7 +445,6 @@ setup_macos() {
 ######################################################################
 # Main function to orchestrate all steps
 main() {
-    printenv
     log_info "Starting build environment setup..."
     # Define project directory
     local project_dir="${1:-$PWD}"
