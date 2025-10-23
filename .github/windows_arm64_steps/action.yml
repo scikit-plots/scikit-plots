@@ -123,14 +123,12 @@ runs:
         cp "$PKGCONF_PATH/pkgconf.exe" "$PKGCONF_PATH/pkg-config.exe"
 
         # Removing Strawberry Perl pkg-config from PATH
-        CLEANED_PATH=$(echo "$PATH" | tr ';' '\n' | grep -vi 'strawberry' | paste -sd ";" -)
-        export PATH="$CLEANED_PATH"
-        echo "$PATH" > /tmp/cleaned_path.log
+        CLEANED_PATH=$(echo "$PATH" | tr ';' '\n' | grep -vi 'strawberry' | grep -vi 'perl' | paste -sd ";" -)
+        export PATH="$PKGCONF_PATH;$CLEANED_PATH"
 
         # Add correct pkgconf path to GitHub Actions PATH
         echo "$PKGCONF_PATH" >> "$env:GITHUB_PATH"
 
-        echo "Verifying pkg-config is executable and correct one..."
-        export PATH="$PKGCONF_PATH:$PATH"
-        which pkg-config || echo "pkg-config not found in PATH"
+        echo "Verifying which pkg-config is executable and correct one..."
+        command -v pkg-config || echo "pkg-config not found in PATH"
         pkg-config --version || echo "pkg-config failed to execute"
