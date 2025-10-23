@@ -20,17 +20,14 @@ except (ImportError, ModuleNotFoundError):
     except (ImportError, ModuleNotFoundError):
         sys.exit("Please install `tomli` first: `{mamba, pip} install tomli`")
 
+# Use logging instead of print
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 script_pth = Path(__file__)
 repo_dir = script_pth.parent.parent.parent
-
-# Use logging instead of print
-# print(repo_dir)
-logger.info(repo_dir)
-
 script_relpth = script_pth.relative_to(repo_dir)
+logger.info(repo_dir)  # print(repo_dir)
 
 header = [
     # f"# Created at: {time.ctime(time.time())}",
@@ -49,12 +46,13 @@ def generate_requirement_file(name, req_list, *, extra_list=None):
     Path(req_fname).parent.mkdir(parents=True, exist_ok=True)
 
     comment = {
+        "scikit-plots[ci32_requirements]": "-r ci32_requirements.txt",
         "scikit-plots[core]": "-r core.txt",
         "scikit-plots[cpu]": "-r cpu.txt",
         "scikit-plots[gpu]": "-r gpu.txt",
         "scikit-plots[legacy]": "-r legacy.txt",
         "scikit-plots[tpu]": "-r tpu.txt",
-        "scikit-plots[ci32_requirements]": "-r ci32_requirements.txt",
+        "scikit-plots[test_nogil]": "-r test_nogil.txt",
         # TODO:remove once scikit-umfpack issues are resolved
         "scikit-umfpack": "# scikit-umfpack  # circular dependency issues",
     }
@@ -91,7 +89,7 @@ def main():
 
     # generate requirements/all.txt
     all_path = repo_dir / "requirements" / "all.txt"
-    files = ["build", "dev", "test", "doc"]
+    files = ["build", "dev", "doc", "test", "test_nogil"]
     reqs = [f"-r {x}.txt" for x in files]
     all_path.write_text("\n".join(header + reqs) + "\n")
 

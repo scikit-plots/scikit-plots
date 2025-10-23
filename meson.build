@@ -1365,6 +1365,6 @@ link_with = [
 ## Next
 ######################################################################
 
-# Not Need anymore we copying all submodules before runtime from 'third_party'
+# Not Need anymore we copying all submodules into 'scikitplot'
 # subdir('third_party')
 subdir('scikitplot')
