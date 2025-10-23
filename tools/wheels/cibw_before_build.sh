@@ -285,8 +285,11 @@ EOF
     if ! [ -x "$(command -v pkg-config)" ]; then
         log_info "pkg-config not found. Attempting to manually set OpenBLAS library paths."
     else
-        log_info "pkg-config found. Verifying OpenBLAS detection..."
-        pkg-config --libs scipy-openblas --print-provides || log_error "Failed to find OpenBLAS with pkg-config."
+        # Ensure current pkg-config executable is coming from Strawberry Perl or vcpkg LLVM
+        log_info "Verifying pkg-config version and OpenBLAS detection..."
+        which pkg-config
+        pkg-config --version || log_error "pkg-config command failed!"
+        pkg-config --libs scipy-openblas --print-provides || log_error "Failed to detect OpenBLAS with pkg-config."
     fi
     log_success "$openblas_module setup completed successfully."
 }
