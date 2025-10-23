@@ -694,9 +694,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
-    "scikitplot.sp_logging": {
+    "scikitplot.logging": {
         "short_summary": "Scikit-plots Logging.",
-        "description": _get_guide("sp_logging-index"),
+        "description": _get_guide("logging-index"),
         "sections": [
             {
                 "title": "Logging Levels",
@@ -715,9 +715,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Functional Interface - get_logger",
                 # "description": (
-                #   _get_submodule("scikitplot.sp_logging", "SpLogger")
+                #   _get_submodule("scikitplot.logging", "SpLogger")
                 #   + "\n\n"
-                #   + _get_guide("sp_logging-index")
+                #   + _get_guide("logging-index")
                 # ),
                 "autosummary": [
                     "AlwaysStdErrHandler",

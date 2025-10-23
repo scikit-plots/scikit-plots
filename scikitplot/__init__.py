@@ -56,8 +56,8 @@ __version__ = "0.5.dev0"  # dev
 
 # import logging as _logging
 # logger.setLevel(logger.DEBUG)  # for debugging
-from . import sp_logging as logger  # not a module or namespace, global attr
-from .sp_logging import get_logger
+from . import logging as logger  # not a module or namespace, global attr
+from .logging import get_logger
 
 try:
     # Trt to import meson built files, modules (etc. *.in)
@@ -136,7 +136,7 @@ _submodules = sorted(
         "environment_variables",
         "exceptions",
         "ml_package_versions",
-        "sp_logging",
+        "logging",
         "version",
     }
     | {

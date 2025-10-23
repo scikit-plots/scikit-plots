@@ -796,7 +796,7 @@ y_probas = model.predict(X_val)
 # Plot the data
 import matplotlib.pyplot as plt
 import scikitplot as sp
-# sp.get_logger().setLevel(sp.sp_logging.WARNING)
+# sp.get_logger().setLevel(sp.logging.WARNING)  # sp.logging == sp.logger
 sp.logger.setLevel(sp.logger.INFO)  # default WARNING
 # Plot precision-recall curves
 sp.metrics.plot_precision_recall(

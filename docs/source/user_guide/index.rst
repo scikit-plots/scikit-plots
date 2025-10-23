@@ -129,7 +129,7 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            ./sp_logging/index.rst
+            ./logging/index.rst
 
     .. grid-item-card::
         :padding: 3

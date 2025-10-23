@@ -139,6 +139,81 @@ _log_prefix = None  # later set to google2_log_prefix
 # Counter to keep track of number of log entries per token.
 _log_counter_per_token = {}
 
+# ==============================
+# Colors for Pretty Logs (ANSI Escape Codes)
+# ==============================
+RESET = "\033[0m"  # End of Color / Reset
+BOLD = "\033[1m"  # Bold Text
+
+# Severity / Status Colors
+RED = "\033[1;31m"  # ERROR / FAILURE / DANGER
+GREEN = "\033[1;32m"  # SUCCESS / PASS
+YELLOW = "\033[1;33m"  # WARNING / CAUTION
+BLUE = "\033[1;34m"  # INFO / PROCESSING
+MAGENTA = "\033[1;35m"  # HIGHLIGHT / SPECIAL
+CYAN = "\033[1;36m"  # ACTION / STATUS / QUERY
+
+# ==============================
+# Add Custom Log Levels
+# ==============================
+# SUCCESS = 25
+# HIGHLIGHT = 26
+# STATUS = 27
+# logging.addLevelName(SUCCESS, "SUCCESS")
+# logging.addLevelName(HIGHLIGHT, "HIGHLIGHT")
+# logging.addLevelName(STATUS, "STATUS")
+
+# # ==============================
+# # Logger Class with Colors
+# # ==============================
+# class ColorFormatter(logging.Formatter):
+#     COLOR_MAP = {
+#         "ERROR": RED,
+#         "WARNING": YELLOW,
+#         "INFO": BLUE,
+#         "SUCCESS": GREEN,
+#         "HIGHLIGHT": MAGENTA,
+#         "STATUS": CYAN,
+#         "DEBUG": CYAN
+#     }
+
+#     def format(self, record):
+#         color = self.COLOR_MAP.get(record.levelname, RESET)
+#         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#         log_level = f"{color}[{record.levelname}]{RESET}"
+#         message = super().format(record)
+#         return f"{timestamp} {log_level} {message}"
+
+# # ==============================
+# # Custom Logger Wrapper
+# # ==============================
+# class PrettyLogger(logging.Logger):
+#     def success(self, msg, *args, **kwargs):
+#         if self.isEnabledFor(SUCCESS):
+#             self._log(SUCCESS, msg, args, **kwargs)
+
+#     def highlight(self, msg, *args, **kwargs):
+#         if self.isEnabledFor(HIGHLIGHT):
+#             self._log(HIGHLIGHT, msg, args, **kwargs)
+
+#     def status(self, msg, *args, **kwargs):
+#         if self.isEnabledFor(STATUS):
+#             self._log(STATUS, msg, args, **kwargs)
+
+# def setup_logger(name="PrettyLogger", level=logging.DEBUG):
+#     logging.setLoggerClass(PrettyLogger)
+#     logger = logging.getLogger(name)
+#     logger.setLevel(level)
+
+#     handler = logging.StreamHandler(sys.stdout)
+#     formatter = ColorFormatter("%(message)s")
+#     handler.setFormatter(formatter)
+
+#     if not logger.handlers:
+#         logger.addHandler(handler)
+
+#     return logger
+
 ######################################################################
 ## sp_logging falling back to python logging
 ######################################################################
@@ -1477,3 +1552,15 @@ class SpLogger:
 ######################################################################
 ##
 ######################################################################
+
+# ==============================
+# Usage Example
+# ==============================
+# if __name__ == "__main__":
+#     log = setup_logger()
+#     log.info("Processing started")
+#     log.success("Compilation succeeded")
+#     log.warning("Using deprecated API")
+#     log.error("Build failed due to exception")
+#     log.highlight("Entering critical deployment stage...")
+#     log.status("Waiting for user input or external action")

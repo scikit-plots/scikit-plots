@@ -117,7 +117,7 @@ PUBLIC_MODULES = [
         "environment_variables",
         "exceptions",
         "ml_package_versions",
-        "sp_logging",
+        "logging",
         "version",
     ]
 ]

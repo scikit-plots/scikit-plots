@@ -1,4 +1,4 @@
-.. _sp_logging-index:
+.. _logging-index:
 
 ..
   https://devguide.python.org/documentation/markup/#sections
@@ -20,7 +20,7 @@
 Logging System
 ======================================================================
 
-This module contains functions related to :py:mod:`~.sp_logging` (Scikit-plots Logging).
+This module contains functions related to :py:mod:`~.logging` (Scikit-plots Logging).
 
 .. note::
 
@@ -52,7 +52,7 @@ Get the root ``logger`` from ``func``:
 .. jupyter-execute::
 
     >>> import scikitplot as sp
-    >>> sp.get_logger().setLevel(sp.sp_logging.INFO)  # default WARNING
+    >>> sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
     >>> sp.get_logger().info("This is a info message from the sp logger.")
 
 .. note::

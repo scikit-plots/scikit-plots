@@ -14,7 +14,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import matplotlib.pyplot as plt
 import scikitplot as sp
 
-# sp.get_logger().setLevel(sp.sp_logging.WARNING)
+# sp.get_logger().setLevel(sp.logging.WARNING)  # sp.logging == sp.logger
 sp.logger.setLevel(sp.logger.INFO)  # default WARNING
 
 import tensorflow as tf

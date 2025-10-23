@@ -15,7 +15,7 @@
 # from absl import logging
 # logger = logging.getLogger(__name__)
 
-from scikitplot import sp_logging as logger
+from scikitplot import logging as logger
 from scikitplot import logger, get_logger
 
 # logger = get_logger()

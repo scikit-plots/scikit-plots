@@ -4,8 +4,8 @@ runs:
   using: "composite"
   steps:
     - name: "Set environment variables for ARM64 (CC/CXX/CFLAGS)"
-      # shell: sh -l {0}
       shell: bash -el {0}
+      # shell: sh -l {0}
       # shell: cmd /C CALL {0}
       # shell: powershell
       # shell: pwsh
