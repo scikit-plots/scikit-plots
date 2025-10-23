@@ -258,9 +258,14 @@ jobs:
 
       # --- RUNNER_OS ---
 
+      - name: "🛠️ Windows Setup MSVC/Clang (Visual Studio) (32|64-bit)"  # 🔧
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
+        uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
+        with:
+          architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
+
       - name: "🛠️ Windows Setup RTools (MinGW/GCC) (32|64-bit)"  # R package compilation
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
-        # shell: pwsh
         run: |
           if ($env:IS_32_BIT -eq "true") {
             ## mingw-w32
@@ -278,15 +283,8 @@ jobs:
           # echo cl /? >> $GITHUB_OUTPUT
           echo gcc --version >> $GITHUB_OUTPUT
 
-      - name: "🛠️ Windows Setup MSVC/Clang (Visual Studio) (32|64-bit)"  # 🔧
-        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
-        uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
-        with:
-          architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
-
       - name: "🛠️ Windows Setup Environment Variables (set PKG_CONFIG_PATH)"
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
-        # shell: pwsh
         run: |
           ## Install "pkg-config" via Chocolatey
           ## For x86/x64 Windows, pkgconfiglite is sufficient.
