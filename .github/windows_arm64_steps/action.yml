@@ -110,7 +110,7 @@ runs:
       run: | # zizmor: ignore[github-env] safe: adding
         set -e
 
-        export VCPKG_ROOT="/c/vcpkg"  # C:/vcpkg
+        export VCPKG_ROOT="/c/vcpkg"  # "C:/vcpkg".Replace("\","/")
         cd "$VCPKG_ROOT"
 
         # Install pkgconf for ARM64
@@ -119,6 +119,10 @@ runs:
         # Set the path to pkgconf
         PKGCONF_PATH="$VCPKG_ROOT/installed/arm64-windows/tools/pkgconf"
         PKGCONFIG_EXE="$PKGCONF_PATH/pkg-config.exe"
+
+        # Meson respects PKG_CONFIG if set. This bypasses the broken Strawberry Perl binary completely.
+        $env:PKG_CONFIG = $PKGCONFIG_EXE
+        echo "PKG_CONFIG=$PKGCONFIG_EXE" >> $env:GITHUB_ENV
 
         # Copying pkgconf.exe to pkg-config.exe for compatibility, Ensure pkg-config exists
         cp "$PKGCONF_PATH/pkgconf.exe" "$PKGCONFIG_EXE"
@@ -137,6 +141,7 @@ runs:
         # Prepending pkgconf to PATH
         export PATH="$PKGCONF_PATH:$PATH"
         # Removing Strawberry Perl pkg-config from PATH if exists
+        # not enough if Strawberry Perl's pkg-config.BAT is earlier in the PATH
         # $(echo "$PATH" | tr ';' '\n' | grep -v 'Strawberry' | grep -v 'perl' | paste -sd ";" -)
         # PATH=$(echo "$PATH" | tr ':' '\n' | grep -vi 'strawberry' | grep -vi 'perl' | paste -sd ":" -)
         echo "Current PATH: $PATH"
