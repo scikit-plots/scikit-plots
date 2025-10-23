@@ -430,6 +430,7 @@ jobs:
       - name: "📦 Build Wheels Packages"
         # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
         uses: pypa/cibuildwheel@5f22145df44122af0f5a201f93cf0207171beca7 # v3.0.0
+        shell: bash -el {0}
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           ## Specify target platform
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
