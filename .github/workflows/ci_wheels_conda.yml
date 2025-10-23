@@ -168,7 +168,7 @@ jobs:
         ## https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
           # should also be able to do multi-archs on a single entry, e.g.
-          # [windows-2019, win*, "AMD64 x86"]. However, those two require a different compiler setup
+          # [windows-2025, win*, "AMD64 x86"]. However, those two require a different compiler setup
           # so easier to separate out here.
           - [ubuntu-22.04, manylinux, x86_64]
           - [ubuntu-22.04, musllinux, x86_64]
@@ -178,7 +178,9 @@ jobs:
           - [macos-13, macosx, x86_64, accelerate, "14.0"]
           - [macos-14, macosx, arm64, openblas, "12.3"]
           - [macos-14, macosx, arm64, accelerate, "14.0"]
+          # - [macos-15-intel, macosx, x86_64, openblas, "14.0"]
           - [windows-2022, win, AMD64]  # Window 64 bit ("*-win_amd64", "*-x86_64")
+          - [windows-11-arm, win, ARM64]  # Window 64 bit ("*-win_arm64", "*-x86_64")
         python: [
           ## python[0] is used to specify the python versions made by cibuildwheel
           # ["pp310", "3.10"],  # pp310 (PyPy 3.10) Slower startup Just-In-Time (JIT) warm-up
@@ -193,29 +195,29 @@ jobs:
           # Keep sync with cibuildwheel's supported Python versions by scikit-learn, numpy, scipy, pandas, etc.
         ]
         exclude:
-          # 3.8 is not supported on macOS and musllinux
-          - buildplat: [ubuntu-22.04, musllinux, x86_64]
-            python: ["cp38", "3.8"]
-          - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
-            python: ["cp38", "3.8"]
-          - buildplat: [macos-14, macosx, arm64, openblas, "12.3"]
-            python: ["cp38", "3.8"]
-          - buildplat: [macos-14, macosx, arm64, accelerate, "14.0"]
-            python: ["cp38", "3.8"]
-          # 3.9 is not supported on musllinux
-          - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
-            python: ["cp39", "3.9"]
           # (Optional) Don't build PyPy 32-bit windows ("*-win32", "*-x86")
           # Don't build PyPy 32-bit windows
           - buildplat: [windows-2019, win32,]
-            python: ["cp310", "3.10"]
-          # No PyPy on musllinux images
-          - buildplat: [ubuntu-22.04, musllinux_x86_64]
-            python: ["cp310", "3.10"]
-          - buildplat: [ubuntu-22.04-arm, musllinux_aarch64]
-            python: ["cp310", "3.10"]
-          - buildplat: [ macos13, macosx_x86_64, openblas ]
-            python: ["cp313t", "3.13"]
+            python: ["pp310", "3.10"]
+          # # 3.8 is not supported on macOS and musllinux
+          # - buildplat: [ubuntu-22.04, musllinux, x86_64]
+          #   python: ["cp38", "3.8"]
+          # - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+          #   python: ["cp38", "3.8"]
+          # - buildplat: [macos-14, macosx, arm64, openblas, "12.3"]
+          #   python: ["cp38", "3.8"]
+          # - buildplat: [macos-14, macosx, arm64, accelerate, "14.0"]
+          #   python: ["cp38", "3.8"]
+          # # 3.9 is not supported on musllinux
+          # - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+          #   python: ["cp39", "3.9"]
+          # # No PyPy on musllinux images
+          # - buildplat: [ubuntu-22.04, musllinux_x86_64]
+          #   python: ["cp310", "3.10"]
+          # - buildplat: [ubuntu-22.04-arm, musllinux_aarch64]
+          #   python: ["cp310", "3.10"]
+          # - buildplat: [ macos13, macosx_x86_64, openblas ]
+          #   python: ["cp313t", "3.13"]
 
     env:  # Job level environment NAME: '', $NAME, ${{ env.NAME }}
       IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
@@ -274,6 +276,7 @@ jobs:
 
       - name: "🛠️ Windows Setup RTools (32|64-bit)"
         if: ${{ runner.os == 'Windows' }}
+        # shell: pwsh
         run: |
           if ($env:IS_32_BIT -eq "true") {
             ## mingw-w32
@@ -292,6 +295,7 @@ jobs:
 
       - name: "🛠️ Windows Setup Environment Variables (set PKG_CONFIG_PATH)"
         if: ${{ runner.os == 'Windows' }}
+        # shell: pwsh
         run: |
           ## Install "pkg-config" via Chocolatey
           choco install --no-progress --skip-automatic --stoponfirstfailure --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
@@ -300,6 +304,7 @@ jobs:
 
           ## Set up the  $env:CIBW environment variable, in PowerShell (Windows)
           ## pkgconfig needs a complete path, and not just "./openblas" since the
+          # $CIBW = "${{ github.workspace }}"
           $CIBW = "${{ github.workspace }}/.openblas"
 
           ## Handle backslash in paths (convert to forward slash)
@@ -316,6 +321,18 @@ jobs:
           ## Debug the PKG_CONFIG_PATH and check if it's set correctly
           echo "$PKG_CONFIG_PATH" >> $GITHUB_OUTPUT
           echo "$CIBW_ENVIRONMENT" >> $GITHUB_OUTPUT
+
+      - name: Set environment variables for ARM64
+        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
+        run: |
+            echo "CC=clang-cl" >> $env:GITHUB_ENV
+            echo "CXX=clang-cl" >> $env:GITHUB_ENV
+            echo "FC=flang" >> $env:GITHUB_ENV
+            echo "TARGET_ARCH=${{ matrix.buildplat[2] }}" >> $env:GITHUB_ENV
+
+      - name: Set up Flang and pkgconf for ARM64
+        if: matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64'
+        uses: ./.github/windows_arm64_steps
 
       # --- matrix.buildplat ---
 
@@ -480,11 +497,12 @@ jobs:
           ## environment will be activated after creation, and in future bash steps
           ## environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
           # auto-activate-base: false
-          conda-remove-defaults: "true"
+          conda-remove-defaults: true
           auto-update-conda: true
           show-channel-urls: true
           miniforge-version: latest
           python-version: "3.11"
+          architecture: ${{ (matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64') && 'x64' || '' }}
 
       - name: "📥 Upload Scikit-plots Wheels (.whl) Package(s) to Anaconda.org PyPI index"
         if: success()
@@ -604,6 +622,8 @@ jobs:
         run: |
           ## TODO: Don't run test suite, and instead build wheels from sdist
           ## Depends on pypa/cibuildwheel#1020
+          ## See: pyproject.toml cibuildwheel before-test
+          # pip install -r requirements/test.txt || pip install -r requirements/test_nogil.txt
           pip install -r requirements/test.txt
 
           python -m pip cache purge

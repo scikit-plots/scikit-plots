@@ -57,18 +57,16 @@ def detect_linux_wheel_type():
     is_wasm = sys.platform.lower() in ("emscripten", "wasi") or "emscripten" in sys.executable.lower()
 
     # Determine wheel type / platform category
-    if is_wasm:
-        return "wasm"
-    elif system == "linux" and is_musl:
-        return "musllinux"
-    elif system == "linux":
-        return "manylinux"
-    else:
-        return system.lower()
+    return {
+        "is_wasm": is_wasm,
+        "is_musl": is_musl,
+        "machine": machine,
+        "system": system,
+    }
 
 
 # Example usage
-is_musllinux = detect_linux_wheel_type() == "musllinux"
+is_musllinux = detect_linux_wheel_type()["is_musl"]
 
 # if sys.version_info >= (3, 13):
 # Detect free-threaded Python (nogil)
@@ -86,5 +84,8 @@ else:
     req_file = project_root / "requirements" / "test.txt"
     print(f"Installing standard dependencies from {req_file}")
 
-# subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", str(req_file)])
-subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(req_file)], check=True)
+try:
+    # subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", str(req_file)])
+    subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(req_file)], check=True)
+except:
+    pass
