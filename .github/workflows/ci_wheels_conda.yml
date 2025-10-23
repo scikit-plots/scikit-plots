@@ -206,8 +206,8 @@ jobs:
             python: ["cp38", "3.8"]  # need scipy
           - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
             python: ["cp39", "3.9"]  # need scipy
-          - buildplat: [windows-11-arm, win, ARM64]
-            python: ["cp38", "3.8"]  # need ?
+          # - buildplat: [windows-11-arm, win, ARM64]
+          #   python: ["cp38", "3.8"]  # need ?
 
     env:  # Job level environment NAME: '', $NAME, ${{ env.NAME }}
       IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
