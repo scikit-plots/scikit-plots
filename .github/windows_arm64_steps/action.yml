@@ -5,7 +5,7 @@ runs:
   steps:
     - name: "Set environment variables for ARM64 (CC/CXX/CFLAGS)"
       # shell: sh -l {0}
-      # shell: bash -el {0}
+      shell: bash -el {0}
       # shell: cmd /C CALL {0}
       # shell: powershell
       # shell: pwsh
@@ -53,7 +53,7 @@ runs:
         cmd.exe /C "LLVM-woa64.exe /S"
 
         # Add LLVM\bin to PATH for the workflow
-        echo "C:\\Program Files\\LLVM\\bin" >> $env:GITHUB_ENV
+        echo "C:/Program Files/LLVM/bin" >> $env:GITHUB_ENV
 
     # - name: Activate MSVC ARM64 Toolchain (vcvarsall)  # vcpkg + pkgconf -> Provides pkg-config tool for ARM64
     #   shell: pwsh
