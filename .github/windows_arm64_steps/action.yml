@@ -84,11 +84,16 @@ runs:
 
         # Export environment variables for GitHub Actions
         while IFS='=' read -r key value; do
-          if [ -n "$key" ]; then
-            echo "$key=$value" >> "$GITHUB_ENV"
-            if [ "$key" = "PATH" ]; then
-              echo "$value" >> "$GITHUB_PATH"
-            fi
+          # Skip lines that are not valid environment variable assignments
+          # if [ -n "$key" ]; then  ^[A-Za-z_][A-Za-z0-9_]*$
+          if [[ -z "$key" || "$key" =~ ^[^A-Za-z_] ]]; then
+            continue
+          fi
+          echo "$key=$value" >> "$GITHUB_ENV"
+
+          if [ "$key" = "PATH" ]; then
+            # Also append to PATH properly
+            echo "$value" >> "$GITHUB_PATH"
           fi
         done < vcvars_env.txt
 

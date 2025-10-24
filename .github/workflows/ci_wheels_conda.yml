@@ -374,8 +374,9 @@ jobs:
           echo "CIBW_ENVIRONMENT_WINDOWS=$cibw_env_win" >> $env:GITHUB_ENV
 
           ## Debug the PKG_CONFIG_PATH and check if it's set correctly
-          echo "$pkg_config_path" >> $env:GITHUB_OUTPUT
-          echo "$cibw_env" >> $env:GITHUB_OUTPUT
+          ## valid properly formatted KEY=VALUE pairs
+          echo "DEBUG_PKG_CONFIG_PATH=$pkg_config_path" >> $env:GITHUB_OUTPUT
+          echo "DEBUG_CIBW_ENV=$cibw_env" >> $env:GITHUB_OUTPUT
 
       # --- matrix.buildplat ---
 
