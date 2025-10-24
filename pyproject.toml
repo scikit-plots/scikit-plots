@@ -1111,11 +1111,14 @@ ignore = [
 # build wheels for in CI are controlled in `.github/workflows/wheels.yml` and
 # `tools/ci/cirrus_wheels.yml`.
 skip = ["*_i686", "*_ppc64le", "*_s390x", "*_universal2"]
+
+# https://cibuildwheel.pypa.io/en/stable/options/#build-frontend
 build-frontend = "build"
+
 # We're only testing with essential test dependencies, not optional ones.
 # Some of those require binary wheels (often missing for some platforms),
 # or they slow down the test suite runs too much or simply aren't necessary.
-#
+
 # `project` will be the $PWD equivalent inside the docker used to build the wheel
 # {project} might be used for higher-level tasks, like referencing the project root.
 # {package} is used to refer to the specific package directory for cibuildwheel
@@ -1154,8 +1157,6 @@ manylinux-aarch64-image = "manylinux_2_28"  # "manylinux2014"
 musllinux-x86_64-image = "musllinux_1_2"
 musllinux-aarch64-image = "musllinux_1_2"
 
-# environment = {}
-
 # Linux-specific environment variables
 [tool.cibuildwheel.linux.environment]
 # `project` will be the $PWD equivalent inside the docker used to build the wheel
@@ -1191,7 +1192,10 @@ config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=false"], build-dir="
 repair-wheel-command = "bash -el ./tools/wheels/repair_windows.sh {wheel} {dest_dir}"
 
 # This does not work, use CIBW_ENVIRONMENT_WINDOWS
-# environment = {PKG_CONFIG_PATH="./.openblas"}
+# environment = { PATH='C:\\Program Files\\PostgreSQL\\13\\bin;$PATH' }
+# Native Windows tools (cmd.exe, PowerShell) expect ; as the PATH separator:
+# environment = { $env:PATH = "C:\Program Files\PostgreSQL\13\bin;$env:PATH" }
+# environment = { PKG_CONFIG_PATH="./.openblas" }
 
 # Windows-specific environment variables
 [tool.cibuildwheel.windows.environment]
@@ -1204,22 +1208,34 @@ PATH = "project/.openblas/lib${PATH:+:$PATH}"
 # CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH=project/.openblas"
 
 
-
 [[tool.cibuildwheel.overrides]]
+# https://cibuildwheel.pypa.io/en/stable/configuration/#overrides
+# https://cibuildwheel.pypa.io/en/stable/options/#build-skip
 select = [
   # "*-win32",
-  # "*-win-AMD64",
-  "*-win-ARM64"
+  # "*-win_amd64",
+  "*-win_arm64",  # ✅ Add/override variables ONLY for Windows ARM64
 ]
-# These environment variables will be available to Meson, CMake, setup.py, etc.
-# Meson respects PKG_CONFIG if set. This bypasses the broken Strawberry Perl binary completely.
-environment = """
-PKG_CONFIG_PATH=project/.openblas
-PATH=project/.openblas/lib:/c/vcpkg/installed/arm64-windows/tools/pkgconf${PATH:+:$PATH}
-PKG_CONFIG=/c/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe
-"""
+# ✅ Environment inheritance: append to existing variables
+# inherit.environment = "append"  # Keeps your base variables and adds new ones
+# Prepend is correct here to ensure our pkgconf is found *before* Strawberry Perl
+# Ensure correct search order: custom pkgconf first, OpenBLAS libs second, then inherited PATH
+inherit.environment = "prepend"
+
+# inline TOML tables ({ ... }) cannot contain newlines.
+# environment = {}
+[tool.cibuildwheel.overrides.environment]
+# ✅ make sure this is under the override block like:
+# GitHub Actions expect POSIX-style paths even on Windows if using bash or MSYS tools:
+# Explicit pkg-config executable for ARM64
+PKG_CONFIG = "/c/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe"
+PKG_CONFIG_PATH = "project/.openblas"
+PATH = "/c/vcpkg/installed/arm64-windows/tools/pkgconf:project/.openblas/lib:$PATH"
+
 # config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=true"], build-dir="build"}
 # repair-wheel-command = ""  # Leave empty if no repair script is needed
+# TOML doesn't support explicit NULLs; use ["\u0000"] as a sentinel value.
+# xbuild-tools = ["\u0000"]
 
 ######################################################################
 ## doit
