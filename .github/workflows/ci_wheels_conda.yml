@@ -325,8 +325,8 @@ jobs:
           # CIBW_ENVIRONMENT (so cibuildwheel's docker/venv sees it)
           echo "PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
           # Critical: pass into cibuildwheel environment
-          echo "CIBW_ENVIRONMENT=PKG_CONFIG_PATH=$CIBW ${CIBW_ENVIRONMENT:+$CIBW_ENVIRONMENT}" >> $env:GITHUB_ENV
-          echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=$CIBW ${CIBW_ENVIRONMENT_WINDOWS:+$CIBW_ENVIRONMENT_WINDOWS}" >> $env:GITHUB_ENV
+          echo "CIBW_ENVIRONMENT=PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
+          echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=$CIBW" >> $env:GITHUB_ENV
 
           ## Debug the PKG_CONFIG_PATH and check if it's set correctly
           echo "$PKG_CONFIG_PATH" >> $GITHUB_OUTPUT
@@ -438,6 +438,7 @@ jobs:
         # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
         uses: pypa/cibuildwheel@5f22145df44122af0f5a201f93cf0207171beca7 # v3.0.0
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
+          ## ✅ Method 2: Use pyproject.toml (Best for portability & reuse)
           ## Specify target platform
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
           CIBW_ARCHS: ${{ matrix.buildplat[2] }}
@@ -447,6 +448,11 @@ jobs:
           ## Set CIBW_PRERELEASE_PYTHONS to True to build for pre-release versions of Python
           # CIBW_FREE_THREADED_SUPPORT: True
           # CIBW_PRERELEASE_PYTHONS: True
+          # 📝 Note: ${{ env.PKGCONFIG_EXE }} must have been set in a previous step using:
+          # ✅ Pass pkg-config config to cibuildwheel
+          # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
+          # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
+          # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH
 
       # --- matrix.buildplat ---
 

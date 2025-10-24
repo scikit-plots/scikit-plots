@@ -1128,7 +1128,7 @@ before-test = "pip install -r {project}/requirements/test.txt || pip install -r 
 test-command = "bash {project}/tools/wheels/cibw_test_command.sh {project}"
 before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
 
-# CIBW_ENABLE="cpython-prerelease cpython-freethreading"
+# In workflow yml -> CIBW_ENABLE="cpython-prerelease cpython-freethreading"
 enable = ["cpython-freethreading", "cpython-prerelease", "pypy"]  # for >=v3.0.0
 
 # The build will use openblas64 everywhere, except on arm64 macOS >=14.0 (uses Accelerate)
@@ -1205,19 +1205,19 @@ PATH = "project/.openblas/lib${PATH:+:$PATH}"
 
 
 
-# [[tool.cibuildwheel.overrides]]
-# select = [
-#   # "*-win32",
-#   # "*-win_amd64",
-#   "*-win_arm64"
-# ]
-# # These environment variables will be available to Meson, CMake, setup.py, etc.
-# environment = """
-# PKG_CONFIG_PATH=project/.openblas
-# PKG_CONFIG=/c/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe
-# OPENBLAS_LIB_DIR={project}/.openblas/lib
-# PATH=project/.openblas/lib:/c/vcpkg/installed/arm64-windows/tools/pkgconf${PATH:+:$PATH}
-# """
+[[tool.cibuildwheel.overrides]]
+select = [
+  # "*-win32",
+  # "*-win-AMD64",
+  "*-win-ARM64"
+]
+# These environment variables will be available to Meson, CMake, setup.py, etc.
+# Meson respects PKG_CONFIG if set. This bypasses the broken Strawberry Perl binary completely.
+environment = """
+PKG_CONFIG_PATH=project/.openblas
+PATH=project/.openblas/lib:/c/vcpkg/installed/arm64-windows/tools/pkgconf${PATH:+:$PATH}
+PKG_CONFIG=/c/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe
+"""
 # config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=true"], build-dir="build"}
 # repair-wheel-command = ""  # Leave empty if no repair script is needed
 
