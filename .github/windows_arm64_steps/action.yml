@@ -121,7 +121,12 @@ runs:
         PKGCONFIG_EXE="$PKGCONF_PATH/pkg-config.exe"
 
         # Meson respects PKG_CONFIG if set. This bypasses the broken Strawberry Perl binary completely.
+        # GITHUB_ENV (so the CI runner knows)
+        # CIBW_ENVIRONMENT (so cibuildwheel's docker/venv sees it)
         echo "PKG_CONFIG=$PKGCONFIG_EXE" >> $env:GITHUB_ENV
+        # Critical: pass into cibuildwheel environment
+        echo "CIBW_ENVIRONMENT=PKG_CONFIG=$PKGCONFIG_EXE" >> $env:GITHUB_ENV
+        echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG=$PKGCONFIG_EXE" >> $env:GITHUB_ENV
 
         # Copying pkgconf.exe to pkg-config.exe for compatibility, Ensure pkg-config exists
         cp "$PKGCONF_PATH/pkgconf.exe" "$PKGCONFIG_EXE"

@@ -236,9 +236,9 @@ configure_openblas_pkg_config() {
             log_success "Setting DYLD_LIBRARY_PATH to: $DYLD_LIBRARY_PATH"
             ;;
         Windows)
-            # Adjust the path format for Windows
+            # Adjust the path format for Windows ; :
             OPENBLAS_LIB_DIR=$(echo "$OPENBLAS_LIB_DIR" | sed 's/\//\\/g')
-            export PATH="$OPENBLAS_LIB_DIR${PATH:+;$PATH}"
+            export PATH="$OPENBLAS_LIB_DIR${PATH:+:$PATH}"
             log_success "Setting PATH to: $PATH"
             ;;
         *)
