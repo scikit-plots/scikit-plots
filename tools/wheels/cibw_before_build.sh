@@ -366,6 +366,8 @@ setup_windows_pkgconf() {
 
         # Prepend pkgconf directory to PATH
         PKGCONF_DIR="$(dirname "$PKG_CONFIG")"
+        # Meson can not find in PATH
+        echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG=$PKG_CONFIG PATH=$PKGCONF_DIR:$PATH" >> $env:GITHUB_ENV
         # export PATH="$PKGCONF_DIR:$PATH"
         export PATH="$PKGCONF_DIR${PATH:+:$PATH}"
 

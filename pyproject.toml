@@ -1188,14 +1188,9 @@ CIBW_ENVIRONMENT_MACOS = "PKG_CONFIG_PATH=/project/.openblas"
 
 
 [tool.cibuildwheel.windows]
+# Native Windows tools (cmd.exe, PowerShell) expect ; as the PATH separator:
 config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=false"], build-dir="build"}
 repair-wheel-command = "bash -el ./tools/wheels/repair_windows.sh {wheel} {dest_dir}"
-
-# This does not work, use CIBW_ENVIRONMENT_WINDOWS
-# environment = { PATH='C:\\Program Files\\PostgreSQL\\13\\bin;$PATH' }
-# Native Windows tools (cmd.exe, PowerShell) expect ; as the PATH separator:
-# environment = { $env:PATH = "C:\Program Files\PostgreSQL\13\bin;$env:PATH" }
-# environment = { PKG_CONFIG_PATH="./.openblas" }
 
 # Windows-specific environment variables
 [tool.cibuildwheel.windows.environment]
@@ -1208,34 +1203,46 @@ PATH = "project/.openblas/lib${PATH:+:$PATH}"
 # CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG_PATH=project/.openblas"
 
 
-# [[tool.cibuildwheel.overrides]]
-# # https://cibuildwheel.pypa.io/en/stable/configuration/#overrides
-# # https://cibuildwheel.pypa.io/en/stable/options/#build-skip
-# select = [
-#   # "*-win32",
-#   # "*-win_amd64",
-#   "*-win_arm64",  # ✅ Add/override variables ONLY for Windows ARM64
-# ]
-# # ✅ Environment inheritance: append to existing variables
-# # inherit.environment = "append"  # Keeps your base variables and adds new ones
-# # Prepend is correct here to ensure our pkgconf is found *before* Strawberry Perl
-# # Ensure correct search order: custom pkgconf first, OpenBLAS libs second, then inherited PATH
-# inherit.environment = "prepend"
-#
-# # inline TOML tables ({ ... }) cannot contain newlines.
-# # environment = {}
-# [tool.cibuildwheel.overrides.environment]
-# # ✅ make sure this is under the override block like:
-# # GitHub Actions expect POSIX-style paths even on Windows if using bash or MSYS tools:
-# # Explicit pkg-config executable for ARM64
-# PKG_CONFIG = "/c/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe"
-# PKG_CONFIG_PATH = "project/.openblas"
-# PATH = "/c/vcpkg/installed/arm64-windows/tools/pkgconf:project/.openblas/lib:$PATH"
-#
-# # config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=true"], build-dir="build"}
-# # repair-wheel-command = ""  # Leave empty if no repair script is needed
-# # TOML doesn't support explicit NULLs; use ["\u0000"] as a sentinel value.
-# # xbuild-tools = ["\u0000"]
+[[tool.cibuildwheel.overrides]]
+# https://cibuildwheel.pypa.io/en/stable/configuration/#overrides
+# https://cibuildwheel.pypa.io/en/stable/options/#build-skip
+select = [
+  # "*-win32",
+  # "*-win_amd64",
+  "*-win_arm64",  # ✅ Add/override variables ONLY for Windows ARM64
+]
+# ✅ Environment inheritance: append to existing variables
+# inherit.environment = "append"  # Keeps your base variables and adds new ones
+
+# Prepend is correct here to ensure our pkgconf is found *before* Strawberry Perl
+# Ensure correct search order: custom pkgconf first, OpenBLAS libs second, then inherited PATH
+inherit.environment = "prepend"
+# https://www.ditig.com/toml-cheat-sheet#table-vs-inline-table-usage
+# inline TOML tables ({ ... }) cannot contain newlines.
+# environment = {}
+# This does not work, use CIBW_ENVIRONMENT_WINDOWS
+# environment = "CFLAGS='-g -Wall' CXXFLAGS='-Wall'"
+# environment = { PATH='C:\\Program Files\\PostgreSQL\\13\\bin;$PATH' }
+# environment = { $env:PATH = "C:\Program Files\PostgreSQL\13\bin;$env:PATH" }
+# environment = { PKG_CONFIG_PATH="./.openblas" }
+# environment = """
+# PKG_CONFIG_PATH=project/.openblas
+# PATH=project/.openblas/lib:/c/vcpkg/installed/arm64-windows/tools/pkgconf${PATH:+:$PATH}
+# PKG_CONFIG=c:/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe
+# """
+
+[tool.cibuildwheel.overrides.environment]
+# ✅ make sure this is under the override block like:
+# GitHub Actions expect POSIX-style paths even on Windows if using bash or MSYS tools:
+# Explicit pkg-config executable for ARM64
+PKG_CONFIG_PATH = "project/.openblas"
+PATH = "c:/vcpkg/installed/arm64-windows/tools/pkgconf:project/.openblas/lib${PATH:+:$PATH}"
+PKG_CONFIG = "c:/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe"
+CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG='c:/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe'"
+# config-settings = {setup-args = ["--vsenv", "-Dallow-noblas=true"], build-dir="build"}
+# repair-wheel-command = ""  # Leave empty if no repair script is needed
+# TOML doesn't support explicit NULLs; use ["\u0000"] as a sentinel value.
+# xbuild-tools = ["\u0000"]
 
 ######################################################################
 ## doit
