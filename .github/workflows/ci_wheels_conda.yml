@@ -358,7 +358,7 @@ jobs:
           $pkg_config_path = "${{ github.workspace }}/.openblas".replace("\", "/")
 
           # Export for GitHub Actions steps
-          $pkg_config_path = if ($env:PKG_CONFIG_PATH) { "$pkg_config_path;$env:PKG_CONFIG_PATH" } else { $pkg_config_path }
+          # $pkg_config_path = if ($env:PKG_CONFIG_PATH) { "$pkg_config_path;$env:PKG_CONFIG_PATH" } else { $pkg_config_path }
           echo "PKG_CONFIG_PATH=$pkg_config_path" >> $env:GITHUB_ENV
 
           # Critical: Pass into build cibuildwheel environment
