@@ -356,34 +356,34 @@ setup_windows() {
         python -m pip install delvewheel wheel
     fi
 }
-setup_windows_pkgconf() {
-    if [[ "$RUNNER_OS" == "Windows" && "$RUNNER_ARCH" == "ARM64" ]]; then
-        log_info "Windows ARM64 platform detected. Configuring pkgconf to pkg-config.exe..."
+# setup_windows_pkgconf() {
+#     if [[ "$RUNNER_OS" == "Windows" && "$RUNNER_ARCH" == "ARM64" ]]; then
+#         log_info "Windows ARM64 platform detected. Configuring pkgconf to pkg-config.exe..."
 
-        # Path to the pkgconf to pkg-config executable
-        PKG_CONFIG="/c/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe"
-        export PKG_CONFIG
+#         # Path to the pkgconf to pkg-config executable
+#         PKG_CONFIG="/c/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe"
+#         export PKG_CONFIG
 
-        # Prepend pkgconf directory to PATH
-        PKGCONF_DIR="$(dirname "$PKG_CONFIG")"
-        # Meson can not find in PATH
-        echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG=$PKG_CONFIG PATH=$PKGCONF_DIR:$PATH" >> $env:GITHUB_ENV
-        # export PATH="$PKGCONF_DIR:$PATH"
-        export PATH="$PKGCONF_DIR${PATH:+:$PATH}"
+#         # Prepend pkgconf directory to PATH
+#         PKGCONF_DIR="$(dirname "$PKG_CONFIG")"
+#         # Meson can not find in PATH
+#         echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG=$PKG_CONFIG PATH=$PKGCONF_DIR:$PATH" >> $env:GITHUB_ENV
+#         # export PATH="$PKGCONF_DIR:$PATH"
+#         export PATH="$PKGCONF_DIR${PATH:+:$PATH}"
 
-        log_success "PKG_CONFIG set to: $PKG_CONFIG"
-        log_success "PATH updated to: $PATH"
+#         log_success "PKG_CONFIG set to: $PKG_CONFIG"
+#         log_success "PATH updated to: $PATH"
 
-        # Verify pkg-config works
-        echo "Testing pkg-config..."
-        if "$PKG_CONFIG" --version; then
-            log_success "pkg-config is functional"
-        else
-            log_error "pkg-config failed! Check path and executable"
-            # return 1
-        fi
-    fi
-}
+#         # Verify pkg-config works
+#         echo "Testing pkg-config..."
+#         if "$PKG_CONFIG" --version; then
+#             log_success "pkg-config is functional"
+#         else
+#             log_error "pkg-config failed! Check path and executable"
+#             # return 1
+#         fi
+#     fi
+# }
 ######################################################################
 ## macOS-specific setup GFortran + OpenBLAS
 ######################################################################
@@ -493,7 +493,7 @@ main() {
     # https://github.com/scipy/scipy/pull/23180
     handle_free_threaded_build
     # Prepend the correct directory to PATH so Meson can find pkg-config
-    setup_windows_pkgconf
+    # setup_windows_pkgconf
     # Set up Scipy OpenBLAS based on architecture
     setup_openblas "$project_dir"
     # Windows-specific setup delvewheel

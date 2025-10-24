@@ -1235,6 +1235,8 @@ inherit.environment = "prepend"
 # ✅ make sure this is under the override block like:
 # GitHub Actions expect POSIX-style paths even on Windows if using bash or MSYS tools:
 # Explicit pkg-config executable for ARM64
+# --pkg-config-path (or PKG_CONFIG_PATH) is only for .pc directories, not executables.
+# The executable itself is determined by $PKG_CONFIG or whatever is found in PATH.
 PKG_CONFIG_PATH = "project/.openblas"
 PATH = "c:/vcpkg/installed/arm64-windows/tools/pkgconf:project/.openblas/lib${PATH:+:$PATH}"
 PKG_CONFIG = "c:/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe"

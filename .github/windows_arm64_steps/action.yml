@@ -15,11 +15,11 @@ runs:
         # echo "CFLAGS=/MD /arch:arm64"   | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         # echo "CXXFLAGS=/MD /arch:arm64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         # echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "CC=clang-cl" >> $env:GITHUB_ENV
-        echo "CXX=clang-cl" >> $env:GITHUB_ENV
-        echo "CFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
-        echo "CXXFLAGS=/MD /arch:arm64" >> $env:GITHUB_ENV
-        echo "FC=flang-new" >> $env:GITHUB_ENV
+        echo "CC=clang-cl" >> "$GITHUB_ENV"
+        echo "CXX=clang-cl" >> "$GITHUB_ENV"
+        echo "CFLAGS=/MD /arch:arm64" >> "$GITHUB_ENV"
+        echo "CXXFLAGS=/MD /arch:arm64" >> "$GITHUB_ENV"
+        echo "FC=flang-new" >> "$GITHUB_ENV"
 
     # - name: Install LLVM (ARM64)  # LLVM (clang-cl, flang-new) -> Cross-toolchain & Fortran
     #   shell: pwsh
@@ -36,7 +36,7 @@ runs:
 
     - name: Install LLVM (ARM64)  # LLVM (clang-cl, flang-new) -> Cross-toolchain & Fortran
       shell: bash -el {0}
-      run: |
+      run: | # zizmor: ignore[github-env] safe: adding
         # Download LLVM installer
         curl -L -o LLVM-woa64.exe https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/LLVM-20.1.8-woa64.exe
 
@@ -53,7 +53,7 @@ runs:
         cmd.exe /C "LLVM-woa64.exe /S"
 
         # Add LLVM\bin to PATH for the workflow
-        echo "C:/Program Files/LLVM/bin" >> $env:GITHUB_ENV
+        echo "C:/Program Files/LLVM/bin" >> "$GITHUB_ENV"
 
     # - name: Activate MSVC ARM64 Toolchain (vcvarsall)  # vcpkg + pkgconf -> Provides pkg-config tool for ARM64
     #   shell: pwsh
@@ -73,7 +73,7 @@ runs:
 
     - name: Activate MSVC ARM64 Toolchain (vcvarsall)  # vcpkg + pkgconf -> Provides pkg-config tool for ARM64
       shell: bash -el {0}
-      run: |
+      run: | # zizmor: ignore[github-env] safe: adding
         # Run vcvarsall.bat for ARM64 and capture environment variables
         # Use cmd.exe /C to run the batch file
         cmd.exe /C '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64 && set' > vcvars_env.txt
@@ -84,9 +84,9 @@ runs:
         # Export environment variables for GitHub Actions
         while IFS='=' read -r key value; do
           if [ -n "$key" ]; then
-            echo "$key=$value" >> $env:GITHUB_ENV
+            echo "$key=$value" >> "$GITHUB_ENV"
             if [ "$key" = "PATH" ]; then
-              echo "$value" >> $env:GITHUB_PATH
+              echo "$value" >> "$GITHUB_ENV"
             fi
           fi
         done < vcvars_env.txt
@@ -110,7 +110,7 @@ runs:
       run: | # zizmor: ignore[github-env] safe: adding
         set -e
 
-        export VCPKG_ROOT="/c/vcpkg"  # "C:/vcpkg".Replace("\","/")
+        export VCPKG_ROOT="C:/vcpkg"  # "/c/vcpkg".Replace("\","/")
         cd "$VCPKG_ROOT"
 
         # Install pkgconf for ARM64
@@ -118,37 +118,31 @@ runs:
 
         # Set the path to pkgconf
         PKGCONF_PATH="$VCPKG_ROOT/installed/arm64-windows/tools/pkgconf"
-        PKGCONFIG_EXE="$PKGCONF_PATH/pkg-config.exe"
-
-        # Meson respects PKG_CONFIG if set. This bypasses the broken Strawberry Perl binary completely.
-        # GITHUB_ENV (so the CI runner knows)
-        # CIBW_ENVIRONMENT (so cibuildwheel's docker/venv sees it)
-        echo "PKG_CONFIG=$PKGCONFIG_EXE" >> $env:GITHUB_ENV
-        # Critical: pass into cibuildwheel environment
-        echo "CIBW_ENVIRONMENT=PKG_CONFIG=$PKGCONFIG_EXE" >> $env:GITHUB_ENV
-        echo "CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG=$PKGCONFIG_EXE" >> $env:GITHUB_ENV
+        PKG_CONFIG="$PKGCONF_PATH/pkg-config.exe"
 
         # Copying pkgconf.exe to pkg-config.exe for compatibility, Ensure pkg-config exists
-        cp "$PKGCONF_PATH/pkgconf.exe" "$PKGCONFIG_EXE"
+        cp "$PKGCONF_PATH/pkgconf.exe" "$PKG_CONFIG"
         # Use absolute path to pkg-config
-        if [ -x "$PKGCONFIG_EXE" ]; then
-          echo "Found pkg-config at $PKGCONFIG_EXE"
+        if [ -x "$PKG_CONFIG" ]; then
+          echo "Found pkg-config at $PKG_CONFIG"
         else
-          echo "ERROR: pkg-config not found at $PKGCONFIG_EXE"
+          echo "ERROR: pkg-config not found at $PKG_CONFIG"
           exit 1
         fi
-
-        # Prepend to correct pkgconf PATH (Windows style) to GitHub Actions PATH
-        # echo "$PKGCONF_PATH" >> $GITHUB_PATH
-        echo "$PKGCONF_PATH" >> "$env:GITHUB_PATH"
-
-        # Prepending pkgconf to PATH
-        export PATH="$PKGCONF_PATH:$PATH"
-        # Removing Strawberry Perl pkg-config from PATH if exists
-        # not enough if Strawberry Perl's pkg-config.BAT is earlier in the PATH
-        # $(echo "$PATH" | tr ';' '\n' | grep -v 'Strawberry' | grep -v 'perl' | paste -sd ";" -)
-        # PATH=$(echo "$PATH" | tr ':' '\n' | grep -vi 'strawberry' | grep -vi 'perl' | paste -sd ":" -)
-        echo "Current PATH: $PATH"
         echo "Verifying which pkg-config is executable and correct one..."
-        command -v "$PKGCONFIG_EXE" || echo "pkg-config not found in PATH"
-        "$PKGCONFIG_EXE" --version || echo "pkg-config failed to execute"
+        command -v "$PKG_CONFIG" || echo "pkg-config not found"
+        "$PKG_CONFIG" --version || echo "pkg-config failed to execute"
+
+        # Create a wrapper batch file so Meson/cibuildwheel can call pkg-config from PATH
+        # Ensure Meson / cibuildwheel uses the vcpkg ARM64 pkgconf executable instead of the default Strawberry Perl
+        WRAPPER_DIR="$HOME/bin"
+        mkdir -p "$WRAPPER_DIR"
+        echo "@echo off
+        \"$PKG_CONFIG\" %*" > "$WRAPPER_DIR/pkg-config.bat"
+
+        # Prepend wrapper dir and pkgconf path to GitHub Actions PATH
+        echo "$WRAPPER_DIR" >> "$GITHUB_PATH"
+        echo "$PKGCONF_PATH" >> "$GITHUB_PATH"
+
+        # Exports PKG_CONFIG for downstream steps:
+        echo "PKG_CONFIG=$PKG_CONFIG" >> "$GITHUB_ENV"
