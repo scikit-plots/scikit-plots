@@ -299,7 +299,7 @@ setup_openblas() {
     local project_dir="$1"
     # Detect the system architecture
     local arch
-    arch=$(uname -m)
+    arch=$(uname -m)  # $RUNNER_ARCH
     arch=$(echo "$arch" | tr '[:upper:]' '[:lower:]')
     log_info "Running on platform: $RUNNER_OS (Architecture: $arch)"
     # Check and set INSTALL_OPENBLAS if not already set, initialized as an empty string
@@ -356,6 +356,32 @@ setup_windows() {
         python -m pip install delvewheel wheel
     fi
 }
+setup_windows_pkgconf() {
+    if [[ "$RUNNER_OS" == "Windows" && "$RUNNER_ARCH" == "ARM64" ]]; then
+        log_info "Windows ARM64 platform detected. Configuring pkgconf to pkg-config.exe..."
+
+        # Path to the pkgconf to pkg-config executable
+        PKG_CONFIG="/c/vcpkg/installed/arm64-windows/tools/pkgconf/pkg-config.exe"
+        export PKG_CONFIG
+
+        # Prepend pkgconf directory to PATH
+        PKGCONF_DIR="$(dirname "$PKG_CONFIG")"
+        # export PATH="$PKGCONF_DIR:$PATH"
+        export PATH="$PKGCONF_DIR${PATH:+:$PATH}"
+
+        log_success "PKG_CONFIG set to: $PKG_CONFIG"
+        log_success "PATH updated to: $PATH"
+
+        # Verify pkg-config works
+        echo "Testing pkg-config..."
+        if "$PKG_CONFIG" --version; then
+            log_success "pkg-config is functional"
+        else
+            log_error "pkg-config failed! Check path and executable"
+            # return 1
+        fi
+    fi
+}
 ######################################################################
 ## macOS-specific setup GFortran + OpenBLAS
 ######################################################################
@@ -364,7 +390,7 @@ setup_macos() {
     # $(uname) == "Darwin"
     # Detect the system architecture
     local arch
-    arch=$(uname -m)
+    arch=$(uname -m)  # $RUNNER_ARCH
     if [[ $RUNNER_OS == "macOS" ]]; then
         log_info "macOS platform detected: $arch"
         if [[ $arch == "x86_64" ]]; then
@@ -464,6 +490,8 @@ main() {
     # in a dev version of some dependency again.
     # https://github.com/scipy/scipy/pull/23180
     handle_free_threaded_build
+    # Prepend the correct directory to PATH so Meson can find pkg-config
+    setup_windows_pkgconf
     # Set up Scipy OpenBLAS based on architecture
     setup_openblas "$project_dir"
     # Windows-specific setup delvewheel
