@@ -30,11 +30,10 @@ runs:
         Set-Location $env:VCPKG_ROOT
         ./vcpkg install pkgconf:arm64-windows
         $pkgconfPath = "$env:VCPKG_ROOT\installed\arm64-windows\tools\pkgconf"
+        $pkgconf = "$env:VCPKG_ROOT\installed\arm64-windows\tools\pkgconf\pkg-config.exe"
         Copy-Item "$pkgconfPath\pkgconf.exe" "$pkgconfPath\pkg-config.exe" -Force
         echo "$pkgconfPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
         # Meson: Fix current pkg-config executable is coming from Strawberry Perl, not from vcpkg or LLVM
-        $pkgconf = "$env:VCPKG_ROOT\installed\arm64-windows\tools\pkgconf/pkg-config.exe"
         echo "$pkgconf" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     # - name: "Set environment variables for ARM64 (CC/CXX/CFLAGS)"
