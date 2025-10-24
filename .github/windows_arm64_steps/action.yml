@@ -53,7 +53,8 @@ runs:
         cmd.exe /C "LLVM-woa64.exe /S"
 
         # Add LLVM\bin to PATH for the workflow
-        echo "C:/Program Files/LLVM/bin" >> "$GITHUB_ENV"
+        # echo "PATH=C:/Program Files/LLVM/bin:$PATH" >> "$GITHUB_ENV"
+        echo "C:/Program Files/LLVM/bin" >> "$GITHUB_PATH"
 
     # - name: Activate MSVC ARM64 Toolchain (vcvarsall)  # vcpkg + pkgconf -> Provides pkg-config tool for ARM64
     #   shell: pwsh
@@ -86,7 +87,7 @@ runs:
           if [ -n "$key" ]; then
             echo "$key=$value" >> "$GITHUB_ENV"
             if [ "$key" = "PATH" ]; then
-              echo "$value" >> "$GITHUB_ENV"
+              echo "$value" >> "$GITHUB_PATH"
             fi
           fi
         done < vcvars_env.txt
