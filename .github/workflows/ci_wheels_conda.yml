@@ -416,10 +416,7 @@ jobs:
             XCODE_VER=$(ls /Applications | grep -E 'Xcode_[0-9]+' | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/' | sort -V | tail -n 1)
           fi
           echo "✅ Selected Xcode version: $XCODE_VER"
-          # if [[ -z "$XCODE_VER" ]]; then
-          #   echo "❌ No Xcode installations found in /Applications"
-          #   exit 1
-          # fi
+          # [[ -z "$XCODE_VER" ]] || echo "❌ No Xcode installations found in /Applications"
           # matrix.buildplat[4] → (macos-13/macos-15-intel 10.14, 14.0) (macos-14 12.3, 14.0)
           #          XCODE_VER='16.0'
           #          CIBW="sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app"
@@ -428,7 +425,7 @@ jobs:
           # installed in cibw_before_build_macos.sh
           # sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app
           ## Use the selected Xcode version in the xcode-select command
-          CIBW="sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app"
+          CIBW="sudo xcode-select -s /Applications/${XCODE_VER}"
           echo "CIBW_BEFORE_ALL=$CIBW" >> $GITHUB_ENV
           sudo xcode-select -s /Applications/${XCODE_VER}
 
