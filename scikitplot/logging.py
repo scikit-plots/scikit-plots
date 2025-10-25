@@ -13,7 +13,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-:py:mod:`~.sp_logging` (alias, :py:obj:`~.logger`) module provide logging utilities.
+:py:mod:`~.logging` (alias, :py:obj:`~.logger`) module provide Python logging :py:class:`logging.Logger` utilities.
 
 Inspired by `"Tensorflow's logging system"
 <https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94>`_.
@@ -215,13 +215,13 @@ CYAN = "\033[1;36m"  # ACTION / STATUS / QUERY
 #     return logger
 
 ######################################################################
-## sp_logging falling back to python logging
+## logging falling back to python logging
 ######################################################################
 
 
 def __getattr__(name: str):
     """
-    Dynamic attribute resolver for the sp_logging module.
+    Dynamic attribute resolver for the logging module.
 
     If an attribute is not found in this module, this function attempts to
     retrieve it from the standard Python 'logging' module as a fallback.
@@ -247,16 +247,16 @@ def __getattr__(name: str):
     -----
     This function makes it possible to do things like:
 
-    >>> from sp_logging import DEBUG, warning
+    >>> from scikitplot.logging import DEBUG, warning
     >>> warning("This will behave like logging.warning")
 
     Examples
     --------
-    >>> hasattr(sp_logging, "INFO")
+    >>> hasattr(logging, "INFO")
     True  # Delegated to logging.INFO
 
-    >>> sp_logging.NonexistentAttribute
-    AttributeError: Module 'sp_logging' has no attribute 'NonexistentAttribute'...
+    >>> logging.NonexistentAttribute
+    AttributeError: Module 'logging' has no attribute 'NonexistentAttribute'...
     """
     try:
         # Attempt to retrieve attribute from the logging module
@@ -264,9 +264,9 @@ def __getattr__(name: str):
         get_logger().debug(f"Falling back to logging.{name}")
         return attr
     except AttributeError as e:
-        # Raise a clear error if not found in both sp_logging and logging
+        # Raise a clear error if not found in both logging and logging
         raise AttributeError(
-            f"Module 'sp_logging' has no attribute '{name}', "
+            f"Module 'logging' has no attribute '{name}', "
             f"and it was not found in the standard 'logging' module either."
         ) from e
 
@@ -974,7 +974,7 @@ def get_logger() -> "_logging.Logger":
     See Also
     --------
     scikitplot.logger :
-        An alias of :py:mod:`~.sp_logging` module, providing logging functionality.
+        An alias of :py:mod:`~.logging` module, providing logging functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance.
         For more: https://docs.python.org/3/library/logging.html
@@ -1010,7 +1010,7 @@ def get_logger() -> "_logging.Logger":
     You can also specify the logging verbosity.  In this case, the
     WARN level log will not be emitted:
 
-    >>> sp.get_logger().setLevel(sp.sp_logging.WARNING)
+    >>> sp.get_logger().setLevel(sp.logging.WARNING)
     >>> sp.get_logger().debug(
     ...     "This is a debug."
     ... )  # This will not be shown, as level is WARNING.
@@ -1038,7 +1038,7 @@ def get_logger() -> "_logging.Logger":
     .. jupyter-execute::
 
         >>> import scikitplot as sp
-        >>> sp.get_logger().setLevel(sp.sp_logging.INFO)  # default WARNING
+        >>> sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
         >>> sp.get_logger().info("This is a info message from the sp logger.")
     """
     # Ensure the root logger is initialized
@@ -1457,7 +1457,7 @@ class SpLogger:
     get_logger :
         Function that provides a shared :py:class:`logging.Logger` instance.
     logger :
-        An alias of :py:mod:`sp_logging` module, providing logging functionality.
+        An alias of :py:mod:`~.logging` module, providing logging functionality.
     logging.getLogger :
         Standard library function to retrieve :py:class:`logging.Logger` instance,
         for more https://docs.python.org/3/library/logging.html.
@@ -1503,7 +1503,7 @@ class SpLogger:
         if name in self.__dict__:
             return self.__dict__[name]
 
-        # Now, dynamically import the sp_logging module and check for the attribute
+        # Now, dynamically import the logging module and check for the attribute
         if hasattr(__import__(__name__), name):
             return getattr(__import__(__name__), name)
 
