@@ -1216,7 +1216,7 @@ PATH = "project/.openblas/lib${PATH:+:$PATH}"
 select = [
   # "*-win32",
   # "*-win_amd64",
-  "*-win_arm64",  # ✅ Add/override variables ONLY for Windows ARM64
+  "*-win_arm64*",  # ✅ Add/override variables ONLY for Windows ARM64
 ]
 # ✅ Environment inheritance: append to existing variables
 # inherit.environment = "append"  # Keeps your base variables and adds new ones
