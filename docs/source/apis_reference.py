@@ -421,6 +421,20 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.config": {
+        "short_summary": "config.",
+        "description": None,
+        "sections": [
+            {
+                "title": "Research and Citation Resources",
+                "description": "Cite your source automatically (e.g., .bib, .cff, APA, MLA, IEEE, AMA, Chicago, and Harvard)",
+                "autosummary": [
+                    "__bibtex__",
+                    "__citation__",
+                ],
+            },
+        ],
+    },
     "scikitplot.exceptions": {
         "short_summary": "Exceptions and warnings.",
         "description": None,
