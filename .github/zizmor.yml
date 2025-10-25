@@ -8,6 +8,7 @@
 # You don't need --config unless you want to use global discovery.
 
 # Syntax Notes:
+# https://docs.zizmor.sh/usage/#with-zizmoryml
 # - filename → ignore all findings in the file
 # - filename:line → ignore findings on a specific line
 # - filename:line:col → ignore specific column too (1-based)

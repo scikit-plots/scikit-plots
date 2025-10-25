@@ -19,18 +19,16 @@ capabilities used in advanced visualization and machine learning workflows.
 These modules wrap native backends (e.g. Annoy, NumCpp, F2PY-generated code)
 through Python extension interfaces to ensure consistent performance and
 availability across environments, without relying on separate system installs.
-
-Notes
------
-- All modules are optional and imported safely when available.
-- Vendored code may be experimental or limited to internal use.
-- APIs may change in future releases without deprecation warnings.
-
-_astropy  : Astronomy utilities and array backends (vendored subset)
-_f2py     : Fortran-Python interface support
-_numcpp   : NumCpp C++ template array library
-annoy     : Approximate nearest neighbor search implementation
 """
+# Notes
+# -----
+# - All modules are optional and imported safely when available.
+# - Vendored code may be experimental or limited to internal use.
+# - APIs may change in future releases without deprecation warnings.
+# annoy     : Approximate nearest neighbor search implementation
+# _astropy  : Astronomy utilities and array backends (vendored subset)
+# _f2py     : Fortran-Python interface support
+# _numcpp   : NumCpp C++ template array library
 ## Your package/module initialization code goes here
 from . import annoy
 

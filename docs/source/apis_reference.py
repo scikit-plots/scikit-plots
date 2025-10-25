@@ -368,6 +368,20 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("cexternals-index"),
         "sections": [
             {
+                "title": "Spotify annoy as submodule.",
+                "description": (
+                    _get_submodule("scikitplot.cexternals", "annoy")
+                    + "\n\n"
+                    + _get_guide("annoy-index")
+                ),
+                "autosummary": [
+                    "annoy",
+                    "annoy.Annoy",
+                    "annoy.AnnoyIndex",
+                    "annoy.annoylib",
+                ],
+            },
+            {
                 "title": "astropy stats as submodule.",
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_astropy")
@@ -405,20 +419,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_numcpp.nc_develop",
                 ],
             },
-            {
-                "title": "Spotify annoy as submodule.",
-                "description": (
-                    _get_submodule("scikitplot.cexternals", "annoy")
-                    + "\n\n"
-                    + _get_guide("annoy-index")
-                ),
-                "autosummary": [
-                    "annoy",
-                    "annoy.Annoy",
-                    "annoy.AnnoyIndex",
-                    "annoy.annoylib",
-                ],
-            },
         ],
     },
     "scikitplot.exceptions": {
@@ -436,9 +436,27 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.experimental": {
-        "short_summary": "Experimental Python modules.",
+        "short_summary": "Experimental tools/modules.",
         "description": _get_guide("experimental-index"),
         "sections": [
+            {
+                "title": None,
+                "autosummary": [
+                    "enable_annoyknn_imputer",
+                ],
+            },
+            {
+                "title": "sklearn's pipeline.",
+                "description": (
+                    _get_submodule("scikitplot.experimental", "pipeline")
+                    + "\n\n"
+                    + _get_guide("pipeline-index")
+                ),
+                "autosummary": [
+                    # "pipeline",
+                    "pipeline.pipeline",
+                ],
+            },
             {
                 "title": "Musical note handling, synthesis, and notation.",
                 "description": (
@@ -473,18 +491,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_llm_provider.LLM_PROVIDER_ENV_CONNECTOR_MAP",
                     "_llm_provider.get_response",
                     "_llm_provider.load_mlflow_gateway_config",
-                ],
-            },
-            {
-                "title": "sklearn's pipeline.",
-                "description": (
-                    _get_submodule("scikitplot.experimental", "pipeline")
-                    + "\n\n"
-                    + _get_guide("pipeline-index")
-                ),
-                "autosummary": [
-                    # "pipeline",
-                    "pipeline.pipeline",
                 ],
             },
         ],
