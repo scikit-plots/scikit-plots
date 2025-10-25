@@ -191,7 +191,9 @@ jobs:
           ["cp311", "3.11"],  # CPython 3.11 – Faster, improved error messages
           ["cp312", "3.12"],  # CPython 3.12 – Latest stable release
           ["cp313", "3.13"],  # CPython 3.13 – In development / pre-release
-          ["cp313t", "3.13"],  # CPython 3.13 w/ limited support (e.g. for testing; see: https://github.com/scipy/scipy/issues/21970)
+          ["cp313t", "3.13"],  # CPython 3.13t w/ limited support (e.g. for testing; see: https://github.com/scipy/scipy/issues/21970)
+          ["cp314", "3.14"],  # CPython 3.13
+          ["cp314t", "3.14"],  # CPython 3.13t
           # Keep sync with cibuildwheel's supported Python versions by scikit-learn, numpy, scipy, pandas, etc.
         ]
         exclude:
@@ -500,7 +502,9 @@ jobs:
           ## Set CIBW_PRERELEASE_PYTHONS to True to build for pre-release versions of Python
           # CIBW_FREE_THREADED_SUPPORT: True
           # CIBW_PRERELEASE_PYTHONS: True
-          CIBW_TEST_SKIP: "*-win_arm64*"
+          CIBW_TEST_SKIP: ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
+          # "x86", "arm64", "aarch64", "s390x".'
+          # ${{ (matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64') && 'x64' || '' }}
           # 📝 Note: ${{ env.PKGCONFIG_EXE }} must have been set in a previous step using:
           # ✅ Pass pkg-config config to cibuildwheel
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
@@ -565,7 +569,7 @@ jobs:
           # 'Architecture of Miniconda that should be installed. This is automatically
           # detected by the runner. If you want to override it, you can use "x64",
           # "x86", "arm64", "aarch64", "s390x".'
-          # architecture: ${{ (matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64') && 'x64' || '' }}
+          architecture: ${{ (matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64') && 'x64' || '' }}
 
       - name: "📥 Upload Scikit-plots Wheels (.whl) Package(s) to Anaconda.org PyPI index"
         if: success()
