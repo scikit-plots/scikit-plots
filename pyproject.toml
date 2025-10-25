@@ -1124,10 +1124,12 @@ build-frontend = "build"
 # {package} is used to refer to the specific package directory for cibuildwheel
 before-test = "pip install -r {project}/requirements/test.txt || pip install -r {project}/requirements/test_nogil.txt || true"
 # before-test = "python {project}/tools/wheels/setup_test_deps.py"
+
 # test-requires = [
 #   "hypothesis",
 #   "pytest",
 # ]
+
 test-command = "bash {project}/tools/wheels/cibw_test_command.sh {project}"
 before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
 
@@ -1173,6 +1175,11 @@ RUNNER_OS="Linux"
 # note that universal2 wheels are not built, they're listed in the tool.cibuildwheel.skip
 # section
 # Not clear why the DYLD_LIBRARY_PATH is not passed through from the environment
+
+# {wheel} for the absolute path to the built wheel
+# {dest_dir} for the absolute path of the directory where to create the repaired wheel
+# {delocate_archs} (macOS only) comma-separated list of architectures in the wheel.
+
 repair-wheel-command = [
   "export DYLD_LIBRARY_PATH=$PWD/.openblas/lib",
   "echo DYLD_LIBRARY_PATH $DYLD_LIBRARY_PATH",

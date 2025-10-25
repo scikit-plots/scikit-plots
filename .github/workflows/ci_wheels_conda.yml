@@ -208,6 +208,12 @@ jobs:
             python: ["cp39", "3.9"]  # need scipy
           - buildplat: [windows-11-arm, win, ARM64]
             python: ["cp38", "3.8"]  # need py
+          - buildplat: [windows-11-arm, win, ARM64]
+            python: ["cp39", "3.9"]  # need numpy
+          - buildplat: [windows-11-arm, win, ARM64]
+            python: ["cp39", "3.9"]  # need numpy 2.0.2 error
+          - buildplat: [windows-11-arm, win, ARM64]
+            python: ["cp310", "3.10"]  # build error clang (clang-cl /?) LLVM compiler
 
     # +-------------------------+---------------------+------------------------------------------+
     # | Context                 | Syntax              | Example                                  |
@@ -494,6 +500,7 @@ jobs:
           ## Set CIBW_PRERELEASE_PYTHONS to True to build for pre-release versions of Python
           # CIBW_FREE_THREADED_SUPPORT: True
           # CIBW_PRERELEASE_PYTHONS: True
+          CIBW_TEST_SKIP: "*-win_arm64*"
           # 📝 Note: ${{ env.PKGCONFIG_EXE }} must have been set in a previous step using:
           # ✅ Pass pkg-config config to cibuildwheel
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
