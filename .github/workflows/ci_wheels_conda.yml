@@ -412,7 +412,7 @@ jobs:
           XCODE_VER=$(ls /Applications | grep -E 'Xcode_(14|15)\.' | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/' | sort -V | tail -n 1)
           # If none found in 14 or 15 range, fall back to highest overall Xcode version installed
           if [[ -z "$XCODE_VER" ]]; then
-            echo "No Xcode_14 or Xcode_15 found. Falling back to highest overall Xcode version."
+            echo "⚠️ No Xcode_14 or Xcode_15 found. Falling back to highest overall Xcode version."
             XCODE_VER=$(ls /Applications | grep -E 'Xcode_[0-9]+' | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/' | sort -V | tail -n 1)
           fi
           echo "✅ Selected Xcode version: $XCODE_VER"
@@ -430,7 +430,7 @@ jobs:
           ## Use the selected Xcode version in the xcode-select command
           CIBW="sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app"
           echo "CIBW_BEFORE_ALL=$CIBW" >> $GITHUB_ENV
-          sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app
+          sudo xcode-select -s /Applications/${XCODE_VER}
 
           CIBW="MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[4] }}\
             SDKROOT=$(xcrun --sdk macosx --show-sdk-path)\
