@@ -320,7 +320,7 @@ imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_trees=10, metric
 mses_california[6], stds_california[6] = get_score(
     X_miss_california, y_miss_california, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_trees=20, metric='angular')
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0)
 mses_train[6], stds_train[6] = get_score(
     X_miss_train, y_miss_train, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )

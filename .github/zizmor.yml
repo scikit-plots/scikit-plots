@@ -7,7 +7,7 @@
 # Just run zizmor normally. It will automatically pick up the config using local discovery.
 # You don't need --config unless you want to use global discovery.
 
-# Syntax Notes:
+# Syntax Notes: filename.yml[:line[:column]]
 # https://docs.zizmor.sh/usage/#with-zizmoryml
 # - filename → ignore all findings in the file
 # - filename:line → ignore findings on a specific line
