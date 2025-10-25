@@ -279,33 +279,23 @@ dep_all += [lapack_dep]
 ## Fortran Compiler Setup
 ######################################################################
 
+# --- Fortran compiler ---
 # Adding at project level causes many spurious -lgfortran flags.
 add_languages('fortran', native: false)
 ff = meson.get_compiler('fortran')
+
 if ff.get_id() == 'gcc'
   # -std=legacy is not supported by all Fortran compilers, but very useful with
   # gfortran since it avoids a ton of warnings that we don't care about.
   # Needs fixing in Meson, see https://github.com/mesonbuild/meson/issues/11633.
-  add_project_arguments('-std=legacy', language: 'fortran')
+  add_project_arguments(ff.get_supported_arguments(['-std=legacy']), language: ['fortran'])
 endif
 
-if ff.has_argument('-Wno-conversion')
-  add_project_arguments(
-    '-Wno-conversion',
-    language: ['fortran'],
-  )
-endif
-
-######################################################################
-## Fortran Global compiler flags/options argument
-######################################################################
-
-# Fortran compiler options
+# --- Fortran Global compiler flags/options argument ---
 # The default list of warnings to ignore from Fortran code. There is a lot of
 # old, vendored code that is very bad and we want to compile it silently (at
 # least with GCC and Clang)
-# Fortran warning flags
-_global_fortran_args = [
+_global_fortran_flags = [
   # Define warning flags for Fortran compilation
   '-Wno-argument-mismatch',      # Suppress warnings about mismatched argument types in subroutine/function calls
   '-Wno-conversion',             # Suppress warnings about implicit type conversions
@@ -318,26 +308,20 @@ _global_fortran_args = [
   '-Wno-unused-variable',        # Suppress warnings about unused variables
   '-Wno-tabs',                   # Suppress warnings about tabs in the source code (often used in legacy code)
 ]
-# Compiler options for Fortran
-# # Apply fortran arguments if supported
-# foreach arg : _global_fortran_args
+# foreach arg : _global_fortran_flags
 #   if ff.has_argument(arg)
 #     add_project_arguments(arg, language: 'fortran')
 #   else
-#     # Debug message for compiler IDs
 #     message('fortran compiler (' + ff.get_id() + ') does not support argument: ' + arg)
 #   endif
 # endforeach
-# fortran_ignore_warnings _global_fortran_args
-_global_fortran_args = ff.get_supported_arguments(
-  _global_fortran_args
-)
-add_project_arguments(
-  _global_fortran_args, language: ['fortran'],
-)
+add_project_arguments(ff.get_supported_arguments(_global_fortran_flags), language: ['fortran'])
 
 ######################################################################
-## C and C++ Compiler Setup
+## 🔚 C and C++ Compiler Setup
+## GCC / Clang (GNU frontend) Use -W*, -f*, -std=*, etc. Fully supports GNU flags
+## Clang-CL / MSVC Use /W4, /wdXXXX, /MD, /fp:except, /arch:ARM64 Only supports CL-style flags
+## Flang / Intel Needs its own tailored set Avoids random test failures
 ## -D : Define a macro, It's equivalent to putting `#define DEBUG` at the top of every source file.
 ## -d : Internal debugging options (rarely used by end users), Print all macros after preprocessing.
 ## -f : Enable/disable compiler feature flags, Codegen or safety behavior toggles.
@@ -356,26 +340,38 @@ add_project_arguments(
 cc  = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
+# Detect which C and C++ compiler is being used
+cc_id  = cc.get_id()  # 'gcc', 'clang', 'clang-cl', 'msvc', 'intel', etc.
+cpp_id = cpp.get_id()  # Possible values: 'gcc', 'clang', 'msvc', etc.
 # C Compiler version checks
 cc_version = cc.version()
+cpp_version = cpp.version()
 
-# Detect which C and C++ compiler is being used
-cc_id  = cc.get_id()
-cpp_id = cpp.get_id() # Possible values: 'gcc', 'clang', 'msvc', etc.
-
+# --- Compiler minimum version checks ---
 # Check compiler is recent enough (see the SciPy Toolchain Roadmap for details)
-if cc_id == 'gcc'
-  if not cc_version.version_compare('>=9.1')
-    error('scikit-plots requires GCC >= 9.1')
-  endif
-elif cc_id == 'clang' or cc_id == 'clang-cl'
-  if not cc_version.version_compare('>=12.0')
-    error('scikit-plots requires Clang >= 12.0')
-  endif
-elif cc_id == 'msvc'
-  if not cc_version.version_compare('>=19.20')
-    error('scikit-plots requires MSVC >= 19.20 (Visual Studio 2019 or newer)')
-  endif
+# if cc_id == 'gcc'
+#   if not cc_version.version_compare('>=9.1')
+#     error('scikit-plots requires GCC >= 9.1')
+#   endif
+# elif cc_id == 'clang' or cc_id == 'clang-cl'
+#   if not cc_version.version_compare('>=12.0')
+#     error('scikit-plots requires Clang >= 12.0')
+#   endif
+# elif cc_id == 'msvc'
+#   if not cc_version.version_compare('>=19.20')
+#     error('scikit-plots requires MSVC >= 19.20 (Visual Studio 2019 or newer)')
+#   endif
+# endif
+if cc_id == 'gcc' and not cc_version.version_compare('>=9.1')
+  error('Requires GCC >= 9.1')
+elif cc_id.startswith('clang') and not cc_version.version_compare('>=12.0')
+  error('Requires Clang >= 12.0')
+elif cc_id == 'msvc' and not cc_version.version_compare('>=19.20')
+  error('Requires MSVC >= 19.20')
+endif
+
+if host_machine.system() == 'linux' or host_machine.system() == 'darwin'
+  add_project_link_arguments('-pthread', language: ['c', 'cpp'])  # Add pthread support for POSIX systems
 endif
 
 ######################################################################
@@ -386,10 +382,8 @@ endif
 # Note that MSVC does not support strict aliasing at all, and neither do the
 # Intel compilers on Windows, so the `-fno` flavor of the flag should be fine.
 # -fno-strict-aliasing: Disable certain optimizations that assume pointer types don’t alias
-add_project_arguments(
-  cc.get_supported_arguments('-fno-strict-aliasing'),
-  language : ['c'],
-)
+add_project_arguments(cc.get_supported_arguments(['-fno-strict-aliasing']), language: 'c')
+add_project_arguments(cpp.get_supported_arguments(['-fno-strict-aliasing']), language: 'cpp')
 
 ######################################################################
 ## Compiler Flags: Clang trapping math flags
@@ -424,10 +418,8 @@ if cc_id.startswith('clang')
         'Performance may be impacted. Consider upgrading Clang.'
       )
     endif
-    add_project_arguments(
-      trapping_math,
-      language: ['c', 'cpp']
-    )
+    add_project_arguments(cc.get_supported_arguments(trapping_math), language: 'c')
+    add_project_arguments(cpp.get_supported_arguments(trapping_math), language: 'cpp')
   endif
 endif
 
@@ -439,10 +431,11 @@ endif
 # -dD: Dump only macros defined in the current file
 
 # List of global arguments for C and C++
-_global_args = [
+_global_flags = [
   '-DDEBUG',                                          # Define DEBUG macro for conditional debug printing or logging
   '-W',                                               # Enable all warnings
   '-Werror=unused-variable',                          # Treat unused variables as errors to enforce code quality
+  '-Wunused',                                         # Suppress warnings
   '-Wno-cast-align',                                  # Suppress warnings if a pointer is cast to a type with different alignment
   '-Wno-cast-qual',                                   # Suppress warnings if a pointer is cast to a type with different qualifiers
   '-Wno-conversion',                                  # Suppress warnings about type conversions
@@ -458,7 +451,6 @@ _global_args = [
   '-Wno-sign-compare',                                # Suppress warnings about comparisons between signed and unsigned integers
   '-Wno-switch',                                      # Suppress warnings about switch statement cases that are not handled
   '-Wno-undef',                                       # Suppress warnings if an undefined macro is used
-  # '-Wunused',                                       # Suppress warnings
   '-Wno-unused-but-set-parameter',                    # Suppress warnings about parameters that are set but not used
   '-Wno-error=reorder',                               # Suppress errors for unused functions
   '-Wno-error=unused-function',                       # Suppress errors for unused functions
@@ -475,64 +467,27 @@ _global_args = [
   '-Wno-discarded-qualifiers',                        # to suppress warnings about discarded qualifiers (like const, volatile, etc.).
   '-Wno-maybe-uninitialized',    # Suppress warnings about variables that might be used uninitialized
 ]
-# Additional arguments for C
-_global_c_args = cc.get_supported_arguments(
-  _global_args + [
-    '-Wno-implicit-function-declaration',  # Suppress warnings about implicit function declarations
-  ]
-)
-# Additional arguments for C++
-_global_cpp_args = cpp.get_supported_arguments(
-  # GCC/Clang flags
-  _global_args + [
-    # '-std=c++17',              # WARNING: Consider using the built-in option for language standard version instead of using "-std=c++17".
-    '-Wno-class-memaccess',      # Suppress warnings about accessing class members inappropriately
-    '-Wno-int-in-bool-context',  # Suppress warnings about int used in boolean context
-    '-Wno-non-virtual-dtor',     # Suppress warnings about non-virtual destructors
-    # invalid in MSVC (cl) as they are specific to GCC/Clang
-    '-Wno-cpp',                  # Suppress warnings about C++ preprocessor directives
-    '-Wno-pedantic',             # Suppress strict ISO C++ compliance warnings
-    '-Wno-terminate',            # Suppress warnings about code that might terminate unexpectedly
-  ]
-)
-if host_machine.system() == 'linux' or host_machine.system() == 'darwin'
-  add_project_link_arguments('-pthread', language: ['c', 'cpp'])  # Add pthread support for POSIX systems
-endif
-
+_global_flags_c = _global_flags + [
+  '-Wno-implicit-function-declaration'  # Suppress warnings about implicit function declarations
+]
+_global_flags_cpp = _global_flags + [
+  # '-std=c++17',              # WARNING: Consider using the built-in option for language standard version instead of using "-std=c++17".
+  '-Wno-class-memaccess',      # Suppress warnings about accessing class members inappropriately
+  '-Wno-int-in-bool-context',  # Suppress warnings about int used in boolean context
+  '-Wno-non-virtual-dtor',     # Suppress warnings about non-virtual destructors
+  '-Wno-cpp',                  # Suppress warnings about C++ preprocessor directives
+  '-Wno-pedantic',             # Suppress strict ISO C++ compliance warnings
+  '-Wno-terminate',            # Suppress warnings about code that might terminate unexpectedly
+]
 # Enable multithreading if std::thread is supported
 if (cpp.has_function('std::thread') or
     cpp.compiles('#include <thread>\nint main() { std::thread t; return 0; }', name: 'std::thread support'))
   # Enable multithreading with STL parallel execution policies
-  _global_cpp_args += ['-DNUMCPP_USE_MULTITHREAD']
+  _global_flags_cpp += ['-DNUMCPP_USE_MULTITHREAD']
 endif
-
-# Apply C arguments if supported
-foreach arg : _global_c_args
-  if cc.has_argument(arg)
-    add_project_arguments(arg, language: 'c')
-  else
-    # Debug message for compiler IDs
-    message(
-      '\n' +
-      BLUE + '[INFO]' + RESET +
-      ' C compiler (' + cc_id + ') does not support argument: ' + arg
-    )
-  endif
-endforeach
-
-# Apply C++ arguments if supported
-foreach arg : _global_cpp_args
-  if cpp.has_argument(arg)
-    add_project_arguments(arg, language: 'cpp')
-  else
-    # Debug message for compiler IDs
-    message(
-      '\n' +
-      BLUE + '[INFO]' + RESET +
-      ' C++ compiler (' + cpp_id + ') does not support argument: ' + arg
-    )
-  endif
-endforeach
+# Apply C/Cpp arguments if supported
+add_project_arguments(cc.get_supported_arguments(_global_flags_c), language: 'c')
+add_project_arguments(cpp.get_supported_arguments(_global_flags_cpp), language: 'cpp')
 
 ######################################################################
 ## C and C++ Math Library functions, symbols
@@ -544,7 +499,8 @@ endforeach
 dep_math = cc.find_library('m', required : false)
 if dep_math.found()
   add_project_link_arguments(
-    ['-lm'], language : ['c'],
+    ['-lm'],
+    language : ['c'],
   )
 endif
 
@@ -577,8 +533,9 @@ elif ff.get_id() in ['intel-cl', 'intel-llvm-cl']
     '/assume:minus0'
   )
 endif
-add_project_arguments(_intel_cflags, language: ['c', 'cpp'])
-add_project_arguments(_intel_fflags, language: 'fortran')
+add_project_arguments(ff.get_supported_arguments(_intel_fflags), language: 'fortran')
+add_project_arguments(cc.get_supported_arguments(_intel_cflags), language: 'c')
+add_project_arguments(cpp.get_supported_arguments(_intel_cflags), language: 'cpp')
 
 ######################################################################
 ## C and C++ Symbol Visibility
@@ -819,18 +776,12 @@ dep_all += [dep_xsimd]
 
 # Pythran build flags
 if get_option('pythran').enabled()
-  # Base Pythran-specific flags
-  _pythran_base_args = [
+  _global_flags_pythran = [
     '-DENABLE_PYTHON_MODULE',  # Enable Python module support
     '-D__PYTHRAN__=3',         # Define Pythran version
     '-DPYTHRAN_BLAS_NONE',     # Disable BLAS
   ]
-  # Pythran base and C++ warning flags
-  # _global_pythran_cpp_args = _pythran_base_args + _global_cpp_args
-  # add_project_arguments(
-  #   _global_pythran_cpp_args,
-  #   language: ['pythran'],
-  # )
+  add_project_arguments(pythran.get_supported_arguments(_global_flags_pythran), language: ['pythran'])
 endif
 
 ######################################################################
@@ -979,10 +930,11 @@ if is_mingw
     add_project_link_arguments(_gcc_link_args, language: ['c', 'cpp', 'fortran'])
     # Force gcc to float64 long doubles for compatibility with MSVC
     # builds, for C only.
-    add_project_arguments('-mlong-double-64', language: 'c')
+    add_project_arguments(cc.get_supported_arguments(['-mlong-double-64']), language: 'c')
   endif
   # Make fprintf("%zd") work (see https://github.com/rgommers/scipy/issues/118)
-  add_project_arguments('-D__USE_MINGW_ANSI_STDIO=1', language: ['c', 'cpp'])
+  add_project_arguments(cc.get_supported_arguments(['-D__USE_MINGW_ANSI_STDIO=1']), language: 'c')
+  add_project_arguments(cpp.get_supported_arguments(['-D__USE_MINGW_ANSI_STDIO=1']), language: 'cpp')
 endif
 if is_mingw
   ###############################################################
@@ -993,10 +945,8 @@ if is_mingw
     check: true
   ).stdout().strip()
   if bitness == '64'
-    add_project_arguments(
-      '-DMS_WIN64',
-      language: ['c', 'cpp'],
-    )
+    add_project_arguments(cc.get_supported_arguments(['-DMS_WIN64']), language: 'c')
+    add_project_arguments(cpp.get_supported_arguments(['-DMS_WIN64']), language: 'cpp')
   endif
   ###############################################################
   # Silence warnings emitted by PyOS_snprintf for (%zd), see
@@ -1010,10 +960,7 @@ if is_mingw
   # undocumented C feature when passing single character string arguments. See:
   #   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90329
   #   https://github.com/wch/r-source/blob/838f9d5a7be08f2a8c08e47bcd28756f5d0aac90/src/gnuwin32/MkRules.rules#L121
-  add_project_arguments(
-    '-fno-optimize-sibling-calls',
-    language: ['fortran']
-  )
+  add_project_arguments(ff.get_supported_arguments(['-fno-optimize-sibling-calls']), language: 'fortran')
 endif
 
 # Deal with M_PI & friends; add `use_math_defines` to c_args or cpp_args
