@@ -5,7 +5,7 @@ runs:
   steps:
     - name: Install LLVM (ARM64)  # LLVM (clang-cl, flang-new) -> Cross-toolchain & Fortran
       shell: pwsh
-      run: | # zizmor: ignore[github-env] safe: adding
+      run: | # zizmor: ignore[github-env]
         Invoke-WebRequest https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/LLVM-20.1.8-woa64.exe -UseBasicParsing -OutFile LLVM-woa64.exe
         $expectedHash = "7c4ac97eb2ae6b960ca5f9caf3ff6124c8d2a18cc07a7840a4d2ea15537bad8e"
         $fileHash = (Get-FileHash -Path "LLVM-woa64.exe" -Algorithm SHA256).Hash
@@ -25,7 +25,7 @@ runs:
 
     - name: Activate MSVC ARM64 Toolchain (vcvarsall)  # vcpkg + pkgconf -> Provides pkg-config tool for ARM64
       shell: pwsh
-      run: | # zizmor: ignore[github-env] safe: adding pkgconf to PATH amd64_arm64
+      run: | # zizmor: ignore[github-env]
         & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
         $env:VCPKG_ROOT = "C:\vcpkg"
         Set-Location $env:VCPKG_ROOT

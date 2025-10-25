@@ -14,18 +14,16 @@ C-Experimental modules for Scikit-Plots.
 This package contains high-performance functions implemented in C, C++, and Cython,
 exposed to Python via Cython and Pybind11 bindings. These utilities are intended
 for experimental and performance-critical use cases.
-
-Notes
------
-- APIs are experimental and may change without notice.
-- Modules in this package may rely on compiled extensions.
-- Intended for advanced users and contributors exploring low-level optimizations.
-
-bindings : Python/C++ bridge interfaces
-include  : Header files for C/C++ extensions
-src      : Source implementations
-tests    : Test suite for experimental features
 """
+# Notes
+# -----
+# - APIs are experimental and may change without notice.
+# - Modules in this package may rely on compiled extensions.
+# - Intended for advanced users and contributors exploring low-level optimizations.
+# bindings : Python/C++ bridge interfaces
+# include  : Header files for C/C++ extensions
+# src      : Source implementations
+# tests    : Test suite for experimental features
 ## Your package/module initialization code goes here
 from ._logsumexp import *
 

@@ -13,38 +13,39 @@ updates:
   # reasons. This strategy may be generalized to all other github actions
   # in the future.
   - package-ecosystem: github-actions # See documentation for possible values
-    directory: ".github/workflows"    # "/" Location of package manifests
+    directory: "/"    # ".github/workflows" Location of package manifests
     schedule:
       interval: weekly                # daily, weekly, monthly
       time: '11:11'
+    ignore:
+      - dependency-name: "bus1/cabuild"
+    commit-message:
+      prefix: "MAINT"
     labels:
       - "03 - Maintenance"
       - "maintenance"
       - "build/ci"
       - "dependencies"
-    ignore:
-      - dependency-name: "bus1/cabuild"
+    reviewers:
+      - "scikit-plots/core-devs"
     groups:
       actions:
         patterns:
           - "*"
-    commit-message:
-      prefix: "MAINT"
-    reviewers:
-      - "scikit-plots/core-devs"
 
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
+      time: '11:11'
+    ignore:
+      - dependency-name: "bus1/cabuild"
+    commit-message:
+      prefix: "MAINT"
     labels:
       - "03 - Maintenance"
       - "maintenance"
       - "build/ci"
       - "dependencies"
-    ignore:
-      - dependency-name: "bus1/cabuild"
-    commit-message:
-      prefix: "MAINT"
     reviewers:
       - "scikit-plots/core-devs"

@@ -13,8 +13,8 @@
 # 36 - Build(for changes to the building process,
 # 14 - Release(ensure wheels build before release)
 ---
-# Built distribution (binary or pure Python)
-# .whl Designed to be a pre-built, installable package — no build step needed on install.
+# → Built distribution (binary or pure Python)
+# ← .whl Designed to be a pre-built, installable package — no build step needed on install.
 name: "CI 📦 Wheels Conda"
 
 on:
@@ -176,9 +176,10 @@ jobs:
           - [ubuntu-24.04-arm, musllinux, aarch64]
           - [macos-13, macosx, x86_64, openblas, "10.14"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
           - [macos-13, macosx, x86_64, accelerate, "14.0"]
+          - [macos-15-intel, macosx, x86_64, openblas, "10.14"]
+          - [macos-15-intel, macosx, x86_64, accelerate, "14.0"]
           - [macos-14, macosx, arm64, openblas, "12.3"]
           - [macos-14, macosx, arm64, accelerate, "14.0"]
-          - [macos-15-intel, macosx, x86_64, openblas, "14.0"]
           - [windows-2022, win, AMD64]  # Window 64 bit ("*-win_amd64", "*-x86_64")
           - [windows-11-arm, win, ARM64]  # Window 64 bit ("*-win_arm64", "*-x86_64")
         python: [
@@ -291,11 +292,11 @@ jobs:
         # shell: pwsh
         with:
           persist-credentials: false  # Prevents accidental credential exposure
-          submodules: true  # Fetch Hugo themes (true OR recursive)
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
           fetch-tags: true
+          submodules: true  # Fetch Hugo themes (true OR recursive)
 
-      - name: "🐍 Python Setup"  # Used to push the built wheels
+      - name: "🐍 Python Setup"  # → Used to push the built wheels
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           # python-version: "3.x"
@@ -303,13 +304,13 @@ jobs:
 
       # --- RUNNER_OS ---
 
-      - name: "🛠️ Windows AMD64 Setup MSVC/Clang (Visual Studio) (32|64-bit)"  # 🔧
+      - name: "🛠️ Windows AMD64 Setup (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
-      - name: "🛠️ Windows AMD64 Setup RTools (MinGW/GCC) (32|64-bit)"  # R package compilation
+      - name: "🛠️ Windows AMD64 Setup (MinGW/GCC ← RTools) (32|64-bit)"  # R package compilation
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         run: |
           if ($env:IS_32_BIT -eq "true") {
@@ -330,7 +331,7 @@ jobs:
           # echo cl /? >> $GITHUB_OUTPUT
           # echo gcc --version >> $GITHUB_OUTPUT
 
-      - name: "🛠️ Windows AMD64 Setup Environment Variables (set PKG_CONFIG_PATH)"
+      - name: "🛠️ Windows AMD64 Setup (pkg-config ← Strawberry Perl) (32|64-bit)"
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         run: |
           ## Install "pkg-config" via Chocolatey
@@ -340,7 +341,7 @@ jobs:
           ## Verify pkg-config installation and its version
           pkg-config --version
 
-      - name: 🛠️ Windows ARM64 Setup MSVC/Clang (Visual Studio) ARM64 C++ Toolchain  # MSVC -> C/C++ compilation
+      - name: 🛠️ Windows ARM64 Setup (MSVC/Clang ← Visual Studio) (C++ Toolchain)  # MSVC → C/C++ compilation
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce #v2.0.0
         with:
@@ -348,13 +349,14 @@ jobs:
           # x86 (default), x64, and arm64
           msbuild-architecture: arm64
 
+      - name: 🛠️ Windows ARM64 Setup (flang-new/clang-cl ← LLVM) (pkgconf ← MSVC Toolchain vcvarsall)
       - name: 🛠️ Windows ARM64 Setup Flang and LLVM → pkgconf for ARM64
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
         uses: ./.github/windows_arm64_steps
 
       # GITHUB_ENV (so the CI runner knows)
       # CIBW_ENVIRONMENT (so cibuildwheel's docker/venv sees it)
-      - name: "🛠️ Windows Set up CIBW_ENVIRONMENT_WINDOWS"
+      - name: "🛠️ Windows Set up Env ← CIBW_ENVIRONMENT_WINDOWS"
         if: ${{ runner.os == 'Windows' }}
         run: |
           # Set up the  $env:var environment variable, in PowerShell (Windows)
@@ -397,6 +399,7 @@ jobs:
           echo "F77=gfortran-13" >> "$GITHUB_ENV"
           echo "F90=gfortran-13" >> "$GITHUB_ENV"
 
+          # matrix.buildplat[3] → openblas, accelerate
           if [[ ${{ matrix.buildplat[3] }} == 'accelerate' ]]; then
             echo CIBW_CONFIG_SETTINGS=\"setup-args=-Dblas=accelerate\" >> "$GITHUB_ENV"
             ## Always use preinstalled gfortran for Accelerate builds
@@ -405,32 +408,37 @@ jobs:
             echo "PATH=$PATH" >> "$GITHUB_ENV"
             LIB_PATH=$(dirname $(gfortran --print-file-name libgfortran.dylib))
           fi
-          if [[ ${{ matrix.buildplat[4] }} == '10.13' ]]; then
-            ## 20241017 macos-13 images span Xcode 14.1-->15.2
-            # XCODE_VER='14.1'
-            ## Check for Xcode 14 and set the highest available version dynamically
-            XCODE_VER=$(ls /Applications | grep -E 'Xcode_14\.' | sort -V | tail -n 1)
-            ## Extract the full version number (e.g., 14.3.1 from Xcode_14.3.1.app)
-            XCODE_VER=$(echo "$XCODE_VER" | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/')
-          else
-            # XCODE_VER='15.2'
-            ## Check for Xcode 15 and set the highest available version dynamically
-            XCODE_VER=$(ls /Applications | grep -E 'Xcode_15\.' | sort -V | tail -n 1)
-            ## Extract the full version number (e.g., 15.4.0 from Xcode_15.4.0.app)
-            XCODE_VER=$(echo "$XCODE_VER" | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/')
-          fi
-          echo "Selected Xcode version: $XCODE_VER"
 
+          # Find the newest Xcode version starting with 14 or 15
+          XCODE_VER=$(ls /Applications | grep -E 'Xcode_(14|15)\.' | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/' | sort -V | tail -n 1)
+          # If none found in 14 or 15 range, fall back to highest overall Xcode version installed
+          if [[ -z "$XCODE_VER" ]]; then
+            echo "No Xcode_14 or Xcode_15 found. Falling back to highest overall Xcode version."
+            XCODE_VER=$(ls /Applications | grep -E 'Xcode_[0-9]+' | sed -E 's/Xcode_([0-9]+\.[0-9]+\.[0-9]+)\.app/\1/' | sort -V | tail -n 1)
+          fi
+          echo "✅ Selected Xcode version: $XCODE_VER"
+          # if [[ -z "$XCODE_VER" ]]; then
+          #   echo "❌ No Xcode installations found in /Applications"
+          #   exit 1
+          # fi
+          # matrix.buildplat[4] → (macos-13/macos-15-intel 10.14, 14.0) (macos-14 12.3, 14.0)
+          #          XCODE_VER='16.0'
+          #          CIBW="sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app"
+          #          echo "CIBW_BEFORE_ALL=$CIBW" >> $GITHUB_ENV
+          # setting SDKROOT necessary when using the gfortran compiler
+          # installed in cibw_before_build_macos.sh
+          # sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app
           ## Use the selected Xcode version in the xcode-select command
           CIBW="sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app"
           echo "CIBW_BEFORE_ALL=$CIBW" >> $GITHUB_ENV
-
-          ## setting SDKROOT necessary when using the gfortran compiler
-          ## installed in cibw_before_build_macos.sh
           sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app
+
           CIBW="MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[4] }}\
             SDKROOT=$(xcrun --sdk macosx --show-sdk-path)\
             PKG_CONFIG_PATH=${{ github.workspace }}/.openblas"
+          # PKG_CONFIG_PATH="$PWD/.openblas"
+          # DYLD="$DYLD_LIBRARY_PATH:/$PWD/.openblas/lib"
+          # echo "CIBW_ENVIRONMENT_MACOS=$CIBW PKG_CONFIG_PATH=$PKG_CONFIG_PATH DYLD_LIBRARY_PATH=$DYLD" >> "$GITHUB_ENV"
           echo "CIBW_ENVIRONMENT=$CIBW" >> "$GITHUB_ENV"
 
           echo "REPAIR_PATH=$LIB_PATH" >> "$GITHUB_ENV"

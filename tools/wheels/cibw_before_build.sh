@@ -95,8 +95,8 @@ log_status() {  # For status updates, pending operations, queries
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${BOLD}${CYAN}[STATUS]${RESET} $1"
 }
 log_info "$(uname)"
-log_info "$(uname -m)"
-log_info "$RUNNER_OS"
+log_info "PLATFORM: $(uname -m)"
+log_info "OS: $RUNNER_OS"
 ######################################################################
 ## Example: Print all environment variables
 ######################################################################
