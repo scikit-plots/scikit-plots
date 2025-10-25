@@ -350,7 +350,6 @@ jobs:
           msbuild-architecture: arm64
 
       - name: 🛠️ Windows ARM64 Setup (flang-new/clang-cl ← LLVM) (pkgconf ← MSVC Toolchain vcvarsall)
-      - name: 🛠️ Windows ARM64 Setup Flang and LLVM → pkgconf for ARM64
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
         uses: ./.github/windows_arm64_steps
 
