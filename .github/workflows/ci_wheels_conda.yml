@@ -170,15 +170,15 @@ jobs:
           # should also be able to do multi-archs on a single entry, e.g.
           # [windows-latest, win*, "AMD64 x86"]. However, those two require a different compiler setup
           # so easier to separate out here.
-          # - [ubuntu-22.04, manylinux, x86_64]
-          # - [ubuntu-22.04, musllinux, x86_64]
-          # - [ubuntu-24.04-arm, manylinux, aarch64]
-          # - [ubuntu-24.04-arm, musllinux, aarch64]
-          # - [macos-13, macosx, x86_64, openblas, "10.14"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
-          # - [macos-13, macosx, x86_64, accelerate, "14.0"]
-          # - [macos-14, macosx, arm64, openblas, "12.3"]
-          # - [macos-14, macosx, arm64, accelerate, "14.0"]
-          # - [macos-15-intel, macosx, x86_64, openblas, "14.0"]
+          - [ubuntu-22.04, manylinux, x86_64]
+          - [ubuntu-22.04, musllinux, x86_64]
+          - [ubuntu-24.04-arm, manylinux, aarch64]
+          - [ubuntu-24.04-arm, musllinux, aarch64]
+          - [macos-13, macosx, x86_64, openblas, "10.14"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
+          - [macos-13, macosx, x86_64, accelerate, "14.0"]
+          - [macos-14, macosx, arm64, openblas, "12.3"]
+          - [macos-14, macosx, arm64, accelerate, "14.0"]
+          - [macos-15-intel, macosx, x86_64, openblas, "14.0"]
           - [windows-2022, win, AMD64]  # Window 64 bit ("*-win_amd64", "*-x86_64")
           - [windows-11-arm, win, ARM64]  # Window 64 bit ("*-win_arm64", "*-x86_64")
         python: [
@@ -192,8 +192,8 @@ jobs:
           ["cp312", "3.12"],  # CPython 3.12 – Latest stable release
           ["cp313", "3.13"],  # CPython 3.13 – In development / pre-release
           ["cp313t", "3.13"],  # CPython 3.13t w/ limited support (e.g. for testing; see: https://github.com/scipy/scipy/issues/21970)
-          ["cp314", "3.14"],  # CPython 3.13
-          ["cp314t", "3.14"],  # CPython 3.13t
+          ["cp314", "3.14"],  # CPython 3.14
+          # ["cp314t", "3.14"],  # CPython 3.14t  ?? asv, h5py, sklearn
           # Keep sync with cibuildwheel's supported Python versions by scikit-learn, numpy, scipy, pandas, etc.
         ]
         exclude:
@@ -303,13 +303,13 @@ jobs:
 
       # --- RUNNER_OS ---
 
-      - name: "🛠️ Windows Setup MSVC/Clang (Visual Studio) (32|64-bit)"  # 🔧
+      - name: "🛠️ Windows AMD64 Setup MSVC/Clang (Visual Studio) (32|64-bit)"  # 🔧
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
-      - name: "🛠️ Windows Setup RTools (MinGW/GCC) (32|64-bit)"  # R package compilation
+      - name: "🛠️ Windows AMD64 Setup RTools (MinGW/GCC) (32|64-bit)"  # R package compilation
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         run: |
           if ($env:IS_32_BIT -eq "true") {
@@ -330,7 +330,7 @@ jobs:
           # echo cl /? >> $GITHUB_OUTPUT
           # echo gcc --version >> $GITHUB_OUTPUT
 
-      - name: "🛠️ Windows Setup Environment Variables (set PKG_CONFIG_PATH)"
+      - name: "🛠️ Windows AMD64 Setup Environment Variables (set PKG_CONFIG_PATH)"
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         run: |
           ## Install "pkg-config" via Chocolatey
@@ -340,7 +340,7 @@ jobs:
           ## Verify pkg-config installation and its version
           pkg-config --version
 
-      - name: 🛠️ Windows Setup MSVC/Clang (Visual Studio) ARM64 C++ Toolchain  # MSVC -> C/C++ compilation
+      - name: 🛠️ Windows ARM64 Setup MSVC/Clang (Visual Studio) ARM64 C++ Toolchain  # MSVC -> C/C++ compilation
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce #v2.0.0
         with:
@@ -348,13 +348,13 @@ jobs:
           # x86 (default), x64, and arm64
           msbuild-architecture: arm64
 
-      - name: Set up Flang and LLVM → pkgconf for ARM64
+      - name: 🛠️ Windows ARM64 Setup Flang and LLVM → pkgconf for ARM64
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
         uses: ./.github/windows_arm64_steps
 
       # GITHUB_ENV (so the CI runner knows)
       # CIBW_ENVIRONMENT (so cibuildwheel's docker/venv sees it)
-      - name: "🛠️ Windows Set CIBW_ENVIRONMENT_WINDOWS"
+      - name: "🛠️ Windows Set up CIBW_ENVIRONMENT_WINDOWS"
         if: ${{ runner.os == 'Windows' }}
         run: |
           # Set up the  $env:var environment variable, in PowerShell (Windows)
