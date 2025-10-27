@@ -158,15 +158,15 @@ Critical and Essential Knowledge
 --------------------------------
 
 .. important::
-   Misunderstanding these points may lead to performance or correctness issues:
+    Misunderstanding these points may lead to performance or correctness issues:
 
-* ``python-freethreading`` is a **special CPython build with GIL disabled**.
-* Free-threaded mode is **experimental**; not the default in any official release.
-* Most C extensions are **incompatible** with No-GIL and require updates.
-* Free-threaded execution **does not automatically improve performance**.
-* Memory and object lifecycle semantics differ; race conditions are possible.
-* Standard GIL-enabled CPython will remain available; No-GIL is optional.
-* Explicit installation and thread-safe coding practices are required.
+    * ``python-freethreading`` is a **special CPython build with GIL disabled**.
+    * Free-threaded mode is **experimental**; not the default in any official release.
+    * Most C extensions are **incompatible** with No-GIL and require updates.
+    * Free-threaded execution **does not automatically improve performance**.
+    * Memory and object lifecycle semantics differ; race conditions are possible.
+    * Standard GIL-enabled CPython will remain available; No-GIL is optional.
+    * Explicit installation and thread-safe coding practices are required.
 
 .. caution::
    Code that runs correctly under GIL may be **unsafe under No-GIL**.
