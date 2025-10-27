@@ -75,7 +75,7 @@ context_cff = {
                 "given_names": "Muhammed",
                 "orcid": "https://orcid.org/0009-0001-2685-1263",
             },
-            "doi": "NA",
+            "doi": "10.5281/zenodo.13367000",
             "journal": "NA",
             "volume": "NA",
             "start": "NA",
