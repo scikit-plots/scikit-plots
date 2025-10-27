@@ -6,7 +6,7 @@
 cff-version: {{ cff_version | trim }}
 title: {{ title }}
 type: {{ type }}
-message: |-  {# message| wordwrap(80) #}
+message: |-  {#- message| wordwrap(80) #}
 {% for line in message.splitlines() %}  {{ line }}
 {% endfor -%}
 authors:
