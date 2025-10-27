@@ -17,6 +17,7 @@ with a scikit-learn regressor (e.g., :py:class:`~sklearn.linear_model.LinearRegr
 # %%
 import time
 import numpy as np; np.random.seed(0)  # reproducibility
+import pandas as pd
 
 from sklearn.datasets import make_classification, make_regression
 from sklearn.datasets import (
@@ -27,114 +28,27 @@ from sklearn.datasets import (
 from sklearn.datasets import fetch_california_housing, load_diabetes
 from sklearn.model_selection import train_test_split
 
-X_diabetes, y_diabetes = load_diabetes(return_X_y=True)
-X_california, y_california = fetch_california_housing(return_X_y=True)
+# %%
+# https://www.geeksforgeeks.org/machine-learning/ml-credit-card-fraud-detection/
+# https://media.geeksforgeeks.org/wp-content/uploads/20240904104950/creditcard.csv
+# df = pd.read_csv("https://media.geeksforgeeks.org/wp-content/uploads/20240904104950/creditcard.csv")
+# df.head()
 
-X_diabetes = X_diabetes[:300]
-y_diabetes = y_diabetes[:300]
-X_california = X_california[:300]
-y_california = y_california[:300]
-
-# Generate a sample dataset
-def make_realistic_regression(
-    n_samples=3000,
-    n_features=20,
-    n_informative=15,
-    noise=10.0,
-    bias=10.0,
-    corr_strength=0.15,
-    nonlinear_strength=0.5,
-    outlier_fraction=0.05,
-    missing_fraction=0.0,
-    categorical_features=6,
-    random_state=None,
-):
-    """
-    Generate a more realistic synthetic regression dataset.
-
-    Parameters
-    ----------
-    n_samples : int
-        Number of samples.
-    n_features : int
-        Number of numerical features.
-    n_informative : int
-        Number of informative (truly predictive) features.
-    noise : float
-        Standard deviation of Gaussian noise added to the target.
-    bias : float
-        Constant bias term in target generation.
-    corr_strength : float
-        Std. dev. of correlated noise added to create redundancy.
-    nonlinear_strength : float
-        Strength of nonlinear feature transformations (0 disables).
-    outlier_fraction : float
-        Fraction of samples with outlier targets.
-    missing_fraction : float
-        Fraction of missing entries (NaN) in X.
-    categorical_features : int
-        Number of discrete/categorical columns to append.
-    random_state : int or None
-        Random seed for reproducibility.
-    """
-
-    rng = np.random.default_rng(random_state)
-
-    # Step 1: Linear base dataset
-    X, y = make_regression(
-        n_samples=n_samples,
-        n_features=n_features,
-        n_informative=n_informative,
-        noise=noise,
-        bias=bias,
-        random_state=random_state,
-    )
-
-    # Step 2: Add nonlinear transformations
-    if nonlinear_strength > 0:
-        X_nl = X.copy()
-        X_nl[:, 0] = np.exp(nonlinear_strength * 0.01 * X[:, 0])
-        X_nl[:, 1] = np.sin(nonlinear_strength * X[:, 1])
-        X_nl[:, 2] = (X[:, 2] ** 2) * nonlinear_strength
-        X = np.hstack([X, X_nl])
-
-    # Step 3: Add correlated (redundant) features
-    if corr_strength > 0:
-        corr_features = X[:, :min(5, X.shape[1])] + rng.normal(
-            0, corr_strength, size=(n_samples, min(5, X.shape[1]))
-        )
-        X = np.hstack([X, corr_features])
-
-    # Step 4: Add outliers in target
-    if outlier_fraction > 0:
-        n_outliers = int(n_samples * outlier_fraction)
-        idx = rng.choice(n_samples, n_outliers, replace=False)
-        y[idx] += rng.normal(0, noise * 10, size=n_outliers)
-
-    # Step 5: Add missing values
-    if missing_fraction > 0:
-        missing_mask = rng.random(X.shape) < missing_fraction
-        X[missing_mask] = np.nan
-
-    # Step 6: Add categorical/discrete features
-    if categorical_features > 0:
-        cats = rng.integers(0, 3, size=(n_samples, categorical_features))
-        X = np.hstack([X, cats])
-
-    return X, y
-
-X, y = make_realistic_regression(
-    random_state=0,
+# %%
+Xdi_train, Xdi_val, ydi_train, ydi_val = train_test_split(
+    *load_diabetes(return_X_y=True), test_size=0.25, random_state=0
 )
-print(X.shape, np.isnan(X).mean(), y[:5])
+Xca_train, Xca_val, yca_train, yca_val = train_test_split(
+    *fetch_california_housing(return_X_y=True), test_size=0.25, random_state=0
+)
+Xbc_train, Xbc_val, ybc_train, ybc_val = train_test_split(
+    *data_2_classes(return_X_y=True), test_size=0.25, random_state=0,
+    stratify=data_2_classes(return_X_y=True)[1]
+)
 
 
 # %%
-X_train, X_val, y_train, y_val = train_test_split(
-    X, y, test_size=0.2, random_state=0
-)
-
-def add_missing_values(X_full, y_full, rng):
+def add_missing_values(X_full, y_full, rng=np.random.RandomState(0)):
     n_samples, n_features = X_full.shape
 
     # Add missing values in 75% of the lines
@@ -152,18 +66,17 @@ def add_missing_values(X_full, y_full, rng):
 
     return X_missing, y_missing
 
-rng = np.random.RandomState(42)
-X_miss_diabetes, y_miss_diabetes = add_missing_values(X_diabetes, y_diabetes, rng)
-X_miss_california, y_miss_california = add_missing_values(
-    X_california, y_california, rng
-)
-X_miss_train, y_miss_train = add_missing_values(
-    X_train, y_train, rng
-)
+Xdi_train_miss, ydi_train_miss = add_missing_values(Xdi_train, ydi_train)
+Xca_train_miss, yca_train_miss = add_missing_values(Xca_train, yca_train)
+Xbc_train_miss, ybc_train_miss = add_missing_values(Xbc_train, ybc_train)
+
+Xdi_val_miss, ydi_val_miss = add_missing_values(Xdi_val, ydi_val)
+Xca_val_miss, yca_val_miss = add_missing_values(Xca_val, yca_val)
+Xbc_val_miss, ybc_val_miss = add_missing_values(Xbc_val, ybc_val)
 
 
 # %%
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
 # To use the experimental IterativeImputer, we need to explicitly ask for it:
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401
@@ -174,14 +87,20 @@ from sklearn.preprocessing import MaxAbsScaler, RobustScaler
 
 N_SPLITS = 4
 
-def get_score(X, y, imputer=None):
-    regressor = RandomForestRegressor(random_state=0)
-    if imputer is not None:
-        estimator = make_pipeline(imputer, regressor)
+def get_score(Xt, Xv, yt, yv, imputer=None, regresion=True):
+    if regresion:
+        estimator = RandomForestRegressor(random_state=0)
+        scoring="neg_mean_squared_error"
     else:
-        estimator = regressor
+        estimator = RandomForestClassifier(random_state=0, max_depth=6, class_weight='balanced')
+        scoring="neg_log_loss"
+    if imputer is not None:
+        Xt = imputer.fit_transform(Xt, yt)
+        Xv = imputer.transform(Xv)
+    estimator.fit(Xt, yt)
     scores = cross_val_score(
-        estimator, X, y, scoring="neg_mean_squared_error", cv=N_SPLITS
+        estimator,
+        Xv, yv, scoring=scoring, cv=N_SPLITS
     )
     return scores.mean(), scores.std()
 
@@ -198,9 +117,9 @@ time_data = np.zeros(n_size)
 
 # %%
 t0 = time.time()
-mses_diabetes[0], stds_diabetes[0] = get_score(X_diabetes, y_diabetes)
-mses_california[0], stds_california[0] = get_score(X_california, y_california)
-mses_train[0], stds_train[0] = get_score(X_train, y_train)
+mses_diabetes[0], stds_diabetes[0] = get_score(Xdi_train, Xdi_val, ydi_train, ydi_val)
+mses_california[0], stds_california[0] = get_score(Xca_train, Xca_val, yca_train, yca_val)
+mses_train[0], stds_train[0] = get_score(Xbc_train, Xbc_val, ybc_train, ybc_val, regresion=False)
 x_labels[0] = "Full Data"
 T = time.time() - t0
 print(T)
@@ -211,13 +130,14 @@ time_data[0] = T
 t0 = time.time()
 imputer = SimpleImputer(strategy="constant", fill_value=0, add_indicator=True)
 mses_diabetes[1], stds_diabetes[1] = get_score(
-    X_miss_diabetes, y_miss_diabetes, imputer
+    Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss, imputer
 )
 mses_california[1], stds_california[1] = get_score(
-    X_miss_california, y_miss_california, imputer
+    Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss, imputer
 )
 mses_train[1], stds_train[1] = get_score(
-    X_miss_train, y_miss_train, imputer
+    Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss, imputer,
+    regresion=False
 )
 x_labels[1] = "Zero\nImputation\n(constant)"
 T = time.time() - t0
@@ -229,13 +149,14 @@ time_data[1] = T
 t0 = time.time()
 imputer = SimpleImputer(strategy="mean", add_indicator=True)
 mses_diabetes[2], stds_diabetes[2] = get_score(
-    X_miss_diabetes, y_miss_diabetes, imputer
+    Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss, imputer
 )
 mses_california[2], stds_california[2] = get_score(
-    X_miss_california, y_miss_california, imputer
+    Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss, imputer
 )
 mses_train[2], stds_train[2] = get_score(
-    X_miss_train, y_miss_train, imputer
+    Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss, imputer,
+    regresion=False
 )
 x_labels[2] = "Mean\nImputation"
 T = time.time() - t0
@@ -247,13 +168,14 @@ time_data[2] = T
 t0 = time.time()
 imputer = SimpleImputer(strategy="median", add_indicator=True)
 mses_diabetes[3], stds_diabetes[3] = get_score(
-    X_miss_diabetes, y_miss_diabetes, imputer
+    Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss, imputer
 )
 mses_california[3], stds_california[3] = get_score(
-    X_miss_california, y_miss_california, imputer
+    Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss, imputer
 )
 mses_train[3], stds_train[3] = get_score(
-    X_miss_train, y_miss_train, imputer
+    Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss, imputer,
+    regresion=False
 )
 x_labels[3] = "Median\nImputation"
 T = time.time() - t0
@@ -265,13 +187,17 @@ time_data[3] = T
 t0 = time.time()
 imputer = KNNImputer(add_indicator=True)
 mses_diabetes[4], stds_diabetes[4] = get_score(
-    X_miss_diabetes, y_miss_diabetes, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
 mses_california[4], stds_california[4] = get_score(
-    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
 mses_train[4], stds_train[4] = get_score(
-    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer),
+    regresion=False
 )
 x_labels[4] = "KNN\nImputation"
 T = time.time() - t0
@@ -284,13 +210,17 @@ t0 = time.time()
 imputer = IterativeImputer(add_indicator=True)
 
 mses_diabetes[5], stds_diabetes[5] = get_score(
-    X_miss_diabetes, y_miss_diabetes, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
 mses_california[5], stds_california[5] = get_score(
-    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
 )
 mses_train[5], stds_train[5] = get_score(
-    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer),
+    regresion=False
 )
 x_labels[5] = "Iterative\nImputation\n(BayesianRidge)"
 T = time.time() - t0
@@ -312,17 +242,22 @@ from scikitplot.impute import AnnoyKNNImputer
 # %%
 t0 = time.time()
 # 'angular', 'euclidean', 'manhattan', 'hamming', 'dot'
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_trees=5, metric='dot')
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, weights="distance")
 mses_diabetes[6], stds_diabetes[6] = get_score(
-    X_miss_diabetes, y_miss_diabetes, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer),
 )
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_trees=10, metric='dot')
+# imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, weights="distance", initial_strategy="median", metric='euclidean', n_neighbors=430, n_trees=-1)
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, weights="distance", initial_strategy="median", metric='euclidean', n_neighbors=484)
 mses_california[6], stds_california[6] = get_score(
-    X_miss_california, y_miss_california, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer),
 )
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0)
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, initial_strategy="median", metric='euclidean')
 mses_train[6], stds_train[6] = get_score(
-    X_miss_train, y_miss_train, make_pipeline(RobustScaler(), MaxAbsScaler(), imputer)
+    Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss,
+    make_pipeline(RobustScaler(), MaxAbsScaler(), imputer),
+    regresion=False
 )
 x_labels[6] = "AnnoyKNN\nImputation\n(Vector Based)"
 T = time.time() - t0
@@ -350,7 +285,7 @@ for j, td in zip(xval, time_data):
     bar = ax1.barh(
         j,
         mses_diabetes[j],
-        xerr=stds_diabetes[j],
+        xerr=stds_diabetes[j] / 10,
         color=colors[j],
         alpha=0.6,
         align="center",
@@ -360,7 +295,7 @@ for j, td in zip(xval, time_data):
 
 # Add bar value labels
 for bar in bars1:
-    ax1.bar_label(bar, fmt="%.3f", label_type='center', padding=-45)
+    ax1.bar_label(bar, fmt="%.3f", label_type='center', padding=-10)
 
 ax1.set_title("Imputation Techniques with Diabetes Data")
 ax1.set_xlim(left=np.min(mses_diabetes) * 0.9, right=np.max(mses_diabetes) * 1.1)
@@ -386,7 +321,7 @@ for j, td in zip(xval, time_data):
 
 # Add bar value labels
 for bar in bars2:
-    ax2.bar_label(bar, fmt="%.3f", label_type='center', padding=-45)
+    ax2.bar_label(bar, fmt="%.5f", label_type='center', padding=-10)
 
 ax2.set_title("Imputation Techniques with California Data")
 ax2.set_yticks(xval)
@@ -411,11 +346,11 @@ for j, td in zip(xval, time_data):
 
 # Add bar value labels
 for bar in bars3:
-    ax3.bar_label(bar, fmt="%.3f", label_type='center', padding=-45)
+    ax3.bar_label(bar, fmt="%.5f", label_type='center', padding=-10)
 
-ax3.set_title("Imputation Techniques with Train Data")
+ax3.set_title("Imputation Techniques with Breast Cancer Data")
 ax3.set_yticks(xval)
-ax3.set_xlabel("MSE")
+ax3.set_xlabel("LogLoss")
 ax3.invert_yaxis()
 ax3.set_yticklabels([""] * n_bars)
 
