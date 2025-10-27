@@ -46,12 +46,12 @@ C-Externals (experimental)
     .. grid-item-card::
         :padding: 3
 
-        **lightnumpy**
+        **Fortran to Python**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./_lightnumpy/index.rst
+            ./_f2py/index.rst
 
     .. grid-item-card::
         :padding: 3
@@ -62,3 +62,13 @@ C-Externals (experimental)
             :maxdepth: 3
 
             NumCpp <./_numcpp/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **lightnumpy**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./_lightnumpy/index.rst

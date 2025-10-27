@@ -6,7 +6,7 @@
 Python Implementations and Free-Threading (No-GIL) Support
 ==========================================================
 
-See :download:`this example doc <./python_nogil.pdf>`.
+:download:`"Download This Page as .pdf" <./python_nogil.pdf>`.
 
 .. warning::
    Free-threaded (No-GIL) mode is **experimental** and only available in
@@ -91,17 +91,17 @@ Future CPython Feature Matrix
      - Traditional GIL model
    * - 3.13
      - ✅ Yes
-     - ✅ Yes (experimental)
+     - ✅ Yes
      - Experimental
      - Requires ``python-freethreading`` build
    * - 3.14
      - ✅ Yes
-     - ✅ Yes (enhanced)
+     - ✅ Yes
      - Experimental / Early Adoption
      - Improved extension support
    * - 3.15+
      - ✅ Yes
-     - ✅ Yes (stabilizing)
+     - ✅ Yes
      - Future
      - No-GIL may become standard
 
@@ -141,19 +141,18 @@ Tabbed View (CPython vs PyPy)
       * `PyPy Repository <https://github.com/pypy/pypy>`_
       * `CPython vs PyPy Differences <https://doc.pypy.org/en/latest/cpython_differences.html>`_
 
-Flowchart: Choosing the Right Python Interpreter
-------------------------------------------------
-
-.. mermaid::
-
-   flowchart TD
-      A[Do you need true multi-threading without the GIL?] -->|Yes| B[Use CPython 3.13+ Free-Threaded Build]
-      A -->|No| C[Is your code performance-critical pure Python?]
-      C -->|Yes| D[Use PyPy for JIT optimization]
-      C -->|No| E[Use Standard CPython]
-      B --> F[Are you using C extensions?]
-      F -->|Yes, legacy API| G[Update extensions for No-GIL]
-      F -->|No or using CFFI| H[Compatible]
+..
+  Flowchart: Choosing the Right Python Interpreter
+  ------------------------------------------------
+  .. mermaid::
+    flowchart TD
+        A[Do you need true multi-threading without the GIL?] -->|Yes| B[Use CPython 3.13+ Free-Threaded Build]
+        A -->|No| C[Is your code performance-critical pure Python?]
+        C -->|Yes| D[Use PyPy for JIT optimization]
+        C -->|No| E[Use Standard CPython]
+        B --> F[Are you using C extensions?]
+        F -->|Yes, legacy API| G[Update extensions for No-GIL]
+        F -->|No or using CFFI| H[Compatible]
 
 Critical and Essential Knowledge
 --------------------------------

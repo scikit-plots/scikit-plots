@@ -63,7 +63,7 @@ Unlike exact KNN imputation, using Annoy allows:
 
 Example: Your exact NumPy array example:
 
-.. prompt:: ipython In [1]:
+.. prompt:: python >>>
 
     import numpy as np
     from scikitplot.experimental import enable_annoyknn_imputer
