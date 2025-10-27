@@ -1,5 +1,6 @@
-.. _annoy-index:
 
+
+.. _annoy-index:
 ======================================================================
 Annoy (experimental)
 ======================================================================
@@ -13,7 +14,7 @@ This module contains some functions related to :py:mod:`~.annoy` under :py:mod:`
 
 TL;DR
 ------------
-- What it is: C++ library with Python bindings, “Approximate Nearest Neighbors Oh Yeah”
+- What it is: C++ library with Python bindings, “Approximate Nearest Neighbors Oh Yeah” [1]_, [2]_
 - Origin: Developed at Spotify
 - Purpose: Search for points in space close to a query point
 - Index type: Forest of random projection trees

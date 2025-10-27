@@ -1,5 +1,3 @@
-.. _stats-index:
-
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -17,6 +15,7 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. _stats-index:
 Stats (experimental)
 ======================================================================
 

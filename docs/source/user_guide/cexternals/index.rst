@@ -1,5 +1,3 @@
-.. _externals-index:
-
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -17,6 +15,7 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. _externals-index:
 ======================================================================
 C-Externals (experimental)
 ======================================================================
@@ -46,12 +45,12 @@ C-Externals (experimental)
     .. grid-item-card::
         :padding: 3
 
-        **lightnumpy**
+        **Fortran to Python**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./_lightnumpy/index.rst
+            ./_f2py/index.rst
 
     .. grid-item-card::
         :padding: 3
@@ -62,3 +61,13 @@ C-Externals (experimental)
             :maxdepth: 3
 
             NumCpp <./_numcpp/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **lightnumpy**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./_lightnumpy/index.rst

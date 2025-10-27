@@ -63,7 +63,7 @@ __all__ = [
 # class _BaseImputer(TransformerMixin, BaseEstimator):
 class AnnoyKNNImputer(_BaseImputer):
     r"""
-    Fast approximate nearest-neighbors-based imputation using the Annoy library.
+    Fast approximate vector nearest-neighbors-based imputation using the Annoy library.
 
     This imputer replaces the exact neighbor search of :class:`
     ~sklearn.impute.KNNImputer` with a approximate nearest neighbor index (Annoy),
@@ -99,14 +99,9 @@ class AnnoyKNNImputer(_BaseImputer):
         generally improves nearest-neighbor accuracy but increases build time
         and memory usage.
 
-        If set to -1, trees are built dynamically until the index reaches
-        approximately twice the number of items (heuristic:
-        ``_n_nodes >= 2 * n_items``).
-
-        .. caution::
-
-            Using ``n_trees = -1`` leads to non-deterministic results. The index
-            may be built differently on each run, causing variations in the output.
+        If set to ``n_trees=-1``, annoy trees are built dynamically
+        until the index reaches approximately twice the number of items
+        (heuristic: ``_n_nodes >= 2 * n_items``).
 
         Guidelines:
 

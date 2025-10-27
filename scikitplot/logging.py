@@ -13,10 +13,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-:py:mod:`~.logging` (alias, :py:obj:`~.logger`) module provide Python logging :py:class:`logging.Logger` utilities.
+:py:mod:`~.logging` (alias, :py:obj:`~.logger`) module provide unified both Python :py:mod:`logging` and :py:class:`logging.Logger` utilities.
 
 Inspired by `"Tensorflow's logging system"
-<https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94>`_.
+<https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94>`_ [1]_.
 
 This module provides advanced logging utilities for Python applications,
 including support for singleton-based logging with customizable formatters,

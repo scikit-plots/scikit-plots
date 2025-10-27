@@ -393,7 +393,7 @@ Use when you have no local commits diverging from upstream/main::
               X---Y  (local main)  ❌ (Fast-forward not possible)
 
 (if Necessary) Rebases:
-----------------------
+-----------------------
 
 - Rebases your local commits on top of the latest upstream/main
 - Rewrites history by replaying your commits on top of upstream/main, making the history linear

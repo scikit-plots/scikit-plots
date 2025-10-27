@@ -1,5 +1,6 @@
-.. _array_api_compat-index:
 
+
+.. _array_api_compat-index:
 ======================================================================
 Python Data API Standards: array_api_compat (experimental)
 ======================================================================

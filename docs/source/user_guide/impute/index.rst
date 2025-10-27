@@ -1,5 +1,3 @@
-.. _impute-index:
-
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -17,6 +15,7 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. _impute-index:
 ======================================================================
 Impute (experimental)
 ======================================================================
@@ -63,7 +62,7 @@ Unlike exact KNN imputation, using Annoy allows:
 
 Example: Your exact NumPy array example:
 
-.. prompt:: ipython In [1]:
+.. prompt:: python >>>
 
     import numpy as np
     from scikitplot.experimental import enable_annoyknn_imputer

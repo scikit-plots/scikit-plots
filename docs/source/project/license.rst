@@ -65,28 +65,34 @@ Bundled Licenses
    .. literalinclude:: ../../../LICENSES/LICENSE_scikit-plot
       :language: none
 
+.. dropdown:: annoy
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_annoy
+      :language: none
+
+.. dropdown:: array-api-compat
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_array-api-compat
+      :language: none
+
+.. dropdown:: array-api-extra
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_array-api-extra
+      :language: none
+
+.. dropdown:: astropy
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_astropy
+      :language: none
+
 .. dropdown:: kds
    :class-container: sdd
 
    .. literalinclude:: ../../../LICENSES/LICENSE_kds
-      :language: none
-
-.. dropdown:: modelplotpy
-   :class-container: sdd
-
-   .. literalinclude:: ../../../LICENSES/LICENSE_modelplotpy
-      :language: none
-
-.. dropdown:: scipy
-   :class-container: sdd
-
-   .. literalinclude:: ../../../LICENSES/LICENSE_scipy
-      :language: none
-
-.. dropdown:: mpl-probscale
-   :class-container: sdd
-
-   .. literalinclude:: ../../../LICENSES/LICENSE_mpl-probscale
       :language: none
 
 .. dropdown:: matplotlib
@@ -95,10 +101,52 @@ Bundled Licenses
    .. literalinclude:: ../../../LICENSES/LICENSE_matplotlib
       :language: none
 
+.. dropdown:: modelplotpy
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_modelplotpy
+      :language: none
+
+.. dropdown:: mpl-probscale
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_mpl-probscale
+      :language: none
+
+.. dropdown:: NumCpp
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_NumCpp
+      :language: none
+
+.. dropdown:: scikit-learn
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_scikit-learn
+      :language: none
+
+.. dropdown:: scipy
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_scipy
+      :language: none
+
 .. dropdown:: seaborn
    :class-container: sdd
 
    .. literalinclude:: ../../../LICENSES/LICENSE_seaborn
+      :language: none
+
+.. dropdown:: tweedie
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_tweedie
+      :language: none
+
+.. dropdown:: visualkeras
+   :class-container: sdd
+
+   .. literalinclude:: ../../../LICENSES/LICENSE_visualkeras
       :language: none
 
 
@@ -137,9 +185,3 @@ Third Party Licenses
 
       .. literalinclude:: ../../../LICENSES/LICENSE_packaging
          :language: none
-
-.. dropdown:: array-api-compat
-   :class-container: sdd
-
-   .. literalinclude:: ../../../LICENSES/LICENSE_array-api-compat
-      :language: none

@@ -1,5 +1,3 @@
-.. _scikit-plots-documentation:
-
 .. https://devguide.python.org/documentation/markup/#substitutions
 .. Welcome to Scikit-plots 101 |br| |release| - |today|
 ..
@@ -22,6 +20,8 @@
 .. |br| raw:: html
 
    <br/>
+
+.. _scikit-plots-documentation:
 
 :raw-html:`<div style="text-align: center"><strong>` Scikit-plots Documentation
 |br| |full_version| - |today|

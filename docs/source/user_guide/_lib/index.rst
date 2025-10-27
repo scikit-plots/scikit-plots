@@ -1,7 +1,3 @@
-.. currentmodule:: scikitplot
-
-.. _lib-index:
-
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -19,10 +15,14 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. currentmodule:: scikitplot
+
 .. admonition:: Template
 
    Template for further usage, template belong to Scikit-learn.
 
+
+.. _lib-index:
 .. _array_api-index:
 
 ================================

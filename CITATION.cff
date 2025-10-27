@@ -1,33 +1,41 @@
-# ---------------------------------------------------------
-# CITATION.cff file for
-# This file provides citation information for users
-# who want to cite the library, related papers, and books.
-# Generated CITATION.cff helper in APA, MLA, Chicago, and Harvard style by github.
-# ---------------------------------------------------------
-
+# This is a -*- yaml -*- file
+# --------------------------------------------------------------------
+# CITATION.cff template file for scikit-plots, provides citation info
+# for users who want to cite the library, related papers, and books.
+# --------------------------------------------------------------------
 cff-version: 1.2.0
-title: "scikit-plots: Machine Learning Visualization in Python"
+title: scikit-plots
 type: software
+message: |-
+  If you use scikit-plots in a scientific publication,
+  we respectfully request that you cite the reference provided below.
+  A dedicated publication describing scikit-plots is currently in preparation;
+  until it becomes available, the following citation is recommended:
 authors:
-- name: "The scikit-plots developers"
-message: "Scikit-plot is the result of an unartistic data scientist's dreadful realization that visualization is one of the most crucial components in the data science process, not just a mere afterthought."
-version: "latest"
-date-released: 2025-08-11
-identifiers:
-  - description: This is the collection of archived snapshots of all versions of
-    type: doi
-    value: "10.5281/zenodo.13367000"
-license: BSD-3-Clause
-repository-code:  "https://github.com/scikit-plots/scikit-plots"
-url:  "https://scikit-plots.github.io/dev"
-preferred-citation:
-  type: software
-  title: "scikit-plots: Machine Learning Visualization in Python"
-  authors:
   - name: "The scikit-plots developers"
-  version: "latest"
-  date-released: 2025-08-11
-  doi: 10.5281/zenodo.13367000
-  license: BSD-3-Clause
-  repository-code:  "https://github.com/scikit-plots/scikit-plots"
-  url:  "https://scikit-plots.github.io/dev"
+date-released: 2024-09-06
+version: latest
+license: BSD-3-Clause
+repository-code: https://github.com/scikit-plots/scikit-plots
+url: https://scikit-plots.github.io/dev
+
+identifiers:
+  - type: doi
+    description: "This is the archived snapshot of latest version of My Research Software"
+    value: "10.5281/zenodo.13367000"
+
+# Associated papers
+preferred-citation:
+  type: article
+  title: "Scikit-plots: Machine Learning Visualization in Python"
+  authors:
+    - family-names: "Çelik"
+      given-names: "Muhammed"
+      orcid: "https://orcid.org/0009-0001-2685-1263"
+  doi: "10.5281/zenodo.13367000"
+  journal: "NA"
+  volume: NA
+  start: NA
+  end: NA
+  year: NA
+  url: "https://doi.org/10.5281/zenodo.13367000"

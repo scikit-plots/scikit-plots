@@ -1,5 +1,6 @@
-.. _numcpp_index:
 
+
+.. _numcpp_index:
 ======================================================================
 NumCpp Header Only C++ (experimental)
 ======================================================================
@@ -49,6 +50,6 @@ Example Equivalents:
 NumPy (Python)           NumCpp (C++)
 =======================  ===========================
 np.arange(3, 7)          nc::arange<int>(3, 7)
-np.sum(a)               nc::sum(a)
-np.linalg.inv(a)        nc::linalg::inv(a)
+np.sum(a)                nc::sum(a)
+np.linalg.inv(a)         nc::linalg::inv(a)
 =======================  ===========================

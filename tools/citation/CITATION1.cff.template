@@ -1,0 +1,86 @@
+{#-
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+## https://citation-file-format.github.io/
+## https://github.com/citation-file-format/citation-file-format/blob/main/README.md
+## https://github.com/citation-file-format/ruby-cff?tab=readme-ov-file#bibtex-format
+## https://www.bibtex.com/format
+
+## https://jinja.palletsprojects.com/en/stable/templates/
+## https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files
+-#}
+# ---------------------------------------------------------
+# CITATION.cff file for {{ library_name }}
+# This file provides citation information for users
+# who want to cite the library, related papers, and books.
+# Generated CITATION.cff helper in APA, MLA, Chicago, and Harvard style by github.
+# ---------------------------------------------------------
+
+cff-version: 1.2.0  {# The version of the CFF format used. #}
+title: "{{ title | trim }}"  {# The name of your project. #}
+type: {{ type | trim }}  {# The type of your project. #}
+authors:
+- name: "{{ name | trim }}"  {# Authors and contributors of the software project. #}
+{#- - family-names: "{{ family_names | trim }}" -#}
+{#- given-names: "{{ given_names | trim }}" -#}
+{#- orcid: "{{ orcid | trim }}" -#}  {#- Optional, if you have an ORCID. -#}
+{#- affiliation: "{{ affiliation | trim }}" -#}  {#- Optional, but recommended, Contributor Organization. #}
+message: "{{ message | trim }}"  {# Optional message to users. #}
+version: "{{ version | trim }}"  {# The current version of your software. #}
+date-released: {{ date_released | trim }}  {# Date when this version was released. #}
+{#- doi: {{ doi | trim }}  # Optional DOI (if archived on platforms like Zenodo). #}
+identifiers:
+  - description: This is the collection of archived snapshots of all versions of {{ library_name }}
+    type: doi
+    value: "{{ doi | trim }}"
+  {#- - description: This is the archived snapshot of version 0.11.2 of My Research Software -#}
+  {#-  type: doi -#}
+  {#-  value: "10.5281/zenodo.123457" -#}
+{#- Valid SPDX license expression: 'BSD-3-Clause', 'MIT' #}
+license: {{ license }}
+repository-code:  "{{ github_url | trim }}"
+url:  "{{ doc_dev_url | trim }}"
+preferred-citation:
+  type: {{ type | trim }}
+  title: "{{ title | trim }}"  {# The name of your software. #}
+  authors:  {# Authors and contributors of the software project. #}
+  - name: "{{ name | trim }}"
+  version: "{{ version | trim }}"  {# The current version of your software. #}
+  date-released: {{ date_released | trim }}  {# Date when this version was released. #}
+  doi: {{ doi | trim }}  {# Optional DOI (if archived on platforms like Zenodo). #}
+  license: {{ license }}
+  repository-code:  "{{ github_url | trim }}"
+  url:  "{{ doc_dev_url | trim }}"
+
+{#-
+# Optionally, add references to any related articles or papers
+# Uncomment and fill in the details when needed.
+# references:
+#   - type: article
+#     authors:
+#       - family-names: AuthorLastName
+#         given-names: AuthorFirstName
+#     title: "Title of Related Research Paper"
+#     year: 2024
+#     date-published: 2007-06-18
+#     journal: "Journal Name"
+#     volume: x
+#     issue: x
+#     start: xx
+#     end: xx
+#     doi: 10.1016/j.dat.xxxx.xx.xxx
+#     publisher:
+#       name: IEEE Computer Society
+#       website: ''
+#     abstract: ''
+#
+#   - type: book
+#     authors:
+#       - family-names: AuthorLastName
+#         given-names: AuthorFirstName
+#     title: "Title of Related Book"
+#     publisher: "Publisher Name"
+#     year: 2024
+#     isbn: "978-1-234-56789-0"
+-#}

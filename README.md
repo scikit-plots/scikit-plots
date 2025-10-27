@@ -73,6 +73,10 @@
 <!-- https://simpleicons.org/ -->
 <!-- https://github.com/simple-icons/simple-icons/blob/master/slugs.md -->
 <p align="center">
+  <!-- codespaces -->
+  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
+  <img style="display:auto;width:auto;height:17px;" alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg">
+  </a>
   <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
   <!-- pepy.tech -->
   <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
@@ -166,7 +170,6 @@
   </a>
 </p>
 </div>
-
 
 
 <!-- Scikit-plots favicon image -->
@@ -855,7 +858,8 @@ our [dev container](https://github.com/scikit-plots/scikit-plots/blob/main/.devc
 with the required packages. For help, see the [GitHub Codespaces docs](https://docs.github.com/en/codespaces).
 
 <div align=center>
-  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-jupyter%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
+  <!-- https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest -->
+  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
   <img style="display:auto;width:auto;height:auto;" alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg">
   </a><br>
 </div>
@@ -908,11 +912,11 @@ See the [Acknowledgement](https://scikit-plots.github.io/dev/project/governance.
 and the [CITATION.bib](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.bib),
 [CITATION.cff](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.cff) file.
 
-1. scikit-plots, “scikit-plots: vlatest”. Zenodo, Aug. 23, 2024.
-   DOI: [10.5281/zenodo.13367000](https://doi.org/10.5281/zenodo.13367000).
+1. The-scikit-plots-developers. (11 2024). "scikit-plots: Machine Learning Visualization in Python".
+   (Version latest). [doi:10.5281/zenodo.13367000](https://doi.org/10.5281/zenodo.13367000)
 
-2. scikit-plots, “scikit-plots: v0.3.8dev0”. Zenodo, Aug. 23, 2024.
-   DOI: [10.5281/zenodo.13367001](https://doi.org/10.5281/zenodo.13367001).
+2. The-scikit-plots-developers. (2024, Aug 23). "scikit-plots: Machine Learning Visualization in Python".
+   (Version 0.3.8dev0). [doi:10.5281/zenodo.13367001](https://doi.org/10.5281/zenodo.13367001)
 
 
 ## Supporting the Project (Upcoming)
