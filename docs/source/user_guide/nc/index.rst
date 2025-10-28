@@ -15,59 +15,13 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _cexternals-index:
+.. _nc-index:
+nc (NumCpp) (experimental)
 ======================================================================
-C-Externals (experimental)
-======================================================================
 
-.. grid:: 1 1 1 1
+Examples relevant to the :py:mod:`~.nc` module with  :py:mod:`~._numcpp`.
 
-    .. grid-item-card::
-        :padding: 3
+`nc` is a Python module that provides high-performance numerical functions by exposing the C++ header-only library NumCpp, allowing seamless use of NumPy arrays in Python.
 
-        **annoy**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./annoy/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **astropy stats**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./_astropy/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Fortran to Python**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./_f2py/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **NumCpp**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            NumCpp <./_numcpp/index.rst>
-
-    .. grid-item-card::
-        :padding: 3
-
-        **lightnumpy**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./_lightnumpy/index.rst
+.. seealso::
+   * https://github.com/dpilger26/NumCpp

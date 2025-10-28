@@ -665,26 +665,25 @@ grep:
 
 ## newbr
 ## Create a new branch based on the latest main branch and push to remote.
+# git checkout main  # or the branch you want as a base \
+## If you're on 'feature-branch' but want to pull from 'main' \
+## same git fetch origin main && git merge origin/main \
+# git pull origin main \
+# Delete old local branch if exists \
+# git branch -d subpackage-bug-fix || true \
+# Create and switch to new branch \
+# git checkout -b subpackage-bug-fix
 newbr:
 	@echo ">> Creating new branch 'subpackage-bug-fix' based on main..."
 	@# Ensure you are on main and pull latest changes
 	@git switch main \
-	&& git pull \
-	@# Delete old local branch if exists
-	&& git branch -d subpackage-bug-fix || true \
-	&& git branch -D subpackage-bug-fix || true \
-	@# Create and switch to new branch
-	&& git switch -c subpackage-bug-fix \
-	&& git push --set-upstream origin subpackage-bug-fix \
-	&& git branch
-	@echo ">> New branch created and pushed successfully."
-
-	@# git checkout main  # or the branch you want as a base \
-	## If you're on 'feature-branch' but want to pull from 'main' \
-	## same git fetch origin main && git merge origin/main \
-	# git pull origin main  \
-	# git branch -d subpackage-bug-fix || true \
-	# git checkout -b subpackage-bug-fix
+	git pull \
+	git branch -d subpackage-bug-fix || true \
+	git branch -D subpackage-bug-fix || true \
+	git switch -c subpackage-bug-fix \
+	git push --set-upstream origin subpackage-bug-fix \
+	# git branch \
+	echo ">> New branch created and pushed successfully."
 
 ## push
 ## Stage all changes, commit with a message, and push to the current branch.

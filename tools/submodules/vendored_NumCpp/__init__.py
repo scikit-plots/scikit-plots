@@ -50,7 +50,6 @@ Project Repository: https://github.com/dpilger26/NumCpp
 # __all__ = [
 #     "get_include",
 #     "nc",
-#     "nc_develop",
 # ]
 
 

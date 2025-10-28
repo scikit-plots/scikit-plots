@@ -39,12 +39,14 @@ _numcpp_cython_tree = [
 ######################################################################
 
 # include_directories for Specific Subfolders (header-only)
-_ndarray_inc_dir = [
+# develop nc_develop::NdArray
+_develop_inc_dir = [
   'develop/NdArray',
 ]
+# stable nc::NdArray
 _numcpp_inc_dir = [
   'include',
-  # 'src',
+  'src',
 ]
 
 ######################################################################
@@ -54,8 +56,8 @@ _numcpp_inc_dir = [
 # Use the include directory in your build setup
 # Specify Include directories where your headers are located
 # include_directories(header) -> static_library(mix), library(mix), declare_dependency(mix)
-# ⚠️ Make sure your develop headers take priority:
-inc_dir_ndarray = include_directories(_ndarray_inc_dir)
+# ⚠️ Make sure your develop headers take priority can may conflict:
+inc_dir_develop = include_directories(_develop_inc_dir)
 inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 
 ######################################################################
@@ -63,11 +65,12 @@ inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 ######################################################################
 
 extra_compile_args = [
-  # Optional Boost Dependency
+  '-DNUMCPP_INCLUDE_PYBIND_PYTHON_INTERFACE',
+  # Optional disable all NumCpp features that require Boost
   # dpkg -s libboost-dev | grep 'Version'
-  # Disable all NumCpp features that require Boost
+  # '-DNUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE',
   '-DNUMCPP_NO_USE_BOOST',        # Disable Boost features
-  # Optional tbb Dependency
+  # Optional disable tbb Dependency
   # '-DNUMCPP_USE_MULTITHREAD',     # Enable multithreading support
   '-fpermissive',
 ]
@@ -98,7 +101,7 @@ dep_list = [
 # exe_numcpp_demo = executable(
 #   'numcpp_demo',
 #   'develop/main.cpp',  # only for standalone C++ demo file, not the library.
-#   include_directories: [inc_dir_ndarray, inc_dir_numcpp],
+#   include_directories: [inc_dir_develop, inc_dir_numcpp],
 #   dependencies: dep_list,
 #   cpp_args: [cython_cpp_flags, extra_compile_args],
 #   install: false,
@@ -110,8 +113,8 @@ dep_list = [
 ## Extension Module Metadata
 ######################################################################
 
+# develop → NdArray dev features headers (if needed).
 # numcpp → core NumCpp Python module.
-# ndarray → NdArray bindings module (if needed).
 
 ## Define metadata for shared Cython files '.pyx' extensions targeting both C and C++
 ## .c → plain C
@@ -128,12 +131,15 @@ _numcpp_extension_metadata = {
       'src/nc.cpp',
     ],
     'include_directories': [                      # Include dirs for compilation
+      # ⚠️ May Conflict develop first!
+      # inc_dir_develop,  # develop first
       inc_dir_numcpp,   # then the stable include folder
     ],
     'dependencies': dep_list,                     # External libraries and dependencies
     'link_with': [                                # Link with the created static library
       # version_link_args
     ],
+    'link_args': [],                              # 👈 add this
     'override_options': [
       # 'cython_language=c',                        # Ensure Cython knows to generate C code
       'cython_language=cpp',                        # Ensure Cython knows to generate C code
@@ -142,42 +148,10 @@ _numcpp_extension_metadata = {
     'cython_args': cython_cpp_args,
     'c_args': cython_c_flags,                     # Additional C/C++ arguments
     'cpp_args': [                                 # Additional C/C++ arguments
-      cython_cpp_flags,
-      extra_compile_args,
-    ],
-    'link_args': [],                              # 👈 add this
-    'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/cexternals/_numcpp',     # Path where the module is located
-  },
-  # file builddir/scikitplot/cexternals/_numcpp/nc_develop.so
-  'nc_develop':  ## Build static NumCpp core library (C++)
-  {
-    # Only your actual C++/Pybind11 binding sources
-    'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint
-      'src/nc_develop.cpp',
-    ],
-    'include_directories': [                      # Include dirs for compilation
-      # ⚠️ develop first!
-      inc_dir_ndarray,  # develop first
-      # inc_dir_numcpp,   # then the stable include folder
-    ],
-    'dependencies': dep_list,                     # External libraries and dependencies
-    'link_with': [                                # Link with the created static library
-      # version_link_args
-    ],
-    'override_options': [
-      # 'cython_language=c',                        # Ensure Cython knows to generate C code
-      'cython_language=cpp',                        # Ensure Cython knows to generate C code
-      'optimization=3',                             # Optimization level '-O3'
-    ],
-    'cython_args': cython_cpp_args,
-    'c_args': cython_c_flags,                     # Additional C/C++ arguments
-    'cpp_args': [                                 # Additional C/C++ arguments
       # '-include', 'develop/NdArray/NdArrayCore.hpp',  # optional force include
       cython_cpp_flags,
       extra_compile_args,
     ],
-    'link_args': [],                              # 👈 add this
     'install': true,                              # Whether to install the .so file executable after building
     'subdir': 'scikitplot/cexternals/_numcpp',     # Path where the module is located
   },
