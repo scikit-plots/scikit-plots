@@ -115,9 +115,13 @@ typedef signed __int64    int64_t;
 // This header does not auto-detect, to prevent illegal instructions?
 
 #if !defined(NO_MANUAL_VECTORIZATION) && defined(__GNUC__) && (__GNUC__ >6) && defined(__AVX512F__)  // See #402
+#ifndef ANNOYLIB_USE_AVX512
 #define ANNOYLIB_USE_AVX512
+#endif
 #elif !defined(NO_MANUAL_VECTORIZATION) && defined(__AVX__) && defined (__SSE__) && defined(__SSE2__) && defined(__SSE3__)
+#ifndef ANNOYLIB_USE_AVX
 #define ANNOYLIB_USE_AVX
+#endif
 #else
 #endif
 
