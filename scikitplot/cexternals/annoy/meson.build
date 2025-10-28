@@ -89,6 +89,7 @@ extra_link_args = []
 
 if cpu_arch == 'ppc64le'
   extra_compile_args += ['-mcpu=native']
+endif
 
 if cpu_arch == 'x86_64'
   # do not apply march on Intel Darwin
