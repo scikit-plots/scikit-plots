@@ -104,6 +104,15 @@ class AnnoyIndex {
   bool load(const char* filename) {
     return ptr->load(filename, true);
   };
+  vector<uint8_t> serialize() {
+      return ptr->serialize();
+  }
+  bool deserialize(vector<uint8_t>* v, bool prefault) {
+      return ptr->deserialize(v, prefault);
+  }
+  bool deserialize(vector<uint8_t>* v) {
+      return ptr->deserialize(v, true);
+  }
   float getDistance(int i, int j) {
     return ptr->get_distance(i, j);
   };
@@ -195,4 +204,5 @@ class AnnoyIndexDotProduct : public AnnoyIndex {
     this->f = f;
   }
 };
+
 }

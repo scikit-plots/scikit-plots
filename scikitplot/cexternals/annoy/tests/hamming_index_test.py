@@ -94,7 +94,7 @@ def test_many_vectors():
     assert avg_dist <= 0.42
 
 
-@pytest.mark.skip  # will fix later
+# @pytest.mark.skip  # will fix later
 def test_zero_vectors():
     # Mentioned on the annoy-user list
     bitstrings = [

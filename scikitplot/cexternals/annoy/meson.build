@@ -68,9 +68,8 @@ if not dep_lua.found()
 endif
 
 ######################################################################
-## Platform and Compiler Flags (replicating setup.py logic)
+## Platform and Compiler Flags and Dependencies (replicating setup.py logic)
 ######################################################################
-
 # Architecture-specific tuning
 os_name = host_machine.system()
 cpu_arch = host_machine.cpu_family()
@@ -82,11 +81,21 @@ extra_compile_args = [
 ]
 extra_link_args = []
 
+# Make sure we have the right definition when compiling as a shared library on Windows.
+# if get_option('default_library') != 'static' and host_machine.system() == 'windows'
+# 	add_project_arguments('-DLUA_BUILD_AS_DLL', language: 'c')
+# 	extra_compile_args += [ '-DLUA_BUILD_AS_DLL' ]
+# endif
+
 if cpu_arch == 'ppc64le'
   extra_compile_args += ['-mcpu=native']
-elif cpu_arch == 'x86_64'
+endif
+
+if cpu_arch == 'x86_64'
+  # do not apply march on Intel Darwin
   if os_name != 'darwin'
     if cc.has_argument('-march=native')
+      # Not all CPUs have march as a tuning parameter
       extra_compile_args += ['-march=native']
     endif
   endif
@@ -112,12 +121,14 @@ if cc.has_argument('-std=c++17')
   extra_compile_args += ['-std=c++17']
 endif
 
-# macOS-specific flags
+# #349: something with OS X Mojave causes libstd not to be found '-mmacosx-version-min=10.12'
 # macOS minimum version and stdlib
+# std::filesystem::path is part of C++17's <filesystem> library.
+# On macOS, the <filesystem> implementation requires at least macOS 10.15 (Catalina) with Xcode 11+.
 if os_name == 'darwin'
-  if cc.has_argument('-mmacosx-version-min=10.12')
-    extra_compile_args += ['-mmacosx-version-min=10.12']
-    extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.12']
+  if cc.has_argument('-mmacosx-version-min=10.15')
+    extra_compile_args += ['-mmacosx-version-min=10.15']
+    extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.15']
   endif
 endif
 
@@ -133,19 +144,13 @@ endif
 #     '-DANNOYLIB_USE_AVX512',
 #   ]
 # el
-if cc.has_argument('-mavx')
-  extra_compile_args += [
-    '-mavx',
-    '-DANNOYLIB_USE_AVX',
-  ]
-else
-  message('⚠️ No SIMD acceleration available, falling back to scalar mode')
-endif
-
-# Make sure we have the right definition when compiling as a shared library on Windows.
-# if get_option('default_library') != 'static' and host_machine.system() == 'windows'
-# 	add_project_arguments('-DLUA_BUILD_AS_DLL', language: 'c')
-# 	compile_args = [ '-DLUA_BUILD_AS_DLL' ]
+# if cc.has_argument('-mavx')
+#   extra_compile_args += [
+#     '-mavx',
+#     '-DANNOYLIB_USE_AVX',
+#   ]
+# else
+#   message('⚠️ No SIMD acceleration available, falling back to scalar mode')
 # endif
 
 message('Final compile args: ' + ' '.join(extra_compile_args))
@@ -205,7 +210,9 @@ annoy_extension_metadata = {
       cython_cpp_flags,
       extra_compile_args,
     ],
-    'link_args': [extra_link_args],                 # 👈 add this
+    'link_args': [                                # 👈 add this
+      extra_link_args
+    ],
     'install': true,                              # Whether to install the .so file executable after building
     'subdir': 'scikitplot/cexternals/annoy',        # Path where the module is located
   },
