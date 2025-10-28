@@ -126,9 +126,9 @@ endif
 # std::filesystem::path is part of C++17's <filesystem> library.
 # On macOS, the <filesystem> implementation requires at least macOS 10.15 (Catalina) with Xcode 11+.
 if os_name == 'darwin'
-  if cc.has_argument('-mmacosx-version-min=10.15')
-    extra_compile_args += ['-mmacosx-version-min=10.15']
-    extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.15']
+  if cc.has_argument('-mmacosx-version-min=10.14')
+    extra_compile_args += ['-mmacosx-version-min=10.14']
+    extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.14']
   endif
 endif
 
