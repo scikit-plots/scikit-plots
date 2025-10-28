@@ -21,12 +21,11 @@ Compilers:
 """
 
 from . import nc
-from . import nc_develop
+from . import _nc
 
 # __all__ = [
 #     "get_include",
 #     "nc",
-#     "nc_develop",
 # ]
 
 

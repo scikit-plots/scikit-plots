@@ -208,6 +208,7 @@ SKIP_LIST_2 = [
     # root artifact
     # "scikitplot.conftest",
     "scikitplot.logger",
+    "scikitplot.nc",
     # api artifact
     "scikitplot.decomposition",
     "scikitplot.estimators",

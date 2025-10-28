@@ -415,7 +415,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_numcpp",
                     "_numcpp.get_include",
                     "_numcpp.nc",
-                    "_numcpp.nc_develop",
                 ],
             },
         ],
@@ -661,6 +660,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "plot_costsrevs",
                     "plot_profit",
                     "plot_roi",
+                ],
+            },
+        ],
+    },
+    "scikitplot.nc": {
+        "short_summary": "High-performance Numerical Functions",
+        "description": _get_guide("nc-index"),
+        "sections": [
+            {
+                "title": None,
+                "autosummary": [
+                    "dot",
                 ],
             },
         ],

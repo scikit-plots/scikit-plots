@@ -13,12 +13,7 @@
 # https://github.com/mlflow/mlflow/blob/master/mlflow/exceptions.py
 
 """
-General exceptions and warnings used by scikit-plots.
-Note that some exceptions may be module specific, such as linear algebra errors.
-
-.. versionadded:: scikit-plots 0.4
-
-    The exceptions module is new in scikit-plots 0.4.
+Custom warnings and errors used across scikit-plots.
 """
 
 import json as _json

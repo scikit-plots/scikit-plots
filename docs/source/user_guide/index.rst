@@ -55,22 +55,22 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Decile-Wise Perf**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./decile_wise_perf/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
         **Metric Perf**
         ^^^
         .. toctree::
             :maxdepth: 3
 
             ./api/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **Decile-Wise Perf**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./decile_wise_perf/index.rst
 
     .. grid-item-card::
         :padding: 3
@@ -85,7 +85,27 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Preprocessing**
+        **Logging System**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./logging/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **High-performance Numerical Functions**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./nc/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **Data Preprocessing**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -95,7 +115,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Snsx**
+        **SeabornX**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -121,16 +141,6 @@ User Guide
             :maxdepth: 3
 
             ./visualkeras/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Logging System**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./logging/index.rst
 
     .. grid-item-card::
         :padding: 3

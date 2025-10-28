@@ -5,7 +5,7 @@
 NumCpp Header Only C++ (experimental)
 ======================================================================
 
-This module contains some functions related to :py:mod:`~._numcpp` under :py:mod:`~.cexternals`.
+This module contains some functions related to :py:mod:`~.nc`, :py:mod:`~._numcpp` under :py:mod:`~.cexternals`.
 
 NumCpp: A Templatized Header Only C++ Library with Implementation of the Python NumPy-Compatible API.
 
