@@ -68,7 +68,7 @@ if not dep_lua.found()
 endif
 
 ######################################################################
-## Platform and Compiler Flags (replicating setup.py logic)
+## Platform and Compiler Flags and Dependencies (replicating setup.py logic)
 ######################################################################
 # Architecture-specific tuning
 os_name = host_machine.system()

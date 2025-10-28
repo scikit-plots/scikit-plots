@@ -64,8 +64,11 @@ inc_dir_develop = include_directories(_develop_inc_dir)
 inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 
 ######################################################################
-## Compiler Flags and Dependencies
+## Platform and Compiler Flags and Dependencies (replicating setup.py logic)
 ######################################################################
+# Architecture-specific tuning
+os_name = host_machine.system()
+cpu_arch = host_machine.cpu_family()
 
 extra_compile_args = [
   '-DNUMCPP_INCLUDE_PYBIND_PYTHON_INTERFACE',
