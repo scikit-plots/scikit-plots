@@ -38,6 +38,8 @@
 //     -DINCLUDE_PYBIND_PYTHON_INTERFACE
 //
 // ===============================================
+
+// nc.cpp
 // #pragma once  // Ensures the file is included only once by the compiler
 
 // #define NUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE
@@ -56,11 +58,30 @@
 
 #include "nc_dot.cpp"              // Include header with template
 
-// Short alias for Pybind11 namespace
 namespace py = pybind11;
-// using namespace nc;
-// namespace nc_py = nc::pybindInterface;
+// Creates a namespace alias 'py' for the pybind11 library.
+// Allows using 'py::' instead of 'pybind11::' to shorten code.
 
+// namespace nc_py = nc::pybindInterface;
+// Creates a namespace alias 'nc_py' for 'nc::pybindInterface'.
+// Makes it easier to access functions/classes in the pybindInterface sub-namespace.
+
+// using namespace nc;
+// Imports all symbols from the 'nc' namespace into the current scope.
+// You can use classes and functions like NdArray or dot without 'nc::' prefix.
+// ⚠️ Be cautious: may cause name conflicts if other namespaces have the same symbols.
+
+// using nc::NdArray;
+// Imports only the 'NdArray' class from the 'nc' namespace into the current scope.
+// Safer than 'using namespace nc' because it only brings in one symbol.
+
+// using nc::dot;
+// Imports only the 'dot' function from the 'nc' namespace into the current scope.
+// Allows calling 'dot(a, b)' directly without 'nc::dot'.
+
+// using nc_array = nc::NdArray<dtype>;
+// Defines a type alias 'nc_array' for 'nc::NdArray<dtype>'.
+// Simplifies code by allowing you to write 'nc_array' instead of the full templated type.
 
 // -----------------------------------------------------
 // PYBIND11_MODULE creates a Python module named "nc"

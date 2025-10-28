@@ -67,7 +67,6 @@ PUBLIC_MODULES = [
         "kds",
         "misc",
         "misc.plot_colortable",
-        "nc",
         "modelplotpy",
         "preprocessing",
         "snsx",

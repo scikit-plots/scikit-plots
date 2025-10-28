@@ -21,6 +21,7 @@ Compilers:
 """
 
 from . import nc
+from . import _nc
 
 # __all__ = [
 #     "get_include",

@@ -1,3 +1,4 @@
+// nc_dot.cpp
 #pragma once  // Ensures the file is included only once by the compiler
 
 // #define NUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE
@@ -14,11 +15,30 @@
 #include <pybind11/numpy.h>        // For Pybind11 NumPy support
 #include "NumCpp.hpp"              // NumCpp library header (header-only)
 
-// Short alias for Pybind11 namespace
 namespace py = pybind11;
-// using namespace nc;
-// namespace nc_py = nc::pybindInterface;
+// Creates a namespace alias 'py' for the pybind11 library.
+// Allows using 'py::' instead of 'pybind11::' to shorten code.
 
+// namespace nc_py = nc::pybindInterface;
+// Creates a namespace alias 'nc_py' for 'nc::pybindInterface'.
+// Makes it easier to access functions/classes in the pybindInterface sub-namespace.
+
+// using namespace nc;
+// Imports all symbols from the 'nc' namespace into the current scope.
+// You can use classes and functions like NdArray or dot without 'nc::' prefix.
+// ⚠️ Be cautious: may cause name conflicts if other namespaces have the same symbols.
+
+// using nc::NdArray;
+// Imports only the 'NdArray' class from the 'nc' namespace into the current scope.
+// Safer than 'using namespace nc' because it only brings in one symbol.
+
+// using nc::dot;
+// Imports only the 'dot' function from the 'nc' namespace into the current scope.
+// Allows calling 'dot(a, b)' directly without 'nc::dot'.
+
+// using nc_array = nc::NdArray<dtype>;
+// Defines a type alias 'nc_array' for 'nc::NdArray<dtype>'.
+// Simplifies code by allowing you to write 'nc_array' instead of the full templated type.
 
 // #ifdef __cplusplus
 // // Provide C-Compatible Interface (explicitly defined for each type)
@@ -29,7 +49,6 @@ namespace py = pybind11;
 // #ifdef __cplusplus
 // }  // End of `extern "C"` block
 // #endif
-
 
 // =======================================
 // Example Function: Dot Product "nc_dot"
@@ -56,7 +75,7 @@ template <typename T>
 
 
 // // Macro to register dot function for any type
-// #define GEN_NC_DOT(T) \
+// #define GEN_NC_DOT(T)
 //     nc_dot(){};
 // // Register all desired numeric types
 // GEN_NC_DOT(int)
@@ -65,7 +84,8 @@ template <typename T>
 // GEN_NC_DOT(double)  // float64 preserves about 15–16 decimal digits.
 // GEN_NC_DOT(long)
 // GEN_NC_DOT(unsigned long)
-py::array_t<double> nc_dot(
+// inline nc::NdArray<double> nc_dot(const nc::NdArray<double>& a, const nc::NdArray<double>& b)
+inline py::array_t<double> nc_dot(
     py::array_t<T, py::array::c_style> inArray1,
     py::array_t<T, py::array::c_style> inArray2
 ){

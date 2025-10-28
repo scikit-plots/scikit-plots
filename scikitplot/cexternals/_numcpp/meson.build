@@ -32,6 +32,9 @@ endif
 _numcpp_cython_tree = [
   _root_cython_tree,
   fs.copyfile('__init__.py'),  # Ensure __init__.py is copied early
+  fs.copyfile('_nc.pyi'),
+  fs.copyfile('_nc.pxi'),
+  fs.copyfile('_nc.pxd'),
 ]
 
 ######################################################################
@@ -153,7 +156,39 @@ _numcpp_extension_metadata = {
       extra_compile_args,
     ],
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/cexternals/_numcpp',     # Path where the module is located
+    'subdir': 'scikitplot/cexternals/_numcpp',    # Path where the module is located
+  },
+  # file builddir/scikitplot/cexternals/_numcpp/_nc.so
+  '_nc':  ## Build static NumCpp core library (C++)
+  {
+    'sources': [                                  # .pyx source file with NumCpp + Cython
+      # gen_cython_cpp.process('_nc.pyx'),         #  manually call a generator
+      '_nc.pyx'
+    ],
+    'include_directories': [                      # Include dirs for compilation
+      # ⚠️ May Conflict develop first!
+      # inc_dir_develop,  # develop first
+      inc_dir_numcpp,   # then the stable include folder
+    ],
+    'dependencies': dep_list,                     # External libraries and dependencies
+    'link_with': [                                # Link with the created static library
+      # version_link_args
+    ],
+    'link_args': [],                              # 👈 add this
+    'override_options': [
+      # 'cython_language=c',                        # Ensure Cython knows to generate C code
+      'cython_language=cpp',                        # Ensure Cython knows to generate C code
+      'optimization=3',                           # Optimization level '-O3'
+    ],
+    'cython_args': cython_cpp_args,
+    'c_args': cython_c_flags,                     # Additional C/C++ arguments
+    'cpp_args': [                                 # Additional C/C++ arguments
+      # '-include', 'develop/NdArray/NdArrayCore.hpp',  # optional force include
+      cython_cpp_flags,
+      extra_compile_args,
+    ],
+    'install': true,                              # Whether to install the .so file executable after building
+    'subdir': 'scikitplot/cexternals/_numcpp',    # Path where the module is located
   },
 }
 # https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
