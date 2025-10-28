@@ -20,8 +20,13 @@ Compilers:
 - Boost Versions: 1.73+
 """
 
-from . import nc
 from . import _nc
+from . import nc
+from .nc import __version__
+
+__author__ = "David Pilger"
+__author_email__ = "dpilger26@gmail.com"
+__git_hash__  = "7d390df4ae94268e58222278529b22ebae2ee663"
 
 # __all__ = [
 #     "get_include",

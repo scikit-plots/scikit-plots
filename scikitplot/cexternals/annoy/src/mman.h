@@ -3,8 +3,6 @@
 //
 // Licensed under MIT
 
-#pragma once
-
 #ifndef _MMAN_WIN32_H
 #define _MMAN_WIN32_H
 

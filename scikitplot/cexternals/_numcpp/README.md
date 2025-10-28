@@ -1,18 +1,18 @@
 Vendored repository information
 ===============================
 
-- Repository: https://github.com/dpilger26/NumCpp.git
-- Version:    Version_2.14.2
+- Repository: https://github.com/dpilger26/NumCpp.git  # Remote Git repo URL
+- Version:    7d390df4ae94268e58222278529b22ebae2ee663  # Ref Branch, Tag, or Commit SHA
 - Commit:     7d390df4ae94268e58222278529b22ebae2ee663
 - Tree Mode:  bash-sha256sum
-- Tree Hash:  6b04a98201db443b54f92355fed696e3acec42fa96aa2aa4dbd3a590e9a092b7
-- Retrieved:  2025-10-17T22:15:26Z
+- Tree Hash:  366ebf52c4025e57f56ab7a0df3c0fe06960a13bff497bcc1c8eeec6d5a54bd4
+- Retrieved:  2025-10-28T22:40:44Z
 
 To update (git clone), run:
   bash ./tools/maint_tools/vendor_repo.sh \
-    --url "https://github.com/dpilger26/NumCpp.git" \
-    --version "Version_2.14.2" \
-    --target "/work/third_party/NumCpp" \
+    --repo-url "https://github.com/dpilger26/NumCpp.git" \
+    --repo-ref "7d390df4ae94268e58222278529b22ebae2ee663" \
+    --target-dir "/work/third_party/NumCpp" \
     --move-to "/work/scikitplot/cexternals/_numcpp" \
     --nested-folder "" \
     --src-subdirs "include develop/NdArray develop/main.cpp" \
@@ -20,9 +20,9 @@ To update (git clone), run:
 
 To update only the tree hash (no git clone):
   bash ./tools/maint_tools/vendor_repo.sh \
-    --target "/work/scikitplot/cexternals/_numcpp" \
+    --target-dir "/work/scikitplot/cexternals/_numcpp" \
     --update-hash
 
 To verify in CI:
-  bash ./tools/maint_tools/vendor_repo.sh --target "/work/scikitplot/cexternals/_numcpp" --check
+  bash ./tools/maint_tools/vendor_repo.sh --target-dir "/work/scikitplot/cexternals/_numcpp" --check
   python ./tools/maint_tools/verify_vendor.py "/work/scikitplot/cexternals/_numcpp"  # --json --pretty

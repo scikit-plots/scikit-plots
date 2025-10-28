@@ -64,8 +64,11 @@ inc_dir_develop = include_directories(_develop_inc_dir)
 inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 
 ######################################################################
-## Compiler Flags and Dependencies
+## Platform and Compiler Flags and Dependencies (replicating setup.py logic)
 ######################################################################
+# Architecture-specific tuning
+os_name = host_machine.system()
+cpu_arch = host_machine.cpu_family()
 
 extra_compile_args = [
   '-DNUMCPP_INCLUDE_PYBIND_PYTHON_INTERFACE',
@@ -77,11 +80,29 @@ extra_compile_args = [
   # '-DNUMCPP_USE_MULTITHREAD',     # Enable multithreading support
   '-fpermissive',
 ]
+extra_link_args = []
+
+# Use at least C++17
+if cc.has_argument('-std=c++17')
+  extra_compile_args += ['-std=c++17']
+endif
+
+# #349: something with OS X Mojave causes libstd not to be found '-mmacosx-version-min=10.12'
+# macOS minimum version and stdlib
+# std::filesystem::path is part of C++17's <filesystem> library.
+# On macOS, the <filesystem> implementation requires at least macOS 10.15 (Catalina) with Xcode 11+.
+if os_name == 'darwin'
+  if cc.has_argument('-mmacosx-version-min=10.15')
+    extra_compile_args += ['-mmacosx-version-min=10.15']
+    extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.15']
+  endif
+endif
 
 # Optionally export for parent meson.build if used as subproject
 dep_numcpp = declare_dependency(
   include_directories: inc_dir_numcpp,
   compile_args: extra_compile_args,
+  link_args: extra_link_args,
 )
 
 ######################################################################
@@ -142,7 +163,9 @@ _numcpp_extension_metadata = {
     'link_with': [                                # Link with the created static library
       # version_link_args
     ],
-    'link_args': [],                              # 👈 add this
+    'link_args': [                                # 👈 add this
+      extra_link_args
+    ],
     'override_options': [
       # 'cython_language=c',                        # Ensure Cython knows to generate C code
       'cython_language=cpp',                        # Ensure Cython knows to generate C code

@@ -1,0 +1,7 @@
+# testing
+!test.tree
+*.ann
+*.tree
+*.annoy
+*.idx
+*.hdf5
