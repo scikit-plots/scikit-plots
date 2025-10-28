@@ -539,14 +539,9 @@ struct Angular : Base {
     Node<S, T>* p = (Node<S, T>*)alloca(s);
     Node<S, T>* q = (Node<S, T>*)alloca(s);
     two_means<T, Random, Angular, Node<S, T> >(nodes, f, random, true, p, q);
-    // change metric in create_split https://github.com/spotify/annoy/pull/301 #301
-    // use dot(n, node[i]) for quick calculation.
-    // because n=p-q, so dot(n, node[i]) = dot(p, node[i]) - dot(q, node[i])
-    Base::normalize<T, Node<S, T> >(p, f);
-    Base::normalize<T, Node<S, T> >(q, f);
     for (int z = 0; z < f; z++)
       n->v[z] = p->v[z] - q->v[z];
-    // Base::normalize<T, Node<S, T> >(n, f);
+    Base::normalize<T, Node<S, T> >(n, f);
   }
   template<typename T>
   static inline T normalized_distance(T distance) {
