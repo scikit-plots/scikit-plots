@@ -1,4 +1,4 @@
-// nc_dot.cpp
+// nc_linalg_dot.cpp
 #pragma once  // Ensures the file is included only once by the compiler
 
 // #define NUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE
@@ -51,7 +51,7 @@ namespace py = pybind11;
 // #endif
 
 // =======================================
-// Example Function: Dot Product "nc_dot"
+// Example Function: Dot Product "nc_linalg_dot"
 // =======================================
 //
 // This function:
@@ -64,7 +64,7 @@ namespace py = pybind11;
 // Here we explicitly instantiate double version below.
 //
 // ---------------------------------------------------
-// Function: nc_dot
+// Function: nc_linalg_dot
 // Purpose: Compute dot product using NumCpp
 // Parameters:
 //   inArray1, inArray2 - NumPy arrays provided by Python
@@ -76,7 +76,7 @@ template <typename T>
 
 // // Macro to register dot function for any type
 // #define GEN_NC_DOT(T)
-//     nc_dot(){};
+//     nc_linalg_dot(){};
 // // Register all desired numeric types
 // GEN_NC_DOT(int)
 // GEN_NC_DOT(unsigned int)
@@ -84,21 +84,21 @@ template <typename T>
 // GEN_NC_DOT(double)  // float64 preserves about 15–16 decimal digits.
 // GEN_NC_DOT(long)
 // GEN_NC_DOT(unsigned long)
-// inline nc::NdArray<double> nc_dot(const nc::NdArray<double>& a, const nc::NdArray<double>& b)
-inline py::array_t<double> nc_dot(
+// inline nc::NdArray<double> nc_linalg_dot(const nc::NdArray<double>& a, const nc::NdArray<double>& b)
+inline py::array_t<double> nc_linalg_dot(
     py::array_t<T, py::array::c_style> inArray1,
     py::array_t<T, py::array::c_style> inArray2
 ){
     // Check shapes: must be 1D or 2D arrays
     // if (inArray1.ndim() > 2 || inArray2.ndim() > 2)
-    //     throw std::runtime_error("nc_dot only supports 1D or 2D arrays.");
+    //     throw std::runtime_error("nc_linalg_dot only supports 1D or 2D arrays.");
 
     // Convert from Python NumPy array to NumCpp NdArray
-    auto array1 = nc::pybindInterface::pybind2nc(inArray1);
-    auto array2 = nc::pybindInterface::pybind2nc(inArray2);
+    auto a = nc::pybindInterface::pybind2nc(inArray1);
+    auto b = nc::pybindInterface::pybind2nc(inArray2);
 
     // Perform dot product computation using NumCpp
-    auto result = nc::dot<double>(array1, array2);
+    auto result = nc::dot<double>(a, b);
 
     // Convert back to NumCpp NdArray -> Python NumPy array to return to Python
     return nc::pybindInterface::nc2pybind(result);
@@ -109,14 +109,14 @@ inline py::array_t<double> nc_dot(
 // Define a common docstring once
 // In C++17+, "inline" allows the same variable to be defined in multiple translation units, but the linker will merge them into a single symbol.
 // Before C++17, you had two options: "static" (gives internal linkage per translation unit), "extern" in header + definition in .cpp
-inline const char* doc_nc_dot = R"pbdoc(
+inline const char* nc_linalg_dot_doc = R"pbdoc(
 Compute the dot product between two arrays (1d, 2d) using NumCpp and return NumPy array.
 
 Parameters
 ----------
-array1 : numpy.ndarray
+a : numpy.ndarray
     First input array.
-array2 : numpy.ndarray
+b : numpy.ndarray
     Second input array.
 
 Returns

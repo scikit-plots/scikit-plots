@@ -4,6 +4,6 @@
 ######################################################################
 
 # submodules
+# subdir('_numcpp')
 subdir('_astropy')
-subdir('_numcpp')
 subdir('annoy')

@@ -68,6 +68,8 @@ PUBLIC_MODULES = [
         "misc",
         "misc.plot_colortable",
         "modelplotpy",
+        "nc",
+        "nc.version",
         "preprocessing",
         "snsx",
         "stats",
@@ -208,7 +210,6 @@ SKIP_LIST_2 = [
     # root artifact
     # "scikitplot.conftest",
     "scikitplot.logger",
-    "scikitplot.nc",
     # api artifact
     "scikitplot.decomposition",
     "scikitplot.estimators",

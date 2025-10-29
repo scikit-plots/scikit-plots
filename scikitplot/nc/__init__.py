@@ -1,4 +1,3 @@
-
 # Authors: David Pilger
 # SPDX-License-Identifier: MIT
 
@@ -20,13 +19,16 @@ Compilers:
 - Boost Versions: 1.73+
 """
 
-from . import _nc
-from . import nc
-from .nc import __version__
+# PYBIND11_MODULE
+from . import version  # noqa: F401
+from ._linalg import dot  # noqa: F401
+
+# cython module
+from ._version import __version__  # noqa: F401
 
 __author__ = "David Pilger"
 __author_email__ = "dpilger26@gmail.com"
-__git_hash__  = "7d390df4ae94268e58222278529b22ebae2ee663"
+__git_hash__ = "7d390df4ae94268e58222278529b22ebae2ee663"
 
 # __all__ = [
 #     "get_include",
@@ -55,27 +57,34 @@ def get_include() -> str:
 
     Examples
     --------
-    >>> import scikitplot.cexternals._numcpp as nc
+    >>> import scikitplot.nc as nc
     >>> nc.get_include()
     '/path/to/scikitplot/cexternals/_numcpp/include'  # may vary
 
     >>> import importlib.resources
     >>> import pathlib
-    >>> include_dir = pathlib.Path(importlib.resources.files('scikitplot.cexternals._numcpp')) / 'include'
+    >>> include_dir = (
+    ...     pathlib.Path(importlib.resources.files("scikitplot.cexternals._numcpp"))
+    ...     / "include"
+    ... )
     """
-    import os
-    import scikitplot
-    if scikitplot.show_config is None:
+    import os  # noqa: I001, PLC0415
+    import scikitplot  # noqa: I001, PLC0415
+
+    if getattr(scikitplot, "show_config", None) is None:
         # running from lightnumpy source directory
-        d = os.path.join(os.path.dirname(scikitplot.__file__), "cexternals/_numcpp", "include")
+        d = os.path.join(
+            os.path.dirname(scikitplot.__file__), "cexternals/_numcpp", "include"
+        )
     else:
         # using installed lightnumpy core headers
         # import scikitplot.cexternals._numcpp as nc
         # __name__ is a special attribute in Python that defines the name of the current module.
         # __file__ is a special attribute that contains the path to the current module file.
         # dirname = nc.__path__  # nc.__file__
-        d = os.path.join(os.path.dirname(__file__), 'include')
-
+        d = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../cexternals/_numcpp/include")
+        )
     if not os.path.isdir(d):
         raise FileNotFoundError(
             f"'scikitplot.cexternals._numcpp' C and C++ headers directory not found: {d}"
