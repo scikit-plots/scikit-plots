@@ -1,4 +1,4 @@
-# _nc.pxd
+# _version.pxd
 # Purpose:
 #   This file is similar to a C/C++ header (.h, .hpp). It declares C/C++ functions,
 #   classes, and variables to be made available to Cython (.pyx) implementation files.
@@ -9,7 +9,7 @@
 #   into a Cython .pyx file for high performance.
 
 # Import reusable code from the .pxi file, If Needed avoid duplicates
-# include "_nc.pxi"
+# include "_version.pxi"
 
 # Import Python-level NumPy
 # import numpy as np

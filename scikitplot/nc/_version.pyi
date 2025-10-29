@@ -1,4 +1,4 @@
-# _nc.pyi
+# _version.pyi
 # Purpose:
 #   Provides Python type hints for code completion and static analysis tools (like mypy).
 #   This file mirrors the public Python API of the compiled module.

@@ -1,5 +1,5 @@
 /********************************************************************
- *  NumCpp + Pybind11 Python Extension (src/nc.cpp)
+ *  NumCpp + Pybind11 Python Extension (src/module_version.cpp)
  *
  * Robust and extended Python bindings for NumCpp dot product.
  * Supports all standard numeric types: int, float, double, etc.
@@ -39,7 +39,7 @@
 //
 // ===============================================
 
-// nc.cpp
+// module_version.cpp
 // #pragma once  // Ensures the file is included only once by the compiler
 
 // #define NUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE
@@ -55,8 +55,6 @@
 #include <pybind11/pybind11.h>     // Main pybind11 header
 #include <pybind11/numpy.h>        // For Pybind11 NumPy support
 #include "NumCpp.hpp"              // NumCpp library header (header-only)
-
-#include "nc_dot.cpp"              // Include header with template
 
 namespace py = pybind11;
 // Creates a namespace alias 'py' for the pybind11 library.
@@ -90,14 +88,14 @@ namespace py = pybind11;
 // The module name **must match** the Meson `extension_module` target.
 // In your Meson config, ext_name = 'nc', so we use 'nc' here.
 PYBIND11_MODULE(
-    nc,
+    version,  // <module_name>
     m,
     py::mod_gil_not_used(),
     py::multiple_interpreters::per_interpreter_gil()
 ){
     // -------- Module Docstring --------
     m.doc() = R"pbdoc(
-        :py:mod:`~.nc` is a high-performance Python module that wraps the C++ NumCpp library.
+        :py:mod:`~.version` is a high-performance Python module that wraps the C++ NumCpp library.
 
         Providing fast numerical functions with seamless NumPy array support across common numeric types.
 
@@ -107,15 +105,4 @@ PYBIND11_MODULE(
     )pbdoc";
 
     m.attr("__version__") = nc::VERSION;
-
-    // -------- Bind the Function --------
-    // Expose/Bindings for all common numeric types the dot function to Python
-    // https://pybind11.readthedocs.io/en/stable/reference.html#extras
-    m.def(
-        "dot",              // Python name
-        &nc_dot<double>,    // C++ function or &>(), [](), [](py::array_t<double> *arg) {}
-        doc_nc_dot,         // docstring
-        py::arg("array1"),  // Argument 1 name
-        py::arg("array2")   // Argument 2 name
-    );
 }

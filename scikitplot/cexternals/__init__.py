@@ -28,7 +28,7 @@ availability across environments, without relying on separate system installs.
 # annoy     : Approximate nearest neighbor search implementation
 # _astropy  : Astronomy utilities and array backends (vendored subset)
 # _f2py     : Fortran-Python interface support
-# _numcpp   : NumCpp C++ template array library
+# _numcpp   : NumCpp: A Templatized Header Only C++ Library
 ## Your package/module initialization code goes here
 from . import annoy
 

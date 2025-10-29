@@ -77,7 +77,7 @@ numcpp:
 		--readme-name "vendor_repo.sh"
 
 	@# overwrite NumCpp modified files
-	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_numcpp/' '../scikitplot/cexternals/_numcpp' -r --progress
+	@# python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_numcpp/' '../scikitplot/cexternals/_numcpp' -r --progress
 
 ######################################################################
 ## complex submodule: (c)externals

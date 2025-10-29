@@ -67,7 +67,6 @@ try:
     # informative error message.
     from ._lib._ccallback import LowLevelCallable
     from ._utils._show_versions import show_versions
-    from .cexternals._numcpp import nc  # Wraps NumCpp's C++ functionality
     from .config import *
     from .version import (  # type: ignore[reportMissingModuleSource]
         # If a version with git hash was stored,
