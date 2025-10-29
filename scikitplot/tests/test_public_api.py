@@ -70,6 +70,7 @@ PUBLIC_MODULES = [
         "modelplotpy",
         "nc",
         "nc.version",
+        "nc.linalg",
         "preprocessing",
         "snsx",
         "stats",

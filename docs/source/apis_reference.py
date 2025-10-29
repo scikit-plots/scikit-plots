@@ -669,7 +669,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("nc-index"),
         "sections": [
             {
-                "title": None,
+                "title": "Linear Algebra Functions",
+                "description": None,
                 "autosummary": [
                     "dot",
                 ],
