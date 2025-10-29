@@ -339,19 +339,19 @@ pipenv shell
 <h2>
   📦 From
   <a href="https://packaging.python.org/en/latest/key_projects/#pip" target="_blank" rel="noopener noreferrer">
-    <code>PIP</code>
+    <span style="font-size:14px;"><code>PIP</code></span>
   </a>
   Installation by
   <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
-    <code>pypi</code>
+    <span style="font-size:14px;"><code>pypi</code></span>
   </a>
   ,
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>pypi.anaconda.org</code>
+    <span style="font-size:14px;"><code>pypi.anaconda.org</code></span>
   </a>
   or
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>GITHUB</code>
+    <span style="font-size:14px;"><code>GITHUB</code></span>
   </a>
 </h2>
 
@@ -360,7 +360,7 @@ pipenv shell
 <h3>
   - By
   <a href="https://pypi.org/project/scikit-plots/" target="_blank" rel="noopener noreferrer">
-    <code>pypi</code>:
+    <span style="font-size:14px;"><code>pypi</code></span>:
   </a>
 </h3>
 
@@ -375,7 +375,7 @@ pip install scikit-plots
 <h3>
   - By
   <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>pypi.anaconda.org</code>
+    <span style="font-size:14px;"><code>pypi.anaconda.org</code></span>
   </a>
   (with
   <a href="https://scikit-plots.github.io/dev/install/dependencies.html#runtime-dependencies"
@@ -404,23 +404,25 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 <h3>
   - By
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>GITHUB</code>:
+    <span style="font-size:14px;"><code>GITHUB</code></span>:
   </a>
-  <code>@&lt;branch&gt;</code>
+  <span style="font-size:14px;"><code>@&lt;branch&gt;</code></span>
   ,
-  <code>@&lt;tag&gt;</code>
+  <span style="font-size:14px;"><code>@&lt;tag&gt;</code></span>
   or
-  <code>Source Code Archive URLs</code>
+  <a href="https://github.com/scikit-plots/scikit-plots/releases" target="_blank" rel="noopener noreferrer">
+    Archive URLs (releases/tags)
+  </a>
   to specify a version
 </h3>
 
 <h4>
   - by
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>GITHUB</code>
+    <span style="font-size:14px;"><code>GITHUB</code></span>
   </a>
   Branches:
-  <code>@&lt;branch&gt;</code>
+  <span style="font-size:14px;"><code>@&lt;branch&gt;</code></span>
 </h4>
 
 ```bash
@@ -439,10 +441,10 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3
 <h4>
   - by
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>GITHUB</code>
+    <span style="font-size:14px;"><code>GITHUB</code></span>
   </a>
   Tags:
-  <code>@&lt;tag&gt;</code>
+  <span style="font-size:14px;"><code>@&lt;tag&gt;</code></span>
 </h4>
 
 ```bash
@@ -454,12 +456,14 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 
 
 <h2>
-  📁 From Source
+  📁 From Source Code
   Installation by
-  <code>Archive (.tar.gz)</code>
+  <a href="https://github.com/scikit-plots/scikit-plots/releases" target="_blank" rel="noopener noreferrer">
+    Archive URLs (.tar.gz)
+  </a>
   or
   <a href="https://github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-    <code>GIT Clone</code>
+    GIT Clone
   </a>
 </h2>
 
