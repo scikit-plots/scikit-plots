@@ -34,9 +34,9 @@ mail:
 # array-api-compat as xpc
 aac:
 	@bash ./maint_tools/vendor_repo.sh \
-		--url "https://github.com/data-apis/array-api-compat.git" \
-		--version "1.12" \
-		--target "../third_party/array_api_compat" \
+		--repo-url "https://github.com/data-apis/array-api-compat.git" \
+		--repo-ref "1.12" \
+		--target-dir "../third_party/array_api_compat" \
     	--move-to "../scikitplot/externals/array_api_compat" \
 		--nested-folder "array_api_compat" \
 		--src-subdir "array_api_compat" \
@@ -45,19 +45,32 @@ aac:
 # array-api-extra as xpx
 aae:
 	@bash ./maint_tools/vendor_repo.sh \
-		--url "https://github.com/data-apis/array-api-extra.git" \
-		--version "v0.7.1" \
-		--target "../third_party/array_api_extra" \
+		--repo-url "https://github.com/data-apis/array-api-extra.git" \
+		--repo-ref "v0.7.1" \
+		--target-dir "../third_party/array_api_extra" \
     	--move-to "../scikitplot/externals/array_api_extra" \
 		--nested-folder "src/array_api_extra" \
 		--src-subdir "src/array_api_extra" \
 		--readme-name "vendor_repo.sh"
 
+annoy:
+	@bash ./maint_tools/vendor_repo.sh \
+		--repo-url "https://github.com/spotify/annoy.git" \
+		--repo-ref "8a7e82cb537053926b0ac6ec132b9ccc875af40c" \
+		--target-dir "../third_party/annoy" \
+    	--move-to "../scikitplot/cexternals/annoy" \
+		--nested-folder "" \
+		--src-subdirs "src .gitignore README.rst README_GO.rst README_Lua.md RELEASE.md annoy-dev-1.rockspec setup.cfg setup.py tox.ini" \
+		--readme-name "vendor_repo.sh"
+
+	@# overwrite annoy modified files
+	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_annoy/' '../scikitplot/cexternals/annoy' -r --progress
+
 numcpp:
 	@bash ./maint_tools/vendor_repo.sh \
-		--url "https://github.com/dpilger26/NumCpp.git" \
-		--version "Version_2.14.2" \
-		--target "../third_party/NumCpp" \
+		--repo-url "https://github.com/dpilger26/NumCpp.git" \
+		--repo-ref "7d390df4ae94268e58222278529b22ebae2ee663" \
+		--target-dir "../third_party/NumCpp" \
     	--move-to "../scikitplot/cexternals/_numcpp" \
 		--nested-folder "" \
 		--src-subdirs include develop/NdArray develop/main.cpp \
@@ -72,9 +85,9 @@ numcpp:
 
 seaborn:
 	@bash ./maint_tools/vendor_repo.sh \
-		--url "https://github.com/mwaskom/seaborn.git" \
-		--version "v0.13.2" \
-		--target "../third_party/seaborn" \
+		--repo-url "https://github.com/mwaskom/seaborn.git" \
+		--repo-ref "7001ebe72423238e99c0434a2ef0a0ebc9cb55c1" \
+		--target-dir "../third_party/seaborn" \
     	--move-to "../scikitplot/externals/_seaborn" \
 		--nested-folder "seaborn" \
 		--src-subdir "seaborn" \
@@ -90,7 +103,7 @@ sns: seaborn
 		-r '../scikitplot/externals/_seaborn'
 
 	@bash ./maint_tools/vendor_repo.sh \
-		--target "../scikitplot/externals/_seaborn" \
+		--target-dir "../scikitplot/externals/_seaborn" \
 		--update-hash
 
 	@python ./maint_tools/verify_vendor.py "../scikitplot/externals/_seaborn"
@@ -101,9 +114,9 @@ sns: seaborn
 
 astropy:
 	@bash ./maint_tools/vendor_repo.sh \
-		--url "https://github.com/astropy/astropy.git" \
-		--version "v7.1.1" \
-		--target "../third_party/astropy" \
+		--repo-url "https://github.com/astropy/astropy.git" \
+		--repo-ref "dbc384f3eeff4576b41a68486fcbb0a77789a8d8" \
+		--target-dir "../third_party/astropy" \
 		--src-subdir "." \
 		--readme-name "vendor_repo.sh"
 
@@ -134,9 +147,9 @@ astropy:
 
 astropy2:
 	@bash ./maint_tools/vendor_repo.sh \
-		--url "https://github.com/astropy/astropy.git" \
-		--version "v7.1.1" \
-		--target "../third_party/astropy" \
+		--repo-url "https://github.com/astropy/astropy.git" \
+		--repo-ref "dbc384f3eeff4576b41a68486fcbb0a77789a8d8" \
+		--target-dir "../third_party/astropy" \
     	--move-to "../scikitplot/cexternals/_astropy" \
 		--nested-folder "astropy" \
 		--src-subdir \
@@ -167,7 +180,7 @@ ast: astropy2
 		'--fix-type-hints'
 
 	@bash ./maint_tools/vendor_repo.sh \
-		--target "../scikitplot/cexternals/_astropy" \
+		--target-dir "../scikitplot/cexternals/_astropy" \
 		--update-hash
 
 	@python ./maint_tools/verify_vendor.py "../scikitplot/cexternals/_astropy"
@@ -181,17 +194,20 @@ verify:
 
 upt:
 	@bash ./maint_tools/vendor_repo.sh \
-		--target "/work/scikitplot/cexternals/_astropy" \
+		--target-dir "/work/scikitplot/externals/array_api_compat" \
 		--update-hash
 	@bash ./maint_tools/vendor_repo.sh \
-		--target "/work/scikitplot/cexternals/_numcpp" \
+		--target-dir "/work/scikitplot/externals/array_api_extra" \
 		--update-hash
 	@bash ./maint_tools/vendor_repo.sh \
-		--target "/work/scikitplot/externals/_seaborn" \
+		--target-dir "/work/scikitplot/cexternals/annoy" \
 		--update-hash
 	@bash ./maint_tools/vendor_repo.sh \
-		--target "/work/scikitplot/externals/array_api_compat" \
+		--target-dir "/work/scikitplot/cexternals/_numcpp" \
 		--update-hash
 	@bash ./maint_tools/vendor_repo.sh \
-		--target "/work/scikitplot/externals/array_api_extra" \
+		--target-dir "/work/scikitplot/externals/_seaborn" \
+		--update-hash
+	@bash ./maint_tools/vendor_repo.sh \
+		--target-dir "/work/scikitplot/cexternals/_astropy" \
 		--update-hash

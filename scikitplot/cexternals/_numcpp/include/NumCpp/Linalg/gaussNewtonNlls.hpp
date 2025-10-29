@@ -23,7 +23,7 @@
 /// DEALINGS IN THE SOFTWARE.
 ///
 /// Description
-/// The Gauss?Newton algorithm is used to solve non-linear least squares problems.
+/// The GaussNewton algorithm is used to solve non-linear least squares problems.
 /// It is a modification of Newton's method for finding a minimum of a function.
 ///
 /// https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm
@@ -47,7 +47,7 @@ namespace nc::linalg
 {
     //============================================================================
     // Method Description:
-    /// The Gauss?Newton algorithm is used to solve non-linear least squares problems.
+    /// The GaussNewton algorithm is used to solve non-linear least squares problems.
     /// It is a modification of Newton's method for finding a minimum of a function.
     /// https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm
     ///

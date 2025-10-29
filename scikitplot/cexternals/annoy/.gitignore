@@ -1,6 +1,5 @@
 *.egg-info/
 *.egg/
-*.eggs/
 *.so
 *.o
 build/
@@ -13,7 +12,6 @@ MANIFEST
 *.idea
 
 # testing
-!**/test.tree
 *.ann
 *.tree
 *.annoy

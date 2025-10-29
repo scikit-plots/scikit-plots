@@ -42,7 +42,7 @@ This module contains some functions related to :py:class:`~.AnnoyKNNImputer`.
 TL;DR
 ------------
 - Purpose: Approximate nearest-neighbors-based imputation
-- Import path: `from scikitplot.impute import AnnoyKNNImputer``
+- Import path: `from scikitplot.impute import AnnoyKNNImputer`
 - Functionality: Replaces missing values using neighbors retrieved via Annoy
 - Parameters: n_neighbors, n_trees, metric, optional search_k, etc.
 
