@@ -10,6 +10,6 @@
     // "terminal.integrated.defaultProfile.linux": "bash",
     "python.defaultInterpreterPath": "/root/micromamba/envs/py311/bin/python",
     "python.testing.pytestPath": "/root/micromamba/envs/py311/bin/pytest",
-    "python.testing.pytestEnabled": true,
-    "python.testing.unittestEnabled": true
+    "python.testing.pytestEnabled": true
+    // "python.testing.unittestEnabled": true
 }

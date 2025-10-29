@@ -27,8 +27,8 @@ conf_ast.set('VERSION', _file_content)
 
 # Generate file
 configure_file(
-  input: '_version.py.in',
-  output: '_version.py',
+  input: 'version.py.in',
+  output: 'version.py',
   configuration: conf_ast,
   install: true,
   install_dir: py.get_install_dir() / 'scikitplot/cexternals/_astropy',
