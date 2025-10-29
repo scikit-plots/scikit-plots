@@ -37,7 +37,7 @@ PYBIND11_MODULE(
         "dot",                       // Python name
         &nc_linalg_dot<double>,      // C++ function or &>(), [](), [](py::array_t<double> *arg) {}
         nc_linalg_dot_doc,           // docstring
-        py::arg("array1"),           // Argument 1 name
-        py::arg("array2")            // Argument 2 name
+        py::arg("a"),                // Argument 1 name
+        py::arg("b")                 // Argument 2 name
     );
 }
