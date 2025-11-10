@@ -79,7 +79,6 @@ class AliasedGroup(click.Group):
 @click.version_option(
     __version__,  # version
     "--version",
-    "-v",  # param_decls (only positional)
     "-V",  # param_decls (only positional)
     # package_name="scikitplot",  # optional, use version from installed `scikitplot`
     # prog_name="scikit-plots",  # optional, default display name in the version message

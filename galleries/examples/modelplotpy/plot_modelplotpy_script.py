@@ -4,7 +4,8 @@ Introduction to modelplotpy
 
 To install the latest version (with pip)::
 
-    >>> pip install --upgrade scikit-plots
+    >>> pip install scikit-learn scikit-plots --upgrade
+    >>> pip install numpy==1.26.4
 
 This exercise is used in :py:class:`~scikitplot.modelplotpy.ModelPlotPy` class the part of the
 :ref:`modelplotpy-index` and :ref:`modelplotpy_financial-index` sections.

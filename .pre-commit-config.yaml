@@ -28,6 +28,7 @@ repos:
         exclude: "^(\
           benchmarks/.*|\
           docs/source/logos/.*|\
+          docs/source/_static/logos/azure-ml-logo.png|\
           galleries/.*|\
           third_party/.*|\
           .*searchindex.dat|\
@@ -181,7 +182,12 @@ repos:
         additional_dependencies:
           # pyproject.toml (only if the tomli library is available for Python < 3.11)
           - tomli
-        # exclude: '\.ipynb$'  # Excludes .ipynb files from codespell checks
+        exclude: |  # '\.ipynb$'  # Excludes .ipynb files from codespell checks
+          (?x)(
+            ^tests/data/ |  # exclude test data folder
+            \.svg$ |        # exclude all .svg files
+            \.lock$         # exclude lock files
+          )
 
   # Optional: Cython Linting
   - repo: https://github.com/MarcoGorelli/cython-lint
