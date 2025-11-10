@@ -612,7 +612,7 @@
   ```
 
   <h3>
-   🧊🔧 It is also possible to include optional dependencies with editable mode:
+   🧊🔧 Also possible to include optional deps with editable mode:
   </h3>
 
   ```sh
@@ -813,12 +813,12 @@ As long as you provide the functions what they're asking for, they'll happily dr
 
 The possibilities are endless.
 
-## Release Notes
+### Release Notes
 
 See the [changelog](https://scikit-plots.github.io/dev/whats_new/index.html)
 for a history of notable changes to scikit-plots.
 
-## Contributing to Scikit-plots
+### Contributing to Scikit-plots
 
 **Reporting a bug? Suggesting a feature? Want to add your own plot to the library? Visit our.**
 
@@ -839,7 +839,7 @@ For contributing code specifically, the developer docs have a
 There's also a [summary of contribution guidelines](https://github.com/scikit-plots/scikit-plots/blob/main/CONTRIBUTING.md).
 
 
-## Developing with Codespaces
+### Developing with Codespaces
 
 GitHub Codespaces is a cloud development environment using Visual Studio Code
 in your browser. This is a convenient way to start developing Scikit-plots, using
@@ -857,7 +857,7 @@ with the required packages. For help, see the [GitHub Codespaces docs](https://d
 </div>
 
 
-## Acknowledging (Governance) and Citing Scikit-plots
+### Acknowledging (Governance) and Citing Scikit-plots
 
 See the [Acknowledgement](https://scikit-plots.github.io/dev/project/governance.html),
 [Citation Guide](https://scikit-plots.github.io/dev/project/citing.html)
@@ -871,7 +871,7 @@ and the [CITATION.bib](https://github.com/scikit-plots/scikit-plots/blob/main/CI
 (Version 0.3.8dev0). [doi:10.5281/zenodo.13367001](https://doi.org/10.5281/zenodo.13367001)
 
 
-## Supporting the Project (Upcoming)
+### Supporting the Project (Upcoming)
 
 <a href="https://numfocus.org" target="_blank" rel="noopener noreferrer">
  <img style="display:auto;width:auto;height:auto;" alt="Powered by NumFOCUS"
@@ -890,7 +890,7 @@ donation will support our mission to promote sustainable, high-level code base
 for the astronomy community, open code development, educational materials, and
 reproducible scientific research. -->
 
-## License
+### License
 
 Scikit-plots is licensed under a 3-clause BSD style license - see the
 [LICENSE](https://github.com/scikit-plots/scikit-plots/blob/main/LICENSE.txt) file,
