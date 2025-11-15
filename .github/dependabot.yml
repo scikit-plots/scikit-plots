@@ -15,7 +15,7 @@ updates:
   - package-ecosystem: github-actions # See documentation for possible values
     directory: "/"    # ".github/workflows" Location of package manifests
     schedule:
-      interval: weekly                # daily, weekly, monthly
+      interval: daily                # daily, weekly, monthly
       time: '11:11'
     ignore:
       - dependency-name: "bus1/cabuild"
@@ -23,20 +23,25 @@ updates:
       prefix: "MAINT"
     labels:
       - "03 - Maintenance"
-      - "maintenance"
       - "build/ci"
       - "dependencies"
-    reviewers:
-      - "scikit-plots/core-devs"
+      - "dev-automation"
+      - "github_actions"
+      - "maintenance"
+      - no-changelog-entry-needed
     groups:
       actions:
         patterns:
           - "*"
+    # cooldown:
+    #   default-days: 7
+    # reviewers:
+    #   - "scikit-plots/core-devs"
 
   - package-ecosystem: pip
     directory: /
     schedule:
-      interval: weekly
+      interval: daily
       time: '11:11'
     ignore:
       - dependency-name: "bus1/cabuild"
@@ -44,8 +49,9 @@ updates:
       prefix: "MAINT"
     labels:
       - "03 - Maintenance"
-      - "maintenance"
       - "build/ci"
       - "dependencies"
-    reviewers:
-      - "scikit-plots/core-devs"
+      - "maintenance"
+      - no-changelog-entry-needed
+    # reviewers:
+    #   - "scikit-plots/core-devs"

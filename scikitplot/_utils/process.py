@@ -5,7 +5,7 @@ import os as _os
 import subprocess as _subprocess
 import sys as _sys
 
-# from .utils.databricks_utils import is_in_databricks_runtime
+# from ._utils.databricks_utils import is_in_databricks_runtime
 from ..utils.os import is_windows
 
 

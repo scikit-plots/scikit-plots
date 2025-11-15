@@ -74,7 +74,7 @@ __git_hash__: Final[LiteralString]
 ######################################################################
 
 # Avoiding heavy imports top level module unless actually used
-# from .utils.lazy_load import LazyLoader
+# from ._utils.lazy_load import LazyLoader
 # Lazily load scikitplot flavors to avoid excessive dependencies.
 # from ._compat.optional_deps import LazyImport, nested_import
 

@@ -20,8 +20,6 @@ https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
 
 import contextlib
 import json
-
-# import logging
 import os
 import re
 import sys
@@ -29,18 +27,16 @@ import warnings
 from datetime import timedelta
 
 import click
-from click import UsageError
 
-import scikitplot
-
+# import logging
 from . import __version__
 from . import logger as _logger
+from ._utils import cli_args
+from ._utils.logging_utils import eprint
+from ._utils.os import is_windows
+from ._utils.process import ShellCommandException
 from .environment_variables import SKPLT_EXPERIMENT_ID, SKPLT_EXPERIMENT_NAME
 from .exceptions import InvalidUrlException, ScikitplotException
-from .utils import cli_args
-from .utils.logging_utils import eprint
-from .utils.os import is_windows
-from .utils.process import ShellCommandException
 
 __all__ = [
     "cli",
@@ -212,7 +208,7 @@ def doctor(mask_envs):
 #         artifact URIs and will not be able to delete the associated artifacts.
 
 #     """
-#     from .utils.time import get_current_time_millis
+#     from ._utils.time import get_current_time_millis
 
 #     # raise NotImplementedError
 #     time_delta = 0
@@ -487,9 +483,9 @@ def doctor(mask_envs):
 #     """
 #     if value is not None:
 #         if not value.startswith("/"):
-#             raise UsageError("--static-prefix must begin with a '/'.")
+#             raise click.UsageError("--static-prefix must begin with a '/'.")
 #         if value.endswith("/"):
-#             raise UsageError("--static-prefix should not end with a '/'.")
+#             raise click.UsageError("--static-prefix should not end with a '/'.")
 #     return value
 
 
@@ -823,6 +819,8 @@ with contextlib.suppress(
     ModuleNotFoundError,
     NameError,
 ):
+    import scikitplot
+
     cli.add_command(scikitplot.runs.commands)  # noqa: F821
     cli.add_command(scikitplot.db.commands)  # noqa: F821
 
@@ -831,6 +829,8 @@ with contextlib.suppress(
 with contextlib.suppress(
     ImportError,
 ):
+    import scikitplot
+
     from .gateway import cli  # type: ignore  # noqa: PGH003
 
     cli.add_command(scikitplot.gateway.cli.commands)
