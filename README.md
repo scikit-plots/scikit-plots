@@ -20,7 +20,7 @@
  <!-- codespaces -->
  <a target="_blank" rel="noopener noreferrer"
   href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest">
-  <img alt="Open in GitHub Codespaces" height="17" width="auto" src="https://github.com/codespaces/badge.svg">
+  <img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg">
  </a>
  <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
  <!-- pepy.tech -->
@@ -184,14 +184,14 @@
 
  🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
 
- ```bash
- ## docker run -it --rm scikitplot/scikit-plots:latest
- docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
- ```
- ```bash
- ## docker run -it scikitplot/scikit-plots:latest
- docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
- ```
+```bash
+## docker run -it --rm scikitplot/scikit-plots:latest
+docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
+```
+```bash
+## docker run -it scikitplot/scikit-plots:latest
+docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
+```
 </div>
 
 
@@ -260,22 +260,22 @@
   </a>
  </p>
 
- ```sh
- ## (conda, mamba or micromamba) Create New Env and install ``scikit-plots``
- ## Create a new environment and install Python 3.11 with IPython kernel support
- # conda create -n py311 python=3.11 ipykernel -y
- micromamba create -n py311 python=3.11 ipykernel -y
- ```
- ```sh
- ## (conda, mamba or micromamba) Activate the environment
- # conda activate py311
- micromamba activate py311
- ```
- ```sh
- ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
- # conda install --yes -c conda-forge scikit-plots
- micromamba install --yes -c conda-forge scikit-plots
- ```
+```sh
+## (conda, mamba or micromamba) Create New Env and install ``scikit-plots``
+## Create a new environment and install Python 3.11 with IPython kernel support
+# conda create -n py311 python=3.11 ipykernel -y
+micromamba create -n py311 python=3.11 ipykernel -y
+```
+```sh
+## (conda, mamba or micromamba) Activate the environment
+# conda activate py311
+micromamba activate py311
+```
+```sh
+## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
+# conda install --yes -c conda-forge scikit-plots
+micromamba install --yes -c conda-forge scikit-plots
+```
 </div>
 
 
@@ -298,17 +298,17 @@
   </a>
  </p>
 
- ```sh
- ## (Optionally) Pipenv dep for Python 3.11
- ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/Pipfile
- curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/py311/Pipfile
- curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/py311/Pipfile.lock
- pip install pipenv && pipenv install
- ```
- ```sh
- ## (Optionally) Pipenv Activate the environment
- pipenv shell
- ```
+```sh
+## (Optionally) Pipenv dep for Python 3.11
+# wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/Pipfile
+curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/py311/Pipfile
+curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docker/env_pipenv/py311/Pipfile.lock
+pip install pipenv && pipenv install
+```
+```sh
+## (Optionally) Pipenv Activate the environment
+pipenv shell
+```
 </div>
 
 
@@ -348,13 +348,13 @@
   </a>:
  </h4>
 
- ```sh
- ## Now Install scikit-plots (via pip, conda, or local source)
- # pip index versions scikit-plots
- pip install scikit-plots
- # Cause numpy>=2.0.0 but support old numpy
- # pip install numpy==1.26.4
- ```
+```sh
+## Now Install scikit-plots (via pip, conda, or local source)
+# pip index versions scikit-plots
+pip install scikit-plots
+## Cause numpy>=2.0.0 but support old numpy
+# pip install numpy==1.26.4
+```
 
  <h4>
   - By
@@ -369,19 +369,19 @@
   </a>):
  </h4>
 
- ```sh
- ## (Optionally) Install the lost packages "Runtime dependencies" or use `pipenv`
- ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
- ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
- curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
- pip install -r default.txt
- ```
- ```sh
- ## Try After Ensure all "Runtime dependencies" installed
- pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
- # Cause numpy>=2.0.0 but support old numpy
- # pip install numpy==1.26.4
- ```
+```sh
+## (Optionally) Install the lost packages "Runtime dependencies" or use `pipenv`
+## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
+# wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
+pip install -r default.txt
+```
+```sh
+## Try After Ensure all "Runtime dependencies" installed
+pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+## Cause numpy>=2.0.0 but support old numpy
+# pip install numpy==1.26.4
+```
 </div>
 
 
@@ -418,18 +418,16 @@
   @&lt;branch&gt;
  </h5>
 
-  ```bash
-  ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<branches>
-  ## Latest in Development
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@main
-  ##
-  ## (Added C, Cpp, Fortran Support) Works with standard Python (CPython)
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
-  ##
-  ## (Works with PyPy interpreter) Works with standard Python (CPython)
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
-  ```
+```bash
+## pip install git+https://github.com/scikit-plots/scikit-plots.git#subdirectory=libs/skinny@<branches>
+## If you want to install the latest version from GitHub
+pip install git+https://github.com/scikit-plots/scikit-plots.git@main
+## (Added C, Cpp, Fortran Support) Works with standard Python (CPython)
+pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.4.x
+## (Works with PyPy interpreter) Works with standard Python (CPython)
+pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.x
+pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3.7
+```
 
  <h5>
   - by
@@ -440,12 +438,13 @@
   @&lt;tag&gt;
  </h5>
 
-  ```bash
-  ## pip install git+https://github.com/scikit-plots/scikit-plots.git@<tags>
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0.post6
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
-  pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
-  ```
+```bash
+## pip install git+https://github.com/scikit-plots/scikit-plots.git#subdirectory=libs/skinny@<tags>
+## If you want to install one of archived version from GitHub
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0.post6
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
+```
 </div>
 
 
@@ -518,27 +517,27 @@
   </a>)
  </h3>
 
- ```sh
- ## pip install package Installs wheel (.whl) if available, else source
- ## pip install --no-binary=package package # Forces source installation only the specified package
- pip install --no-binary=scikit-plots scikit-plots
- ```
- ```sh
- ## pip install --no-binary=:all: package # Forces source installation for Package + all dependencies
- ## This forces scikit-plots and all its dependencies to be installed from source (from .tar.gz).
- pip install --no-binary=:all: scikit-plots
- ```
- ```sh
- ## (Optionally) Install offline downloaded a source distribution (.tar.gz) of scikit-plots
- ## pip install --require-hashes -r requirements.txt
- ## sha256sum scikit_plots-0.4.0.post6.tar.gz
- ## shasum -a 256 scikit_plots-0.4.0.post6.tar.gz
- ## Get-FileHash scikit_plots-0.4.0.post6.tar.gz -Algorithm SHA256
- ## scikit-plots==0.4.0.post6 --hash=sha256:<your-computed-hash-here>
- wget https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post6.tar.gz
- curl -O https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post6.tar.gz
- pip install ./scikit_plots-0.4.0.post6.tar.gz
- ```
+```sh
+## pip install package Installs wheel (.whl) if available, else source
+## pip install --no-binary=package package # Forces source installation only the specified package
+pip install --no-binary=scikit-plots scikit-plots
+```
+```sh
+## pip install --no-binary=:all: package # Forces source installation for Package + all dependencies
+## This forces scikit-plots and all its dependencies to be installed from source (from .tar.gz).
+pip install --no-binary=:all: scikit-plots
+```
+```sh
+## (Optionally) Install offline downloaded a source distribution (.tar.gz) of scikit-plots
+## pip install --require-hashes -r requirements.txt
+## sha256sum scikit_plots-0.4.0.post6.tar.gz
+## shasum -a 256 scikit_plots-0.4.0.post6.tar.gz
+## Get-FileHash scikit_plots-0.4.0.post6.tar.gz -Algorithm SHA256
+## scikit-plots==0.4.0.post6 --hash=sha256:<your-computed-hash-here>
+# wget https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post6.tar.gz
+curl -O https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post6.tar.gz
+pip install ./scikit_plots-0.4.0.post6.tar.gz
+```
 
   <h3>
    - By
@@ -586,53 +585,54 @@
    </a>)
   </p>
 
-  ```sh
-  ## Forked repo: https://github.com/scikit-plots/scikit-plots.git
-  git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
-  cd scikit-plots
-  ```
-  ```sh
-  ## (if Necessary) Add safe directories for git
-  # bash docker/script/safe_dirs.sh
-  git config --global --add safe.directory '*'
-  ```
-  ```sh
-  ## (Optionally) Git Submodules Clone/Download/Initialize Configs, Not Needed Every Time.
-  # git submodule update --init --recursive
-  ```
-  ```sh
-  ## (Recommended) Ensure venv (e.g. conda, venv, pipenv)
-  # pip install -r ./requirements/all.txt
-  pip install -r ./requirements/build.txt
-  ```
-  ```sh
-  ## Install the package in the current directory, ignore pip’s cache, and show detailed logs of the installation
-  process.
-  pip install --no-cache-dir . -v
-  ```
+```sh
+## Forked repo: https://github.com/scikit-plots/scikit-plots.git
+git clone https://github.com/YOUR-USER-NAME/scikit-plots.git
+cd scikit-plots
+```
+```sh
+## (if Necessary) Add safe directories for git
+# bash docker/script/safe_dirs.sh
+git config --global --add safe.directory '*'
+```
+```sh
+## (Optionally) Git Submodules Clone/Download/Initialize Configs, Not Needed Every Time.
+# git submodule update --init --recursive
+```
+```sh
+## (Recommended) Ensure venv (e.g. conda, venv, pipenv)
+# pip install -r ./requirements/all.txt
+pip install -r ./requirements/build.txt
+```
+```sh
+## Install the package in the current directory, ignore pip's cache,
+## and show detailed logs of the installation process.
+## If you have a local clone of the repository
+pip install --no-cache-dir . -v
+```
 
   <h3>
    🧊🔧 Also possible to include optional deps with editable mode:
   </h3>
 
-  ```sh
-  ## (Optionally) Install the current package in editable mode, using the current environment for building, and ignore
-  ## cached builds
-  pip install --no-cache-dir --no-build-isolation -e . -v
-  ```
-  ```sh
-  ## (Optionally) Install the current package in editable mode, using the current environment for building, and ignore
-  ## cached builds
-  ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
-  ## For More in Doc: https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html
-  python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
-  ```
-  ```sh
-  ## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
-  ## [cpu] refer tensorflow-cpu, transformers, tf-keras
-  ## [gpu] refer Cupy tensorflow lib require NVIDIA CUDA support
-  pip install "scikit-plots[cpu]"
-  ```
+```sh
+## (Optionally) Install the current package in editable mode,
+## using the current environment for building, and ignore cached builds
+pip install --no-cache-dir --no-build-isolation -e . -v
+```
+```sh
+## (Optionally) Install the current package in editable mode,
+## using the current environment for building, and ignore cached builds
+## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
+## For More in Doc: https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html
+python -m pip install --no-cache-dir --no-build-isolation -e .[build,dev,test,doc] -v
+```
+```sh
+## https://github.com/celik-muhammed/scikit-plots/tree/main/requirements
+## [cpu] refer tensorflow-cpu, transformers, tf-keras
+## [gpu] refer Cupy tensorflow lib require NVIDIA CUDA support
+pip install "scikit-plots[cpu]"
+```
 </div>
 
 

@@ -66,8 +66,8 @@ try:
     # or cannot be imported, this is where we'll get a failure - so give an
     # informative error message.
     from ._lib._ccallback import LowLevelCallable
-    from ._utils._show_versions import show_versions
     from .config import *
+    from .utils._show_versions import show_versions
     from .version import (  # type: ignore[reportMissingModuleSource]
         # If a version with git hash was stored,
         # use that instead so override version if any.

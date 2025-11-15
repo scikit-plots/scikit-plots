@@ -3,8 +3,9 @@
 
 """Methods for scaling, centering, normalization, binarization, and more."""
 
-from ._get_dummies import GetDummies
+from ._encoders import DummyCodeEncoder, GetDummies
 
 __all__ = [
+    "DummyCodeEncoder",
     "GetDummies",
 ]

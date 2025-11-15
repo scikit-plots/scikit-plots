@@ -683,12 +683,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "sections": [
             {
                 "title": "Extended sklearn feature preprocessing.",
-                "description": (
-                  _get_submodule("scikitplot.preprocessing", "_get_dummies")
-                  + "\n\n"
-                  + _get_guide("get_dummies-index")
-                ),
+                # "description": (
+                #   _get_submodule("scikitplot.preprocessing", "_get_dummies")
+                #   + "\n\n"
+                #   + _get_guide("get_dummies-index")
+                # ),
                 "autosummary": [
+                    "DummyCodeEncoder",
                     "GetDummies",
                 ],
             },

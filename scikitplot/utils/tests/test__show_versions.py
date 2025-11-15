@@ -1,7 +1,7 @@
 from threadpoolctl import threadpool_info
 
 from ..._testing import ignore_warnings
-from .._show_versions import (
+from ...utils._show_versions import (
     _get_deps_info,
     _get_sys_info,
     show_versions,

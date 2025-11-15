@@ -98,15 +98,24 @@ ML libraries (e.g. scikit-plot), and downstream projects.
 from __future__ import annotations
 
 import sys
+from builtins import type as type_t
 from typing import TYPE_CHECKING
 
 # npt.ArrayLike list, tuple, np.ndarray
 # npt.NDArray np.ndarray Series (vector, matrix, tensor)
 # np.generic NumPy skaler (np.float64, np.int32 vb.)
 # sp.spmatrix sparse matrix (csr, csc, coup, vs.)
-import matplotlib.typing as mpt  # Typing support  # noqa: F401
-import numpy.typing as npt  # Typing support  # noqa: F401
-import pandas._typing as pdt  # Typing support  # noqa: F401
+import matplotlib as mpl
+import matplotlib.typing as mpt
+import numpy as np
+import numpy.typing as npt
+import pandas as pd
+import pandas._typing as pdt
+
+# To prevent import cycles place any internal imports in the branch below
+# and use a string literal forward reference to it in subsequent types
+# https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
+
 
 if TYPE_CHECKING:
     # ⚠️ "list[str]" use quotes to avoid runtime eval
@@ -117,7 +126,6 @@ if TYPE_CHECKING:
 
         StrList = List[str]  # typing.List, Python <3.9
 
-if TYPE_CHECKING:
     # ⚠️ "float | None" use quotes to avoid runtime eval
     if sys.version_info >= (3, 10):
         FloatOrNone = float | None  # PEP 604 syntax >= py3.10
@@ -127,17 +135,25 @@ if TYPE_CHECKING:
         # equivalent to Union[float, None]
         FloatOrNone = Optional[float]  # PEP 484 syntax < py3.10
 
-if TYPE_CHECKING:
     from collections.abc import (
         Coroutine,
         # Callable,
         Generator,
         Hashable,
         Iterable,
+        Mapping,
+        MutableMapping,
         # Sequence,
         Sequence,
     )
+    from datetime import (
+        date,
+        datetime,
+        timedelta,
+        tzinfo,
+    )
     from enum import Enum, EnumType
+    from os import PathLike
     from typing import (  # noqa: F401
         IO,
         Any,
@@ -146,12 +162,14 @@ if TYPE_CHECKING:
         Literal,
         ModuleType,
         Optional,
+        ParamSpec,
         Protocol,
+        SupportsIndex,
+        # TypeAlias,  # 3.10+
         TypeVar,
         Union,
+        overload,
     )
-
-    from typing_extensions import NotRequired  # type: ignore[reportMissingModuleSource]
 
     # Compatibility shim for `TypeAlias` in Python < 3.10
     try:
@@ -160,43 +178,139 @@ if TYPE_CHECKING:
     except ImportError:
         try:
             # Fallback for older Python using typing_extensions (must be installed)
-            from typing_extensions import (  # type: ignore[reportMissingModuleSource]
+            from typing_extensions import (
                 TypeAlias,
             )
         except ImportError:
             # Final fallback: dummy placeholder (used only for type hints)
             TypeAlias = object
 
-    import numpy as np  # type: ignore[reportMissingImports]
-    import pandas as pd  # type: ignore[reportMissingImports]
-    from numpy.typing import NDArray  # type: ignore[reportMissingImports]
+    from typing_extensions import NotRequired
+
+    # to maintain type information across generic functions and parametrization
+    T = TypeVar("T")
+    TypeT = TypeVar("TypeT", bound=type)
+
+    P = ParamSpec("P")
+
+    RandomState: TypeAlias = (
+        int
+        | np.ndarray
+        | np.random.Generator
+        | np.random.BitGenerator
+        | np.random.RandomState
+    )
+
+    Shape: TypeAlias = tuple[int, ...]
+    Suffixes: TypeAlias = Sequence[str | None]
+    Ordered: TypeAlias = bool | None
+
+    HashableT = TypeVar("HashableT", bound=Hashable)
+    HashableT2 = TypeVar("HashableT2", bound=Hashable)
+    MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
+
+    ScalarLike_co: TypeAlias = int | float | complex | str | bytes | np.generic
+
+    # numpy compatible types
+    NumpyValueArrayLike: TypeAlias = ScalarLike_co | npt.ArrayLike
+    NumpySorter: TypeAlias = npt._ArrayLikeInt_co | None
+
+    # array-like
+
+    ArrayLike: TypeAlias = Union["pdt.ExtensionArray", np.ndarray]
+    ArrayLikeT = TypeVar("ArrayLikeT", "pdt.ExtensionArray", np.ndarray)
+    AnyArrayLike: TypeAlias = Union[ArrayLike, "pdt.Index", "pdt.Series"]
+    TimeArrayLike: TypeAlias = Union["pdt.DatetimeArray", "pdt.TimedeltaArray"]
+
+    # list-like
+
+    # from https://github.com/hauntsaninja/useful_types
+    # includes Sequence-like objects but excludes str and bytes
+    _T_co = TypeVar("_T_co", covariant=True)  # noqa: PYI018
+    ListLike: TypeAlias = AnyArrayLike | pdt.SequenceNotStr | range
+
+    # scalars
+
+    PythonScalar: TypeAlias = str | float | bool
+    DatetimeLikeScalar: TypeAlias = Union[
+        "pdt.Period", "pdt.Timestamp", "pdt.Timedelta"
+    ]
+
+    Timezone: TypeAlias = str | tzinfo
+    TimeUnit: TypeAlias = Literal["s", "ms", "us", "ns"]
+
+    # dtypes
+    NpDtype: TypeAlias = str | np.dtype | type[str | complex | bool | object]
+    Dtype: TypeAlias = Union["pdt.ExtensionDtype", NpDtype]
+    AstypeArg: TypeAlias = Union["pdt.ExtensionDtype", npt.DTypeLike]
+    # DtypeArg specifies all allowable dtypes in a functions its dtype argument
+    DtypeArg: TypeAlias = Dtype | Mapping[Hashable, Dtype]
+    DtypeObj: TypeAlias = Union[np.dtype, "pdt.ExtensionDtype"]
+
+    # filenames and file-like-objects
+    AnyStr_co = TypeVar("AnyStr_co", str, bytes, covariant=True)
+    AnyStr_contra = TypeVar("AnyStr_contra", str, bytes, contravariant=True)
+
+    FilePath: TypeAlias = str | PathLike[str]
+
+    # for arbitrary kwargs passed during reading/writing files
+    StorageOptions: TypeAlias = dict[str, Any] | None
+
+    # compression keywords and compression
+    CompressionDict: TypeAlias = dict[str, Any]
+    CompressionOptions: TypeAlias = (
+        Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"]
+        | CompressionDict
+        | None
+    )
+    ParquetCompressionOptions: TypeAlias = (
+        Literal["snappy", "gzip", "brotli", "lz4", "zstd"] | None
+    )
+
+    # read_html flavors
+    HTMLFlavors: TypeAlias = Literal["lxml", "html5lib", "bs4"]
+
+    # join
+    JoinHow: TypeAlias = Literal["left", "right", "inner", "outer"]
+    JoinValidate: TypeAlias = Literal[
+        "one_to_one",
+        "1:1",
+        "one_to_many",
+        "1:m",
+        "many_to_one",
+        "m:1",
+        "many_to_many",
+        "m:m",
+    ]
+
+    # plotting
+    PlottingOrientation: TypeAlias = Literal["horizontal", "vertical"]
+
+    # maintain the sub-type of any hashable sequence
+    SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
+
+    SliceType: TypeAlias = Hashable | None
+
+    PythonFuncType: TypeAlias = Callable[[Any], Any]
+
+    ## A generic type variable for class decorator
+    from .._decorates import BaseDecorator
+
+    # used in decorators to preserve the signature of the function it decorates
+    # see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+    # FuncType: TypeAlias = Callable[..., Any]
+    # F = TypeVar("F", bound=FuncType)
+
+    ## A type representing a class, function decorator
+    ClsDec = TypeVar("ClsDec", bound="BaseDecorator")
+    FuncDec = TypeVar("FuncDec", bound="Callable[[F], F]")
+    DecoratorLike = TypeVar("DecoratorLike", bound="Union[F, FuncDec, ClsDec]")
 
     ## Generic callable type
     F = TypeVar("F", bound="Callable[..., Any]")
     ## Hashable key type (e.g., dict keys, cache identifiers)
     HT = TypeVar("HT", bound="Hashable")
 
-    ## NumPy scalar type (e.g., np.float64, np.int32)
-    NPScalar = TypeVar("NPScalar", bound="np.generic")
-    ## NumPy ndarray of any shape/dtype
-    # NDArray = TypeVar("NDArray", bound=np.ndarray)
-    ## Pandas DataFrame type
-    PDDataFrame = TypeVar("PDDataFrame", bound=pd.DataFrame)
-    ## Scalar: could be a Python scalar or NumPy scalar
-    Scalar = Union[int, float, complex, str, bool, np.generic]
-    ## Tabular data type: DataFrame, Series, or ndarray
-    Tabular = Union[pd.DataFrame, pd.Series, np.ndarray]
-    ## Data container (any 1D or 2D sequence or array-like)
-    ArrayLike = Union[Sequence[Any], np.ndarray, pd.Series, pd.DataFrame]
-
-    ## A type representing a function decorator
-    FuncDec = TypeVar("FuncDec", bound="Callable[[F], F]")
-    ## A generic type variable for class decorator
-    from .._decorates import BaseDecorator
-
-    ClsDec = TypeVar("ClsDec", bound="BaseDecorator")
-    DecoratorLike = TypeVar("DecoratorLike", bound="Union[F, FuncDec, ClsDec]")
-
 # Allows for the creation of enumerated constants
 # Enum values are immutable after definition.
-# __all__ = []
+# __all__ = ["type_t"]

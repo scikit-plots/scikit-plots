@@ -16,20 +16,9 @@ significantly contributes to numpy import times. Importing this copy has almost
 no overhead.
 
 """
-
-import importlib
-import inspect
-import pkgutil
 import types
 
-from scikitplot import logger
-
-__all__ = [
-    "getargspec",
-    "formatargspec",
-    "inspect_module",
-]
-
+__all__ = ['getargspec', 'formatargspec']
 
 # ----------------------------------------------------------- type-checking
 def ismethod(object):
@@ -45,7 +34,6 @@ def ismethod(object):
     """
     return isinstance(object, types.MethodType)
 
-
 def isfunction(object):
     """Return true if the object is a user-defined function.
 
@@ -60,7 +48,6 @@ def isfunction(object):
 
     """
     return isinstance(object, types.FunctionType)
-
 
 def iscode(object):
     """Return true if the object is a code object.
@@ -86,7 +73,6 @@ def iscode(object):
 # ------------------------------------------------ argument list extraction
 # These constants are from Python's compile.h.
 CO_OPTIMIZED, CO_NEWLOCALS, CO_VARARGS, CO_VARKEYWORDS = 1, 2, 4, 8
-
 
 def getargs(co):
     """Get information about the arguments accepted by a code object.
@@ -119,7 +105,6 @@ def getargs(co):
         varkw = co.co_varnames[nargs]
     return args, varargs, varkw
 
-
 def getargspec(func):
     """Get the names and default values of a function's arguments.
 
@@ -137,7 +122,6 @@ def getargspec(func):
     args, varargs, varkw = getargs(func.__code__)
     return args, varargs, varkw, func.__defaults__
 
-
 def getargvalues(frame):
     """Get information about arguments passed into a particular frame.
 
@@ -150,13 +134,11 @@ def getargvalues(frame):
     args, varargs, varkw = getargs(frame.f_code)
     return args, varargs, varkw, frame.f_locals
 
-
 def joinseq(seq):
     if len(seq) == 1:
         return '(' + seq[0] + ',)'
     else:
         return '(' + ', '.join(seq) + ')'
-
 
 def strseq(object, convert, join=joinseq):
     """Recursively walk a sequence, stringifying each element.
@@ -166,7 +148,6 @@ def strseq(object, convert, join=joinseq):
         return join([strseq(_o, convert, join) for _o in object])
     else:
         return convert(object)
-
 
 def formatargspec(args, varargs=None, varkw=None, defaults=None,
                   formatarg=str,
@@ -196,7 +177,6 @@ def formatargspec(args, varargs=None, varkw=None, defaults=None,
         specs.append(formatvarkw(varkw))
     return '(' + ', '.join(specs) + ')'
 
-
 def formatargvalues(args, varargs, varkw, locals,
                     formatarg=str,
                     formatvarargs=lambda name: '*' + name,
@@ -221,147 +201,3 @@ def formatargvalues(args, varargs, varkw, locals,
     if varkw:
         specs.append(formatvarkw(varkw) + formatvalue(locals[varkw]))
     return '(' + ', '.join(specs) + ')'
-
-
-######################################################################
-## Inspect a module
-######################################################################
-
-# def inspect_module(module_name):
-#     """
-#     Inspect a module and recursively find all functions and classes within it, ignoring 'tests' modules.
-#     Args:
-#         module_name (str): The name of the module to inspect.
-#     Returns:
-#         dict: A dictionary containing the names of classes and functions, organized by module.
-#     """
-#     results = {"functions": [], "classes": []}
-
-#     # Try importing the base module
-#     try:
-#         module = importlib.import_module(module_name)
-#         logging.info(f"Successfully imported module: {module_name}")
-#     except ModuleNotFoundError:
-#         logging.error(f"Module '{module_name}' not found.")
-#         return results
-
-#     # Helper function to recursively scan modules
-#     def recursive_scan(mod):
-#         if 'tests' in mod.__name__:
-#             logging.info(f"Skipping 'tests' module: {mod.__name__}")
-#             return  # Skip modules containing 'tests' in their name
-
-#         logging.info(f"Inspecting module: {mod.__name__}")
-
-#         # Inspect the current module for classes and functions
-#         for name, obj in inspect.getmembers(mod):
-#             if inspect.isclass(obj) and obj.__module__ == mod.__name__:
-#                 results["classes"].append(f"{mod.__name__}.{name}")
-#                 logging.info(f"Found class: {mod.__name__}.{name}")
-#             elif inspect.isfunction(obj) and obj.__module__ == mod.__name__:
-#                 results["functions"].append(f"{mod.__name__}.{name}")
-#                 logging.info(f"Found function: {mod.__name__}.{name}")
-
-#         # Recursively scan submodules if available
-#         if hasattr(mod, "__path__"):  # Packages have __path__ attribute
-#             for submodule_info in pkgutil.iter_modules(mod.__path__):
-#                 submodule_name = f"{mod.__name__}.{submodule_info.name}"
-#                 try:
-#                     submodule = importlib.import_module(submodule_name)
-#                     recursive_scan(submodule)
-#                 except ModuleNotFoundError:
-#                     logging.warning(f"Could not import submodule: {submodule_name}")
-
-#     # Start scanning from the base module
-#     recursive_scan(module)
-#     return results
-
-
-def inspect_module(module_name: str = "scikitplot._numcpp_api", debug=False):
-    """
-    Inspect a module and its submodules to find all classes and functions.
-
-    This function attempts to recursively scan a given module, examining its attributes to identify
-    classes and functions, including any in submodules. It uses `dir()` and direct attribute access
-    to work around potential issues with dynamically loaded objects.
-
-    Parameters
-    ----------
-    module_name : str
-        The name of the module to inspect.
-
-    debug : bool, optional
-        If True, enables detailed debug-level logging. Default is False.
-
-    Returns
-    -------
-    dict
-        A dictionary containing lists of fully-qualified class and function names found in the module.
-        The structure is:
-        {
-            "classes": [str, ...],
-            "functions": [str, ...]
-        }
-
-    Notes
-    -----
-    This function skips any modules named 'tests' to avoid unnecessary inspection of test code.
-    If the module or its submodules use unusual methods of defining or loading classes and functions,
-    results may vary.
-
-    Examples
-    --------
-    >>> results = inspect_module_with_dir("scikitplot._numcpp_api")
-    >>> pprint(results)
-    Classes and Functions Found in Module:
-    {'classes': ['scikitplot._numcpp_api.SomeClass', ...],
-     'functions': ['scikitplot._numcpp_api.some_function', ...]}
-    """
-    results = {"classes": [], "functions": []}
-
-    try:
-        module = importlib.import_module(module_name)
-        logger.info(f"Successfully imported module: {module_name}")
-    except ModuleNotFoundError:
-        logger.error(f"Module '{module_name}' not found.")
-        return results
-
-    def recursive_scan(mod):
-        if "tests" in mod.__name__:
-            logger.info(f"Skipping 'tests' module: {mod.__name__}")
-            return
-
-        logger.info(f"Inspecting module: {mod.__name__}")
-        for name in dir(mod):
-            try:
-                attr = getattr(mod, name)
-                if inspect.isclass(attr):
-                    results["classes"].append(f"{mod.__name__}.{name}")
-                    logger.info(f"Found class: {mod.__name__}.{name}")
-                elif callable(attr):
-                    results["functions"].append(f"{mod.__name__}.{name}")
-                    logger.info(f"Found function or callable: {mod.__name__}.{name}")
-            except AttributeError:
-                logger.warning(f"Could not access attribute: {name}")
-
-        if hasattr(mod, "__path__"):
-            for submodule_info in pkgutil.iter_modules(mod.__path__):
-                submodule_name = f"{mod.__name__}.{submodule_info.name}"
-                try:
-                    submodule = importlib.import_module(submodule_name)
-                    recursive_scan(submodule)
-                except ModuleNotFoundError:
-                    logger.warning(f"Could not import submodule: {submodule_name}")
-
-    recursive_scan(module)
-
-    if debug:
-        # from pprint import pprint
-        logger.info(results)
-    else:
-        return results
-
-
-######################################################################
-##
-######################################################################

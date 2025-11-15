@@ -474,7 +474,7 @@ build-st: clean
 
 ## ins
 ## Install package locally (non-editable), depends on 'clean' and 'dep'.
-ins: clean dep
+ins: clean
 	@echo ">> Installing package locally (non-editable)..."
 	@python -m pip install --no-build-isolation --no-cache-dir . -v
 
@@ -484,7 +484,7 @@ ins: clean dep
 ## dev
 ## Install development version of scikit-plots (editable), depends on 'clean' and 'dep'.
 ## ➡️ Works only if "ninja" and "all build deps" are installed in the environment (--no-build-isolation).
-dev: clean dep
+dev: clean
 	@echo ">> Installing package locally (editable, development mode)..."
 	@# Requires ninja and all build dependencies installed
 	@python -m pip install --no-build-isolation --no-cache-dir -e . -v

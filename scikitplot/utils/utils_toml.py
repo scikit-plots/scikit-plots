@@ -58,9 +58,9 @@ try:
     if not TOML_READ_SUPPORT:
         TOML_READ_SUPPORT = True
         TOML_SOURCE = "toml"
-except ImportError:
-    _logger.info(
-        "TOML write support requires `toml` package. Install via `pip install toml`."
+except ImportError as e:
+    _logger.exception(
+        "TOML write support requires `toml` package. Install via `pip install toml` : {e}."
     )
     toml = None
 
