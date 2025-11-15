@@ -1,3 +1,11 @@
+# flake8: noqa: D213
+
+# ruff: noqa
+# ruff: noqa: PGH004
+
+# Authors: The scikit-learn developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Utility methods to print system info for debugging
 
 adapted from :func:`pandas.show_versions`
@@ -11,8 +19,8 @@ from threadpoolctl import threadpool_info
 ## Define __all__ to specify the public interface of the module,
 ## not required default all belove func
 __all__ = [
-    "_get_sys_info",
     "_get_deps_info",
+    "_get_sys_info",
     "show_versions",
 ]
 _all_ignore = ["platform", "sys", "threadpool_info"]
@@ -95,11 +103,11 @@ def show_versions():
 
     print("\nSystem:")
     for k, stat in sys_info.items():
-        print("{k:>10}: {stat}".format(k=k, stat=stat))
+        print(f"{k:>10}: {stat}")
 
     print("\nPython dependencies:")
     for k, stat in deps_info.items():
-        print("{k:>13}: {stat}".format(k=k, stat=stat))
+        print(f"{k:>13}: {stat}")
 
     # Show threadpoolctl results
     threadpool_results = threadpool_info()

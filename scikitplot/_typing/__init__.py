@@ -19,3 +19,5 @@ that may be changed without notice. Use at your own risk!
 """
 
 from ._typing import *  # noqa: F403
+
+__all__ = ["type_t"]  # noqa: F405

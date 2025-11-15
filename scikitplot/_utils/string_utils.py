@@ -10,7 +10,7 @@
 import re as _re
 import shlex as _shlex
 
-from ..utils.os import is_windows
+from .os import is_windows
 
 
 def strip_prefix(original, prefix):

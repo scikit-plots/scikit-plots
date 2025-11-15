@@ -16,7 +16,7 @@ import uuid as _uuid
 from typing import Any
 
 from ..exceptions import ScikitplotException
-from ..utils.os import is_windows
+from .os import is_windows
 
 _INVALID_DB_URI_MSG = (
     "Please refer to https://mlflow.org/docs/latest/tracking.html#storage for "
