@@ -52,10 +52,10 @@ from ..environment_variables import (
 from ..exceptions import ScikitplotException
 from ..experimental._entities import FileInfo
 
-# from ..utils import download_cloud_file_chunk
-from ..utils.os import is_windows
-from ..utils.process import cache_return_value_per_process
-from ..utils.request_utils import (
+# from . import download_cloud_file_chunk
+from .os import is_windows
+from .process import cache_return_value_per_process
+from .request_utils import (
     augmented_raise_for_status,
     cloud_storage_http_request,
     download_chunk,

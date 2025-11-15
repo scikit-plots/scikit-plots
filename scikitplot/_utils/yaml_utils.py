@@ -24,9 +24,9 @@ except ImportError:
     from yaml import SafeLoader as YamlSafeLoader
 
 from ..exceptions import MissingConfigException
-from ..utils import merge_dicts
-from ..utils.file_utils import ENCODING, exists
-from ..utils.file_utils import parent as get_parent_dir
+from . import merge_dicts
+from .file_utils import ENCODING, exists
+from .file_utils import parent as get_parent_dir
 
 
 def write_yaml(

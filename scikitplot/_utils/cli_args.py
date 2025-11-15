@@ -7,7 +7,7 @@ import click as _click
 from ..environment_variables import (
     SKPLT_DISABLE_ENV_MANAGER_CONDA_WARNING,
 )
-from ..utils import env_manager as _EnvManager  # noqa: N812
+from . import env_manager as _EnvManager  # noqa: N812
 
 MODEL_PATH = _click.option(
     "--model-path",

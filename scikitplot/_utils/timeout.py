@@ -4,7 +4,7 @@ import signal as _signal
 from contextlib import contextmanager
 
 from ..exceptions import ScikitplotException
-from ..utils.os import is_windows
+from .os import is_windows
 
 
 class ScikitplotTimeoutError(Exception):
