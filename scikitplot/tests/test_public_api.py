@@ -95,7 +95,6 @@ PUBLIC_MODULES = [
         "visualkeras.layered",
         "visualkeras.utils",
         # py
-        "cli",
         "conftest",
         "dummy",
         "environment_variables",

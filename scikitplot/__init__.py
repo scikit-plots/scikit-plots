@@ -56,7 +56,7 @@ __version__ = "0.4.0.post6"  # 0.4.0  # 👈 (tagged) last release
 
 # import logging as _logging
 # logger.setLevel(logger.DEBUG)  # for debugging
-from . import logging as logger  # not a module or namespace, global attr
+from . import logging as logger  # alias not a module or namespace just global attr
 from .logging import get_logger
 
 try:
@@ -133,7 +133,6 @@ _submodules = sorted(
         "_min_dependencies",
         "_preprocess",
         "_reset",
-        "cli",
         "environment_variables",
         "exceptions",
         "ml_package_versions",

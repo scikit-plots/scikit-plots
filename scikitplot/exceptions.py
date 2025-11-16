@@ -55,6 +55,8 @@ __all__ = [
     "TooHardError",
     "AxisError",
     "DTypePromotionError",
+    # from pip
+    "CommandError",
 ]
 
 # Disallow reloading this module so as to preserve the identities of the
@@ -466,6 +468,10 @@ class ScikitplotException(Exception):  # noqa: N818
             of the ScikitplotException.
         """
         return cls(message, error_code=0, **kwargs)
+
+
+class CommandError(ScikitplotException):
+    """Raised when there is an error in command-line arguments"""
 
 
 class ExecutionException(ScikitplotException):

@@ -8,6 +8,9 @@
 
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2024-present scikit-plots developers
+#
+# See CONTRIBUTORS.md for a full list of contributors.
 
 # https://abseil.io/docs/python/quickstart.html
 # https://abseil.io/docs/python/guides/logging

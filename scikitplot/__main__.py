@@ -3,6 +3,7 @@
 
 """CLI Interface."""
 
-from .cli import cli
+from ._cli.cli import cli
 
-cli.main()
+if __name__ == "__main__":
+    cli.main()
