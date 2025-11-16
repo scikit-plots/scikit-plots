@@ -133,7 +133,6 @@ _submodules = sorted(
         "_min_dependencies",
         "_preprocess",
         "_reset",
-        "cli",
         "environment_variables",
         "exceptions",
         "ml_package_versions",
