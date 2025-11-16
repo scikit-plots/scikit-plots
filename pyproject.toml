@@ -614,7 +614,7 @@ issues          = "https://github.com/scikit-plots/scikit-plots/issues"
 ## (Optionally)
 [project.scripts]
 # my-script-cli = "my_package[.module_cli]:function_cli"
-scikitplot = "scikitplot.cli:cli"
+scikitplot = "scikitplot._cli.cli:cli"
 
 [project.entry-points."scikitplot.app"]
 basic-auth = "scikitplot.server.auth:create_app"
