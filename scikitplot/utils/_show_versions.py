@@ -44,9 +44,10 @@ __all__ = [
 @lru_cache()
 def _is_docker() -> bool:
     """Check if running inside a Docker container."""
-    return os.path.exists("/.dockerenv") or any(
-        "docker" in line for line in open("/proc/self/cgroup", "r", encoding="utf-8")
-    )
+    if os.path.exists("/proc/self/cgroup"):
+        with open("/proc/self/cgroup", "r", encoding="utf-8") as f:
+            return any("docker" in line for line in f)
+    return os.path.exists("/.dockerenv")
 
 
 @lru_cache()
