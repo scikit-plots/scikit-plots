@@ -811,11 +811,11 @@ tag:
 archive:
 ifdef GIT_TAG
 	@echo "Remove tag locally: "$(GIT_TAG)""
-	@#git tag -d "v0.4.0rc0"
+	@#git tag -d "v0.4.0rc0" "0.4.0.post6"
 	@git tag -d "$(GIT_TAG)" || true
 
 	@echo "Creates tag locally"
-	@#git tag -a "v0.4.0.post6" -m "Release version 0.4.0.post6"
+	@#git tag -a "v0.4.0" -m "Release version 0.4.0"
 	git tag -a "$(GIT_TAG)" -m "Release version $(GIT_TAG)"
 
 	@echo "Pushes the tag to your fork"
@@ -823,7 +823,7 @@ ifdef GIT_TAG
 	git push origin "$(GIT_TAG)"        # push just that tag
 
 	@echo "Pushes tag to upstream (if allowed) "$(GIT_TAG)" (Month Dayth, Year)"
-	@#git push upstream "v0.4.0.post6"
+	@#git push upstream "v0.4.0"
 	git push upstream "$(GIT_TAG)"      # push just that tag
 
 	@# git ls-remote --tags origin       # verify what's pushed by running

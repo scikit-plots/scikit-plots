@@ -31,14 +31,31 @@ administrator permission required). Then run:
 
 .. prompt:: bash
 
-  # (conda or mamba) Create New Env and install ``scikit-plots``
-  mamba create -n py311 python=3.11 ipykernel -y
-  conda activate py311
+  ## (conda, mamba or micromamba) Create New Env and install ``scikit-plots``
+  ## Create a new environment and install Python 3.11 with IPython kernel support
+  # conda create -y -n py311 python=3.11 ipykernel
+  micromamba create -y -n py311 python=3.11 ipykernel
 
 .. prompt:: bash
 
-  ## (conda or mamba) Install scikit-plots (Upcoming)
-  conda install --yes -c conda-forge scikit-plots
+  ## (conda, mamba or micromamba) Activate the environment
+  # conda activate py311
+  micromamba activate py311
+
+.. prompt:: bash
+
+  ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
+  # conda search conda-forge::scikit-plots
+  # conda search --channel conda-forge scikit-plots
+  micromamba search -c conda-forge scikit-plots
+
+.. prompt:: bash
+
+  ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
+  # conda install -y conda-forge::scikit-plots
+  # conda install --yes --channel conda-forge scikit-plots
+  micromamba install -y -c conda-forge scikit-plots
+
   # Cause numpy>=2.0.0 but support old numpy
   # pip install numpy==1.26.4
 
@@ -53,8 +70,10 @@ In order to check your installation, you can use:
   python -c "import scikitplot; scikitplot.show_versions()"
 
   # (Optionally) CLI Version Check
-  scikitplot --version
+  scikitplot
+  scikitplot -h
   scikitplot -V
+  scikitplot --version
 
 (Optionally) Also available Nightly Version **can be cause conflict** required ``New Environment``:
 
@@ -68,5 +87,6 @@ In order to check your installation, you can use:
   ## Try After Ensure all "Runtime dependencies" installed
   # pip install --extra-index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
   pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+
   # Cause numpy>=2.0.0 but support old numpy
-  pip install numpy==1.26.4
+  # pip install numpy==1.26.4
