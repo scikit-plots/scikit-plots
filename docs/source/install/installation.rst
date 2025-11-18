@@ -99,8 +99,9 @@ Installing the latest release
             python -m venv sklearn-env
             sklearn-env\Scripts\activate  # (or dot .) activate
             pip install scikit-plots
+
             # Cause numpy>=2.0.0 but support old numpy
-            pip install numpy==1.26.4
+            # pip install numpy==1.26.4
 
           In order to check your installation, you can use:
 
@@ -112,9 +113,13 @@ Installing the latest release
             # Version Check
             python -c "import scikitplot; scikitplot.show_versions()"
 
+          .. prompt:: bash
+
             # (Optionally) CLI Version Check
-            scikitplot --version
+            scikitplot
+            scikitplot -h
             scikitplot -V
+            scikitplot --version
 
         .. tab-item:: Linux
           :class-label: tab-4
@@ -141,8 +146,9 @@ Installing the latest release
             python3 -m venv sklearn-env
             source sklearn-env/bin/activate  # (or dot .) activate
             pip3 install -U scikit-plots
+
             # Cause numpy>=2.0.0 but support old numpy
-            pip3 install numpy==1.26.4
+            # pip3 install numpy==1.26.4
 
           In order to check your installation, you can use:
 
@@ -154,9 +160,13 @@ Installing the latest release
             # Version Check
             python3 -c "import scikitplot; scikitplot.show_versions()"
 
+          .. prompt:: bash
+
             # (Optionally) CLI Version Check
-            scikitplot --version
+            scikitplot
+            scikitplot -h
             scikitplot -V
+            scikitplot --version
 
         .. tab-item:: MacOS
           :class-label: tab-4
@@ -176,8 +186,9 @@ Installing the latest release
             python -m venv sklearn-env
             source sklearn-env/bin/activate  # (or dot .) activate
             pip install scikit-plots
+
             # Cause numpy>=2.0.0 but support old numpy
-            pip install numpy==1.26.4
+            # pip install numpy==1.26.4
 
           In order to check your installation, you can use:
 
@@ -189,9 +200,13 @@ Installing the latest release
             # Version Check
             python -c "import scikitplot; scikitplot.show_versions()"
 
+          .. prompt:: bash
+
             # (Optionally) CLI Version Check
-            scikitplot --version
+            scikitplot
+            scikitplot -h
             scikitplot -V
+            scikitplot --version
 
     .. tab-item:: conda
       :class-label: tab-6

@@ -39,27 +39,45 @@
   <img alt="PyPI Version Status" height="17"
    src="https://img.shields.io/pypi/v/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Version&color=blue">
  </a>
- <!-- PyPI - Daily, Weekly, or Monthly downloads -->
+ <!-- PyPI - Daily, Weekly, or Monthly Downloads -->
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="PyPI Downloads" height="17"
    src="https://img.shields.io/pypi/dm/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Downloads&color=olivegreen">
  </a>
- <!-- Anaconda Conda -->
+ <!-- Anaconda Stable Conda -->
+ <a href="https://anaconda.org/conda-forge/scikit-plots" target="_blank"
+  rel="noopener noreferrer">
+  <!-- https://anaconda.org/conda-forge/scikit-plots/badges/version.svg -->
+  <img alt="Anaconda Stable Wheels Version" height="17"
+   src="https://img.shields.io/conda/v/conda-forge/scikit-plots?style=flat-square&logo=anaconda&color=olivegreen">
+ </a>
+ <!-- Anaconda Stable Daily, Weekly, or Monthly Downloads -->
+ <a href="https://anaconda.org/conda-forge/scikit-plots" target="_blank"
+  rel="noopener noreferrer">
+  <img alt="Anaconda Stable Wheels Downloads" height="17"
+   src="https://img.shields.io/conda/d/conda-forge/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads&color=green">
+  <!-- <img alt="Anaconda Stable Wheels Downloads" height="17" src="https://anaconda.org/conda-forge/scikit-plots/badges/downloads.svg"> -->
+ </a>
+ <!-- Anaconda Stable Wheels Release Date -->
+ <a href="https://anaconda.org/conda-forge/scikit-plots" target="_blank"
+  rel="noopener noreferrer">
+  <img alt="Anaconda Stable Wheels Release Date" height="17"
+  src="https://anaconda.org/conda-forge/scikit-plots/badges/latest_release_date.svg?label=conda%20|%20Downloads">
+ </a>
+ <!-- Anaconda Nightly Conda -->
  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
   rel="noopener noreferrer">
   <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
   <img alt="Anaconda Nightly Wheels Version" height="17"
-   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&color=orange">
+   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Nightly-Wheels&color=orange">
  </a>
- <!-- Anaconda Daily, Weekly, or Monthly downloads -->
+ <!-- Anaconda Nightly Daily, Weekly, or Monthly Downloads -->
  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
   rel="noopener noreferrer">
   <img alt="Anaconda Nightly Wheels Downloads" height="17"
-   src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads&color=green">
+   src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Nightly-Downloads&color=orange">
   <!-- <img alt="Anaconda Nightly Wheels Downloads" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg"> -->
  </a>
- <!-- Anaconda Nightly Wheels Release Date -->
- <!-- <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank" rel="noopener noreferrer"><img alt="Anaconda Nightly Wheels Release Date" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/latest_release_date.svg"></a> -->
  <!-- 🐋 Docker Image Version (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Version (tag)" height="17"
@@ -76,13 +94,20 @@
   <img alt="🐋 Docker Image Size (tag)" height="17"
    src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=orange">
  </a>
- <!-- GitHub License -->
- <a href="https://github.com/scikit-plots/scikit-plots?tab=BSD-3-Clause-1-ov-file#readme" target="_blank"
+ <!-- pre-commit -->
+ <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
+  <img alt="pre-commit Status" height="17"
+   src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
+ </a>
+ <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank"
   rel="noopener noreferrer">
-  <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
-  <!-- https://img.shields.io/conda/l/scikit-plots-wheels-staging-nightly/scikit-plots?logo=anaconda&label=conda%20|%20License&labelColor=gray&color=blue -->
-  <img alt="GitHub License" height="17"
-   src="https://img.shields.io/github/license/scikit-plots/scikit-plots?style=flat-square&logo=github&label=License&labelColor=gray&color=blue">
+  <img alt="pre-commit.ci Status" height="17"
+   src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
+ </a>
+ <!-- codecov -->
+ <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Coverage Status" height="17"
+   src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
  </a>
  <!-- GitHub Actions -->
  <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank"
@@ -98,26 +123,11 @@
   <img alt="CircleCI Status" height="17"
    src="https://img.shields.io/circleci/build/github/scikit-plots/scikit-plots/main?style=flat-square&logo=circleci&label=CircleCI%20%7C%20Docs%20Build&color=olivegreen">
  </a>
- <!-- pre-commit -->
- <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank"
-  rel="noopener noreferrer">
-  <img alt="pre-commit.ci Status" height="17"
-   src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
- </a>
- <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
-  <img alt="pre-commit Status" height="17"
-   src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
- </a>
  <!-- Code Style - Ruff -->
  <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
   <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
   <img alt="Code Style - Ruff" height="17"
    src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
- </a>
- <!-- codecov -->
- <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="Coverage Status" height="17"
-   src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
  </a>
  <!-- PyPI - Types -->
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
@@ -128,6 +138,14 @@
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="PyPI - pyversions" height="17"
    src="https://img.shields.io/pypi/pyversions/scikit-plots.svg?style=flat-square&logo=pypi&label=PyPI%20%7C%20Python&color=blue">
+ </a>
+ <!-- GitHub License -->
+ <a href="https://github.com/scikit-plots/scikit-plots?tab=BSD-3-Clause-1-ov-file#readme" target="_blank"
+  rel="noopener noreferrer">
+  <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
+  <!-- https://img.shields.io/conda/l/scikit-plots-wheels-staging-nightly/scikit-plots?logo=anaconda&label=conda%20|%20License&labelColor=gray&color=blue -->
+  <img alt="GitHub License" height="17"
+   src="https://img.shields.io/github/license/scikit-plots/scikit-plots?style=flat-square&logo=github&label=License&labelColor=gray&color=blue">
  </a>
  <!-- Zenodo -->
  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
@@ -263,8 +281,8 @@ docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/sci
 ```sh
 ## (conda, mamba or micromamba) Create New Env and install ``scikit-plots``
 ## Create a new environment and install Python 3.11 with IPython kernel support
-# conda create -n py311 python=3.11 ipykernel -y
-micromamba create -n py311 python=3.11 ipykernel -y
+# conda create -y -n py311 python=3.11 ipykernel
+micromamba create -y -n py311 python=3.11 ipykernel
 ```
 ```sh
 ## (conda, mamba or micromamba) Activate the environment
@@ -273,8 +291,18 @@ micromamba activate py311
 ```
 ```sh
 ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
-# conda install --yes -c conda-forge scikit-plots
-micromamba install --yes -c conda-forge scikit-plots
+# conda search conda-forge::scikit-plots
+# conda search --channel conda-forge scikit-plots
+micromamba search -c conda-forge scikit-plots
+```
+```sh
+## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
+# conda install -y conda-forge::scikit-plots
+# conda install --yes --channel conda-forge scikit-plots
+micromamba install -y -c conda-forge scikit-plots
+
+# Cause numpy>=2.0.0 but support old numpy
+# pip install numpy==1.26.4
 ```
 </div>
 
@@ -352,6 +380,7 @@ pipenv shell
 ## Now Install scikit-plots (via pip, conda, or local source)
 # pip index versions scikit-plots
 pip install scikit-plots
+
 ## Cause numpy>=2.0.0 but support old numpy
 # pip install numpy==1.26.4
 ```
@@ -379,6 +408,7 @@ pip install -r default.txt
 ```sh
 ## Try After Ensure all "Runtime dependencies" installed
 pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots
+
 ## Cause numpy>=2.0.0 but support old numpy
 # pip install numpy==1.26.4
 ```
