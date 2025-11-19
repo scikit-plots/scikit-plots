@@ -16,7 +16,7 @@
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
 .. _stats-index:
-Stats (experimental)
+Stats
 ======================================================================
 
 Examples relevant to the :py:mod:`~.stats` module.

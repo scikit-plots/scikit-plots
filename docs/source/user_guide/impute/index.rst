@@ -17,7 +17,7 @@
 
 .. _impute-index:
 ======================================================================
-Impute (experimental)
+Impute
 ======================================================================
 
 This module contains some functions related to :py:mod:`~.impute`.
@@ -27,7 +27,7 @@ This module contains some functions related to :py:mod:`~.impute`.
    * https://pypi.org/project/annoy
 
 
-Annoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
+`Annoy (Approximate Nearest Neighbors Oh Yeah)` is a C++ library with Python bindings
 to search for points in space that are close to a given query point.
 It also creates large read-only file-based data structures
 that are mmapped into memory so that many processes may share the same data.

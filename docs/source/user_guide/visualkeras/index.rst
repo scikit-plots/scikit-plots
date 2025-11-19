@@ -17,7 +17,7 @@
 
 .. _visualkeras-index:
 ======================================================================
-Visualkeras (experimental)
+Visualkeras
 ======================================================================
 
 This module contains functions related to :py:mod:`~.visualkeras`.

@@ -26,7 +26,7 @@
 .. _array_api-index:
 
 ================================
-Array API support (experimental)
+Array API support
 ================================
 
 .. seealso::

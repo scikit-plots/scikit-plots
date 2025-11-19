@@ -16,12 +16,12 @@
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
 .. _nc-index:
-nc (NumCpp) (experimental)
+nc (NumCpp)
 ======================================================================
 
 Examples relevant to the :py:mod:`~.nc` module with  :py:mod:`~._numcpp`.
 
-`nc` is a Python module that provides high-performance numerical functions by exposing the C++ header-only library NumCpp, allowing seamless use of NumPy arrays in Python.
+:py:mod:`~.nc` is a Python module that provides high-performance numerical functions by exposing the C++ header-only library NumCpp, allowing seamless use of NumPy arrays in Python.
 
 .. seealso::
    * https://github.com/dpilger26/NumCpp
