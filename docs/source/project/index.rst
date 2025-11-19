@@ -33,13 +33,13 @@ Project information
     :maxdepth: 2
 
     Community <community.rst>
-    citing.rst
+    Citing Guide <citing.rst>
     history.rst
     license.rst
     mission.rst
     Teams <teams/index.rst>
     Code of Conduct <code_of_conduct.rst>
-    Governance <governance.rst>
+    Governance Process <governance.rst>
     Roadmap <roadmap.rst>
     Funding <funding.rst>
     Glossary <glossary/index.rst>

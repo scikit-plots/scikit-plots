@@ -888,15 +888,21 @@ with the required packages. For help, see the [GitHub Codespaces docs](https://d
 </div>
 
 
-### Acknowledging (Governance) and Citing Scikit-plots
+### Governance (Acknowledging) Process and Citing Guide Scikit-plots
 
-See the [Acknowledgement](https://scikit-plots.github.io/dev/project/governance.html),
+🔎 See the [Governance Process](https://scikit-plots.github.io/dev/project/governance.html),
 [Citation Guide](https://scikit-plots.github.io/dev/project/citing.html)
 and the [CITATION.bib](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.bib),
-[CITATION.cff](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.cff) file.
+[CITATION.cff](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.cff) files.
 
-### https://doi.org/10.5281/zenodo.13367000
-- çelik, muhammed. (2024). scikit-plots-latest.tar.gz (latest). Zenodo. [doi:10.5281/zenodo.13367000](https://doi.org/10.5281/zenodo.13367000)
+Cite all versions?
+
+You can cite all versions by using the DOI [10.5281/zenodo.13367000](https://doi.org/10.5281/zenodo.13367000)
+to [https://doi.org/10.5281/zenodo.13367000](https://doi.org/10.5281/zenodo.13367000).
+This DOI represents all versions, and will always resolve to the latest one.
+[Read more about doi](https://zenodo.org/help/versioning).
+
+✍️ Citation Style APA:
 - çelik, muhammed. (2025). scikit-plots-0.4.0.tar.gz (0.4.0). Zenodo. [doi:10.5281/zenodo.13367095](https://doi.org/10.5281/zenodo.13367095)
 - scikit-plots. (2024). scikit-plots: v0.3.8dev0 (0.3.8dev0). Zenodo. [doi:10.5281/zenodo.13367001](https://doi.org/10.5281/zenodo.13367001)
 

@@ -1,8 +1,8 @@
 .. _governance-index:
 
-===========================================
-Scikit-plots Governance and Decision-Making
-===========================================
+======================================================================
+Scikit-plots Governance (Acknowledging) and Decision-Making Processes
+======================================================================
 
 The purpose of this document is to formalize the governance process used by the
 scikit-plots project, clarifying how decisions are made and how various
