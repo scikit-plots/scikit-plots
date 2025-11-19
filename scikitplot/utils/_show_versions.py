@@ -207,7 +207,7 @@ def show_versions(mode: str = "stdout") -> Optional[dict[str, any]]:
 
     .. jupyter-execute::
 
-        >>> !scikitplot show_versions -j || true
+        >>> !scikitplot show_versions || true
     """
     sys_info = _get_system_info()  # Returns dict of system info
     dep_info = _get_dep_info()  # Returns dict of dependency info
