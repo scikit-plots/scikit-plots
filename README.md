@@ -894,11 +894,10 @@ See the [Acknowledgement](https://scikit-plots.github.io/dev/project/governance.
 and the [CITATION.bib](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.bib),
 [CITATION.cff](https://github.com/scikit-plots/scikit-plots/blob/main/CITATION.cff) file.
 
-1. The-scikit-plots-developers. (11 2024). "scikit-plots: Machine Learning Visualization in Python".
-(Version latest). [doi:10.5281/zenodo.13367000](https://doi.org/10.5281/zenodo.13367000)
-
-2. The-scikit-plots-developers. (2024, Aug 23). "scikit-plots: Machine Learning Visualization in Python".
-(Version 0.3.8dev0). [doi:10.5281/zenodo.13367001](https://doi.org/10.5281/zenodo.13367001)
+### https://doi.org/10.5281/zenodo.13367000
+- çelik, muhammed. (2024). scikit-plots-latest.tar.gz (latest). Zenodo. [doi:10.5281/zenodo.13367000](https://doi.org/10.5281/zenodo.13367000)
+- çelik, muhammed. (2025). scikit-plots-0.4.0.tar.gz (0.4.0). Zenodo. [doi:10.5281/zenodo.13367095](https://doi.org/10.5281/zenodo.13367095)
+- scikit-plots. (2024). scikit-plots: v0.3.8dev0 (0.3.8dev0). Zenodo. [doi:10.5281/zenodo.13367001](https://doi.org/10.5281/zenodo.13367001)
 
 
 ### Supporting the Project (Upcoming)

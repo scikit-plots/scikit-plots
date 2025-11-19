@@ -144,18 +144,17 @@ References:
 
 .. toctree::
    :maxdepth: 1
-   :caption: Community
+   :caption: Project
    :hidden:
 
    Release History <whats_new/index.rst>
-   Community-G <https://github.com/orgs/scikit-plots/discussions>
-   Community-Z <https://zenodo.org/communities/scikit-plots>
    {%- if development_link | default(false) %}
    {#- if development_link is defined and development_link #}
    Developer's Guide <{{ development_link }}>
    {#- else #}
    {%- endif %}
+   Community <project/community.rst>
    Code of Conduct <project/code_of_conduct.rst>
    Governance <project/governance.rst>
    Roadmap <project/roadmap.rst>
-   About us <project/index.rst>
+   About Us/Project <project/index.rst>
