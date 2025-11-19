@@ -1079,16 +1079,16 @@ class DummyCodeEncoder(_BaseEncoder):
     GetDummies : Same but more limited and pandas based convert to dummy codes.
     pandas.Series.str.get_dummies : Convert Series of strings to dummy codes.
     pandas.from_dummies : Convert dummy codes back to categorical DataFrame.
-    OrdinalEncoder : Performs an ordinal (integer)
+    sklearn.preprocessing.OrdinalEncoder : Performs an ordinal (integer)
       encoding of the categorical features.
-    TargetEncoder : Encodes categorical features using the target.
+    sklearn.preprocessing.TargetEncoder : Encodes categorical features using the target.
     sklearn.feature_extraction.DictVectorizer : Performs a one-hot encoding of
       dictionary items (also handles string-valued features).
     sklearn.feature_extraction.FeatureHasher : Performs an approximate one-hot
       encoding of dictionary items or strings.
-    LabelBinarizer : Binarizes labels in a one-vs-all
+    sklearn.preprocessing.LabelBinarizer : Binarizes labels in a one-vs-all
       fashion.
-    MultiLabelBinarizer : Transforms between iterable of
+    sklearn.preprocessing.MultiLabelBinarizer : Transforms between iterable of
       iterables and a multilabel format, e.g. a (samples x classes) binary
       matrix indicating the presence of a class label.
 
