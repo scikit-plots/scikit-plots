@@ -1,6 +1,6 @@
-# Fallback to a specific version if the latest "nightly" fails
 import micropip; URL=("https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/"
-"simple/scikit-plots/{}/scikit_plots-{}-cp312-cp312-pyodide_2024_0_wasm32.whl")
-try: [await micropip.install(URL.format(v),keep_going=True) for v in ["0.5.dev0", "0.4.0.post7"]]
-except Exception: await micropip.install("scikit-plots==0.3.9rc3", keep_going=True)
+"simple/scikit-plots/{version}/scikit_plots-{version}-cp312-cp312-pyodide_2024_0_wasm32.whl")
+for v in ["0.5.dev0","0.4.0.post7"]:
+    try: await micropip.install(URL.format(version=v),keep_going=True)
+    except: await micropip.install("scikit-plots==0.3.9rc3",keep_going=True)
 import scikitplot as sp; print("scikit-plots version:", sp.__version__); sp.show_versions()
