@@ -155,6 +155,6 @@ References:
    {%- endif %}
    Community <project/community.rst>
    Code of Conduct <project/code_of_conduct.rst>
-   Governance <project/governance.rst>
+   Governance Process <project/governance.rst>
    Roadmap <project/roadmap.rst>
    About Us/Project <project/index.rst>
