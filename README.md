@@ -471,7 +471,7 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@maintenance/0.3
 ```bash
 ## pip install git+https://github.com/scikit-plots/scikit-plots.git#subdirectory=libs/skinny@<tags>
 ## If you want to install one of archived version from GitHub
-pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0.post6
+pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0
 pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.9rc3
 pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 ```
@@ -559,14 +559,15 @@ pip install --no-binary=:all: scikit-plots
 ```
 ```sh
 ## (Optionally) Install offline downloaded a source distribution (.tar.gz) of scikit-plots
+## https://pypi.org/project/scikit-plots/#history
 ## pip install --require-hashes -r requirements.txt
-## sha256sum scikit_plots-0.4.0.post6.tar.gz
-## shasum -a 256 scikit_plots-0.4.0.post6.tar.gz
-## Get-FileHash scikit_plots-0.4.0.post6.tar.gz -Algorithm SHA256
-## scikit-plots==0.4.0.post6 --hash=sha256:<your-computed-hash-here>
-# wget https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post6.tar.gz
-curl -O https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post6.tar.gz
-pip install ./scikit_plots-0.4.0.post6.tar.gz
+## sha256sum scikit_plots-0.4.0.post7.tar.gz
+## shasum -a 256 scikit_plots-0.4.0.post7.tar.gz
+## Get-FileHash scikit_plots-0.4.0.post7.tar.gz -Algorithm SHA256
+## scikit-plots==0.4.0.post7 --hash=sha256:<your-computed-hash-here>
+# wget https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post7.tar.gz
+curl -O https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post7.tar.gz
+pip install ./scikit_plots-0.4.0.post7.tar.gz
 ```
 
   <h3>
