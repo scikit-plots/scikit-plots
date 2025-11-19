@@ -69,6 +69,8 @@ In order to check your installation, you can use:
   # Version Check
   python -c "import scikitplot; scikitplot.show_versions()"
 
+.. prompt:: bash
+
   # (Optionally) CLI Version Check
   scikitplot
   scikitplot -h
@@ -83,6 +85,8 @@ In order to check your installation, you can use:
   ## wget https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
   curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/default.txt
   pip install -r default.txt
+
+.. prompt:: bash
 
   ## Try After Ensure all "Runtime dependencies" installed
   # pip install --extra-index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots

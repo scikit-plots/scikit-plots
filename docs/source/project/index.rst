@@ -17,9 +17,9 @@
 
 .. _about-index:
 
-========
-About us
-========
+================
+About Us/Project
+================
 
 This project was started in 2024.
 
@@ -32,6 +32,7 @@ Project information
 .. toctree::
     :maxdepth: 2
 
+    Community <community.rst>
     citing.rst
     history.rst
     license.rst
