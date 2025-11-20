@@ -7,10 +7,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-produce json:
+produce json.
+
 https://github.com/scikit-plots/scikit-plots.github.io/blob/main/dev/_static/switcher.json
 """
 
+import sys
 import os
 import re
 import json
@@ -18,9 +20,6 @@ import requests  # type: ignore[reportMissingModuleSource]
 
 from jinja2 import Environment, FileSystemLoader  # type: ignore[reportMissingModuleSource]
 import scikitplot as sp
-
-# from scikitplot import __version__
-__version__ = sp.version.full_version
 
 ## Constants
 ## It's the directory from which the Python script is being run,
@@ -66,28 +65,44 @@ def fetch_json_data(url: str, local_path: str) -> list[dict]:
 def get_context(version: str, data: list) -> dict:
     """Build context from version and existing data."""
     ## Regex to extract numbers and remove non-numeric characters
-    numeric_new_version = int(re.sub(r"\D", "", version))
-    numeric_stable_version = int(re.sub(r"\D", "", data[1]["version"]))  # 1 - stable
+    numeric_stable_version = int(re.sub(r"\D", "", data[1]["version"]))  # 1. stable
+    numeric_prev_version = int(re.sub(r"\D", "", data[1]["version"]))  # 2. prev
+    numeric_mini_version = int(re.sub(r"\D", "", data[1]["version"]))  # -1. mini
+    version = version.split('+')[0]
+    version_ = '.'.join(version.split('+')[0].split('.')[:3])
+    numeric_new_version_ = int(re.sub(r"\D", "", version_))
     ## You might want to compare with real stable
-    is_prev = numeric_new_version < numeric_stable_version
-
-    # 0 - dev
-    dev_version = version.split("+")[0] if "dev" in version else data[0]["version"]
-    # 1 - stable
-    stable_version = (
+    ## https://linuxhandbook.com/bash-test-operators/
+    # is_prev = numeric_new_version < numeric_stable_version
+    eq_mini = version_ in ("0.3.7",)  # Equal to
+    ne_mini = version_ not in ("0.3.7",)  # Not equal to
+    eq_stable = numeric_new_version_ == numeric_stable_version  # Equal to
+    ge_stable = numeric_new_version_ >= numeric_stable_version  # Greater or equal to
+    lt_stable = numeric_new_version_ < numeric_stable_version  # Less than
+    # 0. dev
+    dev_version = (
         version.split("+")[0]
-        if "dev" not in version and not is_prev
+        if "dev" in version
+        else data[0]["version"]
+    )
+    # 1. stable
+    stable_version = (
+        version_
+        if "dev" not in version and ge_stable
         else data[1]["version"]
     )
-    # 2 - prev_version
+    # 2. prev_version
     prev_version = (
-        version.split("+")[0]
-        if "dev" not in version and is_prev and "0.3.7" not in version
+        version_
+        if "dev" not in version and lt_stable and ne_mini
         else data[2]["version"]
     )
-    # -1 - mini_version
-    mini_version = version.split("+")[0] if "0.3.7" in version else data[-1]["version"]
-
+    # -1. mini_version
+    mini_version = (
+        version_
+        if eq_mini
+        else data[-1]["version"]
+    )
     ## Context with a variable to pass into the template
     return {
         "version": version,
@@ -111,13 +126,17 @@ def render_templates(env, context, template_map):
         print(f"Created: {output_file}")
 
 
-def main():
+def main(remote_data=True, version=None):
     """Main function."""
+    # from scikitplot import __version__
+    __version__ = version or sp.version.full_version
+    print("__version__:", __version__)
+
     ## Create the template object
     # template = Template(template_str)
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 
-    if "dev" not in __version__:
+    if remote_data and "dev" not in __version__:
         data = fetch_json_data(REMOTE_JSON_URL, LOCAL_JSON_FILE)
     else:
         data = load_json_data(LOCAL_JSON_FILE)
@@ -127,4 +146,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    remote_data = None
+    version = None
+    if len(sys.argv) > 1:
+        remote_data = sys.argv[1].lower() in ('true',)
+        print("The first argument is:", remote_data)
+    if len(sys.argv) > 2:
+        version = sys.argv[2].lower()
+        print("The second argument is:", version)
+    main(remote_data=remote_data, version=version)

@@ -241,13 +241,13 @@ docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/sci
 <div>
  <h3>
   📦
+  <a href="https://www.anaconda.com/docs/getting-started/anaconda/install" target="_blank" rel="noopener noreferrer">
+   Anaconda
+  </a>
+  ,
   <a href="https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html" target="_blank"
    rel="noopener noreferrer">
    Conda
-  </a>
-  ,
-  <a href="https://www.anaconda.com/docs/getting-started/anaconda/install" target="_blank" rel="noopener noreferrer">
-   Anaconda
   </a>
   ,
   <a href="https://www.anaconda.com/docs/getting-started/miniconda/install" target="_blank" rel="noopener noreferrer">
@@ -282,23 +282,25 @@ docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/sci
 ## (conda, mamba or micromamba) Create New Env and install ``scikit-plots``
 ## Create a new environment and install Python 3.11 with IPython kernel support
 # conda create -y -n py311 python=3.11 ipykernel
+# mamba create --yes --name py311 python=3.11 ipykernel
 micromamba create -y -n py311 python=3.11 ipykernel
 ```
 ```sh
 ## (conda, mamba or micromamba) Activate the environment
 # conda activate py311
+# mamba activate py311
 micromamba activate py311
 ```
 ```sh
 ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
 # conda search conda-forge::scikit-plots
-# conda search --channel conda-forge scikit-plots
+# mamba search --channel conda-forge scikit-plots
 micromamba search -c conda-forge scikit-plots
 ```
 ```sh
 ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
 # conda install -y conda-forge::scikit-plots
-# conda install --yes --channel conda-forge scikit-plots
+# mamba install --yes --channel conda-forge scikit-plots
 micromamba install -y -c conda-forge scikit-plots
 
 # Cause numpy>=2.0.0 but support old numpy
