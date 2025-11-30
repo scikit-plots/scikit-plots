@@ -54,9 +54,10 @@ References
 
 # This module is a dummy wrapper around the underlying C++ module.
 from .annoylib import Annoy  # keep for doc
-from .annoylib import Annoy as AnnoyIndex  # alias of Annoy
+# from .annoylib import Annoy as AnnoyIndex  # alias of Annoy
 
 from ._index import Index
+from ._index import Index as AnnoyIndex  # alias of Annoy
 
 # Define the annoy version
 # https://github.com/spotify/annoy/blob/main/setup.py
