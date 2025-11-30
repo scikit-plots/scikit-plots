@@ -378,6 +378,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "annoy",
                     "annoy.Annoy",
                     "annoy.AnnoyIndex",
+                    "annoy.Index",
                 ],
             },
             {
