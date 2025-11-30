@@ -121,7 +121,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 # Instantiate a few classification models
 clf_rf = RandomForestClassifier().fit(X_train, y_train)
-clf_mult = LogisticRegression(multi_class="multinomial", solver="newton-cg").fit(
+clf_mult = LogisticRegression(random_state=0).fit(
     X_train, y_train
 )
 
