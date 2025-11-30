@@ -14,7 +14,7 @@ from .. import logger
 
 class Timer:
     """
-    Lightweight timing context manager with logger support.
+    Lightweight timing context manager with :py:obj:`~.logger` support.
 
     Examples
     --------

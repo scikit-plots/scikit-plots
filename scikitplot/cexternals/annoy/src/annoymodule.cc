@@ -77,14 +77,15 @@ using namespace Annoy;
 
 // ErrorBuffer automatically frees char* error messages.
 struct ErrorBuffer {
-    char* ptr = nullptr;
-    ~ErrorBuffer() { if(ptr) free(ptr); }
+  // by Google, LLVM, Chromium, Qt: Type* variable;
+  char* ptr = nullptr;
+  ~ErrorBuffer() { if(ptr) free(ptr); }
 };
 
 // TempAnnoyFile auto-deletes temporary files on destruction. (C++ RAII):
 struct TempAnnoyFile {
-    std::string path;
-    ~TempAnnoyFile() { if (!path.empty()) std::remove(path.c_str()); }
+  std::string path;
+  ~TempAnnoyFile() { if (!path.empty()) std::remove(path.c_str()); }
 };
 
 // For demonstration, let's use a placeholder returns a path like "/tmp/annoy_temp_XYZ.annoy".
@@ -101,21 +102,34 @@ class HammingWrapper : public AnnoyIndexInterface<int32_t, float> {
   // This translates binary (float) vectors into packed uint64_t vectors.
   // This is questionable from a performance point of view. Should reconsider this solution.
 private:
-  int32_t _f_external, _f_internal;
   AnnoyIndex<int32_t, uint64_t, Hamming, Kiss64Random, AnnoyIndexThreadedBuildPolicy> _index;
+
+  // safe: 0 or 1 Hamming bits are only 0 or 1 uint64_t → float implicit conversion.
+  // 1       // int (usually 32-bit)
+  // 1ULL    // unsigned long long (typically 64-bit)
+  int32_t _f_external, _f_internal;
+
   void _pack(const float* src, uint64_t* dst) const {
     for (int32_t i = 0; i < _f_internal; i++) {
       dst[i] = 0;
-      for (int32_t j = 0; j < 64 && i*64+j < _f_external; j++) {
-	dst[i] |= (uint64_t)(src[i * 64 + j] > 0.5) << j;
+      for (int32_t j = 0; j < 64 && i * 64 + j < _f_external; j++) {
+        // Explicitly produce 0ULL or 1ULL, then shift
+        // dst[i] |= (uint64_t)(src[i * 64 + j] > 0.5) << j;
+        dst[i] |= (src[i * 64 + j] > 0.5f ? 1ULL : 0ULL) << j;
       }
     }
   };
+
   void _unpack(const uint64_t* src, float* dst) const {
     for (int32_t i = 0; i < _f_external; i++) {
-      dst[i] = (src[i / 64] >> (i % 64)) & 1;
+      // Extract bit as uint64_t
+      uint64_t bit = (src[i / 64] >> (i % 64)) & 1ULL; // stays uint64_t
+      // Convert safely to float
+      // dst[i] = (src[i / 64] >> (i % 64)) & 1;
+      dst[i] = static_cast<float>(bit); // explicit, safe
     }
   };
+
 public:
   HammingWrapper(int f)
     : _f_external(f), _f_internal((f + 63) / 64), _index((f + 63) / 64) {};
@@ -125,6 +139,7 @@ public:
     _pack(w, &w_internal[0]);
     return _index.add_item(item_idx, &w_internal[0], error);
   };
+
   bool build(int q, int n_threads, char** error) { return _index.build(q, n_threads, error); };
 
   // bool deserialize(vector<uint8_t>* bytes, bool prefault, char** error) { return _index.deserialize(bytes, prefault, error); };
@@ -141,6 +156,7 @@ public:
   }
 
   float get_distance(int32_t i, int32_t j) const { return _index.get_distance(i, j); };
+
   void get_item(int32_t item_idx, float* v) const {
     vector<uint64_t> v_internal(_f_internal, 0);
     _index.get_item(item_idx, &v_internal[0]);
@@ -156,7 +172,18 @@ public:
       _index.get_nns_by_item(item_idx, n, search_k, result, &distances_internal);
       // distances->insert(distances->begin(), distances_internal.begin(), distances_internal.end());
       distances->resize(distances_internal.size());
-      for (size_t i = 0; i < distances_internal.size(); i++) distances->at(i) = (float)distances_internal[i];
+
+      // for (size_t i = 0; i < distances_internal.size(); i++)
+      //   distances->at(i) = (float)distances_internal[i];
+      for (size_t i = 0; i < distances_internal.size(); i++) {
+          uint64_t d = distances_internal[i];
+
+          // sanity: Hamming distance can never exceed _f_external
+          // (not required, but defensively future-proof)
+          if (d > (uint64_t)_f_external) d = (uint64_t)_f_external;
+
+          distances->at(i) = static_cast<float>(d);
+      }
     } else {
       _index.get_nns_by_item(item_idx, n, search_k, result, NULL);
     }
@@ -277,7 +304,8 @@ py_an_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     PyObject *f_obj = NULL;
     PyObject *metric_obj = NULL;
 
-    static char *kwlist[] = {"f", "metric", NULL};
+    // kwlist arrays must use const char* because string literals are immutable.
+    static char const *kwlist[] = {"f", "metric", NULL};
 
     // Parse f as PyObject (accept None)
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OO",
@@ -413,7 +441,7 @@ static int py_annoy_set_metric(py_annoy* self, PyObject* value, void* closure) {
       self->ptr = create_index_for_metric(self->f, self->metric);
       if (!self->ptr) {
         PyErr_SetString(PyExc_RuntimeError,
-          "AnnoyIndex not initialized. Pass `f` and/or `metric`, or call add_item() first.");
+          "AnnoyIndex not initialized. Pass `f` and/or `metric`, or call add_item(0) first.");
         return -1;
       }
     }
@@ -448,10 +476,14 @@ static PyGetSetDef py_annoy_getset[] = {
 
 static PyObject *
 py_an_load(py_annoy *self, PyObject *args, PyObject *kwargs) {
-  char *filename, *error;
+  // filename is received from Python as a borrowed pointer to immutable UTF-8 storage → must be const char*.
+  // error is dynamically allocated by Annoy (strdup) → must remain char* so free() is valid.
+  const char *filename;
+  char *error;
   bool prefault = false;
-  if (!self->ptr)
-    return NULL;
+
+  if (!self->ptr) return NULL;
+
   static char const * kwlist[] = {"fn", "prefault", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|b", (char**)kwlist, &filename, &prefault))
     return NULL;
@@ -467,10 +499,14 @@ py_an_load(py_annoy *self, PyObject *args, PyObject *kwargs) {
 
 static PyObject *
 py_an_save(py_annoy *self, PyObject *args, PyObject *kwargs) {
-  char *filename, *error;
+  // filename is received from Python as a borrowed pointer to immutable UTF-8 storage → must be const char*.
+  // error is dynamically allocated by Annoy (strdup) → must remain char* so free() is valid.
+  const char *filename;
+  char *error;
   bool prefault = false;
-  if (!self->ptr)
-    return NULL;
+
+  if (!self->ptr) return NULL;
+
   static char const * kwlist[] = {"fn", "prefault", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|b", (char**)kwlist, &filename, &prefault))
     return NULL;
@@ -598,6 +634,7 @@ convert_list_to_vector(PyObject* v, int f, vector<float>* w) {
     // Py_ssize_t idx = PyLong_AsSsize_t(idx);  // Convert PyObject* to C integer
     if (idx == NULL) { return false; };
 
+    // ?? remove redundant PyObject_GetItem loops (replace with PySequence_Fast)
     PyObject *pf = PyObject_GetItem(v, idx);  // Works for any mapping or sequence
     Py_DECREF(idx);
     if (pf == NULL) { return false; };
@@ -614,18 +651,28 @@ convert_list_to_vector(PyObject* v, int f, vector<float>* w) {
 static PyObject*
 py_an_get_nns_by_vector(py_annoy *self, PyObject *args, PyObject *kwargs) {
   PyObject* v;
+
   int32_t n, search_k=-1, include_distances=0;
-  if (!self->ptr) return NULL;
+
+  // if (!self->ptr) return NULL;
+  if (!self->ptr) {
+      PyErr_SetString(PyExc_RuntimeError,
+          "AnnoyIndex not initialized. Pass `f` and/or `metric`, or call add_item(0) first.");
+      return NULL;
+  }
 
   static char const * kwlist[] = {"vector", "n", "search_k", "include_distances", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Oi|ii", (char**)kwlist, &v, &n, &search_k, &include_distances))
     return NULL;
 
+  // Temporary vector, dimension = current self->f
   vector<float> w(self->f);
   int old_f = self->f;
 
+  // Convert Python vector to C++
   if (!convert_list_to_vector(v, self->f, &w)) { return NULL; };
 
+  // If f was 0 → this was first vector ever seen, so initialize index now
   if (old_f == 0) {
     PyErr_SetString(PyExc_RuntimeError,
       "Cannot query nearest neighbors before index dimension is known. "
@@ -734,7 +781,7 @@ py_an_add_item(py_annoy *self, PyObject *args, PyObject* kwargs) {
   // if (!self->ptr) return NULL;
   if (!self->ptr) {
       PyErr_SetString(PyExc_RuntimeError,
-        "AnnoyIndex not initialized. Pass `f` and/or `metric`, or call add_item() first."
+        "AnnoyIndex not initialized. Pass `f` and/or `metric`, or call add_item(0) first."
       );
       return NULL;
   }
@@ -762,9 +809,13 @@ py_an_add_item(py_annoy *self, PyObject *args, PyObject* kwargs) {
 
 static PyObject *
 py_an_on_disk_build(py_annoy *self, PyObject *args, PyObject *kwargs) {
-  char *filename, *error;
-  if (!self->ptr)
-    return NULL;
+  // filename is received from Python as a borrowed pointer to immutable UTF-8 storage → must be const char*.
+  // error is dynamically allocated by Annoy (strdup) → must remain char* so free() is valid.
+  const char *filename;
+  char *error;
+
+  if (!self->ptr) return NULL;
+
   static char const * kwlist[] = {"fn", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char**)kwlist, &filename))
     return NULL;
@@ -781,8 +832,9 @@ static PyObject *
 py_an_build(py_annoy *self, PyObject *args, PyObject *kwargs) {
   int q;
   int n_jobs = -1;
-  if (!self->ptr)
-    return NULL;
+
+  if (!self->ptr) return NULL;
+
   static char const * kwlist[] = {"n_trees", "n_jobs", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i|i", (char**)kwlist, &q, &n_jobs))
     return NULL;
