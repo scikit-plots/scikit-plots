@@ -11,11 +11,36 @@
 # This module was copied from the mlflow project.
 # https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
 
-"""
+r"""
 cli.py.
 
-Copied from mlflow.
-https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
+.. seealso::
+    * https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
+    * https://github.com/python/cpython/blob/main/Lib/getopt.py
+
+Examples
+--------
+!python -VV
+
+# Python prints -VV, by os
+os.system("python -VV")
+with os.popen("python -VV") as f: output=f.read().strip()
+
+# Python prints -VV, by subprocess
+output = subprocess.Popen(["python", "-VV"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).communicate()[0].strip()
+output = subprocess.run(["python", "-VV"], capture_output=True, text=True).stdout.strip()
+output = subprocess.check_output("python -VV", shell=True, text=True).strip()
+print(output)
+
+# Python prints
+import os, platform, subprocess, sys
+print("Implementation\t:", platform.python_implementation(), sys.implementation.name)
+print("Version\t\t:", sys.version)
+print("Compiler\t:", platform.python_compiler())
+
+print(platform.system())      # Same as platform_system
+print(platform.platform())    # Shows musl / glibc details
+print(platform.libc_ver())    # Helps detect musllinux (musl vs glibc)
 """
 
 from __future__ import annotations

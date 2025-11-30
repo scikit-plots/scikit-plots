@@ -56,7 +56,7 @@ aae:
 annoy:
 	@bash ./maint_tools/vendor_repo.sh \
 		--repo-url "https://github.com/spotify/annoy.git" \
-		--repo-ref "8a7e82cb537053926b0ac6ec132b9ccc875af40c" \
+		--repo-ref "379f744667aba6b40ba3db8a07678df173a88f74" \
 		--target-dir "../third_party/annoy" \
     	--move-to "../scikitplot/cexternals/annoy" \
 		--nested-folder "" \

@@ -44,6 +44,7 @@
 
 # 🛠 How to Use It
 # -----------------------------------------------------------------------------
+# https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually
 # Create the environment with only default (base) packages:
 #   conda env create -f environment.yml
 #
@@ -99,8 +100,8 @@ dependencies:
   - scipy
 
   # 📥 File I/O and formats
+  - anaconda::click      # CLI utilities
   - requests
-  - click
   - pyyaml
   - xlrd
   - openpyxl

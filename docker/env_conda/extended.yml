@@ -44,6 +44,7 @@
 
 # 🛠 How to Use It
 # -----------------------------------------------------------------------------
+# https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually
 # This file installs optional/extended packages.
 # Use it *after* installing default.yml:
 #

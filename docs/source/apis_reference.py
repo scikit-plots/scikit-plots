@@ -867,6 +867,44 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.utils": {
+      "short_summary": "Development Utilities",
+      "description": (
+        _get_guide("developers-guide-index", is_developer=True)
+      ),
+      "sections": [
+        {
+          "title": "Time Utilities",
+          "description": _get_submodule("scikitplot.utils", "_time"),
+          "autosummary": [
+            '_time.Timer',
+          ],
+        },
+        # {
+        #   "title": "Optimal matplotlib operations",
+        #   "description": _get_submodule("scikitplot.utils", "_figures"),
+        #   "autosummary": [
+        #     '_figures.save_figure',
+        #   ],
+        # },
+        # {
+        #   "title": "Optimal mathematical operations",
+        #   "description": _get_submodule("scikitplot.utils", "_helpers"),
+        #   "autosummary": [
+        #     '_helpers.validate_labels',
+        #     '_helpers.cumulative_gain_curve',
+        #     '_helpers.binary_ks_curve',
+        #   ],
+        # },
+        # {
+        #   "title": "Input and parameter validation",
+        #   "description": _get_submodule("scikitplot.utils", "validation"),
+        #   "autosummary": [
+        #     'validation.validate_plotting_kwargs',
+        #   ],
+        # },
+      ],
+    },
     # "scikitplot.utils": {
     #   "short_summary": "Development Utilities",
     #   "description": (

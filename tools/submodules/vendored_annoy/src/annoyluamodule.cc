@@ -164,6 +164,7 @@ public:
     return 1;
   }
 
+  // https://github.com/spotify/annoy/pull/661/files#diff-6c819344be1cf03fe353df90022bb31431d7959a346eaf752d306e2b31aa7aab
   static int serialize(lua_State* L) {
     Impl* self = getAnnoy(L, 1);
     int nargs = lua_gettop(L);
@@ -281,8 +282,6 @@ public:
       {"build", &ThisClass::build},
       {"save", &ThisClass::save},
       {"load", &ThisClass::load},
-      {"serialize", &ThisClass::serialize},
-      {"deserialize", &ThisClass::deserialize},
       {"unload", &ThisClass::unload},
       {"get_nns_by_item", &ThisClass::get_nns_by_item},
       {"get_nns_by_vector", &ThisClass::get_nns_by_vector},
@@ -290,6 +289,8 @@ public:
       {"get_distance", &ThisClass::get_distance},
       {"get_n_items", &ThisClass::get_n_items},
       {"on_disk_build", &ThisClass::on_disk_build},
+      {"serialize", &ThisClass::serialize},
+      {"deserialize", &ThisClass::deserialize},
       {NULL, NULL},
     };
     return funcs;

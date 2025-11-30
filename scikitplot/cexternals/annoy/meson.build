@@ -75,17 +75,32 @@ os_name = host_machine.system()
 cpu_arch = host_machine.cpu_family()
 
 # Base compile and link flags
-extra_compile_args = [
-  '-D_CRT_SECURE_NO_WARNINGS',
-  '-fpermissive',
-]
 extra_link_args = []
+extra_compile_args = [
+  '-O3',
+  '-D_CRT_SECURE_NO_WARNINGS',
+  '-ffast-math',  # we use infinity
+  '-fpermissive',
+  '-fno-associative-math',
+]
+
+# https://stackoverflow.com/questions/22931147/stdisinf-does-not-work-with-ffast-math-how-to-check-for-infinity
+if host_machine.system() == 'windows' or cc.get_id() == 'intel'
+  extra_compile_args += [
+    '-fp:precise',  # can't use fp:fast because we use inf
+  ]
+endif
 
 # Make sure we have the right definition when compiling as a shared library on Windows.
 # if get_option('default_library') != 'static' and host_machine.system() == 'windows'
 # 	add_project_arguments('-DLUA_BUILD_AS_DLL', language: 'c')
 # 	extra_compile_args += [ '-DLUA_BUILD_AS_DLL' ]
 # endif
+
+# General optimization flags for non-Windows
+if os_name != 'windows'
+  extra_compile_args += []
+endif
 
 if cpu_arch == 'ppc64le'
   extra_compile_args += ['-mcpu=native']
@@ -101,22 +116,13 @@ if cpu_arch == 'x86_64'
   endif
 endif
 
-# General optimization flags for non-Windows
-if os_name != 'windows'
-  extra_compile_args += [
-    '-O3',
-    '-ffast-math',
-    '-fno-associative-math',
-  ]
-endif
-
 # Multithreaded build flag (Python 3 or non-Windows Py2 equivalent)
 # We can safely always enable this — modern environments all support threads
 extra_compile_args += [
   '-DANNOYLIB_MULTITHREADED_BUILD',
 ]
 
-# Use at least C++17
+# Use at least unix: "-std=c++14", win: "/std:c++14"
 if cc.has_argument('-std=c++17')
   extra_compile_args += ['-std=c++17']
 endif
@@ -127,11 +133,18 @@ endif
 # On macOS, the <filesystem> implementation requires at least macOS 10.15 (Catalina) with Xcode 11+.
 if os_name == 'darwin'
   if cc.has_argument('-mmacosx-version-min=10.15')
-    extra_compile_args += ['-mmacosx-version-min=10.15']
-    extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.15']
+    extra_compile_args += [
+      '-mmacosx-version-min=10.15',
+    ]
+    extra_link_args += [
+      '-lomp',
+      '-stdlib=libc++',
+      '-mmacosx-version-min=10.15',
+    ]
   endif
 endif
 
+## AVX, AVX2, AVX-512, and a generic fallback.
 ## annoy-simd-cp313-win_amd64.whl → AVX baseline
 ## annoy-simd-cp313-win_amd64_avx512.whl → HPC optimized
 ## Optional AVX/AVX512 optimizations
@@ -143,8 +156,12 @@ endif
 #     '-mavx512f',
 #     '-DANNOYLIB_USE_AVX512',
 #   ]
-# el
-# if cc.has_argument('-mavx')
+# elif cc.has_argument('-mavx2')
+#   extra_compile_args += [
+#     '-mavx2',
+#     '-DANNOYLIB_USE_AVX',
+#   ]
+# elif cc.has_argument('-mavx')
 #   extra_compile_args += [
 #     '-mavx',
 #     '-DANNOYLIB_USE_AVX',
@@ -157,8 +174,8 @@ message('Final compile args: ' + ' '.join(extra_compile_args))
 message('Final link args: ' + ' '.join(extra_link_args))
 
 annoy_core_sources = [
-  'src/annoymodule.cc',  # (Python binding)
   # 'src/annoyluamodule.cc',  # (Lua binding)
+  'src/annoymodule.cc',  # (Python binding)
 ]
 annoy_static = static_library(
   'annoycore',
@@ -176,6 +193,7 @@ annoy_static = static_library(
 ######################################################################
 
 ## Define metadata for shared Cython files '.pyx' extensions targeting both C and C++
+## C library, the extension is `.c`, for C++ `.cc`, `.cpp` or `.cxx` are accepted.
 ## .c → plain C
 ## .cpp or .cc → C++
 ## .cxx or .C → also C++ (less common)
@@ -187,8 +205,8 @@ annoy_extension_metadata = {
   {
     # Only module your actual C++/Python/Pybind11 binding sources
     'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint
-      'src/annoymodule.cc',  # (Python binding)
       # 'src/annoyluamodule.cc',  # (Lua binding)
+      'src/annoymodule.cc',  # (Python binding)
     ],
     'include_directories': [                      # Include dirs for compilation
       inc_dir_annoy,
@@ -211,6 +229,7 @@ annoy_extension_metadata = {
       extra_compile_args,
     ],
     'link_args': [                                # 👈 add this
+      cython_link_flags,
       extra_link_args
     ],
     'install': true,                              # Whether to install the .so file executable after building

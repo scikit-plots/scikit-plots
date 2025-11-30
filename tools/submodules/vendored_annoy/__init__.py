@@ -16,14 +16,33 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-High-dimensional Approximate Nearest Neighbors (ANN) queries in C++/Python optimized
-for memory usage and loading/saving to disk.
+Spotify Annoy (Approximate Nearest Neighbors Oh Yeah)
+-----------------------------------------------------
 
-Python module (written in C++) for high-dimensional approximate nearest neigbor (ANN) queries.
-Spotify-Annoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
-to search for points in space that are close to a given query point.
-It also creates large read-only file-based data structures
-that are mmapped into memory so that many processes may share the same data.
+A high-dimensional Approximate Nearest Neighbors (ANN) library implemented in C++
+with Python bindings, optimized for memory usage, speed, and large-scale disk-based
+indices that can be shared across processes via memory mapping (mmap).
+
+Annoy is designed to find points in space that are closest to a given query point
+using different distance metrics. It is particularly efficient for high-dimensional
+vector data such as embeddings (word, image, or user vectors).
+
+Key Features:
+
+- Build trees for high-dimensional data using multiple distance metrics.
+- Serialize/deserialize indexes to bytes or disk for persistence.
+- Support for memory-mapped indexes for read-only sharing across processes.
+- Optional multi-threaded building for faster index construction.
+- Provides approximate nearest neighbors with tunable accuracy vs speed tradeoff.
+
+Examples
+--------
+>>> from annoy import AnnoyIndex
+>>> f = 40  # vector dimensionality
+>>> t = AnnoyIndex(f, 'angular')  # Length of item vector and metric
+>>> t.add_item(0, [1]*f)
+>>> t.build(10)  # Build 10 trees
+>>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
 
 References
 ----------
@@ -37,6 +56,8 @@ References
 from .annoylib import Annoy  # keep for doc
 from .annoylib import Annoy as AnnoyIndex  # alias of Annoy
 
+from ._index import Index
+
 # Define the annoy version
 # https://github.com/spotify/annoy/blob/main/setup.py
 __version__ = "8a7e82cb537053926b0ac6ec132b9ccc875af40c"  # Ref Branch, Tag, or Commit SHA
@@ -47,4 +68,5 @@ __git_hash__  = "8a7e82cb537053926b0ac6ec132b9ccc875af40c"
 __all__ = [
     'Annoy',
     'AnnoyIndex',
+    'Index',
 ]

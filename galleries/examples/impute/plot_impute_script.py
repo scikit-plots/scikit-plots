@@ -230,6 +230,8 @@ time_data[5] = T
 
 # %%
 import scikitplot as sp
+# sp.get_logger().setLevel(sp.logging.WARNING)  # sp.logging == sp.logger
+sp.logger.setLevel(sp.logger.INFO)  # default WARNING
 sp.__version__
 
 

@@ -44,6 +44,7 @@
 
 # 🛠 How to Use It
 # -----------------------------------------------------------------------------
+# https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually
 # Create the base environment from this file:
 #   conda env create -f default.yml
 #
@@ -95,8 +96,8 @@ dependencies:
   - scipy                # Scientific computing
 
   # 📥 File I/O and formats
+  - anaconda::click      # CLI utilities
   - requests             # HTTP for APIs
-  - click                # CLI utilities
   - pyyaml               # YAML parsing
   - xlrd                 # Read Excel files (.xls)
   - openpyxl             # Read/write Excel files (.xlsx)

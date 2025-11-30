@@ -437,3 +437,51 @@ def online_help(
 ######################################################################
 ##
 ######################################################################
+
+
+def set_seed(seed: int = 42):
+    """
+    Seed Python, NumPy, PyTorch and TensorFlow.
+
+    Returns
+    -------
+    np_random : np.random.Generator
+        A NumPy random Generator instance.
+    """
+    import random
+
+    random.seed(seed)
+
+    # NumPy (legacy API)
+    try:
+        import numpy as np
+
+        np.random.seed(seed)  # noqa: NPY002
+    except Exception:
+        pass
+
+    # NumPy (modern API)
+    try:
+        import numpy as np
+
+        np_random = np.random.default_rng(seed)
+    except Exception:
+        np_random = None
+
+    # PyTorch
+    try:
+        import torch
+
+        torch.manual_seed(seed)
+    except Exception:
+        pass
+
+    # TensorFlow
+    try:
+        import tensorflow as tf
+
+        tf.random.set_seed(seed)
+    except Exception:
+        pass
+
+    return np_random
