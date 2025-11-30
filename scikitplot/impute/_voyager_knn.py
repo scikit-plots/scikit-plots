@@ -23,7 +23,6 @@ References
 
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
 
 # sklearn
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
@@ -48,10 +47,8 @@ from sklearn.utils.validation import (
     validate_data,
 )
 
-from ..utils._time import Timer
-
 try:
-    from ..cexternals.annoy import Index as AnnoyIndex
+    from ..cexternals.annoy import AnnoyIndex
 except Exception:
     from annoy import AnnoyIndex
 
@@ -61,33 +58,31 @@ __all__ = [
 
 
 # --------------------------------------------------------------------------- #
-# Approximate KNN-based imputer using Annoy (inherits sklearn _BaseImputer)
+# Approximate KNN-based imputer using Voyager (inherits sklearn _BaseImputer)
 # --------------------------------------------------------------------------- #
 # class _BaseImputer(TransformerMixin, BaseEstimator):
 class AnnoyKNNImputer(_BaseImputer):
     r"""
-    Fast approximate vector nearest-neighbors-based imputation using the Spotify Annoy library.
+    Fast approximate vector nearest-neighbors-based imputation using the Spotify Voyager library.
 
     This imputer replaces the exact neighbor search of :class:`
-    ~sklearn.impute.KNNImputer` with a approximate nearest neighbor index (Annoy),
+    ~sklearn.impute.KNNImputer` with a approximate nearest neighbor index (Voyager),
     providing significant scalability improvements on large datasets.
 
-    Annoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python
-    bindings designed to search for points in a vector space that are close to a
-    given query point. It originates from Spotify and Index algorithm uses a
-    forest of ``random projection trees`` to enable approximate nearest neighbor
-    queries in high-dimensional spaces. All index must fit RAM.
+    Voyager is a library for performing fast approximate nearest-neighbor searches
+    on an in-memory collection of vectors.
 
-    Annoy builds memory-mapped, read-only index files that can be shared across
-    multiple processes without duplicating memory usage. Index construction is
-    performed separately from querying, allowing the index to be built once,
-    saved to disk, and loaded efficiently for fast lookups. This design is well
-    suited for large-scale recommendation systems and imputation tasks where
-    memory efficiency and scalability are critical.
+    Voyager features bindings to both Python and Java, with feature parity and
+    index compatibility between both languages. It uses the HNSW algorithm,
+    based on the open-source hnswlib package, with numerous features added
+    for convenience and speed. Voyager is used extensively in production at Spotify,
+    and is queried hundreds of millions of times per day to power numerous
+    user-facing features.
 
-    This imputer uses Annoy to identify approximate nearest neighbors for samples
-    containing missing values and imputes those values using statistics computed
-    from the retrieved neighbor vectors.
+    Think of Voyager like Sparkey, but for vector/embedding data; or like Annoy,
+    but with much higher recall. It got its name because it searches through
+    (embedding) space(s), much like the Voyager interstellar probes launched by
+    NASA in 1977.
 
     Parameters
     ----------
@@ -337,182 +332,137 @@ class AnnoyKNNImputer(_BaseImputer):
     # ------------------------------------------------------------------ #
     def _fit_annoy_index(self, X):
         """Build Annoy index using rows without missing values."""
-        with Timer("Building `AnnoyIndex` for nearest neighbors approximate search..."):
-            # Compute per-feature fill statistics
-            # self.fill_annoy_vector_ = np.full(X.shape[1], np.nan)
-            # self.fill_annoy_vector_ = np.nanmedian(X, axis=0)
+        # Compute per-feature fill statistics
+        # self.fill_annoy_vector_ = np.full(X.shape[1], np.nan)
+        # self.fill_annoy_vector_ = np.nanmedian(X, axis=0)
+        self.fill_annoy_vector_ = np.nanmean(X, axis=0)
+        # Temporary fill missing for index building
+        if self.initial_strategy == "median":
+            self.fill_annoy_vector_ = np.nanmedian(X, axis=0)
+        elif self.initial_strategy == "mean":
             self.fill_annoy_vector_ = np.nanmean(X, axis=0)
-            # Temporary fill missing for index building
-            if self.initial_strategy == "median":
-                self.fill_annoy_vector_ = np.nanmedian(X, axis=0)
-            elif self.initial_strategy == "mean":
-                self.fill_annoy_vector_ = np.nanmean(X, axis=0)
-            else:
-                self.fill_annoy_vector_ = np.nanmean(X, axis=0)
-            # Temporarily fill NaNs (mean/median) before index build.
-            try:
-                X = np.where(
-                    np.isnan(
-                        np.nan_to_num(X, nan=np.nan, posinf=np.nan, neginf=np.nan),
-                    ),
-                    self.fill_annoy_vector_,
-                    X,
-                )
-            except:
-                X = np.where(np.isnan(X), self.fill_annoy_vector_, X)
+        else:
+            self.fill_annoy_vector_ = np.nanmean(X, axis=0)
+        # Temporarily fill NaNs (mean/median) before index build.
+        try:
+            X = np.where(
+                np.isnan(
+                    np.nan_to_num(X, nan=np.nan, posinf=np.nan, neginf=np.nan),
+                ),
+                self.fill_annoy_vector_,
+                X,
+            )
+        except:
+            X = np.where(np.isnan(X), self.fill_annoy_vector_, X)
 
-            f = X.shape[1]
+        f = X.shape[1]
+        # Annoy requires full vectors — for simplicity we skip rows with NaNs
+        # determine valid any row not nan
+        annoy_index = AnnoyIndex(f, self.metric)  # or 'euclidean'
+        # Set random seed if provided
+        if self.random_state is not None:
+            annoy_index.set_seed(self.random_state)
+        # Add all samples to index
+        for i, row in enumerate(X):
             # Annoy requires full vectors — for simplicity we skip rows with NaNs
-            # determine valid any row not nan
-            annoy_index = AnnoyIndex(f, self.metric)  # or 'euclidean'
-            # Set random seed if provided
-            if self.random_state is not None:
-                annoy_index.set_seed(self.random_state)
-            # Add all samples to index
-            for i, row in enumerate(X):
-                # Annoy requires full vectors — for simplicity we skip rows with NaNs
-                # Adds item `i` (any nonnegative integer) with vector `v`.
-                # Note that it will allocate memory for `max(i)+1` items.
-                if not np.isnan(row).any():
-                    annoy_index.add_item(i, row)  # v.tolist()
-            # Build forest of trees or -1, n_jobs annoy not handle None
-            annoy_index.build(self.n_trees or -1, self.n_jobs or -1)  # n_trees
-            self.annoy_index_ = annoy_index
+            # Adds item `i` (any nonnegative integer) with vector `v`.
+            # Note that it will allocate memory for `max(i)+1` items.
+            if not np.isnan(row).any():
+                annoy_index.add_item(i, row)  # v.tolist()
+        # Build forest of trees or -1, n_jobs annoy not handle None
+        annoy_index.build(self.n_trees or -1, self.n_jobs or -1)  # n_trees
+        self.annoy_index_ = annoy_index
 
     # ------------------------------------------------------------------ #
     # Transform Annoy index helper
     # ------------------------------------------------------------------ #
-    def _process_single_row(
-        self,
-        i,
-        row,
-        initial_mask,
-        annoy_index,
-        fill_vec,
-        n_neighbors,
-        search_k,
-        weights_method,
-        is_empty_feature,
-    ):
-        """Process one row and return (index, updated_row)."""
-        # skip complete rows has no missing values
-        if not np.any(initial_mask[i]):
-            return i, row  # nothing to impute
-
-        # 1. Replace NaNs with fill vector
-        try:
-            vec = np.where(
-                np.isnan(
-                    np.nan_to_num(
-                        row,
-                        nan=np.nan,
-                        posinf=np.nan,
-                        neginf=np.nan,
-                    ),
-                ),
-                fill_vec,
-                row,
-            )
-        except:
-            # vec = row
-            vec = np.where(np.isnan(row), fill_vec, row)
-
-        # 2. Query Annoy neighbors in the training set
-        # Query Annoy neighbors (fill NaNs with precomputed values), returns the n closest items
-        # find neighbours using the observed parts: simplest approach uses only complete rows
-        # indices_i, distances_i
-        idxs, dists = annoy_index.get_nns_by_vector(
-            vec,  # row, X[i]
-            n_neighbors,
-            search_k=search_k,
-            include_distances=True,
-        )
-        # Annoy returns the query point itself as the first element
-        # Remove self-neighbors (distance == 0)
-        # But Annoy can return distance 0 even for non-identical vectors (if vectors coincide).
-        # while 0 in dists:
-        # That's safer and avoids dropping legitimate zero-distance donors (rare but possible in normalized data).
-        # if i in potential_donors_idx:
-        #     idx = dists.index(0)
-        #     potential_donors_idx.pop(idx)
-        #     dists.pop(idx)
-        if not idxs:
-            return i, row  # nothing to impute
-
-        # Convert to 2D so _get_weights expects shape (n_queries, n_neighbors)
-        # np.asarray(dists, dtype=float).reshape(1, -1)
-        # dists_2d = np.atleast_2d(np.asarray(dists, dtype=float))
-        # weights_2d = _get_weights(dists_2d, self.weights)
-        idxs = np.asarray(idxs)
-        dists = np.asarray(dists, dtype=float)
-
-        # 3. Compute weights
-        dists_2d = dists.reshape(1, -1)
-        weights_2d = _get_weights(dists_2d, weights_method)
-
-        if weights_2d is None:
-            # Fall back to uniform if None
-            weights = np.ones_like(dists)
-        else:
-            # # Replace inf values (e.g. due to zero distances) with 1.0
-            # if np.isinf(weights_2d).any():
-            #     weights_2d[np.isinf(weights_2d)] = 1.0  # np.isfinite
-            # # Normalize weights row-wise (avoid division by zero)
-            # # if np.any(weights_2d):
-            # row_sums = weights_2d.sum(axis=1, keepdims=True)
-            # weights_2d /= np.where(row_sums == 0, 1, row_sums)
-            weights = weights_2d.ravel()
-
-            # Normalize
-            s = weights.sum()
-            if s != 0:
-                weights /= s
-
-        # 4. Retrieve neighbor rows
-        neighbors = np.asarray(
-            [annoy_index.get_item_vector(idx) for idx in idxs],
-            dtype=float,
-        )
-
-        # 5. Impute missing entries
-        new_row = row.copy()
-        for j, is_nan in enumerate(initial_mask[i]):
-            # if is_nan and ~self._is_empty_feature[j]:
-            if is_nan and not is_empty_feature[j]:
-                valid = ~np.isnan(neighbors[:, j])
-                vals = neighbors[valid, j]
-                w = weights[valid][: len(vals)]
-                if vals.size:
-                    # weighted mean or simple mean
-                    new_row[j] = (
-                        np.average(vals, weights=w) if w.sum() > 0 else vals.mean()
-                    )
-                else:
-                    # Fallback to global fill value if no neighbor values
-                    new_row[j] = fill_vec[j]
-        return i, new_row
-
     def _transform_annoy_index(self, X, initial_mask):  # noqa: PLR0912
         # Iterate over rows with missing values
-        # for i, row in enumerate(X):
-        with Timer("Transforming with Annoy..."):
-            results = Parallel(n_jobs=self.n_jobs)(
-                delayed(self._process_single_row)(
-                    i,
-                    X[i],
-                    initial_mask,
-                    self.annoy_index_,
+        for i, row in enumerate(X):
+            if not np.any(initial_mask[i]):
+                continue  # skip complete rows has no missing values
+            try:
+                vec = np.where(
+                    np.isnan(
+                        np.nan_to_num(row, nan=np.nan, posinf=np.nan, neginf=np.nan),
+                    ),
                     self.fill_annoy_vector_,
-                    self.n_neighbors,
-                    self.search_k,
-                    self.weights,
-                    self._is_empty_feature,
+                    row,
                 )
-                for i in range(X.shape[0])
+            except:
+                # vec = row
+                vec = np.where(np.isnan(row), self.fill_annoy_vector_, row)
+            # Query Annoy neighbors (fill NaNs with precomputed values), returns the n closest items
+            # find neighbours using the observed parts: simplest approach uses only complete rows
+            potential_donors_idx, annoy_dists_1d = self.annoy_index_.get_nns_by_vector(
+                vec,  # row, X[i]
+                self.n_neighbors,
+                search_k=self.search_k,
+                include_distances=True,
             )
-        # Write updated rows back
-        for i, new_row in results:
-            X[i] = new_row
+            # Remove self-neighbors (distance == 0)
+            # But Annoy can return distance 0 even for non-identical vectors (if vectors coincide).
+            # while 0 in dists:
+            # That's safer and avoids dropping legitimate zero-distance donors (rare but possible in normalized data).
+            # if i in potential_donors_idx:
+            #     idx = dists.index(0)
+            #     potential_donors_idx.pop(idx)
+            #     dists.pop(idx)
+            if not potential_donors_idx:
+                continue
+
+            # Convert to 2D so _get_weights expects shape (n_queries, n_neighbors)
+            # np.asarray(annoy_dists_1d, dtype=float).reshape(1, -1)
+            dists_2d = np.atleast_2d(np.asarray(annoy_dists_1d, dtype=float))
+            weights_2d = _get_weights(dists_2d, self.weights)
+
+            if weights_2d is not None:
+                # Replace inf values (e.g. due to zero distances) with 1.0
+                if np.isinf(weights_2d).any():
+                    weights_2d[np.isinf(weights_2d)] = 1.0  # np.isfinite
+
+                # Normalize weights row-wise (avoid division by zero)
+                # if np.any(weights_2d):
+                row_sums = weights_2d.sum(axis=1, keepdims=True)
+                weights_2d /= np.where(row_sums == 0, 1, row_sums)
+
+            # Fall back to uniform if None
+            weights = (
+                np.ones_like(annoy_dists_1d)
+                if weights_2d is None
+                else weights_2d.ravel()
+            )
+
+            # Retrieve donor samples
+            # Compute mean for missing columns from neighbor values
+            # neighbors = self._fit_X[potential_donors_idx]
+            # Get vector dimension from Annoy index
+            _dim = self.annoy_index_.f
+            # Preallocate array
+            neighbors = np.empty((len(potential_donors_idx), _dim), dtype=np.float32)
+            # Fill the array using indices from the list
+            for _i, idx in enumerate(potential_donors_idx):
+                neighbors[_i] = self.annoy_index_.get_item_vector(idx)
+            # if not neighbors:
+            #     continue
+
+            # Impute missing features
+            for j, is_nan in enumerate(initial_mask[i]):
+                if is_nan and ~self._is_empty_feature[j]:
+                    valid_idx = ~np.isnan(neighbors[:, j])
+                    col_vals = neighbors[valid_idx, j]
+                    w = weights[valid_idx][: len(col_vals)]
+                    if col_vals.size:
+                        # Weighted average or mean
+                        if w.sum() == 0:
+                            # fallback to unweighted mean or fill value
+                            X[i, j] = np.mean(col_vals)  # or self.fill_annoy_vector_[j]
+                        else:
+                            X[i, j] = np.average(col_vals, weights=w)
+                    else:
+                        # Fallback to fill value if no neighbor values
+                        X[i, j] = self.fill_annoy_vector_[j]
+                        # pass
         return X
 
     # ------------------------------------------------------------------ #
@@ -554,6 +504,7 @@ class AnnoyKNNImputer(_BaseImputer):
         self._fit_annoy_index(X)
         # Fit missing value indicator transformer (if used)
         super()._fit_indicator(X_missing_mask)
+
         return self
 
     # ------------------------------------------------------------------ #

@@ -49,33 +49,33 @@
   rel="noopener noreferrer">
   <!-- https://anaconda.org/conda-forge/scikit-plots/badges/version.svg -->
   <img alt="Anaconda Stable Wheels Version" height="17"
-   src="https://img.shields.io/conda/v/conda-forge/scikit-plots?style=flat-square&logo=anaconda&color=olivegreen">
+   src="https://img.shields.io/conda/v/conda-forge/scikit-plots?style=flat-square&logo=condaforge&label=conda-forge%20|%20Version&color=olivegreen">
  </a>
  <!-- Anaconda Stable Daily, Weekly, or Monthly Downloads -->
  <a href="https://anaconda.org/conda-forge/scikit-plots" target="_blank"
   rel="noopener noreferrer">
   <img alt="Anaconda Stable Wheels Downloads" height="17"
-   src="https://img.shields.io/conda/d/conda-forge/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads&color=green">
+   src="https://img.shields.io/conda/d/conda-forge/scikit-plots?style=flat-square&logo=condaforge&label=conda-forge%20|%20Downloads&color=green">
   <!-- <img alt="Anaconda Stable Wheels Downloads" height="17" src="https://anaconda.org/conda-forge/scikit-plots/badges/downloads.svg"> -->
  </a>
  <!-- Anaconda Stable Wheels Release Date -->
  <a href="https://anaconda.org/conda-forge/scikit-plots" target="_blank"
   rel="noopener noreferrer">
   <img alt="Anaconda Stable Wheels Release Date" height="17"
-  src="https://anaconda.org/conda-forge/scikit-plots/badges/latest_release_date.svg?label=conda%20|%20Downloads">
+  src="https://anaconda.org/conda-forge/scikit-plots/badges/latest_release_date.svg?logo=condaforge&label=conda%20|%20Downloads">
  </a>
  <!-- Anaconda Nightly Conda -->
  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
   rel="noopener noreferrer">
   <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
   <img alt="Anaconda Nightly Wheels Version" height="17"
-   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Nightly-Wheels&color=orange">
+   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda-nightly-wheels%20|%20Version&color=orange">
  </a>
  <!-- Anaconda Nightly Daily, Weekly, or Monthly Downloads -->
  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
   rel="noopener noreferrer">
   <img alt="Anaconda Nightly Wheels Downloads" height="17"
-   src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Nightly-Downloads&color=orange">
+   src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda-nightly-wheels%20|%20Downloads&color=orange">
   <!-- <img alt="Anaconda Nightly Wheels Downloads" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg"> -->
  </a>
  <!-- 🐋 Docker Image Version (tag) 🐳 -->
@@ -104,6 +104,17 @@
   <img alt="pre-commit.ci Status" height="17"
    src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
  </a>
+ <!-- Code Style - Ruff -->
+ <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
+  <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
+  <img alt="Code Style - Ruff" height="17"
+   src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
+ </a>
+ <!-- PyPI - Types -->
+ <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="PyPI - Types" height="17"
+   src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
+ </a>
  <!-- codecov -->
  <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="Coverage Status" height="17"
@@ -123,16 +134,9 @@
   <img alt="CircleCI Status" height="17"
    src="https://img.shields.io/circleci/build/github/scikit-plots/scikit-plots/main?style=flat-square&logo=circleci&label=CircleCI%20%7C%20Docs%20Build&color=olivegreen">
  </a>
- <!-- Code Style - Ruff -->
- <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
-  <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
-  <img alt="Code Style - Ruff" height="17"
-   src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
- </a>
- <!-- PyPI - Types -->
- <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="PyPI - Types" height="17"
-   src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
+ <!-- Documentation -->
+ <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
+  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
  </a>
  <!-- PyPI - pyversions -->
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">

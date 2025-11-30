@@ -14,12 +14,28 @@ Scikit-Plots Community
 
 Welcome to the **Scikit-Plots** community and resources page! Here you can find links to our organization pages, download sources, and archives.
 
+.. https://github.com/Ileriayo/markdown-badges
+
 Community & Organization
 ========================
 
-- **LinkedIn:** `Scikit-Plots LinkedIn <https://www.linkedin.com/company/scikit-plots>`_
-- **Zenodo Community:** `Scikit-Plots on Zenodo <https://zenodo.org/communities/scikit-plots>`_
-- **GitHub Discussions:** `Scikit-Plots GitHub Discussions <https://github.com/orgs/scikit-plots/discussions>`_
+.. |linkedin| image:: https://img.shields.io/badge/scikit_plots-%230077B5.svg?style=for-the-badge&label=linkedin&logo=linkedin&labelColor=mediumblue&color=olivegreen
+   :alt: Scikit-Plots LinkedIn
+   :target: https://www.linkedin.com/company/scikit-plots
+   :class: badge
+
+.. |github| image:: https://img.shields.io/badge/scikit_plots-%23121011.svg?style=for-the-badge&label=github%20discussions&logo=github&labelColor=mediumblue&color=olivegreen
+   :alt: Scikit-Plots GitHub Discussions
+   :target: https://github.com/orgs/scikit-plots/discussions
+   :class: badge
+
+.. |zenodo| image:: https://img.shields.io/badge/scikit_plots-%23007EBB.svg?style=for-the-badge&label=zenodo&logo=zenodo&labelColor=mediumblue&color=olivegreen
+   :alt: Scikit-Plots on Zenodo
+   :target: https://zenodo.org/communities/scikit-plots
+   :class: badge
+
+|linkedin| |github| |zenodo|
+
 
 .. - **Wikipedia:** `Scikit-Plots Wikipedia <https://en.wikipedia.org/wiki/Draft:Scikit-plots>`_
 .. - **Wikidata:** `Q136824098 <https://www.wikidata.org/wiki/Q136824098>`_

@@ -19,8 +19,8 @@ from dataclasses import asdict, dataclass, field  # noqa: F401
 from typing import Optional, Union
 
 from ... import logger
-from ...utils.utils_env import get_env_var
-from ...utils.utils_stream import streamlit_stream_or_return
+from ...utils._env import get_env_var
+from ...utils._stream import streamlit_stream_or_return
 from .clint_provider import get_client, hf_fallback_request
 from .model_registry import LLM_PROVIDER_CONFIG_MAP, LLM_PROVIDER_ENV_CONNECTOR_MAP
 

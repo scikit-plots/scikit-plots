@@ -11,7 +11,7 @@ import os as _os
 
 from .. import logger as _logger
 from ..exceptions import ScikitplotException
-from .utils_toml import read_toml
+from ._toml import read_toml
 
 # Default path to Streamlit secrets file (user config dir)
 # secrets_path = _os.path.join(_os.getcwd(), ".streamlit", "secrets.toml")
@@ -66,7 +66,7 @@ def save_st_secrets(
     secret_path : str, optional
         Path to secrets TOML file. Defaults to `~/.streamlit/secrets.toml`.
     """
-    from .utils_toml import write_toml
+    from ._toml import write_toml
 
     path = resolve_secret_path(secret_path)
     _os.makedirs(_os.path.dirname(path), exist_ok=True)

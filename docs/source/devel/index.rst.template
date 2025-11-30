@@ -83,6 +83,12 @@ detailing unclear documentation and writing new examples, helping the community,
 reporting and fixing bugs, requesting and implementing new features...
 
 
+.. https://matplotlib.org/sampledoc/sampledoc.pdf
+.. seealso::
+   * https://matplotlib.org/sampledoc/index.html
+   * :download:`"Download matplotlib sampledoc.pdf" <./sampledoc.pdf>`.
+
+
 {% if is_devrelease %}
 
 

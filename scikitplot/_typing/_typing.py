@@ -117,6 +117,7 @@ import pandas._typing as pdt
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 
 
+# <-- no longer imported at runtime
 if TYPE_CHECKING:
     # ⚠️ "list[str]" use quotes to avoid runtime eval
     if sys.version_info >= (3, 9):

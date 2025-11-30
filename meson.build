@@ -33,11 +33,11 @@ project(
     'pkgconfig.relocatable=true',
     'c_std=c17',                     # Set C standard to C17
     'cpp_std=c++17',                 # Set C++ standard to C++17
-    # 'fortran_std=legacy',          # ERROR 'none'
+    # 'fortran_std=legacy',          # ERROR none, f2008
     # 'blas=openblas',               # 'scipy-openblas'
     # 'lapack=openblas',             # 'scipy-openblas'
     # https://mesonbuild.com/Builtin-options.html#details-for-warning_level
-    # 'warning_level=3',             # You can specify warning levels here if needed
+    # 'warning_level=3',             # nice in theory, but Meson doesn't appear to control warning levels on Windows with LLVM-Intel compiler?
     # 'werror=true',                 # Treat warnings as errors globally
   ],
 )
@@ -81,11 +81,36 @@ meson.add_dist_script(
 ## meson
 ######################################################################
 
+cython_c_flags = []
+cython_link_flags = []
+
 dep_all = []
 link_with = []
 
 null_dep = dependency('', required : false)
 dep_all += [null_dep]
+
+######################################################################
+## Optional OpenMP 'omp.h' dependency
+######################################################################
+
+# Try to find OpenMP, but it's optional
+# dep_openmp = dependency('openmp', required : true)
+dep_openmp = dependency('openmp', required : false)
+
+if dep_openmp.found()
+  message('OpenMP found! Enabling multithreading support.')
+  dep_all += [dep_openmp]
+  # returns a list of compiler flags (e.g., ['-fopenmp'] for GCC/Clang or /openmp for MSVC).
+  # cython_c_flags += dep_openmp.compile_args()
+  # cython_link_flags += dep_openmp.link_args()
+  # Add OpenMP compile flags
+  # add_project_arguments(openmp_dep.get_compile_args(), language : 'cpp')
+  # Add OpenMP link flags
+  # add_project_link_arguments(openmp_dep.get_link_args(), language : 'cpp')
+else
+  message('OpenMP not found. Building without multithreading.')
+endif
 
 ######################################################################
 ## BLAS/LAPACK dependency
@@ -277,6 +302,20 @@ dep_all += [lapack_dep]
 
 ######################################################################
 ## Fortran Compiler Setup
+## Meson automatically converts UNIX style (gcc/clang) compiler options to the MSVC equivalent when required
+## https://github.com/mesonbuild/meson/blob/master/mesonbuild/compilers/mixins/visualstudio.py#L236
+## GCC / Clang (GNU frontend) Use -W*, -f*, -std=*, etc. Fully supports GNU flags
+## Clang-CL / MSVC Use /W4, /wdXXXX, /MD, /fp:except, /fp:precise, /arch:ARM64 Only supports CL-style flags
+## Flang / Intel Needs its own tailored set Avoids random test failures
+## -D : Define a macro, It's equivalent to putting `#define DEBUG` at the top of every source file.
+## -d : Internal debugging options (rarely used by end users), Print all macros after preprocessing.
+## -f : Enable/disable compiler feature flags, Codegen or safety behavior toggles.
+##
+## -fPIC	  : Feature	Enables position-independent code
+## -dM	    : Debugging	Shows all macros after preprocessing
+## -DDEBUG	: Macro	Defines DEBUG for #ifdef DEBUG
+## -Wall	  : Warning	Turns on most compiler warnings
+## -O2	    : Optimization	Enables safe, general optimizations
 ######################################################################
 
 # --- Fortran compiler ---
@@ -284,6 +323,8 @@ dep_all += [lapack_dep]
 add_languages('fortran', native: false)
 ff = meson.get_compiler('fortran')
 
+# gfortran unix: 'gcc', 'intel', 'intel-llvm'
+# gfortran win : 'intel-llvm-cl'
 if ff.get_id() == 'gcc'
   # -std=legacy is not supported by all Fortran compilers, but very useful with
   # gfortran since it avoids a ton of warnings that we don't care about.
@@ -319,8 +360,10 @@ add_project_arguments(ff.get_supported_arguments(_global_fortran_flags), languag
 
 ######################################################################
 ## 🔚 C and C++ Compiler Setup
+## Meson automatically converts UNIX style (gcc/clang) compiler options to the MSVC equivalent when required
+## https://github.com/mesonbuild/meson/blob/master/mesonbuild/compilers/mixins/visualstudio.py#L236
 ## GCC / Clang (GNU frontend) Use -W*, -f*, -std=*, etc. Fully supports GNU flags
-## Clang-CL / MSVC Use /W4, /wdXXXX, /MD, /fp:except, /arch:ARM64 Only supports CL-style flags
+## Clang-CL / MSVC Use /W4, /wdXXXX, /MD, /fp:except, /fp:precise, /arch:ARM64 Only supports CL-style flags
 ## Flang / Intel Needs its own tailored set Avoids random test failures
 ## -D : Define a macro, It's equivalent to putting `#define DEBUG` at the top of every source file.
 ## -d : Internal debugging options (rarely used by end users), Print all macros after preprocessing.
@@ -834,12 +877,13 @@ cli_cython = find_program(cy.cmd_array()[0])
 ## Common Cython arguments
 ######################################################################
 
+## Cython only accepts -3, --cplus, --fast-fail, -X options, etc.
 # cython_args = ['-3', '--fast-fail', '--output-file', '@OUTPUT@', '--include-dir', '@BUILD_ROOT@', '@INPUT@']
 
 # Define the arguments for the Cython command. These arguments will be passed
 # to the Cython compiler when generating the C source files.
 cython_c_args = [
-  # '-O2',                                    # Optimization level
+  '-3',                                       # Optimization level
   # '-X boundscheck=' + boundscheck,          # Control bounds checking (True/False)
   '-X language_level=3',                      # Ensure Cython targets Python3 like '-3'
   # Prevents using negative indexing, which can provide a speedup for array handling.
@@ -915,7 +959,7 @@ endif
 # Adapted from Scipy. mingw is untested and not officially supported. If you
 # ever bump into issues when trying to compile for mingw, please open an issue
 # in the scikit-learn issue tracker
-cython_c_flags = [
+cython_c_flags += [
   '-DCYTHON_CCOMPLEX=0',  # see gh-18975 for why we need this
 ]
 
@@ -1017,7 +1061,7 @@ cython_cpp_flags = cython_c_flags + [
 #  https://mesonbuild.com/Cross-compilation.html
 
 ######################################################################
-## dependency 'threads'
+## dependency 'threads' pthread (Linux/Unix)
 ######################################################################
 
 dep_thread = dependency('threads', required: false)

@@ -3,6 +3,13 @@
 Mission Statement
 =================
 
+Insight at a Glance.
+
+Comprehensive visualization tools for making machine-learning models interpretable at a glance.
+
+Our mission is to make machine learning understandable through powerful,
+intuitive visualizations that reveal insights at a glance.
+
 .. warning::
 
     Reserved...

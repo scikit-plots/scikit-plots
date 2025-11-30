@@ -164,6 +164,28 @@ public:
     return 1;
   }
 
+  // https://github.com/spotify/annoy/pull/661/files#diff-6c819344be1cf03fe353df90022bb31431d7959a346eaf752d306e2b31aa7aab
+  static int serialize(lua_State* L) {
+    Impl* self = getAnnoy(L, 1);
+    int nargs = lua_gettop(L);
+    vector<uint8_t> bytes = self->serialize();
+
+    lua_pushlstring(L, (const char*) bytes.data(), bytes.size());
+
+    return 1;
+  }
+
+  static int deserialize(lua_State* L) {
+    Impl* self = getAnnoy(L, 1);
+    int nargs = lua_gettop(L);
+    const char* bytes_buffer = lua_tostring(L, 2);
+    size_t bytes_buffer_size = lua_rawlen(L, 2);
+    vector<uint8_t> bytes(bytes_buffer, bytes_buffer + bytes_buffer_size);
+    self->deserialize(&bytes);
+
+    return 1;
+  }
+
   static int unload(lua_State* L) {
     Impl* self = getAnnoy(L, 1);
     self->unload();
@@ -267,6 +289,8 @@ public:
       {"get_distance", &ThisClass::get_distance},
       {"get_n_items", &ThisClass::get_n_items},
       {"on_disk_build", &ThisClass::on_disk_build},
+      {"serialize", &ThisClass::serialize},
+      {"deserialize", &ThisClass::deserialize},
       {NULL, NULL},
     };
     return funcs;

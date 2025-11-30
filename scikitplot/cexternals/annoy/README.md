@@ -2,16 +2,16 @@ Vendored repository information
 ===============================
 
 - Repository: https://github.com/spotify/annoy.git  # Remote Git repo URL
-- Version:    8a7e82cb537053926b0ac6ec132b9ccc875af40c  # Ref Branch, Tag, or Commit SHA
-- Commit:     8a7e82cb537053926b0ac6ec132b9ccc875af40c
+- Version:    379f744667aba6b40ba3db8a07678df173a88f74  # Ref Branch, Tag, or Commit SHA
+- Commit:     379f744667aba6b40ba3db8a07678df173a88f74
 - Tree Mode:  bash-sha256sum
-- Tree Hash:  badc9ecb618e79ac7de6d7d588493c3e2f6b006f62683b05d67e226d487b1cdf
-- Retrieved:  2025-10-28T22:40:39Z
+- Tree Hash:  f3ec10eeb0ee56069fb6f0b755a6c6d04a28bda92ad54ee3900a880c3f9a35ff
+- Retrieved:  2025-11-30T07:26:38Z
 
 To update (git clone), run:
   bash ./tools/maint_tools/vendor_repo.sh \
     --repo-url "https://github.com/spotify/annoy.git" \
-    --repo-ref "8a7e82cb537053926b0ac6ec132b9ccc875af40c" \
+    --repo-ref "379f744667aba6b40ba3db8a07678df173a88f74" \
     --target-dir "/work/third_party/annoy" \
     --move-to "/work/scikitplot/cexternals/annoy" \
     --nested-folder "" \

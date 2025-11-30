@@ -7,8 +7,8 @@
 
 import os as _os
 
-from .utils_dot_env import run_load_dotenv
-from .utils_st_secrets import get_env_st_secrets
+from ._env_dot import run_load_dotenv
+from ._st_secrets import get_env_st_secrets
 
 
 def get_env_var(env_var: str = "", fallback: "str | None" = None) -> "str | None":

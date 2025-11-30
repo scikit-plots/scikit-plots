@@ -24,4 +24,7 @@ Examples relevant to the :py:mod:`~.nc` module with  :py:mod:`~._numcpp`.
 :py:mod:`~.nc` is a Python module that provides high-performance numerical functions by exposing the C++ header-only library NumCpp, allowing seamless use of NumPy arrays in Python.
 
 .. seealso::
+
    * https://github.com/dpilger26/NumCpp
+   * https://numcpp.readthedocs.io/en/latest/
+   * https://numcpp.readthedocs.io/en/latest/commandTable.html

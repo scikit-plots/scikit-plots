@@ -101,6 +101,29 @@ def _get_cuda_info() -> Optional[dict[str, str]]:
     return {"cuda": None, "gpu": None, "mps": None, "xla": None, "xpu": None}
 
 
+def _detect_linux_wheel_type():
+    # print(platform.system())      # Same as platform_system
+    # print(platform.platform())    # Shows musl / glibc details
+    # print(platform.libc_ver())    # Helps detect musllinux (musl vs glibc)
+    # print(platform.python_implementation())
+    system = platform.system()
+    machine = platform.machine().lower()
+    libc, _ = platform.libc_ver()
+    is_musl = libc == "musl"
+    is_wasm = (
+        sys.platform in ("emscripten", "wasi") or "emscripten" in sys.executable.lower()
+    )
+
+    if is_wasm:
+        return "wasm"
+    elif system == "Linux" and is_musl:
+        return "musllinux"
+    elif system == "Linux":
+        return "manylinux"
+    else:
+        return system.lower()
+
+
 def _get_system_info() -> dict[str, str]:
     """
     Gather detailed system and Python interpreter information.
@@ -113,10 +136,16 @@ def _get_system_info() -> dict[str, str]:
     sys_info = {
         "python": sys.version.split("\n")[0],
         "executable": sys.executable,
+        "is_free_threaded": (
+            getattr(sys, "is_free_threaded", False)
+            or getattr(sys, "_is_gil_enabled", False)
+        ),
+        "python_implementation": platform.python_implementation(),
         "CPU": platform.processor() or "Unknown",
         "cores": os.cpu_count(),
         "architecture": platform.machine(),
         "OS": platform.platform(),
+        # "libc_ver": platform.libc_ver(),
     }
     # Environmental markers
     if _is_docker():

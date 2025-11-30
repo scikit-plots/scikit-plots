@@ -16,7 +16,6 @@
 # the License.
 
 from setuptools import setup, Extension
-import codecs
 import os
 import platform
 import sys
@@ -32,7 +31,7 @@ readme_note = """\
 
 """
 
-with codecs.open('README.rst', encoding='utf-8') as fobj:
+with open('README.rst', encoding='utf-8') as fobj:
     long_description = readme_note + fobj.read()
 
 # Various platform-dependent extras
@@ -86,6 +85,7 @@ setup(name='annoy',
           )
       ],
       long_description=long_description,
+      long_description_content_type='text/x-rst',
       author='Erik Bernhardsson',
       author_email='mail@erikbern.com',
       url='https://github.com/spotify/annoy',
@@ -102,6 +102,10 @@ setup(name='annoy',
           'Programming Language :: Python :: 3.7',
           'Programming Language :: Python :: 3.8',
           'Programming Language :: Python :: 3.9',
+          'Programming Language :: Python :: 3.10',
+          'Programming Language :: Python :: 3.11',
+          'Programming Language :: Python :: 3.12',
+          'Programming Language :: Python :: 3.13',
       ],
       keywords='nns, approximate nearest neighbor search',
       setup_requires=['nose>=1.0'],
