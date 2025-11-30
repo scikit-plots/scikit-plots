@@ -110,5 +110,5 @@ def main():
 
 
 if __name__ == "__main__":
-    with suppress(Exception, NameError, TypeError, ValueError):
+    with contextlib.suppress(Exception, NameError, TypeError, ValueError):
         main()
