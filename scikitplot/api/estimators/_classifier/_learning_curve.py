@@ -220,7 +220,7 @@ def plot_learning_curve(
         random_state=random_state,
         # error_score=np.nan,
         # return_times=False,
-        fit_params=learning_curve_params(fit_params),
+        **learning_curve_params(fit_params),
     )
     train_scores_mean = np.mean(train_scores, axis=1)
     train_scores_std = np.std(train_scores, axis=1)
