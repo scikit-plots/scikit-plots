@@ -13,6 +13,7 @@ Designed so Sphinx can execute it directly using::
     >>> python plot_s_compile_cpp.py 10 1000 123
 """
 
+import contextlib
 import subprocess
 import sys
 import shutil
@@ -21,7 +22,16 @@ from pathlib import Path
 # --------------------------------------------------------------
 # Paths
 # --------------------------------------------------------------
-ROOT = Path(__file__).resolve().parent
+# with contextlib.suppress(NameError, TypeError, ValueError):
+#     ROOT = Path(__file__).resolve().parent
+# else:
+#     ROOT = Path.cwd()
+try:
+    ROOT = Path(__file__).resolve().parent
+except NameError:
+    # Sphinx-Gallery fallback
+    ROOT = Path.cwd()
+
 CPP_FILE = ROOT / "precision_test.cpp"
 BIN_FILE = ROOT / "precision_test"
 
@@ -100,4 +110,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with suppress(Exception, NameError, TypeError, ValueError):
+        main()
