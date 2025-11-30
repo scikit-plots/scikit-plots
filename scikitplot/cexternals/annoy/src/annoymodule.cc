@@ -304,12 +304,10 @@ py_an_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     PyObject *f_obj = NULL;
     PyObject *metric_obj = NULL;
 
+    static char const * kwlist[] = {"f", "metric", NULL};
     // kwlist arrays must use const char* because string literals are immutable.
-    static char const *kwlist[] = {"f", "metric", NULL};
-
     // Parse f as PyObject (accept None)
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OO",
-                                      kwlist, &f_obj, &metric_obj)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OO", (char**)kwlist, &f_obj, &metric_obj)) {
         return NULL;
     }
 
