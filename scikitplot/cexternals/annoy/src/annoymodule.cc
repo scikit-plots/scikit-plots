@@ -106,7 +106,7 @@ class HammingWrapper : public AnnoyIndexInterface<int32_t, float> {
 private:
   // ✅ C++ initializes class members in the order they are declared
   // safe: 0 or 1 Hamming bits are only 0 or 1 uint64_t → float implicit conversion.
-  // 1       // int (usually 32-bit)
+  // 1       // int32_t (usually 32-bit)
   // 1ULL    // unsigned long long (typically 64-bit)
   //
   // -------------------------
@@ -357,7 +357,7 @@ AnnoyIndexInterface<int32_t, float>* create_index_for_metric(int f, const std::s
 // annoy python object
 typedef struct {
   PyObject_HEAD
-  AnnoyIndexInterface<int, float> *ptr;
+  AnnoyIndexInterface<int32_t, float> *ptr;
   int f;
   std::string metric;
   // NEW FIELDS
@@ -407,7 +407,7 @@ py_an_init(py_annoy *self, PyObject *args, PyObject *kwargs) {
     } else {
         auto fv = (int)PyLong_AsLong(self->raw_f_obj);
         if (PyErr_Occurred())
-            return -1;
+            return -1;  // (int)NULL
         self->f = fv;
     }
 
@@ -662,8 +662,8 @@ py_an_get_nns_by_item(py_annoy *self, PyObject *args, PyObject *kwargs) {
   // int32_t item_idx, n, search_k=-1, include_distances=0;
   int32_t item_idx;
   int32_t n;
-  int search_k = -1;
-  int include_distances = 0;
+  int32_t search_k = -1;
+  int32_t include_distances = 0;
 
   static char const * kwlist[] = {"i", "n", "search_k", "include_distances", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii|ii", (char**)kwlist, &item_idx, &n, &search_k, &include_distances))
@@ -736,8 +736,8 @@ py_an_get_nns_by_vector(py_annoy *self, PyObject *args, PyObject *kwargs) {
 
   // int32_t n, search_k=-1, include_distances=0;
   int32_t n;
-  int search_k = -1;
-  int include_distances = 0;
+  int32_t search_k = -1;
+  int32_t include_distances = 0;
 
   static char const * kwlist[] = {"vector", "n", "search_k", "include_distances", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Oi|ii", (char**)kwlist, &v, &n, &search_k, &include_distances))
