@@ -20,6 +20,8 @@
 // Fix deprecated in Python 3.11+
 #include "structmember.h"
 
+// std::optional<int32_t> std::nullopt -> (!d) {Py_RETURN_NONE}
+#include <optional>
 #include <exception>
 #include <string>
 #include <memory>
