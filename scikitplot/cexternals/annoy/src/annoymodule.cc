@@ -95,6 +95,8 @@ static std::string create_temp_filename() {
     return path;
 }
 
+// Only use NULL (0) when maintaining legacy C/C++ code that must compile in C or pre-C++11 environments.
+// nullptr is std::nullptr_t, only works with pointers. Recommended in C++11 and later, C++ only (not C).
 template class Annoy::AnnoyIndexInterface<int32_t, float>;
 
 class HammingWrapper : public AnnoyIndexInterface<int32_t, float> {
@@ -102,13 +104,27 @@ class HammingWrapper : public AnnoyIndexInterface<int32_t, float> {
   // This translates binary (float) vectors into packed uint64_t vectors.
   // This is questionable from a performance point of view. Should reconsider this solution.
 private:
-  AnnoyIndex<int32_t, uint64_t, Hamming, Kiss64Random, AnnoyIndexThreadedBuildPolicy> _index;
-
+  // ✅ C++ initializes class members in the order they are declared
   // safe: 0 or 1 Hamming bits are only 0 or 1 uint64_t → float implicit conversion.
   // 1       // int (usually 32-bit)
   // 1ULL    // unsigned long long (typically 64-bit)
-  int32_t _f_external, _f_internal;
+  //
+  // -------------------------
+  // Internal Annoy index and metadata
+  // -------------------------
+  int32_t _f_external; // number of bits in original vector
+  int32_t _f_internal; // number of uint64_t per vector
+  AnnoyIndex<int32_t, uint64_t, Hamming, Kiss64Random, AnnoyIndexThreadedBuildPolicy> _index;
 
+  // Header structure for serialization
+  struct HammingHeader {
+      uint32_t f_external;
+      uint32_t f_internal;
+      uint32_t n_items;
+      uint32_t reserved; // future use
+  };
+
+  // Packing: float [0,1] -> uint64_t bits
   void _pack(const float* src, uint64_t* dst) const {
     for (int32_t i = 0; i < _f_internal; i++) {
       dst[i] = 0;
@@ -120,6 +136,7 @@ private:
     }
   };
 
+  // Unpacking: uint64_t bits -> float [0,1]
   void _unpack(const uint64_t* src, float* dst) const {
     for (int32_t i = 0; i < _f_external; i++) {
       // Extract bit as uint64_t
@@ -131,9 +148,11 @@ private:
   };
 
 public:
+  // Constructor
   HammingWrapper(int f)
     : _f_external(f), _f_internal((f + 63) / 64), _index((f + 63) / 64) {};
 
+  // Index operations
   bool add_item(int32_t item_idx, const float* w, char**error) {
     vector<uint64_t> w_internal(_f_internal, 0);
     _pack(w, &w_internal[0]);
@@ -144,15 +163,33 @@ public:
 
   // bool deserialize(vector<uint8_t>* bytes, bool prefault, char** error) { return _index.deserialize(bytes, prefault, error); };
   bool deserialize(vector<uint8_t>* bytes, bool prefault, char** error) {
-      if (!bytes || bytes->empty()) {
-          if (error) *error = strdup("Empty byte vector");
-          return false;
-      }
-      if (bytes->size() % sizeof(uint64_t) != 0) {
-          if (error) *error = strdup("Invalid serialized byte size for HammingWrapper");
-          return false;
-      }
-      return _index.deserialize(bytes, prefault, error);
+    if (!bytes || bytes->empty()) {
+        if (error) *error = strdup("Empty byte vector");
+        return false;
+    }
+    // return _index.deserialize(bytes, prefault, error);
+
+    if (!bytes || bytes->size() < sizeof(HammingHeader)) {
+        if (error) *error = strdup("Serialized buffer too small for HammingWrapper");
+        return false;
+    }
+
+    HammingHeader hdr;
+    memcpy(&hdr, bytes->data(), sizeof(HammingHeader));
+
+    // if (hdr.f_external == 0 || hdr.f_internal == 0) {
+    //     if (error) *error = strdup("Invalid HammingWrapper header");
+    //     return false;
+    // }
+
+    _f_external = hdr.f_external;
+    _f_internal = hdr.f_internal;
+
+    const uint8_t* idx_data = bytes->data() + sizeof(HammingHeader);
+    size_t idx_size = bytes->size() - sizeof(HammingHeader);
+    vector<uint8_t> idx_bytes(idx_data, idx_data + idx_size);
+
+    return _index.deserialize(&idx_bytes, prefault, error);
   }
 
   float get_distance(int32_t i, int32_t j) const { return _index.get_distance(i, j); };
@@ -166,13 +203,15 @@ public:
   int32_t get_n_items() const { return _index.get_n_items(); };
   int32_t get_n_trees() const { return _index.get_n_trees(); };
 
-  void get_nns_by_item(int32_t item_idx, size_t n, int search_k, vector<int32_t>* result, vector<float>* distances) const {
+  // Nearest neighbors queries
+  void get_nns_by_item(int32_t item_idx, size_t n, int search_k,
+                       vector<int32_t>* result, vector<float>* distances) const {
     if (distances) {
       vector<uint64_t> distances_internal;
       _index.get_nns_by_item(item_idx, n, search_k, result, &distances_internal);
+
       // distances->insert(distances->begin(), distances_internal.begin(), distances_internal.end());
       distances->resize(distances_internal.size());
-
       // for (size_t i = 0; i < distances_internal.size(); i++)
       //   distances->at(i) = (float)distances_internal[i];
       for (size_t i = 0; i < distances_internal.size(); i++) {
@@ -185,28 +224,60 @@ public:
           distances->at(i) = static_cast<float>(d);
       }
     } else {
-      _index.get_nns_by_item(item_idx, n, search_k, result, NULL);
+      // _index.get_nns_by_item(item_idx, n, search_k, result, NULL);
+      _index.get_nns_by_item(item_idx, n, search_k, result, nullptr);
     }
   };
-  void get_nns_by_vector(const float* w, size_t n, int search_k, vector<int32_t>* result, vector<float>* distances) const {
+  void get_nns_by_vector(const float* w, size_t n, int search_k,
+                         vector<int32_t>* result, vector<float>* distances) const {
     vector<uint64_t> w_internal(_f_internal, 0);
     _pack(w, &w_internal[0]);
     if (distances) {
       vector<uint64_t> distances_internal;
       _index.get_nns_by_vector(&w_internal[0], n, search_k, result, &distances_internal);
 
-      distances->insert(distances->begin(), distances_internal.begin(), distances_internal.end());
+      // distances->insert(distances->begin(), distances_internal.begin(), distances_internal.end());
+      distances->resize(distances_internal.size());
+      for (size_t i = 0; i < distances_internal.size(); i++) {
+          uint64_t d = distances_internal[i];
+          if (d > (uint64_t)_f_external) d = (uint64_t)_f_external;
+          distances->at(i) = static_cast<float>(d);
+      }
     } else {
-      _index.get_nns_by_vector(&w_internal[0], n, search_k, result, NULL);
+      // _index.get_nns_by_vector(&w_internal[0], n, search_k, result, NULL);
+      _index.get_nns_by_vector(&w_internal[0], n, search_k, result, nullptr);
     }
   };
 
+  // Disk I/O
   bool load(const char* filename, bool prefault, char** error) { return _index.load(filename, prefault, error); };
   bool on_disk_build(const char* filename, char** error) { return _index.on_disk_build(filename, error); };
   bool save(const char* filename, bool prefault, char** error) { return _index.save(filename, prefault, error); };
   void set_seed(uint64_t q) { _index.set_seed(q); };
 
-  vector<uint8_t> serialize(char** error) const { return _index.serialize(error); };
+  // Robust serialization
+  vector<uint8_t> serialize(char** error) const {
+    // return _index.serialize(error);
+
+    vector<uint8_t> bytes;
+
+    // Header
+    HammingHeader hdr;
+    hdr.f_external = static_cast<uint32_t>(_f_external);
+    hdr.f_internal = static_cast<uint32_t>(_f_internal);
+    hdr.n_items = static_cast<uint32_t>(_index.get_n_items());
+    hdr.reserved = 0;
+
+    const uint8_t* hdr_bytes = reinterpret_cast<const uint8_t*>(&hdr);
+    bytes.insert(bytes.end(), hdr_bytes, hdr_bytes + sizeof(HammingHeader));
+
+    // Append internal Annoy index bytes
+    vector<uint8_t> idx_bytes = _index.serialize(error);
+    if (idx_bytes.empty() && error && *error) return {};
+    bytes.insert(bytes.end(), idx_bytes.begin(), idx_bytes.end());
+
+    return bytes;
+  };
 
   bool unbuild(char** error) { return _index.unbuild(error); };
   void unload() { _index.unload(); };
@@ -517,9 +588,16 @@ py_an_save(py_annoy *self, PyObject *args, PyObject *kwargs) {
   Py_RETURN_TRUE;
 }
 
+// Helper: Convert C++ vectors to Python (NN results)
+static PyObject*
+get_nns_to_python(const vector<int32_t>& result,
+                  const vector<float>& distances,
+                  // bool include_distances
+                  int include_distances) {
 
-PyObject*
-get_nns_to_python(const vector<int32_t>& result, const vector<float>& distances, int include_distances) {
+  // PyObject* py_result = PyList_New(result.size());
+  // if (!py_result) return NULL;
+
   PyObject* l = NULL;
   PyObject* d = NULL;
   PyObject* t = NULL;
@@ -527,15 +605,16 @@ get_nns_to_python(const vector<int32_t>& result, const vector<float>& distances,
   if ((l = PyList_New(result.size())) == NULL) {
     goto error;
   }
+
   for (size_t i = 0; i < result.size(); i++) {
     PyObject* res = PyInt_FromLong(result[i]);
     if (res == NULL) {
       goto error;
     }
-    PyList_SetItem(l, i, res);
+    PyList_SetItem(l, i, res);  // steals reference
   }
-  if (!include_distances)
-    return l;
+
+  if (!include_distances) return l;
 
   if ((d = PyList_New(distances.size())) == NULL) {
     goto error;
@@ -546,12 +625,13 @@ get_nns_to_python(const vector<int32_t>& result, const vector<float>& distances,
     if (dist == NULL) {
       goto error;
     }
-    PyList_SetItem(d, i, dist);
+    PyList_SetItem(d, i, dist);  // steals reference
   }
 
   if ((t = PyTuple_Pack(2, l, d)) == NULL) {
     goto error;
   }
+
   Py_XDECREF(l);
   Py_XDECREF(d);
 
@@ -579,13 +659,17 @@ bool check_constraints(py_annoy *self, int32_t item_idx, bool building) {
 
 static PyObject*
 py_an_get_nns_by_item(py_annoy *self, PyObject *args, PyObject *kwargs) {
-  int32_t item_idx, n, search_k=-1, include_distances=0;
-  if (!self->ptr)
-    return NULL;
+  // int32_t item_idx, n, search_k=-1, include_distances=0;
+  int32_t item_idx;
+  int32_t n;
+  int search_k = -1;
+  int include_distances = 0;
 
   static char const * kwlist[] = {"i", "n", "search_k", "include_distances", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ii|ii", (char**)kwlist, &item_idx, &n, &search_k, &include_distances))
     return NULL;
+
+  if (!self->ptr) return NULL;
 
   if (!check_constraints(self, item_idx, false)) {
     return NULL;
@@ -650,7 +734,14 @@ static PyObject*
 py_an_get_nns_by_vector(py_annoy *self, PyObject *args, PyObject *kwargs) {
   PyObject* v;
 
-  int32_t n, search_k=-1, include_distances=0;
+  // int32_t n, search_k=-1, include_distances=0;
+  int32_t n;
+  int search_k = -1;
+  int include_distances = 0;
+
+  static char const * kwlist[] = {"vector", "n", "search_k", "include_distances", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Oi|ii", (char**)kwlist, &v, &n, &search_k, &include_distances))
+    return NULL;
 
   // if (!self->ptr) return NULL;
   if (!self->ptr) {
@@ -658,10 +749,6 @@ py_an_get_nns_by_vector(py_annoy *self, PyObject *args, PyObject *kwargs) {
           "AnnoyIndex not initialized. Pass `f` and/or `metric`, or call add_item(0) first.");
       return NULL;
   }
-
-  static char const * kwlist[] = {"vector", "n", "search_k", "include_distances", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Oi|ii", (char**)kwlist, &v, &n, &search_k, &include_distances))
-    return NULL;
 
   // Temporary vector, dimension = current self->f
   vector<float> w(self->f);
@@ -692,10 +779,11 @@ py_an_get_nns_by_vector(py_annoy *self, PyObject *args, PyObject *kwargs) {
 static PyObject*
 py_an_get_item_vector(py_annoy *self, PyObject *args) {
   int32_t item_idx;
-  if (!self->ptr)
-    return NULL;
+
   if (!PyArg_ParseTuple(args, "i", &item_idx))
     return NULL;
+
+  if (!self->ptr) return NULL;
 
   if (!check_constraints(self, item_idx, false)) {
     return NULL;
@@ -882,10 +970,11 @@ py_an_unload(py_annoy *self) {
 static PyObject *
 py_an_get_distance(py_annoy *self, PyObject *args) {
   int32_t i, j;
-  if (!self->ptr)
-    return NULL;
+
   if (!PyArg_ParseTuple(args, "ii", &i, &j))
     return NULL;
+
+  if (!self->ptr) return NULL;
 
   if (!check_constraints(self, i, false) || !check_constraints(self, j, false)) {
     return NULL;
@@ -944,10 +1033,17 @@ py_an_set_seed(py_annoy *self, PyObject *args) {
 
 static PyObject *
 py_an_serialize(py_annoy *self, PyObject *args, PyObject *kwargs) {
-  if (!self->ptr)
-    return NULL;
+  if (!self->ptr) return NULL;
 
-  vector<uint8_t> bytes = self->ptr->serialize(NULL);
+  // vector<uint8_t> bytes = self->ptr->serialize(NULL);
+
+  char* error = nullptr;
+  vector<uint8_t> bytes = self->ptr->serialize(&error);
+  if (bytes.empty() && error) {
+      PyErr_SetString(PyExc_RuntimeError, error);
+      free(error);
+      return NULL;
+  }
 
   return PyBytes_FromStringAndSize((const char*)bytes.data(), bytes.size());
 }
@@ -956,18 +1052,16 @@ py_an_serialize(py_annoy *self, PyObject *args, PyObject *kwargs) {
 static PyObject *
 py_an_deserialize(py_annoy *self, PyObject *args, PyObject *kwargs) {
   PyObject* bytes_object;
-  char *error;
   bool prefault = false;
-  if (!self->ptr)
-    return NULL;
 
   static char const * kwlist[] = {"bytes", "prefault", NULL};
-
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "S|b", (char**)kwlist, &bytes_object, &prefault))
     return NULL;
 
+  if (!self->ptr) return NULL;
+
   if (bytes_object == NULL) {
-    PyErr_SetString(PyExc_TypeError, "Expected bytes");
+    PyErr_SetString(PyExc_TypeError, "Expected bytes but NULL");
     return NULL;
   }
 
@@ -977,13 +1071,16 @@ py_an_deserialize(py_annoy *self, PyObject *args, PyObject *kwargs) {
   }
 
   Py_ssize_t length = PyBytes_Size(bytes_object);
-  uint8_t* raw_bytes = (uint8_t*)PyBytes_AsString(bytes_object);
+  // uint8_t* raw_bytes = (uint8_t*)PyBytes_AsString(bytes_object);
+  uint8_t* raw_bytes = reinterpret_cast<uint8_t*>(PyBytes_AsString(bytes_object));
   vector<uint8_t> v(raw_bytes, raw_bytes + length);
 
+  // char* error = nullptr;
+  char *error;
   if (!self->ptr->deserialize(&v, prefault, &error)) {
-    PyErr_SetString(PyExc_IOError, error);
-    free(error);
-    return NULL;
+      PyErr_SetString(PyExc_IOError, error);
+      free(error);
+      return NULL;
   }
 
   Py_RETURN_TRUE;
