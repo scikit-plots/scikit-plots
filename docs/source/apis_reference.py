@@ -376,10 +376,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ),
                 "autosummary": [
                     "annoy",
-                    "annoy.Annoy",
-                    "annoy.AnnoyIndex",
+                    "annoy.annoylib.Annoy",
                     "annoy.AnnoyBase",
                     "annoy.Index",
+                    "annoy.Annoy",
+                    "annoy.AnnoyIndex",
                     "annoy.ManifestMixin",
                     "annoy.PickleMixin",
                     "annoy.PathAwareAnnoy",
