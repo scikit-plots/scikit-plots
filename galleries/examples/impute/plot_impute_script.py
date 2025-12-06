@@ -245,21 +245,19 @@ from scikitplot.impute import AnnoyKNNImputer
 from sklearn.preprocessing import MaxAbsScaler, RobustScaler, StandardScaler
 t0 = time.time()
 # 'angular', 'euclidean', 'manhattan', 'hamming', 'dot'
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, metric='angular', n_neighbors=1)
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=1, metric='angular', n_trees=-1)
 # imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, weights="distance")
 mses_diabetes[6], stds_diabetes[6] = get_score(
     Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
 )
-# imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, metric='euclidean', n_neighbors=1, initial_strategy="median")
-# imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, weights="distance", initial_strategy="median", metric='euclidean', n_neighbors=430, n_trees=-1)
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, weights="distance", initial_strategy="median", metric='euclidean', n_neighbors=484)
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=430, metric='euclidean', initial_strategy="median", weights="distance", n_trees=-1)
+# imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=484, metric='euclidean', initial_strategy="median", weights="distance")
 mses_california[6], stds_california[6] = get_score(
     Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
 )
-# imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, metric='euclidean', initial_strategy="median")
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, metric='angular', initial_strategy="median", n_neighbors=1)
+imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=1, metric='euclidean', initial_strategy="median", n_trees=-1)
 mses_train[6], stds_train[6] = get_score(
     Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),

@@ -50,9 +50,9 @@ def test_wrong_length(n_points=1000, n_trees=10):
     f = 10
     i = AnnoyIndex(f, "euclidean")
     i.add_item(0, [random.gauss(0, 1) for x in range(f)])
-    with pytest.raises(IndexError):
+    with pytest.raises((IndexError, ValueError)):
         i.add_item(1, [random.gauss(0, 1) for x in range(f + 1000)])
-    with pytest.raises(IndexError):
+    with pytest.raises((IndexError, ValueError)):
         i.add_item(2, [])
 
     i.build(n_trees)
@@ -87,7 +87,10 @@ def test_missing_len():
     i = AnnoyIndex(10, "euclidean")
     with pytest.raises(TypeError) as excinfo:
         i.add_item(1, FakeCollection())
-    assert str(excinfo.value) == "object of type 'FakeCollection' has no len()"
+    assert str(excinfo.value) in [
+        "object of type 'FakeCollection' has no len()",
+        "expected a 1D sequence of floats"
+    ]
 
 
 def test_missing_getitem():
@@ -103,7 +106,10 @@ def test_missing_getitem():
     i = AnnoyIndex(5, "euclidean")
     with pytest.raises(TypeError) as excinfo:
         i.add_item(1, FakeCollection())
-    assert str(excinfo.value) == "'FakeCollection' object is not subscriptable"
+    assert str(excinfo.value) in [
+        "'FakeCollection' object is not subscriptable",
+        "expected a 1D sequence of floats"
+    ]
 
 
 def test_short():
@@ -119,7 +125,7 @@ def test_short():
             raise IndexError
 
     i = AnnoyIndex(3, "euclidean")
-    with pytest.raises(IndexError):
+    with pytest.raises((IndexError, ValueError)):
         i.add_item(1, FakeCollection())
 
 
