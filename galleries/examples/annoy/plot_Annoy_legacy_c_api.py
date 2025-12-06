@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-annoy.AnnoyBase legacy x-api with examples
+annoy.AnnoyBase legacy c-api with examples
 ==========================================
 
 An example showing the :py:class:`~scikitplot.cexternals.annoy.AnnoyBase` class.
