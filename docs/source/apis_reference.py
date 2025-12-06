@@ -380,6 +380,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "annoy.AnnoyIndex",
                     "annoy.AnnoyBase",
                     "annoy.Index",
+                    "annoy.ManifestMixin",
+                    "annoy.PickleMixin",
+                    "annoy.PathAwareAnnoy",
+                    "annoy.ObjectIOMixin",
                 ],
             },
             {
