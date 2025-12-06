@@ -1,5 +1,8 @@
 # testing
+# < v2
 !test.tree
+# >= v2
+!test_v2.tree
 *.ann
 *.tree
 *.annoy

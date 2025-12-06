@@ -43,6 +43,10 @@ outputs
 **.openblas
 
 # annoy testing
+# < v2
+!test/test.tree
+# >= v2
+!test/test_v2.tree
 *.ann
 *.tree
 *.annoy

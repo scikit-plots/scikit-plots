@@ -97,7 +97,7 @@ class AnnoyKNNImputer(_BaseImputer):
         nullable integer dtypes with missing values, `missing_values`
         should be set to np.nan, since `pd.NA` will be converted to np.nan.
 
-    n_trees : int, default=10
+    n_trees : int, default=-1
         Number of trees in the Annoy forest. Increasing the number of trees
         generally improves nearest-neighbor accuracy but increases build time
         and memory usage.
@@ -299,8 +299,8 @@ class AnnoyKNNImputer(_BaseImputer):
         self,
         *,
         missing_values=np.nan,
-        n_trees=10,  # annoy -1
-        search_k=-1,  # annoy default
+        n_trees=-1,  # annoy default -1
+        search_k=-1,  # annoy default -1
         n_neighbors=5,
         weights="uniform",
         metric="angular",  # annoy default
@@ -382,7 +382,95 @@ class AnnoyKNNImputer(_BaseImputer):
     # ------------------------------------------------------------------ #
     # Transform Annoy index helper
     # ------------------------------------------------------------------ #
-    def _process_single_row(
+    # def _transform_annoy_index(self, X, initial_mask):  # noqa: PLR0912
+    #     # Iterate over rows with missing values
+    #     for i, row in enumerate(X):
+    #         if not np.any(initial_mask[i]):
+    #             continue  # skip complete rows has no missing values
+    #         try:
+    #             vec = np.where(
+    #                 np.isnan(
+    #                     np.nan_to_num(row, nan=np.nan, posinf=np.nan, neginf=np.nan),
+    #                 ),
+    #                 self.fill_annoy_vector_,
+    #                 row,
+    #             )
+    #         except:
+    #             # vec = row
+    #             vec = np.where(np.isnan(row), self.fill_annoy_vector_, row)
+    #         # Query Annoy neighbors (fill NaNs with precomputed values), returns the n closest items
+    #         # find neighbours using the observed parts: simplest approach uses only complete rows
+    #         potential_donors_idx, annoy_dists_1d = self.annoy_index_.get_nns_by_vector(
+    #             vec,  # row, X[i]
+    #             self.n_neighbors,
+    #             search_k=self.search_k,
+    #             include_distances=True,
+    #         )
+    #         # Remove self-neighbors (distance == 0)
+    #         # But Annoy can return distance 0 even for non-identical vectors (if vectors coincide).
+    #         # while 0 in dists:
+    #         # That's safer and avoids dropping legitimate zero-distance donors (rare but possible in normalized data).
+    #         # if i in potential_donors_idx:
+    #         #     idx = dists.index(0)
+    #         #     potential_donors_idx.pop(idx)
+    #         #     dists.pop(idx)
+    #         if not potential_donors_idx:
+    #             continue
+
+    #         # Convert to 2D so _get_weights expects shape (n_queries, n_neighbors)
+    #         # np.asarray(annoy_dists_1d, dtype=float).reshape(1, -1)
+    #         dists_2d = np.atleast_2d(np.asarray(annoy_dists_1d, dtype=float))
+    #         weights_2d = _get_weights(dists_2d, self.weights)
+
+    #         if weights_2d is not None:
+    #             # Replace inf values (e.g. due to zero distances) with 1.0
+    #             if np.isinf(weights_2d).any():
+    #                 weights_2d[np.isinf(weights_2d)] = 1.0  # np.isfinite
+
+    #             # Normalize weights row-wise (avoid division by zero)
+    #             # if np.any(weights_2d):
+    #             row_sums = weights_2d.sum(axis=1, keepdims=True)
+    #             weights_2d /= np.where(row_sums == 0, 1, row_sums)
+
+    #         # Fall back to uniform if None
+    #         weights = (
+    #             np.ones_like(annoy_dists_1d)
+    #             if weights_2d is None
+    #             else weights_2d.ravel()
+    #         )
+
+    #         # Retrieve donor samples
+    #         # Compute mean for missing columns from neighbor values
+    #         # neighbors = self._fit_X[potential_donors_idx]
+    #         # Get vector dimension from Annoy index
+    #         _dim = self.annoy_index_.f
+    #         # Preallocate array
+    #         neighbors = np.empty((len(potential_donors_idx), _dim), dtype=np.float32)
+    #         # Fill the array using indices from the list
+    #         for _i, idx in enumerate(potential_donors_idx):
+    #             neighbors[_i] = self.annoy_index_.get_item_vector(idx)
+    #         # if not neighbors:
+    #         #     continue
+
+    #         # Impute missing features
+    #         for j, is_nan in enumerate(initial_mask[i]):
+    #             if is_nan and ~self._is_empty_feature[j]:
+    #                 valid_idx = ~np.isnan(neighbors[:, j])
+    #                 col_vals = neighbors[valid_idx, j]
+    #                 w = weights[valid_idx][: len(col_vals)]
+    #                 if col_vals.size:
+    #                     # Weighted average or mean
+    #                     if w.sum() == 0:
+    #                         # fallback to unweighted mean or fill value
+    #                         X[i, j] = np.mean(col_vals)  # or self.fill_annoy_vector_[j]
+    #                     else:
+    #                         X[i, j] = np.average(col_vals, weights=w)
+    #                 else:
+    #                     # Fallback to fill value if no neighbor values
+    #                     X[i, j] = self.fill_annoy_vector_[j]
+    #                     # pass
+    #     return X
+    def _process_single_row(  # noqa: PLR0912
         self,
         i,
         row,
@@ -421,11 +509,18 @@ class AnnoyKNNImputer(_BaseImputer):
         # Query Annoy neighbors (fill NaNs with precomputed values), returns the n closest items
         # find neighbours using the observed parts: simplest approach uses only complete rows
         # indices_i, distances_i
-        idxs, dists = annoy_index.get_nns_by_vector(
+        # idxs, dists = annoy_index.get_nns_by_vector(
+        #     vec,  # row, X[i]
+        #     n_neighbors,
+        #     search_k=search_k,
+        #     include_distances=True,
+        # )
+        idxs, dists = annoy_index.get_neighbor_ids_by_vector(
             vec,  # row, X[i]
             n_neighbors,
             search_k=search_k,
-            include_distances=True,
+            include_distances=True,  # (weights == "distance")
+            include_self=False,
         )
         # Annoy returns the query point itself as the first element
         # Remove self-neighbors (distance == 0)
@@ -443,16 +538,26 @@ class AnnoyKNNImputer(_BaseImputer):
         # np.asarray(dists, dtype=float).reshape(1, -1)
         # dists_2d = np.atleast_2d(np.asarray(dists, dtype=float))
         # weights_2d = _get_weights(dists_2d, self.weights)
+
+        # 4. Retrieve neighbor rows
         idxs = np.asarray(idxs)
-        dists = np.asarray(dists, dtype=float)
+        neighbors = np.asarray(
+            [annoy_index.get_item_vector(int(idx)) for idx in idxs],
+            dtype=float,
+        )
 
         # 3. Compute weights
-        dists_2d = dists.reshape(1, -1)
-        weights_2d = _get_weights(dists_2d, weights_method)
+        # Ensure dists is always 1D (even when a scalar sneaks in)
+        dists = np.asarray(dists, dtype=float).reshape(-1)
+        if dists.size != len(idxs):
+            raise ValueError(
+                f"Annoy returned mismatched ids/distances lengths: "
+                f"{len(idxs)} vs {dists.size}"
+            )
 
-        if weights_2d is None:
-            # Fall back to uniform if None
-            weights = np.ones_like(dists)
+        # 4. Compute weights (strict shape safe), If no distances, fallback to uniform
+        if weights_method is None or weights_method == "uniform":
+            weights = np.ones_like(dists, dtype=float)
         else:
             # # Replace inf values (e.g. due to zero distances) with 1.0
             # if np.isinf(weights_2d).any():
@@ -461,18 +566,22 @@ class AnnoyKNNImputer(_BaseImputer):
             # # if np.any(weights_2d):
             # row_sums = weights_2d.sum(axis=1, keepdims=True)
             # weights_2d /= np.where(row_sums == 0, 1, row_sums)
-            weights = weights_2d.ravel()
+            # weights = weights_2d.ravel()
+            dists_2d = dists.reshape(1, -1)
+            weights_2d = _get_weights(dists_2d, weights_method)
 
-            # Normalize
+            if weights_2d is None:
+                weights = np.ones_like(dists, dtype=float)
+            else:
+                weights = np.asarray(weights_2d, dtype=float).reshape(-1)
+
             s = weights.sum()
             if s != 0:
-                weights /= s
+                weights = weights / s
 
-        # 4. Retrieve neighbor rows
-        neighbors = np.asarray(
-            [annoy_index.get_item_vector(idx) for idx in idxs],
-            dtype=float,
-        )
+        # Ensure final weights is 1D
+        # weights = np.atleast_1d(np.asarray(weights, dtype=float))
+        weights = np.asarray(weights, dtype=float).reshape(-1)
 
         # 5. Impute missing entries
         new_row = row.copy()
@@ -480,8 +589,10 @@ class AnnoyKNNImputer(_BaseImputer):
             # if is_nan and ~self._is_empty_feature[j]:
             if is_nan and not is_empty_feature[j]:
                 valid = ~np.isnan(neighbors[:, j])
+                # valid = np.atleast_1d(np.asarray(valid, dtype=bool))
                 vals = neighbors[valid, j]
-                w = weights[valid][: len(vals)]
+                # w = weights[valid][: len(vals)]
+                w = weights[valid]
                 if vals.size:
                     # weighted mean or simple mean
                     new_row[j] = (

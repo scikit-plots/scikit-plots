@@ -1,5 +1,7 @@
 // Sample VS Code settings for a Python project Testing using micromamba
 // Put in the `.vscode/settings.json` file in your project root
+// View > Command Palette or by pressing Ctrl+Shift+P -> "Test: Refresh Tests"
+// Ref: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-vscode/
 {
     // "terminal.integrated.shell.linux": "/bin/bash",
     // "terminal.integrated.profiles.linux": {
@@ -12,4 +14,11 @@
     "python.testing.pytestPath": "/root/micromamba/envs/py311/bin/pytest",
     "python.testing.pytestEnabled": true
     // "python.testing.unittestEnabled": true
+    // "files.autoSave": "onFocusChange",
+    // "[python]": {
+    //     "editor.defaultFormatter": "ms-python.black-formatter"
+    // },
+    // "python.testing.pytestArgs": [],
+    // "python.testing.cwd": "${workspaceFolder}/tests",
+    // "python.testing.autoTestDiscoverOnSaveEnabled": true,
 }

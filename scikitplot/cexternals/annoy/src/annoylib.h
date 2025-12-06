@@ -12,6 +12,7 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
+#pragma once
 
 #ifndef ANNOY_ANNOYLIB_H
 #define ANNOY_ANNOYLIB_H
@@ -50,6 +51,8 @@ typedef signed __int64    int64_t;
  #define lseek_getsize(fd) lseek(fd, 0, SEEK_END)
 #endif
 
+#include <memory>
+#include <stdexcept>
 #include <cerrno>
 #include <string.h>
 #include <math.h>
@@ -57,6 +60,12 @@ typedef signed __int64    int64_t;
 #include <algorithm>
 #include <queue>
 #include <limits>
+
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <utility>
 
 #if __cplusplus >= 201103L
 #include <type_traits>
@@ -128,18 +137,23 @@ inline void set_error_from_errno(char **error, const char* msg) {
   annoylib_showUpdate("%s: %s (%d)\n", msg, strerror(errno), errno);
   if (error) {
     *error = (char *)malloc(256);  // TODO: win doesn't support snprintf
-    snprintf(*error, 255, "%s: %s (%d)", msg, strerror(errno), errno);
+    if (*error) {
+      snprintf(*error, 255, "%s: %s (%d)", msg, strerror(errno), errno);
+    }
   }
 }
 
 inline void set_error_from_string(char **error, const char* msg) {
   annoylib_showUpdate("%s\n", msg);
   if (error) {
-    *error = (char *)malloc(strlen(msg) + 1);
-    strcpy(*error, msg);
+    size_t len = strlen(msg);
+    *error = (char *)malloc(len + 1);
+    if (*error) {
+      // strcpy(*error, msg);
+      memcpy(*error, msg, len + 1);
+    }
   }
 }
-
 
 using std::vector;
 using std::pair;
@@ -166,7 +180,8 @@ namespace {
 
 template<typename S, typename Node>
 inline Node* get_node_ptr(const void* _nodes, const size_t _s, const S i) {
-  return (Node*)((uint8_t *)_nodes + (_s * i));
+  // return (Node*)((uint8_t *)_nodes + (_s * i));
+  return (Node*)((uint8_t *)_nodes + (_s * static_cast<size_t>(i)));
 }
 
 template<typename T>
@@ -184,7 +199,8 @@ template<typename T>
 inline T manhattan_distance(const T* x, const T* y, int f) {
   T d = 0.0;
   for (int i = 0; i < f; i++)
-    d += fabs(x[i] - y[i]);
+    // d += fabs(x[i] - y[i]);
+    d += static_cast<T>(fabs(x[i] - y[i]));
   return d;
 }
 
@@ -480,8 +496,10 @@ struct Angular : Base {
     T qq = y->norm ? y->norm : dot(y->v, y->v, f);
     T pq = dot(x->v, y->v, f);
     T ppqq = pp * qq;
-    if (ppqq > 0) return 2.0 - 2.0 * pq / sqrt(ppqq);
-    else return 2.0; // cos is 0
+    // if (ppqq > 0) return 2.0 - 2.0 * pq / sqrt(ppqq);
+    // else return 2.0; // cos is 0
+    if (ppqq > 0) return static_cast<T>(2.0) - static_cast<T>(2.0) * pq / static_cast<T>(sqrt(ppqq));
+    else return static_cast<T>(2.0); // cos is 0
   }
   template<typename S, typename T>
   static inline T margin(const Node<S, T>* n, const T* y, int f) {
@@ -513,7 +531,8 @@ struct Angular : Base {
     // Used when requesting distances from Python layer
     // Turns out sometimes the squared distance is -0.0
     // so we have to make sure it's a positive number.
-    return sqrt(std::max(distance, T(0)));
+    // return sqrt(std::max(distance, T(0)));
+    return static_cast<T>(sqrt(std::max(distance, T(0))));
   }
   template<typename T>
   static inline T pq_distance(T distance, T margin, int child_nr) {
@@ -581,8 +600,10 @@ struct DotProduct : Angular {
     T pq = dot(x->v, y->v, f) + x->dot_factor * y->dot_factor;
     T ppqq = pp * qq;
 
-    if (ppqq > 0) return 2.0 - 2.0 * pq / sqrt(ppqq);
-    else return 2.0;
+    // if (ppqq > 0) return 2.0 - 2.0 * pq / sqrt(ppqq);
+    // else return 2.0;
+    if (ppqq > 0) return static_cast<T>(2.0) - static_cast<T>(2.0) * pq / static_cast<T>(sqrt(ppqq));
+    else return static_cast<T>(2.0);
   }
 
   template<typename Node>
@@ -598,7 +619,8 @@ struct DotProduct : Angular {
 
   template<typename T, typename Node>
   static inline void copy_node(Node* dest, const Node* source, const int f) {
-    memcpy(dest->v, source->v, f * sizeof(T));
+    // memcpy(dest->v, source->v, f * sizeof(T));
+    memcpy(dest->v, source->v, static_cast<size_t>(f) * sizeof(T));
     dest->dot_factor = source->dot_factor;
   }
 
@@ -667,7 +689,8 @@ struct DotProduct : Angular {
     for (S i = 0; i < node_count; i++) {
       Node* node = get_node_ptr<S, Node>(nodes, _s, i);
       T d = dot(node->v, node->v, f);
-      T norm = d < 0 ? 0 : sqrt(d);
+      // T norm = d < 0 ? 0 : sqrt(d);
+      T norm = d < 0 ? 0 : static_cast<T>(sqrt(d));
       node->dot_factor = norm;
       node->built = false;
     }
@@ -685,10 +708,13 @@ struct DotProduct : Angular {
     for (S i = 0; i < node_count; i++) {
       Node* node = get_node_ptr<S, Node>(nodes, _s, i);
       T node_norm = node->dot_factor;
-      T squared_norm_diff = pow(max_norm, static_cast<T>(2.0)) - pow(node_norm, static_cast<T>(2.0));
-      T dot_factor = squared_norm_diff < 0 ? 0 : sqrt(squared_norm_diff);
+      // T squared_norm_diff = pow(max_norm, static_cast<T>(2.0)) - pow(node_norm, static_cast<T>(2.0));
+      // T dot_factor = squared_norm_diff < 0 ? 0 : sqrt(squared_norm_diff);
+      T squared_norm_diff = static_cast<T>(pow(max_norm, static_cast<T>(2.0)) - pow(node_norm, static_cast<T>(2.0)));
+      T dot_factor = squared_norm_diff < 0 ? 0 : static_cast<T>(sqrt(squared_norm_diff));
 
-      node->norm = pow(max_norm, static_cast<T>(2.0));
+      // node->norm = pow(max_norm, static_cast<T>(2.0));
+      node->norm = static_cast<T>(pow(max_norm, static_cast<T>(2.0)));
       node->dot_factor = dot_factor;
     }
   }
@@ -715,7 +741,8 @@ struct Hamming : Base {
 
   template<typename T>
   static inline T pq_distance(T distance, T margin, int child_nr) {
-    return distance - (margin != (unsigned int) child_nr);
+    // return distance - (margin != (unsigned int) child_nr);
+    return distance - (margin != static_cast<unsigned int>(child_nr));
   }
 
   template<typename T>
@@ -739,12 +766,15 @@ struct Hamming : Base {
     for (int i = 0; i < f; i++) {
       dist += annoylib_popcount(x->v[i] ^ y->v[i]);
     }
-    return dist;
+    // return dist;
+    return static_cast<T>(dist);
   }
   template<typename S, typename T>
   static inline bool margin(const Node<S, T>* n, const T* y, int f) {
     static const size_t n_bits = sizeof(T) * 8;
-    T chunk = n->v[0] / n_bits;
+    (void)f; // f is unused here
+    // T chunk = n->v[0] / n_bits;
+    T chunk = n->v[0] / static_cast<T>(n_bits);
     return (y[chunk] & (static_cast<T>(1) << (n_bits - 1 - (n->v[0] % n_bits)))) != 0;
   }
   template<typename S, typename T, typename Random>
@@ -759,7 +789,8 @@ struct Hamming : Base {
   static inline void create_split(const vector<Node<S, T>*>& nodes, int f, size_t s, Random& random, Node<S, T>* n) {
     size_t cur_size = 0;
     size_t i = 0;
-    int dim = f * 8 * sizeof(T);
+    // int dim = f * 8 * sizeof(T);
+    int dim = f * 8 * static_cast<int>(sizeof(T));
     for (; i < max_iterations; i++) {
       // choose random position to split at
       n->v[0] = random.index(dim);
@@ -777,7 +808,8 @@ struct Hamming : Base {
     if (i == max_iterations) {
       int j = 0;
       for (; j < dim; j++) {
-        n->v[0] = j;
+        // n->v[0] = j;
+        n->v[0] = static_cast<T>(j);
         cur_size = 0;
         for (typename vector<Node<S, T>*>::const_iterator it = nodes.begin(); it != nodes.end(); ++it) {
           if (margin(n, (*it)->v, f)) {
@@ -856,7 +888,8 @@ struct Euclidean : Minkowski {
     Base::normalize<T, Node<S, T> >(n, f);
     n->a = 0.0;
     for (int z = 0; z < f; z++)
-      n->a += -n->v[z] * (p->v[z] + q->v[z]) / 2;
+      // n->a += -n->v[z] * (p->v[z] + q->v[z]) / 2;
+      n->a += static_cast<T>(-n->v[z] * (p->v[z] + q->v[z]) / 2);
   }
   template<typename T>
   static inline T normalized_distance(T distance) {
@@ -887,7 +920,8 @@ struct Manhattan : Minkowski {
     Base::normalize<T, Node<S, T> >(n, f);
     n->a = 0.0;
     for (int z = 0; z < f; z++)
-      n->a += -n->v[z] * (p->v[z] + q->v[z]) / 2;
+      // n->a += -n->v[z] * (p->v[z] + q->v[z]) / 2;
+      n->a += static_cast<T>(-n->v[z] * (p->v[z] + q->v[z]) / 2);
   }
   template<typename T>
   static inline T normalized_distance(T distance) {
@@ -1057,10 +1091,13 @@ public:
 
     // Also, copy the roots into the last segment of the array
     // This way we can load them faster without reading the whole file
-    _allocate_size(_n_nodes + (S)_roots.size());
+    // _allocate_size(_n_nodes + (S)_roots.size());
+    _allocate_size(_n_nodes + static_cast<S>(_roots.size()));
     for (size_t i = 0; i < _roots.size(); i++)
-      memcpy(_get(_n_nodes + (S)i), _get(_roots[i]), _s);
-    _n_nodes += _roots.size();
+      // memcpy(_get(_n_nodes + (S)i), _get(_roots[i]), _s);
+      memcpy(_get(_n_nodes + static_cast<S>(i)), _get(_roots[i]), _s);
+    // _n_nodes += _roots.size();
+    _n_nodes += static_cast<S>(_roots.size());
 
     if (_verbose) annoylib_showUpdate("has %d nodes\n", _n_nodes);
 
@@ -1086,6 +1123,8 @@ public:
       set_error_from_string(error, "You can't unbuild a loaded index");
       return false;
     }
+
+    (void)error; // currently unused
 
     _roots.clear();
     _n_nodes = _n_items;
@@ -1200,12 +1239,20 @@ public:
       annoylib_showUpdate("prefault is set to true, but MAP_POPULATE is not defined on this platform");
 #endif
     }
-    _nodes = (Node*)mmap(0, size, PROT_READ, flags, _fd, 0);
+    // _nodes = (Node*)mmap(0, size, PROT_READ, flags, _fd, 0);
+    _nodes = (Node*)mmap(0, static_cast<size_t>(size), PROT_READ, flags, _fd, 0);
+    if (_nodes == MAP_FAILED) {
+      set_error_from_errno(error, "Unable to mmap");
+      _nodes = NULL;
+      return false;
+    }
     _n_nodes = (S)(size / _s);
+    _n_nodes = static_cast<S>(static_cast<size_t>(size) / _s);
 
     // Find the roots by scanning the end of the file and taking the nodes with most descendants
     _roots.clear();
-    S m = -1;
+    // S m = -1;
+    S m = static_cast<S>(-1);
     for (S i = _n_nodes - 1; i >= 0; i--) {
       S k = _get(i)->n_descendants;
       if (m == -1 || k == m) {
@@ -1668,9 +1715,10 @@ public:
     roots_mutex.unlock();
   }
 };
-#endif
+#endif // namespace Annoy
 
 }
 
-#endif
+#endif // ANNOY_ANNOYLIB_H
+
 // vim: tabstop=2 shiftwidth=2
