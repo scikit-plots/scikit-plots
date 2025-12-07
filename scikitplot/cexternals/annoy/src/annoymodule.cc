@@ -898,7 +898,8 @@ static PyObject* py_an_new(PyTypeObject* type,
   self->has_pending_seed    = false;
   self->has_pending_verbose = false;
 
-  PY_RETURN_SELF; // return (PyObject *)self;
+  // (must-do): don’t use PY_RETURN_SELF in py_an_new
+  return (PyObject*)self;
 }
 
 // tp_init must return 0 on success, -1 on failure
@@ -1013,14 +1014,20 @@ static int py_an_init(py_annoy* self,
 
 // tp_dealloc: destroy C++ resources and free the Python wrapper
 static void py_an_dealloc(py_annoy* self) {
-  // 1) Release any mmap / on-disk mapping first (prevents FD leaks)
+  // 1) Release OS-backed resources first
   if (self->ptr) {
-    self->ptr->unload();     // should be idempotent in the core
+    // unload() should be idempotent in Annoy core
+    // but we guard anyway in case of future changes.
+    try {
+      self->ptr->unload();
+    } catch (...) {
+      // Never let exceptions escape tp_dealloc
+    }
     delete self->ptr;
     self->ptr = NULL;
   }
 
-  // 2) Destroy std::string fields constructed with placement new
+  // 2) Destroy placement-new std::string members
   self->metric.~basic_string();
   self->on_disk_path.~basic_string();
 
