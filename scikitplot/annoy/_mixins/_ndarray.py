@@ -359,3 +359,36 @@ class NDArrayExportMixin:
                     writer.writerow(row_vals)
 
         return path
+
+    def partition_existing_ids(
+        self,
+        ids: Sequence[int],
+        *,
+        missing_exceptions: tuple[type[Exception], ...] = (IndexError,),
+    ) -> tuple[list[int], list[int]]:
+        """
+        Partition candidate ids into (existing, missing) using get_item_vector semantics.
+
+        Strict rules:
+        - Caller must provide a sized Sequence of ids.
+        - We only treat `missing_exceptions` as a "not found" signal.
+        - Any other exception is re-raised.
+
+        This avoids implicit assumptions about dense id ranges.
+        """
+        existing: list[int] = []
+        missing: list[int] = []
+
+        for i in ids:
+            ii = int(i)
+            try:
+                _ = self.get_item_vector(ii)
+            except missing_exceptions:
+                missing.append(ii)
+                continue
+            except Exception:
+                raise
+            else:
+                existing.append(ii)
+
+        return existing, missing
