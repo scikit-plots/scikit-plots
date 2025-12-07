@@ -1012,16 +1012,19 @@ static int py_an_init(py_annoy* self,
 }
 
 // tp_dealloc: destroy C++ resources and free the Python wrapper
-static void py_an_dealloc(
-  py_annoy* self) {
-  // Destroy the underlying index, if any
-  // Explicitly run std::string destructor (constructed with placement new)
+static void py_an_dealloc(py_annoy* self) {
+  // 1) Release any mmap / on-disk mapping first (prevents FD leaks)
+  if (self->ptr) {
+    self->ptr->unload();     // should be idempotent in the core
+    delete self->ptr;
+    self->ptr = NULL;
+  }
+
+  // 2) Destroy std::string fields constructed with placement new
   self->metric.~basic_string();
   self->on_disk_path.~basic_string();
-  // if (self->ptr) { self->ptr->unload(); delete self->ptr; self->ptr = NULL; }
-  self->ptr->unload();  // idempotent safety to avoid leaked previous mapping
-  delete self->ptr;
-  // Finally, free the Python object
+
+  // 3) Free the Python object
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
