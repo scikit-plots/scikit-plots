@@ -30,6 +30,8 @@ for more details on configuring the documentation build.
 # https://gdevops.frama.io/documentation/formats/input/rest_sphinx/confpy/confpy.html#
 # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
 
+# https://github.com/apache/arrow/blob/main/docs/source/conf.py
+
 # %%
 #
 ##########################################################################
@@ -704,25 +706,57 @@ html_theme_options = {
     "icon_links_label": "Icon Links",
     # https://fontawesome.com/search?f=classic&s=solid&c=coding&ic=free-collection
     "icon_links": [
-        {
-            "name": "conda-forge",
-            "url": "https://anaconda.org/conda-forge/scikit-plots",
-            "icon": "fa-brands fa-cube",
-            "type": "fontawesome",
-        },
+        # {
+        #     "name": "LinkedIn",
+        #     "url": "https://www.linkedin.com/company/scikit-plots",
+        #     "icon": "fa-brands fa-linkedin",
+        # },
         {
             "name": "PyPI",
             "url": "https://pypi.org/project/scikit-plots",
-            "icon": "fa-brands fa-python",
+            # "icon": "fa-brands fa-python",
+            "icon": "fa-custom fa-pypi",
             "type": "fontawesome",
         },
         {
+            # Label for this link
             "name": "GitHub",
+            # URL where the link will redirect
             "url": "https://github.com/scikit-plots/scikit-plots",
+            # Icon class (if "type": "fontawesome"), or path to local image (if "type": "local")
             # "icon": "fa-brands fa-github",
             "icon": "fa-brands fa-square-github",
+            # The type of image to be used (see below for details)
             "type": "fontawesome",
         },
+        # {
+        #     "name": "GitLab",
+        #     "url": "https://gitlab.com/<your-org>/<your-repo>",
+        #     "icon": "fa-brands fa-square-gitlab",
+        #     "type": "fontawesome",
+        # },
+        # {
+        #     "name": "conda-forge",
+        #     "url": "https://anaconda.org/conda-forge/scikit-plots",
+        #     "icon": "fa-brands fa-cube",
+        #     "type": "fontawesome",
+        # },
+        # {
+        #     "name": "Mastodon",
+        #     "url": "https://<your-host>@<your-handle>",
+        #     "icon": "fa-brands fa-mastodon",
+        # },
+        # {
+        #     "name": "BlueSky",
+        #     "url": "https://scikit-plots.github.io/dev/project/community.html",
+        #     "icon": "fa-brands fa-bluesky",
+        # },
+        # {
+        #     "name": "Twitter",
+        #     "url": "https://twitter.com/<your-handle>",
+        #     "icon": "fa-brands fa-square-twitter",
+        #     # The default for `type` is `fontawesome`, so it is not required in the above examples
+        # },
     ],
     # alternative way to set twitter and github header icons
     # "github_url": "https://github.com/scikit-plots/scikit-plots",

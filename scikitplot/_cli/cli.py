@@ -15,6 +15,7 @@ r"""
 cli.py.
 
 .. seealso::
+    * https://pocoo-click.readthedocs.io/en/latest/commands/
     * https://github.com/mlflow/mlflow/blob/master/mlflow/cli.py
     * https://github.com/python/cpython/blob/main/Lib/getopt.py
 
