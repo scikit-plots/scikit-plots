@@ -1,6 +1,6 @@
 
 
-.. _cex-annoy-index:
+.. _cexternals-annoy-index:
 ======================================================================
 ANNoy (experimental)
 ======================================================================
@@ -12,6 +12,10 @@ This module contains some functions related to :py:mod:`~._annoy` under
 
    * https://pypi.org/project/annoy
 
+
+.. seealso::
+    * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+    * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 
 TL;DR
 ------------

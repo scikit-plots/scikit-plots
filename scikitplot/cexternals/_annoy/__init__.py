@@ -15,6 +15,7 @@
 # Authors: Spotify AB
 # SPDX-License-Identifier: Apache-2.0
 
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
 """
 High-level Python interface for the C++ Annoy backend.
 
@@ -34,7 +35,9 @@ Examples
 >>> t.build(10)  # Build 10 trees
 >>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
 
-.. notes::
+.. note::
+    :collapsible: open
+
     * https://www.sandgarden.com/learn/faiss
     * https://www.sandgarden.com/learn/annoy-approximate-nearest-neighbors-oh-yeah
 

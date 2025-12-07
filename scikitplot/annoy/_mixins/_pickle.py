@@ -4,6 +4,10 @@ Pickling foundations for scikitplot.cexternals.annoy.
 This layer does NOT modify the low-level C-API. It only provides:
 - disk-path tracking on the Python side
 - strict, robust pickling for pickle/joblib/cloudpickle
+
+.. seealso::
+    * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+    * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 """
 
 from __future__ import annotations
@@ -24,6 +28,10 @@ class PathAwareAnnoy(Annoy):
     Thin Python subclass that tracks the last known on-disk path.
 
     Pure metadata; core logic remains in the extension.
+
+    .. seealso::
+        * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+        * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
     """
 
     _on_disk_path: str | None = None
@@ -52,6 +60,10 @@ class PickleMixin(PathAwareAnnoy):
     - 'disk' mode: stores only the path (requires on_disk_build/load first).
     - 'auto' mode: deterministic policy:
         disk if on-disk path is known else byte.
+
+    .. seealso::
+        * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+        * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
     """
 
     def __init__(self, f: int = 0, metric: str = "angular"):

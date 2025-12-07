@@ -23,6 +23,9 @@ Examples relevant to the :py:mod:`~.annoy` module with  :py:mod:`~._annoy`.
 
 :py:mod:`~.annoy` is a Python module that provides high-performance approximate nearest neighbor search in Python.
 
+.. seealso::
+    * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+    * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 
 Python Example
 --------------

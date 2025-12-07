@@ -53,6 +53,8 @@ References
    Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
 """
 
+# https://www.devasking.com/issue/passing-arguments-to-tpnew-and-tpinit-from-subtypes-in-python-c-api
+
 from __future__ import annotations
 
 # This module is a dummy wrapper around the underlying C++ module.

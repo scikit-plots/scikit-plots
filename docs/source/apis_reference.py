@@ -399,7 +399,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_annoy")
                     + "\n\n"
-                    + _get_guide("cex-annoy-index")
+                    + _get_guide("cexternals-annoy-index")
                 ),
                 "autosummary": [
                     "_annoy",
@@ -412,7 +412,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_astropy")
                     + "\n\n"
-                    + _get_guide("astropy-index")
+                    + _get_guide("cexternals-astropy-index")
                 ),
                 "autosummary": [
                     "_astropy",
@@ -424,7 +424,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_f2py")
                     + "\n\n"
-                    + _get_guide("cexternals-index")
+                    + _get_guide("cexternals-f2py-index")
                 ),
                 "autosummary": [
                     "_f2py",
@@ -436,7 +436,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_numcpp")
                     + "\n\n"
-                    + _get_guide("numcpp_index")
+                    + _get_guide("cexternals-numcpp-index")
                 ),
                 "autosummary": [
                     "_numcpp",
@@ -477,7 +477,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("experimental-index"),
         "sections": [
             {
-                "title": None,
+                # "title": None,
+                # "description": None,
                 "autosummary": [
                     "enable_annoyknn_imputer",
                 ],
@@ -541,7 +542,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.externals", "_probscale")
                     + "\n\n"
-                    + _get_guide("probscale-index")
+                    + _get_guide("externals-probscale-index")
                 ),
                 "autosummary": [
                     # "_probscale",
@@ -556,7 +557,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.externals", "_seaborn")
                     + "\n\n"
-                    + _get_guide("seaborn-index")
+                    + _get_guide("externals-seaborn-index")
                 ),
                 "autosummary": [
                     "_seaborn",
@@ -567,7 +568,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.externals", "_sphinxext")
                       + "\n\n"
-                      + _get_guide("sphinxext-index")
+                      + _get_guide("externals-sphinxext-index")
                 ),
                 "autosummary": [
                     "_sphinxext",
@@ -578,7 +579,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.externals", "_tweedie")
                     + "\n\n"
-                    + _get_guide("tweedie-index")
+                    + _get_guide("externals-tweedie-index")
                 ),
                 "autosummary": [
                     "_tweedie",
@@ -589,7 +590,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.externals", "array_api_compat")
                     + "\n\n"
-                    + _get_guide("array_api_compat-index")
+                    + _get_guide("externals-array_api_compat-index")
                 ),
                 "autosummary": [
                     "array_api_compat",
@@ -600,7 +601,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.externals", "array_api_extra")
                     + "\n\n"
-                    + _get_guide("array_api_extra-index")
+                    + _get_guide("externals-array_api_extra-index")
                 ),
                 "autosummary": [
                     "array_api_extra",

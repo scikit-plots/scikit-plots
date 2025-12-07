@@ -34,7 +34,20 @@ Community & Organization
    :target: https://zenodo.org/communities/scikit-plots
    :class: badge
 
-|linkedin| |github| |zenodo|
+.. https://waldyrious.net/rst-playground/
+.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#images
+
+..
+   +------------------+------------------+------------------+
+   | |linkedin|       | |github|         | |zenodo|         |
+   +------------------+------------------+------------------+
+
+.. list-table:: Community & Organization
+   :class: borderless
+
+   * - |linkedin|
+     - |github|
+     - |zenodo|
 
 
 .. - **Wikipedia:** `Scikit-Plots Wikipedia <https://en.wikipedia.org/wiki/Draft:Scikit-plots>`_
