@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/spotify/annoy.git",
+  "version": "379f744667aba6b40ba3db8a07678df173a88f74",
+  "commit_hash": "379f744667aba6b40ba3db8a07678df173a88f74",
+  "tree_mode": "bash-sha256sum",
+  "tree_hash": "f5789ed883a924c7db40e9a8f7f73c66512cdd316f2e2570f633f567b48a8d2e",
+  "generated_utc": "2025-12-07T09:10:34Z"
+}

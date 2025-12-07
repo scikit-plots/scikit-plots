@@ -58,13 +58,13 @@ annoy:
 		--repo-url "https://github.com/spotify/annoy.git" \
 		--repo-ref "379f744667aba6b40ba3db8a07678df173a88f74" \
 		--target-dir "../third_party/annoy" \
-    	--move-to "../scikitplot/cexternals/annoy" \
+    	--move-to "../scikitplot/cexternals/_annoy" \
 		--nested-folder "" \
-		--src-subdirs "src .gitignore README.rst README_GO.rst README_Lua.md RELEASE.md annoy-dev-1.rockspec setup.cfg setup.py tox.ini" \
+		--src-subdirs "annoy src .gitignore annoy-dev-1.rockspec CMakeLists.txt LICENSE MANIFEST.in README.rst README_GO.rst README_Lua.md RELEASE.md setup.cfg setup.py tox.ini" \
 		--readme-name "vendor_repo.sh"
 
-	@# overwrite annoy modified files
-	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_annoy/' '../scikitplot/cexternals/annoy' -r --progress
+	@# overwrite ANNoy modified files
+	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_annoy/' '../scikitplot/cexternals/_annoy' -r --progress
 
 numcpp:
 	@bash ./maint_tools/vendor_repo.sh \

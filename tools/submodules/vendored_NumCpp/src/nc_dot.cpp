@@ -133,7 +133,7 @@ Notes
 
 Examples
 --------
->>> import scikitplot.cexternals._numcpp.nc as nc
+>>> import scikitplot.nc as nc
 >>> nc.dot([1,2], [3,4])
 
 >>> import numpy as np

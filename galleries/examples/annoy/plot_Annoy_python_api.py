@@ -5,21 +5,21 @@
 annoy.Index python-api with examples
 =====================================
 
-An example showing the :py:class:`~scikitplot.cexternals.annoy.Index` class.
+An example showing the :py:class:`~scikitplot.annoy.Index` class.
 """
 
 # %%
 import random; random.seed(0)
 
 # from annoy import Annoy, AnnoyIndex
-from scikitplot.cexternals.annoy import AnnoyBase
+from scikitplot.annoy import AnnoyBase
 
 print(AnnoyBase.__doc__)
 
 # %%
 
 # from annoy import Annoy, AnnoyIndex
-from scikitplot.cexternals.annoy import Annoy, AnnoyIndex, Index
+from scikitplot.annoy import Annoy, AnnoyIndex, Index
 
 print(AnnoyIndex.__doc__)
 
@@ -39,7 +39,7 @@ print(idx.info())
 
 # %%
 
-from scikitplot.cexternals import annoy as a
+from scikitplot import annoy as a
 
 print(a.AnnoyBase)   # should show the extension type
 print(a.Annoy)       # same
@@ -275,7 +275,7 @@ joblib.dump(idx, "test.joblib"), joblib.load("test.joblib")
 
 # %%
 
-from scikitplot.cexternals import annoy as a
+from scikitplot import annoy as a
 
 f = 10
 idx = a.AnnoyBase(f, "angular")
@@ -287,7 +287,7 @@ idx.build(10)
 
 # %%
 
-from scikitplot.cexternals import annoy as a
+from scikitplot import annoy as a
 
 # Legacy Support
 idx = a.Index.from_low_level(idx)

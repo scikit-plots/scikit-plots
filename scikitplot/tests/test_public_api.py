@@ -35,6 +35,8 @@ def test_dir_testing():
 PUBLIC_MODULES = [
     "scikitplot." + s
     for s in [
+        "annoy",
+        # "annoy.annoylib",
         "api",
         "api.plotters",
         "api.decomposition",
@@ -42,8 +44,6 @@ PUBLIC_MODULES = [
         "api.metrics",
         "cexperimental",
         "cexternals",
-        "cexternals.annoy",
-        "cexternals.annoy.annoylib",
         "config",
         "config.cbook",
         "experimental",

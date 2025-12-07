@@ -25,13 +25,9 @@ availability across environments, without relying on separate system installs.
 # - All modules are optional and imported safely when available.
 # - Vendored code may be experimental or limited to internal use.
 # - APIs may change in future releases without deprecation warnings.
-# annoy     : Approximate nearest neighbor search implementation
+# _annoy    : Approximate nearest neighbor search implementation
 # _astropy  : Astronomy utilities and array backends (vendored subset)
 # _f2py     : Fortran-Python interface support
 # _numcpp   : NumCpp: A Templatized Header Only C++ Library
-## Your package/module initialization code goes here
-from . import annoy
 
-__all__ = [
-    "annoy",
-]
+## Your package/module initialization code goes here

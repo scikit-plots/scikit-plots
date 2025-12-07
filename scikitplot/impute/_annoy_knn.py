@@ -51,7 +51,7 @@ from sklearn.utils.validation import (
 from ..utils._time import Timer
 
 try:
-    from ..cexternals.annoy import Index as AnnoyIndex
+    from ..annoy import Index as AnnoyIndex
 except Exception:
     from annoy import AnnoyIndex
 

@@ -5,13 +5,13 @@
 Simple annoy.AnnoyIndex with examples
 =======================================
 
-An example showing the :py:class:`~scikitplot.cexternals.annoy.AnnoyIndex` class.
+An example showing the :py:class:`~scikitplot.annoy.AnnoyIndex` class.
 """
 
 # %%
 # from annoy import AnnoyIndex
-# from scikitplot.cexternals.annoy import AnnoyIndex
-from scikitplot.cexternals.annoy import Index as AnnoyIndex
+# from scikitplot.annoy import AnnoyIndex
+from scikitplot.annoy import Index as AnnoyIndex
 
 a = AnnoyIndex(
     f=3,

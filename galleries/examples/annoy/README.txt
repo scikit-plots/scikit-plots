@@ -1,6 +1,6 @@
 .. _annoy_examples:
 
-Annoy
+ANNoy
 ----------------------------------------------------------------------
 
-Examples related to the :py:mod:`~scikitplot.cexternals.annoy` module instance.
+Examples related to the :py:mod:`~scikitplot.annoy` and :py:mod:`~scikitplot.cexternals._annoy` module instance.

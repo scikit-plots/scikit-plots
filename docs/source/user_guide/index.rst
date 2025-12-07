@@ -55,6 +55,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **Nearest Neighbor**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./annoy/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **Metric Perf**
         ^^^
         .. toctree::

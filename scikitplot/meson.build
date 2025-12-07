@@ -51,7 +51,7 @@ else
 endif
 
 ######################################################################
-## cython tree
+## Root cython tree
 ######################################################################
 
 # Copy the main "__init__.py"|"*.pxd" files to the build dir (needed for Cython)
@@ -60,8 +60,9 @@ endif
 _root_cython_tree = [
   fs.copyfile('__init__.py'),             # Ensure __init__.py is copied early
   fs.copyfile('cexperimental.pxd'),       # Cython definition file for C/C++ code
-  fs.copyfile('cexternals.pxd'),          # Cython definition file for C/C++ code
-  fs.copyfile('nc.pxd'),                  # Cython definition file for C/C++ code
+  fs.copyfile('cexternals.pxd'),
+  fs.copyfile('annoy.pxd'),
+  fs.copyfile('nc.pxd'),
 
   # Python stub files.
   fs.copyfile('__init__.pyi'),
@@ -70,9 +71,10 @@ _root_cython_tree = [
 ]
 
 ######################################################################
-## Check/Install Headers (Optional but Recommended for Python Integration)
+## NumCpp: C++ Header-Only Library + Python/Pybind11/Cython Integration
 ######################################################################
 
+# Check/Install Headers (Optional but Recommended for Python Integration)
 # Resolve absolute include path robustly
 _here = meson.current_source_dir()
 _numcpp_develop_path = _here / 'cexternals/_numcpp/develop/NdArray'
@@ -90,12 +92,12 @@ endif
 # )
 
 ######################################################################
-## Include the headers directories
+## NumCpp: Include the headers directories
 ######################################################################
 
 # include_directories for Specific Subfolders (header-only)
 # develop nc_develop::NdArray
-_develop_inc_dir = [
+_numcpp_develop_inc_dir = [
   # 'develop/NdArray',
   'cexternals/_numcpp/develop/NdArray',
 ]
@@ -106,18 +108,18 @@ _numcpp_inc_dir = [
 ]
 
 ######################################################################
-## Define include_directories for Source and Header files
+## NumCpp: Define include_directories for Source and Header files
 ######################################################################
 
 # Use the include directory in your build setup
 # Specify Include directories where your headers are located
 # include_directories(header) -> static_library(mix), library(mix), declare_dependency(mix)
 # ⚠️ Make sure your develop headers take priority can may conflict:
-inc_dir_develop = include_directories(_develop_inc_dir)
+inc_dir_numcpp_develop = include_directories(_numcpp_develop_inc_dir)
 inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 
 ######################################################################
-## Platform and Compiler Flags and Dependencies (replicating setup.py logic)
+## NumCpp: Platform and Compiler Flags and Dependencies (replicating setup.py logic)
 ######################################################################
 # Architecture-specific tuning
 os_name = host_machine.system()
@@ -169,9 +171,12 @@ dep_numcpp = declare_dependency(
 # (that parallelizes better)
 # below can be needs to be to be before ... since ... cimport *.pxd
 subdir('config')
+
+# c submodules
 subdir('_lib')
+subdir('cexternals')
+# subdir('annoy')  # defined use in dep_annoy
+subdir('nc')  # defined use in dep_numcpp
 
 # submodules
-subdir('cexternals')
-subdir('nc')
 subdir('cexperimental')

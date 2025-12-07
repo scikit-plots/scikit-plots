@@ -38,10 +38,8 @@ inc_dir_nc = include_directories(_nc_inc_dir)
 ######################################################################
 
 # Define dependencies
-dep_list = [
-  dep_all,
-  dep_numcpp,
-]
+dep_list = dep_all
+dep_list += [dep_numcpp]
 
 ######################################################################
 ## Optional: Build Standalone NumCpp Demo (C++ Executable)
@@ -51,7 +49,7 @@ dep_list = [
 # exe_numcpp_demo = executable(
 #   'numcpp_demo',
 #   'develop/main.cpp',  # only for standalone C++ demo file, not the library.
-#   include_directories: [inc_dir_develop, inc_dir_nc],
+#   include_directories: [inc_dir_numcpp_develop, inc_dir_nc],
 #   dependencies: dep_list,
 #   cpp_args: [cython_cpp_flags, extra_compile_args],
 #   install: false,
@@ -82,7 +80,7 @@ _numcpp_extension_metadata = {
     ],
     'include_directories': [                      # Include dirs for compilation
       # ⚠️ May Conflict develop first!
-      # inc_dir_develop,                          # develop first
+      # inc_dir_numcpp_develop,                   # develop first
       inc_dir_numcpp,                             # then the stable include folder
       inc_dir_nc,
     ],
@@ -115,7 +113,7 @@ _numcpp_extension_metadata = {
     ],
     'include_directories': [                      # Include dirs for compilation
       # ⚠️ May Conflict develop first!
-      # inc_dir_develop,                          # develop first
+      # inc_dir_numcpp_develop,                   # develop first
       inc_dir_numcpp,                             # then the stable include folder
       inc_dir_nc,
     ],
@@ -150,7 +148,7 @@ _numcpp_extension_metadata = {
     ],
     'include_directories': [                      # Include dirs for compilation
       # ⚠️ May Conflict develop first!
-      # inc_dir_develop,                          # develop first
+      # inc_dir_numcpp_develop,                   # develop first
       inc_dir_numcpp,                             # then the stable include folder
       inc_dir_nc,
     ],
