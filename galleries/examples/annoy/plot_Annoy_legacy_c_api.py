@@ -2,17 +2,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-annoy.AnnoyBase legacy c-api with examples
+annoy.Annoy legacy c-api with examples
 ==========================================
 
-An example showing the :py:class:`~scikitplot.cexternals.annoy.AnnoyBase` class.
+An example showing the :py:class:`~scikitplot.annoy.Annoy` class.
 """
 
 # %%
 import random; random.seed(0)
 
 # from annoy import Annoy, AnnoyIndex
-from scikitplot.cexternals.annoy import AnnoyBase as AnnoyIndex
+from scikitplot.annoy import Annoy as AnnoyIndex
 
 print(AnnoyIndex.__doc__)
 

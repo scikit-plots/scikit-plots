@@ -5,7 +5,7 @@
 Precision annoy.AnnoyIndex with examples
 ==========================================
 
-An example showing the :py:class:`~scikitplot.cexternals.annoy.AnnoyIndex` class.
+An example showing the :py:class:`~scikitplot.annoy.AnnoyIndex` class.
 """
 
 # %%
@@ -15,8 +15,8 @@ import random; random.seed(0)
 import time
 
 # from annoy import AnnoyIndex
-# from scikitplot.cexternals.annoy import AnnoyIndex
-from scikitplot.cexternals.annoy import Index as AnnoyIndex
+# from scikitplot.annoy import AnnoyIndex
+from scikitplot.annoy import Index as AnnoyIndex
 
 try:
     from tqdm.auto import tqdm, trange

@@ -243,6 +243,33 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.annoy": {
+        "short_summary": "ANNoy (Approximate Nearest Neighbors Oh Yeah)",
+        "description": _get_guide("annoy-index"),
+        "sections": [
+            {
+                "title": "ANNoy (Approximate Nearest Neighbors Oh Yeah)",
+                "description": None,
+                "autosummary": [
+                    # "get_include",
+                    "Annoy",
+                    "AnnoyBase",
+                    "AnnoyIndex",
+                    "Index",
+                ],
+            },
+            {
+                "title": "ANNoy Mixins",
+                "description": None,
+                "autosummary": [
+                    "ManifestMixin",
+                    "PickleMixin",
+                    "PathAwareAnnoy",
+                    "ObjectIOMixin",
+                ],
+            },
+        ],
+    },
     "scikitplot.api": {
         "short_summary": "Functional Api for Visualizations (function-based, implicit)",
         "description": _get_guide("api-index"),
@@ -368,22 +395,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("cexternals-index"),
         "sections": [
             {
-                "title": "Spotify annoy as submodule.",
+                "title": "Spotify ANNoy as submodule.",
                 "description": (
-                    _get_submodule("scikitplot.cexternals", "annoy")
+                    _get_submodule("scikitplot.cexternals", "_annoy")
                     + "\n\n"
-                    + _get_guide("annoy-index")
+                    + _get_guide("cex-annoy-index")
                 ),
                 "autosummary": [
-                    "annoy",
-                    "annoy.Annoy",
-                    "annoy.AnnoyBase",
-                    "annoy.Index",
-                    "annoy.AnnoyIndex",
-                    "annoy.ManifestMixin",
-                    "annoy.PickleMixin",
-                    "annoy.PathAwareAnnoy",
-                    "annoy.ObjectIOMixin",
+                    "_annoy",
+                    "_annoy.Annoy",
+                    "_annoy.AnnoyBase",
                 ],
             },
             {
@@ -419,8 +440,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ),
                 "autosummary": [
                     "_numcpp",
-                    "_numcpp.get_include",
-                    "_numcpp.nc",
                 ],
             },
         ],
@@ -674,6 +693,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "short_summary": "High-performance Numerical Functions",
         "description": _get_guide("nc-index"),
         "sections": [
+            {
+                "title": "NumCpp Library Header",
+                "description": None,
+                "autosummary": [
+                    "get_include",
+                ],
+            },
             {
                 "title": "Linear Algebra Functions",
                 "description": None,

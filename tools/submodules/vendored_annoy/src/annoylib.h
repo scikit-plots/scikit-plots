@@ -1331,6 +1331,7 @@ public:
     if (_verbose) annoylib_showUpdate("found %zu roots with degree %d\n", _roots.size(), _n_items);
     return true;
   }
+
   void thread_build(int q, int thread_idx, ThreadedBuildPolicy& threaded_build_policy) {
     // Each thread needs its own seed, otherwise each thread would be building the same tree(s)
     Random _random(_seed + thread_idx);

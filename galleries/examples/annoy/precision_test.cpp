@@ -15,8 +15,8 @@
 #include <random>
 #include <limits> // for std::numeric_limits
 
-#include "../../../scikitplot/cexternals/annoy/src/kissrandom.h"
-#include "../../../scikitplot/cexternals/annoy/src/annoylib.h"
+#include "../../../scikitplot/cexternals/_annoy/src/kissrandom.h"
+#include "../../../scikitplot/cexternals/_annoy/src/annoylib.h"
 
 using namespace Annoy;
 int precision(int f=40, int n=1000000, int seed=0){

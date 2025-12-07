@@ -193,6 +193,11 @@ struct TempAnnoyIndexFile {
 // Check if a file exists and raise a Python FileNotFoundError if not.
 // Returns true on success, false if the error has been set.
 static inline bool file_exists(const char* filename) {
+  if (!filename || !*filename) {
+    PyErr_SetString(PyExc_ValueError, "filename is empty");
+    return false;
+  }
+
   struct stat st;
   if (stat(filename, &st) != 0) {
     PyErr_SetFromErrnoWithFilename(PyExc_FileNotFoundError, filename);
@@ -347,7 +352,6 @@ public:
     return _index.build(n_trees, n_threads, error);
   }
 
-  // Robust deserialization:
   //  - validates header shape
   //  - passes remaining payload to underlying index
   bool deserialize(vector<uint8_t>* byte,
@@ -894,7 +898,8 @@ static PyObject* py_an_new(PyTypeObject* type,
   self->has_pending_seed    = false;
   self->has_pending_verbose = false;
 
-  PY_RETURN_SELF;
+  // (must-do): don’t use PY_RETURN_SELF in py_an_new
+  return (PyObject*)self;
 }
 
 // tp_init must return 0 on success, -1 on failure
@@ -1009,17 +1014,24 @@ static int py_an_init(py_annoy* self,
 
 // tp_dealloc: destroy C++ resources and free the Python wrapper
 static void py_an_dealloc(py_annoy* self) {
-  // Destroy the underlying index, if any
+  // 1) Release OS-backed resources first
   if (self->ptr) {
+    // unload() should be idempotent in Annoy core
+    // but we guard anyway in case of future changes.
+    try {
+      self->ptr->unload();
+    } catch (...) {
+      // Never let exceptions escape tp_dealloc
+    }
     delete self->ptr;
     self->ptr = NULL;
   }
 
-  // Explicitly run std::string destructor (constructed with placement new)
+  // 2) Destroy placement-new std::string members
   self->metric.~basic_string();
   self->on_disk_path.~basic_string();
 
-  // Finally, free the Python object
+  // 3) Free the Python object
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -1160,12 +1172,12 @@ static PyObject* py_an_verbose(py_annoy* self,
   // If index not yet created → just store; will apply in py_an_init or
   // when the index is constructed lazily.
   if (!self->ptr) {
-    PY_RETURN_SELF;
+    return NULL;
   }
 
   bool verbose_flag = (level >= 1);
   self->ptr->verbose(verbose_flag);
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // Seed control:
@@ -1208,11 +1220,11 @@ static PyObject* py_an_set_seed(
 
   // If index doesn’t exist yet → defer
   if (!self->ptr)
-    PY_RETURN_SELF;
+    return NULL;
 
   // Else apply immediately
   self->ptr->set_seed(seed);
-  PY_RETURN_SELF;
+  Py_RETURN_NONE; // PY_RETURN_SELF;
 }
 
 // joblib serialize / deserialize need to dunder  __reduce__ and _rebuild and/or _deserialize_into_self
@@ -1281,7 +1293,7 @@ static PyObject* py_an_deserialize(py_annoy* self,
     if (error) free(error);
     return NULL;
   }
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // Internal helper: get memory usage in byte.
@@ -1514,7 +1526,7 @@ static PyObject* py_an_add_item(py_annoy* self,
     return NULL;
   }
   // Enable method chaining (Annoy(...).add_item(...).add_item(...).build(...))
-  PY_RETURN_SELF;
+  Py_RETURN_NONE; // PY_RETURN_SELF;
 }
 
 static PyObject* py_an_on_disk_build(py_annoy* self,
@@ -1548,7 +1560,7 @@ static PyObject* py_an_on_disk_build(py_annoy* self,
 
   // Remember the last on-disk path for __repr__ / info()
   self->on_disk_path = filename;
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 static PyObject* py_an_build(py_annoy* self,
@@ -1587,7 +1599,7 @@ static PyObject* py_an_build(py_annoy* self,
     return NULL;
   }
   // Chaining: a.build(...).save(...).info()
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 static PyObject* py_an_unbuild(
@@ -1611,7 +1623,7 @@ static PyObject* py_an_unbuild(
     return NULL;
   }
   // Trees are gone, items remain; we keep on_disk_path (still refers to same file, if any).
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // ---------------------------------------------------------------------
@@ -1657,7 +1669,7 @@ static PyObject* py_an_save(py_annoy* self,
   // This file is now a valid on-disk representation of this index
   self->on_disk_path = filename;
 
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // ---------------------------------------------------------------------
@@ -1672,9 +1684,10 @@ static PyObject* py_an_save(py_annoy* self,
 // chooses the correct concrete C++ type. We deliberately *do not*
 // do that here to stay 100% compatible with legacy Annoy.
 // ---------------------------------------------------------------------
-static PyObject* py_an_load(py_annoy* self,
-                            PyObject* args,
-                            PyObject* kwargs) {
+static PyObject* py_an_load(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   const char* filename = NULL;
   int prefault_flag = 0;
   static const char* kwlist[] = {"fn", "prefault", NULL};
@@ -1712,7 +1725,7 @@ static PyObject* py_an_load(py_annoy* self,
   // Track backing path for __repr__ / .info()
   self->on_disk_path = filename;
 
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // ---------------------------------------------------------------------
@@ -1738,7 +1751,7 @@ static PyObject* py_an_unload(
   self->ptr->unload();
   self->on_disk_path.clear();   // no longer backed by any file
 
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // ======================================================================
@@ -1755,7 +1768,7 @@ static PyObject* py_an_unload(
 static PyObject* get_nns_to_python(
     const vector<int32_t>& indices,
     const vector<float>&   distances,
-    int                         include_distances) {
+    int                    include_distances) {
 
   PyObject* py_indices   = NULL;
   PyObject* py_distances = NULL;

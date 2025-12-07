@@ -25,12 +25,12 @@ C-Externals (experimental)
     .. grid-item-card::
         :padding: 3
 
-        **annoy**
+        **ANNoy Nearest Neighbor**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./annoy/index.rst
+            ./_annoy/index.rst
 
     .. grid-item-card::
         :padding: 3
