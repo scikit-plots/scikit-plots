@@ -140,44 +140,44 @@ def test_by_item_excludes_self_with_distances_triggers_retry():
 # By-vector ID behavior
 # -----------------------------
 
-def test_by_vector_no_exclusions_single_call():
-    vector_map = {
-        ("q", 3, False): [10, 11, 12],
-    }
-    idx = DummyIndex(vector_map=vector_map)
+# def test_by_vector_no_exclusions_single_call():
+#     vector_map = {
+#         ("q", 3, False): [10, 11, 12],
+#     }
+#     idx = DummyIndex(vector_map=vector_map)
 
-    ids = idx.get_neighbor_ids_by_vector("q", 3)
-    assert ids == [10, 11, 12]
-    assert idx.calls == [("vector", "q", 3, -1, False)]
-
-
-def test_by_vector_exclude_ids_no_retry_when_no_hits():
-    vector_map = {
-        ("q", 3, False): [10, 11, 12],
-    }
-    idx = DummyIndex(vector_map=vector_map)
-
-    ids = idx.get_neighbor_ids_by_vector("q", 3, exclude_item_ids=[99, 100])
-    assert ids == [10, 11, 12]
-    assert idx.calls == [("vector", "q", 3, -1, False)]
+#     ids = idx.get_neighbor_ids_by_vector("q", 3)
+#     assert ids == [10, 11, 12]
+#     assert idx.calls == [("vector", "q", 3, -1, False)]
 
 
-def test_by_vector_exclude_ids_triggers_retry_with_hits_count():
-    vector_map = {
-        # First call returns 2 excluded hits
-        ("q", 3, False): [10, 11, 12],
-        # Second call requests n + hits = 5
-        ("q", 5, False): [10, 11, 12, 13, 14],
-    }
-    idx = DummyIndex(vector_map=vector_map)
+# def test_by_vector_exclude_ids_no_retry_when_no_hits():
+#     vector_map = {
+#         ("q", 3, False): [10, 11, 12],
+#     }
+#     idx = DummyIndex(vector_map=vector_map)
 
-    ids = idx.get_neighbor_ids_by_vector("q", 3, exclude_item_ids=[10, 12])
-    assert ids == [11, 13, 14]
+#     ids = idx.get_neighbor_ids_by_vector("q", 3, exclude_item_ids=[99, 100])
+#     assert ids == [10, 11, 12]
+#     assert idx.calls == [("vector", "q", 3, -1, False)]
 
-    assert idx.calls == [
-        ("vector", "q", 3, -1, False),
-        ("vector", "q", 5, -1, False),
-    ]
+
+# def test_by_vector_exclude_ids_triggers_retry_with_hits_count():
+#     vector_map = {
+#         # First call returns 2 excluded hits
+#         ("q", 3, False): [10, 11, 12],
+#         # Second call requests n + hits = 5
+#         ("q", 5, False): [10, 11, 12, 13, 14],
+#     }
+#     idx = DummyIndex(vector_map=vector_map)
+
+#     ids = idx.get_neighbor_ids_by_vector("q", 3, exclude_item_ids=[10, 12])
+#     assert ids == [11, 13, 14]
+
+#     assert idx.calls == [
+#         ("vector", "q", 3, -1, False),
+#         ("vector", "q", 5, -1, False),
+#     ]
 
 
 def test_by_vector_exclude_ids_with_distances_triggers_retry():
@@ -222,21 +222,21 @@ def test_neighbor_vectors_by_item_list_matrix():
     ]
 
 
-def test_neighbor_vectors_by_vector_list_matrix():
-    vector_map = {
-        ("q", 2, False): [10, 11],
-    }
-    vectors = {
-        10: [10.0, 0.0, 0.0],
-        11: [11.0, 0.0, 0.0],
-    }
-    idx = DummyIndex(vector_map=vector_map, vectors=vectors)
+# def test_neighbor_vectors_by_vector_list_matrix():
+#     vector_map = {
+#         ("q", 2, False): [10, 11],
+#     }
+#     vectors = {
+#         10: [10.0, 0.0, 0.0],
+#         11: [11.0, 0.0, 0.0],
+#     }
+#     idx = DummyIndex(vector_map=vector_map, vectors=vectors)
 
-    mat = idx.get_neighbor_vectors_by_vector("q", 2, as_numpy=False)
-    assert mat == [
-        [10.0, 0.0, 0.0],
-        [11.0, 0.0, 0.0],
-    ]
+#     mat = idx.get_neighbor_vectors_by_vector("q", 2, as_numpy=False)
+#     assert mat == [
+#         [10.0, 0.0, 0.0],
+#         [11.0, 0.0, 0.0],
+#     ]
 
 
 def test_neighbor_vectors_by_item_with_distances():

@@ -18,9 +18,10 @@
 <!-- https://github.com/simple-icons/simple-icons/blob/master/slugs.md -->
 <div align="center">
  <!-- codespaces -->
+ <!-- <a target="_blank" rel="noopener noreferrer" href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest"><img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg"></a> -->
  <a target="_blank" rel="noopener noreferrer"
   href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest">
-  <img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg">
+  <img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue?style=flat-square&logo=github&label='&labelColor=rgb(56,56,56)&color=rgb(40,40,40)">
  </a>
  <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
  <!-- pepy.tech -->

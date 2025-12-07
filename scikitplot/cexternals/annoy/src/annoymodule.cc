@@ -779,39 +779,78 @@ static bool check_constraints(py_annoy* self,
 //   if (!convert_list_to_vector(self, py_vec, self->f, &w))
 //     return NULL;  // Python exception already set
 //
-static bool convert_list_to_vector(py_annoy*      self,
-                                   PyObject*      v,
-                                   int            expected_f,
-                                   vector<float>* w) {
+static bool convert_list_to_vector_strict(
+    PyObject* v,
+    int expected_f,
+    vector<float>* w) {
+
+  if (expected_f <= 0) {
+    PyErr_SetString(PyExc_RuntimeError,
+                    "Index dimension `f` is not set");
+    return false;
+  }
+
   PyObject* seq = PySequence_Fast(v, "expected a 1D sequence of floats");
-  if (!seq)
-    return false;  // PySequence_Fast already set TypeError
+  if (!seq) return false;
 
   const Py_ssize_t len = PySequence_Fast_GET_SIZE(seq);
-  const int        inferred_f = static_cast<int>(len);
-
-  // Dimension discovery on first vector
-  if (expected_f == 0) {
-    self->f = inferred_f;
-  } else if (inferred_f != expected_f) {
-    PyErr_Format(
-      PyExc_ValueError,
-      "embedding length mismatch: expected %d, got %ld",
-      expected_f,
-      static_cast<long>(len)
-    );
+  if (len != expected_f) {
+    PyErr_Format(PyExc_ValueError,
+                 "embedding length mismatch: expected %d, got %ld",
+                 expected_f, (long)len);
     Py_DECREF(seq);
     return false;
   }
 
+  w->assign((size_t)expected_f, 0.0f);
+
+  for (Py_ssize_t i = 0; i < len; ++i) {
+    PyObject* item = PySequence_Fast_GET_ITEM(seq, i);
+    double val = PyFloat_AsDouble(item);
+    if (PyErr_Occurred()) {
+      Py_DECREF(seq);
+      return false;
+    }
+    (*w)[(size_t)i] = (float)val;
+  }
+
+  Py_DECREF(seq);
+  return true;
+}
+
+static bool convert_list_to_vector_infer(
+    py_annoy* self,
+    PyObject* v,
+    vector<float>* w) {
+
+  PyObject* seq = PySequence_Fast(v, "expected a 1D sequence of floats");
+  if (!seq) return false;
+
+  const Py_ssize_t len = PySequence_Fast_GET_SIZE(seq);
+  const int inferred_f = static_cast<int>(len);
+
+  if (self->ptr) {
+    Py_DECREF(seq);
+    PyErr_SetString(PyExc_RuntimeError,
+                    "Internal error: cannot infer `f` after index construction");
+    return false;
+  }
+
+  if (inferred_f <= 0) {
+    Py_DECREF(seq);
+    PyErr_SetString(PyExc_ValueError, "embedding cannot be empty");
+    return false;
+  }
+
+  self->f = inferred_f;
   w->assign(static_cast<size_t>(inferred_f), 0.0f);
 
   for (Py_ssize_t i = 0; i < len; ++i) {
     PyObject* item = PySequence_Fast_GET_ITEM(seq, i);
-    const double val = PyFloat_AsDouble(item);  // accepts int/float
+    double val = PyFloat_AsDouble(item);
     if (PyErr_Occurred()) {
       Py_DECREF(seq);
-      return false;  // conversion error (TypeError / OverflowError)
+      return false;
     }
     (*w)[static_cast<size_t>(i)] = static_cast<float>(val);
   }
@@ -1196,7 +1235,7 @@ static PyObject* py_an_serialize(py_annoy* self,
   }
 
   char* error = NULL;
-  std::vector<uint8_t> byte = self->ptr->serialize(&error);
+  vector<uint8_t> byte = self->ptr->serialize(&error);
   if (byte.empty() && error) {
     PyErr_SetString(PyExc_RuntimeError, error);
     free(error);
@@ -1234,7 +1273,7 @@ static PyObject* py_an_deserialize(py_annoy* self,
   // uint8_t* raw_byte = reinterpret_cast<uint8_t*>(PyBytes_AsString(byte_object));
   uint8_t* raw_byte =
       reinterpret_cast<uint8_t*>(PyBytes_AsString(byte_object));
-  std::vector<uint8_t> v(raw_byte, raw_byte + length);
+  vector<uint8_t> v(raw_byte, raw_byte + length);
 
   char* error = NULL;
   if (!self->ptr->deserialize(&v, prefault != 0, &error)) {
@@ -1262,7 +1301,7 @@ static bool get_memory_usage_byte(py_annoy* self,
 //   return true;
 // #else
   char* err = NULL;
-  std::vector<uint8_t> tmp = self->ptr->serialize(&err);
+  vector<uint8_t> tmp = self->ptr->serialize(&err);
   if (err) {
     PyErr_SetString(PyExc_RuntimeError, err);
     free(err);
@@ -1422,13 +1461,19 @@ static PyObject* py_an_add_item(py_annoy* self,
 
   // Convert Python sequence → contiguous float embedding.
   // This also infers/validates self->f (dimension).
-  vector<float> embedding;
-  if (!convert_list_to_vector(self, embedding_obj, self->f, &embedding))
-    return NULL;  // Python error already set
+  vector<float> embedding(self->f);
+  // Infer only if index is not constructed AND f is unknown
+  if (!self->ptr && self->f == 0) {
+    if (!convert_list_to_vector_infer(self, embedding_obj, &embedding))
+      return NULL;
+  } else {
+    if (!convert_list_to_vector_strict(embedding_obj, self->f, &embedding))
+      return NULL;
+  }
 
   // Lazy-create underlying C++ index if needed
   if (!self->ptr) {
-    // Dimension must now be known, because convert_list_to_vector sets it.
+    // Dimension must now be known, because convert list to vector sets it.
     if (self->f <= 0) {
       PyErr_SetString(PyExc_RuntimeError,
                       "Cannot infer embedding dimension for Annoy index");
@@ -1708,8 +1753,8 @@ static PyObject* py_an_unload(
 // If include_distances != 0, returns:
 //   (list[int], list[float])
 static PyObject* get_nns_to_python(
-    const std::vector<int32_t>& indices,
-    const std::vector<float>&   distances,
+    const vector<int32_t>& indices,
+    const vector<float>&   distances,
     int                         include_distances) {
 
   PyObject* py_indices   = NULL;
@@ -1831,8 +1876,8 @@ static PyObject* py_an_get_nns_by_item(
   if (!check_constraints(self, indice, /*building=*/false))
     return NULL;
 
-  std::vector<int32_t> indice_result;
-  std::vector<float>   distance_result;
+  vector<int32_t> indice_result;
+  vector<float>   distance_result;
 
   Py_BEGIN_ALLOW_THREADS;
   self->ptr->get_nns_by_item(
@@ -1919,14 +1964,14 @@ static PyObject* py_an_get_nns_by_vector(
   }
 
   // Convert Python sequence → C++ embedding vector<float>
-  std::vector<float> query;
-  if (!convert_list_to_vector(self, vector_obj, self->f, &query)) {
-    // convert_list_to_vector already set a Python exception
+  vector<float> query(self->f);
+  if (!convert_list_to_vector_strict(vector_obj, self->f, &query)) {
+    // convert list to vector already set a Python exception
     return NULL;
   }
 
-  std::vector<int32_t> indice_result;
-  std::vector<float>   distance_result;
+  vector<int32_t> indice_result;
+  vector<float>   distance_result;
 
   Py_BEGIN_ALLOW_THREADS;
   self->ptr->get_nns_by_vector(
@@ -1984,7 +2029,7 @@ static PyObject* py_an_get_item_vector(py_annoy* self,
   }
 
   // Pull embedding from C++ core
-  std::vector<float> embedding(static_cast<size_t>(self->f));
+  vector<float> embedding(static_cast<size_t>(self->f));
   self->ptr->get_item(indice, embedding.data());
 
   // Convert to Python list[float]

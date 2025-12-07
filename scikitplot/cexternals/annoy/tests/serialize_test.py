@@ -2,6 +2,11 @@
 import os
 import random
 
+# assert i.get_distance(0, 1) == pytest.approx(0.0, rel=1e-12, abs=0.0)
+# npt.assert_allclose(i.get_distance(0, 1), 0, rtol=1e-12)
+# npt.assert_allclose(i.get_distance(0, 1), 0.0, rtol=1e-12, atol=0.0)
+import numpy.testing as npt
+
 # from annoy import AnnoyIndex
 from scikitplot.cexternals.annoy import AnnoyIndex
 
