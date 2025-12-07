@@ -898,7 +898,7 @@ static PyObject* py_an_new(PyTypeObject* type,
   self->has_pending_seed    = false;
   self->has_pending_verbose = false;
 
-  PY_RETURN_SELF;
+  PY_RETURN_SELF; // return (PyObject *)self;
 }
 
 // tp_init must return 0 on success, -1 on failure
@@ -1019,6 +1019,7 @@ static void py_an_dealloc(
   self->metric.~basic_string();
   self->on_disk_path.~basic_string();
   // if (self->ptr) { self->ptr->unload(); delete self->ptr; self->ptr = NULL; }
+  self->ptr->unload();  // idempotent safety to avoid leaked previous mapping
   delete self->ptr;
   // Finally, free the Python object
   Py_TYPE(self)->tp_free((PyObject*)self);
@@ -1161,12 +1162,12 @@ static PyObject* py_an_verbose(py_annoy* self,
   // If index not yet created → just store; will apply in py_an_init or
   // when the index is constructed lazily.
   if (!self->ptr) {
-    PY_RETURN_SELF;
+    NULL;
   }
 
   bool verbose_flag = (level >= 1);
   self->ptr->verbose(verbose_flag);
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // Seed control:
@@ -1209,11 +1210,11 @@ static PyObject* py_an_set_seed(
 
   // If index doesn’t exist yet → defer
   if (!self->ptr)
-    PY_RETURN_SELF;
+    NULL;
 
   // Else apply immediately
   self->ptr->set_seed(seed);
-  PY_RETURN_SELF;
+  Py_RETURN_NONE; // PY_RETURN_SELF;
 }
 
 // joblib serialize / deserialize need to dunder  __reduce__ and _rebuild and/or _deserialize_into_self
@@ -1282,7 +1283,7 @@ static PyObject* py_an_deserialize(py_annoy* self,
     if (error) free(error);
     return NULL;
   }
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // Internal helper: get memory usage in byte.
@@ -1515,7 +1516,7 @@ static PyObject* py_an_add_item(py_annoy* self,
     return NULL;
   }
   // Enable method chaining (Annoy(...).add_item(...).add_item(...).build(...))
-  PY_RETURN_SELF;
+  Py_RETURN_NONE; // PY_RETURN_SELF;
 }
 
 static PyObject* py_an_on_disk_build(py_annoy* self,
@@ -1549,7 +1550,7 @@ static PyObject* py_an_on_disk_build(py_annoy* self,
 
   // Remember the last on-disk path for __repr__ / info()
   self->on_disk_path = filename;
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 static PyObject* py_an_build(py_annoy* self,
@@ -1588,7 +1589,7 @@ static PyObject* py_an_build(py_annoy* self,
     return NULL;
   }
   // Chaining: a.build(...).save(...).info()
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 static PyObject* py_an_unbuild(
@@ -1612,7 +1613,7 @@ static PyObject* py_an_unbuild(
     return NULL;
   }
   // Trees are gone, items remain; we keep on_disk_path (still refers to same file, if any).
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // ---------------------------------------------------------------------
@@ -1658,7 +1659,7 @@ static PyObject* py_an_save(py_annoy* self,
   // This file is now a valid on-disk representation of this index
   self->on_disk_path = filename;
 
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // ---------------------------------------------------------------------
@@ -1714,7 +1715,7 @@ static PyObject* py_an_load(
   // Track backing path for __repr__ / .info()
   self->on_disk_path = filename;
 
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // ---------------------------------------------------------------------
@@ -1740,7 +1741,7 @@ static PyObject* py_an_unload(
   self->ptr->unload();
   self->on_disk_path.clear();   // no longer backed by any file
 
-  PY_RETURN_SELF;
+  Py_RETURN_TRUE; // PY_RETURN_SELF;
 }
 
 // ======================================================================
@@ -1757,7 +1758,7 @@ static PyObject* py_an_unload(
 static PyObject* get_nns_to_python(
     const vector<int32_t>& indices,
     const vector<float>&   distances,
-    int                         include_distances) {
+    int                    include_distances) {
 
   PyObject* py_indices   = NULL;
   PyObject* py_distances = NULL;
