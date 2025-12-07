@@ -912,10 +912,6 @@ class AnnoyIndexInterface {
   virtual bool save(const char* filename, bool prefault=false, char** error=NULL) = 0;
   virtual void unload() = 0;
   virtual bool load(const char* filename, bool prefault=false, char** error=NULL) = 0;
-
-  virtual vector<uint8_t> serialize(char** error=NULL) const = 0;
-  virtual bool deserialize(vector<uint8_t>* bytes, bool prefault=false, char** error=NULL) = 0;
-
   virtual T get_distance(S i, S j) const = 0;
   virtual void get_nns_by_item(S item, size_t n, int search_k, vector<S>* result, vector<T>* distances) const = 0;
   virtual void get_nns_by_vector(const T* w, size_t n, int search_k, vector<S>* result, vector<T>* distances) const = 0;
@@ -925,6 +921,8 @@ class AnnoyIndexInterface {
   virtual void get_item(S item, T* v) const = 0;
   virtual void set_seed(R q) = 0;
   virtual bool on_disk_build(const char* filename, char** error=NULL) = 0;
+  virtual vector<uint8_t> serialize(char** error=NULL) const = 0;
+  virtual bool deserialize(vector<uint8_t>* bytes, bool prefault=false, char** error=NULL) = 0;
 };
 
 template<typename S, typename T, typename Distance, typename Random, class ThreadedBuildPolicy>
@@ -1225,7 +1223,42 @@ public:
     return true;
   }
 
-  // https://github.com/spotify/annoy/pull/661/files#diff-828f69d7cfead3f97fbae746c1221b43a31b62bcb960fc3f4a1782307fc5e367
+  T get_distance(S i, S j) const {
+    return D::normalized_distance(D::distance(_get(i), _get(j), _f));
+  }
+
+  void get_nns_by_item(S item, size_t n, int search_k, vector<S>* result, vector<T>* distances) const {
+    // TODO: handle OOB
+    const Node* m = _get(item);
+    _get_all_nns(m->v, n, search_k, result, distances);
+  }
+
+  void get_nns_by_vector(const T* w, size_t n, int search_k, vector<S>* result, vector<T>* distances) const {
+    _get_all_nns(w, n, search_k, result, distances);
+  }
+
+  S get_n_items() const {
+    return _n_items;
+  }
+
+  S get_n_trees() const {
+    return (S)_roots.size();
+  }
+
+  void verbose(bool v) {
+    _verbose = v;
+  }
+
+  void get_item(S item, T* v) const {
+    // TODO: handle OOB
+    Node* m = _get(item);
+    memcpy(v, m->v, (_f) * sizeof(T));
+  }
+
+  void set_seed(R seed) {
+    _seed = seed;
+  }
+
   vector<uint8_t> serialize(char** error=NULL) const {
     if (!_built) {
       set_error_from_string(error, "Index cannot be serialized if it hasn't been built");
@@ -1297,43 +1330,6 @@ public:
 
     if (_verbose) annoylib_showUpdate("found %zu roots with degree %d\n", _roots.size(), _n_items);
     return true;
-  }
-
-
-  T get_distance(S i, S j) const {
-    return D::normalized_distance(D::distance(_get(i), _get(j), _f));
-  }
-
-  void get_nns_by_item(S item, size_t n, int search_k, vector<S>* result, vector<T>* distances) const {
-    // TODO: handle OOB
-    const Node* m = _get(item);
-    _get_all_nns(m->v, n, search_k, result, distances);
-  }
-
-  void get_nns_by_vector(const T* w, size_t n, int search_k, vector<S>* result, vector<T>* distances) const {
-    _get_all_nns(w, n, search_k, result, distances);
-  }
-
-  S get_n_items() const {
-    return _n_items;
-  }
-
-  S get_n_trees() const {
-    return (S)_roots.size();
-  }
-
-  void verbose(bool v) {
-    _verbose = v;
-  }
-
-  void get_item(S item, T* v) const {
-    // TODO: handle OOB
-    Node* m = _get(item);
-    memcpy(v, m->v, (_f) * sizeof(T));
-  }
-
-  void set_seed(R seed) {
-    _seed = seed;
   }
 
   void thread_build(int q, int thread_idx, ThreadedBuildPolicy& threaded_build_policy) {

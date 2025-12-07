@@ -266,4 +266,4 @@ def test_single_vector():
     a.save(f"{HERE}/1.ann")
     indices, dists = a.get_nns_by_vector([1, 0, 0], 3, include_distances=True)
     assert indices == [0]
-    assert dists[0] ** 2 == pytest.approx(0.0)
+    assert dists[0] ** 2 == pytest.approx(0.0)  # pytest.approx(0.0, rel=1e-12, abs=1e-3)

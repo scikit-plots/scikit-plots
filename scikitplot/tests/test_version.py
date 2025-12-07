@@ -7,6 +7,36 @@ import scikitplot
 import scikitplot.version
 
 
+# Compile once for speed & clarity
+_PEP440ish_RE = re.compile(
+    r"""
+    ^
+    # Release segment: X.Y or X.Y.Z (two or three components)
+    (?P<release>\d+\.\d+(?:\.\d+)?)
+
+    # Optional pre-release: aN / bN / rcN (no leading dot)
+    (?P<pre>(?:a|b|rc)\d+)?
+
+    # Optional post-release: must be preceded by dot
+    (?P<post>\.post\d+)?
+
+    # Optional dev-release: must be preceded by dot
+    (?P<dev>\.dev\d+)?
+
+    # Optional local version:
+    # PEP 440 local labels allow only letters/digits/dots
+    # and are introduced by a single '+'.
+    (?P<local>
+        \+
+        # git\.?\d{8}\.[0-9a-f]{7}
+        git\.?\d{8}\.[0-9a-f]{7,40}
+    )?
+    $
+    """,
+    re.VERBOSE,
+)
+
+
 def is_valid_version(version: str) -> bool:
     """
     Ensure `scikitplot.__version__` follows a valid PEP 440 version string format:
@@ -17,45 +47,63 @@ def is_valid_version(version: str) -> bool:
     - aN / bN / rcN
     - .postN
     - .devN
-    - +gitYYYYMMDD.hash
+    - +gitYYYYMMDD.<7hex> or +git.YYYYMMDD.<7hex>
 
+    Accepts:
+    - X.Y or X.Y.Z
+    - Optional pre-release: aN / bN / rcN
+    - Optional post-release: .postN
+    - Optional dev-release: .devN
+    - Optional local: +gitYYYYMMDD.<7hex> or +git.YYYYMMDD.<7hex>
 
-    PEP 440’s canonical form does not technically allow two-part versions
+    PEP 440's canonical form does not technically allow two-part versions
     like 0.5.dev0, but many projects use them.
 
-    - ✅ 0.5.0.dev0+git.20250621.3d9d503 (fully PEP 440 compliant)
-    - 🚫 0.5.dev0+git.20250621.3d9d503 (not strictly compliant but allow it)
+    🚫 Check:
 
-    Supports both:
+    - ✅ 0.5.0.dev0+git.20250621.3d9d503 (fully PEP 440 compliant)
+    - ✅ 0.5.dev0+git.20250621.3d9d503 (not strictly compliant but allow it)
+
+
+    Supports <public version>[+<local version label>]:
+
     - 'X.Y.Z[.devN|.postN|aN|bN|rcN][+gitYYYYMMDD.commit]'
-    - 'X.Y[.devN][+gitYYYYMMDD.commit]' (loosened to allow no patch version)
+    - 'X.Y[.devN][+git.YYYYMMDD.commit_hash_7]' (loosened to allow no patch version)
+    - 'X.Y[.devN][+git.YYYYMMDD.commit_hash_7]' (loosened to allow no patch version)
+
+    Samples:
+    - 0.5.dev0+git20250621.abcdef1
+    - 0.5.dev0+git.20250621.abcdef1
+    - 0.5.0.dev0+git.20250621.abcdef1
+    - 0.5.0rc1
+    - 0.5.0.post1
 
     Returns
     -------
     True if the version string matches the PEP 440-compatible regex.
     """
+    # # PEP 440 version components
+    # # Base version: major.minor(.patch)
+    # base = r"\d+\.\d+(?:\.\d+)?"              # major.minor(.patch) X.Y or X.Y.Z e.g., 0.5 or 0.5.0
+    # # Pre-release, post-release, dev-release
+    # pre = r"(?:a|b|rc)\d+"                    # pre-release
+    # post = r"post\d+"                         # post-release
+    # dev = r"dev\d+"                           # dev-release
+    # # Optional local version identifier: allow optional dot after 'git'
+    # # e.g. +git20250621.abcdef1 or +git.20250621.abcdef1
+    # local = r"git\.?\d{8}\.[0-9a-f]{7}"       # local version (git) e.g., +git20250621.abcdef1
 
-    # PEP 440 version components
-    # Base version: major.minor(.patch)
-    base = r"\d+\.\d+(?:\.\d+)?"              # major.minor(.patch) X.Y or X.Y.Z e.g., 0.5 or 0.5.0
-    # Pre-release, post-release, dev-release
-    pre = r"(?:a|b|rc)\d+"                    # pre-release
-    post = r"post\d+"                         # post-release
-    dev = r"dev\d+"                           # dev-release
-    # Optional local version identifier: allow optional dot after 'git'
-    # e.g. +git20250621.abcdef1 or +git.20250621.abcdef1
-    local = r"git\.?\d{8}\.[0-9a-f]{7}"       # local version (git) e.g., +git20250621.abcdef1
-
-    # Combine full PEP 440 regex pattern (match start to end)
-    pattern = (
-        # base version
-        rf"^{base}"
-        # optional pre/post/dev with dots where required
-        rf"(?:(?:{pre})|(?:\.{post})|(?:\.{dev}))*"
-        # optional local version +git...
-        rf"(?:\+{local})?$"
-    )
-    return re.match(pattern, version) is not None
+    # # Combine full PEP 440 regex pattern (match start to end)
+    # pattern = (
+    #     # base version
+    #     rf"^{base}"
+    #     # optional pre/post/dev with dots where required
+    #     rf"(?:(?:{pre})|(?:\.{post})|(?:\.{dev}))*"
+    #     # optional local version +git...
+    #     rf"(?:\+{local})?$"
+    # )
+    # return re.match(pattern, version) is not None
+    return _PEP440ish_RE.fullmatch(version) is not None
 
 
 valid_versions = [
