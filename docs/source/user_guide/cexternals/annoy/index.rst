@@ -72,7 +72,8 @@ Python Example
 --------------
 .. code-block:: python
 
-    from annoy import AnnoyIndex
+    # from annoy import AnnoyIndex
+    from scikitplot.cexternals.annoy import Annoy, AnnoyBase, AnnoyIndex, Index
     import random
 
     f = 40  # Length of item vector that will be indexed

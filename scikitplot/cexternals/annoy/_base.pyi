@@ -75,16 +75,6 @@ class Index(annoylib.Annoy):
         include_distances: bool = False,
     ) -> Tuple[List[int], List[float]]: ...
 
-    @overload
-    def get_nns_by_item(
-        self,
-        i: int,
-        n: int,
-        search_k: Optional[int] = ...,
-        *,
-        include_distances: bool = False,
-    ) -> NNSResult: ...
-
     # Vector version
     @overload
     def get_nns_by_vector(
@@ -105,13 +95,3 @@ class Index(annoylib.Annoy):
         *,
         include_distances: bool = False,
     ) -> Tuple[List[int], List[float]]: ...
-
-    @overload
-    def get_nns_by_vector(
-        self,
-        v: Sequence[float],
-        n: int,
-        search_k: Optional[int] = ...,
-        *,
-        include_distances: bool = False,
-    ) -> NNSResult: ...
