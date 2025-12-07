@@ -9,8 +9,9 @@ This module contains some functions related to :py:mod:`~._annoy` under
 :py:mod:`~.cexternals` and extended to :py:mod:`~.annoy`.
 
 .. seealso::
-
-   * https://pypi.org/project/annoy
+    * :ref:`annoy-index`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
 
 
 .. seealso::
@@ -122,4 +123,3 @@ Run tests using:
 References
 ----------
 .. [1] http://en.wikipedia.org/wiki/Nearest_neighbor_search#Approximate_nearest_neighbor
-.. [2] https://github.com/spotify/annoy

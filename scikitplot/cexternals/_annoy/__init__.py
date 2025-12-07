@@ -15,29 +15,23 @@
 # Authors: Spotify AB
 # SPDX-License-Identifier: Apache-2.0
 
-# https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
 """
 High-level Python interface for the C++ Annoy backend.
 
 Spotify Annoy (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
-- Annoy      → low-level C-extension type (stable)
-- AnnoyBase  → alias of annoylib.Annoy Index
-- AnnoyIndex → alias of annoylib.Annoy Index
 
-Examples
---------
->>> from annoy import AnnoyIndex
->>> f = 40  # vector dimensionality
->>> t = AnnoyIndex(f, 'angular')  # Length of item vector and metric
->>> t.add_item(0, [1]*f)
->>> t.build(10)  # Build 10 trees
->>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
+* Annoy      → low-level C-extension type (stable)
+* AnnoyBase  → alias of annoylib.Annoy Index
+* AnnoyIndex → alias of annoylib.Annoy Index
+
+.. seealso::
+    * :ref:`annoy-index`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
 
 .. note::
-    :collapsible: open
-
     * https://www.sandgarden.com/learn/faiss
     * https://www.sandgarden.com/learn/annoy-approximate-nearest-neighbors-oh-yeah
 
@@ -52,7 +46,19 @@ References
 ----------
 .. [1] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
    Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
+
+Examples
+--------
+>>> # from annoy import AnnoyIndex
+>>> from scikitplot.annoy import Annoy, AnnoyBase, AnnoyIndex, Index
+>>> f = 40  # vector dimensionality
+>>> t = AnnoyIndex(f, "angular")  # Length of item vector and metric
+>>> t.add_item(0, [1] * f)
+>>> t.build(10)  # Build 10 trees
+>>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
 """
+
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
 
 from __future__ import annotations
 
