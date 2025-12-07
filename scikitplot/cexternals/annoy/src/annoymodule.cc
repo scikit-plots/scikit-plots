@@ -193,6 +193,11 @@ struct TempAnnoyIndexFile {
 // Check if a file exists and raise a Python FileNotFoundError if not.
 // Returns true on success, false if the error has been set.
 static inline bool file_exists(const char* filename) {
+  if (!filename || !*filename) {
+    PyErr_SetString(PyExc_ValueError, "filename is empty");
+    return false;
+  }
+
   struct stat st;
   if (stat(filename, &st) != 0) {
     PyErr_SetFromErrnoWithFilename(PyExc_FileNotFoundError, filename);
@@ -347,7 +352,6 @@ public:
     return _index.build(n_trees, n_threads, error);
   }
 
-  // Robust deserialization:
   //  - validates header shape
   //  - passes remaining payload to underlying index
   bool deserialize(vector<uint8_t>* byte,
@@ -1008,17 +1012,14 @@ static int py_an_init(py_annoy* self,
 }
 
 // tp_dealloc: destroy C++ resources and free the Python wrapper
-static void py_an_dealloc(py_annoy* self) {
+static void py_an_dealloc(
+  py_annoy* self) {
   // Destroy the underlying index, if any
-  if (self->ptr) {
-    delete self->ptr;
-    self->ptr = NULL;
-  }
-
   // Explicitly run std::string destructor (constructed with placement new)
   self->metric.~basic_string();
   self->on_disk_path.~basic_string();
-
+  // if (self->ptr) { self->ptr->unload(); delete self->ptr; self->ptr = NULL; }
+  delete self->ptr;
   // Finally, free the Python object
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
@@ -1672,9 +1673,10 @@ static PyObject* py_an_save(py_annoy* self,
 // chooses the correct concrete C++ type. We deliberately *do not*
 // do that here to stay 100% compatible with legacy Annoy.
 // ---------------------------------------------------------------------
-static PyObject* py_an_load(py_annoy* self,
-                            PyObject* args,
-                            PyObject* kwargs) {
+static PyObject* py_an_load(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   const char* filename = NULL;
   int prefault_flag = 0;
   static const char* kwlist[] = {"fn", "prefault", NULL};
