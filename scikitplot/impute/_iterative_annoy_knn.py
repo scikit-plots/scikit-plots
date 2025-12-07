@@ -59,7 +59,7 @@ from sklearn.utils.validation import (
 try:
     from annoy import AnnoyIndex
 except Exception:
-    from ..cexternals.annoy import AnnoyIndex
+    from ..annoy import AnnoyIndex
 
 _ImputerTriplet = namedtuple(  # noqa: PYI024
     "_ImputerTriplet", ["feat_idx", "neighbor_feat_idx", "estimator"]
