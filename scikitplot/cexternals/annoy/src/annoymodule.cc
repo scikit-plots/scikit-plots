@@ -1172,7 +1172,7 @@ static PyObject* py_an_verbose(py_annoy* self,
   // If index not yet created → just store; will apply in py_an_init or
   // when the index is constructed lazily.
   if (!self->ptr) {
-    NULL;
+    return NULL;
   }
 
   bool verbose_flag = (level >= 1);
@@ -1220,7 +1220,7 @@ static PyObject* py_an_set_seed(
 
   // If index doesn’t exist yet → defer
   if (!self->ptr)
-    NULL;
+    return NULL;
 
   // Else apply immediately
   self->ptr->set_seed(seed);
