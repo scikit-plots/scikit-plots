@@ -14,7 +14,7 @@ from typing import Iterable, Iterator, List, Tuple
 from typing_extensions import Literal, LiteralString, Protocol
 from typing import TypedDict
 
-from .annoylib import Annoy as _Annoy
+from . import annoylib
 
 # --- Allowed metric literals (simple type hints) ---
 AnnoyMetric: TypeAlias = Literal[
@@ -45,7 +45,7 @@ class _Vector(Protocol, Sized):
     def __len__(self) -> int: ...
 
 
-class Annoy(_Annoy):
+class Annoy(annoylib.Annoy):
     """
     Annoy index for approximate nearest neighbor search.
 
