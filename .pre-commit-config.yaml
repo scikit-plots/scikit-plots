@@ -28,7 +28,7 @@ repos:
         exclude: "^(\
           benchmarks/.*|\
           docs/source/logos/.*|\
-          docs/source/_static/logos/azure-ml-logo.png|\
+          docs/source/_static/logos/.*|\
           docs/source/devel/sampledoc.pdf|\
           galleries/.*|\
           third_party/.*|\

@@ -1,6 +1,6 @@
 
 
-.. _cex-annoy-index:
+.. _cexternals-annoy-index:
 ======================================================================
 ANNoy (experimental)
 ======================================================================
@@ -9,9 +9,14 @@ This module contains some functions related to :py:mod:`~._annoy` under
 :py:mod:`~.cexternals` and extended to :py:mod:`~.annoy`.
 
 .. seealso::
+    * :ref:`annoy-index`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
 
-   * https://pypi.org/project/annoy
 
+.. seealso::
+    * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+    * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 
 TL;DR
 ------------
@@ -118,4 +123,3 @@ Run tests using:
 References
 ----------
 .. [1] http://en.wikipedia.org/wiki/Nearest_neighbor_search#Approximate_nearest_neighbor
-.. [2] https://github.com/spotify/annoy

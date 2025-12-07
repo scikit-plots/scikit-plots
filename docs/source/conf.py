@@ -30,6 +30,7 @@ for more details on configuring the documentation build.
 # https://gdevops.frama.io/documentation/formats/input/rest_sphinx/confpy/confpy.html#
 # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
 
+# https://tree.nathanfriend.com/
 # https://github.com/apache/arrow/blob/main/docs/source/conf.py
 
 # %%
@@ -665,6 +666,7 @@ html_theme = "pydata_sphinx_theme"  # scikit-learn
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
+# https://pydata-sphinx-theme.readthedocs.io/en/v0.8.1/user_guide/configuring.html
 html_theme_options = {
     # -- General configuration ------------------------------------------------
     "logo": {
@@ -712,11 +714,17 @@ html_theme_options = {
         #     "icon": "fa-brands fa-linkedin",
         # },
         {
+            "name": "Community",
+            "url": "https://scikit-plots.github.io/dev/project/community.html",
+            "icon": "_static/logos/scikit-plots-logo.svg",
+            "type": "local",
+        },
+        {
             "name": "PyPI",
             "url": "https://pypi.org/project/scikit-plots",
-            # "icon": "fa-brands fa-python",
-            "icon": "fa-custom fa-pypi",
-            "type": "fontawesome",
+            # "icon": "fa-custom fa-pypi",
+            # "icon": "fa-brands fa-python", "type": "fontawesome",
+            "icon": "_static/logos/python-logo.png", "type": "local",
         },
         {
             # Label for this link
@@ -843,7 +851,8 @@ for k, v in _html_secondary_sidebars.items():
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = None
+# https://pydata-sphinx-theme.readthedocs.io/en/v0.8.1/user_guide/configuring.html#configure-project-logo
+html_logo = "_static/logos/scikit-plots-logo.svg"
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

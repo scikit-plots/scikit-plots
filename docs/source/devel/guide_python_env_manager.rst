@@ -14,6 +14,8 @@
 
 .. 🧊
 
+.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+
 .. seealso::
 
    🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
@@ -24,7 +26,7 @@
 
 
 📦 Conda/Anaconda Environment Guidelines
----------------------------------------
+----------------------------------------------------------------------
 
 .. seealso::
 

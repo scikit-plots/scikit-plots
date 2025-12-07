@@ -3,19 +3,40 @@ High-level public Index class.
 
 This class is intentionally small and composed from mixins to keep the
 API modular and extensible (future Series/Frame-style layers).
+
+.. seealso::
+    * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+    * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 """
 
 from __future__ import annotations
 
+# import uuid  # f"annoy-{uuid.uuid4().hex}.annoy"
 from ..cexternals._annoy import Annoy
-from ._mixins import ManifestMixin, ObjectIOMixin, PickleMixin, VectorOpsMixin
+from ._mixins import (
+    ManifestMixin,
+    NDArrayExportMixin,
+    ObjectIOMixin,
+    PickleMixin,
+    VectorOpsMixin,
+)
 
 
-class Index(VectorOpsMixin, ObjectIOMixin, ManifestMixin, PickleMixin):
+class Index(
+    VectorOpsMixin,
+    NDArrayExportMixin,
+    ObjectIOMixin,
+    ManifestMixin,
+    PickleMixin,
+):
     """
-    High-level Pythonic Annoy wrapper.
+    High-level Pythonic Annoy wrapper with picklable (or pickle-able).
 
     Minimal modify spotify/annoy low-level C-API to extend Python API.
+
+    .. seealso::
+        * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+        * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
     """
 
     @classmethod

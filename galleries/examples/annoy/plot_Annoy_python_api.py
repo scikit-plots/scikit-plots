@@ -6,6 +6,10 @@ annoy.Index python-api with examples
 =====================================
 
 An example showing the :py:class:`~scikitplot.annoy.Index` class.
+
+.. seealso::
+    * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+    * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 """
 
 # %%

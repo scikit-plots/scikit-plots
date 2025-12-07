@@ -15,39 +15,7 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _experimental-index:
+.. _pipeline-index:
 ======================================================================
-Experimental (experimental)
+Pipeline
 ======================================================================
-
-.. grid:: 1 1 1 1
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Pipeline**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./pipeline/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Do-Re-Mi**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./_doremi/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Large Language Models**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./_llm_provider/index.rst

@@ -23,6 +23,14 @@ Examples relevant to the :py:mod:`~.annoy` module with  :py:mod:`~._annoy`.
 
 :py:mod:`~.annoy` is a Python module that provides high-performance approximate nearest neighbor search in Python.
 
+.. seealso::
+    * :ref:`cexternals-annoy-index`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
+
+.. seealso::
+    * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+    * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 
 Python Example
 --------------
@@ -44,8 +52,3 @@ Python Example
     u = AnnoyIndex(f, 'angular')
     u.load('test.ann')  # memory-mapped
     print(u.get_nns_by_item(0, 1000))
-
-.. seealso::
-
-   * :ref:`cex-annoy-index`
-   * https://pypi.org/project/annoy

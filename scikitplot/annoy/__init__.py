@@ -21,22 +21,18 @@ High-level Python interface for the C++ Annoy backend.
 Spotify Annoy (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
-- Annoy      → low-level C-extension type (stable)
-- AnnoyBase  → alias of annoylib.Annoy Index
-- Index      → high-level Python subclass (picklable)
-- AnnoyIndex → public aliases of Annoy Index
 
-Examples
---------
->>> # from annoy import AnnoyIndex
->>> from scikitplot.annoy import Annoy, AnnoyBase, AnnoyIndex, Index
->>> f = 40  # vector dimensionality
->>> t = AnnoyIndex(f, "angular")  # Length of item vector and metric
->>> t.add_item(0, [1] * f)
->>> t.build(10)  # Build 10 trees
->>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
+* Annoy      → low-level C-extension type (stable)
+* AnnoyBase  → alias of annoylib.Annoy Index
+* Index      → high-level Python subclass (picklable)
+* AnnoyIndex → public aliases of Annoy Index
 
-.. notes::
+.. seealso::
+    * :ref:`cexternals-annoy-index`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
+
+.. note::
     * https://www.sandgarden.com/learn/faiss
     * https://www.sandgarden.com/learn/annoy-approximate-nearest-neighbors-oh-yeah
 
@@ -51,7 +47,20 @@ References
 ----------
 .. [1] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
    Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
+
+Examples
+--------
+>>> # from annoy import AnnoyIndex
+>>> from scikitplot.annoy import Annoy, AnnoyBase, AnnoyIndex, Index
+>>> f = 40  # vector dimensionality
+>>> t = AnnoyIndex(f, "angular")  # Length of item vector and metric
+>>> t.add_item(0, [1] * f)
+>>> t.build(10)  # Build 10 trees
+>>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
 """
+
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+# https://www.devasking.com/issue/passing-arguments-to-tpnew-and-tpinit-from-subtypes-in-python-c-api
 
 from __future__ import annotations
 

@@ -1,0 +1,4 @@
+# testing
+# git rm -r --cached galleries/examples/annoy/*.csv
+*.csv
+*.npy

@@ -34,26 +34,35 @@ administrator permission required). Then run:
   ## (conda, mamba or micromamba) Create New Env and install ``scikit-plots``
   ## Create a new environment and install Python 3.11 with IPython kernel support
   # conda create -y -n py311 python=3.11 ipykernel
+  # mamba create --yes --name py311 python=3.11 ipykernel
   micromamba create -y -n py311 python=3.11 ipykernel
 
 .. prompt:: bash
 
   ## (conda, mamba or micromamba) Activate the environment
   # conda activate py311
+  # mamba activate py311
   micromamba activate py311
 
 .. prompt:: bash
 
   ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
   # conda search conda-forge::scikit-plots
-  # conda search --channel conda-forge scikit-plots
+  # mamba search --channel conda-forge scikit-plots
   micromamba search -c conda-forge scikit-plots
 
 .. prompt:: bash
 
   ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
   # conda install -y conda-forge::scikit-plots
-  # conda install --yes --channel conda-forge scikit-plots
+  # mamba install --yes --channel conda-forge scikit-plots
+  micromamba install -y -c conda-forge scikit-plots
+
+.. prompt:: bash
+
+  ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
+  # conda install -y conda-forge::scikit-plots
+  # mamba install --yes --channel conda-forge scikit-plots
   micromamba install -y -c conda-forge scikit-plots
 
   # Cause numpy>=2.0.0 but support old numpy
