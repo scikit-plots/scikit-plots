@@ -70,7 +70,7 @@ print("Metric         :", idx.metric)
 # =============================================================
 # 1. Construction
 # =============================================================
-idx = AnnoyIndex(100, metric="angular")
+idx = AnnoyIndex(10, metric="angular")
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
 idx.on_disk_build("annoy_test.annoy")
@@ -81,8 +81,8 @@ idx.on_disk_build("annoy_test.annoy")
 # =============================================================
 # 2. Add items
 # =============================================================
-f=100
-n=1000
+f=10
+n=10
 for i in range(n):
     if(i % (n//10) == 0): print(f"{i} / {n} = {1.0 * i / n}")
     # v = []
@@ -115,7 +115,7 @@ print(idx)
 
 # %%
 
-idx.build(100)
+idx.build(10)
 print(idx)
 
 
@@ -134,8 +134,8 @@ print("Metric         :", idx.metric)
 # =============================================================
 # 2. Add items
 # =============================================================
-f=100
-n=1000
+f=10
+n=10
 for i in range(n):
     if(i % (n//10) == 0): print(f"{i} / {n} = {1.0 * i / n}")
     # v = []
@@ -214,7 +214,7 @@ idx.save("annoy_test.annoy")
 print(idx)
 
 print("Loading...")
-idx2 = AnnoyIndex(100, metric='angular').load("annoy_test.annoy")
+idx2 = AnnoyIndex(10, metric='angular').load("annoy_test.annoy")
 print("Loaded index:", idx2)
 
 
@@ -225,7 +225,7 @@ print("Loaded index:", idx2)
 # =============================================================
 print("\n=== Raw serialize ===")
 buf = idx.serialize()
-new_idx = AnnoyIndex(100, metric='angular')
+new_idx = AnnoyIndex(10, metric='angular')
 new_idx.deserialize(buf)
 print("Deserialized index n_items:", new_idx.get_n_items())
 print(idx)
@@ -240,7 +240,7 @@ print(idx)
 
 # %%
 
-# idx.build(100)
+# idx.build(10)
 idx.load("annoy_test.annoy")
 print(idx)
 
