@@ -162,6 +162,16 @@ User Guide
 
             ./_lib/index.rst
 
+    .. grid-item-card::
+        :padding: 3
+
+        **Brand Logo**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            ./_logo.rst
+
 
 .. _under-development:
 
