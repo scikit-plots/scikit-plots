@@ -269,6 +269,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "PathAwareAnnoy",
                     "PickleMixin",
                     "PickleMode",
+                    "SerializerBackend",
                     "VectorOpsMixin",
                 ],
             },
