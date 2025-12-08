@@ -162,8 +162,9 @@
 <!-- Scikit-plots favicon image -->
 <div>
  <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
+  <!-- https://raw.githubusercontent.com/scikit-plots/scikit-plots/refs/heads/main/docs/source/logos/gpt/scikit-plots-logo-medium.png -->
   <img alt="Scikit-plots" height="230"
-   src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/scikit-plots-logo-medium.png">
+   src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/gpt/scikit-plots-logo-medium.png">
  </a>
 </div>
 
@@ -297,19 +298,48 @@ micromamba create -y -n py311 python=3.11 ipykernel
 micromamba activate py311
 ```
 ```sh
-## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
-# conda search conda-forge::scikit-plots
-# mamba search --channel conda-forge scikit-plots
-micromamba search -c conda-forge scikit-plots
+## (conda, mamba or micromamba) Deep Explore scikit-plots
+# conda repoquery search -c conda-forge "scikit-plots=0.4.0" --json
+# mamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json
+# micromamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json
+# micromamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json --platform osx-64
+micromamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json \
+  | jq -r '.result.pkgs[] | "\(.subdir)  \(.build)"'
 ```
 ```sh
-## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
+## (conda, mamba or micromamba) Install scikit-plots
 # conda install -y conda-forge::scikit-plots
 # mamba install --yes --channel conda-forge scikit-plots
 micromamba install -y -c conda-forge scikit-plots
 
 # Cause numpy>=2.0.0 but support old numpy
 # pip install numpy==1.26.4
+```
+```sh
+## (conda, mamba or micromamba) Install newest compatible build scikit-plots
+# conda update -y conda-forge::scikit-plots
+# mamba update --yes --channel conda-forge scikit-plots
+micromamba update -y -c conda-forge scikit-plots
+
+# Cause numpy>=2.0.0 but support old numpy
+# pip install numpy==1.26.4
+```
+```sh
+## (conda, mamba or micromamba) Verify version and location scikit-plots
+# conda list | grep scikit-plots
+# mamba list | grep scikit-plots
+micromamba list | grep scikit-plots
+```
+```sh
+micromamba clean --index-cache -y
+# or stronger
+micromamba clean -a -y
+```
+```sh
+## (conda, mamba or micromamba) Explore scikit-plots
+# conda search conda-forge::scikit-plots
+# mamba search --channel conda-forge scikit-plots
+micromamba search -c conda-forge "scikit-plots=0.4.0"
 ```
 </div>
 
