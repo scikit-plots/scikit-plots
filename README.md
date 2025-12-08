@@ -60,7 +60,7 @@
   <!-- <img alt="Anaconda Stable Wheels Downloads" height="17" src="https://anaconda.org/conda-forge/scikit-plots/badges/downloads.svg"> -->
  </a>
  <!-- Anaconda Stable Wheels Release Date -->
- <a href="https://anaconda.org/conda-forge/scikit-plots" target="_blank"
+ <a href="https://github.com/conda-forge/scikit-plots-feedstock" target="_blank"
   rel="noopener noreferrer">
   <img alt="Anaconda Stable Wheels Release Date" height="17"
   src="https://anaconda.org/conda-forge/scikit-plots/badges/latest_release_date.svg?logo=condaforge&label=conda%20|%20Downloads">
