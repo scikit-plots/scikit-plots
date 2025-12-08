@@ -75,8 +75,18 @@ from ._base import Index  # extended python-api derived annoylib.Annoy legacy c-
 # User-facing API
 AnnoyIndex = Index  # alias of Annoy Index python-api
 
-# python
-from ._mixins import ManifestMixin, ObjectIOMixin, PathAwareAnnoy, PickleMixin
+# mixins (internal-ish but useful for power users)
+from ._mixins import (
+    CompressMode,
+    ManifestMixin,
+    NDArrayExportMixin,
+    ObjectIOMixin,
+    PathAwareAnnoy,
+    PickleMixin,
+    PickleMode,
+    SerializerBackend,
+    VectorOpsMixin,
+)
 
 # Define the annoy version
 # https://github.com/spotify/annoy/blob/main/setup.py
@@ -89,10 +99,14 @@ __all__ = [
     "Annoy",
     "AnnoyBase",
     "AnnoyIndex",
+    "CompressMode",
     "Index",
     "ManifestMixin",
-    # mixins (internal-ish but useful for power users)
+    "NDArrayExportMixin",
     "ObjectIOMixin",
     "PathAwareAnnoy",
     "PickleMixin",
+    "PickleMode",
+    "SerializerBackend",
+    "VectorOpsMixin",
 ]

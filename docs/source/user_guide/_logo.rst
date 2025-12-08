@@ -9,10 +9,10 @@ The default output is deterministic and requires **no image assets**.
 
 This makes the logo easy to:
 
-- ship inside the library,
-- regenerate at any size,
-- theme for dark/light docs,
-- export as SVG/PNG without external dependencies.
+* ship inside the library,
+* regenerate at any size,
+* theme for dark/light docs,
+* export as SVG/PNG without external dependencies.
 
 .. note::
 
@@ -48,10 +48,10 @@ Variants
 
 Scikit-plots provides several icon variants tuned for different contexts:
 
-- **primary**: full brand mark for docs, README, websites.
-- **small**: simplified icon for tiny sizes.
-- **metrics**: highlights classic ML evaluation concepts.
-- **knn**: subtle nod to Annoy/KNN features.
+* **primary**: full brand mark for docs, README, websites.
+* **small**: simplified icon for tiny sizes.
+* **metrics**: highlights classic ML evaluation concepts.
+* **knn**: subtle nod to Annoy/KNN features.
 
 .. code-block:: python
 
@@ -188,7 +188,7 @@ compare **normalized** SVG output rather than byte-for-byte equality.
 
 .. seealso::
 
-   :meth:`matplotlib.figure.Figure.savefig`
-   :func:`scikitplot._logo.create`
-   :func:`scikitplot._logo.save`
-   :func:`scikitplot._logo.list_variants`
+   * :meth:`matplotlib.figure.Figure.savefig`
+   * :func:`scikitplot._logo.create`
+   * :func:`scikitplot._logo.save`
+   * :func:`scikitplot._logo.list_variants`

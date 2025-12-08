@@ -25,9 +25,9 @@
     .. prompt:: powershell PS C:\>
     .. prompt:: docker root@container:~#
 
-Install conda using the
-`miniforge installers <https://github.com/conda-forge/miniforge#miniforge>`__ (no
-administrator permission required). Then run:
+Install conda using the `miniforge installers
+<https://github.com/conda-forge/miniforge#miniforge>`__ (no administrator permission
+required). Then run:
 
 .. prompt:: bash
 
@@ -46,24 +46,30 @@ administrator permission required). Then run:
 
 .. prompt:: bash
 
-  ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
-  # conda search conda-forge::scikit-plots
-  # mamba search --channel conda-forge scikit-plots
-  micromamba search -c conda-forge scikit-plots
+  ## (conda, mamba or micromamba) Deep Explore scikit-plots
+  # conda repoquery search -c conda-forge "scikit-plots=0.4.0" --json
+  # mamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json
+  # micromamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json
+  # micromamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json --platform osx-64
+  micromamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json \
+    | jq -r '.result.pkgs[] | "\(.subdir)  \(.build)"'
 
 .. prompt:: bash
 
-  ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
+  ## (conda, mamba or micromamba) Install scikit-plots
   # conda install -y conda-forge::scikit-plots
   # mamba install --yes --channel conda-forge scikit-plots
   micromamba install -y -c conda-forge scikit-plots
 
+  # Cause numpy>=2.0.0 but support old numpy
+  # pip install numpy==1.26.4
+
 .. prompt:: bash
 
-  ## (conda, mamba or micromamba) Install scikit-plots (Upcoming)
-  # conda install -y conda-forge::scikit-plots
-  # mamba install --yes --channel conda-forge scikit-plots
-  micromamba install -y -c conda-forge scikit-plots
+  ## (conda, mamba or micromamba) Install newest compatible build scikit-plots
+  # conda update -y conda-forge::scikit-plots
+  # mamba update --yes --channel conda-forge scikit-plots
+  micromamba update -y -c conda-forge scikit-plots
 
   # Cause numpy>=2.0.0 but support old numpy
   # pip install numpy==1.26.4
@@ -72,8 +78,10 @@ In order to check your installation, you can use:
 
 .. prompt:: bash
 
-  # conda list               # show all installed packages in the environment
-  conda list scikit-plots    # show scikit-plots version and location
+  ## (conda, mamba or micromamba) Verify version and location scikit-plots
+  # conda list | grep scikit-plots
+  # mamba list | grep scikit-plots
+  micromamba list | grep scikit-plots
 
   # Version Check
   python -c "import scikitplot; scikitplot.show_versions()"
