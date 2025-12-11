@@ -56,9 +56,9 @@
 #include <pybind11/numpy.h>        // For Pybind11 NumPy support
 #include "NumCpp.hpp"              // NumCpp library header (header-only)
 
-namespace py = pybind11;
 // Creates a namespace alias 'py' for the pybind11 library.
 // Allows using 'py::' instead of 'pybind11::' to shorten code.
+namespace py = pybind11;
 
 // namespace nc_py = nc::pybindInterface;
 // Creates a namespace alias 'nc_py' for 'nc::pybindInterface'.
@@ -81,6 +81,16 @@ namespace py = pybind11;
 // Defines a type alias 'nc_array' for 'nc::NdArray<dtype>'.
 // Simplifies code by allowing you to write 'nc_array' instead of the full templated type.
 
+// #ifdef __cplusplus
+// // Provide C-Compatible Interface (explicitly defined for each type)
+// // Ensures compatibility with C, Python, or other languages expecting C-style linkage.
+// extern "C" {
+// #endif
+// // pass here
+// #ifdef __cplusplus
+// }  // End of `extern "C"` block
+// #endif
+
 // -----------------------------------------------------
 // PYBIND11_MODULE creates a Python module named "nc"
 // -----------------------------------------------------
@@ -88,14 +98,14 @@ namespace py = pybind11;
 // The module name **must match** the Meson `extension_module` target.
 // In your Meson config, ext_name = 'nc', so we use 'nc' here.
 PYBIND11_MODULE(
-    version,  // <module_name>
+    __version,  // <module_name>
     m,
     py::mod_gil_not_used(),
     py::multiple_interpreters::per_interpreter_gil()
 ){
     // -------- Module Docstring --------
     m.doc() = R"pbdoc(
-        :py:mod:`~.version` is a high-performance Python module that wraps the C++ NumCpp library.
+        :py:mod:`~.__version` is a high-performance Python module that wraps the C++ NumCpp library.
 
         Providing fast numerical functions with seamless NumPy array support across common numeric types.
 

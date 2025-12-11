@@ -1,18 +1,12 @@
-## scikitplot/nc/meson.build
-######################################################################
-## NumCpp: C++ Header-Only Library + Python/Cython Integration
-######################################################################
-
-# develop → NdArray dev features headers (if needed).
-# numcpp → core NumCpp Python module.
+## scikitplot/nc/_linalg/meson.build
 
 ######################################################################
 ## cython tree
 ######################################################################
 
 # Copy main "__init__.py"/"*.pxd" files into build dir (for Cython)
-_nc_cython_tree = [
-  _root_cython_tree,
+_linalg_cython_tree = [
+  _nc_cython_tree,
   fs.copyfile('__init__.py'),  # Ensure __init__.py is copied early
 ]
 
@@ -20,8 +14,8 @@ _nc_cython_tree = [
 ## Include the headers directories
 ######################################################################
 
-_nc_inc_dir = [
-  'include',  # .hpp headers
+_linalg_inc_dir = [
+  # 'include',  # .hpp headers
   'src',  # .cpp pybind11 bindings files
 ]
 
@@ -30,33 +24,7 @@ _nc_inc_dir = [
 ######################################################################
 
 # Use the include directory in your build setup
-inc_dir_nc = include_directories(_nc_inc_dir)
-
-######################################################################
-## Define dependencies and Compiler Flags
-# meson introspect ./build/cp311/ --dependencies
-# meson introspect ./build/cp311/ --buildoptions | grep python
-######################################################################
-
-# Define dependencies
-dep_list = dep_all
-dep_list += [dep_numcpp]
-
-######################################################################
-## Optional: Build Standalone NumCpp Demo (C++ Executable)
-######################################################################
-# # Executable using the NumCpp headers (header-only library)
-# message('🚀 Building NumCpp demo executable...')
-# exe_numcpp_demo = executable(
-#   'numcpp_demo',
-#   'develop/main.cpp',  # only for standalone C++ demo file, not the library.
-#   include_directories: [inc_dir_numcpp_develop, inc_dir_nc],
-#   dependencies: dep_list,
-#   cpp_args: [cython_cpp_flags, extra_compile_args],
-#   install: false,
-# )
-# # Optionally add a test run for CI
-# test('NumCpp Demo Run', exe_numcpp_demo)
+inc_dir_linalg = include_directories(_linalg_inc_dir)
 
 ######################################################################
 ## Extension Module Metadata
@@ -68,51 +36,20 @@ dep_list += [dep_numcpp]
 ## .cxx or .C → also C++ (less common)
 ## Define Python Module Name
 ## Check: ELF 64-bit LSB shared object, dynamically linked
-_numcpp_extension_metadata = {
-  # file builddir/scikitplot/nc/_nc_develop.so
-  '_nc_develop':  ## Build static NumCpp core library (C++)
-  {
-    'sources': [                                  # .pyx source file with NumCpp + Cython
-      'src/nc_develop.cpp',
-    ],
-    'include_directories': [                      # Include dirs for compilation
-      # ⚠️ May Conflict develop first!
-      # inc_dir_numcpp_develop,                   # develop first
-      inc_dir_numcpp,                             # then the stable include folder
-      inc_dir_nc,
-    ],
-    'dependencies': dep_list,                     # External libraries and dependencies
-    'link_with': [                                # Link with the created static library
-      # version_link_args
-    ],
-    'link_args': [],                              # 👈 add this
-    'override_options': [
-      # 'cython_language=c',                        # Ensure Cython knows to generate C code
-      'cython_language=cpp',                      # Ensure Cython knows to generate C code
-      'optimization=3',                           # Optimization level '-O3'
-    ],
-    'cython_args': cython_cpp_args,
-    'c_args': cython_c_flags,                     # Additional C/C++ arguments
-    'cpp_args': [                                 # Additional C/C++ arguments
-      # '-include', 'develop/NdArray/NdArrayCore.hpp',  # optional force include
-      cython_cpp_flags,
-      extra_compile_args,
-    ],
-    'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/nc',                    # Path where the module is located
-  },
-  # file builddir/scikitplot/nc/_nc.so
-  '_nc':  ## Build static NumCpp core library (C++)
+_linalg_extension_metadata = {
+  # file builddir/scikitplot/nc/_linalg/_linalg.so
+  '_linalg':  ## Build static NumCpp core library (C++)
   {
     # Only module your actual C++/Python/Pybind11 binding sources
     'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint
-      'src/nc.cpp',
+      'src/module_linalg.cpp',
     ],
     'include_directories': [                      # Include dirs for compilation
       # ⚠️ May Conflict develop first!
       # inc_dir_numcpp_develop,                   # develop first
       inc_dir_numcpp,                             # then the stable include folder
       inc_dir_nc,
+      inc_dir_linalg,
     ],
     'dependencies': dep_list,                     # External libraries and dependencies
     'link_with': [                                # Link with the created static library
@@ -134,15 +71,15 @@ _numcpp_extension_metadata = {
       extra_compile_args,
     ],
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/nc',                    # Path where the module is located
+    'subdir': 'scikitplot/nc/_linalg',            # Path where the module is located
   },
 }
 # https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
 # Loop over each defined extension and create the corresponding module
-foreach ext_name, ext_dict : _numcpp_extension_metadata
+foreach ext_name, ext_dict : _linalg_extension_metadata
   pyext_module = py.extension_module(
     ext_name,                                                      # The name of the extension module
-    ext_dict.get('sources') + _nc_cython_tree,                     # Sources and dependencies
+    ext_dict.get('sources') + _linalg_cython_tree,                 # Sources and dependencies
     include_directories: ext_dict.get('include_directories', []),  # Include directories
     dependencies: ext_dict.get('dependencies', []),                # Additional dependencies if any
     link_with: ext_dict.get('link_with', []),                      # Libraries to link with
@@ -168,8 +105,5 @@ endforeach
 ######################################################################
 
 ######################################################################
-## Next
+##
 ######################################################################
-
-subdir('_version')
-subdir('_linalg')

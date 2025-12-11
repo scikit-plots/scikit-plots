@@ -68,8 +68,6 @@ PUBLIC_MODULES = [
         "misc.plot_colortable",
         "modelplotpy",
         "nc",
-        "nc.version",
-        "nc.linalg",
         "preprocessing",
         "snsx",
         "stats",
