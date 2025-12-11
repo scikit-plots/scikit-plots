@@ -18,7 +18,7 @@
 """
 High-level Python interface for the C++ Annoy backend.
 
-Spotify Annoy (Approximate Nearest Neighbors Oh Yeah).
+Spotify ANNoy (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
 

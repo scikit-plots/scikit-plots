@@ -21,7 +21,10 @@ motivated this module.
 
 """
 
+from __future__ import annotations
+
 import enum
+from typing import Self
 
 # from typing import TYPE_CHECKING
 # if TYPE_CHECKING:
@@ -126,10 +129,10 @@ class SingletonBase:
 
     # Class attribute to hold the single instance of the class.
     # _instance: Union["SingletonBase", None] = None
-    _instance: "SingletonBase | None" = None
+    _instance: SingletonBase | None = None
 
     # magic method to get called in an objects instantiation.
-    def __new__(cls: "type[SingletonBase]", *args, **kwargs) -> "SingletonBase":
+    def __new__(cls: type[SingletonBase], *args, **kwargs) -> Self:
         """
         Override the default object creation method to implement the singleton pattern.
 

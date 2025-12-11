@@ -45,6 +45,27 @@ class _Vector(Protocol, Sized):
     def __len__(self) -> int: ...
 
 
+# // scipy.spatial.distance.cosine
+# {"angular",   "angular"},
+# {"cosine",    "angular"},
+# // scipy.spatial.distance.euclidean
+# {"euclidean", "euclidean"},
+# {"l2",        "euclidean"},
+# {"lstsq",        "euclidean"},
+# // scipy.spatial.distance.cityblock
+# {"manhattan", "manhattan"},
+# {"l1",        "manhattan"},
+# {"cityblock", "manhattan"},
+# {"taxicab",   "manhattan"},
+# // scipy.sparse.coo_array.dot
+# {"dot",          "dot"},
+# {"@",            "dot"},
+# {".",            "dot"},
+# {"dotproduct",   "dot"},
+# {"inner",        "dot"},
+# {"innerproduct", "dot"},
+# // scipy.spatial.distance.hamming
+# {"hamming", "hamming"},
 class Annoy(annoylib.Annoy):
     """
     Annoy index for approximate nearest neighbor search.
@@ -53,9 +74,11 @@ class Annoy(annoylib.Annoy):
     ----------
     f : int
         Dimensionality of the input vectors.
-    metric : {"angular", "cosine", "euclidean", "l2",
-              "manhattan", "l1", "taxicab", "cityblock",
-              "hamming", "dot", "."}, optional
+    metric : {"angular", "cosine",
+              "euclidean", "l2", "lstsq",
+              "manhattan", "l1", "cityblock", "taxicab",
+              "dot", "@", ".", "dotproduct", "inner", "innerproduct",
+              "hamming"}, optional, default='angular'
         Distance function.  If omitted, the runtime default is
         ``"angular"`` (matching the original ``annoy`` package).
         Passing the metric explicitly is recommended to avoid future

@@ -24,7 +24,12 @@ This module contains some functions related to :py:mod:`~.impute`.
 
 .. seealso::
 
-   * https://pypi.org/project/annoy
+   * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
+   * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
+   * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
+   * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
+   * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
+   * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
 
 
 `Annoy (Approximate Nearest Neighbors Oh Yeah)` is a C++ library with Python bindings
@@ -32,30 +37,35 @@ to search for points in space that are close to a given query point.
 It also creates large read-only file-based data structures
 that are mmapped into memory so that many processes may share the same data.
 
-.. _annoy_knn_imputer-index:
+`Voyager` is optimized for modern nearest-neighbor search.
 
-AnnoyKNNImputer
+`HNSW (Hierarchical Navigable Small World)` provides better accuracy and speed,
+outperforming Annoy in most use cases, especially when precision is important.
+
+.. _ann_imputer-index:
+
+ANNImputer
 **********************************************************************
 
-This module contains some functions related to :py:class:`~.AnnoyKNNImputer`.
+This module contains some functions related to :py:class:`~.ANNImputer`.
 
 TL;DR
 ------------
-- Purpose: Approximate nearest-neighbors-based imputation
-- Import path: `from scikitplot.impute import AnnoyKNNImputer`
+- Purpose: Approximate k-nearest-neighbors (KNN) imputation
+- Import path: `from scikitplot.impute import ANNImputer`
 - Functionality: Replaces missing values using neighbors retrieved via Annoy
 - Parameters: n_neighbors, n_trees, metric, optional search_k, etc.
 
 Overview
 --------
-`AnnoyKNNImputer` (from :py:mod:`~scikitplot.impute`) is an approximate nearest-neighbors
+:py:class:`~.ANNImputer` (from :py:mod:`~scikitplot.impute`) is an approximate nearest-neighbors
 imputer that uses Annoy to fill missing values in datasets. It replaces missing
 entries by querying the nearest neighbors of samples with missing values and
 computing imputations from those neighbors.
 
 Motivation
 ----------
-Unlike exact KNN imputation, using Annoy allows:
+Unlike exact KNN imputation :py:class:`~sklearn.impute.KNNImputer`, using Annoy allows:
 - Faster neighbor retrieval in high-dimensional data
 - Memory-efficient indexing of large datasets
 - Sharing of prebuilt indexes across processes
@@ -65,15 +75,15 @@ Example: Your exact NumPy array example:
 .. prompt:: python >>>
 
     import numpy as np
-    from scikitplot.experimental import enable_annoyknn_imputer
-    from scikitplot.impute import AnnoyKNNImputer
+    from scikitplot.experimental import enable_ann_imputer
+    from scikitplot.impute import ANNImputer
 
     X = np.array([[1, 2, np.nan],
                   [3, 4, 3],
                   [np.nan, 6, 5],
                   [8, 8, 7]])
 
-    imputer = AnnoyKNNImputer(n_trees=5, n_neighbors=5)
+    imputer = ANNImputer(n_trees=5, n_neighbors=5)
     X_imputed = imputer.fit_transform(X)
 
     print(X_imputed)
@@ -99,5 +109,5 @@ Notes
 
 Comparison
 ----------
-- Similar in usage to `sklearn.impute.KNNImputer`, but faster on large, high-dimensional datasets
+- Similar in usage to :py:class:`~sklearn.impute.KNNImputer`, but faster on large, high-dimensional datasets
 - Provides a trade-off between accuracy and speed via Annoy parameters

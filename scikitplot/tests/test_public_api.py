@@ -35,8 +35,7 @@ def test_dir_testing():
 PUBLIC_MODULES = [
     "scikitplot." + s
     for s in [
-        "annoy",
-        # "annoy.annoylib",
+        "annoy",  # "annoy.annoylib",
         "api",
         "api.plotters",
         "api.decomposition",
@@ -47,7 +46,7 @@ PUBLIC_MODULES = [
         "config",
         "config.cbook",
         "experimental",
-        "experimental.enable_annoyknn_imputer",
+        "experimental.enable_ann_imputer",
         "experimental.pipeline",
         "experimental.pipeline.pipeline",
         "externals",
