@@ -625,26 +625,27 @@ static inline std::string trim(const std::string& s) {
 // responsible for producing a clear error message.
 static inline std::string normalize_metric(const std::string& m) {
   static const std::unordered_map<std::string, std::string> metric_map = {
+    // scipy.spatial.distance.cosine
     {"angular",   "angular"},
     {"cosine",    "angular"},
-
+    // scipy.spatial.distance.euclidean
     {"euclidean", "euclidean"},
-    {"euclid",    "euclidean"},
     {"l2",        "euclidean"},
-
+    {"lstsq",        "euclidean"},
+    // scipy.spatial.distance.cityblock
     {"manhattan", "manhattan"},
+    {"l1",        "manhattan"},
     {"cityblock", "manhattan"},
     {"taxicab",   "manhattan"},
-    {"l1",        "manhattan"},
-
-    {"dot",           "dot"},
-    {"dotproduct",    "dot"},
-    {"inner_product", "dot"},
-    {"ip",            "dot"},
-    {".",             "dot"},
-
+    // scipy.sparse.coo_array.dot
+    {"dot",          "dot"},
+    {"@",            "dot"},
+    {".",            "dot"},
+    {"dotproduct",   "dot"},
+    {"inner",        "dot"},
+    {"innerproduct", "dot"},
+    // scipy.spatial.distance.hamming
     {"hamming", "hamming"},
-    {"ham",     "hamming"},
   };
 
   std::string s = trim(m);
@@ -1136,7 +1137,34 @@ static PyGetSetDef py_annoy_getset[] = {
     (char*)"metric",
     (getter)py_annoy_get_metric,
     (setter)py_annoy_set_metric,
-    (char*)"distance metric (angular, euclidean, manhattan, dot, hamming)",
+    (char*)"distance metric (angular, euclidean, manhattan, dot, hamming) mapped: "
+    // R"( ... )";
+    R"METRIC(
+    .. note::
+      {"angular",   "angular"},
+      {"cosine",    "angular"},
+      {"euclidean", "euclidean"},
+      {"l2",        "euclidean"},
+      {"lstsq",        "euclidean"},
+      {"manhattan", "manhattan"},
+      {"l1",        "manhattan"},
+      {"cityblock", "manhattan"},
+      {"taxicab",   "manhattan"},
+      {"dot",          "dot"},
+      {"@",            "dot"},
+      {".",            "dot"},
+      {"dotproduct",   "dot"},
+      {"inner",        "dot"},
+      {"innerproduct", "dot"},
+      {"hamming", "hamming"},
+
+    .. seealso::
+      :py:mod:`~scipy.spatial.distance.cosine`
+      :py:mod:`~scipy.spatial.distance.euclidean`
+      :py:mod:`~scipy.spatial.distance.cityblock`
+      :py:mod:`~scipy.sparse.coo_array.dot`
+      :py:mod:`~scipy.spatial.distance.hamming`
+    )METRIC",
     NULL
   },
   {NULL}  /* Sentinel */

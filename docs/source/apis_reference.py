@@ -485,7 +485,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # "title": None,
                 # "description": None,
                 "autosummary": [
-                    "enable_annoyknn_imputer",
+                    "enable_ann_imputer",
                 ],
             },
             {
@@ -619,15 +619,14 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("impute-index"),
         "sections": [
             {
-                "title": "Vector-based Knn imputation.",
+                "title": "Approximate K-nearest-neighbours (KNN) imputation.",
                 "description": (
-                  _get_submodule("scikitplot.impute", "_annoy_knn")
+                  _get_submodule("scikitplot.impute", "_ann")
                   + "\n\n"
-                  + _get_guide("annoy_knn_imputer-index")
+                  + _get_guide("ann_imputer-index")
                 ),
                 "autosummary": [
-                    # "_annoy_knn",
-                    "_annoy_knn.AnnoyKNNImputer",
+                    "_ann.ANNImputer",
                 ],
             },
         ],

@@ -13,3 +13,7 @@
 # git rm -r --cached galleries/examples/00-jupyter_notebooks/annoy/*.csv
 *.csv
 *.npy
+*.npz
+
+*.voy
+*.voyager

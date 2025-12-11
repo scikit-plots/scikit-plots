@@ -2,11 +2,10 @@
 annoy impute with examples
 ==================================
 
-Examples related to the :py:class:`~scikitplot.impute.AnnoyKNNImputer` class
+Examples related to the :py:class:`~scikitplot.impute.ANNImputer` class
 with a scikit-learn regressor (e.g., :py:class:`~sklearn.linear_model.LinearRegression`) instance.
 
 .. seealso::
-
     * https://scikit-learn.org/stable/auto_examples/impute/plot_missing_values.html#sphx-glr-auto-examples-impute-plot-missing-values-py
 """
 
@@ -104,7 +103,7 @@ def get_score(Xt, Xv, yt, yv, imputer=None, regresion=True):
     )
     return scores.mean(), scores.std()
 
-n_size = 7
+n_size = 8
 x_labels = np.zeros(n_size, dtype=object)
 mses_diabetes = np.zeros(n_size)
 stds_diabetes = np.zeros(n_size)
@@ -236,37 +235,61 @@ sp.__version__
 
 
 # %%
-from scikitplot.experimental import enable_annoyknn_imputer
-from scikitplot.impute import AnnoyKNNImputer
-# print(AnnoyKNNImputer.__doc__)
+from scikitplot.experimental import enable_ann_imputer
+from scikitplot.impute import ANNImputer
+# 'angular', 'euclidean', 'manhattan', 'hamming', 'dot'
+# print(ANNImputer.__doc__)
 
 
 # %%
-from sklearn.preprocessing import MaxAbsScaler, RobustScaler, StandardScaler
+
 t0 = time.time()
-# 'angular', 'euclidean', 'manhattan', 'hamming', 'dot'
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=1, metric='angular', n_trees=-1)
-# imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, weights="distance")
+imputer = ANNImputer(add_indicator=True, random_state=0, backend="voyager")
 mses_diabetes[6], stds_diabetes[6] = get_score(
     Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
 )
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=430, metric='euclidean', initial_strategy="median", weights="distance", n_trees=-1)
-# imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=484, metric='euclidean', initial_strategy="median", weights="distance")
 mses_california[6], stds_california[6] = get_score(
     Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
 )
-imputer = AnnoyKNNImputer(add_indicator=True, random_state=0, n_neighbors=1, metric='euclidean', initial_strategy="median", n_trees=-1)
 mses_train[6], stds_train[6] = get_score(
     Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
     regresion=False
 )
-x_labels[6] = "AnnoyKNN\nImputation\n(Vector Based)"
+x_labels[6] = "ANN\nImputation\n(voyager)"
 T = time.time() - t0
 print(T)
 time_data[6] = T
+
+
+# %%
+
+t0 = time.time()
+imputer = ANNImputer(add_indicator=True, random_state=0, n_neighbors=1, metric='angular')
+mses_diabetes[7], stds_diabetes[7] = get_score(
+    Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
+    make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
+)
+imputer = ANNImputer(add_indicator=True, random_state=0,
+                     n_neighbors=430, metric='euclidean', initial_strategy="median", weights="distance")
+                    #  n_neighbors=484, metric='euclidean', initial_strategy="median", weights="distance", n_trees=10)
+mses_california[7], stds_california[7] = get_score(
+    Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss,
+    make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
+)
+imputer = ANNImputer(add_indicator=True, random_state=0,
+                     n_neighbors=1, metric='euclidean', initial_strategy="median")
+mses_train[7], stds_train[7] = get_score(
+    Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss,
+    make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
+    regresion=False
+)
+x_labels[7] = "ANN\nImputation\n(annoy)"
+T = time.time() - t0
+print(T)
+time_data[7] = T
 
 
 # %%
@@ -363,7 +386,7 @@ plt.tight_layout()
 plt.show()
 
 # %%
-# AnnoyKNNImputer performance and accuracy are highly sensitive to both the
+# ANNImputer performance and accuracy are highly sensitive to both the
 # selected distance metric and the number of trees used to build the Annoy index.
 # An inappropriate metric or insufficient number of trees may lead to poor
 # neighbor retrieval and degraded imputation quality.
