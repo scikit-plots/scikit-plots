@@ -1,12 +1,10 @@
-# Authors: David Pilger
-# SPDX-License-Identifier: MIT
+# scikitplot/nc/__init__.py
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 NumCpp: A Templatized Header Only C++ Library with Implementation of the Python NumPy-Compatible API.
-
-.. seealso::
-
-   * https://github.com/dpilger26/NumCpp
 
 * Author: `David Pilger <dpilger26@gmail.com>`_
 * License: MIT
@@ -18,23 +16,18 @@ Compilers:
 * GCC GNU: 13.3, 14.2
 * Clang LLVM: 18, 19
 * Boost Versions: 1.73+
+
+.. seealso::
+   * https://github.com/dpilger26/NumCpp
 """
 
-# PYBIND11_MODULE
-from . import version  # noqa: F401
-from ._linalg import dot  # noqa: F401
-
-# cython module
-from ._version import __version__  # noqa: F401
+# PUBLIC, user-facing API: Python wrapper that accepts array_like (lists, tuples, ndarrays)
+from ._linalg import *  # noqa: F403
+from ._version import *  # noqa: F403
 
 __author__ = "David Pilger"
 __author_email__ = "dpilger26@gmail.com"
 __git_hash__ = "7d390df4ae94268e58222278529b22ebae2ee663"
-
-# __all__ = [
-#     "get_include",
-#     "nc",
-# ]
 
 
 def get_include() -> str:

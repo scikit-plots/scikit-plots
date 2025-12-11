@@ -1,6 +1,25 @@
+# scikitplot/nc/_linalg/__init__.py
+
 """
-The scikit-plots linear algebra functions.
+The scikitplot.nc._linalg linear algebra functions.
+
+See Also
+--------
+numpy.linalg
 """
+
+from __future__ import annotations
+
+from .._wrappers import _binary_arraylike
+from . import _linalg
+
+__all__ = ["dot"]
+
+# High-level, NumPy-style dot:
+# - accepts array_like (lists, tuples, ndarrays)
+# - reuses C++ docstring from _linalg.dot
+dot = _binary_arraylike(_linalg.dot, name="dot")
+
 
 # """
 # Functions present in numpy.linalg are listed below.
