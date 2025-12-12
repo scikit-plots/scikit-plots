@@ -1,10 +1,22 @@
-"""utils.py"""
+# scikitplot/visualkeras/_utils.py
+
+"""visualkeras _utils.py"""
 
 # import os
 # import warnings
 # import platform
 # import logging
 from typing import TYPE_CHECKING
+
+# import aggdraw  # Anti-Grain Geometry (AGG) graphics library
+# from PIL import (
+#     Image,
+#     ImageColor,
+#     ImageDraw,
+#     ImageFont,
+# )
+
+from .._compat.optional_deps import LazyImport
 
 if TYPE_CHECKING:
     # Only imported during type checking
@@ -16,13 +28,18 @@ if TYPE_CHECKING:
         Union,
     )
 
-import aggdraw  # Anti-Grain Geometry (AGG) graphics library
-from PIL import (
-    Image,
-    ImageColor,
-    ImageDraw,
-    ImageFont,
-)
+    import aggdraw
+    from PIL import Image, ImageColor, ImageDraw, ImageFont
+else:
+    # Runtime lazy imports
+    aggdraw = LazyImport("aggdraw", package=None, default=None, error="raise")
+    PIL = LazyImport("PIL", package=None, default=None, error="raise")
+
+    Image = LazyImport("PIL.Image", package=None, default=None, error="raise")
+    ImageColor = LazyImport("PIL.ImageColor", package=None, default=None, error="raise")
+    ImageDraw = LazyImport("PIL.ImageDraw", package=None, default=None, error="raise")
+    ImageFont = LazyImport("PIL.ImageFont", package=None, default=None, error="raise")
+
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [

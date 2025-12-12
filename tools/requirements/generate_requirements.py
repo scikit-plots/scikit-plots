@@ -74,6 +74,7 @@ def generate_requirement_file(name, req_list, *, extra_list=None):
 def main():
     pyproject = toml.loads((repo_dir / "pyproject.toml").read_text())
 
+    # Runtime dep
     default = generate_requirement_file(
         "default",
         pyproject["project"]["dependencies"],
@@ -89,7 +90,7 @@ def main():
 
     # generate requirements/all.txt
     all_path = repo_dir / "requirements" / "all.txt"
-    files = ["build", "dev", "doc", "test", "test_nogil"]
+    files = ["build", "dev", "doc", "test"]
     reqs = [f"-r {x}.txt" for x in files]
     all_path.write_text("\n".join(header + reqs) + "\n")
 

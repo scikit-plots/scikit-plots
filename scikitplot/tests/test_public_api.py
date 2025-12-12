@@ -81,10 +81,6 @@ PUBLIC_MODULES = [
         "utils.utils_plot_mpl",
         "utils.validation",
         "visualkeras",
-        "visualkeras.graph",
-        "visualkeras.layer_utils",
-        "visualkeras.layered",
-        "visualkeras.utils",
         # py
         "conftest",
         "dummy",

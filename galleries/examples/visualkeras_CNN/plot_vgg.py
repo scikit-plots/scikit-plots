@@ -11,6 +11,14 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 
 
 # %%
+
+# visualkeras Need aggdraw tensorflow
+# !pip install scikitplot[core, cpu]
+
+# or
+# !pip install aggdraw
+# !pip install tensorflow
+
 # pip install protobuf==5.29.4
 import tensorflow as tf
 

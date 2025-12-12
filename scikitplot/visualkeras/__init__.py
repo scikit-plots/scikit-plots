@@ -13,9 +13,9 @@
 # pip install tensorflow will also install the corresponding version of Keras
 # pip install tf-keras keras Use If not compatibility
 from .._testing._pytesttester import PytestTester  # Pytest testing
-from .graph import *
-from .layered import *
-from .layer_utils import SpacingDummyLayer
+from ._graph import *
+from ._layered import *
+from ._layer_utils import SpacingDummyLayer
 
 test = PytestTester(__name__)
 del PytestTester
@@ -36,11 +36,6 @@ __git_hash__ = "8d42f3a9128373eac7b4d38c23a17edc9357e3c9"
 # __all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.
 __all__ = [
     "SpacingDummyLayer",
-    "graph",
     "graph_view",
-    "layer_utils",
-    "layered",
     "layered_view",
-    "test",
-    "utils",
 ]

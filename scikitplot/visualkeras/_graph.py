@@ -1,22 +1,23 @@
-"""graph.py"""
-
+# scikitplot/visualkeras/_graph.py
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
+
+"""visualkeras _graph.py"""
 
 from math import ceil
 from typing import TYPE_CHECKING
 
 import numpy as np
-import aggdraw
-from PIL import Image
+# import aggdraw
+# from PIL import Image
 
 # from .. import logger
 from .._compat.optional_deps import LazyImport
 from .._docstrings import _docstring
 from ..utils.utils_pil import get_font, save_image_pil_decorator
-from .layer_utils import *
-from .utils import *
+from ._layer_utils import *
+from ._utils import *
 
 if TYPE_CHECKING:
     # Only imported during type checking
@@ -26,10 +27,20 @@ if TYPE_CHECKING:
         Union,
     )
 
-    # Lazy import at runtime
-    matplotlib = LazyImport("matplotlib", package="matplotlib")
-    PIL = LazyImport("PIL", package="PIL")
-    Layer = _lazy_import_tensorflow()  # pylint: disable=undefined-variable
+    import aggdraw
+    from PIL import Image  # for type hints only
+else:
+    # Lazy imports at runtime – heavy deps only loaded on first use
+    aggdraw = LazyImport("aggdraw", package=None, default=None, error="raise")
+    PIL = LazyImport("PIL", package=None, default=None, error="raise")
+
+    Image = LazyImport("PIL.Image", package=None, default=None, error="raise")
+    ImageColor = LazyImport("PIL.ImageColor", package=None, default=None, error="raise")
+    ImageDraw = LazyImport("PIL.ImageDraw", package=None, default=None, error="raise")
+    ImageFont = LazyImport("PIL.ImageFont", package=None, default=None, error="raise")
+
+# Optionally, matplotlib here as well if needed at runtime
+matplotlib = LazyImport("matplotlib", package=None, default=None, error="raise")
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
@@ -131,7 +142,7 @@ def graph_view(
     add_timestamp=False,
     verbose: bool = False,
     **kwargs,
-) -> "PIL.Image.Image | matplotlib.image.AxesImage":
+) -> "PIL.Image.Image | matplotlib.image.AxesImage": # type: ignore
     """
     Generates an architectural visualization for a given linear Keras
     :py:class:`~tensorflow.keras.Model` model

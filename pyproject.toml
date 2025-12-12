@@ -1,7 +1,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-## This file is the modern replacement for setup.py, used to configure how your Python package is built.
+## ⚠︎ This file is the modern replacement for setup.py, used to configure how your Python package is built.
 ##
 ## ⚠️ https://packaging.python.org/en/latest/discussions/setup-py-deprecated/#setup-py-deprecated
 ##
@@ -250,39 +250,31 @@ dependencies = [
   'numpy>=1.20,!=1.24.0;python_version<"3.9"',
   'numpy>=2.0.0;python_version>="3.9"',
   "scipy>=1.7.0",                           # >=1.11.1,<2.0.0
-  "pandas>=1.2.0",                          # Data Analysis
-  "matplotlib>=3.4,!=3.6.1",                # Data Plotting
 
-  # --- Performance / Parallelism ---
-  "threadpoolctl>=3.1.0",
-  "joblib>=1.2.0",
+  # --- Data Visualization ---
+  "matplotlib>=3.4,!=3.6.1",                # Data Plotting
+  # matplotlib Runtime dependencies
+  # "contourpy >= 1.0.1",
+  # "cycler >= 0.10",
+  # "fonttools >= 4.22.0",
+  # "kiwisolver >= 1.3.1",
+  # "numpy >= 1.25",
+  # "packaging >= 20.0",
+  # "pillow >= 9",
+  # "pyparsing >= 3",
+  # "python-dateutil >= 2.7",
+  # "six>=1.5",                             # from python-dateutil
+
+  "pandas>=1.2.0",                          # Data Analysis Library
+  # pandas Runtime dependencies
+  # "pytz>=2020.1",
+  # "tzdata>=2023.3",
 
   # --- Machine Learning ---
-  # "scikit-learn>=1.6.0",
-  "scikit-learn>=1.3.0rc1",                 # Machine learning
-
-  # --- Visualkeras Dependency ---
-  "pillow>=6.2.0",                          # Image processing
-  ## aggdraw Only for platforms other than WebAssembly
-  ## high-quality drawing, with anti-aliasing and alpha compositing
-  # 'aggdraw>=1.3.11;not (platform_system == "Emscripten" and (platform_machine == "wasm32" or platform_machine == "wasm64"))',
-  'aggdraw>=1.3.11;sys_platform!="emscripten"',
-
-  # --- Optional Web Interface Dependencies (commented out) ---
-  # "docker>=4.0.0,<8",
-  # "streamlit",
-  # "requests>=2.17.3,<3",
-  # "Flask<4",
-  # "fastapi<1",
-  # "uvicorn<1",
-  # "waitress<4; platform_system == 'Windows'",
-  # "gunicorn<24; platform_system != 'Windows'",
-  # "importlib-metadata>=3.7.0,<9,!=4.7.0",  # Only if needed manually
-  # "pyyaml>=5.1,<7",
-  # "sqlalchemy>=1.4.0,<3",
-  # "sqlparse>=0.4.0,<1",
-  # "click>=7.0,<9",
-  # "cloudpickle<4",
+  "scikit-learn>=1.3.0rc1",                 # Machine learning >=1.6.0
+  # sklearn Runtime dependencies
+  "joblib>=1.2.0",                          # Performance / Parallelism
+  "threadpoolctl>=3.1.0",                   # Performance / Parallelism
 ]
 
 ######################################################################
@@ -301,6 +293,7 @@ dependencies = [
 ## via `pip install yourpackage[extra_name]`
 [project.optional-dependencies]
 
+# Mostly 'python_version<"3.11"'
 legacy = [
   'numpy>=1.20,!=1.24.0;python_version<"3.9"',
 
@@ -314,13 +307,42 @@ legacy = [
   'tomli-w;python_version<"3.11"',  # A lil' TOML writer backports for Python < 3.11
   'toml;python_version<"3.11"',  # A lil' TOML reader/writer backports for Python < 3.11
 ]
+
 ## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 ## Core dependencies that are used in multiple groups
 core = [
-  ## optionally
+  # --- Statistical plotting ---
   "seaborn>=0.11",                          # Statistical plotting
+
   # "array-api-strict>=2.3.1",
+
+  # --- Visualkeras Dependency ---
+  ## aggdraw Only for platforms other than WebAssembly
+  ## high-quality drawing, with anti-aliasing and alpha compositing
+  # 'aggdraw>=1.3.11;not (platform_system == "Emscripten" and (platform_machine == "wasm32" or platform_machine == "wasm64"))',
+  'aggdraw>=1.3.11;sys_platform!="emscripten"',
+  "pillow>=6.2.0",                          # Image processing matplotlib handle
+
+  # --- Visualkeras Dependency ---
+  "voyager>=1.2.5",                         # fast approximate nearest-neighbor searches on an in-memory collection of vectors.
+
+  # --- Optional Web Interface Dependencies (commented out) ---
+  # "docker>=4.0.0,<8",
+  # "streamlit",
+  # "requests>=2.17.3,<3",
+  # "Flask<4",
+  # "fastapi<1",
+  # "uvicorn<1",
+  # "waitress<4; platform_system == 'Windows'",
+  # "gunicorn<24; platform_system != 'Windows'",
+  # "importlib-metadata>=3.7.0,<9,!=4.7.0",  # Only if needed manually
+  # "pyyaml>=5.1,<7",
+  # "sqlalchemy>=1.4.0,<3",
+  # "sqlparse>=0.4.0,<1",
+  # "click>=7.0,<9",
+  # "cloudpickle<4",
 ]
+
 ## Build dependencies (for packaging and building extensions)
 build = [
   "scikit-plots[legacy]",                   # Pulls in the 'legacy' optional dependencies during build
@@ -334,7 +356,7 @@ build = [
   "build",                                  # Standard Python build tool
   "twine",                                  # Upload to PyPI
 
-  ## DO NOT EDIT Copy "requires" section
+  ## ⚠️ DO NOT EDIT Copy "requires" section
   ## Building an env isolated one that build system information (how to package the project).
   "meson>=1.5.0",                           # The Meson build system itself to coordinate the compilation of code.
   "ninja>=1.11.0",                          # The Ninja build system used to compile code ';sys_platform != "emscripten"'
@@ -355,6 +377,7 @@ build = [
   'numpy>=1.20,!=1.24.0;python_version<"3.9"',
   'numpy>=2.0.0;python_version>="3.9"',
 ]
+
 dev = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
   "packaging",
@@ -381,6 +404,7 @@ dev = [
 
   # "pipreqs",                              # Automatically scans the codebase and detects the used libraries.
 ]
+
 ## Testing dependencies, Free-threaded (No-GIL) Python builds, suffix 't'
 test_nogil = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
@@ -406,6 +430,7 @@ test_nogil = [
   # https://nose.readthedocs.io/en/latest/usage.html
   # "nose",                                   # Legacy unittest extensions tox.ini nosetests
 ]
+
 ## Testing dependencies, Optional / unsupported in free-threaded builds
 ## Standard testing dependencies (Python 3.8 → 3.14)
 test = [
@@ -416,12 +441,14 @@ test = [
   'h5py<=3.11.0;python_version<"3.10"',     # <3.10 for older Python (<=3.9)
   'h5py;python_version>="3.10"',            # >=3.10 allowed for standard builds
 ]
+
 emscripten_test = [
   "hypothesis>=6.130.0",                    # Property-based testing
   "pytest>=7.1.2",                          # Core testing framework
   "pytest-xdist",                           # Use Multiple CPUs to speed up
   "tzdata",
 ]
+
 ## Documentation dependencies
 doc = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
@@ -460,10 +487,12 @@ doc = [
   "catboost",                               # Gradient boosting
   "xgboost",                                # Gradient boosting
 ]
+
 ## Maintenance tools
 maintenance = [
   "conda-lock>=3.0.0",                      # Dependency lock files for Conda
 ]
+
 ## Specialized dependencies for specific hardware
 cpu = [
   ## https://pytorch.org/get-started/locally/#start-locally
@@ -481,6 +510,7 @@ cpu = [
   "transformers",                           # import transformers  # ⚠️ newer transformers does not support some tf models use keras_nlp
   "tf-keras",                               # keras compatibility
 ]
+
 gpu = [
   ## https://docs.cupy.dev/en/stable/install.html#installing-cupy-from-pypi
   "cupy-cuda12x",                           # GPU-based numerical computing
@@ -503,6 +533,7 @@ gpu = [
   # "ivy",                                    # https://github.com/ivy-llc/ivy
   "sentence-transformers",                    # https://www.sbert.net/ also down pytorch
 ]
+
 tpu = [
   ## JAXlib is a library by DeepMind that provides the low-level bindings for JAX and allows you to perform tensor computations on TPU, GPU, and CPU.
   ## https://jax.readthedocs.io/en/latest/installation.html#installation  -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
@@ -516,6 +547,7 @@ tpu = [
   "transformers",                           # import transformers
   "tf-keras",                               # keras compatibility
 ]
+
 extend = [
   # model
   "statsmodels>=0.12",
@@ -527,11 +559,13 @@ extend = [
   "polars",                                 # DataFrame library
   "pyarrow",                                # DataFrame Arrow format
 ]
+
 ci32_requirements = [
   ## https://anaconda.org/conda-forge/blas
   "scipy-openblas32==0.3.29.265.1",           # Keep this in sync with ci_requirements.txt
   "spin",                                   # https://github.com/scientific-python/spin
 ]
+
 ci_requirements = [
   ## https://anaconda.org/conda-forge/blas
   "scikit-plots[ci32_requirements]",        # Reference the 'core' group as a dependency

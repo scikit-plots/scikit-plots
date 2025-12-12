@@ -1,4 +1,4 @@
-from ..layered import layered_view
+from .._layered import layered_view
 
 
 def test_graph_view(model):

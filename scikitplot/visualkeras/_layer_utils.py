@@ -1,4 +1,6 @@
-"""layer_utils.py"""
+# scikitplot/visualkeras/_layer_utils.py
+
+"""visualkeras _layer_utils.py"""
 
 import re
 import warnings
@@ -23,7 +25,7 @@ if TYPE_CHECKING:
 
 import numpy as np
 
-from .utils import get_keys_by_value
+from ._utils import get_keys_by_value
 
 
 def _lazy_import_tensorflow() -> "Optional[Type[object]]":
