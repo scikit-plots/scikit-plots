@@ -9,6 +9,8 @@
 
 """python built-in compat."""
 
+from __future__ import annotations
+
 # import importlib
 import functools
 import sys

@@ -10,6 +10,14 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # %%
+
+# visualkeras Need aggdraw tensorflow
+# !pip install scikitplot[core, cpu]
+
+# or
+# !pip install aggdraw
+# !pip install tensorflow
+
 # pip install protobuf==5.29.4
 import tensorflow as tf
 

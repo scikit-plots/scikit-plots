@@ -11,14 +11,14 @@ packages or code.
 
 from __future__ import annotations
 
-from contextlib import suppress as _suppress
+import contextlib as _contextlib
 
 from .. import logger as _logger
 from ..exceptions import ScikitplotException as _ScikitplotException
 from ..externals._seaborn._compat import *  # noqa: F403
 
 try:
-    with _suppress(ImportError):
+    with _contextlib.suppress(ImportError):
         from .numpycompat import *  # noqa: F403
 except _ScikitplotException:
     _logger.warning(

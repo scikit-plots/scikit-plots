@@ -1,4 +1,4 @@
-from ..graph import graph_view
+from .._graph import graph_view
 
 
 def test_graph_view(model):

@@ -1,6 +1,6 @@
 import unittest
 
-from ..utils import fade_color, get_keys_by_value, get_rgba_tuple, self_multiply
+from .._utils import fade_color, get_keys_by_value, get_rgba_tuple, self_multiply
 
 
 class UtilMethods(unittest.TestCase):

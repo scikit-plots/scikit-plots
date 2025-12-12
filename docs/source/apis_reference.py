@@ -982,14 +982,14 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "sections": [
             {
                 "title": "Graphical Visualization",
-                "description": _get_submodule("scikitplot.visualkeras", "graph"),
+                "description": _get_submodule("scikitplot.visualkeras", "_graph"),
                 "autosummary": [
                     "graph_view",
                 ],
             },
             {
                 "title": "Layered Visualization",
-                "description": _get_submodule("scikitplot.visualkeras", "layered"),
+                "description": _get_submodule("scikitplot.visualkeras", "_layered"),
                 "autosummary": [
                     "layered_view",
                 ],

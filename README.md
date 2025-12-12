@@ -971,7 +971,7 @@ and [LICENSES](https://github.com/scikit-plots/scikit-plots/tree/main/LICENSES) 
 
 <!--
 --------------------------------
-To force text-style (monochrome) rendering where possible, you can append the Variation Selector-15 (U+FE0E):
+🔻 To force text-style (monochrome) rendering where possible, you can append the Variation Selector-15 (U+FE0E):
 📄 📝︎ 📝 🗒︎ 🗓︎ 📒 ✎ ✏︎  ✏️ 🖉︎ 🖊️ 🖋︎ 🖊︎
  🗸 ✓ 🗹 ✔️ ✅  🏁 ◀ ▶ ▲ ▼ ▪ ▫ →
  ⚠︎ ☡ ☠︎ ☢︎ ☣︎ ⚰︎ ⚱︎ ☍ ⚰ ⚱ ⚕ ⚚ ⚖ ⚔ ⚒ ⚗ ⚙ ⚜

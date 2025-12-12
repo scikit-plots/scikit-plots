@@ -220,7 +220,7 @@ commands:
             # pip install -r ./requirements/gpu.txt
             pip install -r ./requirements/cpu.txt
 
-            pip install voyager==2.1.0
+            # pip install voyager==2.1.0
   build-scikit-plots:
     description: build scikit-plots
     steps:

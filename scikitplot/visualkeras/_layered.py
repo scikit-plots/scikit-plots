@@ -1,4 +1,6 @@
-"""layered.py"""
+# scikitplot/visualkeras/_layered.py
+
+"""visualkeras _layered.py"""
 
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
@@ -8,19 +10,19 @@
 from math import ceil
 from typing import TYPE_CHECKING
 
-import aggdraw
-from PIL import (
-    Image,
-    ImageDraw,
-    ImageFont,
-)
+# import aggdraw
+# from PIL import (
+#     Image,
+#     ImageDraw,
+#     ImageFont,
+# )
 
 from .. import logger
 from .._compat.optional_deps import LazyImport
 from .._docstrings import _docstring
 from ..utils.utils_pil import get_font, save_image_pil_decorator
-from .layer_utils import *
-from .utils import *
+from ._layer_utils import *
+from ._utils import *
 
 if TYPE_CHECKING:
     # Only imported during type checking
@@ -31,10 +33,21 @@ if TYPE_CHECKING:
         Union,
     )
 
-    # Lazy import at runtime
-    matplotlib = LazyImport("matplotlib", package="matplotlib")
-    PIL = LazyImport("PIL", package="PIL")
+    import aggdraw
+    from PIL import Image, ImageDraw, ImageFont
+
     Layer = _lazy_import_tensorflow()  # pylint: disable=undefined-variable
+else:
+    # Lazy imports at runtime
+    aggdraw = LazyImport("aggdraw", package=None, default=None, error="raise")
+    PIL = LazyImport("PIL", package=None, default=None, error="raise")
+
+    Image = LazyImport("PIL.Image", package=None, default=None, error="raise")
+    ImageColor = LazyImport("PIL.ImageColor", package=None, default=None, error="raise")
+    ImageDraw = LazyImport("PIL.ImageDraw", package=None, default=None, error="raise")
+    ImageFont = LazyImport("PIL.ImageFont", package=None, default=None, error="raise")
+
+matplotlib = LazyImport("matplotlib", package=None, default=None, error="raise")
 
 ## Define __all__ to specify the public interface of the module
 __all__ = [
