@@ -225,7 +225,7 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def build(self, n_trees: int, n_jobs: int = -1 -> Self:
+    def build(self, n_trees: int, n_jobs: int = -1) -> Self:
         """
         Build a forest of random projection trees.
 
