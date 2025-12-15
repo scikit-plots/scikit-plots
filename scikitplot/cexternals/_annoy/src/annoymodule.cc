@@ -51,8 +51,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <algorithm>
-#include <cctype>
+#include <algorithm>  // std::transform
+#include <cctype>  // std::tolower
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -103,7 +103,7 @@
 
 // Minimal C-extension docstring. Rich, user-facing docs live in the Python
 // layer (annoy.Annoy / annoylib.Annoy / AnnoyIndex).
-static const char ANNOY_DOC[] =
+static const char ANNOY_TYPE_DOC[] =
     COMPILER_INFO ". " AVX_INFO ".\n"
     "\n"
     "High-performance approximate nearest neighbours (Annoy) C++ core.\n"
@@ -273,10 +273,10 @@ template class Annoy::AnnoyIndexInterface<int32_t, float>;
 //
 // Canonical semantics:
 //
-//   * "indice"    : integer ID returned by Annoy
-//   * "index"     : 0..n-1 row position in a result set (Python side)
-//   * "distance"  : Hamming distance (clipped to [0, f_external])
-//   * "embedding" : binary embedding represented as float[0,1] on the API
+//   * "index|indice"  : integer ID returned by Annoy
+//   * "index"         : 0..n-1 row position in a result set (Python side)
+//   * "distance"      : Hamming distance (clipped to [0, f_external])
+//   * "embedding"     : binary embedding represented as float[0,1] on the API
 //
 // The wrapper:
 //   - Packs float[0,1] → uint64_t bit-embeddings for storage/search
@@ -673,7 +673,16 @@ static inline std::string normalize_metric(const std::string& m) {
   };
 
   std::string s = trim(m);
-  std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+  std::transform(
+    s.begin(), s.end(), s.begin(),
+    // ::tolower  // technically unsafe for negative char values undefined behavior (UB).
+    // [](unsigned char c) {
+    //   return static_cast<char>(std::tolower(c));
+    // }
+    [](char ch) {
+      return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+  );
 
   const auto it = metric_map.find(s);
   if (it != metric_map.end())
@@ -761,7 +770,7 @@ static inline AnnoyIndexInterface<int32_t, float>* create_index_for_metric(
 
 // ===================== Annoy Helper / Utility =============================
 
-// Helper: validate a row identifier ("indice") against the current index.
+// Helper: validate a row identifier ("index") against the current index.
 //
 // Parameters
 // ----------
@@ -774,7 +783,7 @@ static bool check_constraints(
   bool      building) {
   if (indice < 0) {
     PyErr_SetString(PyExc_IndexError,
-                    "indice (row id) cannot be negative");
+                    "index (row id) cannot be negative");
     return false;
   }
 
@@ -784,7 +793,7 @@ static bool check_constraints(
     if (indice >= n_items) {
       PyErr_SetString(
         PyExc_IndexError,
-        "indice (row id) exceeds current number of samples"
+        "index (row id) exceeds current number of samples"
       );
       return false;
     }
@@ -2522,8 +2531,6 @@ static PyObject* py_an_reduce(
 }
 
 
-
-
 // TODO: Enable method chaining by self : Annoy (Annoy(...).add_item(...).add_item(...).build(...))
 // METH_NOARGS | METH_VARARGS | METH_KEYWORDS
 static PyMethodDef py_annoy_methods[] = {
@@ -2543,28 +2550,28 @@ static PyMethodDef py_annoy_methods[] = {
     "Parameters\n"
     "----------\n"
     "i : int\n"
-    "    Integer identifier (indice) for this row. Must be non-negative.\n"
-    "    Annoy will internally allocate space up to ``max(i) + 1``.\n"
+    "    Item id (index) must be non-negative.\n"
+    "    Ids may be non-contiguous; the index allocates up to ``max(i) + 1``.\n"
     "vector : sequence of float\n"
-    "    1D embedding of length ``f``. If ``f == 0`` on the first call,\n"
-    "    the dimension is inferred from ``vector`` and fixed for the\n"
-    "    lifetime of the index.\n"
+    "    1D embedding of length ``f``. Values are converted to ``float``.\n"
+    "    If ``f == 0`` and this is the first item, ``f`` is inferred from\n"
+    "    ``vector`` and then fixed for the lifetime of this index.\n"
     "\n"
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "Items must be added *before* calling :meth:`build`. After\n"
-    "building the forest, further calls to :meth:`add_item` are\n"
-    "not supported.\n"
+    "Items must be added *before* calling :meth:`build`. After building\n"
+    "the forest, further calls to :meth:`add_item` are not supported.\n"
     "\n"
     "Examples\n"
     "--------\n"
     ">>> index.add_item(0, [1.0, 0.0, 0.0])\n"
     ">>> index.add_item(1, [0.0, 1.0, 0.0])\n"
+    ">>> idx.add_item(0, [1.0, 0.0, 0.0]).add_item(1, [0.0, 1.0, 0.0])\n"
   },
 
   {
@@ -2579,22 +2586,21 @@ static PyMethodDef py_annoy_methods[] = {
     "Parameters\n"
     "----------\n"
     "n_trees : int\n"
-    "    Number of trees in the forest. Larger values typically\n"
-    "    improve recall at the cost of slower build and query time.\n"
-    "n_jobs : int, optional (default=-1)\n"
-    "    Number of threads to use while building. ``-1`` means\n"
-    "    \"use all available CPU cores\".\n"
+    "    Number of trees in the forest. Larger values typically improve recall\n"
+    "    at the cost of slower build time and higher memory usage.\n"
+    "n_jobs : int, optional, default=-1\n"
+    "    Number of threads to use while building. ``-1`` means \"auto\" (use\n"
+    "    the implementation's default, typically all available CPU cores).\n"
     "\n"
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "After :meth:`build` completes, the index becomes read-only\n"
-    "for queries. To add more items, call :meth:`unbuild`, add\n"
-    "items again, and then rebuild.\n"
+    "After :meth:`build` completes, the index becomes read-only for queries.\n"
+    "To add more items, call :meth:`unbuild`, add items, and then rebuild.\n"
     "\n"
     "References\n"
     "----------\n"
@@ -2613,7 +2619,7 @@ static PyMethodDef py_annoy_methods[] = {
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2638,15 +2644,21 @@ static PyMethodDef py_annoy_methods[] = {
     "----------\n"
     "fn : str\n"
     "    Path to the output file. Existing files will be overwritten.\n"
-    "prefault : bool, optional (default=False)\n"
+    "prefault : bool, optional, default=False\n"
     "    If True, aggressively fault pages into memory during save.\n"
-    "    Primarily useful on some platforms for large indexes.\n"
+    "    Primarily useful on some platforms for very large indexes.\n"
     "\n"
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
+    "Raises\n"
+    "------\n"
+    "IOError\n"
+    "    If the file cannot be written.\n"
+    "RuntimeError\n"
+    "    If the index is not initialized or save fails.\n"
   },
 
   {
@@ -2663,18 +2675,25 @@ static PyMethodDef py_annoy_methods[] = {
     "fn : str\n"
     "    Path to a file previously created by :meth:`save` or\n"
     "    :meth:`on_disk_build`.\n"
-    "prefault : bool, optional (default=False)\n"
+    "prefault : bool, optional, default=False\n"
     "    If True, fault pages into memory when the file is mapped.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "IOError\n"
+    "    If the file cannot be opened or mapped.\n"
+    "RuntimeError\n"
+    "    If the index is not initialized or the file is incompatible.\n"
     "\n"
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "The in-memory index must have been constructed with the same\n"
-    "dimension and metric as the on-disk file.\n"
+    "The in-memory index must have been constructed with the same dimension\n"
+    "and metric as the on-disk file.\n"
   },
 
   {
@@ -2689,7 +2708,7 @@ static PyMethodDef py_annoy_methods[] = {
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2715,7 +2734,7 @@ static PyMethodDef py_annoy_methods[] = {
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2730,22 +2749,26 @@ static PyMethodDef py_annoy_methods[] = {
     (char*)
     "serialize() -> bytes\n"
     "\n"
-    "Serialize the full in-memory index into a byte string.\n"
+    "Serialize the built in-memory index into a byte string.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "byte : bytes or None\n"
-    "    Opaque binary blob containing the entire Annoy index.\n"
+    "data : bytes\n"
+    "    Opaque binary blob containing the Annoy index.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized or serialization fails.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "The serialized form is a snapshot of the internal C++ data\n"
-    "structures. It can be stored, transmitted or used with joblib\n"
-    "without rebuilding trees.\n"
+    "The serialized form is a snapshot of the internal C++ data structures.\n"
+    "It can be stored, transmitted, or used with joblib without rebuilding trees.\n"
     "\n"
     "See Also\n"
     "--------\n"
-    "deserialize : restore an index from byte.\n"
+    "deserialize : Restore an index from a serialized byte string.\n"
   },
 
   {
@@ -2761,14 +2784,20 @@ static PyMethodDef py_annoy_methods[] = {
     "----------\n"
     "byte : bytes\n"
     "    Byte string produced by :meth:`serialize`.\n"
-    "prefault : bool, optional (default=False)\n"
+    "prefault : bool, optional, default=False\n"
     "    If True, fault pages into memory while restoring.\n"
     "\n"
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
+    "Raises\n"
+    "------\n"
+    "IOError\n"
+    "    If deserialization fails due to invalid or incompatible data.\n"
+    "RuntimeError\n"
+    "    If the index is not initialized.\n"
   },
 
   {
@@ -2778,14 +2807,18 @@ static PyMethodDef py_annoy_methods[] = {
     (char*)
     "memory_usage() -> int\n"
     "\n"
-    "Approximate memory usage of the index in byte.\n"
+    "Approximate memory usage of the index in bytess.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "n_byte : int or None\n"
-    "    Approximate number of byte used by the index. When native\n"
-    "    support is unavailable, this is estimated via\n"
-    "    :meth:`serialize`.\n"
+    "n_bytess : int or None\n"
+    "    Approximate number of bytes used by the index. Returns ``None`` if the\n"
+    "    index is not initialized.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If memory usage cannot be computed.\n"
   },
 
   // ------------------------------------------------------------------
@@ -2799,33 +2832,37 @@ static PyMethodDef py_annoy_methods[] = {
     (char*)
     "get_nns_by_item(i, n, search_k=-1, include_distances=False)\n"
     "\n"
-    "Return the `n` nearest neighbours for a stored sample.\n"
+    "Return the `n` nearest neighbours for a stored item id.\n"
     "\n"
     "Parameters\n"
     "----------\n"
     "i : int\n"
-    "    Row identifier (indice) previously passed to\n"
-    "    :meth:`add_item(i, embedding)`.\n"
+    "    Item id (index) previously passed to :meth:`add_item(i, embedding)`.\n"
     "n : int\n"
     "    Number of nearest neighbours to return.\n"
-    "search_k : int, optional (default=-1)\n"
-    "    Maximum number of nodes to inspect. Larger values usually\n"
-    "    improve recall at the cost of slower queries. If ``-1``,\n"
-    "    defaults to approximately ``n_trees * n``.\n"
-    "include_distances : bool, optional (default=False)\n"
-    "    If True, return a ``(indices, distances)`` tuple, otherwise\n"
-    "    only the list of indices.\n"
+    "search_k : int, optional, default=-1\n"
+    "    Maximum number of nodes to inspect. Larger values usually improve recall\n"
+    "    at the cost of slower queries. If ``-1``, defaults to approximately\n"
+    "    ``n_trees * n``.\n"
+    "include_distances : bool, optional, default=False\n"
+    "    If True, return a ``(indexs, distances)`` tuple. Otherwise return only\n"
+    "    the list of indexs.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "indices : list[int]\n"
-    "    Nearest neighbour indices (item ids).\n"
-    "distances : list[float]\n"
-    "    Corresponding distances (only if ``include_distances=True``).\n"
+    "indexs : list[int] | tuple[list[int], list[float]]\n"
+    "    If ``include_distances=False``: list of neighbour item ids.\n"
+    "    If ``include_distances=True``: ``(indexs, distances)``.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized or has not been built.\n"
+    "IndexError\n"
+    "    If ``i`` is out of range.\n"
     "\n"
     "See Also\n"
     "--------\n"
-    "get_nns_by_item : Alias for this method for backward compatibility.\n"
     "get_nns_by_vector : Query with an explicit query embedding.\n"
   },
 
@@ -2844,24 +2881,30 @@ static PyMethodDef py_annoy_methods[] = {
     "    Query embedding of length ``f``.\n"
     "n : int\n"
     "    Number of nearest neighbours to return.\n"
-    "search_k : int, optional (default=-1)\n"
-    "    Maximum number of nodes to inspect. Larger values typically\n"
-    "    improve recall at the cost of slower queries. If ``-1``,\n"
-    "    defaults to approximately ``n_trees * n``.\n"
-    "include_distances : bool, optional (default=False)\n"
-    "    If True, return a ``(indices, distances)`` tuple, otherwise\n"
-    "    only the list of indices.\n"
+    "search_k : int, optional, default=-1\n"
+    "    Maximum number of nodes to inspect. Larger values typically improve recall\n"
+    "    at the cost of slower queries. If ``-1``, defaults to approximately\n"
+    "    ``n_trees * n``.\n"
+    "include_distances : bool, optional, default=False\n"
+    "    If True, return a ``(indexs, distances)`` tuple. Otherwise return only\n"
+    "    the list of indexs.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "indices : list[int]\n"
-    "    Nearest neighbour indices (item ids).\n"
-    "distances : list[float]\n"
-    "    Corresponding distances (only if ``include_distances=True``).\n"
+    "indexs : list[int] | tuple[list[int], list[float]]\n"
+    "    If ``include_distances=False``: list of neighbour item ids.\n"
+    "    If ``include_distances=True``: ``(indexs, distances)``.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized or has not been built.\n"
+    "ValueError\n"
+    "    If ``len(vector) != f``.\n"
     "\n"
     "See Also\n"
     "--------\n"
-    "get_nns_by_item : Query by stored sample id.\n"
+    "get_nns_by_item : Query by stored item id.\n"
   },
 
   {
@@ -2871,17 +2914,24 @@ static PyMethodDef py_annoy_methods[] = {
     (char*)
     "get_item_vector(i) -> list[float]\n"
     "\n"
-    "Return the stored embedding vector for a given indice.\n"
+    "Return the stored embedding vector for a given item id.\n"
     "\n"
     "Parameters\n"
     "----------\n"
     "i : int\n"
-    "    Row identifier (indice) previously passed to :meth:`add_item`.\n"
+    "    Item id (index) previously passed to :meth:`add_item`.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "vector : list[float] or None\n"
+    "vector : list[float]\n"
     "    Stored embedding of length ``f``.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized.\n"
+    "IndexError\n"
+    "    If ``i`` is out of range.\n"
   },
 
   {
@@ -2896,13 +2946,19 @@ static PyMethodDef py_annoy_methods[] = {
     "Parameters\n"
     "----------\n"
     "i, j : int\n"
-    "    Row identifiers (indices) of two stored samples.\n"
+    "    Item ids (index) of two stored samples.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "d : float or None\n"
-    "    Distance between items ``i`` and ``j`` under the current\n"
-    "    metric (angular, euclidean, manhattan, dot or hamming).\n"
+    "d : float\n"
+    "    Distance between items ``i`` and ``j`` under the current metric.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized.\n"
+    "IndexError\n"
+    "    If either index is out of range.\n"
   },
 
   {
@@ -2912,13 +2968,17 @@ static PyMethodDef py_annoy_methods[] = {
     (char*)
     "get_n_items() -> int\n"
     "\n"
-    "Return the number of stored samples (rows) in the index.\n"
+    "Return the number of stored items in the index.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "n_items : int or None\n"
-    "    Number of items that have been added and are currently\n"
-    "    addressable by nearest-neighbour queries.\n"
+    "n_items : int\n"
+    "    Number of items that have been added and are currently addressable.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized.\n"
   },
 
   {
@@ -2932,8 +2992,13 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "n_trees : int or None\n"
+    "n_trees : int\n"
     "    Number of trees that have been built.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized.\n"
   },
 
   // ------------------------------------------------------------------
@@ -2952,19 +3017,18 @@ static PyMethodDef py_annoy_methods[] = {
     "Parameters\n"
     "----------\n"
     "seed : int, optional\n"
-    "    Non-negative integer seed. If not provided, ``0`` is used.\n"
-    "    If you never call :meth:`set_seed`, Annoy uses its internal\n"
-    "    default seed (still deterministic).\n"
+    "    Non-negative integer seed. If called before the index is constructed,\n"
+    "    the seed is stored and applied when the C++ index is created.\n"
     "\n"
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
+    "    This instance (self), enabling method chaining.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "Using the same seed, data and ``n_trees`` usually produces\n"
-    "bitwise-identical forests (subject to CPU / threading details).\n"
+    "Annoy is deterministic by default. Setting an explicit seed is useful for\n"
+    "reproducible experiments and debugging.\n"
   },
 
   {
@@ -2978,19 +3042,19 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Parameters\n"
     "----------\n"
-    "level : int, optional (default=1)\n"
+    "level : int, optional, default=1\n"
+    "    Verbosity level. Values are clamped to the range ``[-2, 2]``.\n"
+    "    ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.\n"
     "    Logging level inspired by gradient-boosting libraries:\n"
     "\n"
     "    * ``<= 0`` : quiet (warnings only)\n"
     "    * ``1``    : info (Annoy's ``verbose=True``)\n"
-    "    * ``>= 2`` : debug (currently same as info, reserved\n"
-    "      for future use)\n"
+    "    * ``>= 2`` : debug (currently same as info, reserved for future use)\n"
     "\n"
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    This instance (self).\n"
-    "\n"
+    "    This instance (self), enabling method chaining.\n"
   },
 
   // ------------------------------------------------------------------
@@ -3020,7 +3084,7 @@ static PyMethodDef py_annoy_methods[] = {
     "n_trees : int\n"
     "    Number of trees built.\n"
     "memory_usage_byte : int\n"
-    "    Approximate memory usage in byte.\n"
+    "    Approximate memory usage in bytes.\n"
     "memory_usage_mib : float\n"
     "    Approximate memory usage in MiB.\n"
     "on_disk_path : str | None\n"
@@ -3045,16 +3109,88 @@ static PyMethodDef py_annoy_methods[] = {
     "__getstate__",
     (PyCFunction)py_an_getstate,
     METH_NOARGS,
-    (char*)"Return state for pickle/joblib."
+    (char*)
+    "__getstate__() -> dict\n"
+    "\n"
+    "Return a versioned state dictionary for pickle/joblib.\n"
+    "\n"
+    "This method is primarily used by :mod:`pickle` (and joblib) and is not\n"
+    "intended to be called directly in normal workflows.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "state : dict\n"
+    "    A JSON-like dictionary with the following keys:\n"
+    "\n"
+    "    * ``_pickle_version`` : int\n"
+    "    * ``f`` : int | None\n"
+    "    * ``metric`` : str | None\n"
+    "    * ``on_disk_path`` : str | None\n"
+    "    * ``has_pending_seed`` : bool\n"
+    "    * ``pending_seed`` : int\n"
+    "    * ``has_pending_verbose`` : bool\n"
+    "    * ``pending_verbose`` : int\n"
+    "    * ``data`` : bytes | None\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "If the underlying C++ index is initialized, ``data`` contains a serialized\n"
+    "snapshot (see :meth:`serialize`). Otherwise, ``data`` is ``None``.\n"
   },
   {
     "__setstate__",
     (PyCFunction)py_an_setstate,
     METH_O,
-    (char*)"Restore state from pickle/joblib."
+    (char*)
+    "__setstate__(state) -> None\n"
+    "\n"
+    "Restore object state from a dictionary produced by :meth:`__getstate__`.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "state : dict\n"
+    "    State dictionary returned by :meth:`__getstate__`.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "TypeError\n"
+    "    If ``state`` is not a dictionary.\n"
+    "ValueError\n"
+    "    If required fields are missing or invalid (e.g., negative ``f``).\n"
+    "FileNotFoundError\n"
+    "    If disk fallback is required and ``on_disk_path`` does not exist.\n"
+    "IOError\n"
+    "    If restoring from the serialized snapshot or disk file fails.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "Restoration first attempts to deserialize the in-memory snapshot from\n"
+    "``state[\"data\"]``. If that fails and ``on_disk_path`` is present,\n"
+    "the index is loaded from disk as a compatibility fallback.\n"
   },
-  {"__reduce_ex__", (PyCFunction)py_an_reduce_ex, METH_VARARGS, (char*)"Pickle protocol support."},
-  {"__reduce__",    (PyCFunction)py_an_reduce,    METH_NOARGS,  (char*)"Pickle support."},
+  {
+    "__reduce_ex__",
+    (PyCFunction)py_an_reduce_ex,
+    METH_VARARGS,
+    (char*)
+    "__reduce_ex__(protocol)\n"
+    "\n"
+    "Pickle protocol support.\n"
+    "\n"
+    "This returns the standard 3-tuple ``(cls, args, state)`` used by pickle.\n"
+    "Users typically do not need to call this directly.\n"
+  },
+  {
+    "__reduce__",
+    (PyCFunction)py_an_reduce,
+    METH_NOARGS,
+    (char*)
+    "__reduce__()\n"
+    "\n"
+    "Pickle support.\n"
+    "\n"
+    "Equivalent to :meth:`__reduce_ex__` with the default protocol.\n"
+  },
 
   {NULL, NULL, 0, NULL}  // Sentinel
 };
@@ -3125,9 +3261,7 @@ static PyObject* py_an_repr(
 
 static PyTypeObject py_annoy_type = {
   PyVarObject_HEAD_INIT(NULL, 0)
-  // "annoy.Annoy",                            /* tp_name Make type/docstring names match the public API prints like <class 'annoy.Annoy'> */
-  // "scikitplot.cexternals._annoy.Annoy",     /* tp_name Make type/docstring names match the public API keep in real compiled module*/
-  "scikitplot.annoy.Annoy",                 /* tp_name Make type/docstring names match the public API high-level wrapper */
+  "annoy.Annoy",                            /* tp_name matches the actual exported module/object prints like <class 'annoy.Annoy'> */
   sizeof(py_annoy),                         /* tp_basicsize */
   0,                                        /* tp_itemsize */
   (destructor)py_an_dealloc,                /* tp_dealloc */
@@ -3146,7 +3280,7 @@ static PyTypeObject py_annoy_type = {
   0,                                        /* tp_setattro */
   0,                                        /* tp_as_buffer */
   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-  (char*)ANNOY_DOC,                         /* tp_doc  */
+  (char*)ANNOY_TYPE_DOC,                    /* tp_doc  */
   0,                                        /* tp_traverse */
   0,                                        /* tp_clear */
   0,                                        /* tp_richcompare */
@@ -3174,7 +3308,7 @@ static PyMethodDef module_methods[] = {
 static struct PyModuleDef annoylibmodule = {
   PyModuleDef_HEAD_INIT,
   "annoylib",          /* m_name: import annoylib */
-  ANNOY_DOC,           /* m_doc: module-level docstring */
+  ANNOY_TYPE_DOC,      /* m_doc: module-level docstring */
   -1,                  /* m_size */
   module_methods,      /* m_methods */
   NULL,                /* m_slots */
