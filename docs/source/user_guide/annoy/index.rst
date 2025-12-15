@@ -24,21 +24,26 @@ Examples relevant to the :py:mod:`~.annoy` module with  :py:mod:`~._annoy`.
 :py:mod:`~.annoy` is a Python module that provides high-performance approximate nearest neighbor search in Python.
 
 .. seealso::
-    * :ref:`cexternals-annoy-index`
-    * https://github.com/spotify/annoy
-    * https://pypi.org/project/annoy
+   * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
+   * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
+   * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
+   * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
+   * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
+   * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
 
 .. seealso::
-    * :py:obj:`~scikitplot.annoy.Index.from_low_level`
-    * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+   * :ref:`cexternals-annoy-index`
+   * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+   * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 
 Python Example
 --------------
 .. code-block:: python
 
-    # from annoy import AnnoyIndex
-    from scikitplot.annoy import Annoy, AnnoyBase, AnnoyIndex, Index
-    import random
+    import random; random.seed(0)
+    # from annoy import Annoy, AnnoyIndex
+    # from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+    from scikitplot.annoy import Annoy, AnnoyIndex, Index
 
     f = 40  # Length of item vector that will be indexed
     t = AnnoyIndex(f, 'angular')

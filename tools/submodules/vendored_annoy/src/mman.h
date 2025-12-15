@@ -43,8 +43,32 @@ static int __map_mman_error(const DWORD err, const int deferr)
 {
     if (err == 0)
         return 0;
-    //TODO: implement
-    return err;
+
+    // return err;  // implemented
+
+    // Map Win32 GetLastError() values to POSIX errno codes.
+    // For unknown errors, fall back to deferr (typically EPERM).
+    switch (err) {
+        case ERROR_INVALID_HANDLE:      return EBADF;
+        case ERROR_TOO_MANY_OPEN_FILES: return EMFILE;
+        case ERROR_FILE_NOT_FOUND:      return ENOENT;
+        case ERROR_PATH_NOT_FOUND:      return ENOENT;
+        case ERROR_ACCESS_DENIED:       return EACCES;
+        case ERROR_SHARING_VIOLATION:   return EACCES;
+        case ERROR_LOCK_VIOLATION:      return EACCES;
+        case ERROR_ALREADY_EXISTS:      return EEXIST;
+        case ERROR_FILE_EXISTS:         return EEXIST;
+        case ERROR_NOT_ENOUGH_MEMORY:   return ENOMEM;
+        case ERROR_OUTOFMEMORY:         return ENOMEM;
+        case ERROR_INVALID_PARAMETER:   return EINVAL;
+        case ERROR_INVALID_ADDRESS:     return EFAULT;
+        case ERROR_DISK_FULL:           return ENOSPC;
+        case ERROR_WRITE_PROTECT:       return EROFS;
+        case ERROR_BROKEN_PIPE:         return EPIPE;
+        case ERROR_NOT_SUPPORTED:       return ENOTSUP;
+        case ERROR_CALL_NOT_IMPLEMENTED:return ENOSYS;
+        default:                        return deferr;
+    }
 }
 
 static DWORD __map_mmap_prot_page(const int prot)

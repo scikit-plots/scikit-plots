@@ -22,16 +22,6 @@ Impute
 
 This module contains some functions related to :py:mod:`~.impute`.
 
-.. seealso::
-
-   * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
-   * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
-   * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
-   * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
-   * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
-   * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
-
-
 `Annoy (Approximate Nearest Neighbors Oh Yeah)` is a C++ library with Python bindings
 to search for points in space that are close to a given query point.
 It also creates large read-only file-based data structures
@@ -41,6 +31,15 @@ that are mmapped into memory so that many processes may share the same data.
 
 `HNSW (Hierarchical Navigable Small World)` provides better accuracy and speed,
 outperforming Annoy in most use cases, especially when precision is important.
+
+.. seealso::
+
+   * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
+   * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
+   * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
+   * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
+   * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
+   * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
 
 .. _ann_imputer-index:
 

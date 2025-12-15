@@ -17,13 +17,13 @@ import threading
 import zlib
 from typing import Any, Literal, Optional
 
-from .. import Annoy
+from .. import annoylib
 
 PickleMode = Literal["auto", "byte", "disk"]
 CompressMode = Optional[Literal["zlib", "gzip"]]
 
 
-class PathAwareAnnoy(Annoy):
+class PathAwareAnnoy(annoylib.Annoy):
     """
     Thin Python subclass that tracks the last known on-disk path.
 

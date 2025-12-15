@@ -22,9 +22,8 @@ Spotify Annoy (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
 
-* Annoy      → low-level C-extension type (stable)
-* AnnoyBase  → alias of annoylib.Annoy Index
-* AnnoyIndex → alias of annoylib.Annoy Index
+* Annoy       → low-level C-extension type (stable)
+* AnnoyIndex  → alias of annoylib.Annoy Index
 
 .. seealso::
     * :ref:`annoy-index`
@@ -49,8 +48,11 @@ References
 
 Examples
 --------
->>> # from annoy import AnnoyIndex
->>> from scikitplot.annoy import Annoy, AnnoyBase, AnnoyIndex, Index
+>>> import random; random.seed(0)
+>>> # from annoy import Annoy, AnnoyIndex
+>>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+>>> from scikitplot.annoy import Annoy, AnnoyIndex, Index
+
 >>> f = 40  # vector dimensionality
 >>> t = AnnoyIndex(f, "angular")  # Length of item vector and metric
 >>> t.add_item(0, [1] * f)
@@ -64,9 +66,9 @@ from __future__ import annotations
 
 # This module is a dummy wrapper around the underlying C++ module.
 # --- Low-level backend (C++ Annoy) -----------------------------
+from . import annoylib
 from .annoylib import Annoy  # low-level C-extension type, simple legacy c-api
 
-AnnoyBase = Annoy  # alias of Annoy Index c-api
 AnnoyIndex = Annoy  # alias of Annoy Index c-api
 
 # Define the annoy version
@@ -78,6 +80,5 @@ __git_hash__  = "8a7e82cb537053926b0ac6ec132b9ccc875af40c"
 
 __all__ = [
     "Annoy",
-    "AnnoyBase",
     "AnnoyIndex",
 ]

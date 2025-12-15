@@ -22,10 +22,9 @@ Spotify ANNoy (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
 
-* Annoy      → low-level C-extension type (stable)
-* AnnoyBase  → alias of annoylib.Annoy Index
-* Index      → high-level Python subclass (picklable)
-* AnnoyIndex → public aliases of Annoy Index
+* Annoy       → low-level C-extension type (stable)
+* AnnoyIndex  → public aliases of Annoy Index
+* Index       → high-level Python wrapper subclass (picklable)
 
 .. seealso::
     * :ref:`cexternals-annoy-index`
@@ -50,8 +49,13 @@ References
 
 Examples
 --------
+>>> import random
+...
+... random.seed(0)
 >>> # from annoy import AnnoyIndex
->>> from scikitplot.annoy import Annoy, AnnoyBase, AnnoyIndex, Index
+>>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+>>> from scikitplot.annoy import Annoy, AnnoyIndex, Index
+
 >>> f = 40  # vector dimensionality
 >>> t = AnnoyIndex(f, "angular")  # Length of item vector and metric
 >>> t.add_item(0, [1] * f)
@@ -67,13 +71,10 @@ from __future__ import annotations
 # This module is a dummy wrapper around the underlying C++ module.
 # --- Low-level backend (C++ Annoy) -----------------------------
 # from .annoylib import Annoy  # low-level C-extension type, simple legacy c-api
-from ..cexternals._annoy import Annoy, AnnoyBase
+from ..cexternals._annoy import Annoy, AnnoyIndex, annoylib  # noqa: F401
 
 # --- High-level Python API ------------------------------------
 from ._base import Index  # extended python-api derived annoylib.Annoy legacy c-api
-
-# User-facing API
-AnnoyIndex = Index  # alias of Annoy Index python-api
 
 # mixins (internal-ish but useful for power users)
 from ._mixins import (
@@ -97,7 +98,6 @@ __git_hash__ = "8a7e82cb537053926b0ac6ec132b9ccc875af40c"
 
 __all__ = [
     "Annoy",
-    "AnnoyBase",
     "AnnoyIndex",
     "CompressMode",
     "Index",
