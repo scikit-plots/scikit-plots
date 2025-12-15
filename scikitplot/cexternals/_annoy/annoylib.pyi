@@ -19,7 +19,7 @@ from . import annoylib
 # --- Allowed metric literals (simple type hints) ---
 AnnoyMetric: TypeAlias = Literal[
     "angular", "cosine",
-    "euclidean", "l2",, "lstsq",
+    "euclidean", "l2", "lstsq",
     "manhattan", "l1", "cityblock", "taxicab",
     "dot", "@", ".", "dotproduct", "inner", "innerproduct",
     "hamming",
