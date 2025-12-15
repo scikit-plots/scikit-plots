@@ -21,13 +21,16 @@ High-level Python interface for the C++ Annoy backend.
 Spotify Annoy (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
-- Annoy      → low-level C-extension type (stable)
-- AnnoyBase  → alias of annoylib.Annoy Index
-- AnnoyIndex → alias of annoylib.Annoy Index
+- Annoy       → low-level C-extension type (stable)
+- AnnoyIndex  → alias of annoylib.Annoy Index
 
 Examples
 --------
->>> from annoy import AnnoyIndex
+>>> import random; random.seed(0)
+>>> # from annoy import AnnoyIndex
+>>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+>>> from scikitplot.annoy import Annoy, AnnoyIndex, Index
+
 >>> f = 40  # vector dimensionality
 >>> t = AnnoyIndex(f, 'angular')  # Length of item vector and metric
 >>> t.add_item(0, [1]*f)
@@ -57,7 +60,6 @@ References
 # # --- Low-level backend (C++ Annoy) -----------------------------
 # from .annoylib import Annoy  # low-level C-extension type, simple legacy c-api
 
-# AnnoyBase = Annoy  # alias of Annoy Index c-api
 # AnnoyIndex = Annoy  # alias of Annoy Index c-api
 
 # # Define the annoy version
@@ -69,6 +71,5 @@ References
 
 # __all__ = [
 #     "Annoy",
-#     "AnnoyBase",
 #     "AnnoyIndex",
 # ]

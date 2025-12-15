@@ -5,7 +5,7 @@
 annoy.Annoy legacy c-api with examples
 ==========================================
 
-An example showing the :py:class:`~scikitplot.annoy.Annoy` class.
+An example showing the :py:class:`~scikitplot.annoy.Annoy`, :py:class:`~scikitplot.annoy.AnnoyIndex` class.
 
 .. seealso::
     * :py:obj:`~scikitplot.annoy.Index.from_low_level`
@@ -13,10 +13,13 @@ An example showing the :py:class:`~scikitplot.annoy.Annoy` class.
 """
 
 # %%
+
+import numpy as np
 import random; random.seed(0)
 
 # from annoy import Annoy, AnnoyIndex
-from scikitplot.annoy import Annoy as AnnoyIndex
+from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+# from scikitplot.annoy import Annoy, AnnoyIndex, Index
 
 print(AnnoyIndex.__doc__)
 
@@ -31,7 +34,7 @@ print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
 print(idx)
 print(idx.info())
-
+type(idx)
 # help(idx.info)
 
 
@@ -44,6 +47,7 @@ idx = AnnoyIndex(f=3)
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
 print(idx)
+# idx.on_disk_path is None
 
 
 # %%
@@ -68,16 +72,17 @@ idx.add_item(2, [0, 0, 1])
 print("Number of items:", idx.get_n_items())
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
+idx
 
 # %%
 
 # =============================================================
 # 1. Construction
 # =============================================================
-idx = AnnoyIndex(10, metric="angular")
+idx = AnnoyIndex(100, metric="angular")
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
-idx.on_disk_build("annoy_test.annoy")
+idx.on_disk_build("annoy_test.annoy"), idx#.on_disk_path
 # help(idx.on_disk_build)
 
 # %%
@@ -85,8 +90,8 @@ idx.on_disk_build("annoy_test.annoy")
 # =============================================================
 # 2. Add items
 # =============================================================
-f=10
-n=10
+f=100
+n=1000
 for i in range(n):
     if(i % (n//10) == 0): print(f"{i} / {n} = {1.0 * i / n}")
     # v = []
@@ -114,6 +119,7 @@ print(idx.info())
 # help(idx.build)
 
 # %%
+
 idx.unbuild()
 print(idx)
 
@@ -138,8 +144,8 @@ print("Metric         :", idx.metric)
 # =============================================================
 # 2. Add items
 # =============================================================
-f=10
-n=10
+f=100
+n=1000
 for i in range(n):
     if(i % (n//10) == 0): print(f"{i} / {n} = {1.0 * i / n}")
     # v = []
@@ -218,9 +224,29 @@ idx.save("annoy_test.annoy")
 print(idx)
 
 print("Loading...")
-idx2 = AnnoyIndex(10, metric='angular').load("annoy_test.annoy")
+idx2 = AnnoyIndex(100, metric='angular').load("annoy_test.annoy")
 print("Loaded index:", idx2)
 
+
+# %%
+
+import joblib
+
+joblib.dump(idx, "test.joblib")
+a = joblib.load("test.joblib")
+a
+
+# %%
+
+a.info(), a.get_n_items(), a.get_n_trees()
+
+# %%
+
+np.array_equal(a.get_item_vector(0), idx2.get_item_vector(0))
+
+# %%
+
+np.array_equal(a.get_item_vector(0), idx.get_item_vector(0))
 
 # %%
 
@@ -229,7 +255,7 @@ print("Loaded index:", idx2)
 # =============================================================
 print("\n=== Raw serialize ===")
 buf = idx.serialize()
-new_idx = AnnoyIndex(10, metric='angular')
+new_idx = AnnoyIndex(100, metric='angular')
 new_idx.deserialize(buf)
 print("Deserialized index n_items:", new_idx.get_n_items())
 print(idx)
@@ -247,6 +273,14 @@ print(idx)
 # idx.build(10)
 idx.load("annoy_test.annoy")
 print(idx)
+
+# %%
+
+idx.info()
+
+# %%
+
+idx.get_nns_by_item(0, 10), len(idx.get_item_vector(0))
 
 # %%
 #

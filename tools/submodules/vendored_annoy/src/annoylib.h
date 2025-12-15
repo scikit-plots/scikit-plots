@@ -64,6 +64,8 @@ typedef signed __int64    int64_t;
 
 #ifdef ANNOYLIB_MULTITHREADED_BUILD
 #include <thread>
+#include <atomic>
+#include <functional>
 #include <mutex>
 #include <shared_mutex>
 #endif
@@ -146,20 +148,91 @@ using std::pair;
 using std::numeric_limits;
 using std::make_pair;
 
-inline bool remap_memory_and_truncate(void** _ptr, int _fd, size_t old_size, size_t new_size) {
+inline bool remap_memory_and_truncate(void** _ptr, int _fd,
+                                      size_t old_size, size_t new_size,
+                                      bool* trunc_ok) {
+  if (trunc_ok) *trunc_ok = true;
+  if (new_size == old_size) return true;
+
 #ifdef __linux__
-    *_ptr = mremap(*_ptr, old_size, new_size, MREMAP_MAYMOVE);
-    bool ok = ftruncate(_fd, new_size) != -1;
-#else
-    munmap(*_ptr, old_size);
-    bool ok = ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(new_size)) != -1;
+  if (new_size > old_size) {
+    if (ftruncate(_fd, new_size) == -1) {
+      if (trunc_ok) *trunc_ok = false;
+      return false;
+    }
+
+    void* new_ptr = mremap(*_ptr, old_size, new_size, MREMAP_MAYMOVE);
+    if (new_ptr == MAP_FAILED) {
 #ifdef MAP_POPULATE
-    *_ptr = mmap(*_ptr, new_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, _fd, 0);
+      new_ptr = mmap(0, new_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, _fd, 0);
 #else
-    *_ptr = mmap(*_ptr, new_size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+      new_ptr = mmap(0, new_size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
 #endif
+      if (new_ptr == MAP_FAILED) {
+        // Best-effort rollback of file size; mapping remains old.
+        (void)ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(old_size));
+        if (trunc_ok) *trunc_ok = false;
+        return false;
+      }
+      munmap(*_ptr, old_size);
+    }
+    *_ptr = new_ptr;
+    return true;
+  }
+
+  // shrink: resize mapping first, then truncate (truncate failure is non-fatal)
+  void* new_ptr = mremap(*_ptr, old_size, new_size, MREMAP_MAYMOVE);
+  if (new_ptr == MAP_FAILED) return false;
+  *_ptr = new_ptr;
+  if (ftruncate(_fd, new_size) == -1) {
+    if (trunc_ok) *trunc_ok = false;
+  }
+  return true;
+
+#else
+  // Grow: truncate first so mapping of new_size is valid
+  if (new_size > old_size) {
+    if (ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(new_size)) == -1) {
+      if (trunc_ok) *trunc_ok = false;
+      return false;
+    }
+#ifdef MAP_POPULATE
+    void* new_ptr = mmap(0, new_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, _fd, 0);
+#else
+    void* new_ptr = mmap(0, new_size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
 #endif
-    return ok;
+    if (new_ptr == MAP_FAILED) {
+      (void)ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(old_size));
+      if (trunc_ok) *trunc_ok = false;
+      return false;
+    }
+    munmap(*_ptr, old_size);
+    *_ptr = new_ptr;
+    return true;
+  }
+
+  // Shrink: map new view first (file still >= old_size), then swap.
+#ifdef MAP_POPULATE
+  void* new_ptr = mmap(0, new_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, _fd, 0);
+#else
+  void* new_ptr = mmap(0, new_size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+#endif
+  if (new_ptr == MAP_FAILED) return false;
+
+  munmap(*_ptr, old_size);
+  *_ptr = new_ptr;
+
+  if (ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(new_size)) == -1) {
+    if (trunc_ok) *trunc_ok = false;
+  }
+  return true;
+#endif
+}
+
+inline bool remap_memory_and_truncate(void** _ptr, int _fd, size_t old_size, size_t new_size) {
+  bool trunc_ok = true;
+  bool mapped_ok = remap_memory_and_truncate(_ptr, _fd, old_size, new_size, &trunc_ok);
+  return mapped_ok && trunc_ok;
 }
 
 namespace {
@@ -964,12 +1037,14 @@ protected:
   int _fd;
   bool _on_disk;
   bool _built;
+  std::atomic<bool> _build_failed;
 public:
 
    AnnoyIndex(int f) : _f(f), _seed(Random::default_seed) {
     _s = offsetof(Node, v) + _f * sizeof(T); // Size of each node
     _verbose = false;
     _built = false;
+    _build_failed.store(false, std::memory_order_relaxed);
     _K = (S) (((size_t) (_s - offsetof(Node, children))) / sizeof(S)); // Max number of descendants to fit into node
     reinitialize(); // Reset everything
   }
@@ -991,7 +1066,12 @@ public:
       set_error_from_string(error, "You can't add an item to a loaded index");
       return false;
     }
-    _allocate_size(item + 1);
+    // _allocate_size(item + 1);
+    if (!_allocate_size(item + 1)) {
+      set_error_from_string(error, "Unable to allocate memory for item");
+      return false;
+    }
+
     Node* n = _get(item);
 
     D::zero_value(n);
@@ -1026,6 +1106,15 @@ public:
     _nodes_size = 1;
     if (ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(_s) * ANNOYLIB_FTRUNCATE_SIZE(_nodes_size)) == -1) {
       set_error_from_errno(error, "Unable to truncate");
+ #ifndef _MSC_VER
+      close(_fd);
+ #else
+      _close(_fd);
+ #endif
+      _fd = 0;
+      _on_disk = false;
+      _nodes = NULL;
+      _nodes_size = 0;
       return false;
     }
 #ifdef MAP_POPULATE
@@ -1033,6 +1122,19 @@ public:
 #else
     _nodes = (Node*) mmap(0, _s * _nodes_size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
 #endif
+    if (_nodes == MAP_FAILED) {
+      _nodes = NULL;
+      set_error_from_errno(error, "Unable to mmap");
+ #ifndef _MSC_VER
+      close(_fd);
+ #else
+      _close(_fd);
+ #endif
+      _fd = 0;
+      _on_disk = false;
+      _nodes_size = 0;
+      return false;
+    }
     return true;
   }
 
@@ -1051,11 +1153,23 @@ public:
 
     _n_nodes = _n_items;
 
+    _build_failed.store(false, std::memory_order_relaxed);
+
     ThreadedBuildPolicy::template build<S, T>(this, q, n_threads);
+
+    if (_build_failed.load(std::memory_order_relaxed)) {
+      set_error_from_string(error, "Unable to allocate memory while building index");
+      _roots.clear();
+      _n_nodes = _n_items;
+      return false;
+    }
 
     // Also, copy the roots into the last segment of the array
     // This way we can load them faster without reading the whole file
-    _allocate_size(_n_nodes + (S)_roots.size());
+    if (!_allocate_size(_n_nodes + (S)_roots.size())) {
+      set_error_from_string(error, "Unable to allocate memory while finalizing roots");
+      return false;
+    }
     for (size_t i = 0; i < _roots.size(); i++)
       memcpy(_get(_n_nodes + (S)i), _get(_roots[i]), _s);
     _n_nodes += _roots.size();
@@ -1115,6 +1229,9 @@ public:
 
       if (fwrite(_nodes, _s, _n_nodes, f) != (size_t) _n_nodes) {
         set_error_from_errno(error, "Unable to write");
+        // Best-effort cleanup: avoid leaking FILE* on short write.
+        // fclose() may itself fail, but we still attempt it.
+        fclose(f);
         return false;
       }
 
@@ -1180,13 +1297,36 @@ public:
     off_t size = lseek_getsize(_fd);
     if (size == -1) {
       set_error_from_errno(error, "Unable to get size");
+ #ifndef _MSC_VER
+      close(_fd);
+ #else
+      _close(_fd);
+ #endif
+      _fd = 0;
       return false;
     } else if (size == 0) {
-      set_error_from_errno(error, "Size of file is zero");
+      // set_error_from_errno(error, "Size of file is zero");
+      set_error_from_string(error, "Size of file is zero");
+ #ifndef _MSC_VER
+      close(_fd);
+ #else
+      _close(_fd);
+ #endif
+      _fd = 0;
       return false;
     } else if (size % _s) {
       // Something is fishy with this index!
-      set_error_from_errno(error, "Index size is not a multiple of vector size. Ensure you are opening using the same metric you used to create the index.");
+      // set_error_from_errno(error, "Index size is not a multiple of vector size. Ensure you are opening using the same metric you used to create the index.");
+      set_error_from_string(
+          error,
+          "Index size is not a multiple of node size; "
+          "are you opening the index using the same metric you used to create the index?");
+ #ifndef _MSC_VER
+      close(_fd);
+ #else
+      _close(_fd);
+ #endif
+      _fd = 0;
       return false;
     }
 
@@ -1199,7 +1339,22 @@ public:
 #endif
     }
     _nodes = (Node*)mmap(0, size, PROT_READ, flags, _fd, 0);
+    if (_nodes == MAP_FAILED) {
+      _nodes = NULL;
+      set_error_from_errno(error, "Unable to mmap");
+ #ifndef _MSC_VER
+      close(_fd);
+ #else
+      _close(_fd);
+ #endif
+      _fd = 0;
+      return false;
+    }
+
     _n_nodes = (S)(size / _s);
+
+    // Keep capacity in sync for serialize()/memory usage.
+    _nodes_size = _n_nodes;
 
     // Find the roots by scanning the end of the file and taking the nodes with most descendants
     _roots.clear();
@@ -1270,7 +1425,40 @@ public:
     S n_items = _n_items;
     S n_nodes = _n_nodes;
     size_t roots_size = _roots.size();
-    S nodes_size = _nodes_size;
+
+    // S nodes_size = _nodes_size;
+    // _nodes_size is the allocated capacity; after load() it may be 0 even though
+    // _n_nodes is known. For serialization we must write the actual backing size.
+    // Deterministic + safe: serialize only the USED node prefix.
+    // Serializing capacity (slack) can leak uninitialized memory and cause non-determinism.
+    if (_nodes_size && _nodes_size < _n_nodes) {
+      set_error_from_string(error, "Index invariant violated: nodes_size < n_nodes");
+      return {};
+    }
+    if (_n_nodes < _n_items) {
+      set_error_from_string(error, "Index invariant violated: n_nodes < n_items");
+      return {};
+    }
+    const S nodes_size = (_nodes_size ? _nodes_size : _n_nodes);
+
+    // Overflow-safe byte sizing
+    const size_t s_u = static_cast<size_t>(_s);
+    const size_t nodes_u = static_cast<size_t>(nodes_size);
+    if (s_u != 0 && nodes_u > (SIZE_MAX / s_u)) {
+      set_error_from_string(error, "Index invariant violated: nodes_size overflow");
+      return {};
+    }
+    const size_t nodes_bytes = nodes_u * s_u;
+
+    if (roots_size > (SIZE_MAX / sizeof(S))) {
+      set_error_from_string(error, "Index invariant violated: roots_size overflow");
+      return {};
+    }
+    const size_t roots_bytes = roots_size * sizeof(S);
+
+    // Reduce realloc churn
+    bytes.reserve(sizeof(n_items) + sizeof(n_nodes) + sizeof(roots_size) + sizeof(nodes_size)
+                  + roots_bytes + nodes_bytes);
 
     bytes.insert(bytes.end(), (uint8_t*)&n_items, (uint8_t*)&n_items + sizeof(n_items));
     bytes.insert(bytes.end(), (uint8_t*)&n_nodes, (uint8_t*)&n_nodes + sizeof(n_nodes));
@@ -1278,58 +1466,145 @@ public:
     bytes.insert(bytes.end(), (uint8_t*)&nodes_size, (uint8_t*)&nodes_size + sizeof(nodes_size));
 
     uint8_t* roots_buffer = (uint8_t*)_roots.data();
-    bytes.insert(bytes.end(), roots_buffer, roots_buffer + _roots.size() * sizeof(S));
+    bytes.insert(bytes.end(), roots_buffer, roots_buffer + roots_bytes);
 
     uint8_t* nodes_buffer = (uint8_t*)_nodes;
-    bytes.insert(bytes.end(), nodes_buffer, nodes_buffer + _nodes_size * _s);
+    bytes.insert(bytes.end(), nodes_buffer, nodes_buffer + nodes_bytes);
 
     return bytes;
   }
 
   bool deserialize(vector<uint8_t>* bytes, bool prefault=false, char** error=NULL) {
-    if (bytes->empty()) {
-      set_error_from_errno(error, "Size of bytes is zero");
+//     int flags = MAP_SHARED;
+//     if (prefault) {
+// #ifdef MAP_POPULATE
+//       flags |= MAP_POPULATE;
+// #else
+//       annoylib_showUpdate("prefault is set to true, but MAP_POPULATE is not defined on this platform");
+// #endif
+//     }
+    (void)prefault;  // prefault is meaningful for mmap() loads, not in-memory restores
+
+    if (!bytes || bytes->empty()) {
+      set_error_from_string(error, "Size of bytes is zero");
+       return false;
+     }
+
+    // If this index currently owns data (heap or mmap), clear it first to avoid
+    // realloc() on mmapped pointers / leaks.
+    if (_fd || _nodes) {
+      unload();
+     }
+
+    const uint8_t* bytes_buffer = (const uint8_t*)bytes->data();
+    size_t remaining = bytes->size();
+
+    // Alignment-safe POD reader (strict, deterministic).
+    struct Reader {
+      const uint8_t*& p;
+      size_t&   n;
+      char**    err;
+      Reader(const uint8_t*& p_, size_t& n_, char** err_) : p(p_), n(n_), err(err_) {}
+      bool read(void* out, size_t sz) {
+        if (n < sz) {
+          set_error_from_string(err, "Serialized data is truncated");
+          return false;
+        }
+        memcpy(out, p, sz);
+        p += sz;
+        n -= sz;
+        return true;
+      }
+    } rd(bytes_buffer, remaining, error);
+
+    S n_nodes = 0;
+    size_t roots_size = 0;
+    S nodes_size = 0;
+
+    if (!rd.read(&_n_items, sizeof(S))) return false;
+    if (!rd.read(&n_nodes, sizeof(S))) return false;
+    if (!rd.read(&roots_size, sizeof(size_t))) return false;
+    if (!rd.read(&nodes_size, sizeof(S))) return false;
+
+    // Basic corruption checks (invariants).
+    if (_n_items < 0 || n_nodes < 0 || nodes_size < 0) {
+      set_error_from_string(error, "Serialized data is corrupt (negative sizes)");
+      return false;
+    }
+    if (n_nodes < _n_items) {
+      set_error_from_string(error, "Serialized data is corrupt (n_nodes < n_items)");
+      return false;
+    }
+    if (n_nodes > 0 && nodes_size <= 0) {
+      set_error_from_string(error, "Serialized data is corrupt (missing node storage)");
+      return false;
+    }
+    if (nodes_size < n_nodes) {
+      set_error_from_string(error, "Serialized data is corrupt (nodes_size < n_nodes)");
       return false;
     }
 
-    int flags = MAP_SHARED;
-    if (prefault) {
-#ifdef MAP_POPULATE
-      flags |= MAP_POPULATE;
-#else
-      annoylib_showUpdate("prefault is set to true, but MAP_POPULATE is not defined on this platform");
-#endif
+    // Roots payload
+    if (roots_size > 0) {
+      if (roots_size > (SIZE_MAX / sizeof(S))) {
+        set_error_from_string(error, "Serialized data is corrupt (roots_size overflow)");
+        return false;
+      }
+      const size_t roots_bytes = roots_size * sizeof(S);
+      if (remaining < roots_bytes) {
+        set_error_from_string(error, "Serialized data is truncated (roots)");
+        return false;
+      }
+      _roots.clear();
+      _roots.resize(roots_size);
+      memcpy(&_roots[0], bytes_buffer, roots_bytes);
+      bytes_buffer += roots_bytes;
+      remaining -= roots_bytes;
+    } else {
+      _roots.clear();
     }
 
-    uint8_t* bytes_buffer = (uint8_t*)bytes->data();
+    // Nodes payload
+    const size_t s_u = static_cast<size_t>(_s);
+    const size_t nodes_u = static_cast<size_t>(nodes_size);
+    if (s_u != 0 && nodes_u > (SIZE_MAX / s_u)) {
+      set_error_from_string(error, "Serialized data is corrupt (nodes_size overflow)");
+      return false;
+    }
+    const size_t nodes_bytes = nodes_u * s_u;
+    if (remaining < nodes_bytes) {
+      set_error_from_string(error, "Serialized data is truncated (nodes)");
+      return false;
+    }
 
-    _n_items = *(S*)bytes_buffer;
-    bytes_buffer += sizeof(S);
+    if (!_allocate_size((S)nodes_size)) {
+      set_error_from_string(error, "Unable to allocate memory for nodes");
+      return false;
+    }
 
-    S n_nodes = *(S*)bytes_buffer;
-    bytes_buffer += sizeof(S);
+    memcpy(_nodes, bytes_buffer, nodes_bytes);
 
-    size_t roots_size = *(size_t*)bytes_buffer;
-    bytes_buffer += sizeof(size_t);
-
-    S nodes_size = *(S*)bytes_buffer;
-    bytes_buffer += sizeof(S);
-
-    _roots.clear();
-    _roots.resize(roots_size);
-    _roots.assign((S*) bytes_buffer, (S*) bytes_buffer + roots_size);
-    bytes_buffer += roots_size * sizeof(S);
-
-    _allocate_size((S) nodes_size);
-
-    memcpy(_nodes, bytes_buffer, nodes_size * _s);
-
+    _nodes_size = (S)nodes_size;
     _n_nodes = n_nodes;
     _loaded = true;
+
+    // Mirror load()/build() behavior: ensure any derived fields are ready.
+    D::template postprocess<T, S, Node>(_nodes, _s, _n_items, _f);
+
     _built = true;
 
-    if (_verbose) annoylib_showUpdate("found %zu roots with degree %d\n", _roots.size(), _n_items);
+    if (_verbose) {
+      annoylib_showUpdate("found %zu roots with degree %d\n", _roots.size(), _n_items);
+    }
     return true;
+  }
+
+  static S invalid_index() {
+    return std::numeric_limits<S>::max();
+  }
+
+  inline void signal_build_failure() {
+    _build_failed.store(true, std::memory_order_relaxed);
   }
 
   void thread_build(int q, int thread_idx, ThreadedBuildPolicy& threaded_build_policy) {
@@ -1338,6 +1613,9 @@ public:
 
     vector<S> thread_roots;
     while (1) {
+      if (_build_failed.load(std::memory_order_relaxed)) {
+        break;
+      }
       if (q == -1) {
         threaded_build_policy.lock_n_nodes();
         if (_n_nodes >= 2 * _n_items) {
@@ -1362,47 +1640,82 @@ public:
       }
       threaded_build_policy.unlock_shared_nodes();
 
-      thread_roots.push_back(_make_tree(indices, true, _random, threaded_build_policy));
+      // thread_roots.push_back(_make_tree(indices, true, _random, threaded_build_policy));
+      S root = _make_tree(indices, true, _random, threaded_build_policy);
+      if (root == invalid_index() || _build_failed.load(std::memory_order_relaxed)) {
+        break;
+      }
+      thread_roots.push_back(root);
     }
 
-    threaded_build_policy.lock_roots();
-    _roots.insert(_roots.end(), thread_roots.begin(), thread_roots.end());
-    threaded_build_policy.unlock_roots();
+    if (!_build_failed.load(std::memory_order_relaxed)) {
+      threaded_build_policy.lock_roots();
+      _roots.insert(_roots.end(), thread_roots.begin(), thread_roots.end());
+      threaded_build_policy.unlock_roots();
+    }
   }
 
 protected:
-  void _reallocate_nodes(S n) {
+  bool _reallocate_nodes(S n) {
     const double reallocation_factor = 1.3;
-    S new_nodes_size = std::max(n, (S) ((_nodes_size + 1) * reallocation_factor));
-    void *old = _nodes;
+    S new_nodes_size = std::max(n, (S)((_nodes_size + 1) * reallocation_factor));
+
+    void* old = _nodes;
+
+    const size_t s_u = static_cast<size_t>(_s);
+    const size_t old_nodes_u = static_cast<size_t>(_nodes_size);
+    const size_t new_nodes_u = static_cast<size_t>(new_nodes_size);
+
+    if (s_u != 0 && (new_nodes_u > (std::numeric_limits<size_t>::max() / s_u))) {
+      return false;  // size_t overflow => impossible allocation
+    }
+
+    const size_t old_bytes = s_u * old_nodes_u;
+    const size_t new_bytes = s_u * new_nodes_u;
 
     if (_on_disk) {
-      if (!remap_memory_and_truncate(&_nodes, _fd,
-          static_cast<size_t>(_s) * static_cast<size_t>(_nodes_size),
-          static_cast<size_t>(_s) * static_cast<size_t>(new_nodes_size)) &&
-          _verbose)
-          annoylib_showUpdate("File truncation error\n");
+      bool trunc_ok = true;
+      bool mapped_ok = remap_memory_and_truncate(&_nodes, _fd, old_bytes, new_bytes, &trunc_ok);
+      if (!mapped_ok) {
+        _nodes = old;
+        return false;
+      }
+      if (!trunc_ok && _verbose) {
+        annoylib_showUpdate("File truncation error\n");
+      }
     } else {
-      _nodes = realloc(_nodes, _s * new_nodes_size);
-      memset((char *) _nodes + (_nodes_size * _s) / sizeof(char), 0, (new_nodes_size - _nodes_size) * _s);
+      void* new_ptr = realloc(_nodes, new_bytes);
+      if (!new_ptr) {
+        return false;
+      }
+      _nodes = new_ptr;
+      if (new_bytes > old_bytes) {
+        memset((char*)_nodes + old_bytes, 0, new_bytes - old_bytes);
+      }
     }
 
     _nodes_size = new_nodes_size;
-    if (_verbose) annoylib_showUpdate("Reallocating to %d nodes: old_address=%p, new_address=%p\n", new_nodes_size, old, _nodes);
+    if (_verbose) {
+      annoylib_showUpdate("Reallocating to %d nodes: old_address=%p, new_address=%p\n",
+                          new_nodes_size, old, _nodes);
+    }
+    return true;
   }
 
-  void _allocate_size(S n, ThreadedBuildPolicy& threaded_build_policy) {
-    if (n > _nodes_size) {
-      threaded_build_policy.lock_nodes();
-      _reallocate_nodes(n);
-      threaded_build_policy.unlock_nodes();
+  bool _allocate_size(S n, ThreadedBuildPolicy& threaded_build_policy) {
+    if (n <= _nodes_size) return true;
+    threaded_build_policy.lock_nodes();
+    bool ok = true;
+    if (n > _nodes_size) {  // re-check under lock
+      ok = _reallocate_nodes(n);
     }
+    threaded_build_policy.unlock_nodes();
+    return ok;
   }
 
-  void _allocate_size(S n) {
-    if (n > _nodes_size) {
-      _reallocate_nodes(n);
-    }
+  bool _allocate_size(S n) {
+    if (n <= _nodes_size) return true;
+    return _reallocate_nodes(n);
   }
 
   Node* _get(const S i) const {
@@ -1417,6 +1730,9 @@ protected:
   }
 
   S _make_tree(const vector<S>& indices, bool is_root, Random& _random, ThreadedBuildPolicy& threaded_build_policy) {
+    if (_build_failed.load(std::memory_order_relaxed)) {
+      return invalid_index();
+    }
     // The basic rule is that if we have <= _K items, then it's a leaf node, otherwise it's a split node.
     // There's some regrettable complications caused by the problem that root nodes have to be "special":
     // 1. We identify root nodes by the arguable logic that _n_items == n->n_descendants, regardless of how many descendants they actually have
@@ -1427,7 +1743,11 @@ protected:
 
     if (indices.size() <= (size_t)_K && (!is_root || (size_t)_n_items <= (size_t)_K || indices.size() == 1)) {
       threaded_build_policy.lock_n_nodes();
-      _allocate_size(_n_nodes + 1, threaded_build_policy);
+      if (!_allocate_size(_n_nodes + 1, threaded_build_policy)) {
+        threaded_build_policy.unlock_n_nodes();
+        signal_build_failure();
+        return invalid_index();
+      }
       S item = _n_nodes++;
       threaded_build_policy.unlock_n_nodes();
 
@@ -1505,10 +1825,17 @@ protected:
     for (int side = 0; side < 2; side++) {
       // run _make_tree for the smallest child first (for cache locality)
       m->children[side^flip] = _make_tree(children_indices[side^flip], false, _random, threaded_build_policy);
+      if (_build_failed.load(std::memory_order_relaxed) || m->children[side^flip] == invalid_index()) {
+        return invalid_index();
+      }
     }
 
     threaded_build_policy.lock_n_nodes();
-    _allocate_size(_n_nodes + 1, threaded_build_policy);
+    if (!_allocate_size(_n_nodes + 1, threaded_build_policy)) {
+      threaded_build_policy.unlock_n_nodes();
+      signal_build_failure();
+      return invalid_index();
+    }
     S item = _n_nodes++;
     threaded_build_policy.unlock_n_nodes();
 

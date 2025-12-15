@@ -21,20 +21,16 @@ High-level Python interface for the C++ Annoy backend.
 Spotify Annoy (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
-- Annoy      → low-level C-extension type (stable)
-- AnnoyBase  → alias of annoylib.Annoy Index
-- AnnoyIndex → alias of annoylib.Annoy Index
 
-Examples
---------
->>> from annoy import AnnoyIndex
->>> f = 40  # vector dimensionality
->>> t = AnnoyIndex(f, 'angular')  # Length of item vector and metric
->>> t.add_item(0, [1]*f)
->>> t.build(10)  # Build 10 trees
->>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
+* Annoy       → low-level C-extension type (stable)
+* AnnoyIndex  → alias of annoylib.Annoy Index
 
-.. notes::
+.. seealso::
+    * :ref:`annoy-index`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
+
+.. note::
     * https://www.sandgarden.com/learn/faiss
     * https://www.sandgarden.com/learn/annoy-approximate-nearest-neighbors-oh-yeah
 
@@ -49,15 +45,30 @@ References
 ----------
 .. [1] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
    Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
+
+Examples
+--------
+>>> import random; random.seed(0)
+>>> # from annoy import Annoy, AnnoyIndex
+>>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+>>> from scikitplot.annoy import Annoy, AnnoyIndex, Index
+
+>>> f = 40  # vector dimensionality
+>>> t = AnnoyIndex(f, "angular")  # Length of item vector and metric
+>>> t.add_item(0, [1] * f)
+>>> t.build(10)  # Build 10 trees
+>>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
 """
+
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
 
 from __future__ import annotations
 
 # This module is a dummy wrapper around the underlying C++ module.
 # --- Low-level backend (C++ Annoy) -----------------------------
+from . import annoylib
 from .annoylib import Annoy  # low-level C-extension type, simple legacy c-api
 
-AnnoyBase = Annoy  # alias of Annoy Index c-api
 AnnoyIndex = Annoy  # alias of Annoy Index c-api
 
 # Define the annoy version
@@ -69,6 +80,5 @@ __git_hash__  = "8a7e82cb537053926b0ac6ec132b9ccc875af40c"
 
 __all__ = [
     "Annoy",
-    "AnnoyBase",
     "AnnoyIndex",
 ]

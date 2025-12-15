@@ -9,11 +9,8 @@
 # This module was copied from the annoy project.
 # https://github.com/spotify/annoy/blob/main/annoy/__init__.pyi
 
-from .annoylib import Annoy  # low-level C-extension type, simple legacy c-api
-AnnoyBase = Annoy  # alias of Annoy Index c-api
-
+from ..cexternals._annoy import Annoy, AnnoyIndex  # low-level C-extension type, simple legacy c-api
 from ._base import Index  # extended python-api derived annoylib.Annoy legacy c-api
-AnnoyIndex = Index  # alias of Annoy Index python-api
 
 __version__: str
 __author__: str

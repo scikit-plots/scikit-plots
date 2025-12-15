@@ -10,7 +10,7 @@
 # https://github.com/spotify/annoy/blob/main/annoy/__init__.pyi
 
 from .annoylib import Annoy  # low-level C-extension type, simple legacy c-api
-AnnoyBase = Annoy  # alias of Annoy Index c-api
+
 AnnoyIndex = Annoy  # alias of Annoy Index c-api
 
 __version__: str

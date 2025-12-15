@@ -10,19 +10,18 @@
 # https://github.com/spotify/annoy/blob/main/annoy/__init__.pyi
 
 from typing import TYPE_CHECKING, Sized, TypeAlias, TypeVar, overload, runtime_checkable
-from typing import Iterable, Iterator, List, Tuple
-from typing_extensions import Literal, LiteralString, Protocol
-from typing import TypedDict
+from typing import Iterable, Iterator, List, Tuple, TypedDict
+from typing_extensions import Literal, LiteralString, Protocol, Self
 
 from . import annoylib
 
 # --- Allowed metric literals (simple type hints) ---
 AnnoyMetric: TypeAlias = Literal[
     "angular", "cosine",
-    "euclidean", "l2",
-    "manhattan", "l1", "taxicab", "cityblock",
+    "euclidean", "l2", "lstsq",
+    "manhattan", "l1", "cityblock", "taxicab",
+    "dot", "@", ".", "dotproduct", "inner", "innerproduct",
     "hamming",
-    "dot", ".",
 ]
 
 # --- Generic type variable that preserves literal type ---
@@ -74,10 +73,10 @@ class Annoy(annoylib.Annoy):
     ----------
     f : int
         Dimensionality of the input vectors.
-    metric : {"angular", "cosine",
-              "euclidean", "l2", "lstsq",
-              "manhattan", "l1", "cityblock", "taxicab",
-              "dot", "@", ".", "dotproduct", "inner", "innerproduct",
+    metric : {"angular", "cosine", \
+              "euclidean", "l2", "lstsq", \
+              "manhattan", "l1", "cityblock", "taxicab", \
+              "dot", "@", ".", "dotproduct", "inner", "innerproduct", \
               "hamming"}, optional, default='angular'
         Distance function.  If omitted, the runtime default is
         ``"angular"`` (matching the original ``annoy`` package).
@@ -113,7 +112,11 @@ class Annoy(annoylib.Annoy):
 
     1. **Construct the index**
 
-    >>> from annoy import Annoy
+    >>> import random; random.seed(0)
+    >>> # from annoy import AnnoyIndex
+    >>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+    >>> from scikitplot.annoy import Annoy, AnnoyIndex, Index
+
     >>> idx = Annoy(f=3, metric="angular")
     >>> idx.f, idx.metric
     (3, 'angular')
@@ -180,63 +183,74 @@ class Annoy(annoylib.Annoy):
     """
 
     f: int
-    metric: AnnoyMetric
+    metric: AnnoyMetric | None
+
+    @property
+    def metric(self) -> AnnoyMetric | None: ...
+
+    @metric.setter
+    def metric(self, metric: AnnoyMetric) -> None: ...
 
     def __init__(self, f: int, metric: AnnoyMetric = "angular") -> None: ...
 
-    def add_item(self, i: int, vector: _Vector) -> None:
+    def add_item(self, i: int, vector: _Vector) -> Self:
         """
         Add a single embedding vector to the index.
 
         Parameters
         ----------
         i : int
-            Non-negative integer identifier for this row.  Annoy
-            internally allocates storage up to ``max(i) + 1``.
-        vector : Sequence[float]
-            1D embedding of length ``f``.  If ``f == 0`` on the first
-            call, the dimensionality is inferred from ``vector`` and
-            fixed for the lifetime of the index.
+            Item id (index) must be non-negative.
+            Ids may be non-contiguous; the index allocates up to ``max(i) + 1``.
+        vector : sequence of float
+            1D embedding of length ``f``. Values are converted to ``float``.
+            If ``f == 0`` and this is the first item, ``f`` is inferred from
+            ``vector`` and then fixed for the lifetime of this index.
+
+        Returns
+        -------
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
 
         Notes
         -----
-        Items must be added *before* calling :meth:`build`.  After
-        building the forest, further calls to :meth:`add_item` are not
-        supported.
+        Items must be added *before* calling :meth:`build`. After building
+        the forest, further calls to :meth:`add_item` are not supported.
 
         Examples
         --------
-        >>> idx = Annoy(f=3, metric="angular")
-        >>> idx.add_item(0, [1.0, 0.0, 0.0])
-        >>> idx.add_item(1, [0.0, 1.0, 0.0])
-        >>> idx.get_n_items()
-        2
+        >>> index.add_item(0, [1.0, 0.0, 0.0])
+        >>> index.add_item(1, [0.0, 1.0, 0.0])
+        >>> idx.add_item(0, [1.0, 0.0, 0.0]).add_item(1, [0.0, 1.0, 0.0])
         """
         ...
 
-    def build(self, n_trees: int, n_jobs: int = ...) -> Literal[True]:
+    def build(self, n_trees: int, n_jobs: int = -1) -> Self:
         """
         Build a forest of random projection trees.
 
         Parameters
         ----------
         n_trees : int
-            Number of trees in the forest.  Larger values typically
-            improve recall at the cost of slower build and query time.
-        n_jobs : int, optional
-            Number of threads to use while building.  ``-1`` means
-            “use all available CPU cores”.
+            Number of trees in the forest. Larger values typically improve recall
+            at the cost of slower build time and higher memory usage.
+        n_jobs : int, optional, default=-1
+            Number of threads to use while building. ``-1`` means "auto" (use
+            the implementation's default, typically all available CPU cores).
 
         Returns
         -------
-        True
-            Indicates that the build completed successfully.
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
 
         Notes
         -----
-        After :meth:`build` completes, the index becomes read-only for
-        queries.  To add more items, call :meth:`unbuild`, add items
-        again, and then rebuild.
+        After :meth:`build` completes, the index becomes read-only for queries.
+        To add more items, call :meth:`unbuild`, add items, and then rebuild.
+
+        References
+        ----------
+        .. [1] Erik Bernhardsson, "Annoy: Approximate Nearest Neighbours in C++/Python".
 
         Examples
         --------
@@ -253,7 +267,7 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def deserialize(self, byte: bytes, prefault: bool = ...) -> Literal[True]:
+    def deserialize(self, byte: bytes, prefault: bool = False) -> Self:
         """
         Restore the index from a serialized byte string.
 
@@ -261,13 +275,20 @@ class Annoy(annoylib.Annoy):
         ----------
         byte : bytes
             Byte string produced by :meth:`serialize`.
-        prefault : bool, default=False
+        prefault : bool, optional, default=False
             If True, fault pages into memory while restoring.
 
         Returns
         -------
-        success : bool
-            ``True`` on success. On failure an exception is raised.
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
+
+        Raises
+        ------
+        IOError
+            If deserialization fails due to invalid or incompatible data.
+        RuntimeError
+            If the index is not initialized.
 
         See Also
         --------
@@ -275,21 +296,26 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def get_distance(self, __i: int, __j: int) -> float:
+    def get_distance(self, i: int, j: int) -> float:
         """
-        Compute the distance between two items in the index.
+        Return the distance between two stored items.
 
         Parameters
         ----------
-        __i : int
-            ID of the first item.
-        __j : int
-            ID of the second item.
+        i, j : int
+            Item ids (index) of two stored samples.
 
         Returns
         -------
-        float
-            Distance between the two items according to the index's metric.
+        d : float
+            Distance between items ``i`` and ``j`` under the current metric.
+
+        Raises
+        ------
+        RuntimeError
+            If the index is not initialized.
+        IndexError
+            If either index is out of range.
 
         Notes
         -----
@@ -300,19 +326,26 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def get_item_vector(self, __i: int) -> list[float]:
+    def get_item_vector(self, i: int) -> list[float]:
         """
-        Retrieve the vector associated with a given item ID.
+        Return the stored embedding vector for a given item id.
 
         Parameters
         ----------
-        __i : int
-            ID of the item.
+        i : int
+            Item id (index) previously passed to :meth:`add_item`.
 
         Returns
         -------
-        list[float]
-            Vector representing the item in the index's feature space.
+        vector : list[float]
+            Stored embedding of length ``f``.
+
+        Raises
+        ------
+        RuntimeError
+            If the index is not initialized.
+        IndexError
+            If ``i`` is out of range.
 
         Notes
         -----
@@ -323,12 +356,17 @@ class Annoy(annoylib.Annoy):
 
     def get_n_items(self) -> int:
         """
-        Get the total number of items currently added to the index.
+        Return the number of stored items in the index.
 
         Returns
         -------
-        int
-            Number of items in the index.
+        n_items : int
+            Number of items that have been added and are currently addressable.
+
+        Raises
+        ------
+        RuntimeError
+            If the index is not initialized.
 
         Notes
         -----
@@ -339,12 +377,17 @@ class Annoy(annoylib.Annoy):
 
     def get_n_trees(self) -> int:
         """
-        Get the number of trees in the built Annoy index.
+        Return the number of trees in the current forest.
 
         Returns
         -------
-        int
-            Number of trees currently built in the index.
+        n_trees : int
+            Number of trees that have been built.
+
+        Raises
+        ------
+        RuntimeError
+            If the index is not initialized.
 
         Notes
         -----
@@ -355,7 +398,7 @@ class Annoy(annoylib.Annoy):
 
     @overload
     def get_nns_by_item(
-        self, i: int, n: int, search_k: int = ..., include_distances: Literal[False] = ...
+        self, i: int, n: int, search_k: int = -1, include_distances: Literal[False] = False
     ) -> list[int]: ...
     @overload
     def get_nns_by_item(
@@ -363,31 +406,42 @@ class Annoy(annoylib.Annoy):
     ) -> tuple[list[int], list[float]]: ...
     @overload
     def get_nns_by_item(
-        self, i: int, n: int, search_k: int = ..., *, include_distances: Literal[True]
-    ) -> tuple[list[int], list[float]]:
+        self, i: int, n: int, search_k: int = -1, *, include_distances: Literal[True]
+    ) -> tuple[list[int], list[float]]: ...
+    def get_nns_by_item(
+        self, i: int, n: int, search_k: int = -1, include_distances: bool = False
+    ) -> list[int] | tuple[list[int], list[float]]:
         """
-        Return the ``n`` nearest neighbours for a stored item.
+        get_nns_by_item(i, n, search_k=-1, include_distances=False)
+
+        Return the `n` nearest neighbours for a stored item id.
 
         Parameters
         ----------
         i : int
-            Row identifier previously passed to :meth:`add_item`.
+            Item id (index) previously passed to :meth:`add_item(i, embedding)`.
         n : int
             Number of nearest neighbours to return.
-        search_k : int, optional
-            Maximum number of nodes to inspect.  Larger values usually
-            improve recall at the cost of slower queries.  If ``-1``,
-            defaults to approximately ``n_trees * n``.
-        include_distances : bool, default=False
-            If False, return only the list of neighbour indices.
-            If True, return a 2-tuple ``(indices, distances)``.
+        search_k : int, optional, default=-1
+            Maximum number of nodes to inspect. Larger values usually improve recall
+            at the cost of slower queries. If ``-1``, defaults to approximately
+            ``n_trees * n``.
+        include_distances : bool, optional, default=False
+            If True, return a ``(indexs, distances)`` tuple. Otherwise return only
+            the list of indexs.
 
         Returns
         -------
-        indices : list[int]
-            Nearest neighbour indices (item ids).
-        distances : list[float]
-            Corresponding distances (only if ``include_distances=True``).
+        indexs : list[int] | tuple[list[int], list[float]]
+            If ``include_distances=False``: list of neighbour item ids.
+            If ``include_distances=True``: ``(indexs, distances)``.
+
+        Raises
+        ------
+        RuntimeError
+            If the index is not initialized or has not been built.
+        IndexError
+            If ``i`` is out of range.
 
         See Also
         --------
@@ -420,7 +474,7 @@ class Annoy(annoylib.Annoy):
 
     @overload
     def get_nns_by_vector(
-        self, vector: _Vector, n: int, search_k: int = ..., include_distances: Literal[False] = ...
+        self, vector: _Vector, n: int, search_k: int = -1, include_distances: Literal[False] = False
     ) -> list[int]: ...
     @overload
     def get_nns_by_vector(
@@ -428,33 +482,46 @@ class Annoy(annoylib.Annoy):
     ) -> tuple[list[int], list[float]]: ...
     @overload
     def get_nns_by_vector(
-        self, vector: _Vector, n: int, search_k: int = ..., *, include_distances: Literal[True]
-    ) -> tuple[list[int], list[float]]:
+        self, vector: _Vector, n: int, search_k: int = -1, *, include_distances: Literal[True]
+    ) -> tuple[list[int], list[float]]: ...
+    def get_nns_by_vector(
+        self, vector: _Vector, n: int, search_k: int = -1, include_distances: bool = False
+    ) -> list[int] | tuple[list[int], list[float]]:
         """
-        Return the ``n`` nearest neighbours for a query embedding.
+        get_nns_by_vector(vector, n, search_k=-1, include_distances=False)
+
+        Return the `n` nearest neighbours for a query embedding.
 
         Parameters
         ----------
-        vector : Sequence[float]
+        vector : sequence of float
             Query embedding of length ``f``.
         n : int
             Number of nearest neighbours to return.
-        search_k : int, optional
-            Maximum number of nodes to inspect.  Larger values typically
-            improve recall at the cost of slower queries.  If ``-1``,
-            defaults to approximately ``n_trees * n``.
-        include_distances : bool, default=False
-            If False, return only the list of neighbour indices.
-            If True, return a 2-tuple ``(indices, distances)``.
+        search_k : int, optional, default=-1
+            Maximum number of nodes to inspect. Larger values typically improve recall
+            at the cost of slower queries. If ``-1``, defaults to approximately
+            ``n_trees * n``.
+        include_distances : bool, optional, default=False
+            If True, return a ``(indexs, distances)`` tuple. Otherwise return only
+            the list of indexs.
 
         Returns
         -------
-        list[int] or (list[int], list[float])
-            Nearest neighbour indices, optionally with distances.
+        indexs : list[int] | tuple[list[int], list[float]]
+            If ``include_distances=False``: list of neighbour item ids.
+            If ``include_distances=True``: ``(indexs, distances)``.
+
+        Raises
+        ------
+        RuntimeError
+            If the index is not initialized or has not been built.
+        ValueError
+            If ``len(vector) != f``.
 
         See Also
         --------
-        get_nns_by_item : Main API for item-id based queries.
+        get_nns_by_item : Query by stored item id.
 
         Examples
         --------
@@ -475,8 +542,8 @@ class Annoy(annoylib.Annoy):
         """
         Return a structured summary of the index.
 
-        This method returns a JSON-like dictionary with the most useful
-        state fields for debugging, monitoring and tooling.
+        This method returns a JSON-like Python dictionary that is easier to
+        inspect programmatically than the legacy multi-line string format.
 
         Keys
         ----
@@ -489,7 +556,7 @@ class Annoy(annoylib.Annoy):
         n_trees : int
             Number of trees built.
         memory_usage_byte : int
-            Approximate memory usage in byte.
+            Approximate memory usage in bytes.
         memory_usage_mib : float
             Approximate memory usage in MiB.
         on_disk_path : str | None
@@ -497,14 +564,16 @@ class Annoy(annoylib.Annoy):
 
         Returns
         -------
-        info : AnnoyInfo
+        info : dict or None
             Dictionary describing the current index state.
 
         Examples
         --------
         >>> info = idx.info()
-        >>> info["dimension"]
+        >>> info['dimension']
         100
+        >>> info['n_items']
+        1000
         >>> info["metric"]
         "angular"
         >>> info["n_items"] >= 0
@@ -517,47 +586,51 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def load(self, fn: str, prefault: bool = ...) -> Literal[True]:
+    def load(self, fn: str, prefault: bool = False) -> Self:
         """
-        Load (memory-map) an index from disk into the current object.
+        Load (mmap) an index from disk into the current object.
 
         Parameters
         ----------
         fn : str
-            Path to the Annoy index file.
-        prefault : bool, default=False
+            Path to a file previously created by :meth:`save` or
+            :meth:`on_disk_build`.
+        prefault : bool, optional, default=False
             If True, fault pages into memory when the file is mapped.
+
+        Raises
+        ------
+        IOError
+            If the file cannot be opened or mapped.
+        RuntimeError
+            If the index is not initialized or the file is incompatible.
 
         Returns
         -------
-        True
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
 
         Notes
         -----
-        Annoy index files are not guaranteed to be binary compatible
-        across builds that change the internal index type or node
-        layout (for example, changing the template parameter ``S`` from
-        32-bit to 64-bit). If you upgrade to such a version and see the
-        error "Index size is not a multiple of vector size", you will
-        need to rebuild your index files with the new version.
-
-        Notes
-        -----
-        Uses memory-mapped files for efficient sharing across multiple processes.
-        The index can be queried immediately after loading.
+        The in-memory index must have been constructed with the same dimension
+        and metric as the on-disk file.
         """
         ...
 
-    def memory_usage(self) -> int:
+    def memory_usage(self) -> int | None:
         """
-        Approximate memory usage of the index in byte.
+        Approximate memory usage of the index in bytess.
 
         Returns
         -------
-        n_byte : int
-            Approximate number of byte used by the index.  When native
-            support is unavailable, this is estimated via
-            :meth:`serialize`.
+        n_bytess : int or None
+            Approximate number of bytes used by the index. Returns ``None`` if the
+            index is not initialized.
+
+        Raises
+        ------
+        RuntimeError
+            If memory usage cannot be computed.
 
         Examples
         --------
@@ -567,9 +640,9 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def on_disk_build(self, fn: str) -> Literal[True]:
+    def on_disk_build(self, fn: str) -> Self:
         """
-        Configure the index to build using an on-disk backing file instead of in memory.
+        Configure the index to build using an on-disk backing file.
 
         Parameters
         ----------
@@ -579,41 +652,39 @@ class Annoy(annoylib.Annoy):
 
         Returns
         -------
-        success : bool
-            ``True`` on success. On failure an exception is raised.
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
 
         Notes
         -----
-        Useful for very large datasets that cannot fit entirely in RAM.
-        The resulting file can be memory-mapped using `load()`.
+        This mode is useful for very large datasets that do not fit
+        comfortably in RAM during construction.
         """
         ...
 
-    def save(self, fn: str, prefault: bool = ...) -> Literal[True]:
+    def save(self, fn: str, prefault: bool = False) -> Self:
         """
         Persist the index to a binary file on disk.
 
         Parameters
         ----------
         fn : str
-            Path to the output file.  Existing files will be overwritten.
-        prefault : bool, default=False
+            Path to the output file. Existing files will be overwritten.
+        prefault : bool, optional, default=False
             If True, aggressively fault pages into memory during save.
-            Mainly useful on some platforms for very large indexes.
+            Primarily useful on some platforms for very large indexes.
 
         Returns
         -------
-        success : bool
-            ``True`` on success. On failure an exception is raised.
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
 
-        Notes
-        -----
-        Annoy index files are not guaranteed to be binary compatible
-        across builds that change the internal index type or node
-        layout (for example, changing the template parameter ``S`` from
-        32-bit to 64-bit). If you upgrade to such a version and see the
-        error "Index size is not a multiple of vector size", you will
-        need to rebuild your index files with the new version.
+        Raises
+        ------
+        IOError
+            If the file cannot be written.
+        RuntimeError
+            If the index is not initialized or save fails.
 
         Examples
         --------
@@ -627,22 +698,26 @@ class Annoy(annoylib.Annoy):
 
     def serialize(self) -> bytes:
         """
-        Serialize the full in-memory index into a byte string.
+        Serialize the built in-memory index into a byte string.
 
         Returns
         -------
-        byte : bytes
-            Opaque binary blob containing the entire Annoy index.
+        data : bytes
+            Opaque binary blob containing the Annoy index.
+
+        Raises
+        ------
+        RuntimeError
+            If the index is not initialized or serialization fails.
 
         Notes
         -----
-        The serialized form is a snapshot of the internal C++ data
-        structures. It can be stored, transmitted or used with joblib
-        without rebuilding trees.
+        The serialized form is a snapshot of the internal C++ data structures.
+        It can be stored, transmitted, or used with joblib without rebuilding trees.
 
         See Also
         --------
-        deserialize : restore an index from byte.
+        deserialize : Restore an index from a serialized byte string.
 
         Examples
         --------
@@ -654,31 +729,36 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def set_seed(self, seed: int | None = None) -> None:
+    def set_seed(self, seed: int = 0) -> Self:
         """
         Set the random seed used for tree construction.
 
         Parameters
         ----------
         seed : int, optional
-            Non-negative integer seed. If omitted, a library-specific
-            default is used. For strict reproducibility, always call
-            this method explicitly before :meth:`build`.
+            Non-negative integer seed. If called before the index is constructed,
+            the seed is stored and applied when the C++ index is created.
+
+        Returns
+        -------
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
 
         Notes
         -----
-        Using the same seed, data and ``n_trees`` usually produces
-        bitwise-identical forests (subject to CPU / threading details).
+        Annoy is deterministic by default. Setting an explicit seed is useful for
+        reproducible experiments and debugging.
         """
         ...
 
-    def unbuild(self) -> Literal[True]:
+    def unbuild(self) -> Self:
         """
         Discard the current forest, allowing new items to be added.
 
         Returns
         -------
-        True
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
 
         Notes
         -----
@@ -693,13 +773,19 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def unload(self) -> Literal[True]:
+    def unload(self) -> Self:
         """
         Unmap any memory-mapped file backing this index.
 
         Returns
         -------
-        True
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
+
+        Notes
+        -----
+        This releases OS-level resources associated with the mmap,
+        but keeps the Python object alive.
 
         Examples
         --------
@@ -709,22 +795,98 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def verbose(self, __v: bool) -> Literal[True]:
+    def verbose(self, level: int = 1) -> Self:
         """
         Control verbosity of the underlying C++ index.
 
         Parameters
         ----------
-        level : int, optional (default=1)
+        level : int, optional, default=1
+            Verbosity level. Values are clamped to the range ``[-2, 2]``.
+            ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
             Logging level inspired by gradient-boosting libraries:
 
             * ``<= 0`` : quiet (warnings only)
             * ``1``    : info (Annoy's ``verbose=True``)
-            * ``>= 2`` : debug (currently same as info, reserved
-              for future use)
+            * ``>= 2`` : debug (currently same as info, reserved for future use)
 
         Returns
         -------
-        True
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
+        """
+        ...
+
+    def __getstate__(self) -> dict[str, object]:
+        """
+        Return a versioned state dictionary for pickle/joblib.
+
+        This method is primarily used by :mod:`pickle` (and joblib) and is not
+        intended to be called directly in normal workflows.
+
+        Returns
+        -------
+        state : dict
+            A JSON-like dictionary with the following keys:
+
+            * ``_pickle_version`` : int
+            * ``f`` : int | None
+            * ``metric`` : str | None
+            * ``on_disk_path`` : str | None
+            * ``has_pending_seed`` : bool
+            * ``pending_seed`` : int
+            * ``has_pending_verbose`` : bool
+            * ``pending_verbose`` : int
+            * ``data`` : bytes | None
+
+        Notes
+        -----
+        If the underlying C++ index is initialized, ``data`` contains a serialized
+        snapshot (see :meth:`serialize`). Otherwise, ``data`` is ``None``.
+        """
+        ...
+
+    def __setstate__(self, state: dict[str, object]) -> None:
+        """
+        Restore object state from a dictionary produced by :meth:`__getstate__`.
+
+        Parameters
+        ----------
+        state : dict
+            State dictionary returned by :meth:`__getstate__`.
+
+        Raises
+        ------
+        TypeError
+            If ``state`` is not a dictionary.
+        ValueError
+            If required fields are missing or invalid (e.g., negative ``f``).
+        FileNotFoundError
+            If disk fallback is required and ``on_disk_path`` does not exist.
+        IOError
+            If restoring from the serialized snapshot or disk file fails.
+
+        Notes
+        -----
+        Restoration first attempts to deserialize the in-memory snapshot from
+        ``state["data"]``. If that fails and ``on_disk_path`` is present,
+        the index is loaded from disk as a compatibility fallback.
+        """
+        ...
+
+    def __reduce_ex__(self, protocol: int) -> tuple[object, tuple[object, ...], dict[str, object]]:
+        """
+        Pickle protocol support.
+
+        This returns the standard 3-tuple ``(cls, args, state)`` used by pickle.
+        Users typically do not need to call this directly.
+        """
+        ...
+
+    def __reduce__(self) -> tuple[object, tuple[object, ...], dict[str, object]]:
+        """
+        Pickle support.
+
+        Equivalent to :meth:`__reduce_ex__` with the default protocol.
         """
         ...

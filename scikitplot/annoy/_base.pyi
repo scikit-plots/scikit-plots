@@ -1,6 +1,28 @@
-from typing import Any, Sequence, overload
+from typing import Any, Sequence, TypeAlias, overload
 
-from ..cexternals._annoy import Annoy
+from typing_extensions import Literal
+
+from ..cexternals._annoy import Annoy, AnnoyIndex  # noqa: F401
+
+# --- Allowed metric literals (simple type hints) ---
+AnnoyMetric: TypeAlias = Literal[
+    "angular",
+    "cosine",
+    "euclidean",
+    "l2",
+    "lstsq",
+    "manhattan",
+    "l1",
+    "cityblock",
+    "taxicab",
+    "dot",
+    "@",
+    ".",
+    "dotproduct",
+    "inner",
+    "innerproduct",
+    "hamming",
+]
 
 class Index(Annoy):
     """
@@ -12,8 +34,12 @@ class Index(Annoy):
     """  # noqa: PYI021
 
     f: int
-    metric: str
+    metric: AnnoyMetric | None
 
+    @property
+    def metric(self) -> AnnoyMetric | None: ...
+    @metric.setter
+    def metric(self, metric: AnnoyMetric) -> None: ...
     def __init__(self, f: int = 0, metric: str = "angular") -> None: ...
 
     # Annoy core operations

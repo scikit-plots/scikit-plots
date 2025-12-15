@@ -12,7 +12,7 @@ API modular and extensible (future Series/Frame-style layers).
 from __future__ import annotations
 
 # import uuid  # f"annoy-{uuid.uuid4().hex}.annoy"
-from ..cexternals._annoy import Annoy
+from ..cexternals._annoy import Annoy, AnnoyIndex  # noqa: F401
 from ._mixins import (
     ManifestMixin,
     NDArrayExportMixin,

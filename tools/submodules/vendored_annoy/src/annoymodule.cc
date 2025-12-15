@@ -18,17 +18,19 @@
 #define PY_SSIZE_T_CLEAN
 
 #ifndef NPY_NO_DEPRECATED_API
-#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+  #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif
 
-// Python / NumPy C-API --------------------------------------------------------
+// NumPy C-API -----------------------------------------------------------------
+// #include <numpy/arrayobject.h>
+
+// Python C-API ----------------------------------------------------------------
 #include <Python.h>
-#include <numpy/arrayobject.h>
 
 #include "bytesobject.h"
 #include "structmember.h"  // NOTE: Some fields deprecated in Python 3.11+
 
-// Core Annoy C++ implementation ----------------------------------------------
+// Core Annoy C++ implementation -----------------------------------------------
 #include "annoylib.h"
 #include "kissrandom.h"
 
@@ -81,8 +83,12 @@
 // AVX / compiler info (exposed in module docstring) --------------------------
 #if defined(ANNOYLIB_USE_AVX512)
   #define AVX_INFO "Using 512-bit AVX instructions"
-#elif defined(ANNOYLIB_USE_AVX128)
+#elif defined(ANNOYLIB_USE_AVX256)  // Placeholder
+  #define AVX_INFO "Using 256-bit AVX instructions"
+#elif defined(ANNOYLIB_USE_AVX128)  // Placeholder
   #define AVX_INFO "Using 128-bit AVX instructions"
+#elif defined(ANNOYLIB_USE_AVX)
+  #define AVX_INFO "Using AVX instructions"
 #else
   #define AVX_INFO "Not using AVX instructions"
 #endif
@@ -96,20 +102,23 @@
 #endif
 
 // Minimal C-extension docstring. Rich, user-facing docs live in the Python
-// layer (annoy.Annoy / AnnoyIndex / Index / NNSResult / NNSFrame).
+// layer (annoy.Annoy / annoylib.Annoy / AnnoyIndex).
 static const char ANNOY_DOC[] =
     COMPILER_INFO ". " AVX_INFO ".\n"
     "\n"
     "High-performance approximate nearest neighbours (Annoy) C++ core.\n"
     "\n"
     "This module is a low-level backend (``annoylib``). It exposes the\n"
-    "C++-powered :class:`Annoy` type. For day-to-day work, prefer the\n"
-    "high-level Python API in the :mod:`annoy` package:\n"
+    "C++-powered :class:`~.Annoy` type. For day-to-day work, prefer the\n"
+    "high-level Python API in :mod:`~scikitplot.annoy`::\n"
     "\n"
-    "    from annoy import Annoy, AnnoyIndex\n";
+    "    >>> from annoy import Annoy, AnnoyIndex\n"
+    "    >>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex\n"
+    "    >>> from scikitplot.annoy import Annoy, AnnoyIndex, Index\n";
 
 // Safe “return self” helper macro for methods that mutate in-place and
 // return the same Python object (fluent style).
+// Chaining: a.build(...).save(...).info()
 #ifdef PY_RETURN_SELF
   #undef PY_RETURN_SELF
 #endif
@@ -151,9 +160,9 @@ using namespace Annoy;
     }
     if (!GetTempFileNameA(path, "ann", 0, file)) {
       // As a last resort, use a simple pattern in CWD
-      return std::string("annoy_tmp_index.ann");
+      return std::string("annoy_tmp_index.annoy");
     }
-    return std::string(file) + ".annoy";
+    return std::string(file);
   }
 
 #else   // POSIX --------------------------------------------------------------
@@ -211,7 +220,7 @@ static inline bool file_exists(const char* filename) {
 static inline void safe_free(char** ptr) {
   if (ptr && *ptr) {
     free(*ptr);
-    *ptr = nullptr;
+    *ptr = NULL;  // nullptr
   }
 }
 
@@ -221,7 +230,7 @@ static inline void safe_free(char** ptr) {
 struct ScopedError {
   char* err;
 
-  ScopedError() : err(nullptr) {}
+  ScopedError() : err(NULL) {}
   ~ScopedError() { safe_free(&err); }
 
   // Allow passing &ScopedError to APIs expecting char**.
@@ -233,7 +242,7 @@ struct ScopedError {
   // Transfer ownership out if needed.
   char* release() {
     char* tmp = err;
-    err = nullptr;
+    err = NULL;
     return tmp;
   }
 };
@@ -354,9 +363,10 @@ public:
 
   //  - validates header shape
   //  - passes remaining payload to underlying index
-  bool deserialize(vector<uint8_t>* byte,
-                   bool prefault,
-                   char** error) {
+  bool deserialize(
+    vector<uint8_t>* byte,
+    bool prefault,
+    char** error) {
     if (!byte || byte->empty()) {
       if (error) *error = strdup("Empty byte vector");
       return false;
@@ -379,8 +389,22 @@ public:
       return false;
     }
 
-    _f_external = static_cast<int32_t>(hdr.f_external);
-    _f_internal = static_cast<int32_t>(hdr.f_internal);
+    // _f_external = static_cast<int32_t>(hdr.f_external);
+    // _f_internal = static_cast<int32_t>(hdr.f_internal);
+    // IMPORTANT: _index dimension is fixed at construction time. Do NOT
+    // overwrite _f_external/_f_internal here; enforce a strict match instead.
+    if (static_cast<int32_t>(hdr.f_external) != _f_external ||
+        static_cast<int32_t>(hdr.f_internal) != _f_internal) {
+      if (error) {
+        char buf[160];
+        snprintf(buf, sizeof(buf),
+                 "Hamming index dimension mismatch "
+                 "(expected f_external=%d, f_internal=%d; got f_external=%u, f_internal=%u)",
+                 _f_external, _f_internal, hdr.f_external, hdr.f_internal);
+        *error = strdup(buf);
+      }
+      return false;
+    }
 
     const uint8_t* payload = byte->data() + sizeof(HammingHeader);
     const size_t   payload_size = byte->size() - sizeof(HammingHeader);
@@ -451,7 +475,7 @@ public:
                              n,
                              search_k,
                              result,
-                             nullptr);
+                             NULL);
     }
   }
 
@@ -483,7 +507,7 @@ public:
                                n,
                                search_k,
                                result,
-                               nullptr);
+                               NULL);
     }
   }
 
@@ -615,36 +639,37 @@ static inline std::string trim(const std::string& s) {
 // Map user metric aliases → canonical metric name.
 //
 // Accepted aliases (case-insensitive):
-//   "angular", "cosine"
-//   "euclidean", "euclid", "l2"
-//   "manhattan", "cityblock", "taxicab", "l1"
-//   "dot", "dotproduct", "inner_product", "ip", "."
-//   "hamming", "ham"
+//   "angular", "cosine",
+//   "euclidean", "l2", "lstsq",
+//   "manhattan", "l1", "cityblock", "taxicab",
+//   "dot", "@", ".", "dotproduct", "inner", "innerproduct",
+//   "hamming",
 //
 // Returns "" on failure. It does *not* set a Python error; callers are
 // responsible for producing a clear error message.
 static inline std::string normalize_metric(const std::string& m) {
   static const std::unordered_map<std::string, std::string> metric_map = {
+    // scipy.spatial.distance.cosine
     {"angular",   "angular"},
     {"cosine",    "angular"},
-
+    // scipy.spatial.distance.euclidean
     {"euclidean", "euclidean"},
-    {"euclid",    "euclidean"},
     {"l2",        "euclidean"},
-
+    {"lstsq",     "euclidean"},
+    // scipy.spatial.distance.cityblock
     {"manhattan", "manhattan"},
+    {"l1",        "manhattan"},
     {"cityblock", "manhattan"},
     {"taxicab",   "manhattan"},
-    {"l1",        "manhattan"},
-
-    {"dot",           "dot"},
-    {"dotproduct",    "dot"},
-    {"inner_product", "dot"},
-    {"ip",            "dot"},
-    {".",             "dot"},
-
+    // scipy.sparse.coo_array.dot
+    {"dot",          "dot"},
+    {"@",            "dot"},
+    {".",            "dot"},
+    {"dotproduct",   "dot"},
+    {"inner",        "dot"},
+    {"innerproduct", "dot"},
+    // scipy.spatial.distance.hamming
     {"hamming", "hamming"},
-    {"ham",     "hamming"},
   };
 
   std::string s = trim(m);
@@ -666,9 +691,10 @@ static inline std::string normalize_metric(const std::string& m) {
 //   - returns false
 //   - if `error` is non-null, sets a short C-string message (strdup'ed)
 //   - caller is expected to also set a Python exception.
-static inline bool validate_index_params(int f,
-                                         const std::string& metric,
-                                         char** error) {
+static inline bool validate_index_params(
+  int f,
+  const std::string& metric,
+  char** error) {
   if (f <= 0) {
     if (error)
       *error = strdup("Embedding dimension must be positive");
@@ -700,7 +726,7 @@ static inline std::string metric_from_ptr(
   if (dynamic_cast<AnnoyEuclidean*>(ptr)) return "euclidean";
   if (dynamic_cast<AnnoyManhattan*>(ptr)) return "manhattan";
   if (dynamic_cast<AnnoyDot*>(ptr))       return "dot";
-  if (dynamic_cast<AnnoyHamming*>(ptr)) return "hamming";
+  if (dynamic_cast<AnnoyHamming*>(ptr))   return "hamming";
 
   return std::string();  // unknown / future type
 }
@@ -710,11 +736,11 @@ static inline std::string metric_from_ptr(
 // `metric` may be any user alias; it will be normalized to a canonical
 // name before dispatching to a specific C++ type.
 //
-// On error, returns nullptr and, if `error` is non-null, sets a message.
+// On error, returns NULL and, if `error` is non-null, sets a message.
 static inline AnnoyIndexInterface<int32_t, float>* create_index_for_metric(
-    int f,
-    const std::string& metric,
-    char** error = NULL) {
+  int f,
+  const std::string& metric,
+  char** error = NULL) {
 
   if (!validate_index_params(f, metric, error))
     return NULL;
@@ -742,9 +768,10 @@ static inline AnnoyIndexInterface<int32_t, float>* create_index_for_metric(
 // self     : py_annoy*
 // indice   : int32_t   (ID previously passed to add_item())
 // building : bool      (true while we are still adding before build())
-static bool check_constraints(py_annoy* self,
-                              int32_t   indice,
-                              bool      building) {
+static bool check_constraints(
+  py_annoy* self,
+  int32_t   indice,
+  bool      building) {
   if (indice < 0) {
     PyErr_SetString(PyExc_IndexError,
                     "indice (row id) cannot be negative");
@@ -784,9 +811,9 @@ static bool check_constraints(py_annoy* self,
 //     return NULL;  // Python exception already set
 //
 static bool convert_list_to_vector_strict(
-    PyObject* v,
-    int expected_f,
-    vector<float>* w) {
+  PyObject* v,
+  int expected_f,
+  vector<float>* w) {
 
   if (expected_f <= 0) {
     PyErr_SetString(PyExc_RuntimeError,
@@ -823,9 +850,9 @@ static bool convert_list_to_vector_strict(
 }
 
 static bool convert_list_to_vector_infer(
-    py_annoy* self,
-    PyObject* v,
-    vector<float>* w) {
+  py_annoy* self,
+  PyObject* v,
+  vector<float>* w) {
 
   PyObject* seq = PySequence_Fast(v, "expected a 1D sequence of floats");
   if (!seq) return false;
@@ -876,9 +903,10 @@ static bool convert_list_to_vector_infer(
 //   * Lazy mode        : you can pass f=None / f=0 and/or omit metric;
 //                        the actual index will be constructed on first use.
 
-static PyObject* py_an_new(PyTypeObject* type,
-                           PyObject* args,
-                           PyObject* kwargs) {
+static PyObject* py_an_new(
+  PyTypeObject* type,
+  PyObject* args,
+  PyObject* kwargs) {
   py_annoy* self = (py_annoy*)type->tp_alloc(type, 0);
   if (!self) return NULL;
 
@@ -903,9 +931,10 @@ static PyObject* py_an_new(PyTypeObject* type,
 }
 
 // tp_init must return 0 on success, -1 on failure
-static int py_an_init(py_annoy* self,
-                      PyObject* args,
-                      PyObject* kwargs) {
+static int py_an_init(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   // Allow re-initialization safely (rare but possible in CPython)
   if (self->ptr) {
     delete self->ptr;
@@ -914,6 +943,12 @@ static int py_an_init(py_annoy* self,
   self->f = 0;
   self->metric.clear();
   self->on_disk_path.clear();
+
+  // Reset pending configuration as well (true re-init).
+  self->pending_seed        = 0ULL;
+  self->pending_verbose     = 0;
+  self->has_pending_seed    = false;
+  self->has_pending_verbose = false;
 
   // Python signature (public):
   //   Annoy(f, metric='angular')
@@ -987,12 +1022,15 @@ static int py_an_init(py_annoy* self,
   //   * f == 0 or metric empty    → leave ptr == NULL (lazy mode);
   //                                 index will be created in py_an_add_item / load.
   if (self->f > 0 && !self->metric.empty()) {
-    char* error = NULL;
-    self->ptr = create_index_for_metric(self->f, self->metric, &error);
+    // char* error = NULL;
+    ScopedError error;
+    // self->ptr = create_index_for_metric(self->f, self->metric, &error);
+    self->ptr = create_index_for_metric(self->f, self->metric, &error.err);
     if (!self->ptr) {
-      if (error) {
-        PyErr_SetString(PyExc_RuntimeError, error);
-        free(error);
+      if (error.err) {  // if (error)
+        // PyErr_SetString(PyExc_RuntimeError, error);
+        PyErr_SetString(PyExc_RuntimeError, error.err);
+        // free(error);
       } else {
         PyErr_SetString(PyExc_RuntimeError, "Failed to create Annoy index");
       }
@@ -1053,8 +1091,9 @@ static PyMemberDef py_annoy_members[] = {
 // ===================== Annoy Getter/Setter =========================
 
 // Getter for 'metric'
-static PyObject* py_annoy_get_metric(py_annoy* self,
-                                     void* closure) {
+static PyObject* py_annoy_get_metric(
+  py_annoy* self,
+  void* closure) {
   (void)closure;
 
   // If the underlying C++ index has not been constructed yet:
@@ -1084,9 +1123,10 @@ static PyObject* py_annoy_get_metric(py_annoy* self,
 }
 
 // Setter for 'metric'
-static int py_annoy_set_metric(py_annoy* self,
-                               PyObject* value,
-                               void* closure) {
+static int py_annoy_set_metric(
+  py_annoy* self,
+  PyObject* value,
+  void* closure) {
   (void)closure;  // Unused
 
   if (!value || value == Py_None) {
@@ -1117,7 +1157,7 @@ static int py_annoy_set_metric(py_annoy* self,
   }
 
   // Prevent changing metric after the C++ index has been constructed
-  if (self->ptr != nullptr) {
+  if (self->ptr != NULL) {
     PyErr_SetString(
       PyExc_AttributeError,
       "Cannot change metric after the index has been created."
@@ -1136,7 +1176,34 @@ static PyGetSetDef py_annoy_getset[] = {
     (char*)"metric",
     (getter)py_annoy_get_metric,
     (setter)py_annoy_set_metric,
-    (char*)"distance metric (angular, euclidean, manhattan, dot, hamming)",
+    (char*)"distance metric (angular, euclidean, manhattan, dot, hamming) mapped alias as note.\n"
+    // R"( ... )";
+    R"METRIC(
+    .. note::
+      {"angular",   "angular"},
+      {"cosine",    "angular"},
+      {"euclidean", "euclidean"},
+      {"l2",        "euclidean"},
+      {"lstsq",        "euclidean"},
+      {"manhattan", "manhattan"},
+      {"l1",        "manhattan"},
+      {"cityblock", "manhattan"},
+      {"taxicab",   "manhattan"},
+      {"dot",          "dot"},
+      {"@",            "dot"},
+      {".",            "dot"},
+      {"dotproduct",   "dot"},
+      {"inner",        "dot"},
+      {"innerproduct", "dot"},
+      {"hamming", "hamming"},
+
+    .. seealso::
+      * :py:mod:`~scipy.spatial.distance.cosine`
+      * :py:mod:`~scipy.spatial.distance.euclidean`
+      * :py:mod:`~scipy.spatial.distance.cityblock`
+      * :py:mod:`~scipy.sparse.coo_array.dot`
+      * :py:mod:`~scipy.spatial.distance.hamming`
+    )METRIC",
     NULL
   },
   {NULL}  /* Sentinel */
@@ -1152,9 +1219,10 @@ static PyGetSetDef py_annoy_getset[] = {
 //
 // Internally Annoy only has a boolean `verbose(bool)`;
 // we map level >= 1 → verbose=true, level <= 0 → verbose=false.
-static PyObject* py_an_verbose(py_annoy* self,
-                               PyObject* args,
-                               PyObject* kwargs) {
+static PyObject* py_an_verbose(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   int level = 1;  // default; keeps backwards compatibility with verbose(1)
   static const char* kwlist[] = {"level", NULL};
 
@@ -1172,16 +1240,18 @@ static PyObject* py_an_verbose(py_annoy* self,
   // If index not yet created → just store; will apply in py_an_init or
   // when the index is constructed lazily.
   if (!self->ptr) {
-    return NULL;
+    // Chaining: a.build(...).save(...).info()
+    PY_RETURN_SELF;  // Py_RETURN_TRUE;  // stored for later, not an error
   }
 
   bool verbose_flag = (level >= 1);
   self->ptr->verbose(verbose_flag);
-  Py_RETURN_TRUE; // PY_RETURN_SELF;
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF;  // Py_RETURN_TRUE;
 }
 
 // Seed control:
-//   set_seed(seed: int = 0) -> Annoy
+//   set_seed(seed: int = 0) -> None | Annoy
 //
 // The underlying RNG is deterministic for a given `seed`,
 // so calling `set_seed` with the same value and same data / n_trees
@@ -1194,23 +1264,29 @@ static PyObject* py_an_verbose(py_annoy* self,
 // If called before the index is created, we just store the seed
 // and apply it when the C++ index appears.
 static PyObject* py_an_set_seed(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
-  long seed_arg = static_cast<long>(0ULL);
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
+  // long seed_arg = static_cast<long>(0ULL);
+  unsigned long long seed_arg = 0ULL;
   static const char* kwlist[] = {"seed", NULL};
 
   // Optional integer argument: set_seed(seed=0)
   // if (!PyArg_ParseTuple(args, "|K", &seed_arg))
   if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "|l", (char**)kwlist, &seed_arg))
-    return NULL;
-
-  if (seed_arg < 0) {
-    PyErr_SetString(PyExc_ValueError,
-                    "seed must be a non-negative integer");
-    return NULL;
+          args, kwargs, "|K", (char**)kwlist, &seed_arg)) {
+    // Keep a stable, user-friendly error type/message for negatives/overflow
+    if (PyErr_ExceptionMatches(PyExc_OverflowError)) {
+      PyErr_Clear();
+      PyErr_SetString(PyExc_ValueError,
+                      "seed must be an integer in the range [0, 2**64 - 1]");
+    }
+    return NULL;  // Py_RETURN_NONE;
   }
+  // if (seed_arg < 0) {
+  //   PyErr_SetString(PyExc_ValueError, "seed must be a non-negative integer");
+  //   return NULL;  // Py_RETURN_NONE;
+  // }
 
   const uint64_t seed = static_cast<uint64_t>(seed_arg);
 
@@ -1219,12 +1295,15 @@ static PyObject* py_an_set_seed(
   self->has_pending_seed = true;
 
   // If index doesn’t exist yet → defer
-  if (!self->ptr)
-    return NULL;
-
+  // stored for later, not an error
+  if (!self->ptr) {
+    // Chaining: a.set_seed(...).build(...).save(...)
+    PY_RETURN_SELF;  // Py_RETURN_NONE
+  }
   // Else apply immediately
   self->ptr->set_seed(seed);
-  Py_RETURN_NONE; // PY_RETURN_SELF;
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
 // joblib serialize / deserialize need to dunder  __reduce__ and _rebuild and/or _deserialize_into_self
@@ -1237,31 +1316,39 @@ static PyObject* py_an_set_seed(
 // . all item vectors (the stored vectors)
 // In short: serialize = a RAM snapshot of the entire index.
 // When you deserialize, Annoy reads that binary blob and restores the same in-memory index. No rebuilding is needed.
-static PyObject* py_an_serialize(py_annoy* self,
-                                 PyObject* args,
-                                 PyObject* kwargs) {
+static PyObject* py_an_serialize(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   (void)args; (void)kwargs;
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError, "Annoy index is not initialized");
     return NULL;
   }
 
-  char* error = NULL;
-  vector<uint8_t> byte = self->ptr->serialize(&error);
-  if (byte.empty() && error) {
-    PyErr_SetString(PyExc_RuntimeError, error);
-    free(error);
-    return NULL;
-  }
+  // char* error = NULL;
+  // vector<uint8_t> byte = self->ptr->serialize(&error);
+  // if (byte.empty() && error) {
+  //   PyErr_SetString(PyExc_RuntimeError, error);
+  //   free(error);
+  //   return NULL;
+  // }
+  ScopedError error;
+  vector<uint8_t> byte = self->ptr->serialize(&error.err);
+  if (byte.empty() && error.err) {
+    PyErr_SetString(PyExc_RuntimeError, error.err);
+     return NULL;
+   }
 
   return PyBytes_FromStringAndSize(
       reinterpret_cast<const char*>(byte.data()),
       static_cast<Py_ssize_t>(byte.size()));
 }
 
-static PyObject* py_an_deserialize(py_annoy* self,
-                                   PyObject* args,
-                                   PyObject* kwargs) {
+static PyObject* py_an_deserialize(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   PyObject* byte_object = NULL;
   int prefault = 0;
 
@@ -1287,19 +1374,20 @@ static PyObject* py_an_deserialize(py_annoy* self,
       reinterpret_cast<uint8_t*>(PyBytes_AsString(byte_object));
   vector<uint8_t> v(raw_byte, raw_byte + length);
 
-  char* error = NULL;
-  if (!self->ptr->deserialize(&v, prefault != 0, &error)) {
-    PyErr_SetString(PyExc_IOError, error ? error : (char*)"deserialize failed");
-    if (error) free(error);
+  ScopedError error;
+  if (!self->ptr->deserialize(&v, prefault != 0, &error.err)) {
+    PyErr_SetString(PyExc_IOError, error.err ? error.err : (char*)"deserialize failed");
     return NULL;
   }
-  Py_RETURN_TRUE; // PY_RETURN_SELF;
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
 // Internal helper: get memory usage in byte.
 // Returns true on success, false if a Python error was set.
-static bool get_memory_usage_byte(py_annoy* self,
-                                   uint64_t* out_byte) {
+static bool get_memory_usage_byte(
+  py_annoy* self,
+  uint64_t* out_byte) {
   if (!out_byte) return false;
 
   if (!self->ptr) {
@@ -1307,30 +1395,25 @@ static bool get_memory_usage_byte(py_annoy* self,
     return true;
   }
 
-// #ifdef ANNOY_HAS_GET_N_BYTES
-//   size_t n = self->ptr->get_n_bytes();
-//   *out_byte = static_cast<uint64_t>(n);
-//   return true;
-// #else
-  char* err = NULL;
-  vector<uint8_t> tmp = self->ptr->serialize(&err);
-  if (err) {
-    PyErr_SetString(PyExc_RuntimeError, err);
-    free(err);
+  ScopedError err;
+  vector<uint8_t> tmp = self->ptr->serialize(&err.err);
+  if (err.err) {
+    PyErr_SetString(PyExc_RuntimeError, err.err);
     return false;
   }
   *out_byte = static_cast<uint64_t>(tmp.size());
   return true;
-// #endif
 }
 
 // Approximate memory usage: exact if ANNOY_HAS_GET_N_BYTES is defined,
 // otherwise via serialize() size.
 static PyObject* py_an_memory_usage(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
   // (void)args;
+  // (void)kwargs;
+  // No arguments allowed; enforce this so mistakes are caught early.
   static const char* kwlist[] = {NULL};
   if (!PyArg_ParseTupleAndKeywords(
           args, kwargs, "", (char**)kwlist))
@@ -1347,9 +1430,10 @@ static PyObject* py_an_memory_usage(
       static_cast<unsigned long long>(byte));
 }
 
-static PyObject* py_an_info(py_annoy* self,
-                            PyObject* args,
-                            PyObject* kwargs) {
+static PyObject* py_an_info(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   // No arguments allowed; enforce this so mistakes are caught early.
   static const char* kwlist[] = {NULL};
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "", (char**)kwlist)) {
@@ -1409,7 +1493,7 @@ static PyObject* py_an_info(py_annoy* self,
   PyObject* py_metric = PyUnicode_FromString(metric.c_str());
   PyObject* py_items  = PyLong_FromLong(n_items);
   PyObject* py_trees  = PyLong_FromLong(n_trees);
-  PyObject* py_byte  = PyLong_FromUnsignedLongLong(byte_u64);
+  PyObject* py_byte   = PyLong_FromUnsignedLongLong(byte_u64);
   PyObject* py_mib    = PyFloat_FromDouble(mib);
 
   if (!py_f || !py_metric || !py_items || !py_trees || !py_byte || !py_mib) {
@@ -1445,7 +1529,6 @@ static PyObject* py_an_info(py_annoy* self,
     Py_DECREF(d);
     return NULL;
   }
-
   return d;
 }
 
@@ -1453,9 +1536,10 @@ static PyObject* py_an_info(py_annoy* self,
 // add_item: accepts a 1D sequence (embedding) and supports lazy f/metric/init.
 // Public Python signature (kw names kept for backward compatibility):
 //   add_item(i: int, vector: Sequence[float]) -> Annoy
-static PyObject* py_an_add_item(py_annoy* self,
-                                PyObject* args,
-                                PyObject* kwargs) {
+static PyObject* py_an_add_item(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   int32_t indice;           // row id / item id
   PyObject* embedding_obj;  // Python sequence of floats
 
@@ -1498,13 +1582,13 @@ static PyObject* py_an_add_item(py_annoy* self,
       self->metric = "angular";
     }
 
-    char* error = NULL;
-    self->ptr = create_index_for_metric(self->f, self->metric, &error);
+    ScopedError error;
+    self->ptr = create_index_for_metric(self->f, self->metric, &error.err);
     if (!self->ptr) {
       PyErr_SetString(
           PyExc_RuntimeError,
-          error ? error : (char*)"Failed to create Annoy index for add_item");
-      if (error) free(error);
+          error.err ? error.err : (char*)"Failed to create Annoy index for add_item"
+      );
       return NULL;
     }
 
@@ -1519,19 +1603,27 @@ static PyObject* py_an_add_item(py_annoy* self,
   }
 
   // Finally, add the embedding to the index
-  char* error = NULL;
-  if (!self->ptr->add_item(indice, embedding.data(), &error)) {
-    PyErr_SetString(PyExc_RuntimeError, error ? error : (char*)"add_item failed");
-    if (error) free(error);
+  ScopedError error;
+  // Disallow adding items after the index has been built.
+  // Annoy core blocks add_item() only for loaded indexes; adding after build
+  // would silently yield incorrect query results.
+  if (self->ptr->get_n_trees() > 0) {
+    PyErr_SetString(PyExc_RuntimeError,
+                    "Index is already built; call unbuild() before add_item().");
     return NULL;
   }
-  // Enable method chaining (Annoy(...).add_item(...).add_item(...).build(...))
-  Py_RETURN_NONE; // PY_RETURN_SELF;
+  if (!self->ptr->add_item(indice, embedding.data(), &error.err)) {
+    PyErr_SetString(PyExc_RuntimeError, error.err ? error.err : (char*)"add_item failed");
+    return NULL;
+  }
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF; // Py_RETURN_NONE;
 }
 
-static PyObject* py_an_on_disk_build(py_annoy* self,
-                                     PyObject* args,
-                                     PyObject* kwargs) {
+static PyObject* py_an_on_disk_build(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   const char* filename = NULL;
   static const char* kwlist[] = {"fn", NULL};
 
@@ -1551,21 +1643,22 @@ static PyObject* py_an_on_disk_build(py_annoy* self,
   // NOTE:
   //  * on_disk_build is allowed to create a new file; we do NOT call file_exists().
   //  * Errors (invalid path, permission, etc.) are reported via `error`.
-  char* error = NULL;
-  if (!self->ptr->on_disk_build(filename, &error)) {
-    PyErr_SetString(PyExc_IOError, error ? error : (char*)"on_disk_build failed");
-    if (error) free(error);
+  ScopedError error;
+  if (!self->ptr->on_disk_build(filename, &error.err)) {
+    PyErr_SetString(PyExc_IOError, error.err ? error.err : (char*)"on_disk_build failed");
     return NULL;
   }
 
   // Remember the last on-disk path for __repr__ / info()
   self->on_disk_path = filename;
-  Py_RETURN_TRUE; // PY_RETURN_SELF;
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
-static PyObject* py_an_build(py_annoy* self,
-                             PyObject* args,
-                             PyObject* kwargs) {
+static PyObject* py_an_build(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   int n_trees;
   int n_jobs = -1;  // -1 → "auto" in core Annoy
 
@@ -1586,44 +1679,44 @@ static PyObject* py_an_build(py_annoy* self,
   }
 
   bool ok = false;
-  char* error = NULL;
+  ScopedError error;
 
   // Heavy work → release GIL
   Py_BEGIN_ALLOW_THREADS;
-  ok = self->ptr->build(n_trees, n_jobs, &error);
+  ok = self->ptr->build(n_trees, n_jobs, &error.err);
   Py_END_ALLOW_THREADS;
 
   if (!ok) {
-    PyErr_SetString(PyExc_RuntimeError, error ? error : (char*)"build failed");
-    if (error) free(error);
+    PyErr_SetString(PyExc_RuntimeError, error.err ? error.err : (char*)"build failed");
     return NULL;
   }
   // Chaining: a.build(...).save(...).info()
-  Py_RETURN_TRUE; // PY_RETURN_SELF;
+  PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
 static PyObject* py_an_unbuild(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
+  // No arguments allowed; enforce this so mistakes are caught early.
   static const char* kwlist[] = {NULL};
-  if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "", (char**)kwlist))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "", (char**)kwlist)) {
     return NULL;
+  }
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError, "Annoy index is not initialized");
     return NULL;
   }
 
-  char* error = NULL;
-  if (!self->ptr->unbuild(&error)) {
-    PyErr_SetString(PyExc_RuntimeError, error ? error : (char*)"unbuild failed");
-    if (error) free(error);
+  ScopedError error;
+  if (!self->ptr->unbuild(&error.err)) {
+    PyErr_SetString(PyExc_RuntimeError, error.err ? error.err : (char*)"unbuild failed");
     return NULL;
   }
   // Trees are gone, items remain; we keep on_disk_path (still refers to same file, if any).
-  Py_RETURN_TRUE; // PY_RETURN_SELF;
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
 // ---------------------------------------------------------------------
@@ -1636,9 +1729,10 @@ static PyObject* py_an_unbuild(
 // Read a tiny header from the .ann file (dimension, metric id).
 // Based on that, call create_index_for_metric(f_from_header, metric_from_header, &err).
 // Then ptr->load(...) on the newly-constructed index.
-static PyObject* py_an_save(py_annoy* self,
-                            PyObject* args,
-                            PyObject* kwargs) {
+static PyObject* py_an_save(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   const char* filename = NULL;
   int prefault_flag = 0;
   static const char* kwlist[] = {"fn", "prefault", NULL};
@@ -1650,26 +1744,28 @@ static PyObject* py_an_save(py_annoy* self,
 
   if (!self->ptr) {
     PyErr_SetString(
-        PyExc_RuntimeError,
-        "Annoy index is not initialized. "
-        "Call add_item() + build() (or load()) before save().");
+      PyExc_RuntimeError,
+      "Annoy index is not initialized. "
+      "Call add_item() + build() (or load()) before save()."
+    );
     return NULL;
   }
 
   bool prefault = (prefault_flag != 0);
 
-  char* error = NULL;
-  if (!self->ptr->save(filename, prefault, &error)) {
-    PyErr_SetString(PyExc_IOError,
-                    error ? error : (char*)"save failed");
-    if (error) free(error);
+  ScopedError error;
+  if (!self->ptr->save(filename, prefault, &error.err)) {
+    PyErr_SetString(
+      PyExc_IOError,
+      error.err ? error.err : (char*)"save failed"
+    );
     return NULL;
   }
 
   // This file is now a valid on-disk representation of this index
   self->on_disk_path = filename;
-
-  Py_RETURN_TRUE; // PY_RETURN_SELF;
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
 // ---------------------------------------------------------------------
@@ -1714,18 +1810,19 @@ static PyObject* py_an_load(
 
   bool prefault = (prefault_flag != 0);
 
-  char* error = NULL;
-  if (!self->ptr->load(filename, prefault, &error)) {
-    PyErr_SetString(PyExc_IOError,
-                    error ? error : (char*)"load failed");
-    if (error) free(error);
+  ScopedError error;
+  if (!self->ptr->load(filename, prefault, &error.err)) {
+    PyErr_SetString(
+      PyExc_IOError,
+      error.err ? error.err : (char*)"load failed"
+    );
     return NULL;
   }
 
   // Track backing path for __repr__ / .info()
   self->on_disk_path = filename;
-
-  Py_RETURN_TRUE; // PY_RETURN_SELF;
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
 // ---------------------------------------------------------------------
@@ -1734,13 +1831,14 @@ static PyObject* py_an_load(
 // Drop the mmap / on-disk mapping but keep the Python wrapper.
 // ---------------------------------------------------------------------
 static PyObject* py_an_unload(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
+  // No arguments allowed; enforce this so mistakes are caught early.
   static const char* kwlist[] = {NULL};
-  if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "", (char**)kwlist))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "", (char**)kwlist)) {
     return NULL;
+  }
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
@@ -1750,8 +1848,8 @@ static PyObject* py_an_unload(
 
   self->ptr->unload();
   self->on_disk_path.clear();   // no longer backed by any file
-
-  Py_RETURN_TRUE; // PY_RETURN_SELF;
+  // Chaining: a.build(...).save(...).info()
+  PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
 // ======================================================================
@@ -1842,9 +1940,9 @@ error:
 // * include_distances → if True, also return distances
 //
 static PyObject* py_an_get_nns_by_item(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
 
   int32_t indice;
   int32_t n_neighbors;
@@ -1852,36 +1950,36 @@ static PyObject* py_an_get_nns_by_item(
   int32_t include_distances = 0;
 
   static const char* kwlist[] = {
-      "i",
-      "n",
-      "search_k",
-      "include_distances",
-      NULL
+    "i",
+    "n",
+    "search_k",
+    "include_distances",
+    NULL
   };
 
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "ii|ii",
-          (char**)kwlist,
-          &indice,
-          &n_neighbors,
-          &search_k,
-          &include_distances)) {
+    args,
+    kwargs,
+    "ii|ii",
+    (char**)kwlist,
+    &indice,
+    &n_neighbors,
+    &search_k,
+    &include_distances)) {
     return NULL;
   }
 
   if (!self->ptr) {
     PyErr_SetString(
-        PyExc_RuntimeError,
-        "Annoy index is not initialized");
+      PyExc_RuntimeError,
+      "Annoy index is not initialized");
     return NULL;
   }
 
   if (n_neighbors <= 0) {
     PyErr_SetString(
-        PyExc_ValueError,
-        "`n` (number of neighbors) must be positive");
+      PyExc_ValueError,
+      "`n` (number of neighbors) must be positive");
     return NULL;
   }
 
@@ -1894,11 +1992,11 @@ static PyObject* py_an_get_nns_by_item(
 
   Py_BEGIN_ALLOW_THREADS;
   self->ptr->get_nns_by_item(
-      indice,
-      static_cast<size_t>(n_neighbors),
-      search_k,
-      &indice_result,
-      include_distances ? &distance_result : NULL);
+    indice,
+    static_cast<size_t>(n_neighbors),
+    search_k,
+    &indice_result,
+    include_distances ? &distance_result : NULL);
   Py_END_ALLOW_THREADS;
 
   return get_nns_to_python(indice_result, distance_result, include_distances);
@@ -1924,9 +2022,9 @@ static PyObject* py_an_get_nns_by_item(
 // * include_distances → if True, also return distances
 //
 static PyObject* py_an_get_nns_by_vector(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
 
   PyObject* vector_obj = NULL;
   int32_t   n_neighbors;
@@ -1934,45 +2032,45 @@ static PyObject* py_an_get_nns_by_vector(
   int32_t   include_distances = 0;
 
   static const char* kwlist[] = {
-      "vector",
-      "n",
-      "search_k",
-      "include_distances",
-      NULL
+    "vector",
+    "n",
+    "search_k",
+    "include_distances",
+    NULL
   };
 
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "Oi|ii",
-          (char**)kwlist,
-          &vector_obj,
-          &n_neighbors,
-          &search_k,
-          &include_distances)) {
+    args,
+    kwargs,
+    "Oi|ii",
+    (char**)kwlist,
+    &vector_obj,
+    &n_neighbors,
+    &search_k,
+    &include_distances)) {
     return NULL;
   }
 
   if (!self->ptr) {
     PyErr_SetString(
-        PyExc_RuntimeError,
-        "Annoy index is not initialized. "
-        "Create it with Annoy(f, metric='angular') and add_item() before querying.");
+      PyExc_RuntimeError,
+      "Annoy index is not initialized. "
+      "Create it with Annoy(f, metric='angular') and add_item() before querying.");
     return NULL;
   }
 
   if (n_neighbors <= 0) {
     PyErr_SetString(
-        PyExc_ValueError,
-        "`n` (number of neighbors) must be positive");
+      PyExc_ValueError,
+      "`n` (number of neighbors) must be positive");
     return NULL;
   }
 
   if (self->f <= 0) {
     PyErr_SetString(
-        PyExc_RuntimeError,
-        "Index dimension `f` is not set. "
-        "Call add_item() at least once before get_nns_by_vector().");
+      PyExc_RuntimeError,
+      "Index dimension `f` is not set. "
+      "Call add_item() at least once before get_nns_by_vector().");
     return NULL;
   }
 
@@ -1988,11 +2086,11 @@ static PyObject* py_an_get_nns_by_vector(
 
   Py_BEGIN_ALLOW_THREADS;
   self->ptr->get_nns_by_vector(
-      query.data(),
-      static_cast<size_t>(n_neighbors),
-      search_k,
-      &indice_result,
-      include_distances ? &distance_result : NULL);
+    query.data(),
+    static_cast<size_t>(n_neighbors),
+    search_k,
+    &indice_result,
+    include_distances ? &distance_result : NULL);
   Py_END_ALLOW_THREADS;
 
   return get_nns_to_python(indice_result, distance_result, include_distances);
@@ -2013,9 +2111,10 @@ static PyObject* py_an_get_nns_by_vector(
 // * i is the Annoy item id (“indice”) you passed to add_item()
 // * return is the stored embedding (length == f), as Python list[float]
 //
-static PyObject* py_an_get_item_vector(py_annoy* self,
-                                        PyObject* args,
-                                        PyObject* kwargs) {
+static PyObject* py_an_get_item_vector(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
   (void)kwargs;
   int32_t indice;
 
@@ -2072,9 +2171,9 @@ static PyObject* py_an_get_item_vector(py_annoy* self,
 //   get_distance(i: int, j: int) -> float
 //
 static PyObject* py_an_get_distance(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
   // (void)kwargs;
   int32_t i = 0;
   int32_t j = 0;
@@ -2108,15 +2207,14 @@ static PyObject* py_an_get_distance(
 //   get_n_items() -> int
 //
 static PyObject* py_an_get_n_items(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
-  // (void)args;
-  // (void)kwargs;
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
+  // No arguments allowed; enforce this so mistakes are caught early.
   static const char* kwlist[] = {NULL};
-  if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "", (char**)kwlist))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "", (char**)kwlist)) {
     return NULL;
+  }
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError, "Annoy index is not initialized");
@@ -2136,15 +2234,14 @@ static PyObject* py_an_get_n_items(
 //   get_n_trees() -> int
 //
 static PyObject* py_an_get_n_trees(
-    py_annoy*  self,
-    PyObject*  args,
-    PyObject*  kwargs) {
-  // (void)args;
-  // (void)kwargs;
+  py_annoy*  self,
+  PyObject*  args,
+  PyObject*  kwargs) {
+  // No arguments allowed; enforce this so mistakes are caught early.
   static const char* kwlist[] = {NULL};
-  if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "", (char**)kwlist))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "", (char**)kwlist)) {
     return NULL;
+  }
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError, "Annoy index is not initialized");
@@ -2156,6 +2253,278 @@ static PyObject* py_an_get_n_trees(
   return PyInt_FromLong(static_cast<long>(n));
 }
 
+// ------------------------------------------------------------------
+// Pickle / joblib support (deterministic)
+// ------------------------------------------------------------------
+
+static PyObject* py_an_getstate(
+  py_annoy* self,
+  PyObject* Py_UNUSED(ignored)) {
+  PyObject* state = PyDict_New();
+  if (!state) return NULL;
+
+  // versioned state for forward compatibility
+  PyObject* v = PyLong_FromLong(1);
+  if (!v || PyDict_SetItemString(state, "_pickle_version", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
+  Py_DECREF(v);
+
+  v = PyLong_FromLong((long)self->f);
+  if (!v || PyDict_SetItemString(state, "f", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  Py_DECREF(v);
+
+  v = PyUnicode_FromString(self->metric.c_str());
+  if (!v || PyDict_SetItemString(state, "metric", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  Py_DECREF(v);
+
+  if (!self->on_disk_path.empty()) {
+    v = PyUnicode_FromString(self->on_disk_path.c_str());
+  } else {
+    Py_INCREF(Py_None);
+    v = Py_None;
+  }
+  if (PyDict_SetItemString(state, "on_disk_path", v) < 0) { Py_DECREF(v); Py_DECREF(state); return NULL; }
+  Py_DECREF(v);
+
+  v = PyBool_FromLong(self->has_pending_seed ? 1 : 0);
+  if (!v || PyDict_SetItemString(state, "has_pending_seed", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  Py_DECREF(v);
+
+  v = PyLong_FromUnsignedLongLong((unsigned long long)self->pending_seed);
+  if (!v || PyDict_SetItemString(state, "pending_seed", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  Py_DECREF(v);
+
+  v = PyBool_FromLong(self->has_pending_verbose ? 1 : 0);
+  if (!v || PyDict_SetItemString(state, "has_pending_verbose", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  Py_DECREF(v);
+
+  v = PyLong_FromLong((long)self->pending_verbose);
+  if (!v || PyDict_SetItemString(state, "pending_verbose", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  Py_DECREF(v);
+
+  // Index payload snapshot (or None if lazy/uninitialized)
+  if (!self->ptr) {
+    Py_INCREF(Py_None);
+    v = Py_None;
+  } else {
+    ScopedError error;
+    vector<uint8_t> bytes = self->ptr->serialize(&error.err);
+    if (bytes.empty() && error.err) {
+      PyErr_SetString(PyExc_RuntimeError, error.err);
+      Py_DECREF(state);
+      return NULL;
+    }
+    v = PyBytes_FromStringAndSize((const char*)bytes.data(), (Py_ssize_t)bytes.size());
+    if (!v) { Py_DECREF(state); return NULL; }
+  }
+  if (PyDict_SetItemString(state, "data", v) < 0) { Py_DECREF(v); Py_DECREF(state); return NULL; }
+  Py_DECREF(v);
+
+  return state;
+}
+
+static PyObject* py_an_setstate(
+  py_annoy* self,
+  PyObject* state) {
+  if (!PyDict_Check(state)) {
+    PyErr_SetString(PyExc_TypeError, "__setstate__ expects a dict");
+    return NULL;
+  }
+
+  // Reset object (no logic change, just state hygiene)
+  if (self->ptr) { delete self->ptr; self->ptr = NULL; }
+  self->f = 0;
+  self->metric.clear();
+  self->on_disk_path.clear();
+  self->pending_seed        = 0ULL;
+  self->pending_verbose     = 0;
+  self->has_pending_seed    = false;
+  self->has_pending_verbose = false;
+
+  // f
+  PyObject* f_obj = PyDict_GetItemString(state, "f");  // borrowed
+  if (f_obj && f_obj != Py_None) {
+    long fv = PyLong_AsLong(f_obj);
+    if (fv == -1 && PyErr_Occurred()) return NULL;
+    if (fv < 0) {
+      PyErr_SetString(PyExc_ValueError, "`f` in pickle state must be non-negative");
+      return NULL;
+    }
+    self->f = (int)fv;
+  }
+
+  // metric
+  PyObject* metric_obj = PyDict_GetItemString(state, "metric");  // borrowed
+  if (metric_obj && metric_obj != Py_None) {
+    const char* metric_c = PyUnicode_AsUTF8(metric_obj);
+    if (!metric_c) return NULL;
+    std::string nm = normalize_metric(metric_c);
+    if (nm.empty()) {
+      PyErr_SetString(PyExc_ValueError, "Invalid `metric` in pickle state");
+      return NULL;
+    }
+    self->metric = nm;
+  }
+
+  // on_disk_path (optional metadata)
+  PyObject* odp = PyDict_GetItemString(state, "on_disk_path");  // borrowed
+  if (odp && odp != Py_None) {
+    const char* p = PyUnicode_AsUTF8(odp);
+    if (!p) return NULL;
+    self->on_disk_path = p;
+  }
+
+  // pending seed / verbose
+  PyObject* hps = PyDict_GetItemString(state, "has_pending_seed");
+  if (hps) self->has_pending_seed = (PyObject_IsTrue(hps) == 1);
+  PyObject* ps = PyDict_GetItemString(state, "pending_seed");
+  if (ps && ps != Py_None) {
+    unsigned long long s = PyLong_AsUnsignedLongLong(ps);
+    if (PyErr_Occurred()) return NULL;
+    self->pending_seed = (uint64_t)s;
+  }
+
+  PyObject* hpv = PyDict_GetItemString(state, "has_pending_verbose");
+  if (hpv) self->has_pending_verbose = (PyObject_IsTrue(hpv) == 1);
+  PyObject* pv = PyDict_GetItemString(state, "pending_verbose");
+  if (pv && pv != Py_None) {
+    long lv = PyLong_AsLong(pv);
+    if (lv == -1 && PyErr_Occurred()) return NULL;
+    self->pending_verbose = (int)lv;
+  }
+
+  // data (optional)
+  PyObject* data = PyDict_GetItemString(state, "data");  // borrowed
+  if (data && data != Py_None) {
+    if (!PyBytes_Check(data)) {
+      PyErr_SetString(PyExc_TypeError, "`data` in pickle state must be bytes or None");
+      return NULL;
+    }
+    if (self->metric.empty()) {
+      PyErr_SetString(PyExc_ValueError, "Pickle state has `data` but missing/empty `metric`");
+      return NULL;
+    }
+    // Create index and restore snapshot
+    ScopedError error;
+    self->ptr = create_index_for_metric(self->f, self->metric, &error.err);
+    if (!self->ptr) {
+      PyErr_SetString(PyExc_RuntimeError, error.err ? error.err : "Failed to create Annoy index");
+      return NULL;
+    }
+
+    char* buf = NULL;
+    Py_ssize_t n = 0;
+    if (PyBytes_AsStringAndSize(data, &buf, &n) < 0) {
+      delete self->ptr; self->ptr = NULL;
+      return NULL;
+    }
+    vector<uint8_t> v((uint8_t*)buf, (uint8_t*)buf + (size_t)n);
+
+    ScopedError derr;
+    if (!self->ptr->deserialize(&v, false, &derr.err)) {
+      // PyErr_SetString(PyExc_IOError, derr.err ? derr.err : (char*)"deserialize failed");
+      // delete self->ptr; self->ptr = NULL;
+      // return NULL;
+
+      // Compatibility: if snapshot deserialization fails, but a backing .annoy
+      // file exists, try to restore from disk (keeps old/broken pickles usable).
+      const std::string deser_msg = derr.err ? derr.err : "deserialize failed";
+
+      if (!self->on_disk_path.empty()) {
+        const char* path = self->on_disk_path.c_str();
+
+        // Deterministic: raise FileNotFoundError if the path is missing.
+        if (!file_exists(path)) {
+          delete self->ptr; self->ptr = NULL;
+          return NULL;
+        }
+
+        // Reset index before attempting disk load (avoid partially-initialized state).
+        delete self->ptr; self->ptr = NULL;
+
+        ScopedError cerr;
+        self->ptr = create_index_for_metric(self->f, self->metric, &cerr.err);
+        if (!self->ptr) {
+          PyErr_SetString(PyExc_RuntimeError, cerr.err ? cerr.err : "Failed to create Annoy index");
+          return NULL;
+        }
+
+        ScopedError lerr;
+        if (!self->ptr->load(path, false, &lerr.err)) {
+          PyErr_Format(PyExc_IOError,
+                       "deserialize failed (%s); fallback load('%s') also failed (%s)",
+                       deser_msg.c_str(),
+                       path,
+                       lerr.err ? lerr.err : "load failed");
+          delete self->ptr; self->ptr = NULL;
+          return NULL;
+        }
+      } else {
+        PyErr_SetString(PyExc_IOError, deser_msg.c_str());
+        delete self->ptr; self->ptr = NULL;
+        return NULL;
+      }
+    }
+  }
+
+  // Re-apply preferences (matches existing semantics)
+  if (self->ptr) {
+    if (self->has_pending_seed) self->ptr->set_seed(self->pending_seed);
+    if (self->has_pending_verbose) self->ptr->verbose(self->pending_verbose >= 1);
+  }
+
+  Py_RETURN_NONE;
+}
+
+static PyObject* py_an_reduce_ex(
+  py_annoy* self,
+  PyObject* args) {
+  int protocol = 0;
+  if (!PyArg_ParseTuple(args, "i", &protocol)) return NULL;
+  (void)protocol;
+
+  PyObject* state = py_an_getstate(self, NULL);
+  if (!state) return NULL;
+
+  PyObject* cls = (PyObject*)Py_TYPE(self);
+  Py_INCREF(cls);
+  PyObject* empty_args = PyTuple_New(0);
+  if (!empty_args) { Py_DECREF(cls); Py_DECREF(state); return NULL; }
+
+  PyObject* out = PyTuple_New(3);
+  if (!out) { Py_DECREF(cls); Py_DECREF(empty_args); Py_DECREF(state); return NULL; }
+  PyTuple_SET_ITEM(out, 0, cls);
+  PyTuple_SET_ITEM(out, 1, empty_args);
+  PyTuple_SET_ITEM(out, 2, state);
+  return out;
+}
+
+static PyObject* py_an_reduce(
+  py_annoy* self,
+  PyObject* Py_UNUSED(ignored)) {
+  PyObject* state = py_an_getstate(self, NULL);
+  if (!state) return NULL;
+
+  PyObject* cls = (PyObject*)Py_TYPE(self);
+  Py_INCREF(cls);
+  PyObject* empty_args = PyTuple_New(0);
+  if (!empty_args) { Py_DECREF(cls); Py_DECREF(state); return NULL; }
+
+  PyObject* out = PyTuple_New(3);
+  if (!out) { Py_DECREF(cls); Py_DECREF(empty_args); Py_DECREF(state); return NULL; }
+  PyTuple_SET_ITEM(out, 0, cls);
+  PyTuple_SET_ITEM(out, 1, empty_args);
+  PyTuple_SET_ITEM(out, 2, state);
+  return out;
+}
+
+
+
+
+// TODO: Enable method chaining by self : Annoy (Annoy(...).add_item(...).add_item(...).build(...))
 // METH_NOARGS | METH_VARARGS | METH_KEYWORDS
 static PyMethodDef py_annoy_methods[] = {
   // ------------------------------------------------------------------
@@ -2183,10 +2552,8 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls, e.g.::\n"
-    "\n"
-    "        index.add_item(0, v0).add_item(1, v1)\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2220,8 +2587,8 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2245,8 +2612,8 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2277,8 +2644,9 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
+    "\n"
   },
 
   {
@@ -2300,8 +2668,8 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2320,8 +2688,8 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2346,8 +2714,8 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2366,7 +2734,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "byte : bytes\n"
+    "byte : bytes or None\n"
     "    Opaque binary blob containing the entire Annoy index.\n"
     "\n"
     "Notes\n"
@@ -2398,8 +2766,9 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
+    "\n"
   },
 
   {
@@ -2413,7 +2782,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "n_byte : int\n"
+    "n_byte : int or None\n"
     "    Approximate number of byte used by the index. When native\n"
     "    support is unavailable, this is estimated via\n"
     "    :meth:`serialize`.\n"
@@ -2428,7 +2797,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_get_nns_by_item,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "get_nns_by_item(i, n, search_k=-1, include_distances=True)\n"
+    "get_nns_by_item(i, n, search_k=-1, include_distances=False)\n"
     "\n"
     "Return the `n` nearest neighbours for a stored sample.\n"
     "\n"
@@ -2443,7 +2812,7 @@ static PyMethodDef py_annoy_methods[] = {
     "    Maximum number of nodes to inspect. Larger values usually\n"
     "    improve recall at the cost of slower queries. If ``-1``,\n"
     "    defaults to approximately ``n_trees * n``.\n"
-    "include_distances : bool, optional (default=True)\n"
+    "include_distances : bool, optional (default=False)\n"
     "    If True, return a ``(indices, distances)`` tuple, otherwise\n"
     "    only the list of indices.\n"
     "\n"
@@ -2460,25 +2829,12 @@ static PyMethodDef py_annoy_methods[] = {
     "get_nns_by_vector : Query with an explicit query embedding.\n"
   },
 
-  // Backwards-compatible alias
-  {
-    "get_nns_by_item",
-    (PyCFunction)py_an_get_nns_by_item,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "get_nns_by_item(i, n, search_k=-1, include_distances=True)\n"
-    "\n"
-    "Alias for :meth:`get_nns_by_item`.\n"
-    "\n"
-    "See :meth:`get_nns_by_item` for full documentation.\n"
-  },
-
   {
     "get_nns_by_vector",
     (PyCFunction)py_an_get_nns_by_vector,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "get_nns_by_vector(vector, n, search_k=-1, include_distances=True)\n"
+    "get_nns_by_vector(vector, n, search_k=-1, include_distances=False)\n"
     "\n"
     "Return the `n` nearest neighbours for a query embedding.\n"
     "\n"
@@ -2492,7 +2848,7 @@ static PyMethodDef py_annoy_methods[] = {
     "    Maximum number of nodes to inspect. Larger values typically\n"
     "    improve recall at the cost of slower queries. If ``-1``,\n"
     "    defaults to approximately ``n_trees * n``.\n"
-    "include_distances : bool, optional (default=True)\n"
+    "include_distances : bool, optional (default=False)\n"
     "    If True, return a ``(indices, distances)`` tuple, otherwise\n"
     "    only the list of indices.\n"
     "\n"
@@ -2524,7 +2880,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "vector : list[float]\n"
+    "vector : list[float] or None\n"
     "    Stored embedding of length ``f``.\n"
   },
 
@@ -2544,7 +2900,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "d : float\n"
+    "d : float or None\n"
     "    Distance between items ``i`` and ``j`` under the current\n"
     "    metric (angular, euclidean, manhattan, dot or hamming).\n"
   },
@@ -2560,7 +2916,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "n_items : int\n"
+    "n_items : int or None\n"
     "    Number of items that have been added and are currently\n"
     "    addressable by nearest-neighbour queries.\n"
   },
@@ -2576,7 +2932,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "n_trees : int\n"
+    "n_trees : int or None\n"
     "    Number of trees that have been built.\n"
   },
 
@@ -2589,21 +2945,21 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_set_seed,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "set_seed(seed=None)\n"
+    "set_seed(seed=0)\n"
     "\n"
     "Set the random seed used for tree construction.\n"
     "\n"
     "Parameters\n"
     "----------\n"
     "seed : int, optional\n"
-    "    Non-negative integer seed. If omitted, a library-specific\n"
-    "    default is used. For strict reproducibility, always call\n"
-    "    this method explicitly before :meth:`build`.\n"
+    "    Non-negative integer seed. If not provided, ``0`` is used.\n"
+    "    If you never call :meth:`set_seed`, Annoy uses its internal\n"
+    "    default seed (still deterministic).\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "None\n"
-    "    This method returns ``None``.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -2632,8 +2988,9 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "self : Annoy\n"
-    "    The index itself, allowing chained calls.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self).\n"
+    "\n"
   },
 
   // ------------------------------------------------------------------
@@ -2671,7 +3028,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Returns\n"
     "-------\n"
-    "info : dict\n"
+    "info : dict or None\n"
     "    Dictionary describing the current index state.\n"
     "\n"
     "Examples\n"
@@ -2682,6 +3039,22 @@ static PyMethodDef py_annoy_methods[] = {
     ">>> info['n_items']\n"
     "1000\n"
   },
+
+  // Pickle / joblib
+  {
+    "__getstate__",
+    (PyCFunction)py_an_getstate,
+    METH_NOARGS,
+    (char*)"Return state for pickle/joblib."
+  },
+  {
+    "__setstate__",
+    (PyCFunction)py_an_setstate,
+    METH_O,
+    (char*)"Restore state from pickle/joblib."
+  },
+  {"__reduce_ex__", (PyCFunction)py_an_reduce_ex, METH_VARARGS, (char*)"Pickle protocol support."},
+  {"__reduce__",    (PyCFunction)py_an_reduce,    METH_NOARGS,  (char*)"Pickle support."},
 
   {NULL, NULL, 0, NULL}  // Sentinel
 };
@@ -2716,7 +3089,8 @@ static PySequenceMethods py_annoy_as_sequence = {
 };
 
 // __repr__(self) → "Annoy(f=128, metric='angular', n_items=1000, n_trees=10, on_disk_path=/path)"
-static PyObject* py_an_repr(PyObject* obj) {
+static PyObject* py_an_repr(
+  PyObject* obj) {
   py_annoy* self = reinterpret_cast<py_annoy*>(obj);
 
   // Dimension (may still be 0 if we are in lazy mode)
@@ -2751,7 +3125,9 @@ static PyObject* py_an_repr(PyObject* obj) {
 
 static PyTypeObject py_annoy_type = {
   PyVarObject_HEAD_INIT(NULL, 0)
-  "annoy.Annoy",                            /* tp_name */
+  // "annoy.Annoy",                            /* tp_name Make type/docstring names match the public API prints like <class 'annoy.Annoy'> */
+  // "scikitplot.cexternals._annoy.Annoy",     /* tp_name Make type/docstring names match the public API keep in real compiled module*/
+  "scikitplot.annoy.Annoy",                 /* tp_name Make type/docstring names match the public API high-level wrapper */
   sizeof(py_annoy),                         /* tp_basicsize */
   0,                                        /* tp_itemsize */
   (destructor)py_an_dealloc,                /* tp_dealloc */
@@ -2826,17 +3202,17 @@ static void AddVersionConstants(PyObject* m) {
 #endif
 
 // Standard NumPy C-API initialization helper.
-#if PY_MAJOR_VERSION >= 3
-static bool InitNumpyIfNeeded() {
-  if (PyArray_API == NULL) {
-    import_array();  // sets an error on failure
-    if (PyErr_Occurred()) {
-      return false;
-    }
-  }
-  return true;
-}
-#endif
+// #if PY_MAJOR_VERSION >= 3
+// static bool InitNumpyIfNeeded() {
+//   if (PyArray_API == NULL) {
+//     import_array();  // sets an error on failure
+//     if (PyErr_Occurred()) {
+//       return false;
+//     }
+//   }
+//   return true;
+// }
+// #endif
 
 // ---------------------------------------------------------------------
 // 3. Internal factory: create the module and register all types
@@ -2851,7 +3227,7 @@ static PyObject* create_module(void) {
 
 #if PY_MAJOR_VERSION >= 3
   // Initialize NumPy C API (safe to call in both Py2 and Py3)
-  if (!InitNumpyIfNeeded()) return NULL;
+  // if (!InitNumpyIfNeeded()) return NULL;
   m = PyModule_Create(&annoylibmodule);
 #else
   m = Py_InitModule("annoylib", module_methods);

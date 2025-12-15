@@ -253,13 +253,12 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     # "get_include",
                     "Annoy",
-                    "AnnoyBase",
                     "AnnoyIndex",
                     "Index",
                 ],
             },
             {
-                "title": "ANNoy Mixins",
+                "title": "ANNoy ``Index`` Mixins",
                 "description": None,
                 "autosummary": [
                     "CompressMode",
@@ -409,7 +408,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "_annoy",
                     "_annoy.Annoy",
-                    "_annoy.AnnoyBase",
+                    "_annoy.AnnoyIndex",
                 ],
             },
             {

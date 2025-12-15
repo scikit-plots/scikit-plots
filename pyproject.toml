@@ -142,6 +142,7 @@ classifiers = [
   # "Operating System :: OS Independent",
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX",
+  "Operating System :: POSIX :: Linux",
   "Operating System :: Unix",
   "Operating System :: MacOS",
   'Programming Language :: C',

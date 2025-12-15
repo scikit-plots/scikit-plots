@@ -18,7 +18,7 @@ import random; random.seed(0)
 # from annoy import Annoy, AnnoyIndex
 from scikitplot.annoy import Annoy, AnnoyIndex, Index
 
-print(AnnoyIndex.__doc__)
+print(Index.__doc__)
 
 # %%
 
@@ -32,7 +32,7 @@ OUT = HERE / "../../../scikitplot/annoy/tests" / "test_v2.tree"
 
 f = 10
 n = 1000
-idx = AnnoyIndex(f, "angular")
+idx = Index(f, "angular")
 for i in range(n):
     idx.add_item(i, [random.gauss(0, 1) for _ in range(f)])
 

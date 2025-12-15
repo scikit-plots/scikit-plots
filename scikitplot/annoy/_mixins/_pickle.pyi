@@ -4,12 +4,12 @@ from typing import Any, Literal
 
 from typing_extensions import Self, TypeAlias
 
-from . import annoylib
+from .. import annoylib
 
 PickleMode: TypeAlias = Literal["auto", "byte", "disk"]
 CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
 
-class AnnoyBase(annoylib.Annoy):
+class PathAwareAnnoy(annoylib.Annoy):
     """
     Thin Python subclass that tracks last known on-disk path.
     """  # noqa: PYI021
@@ -20,7 +20,7 @@ class AnnoyBase(annoylib.Annoy):
     def load(self, path: str, prefault: bool = False) -> Self: ...
     def save(self, path: str, prefault: bool = False) -> Self: ...
 
-class PickleMixin(AnnoyBase):
+class PickleMixin(PathAwareAnnoy):
     """
     Strict persistence support for pickle/joblib/cloudpickle.
     """  # noqa: PYI021
