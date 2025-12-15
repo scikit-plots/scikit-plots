@@ -3261,7 +3261,8 @@ static PyObject* py_an_repr(
 
 static PyTypeObject py_annoy_type = {
   PyVarObject_HEAD_INIT(NULL, 0)
-  "annoy.Annoy",                            /* tp_name matches the actual exported module/object prints like <class 'annoy.Annoy'> */
+  // "annoy.Annoy",                            /* tp_name matches the actual exported module/object prints like <class 'annoy.Annoy'> */
+  "scikitplot.cexternals._annoy.Annoy",     /* tp_name */
   sizeof(py_annoy),                         /* tp_basicsize */
   0,                                        /* tp_itemsize */
   (destructor)py_an_dealloc,                /* tp_dealloc */
