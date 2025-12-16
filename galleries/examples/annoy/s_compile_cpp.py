@@ -13,6 +13,8 @@ Designed so Sphinx can execute it directly using::
     >>> python plot_s_compile_cpp.py 10 1000 123
 """
 
+# %%
+
 import contextlib
 import subprocess
 import sys
@@ -67,7 +69,8 @@ def compile_cpp():
         cxx,
         str(CPP_FILE),
         "-DANNOYLIB_MULTITHREADED_BUILD",
-        "-std=c++14",
+        # "-std=c++17",
+        "-std=c++14",  # non-copyable (because of std::atomic)
         "-pthread",
         "-o",
         str(BIN_FILE)
@@ -110,5 +113,8 @@ def main():
 
 
 if __name__ == "__main__":
-    with contextlib.suppress(Exception, NameError, TypeError, ValueError):
-        main()
+    # with contextlib.suppress(Exception, NameError, TypeError, ValueError):
+    #     main()
+    pass
+
+# %%

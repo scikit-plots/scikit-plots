@@ -29,12 +29,23 @@ int precision(int f=40, int n=1000000, int seed=0){
 	std::uniform_int_distribution<int> distr_node(0, n-1); // for selecting random nodes
 
     //=========================================================
-    // Build index
+    // Build index AnnoyIndexSingleThreadedBuildPolicy, AnnoyIndexMultiThreadedBuildPolicy
     //=========================================================
 	// Use deterministic single-threaded Annoy (bit reproducible)
-    // AnnoyIndex<int, double, Angular, Kiss32Random, AnnoyIndexMultiThreadedBuildPolicy> t(f);
-	AnnoyIndex<int, double, Angular, Kiss32Random, AnnoyIndexSingleThreadedBuildPolicy> t =
-		AnnoyIndex<int, double, Angular, Kiss32Random, AnnoyIndexSingleThreadedBuildPolicy>(f);
+
+	// copy/move initialization:  "-std=c++14",  # non-copyable (because of std::atomic)
+	// T t = T(args);
+	// Index t = Index(f);      // can trigger copy/move
+	// auto t = Index(f);       // same issue
+	// AnnoyIndex<int, double, Angular, Kiss32Random, AnnoyIndexMultiThreadedBuildPolicy> t =
+	// auto t =
+	// 	AnnoyIndex<int, double, Angular, Kiss32Random, AnnoyIndexMultiThreadedBuildPolicy>(f);
+
+	// direct initialization:
+	// using Index = AnnoyIndex<int, double, Angular, Kiss32Random, AnnoyIndexSingleThreadedBuildPolicy>;
+	// Index t(f);     // C++14 OK
+	AnnoyIndex<int, double, Angular, Kiss32Random, AnnoyIndexMultiThreadedBuildPolicy> t{f};
+
 	// Seed Annoy internal RNG
 	t.set_seed(seed);
 
