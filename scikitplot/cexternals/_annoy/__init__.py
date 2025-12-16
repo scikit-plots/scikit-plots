@@ -16,35 +16,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-High-level Python interface for the C++ Annoy backend.
+High-level Python interface for the C++ ANNoy backend.
 
-Spotify Annoy (Approximate Nearest Neighbors Oh Yeah).
+Spotify ANNoy [0]_ (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
 
-* Annoy       → low-level C-extension type (stable)
-* AnnoyIndex  → alias of annoylib.Annoy Index
-
-.. seealso::
-    * :ref:`annoy-index`
-    * https://github.com/spotify/annoy
-    * https://pypi.org/project/annoy
-
-.. note::
-    * https://www.sandgarden.com/learn/faiss
-    * https://www.sandgarden.com/learn/annoy-approximate-nearest-neighbors-oh-yeah
-
-.. seealso::
-    * https://en.wikipedia.org/wiki/Nearest_neighbor_search
-    * https://www.researchgate.net/publication/386374637_Optimizing_Domain-Specific_Image_Retrieval_A_Benchmark_of_FAISS_and_Annoy_with_Fine-Tuned_Features
-    * https://www.researchgate.net/publication/363234433_Analysis_of_Image_Similarity_Using_CNN_and_ANNOY
-    * https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/XboxInnerProduct.pdf
-    * https://link.springer.com/chapter/10.1007/978-981-97-7831-7_2
-
-References
-----------
-.. [1] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
-   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
+* Annoy       → low-level C-extension type (stable) `c-api powered new features <https://scikit-plots.github.io/dev/modules/generated/scikitplot.cexternals._annoy.Annoy.html>`_
+* AnnoyIndex  → alias of annoy.Annoy Index
 
 Examples
 --------
@@ -58,9 +37,21 @@ Examples
 >>> t.add_item(0, [1] * f)
 >>> t.build(10)  # Build 10 trees
 >>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
+
+.. seealso::
+    * :ref:`ANNoy <annoy-index>`
+    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
+
+References
+----------
+.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
 """
 
 # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+# https://www.devasking.com/issue/passing-arguments-to-tpnew-and-tpinit-from-subtypes-in-python-c-api
 
 from __future__ import annotations
 

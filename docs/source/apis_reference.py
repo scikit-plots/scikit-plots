@@ -483,6 +483,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 # "title": None,
                 # "description": None,
+                "description": (
+                    _get_submodule("scikitplot.experimental", "__init__")
+                    # + "\n\n"
+                    # + _get_guide("experimental-index")
+                ),
                 "autosummary": [
                     "enable_ann_imputer",
                 ],

@@ -1,130 +1,211 @@
+..
+  https://devguide.python.org/documentation/markup/#sections
+  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
+  # with overline, for parts    : ######################################################################
+  * with overline, for chapters : **********************************************************************
+  = for sections                : ======================================================================
+  - for subsections             : ----------------------------------------------------------------------
+  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+.. # https://rsted.info.ucl.ac.be/
+.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+.. # https://documatt.com/restructuredtext-reference/element/admonition.html
+.. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+.. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+
+.. currentmodule:: scikitplot.cexternals._annoy
 
 .. _cexternals-annoy-index:
+
 ======================================================================
-ANNoy (experimental)
+spotify/ANNoy (experimental)
 ======================================================================
 
-This module contains some functions related to :py:mod:`~._annoy` under
-:py:mod:`~.cexternals` and extended to :py:mod:`~.annoy`.
+This page documents the Annoy [0]_ integration shipped with scikit-plots.
 
-.. seealso::
-   * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
-   * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
-   * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
-   * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
-   * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
-   * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
+- High-level API: :py:mod:`~scikitplot.annoy`
+- Low-level bindings: :py:mod:`~scikitplot.cexternals._annoy`
 
-
-.. seealso::
-   * :ref:`annoy-index`
-   * :py:obj:`~scikitplot.annoy.Index.from_low_level`
-   * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+Annoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
+for approximate nearest-neighbor search in high-dimensional vector spaces. [1]_
 
 TL;DR
-------------
-- What it is: C++ library with Python bindings, “Approximate Nearest Neighbors Oh Yeah” [1]_, [2]_
-- Origin: Developed at Spotify
-- Purpose: Search for points in space close to a query point
-- Index type: Forest of random projection trees
-- Memory: Supports large read-only file-based indexes, memory-mapped to allow sharing across processes
-- Installation: pip install --user annoy or clone C++ repo
-- Use: Fast approximate nearest neighbor search, especially for high-dimensional vector spaces
-- Example: Python snippet using AnnoyIndex from your provided info
-- Distance metrics: Euclidean, Manhattan, cosine, Hamming, dot (inner product)
-- Trade-offs / tuning: n_trees, search_k parameters for balancing speed vs. accuracy
+-----
 
-Introduction
-------------
-ANNoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
-to search for points in space that are close to a given query point. It also creates
-large read-only file-based data structures that are memory-mapped (mmap) into memory,
-so that many processes may share the same data.
+- **What it is:** C++ library with Python bindings for approximate nearest-neighbor (ANN) search. [1]_
+- **Origin:** Developed at Spotify (Hack Week). [1]_
+- **Since:** Open sourced in 2013. [3]_
+- **Index type:** Forest of random projection trees. [1]_
+- **Storage:** File-based indexes can be memory-mapped (mmap) and shared across processes. [1]_
+- **Tuning:** Use ``n_trees`` (build) and ``search_k`` (query) to trade accuracy for speed. [1]_
+- **Metrics:** Euclidean, Manhattan, cosine (angular), Hamming, dot (inner product). [1]_
 
-Background
-----------
-There are several libraries for nearest neighbor search. ANNoy is almost as fast as
-the fastest libraries, but it has a distinctive feature: it can use static files as
-indexes. This allows indexes to be shared across processes. Index creation is
-decoupled from loading, so indexes can be passed as files and mapped into memory quickly.
-ANNoy minimizes memory footprint, making indexes relatively small.
+Quick start
+-----------
 
-ANNoy was developed at Spotify for music recommendations. After matrix factorization,
-every user/item can be represented as a vector in f-dimensional space. ANNoy helps
-search for similar users/items efficiently, even with millions of vectors in
-high-dimensional spaces. It was originally built by Erik Bernhardsson during Hack Week.
-
-Installation
-------------
-Python version:
-
-    pip install --user annoy
-
-C++ version:
-
-    Clone the repo and include:
-
-        #include "annoylib.h"
-
-Features
---------
-- Distance metrics: Euclidean, Manhattan, cosine, Hamming, Dot (Inner) Product
-- Cosine distance = Euclidean distance of normalized vectors: sqrt(2 - 2 * cos(u, v))
-- Works best with <100 dimensions but performs well up to ~1,000 dimensions
-- Small memory usage
-- Supports memory sharing across processes
-- Index creation is separate from lookup; no additional items can be added after building
-- Native Python support (tested with 2.7, 3.6, 3.7)
-- On-disk index building for datasets too large to fit in RAM (contributed by Rene Hollander)
-
-Python Example
---------------
 .. code-block:: python
 
-    import random; random.seed(0)
-    # from annoy import Annoy, AnnoyIndex
-    # from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
-    from scikitplot.annoy import Annoy, AnnoyIndex, Index
+    import random
+    random.seed(0)
 
-    f = 40  # Length of item vector that will be indexed
-    t = AnnoyIndex(f, 'angular')
+    # from annoy import AnnoyIndex
+    # from scikitplot.cexternals._annoy import AnnoyIndex
+    from scikitplot.annoy import AnnoyIndex
+
+    f = 40
+    t = AnnoyIndex(f, "angular")
+
     for i in range(1000):
-        v = [random.gauss(0, 1) for z in range(f)]
+        v = [random.gauss(0, 1) for _ in range(f)]
         t.add_item(i, v)
 
-    t.build(10)  # 10 trees
-    t.save('test.ann')
+    t.build(10)            # n_trees
+    t.save("test.ann")
 
-    u = AnnoyIndex(f, 'angular')
-    u.load('test.ann')  # memory-mapped
-    print(u.get_nns_by_item(0, 1000))
+    u = AnnoyIndex(f, "angular")
+    u.load("test.ann")     # memory-mapped (mmap)
+    print(u.get_nns_by_item(0, 10))
 
-Notes
------
-- Accepts integer identifiers; memory allocated up to max(id)+1
-- C++ API is similar: include "annoylib.h"
-- No bounds checking is performed
-- Angular distance = Euclidean distance of normalized vectors
-- Hamming and Dot Product distances optimized with low-level implementations
+Workflow
+--------
 
-Trade-offs
-----------
-- `n_trees` (build-time) affects index size and precision
-- `search_k` (query-time) affects search accuracy vs speed
-- Prefaulting pages affects load time and early query performance
+1. Create an :class:`~.AnnoyIndex` with vector length ``f`` and a metric. [1]_
+2. Add items with :meth:`~.AnnoyIndex.add_item`. [1]_
+3. Build the forest with :meth:`~.AnnoyIndex.build`. [1]_
+4. Query with :meth:`~.AnnoyIndex.get_nns_by_item` or :meth:`~.AnnoyIndex.get_nns_by_vector`. [1]_
+5. Persist with :meth:`~.AnnoyIndex.save` and load with :meth:`~.AnnoyIndex.load`. [1]_
 
-Supported Platforms and Bindings
---------------------------------
-- Python, C++, R, Java (cosine only), Scala, Ruby, Go (experimental), Lua, Rust, .NET, Node
-- Available via conda for Linux, OS X, and Windows
+Important rules
+~~~~~~~~~~~~~~~
 
-Testing
--------
-Run tests using:
+- Every added vector must have length ``f``.
+- Add items before calling :meth:`~.AnnoyIndex.build`. [1]_
+- After :meth:`~.AnnoyIndex.build`, the index is used for queries. To add more items,
+  discard the forest with :meth:`~.AnnoyIndex.unbuild`, add items, and build again.
 
-    python setup.py nosetests
+Persistence and sharing
+-----------------------
+
+Save and load
+~~~~~~~~~~~~~
+
+- :meth:`~.AnnoyIndex.save` writes the index to a file.
+- :meth:`~.AnnoyIndex.load` memory-maps (mmap) the file for fast loading and sharing
+  across processes. [1]_
+
+Prefault (optional)
+~~~~~~~~~~~~~~~~~~~
+
+Some builds expose a ``prefault`` option for :meth:`~.AnnoyIndex.load`. When enabled,
+the loader may aggressively fault pages into memory. This is platform dependent. [1]_
+
+On-disk build (large datasets)
+------------------------------
+
+Annoy can build an index directly into a file on disk. This is intended for datasets
+that are too large to fit into memory during index construction. [1]_
+
+Workflow
+~~~~~~~~
+
+1. Create the index.
+2. Call :meth:`~.AnnoyIndex.on_disk_build` **before** adding any items. [1]_
+3. Add items.
+4. Call :meth:`~.AnnoyIndex.build`.
+5. Query the index, or load it from other processes with :meth:`~.AnnoyIndex.load`. [1]_
+
+Important rules
+~~~~~~~~~~~~~~~
+
+- Call :meth:`~.AnnoyIndex.on_disk_build` **before** :meth:`~.AnnoyIndex.add_item`. [1]_
+- After building in this mode, there is no need to call :meth:`~.AnnoyIndex.save`
+  because the file is already the backing store. [1]_
+
+Example
+~~~~~~~
+
+.. code-block:: python
+
+    import random
+    from scikitplot.annoy import AnnoyIndex
+
+    random.seed(0)
+    f = 40
+
+    a = AnnoyIndex(f, "angular")
+    a.on_disk_build("big.ann")
+
+    for i in range(1000):
+        v = [random.gauss(0, 1) for _ in range(f)]
+        a.add_item(i, v)
+
+    a.build(10)
+
+    # In another process, load the same file (mmap):
+    b = AnnoyIndex(f, "angular")
+    b.load("big.ann")
+    print(b.get_nns_by_item(0, 10))
+
+Tuning
+------
+
+- ``n_trees`` (build time):
+  Larger values usually improve recall but increase build time and memory usage. [1]_
+- ``search_k`` (query time):
+  Larger values usually improve recall but make queries slower. [1]_
+
+If ``search_k`` is not provided, Annoy uses a default based on the number of trees
+and the requested neighbor count. [1]_
+
+Practical tips
+--------------
+
+Choose stable item ids
+~~~~~~~~~~~~~~~~~~~~~~
+
+Annoy uses non-negative integer item ids and allocates storage up to ``max(id) + 1``. [1]_
+If your external ids are sparse or non-numeric, keep a separate mapping to compact ids.
+
+Multi-process serving
+~~~~~~~~~~~~~~~~~~~~~
+
+A common serving pattern is:
+
+1. Build once and write an index file.
+2. In each worker process, load the same file with :meth:`~.AnnoyIndex.load` (mmap) and query. [1]_
+
+Developer notes (C++)
+---------------------
+
+``AnnoyIndex`` is not copyable (it contains atomic state). In C++14, avoid copy
+initialization from temporaries. Prefer direct initialization::
+
+    using Index = Annoy::AnnoyIndex<int, double, Annoy::Angular, Annoy::Kiss32Random,
+                                    Annoy::AnnoyIndexSingleThreadedBuildPolicy>;
+    Index t(f);  // C++14 compatible
+
+See also
+--------
+
+.. seealso::
+    * :ref:`ANNoy <annoy-index>`
+    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
+
+.. seealso::
+   * :py:meth:`~scikitplot.annoy.Index.from_low_level`
+   * :py:mod:`pickle` (Python standard library)
+   * Alternative ANN libraries:
+     - https://github.com/nmslib/hnswlib
+     - https://github.com/spotify/voyager
 
 References
 ----------
-.. [1] http://en.wikipedia.org/wiki/Nearest_neighbor_search#Approximate_nearest_neighbor
+.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
+.. [1] https://github.com/spotify/annoy (README: API, mmap, prefault, on-disk build, tuning)
+.. [2] https://pypi.org/project/annoy/ (Project description)
+.. [3] https://erikbern.com/2015/05/03/annoy-now-without-boost-dependencies-and-with-python-3-support.html (History note: open sourced in 2013)

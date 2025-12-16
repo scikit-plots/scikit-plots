@@ -164,6 +164,33 @@ Formatting and style conventions
 It is useful to strive for consistency in the Matplotlib documentation.  Here
 are some formatting and style conventions that are used.
 
+::
+
+  =================
+  This is a heading
+  =================
+  # with overline, for parts
+  * with overline, for chapters
+  = for sections
+  - for subsections
+  ^ for subsubsections
+  " for paragraphs
+
+  one asterisk: *text* for emphasis (italics),
+  two asterisks: **text** for strong emphasis (boldface), and
+  backquotes: ``text`` for code samples.
+  escape with a backslash \
+
+  * This is a bulleted list.
+  * It has two items, the second
+    item uses two lines.
+
+  1. This is a numbered list.
+  2. It has two items too.
+
+  . This is a numbered list.
+  . It has two items too.
+
 Section formatting
 ^^^^^^^^^^^^^^^^^^
 

@@ -12,8 +12,7 @@ documentation.
 
 .. seealso::
 
-    For more information about contributing, see the :ref:`documenting-matplotlib`
-    section.
+    * For more information about contributing, see the :ref:`documenting-matplotlib` section.
 
 Expository language
 ===================

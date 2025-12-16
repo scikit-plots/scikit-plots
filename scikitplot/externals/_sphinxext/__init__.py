@@ -10,7 +10,7 @@
 # https://github.com/matplotlib/matplotlib/tree/main/lib/matplotlib/sphinxext
 
 """
-sphinxext.
+sphinxext [1]_.
 
 References
 ----------

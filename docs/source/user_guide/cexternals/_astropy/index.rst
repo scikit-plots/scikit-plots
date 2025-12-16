@@ -1,6 +1,8 @@
 
+.. currentmodule:: scikitplot.cexternals._astropy
 
 .. _cexternals-astropy-index:
+
 ======================================================================
 Astropy (experimental)
 ======================================================================
