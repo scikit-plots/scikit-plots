@@ -5,12 +5,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Vector-based Approximate K-Nearest Neighbors (KNN) imputation :py:class:`~.ANNImputer`.
+Vector-based Approximate K-Nearest Neighbors (KNN) [1]_ imputation :py:class:`~.ANNImputer`.
 
-Annoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
+Annoy [2]_ (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
 to search for points in space that are close to a given query point.
 
-Voyager is an HNSW-based approximate nearest-neighbor index with a Python API.
+Voyager [3]_ is an HNSW-based approximate nearest-neighbor index with a Python API.
 
 Both libraries create large read-only file-based data structures that can be
 memory-mapped so that many processes may share the same data.

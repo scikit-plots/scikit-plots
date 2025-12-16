@@ -15,29 +15,51 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. currentmodule:: scikitplot.annoy
+
 .. _annoy-index:
+
+======================================================================
 ANNoy
 ======================================================================
 
-Examples relevant to the :py:mod:`~.annoy` module with  :py:mod:`~._annoy`.
+This page documents the Annoy [0]_ integration shipped with scikit-plots.
 
-:py:mod:`~.annoy` is a Python module that provides high-performance approximate nearest neighbor search in Python.
+- High-level API: :py:mod:`~scikitplot.annoy`
+- Low-level bindings: :py:mod:`~scikitplot.cexternals._annoy`
 
-.. seealso::
-   * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
-   * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
-   * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
-   * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
-   * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
-   * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
+High-level Python interface for the C++ Annoy backend.
 
-.. seealso::
-   * :ref:`cexternals-annoy-index`
-   * :py:obj:`~scikitplot.annoy.Index.from_low_level`
-   * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+This page documents :py:mod:`~scikitplot.annoy`. It provides a stable import path
+and a small, user-facing API built on the low-level bindings in
+:py:mod:`~scikitplot.cexternals._annoy`.
 
-Python Example
---------------
+.. note::
+   For backend and C-extension details, see :ref:`cexternals-annoy-index`.
+
+Exports
+--------
+
+This module exports:
+
+- :class:`~Annoy`:
+  Low-level C-extension type (stable).
+- :class:`~AnnoyIndex`:
+  Public alias of the Annoy index.
+- :class:`~Index`:
+  High-level Python wrapper subclass (picklable).
+
+Workflow
+--------
+
+1. Create an :class:`~AnnoyIndex` with a fixed vector length ``f`` and a metric.
+2. Add items with :meth:`~AnnoyIndex.add_item`.
+3. Build the forest with :meth:`~AnnoyIndex.build`.
+4. Save and load with :meth:`~AnnoyIndex.save` and :meth:`~AnnoyIndex.load`.
+
+Quick start
+-----------
+
 .. code-block:: python
 
     import random; random.seed(0)
@@ -47,6 +69,7 @@ Python Example
 
     f = 40  # Length of item vector that will be indexed
     t = AnnoyIndex(f, 'angular')
+
     for i in range(1000):
         v = [random.gauss(0, 1) for z in range(f)]
         t.add_item(i, v)
@@ -56,4 +79,73 @@ Python Example
 
     u = AnnoyIndex(f, 'angular')
     u.load('test.ann')  # memory-mapped
+
     print(u.get_nns_by_item(0, 1000))
+
+Notes
+-----
+
+* Every added vector must have length ``f``.
+* Add items before calling :meth:`~AnnoyIndex.build`.
+* Item ids are integers. Storage is allocated up to ``max(id) + 1``.
+
+High-level wrapper: :class:`~Index`
+-----------------------------------
+
+:class:`~Index` is a Pythonic wrapper for Annoy-like objects.
+
+It is designed for higher-level workflows where you want a Python object that is
+safe to serialize and move between processes.
+
+Mixins used by the high-level wrapper
+-------------------------------------
+
+The wrapper uses mixins to keep features separate and explicit.
+
+ANNoy Index Mixins
+------------------
+
+- ``CompressMode``
+- ``ManifestMixin``: Export/import metadata only.
+- ``NDArrayExportMixin``: Export mixin for Annoy-like classes.
+- ``ObjectIOMixin``: Persistence for the Python object (Index/Annoy alias),
+  not the raw Annoy index file.
+- ``PathAwareAnnoy``: Thin Python subclass that tracks the last known on-disk path.
+- ``PickleMixin``: Adds strict persistence support.
+- ``PickleMode``
+- ``SerializerBackend``
+- ``VectorOpsMixin``: High-level vector operations for Annoy-like objects.
+
+Further reading
+---------------
+
+.. seealso::
+    * :ref:`ANNoy <annoy-index>`
+    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
+
+.. seealso::
+   * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
+   * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
+   * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
+   * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
+   * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
+   * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
+
+   * Python pickling: https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+   * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+
+.. * Annoy overview: https://www.sandgarden.com/learn/annoy-approximate-nearest-neighbors-oh-yeah
+.. * FAISS overview: https://www.sandgarden.com/learn/faiss
+.. seealso::
+   * Nearest neighbor search (background): https://en.wikipedia.org/wiki/Nearest_neighbor_search
+   * https://www.researchgate.net/publication/386374637_Optimizing_Domain-Specific_Image_Retrieval_A_Benchmark_of_FAISS_and_Annoy_with_Fine-Tuned_Features
+   * https://www.researchgate.net/publication/363234433_Analysis_of_Image_Similarity_Using_CNN_and_ANNOY
+   * https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/XboxInnerProduct.pdf
+   * https://link.springer.com/chapter/10.1007/978-981-97-7831-7_2
+
+References
+----------
+.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_

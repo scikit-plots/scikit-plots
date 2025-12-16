@@ -15,33 +15,14 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _about-index:
+.. _cheatsheet-index:
 
 ================
-About Us/Project
+Cheatsheet
 ================
-
-This project was started in 2024.
-
-
-.. _project_information:
-
-Project information
--------------------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
-    Community <community.rst>
-    Citing Guide <citing.rst>
-    history.rst
-    license.rst
-    mission.rst
-    Teams <teams/index.rst>
-    Code of Conduct <code_of_conduct.rst>
-    Governance Process <governance.rst>
-    Roadmap <roadmap.rst>
-    Funding <funding.rst>
-    Glossary <glossary/index.rst>
-    Cheatsheet <../cheatsheet/index.rst>
-    FAQ <faq.rst>
+    Md Cheatsheet <cheatsheet_md.rst>
+    RST Cheatsheet <cheatsheet_rst.rst>

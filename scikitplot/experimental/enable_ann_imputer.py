@@ -7,7 +7,7 @@ Enables ANNImputer
 The API and results of this estimator might change without any deprecation
 cycle.
 
-Importing this file dynamically sets :class:`~scikitplot.impute.ANNImputer`
+Importing this file dynamically sets :py:class:`~.ANNImputer`
 as an attribute of the impute module.
 
 Examples

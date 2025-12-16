@@ -1,8 +1,12 @@
+.. https://john-cd.com/cheatsheets/Markup_and_Documentation/reStructuredText/#official-restructuredtext-cheatsheet
+
+.. https://waldyrious.net/rst-playground/
+.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#images
 
 ..
-    - ISNI ID for the organization (if available) (e.g., https://isni.org/isni/0000000119575136)
-    - GRID ID for the organization (if available) (e.g., https://www.grid.ac/institutes/grid.463323.3)
-    - Crossref Funder ID for the organization (if available) (e.g., https://doi.org/10.13039/100005595) (note: this is different from a publisher's Crossref prefix)
+   - ISNI ID for the organization (if available) (e.g., https://isni.org/isni/0000000119575136)
+   - GRID ID for the organization (if available) (e.g., https://www.grid.ac/institutes/grid.463323.3)
+   - Crossref Funder ID for the organization (if available) (e.g., https://doi.org/10.13039/100005595) (note: this is different from a publisher's Crossref prefix)
 
 ..
    Community-G <https://github.com/orgs/scikit-plots/discussions>
@@ -14,11 +18,10 @@ Scikit-Plots Community
 
 Welcome to the **Scikit-Plots** community and resources page! Here you can find links to our organization pages, download sources, and archives.
 
-.. https://github.com/Ileriayo/markdown-badges
-
 Community & Organization
 ========================
 
+.. https://github.com/Ileriayo/markdown-badges
 .. |linkedin| image:: https://img.shields.io/badge/scikit_plots-%230077B5.svg?style=for-the-badge&label=linkedin&logo=linkedin&labelColor=mediumblue&color=olivegreen
    :alt: Scikit-Plots LinkedIn
    :target: https://www.linkedin.com/company/scikit-plots
@@ -34,21 +37,51 @@ Community & Organization
    :target: https://zenodo.org/communities/scikit-plots
    :class: badge
 
-.. https://waldyrious.net/rst-playground/
-.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#images
+.. raw:: html
+
+   <style>
+   /* Page-local styling for HTML builds */
+   /* .badges img { vertical-align: middle; } */
+   table.borderless, table.borderless td, table.borderless th { border: 0 !important; }
+
+   div.section table, td
+   {
+   white-space: normal !important;
+   }
+
+   div.section tbody, tr, td
+   {
+   border: 0 !important;
+   }
+
+   div.section thead, th
+   {
+   color: #FFFFFF;
+   background-color: #4472C4;
+   }
+
+   div.section tr.row-odd
+   {
+   background-color: #D9E2F3;
+   }
+
+   </style>
 
 ..
-   +------------------+------------------+------------------+
-   | |linkedin|       | |github|         | |zenodo|         |
-   +------------------+------------------+------------------+
+   .. container:: badges
 
-.. list-table:: Community & Organization
-   :class: borderless
+      .. list-table:: Community & Organization
+         :class: borderless
+         :widths: 1 1 1
+         :align: center
 
-   * - |linkedin|
-     - |github|
-     - |zenodo|
+         * - ' |linkedin|
+         - ' |github|
+         - ' |zenodo|
 
++------------------+------------------+------------------+
+| |linkedin|       | |github|         | |zenodo|         |
++------------------+------------------+------------------+
 
 .. - **Wikipedia:** `Scikit-Plots Wikipedia <https://en.wikipedia.org/wiki/Draft:Scikit-plots>`_
 .. - **Wikidata:** `Q136824098 <https://www.wikidata.org/wiki/Q136824098>`_

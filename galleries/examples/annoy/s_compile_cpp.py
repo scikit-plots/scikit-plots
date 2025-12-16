@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
+
+# Authors: Spotify AB
+# SPDX-License-Identifier: Apache-2.0
+
 """
+Compile and run the C++ Annoy with examples
+===========================================
+
 Compile and run the C++ Annoy precision example.
 
 Usage::
