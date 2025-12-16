@@ -291,6 +291,7 @@ print(idx)
 # idx.build(10)
 idx.load("annoy_test.annoy")
 print(idx)
+type(idx)
 
 # %%
 
