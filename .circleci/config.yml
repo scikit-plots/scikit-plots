@@ -483,13 +483,14 @@ workflows:
             - build_docs
           filters:
             branches:
-              only: main
               # ignore: gh-pages
-              # - main
-              # - master
-              # - maintenance/**
+              only:
+                - main
+                - subpackage-bug-fix
+                - maintenance/**
               # - release/*
               # - staging
+              # - master
               # - gh-pages
               # - '*.x' # ignore versioned branches
 
