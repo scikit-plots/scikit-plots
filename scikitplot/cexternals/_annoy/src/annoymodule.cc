@@ -24,41 +24,31 @@
 // NumPy C-API -----------------------------------------------------------------
 // #include <numpy/arrayobject.h>
 
-// Python C-API ----------------------------------------------------------------
-#include <Python.h>
-
-#include "bytesobject.h"
-#include "structmember.h"  // NOTE: Some fields deprecated in Python 3.11+
-
 // Core Annoy C++ implementation -----------------------------------------------
 #include "annoylib.h"
 #include "kissrandom.h"
 
-// Optional higher-level UI modules (Index / Series / Frame / Meta)
-// These are intentionally decoupled from the core extension. They can be
-// compiled and imported separately, using Annoy as the core execution engine.
-//
-// #ifdef ANNOY_ENABLE_UI
-//   #include "annoyquerymeta.h"
-//   #include "metamodule.h"
-//   #include "indexmodule.h"
-//   #include "framemodule.h"
-//   #include "seriesmodule.h"
-// #endif
+// Python C-API ----------------------------------------------------------------
+#include <Python.h>
+
+#include "bytesobject.h"
+#include "structmember.h"  // PyMemberDef, T_INT, READONLY  // TODO: ?Some fields deprecated in Python 3.11+
 
 // System / STL ----------------------------------------------------------------
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-
 #include <algorithm>  // std::transform
 #include <cctype>  // std::tolower
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <memory>
+#include <new>  // std::bad_alloc
 #include <string>
+#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
@@ -103,7 +93,7 @@
 
 // Minimal C-extension docstring. Rich, user-facing docs live in the Python
 // layer (annoy.Annoy / annoylib.Annoy / AnnoyIndex).
-static const char ANNOY_TYPE_DOC[] =
+static const char ANNOY_MOD_DOC[] =
     COMPILER_INFO ". " AVX_INFO ".\n"
     "\n"
     "High-performance approximate nearest neighbours (Annoy) C++ core.\n"
@@ -247,16 +237,6 @@ struct ScopedError {
   }
 };
 
-// Python object helpers ------------------------------------------------------
-
-// Convert an optional (has,value) pair into a Python int or None.
-static inline PyObject* maybe_int_to_py(bool has_value, int32_t v) {
-  if (!has_value) {
-    Py_RETURN_NONE;
-  }
-  return PyLong_FromLong(static_cast<long>(v));
-}
-
 // ---------------------------------------------------------------------
 // Concrete interface instantiation used by the Python wrapper
 // ---------------------------------------------------------------------
@@ -264,6 +244,125 @@ static inline PyObject* maybe_int_to_py(bool has_value, int32_t v) {
 // Only use NULL (0) when maintaining legacy C code.
 // nullptr is std::nullptr_t, recommended in C++11 and later (not C).
 template class Annoy::AnnoyIndexInterface<int32_t, float>;
+
+// R"( ... )";
+static const char kAnnoyTypeDoc[] =
+COMPILER_INFO ". " AVX_INFO "."
+"\n"
+R"ANN(
+Annoy(f=None, metric=None)
+
+Approximate Nearest Neighbors index (Annoy) with a small, lazy C-extension wrapper.
+
+Parameters
+----------
+f : int or None, optional
+    Vector dimension. If ``0`` or ``None``, dimension may be inferred from the
+    first vector passed to ``add_item`` (lazy mode).
+metric : str or None, optional
+    Distance metric (one of 'angular', 'euclidean', 'manhattan', 'dot', 'hamming').
+    If omitted and ``f > 0``, defaults to ``'angular'`` (cosine-like).
+    If omitted and ``f == 0``, metric may be set later before construction.
+
+Attributes
+----------
+f : int
+    Vector dimension. ``0`` means "unknown / lazy".
+metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'} or None
+    Canonical metric name, or None if not configured yet (lazy).
+on_disk_path : str or None
+    Path for on-disk build/load. None if not configured.
+
+Notes
+-----
+- The underlying C++ index is created lazily when enough information exists.
+  The index is created when both ``f > 0`` and ``metric`` are known, or on first
+  operation that requires it.
+- Once the C++ index is created, ``f`` and ``metric`` become immutable to keep
+  the object consistent and avoid undefined behavior.
+- This wrapper stores user configuration (seed/verbose) even before the C++ index
+  exists and applies it deterministically upon construction.
+
+Developer Notes:
+
+- Source of truth:
+  * ``f`` (int) and ``metric_id`` (enum) describe configuration.
+  * ``ptr`` is NULL when index is not constructed.
+- Invariant:
+  * ``ptr != NULL`` implies ``f > 0`` and ``metric_id != METRIC_UNKNOWN``.
+
+Examples
+--------
+>>> from annoy import Annoy, AnnoyIndex
+>>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+>>> from scikitplot.annoy import Annoy, AnnoyIndex, Index
+)ANN";
+
+static const char kFDoc[] =
+R"FDOC(
+Vector dimension.
+
+Returns
+-------
+int
+    Dimension of each item vector. ``0`` means unknown / lazy.
+
+Notes
+-----
+- ``f`` may be set only before the underlying C++ index is created.
+- After construction, attempting to change ``f`` raises AttributeError.
+)FDOC";
+
+static const char kMetricDoc[] =
+R"METRIC(
+Distance metric for the index. Valid values:
+
+* 'angular' -> Cosine-like distance on normalized vectors.
+* 'euclidean' -> L2 distance.
+* 'manhattan' -> L1 distance.
+* 'dot' -> Negative dot-product distance (inner product).
+* 'hamming' -> Hamming distance for binary vectors.
+
+Aliases (case-insensitive):
+
+* angular : cosine
+* euclidean : l2, lstsq
+* manhattan : l1, cityblock, taxicab
+* dot : @, ., dotproduct, inner, innerproduct
+* hamming : hamming
+
+Returns
+-------
+str or None
+    Canonical metric name, or None if not configured yet.
+
+Notes
+-----
+- The metric may be set only before the underlying C++ index is created.
+- After construction, attempting to change ``metric`` raises AttributeError.
+
+.. seealso::
+  * :py:mod:`~scipy.spatial.distance.cosine`
+  * :py:mod:`~scipy.spatial.distance.euclidean`
+  * :py:mod:`~scipy.spatial.distance.cityblock`
+  * :py:mod:`~scipy.sparse.coo_array.dot`
+  * :py:mod:`~scipy.spatial.distance.hamming`
+)METRIC";
+
+static const char kOnDiskPathDoc[] =
+R"ODP(
+Path for on-disk build/load.
+
+Returns
+-------
+str or None
+    Filesystem path used for on-disk operations, or None if not configured.
+
+Notes
+-----
+- Clearing/changing this while an on-disk index is active is disallowed.
+  Call ``unload()`` first.
+)ODP";
 
 // ---------------------------------------------------------------------
 // HammingWrapper
@@ -335,6 +434,17 @@ private:
     }
   }
 
+  // Portable strdup replacement (POSIX strdup is not guaranteed on all toolchains)
+  // strdup is POSIX, not standard C++ → can fail on MSVC.
+  static char* dup_cstr(const char* s) {
+    if (!s) return NULL;
+    const size_t n = strlen(s) + 1;
+    char* out = (char*)malloc(n);
+    if (!out) return NULL;
+    memcpy(out, s, n);
+    return out;
+  }
+
 public:
   // -------------------------------------------------------------------
   // Construction
@@ -357,7 +467,7 @@ public:
 
   bool build(int n_trees,
              int n_threads,
-             char** error) {
+             char** error) override {
     return _index.build(n_trees, n_threads, error);
   }
 
@@ -366,14 +476,15 @@ public:
   bool deserialize(
     vector<uint8_t>* byte,
     bool prefault,
-    char** error) {
+    char** error) override {
     if (!byte || byte->empty()) {
-      if (error) *error = strdup("Empty byte vector");
+      // if (error) *error = strdup("Empty byte vector");
+      if (error) *error = dup_cstr("Empty byte vector");
       return false;
     }
 
     if (byte->size() < sizeof(HammingHeader)) {
-      if (error) *error = strdup("Corrupted Hamming index: header too small");
+      if (error) *error = dup_cstr("Corrupted Hamming index: header too small");
       return false;
     }
 
@@ -385,7 +496,7 @@ public:
         hdr.f_internal == 0 ||
         // Defensive upper bound to avoid absurd allocations
         hdr.f_internal > (1U << 26)) {
-      if (error) *error = strdup("Corrupted or invalid Hamming header");
+      if (error) *error = dup_cstr("Corrupted or invalid Hamming header");
       return false;
     }
 
@@ -401,7 +512,7 @@ public:
                  "Hamming index dimension mismatch "
                  "(expected f_external=%d, f_internal=%d; got f_external=%u, f_internal=%u)",
                  _f_external, _f_internal, hdr.f_external, hdr.f_internal);
-        *error = strdup(buf);
+        *error = dup_cstr(buf);
       }
       return false;
     }
@@ -410,7 +521,7 @@ public:
     const size_t   payload_size = byte->size() - sizeof(HammingHeader);
 
     if (payload_size == 0) {
-      if (error) *error = strdup("Corrupted Hamming index: missing payload");
+      if (error) *error = dup_cstr("Corrupted Hamming index: missing payload");
       return false;
     }
 
@@ -429,7 +540,7 @@ public:
   }
 
   void get_item(int32_t indice,
-                float* embedding) const {
+                float* embedding) const override {
     vector<uint64_t> packed(_f_internal, 0ULL);
     _index.get_item(indice, &packed[0]);
     _unpack(&packed[0], embedding);
@@ -596,6 +707,61 @@ typedef AnnoyIndex<int32_t, float, Manhattan, Kiss64Random, AnnoyIndexThreadedBu
 typedef AnnoyIndex<int32_t, float, DotProduct,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyDot;
 typedef HammingWrapper AnnoyHamming;
 
+// ======================= MetricId =========================================
+// ✅ Enum system: MetricId + metric_from_string() + ensure_index()
+enum MetricId : uint8_t {
+  METRIC_UNKNOWN = 0,
+  METRIC_ANGULAR,
+  METRIC_EUCLIDEAN,
+  METRIC_MANHATTAN,
+  METRIC_DOT,
+  METRIC_HAMMING
+};
+// Convert MetricId → canonical string
+static inline const char* metric_to_cstr(MetricId m) {
+  switch (m) {
+    case METRIC_ANGULAR:   return "angular";
+    case METRIC_EUCLIDEAN: return "euclidean";
+    case METRIC_MANHATTAN: return "manhattan";
+    case METRIC_DOT:       return "dot";
+    case METRIC_HAMMING:   return "hamming";
+    default:               return NULL;
+  }
+}
+
+// Trim whitespace from both ends (ASCII whitespace is enough here)
+static inline std::string trim(const std::string& s) {
+  const auto start = s.find_first_not_of(" \t\n\r");
+  if (start == std::string::npos) return std::string();
+  const auto end = s.find_last_not_of(" \t\n\r");
+  return s.substr(start, end - start + 1);
+}
+
+struct MetricAlias { const char* alias; MetricId id; };
+
+static inline MetricId metric_from_string(const char* in) {
+  if (!in) return METRIC_UNKNOWN;
+
+  std::string s = trim(std::string(in));
+  std::transform(s.begin(), s.end(), s.begin(),
+    [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+
+  static const MetricAlias aliases[] = {
+    {"angular", METRIC_ANGULAR}, {"cosine", METRIC_ANGULAR},
+    {"euclidean", METRIC_EUCLIDEAN}, {"l2", METRIC_EUCLIDEAN}, {"lstsq", METRIC_EUCLIDEAN},
+    {"manhattan", METRIC_MANHATTAN}, {"l1", METRIC_MANHATTAN},
+    {"cityblock", METRIC_MANHATTAN}, {"taxicab", METRIC_MANHATTAN},
+    {"dot", METRIC_DOT}, {"@", METRIC_DOT}, {".", METRIC_DOT},
+    {"dotproduct", METRIC_DOT}, {"inner", METRIC_DOT}, {"innerproduct", METRIC_DOT},
+    {"hamming", METRIC_HAMMING},
+  };
+
+  for (size_t i = 0; i < sizeof(aliases) / sizeof(aliases[0]); ++i) {
+    if (s == aliases[i].alias) return aliases[i].id;
+  }
+  return METRIC_UNKNOWN;
+}
+
 // ======================= Python Annoy type ================================
 //
 // Low-level C-extension wrapper around the C++ AnnoyIndexInterface.
@@ -610,166 +776,97 @@ typedef HammingWrapper AnnoyHamming;
 typedef struct {
   PyObject_HEAD
 
-  AnnoyIndexInterface<int32_t, float>* ptr;  // underlying C++ index
-  int f;                                     // feature dimension
-  std::string metric;                        // canonical metric name
+  AnnoyIndexInterface<int32_t, float>* ptr;  // underlying C++ index dynamic_cast<AnnoyAngular*>(ptr)
+
+  int f;                                     // 0 means "unknown / lazy" (dimension inferred from first add_item)
+  MetricId metric_id;                        // METRIC_UNKNOWN means "unknown / lazy"
+  // std::string metric;                     // empty char "" or NULL
+
+  // --- Optional on-disk path (for on_disk_build / load) ---
+  bool on_disk_active;          // true if ptr is currently backed by disk (load() or on_disk_build())
+  std::string on_disk_path;     // empty char "" or NULL => none no active on-disk index
 
   // --- Pending runtime configuration (before C++ index exists) ---
   uint64_t pending_seed;        // last seed requested via set_seed()
   int      pending_verbose;     // last verbosity level requested
   bool     has_pending_seed;    // whether user explicitly set a seed
   bool     has_pending_verbose; // whether user explicitly set verbosity
-
-  // --- Optional on-disk path (for on_disk_build / load) ---
-  std::string on_disk_path;     // empty => no active on-disk index
 } py_annoy;
 
-// ============== Metric helpers ===========================================
-
-// Trim whitespace from both ends (ASCII whitespace is enough here)
-static inline std::string trim(const std::string& s) {
-  const auto start = s.find_first_not_of(" \t\n\r");
-  if (start == std::string::npos)
-    return std::string();
-
-  const auto end = s.find_last_not_of(" \t\n\r");
-  return s.substr(start, end - start + 1);
-}
-
-// Map user metric aliases → canonical metric name.
-//
-// Accepted aliases (case-insensitive):
-//   "angular", "cosine",
-//   "euclidean", "l2", "lstsq",
-//   "manhattan", "l1", "cityblock", "taxicab",
-//   "dot", "@", ".", "dotproduct", "inner", "innerproduct",
-//   "hamming",
-//
-// Returns "" on failure. It does *not* set a Python error; callers are
-// responsible for producing a clear error message.
-static inline std::string normalize_metric(const std::string& m) {
-  static const std::unordered_map<std::string, std::string> metric_map = {
-    // scipy.spatial.distance.cosine
-    {"angular",   "angular"},
-    {"cosine",    "angular"},
-    // scipy.spatial.distance.euclidean
-    {"euclidean", "euclidean"},
-    {"l2",        "euclidean"},
-    {"lstsq",     "euclidean"},
-    // scipy.spatial.distance.cityblock
-    {"manhattan", "manhattan"},
-    {"l1",        "manhattan"},
-    {"cityblock", "manhattan"},
-    {"taxicab",   "manhattan"},
-    // scipy.sparse.coo_array.dot
-    {"dot",          "dot"},
-    {"@",            "dot"},
-    {".",            "dot"},
-    {"dotproduct",   "dot"},
-    {"inner",        "dot"},
-    {"innerproduct", "dot"},
-    // scipy.spatial.distance.hamming
-    {"hamming", "hamming"},
-  };
-
-  std::string s = trim(m);
-  std::transform(
-    s.begin(), s.end(), s.begin(),
-    // ::tolower  // technically unsafe for negative char values undefined behavior (UB).
-    // [](unsigned char c) {
-    //   return static_cast<char>(std::tolower(c));
-    // }
-    [](char ch) {
-      return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+// ======================= ensure_index =====================================
+// ensure_index: safely construct index if not yet created
+// NOTE: must be AFTER py_annoy is defined.
+static bool ensure_index(py_annoy* self) {
+  if (self->ptr) return true;
+  if (self->f <= 0) {
+    PyErr_SetString(PyExc_RuntimeError, "Index dimension f is not set");
+    return false;
+  }
+  if (self->metric_id == METRIC_UNKNOWN) {
+    PyErr_SetString(PyExc_RuntimeError, "Index metric is not set");
+    return false;
+  }
+  try {
+    switch (self->metric_id) {
+      case METRIC_ANGULAR:   self->ptr = new AnnoyAngular(self->f); break;
+      case METRIC_EUCLIDEAN: self->ptr = new AnnoyEuclidean(self->f); break;
+      case METRIC_MANHATTAN: self->ptr = new AnnoyManhattan(self->f); break;
+      case METRIC_DOT:       self->ptr = new AnnoyDot(self->f); break;
+      case METRIC_HAMMING:   self->ptr = new AnnoyHamming(self->f); break;
+      default:
+        PyErr_SetString(PyExc_RuntimeError, "Internal error: unknown metric");
+        return false;
     }
-  );
-
-  const auto it = metric_map.find(s);
-  if (it != metric_map.end())
-    return it->second;
-
-  return std::string();  // unknown
-}
-
-// Validate (dimension, metric) pair before creating an index.
-//
-//  • f must be positive
-//  • metric must normalize to a supported canonical name
-//
-// On failure:
-//   - returns false
-//   - if `error` is non-null, sets a short C-string message (strdup'ed)
-//   - caller is expected to also set a Python exception.
-static inline bool validate_index_params(
-  int f,
-  const std::string& metric,
-  char** error) {
-  if (f <= 0) {
-    if (error)
-      *error = strdup("Embedding dimension must be positive");
+  } catch (const std::bad_alloc&) {
+    PyErr_NoMemory();
+    return false;
+  } catch (...) {
+    PyErr_SetString(PyExc_RuntimeError, "Failed to create Annoy index");
     return false;
   }
-
-  const std::string canonical = normalize_metric(metric);
-  if (canonical.empty()) {
-    if (error)
-      *error = strdup(
-        "Invalid metric; expected one of: angular, euclidean, "
-        "manhattan, dot, hamming"
-      );
-    return false;
-  }
+  if (self->has_pending_seed)    self->ptr->set_seed(self->pending_seed);
+  if (self->has_pending_verbose) self->ptr->verbose(self->pending_verbose >= 1);
   return true;
 }
 
-// metric_from_ptr → canonical metric string from a concrete C++ index.
-//
-// Returns "" if the pointer is null or of an unknown type.
-// This is used by the Python-level `Annoy.metric` property.
-static inline std::string metric_from_ptr(
-    AnnoyIndexInterface<int32_t,float>* ptr) {
-  if (!ptr)
-    return std::string();
+// ============== Metric helpers ===========================================
 
-  if (dynamic_cast<AnnoyAngular*>(ptr))   return "angular";
-  if (dynamic_cast<AnnoyEuclidean*>(ptr)) return "euclidean";
-  if (dynamic_cast<AnnoyManhattan*>(ptr)) return "manhattan";
-  if (dynamic_cast<AnnoyDot*>(ptr))       return "dot";
-  if (dynamic_cast<AnnoyHamming*>(ptr))   return "hamming";
-
-  return std::string();  // unknown / future type
+static inline std::string normalize_metric(const std::string& m) {
+  // static const std::unordered_map<std::string, std::string> metric_map = {
+  //   {"angular",   "angular"}, {"cosine",    "angular"},
+  //   {"euclidean", "euclidean"}, {"l2",        "euclidean"}, {"lstsq",     "euclidean"},
+  //   {"manhattan", "manhattan"}, {"l1",        "manhattan"},
+  //   {"cityblock", "manhattan"}, {"taxicab",   "manhattan"},
+  //   {"dot",          "dot"}, {"@",            "dot"}, {".",            "dot"},
+  //   {"dotproduct",   "dot"}, {"inner",        "dot"}, {"innerproduct", "dot"},
+  //   {"hamming", "hamming"},
+  // };
+  // std::string s = trim(m);
+  // std::transform(
+  //   s.begin(), s.end(), s.begin(),
+  //   // ::tolower  // technically unsafe for negative char values undefined behavior (UB).
+  //   // [](unsigned char c) { return static_cast<char>(std::tolower(c)); }
+  //   [](char ch) {
+  //     return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+  //   }
+  // );
+  // const auto it = metric_map.find(s);
+  // if (it != metric_map.end()) return it->second;
+  // return std::string();  // unknown
+  MetricId id = metric_from_string(m.c_str());
+  const char* c = metric_to_cstr(id);
+  return c ? std::string(c) : std::string();
 }
 
-// Factory: create an Annoy index for a given (dimension, metric).
+// Single source of truth for the metric is `py_annoy::metric_id` (MetricId).
 //
-// `metric` may be any user alias; it will be normalized to a canonical
-// name before dispatching to a specific C++ type.
+// - metric_from_string(const char*) parses user input (aliases included) -> MetricId
+// - metric_to_cstr(MetricId) converts MetricId -> canonical metric name
 //
-// On error, returns NULL and, if `error` is non-null, sets a message.
-static inline AnnoyIndexInterface<int32_t, float>* create_index_for_metric(
-  int f,
-  const std::string& metric,
-  char** error = NULL) {
-
-  if (!validate_index_params(f, metric, error))
-    return NULL;
-
-  const std::string canonical = normalize_metric(metric);
-  // At this point canonical must be non-empty (validated above).
-  if (canonical == "angular")   return new AnnoyAngular(f);
-  if (canonical == "euclidean") return new AnnoyEuclidean(f);
-  if (canonical == "manhattan") return new AnnoyManhattan(f);
-  if (canonical == "dot")       return new AnnoyDot(f);
-  if (canonical == "hamming")   return new AnnoyHamming(f);
-
-  // Should never happen if validate_index_params is kept in sync.
-  if (error)
-    *error = strdup("Internal error: unknown canonical metric");
-  return NULL;
-}
-
+// We intentionally avoid RTTI / dynamic_cast so this extension can be built with
+// RTTI disabled (e.g. -fno-rtti) while keeping the wrapper and C++ core in sync.
+//
 // ===================== Annoy Helper / Utility =============================
-
 // Helper: validate a row identifier ("index") against the current index.
 //
 // Parameters
@@ -899,7 +996,10 @@ static bool convert_list_to_vector_infer(
   return true;
 }
 
-// ===================== Annoy Dunder =========================
+// ============================================================================
+// Object lifecycle: tp_new / tp_init / tp_dealloc
+// ============================================================================
+// ============================= Annoy Dunder =================================
 //
 // Core Python object lifecycle for AnnoyIndex:
 //   - tp_new   : allocate the Python wrapper and construct C++ members
@@ -908,26 +1008,23 @@ static bool convert_list_to_vector_infer(
 //
 // Canonical semantics:
 //   * f >= 0           : number of features (dimension); 0 means “infer later”.
-//   * metric (string)  : normalized via normalize_metric(..).
+//   * metric (string)  : parsed via metric_from_string(..) (aliases supported).
 //   * Lazy mode        : you can pass f=None / f=0 and/or omit metric;
 //                        the actual index will be constructed on first use.
 
+// tp_new: allocate + initialize placement-new fields
 static PyObject* py_an_new(
   PyTypeObject* type,
   PyObject* args,
   PyObject* kwargs) {
+  // (void)args; (void)kwargs;  // unused
   py_annoy* self = (py_annoy*)type->tp_alloc(type, 0);
   if (!self) return NULL;
 
   self->ptr = NULL;
   self->f = 0;
-
-  // Construct metric string (placement new because it's in a C struct)
-  new (&self->metric) std::string();
-  self->metric.clear();
-
-  new (&self->on_disk_path) std::string();
-  self->on_disk_path.clear();
+  self->metric_id = METRIC_UNKNOWN;
+  self->on_disk_active = false;
 
   // Pending configuration: default to “nothing explicitly requested”
   self->pending_seed        = 0ULL;
@@ -935,10 +1032,25 @@ static PyObject* py_an_new(
   self->has_pending_seed    = false;
   self->has_pending_verbose = false;
 
+  // Construct std::string members (placement new because this is a C struct)
+  // new (&self->on_disk_path) std::string(); self->on_disk_path.clear();
+  try {
+    new (&self->on_disk_path) std::string();
+    self->on_disk_path.clear();
+  } catch (const std::bad_alloc&) {
+    PyErr_NoMemory();
+    Py_TYPE(self)->tp_free((PyObject*)self);
+    return NULL;
+  } catch (...) {
+    PyErr_SetString(PyExc_RuntimeError, "Failed to initialize Annoy object");
+    Py_TYPE(self)->tp_free((PyObject*)self);
+    return NULL;
+  }
   // (must-do): don’t use PY_RETURN_SELF in py_an_new
   return (PyObject*)self;
 }
 
+// tp_init: handle initialization logic and eager index creation
 // tp_init must return 0 on success, -1 on failure
 static int py_an_init(
   py_annoy* self,
@@ -949,9 +1061,11 @@ static int py_an_init(
     delete self->ptr;
     self->ptr = NULL;
   }
+
   self->f = 0;
-  self->metric.clear();
+  self->metric_id = METRIC_UNKNOWN;
   self->on_disk_path.clear();
+  self->on_disk_active = false;
 
   // Reset pending configuration as well (true re-init).
   self->pending_seed        = 0ULL;
@@ -960,107 +1074,83 @@ static int py_an_init(
   self->has_pending_verbose = false;
 
   // Python signature (public):
-  //   Annoy(f, metric='angular')
+  //   Annoy(), Annoy(f=0, metric='angular')
   //
   // Here we accept:
   //   f      : int or None (None/0 → infer later)
-  //   metric : optional str
-  PyObject*    f_obj    = NULL;
-  const char*  metric_c = NULL;
-
+  //   metric : str or None (None/empty → lazy/unknown unless f>0, see below)
+  PyObject*   f_obj      = NULL;
+  PyObject*   metric_obj = NULL;
+  const char* metric_c   = NULL;
+  // parse by PyArg_ParseTuple or PyArg_ParseTupleAndKeywords
+  // "O|s" f (required, PyObject), metric (optional, const char*)
   static const char* kwlist[] = {"f", "metric", NULL};
-  // PyArg_ParseTuple
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "|Os",              // "O|s" f (required, PyObject), metric (optional, const char*)
-          (char**)kwlist,
-          &f_obj,
-          &metric_c)) {
+    args, kwargs, "|OO", (char**)kwlist, &f_obj, &metric_obj)) {
     return -1;
+  }
+
+  if (metric_obj && metric_obj != Py_None) {
+    if (!PyUnicode_Check(metric_obj)) {
+      PyErr_SetString(PyExc_TypeError, "`metric` must be a string or None");
+      return -1;
+    }
+    metric_c = PyUnicode_AsUTF8(metric_obj);
+    if (!metric_c) return -1;
   }
 
   // ---- dimension (f) ----
   if (!f_obj || f_obj == Py_None) {
-    // Fully lazy: infer dimension from the first vector
-    self->f = 0;
+    self->f = 0; // lazy
   } else {
     long fv = PyLong_AsLong(f_obj);
-    if (fv == -1 && PyErr_Occurred()) {
-      // Conversion failed (not an int-like value)
-      return -1;
-    }
+    if (fv == -1 && PyErr_Occurred()) return -1;
     if (fv < 0) {
       PyErr_SetString(PyExc_ValueError,
-                      "`f` must be non-negative (0 means infer from first vector)");
+        "`f` must be non-negative (0 means infer from first vector)");
       return -1;
     }
+    // self->f = (int)fv;
     self->f = static_cast<int>(fv);
   }
 
   // ---- metric ----
-  if (metric_c != NULL) {
-    // Normalize & validate metric (normalize_metric here does *not*
-    // set Python error, so we handle failure ourselves).
-    std::string nm = normalize_metric(metric_c);
-    if (nm.empty()) {
-      PyErr_SetString(
-        PyExc_ValueError,
-        "Invalid metric; expected one of: angular, euclidean, "
-        "manhattan, dot, hamming."
-      );
+  // Validate metric (aliases supported). We set a Python error on failure.
+  if (metric_c) {
+    MetricId id = metric_from_string(metric_c);
+    if (id == METRIC_UNKNOWN) {
+      PyErr_SetString(PyExc_ValueError,
+        "Invalid metric; expected one of: angular, euclidean, manhattan, dot, hamming.");
       return -1;
     }
-    self->metric = nm;
+    self->metric_id = id;
   }
 
-  // If f>0 but metric was omitted, use default 'angular' (with warning)
-  if (self->f > 0 && self->metric.empty()) {
-    PyErr_WarnEx(
-        PyExc_FutureWarning,
-        "The default argument for metric will be removed in a future "
-        "version of Annoy. Please pass metric='angular' explicitly.",
-        1);
-    self->metric = "angular";
+  // default metric if f>0 and metric omitted
+  if (self->f > 0 && self->metric_id == METRIC_UNKNOWN) {
+    PyErr_WarnEx(PyExc_FutureWarning,
+      "The default argument for metric will be removed in a future version. "
+      "Please pass metric='angular' explicitly.", 1);
+    self->metric_id = METRIC_ANGULAR;
   }
 
   // Construct the underlying C++ index eagerly only when both f and metric are known.
   //
   // Cases:
   //   * f > 0 and metric set      → create index now (eager mode)
-  //   * f == 0 or metric empty    → leave ptr == NULL (lazy mode);
+  //   * f <= 0 or metric empty    → leave ptr == NULL (lazy mode);
   //                                 index will be created in py_an_add_item / load.
-  if (self->f > 0 && !self->metric.empty()) {
-    // char* error = NULL;
-    ScopedError error;
-    // self->ptr = create_index_for_metric(self->f, self->metric, &error);
-    self->ptr = create_index_for_metric(self->f, self->metric, &error.err);
-    if (!self->ptr) {
-      if (error.err) {  // if (error)
-        // PyErr_SetString(PyExc_RuntimeError, error);
-        PyErr_SetString(PyExc_RuntimeError, error.err);
-        // free(error);
-      } else {
-        PyErr_SetString(PyExc_RuntimeError, "Failed to create Annoy index");
-      }
-      return -1;
-    }
-
-    // Apply any pending configuration the user requested BEFORE the index existed
-    if (self->has_pending_seed) {
-      self->ptr->set_seed(self->pending_seed);
-    }
-    if (self->has_pending_verbose) {
-      bool verbose_flag = (self->pending_verbose >= 1);
-      self->ptr->verbose(verbose_flag);
-    }
+  // eager build only if both known
+  if (self->f > 0 && self->metric_id != METRIC_UNKNOWN) {
+    if (!ensure_index(self)) return -1;
   }
-
   return 0;
 }
 
+// tp_dealloc: safe destruction with Py_CLEAR for GC safety
 // tp_dealloc: destroy C++ resources and free the Python wrapper
 static void py_an_dealloc(py_annoy* self) {
+  // if (!self) return;
   // 1) Release OS-backed resources first
   if (self->ptr) {
     // unload() should be idempotent in Annoy core
@@ -1073,148 +1163,210 @@ static void py_an_dealloc(py_annoy* self) {
     delete self->ptr;
     self->ptr = NULL;
   }
-
   // 2) Destroy placement-new std::string members
-  self->metric.~basic_string();
-  self->on_disk_path.~basic_string();
-
+  try {
+    self->on_disk_path.~basic_string();
+  } catch (...) {
+    // ignore destruction errors
+  }
   // 3) Free the Python object
+  // Py_CLEAR(self->ptr);  // Safe GC clear and refcount protection
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 // ===================== Annoy Attr =========================
 
-// Expose only the core numeric attribute via tp_members.
 // The metric is exposed via the get/set table (py_annoy_getset).
+// Expose only the core numeric attribute via tp_members.
+// Internal / debug-only snapshot (must be READONLY to prevent bypassing setters)
+// _f, _metric_id  (and _on_disk_path via getset alias)
 static PyMemberDef py_annoy_members[] = {
   {
-    (char*)"f",
-    T_INT,
-    offsetof(py_annoy, f),
-    0,
-    (char*)"number of features (vector dimension)"
+    (char*)"_f",
+    T_INT, offsetof(py_annoy, f),
+    // READONLY is mandatory: otherwise obj._f = -5 bypasses your .f setter and breaks sync.
+    READONLY,  // 0
+    (char*)"internal: raw f (dimension) value (read-only). Use .f property instead."
   },
+  {
+    (char*)"_metric_id",
+    T_UBYTE, offsetof(py_annoy, metric_id),
+    // READONLY is mandatory: otherwise obj._metric_id = 0 bypasses your .metric setter and breaks sync.
+    READONLY,  // 0
+    (char*)"internal: raw metric id value (read-only). Use .metric property instead."
+  },
+  // {
+  //   (char*)"_on_disk_path",
+  //   T_UBYTE, offsetof(py_annoy, on_disk_path),
+  //   // READONLY is mandatory: otherwise obj.on_disk_path = "." bypasses your .on_disk_path setter and breaks sync.
+  //   READONLY,  // 0
+  //   (char*)"internal: raw on_disk_path value (read-only). Use .on_disk_path property instead."
+  // },
   {NULL}  /* Sentinel */
 };
 
-// ===================== Annoy Getter/Setter =========================
+// ===================== Getters/Setters (CORRECT signatures) ===============
+// getter: PyObject* (py_annoy*, void*)
+// setter: int (py_annoy*, PyObject*, void*)
+
+// Getter for 'f'
+static PyObject* py_annoy_get_f(
+  py_annoy* self,
+  void*) {
+  return PyLong_FromLong((long)self->f);
+}
+
+// Setter for 'f'
+static int py_annoy_set_f(
+  py_annoy* self,
+  PyObject* value,
+  void*) {
+  if (!value || value == Py_None) {
+    PyErr_SetString(PyExc_ValueError, "f cannot be None (use 0 for lazy inference)");
+    return -1;
+  }
+  if (!PyLong_Check(value)) {
+    PyErr_SetString(PyExc_TypeError, "f must be an integer");
+    return -1;
+  }
+  if (self->ptr) {
+    PyErr_SetString(PyExc_AttributeError, "Cannot change f after the index has been created.");
+    return -1;
+  }
+  long fv = PyLong_AsLong(value);
+  if (fv == -1 && PyErr_Occurred()) return -1;
+  if (fv < 0) {
+    PyErr_SetString(PyExc_ValueError, "f must be non-negative (0 means infer from first vector)");
+    return -1;
+  }
+  self->f = (int)fv;
+  return 0;
+}
 
 // Getter for 'metric'
 static PyObject* py_annoy_get_metric(
   py_annoy* self,
-  void* closure) {
-  (void)closure;
-
-  // If the underlying C++ index has not been constructed yet:
-  // - If we have a configured metric string, return it.
-  // - Otherwise, return None.
-  if (!self->ptr) {
-    if (self->metric.empty()) {
-      Py_RETURN_NONE;
-    }
-    return PyUnicode_FromStringAndSize(
-      self->metric.c_str(),
-      (Py_ssize_t)self->metric.size()
-    );
-  }
-
-  // Index exists → derive canonical metric from the concrete type
-  std::string m = metric_from_ptr(self->ptr);
-  if (m.empty()) {
-    // Should never happen in practice, but be safe.
-    Py_RETURN_NONE;
-  }
-
-  return PyUnicode_FromStringAndSize(
-    m.c_str(),
-    (Py_ssize_t)m.size()
-  );
+  void*) {
+  const char* m = metric_to_cstr(self->metric_id);
+  if (!m) Py_RETURN_NONE;
+  return PyUnicode_FromString(m);
 }
 
 // Setter for 'metric'
 static int py_annoy_set_metric(
   py_annoy* self,
   PyObject* value,
-  void* closure) {
-  (void)closure;  // Unused
-
-  if (!value || value == Py_None) {
-    PyErr_SetString(PyExc_ValueError, "metric cannot be None");
+  void*) {
+  if (value == NULL) {
+    PyErr_SetString(PyExc_AttributeError, "Cannot delete metric attribute");
     return -1;
   }
-
+  // Allow resetting to "unknown / lazy" before the C++ index exists.
+  if (value == Py_None) {
+    if (self->ptr) {
+      PyErr_SetString(PyExc_AttributeError,
+        "Cannot unset metric after the index has been created.");
+      return -1;
+    }
+    self->metric_id = METRIC_UNKNOWN;
+    return 0;
+  }
   if (!PyUnicode_Check(value)) {
-    PyErr_SetString(PyExc_TypeError, "metric must be a string");
+    PyErr_SetString(PyExc_TypeError, "metric must be a string (or None)");
     return -1;
   }
-
-  const char* m = PyUnicode_AsUTF8(value);
-  if (!m) {
-    // PyUnicode_AsUTF8 already set an error
+  if (self->ptr) {
+    PyErr_SetString(PyExc_AttributeError,
+      "Cannot change metric after the index has been created.");
     return -1;
   }
-
-  // Normalize & validate metric name
-  std::string nm = normalize_metric(m);
-  if (nm.empty()) {
-    PyErr_SetString(
-      PyExc_ValueError,
-      "Invalid metric. Valid options: "
-      "angular, euclidean, manhattan, dot, hamming."
-    );
+  const char* s = PyUnicode_AsUTF8(value);
+  if (!s) return -1;
+  MetricId id = metric_from_string(s);
+  if (id == METRIC_UNKNOWN) {
+    PyErr_SetString(PyExc_ValueError,
+      "Invalid metric. Valid options: angular, euclidean, manhattan, dot, hamming.");
     return -1;
   }
-
-  // Prevent changing metric after the C++ index has been constructed
-  if (self->ptr != NULL) {
-    PyErr_SetString(
-      PyExc_AttributeError,
-      "Cannot change metric after the index has been created."
-    );
-    return -1;
-  }
-
-  // Store validated canonical metric
-  self->metric = nm;
+  self->metric_id = id;
   return 0;
 }
 
-// Get/Set table
+// Getter for 'on_disk_path'
+static PyObject* py_annoy_get_on_disk_path(
+  py_annoy* self,
+  void*) {
+  if (self->on_disk_path.empty()) Py_RETURN_NONE;
+  return PyUnicode_FromStringAndSize(
+    self->on_disk_path.c_str(), (Py_ssize_t)self->on_disk_path.size()
+  );
+}
+
+// Setter for 'on_disk_path'
+static int py_annoy_set_on_disk_path(
+  py_annoy* self,
+  PyObject* value,
+  void*) {
+  if (!value || value == Py_None) {
+    if (self->on_disk_active) {
+      PyErr_SetString(PyExc_AttributeError,
+        "Cannot clear on_disk_path while an on-disk index is active. Call unload() first.");
+      return -1;
+    }
+    self->on_disk_path.clear();
+    return 0;
+  }
+  if (!PyUnicode_Check(value)) {
+    PyErr_SetString(PyExc_TypeError, "on_disk_path must be a string or None");
+    return -1;
+  }
+  const char* s = PyUnicode_AsUTF8(value);
+  if (!s) return -1;
+
+  if (self->on_disk_active) {
+    PyErr_SetString(PyExc_AttributeError,
+      "Cannot change on_disk_path while an on-disk index is active. Call unload() first.");
+    return -1;
+  }
+  self->on_disk_path.assign(s);
+  return 0;
+}
+
+// ===================== Get/Set table ======================================
+
 static PyGetSetDef py_annoy_getset[] = {
+  {
+    (char*)"f",
+    (getter)py_annoy_get_f,
+    (setter)py_annoy_set_f,
+    (char*)kFDoc,
+    NULL
+  },
+
   {
     (char*)"metric",
     (getter)py_annoy_get_metric,
     (setter)py_annoy_set_metric,
-    (char*)"distance metric (angular, euclidean, manhattan, dot, hamming) mapped alias as note.\n"
-    // R"( ... )";
-    R"METRIC(
-    .. note::
-      {"angular",   "angular"},
-      {"cosine",    "angular"},
-      {"euclidean", "euclidean"},
-      {"l2",        "euclidean"},
-      {"lstsq",        "euclidean"},
-      {"manhattan", "manhattan"},
-      {"l1",        "manhattan"},
-      {"cityblock", "manhattan"},
-      {"taxicab",   "manhattan"},
-      {"dot",          "dot"},
-      {"@",            "dot"},
-      {".",            "dot"},
-      {"dotproduct",   "dot"},
-      {"inner",        "dot"},
-      {"innerproduct", "dot"},
-      {"hamming", "hamming"},
-
-    .. seealso::
-      * :py:mod:`~scipy.spatial.distance.cosine`
-      * :py:mod:`~scipy.spatial.distance.euclidean`
-      * :py:mod:`~scipy.spatial.distance.cityblock`
-      * :py:mod:`~scipy.sparse.coo_array.dot`
-      * :py:mod:`~scipy.spatial.distance.hamming`
-    )METRIC",
+    (char*)kMetricDoc,
     NULL
   },
+
+  {
+    (char*)"on_disk_path",
+    (getter)py_annoy_get_on_disk_path,
+    (setter)py_annoy_set_on_disk_path,
+    (char*)kOnDiskPathDoc,
+    NULL
+  },
+
+  {
+    (char*)"_on_disk_path",
+    (getter)py_annoy_get_on_disk_path,
+    NULL,  // read-only alias of on_disk_path (prevents bypassing validation)
+    (char*)"internal: alias of on_disk_path (read-only). Use .on_disk_path to set.",
+    NULL
+  },
+
   {NULL}  /* Sentinel */
 };
 
@@ -1420,8 +1572,7 @@ static PyObject* py_an_memory_usage(
   py_annoy*  self,
   PyObject*  args,
   PyObject*  kwargs) {
-  // (void)args;
-  // (void)kwargs;
+  // (void)args; (void)kwargs;
   // No arguments allowed; enforce this so mistakes are caught early.
   static const char* kwlist[] = {NULL};
   if (!PyArg_ParseTupleAndKeywords(
@@ -1454,16 +1605,22 @@ static PyObject* py_an_info(
   // -----------------------------
   int f = self->f;
 
-  std::string metric =
-      self->ptr ? metric_from_ptr(self->ptr) : self->metric;
-  if (metric.empty())
-    metric = "";  // or "unknown" if you prefer a sentinel
+  PyObject* py_metric = NULL;
+  const char* metric_c = metric_to_cstr(self->metric_id);
+  if (!metric_c) {
+    py_metric = Py_None;
+    Py_INCREF(Py_None);
+  } else {
+    py_metric = PyUnicode_FromString(metric_c);
+    if (!py_metric)
+      return NULL;
+  }
 
-  long n_items = 0;
-  long n_trees = 0;
+  int64_t n_items = 0;
+  int64_t n_trees = 0;
   if (self->ptr) {
-    n_items = static_cast<long>(self->ptr->get_n_items());
-    n_trees = static_cast<long>(self->ptr->get_n_trees());
+    n_items = static_cast<int64_t>(self->ptr->get_n_items());
+    n_trees = static_cast<int64_t>(self->ptr->get_n_trees());
   }
 
   // -----------------------------
@@ -1471,7 +1628,7 @@ static PyObject* py_an_info(
   // -----------------------------
   uint64_t byte_u64 = 0;
   if (!get_memory_usage_byte(self, &byte_u64)) {
-    // get_memory_usage_byte already set a Python error if it failed
+    Py_DECREF(py_metric);
     return NULL;
   }
   double mib = static_cast<double>(byte_u64) / 1024.0 / 1024.0;
@@ -1485,8 +1642,10 @@ static PyObject* py_an_info(
     Py_INCREF(Py_None);
   } else {
     path_obj = PyUnicode_FromString(self->on_disk_path.c_str());
-    if (!path_obj)
+    if (!path_obj) {
+      Py_DECREF(py_metric);
       return NULL;
+    }
   }
 
   // -----------------------------
@@ -1498,16 +1657,14 @@ static PyObject* py_an_info(
     return NULL;
   }
 
-  PyObject* py_f      = PyLong_FromLong((long)f);
-  PyObject* py_metric = PyUnicode_FromString(metric.c_str());
-  PyObject* py_items  = PyLong_FromLong(n_items);
-  PyObject* py_trees  = PyLong_FromLong(n_trees);
-  PyObject* py_byte   = PyLong_FromUnsignedLongLong(byte_u64);
-  PyObject* py_mib    = PyFloat_FromDouble(mib);
+  PyObject* py_f     = PyLong_FromLong(f);
+  PyObject* py_items = PyLong_FromLongLong(n_items);
+  PyObject* py_trees = PyLong_FromLongLong(n_trees);
+  PyObject* py_byte  = PyLong_FromUnsignedLongLong(byte_u64);
+  PyObject* py_mib   = PyFloat_FromDouble(mib);
 
-  if (!py_f || !py_metric || !py_items || !py_trees || !py_byte || !py_mib) {
+  if (!py_f || !py_items || !py_trees || !py_byte || !py_mib) {
     Py_XDECREF(py_f);
-    Py_XDECREF(py_metric);
     Py_XDECREF(py_items);
     Py_XDECREF(py_trees);
     Py_XDECREF(py_byte);
@@ -1518,7 +1675,7 @@ static PyObject* py_an_info(
   }
 
   int ok = 0;
-  ok |= PyDict_SetItemString(d, "dimension", py_f);
+  ok |= PyDict_SetItemString(d, "f", py_f);
   ok |= PyDict_SetItemString(d, "metric", py_metric);
   ok |= PyDict_SetItemString(d, "n_items", py_items);
   ok |= PyDict_SetItemString(d, "n_trees", py_trees);
@@ -1549,7 +1706,7 @@ static PyObject* py_an_add_item(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
-  int32_t indice;           // row id / item id
+  int32_t indice;           // Annoy item id (row id)
   PyObject* embedding_obj;  // Python sequence of floats
 
   // NOTE: kwlist uses "i" and "vector" for backward compatibility,
@@ -1560,13 +1717,15 @@ static PyObject* py_an_add_item(
     return NULL;
   }
 
-  // During build stage: allow gaps, but forbid negative ids
+  // During build stage: allow gaps, but forbid negative ids.
   if (!check_constraints(self, indice, /*building=*/true))
     return NULL;
 
-  // Convert Python sequence → contiguous float embedding.
-  // This also infers/validates self->f (dimension).
-  vector<float> embedding(self->f);
+  // Convert Python sequence → contiguous vector<float>.
+  // - If f is unknown (lazy) and index not constructed, infer f from the first vector.
+  // - Otherwise enforce exact length match.
+  // vector<float> embedding(self->f);
+  vector<float> embedding;
   // Infer only if index is not constructed AND f is unknown
   if (!self->ptr && self->f == 0) {
     if (!convert_list_to_vector_infer(self, embedding_obj, &embedding))
@@ -1576,53 +1735,27 @@ static PyObject* py_an_add_item(
       return NULL;
   }
 
-  // Lazy-create underlying C++ index if needed
-  if (!self->ptr) {
-    // Dimension must now be known, because convert list to vector sets it.
-    if (self->f <= 0) {
-      PyErr_SetString(PyExc_RuntimeError,
-                      "Cannot infer embedding dimension for Annoy index");
-      return NULL;
-    }
-
-    // Default metric if user didn't specify one explicitly
-    if (self->metric.empty()) {
-      // NOTE: we *don't* warn here to avoid noisy logs during exploration.
-      self->metric = "angular";
-    }
-
-    ScopedError error;
-    self->ptr = create_index_for_metric(self->f, self->metric, &error.err);
-    if (!self->ptr) {
-      PyErr_SetString(
-          PyExc_RuntimeError,
-          error.err ? error.err : (char*)"Failed to create Annoy index for add_item"
-      );
-      return NULL;
-    }
-
-    // Apply any configuration user requested before the index existed
-    if (self->has_pending_seed) {
-      self->ptr->set_seed(self->pending_seed);
-    }
-    if (self->has_pending_verbose) {
-      bool verbose_flag = (self->pending_verbose >= 1);
-      self->ptr->verbose(verbose_flag);
-    }
+  // Default metric in truly-lazy mode (no metric configured yet).
+  // We intentionally do NOT warn here to keep exploration noise-free.
+  if (self->metric_id == METRIC_UNKNOWN) {
+    self->metric_id = METRIC_ANGULAR;
   }
 
-  // Finally, add the embedding to the index
-  ScopedError error;
-  // Disallow adding items after the index has been built.
-  // Annoy core blocks add_item() only for loaded indexes; adding after build
-  // would silently yield incorrect query results.
+  // Ensure underlying C++ index exists (applies pending seed/verbose if set).
+  if (!ensure_index(self))
+    return NULL;
+
+  // Disallow adding items after the forest is built (prevents silent wrong queries).
   if (self->ptr->get_n_trees() > 0) {
     PyErr_SetString(PyExc_RuntimeError,
                     "Index is already built; call unbuild() before add_item().");
     return NULL;
   }
+
+  ScopedError error;
   if (!self->ptr->add_item(indice, embedding.data(), &error.err)) {
-    PyErr_SetString(PyExc_RuntimeError, error.err ? error.err : (char*)"add_item failed");
+    PyErr_SetString(PyExc_RuntimeError,
+      error.err ? error.err : (char*)"add_item failed");
     return NULL;
   }
   // Chaining: a.build(...).save(...).info()
@@ -1660,6 +1793,7 @@ static PyObject* py_an_on_disk_build(
 
   // Remember the last on-disk path for __repr__ / info()
   self->on_disk_path = filename;
+  self->on_disk_active = true;
   // Chaining: a.build(...).save(...).info()
   PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
@@ -1736,7 +1870,7 @@ static PyObject* py_an_unbuild(
 // ---------------------------------------------------------------------
 // want Annoy().load("idx.ann") to Just Work™, we’d add a small helper:
 // Read a tiny header from the .ann file (dimension, metric id).
-// Based on that, call create_index_for_metric(f_from_header, metric_from_header, &err).
+// Based on that, set self->f / self->metric_id and call ensure_index().
 // Then ptr->load(...) on the newly-constructed index.
 static PyObject* py_an_save(
   py_annoy* self,
@@ -1830,6 +1964,7 @@ static PyObject* py_an_load(
 
   // Track backing path for __repr__ / .info()
   self->on_disk_path = filename;
+  self->on_disk_active = true;
   // Chaining: a.build(...).save(...).info()
   PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
@@ -1857,6 +1992,7 @@ static PyObject* py_an_unload(
 
   self->ptr->unload();
   self->on_disk_path.clear();   // no longer backed by any file
+  self->on_disk_active = false;
   // Chaining: a.build(...).save(...).info()
   PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
@@ -1881,18 +2017,32 @@ static PyObject* get_nns_to_python(
   PyObject* py_distances = NULL;
   PyObject* py_tuple     = NULL;
 
+  // IMPORTANT: declare before any possible `goto error;`
+  size_t     idx_sz     = 0;
+  size_t     dist_sz    = 0;
+  Py_ssize_t py_idx_sz  = 0;
+  Py_ssize_t py_dist_sz = 0;
+
   // ------------------------------------------------------------------
   // indices list → list[int]
   // ------------------------------------------------------------------
-  if ((py_indices = PyList_New(indices.size())) == NULL) {
+  idx_sz = indices.size();
+  if (idx_sz > static_cast<size_t>(PY_SSIZE_T_MAX)) {
+    PyErr_SetString(PyExc_OverflowError,
+      "Too many neighbors to convert to a Python list");
     goto error;
   }
-  for (Py_ssize_t i = 0; i < static_cast<long>(indices.size()); ++i) { // size_t
-    PyObject* v = PyLong_FromLong(static_cast<long>(indices[static_cast<size_t>(i)]));
+  py_idx_sz = static_cast<Py_ssize_t>(idx_sz);
+
+  if ((py_indices = PyList_New(py_idx_sz)) == NULL) {
+    goto error;
+  }
+  for (Py_ssize_t i = 0; i < py_idx_sz; ++i) {
+    PyObject* v = PyLong_FromLong(
+      static_cast<long>(indices[static_cast<size_t>(i)]));
     if (!v)
       goto error;
-    // Steals reference
-    PyList_SET_ITEM(py_indices, i, v);
+    PyList_SET_ITEM(py_indices, i, v); // Steals reference
   }
 
   // Only indices requested → return list[int]
@@ -1902,20 +2052,37 @@ static PyObject* get_nns_to_python(
   // ------------------------------------------------------------------
   // distances list → list[float]
   // ------------------------------------------------------------------
-  if ((py_distances = PyList_New(distances.size())) == NULL) {
+  dist_sz = distances.size();
+
+  // include_distances should mean 1 distance per returned index.
+  if (dist_sz != idx_sz) {
+    PyErr_SetString(PyExc_RuntimeError,
+      "Internal error: Annoy returned mismatched indices and distances");
     goto error;
   }
-  for (Py_ssize_t i = 0; i < static_cast<long>(distances.size()); ++i) {
-    PyObject* v = PyFloat_FromDouble(static_cast<double>(distances[static_cast<size_t>(i)]));
+
+  if (dist_sz > static_cast<size_t>(PY_SSIZE_T_MAX)) {
+    PyErr_SetString(PyExc_OverflowError,
+      "Too many distances to convert to a Python list");
+    goto error;
+  }
+  py_dist_sz = static_cast<Py_ssize_t>(dist_sz);
+
+  if ((py_distances = PyList_New(py_dist_sz)) == NULL) {
+    goto error;
+  }
+  for (Py_ssize_t i = 0; i < py_dist_sz; ++i) {
+    PyObject* v = PyFloat_FromDouble(
+      static_cast<double>(distances[static_cast<size_t>(i)]));
     if (!v)
       goto error;
     PyList_SET_ITEM(py_distances, i, v);  // steals reference
   }
 
   // ------------------------------------------------------------------
-  // Pack (indices, distances) tuple
+  // Pack (indices, distances) tuple PyTuple_Pack, PyTuple_SET_ITEM
   // ------------------------------------------------------------------
-  if ((py_tuple = PyTuple_Pack(2, py_indices, py_distances)) == NULL) {
+  if ((py_tuple = PyTuple_Pack(2, py_indices, py_distances)) == NULL) {  // steals reference
     goto error;
   }
   Py_DECREF(py_indices);
@@ -1928,7 +2095,6 @@ error:
   Py_XDECREF(py_tuple);
   return NULL;
 }
-
 
 // ======================================================================
 //  get_nns_by_item (by indice / item id)
@@ -2272,7 +2438,8 @@ static PyObject* py_an_getstate(
   PyObject* state = PyDict_New();
   if (!state) return NULL;
 
-  // versioned state for forward compatibility
+  // versioned state for forward compatibility.
+  // Keep this stable: readers should ignore unknown keys.
   PyObject* v = PyLong_FromLong(1);
   if (!v || PyDict_SetItemString(state, "_pickle_version", v) < 0) {
     Py_XDECREF(v);
@@ -2282,36 +2449,76 @@ static PyObject* py_an_getstate(
   Py_DECREF(v);
 
   v = PyLong_FromLong((long)self->f);
-  if (!v || PyDict_SetItemString(state, "f", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  if (!v || PyDict_SetItemString(state, "f", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
   Py_DECREF(v);
 
-  v = PyUnicode_FromString(self->metric.c_str());
-  if (!v || PyDict_SetItemString(state, "metric", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  // Metric: store canonical string (empty string means "unknown / lazy")
+  const char* metric_c = metric_to_cstr(self->metric_id);
+  v = PyUnicode_FromString(metric_c ? metric_c : "");
+  if (!v || PyDict_SetItemString(state, "metric", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
   Py_DECREF(v);
 
+  // Optional metric_id for faster restoration / future compatibility.
+  v = PyLong_FromLong((long)self->metric_id);
+  if (!v || PyDict_SetItemString(state, "metric_id", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
+  Py_DECREF(v);
+
+  // Optional on-disk path metadata
   if (!self->on_disk_path.empty()) {
     v = PyUnicode_FromString(self->on_disk_path.c_str());
   } else {
     Py_INCREF(Py_None);
     v = Py_None;
   }
-  if (PyDict_SetItemString(state, "on_disk_path", v) < 0) { Py_DECREF(v); Py_DECREF(state); return NULL; }
+  if (PyDict_SetItemString(state, "on_disk_path", v) < 0) {
+    Py_DECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
   Py_DECREF(v);
 
   v = PyBool_FromLong(self->has_pending_seed ? 1 : 0);
-  if (!v || PyDict_SetItemString(state, "has_pending_seed", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  if (!v || PyDict_SetItemString(state, "has_pending_seed", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
   Py_DECREF(v);
 
   v = PyLong_FromUnsignedLongLong((unsigned long long)self->pending_seed);
-  if (!v || PyDict_SetItemString(state, "pending_seed", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  if (!v || PyDict_SetItemString(state, "pending_seed", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
   Py_DECREF(v);
 
   v = PyBool_FromLong(self->has_pending_verbose ? 1 : 0);
-  if (!v || PyDict_SetItemString(state, "has_pending_verbose", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  if (!v || PyDict_SetItemString(state, "has_pending_verbose", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
   Py_DECREF(v);
 
   v = PyLong_FromLong((long)self->pending_verbose);
-  if (!v || PyDict_SetItemString(state, "pending_verbose", v) < 0) { Py_XDECREF(v); Py_DECREF(state); return NULL; }
+  if (!v || PyDict_SetItemString(state, "pending_verbose", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
   Py_DECREF(v);
 
   // Index payload snapshot (or None if lazy/uninitialized)
@@ -2326,12 +2533,19 @@ static PyObject* py_an_getstate(
       Py_DECREF(state);
       return NULL;
     }
-    v = PyBytes_FromStringAndSize((const char*)bytes.data(), (Py_ssize_t)bytes.size());
-    if (!v) { Py_DECREF(state); return NULL; }
+    v = PyBytes_FromStringAndSize(
+        (const char*)bytes.data(), (Py_ssize_t)bytes.size());
+    if (!v) {
+      Py_DECREF(state);
+      return NULL;
+    }
   }
-  if (PyDict_SetItemString(state, "data", v) < 0) { Py_DECREF(v); Py_DECREF(state); return NULL; }
+  if (PyDict_SetItemString(state, "data", v) < 0) {
+    Py_DECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
   Py_DECREF(v);
-
   return state;
 }
 
@@ -2343,11 +2557,13 @@ static PyObject* py_an_setstate(
     return NULL;
   }
 
-  // Reset object (no logic change, just state hygiene)
+  // Reset object state (state hygiene).
   if (self->ptr) { delete self->ptr; self->ptr = NULL; }
   self->f = 0;
-  self->metric.clear();
+  self->metric_id = METRIC_UNKNOWN;
   self->on_disk_path.clear();
+  self->on_disk_active = false;
+
   self->pending_seed        = 0ULL;
   self->pending_verbose     = 0;
   self->has_pending_seed    = false;
@@ -2359,70 +2575,110 @@ static PyObject* py_an_setstate(
     long fv = PyLong_AsLong(f_obj);
     if (fv == -1 && PyErr_Occurred()) return NULL;
     if (fv < 0) {
-      PyErr_SetString(PyExc_ValueError, "`f` in pickle state must be non-negative");
+      PyErr_SetString(PyExc_ValueError,
+        "`f` in pickle state must be non-negative");
       return NULL;
     }
     self->f = (int)fv;
   }
 
-  // metric
-  PyObject* metric_obj = PyDict_GetItemString(state, "metric");  // borrowed
-  if (metric_obj && metric_obj != Py_None) {
-    const char* metric_c = PyUnicode_AsUTF8(metric_obj);
-    if (!metric_c) return NULL;
-    std::string nm = normalize_metric(metric_c);
-    if (nm.empty()) {
-      PyErr_SetString(PyExc_ValueError, "Invalid `metric` in pickle state");
+  // metric_id (optional)
+  PyObject* mid_obj = PyDict_GetItemString(state, "metric_id");  // borrowed
+  if (mid_obj && mid_obj != Py_None) {
+    long mid = PyLong_AsLong(mid_obj);
+    if (mid == -1 && PyErr_Occurred()) return NULL;
+    if (mid < (long)METRIC_UNKNOWN || mid > (long)METRIC_HAMMING) {
+      PyErr_SetString(PyExc_ValueError, "`metric_id` in pickle state is invalid");
       return NULL;
     }
-    self->metric = nm;
+    self->metric_id = (MetricId)mid;
+  }
+
+  // metric (string; empty string means "unknown / lazy")
+  PyObject* metric_obj = PyDict_GetItemString(state, "metric");  // borrowed
+  if (self->metric_id == METRIC_UNKNOWN && metric_obj && metric_obj != Py_None) {
+    if (!PyUnicode_Check(metric_obj)) {
+      PyErr_SetString(PyExc_TypeError,
+        "`metric` in pickle state must be str or None");
+      return NULL;
+    }
+    const char* m = PyUnicode_AsUTF8(metric_obj);
+    if (!m) return NULL;
+    if (m[0] != '\0') {
+      MetricId id = metric_from_string(m);
+      if (id == METRIC_UNKNOWN) {
+        PyErr_Format(PyExc_ValueError,
+          "Unknown metric '%s' in pickle state", m);
+        return NULL;
+      }
+      self->metric_id = id;
+    }
   }
 
   // on_disk_path (optional metadata)
-  PyObject* odp = PyDict_GetItemString(state, "on_disk_path");  // borrowed
-  if (odp && odp != Py_None) {
-    const char* p = PyUnicode_AsUTF8(odp);
+  PyObject* path_obj = PyDict_GetItemString(state, "on_disk_path");  // borrowed
+  if (path_obj && path_obj != Py_None) {
+    if (!PyUnicode_Check(path_obj)) {
+      PyErr_SetString(PyExc_TypeError,
+        "`on_disk_path` must be str or None");
+      return NULL;
+    }
+    const char* p = PyUnicode_AsUTF8(path_obj);
     if (!p) return NULL;
     self->on_disk_path = p;
   }
 
-  // pending seed / verbose
-  PyObject* hps = PyDict_GetItemString(state, "has_pending_seed");
-  if (hps) self->has_pending_seed = (PyObject_IsTrue(hps) == 1);
-  PyObject* ps = PyDict_GetItemString(state, "pending_seed");
-  if (ps && ps != Py_None) {
-    unsigned long long s = PyLong_AsUnsignedLongLong(ps);
-    if (PyErr_Occurred()) return NULL;
-    self->pending_seed = (uint64_t)s;
+  // pending seed/verbose (optional)
+  PyObject* has_seed_obj = PyDict_GetItemString(state, "has_pending_seed");  // borrowed
+  if (has_seed_obj && has_seed_obj != Py_None) {
+    int truth = PyObject_IsTrue(has_seed_obj);
+    if (truth < 0) return NULL;
+    self->has_pending_seed = (truth != 0);
   }
 
-  PyObject* hpv = PyDict_GetItemString(state, "has_pending_verbose");
-  if (hpv) self->has_pending_verbose = (PyObject_IsTrue(hpv) == 1);
-  PyObject* pv = PyDict_GetItemString(state, "pending_verbose");
-  if (pv && pv != Py_None) {
-    long lv = PyLong_AsLong(pv);
-    if (lv == -1 && PyErr_Occurred()) return NULL;
-    self->pending_verbose = (int)lv;
+  PyObject* seed_obj = PyDict_GetItemString(state, "pending_seed");  // borrowed
+  if (seed_obj && seed_obj != Py_None) {
+    unsigned long long sv = PyLong_AsUnsignedLongLong(seed_obj);
+    if (sv == (unsigned long long)-1 && PyErr_Occurred()) return NULL;
+    self->pending_seed = (uint64_t)sv;
+  }
+
+  PyObject* has_verbose_obj = PyDict_GetItemString(state, "has_pending_verbose");  // borrowed
+  if (has_verbose_obj && has_verbose_obj != Py_None) {
+    int truth = PyObject_IsTrue(has_verbose_obj);
+    if (truth < 0) return NULL;
+    self->has_pending_verbose = (truth != 0);
+  }
+
+  PyObject* verbose_obj = PyDict_GetItemString(state, "pending_verbose");  // borrowed
+  if (verbose_obj && verbose_obj != Py_None) {
+    long vv = PyLong_AsLong(verbose_obj);
+    if (vv == -1 && PyErr_Occurred()) return NULL;
+    self->pending_verbose = (int)vv;
   }
 
   // data (optional)
   PyObject* data = PyDict_GetItemString(state, "data");  // borrowed
   if (data && data != Py_None) {
     if (!PyBytes_Check(data)) {
-      PyErr_SetString(PyExc_TypeError, "`data` in pickle state must be bytes or None");
+      PyErr_SetString(PyExc_TypeError,
+        "`data` in pickle state must be bytes or None");
       return NULL;
     }
-    if (self->metric.empty()) {
-      PyErr_SetString(PyExc_ValueError, "Pickle state has `data` but missing/empty `metric`");
+    if (self->f <= 0) {
+      PyErr_SetString(PyExc_ValueError,
+        "Pickle state has `data` but missing/invalid `f`");
       return NULL;
     }
+    if (self->metric_id == METRIC_UNKNOWN) {
+      PyErr_SetString(PyExc_ValueError,
+        "Pickle state has `data` but missing/empty `metric`");
+      return NULL;
+    }
+
     // Create index and restore snapshot
-    ScopedError error;
-    self->ptr = create_index_for_metric(self->f, self->metric, &error.err);
-    if (!self->ptr) {
-      PyErr_SetString(PyExc_RuntimeError, error.err ? error.err : "Failed to create Annoy index");
+    if (!ensure_index(self))
       return NULL;
-    }
 
     char* buf = NULL;
     Py_ssize_t n = 0;
@@ -2434,14 +2690,9 @@ static PyObject* py_an_setstate(
 
     ScopedError derr;
     if (!self->ptr->deserialize(&v, false, &derr.err)) {
-      // PyErr_SetString(PyExc_IOError, derr.err ? derr.err : (char*)"deserialize failed");
-      // delete self->ptr; self->ptr = NULL;
-      // return NULL;
-
+      const std::string deser_msg = derr.err ? derr.err : "deserialize failed";
       // Compatibility: if snapshot deserialization fails, but a backing .annoy
       // file exists, try to restore from disk (keeps old/broken pickles usable).
-      const std::string deser_msg = derr.err ? derr.err : "deserialize failed";
-
       if (!self->on_disk_path.empty()) {
         const char* path = self->on_disk_path.c_str();
 
@@ -2454,12 +2705,8 @@ static PyObject* py_an_setstate(
         // Reset index before attempting disk load (avoid partially-initialized state).
         delete self->ptr; self->ptr = NULL;
 
-        ScopedError cerr;
-        self->ptr = create_index_for_metric(self->f, self->metric, &cerr.err);
-        if (!self->ptr) {
-          PyErr_SetString(PyExc_RuntimeError, cerr.err ? cerr.err : "Failed to create Annoy index");
+        if (!ensure_index(self))  // recreate (applies pending config)
           return NULL;
-        }
 
         ScopedError lerr;
         if (!self->ptr->load(path, false, &lerr.err)) {
@@ -2471,6 +2718,7 @@ static PyObject* py_an_setstate(
           delete self->ptr; self->ptr = NULL;
           return NULL;
         }
+        self->on_disk_active = true;
       } else {
         PyErr_SetString(PyExc_IOError, deser_msg.c_str());
         delete self->ptr; self->ptr = NULL;
@@ -2478,13 +2726,6 @@ static PyObject* py_an_setstate(
       }
     }
   }
-
-  // Re-apply preferences (matches existing semantics)
-  if (self->ptr) {
-    if (self->has_pending_seed) self->ptr->set_seed(self->pending_seed);
-    if (self->has_pending_verbose) self->ptr->verbose(self->pending_verbose >= 1);
-  }
-
   Py_RETURN_NONE;
 }
 
@@ -3232,10 +3473,9 @@ static PyObject* py_an_repr(
   // Dimension (may still be 0 if we are in lazy mode)
   int f = self->f;
 
-  // Metric: if index exists, prefer runtime type; else use stored string.
-  std::string metric = self->ptr ? metric_from_ptr(self->ptr) : self->metric;
-  if (metric.empty())
-    metric = "unknown";
+  // Metric (single source of truth: metric_id)
+  const char* metric = metric_to_cstr(self->metric_id);
+  if (!metric) metric = "unknown";
 
   long n_items = 0;
   long n_trees = 0;
@@ -3244,17 +3484,35 @@ static PyObject* py_an_repr(
     n_trees = static_cast<long>(self->ptr->get_n_trees());
   }
 
-  const char* path = self->on_disk_path.empty()
-                       ? "None"
-                       : self->on_disk_path.c_str();
+  // Represent on_disk_path using Python's repr for correct quoting/escaping.
+  PyObject* path_obj = NULL;
+  if (self->on_disk_path.empty()) {
+    path_obj = Py_None;
+    Py_INCREF(Py_None);
+  } else {
+    path_obj = PyUnicode_FromString(self->on_disk_path.c_str());
+    if (!path_obj) return NULL;
+  }
 
-  return PyUnicode_FromFormat(
-      "Annoy(f=%d, metric='%s', n_items=%ld, n_trees=%ld, on_disk_path=%s)",
-      f,
-      metric.c_str(),
-      n_items,
-      n_trees,
-      path);
+  PyObject* path_repr = PyObject_Repr(path_obj);
+  Py_DECREF(path_obj);
+  if (!path_repr) return NULL;
+
+  const char* path_c = PyUnicode_AsUTF8(path_repr);
+  if (!path_c) {
+    Py_DECREF(path_repr);
+    return NULL;
+  }
+
+  PyObject* out = PyUnicode_FromFormat(
+    "Annoy(f=%d, metric='%s', n_items=%ld, n_trees=%ld, on_disk_path=%s)",
+    f,
+    metric,
+    n_items,
+    n_trees,
+    path_c);
+  Py_DECREF(path_repr);
+  return out;
 }
 
 // ======================= Module / types ===================================
@@ -3281,7 +3539,7 @@ static PyTypeObject py_annoy_type = {
   0,                                        /* tp_setattro */
   0,                                        /* tp_as_buffer */
   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-  (char*)ANNOY_TYPE_DOC,                    /* tp_doc  */
+  (char*)kAnnoyTypeDoc,                     /* tp_doc  */
   0,                                        /* tp_traverse */
   0,                                        /* tp_clear */
   0,                                        /* tp_richcompare */
@@ -3309,7 +3567,7 @@ static PyMethodDef module_methods[] = {
 static struct PyModuleDef annoylibmodule = {
   PyModuleDef_HEAD_INIT,
   "annoylib",          /* m_name: import annoylib */
-  ANNOY_TYPE_DOC,      /* m_doc: module-level docstring */
+  ANNOY_MOD_DOC,      /* m_doc: module-level docstring */
   -1,                  /* m_size */
   module_methods,      /* m_methods */
   NULL,                /* m_slots */

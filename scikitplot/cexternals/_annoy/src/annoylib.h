@@ -58,6 +58,8 @@ typedef signed __int64    int64_t;
 #include <queue>
 #include <limits>
 
+// For 201402L "This library requires at least C++14 (-std=c++14)."
+// For 201703L "This library requires at least C++17 (-std=c++17)."
 #if __cplusplus >= 201103L
 #include <type_traits>
 #endif
@@ -125,6 +127,30 @@ typedef signed __int64    int64_t;
 #endif
 
 namespace Annoy {
+
+// -------------------------------------------------------------------------
+// MetricId forward declaration for Python binding consistency
+// -------------------------------------------------------------------------
+// enum MetricId : uint8_t {
+//   METRIC_UNKNOWN = 0,
+//   METRIC_ANGULAR,
+//   METRIC_EUCLIDEAN,
+//   METRIC_MANHATTAN,
+//   METRIC_DOT,
+//   METRIC_HAMMING
+// };
+
+// // Convert MetricId → canonical string
+// static inline const char* metric_to_cstr(MetricId m) {
+//   switch (m) {
+//     case METRIC_ANGULAR:   return "angular";
+//     case METRIC_EUCLIDEAN: return "euclidean";
+//     case METRIC_MANHATTAN: return "manhattan";
+//     case METRIC_DOT:       return "dot";
+//     case METRIC_HAMMING:   return "hamming";
+//     default:               return nullptr;
+//   }
+// }
 
 inline void set_error_from_errno(char **error, const char* msg) {
   annoylib_showUpdate("%s: %s (%d)\n", msg, strerror(errno), errno);
