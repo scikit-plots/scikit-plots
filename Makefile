@@ -676,14 +676,12 @@ grep:
 newbr:
 	@echo ">> Creating new branch 'subpackage-bug-fix' based on main..."
 	@# Ensure you are on main and pull latest changes
-	@git switch main \
-	git pull \
-	git branch -d subpackage-bug-fix || true \
-	git branch -D subpackage-bug-fix || true \
-	git switch -c subpackage-bug-fix \
-	git push --set-upstream origin subpackage-bug-fix \
-	# git branch \
-	echo ">> New branch created and pushed successfully."
+	@git switch main && git pull && \
+	git branch -d subpackage-bug-fix 2>/dev/null || true; \
+	git branch -D subpackage-bug-fix 2>/dev/null || true; \
+	git switch -c subpackage-bug-fix && \
+	git push -u origin subpackage-bug-fix && \
+	git branch && echo ">> New branch created and pushed successfully."
 
 ## push
 ## Stage all changes, commit with a message, and push to the current branch.

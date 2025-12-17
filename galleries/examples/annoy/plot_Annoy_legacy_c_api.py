@@ -111,7 +111,7 @@ idx
 idx = AnnoyIndex(100, metric="angular")
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
-idx.on_disk_build("annoy_test.annoy"), idx#.on_disk_path
+idx.on_disk_build("annoy_test_1.annoy"), idx#.on_disk_path
 # help(idx.on_disk_build)
 
 # %%
@@ -249,11 +249,11 @@ print("Low-level tuple return:", items_low, d_low)
 # =============================================================
 print("\n=== Saving with binary annoy ===")
 print(idx)
-idx.save("annoy_test.annoy")
+idx.save("annoy_test_1.annoy")
 print(idx)
 
 print("Loading...")
-idx2 = AnnoyIndex(100, metric='angular').load("annoy_test.annoy")
+idx2 = AnnoyIndex(100, metric='angular').load("annoy_test_1.annoy")
 print("Loaded index:", idx2)
 
 
@@ -300,7 +300,7 @@ print(idx)
 # %%
 
 # idx.build(10)
-idx.load("annoy_test.annoy")
+idx.load("annoy_test_1.annoy")
 print(idx)
 
 # %%
