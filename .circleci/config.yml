@@ -435,7 +435,7 @@ jobs:
           name: "📥 Upload new docs to cloned the repo over SSH"
           command: |
             ## if [[ "${CIRCLE_BRANCH}" =~ ^main$|^[0-9]+\.[0-9]+\.X$ ]]; then
-            if [[ "${CIRCLE_BRANCH}" =~ ^main$|^((maintenance|release)/)?[0-9]+\.[0-9]+(\.x|\.[0-9]+)?$ ]]; then
+            if [[ "${CIRCLE_BRANCH}" =~ ^main$|^subpackage-bug-fix$|^((maintenance|release)/)?[0-9]+\.[0-9]+(\.x|\.[0-9]+)?$ ]]; then
               bash ./tools/circle/push_doc.sh docs/build/html/stable
             fi
 
