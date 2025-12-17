@@ -21,6 +21,7 @@ import random; random.seed(0)
 # from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
 from scikitplot.annoy import Annoy, AnnoyIndex, Index
 
+print(Annoy.__doc__)
 print(Index.__doc__)
 
 # %%
@@ -35,13 +36,52 @@ annoy.__version__, dir(annoy), dir(annoy.Annoy)
 # =============================================================
 # 1. Construction
 # =============================================================
-idx = Index(0)
+idx = Index()
+idx = Index(None, None)
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
 print(idx)
 print(idx.info())
 
 # help(idx.info)
+
+
+# %%
+
+dir(idx)
+
+# %%
+
+# AttributeError: readonly attribute
+# idx._metric_id = 1
+idx._f, idx._metric_id, idx._on_disk_path
+
+# %%
+
+idx.f, idx.metric, idx.on_disk_path
+
+# %%
+
+idx.metric = "dot"
+
+# %%
+
+idx.f, idx.metric, idx.on_disk_path
+
+# %%
+
+type(idx)
+
+# %%
+
+# =============================================================
+# 1. Construction
+# =============================================================
+# idx = Index(f=3)
+idx.add_item(0, [1, 0, 0])
+print("Index dimension:", idx.f)
+print("Metric         :", idx.metric)
+print(idx)
 
 # %%
 
@@ -58,16 +98,6 @@ print(isinstance(idx, a.Index))
 print(type(idx))
 print(idx.__class__.__module__)
 print(idx.__class__.__mro__)
-
-# %%
-
-# =============================================================
-# 1. Construction
-# =============================================================
-idx = Index(f=3)
-print("Index dimension:", idx.f)
-print("Metric         :", idx.metric)
-print(idx)
 
 
 # %%
@@ -101,7 +131,7 @@ print("Metric         :", idx.metric)
 idx = Index(100, metric="angular")
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
-idx.on_disk_build("annoy_test2.annoy")
+idx.on_disk_build("annoy_test.annoy")
 # help(idx.on_disk_build)
 
 # %%
@@ -239,11 +269,11 @@ print("Low-level tuple return:", items_low, d_low)
 # =============================================================
 print("\n=== Saving with binary annoy ===")
 print(idx)
-idx.save("annoy_test2.annoy")
+idx.save("annoy_test.annoy")
 print(idx)
 
 print("Loading...")
-idx2 = Index(100, metric='angular').load("annoy_test2.annoy")
+idx2 = Index(100, metric='angular').load("annoy_test.annoy")
 print("Loaded index:", idx2)
 
 # %%
@@ -289,7 +319,7 @@ print(idx)
 # %%
 
 # idx.build(10)
-idx.load("annoy_test2.annoy")
+idx.load("annoy_test.annoy")
 print(idx)
 type(idx)
 
