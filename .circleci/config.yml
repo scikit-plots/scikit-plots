@@ -376,8 +376,8 @@ jobs:
             ## Generate the ED25519 SSH Key Pair (with custom name id_ed25519_circleci):
             ## ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
             ## ssh-keygen -t ed25519 -C "your_email@example.com"
-            ## ssh-keygen -t ed25519-sk -C "your_email@example.com"  # hardware security key
             ## ssh-keygen -t ed25519 -C "your_email@example.com" -f ~/.ssh/id_ed25519_circleci
+            ## ssh-keygen -t ed25519-sk -C "your_email@example.com"  # hardware security key
             ##
             ## apply private key (not the public key) to "chmod 600" in order to ensure that only the owner can read and write the private key
             ## chmod 600 ~/.ssh/id_ed25519_circleci
@@ -386,6 +386,10 @@ jobs:
             ## apply public key can have more relaxed permissions, but chmod 644 is commonly used.
             ## chmod 644 ~/.ssh/id_ed25519_circleci.pub
             ## cat ~/.ssh/id_ed25519_circleci.pub
+            ##
+            ## circleci
+            ## Hostname: github.com
+            ## Private Key*: ...
             ##
             ## Only add the public key to GitHub (id_ed25519_circleci.pub), not the private key (id_ed25519_circleci).
             ## ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICIo9OIfO9BdffgYEKxyg5Zkj7hlX00yV3w1cH2JKpQz your_email@example.com
@@ -396,7 +400,7 @@ jobs:
             ## ssh-keygen -E md5 -lf ~/.ssh/id_ed25519_circleci.pub
             ## 256 MD5:1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3 your_email@example.com (ED25519)
             ##
-            ## you've added the private key to CircleCI's project settings,
+            ## you've added the private key to CircleCI's project settings -> Additional SSH Keys,
             ## is for identifying the correct private key that CircleCI will use during the build process.
             ## Also ensure that the private key is added to the CircleCI project
             ## and that the public key has been added to the additional repositories that you want to checkout from within your job.
@@ -405,11 +409,15 @@ jobs:
             ## Fingerprints in CircleCI environment variables will fail.
             # "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"  # Replace with your public key's fingerprint
             - "fa:a7:3e:10:71:de:f5:31:0e:3a:44:6a:b4:f5:be:8f"  # Add fingerprint here
+            - "37:fe:6f:1b:28:01:ba:85:73:01:ef:2e:15:14:65:d7"  # Add fingerprint here
 
       ## Add GitHub's SSH key to the known_hosts to avoid verification prompts
       - run:
           name: Trust GitHub SSH key
           command: |
+            set -ex;
+            cat /etc/os-release || true
+            # sudo apt-get install -y openssh-client
             mkdir -p ~/.ssh
             ssh-keyscan github.com >> ~/.ssh/known_hosts  # This step ensures GitHub's public key is trusted.
             ## Ensure the SSH config file (if used) is only accessible by the user
