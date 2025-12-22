@@ -1,3 +1,4 @@
+# scikitplot/cexternals/_annoy/__init__.py
 # Copyright (c) 2013 Spotify AB
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -58,7 +59,7 @@ from __future__ import annotations
 # This module is a dummy wrapper around the underlying C++ module.
 # --- Low-level backend (C++ Annoy) -----------------------------
 from . import annoylib
-from .annoylib import Annoy  # low-level C-extension type, simple legacy c-api
+from .annoylib import *  # Annoy low-level C-extension type, simple legacy c-api
 
 AnnoyIndex = Annoy  # alias of Annoy Index c-api
 

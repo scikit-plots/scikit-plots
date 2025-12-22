@@ -714,7 +714,7 @@ html_theme_options = {
         #     "icon": "fa-brands fa-linkedin",
         # },
         {
-            "name": "Community",
+            "name": "Social Media Platforms",
             "url": "https://scikit-plots.github.io/dev/project/community.html",
             "icon": "_static/logos/scikit-plots-logo.svg",
             "type": "local",

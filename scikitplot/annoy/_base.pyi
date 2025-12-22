@@ -1,10 +1,19 @@
-from typing import Any, Sequence, TypeAlias, overload
+# scikitplot/annoy/_base.pyi
 
-from typing_extensions import Literal
+from typing import Any, ClassVar  # noqa: F401
+
+from typing_extensions import Literal, Self, TypeAlias
 
 from ..cexternals._annoy import Annoy, AnnoyIndex  # noqa: F401
+from ._mixins._io import IndexIOMixin, PickleIOMixin
+from ._mixins._manifest import ManifestMixin
+from ._mixins._ndarray import NDArrayExportMixin
+from ._mixins._pickle import CompressMode, PickleMixin, PickleMode  # noqa: F401
+from ._mixins._plotting import PlottingMixin
+from ._mixins._vectors import VectorOpsMixin
 
 # --- Allowed metric literals (simple type hints) ---
+# AnnoyMetric: TypeAlias = Literal["angular", "euclidean", "manhattan", "dot", "hamming"]
 AnnoyMetric: TypeAlias = Literal[
     "angular",
     "cosine",
@@ -24,101 +33,22 @@ AnnoyMetric: TypeAlias = Literal[
     "hamming",
 ]
 
-class Index(Annoy):
-    """
-    High-level Annoy index for approximate nearest-neighbour search.
+__all__: list[str, ...] = ["Index"]
 
-    This class wraps the low-level C++ core
-    :class:`~scikitplot.cexternals._annoy.Annoy` and exposes a
-    typed, user-friendly pickable Python interface.
-    """  # noqa: PYI021
+class Index(
+    Annoy,
+    ManifestMixin,
+    IndexIOMixin,
+    PickleIOMixin,
+    PickleMixin,
+    VectorOpsMixin,
+    NDArrayExportMixin,
+    PlottingMixin,
+):
+    # __slots__: ClassVar[tuple[str, ...]] = ()
 
-    f: int
-    metric: AnnoyMetric | None
-
+    def _low_level(self) -> Any: ...
     @property
-    def metric(self) -> AnnoyMetric | None: ...
-    @metric.setter
-    def metric(self, metric: AnnoyMetric) -> None: ...
-    def __init__(self, f: int = 0, metric: str = "angular") -> None: ...
-
-    # Annoy core operations
-    def build(self, n_trees: int = -1, n_jobs: int = -1) -> bool: ...
-    def unbuild(self) -> bool: ...
-    def on_disk_build(self, fn: str) -> bool: ...
-    def set_seed(self, seed: int = 0) -> None: ...
-    def verbose(self, v: int = 0) -> None: ...
-
-    # persistence
-    def save(self, fn: str, prefault: bool = False) -> bool: ...
-    def load(self, fn: str, prefault: bool = False) -> bool: ...
-    def serialize(self, prefault: bool = False) -> bytes: ...
+    def annoy(self) -> Annoy: ...
     @classmethod
-    def deserialize(
-        cls,
-        bytes: bytes,
-        prefault: bool = False,
-    ) -> "Index": ...  # noqa: PYI020, UP037
-
-    # modern pickling (e.g., __reduce_ex__, __reduce__, _rebuild)
-    def __reduce__(self) -> Any: ...
-    @classmethod
-    def _rebuild(cls, state: dict) -> "Index": ...  # noqa: PYI020, UP037
-
-    # utilities
-    def save_to_file(self, path: str) -> None: ...
-    @classmethod
-    def load_from_file(cls, path: str) -> "Index": ...  # noqa: PYI020, UP037
-
-    # items
-    def add_item(self, i: int, v: Sequence[float]) -> bool: ...
-    def get_item_vector(self, i: int) -> list[float]: ...
-    def get_distance(self, i: int, j: int) -> float: ...
-    def get_n_items(self) -> int: ...
-    def get_n_trees(self) -> int: ...
-    def memory_usage(self) -> int: ...
-    def __len__(self) -> int: ...
-    def info(self) -> dict: ...
-
-    # -------------------------------------------
-    # Nearest neighbor queries (clean signatures)
-    # -------------------------------------------
-
-    @overload
-    def get_nns_by_item(
-        self,
-        i: int,
-        n: int,
-        search_k: int | None = ...,
-        *,
-        include_distances: bool = False,
-    ) -> list[int]: ...
-    @overload
-    def get_nns_by_item(
-        self,
-        i: int,
-        n: int,
-        search_k: int | None = ...,
-        *,
-        include_distances: bool = False,
-    ) -> tuple[list[int], list[float]]: ...
-
-    # Vector version
-    @overload
-    def get_nns_by_vector(
-        self,
-        v: Sequence[float],
-        n: int,
-        search_k: int | None = ...,
-        *,
-        include_distances: bool = False,
-    ) -> list[int]: ...
-    @overload
-    def get_nns_by_vector(
-        self,
-        v: Sequence[float],
-        n: int,
-        search_k: int | None = ...,
-        *,
-        include_distances: bool = False,
-    ) -> tuple[list[int], list[float]]: ...
+    def from_low_level(cls, obj: Annoy, *, prefault: bool | None = None) -> Self: ...
