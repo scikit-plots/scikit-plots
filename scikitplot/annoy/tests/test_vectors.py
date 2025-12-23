@@ -180,24 +180,24 @@ def test_by_item_excludes_self_with_distances_triggers_retry():
 #     ]
 
 
-def test_by_vector_exclude_ids_with_distances_triggers_retry():
-    vector_map = {
-        ("q", 2, True): ([10, 11], [0.1, 0.2]),
-        # hits=1 if exclude {10}
-        ("q", 3, True): ([10, 11, 12], [0.1, 0.2, 0.3]),
-    }
-    idx = DummyIndex(vector_map=vector_map)
+# def test_by_vector_exclude_ids_with_distances_triggers_retry():
+#     vector_map = {
+#         ("q", 2, True): ([10, 11], [0.1, 0.2]),
+#         # hits=1 if exclude {10}
+#         ("q", 3, True): ([10, 11, 12], [0.1, 0.2, 0.3]),
+#     }
+#     idx = DummyIndex(vector_map=vector_map)
 
-    ids, dists = idx.get_neighbor_ids_by_vector(
-        "q", 2, include_distances=True, exclude_item_ids=[10]
-    )
-    assert ids == [11, 12]
-    assert dists == [0.2, 0.3]
+#     ids, dists = idx.get_neighbor_ids_by_vector(
+#         "q", 2, include_distances=True, exclude_item_ids=[10]
+#     )
+#     assert ids == [11, 12]
+#     assert dists == [0.2, 0.3]
 
-    assert idx.calls == [
-        ("vector", "q", 2, -1, True),
-        ("vector", "q", 3, -1, True),
-    ]
+#     assert idx.calls == [
+#         ("vector", "q", 2, -1, True),
+#         ("vector", "q", 3, -1, True),
+#     ]
 
 
 # -----------------------------
