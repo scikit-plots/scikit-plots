@@ -47,8 +47,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>  // std::strcmp
-#include <cstdio>
-#include <cstdlib>
+#include <cstdio>  // std::snprintf, std::vsnprintf
+#include <cstdlib>  // std::getenv
 #include <exception>
 #include <fstream>  // std::ifstream
 #include <memory>
@@ -157,7 +157,7 @@ using namespace Annoy;
 
     if (!GetTempPathA(MAX_PATH, path)) {
       // Fallback: current directory
-      std::snprintf(path, sizeof(path), ".");
+      snprintf(path, sizeof(path), ".");
     }
     if (!GetTempFileNameA(path, "ann", 0, file)) {
       // As a last resort, use a simple pattern in CWD
