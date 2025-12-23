@@ -1229,9 +1229,11 @@ static PyObject* py_an_new(
   // Py_TPFLAGS_HAVE_GC. Untrack during initialization and track once all
   // GC-visible fields (e.g. __dict__) are in a consistent state.
   if (type->tp_flags & Py_TPFLAGS_HAVE_GC) {
-    if (PyObject_GC_IsTracked((PyObject*)self)) {
-      PyObject_GC_UnTrack((PyObject*)self);
-    }
+    // if (PyObject_GC_IsTracked((PyObject*)self)) { PyObject_GC_UnTrack((PyObject*)self); }
+    // PyObject_GC_IsTracked() is only available starting with Python 3.9.
+    // For Python 3.8 compatibility we untrack unconditionally.
+    // (On CPython this is safe even if the object is not currently tracked.)
+    PyObject_GC_UnTrack((PyObject*)self);  // kernel dead
   }
 
   self->dict = NULL;
@@ -1276,9 +1278,11 @@ static PyObject* py_an_new(
   // Rule: if (and only if) the type participates in GC, ensure we end up tracked
   // exactly once at the end of construction.
   if (type->tp_flags & Py_TPFLAGS_HAVE_GC) {
-    if (!PyObject_GC_IsTracked((PyObject*)self)) {
-      PyObject_GC_Track((PyObject*)self);
-    }
+    // if (PyObject_GC_IsTracked((PyObject*)self)) { PyObject_GC_Track((PyObject*)self); }
+    // See comment above: PyObject_GC_IsTracked() is not available on Python 3.8.
+    // We untracked unconditionally right after allocation, so tracking here is
+    // deterministic and happens exactly once.
+    PyObject_GC_Track((PyObject*)self);
   }
 
   // (must-do): don’t use PY_RETURN_SELF in py_an_new
@@ -1549,9 +1553,11 @@ static void py_an_dealloc(py_annoy* self) {
   //   6) Free the Python object memory
 
   if (Py_TYPE(self)->tp_flags & Py_TPFLAGS_HAVE_GC) {
-    if (PyObject_GC_IsTracked((PyObject*)self)) {
-      PyObject_GC_UnTrack((PyObject*)self);
-    }
+    // if (PyObject_GC_IsTracked((PyObject*)self)) { PyObject_GC_UnTrack((PyObject*)self); }
+    // PyObject_GC_IsTracked() is only available starting with Python 3.9.
+    // For Python 3.8 compatibility we untrack unconditionally.
+    // (On CPython this is safe even if the object is not currently tracked.)
+    PyObject_GC_UnTrack((PyObject*)self);
   }
 
   // Clear instance dictionary (if enabled).

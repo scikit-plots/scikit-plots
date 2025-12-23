@@ -75,10 +75,11 @@ print(AnnoyIndex())
 
 # %%
 
-from IPython.core.display import HTML
-display(HTML('<h1>Hello, world!</h1>'))
+# from IPython.display import display
+# from IPython.core.display import HTML
+# display(HTML('<h1>Hello, world!</h1>'))
 
-display(AnnoyIndex())
+# display(AnnoyIndex())
 
 # %%
 
