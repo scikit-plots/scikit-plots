@@ -174,8 +174,8 @@ jobs:
           - [ubuntu-22.04, musllinux, x86_64]
           - [ubuntu-24.04-arm, manylinux, aarch64]
           - [ubuntu-24.04-arm, musllinux, aarch64]
-          - [macos-13, macosx, x86_64, openblas, "10.15"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
-          - [macos-13, macosx, x86_64, accelerate, "14.0"]
+          # - [macos-13, macosx, x86_64, openblas, "10.15"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
+          # - [macos-13, macosx, x86_64, accelerate, "14.0"]  # Depr macos-13 https://github.com/actions/runner-images/issues/13046
           - [macos-15-intel, macosx, x86_64, openblas, "10.15"]  # MACOSX_DEPLOYMENT_TARGET Needed for full C++17 support on macOS >= macOS 10.14
           - [macos-15-intel, macosx, x86_64, accelerate, "14.0"]
           - [macos-14, macosx, arm64, openblas, "12.3"]
