@@ -1,9 +1,22 @@
-# _mixins.pyi
+# scikitplot/annoy/_mixins/__init__.pyi
 
-from ._io import ObjectIOMixin, SerializerBackend  # noqa: F401
-from ._manifest import ManifestMixin  # noqa: F401
-from ._ndarray import NDArrayExportMixin  # noqa: F401
-from ._pickle import CompressMode, PickleMixin, PickleMode  # noqa: F401
-from ._vectors import VectorOpsMixin  # noqa: F401
+# from __future__ import annotations
 
-__all__: list[str]  # noqa: PYI035
+from ._io import IndexIOMixin, PickleIOMixin
+from ._manifest import ManifestMixin
+from ._ndarray import NDArrayExportMixin
+from ._pickle import CompressMode, PickleMixin, PickleMode
+from ._plotting import PlottingMixin
+from ._vectors import VectorOpsMixin
+
+__all__: tuple[str, ...] = (
+    "CompressMode",
+    "IndexIOMixin",
+    "ManifestMixin",
+    "NDArrayExportMixin",
+    "PickleIOMixin",
+    "PickleMixin",
+    "PickleMode",
+    "PlottingMixin",
+    "VectorOpsMixin",
+)

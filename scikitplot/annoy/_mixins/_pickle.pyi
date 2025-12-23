@@ -1,51 +1,39 @@
-# _pickle.pyi
+# scikitplot/annoy/_mixins/_pickle.pyi
+"""Typing stubs for :mod:`scikitplot.annoy._mixins._pickle`."""  # noqa: PYI021
 
-from typing import Any, Literal
+# from __future__ import annotations
 
-from typing_extensions import Self, TypeAlias
+from collections.abc import Mapping
+from os import PathLike  # noqa: F401
+from typing import Any, ClassVar, Literal, TypeAlias
 
-from .. import annoylib
+from typing_extensions import Self
 
-PickleMode: TypeAlias = Literal["auto", "byte", "disk"]
 CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
+PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
 
-class PathAwareAnnoy(annoylib.Annoy):
-    """
-    Thin Python subclass that tracks last known on-disk path.
-    """  # noqa: PYI021
-
-    _on_disk_path: str | None
-
-    def on_disk_build(self, path: str) -> Self: ...
-    def load(self, path: str, prefault: bool = False) -> Self: ...
-    def save(self, path: str, prefault: bool = False) -> Self: ...
-
-class PickleMixin(PathAwareAnnoy):
-    """
-    Strict persistence support for pickle/joblib/cloudpickle.
-    """  # noqa: PYI021
-
-    _prefault: bool
-    _pickle_mode: PickleMode
+class PickleMixin:
+    _lock: Any
     _compress_mode: CompressMode
+    _pickle_mode: PickleMode
+    _PICKLE_STATE_VERSION: ClassVar[int]
 
-    def __init__(self, f: int = 0, metric: str = "angular"): ...
-    @property
-    def prefault(self) -> bool: ...
-    @prefault.setter
-    def prefault(self, value: object) -> None: ...
-    @property
-    def on_disk_path(self) -> str | None: ...
-    @on_disk_path.setter
-    def on_disk_path(self, value: str | None) -> None: ...
-    @property
-    def pickle_mode(self) -> PickleMode: ...
-    @pickle_mode.setter
-    def pickle_mode(self, value: PickleMode) -> None: ...
+    def _low_level(self) -> Any: ...
     @property
     def compress_mode(self) -> CompressMode: ...
     @compress_mode.setter
     def compress_mode(self, value: CompressMode) -> None: ...
+    @property
+    def pickle_mode(self) -> PickleMode: ...
+    @pickle_mode.setter
+    def pickle_mode(self, value: PickleMode) -> None: ...
     def __reduce__(self) -> object: ...
+    def __reduce_ex__(self, protocol: int) -> object: ...
     @classmethod
-    def _rebuild(cls: type[Self], state: dict[str, Any]) -> Self: ...
+    def _rebuild(cls: type[Self], state: Mapping[str, Any]) -> Self: ...
+
+__all__: list[str] = [
+    "CompressMode",
+    "PickleMixin",
+    "PickleMode",
+]

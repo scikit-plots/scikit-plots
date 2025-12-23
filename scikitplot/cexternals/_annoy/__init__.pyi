@@ -1,3 +1,4 @@
+# scikitplot/cexternals/_annoy/__init__.pyi
 # fmt: off
 # ruff: noqa
 # ruff: noqa: PGH004
@@ -12,7 +13,7 @@
 from typing import TypeAlias
 
 from . import annoylib
-from .annoylib import Annoy  # low-level C-extension type, simple legacy c-api
+from .annoylib import *  # Annoy low-level C-extension type, simple legacy c-api
 
 AnnoyIndex: TypeAlias = Annoy  # alias of Annoy Index c-api
 

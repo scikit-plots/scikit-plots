@@ -1,3 +1,4 @@
+# scikitplot/cexternals/_annoy/annoylib.pyi
 # fmt: off
 # ruff: noqa
 # ruff: noqa: PGH004
@@ -9,13 +10,39 @@
 # This module was copied from the annoy project.
 # https://github.com/spotify/annoy/blob/main/annoy/__init__.pyi
 
+# from __future__ import annotations
+
 from typing import TYPE_CHECKING, Sized, TypeAlias, TypeVar, overload, runtime_checkable
 from typing import Iterable, Iterator, List, Tuple, TypedDict
-from typing_extensions import Literal, LiteralString, Protocol, Self
+from typing_extensions import Literal, LiteralString, NotRequired, Protocol, Required, Self
 
-from . import annoylib
+# from . import annoylib
 
 # --- Allowed metric literals (simple type hints) ---
+# --- Metric typing -----------------------------------------------------------
+# Annoy accepts many aliases on input, but always normalizes to a canonical
+# metric name on output (see :attr:`Annoy.metric`).
+# // scipy.spatial.distance.cosine
+# // scipy.spatial.distance.euclidean
+# // scipy.spatial.distance.cityblock
+# // scipy.sparse.coo_array.dot
+# // scipy.spatial.distance.hamming
+# {"angular",   "angular"},
+# {"cosine",    "angular"},
+# {"euclidean", "euclidean"},
+# {"l2",        "euclidean"},
+# {"lstsq",        "euclidean"},
+# {"manhattan", "manhattan"},
+# {"l1",        "manhattan"},
+# {"cityblock", "manhattan"},
+# {"taxicab",   "manhattan"},
+# {"dot",          "dot"},
+# {"@",            "dot"},
+# {".",            "dot"},
+# {"dotproduct",   "dot"},
+# {"inner",        "dot"},
+# {"innerproduct", "dot"},
+# {"hamming", "hamming"},
 AnnoyMetric: TypeAlias = Literal[
     "angular", "cosine",
     "euclidean", "l2", "lstsq",
@@ -23,91 +50,176 @@ AnnoyMetric: TypeAlias = Literal[
     "dot", "@", ".", "dotproduct", "inner", "innerproduct",
     "hamming",
 ]
+AnnoyMetricCanonical: TypeAlias = Literal['angular', 'euclidean', 'manhattan', 'dot', 'hamming']
+
+ItemIndex: TypeAlias = int
+TreeCount: TypeAlias = int
+SearchK: TypeAlias = int
+Neighbors: TypeAlias = list[ItemIndex]
+Distances: TypeAlias = list[float]
+NeighborsWithDistances: TypeAlias = tuple[Neighbors, Distances]
 
 # --- Generic type variable that preserves literal type ---
 # AnnoyMetricT = TypeVar("AnnoyMetricT", AnnoyMetric, bound=LiteralString)
-AnnoyMetricT = TypeVar("AnnoyMetricT", bound=AnnoyMetric)
+# AnnoyMetricT = TypeVar("AnnoyMetricT", bound=AnnoyMetric)
 
 
-class AnnoyInfo(TypedDict):
-    dimension: int
-    metric: str
-    n_items: int
-    n_trees: int
-    memory_usage_byte: int
-    memory_usage_mib: float
-    on_disk_path: str | None
-
-
-class _Vector(Protocol, Sized):
-    def __getitem__(self, __index: int) -> float: ...
+class Vector(Protocol, Sized):
+    def __getitem__(self, index: int) -> float: ...
     def __len__(self) -> int: ...
 
 
-# // scipy.spatial.distance.cosine
-# {"angular",   "angular"},
-# {"cosine",    "angular"},
-# // scipy.spatial.distance.euclidean
-# {"euclidean", "euclidean"},
-# {"l2",        "euclidean"},
-# {"lstsq",        "euclidean"},
-# // scipy.spatial.distance.cityblock
-# {"manhattan", "manhattan"},
-# {"l1",        "manhattan"},
-# {"cityblock", "manhattan"},
-# {"taxicab",   "manhattan"},
-# // scipy.sparse.coo_array.dot
-# {"dot",          "dot"},
-# {"@",            "dot"},
-# {".",            "dot"},
-# {"dotproduct",   "dot"},
-# {"inner",        "dot"},
-# {"innerproduct", "dot"},
-# // scipy.spatial.distance.hamming
-# {"hamming", "hamming"},
-class Annoy(annoylib.Annoy):
+class AnnoyInfo(TypedDict):
     """
-    Annoy index for approximate nearest neighbor search.
-
-    Parameters
-    ----------
-    f : int
-        Dimensionality of the input vectors.
-    metric : {"angular", "cosine", \
-              "euclidean", "l2", "lstsq", \
-              "manhattan", "l1", "cityblock", "taxicab", \
-              "dot", "@", ".", "dotproduct", "inner", "innerproduct", \
-              "hamming"}, optional, default='angular'
-        Distance function.  If omitted, the runtime default is
-        ``"angular"`` (matching the original ``annoy`` package).
-        Passing the metric explicitly is recommended to avoid future
-        deprecation warnings.
-
-    Attributes
-    ----------
-    f : int
-        Stored vector dimensionality.
-    metric : AnnoyMetric
-        Metric used for all distances in this index.
+    JSON-like summary returned by :meth:`~.Annoy.info`.
 
     Notes
     -----
-    * Items must be added *before* calling :meth:`build`.
-    * After :meth:`build` the index becomes read-only; to add more items,
-      call :meth:`unbuild`, :meth:`add_item` again, then :meth:`build`.
-    * Large indices can be built directly on disk with
-      :meth:`on_disk_build`, then memory-mapped with :meth:`load`.
-    * :meth:`info` returns a multi-line summary including dimension,
-      metric, number of items, number of trees and memory usage - the
-      same values printed in ``test.ipynb``.
-    * If ``f == 0`` you may add the first item with any non-empty vector and the
-      dimensionality will be inferred from that vector and fixed for the lifetime
-      of the index.
-    * The default metric may change in future versions; to avoid warnings and
-      behaviour changes, always pass ``metric=...`` explicitly.
+    The following keys are always present:
+
+    - ``f``, ``metric``, ``on_disk_path``, ``prefault``, ``schema_version``,
+      ``seed``, ``verbose``
+
+    The following keys are included only when requested via ``include_*`` flags:
+
+    - ``n_items``, ``n_trees``, ``memory_usage_byte``, ``memory_usage_mib``
+    """
+
+    # Always-present keys (stable)
+    f: Required[int]
+    metric: Required[AnnoyMetricCanonical | None]
+    on_disk_path: Required[str | None]
+    prefault: Required[bool]
+    schema_version: Required[int]
+    seed: Required[int | None]
+    verbose: Required[int | None]
+
+    # Optional keys (controlled by include_* flags)
+    n_items: NotRequired[int]
+    n_trees: NotRequired[int]
+    memory_usage_byte: NotRequired[int]
+    memory_usage_mib: NotRequired[float]
+
+
+class Annoy:
+    """
+    Approximate Nearest Neighbors index (Annoy) with a small, lazy C-extension wrapper.
+
+    ::
+
+    >>> Annoy(
+    >>>     f=None,
+    >>>     metric=None,
+    >>>     *,
+    >>>     on_disk_path=None,
+    >>>     prefault=None,
+    >>>     schema_version=None,
+    >>>     seed=None,
+    >>>     verbose=None,
+    >>> )
+
+    Parameters
+    ----------
+    f : int or None, optional, default=None
+        Vector dimension. If ``0`` or ``None``, dimension may be inferred from the
+        first vector passed to ``add_item`` (lazy mode).
+        If None, treated as ``0`` (reset to default).
+    metric : {"angular", "cosine", \
+            "euclidean", "l2", "lstsq", \
+            "manhattan", "l1", "cityblock", "taxicab", \
+            "dot", "@", ".", "dotproduct", "inner", "innerproduct", \
+            "hamming"} or None, optional, default=None
+        Distance metric (one of 'angular', 'euclidean', 'manhattan', 'dot', 'hamming').
+        If omitted and ``f > 0``, defaults to ``'angular'`` (cosine-like).
+        If omitted and ``f == 0``, metric may be set later before construction.
+        If None, treated as ``'angular'`` (reset to default).
+    on_disk_path : str or None, optional, default=None
+        Path for on-disk build/load. None if not configured.
+    prefault : bool or None, optional, default=None
+        If True, request page-faulting index pages into memory when loading
+        (when supported by the underlying platform/backing).
+        If None, treated as ``False`` (reset to default).
+    schema_version : int, optional, default=None
+        Reserved for future schema/version tracking. Currently stored on the
+        object and reported by :meth:`~.Annoy.info`, but does not change the
+        on-disk format.
+        If None, treated as ``0`` (reset to default).
+    seed : int or None, optional, default=None
+        Non-negative integer seed. If set before the index is constructed,
+        the seed is stored and applied when the C++ index is created.
+    verbose : int or None, optional, default=None
+        Verbosity level. Values are clamped to the range ``[-2, 2]``.
+        ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
+        Logging level inspired by gradient-boosting libraries:
+
+        * ``<= 0`` : quiet (warnings only)
+        * ``1``    : info (Annoy's ``verbose=True``)
+        * ``>= 2`` : debug (currently same as info, reserved for future use)
+
+    Attributes
+    ----------
+    f : int, default=0
+        Vector dimension. ``0`` means "unknown / lazy".
+    metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'}, default="angular"
+        Canonical metric name, or None if not configured yet (lazy).
+    on_disk_path : str, default=""
+        Path for on-disk build/load. None if not configured.
+    prefault : bool, default=False
+        Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
+    schema_version : int, default=0
+        Reserved schema/version marker (stored; does not affect on-disk format).
+
+    Notes
+    -----
+    * Once the underlying C++ index is created, ``f`` and ``metric`` are immutable.
+      This keeps the object consistent and avoids undefined behavior.
+    * The C++ index is created lazily when sufficient information is available:
+      when both ``f > 0`` and ``metric`` are known, or when an operation that
+      requires the index is first executed.
+    * If ``f == 0``, the dimensionality is inferred from the first non-empty vector
+      passed to :meth:`add_item` and is then fixed for the lifetime of the index.
+    * If ``metric`` is omitted while ``f > 0``, the current behavior defaults to
+      ``'angular'`` and may emit a :class:`FutureWarning`. To avoid warnings and
+      future behavior changes, always pass ``metric=...`` explicitly.
+    * Items must be added *before* calling :meth:`build`. After :meth:`build`, the
+      index becomes read-only; to add more items, call :meth:`unbuild`, add items
+      again with :meth:`add_item`, then call :meth:`build` again.
+    * Very large indexes can be built directly on disk with :meth:`on_disk_build`
+      and then memory-mapped with :meth:`load`.
+    * :meth:`info` returns a structured summary (dimension, metric, counts, and
+      optional memory usage) suitable for programmatic inspection.
+    * This wrapper stores user configuration (e.g., seed/verbosity) even before the
+      C++ index exists and applies it deterministically upon construction.
+
+    Developer Notes:
+
+    - Source of truth:
+    * ``f`` (int) and ``metric_id`` (enum) describe configuration.
+    * ``ptr`` is NULL when index is not constructed.
+    - Invariant:
+    * ``ptr != NULL`` implies ``f > 0`` and ``metric_id != METRIC_UNKNOWN``.
+
+    See Also
+    --------
+    add_item : Add a vector to the index.
+    build : Build the forest after adding items.
+    unbuild : Remove trees to allow adding more items.
+    get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
+    save, load : Persist the index to/from disk.
+    serialize, deserialize : Persist the index to/from bytes.
+    set_seed : Set the random seed deterministically.
+    verbose : Set verbosity level.
+    info : Return a structured summary of the current index.
 
     Examples
     --------
+    >>> from annoy import Annoy, AnnoyIndex
+
+    High-level API:
+
+    >>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+    >>> from scikitplot.annoy import Annoy, AnnoyIndex, Index
+
     The lifecycle follows the examples in ``test.ipynb``:
 
     1. **Construct the index**
@@ -182,18 +294,58 @@ class Annoy(annoylib.Annoy):
     current forest with :meth:`unbuild`.
     """
 
-    f: int
-    metric: AnnoyMetric | None
+    _schema_version: int
+    _f: int
+    _metric_id: int
+    _prefault: bool
+
+    # --- Core configuration (lazy-safe properties) ---------------------------
+    @property
+    def f(self) -> int: ...
+
+    @f.setter
+    def f(self, f: int) -> None: ...
 
     @property
-    def metric(self) -> AnnoyMetric | None: ...
+    def metric(self) -> AnnoyMetricCanonical | None: ...
 
     @metric.setter
-    def metric(self, metric: AnnoyMetric) -> None: ...
+    def metric(self, metric: AnnoyMetric | None) -> None: ...
 
-    def __init__(self, f: int, metric: AnnoyMetric = "angular") -> None: ...
+    @property
+    def _on_disk_path(self) -> str | None: ...
 
-    def add_item(self, i: int, vector: _Vector) -> Self:
+    @property
+    def on_disk_path(self) -> str | None: ...
+
+    @on_disk_path.setter
+    def on_disk_path(self, path: str | None) -> None: ...
+
+    @property
+    def prefault(self) -> bool: ...
+
+    @prefault.setter
+    def prefault(self, prefault: bool | None) -> None: ...
+
+    @property
+    def schema_version(self) -> int: ...
+
+    @schema_version.setter
+    def schema_version(self, schema_version: int | None) -> None: ...
+
+    def __init__(
+        self,
+        f: int | None = None,
+        metric: AnnoyMetric | None = None,
+        *,
+        on_disk_path: str | None = None,
+        prefault: bool | None = None,
+        schema_version: int | None = None,
+        seed: int | None = None,
+        verbose: int | None = None,
+    ) -> None: ...
+
+    def add_item(self, i: int, vector: Vector) -> Self:
         """
         Add a single embedding vector to the index.
 
@@ -234,6 +386,16 @@ class Annoy(annoylib.Annoy):
         n_trees : int
             Number of trees in the forest. Larger values typically improve recall
             at the cost of slower build time and higher memory usage.
+
+            If set to ``n_trees=-1``, trees are built dynamically until the index
+            reaches approximately twice the number of items
+            ``_n_nodes >= 2 * n_items``.
+
+            Guidelines:
+
+            * Small datasets (<10k samples): 10-20 trees.
+            * Medium datasets (10k-1M samples): 20-50 trees.
+            * Large datasets (>1M samples): 50-100+ trees.
         n_jobs : int, optional, default=-1
             Number of threads to use while building. ``-1`` means "auto" (use
             the implementation's default, typically all available CPU cores).
@@ -267,7 +429,7 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def deserialize(self, byte: bytes, prefault: bool = False) -> Self:
+    def deserialize(self, byte: bytes, prefault: bool | None = None) -> Self:
         """
         Restore the index from a serialized byte string.
 
@@ -275,8 +437,9 @@ class Annoy(annoylib.Annoy):
         ----------
         byte : bytes
             Byte string produced by :meth:`serialize`.
-        prefault : bool, optional, default=False
-            If True, fault pages into memory while restoring.
+        prefault : bool or None, optional, default=None
+            If None, use the stored :attr:`prefault` value.
+            Primarily useful on some platforms for very large indexes.
 
         Returns
         -------
@@ -427,14 +590,14 @@ class Annoy(annoylib.Annoy):
             at the cost of slower queries. If ``-1``, defaults to approximately
             ``n_trees * n``.
         include_distances : bool, optional, default=False
-            If True, return a ``(indexs, distances)`` tuple. Otherwise return only
-            the list of indexs.
+            If True, return a ``(indices, distances)`` tuple. Otherwise return only
+            the list of indices.
 
         Returns
         -------
-        indexs : list[int] | tuple[list[int], list[float]]
+        indices : list[int] | tuple[list[int], list[float]]
             If ``include_distances=False``: list of neighbour item ids.
-            If ``include_distances=True``: ``(indexs, distances)``.
+            If ``include_distances=True``: ``(indices, distances)``.
 
         Raises
         ------
@@ -474,18 +637,18 @@ class Annoy(annoylib.Annoy):
 
     @overload
     def get_nns_by_vector(
-        self, vector: _Vector, n: int, search_k: int = -1, include_distances: Literal[False] = False
+        self, vector: Vector, n: int, search_k: int = -1, include_distances: Literal[False] = False
     ) -> list[int]: ...
     @overload
     def get_nns_by_vector(
-        self, vector: _Vector, n: int, search_k: int, include_distances: Literal[True]
+        self, vector: Vector, n: int, search_k: int, include_distances: Literal[True]
     ) -> tuple[list[int], list[float]]: ...
     @overload
     def get_nns_by_vector(
-        self, vector: _Vector, n: int, search_k: int = -1, *, include_distances: Literal[True]
+        self, vector: Vector, n: int, search_k: int = -1, *, include_distances: Literal[True]
     ) -> tuple[list[int], list[float]]: ...
     def get_nns_by_vector(
-        self, vector: _Vector, n: int, search_k: int = -1, include_distances: bool = False
+        self, vector: Vector, n: int, search_k: int = -1, include_distances: bool = False
     ) -> list[int] | tuple[list[int], list[float]]:
         """
         get_nns_by_vector(vector, n, search_k=-1, include_distances=False)
@@ -503,14 +666,14 @@ class Annoy(annoylib.Annoy):
             at the cost of slower queries. If ``-1``, defaults to approximately
             ``n_trees * n``.
         include_distances : bool, optional, default=False
-            If True, return a ``(indexs, distances)`` tuple. Otherwise return only
-            the list of indexs.
+            If True, return a ``(indices, distances)`` tuple. Otherwise return only
+            the list of indices.
 
         Returns
         -------
-        indexs : list[int] | tuple[list[int], list[float]]
+        indices : list[int] | tuple[list[int], list[float]]
             If ``include_distances=False``: list of neighbour item ids.
-            If ``include_distances=True``: ``(indexs, distances)``.
+            If ``include_distances=True``: ``(indices, distances)``.
 
         Raises
         ------
@@ -538,39 +701,85 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def info(self) -> AnnoyInfo:
+    def info(self, *, include_n_items: bool = True, include_n_trees: bool = True, include_memory: bool | None = None) -> AnnoyInfo:
         """
         Return a structured summary of the index.
 
         This method returns a JSON-like Python dictionary that is easier to
         inspect programmatically than the legacy multi-line string format.
 
-        Keys
-        ----
-        dimension : int
-            Dimensionality of the index.
-        metric : str
-            Distance metric name.
-        n_items : int
-            Number of items currently stored.
-        n_trees : int
-            Number of trees built.
-        memory_usage_byte : int
-            Approximate memory usage in bytes.
-        memory_usage_mib : float
-            Approximate memory usage in MiB.
-        on_disk_path : str | None
-            Path used for on-disk build, if configured.
+        Parameters
+        ----------
+        include_n_items : bool, optional, default=True
+            If True, include ``n_items``.
+        include_n_trees : bool, optional, default=True
+            If True, include ``n_trees``.
+        include_memory : bool or None, optional, default=None
+            Controls whether memory usage fields are included.
+
+            * ``None``: include memory usage only if the index is built.
+            * ``True``: include memory usage if available (built).
+            * ``False``: omit memory usage fields.
+
+            Memory usage is computed after :meth:`build` and may be expensive for
+            very large indexes.
 
         Returns
         -------
-        info : dict or None
+        info : dict
             Dictionary describing the current index state.
+
+        Notes
+        ----
+        - Some keys are optional depending on include_* flags.
+
+        Keys:
+
+        * f : int, default=0
+            Dimensionality of the index.
+        * metric : str, default="angular"
+            Distance metric name.
+        * on_disk_path : str, default=""
+            Path used for on-disk build, if configured.
+        * prefault : bool, default=False
+            If True, aggressively fault pages into memory during save.
+            Primarily useful on some platforms for very large indexes.
+        * schema_version : int, default=0
+            Stored schema/version marker on this object (reserved for future use).
+        * seed : int or None, optional, default=None
+            Non-negative integer seed. If called before the index is constructed,
+            the seed is stored and applied when the C++ index is created.
+        * verbose : int or None, optional, default=None
+            Verbosity level. Values are clamped to the range ``[-2, 2]``.
+            ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
+            Logging level inspired by gradient-boosting libraries:
+
+            * ``<= 0`` : quiet (warnings only)
+            * ``1``    : info (Annoy's ``verbose=True``)
+            * ``>= 2`` : debug (currently same as info, reserved for future use)
+
+        Optional Keys:
+
+        * n_items : int
+            Number of items currently stored.
+        * n_trees : int
+            Number of built trees in the forest.
+        * memory_usage_byte : int
+            Approximate memory usage in bytes. Present only when requested and available.
+        * memory_usage_mib : float
+            Approximate memory usage in MiB. Present only when requested and available.
+
+        See Also
+        --------
+        serialize : Create a binary snapshot of the index.
+        deserialize : Restore from a binary snapshot.
+        save : Persist the index to disk.
+        load : Load the index from disk.
 
         Examples
         --------
         >>> info = idx.info()
-        >>> info['dimension']
+        >>> info['f']
         100
         >>> info['n_items']
         1000
@@ -586,7 +795,38 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def load(self, fn: str, prefault: bool = False) -> Self:
+    def repr_info(self, *, include_n_items: bool = True, include_n_trees: bool = True, include_memory: bool | None = None) -> str:
+        """
+        Return a dict-like string representation with optional extra fields.
+
+        Unlike ``__repr__``, this method can include additional fields on demand.
+        Note that ``include_memory=True`` may be expensive for large indexes.
+        Memory is calculated after :meth:`build`.
+        """
+        ...
+
+    def _repr_html_(self) -> str:
+        """
+        Return an HTML representation of the Annoy index for Jupyter notebooks.
+
+        Returns
+        -------
+        html : str
+            HTML string (safe to embed) describing the current configuration.
+
+        Notes
+        -----
+        This representation is deterministic and side-effect free. It intentionally
+        avoids expensive operations such as serialization or memory-usage estimation.
+
+        See Also
+        --------
+        info : Return a Python dict with configuration and metadata.
+        __repr__ : Text representation.
+        """
+        ...
+
+    def load(self, fn: str, prefault: bool | None = None) -> Self:
         """
         Load (mmap) an index from disk into the current object.
 
@@ -595,8 +835,9 @@ class Annoy(annoylib.Annoy):
         fn : str
             Path to a file previously created by :meth:`save` or
             :meth:`on_disk_build`.
-        prefault : bool, optional, default=False
-            If True, fault pages into memory when the file is mapped.
+        prefault : bool or None, optional, default=None
+            If None, use the stored :attr:`prefault` value.
+            Primarily useful on some platforms for very large indexes.
 
         Raises
         ------
@@ -619,13 +860,13 @@ class Annoy(annoylib.Annoy):
 
     def memory_usage(self) -> int | None:
         """
-        Approximate memory usage of the index in bytess.
+        Approximate memory usage of the index in bytes.
 
         Returns
         -------
-        n_bytess : int or None
+        n_bytes : int or None
             Approximate number of bytes used by the index. Returns ``None`` if the
-            index is not initialized.
+            index is not initialized or the forest has not been built yet.
 
         Raises
         ------
@@ -662,7 +903,7 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def save(self, fn: str, prefault: bool = False) -> Self:
+    def save(self, fn: str, prefault: bool | None = None) -> Self:
         """
         Persist the index to a binary file on disk.
 
@@ -670,8 +911,8 @@ class Annoy(annoylib.Annoy):
         ----------
         fn : str
             Path to the output file. Existing files will be overwritten.
-        prefault : bool, optional, default=False
-            If True, aggressively fault pages into memory during save.
+        prefault : bool or None, optional, default=None
+            If None, use the stored :attr:`prefault` value.
             Primarily useful on some platforms for very large indexes.
 
         Returns
@@ -832,17 +1073,25 @@ class Annoy(annoylib.Annoy):
             * ``_pickle_version`` : int
             * ``f`` : int | None
             * ``metric`` : str | None
+            * ``metric_id`` : int
             * ``on_disk_path`` : str | None
+            * ``prefault`` : bool
+            * ``schema_version`` : int
             * ``has_pending_seed`` : bool
             * ``pending_seed`` : int
             * ``has_pending_verbose`` : bool
             * ``pending_verbose`` : int
+            * ``seed`` : int | None
+            * ``verbose`` : int | None
             * ``data`` : bytes | None
 
         Notes
         -----
         If the underlying C++ index is initialized, ``data`` contains a serialized
         snapshot (see :meth:`serialize`). Otherwise, ``data`` is ``None``.
+
+        Configuration keys like ``prefault`` and ``schema_version`` are stored on the
+        Python wrapper and restored deterministically. Unknown keys are ignored.
         """
         ...
 
@@ -890,3 +1139,137 @@ class Annoy(annoylib.Annoy):
         Equivalent to :meth:`__reduce_ex__` with the default protocol.
         """
         ...
+
+
+@runtime_checkable
+class AnnoyLike(Protocol):
+    """
+    Structural (duck-typed) interface for Annoy-style indexes.
+
+    This protocol is intended for *typing* and interoperability. Any object that
+    implements this interface can be accepted where an :class:`~.Annoy` instance
+    is expected.
+
+    See Also
+    --------
+    Annoy
+        Concrete Annoy index implementation provided by this module.
+
+    Notes
+    -----
+    - This protocol models the public API exposed by :class:`~.Annoy`.
+    - It does **not** imply anything about internal storage, performance, or
+      implementation details.
+    """
+
+    # won’t expose those internals
+    # _f: int
+    # _metric_id: int
+    # _on_disk_path: str or None
+
+    # --- Core configuration ---
+    # Configuration surface (mirrors :class:`~.Annoy` properties)
+    @property
+    def f(self) -> int: ...
+    @f.setter
+    def f(self, f: int) -> None: ...
+
+    @property
+    def metric(self) -> AnnoyMetricCanonical | None: ...
+    @metric.setter
+    def metric(self, metric: AnnoyMetric | None) -> None: ...
+
+    @property
+    def _on_disk_path(self) -> str | None: ...
+    @property
+    def on_disk_path(self) -> str | None: ...
+    @on_disk_path.setter
+    def on_disk_path(self, path: str | None) -> None: ...
+
+    @property
+    def prefault(self) -> bool: ...
+
+    @prefault.setter
+    def prefault(self, prefault: bool | None) -> None: ...
+
+    @property
+    def schema_version(self) -> int: ...
+
+    @schema_version.setter
+    def schema_version(self, schema_version: int | None) -> None: ...
+
+    # --- Build / lifecycle ---
+    def set_seed(self, seed: int = 0) -> Self: ...
+    def verbose(self, level: int = 1) -> Self: ...
+
+    def add_item(self, i: ItemIndex, vector: Vector) -> Self: ...
+    def build(self, n_trees: TreeCount, n_jobs: int = -1) -> Self: ...
+    def unbuild(self) -> Self: ...
+    def unload(self) -> Self: ...
+
+    # --- Persistence ---
+    def on_disk_build(self, fn: str) -> Self: ...
+    def save(self, fn: str, prefault: bool | None = None) -> Self: ...
+    def load(self, fn: str, prefault: bool | None = None) -> Self: ...
+    def serialize(self) -> bytes: ...
+    def deserialize(self, byte: bytes, prefault: bool | None = None) -> Self: ...
+
+    # --- Introspection ---
+    def get_n_items(self) -> int: ...
+    def get_n_trees(self) -> int: ...
+    def memory_usage(self) -> int | None: ...
+    def info(self, *, include_n_items: bool = True, include_n_trees: bool = True, include_memory: bool | None = None) -> AnnoyInfo: ...
+    def repr_info(self, *, include_n_items: bool = True, include_n_trees: bool = True, include_memory: bool | None = None) -> str: ...
+    def _repr_html_(self) -> str: ...
+
+    # --- Queries ---
+    @overload
+    def get_nns_by_item(
+        self,
+        i: ItemIndex,
+        n: int,
+        search_k: SearchK = -1,
+        include_distances: Literal[False] = False,
+    ) -> Neighbors: ...
+    @overload
+    def get_nns_by_item(
+        self,
+        i: ItemIndex,
+        n: int,
+        search_k: SearchK,
+        include_distances: Literal[True],
+    ) -> NeighborsWithDistances: ...
+    def get_nns_by_item(
+        self,
+        i: ItemIndex,
+        n: int,
+        search_k: SearchK = -1,
+        include_distances: bool = False,
+    ) -> Neighbors | NeighborsWithDistances: ...
+
+    @overload
+    def get_nns_by_vector(
+        self,
+        vector: Vector,
+        n: int,
+        search_k: SearchK = -1,
+        include_distances: Literal[False] = False,
+    ) -> Neighbors: ...
+    @overload
+    def get_nns_by_vector(
+        self,
+        vector: Vector,
+        n: int,
+        search_k: SearchK,
+        include_distances: Literal[True],
+    ) -> NeighborsWithDistances: ...
+    def get_nns_by_vector(
+        self,
+        vector: Vector,
+        n: int,
+        search_k: SearchK = -1,
+        include_distances: bool = False,
+    ) -> Neighbors | NeighborsWithDistances: ...
+
+    def get_item_vector(self, i: ItemIndex) -> list[float]: ...
+    def get_distance(self, i: ItemIndex, j: ItemIndex) -> float: ...

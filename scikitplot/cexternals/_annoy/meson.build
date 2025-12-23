@@ -14,6 +14,10 @@ _annoy_cython_tree = [
   fs.copyfile('annoylib.pyi'),
 ]
 
+# pkg_dir = join_paths(py.get_install_dir(), 'scikitplot', 'cexternals', '_annoy')
+# install_subdir('_repr_html', install_dir: join_paths(pkg_dir, '_repr_html'))
+
+
 ######################################################################
 ## Include the headers directories
 ######################################################################

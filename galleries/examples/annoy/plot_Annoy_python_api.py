@@ -22,6 +22,9 @@ import random; random.seed(0)
 from scikitplot.annoy import Annoy, AnnoyIndex, Index
 
 print(Annoy.__doc__)
+
+# %%
+
 print(Index.__doc__)
 
 # %%
@@ -30,6 +33,28 @@ from scikitplot import annoy
 
 annoy.__version__, dir(annoy), dir(annoy.Annoy)
 
+# %%
+
+import sys
+
+# TODO: change this import to wherever your modified AnnoyIndex lives
+# e.g. scikitplot.cexternals._annoy or similar
+# import scikitplot.cexternals._annoy as annoy
+from scikitplot import annoy
+
+sys.modules["annoy"] = annoy  # now `import annoy` will resolve to your module
+
+import annoy
+
+print(annoy.__doc__)
+
+# %%
+
+AnnoyIndex()
+
+# %%
+
+Index()
 
 # %%
 
@@ -40,9 +65,10 @@ idx = Index()
 idx = Index(None, None)
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
-print(idx)
 print(idx.info())
-
+print(idx)
+print(type(idx))
+idx
 # help(idx.info)
 
 
@@ -63,6 +89,7 @@ idx.f, idx.metric, idx.on_disk_path
 # %%
 
 idx.metric = "dot"
+idx
 
 # %%
 
@@ -72,16 +99,85 @@ idx.f, idx.metric, idx.on_disk_path
 
 type(idx)
 
+
 # %%
 
 # =============================================================
 # 1. Construction
 # =============================================================
-# idx = Index(f=3)
-idx.add_item(0, [1, 0, 0])
+idx = Index(f=3, metric="angular")
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
+print(idx.info())
 print(idx)
+idx
+
+
+# %%
+
+# =============================================================
+# 2. Add items
+# =============================================================
+idx.add_item(0, [0, 0, 0])
+
+idx.add_item(1, [1, 0, 0])
+idx.add_item(2, [0, 1, 0])
+idx.add_item(3, [0, 0, 1])
+
+idx.add_item(4, [2, 0, 0])
+idx.add_item(5, [0, 2, 0])
+idx.add_item(6, [0, 0, 2])
+
+idx.add_item(7, [3, 0, 0])
+idx.add_item(8, [0, 3, 0])
+idx.add_item(9, [0, 0, 3])
+
+idx.add_item(10, [4, 0, 0])
+idx.add_item(11, [0, 4, 0])
+idx.add_item(12, [0, 0, 4])
+
+idx.add_item(12, [4, 0, 0])
+idx.add_item(13, [0, 4, 0])
+idx.add_item(14, [0, 0, 4])
+
+print("Number of items:", idx.get_n_items())
+print("Index dimension:", idx.f)
+print("Metric         :", idx.metric)
+print(idx.info())
+print(idx)
+idx
+
+# %%
+
+def plot(idx, y=None, **kwargs):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import scikitplot.cexternals._annoy._plotting as utils
+
+    single = np.zeros(idx.get_n_items(), dtype=int)
+    if y is None:
+        double = np.random.uniform(0, 1, idx.get_n_items()).round()
+
+    # single vs double
+    fig, ax = plt.subplots(ncols=2, figsize=(12, 5))
+    alpha = kwargs.pop("alpha", 0.8)
+    y2 = utils.plot_annoy_index(
+        idx,
+        dims = list(range(idx.f)),
+        plot_kwargs={"draw_legend": False},
+        ax=ax[0],
+    )[0]
+    utils.plot_annoy_knn_edges(
+        idx,
+        y2,
+        k=1,
+        line_kwargs={"alpha": alpha},
+        ax=ax[1],
+    )
+
+idx.unbuild()
+idx.build(100)
+plot(idx)
 
 # %%
 
@@ -108,7 +204,9 @@ print(idx.__class__.__mro__)
 idx = Index(f=3, metric="angular")
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
-
+print(idx.info())
+print(idx)
+idx
 
 # %%
 
@@ -163,19 +261,24 @@ print(idx)
 idx.build(10)
 print("Trees:", idx.get_n_trees())
 print("Memory usage:", idx.memory_usage(), "bytes")
-print(idx)
 print(idx.info())
+print(idx)
+idx
 # help(idx.build)
 
 # %%
 
 idx.unbuild()
+print(idx.info())
 print(idx)
+idx
 
 # %%
 
 idx.build(10)
+print(idx.info())
 print(idx)
+idx
 
 
 # %%
@@ -186,7 +289,9 @@ print(idx)
 idx = Index(0, metric="angular")
 print("Index dimension:", idx.f)
 print("Metric         :", idx.metric)
-
+print(idx.info())
+print(idx)
+idx
 
 # %%
 
@@ -217,8 +322,9 @@ print(idx)
 idx.build(10)
 print("Trees:", idx.get_n_trees())
 print("Memory usage:", idx.memory_usage(), "bytes")
-print(idx)
 print(idx.info())
+print(idx)
+idx
 # help(idx.get_n_trees)
 
 
@@ -268,9 +374,13 @@ print("Low-level tuple return:", items_low, d_low)
 # 10. Persistence
 # =============================================================
 print("\n=== Saving with binary annoy ===")
+print(idx.info())
 print(idx)
+idx
 idx.save("annoy_test_2.annoy")
+print(idx.info())
 print(idx)
+idx
 
 print("Loading...")
 idx2 = Index(100, metric='angular').load("annoy_test_2.annoy")
@@ -306,14 +416,17 @@ buf = idx.serialize()
 new_idx = Index(100, metric='angular')
 new_idx.deserialize(buf)
 print("Deserialized index n_items:", new_idx.get_n_items())
+print(idx.info())
 print(idx)
-print(new_idx)
+idx
 
 
 # %%
 
 idx.unload()
+print(idx.info())
 print(idx)
+idx
 
 
 # %%
@@ -357,7 +470,9 @@ type(idx)
 
 # %%
 
-idx.info()
+print(idx.info())
+print(idx)
+idx
 
 # %%
 

@@ -1,0 +1,19 @@
+/* Annoy HTML repr — params table (scoped by __ANNOY_REPR_ID__) */
+
+/*
+CSS selectors must be prefixed with #__ANNOY_REPR_ID__
+Note: I kept your selector exactly as you wrote it:
+#__ANNOY_REPR_ID__ .annoy-table th,.annoy-table td{...}.
+If you intended the second selector to also be scoped, it should be
+#__ANNOY_REPR_ID__ .annoy-table th,#__ANNOY_REPR_ID__ .annoy-table td{...}
+— but that would be a behavior change, so I’m not changing it here.
+*/
+
+#__ANNOY_REPR_ID__ .annoy-table{border-collapse:collapse;width:100%;font:12px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+#__ANNOY_REPR_ID__ .annoy-table th,.annoy-table td{border-top:1px solid #eaeef2;padding:6px 6px;text-align:left;vertical-align:top;}
+#__ANNOY_REPR_ID__ .annoy-table th{font-weight:600;}
+#__ANNOY_REPR_ID__ .annoy-td-btn{width:64px;}
+#__ANNOY_REPR_ID__ .annoy-copy{font:11px/1 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;border:1px solid #d0d7de;border-radius:6px;padding:3px 6px;background:#f6f8fa;cursor:pointer;}
+#__ANNOY_REPR_ID__ .annoy-copy:active{transform:translateY(1px);}
+#__ANNOY_REPR_ID__ .annoy-key{white-space:nowrap;}
+#__ANNOY_REPR_ID__ .annoy-value{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;}
