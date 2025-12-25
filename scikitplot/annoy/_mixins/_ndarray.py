@@ -97,11 +97,20 @@ class NDArrayExportMixin:
 
         Preference order is explicit and deterministic:
 
-        1) ``self._annoy`` when present (composition style)
+        1) ``object._annoy`` when present (composition style)
         2) ``self`` (inheritance style)
+
+        Notes
+        -----
+        This helper uses :func:`object.__getattribute__` to avoid triggering custom
+        ``__getattr__`` / ``__getattribute__`` side effects during low-level access.
         """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
+        # ll = getattr(self, "_annoy", None)
+        # return ll if ll is not None else obj
+        try:
+            return object.__getattribute__(self, "_annoy")
+        except AttributeError:
+            return self
 
     # Provide a stable path-like coercion hook for all mixin methods.
     # (Module-level `_fspath` remains for backwards compatibility.)

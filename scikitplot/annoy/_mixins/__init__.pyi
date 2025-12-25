@@ -9,7 +9,7 @@ from ._pickle import CompressMode, PickleMixin, PickleMode
 from ._plotting import PlottingMixin
 from ._vectors import VectorOpsMixin
 
-__all__: tuple[str, ...] = (
+__all__: tuple[str] = (
     "CompressMode",
     "IndexIOMixin",
     "ManifestMixin",

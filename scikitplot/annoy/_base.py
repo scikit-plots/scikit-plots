@@ -3,7 +3,7 @@
 High-level public :class:`~scikitplot.annoy.Index`.
 
 This module defines :class:`~scikitplot.annoy.Index` as a *direct subclass* of the
-low-level Annoy backend (:class:`scikitplot.cexternals._annoy.Annoy`) and composes
+low-level ANNoy backend (:class:`~scikitplot.cexternals._annoy.Annoy`) and composes
 higher-level behavior via mixins.
 
 - The low-level Annoy backend is a C-extension type that implements the core
@@ -11,35 +11,31 @@ higher-level behavior via mixins.
 - The high-level :class:`~scikitplot.annoy.Index` keeps a stable Pythonic API by
   layering mixins on top of that backend (manifest, I/O, pickling, ndarray export,
   plotting helpers, etc.).
-- Determinism: this class avoids implicit side effects and makes state/config
-  explicit.
 
 Notes
 -----
-Subclassing C-extension types can be subtle. The Annoy backend already provides
-an instance attribute dictionary (``__dict__``) at the C level. Defining a pure
-Python subclass *without* ``__slots__`` may cause CPython to create a second,
-managed dict slot for the subclass, which can break introspection helpers like
-``dir(obj)`` with errors such as::
+This module avoids implicit side effects and keeps state/configuration explicit.
+In particular:
 
-    TypeError: this __dict__ descriptor does not support 'Index' objects
-
-To keep behavior robust across CPython versions, :class:`~scikitplot.annoy.Index`
-declares ``__slots__ = ()`` so the subclass does not add a second dict slot.
+- :class:`~scikitplot.annoy.Index` does **not** override the backend constructor.
+  Initialization is provided by the C-extension type (:class:`~scikitplot.cexternals._annoy.Annoy`).
+- Mixins used here are expected to be initialization-free (no required
+  ``__init__``) or to provide safe defaults.
 
 See Also
 --------
 scikitplot.cexternals._annoy.Annoy
-    Low-level C-extension backend.
+    Low-level ANNoy backend.
 scikitplot.annoy._mixins._manifest.ManifestMixin
     Versioned manifest helpers.
 scikitplot.annoy._mixins._io.IndexIOMixin
     Annoy-native index persistence helpers.
-scikitplot.annoy._mixins._io.ObjectIOMixin
-    Python-object serialization helpers (pickle/cloudpickle/joblib).
+scikitplot.annoy._mixins._io.PickleIOMixin
+    High-level pickle helpers.
 scikitplot.annoy._mixins._pickle.PickleMixin
     Pickle protocol for the high-level index (versioned state).
 """
+
 #   .. seealso::
 #     * :py:obj:`~scikitplot.annoy.Index.from_low_level`
 #     * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
@@ -47,9 +43,7 @@ scikitplot.annoy._mixins._pickle.PickleMixin
 from __future__ import annotations
 
 # import uuid  # f"annoy-{uuid.uuid4().hex}.annoy"
-from typing import Any
-
-from typing_extensions import Self
+from typing_extensions import Self  # noqa: F401
 
 from ..cexternals._annoy import Annoy, AnnoyIndex  # noqa: F401
 from ._mixins._io import IndexIOMixin, PickleIOMixin
@@ -73,31 +67,36 @@ class Index(
     PlottingMixin,
 ):
     """
-    High-level Annoy index composed from mixins.
+    High-level ANNoy index composed from mixins.
 
     Parameters
     ----------
     f : int, default=0
-        Vector dimension. If ``0``, Annoy can infer dimensionality lazily from
-        the first added vector.
+        Vector dimensionality passed to the backend. If ``0``, the backend may
+        infer dimensionality lazily from the first added vector.
     metric : str or None, default=None
-        Metric name (e.g. ``"angular"``, ``"euclidean"``, ``"manhattan"``,
-        ``"dot"``, ``"hamming"``).
-        If None, defaults to ``"angular"``.
+        Metric name passed to the backend. Common values include
+        ``"angular"``, ``"euclidean"``, ``"manhattan"``, ``"dot"``, and
+        ``"hamming"`` (synonyms may also be accepted by the backend).
+        If None, defaults to the backend default (typically ``"angular"``).
     on_disk_path : str or os.PathLike or None, default=None
-        Optional backing path used by Annoy's on-disk build and mmap load.
+        Optional backing path used by on-disk build and mmap load (backend-defined).
     prefault : bool, default=False
         Annoy prefault behavior (passed to low-level setter).
     schema_version : int or None, default=None
-        Optional low-level schema marker (exposed by Annoy as ``schema_version``).
+        Optional schema marker, when supported by the backend.
     seed : int or None, default=None
-        Optional low-level seed.
+        Optional seed controlling backend randomness, when supported.
     verbose : int or None, default=None
-        Optional low-level verbosity level.
-    pickle_mode : {"auto", "disk", "byte"}, default="auto"
+        Optional verbosity level, when supported.
+
+    Attributes
+    ----------
+    pickle_mode : PickleMode
         Pickle strategy used by :class:`~scikitplot.annoy._mixins._pickle.PickleMixin`.
-    compress_mode : {"zlib", "gzip"} or None, default=None
-        Optional compression used for ``pickle_mode="byte"``.
+    compress_mode : CompressMode or None
+        Optional compression used by :class:`~scikitplot.annoy._mixins._pickle.PickleMixin`
+        when serializing to bytes.
 
     Notes
     -----
@@ -107,50 +106,16 @@ class Index(
 
     See Also
     --------
-    Annoy
-        Low-level backend type (this class subclasses it).
-    ManifestMixin.to_manifest
-        Construct a versioned manifest for reconstruction.
-    IndexIOMixin.save_index
-        Persist the index using Annoy's native format.
-    PickleMixin.__getstate__
-        Pickle contract for the high-level index.
+    scikitplot.cexternals._annoy.Annoy
+    Index.from_low_level
     """
 
     # __slots__ = ()
 
-    # # ------------------------------------------------------------------
-    # # Robust introspection helpers
-    # def __dir__(self) -> list[str]:
-    #     """Return a robust attribute list.
-
-    #     This overrides :meth:`object.__dir__` to avoid failures when CPython tries
-    #     to access an incompatible ``__dict__`` descriptor for C-extension subtypes.
-
-    #     Returns
-    #     -------
-    #     names : list of str
-    #         Sorted attribute names.
-
-    #     Notes
-    #     -----
-    #     This method is intentionally defensive and side-effect free.
-
-    #     See Also
-    #     --------
-    #     object.__dir__
-    #     """
-    #     try:
-    #         return sorted(set(object.__dir__(self)))
-    #     except TypeError:
-    #         names: set[str] = set(dir(type(self)))
-    #         try:
-    #             d = object.__getattribute__(self, "__dict__")
-    #         except Exception:
-    #             d = None
-    #         if isinstance(d, dict):
-    #             names.update(d.keys())
-    #         return sorted(names)
+    # ------------------------------------------------------------------
+    # Low-level access
+    # This wrapper supports both inheritance (self is the backend) and
+    # composition (self._annoy holds the backend).
 
     # This mixin supports both inheritance-style (Index subclasses Annoy)
     # and composition-style (Index wraps a low-level Annoy instance).
@@ -158,17 +123,26 @@ class Index(
     # Concrete classes may optionally provide ``self._annoy``; if absent,
     # the low-level object is assumed to be ``self``.
 
-    def _low_level(self) -> Any:
+    def _low_level(self) -> Annoy:
         """
         Return the low-level Annoy object.
 
         Preference order is explicit and deterministic:
 
-        1) ``self._annoy`` when present (composition style)
+        1) ``object._annoy`` when present (composition style)
         2) ``self`` (inheritance style)
+
+        Notes
+        -----
+        This helper uses :func:`object.__getattribute__` to avoid triggering custom
+        ``__getattr__`` / ``__getattribute__`` side effects during low-level access.
         """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
+        # ll = getattr(self, "_annoy", None)
+        # return ll if ll is not None else obj
+        try:
+            return object.__getattribute__(self, "_annoy")
+        except AttributeError:
+            return self
 
     # ------------------------------------------------------------------
     # Low-level accessors
@@ -198,6 +172,10 @@ class Index(
         Index._low_level
         """
         return self._low_level()
+
+    @annoy.setter
+    def annoy(self, annoy: Annoy) -> None:
+        self._annoy = annoy
 
     @classmethod
     def from_low_level(cls, obj: Annoy, *, prefault: bool | None = None) -> Self:
@@ -237,11 +215,12 @@ class Index(
         """
         payload = obj.serialize()
         inst = cls(obj.f, str(obj.metric))
+
+        if obj.on_disk_path:
+            inst.on_disk_path = str(obj.on_disk_path)
+
         inst.deserialize(
             payload,
             prefault=prefault if prefault is not None else inst.prefault,
         )
-        if obj.on_disk_path:
-            inst.on_disk_path = str(obj.on_disk_path)
-
         return inst

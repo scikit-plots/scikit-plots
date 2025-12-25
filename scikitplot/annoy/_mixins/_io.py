@@ -48,7 +48,9 @@ from __future__ import annotations
 
 import os
 from os import PathLike
-from typing import Any, ClassVar, Literal, Self
+from typing import Any, ClassVar, Literal
+
+from typing_extensions import Self
 
 SerializerBackend = Literal["pickle", "cloudpickle", "joblib"]
 
@@ -63,16 +65,22 @@ def _get_low_level(obj: Any) -> Any:
     """
     Return the low-level Annoy object.
 
-    This helper centralizes the inheritance-vs-composition lookup used by the
-    mixins in this module.
-
     Preference order is explicit and deterministic:
 
     1) ``obj._annoy`` when present (composition style)
     2) ``obj`` (inheritance style)
+
+    Notes
+    -----
+    This helper uses :func:`object.__getattribute__` to avoid triggering custom
+    ``__getattr__`` / ``__getattribute__`` side effects during low-level access.
     """
-    ll = getattr(obj, "_annoy", None)
-    return ll if ll is not None else obj
+    # ll = getattr(obj, "_annoy", None)
+    # return ll if ll is not None else obj
+    try:
+        return object.__getattribute__(obj, "_annoy")
+    except AttributeError:
+        return obj
 
 
 class IndexIOMixin:
@@ -103,11 +111,20 @@ class IndexIOMixin:
 
         Preference order is explicit and deterministic:
 
-        1) ``self._annoy`` when present (composition style)
+        1) ``object._annoy`` when present (composition style)
         2) ``self`` (inheritance style)
+
+        Notes
+        -----
+        This helper uses :func:`object.__getattribute__` to avoid triggering custom
+        ``__getattr__`` / ``__getattribute__`` side effects during low-level access.
         """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
+        # ll = getattr(self, "_annoy", None)
+        # return ll if ll is not None else obj
+        try:
+            return object.__getattribute__(self, "_annoy")
+        except AttributeError:
+            return self
 
     def save_index(
         self, path: str | PathLike[str], *, prefault: bool | None = None
@@ -338,11 +355,20 @@ class PickleIOMixin:
 
         Preference order is explicit and deterministic:
 
-        1) ``self._annoy`` when present (composition style)
+        1) ``object._annoy`` when present (composition style)
         2) ``self`` (inheritance style)
+
+        Notes
+        -----
+        This helper uses :func:`object.__getattribute__` to avoid triggering custom
+        ``__getattr__`` / ``__getattribute__`` side effects during low-level access.
         """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
+        # ll = getattr(self, "_annoy", None)
+        # return ll if ll is not None else obj
+        try:
+            return object.__getattribute__(self, "_annoy")
+        except AttributeError:
+            return self
 
     @classmethod
     def load_pickle(

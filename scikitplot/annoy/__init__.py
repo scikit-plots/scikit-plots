@@ -26,7 +26,7 @@ This package exposes **two layers**:
 Exports:
 
 1. Low-level C-extension types copied from Spotify's *annoy* project:
-   :class:`~scikitplot.cexternals._annoy.Annoy` and :data:`~scikitplot.cexternals._annoy.AnnoyIndex`.
+   :class:`~scikitplot.cexternals._annoy.Annoy` and :class:`~scikitplot.cexternals._annoy.AnnoyIndex`.
 
 2. A high-level, mixin-composed wrapper :class:`~scikitplot.annoy.Index` that:
    - forwards the complete low-level API deterministically,
@@ -51,12 +51,13 @@ Examples
 --------
 >>> import random
 >>> random.seed(0)
+
 >>> # from annoy import AnnoyIndex
 >>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
 >>> from scikitplot.annoy import Annoy, AnnoyIndex, Index
 
 >>> f = 40  # vector dimensionality
->>> t = AnnoyIndex(f, "angular")  # Length of item vector and metric
+>>> t = Index(f, "angular")  # same constructor as the low-level backend
 >>> t.add_item(0, [1] * f)
 >>> t.build(10)  # Build 10 trees
 >>> t.get_nns_by_item(0, 1)  # Find nearest neighbor

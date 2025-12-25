@@ -116,20 +116,37 @@ class ManifestMixin:
 
         Preference order is explicit and deterministic:
 
-        1) ``self._annoy`` when present (composition style)
+        1) ``object._annoy`` when present (composition style)
         2) ``self`` (inheritance style)
+
+        Notes
+        -----
+        This helper uses :func:`object.__getattribute__` to avoid triggering custom
+        ``__getattr__`` / ``__getattribute__`` side effects during low-level access.
         """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
+        # ll = getattr(self, "_annoy", None)
+        # return ll if ll is not None else obj
+        try:
+            return object.__getattribute__(self, "_annoy")
+        except AttributeError:
+            return self
 
     def _manifest_source_info(self) -> Mapping[str, Any] | None:
-        """Return the low-level :meth:`info` mapping if available."""
+        """
+        Return the low-level :meth:`info` mapping if available.
+
+        Notes
+        -----
+        The lookup is performed on :meth:`_low_level` to support both inheritance
+        and composition styles.
+        """
         # Prefer the C-extension's structured info() if present.
         # if hasattr(self, "info") and callable(getattr(self, "info", None)):
         #     info = getattr(self, "info", None)()
         #     if isinstance(info, Mapping):
         #         payload.update(dict(info))  # type: ignore[arg-type]
-        info = getattr(self, "info", None)
+        ll = self._low_level()
+        info = getattr(ll, "info", None)
         if callable(info):
             out = info()
             if isinstance(out, Mapping):
@@ -166,47 +183,49 @@ class ManifestMixin:
         """
         payload: MutableMapping[str, Any] = {}
 
+        ll = self._low_level()
+
         # 1) Prefer the C-extension's structured info() (stable order, no effects).
         info = self._manifest_source_info()
         if info is not None:
             payload.update(dict(info))
 
         # 2) Fill core fields from public attributes if missing.
-        if payload.get("f") is None and hasattr(self, "f"):
-            f_val = getattr(self, "f", None)
+        if payload.get("f") is None and hasattr(ll, "f"):
+            f_val = getattr(ll, "f", None)
             if f_val is not None:
                 payload["f"] = int(f_val)
 
-        if "metric" not in payload and hasattr(self, "metric"):
-            metric_val = getattr(self, "metric", None)
+        if "metric" not in payload and hasattr(ll, "metric"):
+            metric_val = getattr(ll, "metric", None)
             payload["metric"] = None if metric_val is None else str(metric_val)
 
         if "on_disk_path" not in payload:
-            if hasattr(self, "on_disk_path"):
-                payload["on_disk_path"] = getattr(self, "on_disk_path", None)
+            if hasattr(ll, "on_disk_path"):
+                payload["on_disk_path"] = getattr(ll, "on_disk_path", None)
             else:
-                payload["on_disk_path"] = getattr(self, "_on_disk_path", None)
+                payload["on_disk_path"] = getattr(ll, "_on_disk_path", None)
 
         if "prefault" not in payload:
-            if hasattr(self, "prefault"):
-                v = getattr(self, "prefault", None)
+            if hasattr(ll, "prefault"):
+                v = getattr(ll, "prefault", None)
                 if v is not None and not callable(v):
                     payload["prefault"] = bool(v)
-            elif hasattr(self, "_prefault"):
-                payload["prefault"] = bool(getattr(self, "_prefault", False))
+            elif hasattr(ll, "_prefault"):
+                payload["prefault"] = bool(getattr(ll, "_prefault", False))
 
-        if "schema_version" not in payload and hasattr(self, "schema_version"):
-            v = getattr(self, "schema_version", None)
+        if "schema_version" not in payload and hasattr(ll, "schema_version"):
+            v = getattr(ll, "schema_version", None)
             if v is not None and not callable(v):
                 payload["schema_version"] = int(v)
 
-        if "seed" not in payload and hasattr(self, "seed"):
-            v = getattr(self, "seed", None)
+        if "seed" not in payload and hasattr(ll, "seed"):
+            v = getattr(ll, "seed", None)
             if v is not None and not callable(v):
                 payload["seed"] = None if v is None else int(v)
 
-        if "verbose" not in payload and hasattr(self, "verbose"):
-            v = getattr(self, "verbose", None)
+        if "verbose" not in payload and hasattr(ll, "verbose"):
+            v = getattr(ll, "verbose", None)
             # If .verbose is a setter method, do not call it here.
             if v is not None and not callable(v):
                 payload["verbose"] = None if v is None else int(v)
@@ -254,14 +273,14 @@ class ManifestMixin:
     @classmethod
     def _constructor_accepts_kwargs(cls, **kwargs: Any) -> dict[str, Any]:
         """
-        Filter kwargs to those accepted by ``cls.__init__``.
+        Filter kwargs to those accepted by calling ``cls(...)``.
 
         This is deterministic (signature-based) and avoids passing unknown keys
         to custom wrappers.
 
         Notes
         -----
-        For C-extension types, :func:`inspect.signature` may fail; in that case
+        For some C-extension types, :func:`inspect.signature` may fail; in that case
         this function returns an empty dict and configuration is applied after
         construction via attribute setters / methods.
         """

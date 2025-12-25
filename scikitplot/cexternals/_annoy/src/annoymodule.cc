@@ -1,3 +1,4 @@
+// scikitplot/cexternals/_annoy/src/annoymodule.cc
 // Copyright (c) 2013 Spotify AB
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -52,6 +53,7 @@
 #include <exception>
 #include <fstream>  // std::ifstream
 #include <memory>
+#include <limits>
 #include <new>  // std::bad_alloc
 #include <iostream>  // std::cout << R"(...)" << std::endl;
 #include <string>  // std::string
@@ -133,6 +135,27 @@ static const char ANNOY_MOD_DOC[] =
 // wrapper is strictly C-API, but delegates all heavy lifting to Annoy::.
 using namespace Annoy;
 
+// ---------------------------------------------------------------------------
+// Seed semantics (deterministic, explicit)
+// ---------------------------------------------------------------------------
+//
+// Annoy uses Kiss64Random for all metrics exposed in this module.
+// - Kiss64Random::default_seed is deterministic and non-zero.
+// - Historically some callers passed seed=0; we normalize that to the default
+//   seed to respect the invariant "seed must be != 0" while keeping API stable.
+//
+// Semantics (deterministic):
+//   * seed is None -> "use Annoy's default seed".
+//   * seed is int  -> validated to be in [0, 2**64 - 1] and normalized via
+//                    normalize_seed_u64() (so seed=0 maps to the default seed with warn).
+static inline uint64_t annoy_default_seed_u64() {
+  return static_cast<uint64_t>(Kiss64Random::default_seed);
+}
+
+static inline uint64_t normalize_seed_u64(uint64_t seed) {
+  return static_cast<uint64_t>(Kiss64Random::normalize_seed(seed));
+}
+
 // Annoy's Kiss64Random uses a deterministic default seed.
 // This wrapper also exposes set_seed() for reproducible indices.
 //
@@ -193,8 +216,8 @@ struct TempAnnoyIndexFile {
   ~TempAnnoyIndexFile() {
     if (!path.empty()) {
       std::remove(path.c_str());
+      }
     }
-  }
 
   TempAnnoyIndexFile(const TempAnnoyIndexFile&) = delete;
   TempAnnoyIndexFile& operator=(const TempAnnoyIndexFile&) = delete;
@@ -214,6 +237,14 @@ static inline bool file_exists(const char* filename) {
     return false;
   }
   return true;
+}
+
+// Check whether a path exists (no Python exceptions). Used to avoid accidental
+// truncation when enabling on-disk build mode via a property assignment.
+static inline bool path_exists_noexc(const char* filename) {
+  if (!filename || !*filename) return false;
+  struct stat st;
+  return (stat(filename, &st) == 0);
 }
 
 // Safely free a C string if set. Used for Annoy error buffers allocated
@@ -290,21 +321,47 @@ metric : {"angular", "cosine", \
     Distance metric (one of 'angular', 'euclidean', 'manhattan', 'dot', 'hamming').
     If omitted and ``f > 0``, defaults to ``'angular'`` (cosine-like).
     If omitted and ``f == 0``, metric may be set later before construction.
-    If None, treated as ``'angular'`` (reset to default).
+    If None, behavior depends on ``f``:
+
+    * If ``f > 0``: defaults to ``'angular'`` (legacy behavior; may emit a
+      :class:`FutureWarning`).
+    * If ``f == 0``: leaves the metric unset (lazy). You may set
+      :attr:`metric` later before construction, or it will default to
+      ``'angular'`` on first :meth:`add_item`.
 on_disk_path : str or None, optional, default=None
-    Path for on-disk build/load. None if not configured.
+    If provided, configures the path for on-disk building. When the underlying
+    index exists, this enables on-disk build mode (equivalent to calling
+    :meth:`on_disk_build` with the same filename).
+
+    Safety: Annoy core truncates the target file when enabling on-disk build.
+    Therefore, if the path already exists, it is **not** truncated implicitly.
+    Call :meth:`on_disk_build` explicitly to overwrite.
+
+    In lazy mode (``f==0`` and/or ``metric is None``), activation occurs once
+    the underlying C++ index is created.
 prefault : bool or None, optional, default=None
     If True, request page-faulting index pages into memory when loading
     (when supported by the underlying platform/backing).
     If None, treated as ``False`` (reset to default).
 schema_version : int, optional, default=None
-    Reserved for future schema/version tracking. Currently stored on the
-    object and reported by :meth:`~.Annoy.info`, but does not change the
-    on-disk format.
+    Serialization/compatibility strategy marker.
+
+    This does not change the Annoy on-disk format, but it *does* control
+    how the index is snapshotted in pickles.
+
+    * ``0`` or ``1``: pickle stores a ``portable-v1`` snapshot (fast restore,
+      ABI-checked).
+    * ``2``: pickle stores ``canonical-v1`` (portable across ABIs; restores by
+      rebuilding deterministically).
+    * ``>=3``: pickle stores both portable and canonical (canonical is used as
+      a fallback if the ABI check fails).
+
     If None, treated as ``0`` (reset to default).
 seed : int or None, optional, default=None
     Non-negative integer seed. If set before the index is constructed,
     the seed is stored and applied when the C++ index is created.
+    Seed value ``0`` is treated as \"use Annoy's deterministic default seed\"
+    (a :class:`UserWarning` is emitted when ``0`` is explicitly provided).
 verbose : int or None, optional, default=None
     Verbosity level. Values are clamped to the range ``[-2, 2]``.
     ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
@@ -316,12 +373,14 @@ verbose : int or None, optional, default=None
 
 Attributes
 ----------
-f : int
+f : int, default=0
     Vector dimension. ``0`` means "unknown / lazy".
-metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'} or None
+metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'}, default="angular"
     Canonical metric name, or None if not configured yet (lazy).
-on_disk_path : str or None
-    Path for on-disk build/load. None if not configured.
+on_disk_path : str or None, optional, default=None
+    Configured on-disk build path. Setting this attribute enables on-disk
+    build mode (equivalent to :meth:`on_disk_build`), with safety checks
+    to avoid implicit truncation of existing files.
 prefault : bool, default=False
     Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
 schema_version : int, default=0
@@ -336,6 +395,8 @@ Notes
   requires the index is first executed.
 * If ``f == 0``, the dimensionality is inferred from the first non-empty vector
   passed to :meth:`add_item` and is then fixed for the lifetime of the index.
+* Assigning ``None`` to :attr:`f` is not supported. Use ``0`` for lazy
+  inference (this matches ``Annoy(f=None, ...)`` at construction time).
 * If ``metric`` is omitted while ``f > 0``, the current behavior defaults to
   ``'angular'`` and may emit a :class:`FutureWarning`. To avoid warnings and
   future behavior changes, always pass ``metric=...`` explicitly.
@@ -404,7 +465,7 @@ call to :meth:`add_item`.
 
 3. **Build the forest**
 
->>> idx.build(n_trees=10)
+>>> idx.build(n_trees=-1)
 >>> idx.get_n_trees()
 10
 >>> idx.memory_usage()  # byte
@@ -463,6 +524,8 @@ int
 
 Notes
 -----
+- ``Annoy(f=None, ...)`` is supported at construction time and is treated as ``f=0``.
+  After construction, assigning ``None`` to :attr:`f` is not supported; use ``0``.
 - ``f`` may be set only before the underlying C++ index is created.
 - After construction, attempting to change ``f`` raises AttributeError.
 )FDOC";
@@ -492,8 +555,14 @@ str or None
 
 Notes
 -----
-- The metric may be set only before the underlying C++ index is created.
-- After construction, attempting to change ``metric`` raises AttributeError.
+Changing ``metric`` after the index has been initialized (items added and/or
+trees built) is a *structural* change: the forest and all distances depend on
+the distance function.
+
+For scikit-learn compatibility, setting a different metric on an already
+initialized index will deterministically **reset** the index (drop all items,
+trees, and :attr:`y_`). You must call :meth:`fit` (or :meth:`add_item` +
+:meth:`build`) again before querying.
 
 .. seealso::
   * :py:mod:`~scipy.spatial.distance.cosine`
@@ -505,7 +574,7 @@ Notes
 
 static const char kOnDiskPathDoc[] =
 R"ODP(
-Path for on-disk build/load.
+Path used for on-disk build/load/save operations.
 
 Returns
 -------
@@ -514,17 +583,29 @@ str or None
 
 Notes
 -----
+- Assigning a string/PathLike to ``on_disk_path`` configures on-disk build mode
+  (equivalent to calling :meth:`on_disk_build` with the same filename).
+- Safety: Annoy core truncates the target file when enabling on-disk build.
+  Therefore, an existing file is never truncated implicitly when setting this
+  attribute. Call :meth:`on_disk_build` explicitly to overwrite.
+- Assigning ``None`` (or an empty string) clears the configured path, but only
+  when no disk-backed index is currently active.
 - Clearing/changing this while an on-disk index is active is disallowed.
-  Call ``unload()`` first.
+  Call :meth:`unload` first.
+
+.. seealso::
+  * :meth:`on_disk_build`
+  * :meth:`load`
+  * :meth:`unload`
 )ODP";
 
 static const char kPrefaultDoc[] =
 R"PFDOC(
 Default prefault flag stored on the object.
 
-This setting is currently informational and may be used by future versions
-as a default for on-disk operations. Today, methods like :meth:`load`,
-:meth:`save`, and :meth:`deserialize` accept a per-call ``prefault`` argument.
+This setting is used as the default for per-call ``prefault`` arguments when
+``prefault`` is omitted or set to ``None`` in methods like :meth:`load` and
+:meth:`save`.
 
 Returns
 -------
@@ -538,10 +619,10 @@ Notes
 
 static const char kSchemaVersionDoc[] =
 R"SVDOC(
-Schema/version marker stored on the object.
+Serialization/compatibility strategy marker sentinel value.
 
-This value is reserved for future compatibility work and does not currently
-change the Annoy on-disk format.
+This does not change the Annoy on-disk format, but it controls how the index
+is snapshotted in pickles.
 
 Returns
 -------
@@ -550,7 +631,9 @@ int
 
 Notes
 -----
-- ``0`` is the default sentinel value.
+- ``0`` or ``1``: pickle stores a ``portable-v1`` snapshot (fast restore, ABI-checked).
+- ``2``: pickle stores ``canonical-v1`` (portable; restores by rebuilding deterministically).
+- ``>=3``: pickle stores both portable and canonical; canonical is used as a fallback.
 )SVDOC";
 
 // ---------------------------------------------------------------------
@@ -603,7 +686,7 @@ private:
         const int32_t pos = word * 64 + bit;
         const uint64_t bit_val = (embedding[pos] > 0.5f) ? 1ULL : 0ULL;
         packed[word] |= (bit_val << bit);
-      }
+    }
     }
   }
 
@@ -702,7 +785,7 @@ public:
                  "(expected f_external=%d, f_internal=%d; got f_external=%u, f_internal=%u)",
                  _f_external, _f_internal, hdr.f_external, hdr.f_internal);
         *error = dup_cstr(buf);
-      }
+    }
       return false;
     }
 
@@ -769,7 +852,7 @@ public:
         const uint64_t max_d = static_cast<uint64_t>(_f_external);
         if (d > max_d) d = max_d;
         (*distances)[i] = static_cast<float>(d);
-      }
+    }
     } else {
       _index.get_nns_by_item(query_indice,
                              n,
@@ -801,7 +884,7 @@ public:
         const uint64_t max_d = static_cast<uint64_t>(_f_external);
         if (d > max_d) d = max_d;
         (*distances)[i] = static_cast<float>(d);
-      }
+    }
     } else {
       _index.get_nns_by_vector(&packed_query[0],
                                n,
@@ -973,15 +1056,19 @@ typedef struct {
   // NOTE: This is separate from the instance __dict__.
   PyObject* weakreflist;        // weakref list head, or NULL
 
-  AnnoyIndexInterface<int32_t, float>* ptr;  // underlying C++ index dynamic_cast<AnnoyAngular*>(ptr)
+  AnnoyIndexInterface<int32_t, float>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngular*>(ptr)
+
+  // Optional labels / targets associated with vectors (set by fit or manually).
+  // Stored as a Python object (typically 1D array-like) and managed with ref-counting.
+  PyObject* y;                  // labels/targets (y_ / y), or NULL
 
   int f;                        // 0 means "unknown / lazy" (dimension inferred from first add_item)
   MetricId metric_id;           // METRIC_UNKNOWN means "unknown / lazy"
-  // std::string metric;        // empty char "" or NULL
+  // std::string metric;        // Always has a valid string object, Default constructor "" to check method .empty()
 
   // --- Optional on-disk path (for on_disk_build / load) ---
   bool on_disk_active;          // true if ptr is currently backed by disk (load() or on_disk_build())
-  std::string on_disk_path;     // empty char "" or NULL => none no active on-disk index
+  std::string on_disk_path;     // Always has a valid string object, Default constructor "" to check method .empty(), back to "" (empty string) method .clear()
   bool prefault;                //
   int schema_version;           //
 
@@ -996,8 +1083,12 @@ typedef struct {
 static int py_annoy_set_on_disk_path(py_annoy* self, PyObject* value, void* closure);
 static int py_annoy_set_prefault(py_annoy* self, PyObject* value, void* closure);
 static int py_annoy_set_schema_version(py_annoy* self, PyObject* value, void* closure);
+// Forward declaration: used by structural parameter setters (e.g. metric)
+// to deterministically drop index state while keeping the wrapper object.
+static bool reset_index_state(py_annoy* self, const char* warn_msg);
 
 // ======================= ensure_index =====================================
+
 // ensure_index: safely construct index if not yet created
 // NOTE: must be AFTER py_annoy is defined.
 static bool ensure_index(py_annoy* self) {
@@ -1030,6 +1121,37 @@ static bool ensure_index(py_annoy* self) {
   }
   if (self->has_pending_seed)    self->ptr->set_seed(self->pending_seed);
   if (self->has_pending_verbose) self->ptr->verbose(self->pending_verbose >= 1);
+
+  // If an on-disk path is configured, enable on-disk build mode as soon as the
+  // underlying index exists (equivalent to calling on_disk_build(fn)).
+  //
+  // Safety: Annoy core's on_disk_build() opens the file with O_TRUNC; to avoid
+  // accidental data loss, we do not implicitly truncate an existing file.
+  if (!self->on_disk_path.empty() && !self->on_disk_active) {
+    if (path_exists_noexc(self->on_disk_path.c_str())) {
+      if (PyErr_WarnEx(
+            PyExc_UserWarning,
+            "on_disk_path points to an existing file; refusing to truncate it "
+            "implicitly. Call on_disk_build(on_disk_path) explicitly to overwrite.",
+            1) < 0) {
+        delete self->ptr;
+        self->ptr = NULL;
+        return false;
+    }
+    } else {
+      ScopedError error;
+      if (!self->ptr->on_disk_build(self->on_disk_path.c_str(), &error.err)) {
+        // Roll back to a safe state: the index exists but cannot be used.
+        delete self->ptr;
+        self->ptr = NULL;
+        PyErr_SetString(PyExc_IOError,
+          error.err ? error.err : (char*)"on_disk_build failed");
+        return false;
+    }
+      self->on_disk_active = true;
+    }
+  }
+
   return true;
 }
 
@@ -1159,6 +1281,143 @@ static bool convert_list_to_vector_strict(
   return true;
 }
 
+
+// Fill an embedding vector from either a dense sequence or a sparse dict.
+//
+// Supported row formats (deterministic):
+// - Dense: sequence of length f (list/tuple/array-like). If allow_missing is
+//   true, elements may be None and will be imputed with missing_fill.
+// - Sparse: dict {int -> float|None}. Keys must be in [0, f). If allow_missing
+//   is false, the dict must contain all keys 0..f-1 and no value may be None.
+//   If allow_missing is true, missing keys (and None values) are imputed with
+//   missing_fill.
+//
+// Returns
+// -------
+// ok : bool
+//     True on success, False if a Python exception was set.
+static bool fill_embedding_from_row(
+  PyObject* row,
+  int f,
+  bool allow_missing,
+  float missing_fill,
+  vector<float>* out,
+  const char* context) {
+  if (!out) return false;
+
+  if (f <= 0) {
+    PyErr_SetString(PyExc_RuntimeError,
+      "Index dimension `f` is not set");
+    return false;
+  }
+  if (!context) context = "X";
+
+  // Dense path: default initialize to 0.0f.
+  out->assign((size_t)f, 0.0f);
+
+  // Sparse dict input: {feature_index -> value}
+  if (PyDict_Check(row)) {
+    if (allow_missing) {
+      out->assign((size_t)f, missing_fill);
+    }
+
+    vector<char> seen;
+    if (!allow_missing) {
+      seen.assign((size_t)f, 0);
+    }
+
+    PyObject* key = NULL;
+    PyObject* val = NULL;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(row, &pos, &key, &val)) {
+      if (!PyLong_Check(key)) {
+        PyErr_Format(PyExc_TypeError,
+          "%s row dict keys must be integers in [0, f)", context);
+        return false;
+      }
+      long long k = PyLong_AsLongLong(key);
+      if (k == -1 && PyErr_Occurred()) return false;
+      if (k < 0 || k >= (long long)f) {
+        PyErr_Format(PyExc_ValueError,
+          "%s row dict key %lld is out of range [0, %d)", context, k, f);
+        return false;
+      }
+
+      float v = 0.0f;
+      if (val == Py_None) {
+        if (!allow_missing) {
+          PyErr_Format(PyExc_ValueError,
+            "%s row dict has None at key %lld; set missing_value to impute",
+            context, k);
+          return false;
+        }
+        v = missing_fill;
+      } else {
+        double dv = PyFloat_AsDouble(val);
+        if (PyErr_Occurred()) return false;
+        v = (float)dv;
+      }
+
+      (*out)[(size_t)k] = v;
+      if (!allow_missing) {
+        seen[(size_t)k] = 1;
+      }
+    }
+
+    if (!allow_missing) {
+      for (int i = 0; i < f; ++i) {
+        if (!seen[(size_t)i]) {
+          PyErr_Format(PyExc_ValueError,
+            "%s row dict is missing key %d; set missing_value to impute",
+            context, i);
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  // Dense sequence input
+  PyObject* seq = PySequence_Fast(row, "expected a 1D sequence of floats");
+  if (!seq) return false;
+
+  const Py_ssize_t len = PySequence_Fast_GET_SIZE(seq);
+  if (len != f) {
+    PyErr_Format(PyExc_ValueError,
+                 "embedding length mismatch: expected %d, got %ld",
+                 f, (long)len);
+    Py_DECREF(seq);
+    return false;
+  }
+
+  for (Py_ssize_t i = 0; i < len; ++i) {
+    PyObject* item = PySequence_Fast_GET_ITEM(seq, i);
+
+    if (item == Py_None) {
+      if (!allow_missing) {
+        Py_DECREF(seq);
+        PyErr_Format(PyExc_ValueError,
+          "%s row contains None at position %ld; set missing_value to impute",
+          context, (long)i);
+        return false;
+      }
+      (*out)[(size_t)i] = missing_fill;
+      continue;
+    }
+
+    double val = PyFloat_AsDouble(item);
+    if (PyErr_Occurred()) {
+      Py_DECREF(seq);
+      return false;
+    }
+    (*out)[(size_t)i] = (float)val;
+  }
+
+  Py_DECREF(seq);
+  return true;
+}
+
 static bool convert_list_to_vector_infer(
   py_annoy* self,
   PyObject* v,
@@ -1233,7 +1492,7 @@ static PyObject* py_an_new(
     // PyObject_GC_IsTracked() is only available starting with Python 3.9.
     // For Python 3.8 compatibility we untrack unconditionally.
     // (On CPython this is safe even if the object is not currently tracked.)
-    PyObject_GC_UnTrack((PyObject*)self);  // kernel dead
+    PyObject_GC_UnTrack((PyObject*)self);  // ?kernel dead
   }
 
   self->dict = NULL;
@@ -1241,15 +1500,21 @@ static PyObject* py_an_new(
 
   self->ptr = NULL;
 
+  self->y = NULL;
+  // Clear fitted labels (if any) on re-init.
+  Py_CLEAR(self->y);
+
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
 
   self->on_disk_active = false;
-  // Construct std::string members (placement new because this is a C struct)
-  // new (&self->on_disk_path) std::string(); self->on_disk_path.clear();
+  // Construct placement-new std::string members (py_annoy is a C struct,
+  // so tp_alloc does not run C++ constructors).
   try {
-    new (&self->on_disk_path) std::string();
-    self->on_disk_path.clear();
+    // Restarting on the available memory
+    new (&self->on_disk_path) std::string(); // Rebuild Placement new like = ""
+    // self->on_disk_path.clear(); // Or clear the content Standart metod
+    // self->on_disk_path.~basic_string();  // Summon Manuel Destructor
   } catch (const std::bad_alloc&) {
     PyErr_NoMemory();
     Py_TYPE(self)->tp_free((PyObject*)self);
@@ -1302,6 +1567,9 @@ static int py_an_init(
     self->ptr = NULL;
   }
 
+  // Clear fitted labels (if any) on re-init.
+  Py_CLEAR(self->y);
+
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
 
@@ -1320,7 +1588,7 @@ static int py_an_init(
   // ------------------------------------------------------------------
   // Signature (public, documented):
   //   Annoy(f=None, metric=None, *, on_disk_path=None, prefault=False,
-  //         schema_version=0, seed=None, verbose=None)
+  //         schema_version=0, seed=None, random_state=None, verbose=None)
   //
   // Deterministic rules:
   //   * Only (f, metric) may be passed positionally.
@@ -1346,6 +1614,7 @@ static int py_an_init(
   PyObject*   prefault       = NULL;
   PyObject*   schema_version = NULL;
   PyObject*   seed           = NULL;
+  PyObject*   random_state   = NULL;
   PyObject*   verbose        = NULL;
 
   // parse by PyArg_ParseTuple or PyArg_ParseTupleAndKeywords
@@ -1376,7 +1645,7 @@ static int py_an_init(
         PyErr_SetString(PyExc_TypeError,
           "keyword arguments must be strings");
         return -1;
-      }
+    }
 
       const char* k = PyUnicode_AsUTF8(key);
       if (!k) return -1;
@@ -1387,14 +1656,15 @@ static int py_an_init(
       const bool is_prefault     = (std::strcmp(k, "prefault") == 0);
       const bool is_schema_ver   = (std::strcmp(k, "schema_version") == 0);
       const bool is_seed         = (std::strcmp(k, "seed") == 0);
+      const bool is_random_state = (std::strcmp(k, "random_state") == 0);
       const bool is_verbose      = (std::strcmp(k, "verbose") == 0);
 
       if (!(is_f || is_metric || is_on_disk_path || is_prefault ||
-            is_schema_ver || is_seed || is_verbose)) {
+          is_schema_ver || is_seed || is_random_state || is_verbose)) {
         PyErr_Format(PyExc_TypeError,
           "Annoy() got an unexpected keyword argument '%s'", k);
         return -1;
-      }
+    }
 
       if (is_f) {
         if (nargs >= 1) {
@@ -1403,25 +1673,35 @@ static int py_an_init(
           return -1;
         }
         f_obj = value;
-      } else if (is_metric) {
+    } else if (is_metric) {
         if (nargs >= 2) {
           PyErr_SetString(PyExc_TypeError,
             "Annoy() got multiple values for argument 'metric'");
           return -1;
         }
         metric_obj = value;
-      } else if (is_on_disk_path) {
+    } else if (is_on_disk_path) {
         on_disk_path = value;
-      } else if (is_prefault) {
+    } else if (is_prefault) {
         prefault = value;
-      } else if (is_schema_ver) {
+    } else if (is_schema_ver) {
         schema_version = value;
-      } else if (is_seed) {
+    } else if (is_seed) {
         seed = value;
-      } else if (is_verbose) {
+    } else if (is_random_state) {
+        random_state = value;
+    } else if (is_verbose) {
         verbose = value;
-      }
     }
+    }
+  }
+
+  // Disallow setting both aliases.
+  if (seed && random_state) {
+    PyErr_SetString(PyExc_TypeError,
+      "Annoy() got multiple values for argument 'seed' (alias: random_state)"
+    );
+    return -1;
   }
 
   // --------------------------
@@ -1464,14 +1744,21 @@ static int py_an_init(
 
   // Default metric if f>0 and metric omitted (legacy compatibility).
   if (self->f > 0 && self->metric_id == METRIC_UNKNOWN) {
-    PyErr_WarnEx(PyExc_FutureWarning,
+    if (PyErr_WarnEx(PyExc_FutureWarning,
       "The default argument for metric will be removed in a future version. "
-      "Please pass metric='angular' explicitly.", 1);
+      "Please pass metric='angular' explicitly.", 1) < 0) {
+      return -1;
+    }
     self->metric_id = METRIC_ANGULAR;
   }
 
   // --------------------------
-  // Apply on_disk_path (stored; does not activate on-disk mode by itself)
+  // Apply on_disk_path.
+  // If provided, this enables on-disk build mode (same as calling
+  // on_disk_build(fn)). For safety, an existing file is never truncated
+  // implicitly; call on_disk_build(path) explicitly to overwrite.
+  // In lazy mode, activation occurs once the underlying index exists
+  // (see ensure_index()).
   // --------------------------
   if (on_disk_path) {
     if (py_annoy_set_on_disk_path(self, on_disk_path, NULL) != 0)
@@ -1495,23 +1782,41 @@ static int py_an_init(
   }
 
   // --------------------------
-  // Apply seed / verbose (stored pre-construction; applied on ensure_index)
+  // Apply seed if is not None or NULL (stored pre-construction; applied on ensure_index)
   // --------------------------
-  if (seed && seed != Py_None) {
-    // Accept any Python int convertible to [0, 2**64-1]
-    unsigned long long seed_arg = PyLong_AsUnsignedLongLong(seed);
+  PyObject* seed_like = seed ? seed : random_state;
+  if (seed_like && seed_like != Py_None) {
+    // Accept any Python int convertible to [0, 2**64 - 1].
+    // seed=0 is treated as "use Annoy's deterministic default seed" and emits a warning
+    // when explicitly provided (to avoid silent surprises while staying deterministic).
+    unsigned long long seed_arg = PyLong_AsUnsignedLongLong(seed_like);
     if (PyErr_Occurred()) {
       if (PyErr_ExceptionMatches(PyExc_OverflowError)) {
         PyErr_Clear();
         PyErr_SetString(PyExc_ValueError,
           "seed must be an integer in the range [0, 2**64 - 1]");
-      }
+    }
       return -1;
     }
-    self->pending_seed     = static_cast<uint64_t>(seed_arg);
-    self->has_pending_seed = true;
+
+    if (seed_arg == 0ULL) {
+      if (PyErr_WarnEx(PyExc_UserWarning,
+        "seed=0 uses Annoy's default seed", 1) < 0) {
+        return -1;
+    }
+      // Default is already deterministic; treat as "no override".
+      self->pending_seed     = 0ULL;
+      self->has_pending_seed = false;
+    } else {
+      self->pending_seed     = normalize_seed_u64(static_cast<uint64_t>(seed_arg));
+      self->has_pending_seed = true;
+    }
   }
 
+
+  // --------------------------
+  // Apply verbose if is not None or NULL (stored pre-construction; applied on ensure_index)
+  // --------------------------
   if (verbose && verbose != Py_None) {
     if (!PyLong_Check(verbose)) {
       PyErr_SetString(PyExc_TypeError,
@@ -1560,12 +1865,17 @@ static void py_an_dealloc(py_annoy* self) {
     PyObject_GC_UnTrack((PyObject*)self);
   }
 
+  // Clear weak references first (if enabled). This prevents callbacks from
+  // observing a partially torn-down object.
+  if (self->weakreflist) {
+    PyObject_ClearWeakRefs((PyObject*)self);
+  }
+
   // Clear instance dictionary (if enabled).
   Py_CLEAR(self->dict);
 
-  // Clear weak references first (if enabled). This prevents callbacks from
-  // observing a partially torn-down object.
-  PyObject_ClearWeakRefs((PyObject*)self);
+  // Clear fitted labels / targets (if any).
+  Py_CLEAR(self->y);
 
   // Make the wrapper resilient to any finalizers triggered while clearing
   // Python references below.
@@ -1589,9 +1899,12 @@ static void py_an_dealloc(py_annoy* self) {
 
   // 2) Destroy placement-new std::string members
   try {
-    self->on_disk_path.~basic_string();
+    // Restarting on the available memory
+    // new (&self->on_disk_path) std::string(); // Rebuild Placement new like = ""
+    // self->on_disk_path.clear(); // Cpp clear the content Standart metod
+    self->on_disk_path.~basic_string();  // Summon Manuel Destructor
   } catch (...) {
-    // ignore destruction errors
+    // Never let exceptions escape tp_dealloc
   }
 
   // 3) Free the Python object
@@ -1667,6 +1980,101 @@ static PyMemberDef py_annoy_members[] = {
 // getter: PyObject* (py_annoy*, void*)
 // setter: int (py_annoy*, PyObject*, void*)
 
+// Optional sklearn-style fitted attribute: y_ (labels / targets)
+//
+// Notes
+// -----
+// scikit-learn estimators do not typically store `y`, but for Annoy it can be
+// useful to attach labels/metadata for downstream retrieval. We store `y_` as a
+// Python object and validate basic shape constraints when possible.
+//
+static PyObject* py_annoy_get_y_(
+  py_annoy* self,
+  void*) {
+  if (!self || !self->y) Py_RETURN_NONE;
+  Py_INCREF(self->y);
+  return self->y;
+}
+
+
+static int py_annoy_set_y_(
+  py_annoy* self,
+  PyObject* value,
+  void*) {
+  if (!self) {
+    PyErr_SetString(PyExc_RuntimeError, "Annoy object is not initialized");
+    return -1;
+  }
+  if (value == NULL) {
+    PyErr_SetString(PyExc_TypeError, "Cannot delete attribute y_");
+    return -1;
+  }
+  if (value == Py_None) {
+    Py_CLEAR(self->y);
+    return 0;
+  }
+
+  // Accept either:
+  // - dict-like mapping {item_id -> label}, or
+  // - 1D array-like (sequence) aligned to item ids 0..len-1.
+  const bool is_dict = PyDict_Check(value);
+
+  if (!is_dict) {
+    // Require an array-like (sequence), but reject str/bytes which are sequences.
+    if (!PySequence_Check(value) || PyUnicode_Check(value) || PyBytes_Check(value)) {
+      PyErr_SetString(PyExc_TypeError,
+        "y_ must be a dict {item_id -> label}, a 1D array-like (sequence), or None");
+      return -1;
+    }
+    // If the index currently has items, enforce length equality deterministically.
+    if (self->ptr) {
+      const int n_items = self->ptr->get_n_items();
+      if (n_items > 0) {
+        const Py_ssize_t n = PySequence_Size(value);
+        if (n < 0) return -1;  // error already set
+        if ((int64_t)n != (int64_t)n_items) {
+          PyErr_Format(PyExc_ValueError,
+            "y_ must have length %d to match current index size (n_items)", n_items);
+          return -1;
+        }
+      }
+    }
+  } else {
+    // For dict input, validate keys when possible (deterministic safety check).
+    if (self->ptr) {
+      const int n_items = self->ptr->get_n_items();
+      PyObject* key = NULL;
+      PyObject* val = NULL;
+      Py_ssize_t pos = 0;
+      while (PyDict_Next(value, &pos, &key, &val)) {
+        if (!PyLong_Check(key)) {
+          PyErr_SetString(PyExc_TypeError,
+            "y_ dict keys must be integers (item ids)");
+          return -1;
+        }
+        long long kid = PyLong_AsLongLong(key);
+        if (kid == -1 && PyErr_Occurred()) return -1;
+        if (kid < 0) {
+          PyErr_SetString(PyExc_ValueError,
+            "y_ dict keys must be >= 0");
+          return -1;
+        }
+        if (n_items > 0 && kid >= (long long)n_items) {
+          PyErr_Format(PyExc_ValueError,
+            "y_ dict key %lld is out of range for current index size (n_items=%d)",
+            kid, n_items);
+          return -1;
+        }
+      }
+    }
+  }
+
+  Py_INCREF(value);
+  Py_XDECREF(self->y);
+  self->y = value;
+  return 0;
+}
+
 // Getter for 'f'
 static PyObject* py_annoy_get_f(
   py_annoy* self,
@@ -1679,10 +2087,19 @@ static int py_annoy_set_f(
   py_annoy* self,
   PyObject* value,
   void*) {
-  if (!value || value == Py_None) {
-    PyErr_SetString(PyExc_ValueError,
-      "f cannot be None (use 0 for lazy inference)");
+  if (value == NULL) {
+    PyErr_SetString(PyExc_AttributeError,
+      "Cannot delete f attribute");
     return -1;
+  }
+  if (value == Py_None) {
+    if (self->ptr) {
+      PyErr_SetString(PyExc_AttributeError,
+        "Cannot unset f after the index has been created. If not loaded from file to call :meth:`unload`");
+      return -1;
+    }
+    self->f = 0;
+    return 0;
   }
   if (!PyLong_Check(value)) {
     PyErr_SetString(PyExc_TypeError,
@@ -1714,6 +2131,26 @@ static PyObject* py_annoy_get_metric(
   return PyUnicode_FromString(m);
 }
 
+// Read-only sklearn-style fitted attribute: n_features_in_
+//
+// Notes
+// -----
+// sklearn's `check_is_fitted` uses trailing-underscore attributes to decide
+// whether an estimator has been fitted.
+//
+// We intentionally raise AttributeError if `f` is unknown so that
+// `hasattr(est, "n_features_in_")` behaves like scikit-learn.
+static PyObject* py_annoy_get_n_features_in_(
+  py_annoy* self,
+  void*) {
+  if (!self || self->f <= 0) {
+    PyErr_SetString(PyExc_AttributeError,
+      "n_features_in_ is not available before `f` is set");
+    return NULL;
+  }
+  return PyLong_FromLong((long)self->f);
+}
+
 // Setter for 'metric'
 static int py_annoy_set_metric(
   py_annoy* self,
@@ -1726,10 +2163,15 @@ static int py_annoy_set_metric(
   }
   // Allow resetting to "unknown / lazy" before the C++ index exists.
   if (value == Py_None) {
+    // For scikit-learn compatibility, allow structural parameter changes at
+    // any time by deterministically resetting the current index.
     if (self->ptr) {
-      PyErr_SetString(PyExc_AttributeError,
-        "Cannot unset metric after the index has been created.");
-      return -1;
+      if (!reset_index_state(
+            self,
+            "Changing metric resets the existing index (drops all items/trees and y_). "
+            "Refit is required.")) {
+        return -1;
+      }
     }
     self->metric_id = METRIC_UNKNOWN;
     return 0;
@@ -1739,11 +2181,6 @@ static int py_annoy_set_metric(
       "metric must be a string (or None)");
     return -1;
   }
-  if (self->ptr) {
-    PyErr_SetString(PyExc_AttributeError,
-      "Cannot change metric after the index has been created.");
-    return -1;
-  }
   const char* s = PyUnicode_AsUTF8(value);
   if (!s) return -1;
   MetricId id = metric_from_string(s);
@@ -1751,6 +2188,17 @@ static int py_annoy_set_metric(
     PyErr_SetString(PyExc_ValueError,
       "Invalid metric. Valid options: angular, euclidean, manhattan, dot, hamming.");
     return -1;
+  }
+
+  // If the C++ index exists and the metric is changing, this is a structural
+  // change. Reset deterministically to avoid incorrect query results.
+  if (self->ptr && self->metric_id != id) {
+    if (!reset_index_state(
+          self,
+          "Changing metric resets the existing index (drops all items/trees and y_). "
+          "Refit is required.")) {
+      return -1;
+    }
   }
   self->metric_id = id;
   return 0;
@@ -1771,6 +2219,15 @@ static int py_annoy_set_on_disk_path(
   py_annoy* self,
   PyObject* value,
   void*) {
+  // Semantics (deterministic):
+  //   * None (or deletion) clears the configured on-disk path (if no disk-backed
+  //     index is currently active).
+  //   * A string / PathLike sets the path and enables on-disk build mode as soon
+  //     as the underlying index exists (equivalent to calling on_disk_build(fn)).
+  //
+  // Safety: Annoy core's on_disk_build() truncates existing files. Therefore, we
+  // do not implicitly enable on-disk build if the target path already exists;
+  // call on_disk_build(path) explicitly to overwrite.
   if (!value || value == Py_None) {
     if (self->on_disk_active) {
       PyErr_SetString(PyExc_AttributeError,
@@ -1780,20 +2237,83 @@ static int py_annoy_set_on_disk_path(
     self->on_disk_path.clear();
     return 0;
   }
-  if (!PyUnicode_Check(value)) {
-    PyErr_SetString(PyExc_TypeError,
-      "on_disk_path must be a string or None");
-    return -1;
-  }
-  const char* s = PyUnicode_AsUTF8(value);
-  if (!s) return -1;
 
   if (self->on_disk_active) {
     PyErr_SetString(PyExc_AttributeError,
       "Cannot change on_disk_path while an on-disk index is active. Call unload() first.");
     return -1;
   }
-  self->on_disk_path.assign(s);
+
+  // Accept PathLike objects (pathlib.Path, os.DirEntry, etc.)
+  PyObject* fs = PyOS_FSPath(value);  // New reference (or NULL on error)
+  if (!fs) return -1;
+
+  std::string new_path;
+
+  if (PyUnicode_Check(fs)) {
+    Py_ssize_t n = 0;
+    const char* s = PyUnicode_AsUTF8AndSize(fs, &n);
+    if (!s) { Py_DECREF(fs); return -1; }
+    if (n > 0 && std::memchr(s, '\0', (size_t)n) != NULL) {
+      Py_DECREF(fs);
+      PyErr_SetString(PyExc_ValueError, "on_disk_path must not contain NUL bytes");
+      return -1;
+    }
+    new_path.assign(s, (size_t)n);
+  } else if (PyBytes_Check(fs)) {
+    const char* s = PyBytes_AS_STRING(fs);
+    const Py_ssize_t n = PyBytes_GET_SIZE(fs);
+    if (n > 0 && std::memchr(s, '\0', (size_t)n) != NULL) {
+      Py_DECREF(fs);
+      PyErr_SetString(PyExc_ValueError, "on_disk_path must not contain NUL bytes");
+      return -1;
+    }
+    new_path.assign(s, (size_t)n);
+  } else {
+    Py_DECREF(fs);
+    PyErr_SetString(PyExc_TypeError, "on_disk_path must be a path-like object or None");
+    return -1;
+  }
+
+  Py_DECREF(fs);
+
+  // Treat empty path as "clear" (same as None), for deterministic behavior.
+  if (new_path.empty()) {
+    self->on_disk_path.clear();
+    return 0;
+  }
+
+  const std::string old_path = self->on_disk_path;
+  self->on_disk_path = new_path;
+
+  // If the index already exists, enable on-disk build mode immediately so the
+  // backing file is created right away (Annoy core behavior).
+  if (self->ptr && !self->on_disk_active) {
+    if (path_exists_noexc(self->on_disk_path.c_str())) {
+      // Refuse to truncate implicitly. Keep the path for introspection and for
+      // an explicit on_disk_build() call by the user.
+      if (PyErr_WarnEx(
+            PyExc_UserWarning,
+            "on_disk_path points to an existing file; refusing to truncate it "
+            "implicitly. Call on_disk_build(on_disk_path) explicitly to overwrite.",
+            1) < 0) {
+        self->on_disk_path = old_path;
+        return -1;
+    }
+      return 0;
+    }
+
+    ScopedError error;
+    if (!self->ptr->on_disk_build(self->on_disk_path.c_str(), &error.err)) {
+      // Roll back attribute value (best-effort).
+      self->on_disk_path = old_path;
+      PyErr_SetString(PyExc_IOError,
+        error.err ? error.err : (char*)"on_disk_build failed");
+      return -1;
+    }
+    self->on_disk_active = true;
+  }
+
   return 0;
 }
 
@@ -1864,6 +2384,161 @@ static int py_annoy_set_schema_version(
   return 0;
 }
 
+// ------------------------------------------------------------------
+// sklearn-style parameter attributes: seed / random_state / verbose
+// ------------------------------------------------------------------
+//
+// These are exposed as attributes (not only methods) to satisfy scikit-learn's
+// estimator API expectation that all __init__ parameters are stored on the
+// instance under the same name.
+//
+// Notes
+// -----
+// - `seed` and `random_state` are synonyms.
+// - `verbose` stores an integer level in [-2, 2] or None (unset).
+// - For backward compatibility, the callable setter is available via
+//   :meth:`set_verbose` (and :meth:`set_verbosity`), not via ``verbose(...)``.
+//
+// See Also
+// --------
+// get_params, set_params : Estimator parameter API.
+// set_seed : Callable seed setter with identical semantics.
+static PyObject* py_annoy_get_seed(
+  py_annoy* self,
+  void*) {
+  if (!self || !self->has_pending_seed) Py_RETURN_NONE;
+  return PyLong_FromUnsignedLongLong(
+    (unsigned long long)self->pending_seed);
+}
+
+static int py_annoy_set_seed(
+  py_annoy* self,
+  PyObject* value,
+  void*) {
+  if (value == NULL) {
+    PyErr_SetString(PyExc_AttributeError,
+      "Cannot delete seed attribute");
+    return -1;
+  }
+
+  // None: clear override (core default seed is already deterministic).
+  if (value == Py_None) {
+    self->pending_seed     = 0ULL;
+    self->has_pending_seed = false;
+    if (self->ptr) self->ptr->set_seed(0ULL);
+    return 0;
+  }
+
+  // Must be an int in [0, 2**64-1].
+  unsigned long long seed_arg = PyLong_AsUnsignedLongLong(value);
+  if (PyErr_Occurred()) {
+    if (PyErr_ExceptionMatches(PyExc_OverflowError)) {
+      PyErr_Clear();
+      PyErr_SetString(PyExc_ValueError,
+        "seed must be an integer in the range [0, 2**64 - 1] (or None)");
+    }
+    return -1;
+  }
+
+  // 0: explicit reset + warning.
+  if (seed_arg == 0ULL) {
+    if (PyErr_WarnEx(PyExc_UserWarning,
+      "seed=0 resets to Annoy's default seed", 1) < 0) {
+      return -1;
+    }
+    self->pending_seed     = 0ULL;
+    self->has_pending_seed = false;
+    if (self->ptr) self->ptr->set_seed(0ULL);
+    return 0;
+  }
+
+  const uint64_t seed = normalize_seed_u64(static_cast<uint64_t>(seed_arg));
+  self->pending_seed     = seed;
+  self->has_pending_seed = true;
+  if (self->ptr) self->ptr->set_seed(seed);
+  return 0;
+}
+
+// sklearn alias
+static PyObject* py_annoy_get_random_state(
+  py_annoy* self,
+  void* closure) {
+  return py_annoy_get_seed(self, closure);
+}
+
+static int py_annoy_set_random_state(
+  py_annoy* self,
+  PyObject* value,
+  void* closure) {
+  return py_annoy_set_seed(self, value, closure);
+}
+
+static PyObject* py_annoy_get_verbose(
+  py_annoy* self,
+  void*) {
+  if (!self || !self->has_pending_verbose) Py_RETURN_NONE;
+  return PyLong_FromLong((long)self->pending_verbose);
+}
+
+static int py_annoy_set_verbose(
+  py_annoy* self,
+  PyObject* value,
+  void*) {
+  if (value == NULL) {
+    PyErr_SetString(PyExc_AttributeError,
+      "Cannot delete verbose attribute");
+    return -1;
+  }
+  // None: clear override.
+  if (value == Py_None) {
+    self->pending_verbose     = 0;
+    self->has_pending_verbose = false;
+    if (self->ptr) self->ptr->verbose(false);
+    return 0;
+  }
+  if (!PyLong_Check(value)) {
+    PyErr_SetString(PyExc_TypeError,
+      "verbose must be an integer (or None)");
+    return -1;
+  }
+
+  long level = PyLong_AsLong(value);
+  if (level == -1 && PyErr_Occurred()) return -1;
+
+  // Clamp deterministically to [-2, 2]
+  if (level < -2) level = -2;
+  if (level >  2) level =  2;
+
+  self->pending_verbose     = static_cast<int>(level);
+  self->has_pending_verbose = true;
+
+  if (self->ptr) {
+    self->ptr->verbose(level >= 1);
+  }
+  return 0;
+}
+
+// Convenience alias for f (dimension) to better match scikit-learn naming.
+static PyObject* py_annoy_get_n_features(
+  py_annoy* self,
+  void* closure) {
+  return py_annoy_get_f(self, closure);
+}
+
+static int py_annoy_set_n_features(
+  py_annoy* self,
+  PyObject* value,
+  void* closure) {
+  return py_annoy_set_f(self, value, closure);
+}
+
+// Read-only alias of n_features_in_ for downstream code that expects a trailing underscore.
+static PyObject* py_annoy_get_n_features_(
+  py_annoy* self,
+  void* closure) {
+  return py_annoy_get_n_features_in_(self, closure);
+}
+
 // ===================== Get/Set table ======================================
 
 static PyGetSetDef py_annoy_getset[] = {
@@ -1908,10 +2583,82 @@ static PyGetSetDef py_annoy_getset[] = {
   },
 
   {
+    (char*)"seed",
+    (getter)py_annoy_get_seed,
+    (setter)py_annoy_set_seed,
+    (char*)"Random seed override (scikit-learn compatible). None means use Annoy default seed.",
+    NULL
+  },
+
+  {
+    (char*)"random_state",
+    (getter)py_annoy_get_random_state,
+    (setter)py_annoy_set_random_state,
+    (char*)"Alias of `seed` (scikit-learn convention).",
+    NULL
+  },
+
+  {
+    (char*)"verbose",
+    (getter)py_annoy_get_verbose,
+    (setter)py_annoy_set_verbose,
+    (char*)"Verbosity level in [-2, 2] or None (unset). Callable setter: set_verbose().",
+    NULL
+  },
+
+  {
+    (char*)"n_features",
+    (getter)py_annoy_get_n_features,
+    (setter)py_annoy_set_n_features,
+    (char*)"Alias of `f` (dimension), provided for scikit-learn naming parity.",
+    NULL
+  },
+
+  {
+    (char*)"n_features_",
+    (getter)py_annoy_get_n_features_,
+    NULL,  // read-only
+    (char*)"Read-only alias of `n_features_in_`.",
+    NULL
+  },
+
+  {
+    (char*)"n_features_in_",
+    (getter)py_annoy_get_n_features_in_,
+    NULL,  // read-only
+    (char*)"Number of features seen during fit (scikit-learn compatible). Alias of `f` when available.",
+    NULL
+  },
+
+  {
     (char*)"_on_disk_path",
     (getter)py_annoy_get_on_disk_path,
     NULL,  // read-only alias of on_disk_path (prevents bypassing validation)
     (char*)"internal: alias of on_disk_path (read-only). Use .on_disk_path to set.",
+    NULL
+  },
+
+  {
+    (char*)"y_",
+    (getter)py_annoy_get_y_,
+    (setter)py_annoy_set_y_,
+    (char*)
+    "Labels / targets associated with the index items.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "If provided to fit(X, y), labels are stored here after a successful build.\n"
+    "You may also set this property manually. When possible, the setter enforces\n"
+    "that len(y_) matches the current number of items (n_items).\n",
+    NULL
+  },
+
+  {
+    (char*)"y",
+    (getter)py_annoy_get_y_,
+    (setter)py_annoy_set_y_,
+    (char*)
+    "Alias for y_.\n",
     NULL
   },
 
@@ -1950,13 +2697,41 @@ static PyObject* py_an_verbose(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
-  int level = 1;  // default; keeps backwards compatibility with verbose(1)
+  // Callable setter for the `verbose` parameter.
+  //
+  // - If level is omitted: default=1 (backwards compatible with the previous verbose(1)).
+  // - If level is None: clear the override.
+  // - Otherwise: must be an int; clamped to [-2, 2].
+  PyObject* level_obj = NULL;
   static const char* kwlist[] = {"level", NULL};
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|i", (char**)kwlist, &level))
+  if (!PyArg_ParseTupleAndKeywords(
+    args, kwargs, "|O", (char**)kwlist, &level_obj))
     return NULL;
 
-  // Clamp
+  // Default: level=1 (historical behavior)
+  int level = 1;
+
+  // Clear override
+  if (level_obj == Py_None) {
+    self->pending_verbose     = 0;
+    self->has_pending_verbose = false;
+    if (self->ptr) self->ptr->verbose(false);
+    PY_RETURN_SELF;
+  }
+
+  // Explicit level
+  if (level_obj) {
+    if (!PyLong_Check(level_obj)) {
+      PyErr_SetString(PyExc_TypeError, "level must be an integer or None");
+      return NULL;
+    }
+    long lv = PyLong_AsLong(level_obj);
+    if (lv == -1 && PyErr_Occurred()) return NULL;
+    level = (int)lv;
+  }
+
+  // Clamp deterministically
   if (level < -2) level = -2;
   if (level >  2) level =  2;
 
@@ -1964,21 +2739,25 @@ static PyObject* py_an_verbose(
   self->pending_verbose     = level;
   self->has_pending_verbose = true;
 
-  // If index not yet created → just store; will apply in py_an_init or
-  // when the index is constructed lazily.
+  // If index not yet created → just store; will apply when the index is
+  // constructed lazily.
   if (!self->ptr) {
-    // Chaining: a.build(...).save(...).info()
-    PY_RETURN_SELF;  // Py_RETURN_TRUE;  // stored for later, not an error
+    PY_RETURN_SELF; // Py_RETURN_TRUE; // Chaining: a.build(...).save(...).info()
   }
 
-  bool verbose_flag = (level >= 1);
+  const bool verbose_flag = (level >= 1);
   self->ptr->verbose(verbose_flag);
-  // Chaining: a.build(...).save(...).info()
-  PY_RETURN_SELF;  // Py_RETURN_TRUE;
+  PY_RETURN_SELF; // Py_RETURN_TRUE; // Chaining: a.build(...).save(...).info()
 }
 
 // Seed control:
-//   set_seed(seed: int = 0) -> None | Annoy
+//   set_seed(seed: int | None = None) -> Annoy
+//
+// Semantics (deterministic):
+//   * seed omitted / None -> clear any pending override and reset to Annoy's default seed.
+//   * seed == 0           -> same reset, but emit a UserWarning (explicit reset).
+//   * seed > 0            -> set an explicit seed.
+//
 //
 // The underlying RNG is deterministic for a given `seed`,
 // so calling `set_seed` with the same value and same data / n_trees
@@ -1994,43 +2773,672 @@ static PyObject* py_an_set_seed(
   py_annoy*  self,
   PyObject*  args,
   PyObject*  kwargs) {
-  // long seed_arg = static_cast<long>(0ULL);
-  unsigned long long seed_arg = 0ULL;
+  // long seed_arg = static_cast<long>(0ULL); // 0ULL
+  // unsigned long long seed_arg = 0ULL;
+  PyObject* seed_obj = NULL;
   static const char* kwlist[] = {"seed", NULL};
 
-  // Optional integer argument: set_seed(seed=0)
-  // if (!PyArg_ParseTuple(args, "|K", &seed_arg))
+  // Optional seed argument (int or None).
+  //
+  // Semantics (deterministic):
+  //   * seed omitted / None -> clear any pending override and reset to Annoy's default seed.
+  //   * seed == 0           -> same reset, but emit a UserWarning (explicit reset).
+  //   * seed > 0            -> set an explicit seed (stored if index not yet constructed).
   if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "|K", (char**)kwlist, &seed_arg)) {
-    // Keep a stable, user-friendly error type/message for negatives/overflow
+    args, kwargs, "|O", (char**)kwlist, &seed_obj)) {
+    return NULL;
+  }
+  // const bool provided =
+  //   (PyTuple_GET_SIZE(args) > 0) || (kwargs && PyDict_Size(kwargs) > 0);
+
+  // seed omitted / None: clear override (default is already deterministic).
+  if (!seed_obj || seed_obj == Py_None) {
+    self->pending_seed     = 0ULL;
+    self->has_pending_seed = false;
+    if (self->ptr) self->ptr->set_seed(0ULL);  // normalized to core default seed
+    PY_RETURN_SELF;
+  }
+
+  // Parse integer seed (must be in [0, 2**64 - 1]).
+  unsigned long long seed_arg = PyLong_AsUnsignedLongLong(seed_obj);
+  if (PyErr_Occurred()) {
     if (PyErr_ExceptionMatches(PyExc_OverflowError)) {
       PyErr_Clear();
       PyErr_SetString(PyExc_ValueError,
-                      "seed must be an integer in the range [0, 2**64 - 1]");
+        "seed must be an integer in the range [0, 2**64 - 1] (or None)");
     }
     return NULL;  // Py_RETURN_NONE;
   }
-  // if (seed_arg < 0) {
-  //   PyErr_SetString(PyExc_ValueError, "seed must be a non-negative integer");
-  //   return NULL;  // Py_RETURN_NONE;
-  // }
 
-  const uint64_t seed = static_cast<uint64_t>(seed_arg);
+  // seed == 0: explicit reset to default + warning.
+  if (seed_arg == 0ULL) {
+    if (PyErr_WarnEx(PyExc_UserWarning,
+      "seed=0 resets to Annoy's default seed", 1) < 0) {
+      return NULL;
+    }
+    self->pending_seed     = 0ULL;
+    self->has_pending_seed = false;
+    if (self->ptr) self->ptr->set_seed(0ULL);  // normalized to core default seed
+    PY_RETURN_SELF;
+  }
 
-  // Remember user preference (for lazy construction)
+  const uint64_t seed = normalize_seed_u64(static_cast<uint64_t>(seed_arg));  // seed_arg > 0
   self->pending_seed     = seed;
   self->has_pending_seed = true;
 
-  // If index doesn’t exist yet → defer
-  // stored for later, not an error
-  if (!self->ptr) {
-    // Chaining: a.set_seed(...).build(...).save(...)
-    PY_RETURN_SELF;  // Py_RETURN_NONE
+  if (self->ptr) {
+    self->ptr->set_seed(seed);  // Apply immediately if constructed
   }
-  // Else apply immediately
-  self->ptr->set_seed(seed);
+
   // Chaining: a.build(...).save(...).info()
-  PY_RETURN_SELF; // Py_RETURN_TRUE;
+  PY_RETURN_SELF;
+}
+
+// ------------------------------------------------------------------
+// Portable serialization wrapper (sklearn-like compatibility guards)
+// ------------------------------------------------------------------
+//
+// Annoy's native serialize()/deserialize() snapshot the in-memory C++ layout.
+// That is fast but *not* portable across different ABIs (endianness, sizeof(size_t),
+// compiler struct layout changes, etc.).
+//
+// For sklearn-like persistence, we wrap the native payload with a small, explicit
+// header that:
+//   1) declares ABI-critical properties, and
+//   2) allows deterministic compatibility checks before deserialization.
+//
+// This does not magically enable cross-endian loading; instead it makes
+// incompatibilities fail *loudly and safely* (instead of corrupting memory).
+//
+// Header layout (little-endian fields):
+//   magic[8]          = "ANNOYSP1"
+//   version_u16       = 1
+//   endian_u8         = 1 (little) or 2 (big)
+//   sizeof_size_t_u8
+//   sizeof_S_u8       (Annoy index id type; this wrapper uses int32_t)
+//   sizeof_T_u8       (vector scalar type; this wrapper uses float)
+//   metric_id_u8
+//   reserved_u8       (0)
+//   f_u32             (embedding dimension)
+//   payload_size_u64  (native payload bytes)
+//   payload[payload_size_u64]
+//
+static const uint8_t ANNOY_PORTABLE_MAGIC[8] = {'A','N','N','O','Y','S','P','1'};
+static const uint16_t ANNOY_PORTABLE_VERSION = 1;
+static const size_t ANNOY_PORTABLE_HEADER_SIZE = 28;
+
+static inline bool annoy_host_is_little_endian() {
+  const uint16_t x = 1;
+  return *reinterpret_cast<const uint8_t*>(&x) == 1;
+}
+
+static inline void annoy_append_u8(std::vector<uint8_t>& out, uint8_t v) {
+  out.push_back(v);
+}
+static inline void annoy_append_u16_le(std::vector<uint8_t>& out, uint16_t v) {
+  out.push_back(static_cast<uint8_t>(v & 0xFFu));
+  out.push_back(static_cast<uint8_t>((v >> 8) & 0xFFu));
+}
+static inline void annoy_append_u32_le(std::vector<uint8_t>& out, uint32_t v) {
+  out.push_back(static_cast<uint8_t>(v & 0xFFu));
+  out.push_back(static_cast<uint8_t>((v >> 8) & 0xFFu));
+  out.push_back(static_cast<uint8_t>((v >> 16) & 0xFFu));
+  out.push_back(static_cast<uint8_t>((v >> 24) & 0xFFu));
+}
+static inline void annoy_append_u64_le(std::vector<uint8_t>& out, uint64_t v) {
+  for (int i = 0; i < 8; ++i) {
+    out.push_back(static_cast<uint8_t>((v >> (8 * i)) & 0xFFu));
+  }
+}
+
+static inline bool annoy_read_u8(const uint8_t*& p, size_t& n, uint8_t* out) {
+  if (n < 1) return false;
+  *out = *p;
+  p += 1;
+  n -= 1;
+  return true;
+}
+static inline bool annoy_read_u16_le(const uint8_t*& p, size_t& n, uint16_t* out) {
+  if (n < 2) return false;
+  *out = static_cast<uint16_t>(p[0]) | (static_cast<uint16_t>(p[1]) << 8);
+  p += 2;
+  n -= 2;
+  return true;
+}
+static inline bool annoy_read_u32_le(const uint8_t*& p, size_t& n, uint32_t* out) {
+  if (n < 4) return false;
+  *out = (static_cast<uint32_t>(p[0]) |
+          (static_cast<uint32_t>(p[1]) << 8) |
+          (static_cast<uint32_t>(p[2]) << 16) |
+          (static_cast<uint32_t>(p[3]) << 24));
+  p += 4;
+  n -= 4;
+  return true;
+}
+static inline bool annoy_read_u64_le(const uint8_t*& p, size_t& n, uint64_t* out) {
+  if (n < 8) return false;
+  uint64_t v = 0;
+  for (int i = 0; i < 8; ++i) {
+    v |= (static_cast<uint64_t>(p[i]) << (8 * i));
+  }
+  *out = v;
+  p += 8;
+  n -= 8;
+  return true;
+}
+
+static bool annoy_build_portable_blob(
+  const py_annoy* self,
+  const std::vector<uint8_t>& native_payload,
+  std::vector<uint8_t>* out_blob) {
+  if (!self || !out_blob) {
+    PyErr_SetString(PyExc_RuntimeError, "internal error: null pointer");
+    return false;
+  }
+
+  const uint8_t endian = annoy_host_is_little_endian() ? 1 : 2;
+
+  // Hard ABI invariants for this wrapper type.
+  const uint8_t sizeof_S = static_cast<uint8_t>(sizeof(int32_t));
+  const uint8_t sizeof_T = static_cast<uint8_t>(sizeof(float));
+  const uint8_t sizeof_size_t = static_cast<uint8_t>(sizeof(size_t));
+
+  // Deterministic: do not allow silent truncation when casting sizes.
+  if (native_payload.size() > static_cast<size_t>(std::numeric_limits<uint64_t>::max())) {
+    PyErr_SetString(PyExc_OverflowError, "native payload too large to serialize");
+    return false;
+  }
+
+  out_blob->clear();
+  out_blob->reserve(ANNOY_PORTABLE_HEADER_SIZE + native_payload.size());
+
+  out_blob->insert(out_blob->end(), ANNOY_PORTABLE_MAGIC, ANNOY_PORTABLE_MAGIC + 8);
+  annoy_append_u16_le(*out_blob, ANNOY_PORTABLE_VERSION);
+  annoy_append_u8(*out_blob, endian);
+  annoy_append_u8(*out_blob, sizeof_size_t);
+  annoy_append_u8(*out_blob, sizeof_S);
+  annoy_append_u8(*out_blob, sizeof_T);
+  annoy_append_u8(*out_blob, static_cast<uint8_t>(self->metric_id));
+  annoy_append_u8(*out_blob, 0);  // reserved
+  annoy_append_u32_le(*out_blob, static_cast<uint32_t>(self->f));
+  annoy_append_u64_le(*out_blob, static_cast<uint64_t>(native_payload.size()));
+
+  out_blob->insert(out_blob->end(), native_payload.begin(), native_payload.end());
+  return true;
+}
+
+// If data begins with the portable header, validate it and return a view of the
+// underlying native payload. Otherwise return the original buffer as-is.
+static bool annoy_unwrap_portable_blob(
+  const py_annoy* self,
+  const uint8_t* data,
+  size_t size,
+  const uint8_t** out_payload,
+  size_t* out_payload_size,
+  uint32_t* out_f,
+  uint8_t* out_metric_id) {
+  if (!out_payload || !out_payload_size) {
+    PyErr_SetString(PyExc_RuntimeError, "internal error: null output pointer");
+    return false;
+  }
+  *out_payload = data;
+  *out_payload_size = size;
+  if (out_f) *out_f = 0;
+  if (out_metric_id) *out_metric_id = 0;
+
+  if (!data || size < ANNOY_PORTABLE_HEADER_SIZE) {
+    return true;  // legacy/native
+  }
+
+  if (memcmp(data, ANNOY_PORTABLE_MAGIC, 8) != 0) {
+    return true;  // legacy/native
+  }
+
+  const uint8_t* p = data + 8;
+  size_t n = size - 8;
+
+  uint16_t version = 0;
+  uint8_t endian = 0;
+  uint8_t sizeof_size_t = 0;
+  uint8_t sizeof_S = 0;
+  uint8_t sizeof_T = 0;
+  uint8_t metric_id = 0;
+  uint8_t reserved = 0;
+  uint32_t f = 0;
+  uint64_t payload_size = 0;
+
+  if (!annoy_read_u16_le(p, n, &version) ||
+      !annoy_read_u8(p, n, &endian) ||
+      !annoy_read_u8(p, n, &sizeof_size_t) ||
+      !annoy_read_u8(p, n, &sizeof_S) ||
+      !annoy_read_u8(p, n, &sizeof_T) ||
+      !annoy_read_u8(p, n, &metric_id) ||
+      !annoy_read_u8(p, n, &reserved) ||
+      !annoy_read_u32_le(p, n, &f) ||
+      !annoy_read_u64_le(p, n, &payload_size)) {
+    PyErr_SetString(PyExc_IOError, "portable header is truncated");
+    return false;
+  }
+
+  if (out_f) *out_f = f;
+  if (out_metric_id) *out_metric_id = metric_id;
+
+  (void)reserved;
+
+  if (version != ANNOY_PORTABLE_VERSION) {
+    PyErr_SetString(PyExc_IOError, "unsupported portable blob version");
+    return false;
+  }
+
+  const uint8_t host_endian = annoy_host_is_little_endian() ? 1 : 2;
+  if (endian != host_endian) {
+    PyErr_SetString(PyExc_IOError, "cannot deserialize portable blob with different endianness");
+    return false;
+  }
+  if (sizeof_size_t != sizeof(size_t) || sizeof_S != sizeof(int32_t) || sizeof_T != sizeof(float)) {
+    PyErr_SetString(PyExc_IOError, "cannot deserialize portable blob with incompatible ABI (sizeof mismatch)");
+    return false;
+  }
+
+  if (self) {
+    if (self->f > 0 && static_cast<uint32_t>(self->f) != f) {
+      PyErr_SetString(PyExc_ValueError, "portable blob dimension f does not match this index");
+      return false;
+    }
+    if (self->metric_id != METRIC_UNKNOWN && static_cast<uint8_t>(self->metric_id) != metric_id) {
+      PyErr_SetString(PyExc_ValueError, "portable blob metric does not match this index");
+      return false;
+    }
+  }
+
+  // payload_size is declared explicitly; ensure remaining bytes match exactly.
+  if (payload_size > static_cast<uint64_t>(n)) {
+    PyErr_SetString(PyExc_IOError, "portable blob payload is truncated");
+    return false;
+  }
+  if (payload_size != static_cast<uint64_t>(n)) {
+    PyErr_SetString(PyExc_IOError, "portable blob payload size mismatch");
+    return false;
+  }
+
+  *out_payload = p;
+  *out_payload_size = static_cast<size_t>(payload_size);
+  return true;
+}
+
+
+// ------------------------------------------------------------------
+// Canonical serialization (sklearn-like, cross-ABI)
+// ------------------------------------------------------------------
+//
+// "canonical-v1" is a rebuildable wire format intended to be:
+//   * deterministic (byte-for-byte given the same stored vectors + params)
+//   * portable across compilers / platforms / ABIs (within IEEE-754 float32)
+//   * safe to validate before loading
+//
+// Design choice (portability-first):
+//   - We do NOT store Annoy's in-memory node layout.
+//   - Instead we store the item vectors + build parameters, and rebuild the
+//     forest on load with n_jobs=1 for deterministic reconstruction.
+//
+// This mirrors how many sklearn estimators persist as "parameters + learned arrays"
+// rather than raw memory snapshots.
+//
+// Format: little-endian
+//   magic[8]          = "ANNOYCN1"
+//   version_u16       = 1
+//   flags_u16         (bit0 = built)
+//   metric_id_u8
+//   reserved_u8
+//   reserved_u16
+//   f_u32
+//   n_items_u32
+//   n_trees_u32       (valid if built flag set; otherwise 0)
+//   has_seed_u8
+//   has_verbose_u8
+//   reserved_u16
+//   seed_u64          (valid if has_seed)
+//   verbose_i32       (valid if has_verbose)
+//   reserved_u32
+//   payload_size_u64  (= n_items * f * sizeof(float))
+//   payload[payload_size_u64]  float32 values, row-major by item id
+//
+static const uint8_t  ANNOY_CANONICAL_MAGIC[8] = {'A','N','N','O','Y','C','N','1'};
+static const uint16_t ANNOY_CANONICAL_VERSION  = 1;
+static const uint16_t ANNOY_CANONICAL_FLAG_BUILT = 1u << 0;
+static const size_t   ANNOY_CANONICAL_HEADER_SIZE = 56;
+
+static inline void annoy_append_i32_le(std::vector<uint8_t>& out, int32_t v) {
+  annoy_append_u32_le(out, static_cast<uint32_t>(v));
+}
+static inline bool annoy_read_i32_le(const uint8_t*& p, size_t& n, int32_t* out) {
+  uint32_t u = 0;
+  if (!annoy_read_u32_le(p, n, &u)) return false;
+  *out = static_cast<int32_t>(u);
+  return true;
+}
+
+static inline bool annoy_is_canonical_blob(const uint8_t* data, size_t size) {
+  return (data && size >= ANNOY_CANONICAL_HEADER_SIZE &&
+          memcmp(data, ANNOY_CANONICAL_MAGIC, 8) == 0);
+}
+
+static bool annoy_build_canonical_blob(
+  const py_annoy* self,
+  std::vector<uint8_t>* out_blob) {
+  if (!self || !out_blob) {
+    PyErr_SetString(PyExc_RuntimeError, "internal error: null pointer");
+    return false;
+  }
+  if (!self->ptr) {
+    PyErr_SetString(PyExc_RuntimeError, "Annoy index is not initialized");
+    return false;
+  }
+  if (self->f <= 0) {
+    PyErr_SetString(PyExc_RuntimeError, "Index dimension f is not set");
+    return false;
+  }
+  if (self->metric_id == METRIC_UNKNOWN) {
+    PyErr_SetString(PyExc_RuntimeError, "Index metric is not set");
+    return false;
+  }
+
+  // Canonical format requires IEEE-754 float32.
+  if (sizeof(float) != 4 || !std::numeric_limits<float>::is_iec559) {
+    PyErr_SetString(PyExc_RuntimeError,
+      "canonical serialization requires IEEE-754 32-bit float");
+    return false;
+  }
+
+  const int32_t n_items_i32 = self->ptr->get_n_items();
+  if (n_items_i32 < 0) {
+    PyErr_SetString(PyExc_RuntimeError, "invalid n_items");
+    return false;
+  }
+
+  const uint32_t n_items = static_cast<uint32_t>(n_items_i32);
+  const uint32_t f = static_cast<uint32_t>(self->f);
+  const uint32_t n_trees = static_cast<uint32_t>(self->ptr->get_n_trees());
+  const bool built = (n_trees > 0);
+
+  // Compute payload size with overflow checks.
+  uint64_t payload_bytes = 0;
+  if (n_items != 0 && f != 0) {
+    const uint64_t mul = static_cast<uint64_t>(n_items) * static_cast<uint64_t>(f);
+    if (mul > (std::numeric_limits<uint64_t>::max() / 4ULL)) {
+      PyErr_SetString(PyExc_OverflowError, "canonical payload too large to serialize");
+      return false;
+    }
+    payload_bytes = mul * 4ULL;
+  }
+
+  const uint64_t total_u64 = static_cast<uint64_t>(ANNOY_CANONICAL_HEADER_SIZE) + payload_bytes;
+  if (total_u64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+    PyErr_SetString(PyExc_OverflowError, "canonical blob too large to allocate");
+    return false;
+  }
+
+  out_blob->clear();
+  out_blob->reserve(static_cast<size_t>(total_u64));
+
+  // Header
+  out_blob->insert(out_blob->end(), ANNOY_CANONICAL_MAGIC, ANNOY_CANONICAL_MAGIC + 8);
+  annoy_append_u16_le(*out_blob, ANNOY_CANONICAL_VERSION);
+  annoy_append_u16_le(*out_blob, built ? ANNOY_CANONICAL_FLAG_BUILT : 0u);
+  annoy_append_u8(*out_blob, static_cast<uint8_t>(self->metric_id));
+  annoy_append_u8(*out_blob, 0);  // reserved_u8
+  annoy_append_u16_le(*out_blob, 0);  // reserved_u16
+  annoy_append_u32_le(*out_blob, f);
+  annoy_append_u32_le(*out_blob, n_items);
+  annoy_append_u32_le(*out_blob, built ? n_trees : 0u);
+
+  annoy_append_u8(*out_blob, self->has_pending_seed ? 1 : 0);
+  annoy_append_u8(*out_blob, self->has_pending_verbose ? 1 : 0);
+  annoy_append_u16_le(*out_blob, 0);  // reserved_u16
+
+  annoy_append_u64_le(*out_blob, static_cast<uint64_t>(self->pending_seed));
+  annoy_append_i32_le(*out_blob, static_cast<int32_t>(self->pending_verbose));
+  annoy_append_u32_le(*out_blob, 0);  // reserved_u32
+  annoy_append_u64_le(*out_blob, payload_bytes);
+
+  // Payload: row-major vectors (item id order)
+  std::vector<float> vec(static_cast<size_t>(f));
+  for (uint32_t i = 0; i < n_items; ++i) {
+    self->ptr->get_item(static_cast<int32_t>(i), vec.data());
+    for (uint32_t j = 0; j < f; ++j) {
+      uint32_t bits = 0;
+      static_assert(sizeof(bits) == sizeof(float), "float must be 32-bit");
+      memcpy(&bits, &vec[static_cast<size_t>(j)], sizeof(float));
+      annoy_append_u32_le(*out_blob, bits);
+    }
+  }
+
+  return true;
+}
+
+static bool annoy_parse_canonical_blob(
+  const py_annoy* self,
+  const uint8_t* data,
+  size_t size,
+  uint16_t* out_flags,
+  uint8_t* out_metric_id,
+  uint32_t* out_f,
+  uint32_t* out_n_items,
+  uint32_t* out_n_trees,
+  uint8_t* out_has_seed,
+  uint8_t* out_has_verbose,
+  uint64_t* out_seed,
+  int32_t* out_verbose,
+  const uint8_t** out_payload,
+  size_t* out_payload_size) {
+  if (!data || size < ANNOY_CANONICAL_HEADER_SIZE) {
+    PyErr_SetString(PyExc_IOError, "canonical blob is truncated");
+    return false;
+  }
+  if (memcmp(data, ANNOY_CANONICAL_MAGIC, 8) != 0) {
+    PyErr_SetString(PyExc_IOError, "canonical blob magic mismatch");
+    return false;
+  }
+
+  const uint8_t* p = data + 8;
+  size_t n = size - 8;
+
+  uint16_t version = 0;
+  uint16_t flags = 0;
+  uint8_t metric_id = 0;
+  uint8_t reserved_u8 = 0;
+  uint16_t reserved_u16a = 0;
+  uint32_t f = 0;
+  uint32_t n_items = 0;
+  uint32_t n_trees = 0;
+  uint8_t has_seed = 0;
+  uint8_t has_verbose = 0;
+  uint16_t reserved_u16b = 0;
+  uint64_t seed = 0;
+  int32_t verbose = 0;
+  uint32_t reserved_u32 = 0;
+  uint64_t payload_size_u64 = 0;
+
+  if (!annoy_read_u16_le(p, n, &version) ||
+      !annoy_read_u16_le(p, n, &flags) ||
+      !annoy_read_u8(p, n, &metric_id) ||
+      !annoy_read_u8(p, n, &reserved_u8) ||
+      !annoy_read_u16_le(p, n, &reserved_u16a) ||
+      !annoy_read_u32_le(p, n, &f) ||
+      !annoy_read_u32_le(p, n, &n_items) ||
+      !annoy_read_u32_le(p, n, &n_trees) ||
+      !annoy_read_u8(p, n, &has_seed) ||
+      !annoy_read_u8(p, n, &has_verbose) ||
+      !annoy_read_u16_le(p, n, &reserved_u16b) ||
+      !annoy_read_u64_le(p, n, &seed) ||
+      !annoy_read_i32_le(p, n, &verbose) ||
+      !annoy_read_u32_le(p, n, &reserved_u32) ||
+      !annoy_read_u64_le(p, n, &payload_size_u64)) {
+    PyErr_SetString(PyExc_IOError, "canonical header is truncated");
+    return false;
+  }
+
+  (void)reserved_u8;
+  (void)reserved_u16a;
+  (void)reserved_u16b;
+  (void)reserved_u32;
+
+  if (version != ANNOY_CANONICAL_VERSION) {
+    PyErr_SetString(PyExc_IOError, "unsupported canonical blob version");
+    return false;
+  }
+
+  // Validate metric + f against the current object if known.
+  if (self) {
+    if (self->f > 0 && static_cast<uint32_t>(self->f) != f) {
+      PyErr_SetString(PyExc_ValueError, "canonical blob dimension f does not match this index");
+      return false;
+    }
+    if (self->metric_id != METRIC_UNKNOWN && static_cast<uint8_t>(self->metric_id) != metric_id) {
+      PyErr_SetString(PyExc_ValueError, "canonical blob metric does not match this index");
+      return false;
+    }
+  }
+
+  // Validate payload length matches declared sizes.
+  const uint64_t expected = static_cast<uint64_t>(n_items) * static_cast<uint64_t>(f) * 4ULL;
+  if (expected != payload_size_u64) {
+    PyErr_SetString(PyExc_IOError, "canonical payload size mismatch");
+    return false;
+  }
+  if (payload_size_u64 > static_cast<uint64_t>(n)) {
+    PyErr_SetString(PyExc_IOError, "canonical payload is truncated");
+    return false;
+  }
+  if (payload_size_u64 != static_cast<uint64_t>(n)) {
+    PyErr_SetString(PyExc_IOError, "canonical blob has trailing bytes");
+    return false;
+  }
+
+  if (out_flags) *out_flags = flags;
+  if (out_metric_id) *out_metric_id = metric_id;
+  if (out_f) *out_f = f;
+  if (out_n_items) *out_n_items = n_items;
+  if (out_n_trees) *out_n_trees = n_trees;
+  if (out_has_seed) *out_has_seed = has_seed;
+  if (out_has_verbose) *out_has_verbose = has_verbose;
+  if (out_seed) *out_seed = seed;
+  if (out_verbose) *out_verbose = verbose;
+
+  if (out_payload) *out_payload = p;
+  if (out_payload_size) *out_payload_size = static_cast<size_t>(payload_size_u64);
+  return true;
+}
+
+static bool annoy_restore_from_canonical_blob(
+  py_annoy* self,
+  const uint8_t* data,
+  size_t size) {
+  if (!self) {
+    PyErr_SetString(PyExc_RuntimeError, "internal error: null self");
+    return false;
+  }
+
+  // Canonical format requires IEEE-754 float32.
+  if (sizeof(float) != 4 || !std::numeric_limits<float>::is_iec559) {
+    PyErr_SetString(PyExc_RuntimeError,
+      "canonical deserialization requires IEEE-754 32-bit float");
+    return false;
+  }
+
+  uint16_t flags = 0;
+  uint8_t metric_id_u8 = 0;
+  uint32_t f_u32 = 0;
+  uint32_t n_items = 0;
+  uint32_t n_trees = 0;
+  uint8_t has_seed = 0;
+  uint8_t has_verbose = 0;
+  uint64_t seed = 0;
+  int32_t verbose = 0;
+  const uint8_t* payload = NULL;
+  size_t payload_size = 0;
+
+  if (!annoy_parse_canonical_blob(
+        self, data, size,
+        &flags, &metric_id_u8, &f_u32, &n_items, &n_trees,
+        &has_seed, &has_verbose, &seed, &verbose,
+        &payload, &payload_size)) {
+    return false;  // Python error already set
+  }
+
+  // Replace current index state (deterministic).
+  if (self->ptr) {
+    delete self->ptr;
+    self->ptr = NULL;
+  }
+
+  // Set core configuration from the blob if not already fixed.
+  if (self->f <= 0) self->f = static_cast<int>(f_u32);
+  if (self->metric_id == METRIC_UNKNOWN) self->metric_id = static_cast<MetricId>(metric_id_u8);
+
+  // Pending seed/verbose in state; applied during ensure_index().
+  self->has_pending_seed = (has_seed != 0);
+  self->pending_seed = normalize_seed_u64(static_cast<uint64_t>(seed));
+  self->has_pending_verbose = (has_verbose != 0);
+  self->pending_verbose = static_cast<int>(verbose);
+
+  // Construct index (applies pending config).
+  if (!ensure_index(self)) {
+    return false;
+  }
+
+  // Load vectors (heavy work): add items with GIL released.
+  bool ok = true;
+  ScopedError error;
+  std::vector<float> vec(static_cast<size_t>(f_u32));
+  const uint8_t* p = payload;
+  size_t n = payload_size;
+
+  Py_BEGIN_ALLOW_THREADS;
+  for (uint32_t i = 0; i < n_items && ok; ++i) {
+    for (uint32_t j = 0; j < f_u32; ++j) {
+      if (n < 4) { ok = false; break; }
+      uint32_t bits = (static_cast<uint32_t>(p[0]) |
+                       (static_cast<uint32_t>(p[1]) << 8) |
+                       (static_cast<uint32_t>(p[2]) << 16) |
+                       (static_cast<uint32_t>(p[3]) << 24));
+      p += 4;
+      n -= 4;
+      float fv = 0.0f;
+      memcpy(&fv, &bits, sizeof(float));
+      vec[static_cast<size_t>(j)] = fv;
+    }
+    if (!ok) break;
+    if (!self->ptr->add_item(static_cast<int32_t>(i), vec.data(), &error.err)) {
+      ok = false;
+      break;
+    }
+  }
+  Py_END_ALLOW_THREADS;
+
+  if (!ok) {
+    PyErr_SetString(PyExc_RuntimeError, error.err ? error.err : (char*)"canonical add_item failed");
+    delete self->ptr;
+    self->ptr = NULL;
+    return false;
+  }
+
+  // Rebuild if the blob was built.
+  if ((flags & ANNOY_CANONICAL_FLAG_BUILT) != 0 && n_trees > 0) {
+    bool built_ok = false;
+    ScopedError berr;
+    Py_BEGIN_ALLOW_THREADS;
+    built_ok = self->ptr->build(static_cast<int>(n_trees), /*n_jobs=*/1, &berr.err);
+    Py_END_ALLOW_THREADS;
+    if (!built_ok) {
+      PyErr_SetString(PyExc_RuntimeError, berr.err ? berr.err : (char*)"canonical rebuild failed");
+      delete self->ptr;
+      self->ptr = NULL;
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // joblib serialize / deserialize need to dunder  __reduce__ and _rebuild and/or _deserialize_into_self
@@ -2047,30 +3455,92 @@ static PyObject* py_an_serialize(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
-  (void)args; (void)kwargs;
-  if (!self->ptr) {
-    PyErr_SetString(PyExc_RuntimeError,
-      "Annoy index is not initialized");
+  // (void)args; (void)kwargs; // if not used
+  // if (!self->ptr) {
+  //   PyErr_SetString(PyExc_RuntimeError,
+  //     "Annoy index is not initialized");
+  //   return NULL;
+  // }
+
+  // Backwards compatible API:
+  //   serialize() -> native bytes (legacy)
+  //   serialize(format='portable') -> bytes with a small compatibility header
+  PyObject* format_obj = NULL;
+  static const char* kwlist[] = {"format", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", (char**)kwlist, &format_obj)) {
     return NULL;
   }
 
-  // char* error = NULL;
-  // vector<uint8_t> byte = self->ptr->serialize(&error);
-  // if (byte.empty() && error) {
-  //   PyErr_SetString(PyExc_RuntimeError, error);
-  //   free(error);
-  //   return NULL;
-  // }
-  ScopedError error;
-  vector<uint8_t> byte = self->ptr->serialize(&error.err);
-  if (byte.empty() && error.err) {
-    PyErr_SetString(PyExc_RuntimeError, error.err);
-     return NULL;
-   }
+  // Note: canonical blobs carry full configuration (metric, f, items) and can
+  // initialize an otherwise-lazy index. We therefore defer the "initialized"
+  // check until after canonical auto-detection.
+
+  bool portable = false;
+  bool canonical = false;
+  if (format_obj && format_obj != Py_None) {
+    if (!PyUnicode_Check(format_obj)) {
+      PyErr_SetString(PyExc_TypeError, "format must be a str or None");
+      return NULL;
+    }
+    const char* fmt = PyUnicode_AsUTF8(format_obj);
+    if (!fmt) return NULL;
+
+    std::string s = trim(std::string(fmt));
+    std::transform(s.begin(), s.end(), s.begin(),
+      [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+
+    if (s == "portable" || s == "portable_v1" || s == "portable-v1") {
+      portable = true;
+    } else if (s == "canonical" || s == "canonical_v1" || s == "canonical-v1") {
+      canonical = true;
+    } else if (s == "native" || s == "legacy" || s == "raw") {
+      portable = false;
+      canonical = false;
+    } else {
+      PyErr_SetString(PyExc_ValueError,
+        "format must be one of: 'native', 'legacy', 'raw', 'portable', 'canonical'");
+      return NULL;
+    }
+  }
+
+  std::vector<uint8_t> out;
+
+  // Canonical format is rebuildable and portable across ABIs. It avoids
+  // Annoy's native in-memory snapshot and instead stores item vectors + params.
+  if (canonical) {
+    if (!annoy_build_canonical_blob(self, &out)) {
+      return NULL;  // Python error already set
+    }
+  } else {
+    if (!self->ptr) {
+      PyErr_SetString(PyExc_RuntimeError,
+        "Annoy index is not initialized. Call add_item() + build() (or load()) before serialize().");
+      return NULL;
+    }
+    ScopedError error;
+    std::vector<uint8_t> native = self->ptr->serialize(&error.err);
+    if (native.empty() && error.err) {
+      PyErr_SetString(PyExc_RuntimeError, error.err);
+      return NULL;
+    }
+
+    if (portable) {
+      if (!annoy_build_portable_blob(self, native, &out)) {
+        return NULL;  // Python error already set
+    }
+    } else {
+      out.swap(native);
+    }
+  }
+
+  if (out.size() > static_cast<size_t>(PY_SSIZE_T_MAX)) {
+    PyErr_SetString(PyExc_OverflowError, "serialized payload too large for Python bytes");
+    return NULL;
+  }
 
   return PyBytes_FromStringAndSize(
-      reinterpret_cast<const char*>(byte.data()),
-      static_cast<Py_ssize_t>(byte.size()));
+    reinterpret_cast<const char*>(out.data()),
+    static_cast<Py_ssize_t>(out.size()));
 }
 
 static PyObject* py_an_deserialize(
@@ -2078,41 +3548,104 @@ static PyObject* py_an_deserialize(
   PyObject* args,
   PyObject* kwargs) {
   PyObject* byte_object = NULL;
-  PyObject* prefault_obj = NULL;  // "S|p" int prefault = 0;
+  PyObject* prefault_obj = NULL;  // optional; None => use self.prefault
 
-  // NOTE: `prefault=None` means "use self.prefault".
+  // Forward compatible: the implementation auto-detects canonical/portable/native.
   static const char* kwlist[] = {"byte", "prefault", NULL};
   if (!PyArg_ParseTupleAndKeywords(
     args, kwargs, "S|O", (char**)kwlist, &byte_object, &prefault_obj)) {
     return NULL;
   }
 
-  if (!self->ptr) {
-    PyErr_SetString(PyExc_RuntimeError,
-      "Annoy index is not initialized");
-    return NULL;
-  }
-
-  // Defensive: "S" already enforces a bytes-like object in CPython.
+  // Defensive: "S" already enforces bytes in CPython, but keep an explicit check.
   if (!PyBytes_Check(byte_object)) {
-    PyErr_SetString(PyExc_TypeError,
-      "Expected `byte` to be bytes");
+    PyErr_SetString(PyExc_TypeError, "Expected `byte` to be bytes");
     return NULL;
   }
 
   // Deterministic prefault resolution:
-  // - if prefault is provided and not None → use it
-  // - else → use the stored self.prefault
-  bool prefault = false;  // bool prefault = (prefault_flag != 0);
+  // - if prefault is provided and not None -> use it
+  // - else -> use stored self.prefault
+  bool prefault = false;
   if (!resolve_prefault_arg(self, prefault_obj, &prefault)) {
-    return NULL;  // Python error already set by PyObject_IsTrue
+    return NULL;
   }
 
-  Py_ssize_t length = PyBytes_Size(byte_object);
-  // uint8_t* raw_byte = reinterpret_cast<uint8_t*>(PyBytes_AsString(byte_object));
-  uint8_t* raw_byte =
-      reinterpret_cast<uint8_t*>(PyBytes_AsString(byte_object));
-  vector<uint8_t> v(raw_byte, raw_byte + length);
+  char* raw = NULL;
+  Py_ssize_t length = 0;
+  if (PyBytes_AsStringAndSize(byte_object, &raw, &length) < 0) {
+    return NULL;
+  }
+  if (length < 0) {
+    PyErr_SetString(PyExc_ValueError, "invalid bytes length");
+    return NULL;
+  }
+
+  const uint8_t* data = reinterpret_cast<const uint8_t*>(raw);
+  const size_t size = static_cast<size_t>(length);
+
+  // 1) Canonical blobs can fully restore by rebuilding, and can initialize a lazy object.
+  if (annoy_is_canonical_blob(data, size)) {
+    if (!annoy_restore_from_canonical_blob(self, data, size)) {
+      return NULL;
+    }
+    PY_RETURN_SELF;
+  }
+
+  // 2) Portable blobs are ABI-guarded and carry f/metric in the header, so they can
+  //    initialize a lazy object as well.
+  const uint8_t* native_payload = data;
+  size_t native_payload_size = size;
+
+  const bool looks_portable = (data && size >= ANNOY_PORTABLE_HEADER_SIZE &&
+                               memcmp(data, ANNOY_PORTABLE_MAGIC, 8) == 0);
+
+  if (looks_portable) {
+    uint32_t hdr_f = 0;
+    uint8_t hdr_metric = 0;
+
+    // First pass: validate ABI + extract header fields without requiring an initialized index.
+    if (!annoy_unwrap_portable_blob(NULL, data, size,
+                                  &native_payload, &native_payload_size,
+                                  &hdr_f, &hdr_metric)) {
+      return NULL;
+    }
+
+    if (hdr_f == 0) {
+      PyErr_SetString(PyExc_IOError, "portable blob has invalid dimension f=0");
+      return NULL;
+    }
+    if (hdr_metric < (uint8_t)METRIC_UNKNOWN || hdr_metric > (uint8_t)METRIC_HAMMING) {
+      PyErr_SetString(PyExc_IOError, "portable blob has invalid metric id");
+      return NULL;
+    }
+
+    // Initialize lazily if needed (sklearn-like: deserialize can construct the estimator).
+    if (!self->ptr) {
+      if (self->f <= 0) self->f = static_cast<int>(hdr_f);
+      if (self->metric_id == METRIC_UNKNOWN) self->metric_id = static_cast<MetricId>(hdr_metric);
+      if (!ensure_index(self)) {
+        return NULL;
+    }
+    }
+
+    // Second pass: validate header against this instance (f/metric match) and re-extract payload view.
+    if (!annoy_unwrap_portable_blob(self, data, size,
+                                  &native_payload, &native_payload_size,
+                                  NULL, NULL)) {
+      return NULL;
+    }
+  } else {
+    // 3) Native blobs are raw in-memory snapshots; they require an initialized index.
+    if (!self->ptr) {
+      PyErr_SetString(PyExc_RuntimeError,
+        "Annoy index is not initialized. Native blobs require an initialized index; "
+        "construct with f/metric or use serialize(format='portable'|'canonical').");
+      return NULL;
+    }
+  }
+
+  std::vector<uint8_t> v(native_payload, native_payload + native_payload_size);
 
   ScopedError error;
   if (!self->ptr->deserialize(&v, prefault, &error.err)) {
@@ -2120,8 +3653,7 @@ static PyObject* py_an_deserialize(
     return NULL;
   }
 
-  // Chaining: a.build(...).save(...).info()
-  PY_RETURN_SELF; // Py_RETURN_TRUE;
+  PY_RETURN_SELF;
 }
 
 // Internal helper: get memory usage in bytes via serialize() size.
@@ -2158,6 +3690,671 @@ static bool get_memory_usage_byte(
 static bool is_index_built(
   const py_annoy* self) {
   return (self && self->ptr && self->ptr->get_n_trees() > 0);
+}
+
+// Deterministically drop all index state (items/trees) while keeping the Python
+// wrapper object and estimator-style parameters.
+//
+// IMPORTANT
+// ---------
+// This helper must only be called while holding the GIL (it may emit warnings
+// and clears Python-owned metadata like y_).
+static bool reset_index_state(
+  py_annoy* self,
+  const char* warn_msg) {
+  if (!self) return true;
+  if (!self->ptr) {
+    // Even without a live C++ index, clear any stale metadata to keep state
+    // consistent.
+    self->on_disk_active = false;
+    self->on_disk_path.clear();
+    Py_CLEAR(self->y);
+    return true;
+  }
+
+  if (warn_msg) {
+    if (PyErr_WarnEx(PyExc_UserWarning, warn_msg, 1) < 0) {
+      return false;
+    }
+  }
+
+  // Best-effort resource release: unload mmap/on-disk state before deleting.
+  try { self->ptr->unload(); } catch (...) {}
+  delete self->ptr;
+  self->ptr = NULL;
+
+  // After a reset the index is no longer backed by any on-disk file.
+  self->on_disk_active = false;
+  self->on_disk_path.clear();
+
+  // Prevent stale label metadata from being queried against a new index.
+  Py_CLEAR(self->y);
+
+  return true;
+}
+
+// sklearn protocol hook (optional): `__sklearn_is_fitted__`
+//
+// This allows scikit-learn utilities to query fitted state without relying on
+// heuristics.
+static PyObject* py_an_sklearn_is_fitted(
+  py_annoy* self,
+  PyObject* Py_UNUSED(ignored)) {
+  return PyBool_FromLong(is_index_built(self) ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------
+// save(fn: str, prefault: bool = False) -> Annoy
+//
+// Save the current in-memory index to disk. Returns self so you can
+// chain calls: index.build(10).save("idx.ann").
+// ---------------------------------------------------------------------
+// want Annoy().load("idx.ann") to Just Work™, we’d add a small helper:
+// Read a tiny header from the .ann file (dimension, metric id).
+// Based on that, set self->f / self->metric_id and call ensure_index().
+// Then ptr->load(...) on the newly-constructed index.
+
+// ------------------------------------------------------------------
+// sklearn-like parameter API (get_params / set_params)
+// ------------------------------------------------------------------
+//
+// These methods make AnnoyIndex behave more like a scikit-learn estimator,
+// enabling integration with tools that expect the Estimator API
+// (e.g., cloning, parameter grids, pipelines).
+//
+// We intentionally expose only stable, user-facing parameters.
+// Fitted state (built trees, items) remains in the index data itself.
+//
+// Notes
+// -----
+// - get_params(deep=...) ignores `deep` because Annoy has no nested estimators.
+// - set_params(...) is strict: unknown keys raise ValueError (sklearn behaviour).
+//
+static PyObject* py_an_get_params(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
+  PyObject* deep_obj = Py_True;
+  static const char* kwlist[] = {"deep", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(
+    args, kwargs, "|O", (char**)kwlist, &deep_obj)) {
+    return NULL;
+  }
+
+  if (deep_obj != Py_True && deep_obj != Py_False) {
+    PyErr_SetString(PyExc_TypeError, "deep must be a bool");
+    return NULL;
+  }
+  // `deep` is accepted for scikit-learn API compatibility.
+  // This estimator does not contain nested estimators, so deep has no effect.
+
+  PyObject* d = PyDict_New();
+  if (!d) return NULL;
+
+  // f
+  PyObject* v = PyLong_FromLong((long)self->f);
+  if (!v || PyDict_SetItemString(d, "f", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  // metric
+  const char* metric_c = metric_to_cstr(self->metric_id);
+  // sklearn compatibility: unknown / lazy metric should round-trip as None
+  // (not an empty string).
+  if (metric_c) {
+    v = PyUnicode_FromString(metric_c);
+  } else {
+    Py_INCREF(Py_None);
+    v = Py_None;
+  }
+  if (!v || PyDict_SetItemString(d, "metric", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  // seed / verbose (None if not explicitly set)
+  if (self->has_pending_seed) {
+    v = PyLong_FromUnsignedLongLong((unsigned long long)self->pending_seed);
+  } else {
+    Py_INCREF(Py_None);
+    v = Py_None;
+  }
+  if (!v || PyDict_SetItemString(d, "seed", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  if (self->has_pending_verbose) {
+    v = PyLong_FromLong((long)self->pending_verbose);
+  } else {
+    Py_INCREF(Py_None);
+    v = Py_None;
+  }
+  if (!v || PyDict_SetItemString(d, "verbose", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  // prefault / schema_version
+  v = PyBool_FromLong(self->prefault ? 1 : 0);
+  if (!v || PyDict_SetItemString(d, "prefault", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  v = PyLong_FromLong((long)self->schema_version);
+  if (!v || PyDict_SetItemString(d, "schema_version", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  // on_disk_path (optional metadata)
+  if (!self->on_disk_path.empty()) {
+    v = PyUnicode_FromString(self->on_disk_path.c_str());
+  } else {
+    Py_INCREF(Py_None);
+    v = Py_None;
+  }
+  if (!v || PyDict_SetItemString(d, "on_disk_path", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  return d;
+}
+
+static PyObject* py_an_set_params(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
+  // scikit-learn allows calling set_params() with no args.
+  if (args && PyTuple_GET_SIZE(args) != 0) {
+    PyErr_SetString(PyExc_TypeError, "set_params() takes only keyword arguments");
+    return NULL;
+  }
+  if (!kwargs || PyDict_Size(kwargs) == 0) {
+    PY_RETURN_SELF;
+  }
+
+  // Deterministic alias handling: do not accept both at once.
+  if (PyDict_GetItemString(kwargs, "seed") &&
+      PyDict_GetItemString(kwargs, "random_state")) {
+    PyErr_SetString(PyExc_ValueError,
+      "Cannot set both 'seed' and 'random_state' (they are aliases)");
+    return NULL;
+  }
+
+  PyObject* key = NULL;
+  PyObject* value = NULL;
+  Py_ssize_t pos = 0;
+  while (PyDict_Next(kwargs, &pos, &key, &value)) {
+    if (!PyUnicode_Check(key)) {
+      PyErr_SetString(PyExc_TypeError, "Parameter names must be strings");
+      return NULL;
+    }
+    const char* k = PyUnicode_AsUTF8(key);
+    if (!k) return NULL;
+
+    if (std::strcmp(k, "f") == 0) {
+      if (py_annoy_set_f(self, value, NULL) != 0) return NULL;
+    } else if (std::strcmp(k, "metric") == 0) {
+      if (py_annoy_set_metric(self, value, NULL) != 0) return NULL;
+    } else if (std::strcmp(k, "seed") == 0 || std::strcmp(k, "random_state") == 0) {
+      if (py_annoy_set_seed(self, value ? value : Py_None, NULL) != 0) return NULL;
+    } else if (std::strcmp(k, "verbose") == 0) {
+      if (py_annoy_set_verbose(self, value ? value : Py_None, NULL) != 0) return NULL;
+    } else if (std::strcmp(k, "prefault") == 0) {
+      if (py_annoy_set_prefault(self, value, NULL) != 0) return NULL;
+    } else if (std::strcmp(k, "schema_version") == 0) {
+      if (py_annoy_set_schema_version(self, value, NULL) != 0) return NULL;
+    } else if (std::strcmp(k, "on_disk_path") == 0) {
+      if (py_annoy_set_on_disk_path(self, value ? value : Py_None, NULL) != 0) return NULL;
+    } else {
+      PyErr_Format(PyExc_ValueError,
+        "Invalid parameter %R for Annoy. Valid parameters are: "
+        "f, metric, seed, random_state, verbose, prefault, schema_version, on_disk_path.",
+        key);
+      return NULL;
+    }
+  }
+
+  PY_RETURN_SELF;
+}
+
+// sklearn protocol hook: __sklearn_tags__
+//
+// Starting with scikit-learn 1.6, estimator tags are returned via a `Tags`
+// object (not a plain dict). We return conservative defaults:
+// - estimator_type: None (not a classifier/regressor/transformer)
+// - target_tags.required: False (y is not required)
+//
+// See Also
+// --------
+// sklearn.utils.get_tags : Consumes __sklearn_tags__ when available.
+static PyObject* py_an_sklearn_tags(
+  py_annoy* self,
+  PyObject* Py_UNUSED(ignored)) {
+  (void)self;
+
+  PyObject* utils_mod = PyImport_ImportModule("sklearn.utils");
+  if (!utils_mod) return NULL;
+
+  PyObject* Tags = PyObject_GetAttrString(utils_mod, "Tags");
+  PyObject* TargetTags = PyObject_GetAttrString(utils_mod, "TargetTags");
+  Py_DECREF(utils_mod);
+
+  if (!Tags || !TargetTags) {
+    Py_XDECREF(Tags);
+    Py_XDECREF(TargetTags);
+    return NULL;
+  }
+
+  PyObject* target = PyObject_CallObject(TargetTags, NULL);
+  Py_DECREF(TargetTags);
+  if (!target) {
+    Py_DECREF(Tags);
+    return NULL;
+  }
+
+  // kwargs: Tags(estimator_type=None, target_tags=TargetTags())
+  PyObject* kwargs = PyDict_New();
+  if (!kwargs) {
+    Py_DECREF(target);
+    Py_DECREF(Tags);
+    return NULL;
+  }
+  if (PyDict_SetItemString(kwargs, "estimator_type", Py_None) < 0 ||
+      PyDict_SetItemString(kwargs, "target_tags", target) < 0) {
+    Py_DECREF(kwargs);
+    Py_DECREF(target);
+    Py_DECREF(Tags);
+    return NULL;
+  }
+  Py_DECREF(target);
+
+  PyObject* args = PyTuple_New(0);
+  if (!args) {
+    Py_DECREF(kwargs);
+    Py_DECREF(Tags);
+    return NULL;
+  }
+
+  PyObject* tags = PyObject_Call(Tags, args, kwargs);
+  Py_DECREF(args);
+  Py_DECREF(kwargs);
+  Py_DECREF(Tags);
+  return tags;
+}
+
+// sklearn protocol hook: __sklearn_clone__
+//
+// scikit-learn's `clone` delegates to this hook (since v1.3) if present.
+// We implement the canonical behavior: construct a new unfitted object of the
+// same class with the same parameters.
+//
+// See Also
+// --------
+// sklearn.base.clone : Delegates to __sklearn_clone__ when available.
+static PyObject* py_an_sklearn_clone(
+  py_annoy* self,
+  PyObject* Py_UNUSED(ignored)) {
+  // params = self.get_params(deep=False)
+  PyObject* kwargs = PyDict_New();
+  if (!kwargs) return NULL;
+  if (PyDict_SetItemString(kwargs, "deep", Py_False) < 0) {
+    Py_DECREF(kwargs);
+    return NULL;
+  }
+  PyObject* empty_args = PyTuple_New(0);
+  if (!empty_args) {
+    Py_DECREF(kwargs);
+    return NULL;
+  }
+  PyObject* params = py_an_get_params(self, empty_args, kwargs);
+  Py_DECREF(empty_args);
+  Py_DECREF(kwargs);
+  if (!params) return NULL;
+
+  // Critical safety: avoid implicit on-disk side effects during cloning.
+  // `on_disk_path` can enable on-disk build mode as soon as the C++ index
+  // exists (via ensure_index()), potentially creating/truncating files.
+  // Cloning must be side-effect free.
+  if (PyDict_DelItemString(params, "on_disk_path") != 0) {
+    // Key is always present in get_params(), but be robust to future changes.
+    if (PyErr_ExceptionMatches(PyExc_KeyError)) {
+      PyErr_Clear();
+    } else {
+      Py_DECREF(params);
+      return NULL;
+    }
+  }
+
+  // new = type(self)(**params)
+  PyObject* cls = (PyObject*)Py_TYPE(self);
+  PyObject* ctor_args = PyTuple_New(0);
+  if (!ctor_args) {
+    Py_DECREF(params);
+    return NULL;
+  }
+  PyObject* out = PyObject_Call(cls, ctor_args, params);
+  Py_DECREF(ctor_args);
+  Py_DECREF(params);
+  return out;
+}
+
+// ---------------------------------------------------------------------
+// rebuild: deterministic refit-like constructor for metric/on-disk changes
+// ---------------------------------------------------------------------
+//
+// This is an explicit, side-effect-conscious helper that rebuilds a new Annoy
+// instance from the *current* index contents.
+//
+// Why?
+// - Annoy's C++ index type is metric-specific (different concrete class).
+// - Changing metric (or switching to/from on-disk build) therefore requires a
+//   rebuild.
+//
+// Safety rules (deterministic):
+// - The source object's `on_disk_path` is NEVER carried over implicitly.
+// - If `on_disk_path` is provided and string-equal to the source's configured
+//   path, it is ignored to avoid accidental overwrite/truncation hazards.
+//
+// Signature:
+//   rebuild(metric=None, *, on_disk_path=None, n_trees=None, n_jobs=-1) -> Annoy
+//
+static bool parse_pathlike_to_string_noexc(
+  PyObject* value,
+  std::string* out_path) {
+  if (!out_path) return false;
+  out_path->clear();
+  if (!value || value == Py_None) {
+    return true;
+  }
+
+  PyObject* fs = PyOS_FSPath(value);  // new ref
+  if (!fs) return false;
+
+  if (PyUnicode_Check(fs)) {
+    Py_ssize_t n = 0;
+    const char* s = PyUnicode_AsUTF8AndSize(fs, &n);
+    if (!s) { Py_DECREF(fs); return false; }
+    if (n > 0 && std::memchr(s, '\0', (size_t)n) != NULL) {
+      Py_DECREF(fs);
+      PyErr_SetString(PyExc_ValueError, "on_disk_path must not contain NUL bytes");
+      return false;
+    }
+    out_path->assign(s, (size_t)n);
+    Py_DECREF(fs);
+    return true;
+  }
+
+  if (PyBytes_Check(fs)) {
+    const char* s = PyBytes_AS_STRING(fs);
+    const Py_ssize_t n = PyBytes_GET_SIZE(fs);
+    if (n > 0 && std::memchr(s, '\0', (size_t)n) != NULL) {
+      Py_DECREF(fs);
+      PyErr_SetString(PyExc_ValueError, "on_disk_path must not contain NUL bytes");
+      return false;
+    }
+    out_path->assign(s, (size_t)n);
+    Py_DECREF(fs);
+    return true;
+  }
+
+  Py_DECREF(fs);
+  PyErr_SetString(PyExc_TypeError, "on_disk_path must be a path-like object or None");
+  return false;
+}
+
+static PyObject* py_an_rebuild(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
+
+  // Positional: at most (metric,)
+  Py_ssize_t nargs = args ? PyTuple_GET_SIZE(args) : 0;
+  if (nargs > 1) {
+    PyErr_SetString(PyExc_TypeError,
+      "rebuild() takes at most 1 positional argument (metric)");
+    return NULL;
+  }
+
+  PyObject* metric_obj = (nargs == 1) ? PyTuple_GET_ITEM(args, 0) : Py_None;  // borrowed
+  PyObject* on_disk_path_obj = Py_None;  // borrowed
+  PyObject* n_trees_obj = Py_None;       // borrowed
+  PyObject* n_jobs_obj = Py_None;        // borrowed
+
+  // Validate kwargs and extract supported keys.
+  if (kwargs && kwargs != Py_None) {
+    if (!PyDict_Check(kwargs)) {
+      PyErr_SetString(PyExc_TypeError, "rebuild() kwargs must be a dict");
+      return NULL;
+    }
+
+    PyObject* metric_kw = PyDict_GetItemString(kwargs, "metric");  // borrowed
+    if (metric_kw) {
+      if (nargs == 1 && metric_obj != Py_None) {
+        PyErr_SetString(PyExc_TypeError,
+          "rebuild() got multiple values for argument 'metric'");
+        return NULL;
+      }
+      metric_obj = metric_kw;
+    }
+
+    on_disk_path_obj = PyDict_GetItemString(kwargs, "on_disk_path");
+    if (!on_disk_path_obj) on_disk_path_obj = Py_None;
+
+    n_trees_obj = PyDict_GetItemString(kwargs, "n_trees");
+    if (!n_trees_obj) n_trees_obj = Py_None;
+
+    n_jobs_obj = PyDict_GetItemString(kwargs, "n_jobs");
+    if (!n_jobs_obj) n_jobs_obj = Py_None;
+
+    // Strict: reject unknown keys (sklearn-style).
+    PyObject* key = NULL;
+    PyObject* value = NULL;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(kwargs, &pos, &key, &value)) {
+      if (!PyUnicode_Check(key)) {
+        PyErr_SetString(PyExc_TypeError, "rebuild() keyword keys must be str");
+        return NULL;
+      }
+      const char* k = PyUnicode_AsUTF8(key);
+      if (!k) return NULL;
+
+      if (std::strcmp(k, "metric") == 0 ||
+          std::strcmp(k, "on_disk_path") == 0 ||
+          std::strcmp(k, "n_trees") == 0 ||
+          std::strcmp(k, "n_jobs") == 0) {
+        continue;
+      }
+      PyErr_Format(PyExc_TypeError,
+        "rebuild() got an unexpected keyword argument %R "
+        "(allowed: metric, on_disk_path, n_trees, n_jobs)",
+        key);
+      return NULL;
+    }
+  }
+
+  // Parse / validate metric (None => reuse current).
+  PyObject* metric_out = Py_None;  // borrowed
+  if (metric_obj != Py_None) {
+    if (!PyUnicode_Check(metric_obj)) {
+      PyErr_SetString(PyExc_TypeError,
+        "metric must be a string (or None)");
+      return NULL;
+    }
+    const char* s = PyUnicode_AsUTF8(metric_obj);
+    if (!s) return NULL;
+    MetricId id = metric_from_string(s);
+    if (id == METRIC_UNKNOWN) {
+      PyErr_SetString(PyExc_ValueError,
+        "Invalid metric. Valid options: angular, euclidean, manhattan, dot, hamming.");
+      return NULL;
+    }
+    metric_out = metric_obj;
+  }
+
+  // Determine whether to apply a user-provided on_disk_path.
+  bool have_user_on_disk_path = (on_disk_path_obj != Py_None);
+  std::string user_path;
+  if (have_user_on_disk_path) {
+    if (!parse_pathlike_to_string_noexc(on_disk_path_obj, &user_path)) {
+      return NULL;  // error already set
+    }
+    if (user_path.empty()) {
+      // Treat empty as clear.
+      have_user_on_disk_path = false;
+    }
+  }
+
+  // Parse n_jobs.
+  int n_jobs = -1;
+  if (n_jobs_obj != Py_None) {
+    long v = PyLong_AsLong(n_jobs_obj);
+    if (v == -1 && PyErr_Occurred()) return NULL;
+    if (v == 0 || v < -1) {
+      PyErr_SetString(PyExc_ValueError,
+        "n_jobs must be a positive integer or -1");
+      return NULL;
+    }
+    n_jobs = (int)v;
+  }
+
+  // Parse n_trees (optional). None => reuse old tree count only if built.
+  bool have_user_n_trees = false;
+  int n_trees = 0;
+  if (n_trees_obj != Py_None) {
+    long v = PyLong_AsLong(n_trees_obj);
+    if (v == -1 && PyErr_Occurred()) return NULL;
+    if (v == 0 || v < -1) {
+      PyErr_SetString(PyExc_ValueError,
+        "n_trees must be a positive integer or -1");
+      return NULL;
+    }
+    have_user_n_trees = true;
+    n_trees = (int)v;
+  }
+
+  // Create constructor kwargs from get_params(deep=False).
+  PyObject* deep_kwargs = PyDict_New();
+  if (!deep_kwargs) return NULL;
+  if (PyDict_SetItemString(deep_kwargs, "deep", Py_False) < 0) {
+    Py_DECREF(deep_kwargs);
+    return NULL;
+  }
+  PyObject* empty_args = PyTuple_New(0);
+  if (!empty_args) {
+    Py_DECREF(deep_kwargs);
+    return NULL;
+  }
+  PyObject* params = py_an_get_params(self, empty_args, deep_kwargs);
+  Py_DECREF(empty_args);
+  Py_DECREF(deep_kwargs);
+  if (!params) return NULL;
+
+  // Never carry on_disk_path implicitly.
+  if (PyDict_DelItemString(params, "on_disk_path") != 0) {
+    if (PyErr_ExceptionMatches(PyExc_KeyError)) {
+      PyErr_Clear();
+    } else {
+      Py_DECREF(params);
+      return NULL;
+    }
+  }
+
+  // Apply metric override (if provided).
+  if (metric_out != Py_None) {
+    if (PyDict_SetItemString(params, "metric", metric_out) < 0) {
+      Py_DECREF(params);
+      return NULL;
+    }
+  }
+
+  // Apply on_disk_path only if explicitly requested and not equal to source.
+  if (have_user_on_disk_path) {
+    const std::string& old_path = self->on_disk_path;
+    if (old_path != user_path) {
+      if (PyDict_SetItemString(params, "on_disk_path", on_disk_path_obj) < 0) {
+        Py_DECREF(params);
+        return NULL;
+      }
+    }
+  }
+
+  // Instantiate new object.
+  PyObject* cls = (PyObject*)Py_TYPE(self);
+  PyObject* ctor_args = PyTuple_New(0);
+  if (!ctor_args) {
+    Py_DECREF(params);
+    return NULL;
+  }
+  PyObject* out_obj = PyObject_Call(cls, ctor_args, params);
+  Py_DECREF(ctor_args);
+  Py_DECREF(params);
+  if (!out_obj) return NULL;
+
+  py_annoy* out = (py_annoy*)out_obj;
+
+  // If the source has no underlying index yet, we are done (unfitted rebuild).
+  if (!self->ptr) {
+    return out_obj;
+  }
+
+  // Ensure the target index exists before bulk copy.
+  if (!ensure_index(out)) {
+    Py_DECREF(out_obj);
+    return NULL;
+  }
+
+  const int32_t n_items = self->ptr->get_n_items();
+  const int old_trees = self->ptr->get_n_trees();
+
+  // Copy items deterministically by item id (0..n_items-1).
+  std::vector<float> embedding;
+  embedding.resize((size_t)self->f);
+
+  ScopedError error;
+  bool ok = true;
+  Py_BEGIN_ALLOW_THREADS;
+  for (int32_t i = 0; i < n_items; ++i) {
+    self->ptr->get_item(i, embedding.data());
+    if (!out->ptr->add_item(i, embedding.data(), &error.err)) {
+      ok = false;
+      break;
+    }
+  }
+  Py_END_ALLOW_THREADS;
+
+  if (!ok) {
+    Py_DECREF(out_obj);
+    PyErr_SetString(PyExc_RuntimeError, error.err ? error.err : (char*)"add_item failed during rebuild");
+    return NULL;
+  }
+
+  // Copy labels/targets (y_) if present. This is metadata keyed by item id.
+  if (self->y) {
+    Py_INCREF(self->y);
+    Py_XDECREF(out->y);
+    out->y = self->y;
+  }
+
+  // Rebuild forest deterministically.
+  // - If n_trees was provided, honor it.
+  // - Else, reuse the source's tree count only if the source was already built.
+  int trees_to_build = 0;
+  bool do_build = false;
+  if (have_user_n_trees) {
+    trees_to_build = n_trees;
+    do_build = true;
+  } else if (old_trees > 0) {
+    trees_to_build = old_trees;
+    do_build = true;
+  }
+
+  if (do_build) {
+    bool built_ok = false;
+    ScopedError build_error;
+    Py_BEGIN_ALLOW_THREADS;
+    built_ok = out->ptr->build(trees_to_build, n_jobs, &build_error.err);
+    Py_END_ALLOW_THREADS;
+    if (!built_ok) {
+      Py_DECREF(out_obj);
+      PyErr_SetString(PyExc_RuntimeError,
+        build_error.err ? build_error.err : (char*)"build failed during rebuild");
+      return NULL;
+    }
+  }
+
+  return out_obj;
 }
 
 // Compute memory usage only if the index is built.
@@ -2593,6 +4790,899 @@ static PyObject* py_an_build(
   PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
+// ------------------------------------------------------------------
+// fit: scikit-learn style entry point
+// ------------------------------------------------------------------
+//
+// Deterministic semantics:
+//
+// - fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None)
+//   * If X is None and y is None: build the forest using previously-added items
+//     (equivalent to calling build(n_trees, n_jobs)).
+//   * If X is provided: add all rows in X via add_item and then build.
+//       - reset=True (default): clear existing items (fresh index) before adding.
+//       - reset=False: append items. If the index is currently built, we will
+//         unbuild() first and emit a warning (Annoy cannot add to a built index).
+//   * If y is provided alongside X: store labels to `y_` (and alias `y`) after a
+//     successful build. If y is None, `y_` is cleared to avoid stale metadata.
+//
+// Notes
+// -----
+// - X must be a 2D array-like of shape (n_samples, n_features).
+// - Only X and y may be passed positionally; all other parameters are keyword-only.
+// - Item ids are assigned deterministically: start_index + row_index.
+//   If start_index is None: defaults to 0 when reset=True, otherwise defaults to
+//   current n_items when reset=False.
+//
+static PyObject* py_an_fit(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
+  // Parse positional (X, y) only.
+  Py_ssize_t nargs = args ? PyTuple_GET_SIZE(args) : 0;
+  if (nargs > 2) {
+    PyErr_SetString(PyExc_TypeError,
+      "fit() takes at most 2 positional arguments (X, y)");
+    return NULL;
+  }
+
+  PyObject* X = (nargs >= 1) ? PyTuple_GET_ITEM(args, 0) : Py_None;  // borrowed
+  PyObject* y = (nargs >= 2) ? PyTuple_GET_ITEM(args, 1) : Py_None;  // borrowed
+
+  // Defaults
+  int n_trees = 10;
+  int n_jobs  = -1;  // -1 => "auto" in Annoy core
+  PyObject* reset_obj = Py_True;
+  PyObject* start_index_obj = Py_None;
+  PyObject* missing_value_obj = Py_None;
+
+  // Allow keyword X/y as well (sklearn style), but forbid duplicates.
+  if (kwargs && kwargs != Py_None) {
+    if (!PyDict_Check(kwargs)) {
+      PyErr_SetString(PyExc_TypeError, "fit() kwargs must be a dict");
+      return NULL;
+    }
+
+    PyObject* x_kw = PyDict_GetItemString(kwargs, "X");  // borrowed
+    PyObject* y_kw = PyDict_GetItemString(kwargs, "y");  // borrowed
+    if (x_kw) {
+      if (nargs >= 1 && X != Py_None) {
+        PyErr_SetString(PyExc_TypeError,
+          "fit() got multiple values for argument 'X'");
+        return NULL;
+      }
+      X = x_kw;
+    }
+    if (y_kw) {
+      if (nargs >= 2 && y != Py_None) {
+        PyErr_SetString(PyExc_TypeError,
+          "fit() got multiple values for argument 'y'");
+        return NULL;
+      }
+      y = y_kw;
+    }
+
+    // Validate / parse supported keyword parameters.
+    PyObject* key = NULL;
+    PyObject* value = NULL;
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(kwargs, &pos, &key, &value)) {
+      if (!PyUnicode_Check(key)) {
+        PyErr_SetString(PyExc_TypeError, "fit() keyword keys must be str");
+        return NULL;
+      }
+      const char* k = PyUnicode_AsUTF8(key);
+      if (!k) return NULL;
+
+      if (std::strcmp(k, "X") == 0 || std::strcmp(k, "y") == 0) {
+        continue;  // handled above
+      } else if (std::strcmp(k, "n_trees") == 0) {
+        // None means "use the default" (handy when parameters come from config files).
+        if (value == Py_None) {
+          continue;
+        }
+        long v = PyLong_AsLong(value);
+        if (v == -1 && PyErr_Occurred()) return NULL;
+        // Align with build(): allow -1 (auto) or positive integers.
+        if (v == 0 || v < -1) {
+          PyErr_SetString(PyExc_ValueError,
+            "n_trees must be a positive integer or -1");
+          return NULL;
+        }
+        n_trees = (int)v;
+      } else if (std::strcmp(k, "n_jobs") == 0) {
+        if (value == Py_None) {
+          continue;
+        }
+        long v = PyLong_AsLong(value);
+        if (v == -1 && PyErr_Occurred()) return NULL;
+        if (v == 0 || v < -1) {
+          PyErr_SetString(PyExc_ValueError,
+            "n_jobs must be a positive integer or -1");
+          return NULL;
+        }
+        n_jobs = (int)v;
+      } else if (std::strcmp(k, "reset") == 0) {
+        if (value == Py_None) {
+          continue;  // None => keep default
+        }
+        if (value != Py_True && value != Py_False) {
+          PyErr_SetString(PyExc_TypeError, "reset must be a bool");
+          return NULL;
+        }
+        reset_obj = value;
+      } else if (std::strcmp(k, "start_index") == 0) {
+        start_index_obj = value;  // None or int (validated below)
+      } else if (std::strcmp(k, "missing_value") == 0) {
+        // If not None, this numeric value is used to impute missing entries
+        // (None values in dense rows; missing keys / None values in dict rows).
+        missing_value_obj = value ? value : Py_None;
+      } else {
+        PyErr_Format(PyExc_TypeError,
+          "fit() got an unexpected keyword argument %R "
+          "(allowed: X, y, n_trees, n_jobs, reset, start_index)",
+          key);
+        return NULL;
+      }
+    }
+  }
+
+  const bool reset = (reset_obj == Py_True);
+
+  const bool have_X = (X != Py_None);
+  const bool have_y = (y != Py_None);
+
+  // Mode 1: build-only (manual add_item workflow)
+  if (!have_X && !have_y) {
+    PyObject* bargs = PyTuple_New(2);
+    if (!bargs) return NULL;
+
+    PyObject* t0 = PyLong_FromLong((long)n_trees);
+    PyObject* t1 = PyLong_FromLong((long)n_jobs);
+    if (!t0 || !t1) {
+      Py_XDECREF(t0);
+      Py_XDECREF(t1);
+      Py_DECREF(bargs);
+      return NULL;
+    }
+    // PyTuple_SET_ITEM steals references.
+    PyTuple_SET_ITEM(bargs, 0, t0);
+    PyTuple_SET_ITEM(bargs, 1, t1);
+
+    PyObject* r = py_an_build(self, bargs, NULL);
+    Py_DECREF(bargs);
+    return r;
+  }
+
+  // If y is provided, X must also be provided.
+  if (!have_X && have_y) {
+    PyErr_SetString(PyExc_TypeError, "fit() got y but X is None");
+    return NULL;
+  }
+
+  // X must be a 2D array-like (sequence of row sequences).
+  PyObject* X_seq = PySequence_Fast(X, "X must be a 2D array-like");
+  if (!X_seq) return NULL;
+
+  const Py_ssize_t n_samples = PySequence_Fast_GET_SIZE(X_seq);
+  if (n_samples <= 0) {
+    Py_DECREF(X_seq);
+    PyErr_SetString(PyExc_ValueError, "X must have at least one row");
+    return NULL;
+  }
+
+  // Handle y if provided: require 1D sequence and match n_samples.
+  if (have_y) {
+    if (!PySequence_Check(y) || PyUnicode_Check(y) || PyBytes_Check(y)) {
+      Py_DECREF(X_seq);
+      PyErr_SetString(PyExc_TypeError, "y must be a 1D array-like (sequence)");
+      return NULL;
+    }
+    const Py_ssize_t ny = PySequence_Size(y);
+    if (ny < 0) { Py_DECREF(X_seq); return NULL; }
+    if (ny != n_samples) {
+      Py_DECREF(X_seq);
+      PyErr_Format(PyExc_ValueError,
+        "y has length %zd but X has %zd rows", ny, n_samples);
+      return NULL;
+    }
+  }
+
+  // If reset=True: drop all items/trees (fresh index) deterministically.
+  if (reset) {
+    if (self->ptr) {
+      try { self->ptr->unload(); } catch (...) {}
+      delete self->ptr;
+      self->ptr = NULL;
+    }
+    self->on_disk_active = false;  // items are no longer backed by disk
+    // Clear any previously stored labels to prevent stale metadata.
+    Py_CLEAR(self->y);
+  } else {
+    // Append mode: if built, unbuild first and warn.
+    if (self->ptr && self->ptr->get_n_trees() > 0) {
+      if (PyErr_WarnEx(PyExc_UserWarning,
+        "Index is built; calling unbuild() to append new items before rebuilding.",
+        1) < 0) {
+        Py_DECREF(X_seq);
+        return NULL;
+      }
+      ScopedError error;
+      if (!self->ptr->unbuild(&error.err)) {
+        Py_DECREF(X_seq);
+        PyErr_SetString(PyExc_RuntimeError,
+          error.err ? error.err : (char*)"unbuild failed");
+        return NULL;
+      }
+    }
+    // In append mode, we keep any existing y_ metadata if the user does not
+    // provide new labels for the appended rows.
+  }
+
+  // Determine start_index.
+  int64_t start_index = 0;
+  if (start_index_obj == Py_None) {
+    if (!reset && self->ptr) {
+      start_index = (int64_t)self->ptr->get_n_items();
+    } else {
+      start_index = 0;
+    }
+  } else {
+    long long v = PyLong_AsLongLong(start_index_obj);
+    if (v == -1 && PyErr_Occurred()) { Py_DECREF(X_seq); return NULL; }
+    if (v < 0) {
+      Py_DECREF(X_seq);
+      PyErr_SetString(PyExc_ValueError, "start_index must be >= 0");
+      return NULL;
+    }
+    start_index = (int64_t)v;
+  }
+
+  // Infer f from first row if needed.
+  if (self->f <= 0) {
+    PyObject* row0 = PySequence_Fast_GET_ITEM(X_seq, 0);  // borrowed
+    if (PyDict_Check(row0)) {
+      Py_DECREF(X_seq);
+      PyErr_SetString(PyExc_ValueError,
+        "Cannot infer f from dict rows. "
+        "Set f explicitly before fit() when using dict rows.");
+      return NULL;
+    }
+    PyObject* row0_seq = PySequence_Fast(row0, "X rows must be 1D sequences");
+    if (!row0_seq) { Py_DECREF(X_seq); return NULL; }
+    const Py_ssize_t f = PySequence_Fast_GET_SIZE(row0_seq);
+    Py_DECREF(row0_seq);
+    if (f <= 0) { Py_DECREF(X_seq); PyErr_SetString(PyExc_ValueError, "X rows must be non-empty"); return NULL; }
+    self->f = (int)f;
+  }
+
+  // Default metric if still unknown (true lazy mode).
+  if (self->metric_id == METRIC_UNKNOWN) {
+    self->metric_id = METRIC_ANGULAR;
+  }
+
+  // Ensure index exists with current (f, metric, pending seed/verbose).
+  if (!ensure_index(self)) { Py_DECREF(X_seq); return NULL; }
+
+  // Optional imputation for missing values inside X.
+  bool allow_missing = false;
+  float missing_fill = 0.0f;
+  if (missing_value_obj != Py_None) {
+    double mv = PyFloat_AsDouble(missing_value_obj);
+    if (PyErr_Occurred()) { Py_DECREF(X_seq); return NULL; }
+    allow_missing = true;
+    missing_fill = (float)mv;
+  }
+
+  // Number of items before adding rows from X (used for y_ merging).
+  const int n_items_before = self->ptr ? self->ptr->get_n_items() : 0;
+
+  // Validate start_index + n_samples fits in int32 range.
+  if (start_index > (int64_t)INT32_MAX) {
+    Py_DECREF(X_seq);
+    PyErr_SetString(PyExc_OverflowError, "start_index exceeds int32 range");
+    return NULL;
+  }
+  if (start_index + (int64_t)n_samples - 1 > (int64_t)INT32_MAX) {
+    Py_DECREF(X_seq);
+    PyErr_SetString(PyExc_OverflowError, "Item ids exceed int32 range");
+    return NULL;
+  }
+
+  // Add items row-by-row.
+  std::vector<float> embedding;
+  embedding.reserve((size_t)self->f);
+
+  for (Py_ssize_t i = 0; i < n_samples; ++i) {
+    PyObject* row = PySequence_Fast_GET_ITEM(X_seq, i);  // borrowed
+
+    if (!fill_embedding_from_row(
+          row, self->f, allow_missing, missing_fill, &embedding, "X")) {
+      Py_DECREF(X_seq);
+      return NULL;  // exception already set
+    }
+
+    const int32_t item_id = (int32_t)(start_index + (int64_t)i);
+
+    // Disallow adding after build (should be prevented earlier, but keep explicit).
+    if (self->ptr->get_n_trees() > 0) {
+      Py_DECREF(X_seq);
+      PyErr_SetString(PyExc_RuntimeError,
+        "Index is built; cannot add items. Call unbuild() or fit(reset=True).");
+      return NULL;
+    }
+
+    ScopedError error;
+    if (!self->ptr->add_item(item_id, embedding.data(), &error.err)) {
+      Py_DECREF(X_seq);
+      PyErr_SetString(PyExc_RuntimeError,
+        error.err ? error.err : (char*)"add_item failed");
+      return NULL;
+    }
+  }
+
+  Py_DECREF(X_seq);
+
+  // Build the forest (release GIL for heavy work).
+  ScopedError error;
+  bool ok = false;
+  Py_BEGIN_ALLOW_THREADS;
+  ok = self->ptr->build(n_trees, n_jobs, &error.err);
+  Py_END_ALLOW_THREADS;
+
+  if (!ok) {
+    PyErr_SetString(PyExc_RuntimeError,
+      error.err ? error.err : (char*)"build failed");
+    return NULL;
+  }
+
+
+
+// Store y_ only after successful build.
+//
+// We store labels as a dict mapping {item_id -> label} so that:
+// - gaps are representable,
+// - append mode can merge without ambiguity,
+// - callers can retrieve labels by the same ids used in add_item.
+if (have_y) {
+  PyObject* y_seq = PySequence_Fast(y, "y must be a 1D array-like (sequence)");
+  if (!y_seq) return NULL;
+
+  PyObject* y_dict = NULL;
+
+  if (!reset && self->y) {
+    if (PyDict_Check(self->y)) {
+      // Append mode: extend existing mapping in-place.
+      y_dict = self->y;
+      Py_INCREF(y_dict);
+    } else if (PySequence_Check(self->y) && !PyUnicode_Check(self->y) && !PyBytes_Check(self->y)) {
+      // Deterministic upgrade path: if an existing sequence aligns to current
+      // item ids (length == n_items_before), convert it to a dict mapping.
+      const Py_ssize_t n_old = PySequence_Size(self->y);
+      if (n_old < 0) { Py_DECREF(y_seq); return NULL; }
+      if ((int64_t)n_old == (int64_t)n_items_before) {
+        PyObject* old_seq = PySequence_Fast(self->y, "y_ must be a sequence");
+        if (!old_seq) { Py_DECREF(y_seq); return NULL; }
+
+        y_dict = PyDict_New();
+        if (!y_dict) { Py_DECREF(old_seq); Py_DECREF(y_seq); return NULL; }
+
+        for (Py_ssize_t i = 0; i < n_old; ++i) {
+          PyObject* key = PyLong_FromSsize_t(i);
+          if (!key) { Py_DECREF(old_seq); Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
+          PyObject* label = PySequence_Fast_GET_ITEM(old_seq, i);  // borrowed
+          if (PyDict_SetItem(y_dict, key, label) < 0) {
+            Py_DECREF(key);
+            Py_DECREF(old_seq);
+            Py_DECREF(y_seq);
+            Py_DECREF(y_dict);
+            return NULL;
+          }
+          Py_DECREF(key);
+        }
+        Py_DECREF(old_seq);
+      }
+    }
+  }
+
+  if (!y_dict) {
+    // Reset mode or no usable prior labels: create a fresh mapping.
+    y_dict = PyDict_New();
+    if (!y_dict) { Py_DECREF(y_seq); return NULL; }
+  }
+
+  for (Py_ssize_t i = 0; i < n_samples; ++i) {
+    const int32_t item_id = (int32_t)(start_index + (int64_t)i);
+    PyObject* key = PyLong_FromLong((long)item_id);
+    if (!key) { Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
+
+    PyObject* label = PySequence_Fast_GET_ITEM(y_seq, i);  // borrowed
+    // PyDict_SetItem INCREFs key and value as needed.
+    if (PyDict_SetItem(y_dict, key, label) < 0) {
+      Py_DECREF(key);
+      Py_DECREF(y_seq);
+      Py_DECREF(y_dict);
+      return NULL;
+    }
+    Py_DECREF(key);
+  }
+
+  Py_DECREF(y_seq);
+
+  Py_XDECREF(self->y);
+  self->y = y_dict;  // already INCREF'ed above
+} else if (reset) {
+  // Reset mode without labels: remove any prior labels to avoid stale metadata.
+  Py_CLEAR(self->y);
+}
+
+PY_RETURN_SELF;
+
+}
+
+// ------------------------------------------------------------------
+// sklearn-style transformer API: transform / fit_transform
+// ------------------------------------------------------------------
+
+// Lookup helper for y_ metadata (optional). Always returns a new reference.
+static PyObject* annoy_lookup_y_(
+  py_annoy* self,
+  int32_t item_id,
+  PyObject* y_fill_value) {
+  if (!y_fill_value) y_fill_value = Py_None;
+
+  if (!self || !self->y || self->y == Py_None) {
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+  }
+
+  // Dict mapping: {item_id -> label}
+  if (PyDict_Check(self->y)) {
+#if PY_VERSION_HEX >= 0x030A0000
+    PyObject* key = PyLong_FromLong((long)item_id);
+    if (!key) return NULL;
+    PyObject* v = PyDict_GetItemWithError(self->y, key);  // borrowed
+    Py_DECREF(key);
+    if (v) {
+      Py_INCREF(v);
+      return v;
+    }
+    if (PyErr_Occurred()) return NULL;
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+#else
+    PyObject* key = PyLong_FromLong((long)item_id);
+    if (!key) return NULL;
+    PyObject* v = PyDict_GetItem(self->y, key);  // borrowed (no error reporting)
+    Py_DECREF(key);
+    if (v) {
+      Py_INCREF(v);
+      return v;
+    }
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+#endif
+  }
+
+  // Sequence: index by item_id.
+  Py_ssize_t n = PySequence_Size(self->y);
+  if (n < 0) return NULL;
+  if (item_id < 0 || (Py_ssize_t)item_id >= n) {
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+  }
+  PyObject* v = PySequence_GetItem(self->y, (Py_ssize_t)item_id);  // new ref
+  if (!v) return NULL;
+  return v;
+}
+
+static PyObject* py_an_transform(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
+  // NOTE: Keep all local declarations that participate in the `fail:` cleanup
+  // path *before* any `goto fail;` statements.
+  //
+  // In C++, it is ill-formed to `goto` forward over a declaration that has an
+  // initializer (even for simple pointer initializations like `= NULL`).
+  // Some toolchains will error with:
+  //   "jump to label 'fail' crosses initialization of ..."
+  //
+  // Therefore, any locals that are referenced after `fail:` should be declared
+  // at the top of the function (or in a scope that is never bypassed by `goto`).
+  PyObject* out = NULL;
+  PyObject* X = NULL;
+
+  int n_neighbors = 10;
+  int search_k = -1;
+  int include_distances = 0;
+  int return_labels = 0;
+
+  PyObject* y_fill_value = Py_None;
+  PyObject* input_type_obj = NULL;     // optional
+  PyObject* missing_value_obj = Py_None;
+
+  static const char* kwlist[] = {
+    "X",
+    "n_neighbors",
+    "search_k",
+    "include_distances",
+    "return_labels",
+    "y_fill_value",
+    "input_type",
+    "missing_value",
+    NULL
+  };
+
+  if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs,
+        "O|iippOOO",
+        (char**)kwlist,
+        &X,
+        &n_neighbors,
+        &search_k,
+        &include_distances,
+        &return_labels,
+        &y_fill_value,
+        &input_type_obj,
+        &missing_value_obj)) {
+    return NULL;
+  }
+
+  if (!self || !self->ptr) {
+    PyErr_SetString(PyExc_RuntimeError,
+      "Annoy index is not initialized");
+    return NULL;
+  }
+  if (!is_index_built(self)) {
+    PyErr_SetString(PyExc_RuntimeError,
+      "Index is not built; call build() or fit() before transform().");
+    return NULL;
+  }
+  if (n_neighbors <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return NULL;
+  }
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
+    return NULL;
+  }
+
+  // Optional imputation for missing values inside X.
+  bool allow_missing = false;
+  float missing_fill = 0.0f;
+  if (missing_value_obj != Py_None) {
+    double mv = PyFloat_AsDouble(missing_value_obj);
+    if (PyErr_Occurred()) return NULL;
+    allow_missing = true;
+    missing_fill = (float)mv;
+  }
+
+  // input_type: "vector" (default) or "item"
+  std::string input_type = "vector";
+  if (input_type_obj && input_type_obj != Py_None) {
+    if (!PyUnicode_Check(input_type_obj) && !PyBytes_Check(input_type_obj)) {
+      PyErr_SetString(PyExc_TypeError,
+        "input_type must be a string ('vector' or 'item')");
+      return NULL;
+    }
+    const char* s = PyUnicode_Check(input_type_obj)
+      ? PyUnicode_AsUTF8(input_type_obj)
+      : PyBytes_AsString(input_type_obj);
+    if (!s) return NULL;
+    input_type.assign(s);
+    for (size_t i = 0; i < input_type.size(); ++i) {
+      input_type[i] = (char)std::tolower((unsigned char)input_type[i]);
+    }
+  }
+
+  const bool by_item = (input_type == "item");
+  if (!by_item && input_type != "vector") {
+    PyErr_SetString(PyExc_ValueError,
+      "input_type must be 'vector' or 'item'");
+    return NULL;
+  }
+
+  PyObject* X_seq = NULL;
+  Py_ssize_t n_queries = 0;
+
+  if (by_item) {
+    X_seq = PySequence_Fast(X, "X must be a 1D sequence of item ids");
+  } else {
+    X_seq = PySequence_Fast(X, "X must be a 2D array-like (sequence of rows)");
+  }
+  if (!X_seq) return NULL;
+
+  n_queries = PySequence_Fast_GET_SIZE(X_seq);
+  if (n_queries < 0) { Py_DECREF(X_seq); return NULL; }
+  if (n_queries == 0) {
+    Py_DECREF(X_seq);
+    PyErr_SetString(PyExc_ValueError, "X must be non-empty");
+    return NULL;
+  }
+
+  PyObject* indices_outer = PyList_New(n_queries);
+  PyObject* distances_outer = include_distances ? PyList_New(n_queries) : NULL;
+  PyObject* labels_outer = return_labels ? PyList_New(n_queries) : NULL;
+
+  if (!indices_outer || (include_distances && !distances_outer) || (return_labels && !labels_outer)) {
+    Py_XDECREF(indices_outer);
+    Py_XDECREF(distances_outer);
+    Py_XDECREF(labels_outer);
+    Py_DECREF(X_seq);
+    return NULL;
+  }
+
+  std::vector<float> query;
+  query.reserve((size_t)self->f);
+
+  std::vector<int32_t> result;
+  std::vector<float> distances;
+
+  for (Py_ssize_t i = 0; i < n_queries; ++i) {
+    result.clear();
+    distances.clear();
+
+    if (by_item) {
+      PyObject* obj = PySequence_Fast_GET_ITEM(X_seq, i);  // borrowed
+      if (!PyLong_Check(obj)) {
+        PyErr_SetString(PyExc_TypeError, "X must contain integers when input_type='item'");
+        goto fail;
+      }
+      long long kid = PyLong_AsLongLong(obj);
+      if (kid == -1 && PyErr_Occurred()) goto fail;
+      if (kid < 0 || kid > (long long)INT32_MAX) {
+        PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+        goto fail;
+      }
+      const int32_t item_id = (int32_t)kid;
+      if (!check_constraints(self, item_id, /*building=*/false)) goto fail;
+
+      Py_BEGIN_ALLOW_THREADS;
+      if (include_distances) {
+        self->ptr->get_nns_by_item(item_id, n_neighbors, search_k, &result, &distances);
+      } else {
+        self->ptr->get_nns_by_item(item_id, n_neighbors, search_k, &result, NULL);
+      }
+      Py_END_ALLOW_THREADS;
+    } else {
+      PyObject* row = PySequence_Fast_GET_ITEM(X_seq, i);  // borrowed
+
+      if (!fill_embedding_from_row(
+            row, self->f, allow_missing, missing_fill, &query, "X")) {
+        goto fail;  // exception already set
+      }
+
+      Py_BEGIN_ALLOW_THREADS;
+      if (include_distances) {
+        self->ptr->get_nns_by_vector(query.data(), n_neighbors, search_k, &result, &distances);
+      } else {
+        self->ptr->get_nns_by_vector(query.data(), n_neighbors, search_k, &result, NULL);
+      }
+      Py_END_ALLOW_THREADS;
+    }
+
+    if (include_distances && distances.size() != result.size()) {
+      PyErr_SetString(PyExc_RuntimeError,
+        "Internal error: distances size mismatch");
+      goto fail;
+    }
+
+    // Build Python row objects.
+    PyObject* row_ids = PyList_New((Py_ssize_t)result.size());
+    if (!row_ids) goto fail;
+
+    PyObject* row_dists = NULL;
+    if (include_distances) {
+      row_dists = PyList_New((Py_ssize_t)distances.size());
+      if (!row_dists) { Py_DECREF(row_ids); goto fail; }
+    }
+
+    PyObject* row_labels = NULL;
+    if (return_labels) {
+      row_labels = PyList_New((Py_ssize_t)result.size());
+      if (!row_labels) {
+        Py_DECREF(row_ids);
+        Py_XDECREF(row_dists);
+        goto fail;
+      }
+    }
+
+    for (Py_ssize_t j = 0; j < (Py_ssize_t)result.size(); ++j) {
+      PyObject* pid = PyLong_FromLong((long)result[(size_t)j]);
+      if (!pid) {
+        Py_DECREF(row_ids);
+        Py_XDECREF(row_dists);
+        Py_XDECREF(row_labels);
+        goto fail;
+      }
+      PyList_SET_ITEM(row_ids, j, pid);  // steals ref
+
+      if (include_distances) {
+        PyObject* pd = PyFloat_FromDouble((double)distances[(size_t)j]);
+        if (!pd) {
+          Py_DECREF(row_ids);
+          Py_DECREF(row_dists);
+          Py_XDECREF(row_labels);
+          goto fail;
+        }
+        PyList_SET_ITEM(row_dists, j, pd);
+      }
+
+      if (return_labels) {
+        PyObject* lbl = annoy_lookup_y_(self, result[(size_t)j], y_fill_value);
+        if (!lbl) {
+          Py_DECREF(row_ids);
+          Py_XDECREF(row_dists);
+          Py_DECREF(row_labels);
+          goto fail;
+        }
+        PyList_SET_ITEM(row_labels, j, lbl);  // steals ref
+      }
+    }
+
+    PyList_SET_ITEM(indices_outer, i, row_ids);
+
+    if (include_distances) {
+      PyList_SET_ITEM(distances_outer, i, row_dists);
+    }
+
+    if (return_labels) {
+      PyList_SET_ITEM(labels_outer, i, row_labels);
+    }
+  }
+
+  Py_DECREF(X_seq);
+
+  if (!include_distances && !return_labels) {
+    return indices_outer;
+  }
+
+  if (include_distances && !return_labels) {
+    out = PyTuple_Pack(2, indices_outer, distances_outer);
+  } else if (!include_distances && return_labels) {
+    out = PyTuple_Pack(2, indices_outer, labels_outer);
+  } else {
+    out = PyTuple_Pack(3, indices_outer, distances_outer, labels_outer);
+  }
+
+  Py_DECREF(indices_outer);
+  Py_XDECREF(distances_outer);
+  Py_XDECREF(labels_outer);
+
+  return out;
+
+fail:
+  Py_XDECREF(indices_outer);
+  Py_XDECREF(distances_outer);
+  Py_XDECREF(labels_outer);
+  Py_XDECREF(X_seq);
+  return NULL;
+}
+
+static PyObject* py_an_fit_transform(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
+  PyObject* X = NULL;
+  PyObject* y = Py_None;
+
+  int n_trees = 10;
+  int n_jobs = -1;
+  int reset = 1;
+  PyObject* start_index_obj = Py_None;
+  PyObject* missing_value_obj = Py_None;
+
+  int n_neighbors = 10;
+  int search_k = -1;
+  int include_distances = 0;
+  int return_labels = 0;
+  PyObject* y_fill_value = Py_None;
+
+  static const char* kwlist[] = {
+    "X",
+    "y",
+    "n_trees",
+    "n_jobs",
+    "reset",
+    "start_index",
+    "missing_value",
+    "n_neighbors",
+    "search_k",
+    "include_distances",
+    "return_labels",
+    "y_fill_value",
+    NULL
+  };
+
+  if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs,
+        "O|OiipOOiippO",
+        (char**)kwlist,
+        &X,
+        &y,
+        &n_trees,
+        &n_jobs,
+        &reset,
+        &start_index_obj,
+        &missing_value_obj,
+        &n_neighbors,
+        &search_k,
+        &include_distances,
+        &return_labels,
+        &y_fill_value)) {
+    return NULL;
+  }
+
+  // Delegate to fit() to keep logic centralized and deterministic.
+  PyObject* fit_args = PyTuple_Pack(2, X, y ? y : Py_None);
+  if (!fit_args) return NULL;
+
+  PyObject* fit_kwargs = PyDict_New();
+  if (!fit_kwargs) { Py_DECREF(fit_args); return NULL; }
+
+  PyObject* v = NULL;
+
+  v = PyLong_FromLong((long)n_trees);
+  if (!v || PyDict_SetItemString(fit_kwargs, "n_trees", v) < 0) { Py_XDECREF(v); Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL; }
+  Py_DECREF(v);
+
+  v = PyLong_FromLong((long)n_jobs);
+  if (!v || PyDict_SetItemString(fit_kwargs, "n_jobs", v) < 0) { Py_XDECREF(v); Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL; }
+  Py_DECREF(v);
+
+  v = reset ? Py_True : Py_False;
+  if (PyDict_SetItemString(fit_kwargs, "reset", v) < 0) { Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL; }
+
+  if (PyDict_SetItemString(fit_kwargs, "start_index", start_index_obj ? start_index_obj : Py_None) < 0) {
+    Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL;
+  }
+
+  if (PyDict_SetItemString(fit_kwargs, "missing_value", missing_value_obj ? missing_value_obj : Py_None) < 0) {
+    Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL;
+  }
+
+  PyObject* fitted = py_an_fit(self, fit_args, fit_kwargs);
+  Py_DECREF(fit_args);
+  Py_DECREF(fit_kwargs);
+  if (!fitted) return NULL;
+  Py_DECREF(fitted);  // fit() returns self
+
+  // Now transform(X) deterministically.
+  PyObject* tr_args = PyTuple_Pack(1, X);
+  if (!tr_args) return NULL;
+
+  PyObject* tr_kwargs = PyDict_New();
+  if (!tr_kwargs) { Py_DECREF(tr_args); return NULL; }
+
+  v = PyLong_FromLong((long)n_neighbors);
+  if (!v || PyDict_SetItemString(tr_kwargs, "n_neighbors", v) < 0) { Py_XDECREF(v); Py_DECREF(tr_args); Py_DECREF(tr_kwargs); return NULL; }
+  Py_DECREF(v);
+
+  v = PyLong_FromLong((long)search_k);
+  if (!v || PyDict_SetItemString(tr_kwargs, "search_k", v) < 0) { Py_XDECREF(v); Py_DECREF(tr_args); Py_DECREF(tr_kwargs); return NULL; }
+  Py_DECREF(v);
+
+  v = include_distances ? Py_True : Py_False;
+  if (PyDict_SetItemString(tr_kwargs, "include_distances", v) < 0) { Py_DECREF(tr_args); Py_DECREF(tr_kwargs); return NULL; }
+
+  v = return_labels ? Py_True : Py_False;
+  if (PyDict_SetItemString(tr_kwargs, "return_labels", v) < 0) { Py_DECREF(tr_args); Py_DECREF(tr_kwargs); return NULL; }
+
+  if (PyDict_SetItemString(tr_kwargs, "y_fill_value", y_fill_value ? y_fill_value : Py_None) < 0) {
+    Py_DECREF(tr_args); Py_DECREF(tr_kwargs); return NULL;
+  }
+
+  if (PyDict_SetItemString(tr_kwargs, "missing_value", missing_value_obj ? missing_value_obj : Py_None) < 0) {
+    Py_DECREF(tr_args); Py_DECREF(tr_kwargs); return NULL;
+  }
+
+  PyObject* out = py_an_transform(self, tr_args, tr_kwargs);
+  Py_DECREF(tr_args);
+  Py_DECREF(tr_kwargs);
+  return out;
+}
+
 static PyObject* py_an_unbuild(
   py_annoy*  self,
   PyObject*  args,
@@ -2619,16 +5709,6 @@ static PyObject* py_an_unbuild(
   PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
 
-// ---------------------------------------------------------------------
-// save(fn: str, prefault: bool = False) -> Annoy
-//
-// Save the current in-memory index to disk. Returns self so you can
-// chain calls: index.build(10).save("idx.ann").
-// ---------------------------------------------------------------------
-// want Annoy().load("idx.ann") to Just Work™, we’d add a small helper:
-// Read a tiny header from the .ann file (dimension, metric id).
-// Based on that, set self->f / self->metric_id and call ensure_index().
-// Then ptr->load(...) on the newly-constructed index.
 static PyObject* py_an_save(
   py_annoy* self,
   PyObject* args,
@@ -2660,6 +5740,11 @@ static PyObject* py_an_save(
     return NULL;  // Python error already set by PyObject_IsTrue
   }
 
+  // char* error = NULL;
+  // if (!self->ptr->save(filename, prefault, &error)) {
+  //   PyErr_SetString(PyExc_IOError, error); free(error);
+  //   return NULL;
+  // }
   ScopedError error;
   if (!self->ptr->save(filename, prefault, &error.err)) {
     PyErr_SetString(PyExc_IOError,
@@ -2921,6 +6006,13 @@ static PyObject* py_an_get_nns_by_item(
     return NULL;
   }
 
+  // Querying requires a built forest (robust, doc-consistent behavior).
+  if (!is_index_built(self)) {
+    PyErr_SetString(PyExc_RuntimeError,
+      "Index is not built; call build() or fit() before querying.");
+    return NULL;
+  }
+
   if (n_neighbors <= 0) {
     PyErr_SetString(PyExc_ValueError,
       "`n` (number of neighbors) must be positive");
@@ -2999,6 +6091,13 @@ static PyObject* py_an_get_nns_by_vector(
     PyErr_SetString(PyExc_RuntimeError,
       "Annoy index is not initialized. "
       "Create it with Annoy(f, metric='angular') and add_item() before querying.");
+    return NULL;
+  }
+
+  // Querying requires a built forest (robust, doc-consistent behavior).
+  if (!is_index_built(self)) {
+    PyErr_SetString(PyExc_RuntimeError,
+      "Index is not built; call build() or fit() before querying.");
     return NULL;
   }
 
@@ -3355,31 +6454,180 @@ static PyObject* py_an_getstate(
   }
   Py_DECREF(v);
 
-  // Index payload snapshot (or None if lazy/uninitialized)
+  // Build metadata (sklearn-like): record compile/build info for warnings on load.
+  v = PyUnicode_FromString(COMPILER_INFO ". " AVX_INFO);
+  if (!v || PyDict_SetItemString(state, "_backend_build", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
+  Py_DECREF(v);
+
+  v = PyLong_FromLong(annoy_host_is_little_endian() ? 1 : 2);
+  if (!v || PyDict_SetItemString(state, "_backend_endian", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
+  Py_DECREF(v);
+
+  // ABI metadata (sklearn-like): record fundamental sizes and key build flags so
+  // loaders can emit deterministic warnings when environments differ.
+  //
+  // Notes
+  // -----
+  // * Portable snapshots already enforce ABI checks; this is extra, user-facing
+  //   context.
+  // * Canonical snapshots rebuild deterministically and are safe across ABIs.
+  PyObject* abi = PyDict_New();
+  if (!abi) { Py_DECREF(state); return NULL; }
+
+  PyObject* tmp = PyLong_FromLong((long)sizeof(size_t));
+  if (!tmp || PyDict_SetItemString(abi, "sizeof_size_t", tmp) < 0) { Py_XDECREF(tmp); Py_DECREF(abi); Py_DECREF(state); return NULL; }
+  Py_DECREF(tmp);
+  tmp = PyLong_FromLong((long)sizeof(void*));
+  if (!tmp || PyDict_SetItemString(abi, "sizeof_void_p", tmp) < 0) { Py_XDECREF(tmp); Py_DECREF(abi); Py_DECREF(state); return NULL; }
+  Py_DECREF(tmp);
+  tmp = PyLong_FromLong((long)sizeof(long));
+  if (!tmp || PyDict_SetItemString(abi, "sizeof_long", tmp) < 0) { Py_XDECREF(tmp); Py_DECREF(abi); Py_DECREF(state); return NULL; }
+  Py_DECREF(tmp);
+  tmp = PyLong_FromLong((long)sizeof(int));
+  if (!tmp || PyDict_SetItemString(abi, "sizeof_int", tmp) < 0) { Py_XDECREF(tmp); Py_DECREF(abi); Py_DECREF(state); return NULL; }
+  Py_DECREF(tmp);
+  tmp = PyLong_FromLong((long)sizeof(float));
+  if (!tmp || PyDict_SetItemString(abi, "sizeof_float", tmp) < 0) { Py_XDECREF(tmp); Py_DECREF(abi); Py_DECREF(state); return NULL; }
+  Py_DECREF(tmp);
+  tmp = PyLong_FromLong((long)sizeof(double));
+  if (!tmp || PyDict_SetItemString(abi, "sizeof_double", tmp) < 0) { Py_XDECREF(tmp); Py_DECREF(abi); Py_DECREF(state); return NULL; }
+  Py_DECREF(tmp);
+
+#ifdef ANNOYLIB_MULTITHREADED_BUILD
+  tmp = Py_True;
+#else
+  tmp = Py_False;
+#endif
+  Py_INCREF(tmp);
+  if (PyDict_SetItemString(abi, "multithreaded_build", tmp) < 0) { Py_DECREF(tmp); Py_DECREF(abi); Py_DECREF(state); return NULL; }
+  Py_DECREF(tmp);
+
+  PyObject* vi = PySys_GetObject((char*)"version_info");  // borrowed
+  if (vi) {
+    tmp = PyObject_Repr(vi);
+    if (!tmp || PyDict_SetItemString(abi, "python_version_info", tmp) < 0) { Py_XDECREF(tmp); Py_DECREF(abi); Py_DECREF(state); return NULL; }
+    Py_DECREF(tmp);
+  }
+
+  if (PyDict_SetItemString(state, "_backend_abi", abi) < 0) {
+    Py_DECREF(abi);
+    Py_DECREF(state);
+    return NULL;
+  }
+  Py_DECREF(abi);
+
+  // Index payload snapshot (or None if lazy/uninitialized).
+  //
+  // schema_version strategy (deterministic, user-controlled):
+  //   * 0/1 : store portable-v1 snapshot in `data` (fast restore, ABI-checked)
+  //   * 2   : store canonical-v1 blob in `data` (portable, rebuild-on-load)
+  //   * >=3 : store portable-v1 in `data` and canonical-v1 in `data_canonical`
+  //          (portable fallback if the ABI check fails)
+  const bool store_portable  = (self->schema_version <= 1) || (self->schema_version >= 3);
+  const bool store_canonical = (self->schema_version >= 2);
+  const char* primary_format = store_portable ? "portable-v1" : "canonical-v1";
+
   if (!self->ptr) {
     Py_INCREF(Py_None);
     v = Py_None;
   } else {
-    ScopedError error;
-    vector<uint8_t> bytes = self->ptr->serialize(&error.err);
-    if (bytes.empty() && error.err) {
-      PyErr_SetString(PyExc_RuntimeError, error.err);
+    std::vector<uint8_t> blob_primary;
+
+    if (store_portable) {
+      ScopedError error;
+      std::vector<uint8_t> native = self->ptr->serialize(&error.err);
+      if (native.empty() && error.err) {
+        PyErr_SetString(PyExc_RuntimeError, error.err);
+        Py_DECREF(state);
+        return NULL;
+    }
+      if (!annoy_build_portable_blob(self, native, &blob_primary)) {
+        Py_DECREF(state);
+        return NULL;
+    }
+    } else {
+      if (!annoy_build_canonical_blob(self, &blob_primary)) {
+        Py_DECREF(state);
+        return NULL;
+    }
+    }
+
+    if (blob_primary.size() > static_cast<size_t>(PY_SSIZE_T_MAX)) {
+      PyErr_SetString(PyExc_OverflowError, "pickle snapshot too large for Python bytes");
       Py_DECREF(state);
       return NULL;
     }
     v = PyBytes_FromStringAndSize(
-        (const char*)bytes.data(), (Py_ssize_t)bytes.size());
+      (const char*)blob_primary.data(), (Py_ssize_t)blob_primary.size());
     if (!v) {
       Py_DECREF(state);
       return NULL;
     }
-  }
+
+    // Optional canonical fallback (only when we have an initialized index).
+    if (store_portable && store_canonical) {
+        std::vector<uint8_t> blob_canon;
+        if (!annoy_build_canonical_blob(self, &blob_canon)) {
+          Py_DECREF(v);
+          Py_DECREF(state);
+          return NULL;
+        }
+        if (blob_canon.size() > static_cast<size_t>(PY_SSIZE_T_MAX)) {
+          PyErr_SetString(PyExc_OverflowError, "canonical pickle snapshot too large for Python bytes");
+          Py_DECREF(v);
+          Py_DECREF(state);
+          return NULL;
+        }
+        PyObject* v2 = PyBytes_FromStringAndSize(
+            (const char*)blob_canon.data(), (Py_ssize_t)blob_canon.size());
+        if (!v2) {
+          Py_DECREF(v);
+          Py_DECREF(state);
+          return NULL;
+        }
+        if (PyDict_SetItemString(state, "data_canonical", v2) < 0) {
+          Py_DECREF(v2);
+          Py_DECREF(v);
+          Py_DECREF(state);
+          return NULL;
+        }
+        Py_DECREF(v2);
+
+        PyObject* vfmt2 = PyUnicode_FromString("canonical-v1");
+        if (!vfmt2 || PyDict_SetItemString(state, "data_canonical_format", vfmt2) < 0) {
+          Py_XDECREF(vfmt2);
+          Py_DECREF(v);
+          Py_DECREF(state);
+          return NULL;
+        }
+        Py_DECREF(vfmt2);
+    }
+    }
+
   if (PyDict_SetItemString(state, "data", v) < 0) {
     Py_DECREF(v);
     Py_DECREF(state);
     return NULL;
   }
   Py_DECREF(v);
+
+  // Snapshot format marker (additive; readers must ignore unknown keys)
+  v = PyUnicode_FromString(primary_format);
+  if (!v || PyDict_SetItemString(state, "data_format", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
+  Py_DECREF(v);
+
 
   return state;
 }
@@ -3409,6 +6657,9 @@ static PyObject* py_an_setstate(
     self->dict = PyDict_Copy(dict_state);
     if (!self->dict) return NULL;
   }
+
+  // Clear fitted labels (if any) on re-init.
+  Py_CLEAR(self->y);
 
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
@@ -3470,7 +6721,7 @@ static PyObject* py_an_setstate(
         PyErr_Format(PyExc_ValueError,
           "Unknown metric '%s' in pickle state", m);
         return NULL;
-      }
+    }
       self->metric_id = id;
     }
   }
@@ -3525,7 +6776,8 @@ static PyObject* py_an_setstate(
   if (seed_obj && seed_obj != Py_None) {
     unsigned long long sv = PyLong_AsUnsignedLongLong(seed_obj);
     if (sv == (unsigned long long)-1 && PyErr_Occurred()) return NULL;
-    self->pending_seed = (uint64_t)sv;
+    // Normalize: seed=0 is treated as the deterministic default seed.
+    self->pending_seed = normalize_seed_u64((uint64_t)sv);
   }
 
   // Fallback (user-facing) key: seed
@@ -3540,8 +6792,9 @@ static PyObject* py_an_setstate(
             "`seed` in pickle state must be in [0, 2**64 - 1]");
         }
         return NULL;
-      }
-      self->pending_seed = (uint64_t)sv;
+    }
+      // Normalize: seed=0 is treated as the deterministic default seed.
+      self->pending_seed = normalize_seed_u64((uint64_t)sv);
       self->has_pending_seed = true;
     }
   }
@@ -3576,6 +6829,73 @@ static PyObject* py_an_setstate(
   // Payload snapshot (optional)
   // --------------------------
 
+  // Sklearn-like warning on build mismatch (non-fatal).
+  PyObject* build_obj = PyDict_GetItemString(state, "_backend_build");  // borrowed
+  if (build_obj && PyUnicode_Check(build_obj)) {
+    const char* prev_build = PyUnicode_AsUTF8(build_obj);
+    if (prev_build) {
+      const char* cur_build = COMPILER_INFO ". " AVX_INFO;
+      if (std::strcmp(prev_build, cur_build) != 0) {
+        PyErr_WarnFormat(
+          PyExc_UserWarning, 1,
+          "This Annoy index was pickled with build '%s' but is being loaded with build '%s'. "
+          "If you see failures, rebuild the index in this environment.",
+          prev_build, cur_build);
+        // Ignore warning errors (keep loading); if warning becomes an error due to filters,
+        // propagate it to keep behaviour explicit.
+        if (PyErr_Occurred()) return NULL;
+    }
+    }
+  }
+
+  // Sklearn-like warning on endian mismatch (non-fatal).
+  PyObject* endian_obj = PyDict_GetItemString(state, "_backend_endian");  // borrowed
+  if (endian_obj && endian_obj != Py_None) {
+    long prev_endian = PyLong_AsLong(endian_obj);
+    if (prev_endian == -1 && PyErr_Occurred()) return NULL;
+    const long cur_endian = annoy_host_is_little_endian() ? 1 : 2;
+    if (prev_endian != cur_endian) {
+      PyErr_WarnFormat(
+        PyExc_UserWarning, 1,
+        "This Annoy index was pickled on a %s-endian machine but is being loaded on a %s-endian machine. "
+        "Portable snapshots are ABI-checked; canonical snapshots will rebuild. If you see failures, rebuild in this environment.",
+        (prev_endian == 1 ? "little" : "big"),
+        (cur_endian == 1 ? "little" : "big"));
+      if (PyErr_Occurred()) return NULL;
+    }
+  }
+
+  // Sklearn-like warning on ABI size mismatch (non-fatal).
+  PyObject* abi_obj = PyDict_GetItemString(state, "_backend_abi");  // borrowed
+  if (abi_obj && abi_obj != Py_None && PyDict_Check(abi_obj)) {
+    struct AbiKey { const char* key; long cur; };
+    const AbiKey keys[] = {
+      {"sizeof_size_t", (long)sizeof(size_t)},
+      {"sizeof_void_p", (long)sizeof(void*)},
+      {"sizeof_long",   (long)sizeof(long)},
+      {"sizeof_int",    (long)sizeof(int)},
+      {"sizeof_float",  (long)sizeof(float)},
+      {"sizeof_double", (long)sizeof(double)},
+    };
+    bool mismatch = false;
+    for (const auto& k : keys) {
+      PyObject* v = PyDict_GetItemString(abi_obj, k.key);  // borrowed
+      if (!v || v == Py_None) continue;
+      long prev = PyLong_AsLong(v);
+      if (prev == -1 && PyErr_Occurred()) return NULL;
+      if (prev != k.cur) { mismatch = true; break; }
+    }
+    if (mismatch) {
+      PyErr_WarnFormat(
+        PyExc_UserWarning, 1,
+        "This Annoy index was pickled with a different ABI (type sizes differ). "
+        "Portable snapshots will raise a deterministic error; canonical snapshots will rebuild. "
+        "If you see failures, rebuild the index in this environment.");
+      if (PyErr_Occurred()) return NULL;
+    }
+  }
+
+
   PyObject* data = PyDict_GetItemString(state, "data");  // borrowed
   if (data && data != Py_None) {
     if (!PyBytes_Check(data)) {
@@ -3583,6 +6903,60 @@ static PyObject* py_an_setstate(
         "`data` in pickle state must be bytes or None");
       return NULL;
     }
+
+    // Determine declared format (optional).
+    bool declared_canonical = false;
+    PyObject* fmt_obj = PyDict_GetItemString(state, "data_format");  // borrowed
+    if (fmt_obj && fmt_obj != Py_None) {
+      if (!PyUnicode_Check(fmt_obj)) {
+        PyErr_SetString(PyExc_TypeError,
+          "`data_format` in pickle state must be str or None");
+        return NULL;
+    }
+      const char* fmt = PyUnicode_AsUTF8(fmt_obj);
+      if (!fmt) return NULL;
+      declared_canonical = (std::strcmp(fmt, "canonical-v1") == 0);
+    }
+
+    char* buf = NULL;
+    Py_ssize_t n = 0;
+    if (PyBytes_AsStringAndSize(data, &buf, &n) < 0) {
+      return NULL;
+    }
+    const uint8_t* payload = reinterpret_cast<const uint8_t*>(buf);
+    size_t payload_size = static_cast<size_t>(n);
+
+    // Canonical blobs can fully restore by rebuilding (portable across ABIs).
+    if (declared_canonical || annoy_is_canonical_blob(payload, payload_size)) {
+      if (!annoy_restore_from_canonical_blob(self, payload, payload_size)) {
+        // Compatibility: if canonical load fails but we have a backing .annoy file, try it.
+        if (!self->on_disk_path.empty()) {
+          const char* path = self->on_disk_path.c_str();
+          if (!file_exists(path)) {
+            return NULL;
+          }
+          if (self->ptr) { delete self->ptr; self->ptr = NULL; }
+          if (!ensure_index(self)) return NULL;
+
+          ScopedError lerr;
+          if (!self->ptr->load(path, false, &lerr.err)) {
+            PyErr_Format(PyExc_IOError,
+                         "canonical restore failed; fallback load('%s') also failed (%s)",
+                         path,
+                         lerr.err ? lerr.err : "load failed");
+            delete self->ptr; self->ptr = NULL;
+            return NULL;
+          }
+          self->on_disk_active = true;
+        } else {
+          return NULL;  // preserve canonical error
+        }
+    }
+      // Success
+      Py_RETURN_NONE;
+    }
+
+    // Native / portable snapshots require known configuration.
     if (self->f <= 0) {
       PyErr_SetString(PyExc_ValueError,
         "Pickle state has `data` but missing/invalid `f`");
@@ -3598,13 +6972,45 @@ static PyObject* py_an_setstate(
     if (!ensure_index(self))
       return NULL;
 
-    char* buf = NULL;
-    Py_ssize_t n = 0;
-    if (PyBytes_AsStringAndSize(data, &buf, &n) < 0) {
+
+    const uint8_t* native_payload = payload;
+    size_t native_payload_size = payload_size;
+
+    // Auto-detect portable wrapper (ABI-guarded)
+    if (!annoy_unwrap_portable_blob(self, native_payload, native_payload_size,
+                                    &native_payload, &native_payload_size,
+                                    NULL, NULL)) {
+      // If we stored a canonical fallback, try it now.
+      PyObject* data_canon = PyDict_GetItemString(state, "data_canonical");  // borrowed
+      if (data_canon && data_canon != Py_None && PyBytes_Check(data_canon)) {
+        PyObject *exc=NULL, *val=NULL, *tb=NULL;
+        PyErr_Fetch(&exc, &val, &tb);  // preserve portable error
+        PyErr_Clear();
+
+        char* cbuf = NULL;
+        Py_ssize_t cn = 0;
+        if (PyBytes_AsStringAndSize(data_canon, &cbuf, &cn) == 0) {
+          const uint8_t* cpay = reinterpret_cast<const uint8_t*>(cbuf);
+          size_t csz = static_cast<size_t>(cn);
+          if (annoy_is_canonical_blob(cpay, csz) &&
+              annoy_restore_from_canonical_blob(self, cpay, csz)) {
+            Py_XDECREF(exc); Py_XDECREF(val); Py_XDECREF(tb);
+            PyErr_WarnEx(PyExc_UserWarning,
+              "Portable snapshot was incompatible; restored from canonical fallback by rebuilding.",
+              1);
+            if (PyErr_Occurred()) return NULL;
+            Py_RETURN_NONE;
+          }
+        }
+
+        // Canonical fallback failed; restore original error.
+        PyErr_Restore(exc, val, tb);
+    }
       delete self->ptr; self->ptr = NULL;
       return NULL;
     }
-    vector<uint8_t> v((uint8_t*)buf, (uint8_t*)buf + (size_t)n);
+
+    std::vector<uint8_t> v(native_payload, native_payload + native_payload_size);
 
     ScopedError derr;
     if (!self->ptr->deserialize(&v, false, &derr.err)) {
@@ -3637,11 +7043,11 @@ static PyObject* py_an_setstate(
           return NULL;
         }
         self->on_disk_active = true;
-      } else {
+    } else {
         PyErr_SetString(PyExc_IOError, deser_msg.c_str());
         delete self->ptr; self->ptr = NULL;
         return NULL;
-      }
+    }
     }
   }
 
@@ -3735,9 +7141,16 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Examples\n"
     "--------\n"
-    ">>> index.add_item(0, [1.0, 0.0, 0.0])\n"
-    ">>> index.add_item(1, [0.0, 1.0, 0.0])\n"
-    ">>> idx.add_item(0, [1.0, 0.0, 0.0]).add_item(1, [0.0, 1.0, 0.0])\n"
+    ">>> import random\n"
+    ">>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex\n"
+    "...\n"
+    ">>> f=100\n"
+    ">>> n=1000\n"
+    ">>> idx = AnnoyIndex(f, metric='l2')\n"
+    "...\n"
+    ">>> for i in range(n):\n"
+    "...    v = [random.gauss(0, 1) for _ in range(f)]\n"
+    "...    idx.add_item(i, v)\n"
   },
 
   {
@@ -3755,7 +7168,7 @@ static PyMethodDef py_annoy_methods[] = {
     "    Number of trees in the forest. Larger values typically improve recall\n"
     "    at the cost of slower build time and higher memory usage.\n"
     "\n"
-    "    If set to ``n_trees=-1``, annoy trees are built dynamically until\n"
+    "    If set to ``n_trees=-1``, trees are built dynamically until\n"
     "    the index reaches approximately twice the number of items\n"
     "    ``_n_nodes >= 2 * n_items``.\n"
     "\n"
@@ -3778,13 +7191,6 @@ static PyMethodDef py_annoy_methods[] = {
     "After :meth:`build` completes, the index becomes read-only for queries.\n"
     "To add more items, call :meth:`unbuild`, add items, and then rebuild.\n"
     "\n"
-    "See Also\n"
-    "--------\n"
-    "add_item : Add vectors before building.\n"
-    "unbuild : Drop trees to add more items.\n"
-    "get_nns_by_item, get_nns_by_vector : Query nearest neighbours.\n"
-    "save, load : Persist the index to/from disk.\n"
-    "\n"
     "References\n"
     "----------\n"
     ".. [1] Erik Bernhardsson, \"Annoy: Approximate Nearest Neighbours in C++/Python\".\n"
@@ -3795,205 +7201,20 @@ static PyMethodDef py_annoy_methods[] = {
     "unbuild : Drop trees to add more items.\n"
     "get_nns_by_item, get_nns_by_vector : Query nearest neighbours.\n"
     "save, load : Persist the index to/from disk.\n"
-  },
-
-  {
-    "unbuild",
-    (PyCFunction)py_an_unbuild,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "unbuild()\n"
     "\n"
-    "Discard the current forest, allowing new items to be added.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    ":class:`~.Annoy`\n"
-    "    This instance (self), enabling method chaining.\n"
-    "\n"
-    "Notes\n"
-    "-----\n"
-    "After calling :meth:`unbuild`, you must call :meth:`build`\n"
-    "again before running nearest-neighbour queries.\n"
-    "\n"
-    "See Also\n"
+    "Examples\n"
     "--------\n"
-    "build : Rebuild the forest after adding new items.\n"
-    "add_item : Add items (only valid when no trees are built).\n"
-  },
-
-  // ------------------------------------------------------------------
-  // Persistence: disk + byte + memory usage
-  // ------------------------------------------------------------------
-
-  {
-    "save",
-    (PyCFunction)py_an_save,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "save(fn, prefault=None)\n"
-    "\n"
-    "Persist the index to a binary file on disk.\n"
-    "\n"
-    "Parameters\n"
-    "----------\n"
-    "fn : str\n"
-    "    Path to the output file. Existing files will be overwritten.\n"
-    "prefault : bool or None, optional, default=None\n"
-    "    If True, aggressively fault pages into memory during save.\n"
-    "    If None, use the stored :attr:`prefault` value.\n"
-    "    Primarily useful on some platforms for very large indexes.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    ":class:`~.Annoy`\n"
-    "    This instance (self), enabling method chaining.\n"
-    "\n"
-    "Raises\n"
-    "------\n"
-    "IOError\n"
-    "    If the file cannot be written.\n"
-    "RuntimeError\n"
-    "    If the index is not initialized or save fails.\n"
-    "\n"
-    "Notes\n"
-    "-----\n"
-    "The output file will be overwritten if it already exists.\n"
-    "Use prefault=None to fall back to the stored :attr:`prefault` setting.\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "load : Load an index from disk.\n"
-    "serialize : Snapshot to bytes for in-memory persistence.\n"
-  },
-
-  {
-    "load",
-    (PyCFunction)py_an_load,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "load(fn, prefault=None)\n"
-    "\n"
-    "Load (mmap) an index from disk into the current object.\n"
-    "\n"
-    "Parameters\n"
-    "----------\n"
-    "fn : str\n"
-    "    Path to a file previously created by :meth:`save` or\n"
-    "    :meth:`on_disk_build`.\n"
-    "prefault : bool or None, optional, default=None\n"
-    "    If True, fault pages into memory when the file is mapped.\n"
-    "    If None, use the stored :attr:`prefault` value.\n"
-    "    Primarily useful on some platforms for very large indexes.\n"
-    "\n"
-    "Raises\n"
-    "------\n"
-    "IOError\n"
-    "    If the file cannot be opened or mapped.\n"
-    "RuntimeError\n"
-    "    If the index is not initialized or the file is incompatible.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    ":class:`~.Annoy`\n"
-    "    This instance (self), enabling method chaining.\n"
-    "\n"
-    "Notes\n"
-    "-----\n"
-    "The in-memory index must have been constructed with the same dimension\n"
-    "and metric as the on-disk file.\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "save : Save the current index to disk.\n"
-    "on_disk_build : Build directly using an on-disk backing file.\n"
-    "unload : Release mmap resources.\n"
-  },
-
-  {
-    "unload",
-    (PyCFunction)py_an_unload,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "unload()\n"
-    "\n"
-    "Unmap any memory-mapped file backing this index.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    ":class:`~.Annoy`\n"
-    "    This instance (self), enabling method chaining.\n"
-    "\n"
-    "Notes\n"
-    "-----\n"
-    "This releases OS-level resources associated with the mmap,\n"
-    "but keeps the Python object alive.\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "load : Memory-map an on-disk index into this object.\n"
-    "on_disk_build : Configure on-disk build mode.\n"
-  },
-
-  {
-    "on_disk_build",
-    (PyCFunction)py_an_on_disk_build,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "on_disk_build(fn)\n"
-    "\n"
-    "Configure the index to build using an on-disk backing file.\n"
-    "\n"
-    "Parameters\n"
-    "----------\n"
-    "fn : str\n"
-    "    Path to a file that will hold the index during build.\n"
-    "    The file is created or overwritten as needed.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    ":class:`~.Annoy`\n"
-    "    This instance (self), enabling method chaining.\n"
-    "\n"
-    "Notes\n"
-    "-----\n"
-    "This mode is useful for very large datasets that do not fit\n"
-    "comfortably in RAM during construction.\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "build : Build trees after adding items (on-disk backed).\n"
-    "load : Memory-map the built index.\n"
-    "save : Persist the built index to disk.\n"
-  },
-
-  {
-    "serialize",
-    (PyCFunction)py_an_serialize,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "serialize() -> bytes\n"
-    "\n"
-    "Serialize the built in-memory index into a byte string.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    "data : bytes\n"
-    "    Opaque binary blob containing the Annoy index.\n"
-    "\n"
-    "Raises\n"
-    "------\n"
-    "RuntimeError\n"
-    "    If the index is not initialized or serialization fails.\n"
-    "\n"
-    "Notes\n"
-    "-----\n"
-    "The serialized form is a snapshot of the internal C++ data structures.\n"
-    "It can be stored, transmitted, or used with joblib without rebuilding trees.\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "deserialize : Restore an index from a serialized byte string.\n"
+    ">>> import random\n"
+    ">>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex\n"
+    "...\n"
+    ">>> f=100\n"
+    ">>> n=1000\n"
+    ">>> idx = AnnoyIndex(f, metric='l2')\n"
+    "...\n"
+    ">>> for i in range(n):\n"
+    "...    v = [random.gauss(0, 1) for _ in range(f)]\n"
+    "...    idx.add_item(i, v)\n"
+    ">>> idx.build(10)\n"
   },
 
   {
@@ -4008,11 +7229,14 @@ static PyMethodDef py_annoy_methods[] = {
     "Parameters\n"
     "----------\n"
     "byte : bytes\n"
-    "    Byte string produced by :meth:`serialize`.\n"
+    "    Byte string produced by :meth:`serialize`. Both native (legacy)\n"
+    "    blobs and portable blobs (created with ``serialize(format='portable')``)\n"
+    "    are accepted; portable and canonical blobs are auto-detected.\n"
+    "    Canonical blobs restore by rebuilding the index deterministically.\n"
     "prefault : bool or None, optional, default=None\n"
-    "    If True, fault pages into memory while restoring.\n"
-    "    If None, use the stored :attr:`prefault` value.\n"
-    "    Primarily useful on some platforms for very large indexes.\n"
+    "    Accepted for API symmetry with :meth:`load`. If None, the stored\n"
+    "    Ignored for canonical blobs.\n"
+    "    :attr:`prefault` value is used.\n"
     "\n"
     "Returns\n"
     "-------\n"
@@ -4025,27 +7249,214 @@ static PyMethodDef py_annoy_methods[] = {
     "    If deserialization fails due to invalid or incompatible data.\n"
     "RuntimeError\n"
     "    If the index is not initialized.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "Portable blobs add a small header (version, ABI sizes, endianness, metric, f)\n"
+    "to ensure incompatible binaries fail loudly and safely. They are not a\n"
+    "cross-architecture wire format; the payload remains Annoy's native snapshot.\n"
   },
 
   {
-    "memory_usage",
-    (PyCFunction)py_an_memory_usage,
+    "fit",
+    (PyCFunction)py_an_fit,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "memory_usage() -> int\n"
+    "fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None)\n"
     "\n"
-    "Approximate memory usage of the index in bytes.\n"
+    "Fit the Annoy index (scikit-learn compatible).\n"
+    "\n"
+    "This method supports two deterministic workflows:\n"
+    "\n"
+    "1) Manual add/build:\n"
+    "   If X is None and y is None, fit() builds the forest using items\n"
+    "   previously added via add_item().\n"
+    "\n"
+    "2) Array-like X:\n"
+    "   If X is provided (2D array-like), fit() optionally resets or appends,\n"
+    "   adds all rows as items, then builds the forest.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "X : array-like of shape (n_samples, n_features), default=None\n"
+    "    Vectors to add to the index. If None (and y is None), fit() only builds.\n"
+    "y : array-like of shape (n_samples,), default=None\n"
+    "    Optional labels associated with X. Stored as y_ after successful build.\n"
+    "n_trees : int, default=-1\n"
+    "    Number of trees to build. Use -1 for Annoy's internal default.\n"
+    "n_jobs : int, default=-1\n"
+    "    Number of threads to use during build (-1 means \"auto\").\n"
+    "reset : bool, default=True\n"
+    "    If True, clear existing items before adding X. If False, append.\n"
+    "start_index : int or None, default=None\n"
+    "    Item id for the first row of X. If None, uses 0 when reset=True,\n"
+    "    otherwise uses current n_items when reset=False.\n"
+    "missing_value : float or None, default=None\n"
+    "    If not None, imputes missing entries in X.\n"
+    "\n"
+    "    - Dense rows: replaces None elements with missing_value.\n"
+    "    - Dict rows: fills missing keys (and None values) with missing_value.\n"
+    "\n"
+    "    If None, missing entries raise an error (strict mode).\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "n_bytes : int or None\n"
-    "    Approximate number of bytes used by the index. Returns ``None`` if the\n"
-    "    index is not initialized or the forest has not been built yet.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "add_item : Add one item at a time.\n"
+    "build : Build the forest after manual calls to add_item.\n"
+    "unbuild : Remove trees so items can be appended.\n"
+    "y_ : Stored labels (if provided).\n"
+    "get_params, set_params : Estimator parameter API.\n"
+    "\n"
+    "Examples\n"
+    "--------\n"
+    ">>> import random\n"
+    ">>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex\n"
+    "...\n"
+    ">>> n, f = 10_000, 1_000\n"
+    ">>> X = [[random.gauss(0, 1) for _ in range(f)] for _ in range(n)]\n"
+    ">>> q = [[random.gauss(0, 1) for _ in range(f)]]\n"
+    "...\n"
+    ">>> for m in ['angular', 'l1', 'l2', '.', 'hamming']:\n"
+    "...     idx = AnnoyIndex().set_params(metric=m).fit(X)\n"
+    "...     print(m, idx.transform(q))\n"
+    "...\n"
+    ">>> idx = AnnoyIndex().fit(X)\n"
+    ">>> for m in ['angular', 'l1', 'l2', '.', 'hamming']:\n"
+    "...     idx_m = base.rebuild(metric=m)  # rebuild-from-index\n"
+    "...     print(m, idx_m.transform(q))  # no .fit(X) here\n"
+  },
+
+  {
+    "fit_transform",
+    (PyCFunction)py_an_fit_transform,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "fit_transform(X, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None,\n"
+    "              missing_value=None, n_neighbors=10, search_k=-1, include_distances=False,\n"
+    "              return_labels=False, y_fill_value=None)\n"
+    "\n"
+    "Fit the index and transform X in a single deterministic call.\n"
+    "\n"
+    "This is equivalent to:\n"
+    "    self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...)\n"
+    "    self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=...,\n"
+    "                   y_fill_value=..., missing_value=...)\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "fit : Build the index.\n"
+    "transform : Query the built index.\n"
+    "\n"
+    "Examples\n"
+    "--------\n"
+    ">>> import random\n"
+    ">>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex\n"
+    "...\n"
+    ">>> n, f = 10_000, 1_000\n"
+    ">>> X = [[random.gauss(0, 1) for _ in range(f)] for _ in range(n)]\n"
+    ">>> q = [[random.gauss(0, 1) for _ in range(f)]]\n"
+    "...\n"
+    ">>> for m in ['angular', 'l1', 'l2', '.', 'hamming']:\n"
+    "...     print(m, AnnoyIndex().set_params(metric=m).fit_transform(q))\n"
+  },
+
+  {
+    "get_distance",
+    (PyCFunction)py_an_get_distance,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "get_distance(i, j) -> float\n"
+    "\n"
+    "Return the distance between two stored items.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "i, j : int\n"
+    "    Item ids (index) of two stored samples.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "d : float\n"
+    "    Distance between items ``i`` and ``j`` under the current metric.\n"
     "\n"
     "Raises\n"
     "------\n"
     "RuntimeError\n"
-    "    If memory usage cannot be computed.\n"
+    "    If the index is not initialized.\n"
+    "IndexError\n"
+    "    If either index is out of range.\n"
+  },
+
+  {
+    "get_item_vector",
+    (PyCFunction)py_an_get_item_vector,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "get_item_vector(i) -> list[float]\n"
+    "\n"
+    "Return the stored embedding vector for a given item id.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "i : int\n"
+    "    Item id (index) previously passed to :meth:`add_item`.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "vector : list[float]\n"
+    "    Stored embedding of length ``f``.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized.\n"
+    "IndexError\n"
+    "    If ``i`` is out of range.\n"
+  },
+
+  {
+    "get_n_items",
+    (PyCFunction)py_an_get_n_items,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "get_n_items() -> int\n"
+    "\n"
+    "Return the number of stored items in the index.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "n_items : int\n"
+    "    Number of items that have been added and are currently addressable.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized.\n"
+  },
+
+  {
+    "get_n_trees",
+    (PyCFunction)py_an_get_n_trees,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "get_n_trees() -> int\n"
+    "\n"
+    "Return the number of trees in the current forest.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "n_trees : int\n"
+    "    Number of trees that have been built.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized.\n"
   },
 
   // ------------------------------------------------------------------
@@ -4135,153 +7546,49 @@ static PyMethodDef py_annoy_methods[] = {
   },
 
   {
-    "get_item_vector",
-    (PyCFunction)py_an_get_item_vector,
+    "get_params",
+    (PyCFunction)py_an_get_params,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "get_item_vector(i) -> list[float]\n"
+    "get_params(deep=True) -> dict\n"
     "\n"
-    "Return the stored embedding vector for a given item id.\n"
+    "Return estimator-style parameters (scikit-learn compatibility).\n"
     "\n"
     "Parameters\n"
     "----------\n"
-    "i : int\n"
-    "    Item id (index) previously passed to :meth:`add_item`.\n"
+    "deep : bool, optional, default=True\n"
+    "    Included for scikit-learn API compatibility. Ignored because Annoy\n"
+    "    does not contain nested estimators.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "vector : list[float]\n"
-    "    Stored embedding of length ``f``.\n"
-    "\n"
-    "Raises\n"
-    "------\n"
-    "RuntimeError\n"
-    "    If the index is not initialized.\n"
-    "IndexError\n"
-    "    If ``i`` is out of range.\n"
-  },
-
-  {
-    "get_distance",
-    (PyCFunction)py_an_get_distance,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "get_distance(i, j) -> float\n"
-    "\n"
-    "Return the distance between two stored items.\n"
-    "\n"
-    "Parameters\n"
-    "----------\n"
-    "i, j : int\n"
-    "    Item ids (index) of two stored samples.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    "d : float\n"
-    "    Distance between items ``i`` and ``j`` under the current metric.\n"
-    "\n"
-    "Raises\n"
-    "------\n"
-    "RuntimeError\n"
-    "    If the index is not initialized.\n"
-    "IndexError\n"
-    "    If either index is out of range.\n"
-  },
-
-  {
-    "get_n_items",
-    (PyCFunction)py_an_get_n_items,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "get_n_items() -> int\n"
-    "\n"
-    "Return the number of stored items in the index.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    "n_items : int\n"
-    "    Number of items that have been added and are currently addressable.\n"
-    "\n"
-    "Raises\n"
-    "------\n"
-    "RuntimeError\n"
-    "    If the index is not initialized.\n"
-  },
-
-  {
-    "get_n_trees",
-    (PyCFunction)py_an_get_n_trees,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "get_n_trees() -> int\n"
-    "\n"
-    "Return the number of trees in the current forest.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    "n_trees : int\n"
-    "    Number of trees that have been built.\n"
-    "\n"
-    "Raises\n"
-    "------\n"
-    "RuntimeError\n"
-    "    If the index is not initialized.\n"
-  },
-
-  // ------------------------------------------------------------------
-  // RNG / logging controls
-  // ------------------------------------------------------------------
-
-  {
-    "set_seed",
-    (PyCFunction)py_an_set_seed,
-    METH_VARARGS | METH_KEYWORDS,
-    (char*)
-    "set_seed(seed=0)\n"
-    "\n"
-    "Set the random seed used for tree construction.\n"
-    "\n"
-    "Parameters\n"
-    "----------\n"
-    "seed : int, optional\n"
-    "    Non-negative integer seed. If called before the index is constructed,\n"
-    "    the seed is stored and applied when the C++ index is created.\n"
-    "\n"
-    "Returns\n"
-    "-------\n"
-    ":class:`~.Annoy`\n"
-    "    This instance (self), enabling method chaining.\n"
+    "params : dict\n"
+    "    Dictionary of stable, user-facing parameters.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "Annoy is deterministic by default. Setting an explicit seed is useful for\n"
-    "reproducible experiments and debugging.\n"
+    "This is intended to make Annoy behave like a scikit-learn estimator for\n"
+    "tools such as :func:`sklearn.base.clone` and parameter grids.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "set_params : Set estimator-style parameters.\n"
+    "schema_version : Controls pickle / snapshot strategy.\n"
   },
 
   {
-    "verbose",
-    (PyCFunction)py_an_verbose,
-    METH_VARARGS | METH_KEYWORDS,
+    "__sklearn_is_fitted__",
+    (PyCFunction)py_an_sklearn_is_fitted,
+    METH_NOARGS,
     (char*)
-    "verbose(level=1)\n"
+    "__sklearn_is_fitted__() -> bool\n"
     "\n"
-    "Control verbosity of the underlying C++ index.\n"
-    "\n"
-    "Parameters\n"
-    "----------\n"
-    "level : int, optional, default=1\n"
-    "    Verbosity level. Values are clamped to the range ``[-2, 2]``.\n"
-    "    ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.\n"
-    "    Logging level inspired by gradient-boosting libraries:\n"
-    "\n"
-    "    * ``<= 0`` : quiet (warnings only)\n"
-    "    * ``1``    : info (Annoy's ``verbose=True``)\n"
-    "    * ``>= 2`` : debug (currently same as info, reserved for future use)\n"
+    "Return whether this estimator is fitted (scikit-learn protocol hook).\n"
     "\n"
     "Returns\n"
     "-------\n"
-    ":class:`~.Annoy`\n"
-    "    This instance (self), enabling method chaining.\n"
+    "is_fitted : bool\n"
+    "    True iff the index has been built (n_trees > 0).\n"
   },
 
   // ------------------------------------------------------------------
@@ -4322,7 +7629,7 @@ static PyMethodDef py_annoy_methods[] = {
     "    Dictionary describing the current index state.\n"
     "\n"
     "Notes\n"
-    "----\n"
+    "-----\n"
     "- Some keys are optional depending on include_* flags.\n"
     "\n"
     "Keys:\n"
@@ -4378,6 +7685,156 @@ static PyMethodDef py_annoy_methods[] = {
   },
 
   {
+    "load",
+    (PyCFunction)py_an_load,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "load(fn, prefault=None)\n"
+    "\n"
+    "Load (mmap) an index from disk into the current object.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "fn : str\n"
+    "    Path to a file previously created by :meth:`save` or\n"
+    "    :meth:`on_disk_build`.\n"
+    "prefault : bool or None, optional, default=None\n"
+    "    If True, fault pages into memory when the file is mapped.\n"
+    "    If None, use the stored :attr:`prefault` value.\n"
+    "    Primarily useful on some platforms for very large indexes.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "IOError\n"
+    "    If the file cannot be opened or mapped.\n"
+    "RuntimeError\n"
+    "    If the index is not initialized or the file is incompatible.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "The in-memory index must have been constructed with the same dimension\n"
+    "and metric as the on-disk file.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "save : Save the current index to disk.\n"
+    "on_disk_build : Build directly using an on-disk backing file.\n"
+    "unload : Release mmap resources.\n"
+  },
+
+  {
+    "memory_usage",
+    (PyCFunction)py_an_memory_usage,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "memory_usage() -> int\n"
+    "\n"
+    "Approximate memory usage of the index in bytes.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "n_bytes : int or None\n"
+    "    Approximate number of bytes used by the index. Returns ``None`` if the\n"
+    "    index is not initialized or the forest has not been built yet.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If memory usage cannot be computed.\n"
+  },
+
+  {
+    "on_disk_build",
+    (PyCFunction)py_an_on_disk_build,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "on_disk_build(fn)\n"
+    "\n"
+    "Configure the index to build using an on-disk backing file.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "fn : str\n"
+    "    Path to a file that will hold the index during build.\n"
+    "    The file is created or overwritten as needed.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This mode is useful for very large datasets that do not fit\n"
+    "comfortably in RAM during construction.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "build : Build trees after adding items (on-disk backed).\n"
+    "load : Memory-map the built index.\n"
+    "save : Persist the built index to disk.\n"
+  },
+
+   {
+    "rebuild",
+    (PyCFunction)py_an_rebuild,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "rebuild(metric=None, *, on_disk_path=None, n_trees=None, n_jobs=-1) -> Annoy\n"
+    "\n"
+    "Return a new Annoy index rebuilt from the current index contents.\n"
+    "\n"
+    "This helper is intended for deterministic, explicit rebuilds when changing\n"
+    "structural constraints such as the metric (Annoy uses metric-specific C++\n"
+    "index types). The source index is not mutated.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'} or None, optional\n"
+    "    Metric for the new index. If None, reuse the current metric.\n"
+    "on_disk_path : path-like or None, optional\n"
+    "    Optional on-disk build path for the new index.\n"
+    "\n"
+    "    Safety: the source object's on_disk_path is never carried over implicitly.\n"
+    "    If on_disk_path is provided and is string-equal to the source's configured\n"
+    "    path, it is ignored to avoid accidental overwrite/truncation hazards.\n"
+    "n_trees : int or None, optional\n"
+    "    If provided, build the new index with this number of trees (or -1 for\n"
+    "    Annoy's internal auto mode). If None, reuse the source's tree count only\n"
+    "    when the source index is already built; otherwise do not build.\n"
+    "n_jobs : int, optional, default=-1\n"
+    "    Number of threads to use while building (-1 means \"auto\").\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    A new Annoy instance containing the same items (and y_ metadata if present).\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "`rebuild(metric=...)` is deterministic and preserves item ids (0..n_items-1).\n"
+    "by copying item vectors from the current fitted index into a new instance\n"
+    "and rebuilding trees.\n"
+    "\n"
+    "Use `rebuild()` when you want to change `metric` while *reusing the already-stored\n"
+    "vectors* (e.g., you do not want to re-read or re-materialize `X`, or you loaded an\n"
+    "index from disk and only have access to its stored vectors).\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "get_params : Read constructor parameters.\n"
+    "set_params : Update estimator parameters (use with `fit(X)` when refitting from data).\n"
+    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
+    "serialize, deserialize : Persist / restore indexes; canonical restores rebuild deterministically.\n"
+    "__sklearn_clone__ : Unfitted clone hook (no fitted state).\n"
+  },
+
+  {
     "repr_info",
     (PyCFunction)py_an_repr_info,
     METH_VARARGS | METH_KEYWORDS,
@@ -4391,30 +7848,323 @@ static PyMethodDef py_annoy_methods[] = {
     "Memory is calculated after :meth:`build`.\n"
   },
 
-  // Rich display (Jupyter)
+  // ------------------------------------------------------------------
+  // Persistence: disk + byte + memory usage
+  // ------------------------------------------------------------------
+
   {
-    "_repr_html_",
-    (PyCFunction)py_an_repr_html,
-    METH_NOARGS,
+    "save",
+    (PyCFunction)py_an_save,
+    METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "_repr_html_() -> str\n"
+    "save(fn, prefault=None)\n"
     "\n"
-    "Return an HTML representation of the Annoy index for Jupyter notebooks.\n"
+    "Persist the index to a binary file on disk.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "fn : str\n"
+    "    Path to the output file. Existing files will be overwritten.\n"
+    "prefault : bool or None, optional, default=None\n"
+    "    If True, aggressively fault pages into memory during save.\n"
+    "    If None, use the stored :attr:`prefault` value.\n"
+    "    Primarily useful on some platforms for very large indexes.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "html : str\n"
-    "    HTML string (safe to embed) describing the current configuration.\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "IOError\n"
+    "    If the file cannot be written.\n"
+    "RuntimeError\n"
+    "    If the index is not initialized or save fails.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "This representation is deterministic and side-effect free. It intentionally\n"
-    "avoids expensive operations such as serialization or memory-usage estimation.\n"
+    "The output file will be overwritten if it already exists.\n"
+    "Use prefault=None to fall back to the stored :attr:`prefault` setting.\n"
     "\n"
     "See Also\n"
     "--------\n"
-    "info : Return a Python dict with configuration and metadata.\n"
-    "__repr__ : Text representation.\n"
+    "load : Load an index from disk.\n"
+    "serialize : Snapshot to bytes for in-memory persistence.\n"
+  },
+
+  {
+    "serialize",
+    (PyCFunction)py_an_serialize,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "serialize(format=None) -> bytes\n"
+    "\n"
+    "Serialize the built in-memory index into a byte string.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "format : {\"native\", \"portable\", \"canonical\"} or None, optional, default=None\n"
+    "    Serialization format.\n"
+    "\n"
+    "    * \"native\" (legacy): raw Annoy memory snapshot. Fastest, but\n"
+    "      only compatible when the ABI matches exactly.\n"
+    "    * \"portable\": prepend a small compatibility header (version,\n"
+    "      endianness, sizeof checks, metric, f) so deserialization fails\n"
+    "      loudly on mismatches.\n"
+    "    * \"canonical\": rebuildable wire format storing item vectors + build\n"
+    "      parameters. Portable across ABIs (within IEEE-754 float32) and\n"
+    "      restores by rebuilding trees deterministically.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "data : bytes\n"
+    "    Opaque binary blob containing the Annoy index.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "RuntimeError\n"
+    "    If the index is not initialized or serialization fails.\n"
+    "OverflowError\n"
+    "    If the serialized payload is too large to fit in a Python bytes object.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "\"Portable\" blobs are the native snapshot with additional compatibility guards.\n"
+    "They are not a cross-architecture wire format.\n"
+    "\n"
+    "\"Canonical\" blobs trade load time for portability: deserialization rebuilds\n"
+    "the index with ``n_jobs=1`` for deterministic reconstruction.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "deserialize : Restore an index from a serialized byte string.\n"
+  },
+
+  {
+    "set_params",
+    (PyCFunction)py_an_set_params,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "set_params(**params) -> Annoy\n"
+    "\n"
+    "Set estimator-style parameters (scikit-learn compatibility).\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "**params\n"
+    "    Keyword parameters to set. Unknown keys raise ``ValueError``.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "ValueError\n"
+    "    If an unknown parameter name is provided.\n"
+    "TypeError\n"
+    "    If parameter names are not strings or types are invalid.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "Changing structural parameters (notably ``metric``) on an already\n"
+    "initialized index resets the index deterministically (drops all items,\n"
+    "trees, and :attr:`y_`). Refit/rebuild is required before querying.\n"
+    "\n"
+    "This behavior matches scikit-learn expectations: ``set_params`` may be\n"
+    "called at any time, but parameter changes that affect learned state\n"
+    "invalidate the fitted model.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "get_params : Return estimator-style parameters.\n"
+  },
+
+  // ------------------------------------------------------------------
+  // RNG / logging controls
+  // ------------------------------------------------------------------
+
+  {
+    "set_seed",
+    (PyCFunction)py_an_set_seed,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "set_seed(seed=None)\n"
+    "\n"
+    "Set the random seed used for tree construction.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "seed : int or None, optional, default=None\n"
+    "    Non-negative integer seed. If called before the index is constructed,\n"
+    "    the seed is stored and applied when the C++ index is created.\n"
+    "    Seed value ``0`` resets to Annoy's core default seed (with a :class:`UserWarning`).\n"
+    "\n"
+    "    * If omitted (or None, NULL), the seed is set to Annoy's default seed.\n"
+    "    * If 0, clear any pending override and reset to Annoy's default seed\n"
+    "      (a :class:`UserWarning` is emitted).\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "Annoy is deterministic by default. Setting an explicit seed is useful for\n"
+    "reproducible experiments and debugging.\n"
+  },
+
+  {
+    "transform",
+    (PyCFunction)py_an_transform,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "transform(X, *, n_neighbors=10, search_k=-1, include_distances=False, return_labels=False,\n"
+    "          y_fill_value=None, input_type='vector', missing_value=None)\n"
+    "\n"
+    "Transform queries into nearest-neighbor ids (and optional distances / labels).\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "X : array-like\n"
+    "    Query inputs. The expected shape/type depends on `input_type`:\n"
+    "\n"
+    "    - input_type='vector': X must be a 2D array-like of shape (n_queries, f).\n"
+    "    - input_type='item':   X must be a 1D sequence of item ids.\n"
+    "n_neighbors : int, default=10\n"
+    "    Number of neighbors to retrieve for each query.\n"
+    "search_k : int, default=-1\n"
+    "    Search parameter passed to Annoy (-1 uses Annoy's default).\n"
+    "include_distances : bool, default=False\n"
+    "    If True, also return per-neighbor distances.\n"
+    "return_labels : bool, default=False\n"
+    "    If True, also return per-neighbor labels resolved from y_.\n"
+    "y_fill_value : object, default=None\n"
+    "    Value used when y_ is unset or missing an entry for a neighbor id.\n"
+    "input_type : {'vector', 'item'}, default='vector'\n"
+    "    Controls how X is interpreted.\n"
+    "missing_value : float or None, default=None\n"
+    "    If not None, imputes missing entries in X (None values in dense rows;\n"
+    "    missing keys / None values in dict rows). If None, missing entries raise.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "indices : list of list of int\n"
+    "    Neighbor ids for each query.\n"
+    "(indices, distances) : tuple\n"
+    "    Returned when include_distances=True.\n"
+    "(indices, labels) : tuple\n"
+    "    Returned when return_labels=True.\n"
+    "(indices, distances, labels) : tuple\n"
+    "    Returned when include_distances=True and return_labels=True.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "get_nns_by_vector, get_nns_by_item : Low-level query methods.\n"
+    "fit, fit_transform : Estimator-style APIs.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "transform() requires a built index; call fit() or build() first.\n"
+  },
+
+  {
+    "unbuild",
+    (PyCFunction)py_an_unbuild,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "unbuild()\n"
+    "\n"
+    "Discard the current forest, allowing new items to be added.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "After calling :meth:`unbuild`, you must call :meth:`build`\n"
+    "again before running nearest-neighbour queries.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "build : Rebuild the forest after adding new items.\n"
+    "add_item : Add items (only valid when no trees are built).\n"
+  },
+
+  {
+    "unload",
+    (PyCFunction)py_an_unload,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "unload()\n"
+    "\n"
+    "Unmap any memory-mapped file backing this index.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This releases OS-level resources associated with the mmap,\n"
+    "but keeps the Python object alive.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "load : Memory-map an on-disk index into this object.\n"
+    "on_disk_build : Configure on-disk build mode.\n"
+  },
+
+  {
+    "set_verbose",
+    (PyCFunction)py_an_verbose,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "set_verbose(level=1)\n"
+    "\n"
+    "Set the verbosity level (callable setter).\n"
+    "\n"
+    "This method exists to preserve a callable interface while keeping the\n"
+    "parameter name ``verbose`` available as an attribute for scikit-learn\n"
+    "compatibility.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "level : int, optional, default=1\n"
+    "    Verbosity level. Values are clamped to the range ``[-2, 2]``.\n"
+    "    ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.\n"
+    "    Logging level inspired by gradient-boosting libraries:\n"
+    "\n"
+    "    * ``<= 0`` : quiet (warnings only)\n"
+    "    * ``1``    : info (Annoy's ``verbose=True``)\n"
+    "    * ``>= 2`` : debug (currently same as info, reserved for future use)\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "set_verbosity : Alias of :meth:`set_verbose`.\n"
+    "verbose : Parameter attribute (int | None).\n"
+    "get_params, set_params : Estimator parameter API.\n"
+  },
+
+  {
+    "set_verbosity",
+    (PyCFunction)py_an_verbose,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "set_verbosity(level=1)\n"
+    "\n"
+    "Alias of :meth:`set_verbose`.\n"
   },
 
   // Pickle / joblib
@@ -4516,6 +8266,76 @@ static PyMethodDef py_annoy_methods[] = {
     "Equivalent to :meth:`__reduce_ex__` with the default protocol.\n"
   },
 
+  // Rich display (Jupyter)
+  {
+    "_repr_html_",
+    (PyCFunction)py_an_repr_html,
+    METH_NOARGS,
+    (char*)
+    "_repr_html_() -> str\n"
+    "\n"
+    "Return an HTML representation of the Annoy index for Jupyter notebooks.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "html : str\n"
+    "    HTML string (safe to embed) describing the current configuration.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This representation is deterministic and side-effect free. It intentionally\n"
+    "avoids expensive operations such as serialization or memory-usage estimation.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "info : Return a Python dict with configuration and metadata.\n"
+    "__repr__ : Text representation.\n"
+  },
+
+  {
+    "__sklearn_tags__",
+    (PyCFunction)py_an_sklearn_tags,
+    METH_NOARGS,
+    (char*)
+    "__sklearn_tags__() -> sklearn.utils.Tags\n"
+    "\n"
+    "Return estimator tags (scikit-learn protocol hook).\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "tags : sklearn.utils.Tags\n"
+    "    Conservative tags for this estimator.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This method is consulted by scikit-learn utilities such as\n"
+    "``sklearn.utils.get_tags``.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "sklearn.utils.get_tags : Read estimator tags.\n"
+  },
+
+  {
+    "__sklearn_clone__",
+    (PyCFunction)py_an_sklearn_clone,
+    METH_NOARGS,
+    (char*)
+    "__sklearn_clone__() -> Annoy\n"
+    "\n"
+    "Return an unfitted clone (scikit-learn protocol hook).\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "clone : :class:`~.Annoy`\n"
+    "    New unfitted instance with identical parameters.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "get_params : Parameters used for cloning.\n"
+    "sklearn.base.clone : Delegates to this hook when available.\n"
+  },
+
   {NULL, NULL, 0, NULL}  // Sentinel
 };
 
@@ -4566,7 +8386,7 @@ static PyObject* py_an_repr(
   d_repr = PyObject_Repr(d);
   if (!d_repr) goto fail;
 
-  out = PyUnicode_FromFormat("Annoy(%U)", d_repr);
+  out = PyUnicode_FromFormat("Annoy(**%U)", d_repr);
   if (!out) goto fail;
 
   Py_DECREF(d_repr);
@@ -4647,7 +8467,7 @@ static PyObject* py_an_repr_info(
   d_repr = PyObject_Repr(d);
   if (!d_repr) goto fail;
 
-  out = PyUnicode_FromFormat("Annoy(%U)", d_repr);
+  out = PyUnicode_FromFormat("Annoy(**%U)", d_repr);
   if (!out) goto fail;
 
   Py_DECREF(d_repr);
@@ -4764,7 +8584,7 @@ static const char kAnnoyReprCssFallback[] = R"CSS(
 #__ANNOY_REPR_ID__ .annoy-table{border-collapse:collapse;width:100%;font:12px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
 #__ANNOY_REPR_ID__ .annoy-table th,.annoy-table td{border-top:1px solid #eaeef2;padding:6px 6px;text-align:left;vertical-align:top;}
 #__ANNOY_REPR_ID__ .annoy-table th{font-weight:600;}
-#__ANNOY_REPR_ID__ .annoy-td-btn{width:64px;}
+#__ANNOY_REPR_ID__ .annoy-td-btn{width:72px;}
 #__ANNOY_REPR_ID__ .annoy-copy{font:11px/1 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;border:1px solid #d0d7de;border-radius:6px;padding:3px 6px;background:#f6f8fa;cursor:pointer;}
 #__ANNOY_REPR_ID__ .annoy-copy:active{transform:translateY(1px);}
 #__ANNOY_REPR_ID__ .annoy-key{white-space:nowrap;}
@@ -4788,11 +8608,11 @@ static const char kAnnoyReprJsFallback[] = R"JS(
         var old=btn.textContent;
         btn.textContent='✔︎ Copied';
         setTimeout(function(){btn.textContent=old;},800);
-      }
+    }
 
       if(navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(txt).then(done.bind(null,this),function(){done(this);}.bind(this));
-      } else {
+    } else {
         var ta=document.createElement('textarea');
         ta.value=txt;
         ta.style.position='fixed';
@@ -4802,7 +8622,7 @@ static const char kAnnoyReprJsFallback[] = R"JS(
         try{document.execCommand('copy');}catch(_e){}
         document.body.removeChild(ta);
         done(this);
-      }
+    }
     });
   }
 })();
@@ -5055,7 +8875,7 @@ static PyObject* py_an_repr_html(PyObject* obj, PyObject* Py_UNUSED(ignored)) {
   // html.append("#"); html.append(idbuf); html.append(" .annoy-table{border-collapse:collapse;width:100%;font:12px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}");
   // html.append("#"); html.append(idbuf); html.append(" .annoy-table th,.annoy-table td{border-top:1px solid #eaeef2;padding:6px 6px;text-align:left;vertical-align:top;}");
   // html.append("#"); html.append(idbuf); html.append(" .annoy-table th{font-weight:600;}");
-  // html.append("#"); html.append(idbuf); html.append(" .annoy-td-btn{width:64px;}");
+  // html.append("#"); html.append(idbuf); html.append(" .annoy-td-btn{width:72px;}");
   // html.append("#"); html.append(idbuf); html.append(" .annoy-copy{font:11px/1 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;border:1px solid #d0d7de;border-radius:6px;padding:3px 6px;background:#f6f8fa;cursor:pointer;}");
   // html.append("#"); html.append(idbuf); html.append(" .annoy-copy:active{transform:translateY(1px);}");
   // html.append("#"); html.append(idbuf); html.append(" .annoy-key{white-space:nowrap;}");
@@ -5200,14 +9020,18 @@ static int py_an_traverse(
   visitproc visit,
   void* arg) {
   py_annoy* self = (py_annoy*)obj;
+  // traverse
   Py_VISIT(self->dict);
+  Py_VISIT(self->y);
   return 0;
 }
 
 static int py_an_clear(
   PyObject* obj) {
   py_annoy* self = (py_annoy*)obj;
+  // clear
   Py_CLEAR(self->dict);
+  Py_CLEAR(self->y);
   return 0;
 }
 
@@ -5344,7 +9168,7 @@ static int init_py_annoy_type() {
 }
 
 static PyMethodDef module_methods[] = {
-  {NULL, NULL, 0, NULL}	/* Sentinel */
+  {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
 #if PY_MAJOR_VERSION >= 3

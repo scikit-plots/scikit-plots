@@ -7,7 +7,7 @@
 # mypy: ignore-errors
 # type: ignore[]
 
-from ..cexternals._annoy import Annoy, AnnoyIndex  # low-level C-extension type, simple legacy c-api
+from ..cexternals._annoy import Annoy, AnnoyIndex, annoylib  # low-level C-extension backend
 from ._base import Index  # extended python-api derived annoylib.Annoy legacy c-api
 
 from ._mixins._io import IndexIOMixin, PickleIOMixin
@@ -22,7 +22,7 @@ __author__: str
 __author_email__: str
 __git_hash__: str
 
-__all__: list[str, ...] = [
+__all__: list[str] = [
     "Annoy",
     "AnnoyIndex",
     "CompressMode",

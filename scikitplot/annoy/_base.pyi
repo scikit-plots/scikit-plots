@@ -1,6 +1,6 @@
 # scikitplot/annoy/_base.pyi
 
-from typing import Any, ClassVar  # noqa: F401
+from typing import ClassVar  # noqa: F401
 
 from typing_extensions import Literal, Self, TypeAlias
 
@@ -33,7 +33,7 @@ AnnoyMetric: TypeAlias = Literal[
     "hamming",
 ]
 
-__all__: list[str, ...] = ["Index"]
+__all__: list[str] = ["Index"]
 
 class Index(
     Annoy,
@@ -47,7 +47,7 @@ class Index(
 ):
     # __slots__: ClassVar[tuple[str, ...]] = ()
 
-    def _low_level(self) -> Any: ...
+    def _low_level(self) -> Annoy: ...
     @property
     def annoy(self) -> Annoy: ...
     @classmethod

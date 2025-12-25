@@ -58,8 +58,8 @@ Annoy(), \
 Annoy(None), \
 Annoy(None, None), \
 Annoy(1), \
-Annoy(1,".", verbose=1).set_seed(2), \
-Annoy(1,"@", verbose=1).verbose(2).set_seed(2)
+Annoy(1,".", seed=1, verbose=1), \
+Annoy(1,"@", seed=1, verbose=1).verbose(2).set_seed(2)
 
 # %%
 
