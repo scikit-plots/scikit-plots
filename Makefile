@@ -663,25 +663,57 @@ grep:
 # - 'upstream' is the original repository (if needed)
 #
 
-## newbr
-## Create a new branch based on the latest main branch and push to remote.
-# git checkout main  # or the branch you want as a base \
-## If you're on 'feature-branch' but want to pull from 'main' \
-## same git fetch origin main && git merge origin/main \
-# git pull origin main \
-# Delete old local branch if exists \
-# git branch -d subpackage-bug-fix || true \
-# Create and switch to new branch \
-# git checkout -b subpackage-bug-fix
+infobr:
+	@git status -sb; git log -1 --oneline;
+
 newbr:
-	@echo ">> Creating new branch 'subpackage-bug-fix' based on main..."
-	@# Ensure you are on main and pull latest changes
-	@git switch main && git pull && \
-	git branch -d subpackage-bug-fix 2>/dev/null || true; \
-	git branch -D subpackage-bug-fix 2>/dev/null || true; \
-	git switch -c subpackage-bug-fix && \
-	git push -u origin subpackage-bug-fix && \
-	git branch && echo ">> New branch created and pushed successfully."
+	@set -euo pipefail; \
+	BR="subpackage-bug-fix"; BASE="main"; REMOTE="origin"; \
+	echo ">> Reset '$$BR' to '$$REMOTE/$$BASE' (deterministic, PR-safe; no remote delete)"; \
+	echo ">> [0] Preconditions"; \
+	git rev-parse --is-inside-work-tree >/dev/null; \
+	git diff --quiet && git diff --cached --quiet || { echo "!! Dirty working tree. Commit/stash first."; exit 1; }; \
+	CUR="$$(git symbolic-ref --quiet --short HEAD || echo DETACHED)"; \
+	if [ "$$CUR" = "$$BR" ]; then echo "!! Currently on '$$BR'. Switch away first."; exit 1; fi; \
+	echo ">> [1] Fetch + prune"; \
+	git fetch "$$REMOTE" --prune; \
+	echo ">> [2] Resolve source of truth: $$REMOTE/$$BASE"; \
+	git show-ref --verify --quiet "refs/remotes/$$REMOTE/$$BASE" || { echo "!! Missing '$$REMOTE/$$BASE'"; exit 1; }; \
+	SRC_SHA="$$(git rev-parse --short "refs/remotes/$$REMOTE/$$BASE")"; \
+	echo ">>     $$REMOTE/$$BASE @ $$SRC_SHA"; \
+	echo ">> [3] Safety: refuse if local '$$BASE' is ahead of '$$REMOTE/$$BASE'"; \
+	if git show-ref --verify --quiet "refs/heads/$$BASE"; then \
+		AHEAD="$$(git rev-list --count "$$REMOTE/$$BASE..$$BASE")"; \
+		if [ "$$AHEAD" -ne 0 ]; then \
+			echo "!! Local '$$BASE' is $$AHEAD commit(s) ahead of '$$REMOTE/$$BASE'."; \
+			echo "!! Refusing to avoid discarding local commits."; \
+			exit 1; \
+		fi; \
+	fi; \
+	echo ">> [4] Remote '$$REMOTE/$$BR' status (before)"; \
+	if git show-ref --verify --quiet "refs/remotes/$$REMOTE/$$BR"; then \
+		OLD_SHA="$$(git rev-parse --short "refs/remotes/$$REMOTE/$$BR")"; \
+		BB="$$(git rev-list --left-right --count "$$REMOTE/$$BASE...$$REMOTE/$$BR")"; \
+		echo ">>     $$REMOTE/$$BR @ $$OLD_SHA"; \
+		echo ">>     unique commits vs $$REMOTE/$$BASE: $$BB  [base_only branch_only]"; \
+	else \
+		echo ">>     $$REMOTE/$$BR does not exist (will be created)"; \
+	fi; \
+	echo ">> [5] Recreate local '$$BR' exactly at '$$REMOTE/$$BASE'"; \
+	git branch -D "$$BR" >/dev/null 2>&1 || true; \
+	git switch -c "$$BR" "$$REMOTE/$$BASE" >/dev/null; \
+	NEW_SHA="$$(git rev-parse --short HEAD)"; \
+	echo ">>     local $$BR @ $$NEW_SHA"; \
+	echo ">> [6] Push (force-with-lease)"; \
+	git push -u --force-with-lease "$$REMOTE" "$$BR"; \
+	echo ">> [7] Verify remote equals source-of-truth"; \
+	git fetch "$$REMOTE" --prune; \
+	POST_SHA="$$(git rev-parse --short "refs/remotes/$$REMOTE/$$BR")"; \
+	if [ "$$POST_SHA" != "$$SRC_SHA" ]; then \
+		echo "!! Unexpected: $$REMOTE/$$BR @ $$POST_SHA but expected $$SRC_SHA"; \
+		exit 1; \
+	fi; \
+	echo ">> OK: $$REMOTE/$$BR now equals $$REMOTE/$$BASE @ $$SRC_SHA"
 
 ## push
 ## Stage all changes, commit with a message, and push to the current branch.
