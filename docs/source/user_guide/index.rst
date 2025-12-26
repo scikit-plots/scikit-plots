@@ -44,6 +44,8 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. # https://www.sphinx-doc.org/en/master/usage/domains/python.html#cross-referencing-python-objects
+
 .. _user-guide-index:
 
 ======================================================================
