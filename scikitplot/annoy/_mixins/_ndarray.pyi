@@ -28,11 +28,9 @@ from typing_extensions import Literal, TypeAlias
 PathLikeStr: TypeAlias = str | os.PathLike[str]
 IdsInput: TypeAlias = Sequence[int] | Iterable[int] | None
 
-__all__ = ("NDArrayExportMixin",)
+__all__: tuple[str] = ("NDArrayExportMixin",)
 
 class NDArrayExportMixin:
-    # Minimal Annoy-like surface assumed by this mixin.
-    f: int
     def get_n_items(self) -> int: ...
     def get_item_vector(self, i: int) -> Sequence[float]: ...
     def iter_item_vectors(

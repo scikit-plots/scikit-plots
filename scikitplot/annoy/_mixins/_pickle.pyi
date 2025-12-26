@@ -5,20 +5,20 @@
 
 from collections.abc import Mapping
 from os import PathLike  # noqa: F401
-from typing import Any, ClassVar, Literal, TypeAlias
+from typing import Any, ClassVar
 
-from typing_extensions import Self
+from typing_extensions import Literal, Self, TypeAlias
 
 CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
 PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
 
+__all__: list[str]  # noqa: PYI035
+
 class PickleMixin:
-    _lock: Any
+    _PICKLE_STATE_VERSION: ClassVar[int]
     _compress_mode: CompressMode
     _pickle_mode: PickleMode
-    _PICKLE_STATE_VERSION: ClassVar[int]
 
-    def _low_level(self) -> Any: ...
     @property
     def compress_mode(self) -> CompressMode: ...
     @compress_mode.setter
@@ -31,9 +31,3 @@ class PickleMixin:
     def __reduce_ex__(self, protocol: int) -> object: ...
     @classmethod
     def _rebuild(cls: type[Self], state: Mapping[str, Any]) -> Self: ...
-
-__all__: list[str] = [
-    "CompressMode",
-    "PickleMixin",
-    "PickleMode",
-]

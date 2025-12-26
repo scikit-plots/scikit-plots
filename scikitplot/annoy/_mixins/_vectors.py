@@ -93,29 +93,6 @@ class VectorOpsMixin:
         The required low-level methods provided by the Annoy C-extension wrapper.
     """
 
-    # This mixin supports both inheritance-style (Index subclasses Annoy)
-    # and composition-style (Index wraps a low-level Annoy instance).
-    #
-    # IMPORTANT: the methods in this mixin call ``self.get_nns_*`` and
-    # ``self.get_item_vector``. For composition-style wrappers, provide those
-    # methods as explicit proxies that forward to ``self._annoy``.
-    #
-    # We keep this calling convention intentionally to remain loyal to existing
-    # high-level overrides (e.g., validation/caching) while still enabling
-    # composition when proxies are defined.
-
-    def _low_level(self) -> Any:
-        """
-        Return the low-level Annoy object.
-
-        Preference order is explicit and deterministic:
-
-        1) ``self._annoy`` when present (composition style)
-        2) ``self`` (inheritance style)
-        """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
-
     # ---------------------------------------------------------------------
     # Internal helpers
     # ---------------------------------------------------------------------
@@ -129,9 +106,13 @@ class VectorOpsMixin:
         """Filter ``ids`` (and optionally ``dists``) by a set of excluded ids."""
         if not exclude_ids:
             return ids, dists
-
         if dists is None:
             return [i for i in ids if i not in exclude_ids], None
+
+        if len(ids) != len(dists):
+            raise RuntimeError(
+                "Annoy returned ids and distances of different lengths; this indicates a backend error"
+            )
 
         filtered_ids: Ids = []
         filtered_dists: Dists = []
@@ -143,7 +124,7 @@ class VectorOpsMixin:
 
         return filtered_ids, filtered_dists
 
-    def _require_numpy(self) -> Any:
+    def _require_numpy(self, *, reason: str = "as_numpy=True") -> Any:
         """
         Return the imported NumPy module or raise if unavailable.
 
@@ -162,8 +143,48 @@ class VectorOpsMixin:
             If NumPy is not available in the current environment.
         """
         if np is None:  # pragma: no cover
-            raise ImportError("NumPy is required when as_numpy=True")
+            raise ImportError(f"NumPy is required when {reason}")
         return np
+
+    def _vectors_from_ids(
+        self,
+        ids: Ids,
+        *,
+        as_numpy: bool = False,
+        dtype: str = "float32",
+    ) -> NeighborVectorsMatrix:
+        """
+        Materialize stored vectors for a list of item ids.
+
+        Parameters
+        ----------
+        ids : list[int]
+            Item ids produced by Annoy.
+        as_numpy : bool, default=False
+            If True, return a NumPy array (requires NumPy).
+        dtype : str, default="float32"
+            NumPy dtype used when ``as_numpy=True``.
+
+        Returns
+        -------
+        vectors : list[Sequence[float]] or numpy.ndarray
+            Vectors in the same order as ``ids``.
+
+        Raises
+        ------
+        ImportError
+            If ``as_numpy=True`` but NumPy is not installed.
+
+        Notes
+        -----
+        This method does not attempt to coerce or validate vector dimensionality.
+        It forwards directly to ``get_item_vector`` for each id.
+        """
+        vectors = [self.get_item_vector(int(i)) for i in ids]
+        if not as_numpy:
+            return vectors
+        np_mod = self._require_numpy()
+        return np_mod.asarray(vectors, dtype=dtype)  # type: ignore[return-value]
 
     def _vectors_equal_strict(self, a: Vector, b: Vector) -> bool:
         """Strict element-wise equality (no tolerance, no coercion)."""
@@ -366,8 +387,7 @@ class VectorOpsMixin:
             )
             dists = None
 
-        vectors = [self.get_item_vector(int(i)) for i in ids]
-        mat = np_mod.asarray(vectors, dtype=dtype) if as_numpy else vectors  # type: ignore[union-attr]
+        mat = self._vectors_from_ids(ids, as_numpy=as_numpy, dtype=dtype)
 
         return (mat, dists) if include_distances else mat
 
@@ -621,8 +641,7 @@ class VectorOpsMixin:
             )
             dists = None
 
-        vectors = [self.get_item_vector(int(i)) for i in ids]
-        mat = np_mod.asarray(vectors, dtype=dtype) if as_numpy else vectors  # type: ignore[union-attr]
+        mat = self._vectors_from_ids(ids, as_numpy=as_numpy, dtype=dtype)
         return (mat, dists) if include_distances else mat
 
     def iter_neighbor_vectors_by_vector(
@@ -647,3 +666,123 @@ class VectorOpsMixin:
         )
         for i in ids:
             yield self.get_item_vector(int(i))
+
+    # ---------------------------------------------------------------------
+    # sklearn-style convenience API
+    # ---------------------------------------------------------------------
+    def kneighbors(
+        self,
+        X: Any,
+        n_neighbors: int = 5,
+        *,
+        search_k: int = -1,
+        return_distance: bool = True,
+        include_self: bool = False,
+        exclude_item_ids: Iterable[int] | None = None,
+    ):
+        """
+        Find the K nearest neighbors for one or more query vectors (sklearn-style).
+
+        This is a thin convenience wrapper around :meth:`get_neighbor_ids_by_vector`
+        that returns 2D NumPy arrays, matching the expectations of scikit-learn's
+        ``kneighbors`` interface.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_features,) or (n_queries, n_features)
+            Query vector(s). Input is converted with ``numpy.asarray``.
+        n_neighbors : int, default=5
+            Number of neighbors to request from the backend (after filtering).
+        search_k : int, default=-1
+            Forwarded to the underlying Annoy query.
+        return_distance : bool, default=True
+            If True, return ``(distances, indices)``. If False, return only
+            ``indices``.
+        include_self : bool, default=False
+            Forwarded to :meth:`get_neighbor_ids_by_vector`.
+        exclude_item_ids : iterable of int, optional
+            Additional ids to exclude for every query.
+
+        Returns
+        -------
+        (distances, indices) : tuple of numpy.ndarray
+            When ``return_distance=True``. Arrays have shape
+            ``(n_queries, n_neighbors)``.
+        indices : numpy.ndarray
+            When ``return_distance=False``. Array has shape
+            ``(n_queries, n_neighbors)``.
+
+        Raises
+        ------
+        ImportError
+            If NumPy is not installed.
+        ValueError
+            If ``X`` is not 1D or 2D array-like, or if the backend returns a
+            variable number of neighbors across queries.
+
+        Notes
+        -----
+        Annoy may return fewer than ``n_neighbors`` results if the index contains
+        fewer items. This method requires a rectangular result for sklearn-style
+        outputs; if different queries yield different lengths, it raises a
+        ``ValueError``. For per-query variable-length results, use
+        :meth:`get_neighbor_ids_by_vector` directly.
+        """
+        if n_neighbors <= 0:
+            raise ValueError("n_neighbors must be a positive integer")
+
+        np_mod = self._require_numpy(reason="calling kneighbors")
+        arr = np_mod.asarray(X, dtype="float32")
+
+        if arr.ndim == 1:
+            arr = arr.reshape(1, -1)
+        if arr.ndim != 2:  # noqa: PLR2004
+            raise ValueError("X must be 1D or 2D array-like")
+
+        ids_rows: list[list[int]] = []
+        dist_rows: list[list[float]] = []
+
+        for row in arr:
+            vec = row.tolist()
+            if return_distance:
+                ids, dists = self.get_neighbor_ids_by_vector(
+                    vec,
+                    n_neighbors,
+                    search_k=search_k,
+                    include_distances=True,
+                    include_self=include_self,
+                    exclude_item_ids=exclude_item_ids,
+                )
+                ids_rows.append([int(i) for i in ids])
+                dist_rows.append([float(d) for d in dists])
+            else:
+                ids = self.get_neighbor_ids_by_vector(
+                    vec,
+                    n_neighbors,
+                    search_k=search_k,
+                    include_distances=False,
+                    include_self=include_self,
+                    exclude_item_ids=exclude_item_ids,
+                )
+                ids_rows.append([int(i) for i in ids])
+
+        lengths = {len(r) for r in ids_rows}
+        if len(lengths) != 1:
+            raise ValueError(
+                "Backend returned a variable number of neighbors across queries; "
+                "use get_neighbor_ids_by_vector for per-query results."
+            )
+
+        indices = np_mod.asarray(ids_rows, dtype=np_mod.intp)
+        if not return_distance:
+            return indices
+
+        dist_lengths = {len(r) for r in dist_rows}
+        if len(dist_lengths) != 1:
+            raise ValueError(
+                "Backend returned a variable number of distances across queries; "
+                "use get_neighbor_ids_by_vector for per-query results."
+            )
+
+        distances = np_mod.asarray(dist_rows, dtype=np_mod.float32)
+        return distances, indices

@@ -1,39 +1,28 @@
 # scikitplot/annoy/_base.py
 """
-High-level public :class:`~scikitplot.annoy.Index`.
+High-level public :class:`~scikitplot.annoy` index.
 
-This module defines :class:`~scikitplot.annoy.Index` as a *direct subclass* of the
-low-level ANNoy backend (:class:`~scikitplot.cexternals._annoy.Annoy`) and composes
-higher-level behavior via mixins.
-
-- The low-level Annoy backend is a C-extension type that implements the core
-  operations (add/build/query/serialize/deserialize/save/load).
-- The high-level :class:`~scikitplot.annoy.Index` keeps a stable Pythonic API by
-  layering mixins on top of that backend (manifest, I/O, pickling, ndarray export,
-  plotting helpers, etc.).
+This module defines :class:`~scikitplot.annoy.Index` as a *thin, explicit* Python
+facade over the low-level Annoy backend implemented in the C-extension
+(:class:`~scikitplot.cexternals._annoy.Annoy`).
 
 Notes
 -----
-This module avoids implicit side effects and keeps state/configuration explicit.
-In particular:
+- **Deterministic**: no implicit guessing; conversions and fallbacks are explicit.
+- **Stable invariants**: low-level semantics live in the C-extension; this layer
+  focuses on ergonomics, documentation, and composition.
+- **No cooperative init**: mixins must not depend on ``super().__init__`` being
+  called across the MRO (the backend is a C type).
+- Support inheritance-based and composition-based designs (mixin independence).
 
-- :class:`~scikitplot.annoy.Index` does **not** override the backend constructor.
-  Initialization is provided by the C-extension type (:class:`~scikitplot.cexternals._annoy.Annoy`).
-- Mixins used here are expected to be initialization-free (no required
-  ``__init__``) or to provide safe defaults.
+The mixins imported here provide higher-level capabilities (I/O, numpy
+integration, pickling, plotting, metadata). This module is intentionally small:
+it only contains glue needed to compose the public class.
 
 See Also
 --------
 scikitplot.cexternals._annoy.Annoy
-    Low-level ANNoy backend.
-scikitplot.annoy._mixins._manifest.ManifestMixin
-    Versioned manifest helpers.
-scikitplot.annoy._mixins._io.IndexIOMixin
-    Annoy-native index persistence helpers.
-scikitplot.annoy._mixins._io.PickleIOMixin
-    High-level pickle helpers.
-scikitplot.annoy._mixins._pickle.PickleMixin
-    Pickle protocol for the high-level index (versioned state).
+    Low-level backend (C-extension) providing the core ANN index operations.
 """
 
 #   .. seealso::
@@ -42,25 +31,41 @@ scikitplot.annoy._mixins._pickle.PickleMixin
 
 from __future__ import annotations
 
-# import uuid  # f"annoy-{uuid.uuid4().hex}.annoy"
-from typing_extensions import Self  # noqa: F401
+import threading
 
-from ..cexternals._annoy import Annoy, AnnoyIndex  # noqa: F401
-from ._mixins._io import IndexIOMixin, PickleIOMixin
-from ._mixins._manifest import ManifestMixin
+# import uuid  # f"annoy-{uuid.uuid4().hex}.annoy"
+from typing_extensions import Self
+
+from ..cexternals._annoy import Annoy
+from ._mixins._io import IndexIOMixin
+from ._mixins._meta import MetaMixin
 from ._mixins._ndarray import NDArrayExportMixin
-from ._mixins._pickle import CompressMode, PickleMixin, PickleMode  # noqa: F401
+from ._mixins._pickle import PickleMixin
 from ._mixins._plotting import PlottingMixin
 from ._mixins._vectors import VectorOpsMixin
+from ._utils import FALLBACK_LOCK, lock_for
 
-__all__ = ["Index"]
+__all__ = [
+    "Index",
+]
+
+# ------------------------------------------------------------------
+# Low-level access
+# This wrapper supports both inheritance (self is the backend) and
+# composition (self._annoy holds the backend).
+#
+# This mixin supports both inheritance-style (Index subclasses Annoy)
+# and composition-style (Index wraps a low-level Annoy instance).
+#
+# Concrete classes may optionally provide ``self._annoy``; if absent,
+# the low-level object is assumed to be ``self``.
 
 
 class Index(
     Annoy,
-    ManifestMixin,
+    # Any order mixins to MRO
+    MetaMixin,
     IndexIOMixin,
-    PickleIOMixin,
     PickleMixin,
     VectorOpsMixin,
     NDArrayExportMixin,
@@ -71,10 +76,10 @@ class Index(
 
     Parameters
     ----------
-    f : int, default=0
-        Vector dimensionality passed to the backend. If ``0``, the backend may
+    f : int or None, optional, default=None
+        Vector dimensionality passed to the backend. If ``0`` or ``None``, the backend may
         infer dimensionality lazily from the first added vector.
-    metric : str or None, default=None
+    metric : str or None, optional, default=None
         Metric name passed to the backend. Common values include
         ``"angular"``, ``"euclidean"``, ``"manhattan"``, ``"dot"``, and
         ``"hamming"`` (synonyms may also be accepted by the backend).
@@ -100,9 +105,10 @@ class Index(
 
     Notes
     -----
-    This class initializes the C-extension backend explicitly (``Annoy.__init__``)
-    and then initializes mixin configuration explicitly. It does **not** rely on
-    cooperative ``super().__init__`` across mixins.
+    This class is a direct subclass of the C-extension backend. It does not
+    override ``__new__`` and does not rely on cooperative initialization across
+    mixins. Mixins must be written so that their methods work even if they
+    define no ``__init__`` at all.
 
     See Also
     --------
@@ -111,97 +117,100 @@ class Index(
     """
 
     # __slots__ = ()
+    # Re-entrant lock for deterministic, thread-safe reduce/rebuild paths.
+    _lock: threading.RLock | None = None
 
-    # ------------------------------------------------------------------
-    # Low-level access
-    # This wrapper supports both inheritance (self is the backend) and
-    # composition (self._annoy holds the backend).
-
-    # This mixin supports both inheritance-style (Index subclasses Annoy)
-    # and composition-style (Index wraps a low-level Annoy instance).
-    #
-    # Concrete classes may optionally provide ``self._annoy``; if absent,
-    # the low-level object is assumed to be ``self``.
-
-    def _low_level(self) -> Annoy:
+    def _get_lock(self) -> threading.RLock:
         """
-        Return the low-level Annoy object.
+        Return a per-instance re-entrant lock.
 
-        Preference order is explicit and deterministic:
+        The lock is created lazily to avoid changing construction semantics of
+        the C-extension backend. If the instance cannot store attributes, a
+        module-level fallback lock is returned.
 
-        1) ``object._annoy`` when present (composition style)
-        2) ``self`` (inheritance style)
-
-        Notes
-        -----
-        This helper uses :func:`object.__getattribute__` to avoid triggering custom
-        ``__getattr__`` / ``__getattribute__`` side effects during low-level access.
+        Returns
+        -------
+        lock : threading.RLock
+            Re-entrant lock guarding non-atomic multi-step operations.
         """
-        # ll = getattr(self, "_annoy", None)
-        # return ll if ll is not None else obj
+        # Prefer an instance lock when possible; fall back to a shared lock
+        # when the C-extension type does not support dynamic attributes.
+        lock = getattr(self, "_lock", None)
+        if lock is not None:
+            return lock
+
+        new_lock = threading.RLock()
+        try:
+            object.__setattr__(self, "_lock", new_lock)
+        except (AttributeError, TypeError):
+            return FALLBACK_LOCK
+        return new_lock
+
+    def _backend(self) -> Annoy:
+        """
+        Return the low-level backend instance.
+
+        This is a deterministic accessor that enables both inheritance and
+        composition styles:
+
+        1) If ``self._annoy`` exists, it is returned (composition).
+        2) Otherwise, ``self`` is returned (inheritance).
+
+        The implementation uses :func:`object.__getattribute__` to avoid
+        triggering custom attribute lookup side effects.
+
+        Returns
+        -------
+        backend : scikitplot.cexternals._annoy.Annoy
+            Low-level Annoy backend.
+        """
         try:
             return object.__getattribute__(self, "_annoy")
         except AttributeError:
             return self
 
-    # ------------------------------------------------------------------
-    # Low-level accessors
     @property
-    def annoy(self) -> Annoy:
+    def backend(self) -> Annoy:
         """
-        Return the low-level backend object.
-
-        This high-level wrapper supports both:
-
-        - **Inheritance style**: :class:`~scikitplot.annoy.Index` subclasses the
-          C-extension backend, so the low-level object is ``self``.
-        - **Composition style**: a concrete class may expose a private
-          ``self._annoy`` attribute that holds the low-level backend instance.
+        Public alias for :meth:`~scikitplot.annoy.Index._backend`.
 
         Returns
         -------
-        backend : Annoy
+        backend : scikitplot.cexternals._annoy.Annoy
             Low-level Annoy backend instance.
-
-        Notes
-        -----
-        This accessor is deterministic and side-effect free.
-
-        See Also
-        --------
-        Index._low_level
         """
-        return self._low_level()
-
-    @annoy.setter
-    def annoy(self, annoy: Annoy) -> None:
-        self._annoy = annoy
+        return self._backend()
 
     @classmethod
     def from_low_level(cls, obj: Annoy, *, prefault: bool | None = None) -> Self:
         """
         Create a new :class:`~scikitplot.annoy.Index` from a low-level instance.
 
-        This method round-trips through ``serialize``/``deserialize`` to avoid
-        sharing internal low-level state between two Python objects.
+        The new object is rebuilt by round-tripping through Annoy's native
+        ``serialize`` / ``deserialize`` to avoid sharing low-level state between
+        two Python objects.
 
         Parameters
         ----------
-        obj : Annoy
+        obj : scikitplot.cexternals._annoy.Annoy
             Low-level Annoy instance.
         prefault : bool or None, default=None
-            Prefault override passed to :meth:`~.Annoy.deserialize`. If None, uses
-            the destination object's configured prefault.
+            Prefault override passed to :meth:`~.Annoy.deserialize`. If None, the
+            value is taken from ``obj.get_params(deep=False)`` when available,
+            otherwise it falls back to ``obj.prefault`` / destination defaults.
 
         Returns
         -------
         index : Index
-            A new high-level index instance with the same contents as ``obj``.
+            Newly constructed high-level index.
 
         Raises
         ------
+        TypeError
+            If ``obj`` is not an Annoy instance.
         RuntimeError
-            If deserialization fails.
+            If serialization or deserialization fails, or required configuration
+            (e.g., ``f``) cannot be determined.
 
         Notes
         -----
@@ -212,15 +221,55 @@ class Index(
         --------
         Annoy.serialize
         Annoy.deserialize
+        Annoy.get_params
+        Annoy.set_params
+
+        Notes
+        -----
+        This method is deterministic. It always constructs a new index from the
+        serialized payload; it does not share low-level state between objects.
         """
-        payload = obj.serialize()
-        inst = cls(obj.f, str(obj.metric))
+        if not isinstance(obj, Annoy):
+            raise TypeError(f"obj must be an Annoy instance, got {type(obj)!r}")
 
-        if obj.on_disk_path:
-            inst.on_disk_path = str(obj.on_disk_path)
+        # Serialize + capture stable params under a lock to avoid torn reads if the
+        # same low-level object is accessed concurrently.
+        lock = lock_for(obj)
+        with lock:
+            payload = obj.serialize()
+            if not isinstance(payload, (bytes, bytearray, memoryview)):
+                raise RuntimeError("Annoy.serialize() must return a bytes-like object.")
+            payload = bytes(payload)
+            # Copy stable configuration (sklearn-style) before restoring the payload.
+            try:
+                params = dict(obj.get_params(deep=False))
+            except Exception:
+                params = {}
 
-        inst.deserialize(
-            payload,
-            prefault=prefault if prefault is not None else inst.prefault,
-        )
+        # lazy default None
+        f_raw = getattr(obj, "f", None)
+        if f_raw is None:
+            f_raw = params.get("f", None)  # noqa: SIM910
+        if f_raw is None:
+            raise RuntimeError("Cannot determine dimension 'f' from low-level object.")
+        f = int(f_raw)
+        metric = params.get("metric", getattr(obj, "metric", None))
+        metric_s = str(metric) if metric is not None else None
+
+        inst = cls(f) if metric_s is None else cls(f, metric_s)
+
+        # Copy remaining params (strict in backend; unknown keys will raise).
+        if params:
+            rest = {k: v for k, v in params.items() if k not in {"f", "metric"}}
+            if rest:
+                inst.set_params(**rest)
+
+        # Preserve explicit prefault override, if requested.
+        if prefault is None:
+            prefault_raw = params.get("prefault", getattr(obj, "prefault", None))
+            if prefault_raw is None:
+                prefault_raw = getattr(inst, "prefault", False)
+            prefault = bool(prefault_raw)
+
+        inst.deserialize(payload, prefault=bool(prefault))
         return inst

@@ -59,7 +59,7 @@ Annoy(None), \
 Annoy(None, None), \
 Annoy(1), \
 Annoy(1,".", seed=1, verbose=1), \
-Annoy(1,"@", seed=1, verbose=1).verbose(2).set_seed(2)
+Annoy(1,"@", seed=1, verbose=1).set_verbose(2).set_seed(2)
 
 # %%
 
@@ -522,6 +522,32 @@ idx.info()
 # %%
 
 idx.get_nns_by_item(0, 10), len(idx.get_item_vector(0))
+
+# %%
+
+import random
+from scikitplot.utils._time import Timer
+
+n, f = 10_000, 1_000
+X = [[random.gauss(0, 1) for _ in range(f)] for _ in range(n)]
+q = [[random.gauss(0, 1) for _ in range(f)]]
+
+# %%
+
+with Timer("set_params"):
+    for m in ["angular", "l1", "l2", ".", "hamming"]:
+        idx = AnnoyIndex().set_params(metric=m).fit(X)
+        print(m, idx.transform(q))
+
+# %%
+
+with Timer("rebuild"):
+    base = AnnoyIndex(metric="l2").fit(X)
+
+    for m in ["angular", "l1", "l2", "dot", "hamming"]:
+        idx_m = base.rebuild(metric=m)          # rebuild-from-index
+        print(m, idx_m.transform(q))            # no .fit(X) here
+
 
 # %%
 #

@@ -65,7 +65,7 @@ except Exception:  # pragma: no cover
 PathLikeStr: TypeAlias = Union[str, os.PathLike[str]]
 IdsInput: TypeAlias = Union[Sequence[int], Iterable[int], None]
 
-__all__ = ("NDArrayExportMixin",)
+__all__: tuple[str] = ("NDArrayExportMixin",)
 
 
 def _fspath(path: PathLikeStr) -> str:
@@ -84,33 +84,6 @@ class NDArrayExportMixin:
     - Streaming writers (`to_csv`, `to_parquet`, `to_sqlite`) accept any iterable
       of ids (including generators).
     """
-
-    # This mixin supports both inheritance-style (Index subclasses Annoy)
-    # and composition-style (Index wraps a low-level Annoy instance).
-    #
-    # Concrete classes may optionally provide ``self._annoy``; if absent,
-    # the low-level object is assumed to be ``self``.
-
-    def _low_level(self) -> Any:
-        """
-        Return the low-level Annoy object.
-
-        Preference order is explicit and deterministic:
-
-        1) ``object._annoy`` when present (composition style)
-        2) ``self`` (inheritance style)
-
-        Notes
-        -----
-        This helper uses :func:`object.__getattribute__` to avoid triggering custom
-        ``__getattr__`` / ``__getattribute__`` side effects during low-level access.
-        """
-        # ll = getattr(self, "_annoy", None)
-        # return ll if ll is not None else obj
-        try:
-            return object.__getattribute__(self, "_annoy")
-        except AttributeError:
-            return self
 
     # Provide a stable path-like coercion hook for all mixin methods.
     # (Module-level `_fspath` remains for backwards compatibility.)

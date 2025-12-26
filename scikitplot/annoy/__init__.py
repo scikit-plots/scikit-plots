@@ -93,8 +93,8 @@ from ._base import Index  # extended python-api derived annoylib.Annoy legacy c-
 
 # Mixins are intentionally exported for advanced users who want to build their
 # own wrapper types around the same C-extension backend.
-from ._mixins._io import IndexIOMixin, PickleIOMixin
-from ._mixins._manifest import ManifestMixin
+from ._mixins._io import IndexIOMixin
+from ._mixins._meta import MetaMixin
 from ._mixins._ndarray import NDArrayExportMixin
 from ._mixins._pickle import CompressMode, PickleMixin, PickleMode
 from ._mixins._plotting import PlottingMixin
@@ -118,9 +118,8 @@ __all__ = [
     "CompressMode",
     "Index",
     "IndexIOMixin",
-    "ManifestMixin",
+    "MetaMixin",
     "NDArrayExportMixin",
-    "PickleIOMixin",
     "PickleMixin",
     "PickleMode",
     "PlottingMixin",

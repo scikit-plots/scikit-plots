@@ -55,11 +55,12 @@
 #include <memory>
 #include <limits>
 #include <new>  // std::bad_alloc
-#include <iostream>  // std::cout << R"(...)" << std::endl;
 #include <string>  // std::string
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
+
+// #include <iostream>  // std::cout << R"(...)" << std::endl;
 
 #if PY_MAJOR_VERSION >= 3
   #define IS_PY3K
@@ -1492,7 +1493,7 @@ static PyObject* py_an_new(
     // PyObject_GC_IsTracked() is only available starting with Python 3.9.
     // For Python 3.8 compatibility we untrack unconditionally.
     // (On CPython this is safe even if the object is not currently tracked.)
-    PyObject_GC_UnTrack((PyObject*)self);  // ?kernel dead
+    PyObject_GC_UnTrack((PyObject*)self);
   }
 
   self->dict = NULL;
@@ -1511,10 +1512,11 @@ static PyObject* py_an_new(
   // Construct placement-new std::string members (py_annoy is a C struct,
   // so tp_alloc does not run C++ constructors).
   try {
-    // Restarting on the available memory
-    new (&self->on_disk_path) std::string(); // Rebuild Placement new like = ""
+    // Placement-new: construct C++ std::string members inside the C struct.
+    new (&self->on_disk_path) std::string();  // placement-new: empty path
     // self->on_disk_path.clear(); // Or clear the content Standart metod
-    // self->on_disk_path.~basic_string();  // Summon Manuel Destructor
+    // Explicit destructor call for placement-new std::string member.
+    // self->on_disk_path.~basic_string();  // explicit destructor for placement-new member
   } catch (const std::bad_alloc&) {
     PyErr_NoMemory();
     Py_TYPE(self)->tp_free((PyObject*)self);
@@ -1899,10 +1901,11 @@ static void py_an_dealloc(py_annoy* self) {
 
   // 2) Destroy placement-new std::string members
   try {
-    // Restarting on the available memory
-    // new (&self->on_disk_path) std::string(); // Rebuild Placement new like = ""
+    // Placement-new: construct C++ std::string members inside the C struct.
+    // new (&self->on_disk_path) std::string();  // placement-new: empty path
     // self->on_disk_path.clear(); // Cpp clear the content Standart metod
-    self->on_disk_path.~basic_string();  // Summon Manuel Destructor
+    // Explicit destructor call for placement-new std::string member.
+    self->on_disk_path.~basic_string();  // explicit destructor for placement-new member
   } catch (...) {
     // Never let exceptions escape tp_dealloc
   }
