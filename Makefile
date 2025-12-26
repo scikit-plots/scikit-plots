@@ -192,103 +192,169 @@ sync-time:
 # - clean-basic is a safe cleanup that excludes third_party.
 # - clean removes everything from clean-basic plus build artifacts.
 # - clean-test only removes testing/coverage-related files.
-#
+# clean-basic:
+# 	@echo ">> Starting basic cleaning..."
+# 	@# Remove protobuf caches
+# 	@#sudo -H rm -rf ./.cache/protobuf_cache || true
+# 	@# Remove pip caches
+# 	@rm -rf ~/.cache/pip
+# 	@pip cache purge || true
+# 	@echo "   - Removed pip cache files"
+# 	@# Remove Jupyter checkpoints
+# 	@# rm -rf `find -L . -type d -name ".ipynb_checkpoints" -not -path "./third_party/*"`
+# 	@find . -name '.ipynb_checkpoints' -not -path './third_party/*' -exec rm -rf {} +
+# 	@rm -rf "./third_party/.ipynb_checkpoints"
+# 	@echo "   - Removed '.ipynb_checkpoints'"
+# 	@# Remove Python cache directories
+# 	@# rm -rf `find -L . -type d -name "__pycache__" -not -path "./third_party/*"`
+# 	@find . -name '__pycache__' -not -path './third_party/*' -exec rm -rf {} +
+# 	@echo "   - Removed '__pycache__'"
+# 	@# Remove zip leftovers
+# 	@# rm -rf `find -L . -type d -name "__MACOSX" -not -path "./third_party/*"`
+# 	@find . -name '__MACOSX' -not -path './third_party/*' -exec rm -rf {} +
+# 	@echo "   - Removed '__MACOSX'"
+# 	@# Remove VSCode configs
+# 	@# rm -rf `find -L . -type d -name ".vscode" -not -path "./third_party/*"`
+# 	@find . -name '.vscode' -not -path './third_party/*' -exec rm -rf {} +
+# 	@echo "   - Removed '.vscode'"
+# 	@# Remove type checker/linter caches
+# 	@rm -rf ".mypy_cache" ".ruff_cache"
+# 	@echo "   - Removed mypy and ruff caches"
+# 	@# Remove Gradio cache
+# 	@rm -rf ".gradio"
+# 	@echo "   - Removed Gradio cache"
+# 	@# Remove matplotlib result images
+# 	@rm -rf "result_images"
+# 	@find . -name 'result_images' -not -path './third_party/*' -exec rm -rf {} +
+# 	@echo "   - Removed 'result_images' from matplotlib builds 'matplotlib.sphinxext.plot_directive'"
+# 	@# Remove pytest cache
+# 	@# rm -rf `find -L . -type d -name ".pytest_cache" -not -path "./third_party/*"`
+# 	@find . -name '.pytest_cache' -not -path './third_party/*' -exec rm -rf {} +
+# 	@echo "   - Removed '.pytest_cache'"
+# 	@echo ">> Basic cleaning completed."
+
+# Centralized patterns for index / ANN artifacts
+ANN_INDEX_EXTS := -name '*.annoy' -o -name '*.tree' -o -name '*.ann' -o -name '*.voyager' -o -name '*.voy' -o -name '*.idx' -o -name '*.hdf5'
+# \( -path './.git' -o -path './third_party' \) -prune -o \
+# \( $(ANN_INDEX_EXTS) \) \
+
 ## clean-basic
 ## Remove development caches and temporary files, excluding 'third_party'.
 clean-basic:
-	@echo ">> Starting basic cleaning..."
-
-	@# Remove protobuf caches
-	@#sudo -H rm -rf ./.cache/protobuf_cache || true
-
-	@# Remove pip caches
-	@rm -rf ~/.cache/pip
-	@pip cache purge || true
-	@echo "   - Removed pip cache files"
-
-	@# Remove Jupyter checkpoints
-	@# rm -rf `find -L . -type d -name ".ipynb_checkpoints" -not -path "./third_party/*"`
-	@find . -name '.ipynb_checkpoints' -not -path './third_party/*' -exec rm -rf {} +
-	@rm -rf "./third_party/.ipynb_checkpoints"
-	@echo "   - Removed '.ipynb_checkpoints'"
-
-	@# Remove Python cache directories
-	@# rm -rf `find -L . -type d -name "__pycache__" -not -path "./third_party/*"`
-	@find . -name '__pycache__' -not -path './third_party/*' -exec rm -rf {} +
-	@echo "   - Removed '__pycache__'"
-
-	@# Remove zip leftovers
-	@# rm -rf `find -L . -type d -name "__MACOSX" -not -path "./third_party/*"`
-	@find . -name '__MACOSX' -not -path './third_party/*' -exec rm -rf {} +
-	@echo "   - Removed '__MACOSX'"
-
-	@# Remove VSCode configs
-	@# rm -rf `find -L . -type d -name ".vscode" -not -path "./third_party/*"`
-	@find . -name '.vscode' -not -path './third_party/*' -exec rm -rf {} +
-	@echo "   - Removed '.vscode'"
-
-	@# Remove type checker/linter caches
-	@rm -rf ".mypy_cache" ".ruff_cache"
-	@echo "   - Removed mypy and ruff caches"
-
-	@# Remove Gradio cache
-	@rm -rf ".gradio"
-	@echo "   - Removed Gradio cache"
-
-	@# Remove matplotlib result images
-	@rm -rf "result_images"
-	@find . -name 'result_images' -not -path './third_party/*' -exec rm -rf {} +
-	@echo "   - Removed 'result_images' from matplotlib builds 'matplotlib.sphinxext.plot_directive'"
-
-	@# Remove pytest cache
-	@# rm -rf `find -L . -type d -name ".pytest_cache" -not -path "./third_party/*"`
-	@find . -name '.pytest_cache' -not -path './third_party/*' -exec rm -rf {} +
-	@echo "   - Removed '.pytest_cache'"
-
-	@echo ">> Basic cleaning completed."
+	@set -euo pipefail; \
+	echo ">> Starting basic cleaning..."; \
+	\
+	echo ">> [1] Pip cache"; \
+	rm -rf "$$HOME/.cache/pip" || true; \
+	pip cache purge >/dev/null 2>&1 || true; \
+	echo "   - Removed pip cache files"; \
+	\
+	echo ">> [2] Jupyter checkpoints"; \
+	find . -name '.ipynb_checkpoints' -not -path './third_party/*' -exec rm -rf {} +; \
+	rm -rf "./third_party/.ipynb_checkpoints" || true; \
+	echo "   - Removed '.ipynb_checkpoints'"; \
+	\
+	echo ">> [3] Python bytecode caches"; \
+	find . -name '__pycache__' -not -path './third_party/*' -exec rm -rf {} +; \
+	echo "   - Removed '__pycache__'"; \
+	\
+	echo ">> [4] Zip leftovers"; \
+	find . -name '__MACOSX' -not -path './third_party/*' -exec rm -rf {} +; \
+	echo "   - Removed '__MACOSX'"; \
+	\
+	echo ">> [5] VSCode configs"; \
+	find . -name '.vscode' \
+		-not -path './third_party/*' \
+		-not -path './.vscode' \
+		-exec rm -rf {} +; \
+	echo "   - Removed '.vscode'"; \
+	\
+	echo ">> [6] Type checker / linter caches"; \
+	rm -rf ".mypy_cache" ".ruff_cache"; \
+	echo "   - Removed mypy and ruff caches"; \
+	\
+	echo ">> [7] Gradio cache"; \
+	rm -rf ".gradio"; \
+	echo "   - Removed Gradio cache"; \
+	\
+	echo ">> [8] Matplotlib result images"; \
+	rm -rf "result_images" || true; \
+	find . -name 'result_images' -not -path './third_party/*' -exec rm -rf {} +; \
+	echo "   - Removed 'result_images'"; \
+	\
+	echo ">> [9] Pytest cache"; \
+	find . -name '.pytest_cache' -not -path './third_party/*' -exec rm -rf {} +; \
+	echo "   - Removed '.pytest_cache'"; \
+	\
+	echo ">> [10] ANN/Voyager index artifacts"; \
+	find . \
+		\( $(ANN_INDEX_EXTS) \) \
+		-not -path './.git/*' \
+		-not -path './third_party/*' \
+		-not -path './scikitplot/annoy/tests/test.tree' \
+		-type f -print -delete || true; \
+	echo "   - Removed: *.annoy *.tree *.ann *.voyager *.voy *.idx *.hdf5"; \
+	\
+	echo ">> Basic cleaning completed."
 
 ## clean-test
 ## Remove testing and coverage artifacts.
 clean-test:
-	@echo ">> Starting test cleaning..."
-
-	@# Remove pytest cache
-	@# rm -rf `find -L . -type d -name ".pytest_cache" -not -path "./third_party/*"`
-	@find . -name '.pytest_cache' -not -path './third_party/*' -exec rm -rf {} +
-	@echo "   - Removed '.pytest_cache'"
-
-	@rm -rf .tox/
-	@rm -f .coverage
-	@rm -f coverage.xml
-	@rm -rf htmlcov/
-	@echo "   - Removed tox environments and coverage reports"
-
-	@echo ">> Test cleaning completed."
+	@set -euo pipefail; \
+	echo ">> Starting test cleaning..."; \
+	\
+	echo ">> [1] Pytest cache"; \
+	find . -name '.pytest_cache' -not -path './third_party/*' -exec rm -rf {} +; \
+	echo "   - Removed '.pytest_cache'"; \
+	\
+	echo ">> [2] Coverage artifacts"; \
+	rm -rf .tox/ htmlcov/ || true; \
+	rm -f .coverage coverage.xml || true; \
+	echo "   - Removed tox environments and coverage reports"; \
+	\
+	echo ">> [3] ANN/Voyager index artifacts"; \delete || true; \
+	find . \
+		\( $(ANN_INDEX_EXTS) \) \
+		-not -path './.git/*' \
+		-not -path './third_party/*' \
+		-not -path './scikitplot/annoy/tests/test.tree' \
+		-type f -print -delete || true; \
+	echo "   - Removed: *.annoy *.tree *.ann *.voyager *.voy *.idx *.hdf5"; \
+	\
+	echo ">> Test cleaning completed."
 
 ## clean
 ## Perform a full cleanup: includes clean-basic + build artifacts.
 clean: clean-basic
-	@echo ">> Starting full cleanup..."
-
-	@# Remove build directories and egg-info
-	@rm -rf "build" "build_dir" "builddir" "dist" "scikit_plots.egg-info" *.egg-info*
-	@echo "   - Removed build directories and egg-info files"
-
-	@# Remove compiled shared objects
-	@# rm -rf `find -L -type f -name "*.so" -path "*/build*"`
-	@# find -L -type f -name *.so -path "*/build*" | xargs rm -rf
-	@find -L -type f -name "*.so" -path "*/build*" -exec rm -rf {} +
-	@echo "   - Removed '*.so' files in build directories"
-
-	@# Remove Meson-related files
-	@rm -rf .meson .mesonpy-*
-	@echo "   - Removed Meson-related files (.meson, .mesonpy-*)"
-
-	@# Uninstall local package
-	@pip uninstall scikit-plots -y || true
-	@echo "   - Uninstalled local 'scikit-plots' package (if present)"
-
-	@echo ">> Full cleanup completed."
+	@set -euo pipefail; \
+	echo ">> Starting full cleanup..."; \
+	\
+	echo ">> [1] Build directories and egg-info"; \
+	rm -rf "build" "build_dir" "builddir" "dist" "scikit_plots.egg-info" *.egg-info* || true; \
+	echo "   - Removed build directories and egg-info files"; \
+	\
+	echo ">> [2] Compiled shared objects in build dirs"; \
+	find -L -type f -name "*.so" -path "*/build*" -exec rm -rf {} +; \
+	echo "   - Removed '*.so' files in build directories"; \
+	\
+	echo ">> [3] Meson-related files"; \
+	rm -rf .meson .mesonpy-* || true; \
+	echo "   - Removed Meson-related files (.meson, .mesonpy-*)"; \
+	\
+	echo ">> [4] Uninstall local package"; \
+	pip uninstall scikit-plots -y >/dev/null 2>&1 || true; \
+	echo "   - Uninstalled local 'scikit-plots' package (if present)"; \
+	\
+	echo ">> [5] ANN/Voyager index artifacts"; \
+	find . \
+		\( $(ANN_INDEX_EXTS) \) \
+		-not -path './.git/*' \
+		-not -path './third_party/*' \
+		-not -path './scikitplot/annoy/tests/test.tree' \
+		-type f -print -delete || true; \
+	echo "   - Removed: *.annoy *.tree *.ann *.voyager *.voy *.idx *.hdf5"; \
+	\
+	echo ">> Full cleanup completed."
 
 ######################################################################
 ## Project Structure
@@ -299,6 +365,55 @@ clean: clean-basic
 tree:
 	@echo ">> System detected: $(SYSTEM)"
 	@$(TREE_CMD)
+
+######################################################################
+## Repair
+######################################################################
+
+git_reidx:
+	@set -euo pipefail; \
+	echo ">> Rebuilding Git pack indexes (*.idx) from existing *.pack files..."; \
+	PACKS="$$(ls -1 .git/objects/pack/*.pack 2>/dev/null || true)"; \
+	if [ -z "$$PACKS" ]; then \
+		echo ">> No .git/objects/pack/*.pack files found. Nothing to re-index."; \
+		exit 0; \
+	fi; \
+	echo "$$PACKS"; \
+	for p in $$PACKS; do \
+		echo ">> Re-indexing: $$p"; \
+		git index-pack "$$p"; \
+	done; \
+	echo ">> Done: pack indexes rebuilt."
+
+git_verify:
+	@set -euo pipefail; \
+	echo ">> Verifying repository integrity (git fsck --full)..."; \
+	git fsck --full; \
+	echo ">> OK: git fsck completed."
+
+git_refs_check:
+	@set -euo pipefail; \
+	echo ">> Checking remote-tracking refs..."; \
+	if git show-ref --verify --quiet refs/remotes/upstream/main; then \
+		echo ">> OK: upstream/main -> $$(git rev-parse --short refs/remotes/upstream/main)"; \
+	else \
+		echo ">> WARN: refs/remotes/upstream/main not found"; \
+	fi; \
+	if git show-ref --verify --quiet refs/remotes/origin/main; then \
+		echo ">> OK: origin/main   -> $$(git rev-parse --short refs/remotes/origin/main)"; \
+	else \
+		echo ">> WARN: refs/remotes/origin/main not found"; \
+	fi
+
+git_refs_verify:
+	@set -euo pipefail; \
+	echo ">> Verifying required remote-tracking refs exist..."; \
+	git show-ref --verify refs/remotes/upstream/main >/dev/null; \
+	git show-ref --verify refs/remotes/origin/main >/dev/null; \
+	echo ">> OK: both refs exist."
+
+git_repair: git_reidx git_verify git_refs_check
+	@echo ">> Repair complete."
 
 ######################################################################
 ## Symbolic Links
@@ -662,6 +777,20 @@ grep:
 # - 'origin' is your fork
 # - 'upstream' is the original repository (if needed)
 #
+
+git_pre_push_check:
+	@set -euo pipefail; \
+	echo ">> Pre-push checks..."; \
+	echo ">> [1/4] Working tree clean?"; \
+	git diff --quiet && git diff --cached --quiet || { echo "!! Dirty working tree. Commit/stash first."; exit 1; }; \
+	echo ">> [2/4] Repo integrity (git fsck --full)"; \
+	git fsck --full >/dev/null; \
+	echo ">> [3/4] Required remote refs exist?"; \
+	git show-ref --verify refs/remotes/origin/main >/dev/null; \
+	git show-ref --verify refs/remotes/upstream/main >/dev/null; \
+	echo ">> [4/4] Remotes reachable?"; \
+	git ls-remote --exit-code origin HEAD >/dev/null; \
+	echo ">> OK: pre-push checks passed."
 
 infobr:
 	@git status -sb; git log -1 --oneline;
