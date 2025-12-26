@@ -250,22 +250,29 @@ clean-basic:
 	echo "   - Removed pip cache files"; \
 	\
 	echo ">> [2] Jupyter checkpoints"; \
-	find . -name '.ipynb_checkpoints' -not -path './third_party/*' -exec rm -rf {} +; \
+	find . -name '.ipynb_checkpoints'
+		-not -path './third_party/*'
+		-exec rm -rf {} +; \
 	rm -rf "./third_party/.ipynb_checkpoints" || true; \
 	echo "   - Removed '.ipynb_checkpoints'"; \
 	\
 	echo ">> [3] Python bytecode caches"; \
-	find . -name '__pycache__' -not -path './third_party/*' -exec rm -rf {} +; \
+	find . -name '__pycache__'
+		-not -path './third_party/*'
+		-exec rm -rf {} +; \
 	echo "   - Removed '__pycache__'"; \
 	\
 	echo ">> [4] Zip leftovers"; \
-	find . -name '__MACOSX' -not -path './third_party/*' -exec rm -rf {} +; \
+	find . -name '__MACOSX'
+		-not -path './third_party/*'
+		-exec rm -rf {} +; \
 	echo "   - Removed '__MACOSX'"; \
 	\
 	echo ">> [5] VSCode configs"; \
 	find . -name '.vscode' \
-		-not -path './third_party/*' \
 		-not -path './.vscode' \
+		-not -path './.git_clones/*' \
+		-not -path './third_party/*' \
 		-exec rm -rf {} +; \
 	echo "   - Removed '.vscode'"; \
 	\
@@ -279,17 +286,22 @@ clean-basic:
 	\
 	echo ">> [8] Matplotlib result images"; \
 	rm -rf "result_images" || true; \
-	find . -name 'result_images' -not -path './third_party/*' -exec rm -rf {} +; \
+	find . -name 'result_images'
+		-not -path './third_party/*'
+		-exec rm -rf {} +; \
 	echo "   - Removed 'result_images'"; \
 	\
 	echo ">> [9] Pytest cache"; \
-	find . -name '.pytest_cache' -not -path './third_party/*' -exec rm -rf {} +; \
+	find . -name '.pytest_cache'
+		-not -path './third_party/*'
+		-exec rm -rf {} +; \
 	echo "   - Removed '.pytest_cache'"; \
 	\
 	echo ">> [10] ANN/Voyager index artifacts"; \
 	find . \
 		\( $(ANN_INDEX_EXTS) \) \
 		-not -path './.git/*' \
+		-not -path './.git_clones/*' \
 		-not -path './third_party/*' \
 		-not -path './scikitplot/annoy/tests/test.tree' \
 		-type f -print -delete || true; \
@@ -304,7 +316,9 @@ clean-test:
 	echo ">> Starting test cleaning..."; \
 	\
 	echo ">> [1] Pytest cache"; \
-	find . -name '.pytest_cache' -not -path './third_party/*' -exec rm -rf {} +; \
+	find . -name '.pytest_cache'
+		-not -path './third_party/*'
+		-exec rm -rf {} +; \
 	echo "   - Removed '.pytest_cache'"; \
 	\
 	echo ">> [2] Coverage artifacts"; \
@@ -316,6 +330,7 @@ clean-test:
 	find . \
 		\( $(ANN_INDEX_EXTS) \) \
 		-not -path './.git/*' \
+		-not -path './.git_clones/*' \
 		-not -path './third_party/*' \
 		-not -path './scikitplot/annoy/tests/test.tree' \
 		-type f -print -delete || true; \
@@ -349,6 +364,7 @@ clean: clean-basic
 	find . \
 		\( $(ANN_INDEX_EXTS) \) \
 		-not -path './.git/*' \
+		-not -path './.git_clones/*' \
 		-not -path './third_party/*' \
 		-not -path './scikitplot/annoy/tests/test.tree' \
 		-type f -print -delete || true; \

@@ -1,19 +1,42 @@
-# testing
-# < v2
-!test.tree
-# >= v2
-!test_v2.tree
-*.ann
-*.tree
-*.annoy
-*.idx
+# =========================
+# ML / model artifacts
+# =========================
+# (optional) if some tools prefix it
+catboost_info/
+*catboost_info/
+
+# testing / serialization artifacts
 *.hdf5
 *.joblib
+*.pickle
+*.cloudpickle
+*.pkl
 
+# =========================
+# ANN / index artifacts
+# =========================
+*.annoy
+*.ann
+*.tree
+*.idx
+*.voy
+*.voyager
+# Keep test fixtures (exact paths are most deterministic)
+!scikitplot/annoy/tests/test.tree
+!scikitplot/annoy/tests/test_v2.tree
+
+# =========================
+# Numpy artifacts
+# =========================
 # git rm -r --cached galleries/examples/00-jupyter_notebooks/annoy/*.csv
-*.csv
 *.npy
 *.npz
 
-*.voy
-*.voyager
+# =========================
+# Data artifacts (be careful!)
+# =========================
+# If you REALLY want to ignore all CSVs repo-wide:
+# *.csv
+#
+# Safer: ignore only that one directory you mentioned:
+# galleries/examples/00-jupyter_notebooks/annoy/*.csv

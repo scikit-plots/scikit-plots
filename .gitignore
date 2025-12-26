@@ -33,25 +33,54 @@ mlflow
 mlflow.db
 outputs
 
-# models
-**catboost_info
+# =========================
+# ML / model artifacts
+# =========================
+# (optional) if some tools prefix it
+catboost_info/
+*catboost_info/
+
+# testing / serialization artifacts
+*.hdf5
+*.joblib
+*.pickle
+*.cloudpickle
+*.pkl
+
+# =========================
+# ANN / index artifacts
+# =========================
+*.annoy
+*.ann
+*.tree
+*.idx
+*.voy
+*.voyager
+# Keep test fixtures (exact paths are most deterministic)
+!scikitplot/annoy/tests/test.tree
+!scikitplot/annoy/tests/test_v2.tree
+
+# =========================
+# Numpy artifacts
+# =========================
+# git rm -r --cached galleries/examples/00-jupyter_notebooks/annoy/*.csv
+*.npy
+*.npz
+
+# =========================
+# Data artifacts (be careful!)
+# =========================
+# If you REALLY want to ignore all CSVs repo-wide:
+# *.csv
+#
+# Safer: ignore only that one directory you mentioned:
+# galleries/examples/00-jupyter_notebooks/annoy/*.csv
 
 # Jupyter Notebook
 **.ipynb_checkpoints
 
 # scipy openblas
 **.openblas
-
-# annoy testing
-# < v2
-!test/test.tree
-# >= v2
-!test/test_v2.tree
-*.ann
-*.tree
-*.annoy
-*.idx
-*.hdf5
 
 # enviroment
 .env
