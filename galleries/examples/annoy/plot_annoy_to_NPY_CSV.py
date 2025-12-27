@@ -34,7 +34,8 @@ f = 10
 n = 1000
 idx = Index(f, "angular")
 for i in range(n):
-    idx.add_item(i, [random.gauss(0, 1) for _ in range(f)])
+    v = [random.gauss(0, 1) for _ in range(f)]
+    idx.add_item(i, v)
 
 # %%
 
@@ -76,8 +77,31 @@ print("Wrote", OUT)
 idx
 
 # %%
+
+import numpy as np
+
+arr = idx.to_numpy()
+arr
+
+
+# %%
+
+# save, savez
+np.save("annoy_vectors.npy", arr)
+np.load("annoy_vectors.npy")
+
+# %%
+
+idx.to_scipy_csr()
+
+# %%
+
+idx.to_pandas(id_location="index")
+
+# %%
+
 # Small subset → DataFrame/CSV
-df = idx.to_dataframe(start=0, stop=1000)
+df = idx.to_pandas()
 df.to_csv("sample.csv", index=False)
 
 # %%
@@ -86,33 +110,24 @@ import pandas as pd
 pd.read_csv("sample.csv")
 
 # %%
-# Streaming CSV (warning: huge)
-idx.to_csv("annoy_vectors.csv", start=0, stop=100_000)
+
+idx.query_by_item(item=999, n_neighbors=10, return_distance=True)
 
 # %%
-import pandas as pd
 
-pd.read_csv("annoy_vectors.csv")
-
-# %%
-# Large export → memory-safe .npy
-# Exports items [0, n_items) into a memmapped .npy
-idx.save_vectors_npy("annoy_vectors.npy")
+idx.query_by_vector(v, n_neighbors=10, return_distance=True)
 
 # %%
-import numpy as np
 
-np.load("annoy_vectors.npy")
-
-# %%
-# Range-only export (strict, sized)
-idx.save_vectors_npy("chunk_0_1m.npy", start=0, stop=1_000_000)
+idx.kneighbors(v, n_neighbors=10, return_distance=True)
 
 # %%
-import numpy as np
 
-np.load("chunk_0_1m.npy")
+idx.kneighbors_graph(v, n_neighbors=10)
 
+# %%
+
+idx.kneighbors_graph(v, n_neighbors=10).toarray()
 
 # %%
 #

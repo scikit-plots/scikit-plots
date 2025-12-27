@@ -263,9 +263,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "CompressMode",
                     "IndexIOMixin",
-                    "ManifestMixin",
-                    "NDArrayExportMixin",
-                    "PickleIOMixin",
+                    "MetaMixin",
+                    "NDArrayMixin",
                     "PickleMixin",
                     "PickleMode",
                     "PlottingMixin",

@@ -15,8 +15,6 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. # https://www.sphinx-doc.org/en/master/usage/domains/python.html#cross-referencing-python-objects
-
 .. currentmodule:: scikitplot.annoy
 
 .. _annoy-index:
@@ -55,9 +53,9 @@ Workflow
 --------
 
 1. Create an :class:`~AnnoyIndex` with a fixed vector length ``f`` and a metric.
-2. Add items with :py:meth:`~.AnnoyIndex.add_item`.
-3. Build the forest with :py:meth:`~.AnnoyIndex.build`.
-4. Save and load with :py:meth:`~.AnnoyIndex.save` and :py:meth:`~.AnnoyIndex.load`.
+2. Add items with :meth:`~AnnoyIndex.add_item`.
+3. Build the forest with :meth:`~AnnoyIndex.build`.
+4. Save and load with :meth:`~AnnoyIndex.save` and :meth:`~AnnoyIndex.load`.
 
 Quick start
 -----------
@@ -88,7 +86,7 @@ Notes
 -----
 
 * Every added vector must have length ``f``.
-* Add items before calling :py:meth:`~.AnnoyIndex.build`.
+* Add items before calling :meth:`~AnnoyIndex.build`.
 * Item ids are integers. Storage is allocated up to ``max(id) + 1``.
 
 High-level wrapper: :class:`~Index`

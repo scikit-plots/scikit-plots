@@ -1,116 +1,107 @@
 # scikitplot/annoy/_mixins/_io.py
 """
-Index-file and object-file persistence helpers.
+Persistence helpers for Annoy-backed indices.
 
-The Annoy stack has *two* distinct persistence layers:
+This module provides **explicit, deterministic** I/O helpers on top of the
+low-level Annoy backend.
 
-1. **Index-file persistence** (Annoy-native): the low-level C-extension can
-   write and memory-map the Annoy forest using :meth:`Annoy.save` /
-   :meth:`Annoy.load`. This is the only way to persist the actual index
-   structure efficiently.
+There are two distinct persistence concepts:
 
-2. **Python object persistence** (pickle family): serializes the *Python
-   wrapper object* via ``pickle`` / ``cloudpickle`` / ``joblib``. This does
-   **not** replace Annoy's native index persistence. It is only correct when
-   the wrapped object implements a deterministic, Annoy-aware pickle contract
-   (e.g., via :class:`~scikitplot.annoy._mixins._pickle.PickleMixin`).
+1. **Annoy index persistence** (native, recommended)
+   Writes/loads the actual forest via the low-level backend:
 
-This module keeps those concerns explicit:
+   - :meth:`save_index` / :meth:`load_index` wrap backend ``save`` / ``load``
+   - :meth:`to_bytes` / :meth:`from_bytes` wrap backend ``serialize`` / ``deserialize``
 
-* :class:`IndexIOMixin` wraps Annoy's native index-file I/O.
-* :class:`PickleIOMixin` provides explicit Python-object serialization helpers
-  for backwards compatibility and opt-in workflows.
+2. **Python object persistence** (pickling)
+   Pickling serializes the *Python object* and is handled by
+   :class:`~scikitplot.annoy._mixins._pickle.PickleMixin`.
+   (Pickle is unsafe on untrusted data; see that mixin's Notes.)
 
-Determinism:
-
-* Annoy index files are deterministic for a fixed build configuration and
-  identical inputs (dimension, metric, seed, build parameters) assuming the
-  same Annoy implementation.
-* Pickle-family formats are deterministic only within the same Python version
-  and dependency versions. They are *not* a stable interchange format.
-
-See Also
---------
-scikitplot.annoy._mixins._manifest.ManifestMixin
-    Exports/imports deterministic *metadata* (manifest) for reconstruction.
-scikitplot.annoy._mixins._pickle.PickleMixin
-    Provides deterministic, Annoy-specific pickling via either an on-disk
-    index file or an in-memory serialized blob.
-scikitplot.cexternals._annoy.annoylib.Annoy
-    Low-level Annoy binding exposing :meth:`save` and :meth:`load`.
-
-Notes
------
-Security: deserializing untrusted pickle/joblib data is unsafe.
+This file intentionally does **not** implement general-purpose ``pickle``.
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
+import tempfile
 from os import PathLike
-from typing import Any, ClassVar, Literal, Self
+from typing import Callable
 
-SerializerBackend = Literal["pickle", "cloudpickle", "joblib"]
+from typing_extensions import Self
 
-__all__ = [
-    "IndexIOMixin",
-    "PickleIOMixin",
-    "SerializerBackend",
-]
+from .._utils import _backend, _get_lock, ensure_parent_dir
+
+__all__ = ["IndexIOMixin"]
 
 
-def _get_low_level(obj: Any) -> Any:
+def _atomic_backend_write(target_path: str, write_fn: Callable[[str], None]) -> None:
     """
-    Return the low-level Annoy object.
+    Atomically write/replace a file produced by a backend writer.
 
-    This helper centralizes the inheritance-vs-composition lookup used by the
-    mixins in this module.
+    Parameters
+    ----------
+    target_path
+        Final destination path.
+    write_fn
+        Function called as ``write_fn(tmp_path)`` that must write the full file.
 
-    Preference order is explicit and deterministic:
-
-    1) ``obj._annoy`` when present (composition style)
-    2) ``obj`` (inheritance style)
+    Notes
+    -----
+    - Uses a *unique* temporary file in the same directory as the target and
+      replaces it into place via :func:`os.replace`.
+    - Best-effort cleanup is attempted on failure.
     """
-    ll = getattr(obj, "_annoy", None)
-    return ll if ll is not None else obj
+    ensure_parent_dir(target_path)
+    directory = os.path.dirname(target_path) or "."
+    base = os.path.basename(target_path)
+
+    fd, tmp = tempfile.mkstemp(prefix=f".{base}.", suffix=".tmp", dir=directory)
+    os.close(fd)
+
+    try:
+        write_fn(tmp)
+        os.replace(tmp, target_path)
+    finally:
+        # If replacement failed, clean up the temp file.
+        try:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        except OSError:
+            pass
 
 
 class IndexIOMixin:
     """
-    Mixin adding explicit Annoy-native index file persistence.
+    Mixin adding explicit Annoy-native persistence helpers.
 
-    The concrete class must provide low-level Annoy ``save``/``load`` methods.
-    This is satisfied either by:
+    The concrete class must provide low-level Annoy methods, typically from the
+    C-extension backend:
 
-    - inheritance style: the class subclasses ``Annoy`` (``save``/``load`` on ``self``)
-    - composition style: the class stores a low-level Annoy instance on ``self._annoy``
+    - ``save(path, prefault=...)``
+    - ``load(path, prefault=...)``
+    - ``serialize() -> bytes``
+    - ``deserialize(data: bytes, prefault=...)``
 
     Notes
     -----
-    This mixin never pickles the Python object. It delegates persistence to
-    Annoy's native binary index format.
+    - Methods in this mixin acquire a per-instance lock if one is available.
+    - :meth:`save_index` defaults to atomic writes (write temp + :func:`os.replace`)
+      to reduce the risk of partial/corrupt files on failure.
+    - :meth:`save_bundle` / :meth:`load_bundle` require :meth:`to_json` /
+      :meth:`from_json` (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
     """
 
-    # This mixin supports both inheritance-style (Index subclasses Annoy)
-    # and composition-style (Index wraps a low-level Annoy instance).
-    #
-    # Concrete classes may optionally provide ``self._annoy``; if absent,
-    # the low-level object is assumed to be ``self``.
-
-    def _low_level(self) -> Any:
-        """
-        Return the low-level Annoy object.
-
-        Preference order is explicit and deterministic:
-
-        1) ``self._annoy`` when present (composition style)
-        2) ``self`` (inheritance style)
-        """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
-
+    # --------
+    # Disk I/O
+    # --------
     def save_index(
-        self, path: str | PathLike[str], *, prefault: bool | None = None
+        self,
+        path: str | PathLike[str],
+        *,
+        prefault: bool | None = None,
+        atomic: bool = True,
     ) -> None:
         """
         Persist the Annoy index to disk.
@@ -119,33 +110,50 @@ class IndexIOMixin:
         ----------
         path : str or os.PathLike
             Destination path for the Annoy index file.
-        prefault : bool or None, default=None
-            If None, defer to the low-level object's configured prefault
-            behavior.
+        prefault
+            Forwarded to the backend. If ``None``, the backend default is used.
+        atomic : bool, default=True
+            If True, write to a unique temporary file and replace into place.
 
         Raises
         ------
+        AttributeError
+            If the backend does not provide ``save(path, prefault=...)``.
         OSError
-            If the index file cannot be written.
-        RuntimeError
-            If the low-level index is not initialized or saving fails.
-
-        See Also
-        --------
-        load_index
+            For filesystem-level failures.
         """
-        ll = self._low_level()
         p = os.fspath(path)
-        fn = getattr(ll, "save", None)
-        if fn is None:
-            raise AttributeError("Low-level save() is not available")
-        if prefault is None:
-            fn(p)
-        else:
-            fn(p, prefault=prefault)
+        ensure_parent_dir(p)
+
+        backend = _backend(self)
+        save = getattr(backend, "save", None)
+        if not callable(save):
+            raise AttributeError("Backend does not provide save(path, prefault=...)")
+
+        lock = _get_lock(self)
+
+        def _write(dst: str) -> None:
+            if prefault is None:
+                save(dst)
+            else:
+                save(dst, prefault=bool(prefault))
+
+        with lock:
+            if not atomic:
+                _write(p)
+            else:
+                _atomic_backend_write(p, _write)
+
+        # Best-effort: keep a stable 'on_disk_path' attribute in sync when possible.
+        for attr in ("on_disk_path", "_on_disk_path"):
+            with contextlib.suppress(Exception):
+                setattr(self, attr, p)
 
     def load_index(
-        self, path: str | PathLike[str], *, prefault: bool | None = None
+        self,
+        path: str | PathLike[str],
+        *,
+        prefault: bool | None = None,
     ) -> None:
         """
         Load (mmap) an Annoy index file into this object.
@@ -154,35 +162,131 @@ class IndexIOMixin:
         ----------
         path : str or os.PathLike
             Path to a file previously created by :meth:`save_index` or the
-            low-level :meth:`Annoy.save`.
-        prefault : bool or None, default=None
-            If None, defer to the low-level object's configured prefault
-            behavior.
+            backend ``save``.
+        prefault
+            Forwarded to the backend. If ``None``, the backend default is used.
 
         Raises
         ------
-        FileNotFoundError
-            If the file does not exist.
+        AttributeError
+            If the backend does not provide ``load(path, prefault=...)``.
         OSError
-            If the file cannot be opened or mapped.
-        RuntimeError
-            If the index is incompatible with the current object.
-
-        Notes
-        -----
-        Annoy requires that the in-memory object is compatible with the file
-        being loaded (dimension and metric).
+            If loading fails (backend or filesystem).
         """
-        ll = self._low_level()
         p = os.fspath(path)
-        fn = getattr(ll, "load", None)
-        if fn is None:
-            raise AttributeError("Low-level load() is not available")
-        if prefault is None:
-            fn(p)
-        else:
-            fn(p, prefault=prefault)
 
+        backend = _backend(self)
+        load = getattr(backend, "load", None)
+        if not callable(load):
+            raise AttributeError("Backend does not provide load(path, prefault=...)")
+        lock = _get_lock(self)
+
+        with lock:
+            if prefault is None:
+                load(p)
+            else:
+                load(p, prefault=bool(prefault))
+
+        for attr in ("on_disk_path", "_on_disk_path"):
+            with contextlib.suppress(Exception):
+                setattr(self, attr, p)
+
+    # --------
+    # Bytes I/O (serialize/deserialize)
+    # --------
+    def to_bytes(self) -> bytes:
+        """
+        Serialize the built index to bytes (backend ``serialize``).
+
+        Returns
+        -------
+        data
+            Serialized index bytes.
+
+        Raises
+        ------
+        AttributeError
+            If the backend does not provide ``serialize``.
+        RuntimeError
+            If serialization fails.
+        TypeError
+            If the backend returns non-bytes data.
+        """
+        backend = _backend(self)
+        serialize = getattr(backend, "serialize", None)
+        if not callable(serialize):
+            raise AttributeError("Backend does not provide serialize() -> bytes")
+
+        lock = _get_lock(self)
+        with lock:
+            data = serialize()
+        if not isinstance(data, (bytes, bytearray)):
+            raise TypeError("serialize() must return bytes")
+        return bytes(data)
+
+    @classmethod
+    def from_bytes(
+        cls: type[Self],
+        data: bytes,
+        *,
+        f: int,
+        metric: str,
+        prefault: bool | None = None,
+    ) -> Self:
+        """
+        Construct a new index and load it from serialized bytes.
+
+        Parameters
+        ----------
+        data
+            Bytes produced by :meth:`to_bytes` (backend ``serialize``).
+        f
+            Vector dimension for construction.
+        metric
+            Metric name for construction.
+        prefault
+            Forwarded to the backend ``deserialize`` if supported.
+
+        Returns
+        -------
+        index
+            Newly constructed index with the data loaded.
+
+        Raises
+        ------
+        TypeError
+            If ``data`` is not bytes-like.
+        ValueError
+            If ``f`` or ``metric`` is invalid.
+        AttributeError
+            If the backend does not provide ``deserialize``.
+        """
+        if not isinstance(data, (bytes, bytearray, memoryview)):
+            raise TypeError("data must be bytes-like")
+        if int(f) <= 0:
+            raise ValueError("f must be a positive integer")
+        if not isinstance(metric, str) or not metric:
+            raise ValueError("metric must be a non-empty string")
+
+        obj = cls(int(f), str(metric))
+        backend = _backend(obj)
+        deserialize = getattr(backend, "deserialize", None)
+        if not callable(deserialize):
+            raise AttributeError(
+                "Backend does not provide deserialize(data, prefault=...)"
+            )
+        lock = _get_lock(obj)
+
+        with lock:
+            if prefault is None:
+                deserialize(bytes(data))
+            else:
+                deserialize(bytes(data), prefault=bool(prefault))
+        return obj
+
+    # --------
+    # Bundle I/O (manifest + index)
+    # --------
     def save_bundle(
         self,
         directory: str | PathLike[str],
@@ -192,40 +296,35 @@ class IndexIOMixin:
         prefault: bool | None = None,
     ) -> None:
         """
-        Save a directory bundle containing both manifest and index file.
+        Save a *directory bundle* containing metadata + the index file.
 
-        This is a convenience for packaging a self-describing Annoy index
-        artifact.
+        The bundle contains:
+        - ``manifest.json``: metadata payload produced by :meth:`to_json`
+        - ``index.ann``: Annoy index produced by :meth:`save_index`
 
         Parameters
         ----------
-        directory : str or os.PathLike
-            Destination directory. Created if it does not exist.
-        index_filename : str, default="index.ann"
-            Filename for the Annoy index file inside ``directory``.
-        manifest_filename : str, default="manifest.json"
-            Filename for the manifest JSON inside ``directory``.
-        prefault : bool or None, default=None
-            Passed through to :meth:`save_index`.
+        directory
+            Destination directory (created if missing).
+        index_filename
+            Filename for the Annoy index inside the directory.
+        manifest_filename
+            Filename for the metadata manifest inside the directory.
+        prefault
+            Forwarded to :meth:`save_index`.
 
         Raises
         ------
         AttributeError
-            If the object does not provide :meth:`to_json` (from
-            :class:`~scikitplot.annoy._mixins._manifest.ManifestMixin`).
+            If :meth:`to_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
         OSError
-            If files cannot be written.
-
-        Notes
-        -----
-        The manifest is written using an atomic replace (write temp + rename)
-        to avoid partial writes.
+            On filesystem failures.
         """
-        # `ManifestMixin` provides `to_json()`; keep the dependency explicit.
+        # `MetaMixin` provides `to_json()`; keep the dependency explicit.
         to_json = getattr(self, "to_json", None)
-        if to_json is None:
+        if not callable(to_json):
             raise AttributeError(
-                "save_bundle requires `to_json()` (compose with ManifestMixin)."
+                "save_bundle requires to_json() (compose with MetaMixin)."
             )
 
         dir_s = os.fspath(directory)
@@ -234,21 +333,14 @@ class IndexIOMixin:
         manifest_path = os.path.join(dir_s, manifest_filename)
         index_path = os.path.join(dir_s, index_filename)
 
-        # 1) Write manifest atomically.
-        payload: str = to_json(None)  # type: ignore[misc]
-        tmp_manifest = manifest_path + ".tmp"
-        with open(tmp_manifest, "w", encoding="utf-8") as f:
-            f.write(payload)
-        os.replace(tmp_manifest, manifest_path)
+        # Let MetaMixin handle atomic metadata writes.
+        to_json(manifest_path)
 
-        # 2) Write index atomically (best-effort).
-        tmp_index = index_path + ".tmp"
-        self.save_index(tmp_index, prefault=prefault)
-        os.replace(tmp_index, index_path)
+        self.save_index(index_path, prefault=prefault, atomic=True)
 
     @classmethod
     def load_bundle(
-        cls,
+        cls: type[Self],
         directory: str | PathLike[str],
         *,
         index_filename: str = "index.ann",
@@ -256,225 +348,46 @@ class IndexIOMixin:
         prefault: bool | None = None,
     ) -> Self:
         """
-        Load a directory bundle produced by :meth:`save_bundle`.
+        Load a directory bundle created by :meth:`save_bundle`.
 
         Parameters
         ----------
-        directory : str or os.PathLike
-            Bundle directory containing ``manifest_filename`` and
-            ``index_filename``.
-        index_filename : str, default="index.ann"
-            Index filename inside ``directory``.
-        manifest_filename : str, default="manifest.json"
-            Manifest filename inside ``directory``.
-        prefault : bool or None, default=None
-            Passed through to :meth:`load_index`.
+        directory
+            Bundle directory.
+        index_filename
+            Filename for the Annoy index inside the directory.
+        manifest_filename
+            Filename for the metadata manifest inside the directory.
+        prefault
+            Forwarded to :meth:`load_index`.
 
         Returns
         -------
-        obj : Self
-            A newly constructed object with the index loaded.
+        index
+            Newly constructed index.
 
         Raises
         ------
         AttributeError
-            If the class does not provide :meth:`from_json` (from
-            :class:`~scikitplot.annoy._mixins._manifest.ManifestMixin`).
-        FileNotFoundError
-            If either file is missing.
+            If :meth:`from_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
+        TypeError
+            If :meth:`from_json` returns an unexpected type.
         OSError
-            If files cannot be read or mapped.
-        RuntimeError
-            If the index is incompatible.
-
-        See Also
-        --------
-        save_bundle
+            On filesystem failures.
         """
         from_json = getattr(cls, "from_json", None)
-        if from_json is None:
+        if not callable(from_json):
             raise AttributeError(
-                "load_bundle requires `from_json()` (compose with ManifestMixin)."
+                "load_bundle requires from_json() (compose with MetaMixin)."
             )
 
         dir_s = os.fspath(directory)
         manifest_path = os.path.join(dir_s, manifest_filename)
         index_path = os.path.join(dir_s, index_filename)
 
-        obj = from_json(manifest_path, load=False)  # type: ignore[misc]
+        obj = from_json(manifest_path, load=False)
         if not isinstance(obj, cls):
-            raise TypeError(
-                f"Expected {cls.__name__!r} from {manifest_path!r}, got {type(obj).__name__!r}."
-            )
+            raise TypeError("from_json() returned an unexpected type")
 
         obj.load_index(index_path, prefault=prefault)
         return obj
-
-
-class PickleIOMixin:
-    """
-    Mixin adding explicit Python-object to pickling dump/load helpers.
-
-    Notes
-    -----
-    This mixin serializes the *Python object* using a pickle-family backend.
-    It should not be used as a substitute for Annoy's native index
-    persistence. Prefer composing with :class:`~scikitplot.annoy._mixins._pickle.PickleMixin`
-    if you need Annoy-aware, deterministic object serialization.
-    """  # noqa: D205, D415
-
-    # Declared for static type checkers; real value is the concrete subclass.
-    _io_expected_type: ClassVar[type[Self]]
-
-    # This mixin supports both inheritance-style (Index subclasses Annoy)
-    # and composition-style (Index wraps a low-level Annoy instance).
-    #
-    # Concrete classes may optionally provide ``self._annoy``; if absent,
-    # the low-level object is assumed to be ``self``.
-
-    def _low_level(self) -> Any:
-        """
-        Return the low-level Annoy object.
-
-        Preference order is explicit and deterministic:
-
-        1) ``self._annoy`` when present (composition style)
-        2) ``self`` (inheritance style)
-        """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
-
-    @classmethod
-    def load_pickle(
-        cls,
-        path: str | PathLike[str],
-        *,
-        backend: SerializerBackend = "joblib",
-        **kwargs: Any,
-    ) -> Self:
-        """
-        Load an object from a binary file.
-
-        Parameters
-        ----------
-        path : str or os.PathLike
-            File path to read.
-        backend : {'pickle', 'cloudpickle', 'joblib'}, default='joblib'
-            Backend used for deserialization.
-        **kwargs
-            Extra keyword arguments forwarded to the backend loader.
-
-            * ``joblib``: forwarded to :func:`joblib.load`
-            * ``pickle``: currently unused (kept for forwards compatibility)
-            * ``cloudpickle``: currently unused (kept for forwards compatibility)
-
-        Returns
-        -------
-        obj : Self
-            Deserialized object. Ensures the returned instance is of type
-            ``cls``.
-
-        Raises
-        ------
-        ValueError
-            If ``backend`` is unsupported.
-        TypeError
-            If the deserialized object is not an instance of ``cls``.
-        FileNotFoundError
-            If the file does not exist.
-
-        Notes
-        -----
-        All supported backends can execute arbitrary code during loading.
-        Do not load untrusted data.
-        """
-        path_s = os.fspath(path)  # str(path)
-
-        if backend == "pickle":
-            import pickle  # noqa: PLC0415, S403
-
-            with open(path_s, "rb") as f:
-                obj = pickle.load(f)  # noqa: S301
-
-        elif backend == "cloudpickle":
-            import cloudpickle  # noqa: PLC0415, S403
-
-            with open(path_s, "rb") as f:
-                obj = cloudpickle.load(f)  # noqa: S301
-
-        elif backend == "joblib":
-            import joblib  # noqa: PLC0415
-
-            obj = joblib.load(path_s, **kwargs)
-
-        else:
-            raise ValueError(
-                f"Unsupported backend: {backend!r}. Use 'pickle', 'cloudpickle', or 'joblib'."
-            )
-
-        if not isinstance(obj, cls):
-            raise TypeError(
-                f"Expected an instance of {cls.__name__!r} from {path_s!r}, got {type(obj).__name__!r}."
-            )
-
-        return obj
-
-    def dump_pickle(
-        self,
-        path: str | PathLike[str],
-        *,
-        backend: SerializerBackend = "joblib",
-        **kwargs: Any,
-    ) -> None:
-        """
-        Serialize this object to a binary file.
-
-        Parameters
-        ----------
-        path : str or os.PathLike
-            Destination path.
-        backend : {'pickle', 'cloudpickle', 'joblib'}, default='joblib'
-            Backend used for serialization.
-        **kwargs
-            Extra keyword arguments forwarded to the backend dumper.
-
-            * ``joblib``: forwarded to :func:`joblib.dump` (e.g. ``compress=3``)
-            * ``pickle``: currently unused (kept for forwards compatibility)
-            * ``cloudpickle``: currently unused (kept for forwards compatibility)
-            * ``pickle`` / ``cloudpickle``:
-              accepts ``protocol=int`` to control the pickle protocol.
-
-        Raises
-        ------
-        ValueError
-            If ``backend`` is unsupported.
-        OSError
-            If the file cannot be written.
-        """
-        path_s = os.fspath(path)  # str(path)
-
-        if backend == "pickle":
-            import pickle  # noqa: PLC0415, S403
-
-            protocol = int(kwargs.pop("protocol", pickle.HIGHEST_PROTOCOL))
-            with open(path_s, "wb") as f:
-                pickle.dump(self, f, protocol=protocol)  # noqa: S301
-
-        elif backend == "cloudpickle":
-            import pickle  # noqa: PLC0415, S403
-
-            import cloudpickle  # noqa: PLC0415, S403
-
-            protocol = int(kwargs.pop("protocol", pickle.HIGHEST_PROTOCOL))
-            with open(path_s, "wb") as f:
-                cloudpickle.dump(self, f, protocol=protocol)  # noqa: S301
-
-        elif backend == "joblib":
-            import joblib  # noqa: PLC0415
-
-            joblib.dump(self, path_s, **kwargs)
-
-        else:
-            raise ValueError(
-                f"Unsupported backend: {backend!r}. Use 'pickle', 'cloudpickle', or 'joblib'."
-            )

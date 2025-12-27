@@ -431,6 +431,15 @@ git_refs_verify:
 git_repair: git_reidx git_verify git_refs_check
 	@echo ">> Repair complete."
 
+# just a zip at that commit
+# git checkout 01641d8bb6a148d7d0d6754b086d970caffb7235
+# (optional) create a working branch from that commit
+# git switch -c annoy-src-01641d8
+git_zip:
+	curl -L -o scikit-plots-01641d8.zip \
+	https://github.com/scikit-plots/scikit-plots/archive/01641d8bb6a148d7d0d6754b086d970caffb7235.zip
+	unzip scikit-plots-01641d8.zip
+	cd scikit-plots-01641d8bb6a148d7d0d6754b086d970caffb7235/scikitplot/cexternals/_annoy/src
 ######################################################################
 ## Symbolic Links
 ######################################################################
@@ -871,7 +880,32 @@ push:
 	&& git push
 	@echo ">> Changes pushed successfully."
 
+# SHELL := /bin/bash
 
+git_push_force_branch:
+	@set -euo pipefail; \
+	BR="subpackage-bug-fix"; REMOTE="origin"; \
+	echo ">> Force-pushing '$$BR' to '$$REMOTE' (force-with-lease)..."; \
+	git push --force-with-lease "$$REMOTE" "$$BR"; \
+	echo ">> Done."
+
+git_verify_remote_head:
+	@set -euo pipefail; \
+	BR="subpackage-bug-fix"; REMOTE="origin"; \
+	LOCAL="$$(git rev-parse HEAD)"; \
+	REMOTE_SHA="$$(git ls-remote --heads "$$REMOTE" "$$BR" | awk '{print $$1}')"; \
+	echo "local : $${LOCAL:0:12}"; \
+	echo "remote: $${REMOTE_SHA:0:12}"; \
+	if [ -z "$$REMOTE_SHA" ]; then \
+		echo "NOT OK: remote branch '$$REMOTE/$$BR' not found"; \
+		exit 1; \
+	fi; \
+	if [ "$$LOCAL" = "$$REMOTE_SHA" ]; then \
+		echo "OK: remote matches local"; \
+	else \
+		echo "NOT OK: remote differs"; \
+		exit 1; \
+	fi
 
 ######################################################################
 ## Git Tag

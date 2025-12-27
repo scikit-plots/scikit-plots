@@ -1,54 +1,59 @@
 # scikitplot/annoy/_base.pyi
 
-from typing import Any, ClassVar  # noqa: F401
+import threading
 
 from typing_extensions import Literal, Self, TypeAlias
 
-from ..cexternals._annoy import Annoy, AnnoyIndex  # noqa: F401
-from ._mixins._io import IndexIOMixin, PickleIOMixin
-from ._mixins._manifest import ManifestMixin
-from ._mixins._ndarray import NDArrayExportMixin
-from ._mixins._pickle import CompressMode, PickleMixin, PickleMode  # noqa: F401
+from ..cexternals._annoy import Annoy
+from ._mixins._io import IndexIOMixin
+from ._mixins._meta import MetaMixin
+from ._mixins._ndarray import NDArrayMixin
+from ._mixins._pickle import PickleMixin
 from ._mixins._plotting import PlottingMixin
 from ._mixins._vectors import VectorOpsMixin
 
 # --- Allowed metric literals (simple type hints) ---
 # AnnoyMetric: TypeAlias = Literal["angular", "euclidean", "manhattan", "dot", "hamming"]
-AnnoyMetric: TypeAlias = Literal[
-    "angular",
-    "cosine",
-    "euclidean",
-    "l2",
-    "lstsq",
-    "manhattan",
-    "l1",
-    "cityblock",
-    "taxicab",
-    "dot",
-    "@",
-    ".",
-    "dotproduct",
-    "inner",
-    "innerproduct",
-    "hamming",
-]
+AnnoyMetric: TypeAlias = (
+    Literal[
+        "angular",
+        "cosine",
+        "euclidean",
+        "l2",
+        "lstsq",
+        "manhattan",
+        "l1",
+        "cityblock",
+        "taxicab",
+        "dot",
+        "@",
+        ".",
+        "dotproduct",
+        "inner",
+        "innerproduct",
+        "hamming",
+    ]
+    | None
+)
 
-__all__: list[str, ...] = ["Index"]
+__all__: list[str] = [
+    "Index",
+]
 
 class Index(
     Annoy,
-    ManifestMixin,
+    MetaMixin,
     IndexIOMixin,
-    PickleIOMixin,
     PickleMixin,
     VectorOpsMixin,
-    NDArrayExportMixin,
+    NDArrayMixin,
     PlottingMixin,
 ):
-    # __slots__: ClassVar[tuple[str, ...]] = ()
+    _lock: threading.RLock | None
 
-    def _low_level(self) -> Any: ...
+    def _get_lock(self) -> threading.RLock: ...
+    def _backend(self) -> Annoy: ...
     @property
-    def annoy(self) -> Annoy: ...
+    def backend(self) -> Annoy: ...
     @classmethod
     def from_low_level(cls, obj: Annoy, *, prefault: bool | None = None) -> Self: ...

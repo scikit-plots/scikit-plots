@@ -1,3 +1,4 @@
+// scikitplot/cexternals/_annoy/src/annoygomodule.i
 %module annoy
 
 namespace Annoy {}

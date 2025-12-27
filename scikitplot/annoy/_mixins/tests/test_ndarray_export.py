@@ -18,7 +18,7 @@ def _get_index_class():
         pass
 
 
-@pytest.mark.skipif(np is None, reason="NumPy required for NDArrayExportMixin tests")
+@pytest.mark.skipif(np is None, reason="NumPy required for NDArrayMixin tests")
 def test_iter_and_to_numpy_basic():
     Index = _get_index_class()
 
@@ -37,7 +37,7 @@ def test_iter_and_to_numpy_basic():
     assert arr.dtype == np.float32
 
 
-@pytest.mark.skipif(np is None, reason="NumPy required for NDArrayExportMixin tests")
+@pytest.mark.skipif(np is None, reason="NumPy required for NDArrayMixin tests")
 def test_ids_must_be_sized_sequence():
     Index = _get_index_class()
     idx = Index(2, "euclidean")
@@ -49,7 +49,7 @@ def test_ids_must_be_sized_sequence():
         idx.to_numpy(ids=gen)  # type: ignore
 
 
-@pytest.mark.skipif(np is None, reason="NumPy required for NDArrayExportMixin tests")
+@pytest.mark.skipif(np is None, reason="NumPy required for NDArrayMixin tests")
 def test_save_vectors_npy_roundtrip(tmp_path):
     Index = _get_index_class()
 
@@ -86,7 +86,7 @@ def test_partition_existing_ids_strict_behavior():
     idx = Index(2, "euclidean")
     idx.add_item(0, [1.0, 2.0])
 
-    # If you added partition_existing_ids to NDArrayExportMixin:
+    # If you added partition_existing_ids to NDArrayMixin:
     existing, missing = idx.partition_existing_ids([0, 999999])  # type: ignore
     assert 0 in existing
     assert 999999 in missing

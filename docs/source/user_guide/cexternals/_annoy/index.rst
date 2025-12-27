@@ -15,8 +15,6 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. # https://www.sphinx-doc.org/en/master/usage/domains/python.html#cross-referencing-python-objects
-
 .. currentmodule:: scikitplot.cexternals._annoy
 
 .. _cexternals-annoy-index:
@@ -74,18 +72,18 @@ Workflow
 --------
 
 1. Create an :class:`~.AnnoyIndex` with vector length ``f`` and a metric. [1]_
-2. Add items with :py:meth:`~.AnnoyIndex.add_item`. [1]_
-3. Build the forest with :py:meth:`~.AnnoyIndex.build`. [1]_
-4. Query with :py:meth:`~.AnnoyIndex.get_nns_by_item` or :py:meth:`~.AnnoyIndex.get_nns_by_vector`. [1]_
-5. Persist with :py:meth:`~.AnnoyIndex.save` and load with :py:meth:`~.AnnoyIndex.load`. [1]_
+2. Add items with :meth:`~.AnnoyIndex.add_item`. [1]_
+3. Build the forest with :meth:`~.AnnoyIndex.build`. [1]_
+4. Query with :meth:`~.AnnoyIndex.get_nns_by_item` or :meth:`~.AnnoyIndex.get_nns_by_vector`. [1]_
+5. Persist with :meth:`~.AnnoyIndex.save` and load with :meth:`~.AnnoyIndex.load`. [1]_
 
 Important rules
 ~~~~~~~~~~~~~~~
 
 - Every added vector must have length ``f``.
-- Add items before calling :py:meth:`~.AnnoyIndex.build`. [1]_
-- After :py:meth:`~.AnnoyIndex.build`, the index is used for queries. To add more items,
-  discard the forest with :py:meth:`~.AnnoyIndex.unbuild`, add items, and build again.
+- Add items before calling :meth:`~.AnnoyIndex.build`. [1]_
+- After :meth:`~.AnnoyIndex.build`, the index is used for queries. To add more items,
+  discard the forest with :meth:`~.AnnoyIndex.unbuild`, add items, and build again.
 
 Persistence and sharing
 -----------------------
@@ -93,14 +91,14 @@ Persistence and sharing
 Save and load
 ~~~~~~~~~~~~~
 
-- :py:meth:`~.AnnoyIndex.save` writes the index to a file.
-- :py:meth:`~.AnnoyIndex.load` memory-maps (mmap) the file for fast loading and sharing
+- :meth:`~.AnnoyIndex.save` writes the index to a file.
+- :meth:`~.AnnoyIndex.load` memory-maps (mmap) the file for fast loading and sharing
   across processes. [1]_
 
 Prefault (optional)
 ~~~~~~~~~~~~~~~~~~~
 
-Some builds expose a ``prefault`` option for :py:meth:`~.AnnoyIndex.load`. When enabled,
+Some builds expose a ``prefault`` option for :meth:`~.AnnoyIndex.load`. When enabled,
 the loader may aggressively fault pages into memory. This is platform dependent. [1]_
 
 On-disk build (large datasets)
@@ -113,16 +111,16 @@ Workflow
 ~~~~~~~~
 
 1. Create the index.
-2. Call :py:meth:`~.AnnoyIndex.on_disk_build` **before** adding any items. [1]_
+2. Call :meth:`~.AnnoyIndex.on_disk_build` **before** adding any items. [1]_
 3. Add items.
-4. Call :py:meth:`~.AnnoyIndex.build`.
-5. Query the index, or load it from other processes with :py:meth:`~.AnnoyIndex.load`. [1]_
+4. Call :meth:`~.AnnoyIndex.build`.
+5. Query the index, or load it from other processes with :meth:`~.AnnoyIndex.load`. [1]_
 
 Important rules
 ~~~~~~~~~~~~~~~
 
-- Call :py:meth:`~.AnnoyIndex.on_disk_build` **before** :py:meth:`~.AnnoyIndex.add_item`. [1]_
-- After building in this mode, there is no need to call :py:meth:`~.AnnoyIndex.save`
+- Call :meth:`~.AnnoyIndex.on_disk_build` **before** :meth:`~.AnnoyIndex.add_item`. [1]_
+- After building in this mode, there is no need to call :meth:`~.AnnoyIndex.save`
   because the file is already the backing store. [1]_
 
 Example
@@ -176,7 +174,7 @@ Multi-process serving
 A common serving pattern is:
 
 1. Build once and write an index file.
-2. In each worker process, load the same file with :py:meth:`~.AnnoyIndex.load` (mmap) and query. [1]_
+2. In each worker process, load the same file with :meth:`~.AnnoyIndex.load` (mmap) and query. [1]_
 
 Developer notes (C++)
 ---------------------
@@ -198,7 +196,7 @@ See also
     * https://pypi.org/project/annoy
 
 .. seealso::
-   * :py:py:py:meth:`~scikitplot.annoy.Index.from_low_level`
+   * :py:meth:`~scikitplot.annoy.Index.from_low_level`
    * :py:mod:`pickle` (Python standard library)
    * Alternative ANN libraries:
      - https://github.com/nmslib/hnswlib

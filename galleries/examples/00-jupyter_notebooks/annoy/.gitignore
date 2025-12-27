@@ -36,7 +36,7 @@ catboost_info/
 # Data artifacts (be careful!)
 # =========================
 # If you REALLY want to ignore all CSVs repo-wide:
-# *.csv
+*.csv
 #
 # Safer: ignore only that one directory you mentioned:
 # galleries/examples/00-jupyter_notebooks/annoy/*.csv

@@ -2,19 +2,18 @@
 
 # from __future__ import annotations
 
-from ._io import IndexIOMixin, PickleIOMixin
-from ._manifest import ManifestMixin
-from ._ndarray import NDArrayExportMixin
+from ._io import IndexIOMixin
+from ._meta import MetaMixin
+from ._ndarray import NDArrayMixin
 from ._pickle import CompressMode, PickleMixin, PickleMode
 from ._plotting import PlottingMixin
 from ._vectors import VectorOpsMixin
 
-__all__: tuple[str, ...] = (
+__all__: tuple[str] = (
     "CompressMode",
     "IndexIOMixin",
-    "ManifestMixin",
-    "NDArrayExportMixin",
-    "PickleIOMixin",
+    "MetaMixin",
+    "NDArrayMixin",
     "PickleMixin",
     "PickleMode",
     "PlottingMixin",

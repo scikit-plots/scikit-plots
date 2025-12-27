@@ -1306,7 +1306,9 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         }
         if hasattr(train_index, "get_neighbor_ids_by_vector"):
             # scikit-plot wrapper API
-            query_kwargs["include_self"] = False
+            query_kwargs.pop("n", None)
+            query_kwargs["n_neighbors"] = n_neighbors
+            query_kwargs["exclude_self"] = True
             neighbor_ids, dists = train_index.get_neighbor_ids_by_vector(
                 vec,  # row, X[i]
                 **query_kwargs,

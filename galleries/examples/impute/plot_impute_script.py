@@ -35,13 +35,13 @@ from sklearn.model_selection import train_test_split
 
 # %%
 Xdi_train, Xdi_val, ydi_train, ydi_val = train_test_split(
-    *load_diabetes(return_X_y=True), test_size=0.25, random_state=0
+    *load_diabetes(return_X_y=True), test_size=0.25, random_state=42
 )
 Xca_train, Xca_val, yca_train, yca_val = train_test_split(
-    *fetch_california_housing(return_X_y=True), test_size=0.25, random_state=0
+    *fetch_california_housing(return_X_y=True), test_size=0.25, random_state=42
 )
 Xbc_train, Xbc_val, ybc_train, ybc_val = train_test_split(
-    *data_2_classes(return_X_y=True), test_size=0.25, random_state=0,
+    *data_2_classes(return_X_y=True), test_size=0.25, random_state=42,
     stratify=data_2_classes(return_X_y=True)[1]
 )
 
@@ -88,10 +88,10 @@ N_SPLITS = 4
 
 def get_score(Xt, Xv, yt, yv, imputer=None, regresion=True):
     if regresion:
-        estimator = RandomForestRegressor(random_state=0)
+        estimator = RandomForestRegressor(random_state=42)
         scoring="neg_mean_squared_error"
     else:
-        estimator = RandomForestClassifier(random_state=0, max_depth=6, class_weight='balanced')
+        estimator = RandomForestClassifier(random_state=42, max_depth=6, class_weight='balanced')
         scoring="neg_log_loss"
     if imputer is not None:
         Xt = imputer.fit_transform(Xt, yt)
@@ -244,7 +244,7 @@ from scikitplot.impute import ANNImputer
 # %%
 
 t0 = time.time()
-imputer = ANNImputer(add_indicator=True, random_state=0, backend="voyager")
+imputer = ANNImputer(add_indicator=True, random_state=42, backend="voyager")
 mses_diabetes[6], stds_diabetes[6] = get_score(
     Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
@@ -267,20 +267,18 @@ time_data[6] = T
 # %%
 
 t0 = time.time()
-imputer = ANNImputer(add_indicator=True, random_state=0, n_neighbors=1, metric='angular')
+imputer = ANNImputer(add_indicator=True, random_state=42,)
 mses_diabetes[7], stds_diabetes[7] = get_score(
     Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
 )
-imputer = ANNImputer(add_indicator=True, random_state=0,
-                     n_neighbors=430, metric='euclidean', initial_strategy="median", weights="distance")
-                    #  n_neighbors=484, metric='euclidean', initial_strategy="median", weights="distance", n_trees=10)
+#  n_neighbors=430, metric='euclidean', initial_strategy="median", weights="distance")
+#  n_neighbors=484, metric='euclidean', initial_strategy="median", weights="distance", n_trees=10)
 mses_california[7], stds_california[7] = get_score(
     Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
 )
-imputer = ANNImputer(add_indicator=True, random_state=0,
-                     n_neighbors=1, metric='euclidean', initial_strategy="median")
+#  n_neighbors=1, metric='euclidean', initial_strategy="median")
 mses_train[7], stds_train[7] = get_score(
     Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),

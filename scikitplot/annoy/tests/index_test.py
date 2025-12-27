@@ -152,7 +152,7 @@ def test_metric_f_kwargs():
 def test_item_vector_after_save():
     # Issue #279
     a = AnnoyIndex(3, "angular")
-    a.verbose(True)
+    a.set_verbose(True)
     a.add_item(1, [1, 0, 0])
     a.add_item(2, [0, 1, 0])
     a.add_item(3, [0, 0, 1])
@@ -222,7 +222,7 @@ def test_write_failed():
 
     # Build the initial index
     t = AnnoyIndex(f, "angular")
-    t.verbose(True)
+    t.set_verbose(True)
     for i in range(1000):
         v = [random.gauss(0, 1) for z in range(f)]
         t.add_item(i, v)
@@ -283,7 +283,7 @@ def test_very_large_index():
     size_per_vector = 4 * (f + 3)
     n_vectors = int(dangerous_size / size_per_vector)
     m = AnnoyIndex(3, "angular")
-    m.verbose(True)
+    m.set_verbose(True)
     for i in range(100):
         m.add_item(n_vectors + i, [random.gauss(0, 1) for z in range(f)])
     n_trees = 10

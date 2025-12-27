@@ -4,18 +4,25 @@ Composable mixins for :mod:`~scikitplot.annoy`.
 
 This package provides *Python-side* mixins used by the high-level Annoy wrapper
 (API layer). It intentionally does **not** modify or wrap the low-level C-API
-directly; instead it composes small, single-responsibility behaviors that
-high-level classes can inherit.
+surface directly; instead it composes small, single-responsibility behaviors
+that high-level classes can inherit.
 
-Design goals
-------------
 - Stable surface: exported names here are treated as public within
   :mod:`~scikitplot.annoy`.
 - Dependency-light imports: optional heavy dependencies (for example pandas,
-  pyarrow, scipy, matplotlib, mlflow) must be imported lazily inside the
+  pyarrow, scipy, matplotlib, mlflow) must be imported lazily *inside* the
   methods that require them (leaf modules enforce this).
-- **No hidden behavior**: these mixins should remain deterministic and explicit
+- **No hidden behavior**: these mixins remain deterministic and explicit
   (no implicit sampling, truncation, or size-based heuristics).
+
+Notes
+-----
+- Mixins must not define ``__init__``. The high-level
+  :class:`~scikitplot.annoy.Index` inherits the low-level backend constructor
+  unchanged.
+- Imports are intentionally lazy to avoid importing optional heavy dependencies
+  at package import time. Accessing an exported name triggers import of the leaf
+  module that defines it.
 
 See Also
 --------
@@ -27,19 +34,21 @@ scikitplot.annoy._base
 
 from __future__ import annotations
 
-from ._io import IndexIOMixin, PickleIOMixin
-from ._manifest import ManifestMixin
-from ._ndarray import NDArrayExportMixin
+# from importlib import import_module
+# from typing import TYPE_CHECKING, Any
+from ._io import IndexIOMixin
+from ._meta import MetaMixin
+from ._ndarray import NDArrayMixin
 from ._pickle import CompressMode, PickleMixin, PickleMode
 from ._plotting import PlottingMixin
 from ._vectors import VectorOpsMixin
 
-__all__: tuple[str, ...] = (
+# Keep the public surface explicit and stable.
+__all__: tuple[str] = (
     "CompressMode",
     "IndexIOMixin",
-    "ManifestMixin",
-    "NDArrayExportMixin",
-    "PickleIOMixin",
+    "MetaMixin",
+    "NDArrayMixin",
     "PickleMixin",
     "PickleMode",
     "PlottingMixin",
