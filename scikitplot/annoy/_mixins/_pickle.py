@@ -40,25 +40,13 @@ from typing import Any, ClassVar, Literal, TypeAlias, cast
 
 from typing_extensions import Self
 
-from .._utils import _get_lock
+from .._utils import _get_lock, backend_for
 
 CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
-"""\
-Compression used for ``"byte"`` pickling.
-
-Compression is applied to the serialized Annoy bytes produced by the low-level
-:meth:`serialize` API.
-"""
+"""Compression used for ``"byte"`` pickling."""
 
 PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
-"""\
-Persistence strategy used by :class:`~.PickleMixin`.
-
-``"auto"`` is deterministic and selects:
-
-- ``"disk"`` when a backing path is known (``on_disk_path`` or legacy fallback)
-- otherwise ``"byte"``
-"""
+"""Persistence strategy used by :class:`~.PickleMixin`."""
 
 __all__ = [
     "CompressMode",
@@ -68,13 +56,13 @@ __all__ = [
 
 
 def _get_noncallable_attr(obj: Any, name: str) -> Any | None:
-    """Return attribute value only if it is present and non-callable."""
+    """Return attribute value only if present and non-callable."""
     value = getattr(obj, name, None)
     return None if callable(value) else value
 
 
 def _get_callable(obj: Any, name: str) -> Any | None:
-    """Return attribute value only if it is present and callable."""
+    """Return attribute value only if present and callable."""
     value = getattr(obj, name, None)
     return value if callable(value) else None
 
@@ -119,41 +107,51 @@ def _get_bool_param(obj: Any, *, attrs: tuple[str, ...], default: bool) -> bool:
 
 
 def _load_index_into(obj: Any, path: str, *, prefault: bool) -> None:
-    """Load an on-disk index using the best available API (deterministic)."""
-    # Prefer the Python mixin helper when present; fall back to the backend method.
+    """Load an on-disk index using the best available explicit API."""
     load_index = getattr(obj, "load_index", None)
     if callable(load_index):
         load_index(path, prefault=prefault)
         return
 
-    load = getattr(obj, "load", None)
+    backend = backend_for(obj)
+    load = getattr(backend, "load", None)
     if not callable(load):
         raise AttributeError("Backend does not provide load(path, prefault=...)")
-    load(path, prefault=prefault)
+
+    lock = _get_lock(obj)
+    with lock:
+        load(path, prefault=prefault)
 
 
-def _serialize_index(obj: Any) -> bytes:
-    """Serialize an index using the best available API (deterministic)."""
-    to_bytes = getattr(obj, "to_bytes", None)
-    if callable(to_bytes):
-        data = to_bytes()
-    else:
+def _serialize_backend(obj: Any) -> bytes:
+    """Serialize the index bytes via the low-level backend (deterministic)."""
+    backend = backend_for(obj)
+    serialize = getattr(backend, "serialize", None)
+    if not callable(serialize):
+        # Some backends may expose serialize() directly on the wrapper.
         serialize = getattr(obj, "serialize", None)
-        if not callable(serialize):
-            raise AttributeError("Backend does not provide serialize() -> bytes")
-        data = serialize()
+    if not callable(serialize):
+        raise AttributeError("Backend does not provide serialize() -> bytes")
 
+    data = serialize()
     if not isinstance(data, (bytes, bytearray)):
         raise TypeError("serialize() must return bytes")
     return bytes(data)
 
 
-def _deserialize_index(obj: Any, data: bytes, *, prefault: bool) -> None:
-    """Deserialize an index using the best available API (deterministic)."""
-    deserialize = getattr(obj, "deserialize", None)
+def _deserialize_backend(obj: Any, data: bytes, *, prefault: bool) -> None:
+    """Deserialize index bytes via the low-level backend (deterministic)."""
+    backend = backend_for(obj)
+    deserialize = getattr(backend, "deserialize", None)
+    if not callable(deserialize):
+        # Some backends may expose deserialize() directly on the wrapper.
+        deserialize = getattr(obj, "deserialize", None)
     if not callable(deserialize):
         raise AttributeError("Backend does not provide deserialize(data, prefault=...)")
-    deserialize(data, prefault=prefault)
+
+    lock = _get_lock(obj)
+    with lock:
+        deserialize(data, prefault=prefault)
 
 
 class PickleMixin:
@@ -177,11 +175,14 @@ class PickleMixin:
     -----
     - ``"byte"`` mode requires a built index (``get_n_trees() > 0``).
     - ``"disk"`` mode requires an on-disk path (``on_disk_path`` or ``_on_disk_path``).
+
+    See Also
+    --------
+    scikitplot.annoy._mixins._io.IndexIOMixin
     """  # noqa: D205, D415
 
     _PICKLE_STATE_VERSION: ClassVar[int] = 1
 
-    # Default knobs (wrapper classes may override in __init__).
     _compress_mode: CompressMode = None
     _pickle_mode: PickleMode = "auto"
 
@@ -210,16 +211,31 @@ class PickleMixin:
     # ------------------------------------------------------------------
     # Pickle protocol
     def __reduce__(self) -> object:
-        # Delegate to __reduce_ex__ for consistent behavior.
         return self.__reduce_ex__(protocol=pickle.HIGHEST_PROTOCOL)
 
     def __reduce_ex__(self, protocol: int) -> object:  # noqa: ARG002, PLR0912
         """Return the pickle reduce tuple."""
-        # Determine constructor essentials.
-        # Determine constructor essentials deterministically.
-        f = _get_int_param(self, methods=("get_f",), attrs=("f", "_f"), default=0)
+        backend = backend_for(self)
+
+        # Determine constructor essentials deterministically (instance first, backend second).
+        f = _get_int_param(
+            self,
+            methods=("get_f",),
+            attrs=("f", "_f"),
+            default=_get_int_param(
+                backend, methods=("get_f",), attrs=("f", "_f"), default=0
+            ),
+        )
         metric = _get_str_param(
-            self, methods=("get_metric",), attrs=("metric", "_metric"), default=""
+            self,
+            methods=("get_metric",),
+            attrs=("metric", "_metric"),
+            default=_get_str_param(
+                backend,
+                methods=("get_metric",),
+                attrs=("metric", "_metric"),
+                default="",
+            ),
         )
 
         if f <= 0 or not metric:
@@ -228,9 +244,15 @@ class PickleMixin:
                 "Initialize with f>0 and a valid metric."
             )
 
-        prefault = _get_bool_param(self, attrs=("prefault", "_prefault"), default=False)
+        prefault = _get_bool_param(
+            self,
+            attrs=("prefault", "_prefault"),
+            default=_get_bool_param(
+                backend, attrs=("prefault", "_prefault"), default=False
+            ),
+        )
 
-        # Include metadata when available (deterministically).
+        # Include metadata when available (best-effort, deterministic).
         metadata: Mapping[str, Any] | None = None
         to_metadata = getattr(self, "to_metadata", None)
         if callable(to_metadata):
@@ -247,59 +269,65 @@ class PickleMixin:
             )
             mode = "disk" if path else "byte"
 
+        if mode == "disk":
+            path = _get_noncallable_attr(self, "on_disk_path") or _get_noncallable_attr(
+                self, "_on_disk_path"
+            )
+            if not path:
+                raise RuntimeError(
+                    "pickle_mode='disk' requires an on-disk path. "
+                    "Call save_index()/load_index() (or low-level save/load) first, "
+                    "or use pickle_mode='byte'."
+                )
+
+            state: dict[str, Any] = {
+                "pickle_state_version": self._PICKLE_STATE_VERSION,
+                "mode": "disk",
+                "f": int(f),
+                "metric": str(metric),
+                "prefault": bool(prefault),
+                "path": os.fspath(path),
+                "metadata": dict(metadata) if metadata is not None else None,
+            }
+            return (type(self)._rebuild, (state,))
+
+        # mode == "byte"
+        get_n_trees = _get_callable(self, "get_n_trees") or _get_callable(
+            backend, "get_n_trees"
+        )
+        if not callable(get_n_trees):
+            raise RuntimeError(
+                "pickle_mode='byte' requires get_n_trees() to determine whether the index is built."
+            )
+
         lock = _get_lock(self)
         with lock:
-            if mode == "disk":
-                path = _get_noncallable_attr(
-                    self, "on_disk_path"
-                ) or _get_noncallable_attr(self, "_on_disk_path")
-                if not path:
-                    raise RuntimeError(
-                        "pickle_mode='disk' requires an on-disk path. "
-                        "Call save_index()/load_index() (or low-level save/load) first, "
-                        "or use pickle_mode='byte'."
-                    )
-
-                state: dict[str, Any] = {
-                    "pickle_state_version": self._PICKLE_STATE_VERSION,
-                    "mode": "disk",
-                    "f": f,
-                    "metric": metric,
-                    "prefault": prefault,
-                    "path": os.fspath(path),
-                    "metadata": dict(metadata) if metadata is not None else None,
-                }
-                return (type(self)._rebuild, (state,))
-
-            # mode == "byte"
-            get_n_trees = getattr(self, "get_n_trees", None)
-            if not callable(get_n_trees) or int(get_n_trees()) <= 0:
+            if int(get_n_trees()) <= 0:
                 raise RuntimeError(
                     "pickle_mode='byte' requires a built index. "
                     "Call build(...) first, or use pickle_mode='disk' after save/load."
                 )
+            data = _serialize_backend(self)
 
-            data = _serialize_index(self)
+        compress_mode = self._compress_mode
+        if compress_mode == "zlib":
+            data = zlib.compress(data)
+        elif compress_mode == "gzip":
+            data = gzip.compress(data)
+        elif compress_mode is not None:
+            raise RuntimeError("Invalid compression mode")
 
-            compress_mode = self._compress_mode
-            if compress_mode == "zlib":
-                data = zlib.compress(data)
-            elif compress_mode == "gzip":
-                data = gzip.compress(data)
-            elif compress_mode is not None:
-                raise RuntimeError("Invalid compression mode")
-
-            state = {
-                "pickle_state_version": self._PICKLE_STATE_VERSION,
-                "mode": "byte",
-                "f": f,
-                "metric": metric,
-                "prefault": prefault,
-                "compress_mode": compress_mode,
-                "data": data,
-                "metadata": dict(metadata) if metadata is not None else None,
-            }
-            return (type(self)._rebuild, (state,))
+        state = {
+            "pickle_state_version": self._PICKLE_STATE_VERSION,
+            "mode": "byte",
+            "f": int(f),
+            "metric": str(metric),
+            "prefault": bool(prefault),
+            "compress_mode": compress_mode,
+            "data": data,
+            "metadata": dict(metadata) if metadata is not None else None,
+        }
+        return (type(self)._rebuild, (state,))
 
     @classmethod
     def _rebuild(cls: type[Self], state: Mapping[str, Any]) -> Self:  # noqa: PLR0912
@@ -320,24 +348,19 @@ class PickleMixin:
             raise ValueError("Corrupted pickle state: invalid metric")
 
         # Prefer reconstruction from metadata when available.
+        instance: Self
         if isinstance(metadata, Mapping):
             from_metadata = getattr(cls, "from_metadata", None)
             if callable(from_metadata):
                 with contextlib.suppress(Exception):
-                    instance = cast(Self, from_metadata(dict(metadata), load=False))
-                if isinstance(instance, cls):
-                    _get_lock(instance)
-                    # keep wrapper-level config consistent
-                    with contextlib.suppress(Exception):
-                        instance.prefault = prefault  # type: ignore[attr-defined]
-                    instance._pickle_mode = "auto"
-                    # Continue to load below using the selected mode.
-                else:
-                    instance = cls(f, metric)
+                    inst = cast(Self, from_metadata(dict(metadata), load=False))
+                    if isinstance(inst, cls):  # noqa: SIM108
+                        instance = inst
+                    else:
+                        instance = cls(f, metric)
             else:
                 instance = cls(f, metric)
         else:
-            # Try keyword construction first; fall back to positional.
             try:
                 instance = cls(f=f, metric=metric, prefault=prefault)  # type: ignore[call-arg]
             except Exception:
@@ -363,12 +386,10 @@ class PickleMixin:
 
             _load_index_into(instance, os.fspath(path), prefault=prefault)
 
-            # Best-effort: keep on_disk_path aligned.
             with contextlib.suppress(Exception):
                 instance.on_disk_path = os.fspath(path)  # type: ignore[attr-defined]
             return instance
 
-        # mode == "byte"
         if mode != "byte":
             raise ValueError("Corrupted pickle state: invalid mode")
 
@@ -381,6 +402,5 @@ class PickleMixin:
         elif compress_mode is not None:
             raise ValueError("Corrupted pickle state: invalid compress_mode")
 
-        _deserialize_index(instance, bytes(data), prefault=prefault)
-
+        _deserialize_backend(instance, bytes(data), prefault=prefault)
         return instance

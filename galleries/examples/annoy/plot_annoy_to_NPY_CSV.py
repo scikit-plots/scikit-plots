@@ -111,15 +111,15 @@ pd.read_csv("sample.csv")
 
 # %%
 
-idx.query_by_item(item=999, n_neighbors=10, return_distance=True)
+idx.query_by_item(item=999, n_neighbors=10, include_distances=True)
 
 # %%
 
-idx.query_by_vector(v, n_neighbors=10, return_distance=True)
+idx.query_by_vector(v, n_neighbors=10, include_distances=True)
 
 # %%
 
-idx.kneighbors(v, n_neighbors=10, return_distance=True)
+idx.kneighbors(v, n_neighbors=10, include_distances=True)
 
 # %%
 

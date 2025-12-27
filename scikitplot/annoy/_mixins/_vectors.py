@@ -321,7 +321,6 @@ class VectorOpsMixin:
         exclude_self : bool, default=True
             If True (default), apply the same deterministic self-exclusion rule as
             :meth:`kneighbors` for each query row.
-            Single item id to exclude (convenience alias for ``exclude_item_ids``).
         exclude_item_ids : iterable of int, optional
             Additional item ids to exclude.
 
@@ -351,6 +350,8 @@ class VectorOpsMixin:
         if int(n_neighbors) <= 0:
             raise ValueError("n_neighbors must be a positive integer")
         self._vectors_require_built()
+        if int(item) < 0:
+            raise ValueError("item must be a non-negative integer")
 
         backend = backend_for(self)
         exclude: set[int] = {int(x) for x in (exclude_item_ids or [])}
@@ -410,9 +411,8 @@ class VectorOpsMixin:
         include_distances : bool, default=False
             If True, also return distances.
         exclude_self : bool, default=True
-            If True (default), the first returned candidate whose stored vector is exactly
-            distance is exactly ``0.0`` is excluded. This is intended
-            for queries where ``vector`` comes from the index itself.
+            If True (default), exclude the first returned candidate whose distance is exactly ``0.0``.
+            This is intended for queries where ``vector`` comes from the index itself.
         exclude_item_ids : iterable of int, optional
             Additional item ids to exclude.
 
@@ -466,6 +466,29 @@ class VectorOpsMixin:
     # ------------------------------------------------------------------
     # Convenience: return vectors instead of ids
     # ------------------------------------------------------------------
+    def _vectors_materialize_vectors(
+        self, ids: np.ndarray, *, dtype: Any
+    ) -> np.ndarray:
+        """
+        Materialize backend vectors for a 1D array of ids.
+
+        Parameters
+        ----------
+        ids : numpy.ndarray of shape (n_ids,)
+            Item ids to materialize.
+        dtype : numpy dtype
+            Output dtype.
+
+        Returns
+        -------
+        vectors : numpy.ndarray of shape (n_ids, f)
+            Materialized vectors in the same order as ``ids``.
+        """
+        backend = backend_for(self)
+        with lock_for(self):
+            vecs = [backend.get_item_vector(int(i)) for i in ids]  # type: ignore[attr-defined]
+        return np.asarray(vecs, dtype=dtype)
+
     def query_vectors_by_item(
         self,
         item: int,
@@ -511,9 +534,8 @@ class VectorOpsMixin:
                 exclude_self=exclude_self,
                 exclude_item_ids=exclude_item_ids,
             )
-            with lock_for(self):
-                vecs = [backend.get_item_vector(int(i)) for i in idx]  # type: ignore[attr-defined]
-            return np.asarray(vecs, dtype=dtype), dist
+            vecs = self._vectors_materialize_vectors(idx, dtype=dtype)
+            return vecs, dist
 
         idx = self.query_by_item(
             item,
@@ -523,9 +545,7 @@ class VectorOpsMixin:
             exclude_self=exclude_self,
             exclude_item_ids=exclude_item_ids,
         )
-        with lock_for(self):
-            vecs = [backend.get_item_vector(int(i)) for i in idx]  # type: ignore[attr-defined]
-        return np.asarray(vecs, dtype=dtype)
+        return self._vectors_materialize_vectors(idx, dtype=dtype)
 
     def query_vectors_by_vector(  # noqa: D417
         self,
@@ -576,9 +596,8 @@ class VectorOpsMixin:
                 ensure_all_finite=ensure_all_finite,
                 copy=copy,
             )
-            with lock_for(self):
-                vecs = [backend.get_item_vector(int(i)) for i in idx]  # type: ignore[attr-defined]
-            return np.asarray(vecs, dtype=dtype), dist
+            vecs = self._vectors_materialize_vectors(idx, dtype=dtype)
+            return vecs, dist
 
         idx = self.query_by_vector(
             vector,
@@ -590,9 +609,7 @@ class VectorOpsMixin:
             ensure_all_finite=ensure_all_finite,
             copy=copy,
         )
-        with lock_for(self):
-            vecs = [backend.get_item_vector(int(i)) for i in idx]  # type: ignore[attr-defined]
-        return np.asarray(vecs, dtype=dtype)
+        return self._vectors_materialize_vectors(idx, dtype=dtype)
 
     # ------------------------------------------------------------------
     # scikit-learn compatible APIs
@@ -801,9 +818,18 @@ class VectorOpsMixin:
         max_id = int(indices.max()) if indices.size else -1
 
         get_n_items = getattr(backend, "get_n_items", None)
-        n_items = int(get_n_items()) if callable(get_n_items) else (max_id + 1)
-        col_dim = max(n_items, max_id + 1)
+        if callable(get_n_items):
+            n_items = int(get_n_items())
+            if indices.size and max_id >= n_items:
+                raise RuntimeError(
+                    "Backend returned a neighbor id outside the valid range "
+                    f"[0, n_items). max_id={max_id}, n_items={n_items}."
+                )
+        else:
+            # If the backend cannot report n_items, infer the minimal valid column
+            # dimension from the returned ids (deterministic).
+            n_items = max_id + 1
 
         rows = np.repeat(np.arange(n_queries, dtype=np.intp), int(n_neighbors))
         cols = indices.ravel().astype(np.intp, copy=False)
-        return sp.csr_matrix((data, (rows, cols)), shape=(n_queries, col_dim))
+        return sp.csr_matrix((data, (rows, cols)), shape=(n_queries, n_items))

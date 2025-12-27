@@ -62,14 +62,13 @@ __all__ = [
 
 
 class Index(
-    Annoy,
-    # Any order mixins to MRO
-    MetaMixin,
-    IndexIOMixin,
-    PickleMixin,
-    VectorOpsMixin,
-    NDArrayMixin,
-    PlottingMixin,
+    Annoy,  # _base.py contract + invariants
+    MetaMixin,  # metadata + sklearn integration helpers
+    IndexIOMixin,  # save/load/bytes/bundles
+    PickleMixin,  # pickle behavior (depends optionally on Meta/IO)
+    VectorOpsMixin,  # query helpers
+    NDArrayMixin,  # numpy/scipy/pandas adapters
+    PlottingMixin,  # optional UI last
 ):
     """
     High-level ANNoy index composed from mixins.

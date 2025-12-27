@@ -31,7 +31,7 @@ from typing import Callable
 
 from typing_extensions import Self
 
-from .._utils import _backend, _get_lock, ensure_parent_dir
+from .._utils import backend_for, ensure_parent_dir, lock_for
 
 __all__ = ["IndexIOMixin"]
 
@@ -125,12 +125,12 @@ class IndexIOMixin:
         p = os.fspath(path)
         ensure_parent_dir(p)
 
-        backend = _backend(self)
+        backend = backend_for(self)
         save = getattr(backend, "save", None)
         if not callable(save):
             raise AttributeError("Backend does not provide save(path, prefault=...)")
 
-        lock = _get_lock(self)
+        lock = lock_for(self)
 
         def _write(dst: str) -> None:
             if prefault is None:
@@ -175,11 +175,11 @@ class IndexIOMixin:
         """
         p = os.fspath(path)
 
-        backend = _backend(self)
+        backend = backend_for(self)
         load = getattr(backend, "load", None)
         if not callable(load):
             raise AttributeError("Backend does not provide load(path, prefault=...)")
-        lock = _get_lock(self)
+        lock = lock_for(self)
 
         with lock:
             if prefault is None:
@@ -212,12 +212,12 @@ class IndexIOMixin:
         TypeError
             If the backend returns non-bytes data.
         """
-        backend = _backend(self)
+        backend = backend_for(self)
         serialize = getattr(backend, "serialize", None)
         if not callable(serialize):
             raise AttributeError("Backend does not provide serialize() -> bytes")
 
-        lock = _get_lock(self)
+        lock = lock_for(self)
         with lock:
             data = serialize()
         if not isinstance(data, (bytes, bytearray)):
@@ -269,13 +269,13 @@ class IndexIOMixin:
             raise ValueError("metric must be a non-empty string")
 
         obj = cls(int(f), str(metric))
-        backend = _backend(obj)
+        backend = backend_for(obj)
         deserialize = getattr(backend, "deserialize", None)
         if not callable(deserialize):
             raise AttributeError(
                 "Backend does not provide deserialize(data, prefault=...)"
             )
-        lock = _get_lock(obj)
+        lock = lock_for(obj)
 
         with lock:
             if prefault is None:

@@ -9,8 +9,8 @@ for Annoy-backed indices. The metadata is designed to be:
 - **stable**: schema-versioned
 - **minimal**: focused on configuration and (optionally) diagnostic summary
 
-The low-level backend is expected to provide scikit-learn compatible methods
-such as ``get_params`` and ``set_params`` (the modified Annoy C-extension does).
+The concrete wrapper (or its low-level backend) is expected to provide
+scikit-learn compatible methods such as ``get_params`` and ``set_params``.
 
 See Also
 --------
@@ -28,16 +28,13 @@ from typing import Any, TypedDict, cast
 
 from typing_extensions import Self
 
-from .._utils import _backend, _get_lock, atomic_write_text, read_text
+from .._utils import atomic_write_text, backend_for, lock_for, read_text
 
 __all__ = [
     "IndexMetadata",
     "MetaMixin",
     "MetadataRoutingMixin",
 ]
-
-
-_INDEX_SCHEMA_VERSION_KEY = "index_schema_version"
 
 
 def _require_schema_version(obj: object) -> int:
@@ -85,7 +82,7 @@ class MetaMixin:
 
     _META_SCHEMA_VERSION: int
 
-    def to_metadata(
+    def to_metadata(  # noqa: PLR0912
         self, *, include_info: bool = True, strict: bool = True
     ) -> IndexMetadata:
         """
@@ -94,9 +91,9 @@ class MetaMixin:
         Parameters
         ----------
         include_info
-            If True, include a backend-provided ``info()`` mapping when available.
+            If True, include an ``info()`` mapping when available.
         strict
-            If True, backend failures in optional ``info()`` propagation raise.
+            If True, failures in optional ``info()`` propagation raise.
 
         Returns
         -------
@@ -109,42 +106,60 @@ class MetaMixin:
         RuntimeError
             If ``_META_SCHEMA_VERSION`` is missing on the concrete class.
         TypeError
-            If backend ``get_params`` does not return a mapping.
+            If ``get_params`` does not return a mapping.
         AttributeError
-            If the backend does not implement ``get_params``.
+            If neither the instance nor the backend implements ``get_params``.
         """
-        _ = _require_schema_version(self)
+        schema = _require_schema_version(self)
 
-        backend = _backend(self)
-        get_params = getattr(backend, "get_params", None)
+        backend = backend_for(self)
+
+        # Prefer wrapper methods when present; fall back to the backend.
+        get_params = getattr(self, "get_params", None)
+        get_params_owner: object = self
         if not callable(get_params):
-            raise AttributeError("Backend does not provide get_params(deep=...)")
-        info_fn = getattr(backend, "info", None)
+            get_params = getattr(backend, "get_params", None)
+            get_params_owner = backend
+        if not callable(get_params):
+            raise AttributeError("Missing get_params(deep=...) on instance/backend")
 
-        lock = _get_lock(self)
-        with lock:
+        info_fn = getattr(self, "info", None)
+        info_owner: object = self
+        if not callable(info_fn):
+            info_fn = getattr(backend, "info", None)
+            info_owner = backend
+
+        # Acquire the instance lock only when calling into the low-level backend.
+        params_obj = None
+        if get_params_owner is backend:
+            with lock_for(self):
+                params_obj = get_params(deep=False)
+        else:
             params_obj = get_params(deep=False)
-            if not isinstance(params_obj, Mapping):
-                raise TypeError("get_params(deep=False) must return a mapping")
-            params = dict(params_obj)
 
-            info_payload: dict[str, Any] | None = None
-            if include_info and callable(info_fn):
-                try:
+        if not isinstance(params_obj, Mapping):
+            raise TypeError("get_params(deep=False) must return a mapping")
+        params = dict(params_obj)
+
+        info_payload: dict[str, Any] | None = None
+        if include_info and callable(info_fn):
+            try:
+                if info_owner is backend:
+                    with lock_for(self):
+                        info_obj = info_fn()
+                else:
                     info_obj = info_fn()
-                except Exception as e:
-                    if strict:
-                        raise RuntimeError(
-                            "info() failed while exporting metadata"
-                        ) from e
-                    info_obj = None
+            except Exception as e:
+                if strict:
+                    raise RuntimeError("info() failed while exporting metadata") from e
+                info_obj = None
 
-                if info_obj is not None:
-                    if not isinstance(info_obj, Mapping):
-                        if strict:
-                            raise TypeError("info() must return a mapping")
-                    else:
-                        info_payload = dict(info_obj)
+            if info_obj is not None:
+                if not isinstance(info_obj, Mapping):
+                    if strict:
+                        raise TypeError("info() must return a mapping")
+                else:
+                    info_payload = dict(info_obj)
 
         persistence: dict[str, Any] = {}
         for key in ("pickle_mode", "compress_mode"):
@@ -154,9 +169,7 @@ class MetaMixin:
                     persistence[key] = value
 
         return {
-            "index_schema_version": (
-                int(getattr(type(self), "_META_SCHEMA_VERSION", 0)) or None
-            ),
+            "index_schema_version": int(schema),
             "params": params,
             "info": info_payload,
             "persistence": persistence or None,
@@ -242,10 +255,15 @@ class MetaMixin:
             raise TypeError("metadata must be a mapping")
 
         schema_obj = metadata.get("index_schema_version", None)
-        if schema_obj is not None and int(schema_obj) != int(
-            getattr(cls, "_META_SCHEMA_VERSION", 0)
-        ):
-            raise ValueError("Unsupported index_schema_version")
+
+        expected_schema = getattr(cls, "_META_SCHEMA_VERSION", None)
+        if expected_schema is None:
+            raise RuntimeError("MetaMixin requires cls._META_SCHEMA_VERSION")
+        expected = int(expected_schema)
+        if schema_obj is not None and int(schema_obj) != expected:
+            raise ValueError(
+                f"Unsupported index_schema_version {int(schema_obj)}; expected {expected}."
+            )
 
         params_obj = metadata.get("params", None)
         if not isinstance(params_obj, Mapping):
@@ -265,12 +283,19 @@ class MetaMixin:
         # Apply remaining params via strict backend API.
         rest = {k: v for k, v in params.items() if k not in {"f", "metric"}}
         if rest:
-            backend = _backend(obj)
-            set_params = getattr(backend, "set_params", None)
+            backend = backend_for(obj)
+            set_params = getattr(obj, "set_params", None)
+            set_params_owner: object = obj
             if not callable(set_params):
-                raise AttributeError("Backend does not provide set_params(**params)")
-            lock = _get_lock(obj)
-            with lock:
+                set_params = getattr(backend, "set_params", None)
+                set_params_owner = backend
+            if not callable(set_params):
+                raise AttributeError("Missing set_params(**params) on instance/backend")
+
+            if set_params_owner is backend:
+                with lock_for(obj):
+                    set_params(**rest)
+            else:
                 set_params(**rest)
 
         # Apply optional persistence knobs when supported by the instance.
@@ -284,16 +309,24 @@ class MetaMixin:
         # Optionally load the on-disk index if requested and available.
         on_disk_path = params.get("on_disk_path", None)  # noqa: SIM910
         if load and on_disk_path is not None:
-            backend = _backend(obj)
-            load_fn = getattr(backend, "load", None)
-            if callable(load_fn):
+            # Prefer the explicit IO mixin helper when present; otherwise fall back
+            # to the backend load. This keeps mixins independent and avoids
+            # reimplementing persistence logic.
+            load_index = getattr(obj, "load_index", None)
+            if callable(load_index):
                 prefault = params.get("prefault", None)  # noqa: SIM910
-                lock = _get_lock(obj)
-                with lock:
+                load_index(os.fspath(on_disk_path), prefault=prefault)
+            else:
+                backend = backend_for(obj)
+                load_fn = getattr(backend, "load", None)
+                if callable(load_fn):
+                    prefault = params.get("prefault", None)  # noqa: SIM910
                     if prefault is None:
-                        load_fn(os.fspath(on_disk_path))
+                        with lock_for(obj):
+                            load_fn(os.fspath(on_disk_path))
                     else:
-                        load_fn(os.fspath(on_disk_path), prefault=bool(prefault))
+                        with lock_for(obj):
+                            load_fn(os.fspath(on_disk_path), prefault=bool(prefault))
 
         return cast(Self, obj)
 

@@ -495,7 +495,7 @@ class NDArrayMixin:
             raise ValueError("ids must be unique")
 
         with lock_for(self):
-            for item_id, vec in zip(ids_arr, Xv, strict=True):
+            for item_id, vec in zip(ids_arr, Xv):
                 backend.add_item(int(item_id), vec)  # type: ignore[attr-defined]
 
         return ids_arr
