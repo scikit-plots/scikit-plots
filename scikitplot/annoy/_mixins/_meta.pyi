@@ -12,8 +12,8 @@ from typing_extensions import Self
 __all__: list[str]  # noqa: PYI035
 
 class IndexMetadata(TypedDict, total=True):
-    index_schema_version: int | None
-    params: dict[str, Any] | None
+    index_schema_version: int
+    params: dict[str, Any]
     info: dict[str, Any] | None
     persistence: dict[str, Any] | None
 
@@ -21,7 +21,10 @@ class MetaMixin:
     _META_SCHEMA_VERSION: int
 
     def to_metadata(
-        self, *, include_info: bool = ..., strict: bool = ...
+        self,
+        *,
+        include_info: bool = ...,
+        strict: bool = ...,
     ) -> IndexMetadata: ...
     def to_json(
         self,
@@ -35,11 +38,17 @@ class MetaMixin:
     ) -> str: ...
     @classmethod
     def from_metadata(
-        cls: type[Self], metadata: Mapping[str, Any], *, load: bool = ...
+        cls: type[Self],
+        metadata: Mapping[str, Any],
+        *,
+        load: bool = ...,
     ) -> Self: ...
     @classmethod
     def from_json(
-        cls: type[Self], path: str | os.PathLike[str], *, load: bool = ...
+        cls: type[Self],
+        path: str | os.PathLike[str],
+        *,
+        load: bool = ...,
     ) -> Self: ...
     def to_yaml(
         self,
@@ -50,7 +59,10 @@ class MetaMixin:
     ) -> str: ...
     @classmethod
     def from_yaml(
-        cls: type[Self], path: str | os.PathLike[str], *, load: bool = ...
+        cls: type[Self],
+        path: str | os.PathLike[str],
+        *,
+        load: bool = ...,
     ) -> Self: ...
 
 class MetadataRoutingMixin:

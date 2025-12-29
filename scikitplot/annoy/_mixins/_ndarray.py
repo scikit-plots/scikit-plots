@@ -238,15 +238,17 @@ class NDArrayMixin:
             return
 
         try:
-            if int(get_n_trees()) > 0:
-                raise RuntimeError(
-                    "Index is built; adding items is not supported. "
-                    "Call `unbuild()` (or create a new index) before adding items."
-                )
-        except RuntimeError:
-            raise
+            with lock_for(self):
+                n_trees = int(get_n_trees())
         except Exception:
+            # If the backend cannot report build state reliably, do not guess.
             return
+
+        if n_trees > 0:
+            raise RuntimeError(
+                "Index is built; adding items is not supported. "
+                "Call `unbuild()` (or create a new index) before adding items."
+            )
 
     def _ndarray_iter_ids(
         self,
@@ -261,7 +263,8 @@ class NDArrayMixin:
         if ids is not None:
             return (int(i) for i in ids)
 
-        n_items = int(backend.get_n_items())  # type: ignore[attr-defined]
+        with lock_for(self):
+            n_items = int(backend.get_n_items())  # type: ignore[attr-defined]
         s = int(start)
         if s < 0:
             raise ValueError("start must be >= 0")
@@ -282,7 +285,8 @@ class NDArrayMixin:
         """Return expected number of rows deterministically."""
         backend = backend_for(self)
         if ids is None:
-            n_items = int(backend.get_n_items())  # type: ignore[attr-defined]
+            with lock_for(self):
+                n_items = int(backend.get_n_items())  # type: ignore[attr-defined]
             s = int(start)
             e = n_items if stop is None else int(stop)
             e = min(e, n_items)
@@ -334,7 +338,8 @@ class NDArrayMixin:
             ids0 = np.empty((0,), dtype=np.int64) if return_ids else None
             return X0, ids0
 
-        first_vec = backend.get_item_vector(int(first_id))  # type: ignore[attr-defined]
+        with lock_for(self):
+            first_vec = backend.get_item_vector(int(first_id))  # type: ignore[attr-defined]
         f = self._ndarray_infer_f(first_vec)
 
         if n == 0:
@@ -356,7 +361,9 @@ class NDArrayMixin:
         for item_id in it:
             if r >= n:
                 raise ValueError("ids yielded more items than expected n_rows.")
-            vec = np.asarray(backend.get_item_vector(int(item_id)), dtype=dtype)  # type: ignore[attr-defined]
+            with lock_for(self):
+                raw_vec = backend.get_item_vector(int(item_id))  # type: ignore[attr-defined]
+            vec = np.asarray(raw_vec, dtype=dtype)
             if validate_vector_len and vec.shape != (int(f),):
                 raise ValueError(
                     f"Vector length mismatch for id {int(item_id)}: expected {int(f)}, got {tuple(vec.shape)}."
@@ -484,7 +491,11 @@ class NDArrayMixin:
                 pass
 
         if ids is None:
-            base = int(backend.get_n_items()) if start_id is None else int(start_id)  # type: ignore[attr-defined]
+            if start_id is None:
+                with lock_for(self):
+                    base = int(backend.get_n_items())  # type: ignore[attr-defined]
+            else:
+                base = int(start_id)
             if base < 0:
                 raise ValueError("start_id must be >= 0")
             ids_arr = np.arange(base, base + n_samples, dtype=np.int64)
@@ -657,7 +668,9 @@ class NDArrayMixin:
         """
         backend = backend_for(self)
         for item_id in self._ndarray_iter_ids(ids, start=start, stop=stop):
-            vec = np.asarray(backend.get_item_vector(int(item_id)), dtype=dtype)  # type: ignore[attr-defined]
+            with lock_for(self):
+                raw_vec = backend.get_item_vector(int(item_id))  # type: ignore[attr-defined]
+            vec = np.asarray(raw_vec, dtype=dtype)
             yield (int(item_id), vec) if with_ids else vec
 
     def to_scipy_csr(

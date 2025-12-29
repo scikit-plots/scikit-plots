@@ -1,7 +1,5 @@
 # scikitplot/annoy/_mixins/_io.pyi
-"""
-Typing stubs for :mod:`~scikitplot.annoy._mixins._io`.
-"""  # noqa: PYI021
+"""Typing stubs for :mod:`~scikitplot.annoy._mixins._io`."""  # noqa: PYI021
 
 # from __future__ import annotations
 
@@ -29,7 +27,7 @@ class IndexIOMixin:
     @classmethod
     def from_bytes(
         cls: type[Self],
-        data: bytes,
+        data: bytes | bytearray | memoryview,
         *,
         f: int,
         metric: str,

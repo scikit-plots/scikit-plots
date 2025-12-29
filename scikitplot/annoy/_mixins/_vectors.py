@@ -35,14 +35,13 @@ from typing import Any, Literal
 
 import numpy as np
 from sklearn.exceptions import NotFittedError
-from sklearn.utils.validation import FLOAT_DTYPES, check_array
 
-try:  # scikit-learn >= 1.2
-    from sklearn.utils.validation import (
-        validate_data as _sk_validate_data,  # type: ignore[attr-defined]
-    )
-except Exception:  # pragma: no cover
-    _sk_validate_data = None
+# from sklearn.utils.multiclass import unique_labels
+from sklearn.utils.validation import (  # noqa: F401
+    FLOAT_DTYPES,
+    check_array,
+    validate_data,
+)
 
 from .._utils import backend_for, lock_for
 
@@ -57,8 +56,9 @@ def _validate_query_matrix(
     copy: bool,
 ) -> np.ndarray:
     """Validate query matrix with scikit-learn utilities (deterministic)."""
-    if _sk_validate_data is not None:
-        Xv = _sk_validate_data(  # noqa: N806
+    # Check that X and y have correct shape, set n_features_in_, etc.
+    try:
+        Xv = validate_data(  # noqa: N806
             est,
             X,
             accept_sparse=False,
@@ -67,7 +67,7 @@ def _validate_query_matrix(
             copy=copy,
             reset=False,
         )
-    else:
+    except Exception:
         Xv = check_array(  # noqa: N806
             X,
             accept_sparse=False,
@@ -134,7 +134,10 @@ class VectorOpsMixin:
     ) -> np.ndarray:
         """Validate multiple query vectors as a 2D float array."""
         Xv = _validate_query_matrix(  # noqa: N806
-            self, X, ensure_all_finite=ensure_all_finite, copy=copy
+            self,
+            X,
+            ensure_all_finite=ensure_all_finite,
+            copy=copy,
         )  # noqa: N806
         if Xv.ndim != 2:  # noqa: PLR2004
             raise ValueError(

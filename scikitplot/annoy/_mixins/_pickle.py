@@ -36,27 +36,23 @@ from collections.abc import Mapping
 from dataclasses import dataclass  # noqa: F401
 from enum import Enum  # noqa: F401
 from pathlib import Path  # noqa: F401
-from typing import Any, ClassVar, Literal, TypeAlias, TypeAliasType, cast  # noqa: F401
+from typing import Any, ClassVar, Literal, TypeAlias, cast  # noqa: F401
 
 from typing_extensions import Self
 
-from .._utils import _get_lock, backend_for
+from .._utils import backend_for, lock_for
 
+# https://peps.python.org/pep-0258/#attribute-docstrings
 # Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
 #: Compression used for ``"byte"`` pickling.
-CompressMode = TypeAliasType(
-    "CompressMode",
-    Literal["zlib", "gzip"] | None,
-    doc='Compression used for ``"byte"`` pickling.',
-)
+CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
+"""Compression used for ``"byte"`` pickling."""
 
+# https://peps.python.org/pep-0258/#attribute-docstrings
 # Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
 #: Persistence strategy used by :class:`~.PickleMixin`.
-PickleMode = TypeAliasType(
-    "PickleMode",
-    Literal["auto", "disk", "byte"],
-    doc="Persistence strategy used by :class:`~.PickleMixin`.",
-)
+PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
+"""Persistence strategy used by :class:`~.PickleMixin`."""
 
 __all__ = [
     "CompressMode",
@@ -128,7 +124,7 @@ def _load_index_into(obj: Any, path: str, *, prefault: bool) -> None:
     if not callable(load):
         raise AttributeError("Backend does not provide load(path, prefault=...)")
 
-    lock = _get_lock(obj)
+    lock = lock_for(obj)
     with lock:
         load(path, prefault=prefault)
 
@@ -141,15 +137,17 @@ def _serialize_backend(obj: Any) -> bytes:
         # Some backends may expose serialize() directly on the wrapper.
         serialize = getattr(obj, "serialize", None)
     if not callable(serialize):
-        raise AttributeError("Backend does not provide serialize() -> bytes")
+        raise AttributeError("Backend does not provide serialize() -> bytes-like")
 
     data = serialize()
-    if not isinstance(data, (bytes, bytearray)):
-        raise TypeError("serialize() must return bytes")
+    if not isinstance(data, (bytes, bytearray, memoryview)):
+        raise TypeError("serialize() must return a bytes-like object")
     return bytes(data)
 
 
-def _deserialize_backend(obj: Any, data: bytes, *, prefault: bool) -> None:
+def _deserialize_backend(
+    obj: Any, data: bytes | bytearray | memoryview, *, prefault: bool
+) -> None:
     """Deserialize index bytes via the low-level backend (deterministic)."""
     backend = backend_for(obj)
     deserialize = getattr(backend, "deserialize", None)
@@ -159,9 +157,9 @@ def _deserialize_backend(obj: Any, data: bytes, *, prefault: bool) -> None:
     if not callable(deserialize):
         raise AttributeError("Backend does not provide deserialize(data, prefault=...)")
 
-    lock = _get_lock(obj)
+    lock = lock_for(obj)
     with lock:
-        deserialize(data, prefault=prefault)
+        deserialize(bytes(data), prefault=prefault)
 
 
 class PickleMixin:
@@ -310,7 +308,7 @@ class PickleMixin:
                 "pickle_mode='byte' requires get_n_trees() to determine whether the index is built."
             )
 
-        lock = _get_lock(self)
+        lock = lock_for(self)
         with lock:
             if int(get_n_trees()) <= 0:
                 raise RuntimeError(
@@ -377,7 +375,7 @@ class PickleMixin:
                 instance = cls(f, metric)
 
         # Ensure lock exists even if cls.__init__ did not initialize it.
-        _get_lock(instance)
+        lock_for(instance)
 
         # Best-effort: keep wrapper-level configuration fields consistent.
         with contextlib.suppress(Exception):

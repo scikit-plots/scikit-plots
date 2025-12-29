@@ -24,6 +24,7 @@ import contextlib
 import json
 import os
 from collections.abc import Mapping
+from enum import Enum
 from typing import Any, TypedDict, cast
 
 from typing_extensions import Self
@@ -44,14 +45,77 @@ def _require_schema_version(obj: object) -> int:
         raise RuntimeError(
             "MetaMixin requires the concrete class to define _META_SCHEMA_VERSION"
         )
-    return int(ver)
+    try:
+        return int(ver)
+    except Exception as e:  # pragma: no cover
+        raise RuntimeError(
+            "_META_SCHEMA_VERSION must be an int-compatible value"
+        ) from e
+
+
+def _is_json_scalar(value: Any) -> bool:
+    """Return True if *value* is a JSON scalar (or None)."""
+    return value is None or isinstance(value, (str, int, float, bool))
+
+
+def _encode_persistence_value(value: Any) -> Any:
+    """
+    Encode a persistence knob into a JSON/YAML-safe representation.
+
+    Rules are explicit and deterministic:
+    - JSON scalars (str/int/float/bool/None) are returned unchanged.
+    - Enum values are encoded as ``.value`` if that is a JSON scalar; otherwise
+      as the Enum ``.name``.
+    - Other types raise ``TypeError`` to avoid silently emitting non-serializable
+      metadata.
+    """
+    if _is_json_scalar(value):
+        return value
+    if isinstance(value, Enum):
+        v = value.value
+        return v if _is_json_scalar(v) else value.name
+    raise TypeError(f"Unsupported persistence value type: {type(value)!r}")
+
+
+def _apply_persistence_value(obj: object, key: str, raw: Any) -> None:
+    """
+    Best-effort restore of a persistence knob on *obj*.
+
+    If the current attribute is an Enum, we attempt to restore by Enum value and,
+    if that fails, by Enum name. Otherwise we set the attribute to *raw*.
+    """
+    if not hasattr(obj, key):
+        return
+
+    try:
+        current = getattr(obj, key)
+    except Exception:
+        current = None
+
+    if isinstance(current, Enum):
+        enum_cls = type(current)
+        # Prefer restoring by Enum value.
+        try:
+            setattr(obj, key, enum_cls(raw))
+            return
+        except Exception:
+            pass
+        # Fall back to restoring by name, if *raw* looks like a name.
+        if isinstance(raw, str):
+            try:
+                setattr(obj, key, enum_cls[raw])
+                return
+            except Exception:
+                pass
+
+    setattr(obj, key, raw)
 
 
 class IndexMetadata(TypedDict, total=True):
     """Serializable metadata for an Annoy-backed index."""
 
-    index_schema_version: int | None
-    params: dict[str, Any] | None
+    index_schema_version: int
+    params: dict[str, Any]
     info: dict[str, Any] | None
     persistence: dict[str, Any] | None
 
@@ -83,7 +147,10 @@ class MetaMixin:
     _META_SCHEMA_VERSION: int
 
     def to_metadata(  # noqa: PLR0912
-        self, *, include_info: bool = True, strict: bool = True
+        self,
+        *,
+        include_info: bool = True,
+        strict: bool = True,
     ) -> IndexMetadata:
         """
         Export a serializable metadata payload.
@@ -109,9 +176,15 @@ class MetaMixin:
             If ``get_params`` does not return a mapping.
         AttributeError
             If neither the instance nor the backend implements ``get_params``.
+        TypeError
+            If a persistence knob (e.g., ``pickle_mode``) is not JSON/YAML-serializable.
+
+        See Also
+        --------
+        to_json
+        to_yaml
         """
         schema = _require_schema_version(self)
-
         backend = backend_for(self)
 
         # Prefer wrapper methods when present; fall back to the backend.
@@ -130,7 +203,6 @@ class MetaMixin:
             info_owner = backend
 
         # Acquire the instance lock only when calling into the low-level backend.
-        params_obj = None
         if get_params_owner is backend:
             with lock_for(self):
                 params_obj = get_params(deep=False)
@@ -141,13 +213,15 @@ class MetaMixin:
             raise TypeError("get_params(deep=False) must return a mapping")
         params = dict(params_obj)
 
+        # Normalize common PathLike parameters for JSON/YAML stability.
+        if "on_disk_path" in params and params["on_disk_path"] is not None:
+            with contextlib.suppress(Exception):
+                params["on_disk_path"] = os.fspath(params["on_disk_path"])
+
         info_payload: dict[str, Any] | None = None
         if include_info and callable(info_fn):
             try:
-                if info_owner is backend:
-                    with lock_for(self):
-                        info_obj = info_fn()
-                else:
+                with lock_for(self):
                     info_obj = info_fn()
             except Exception as e:
                 if strict:
@@ -166,7 +240,7 @@ class MetaMixin:
             with contextlib.suppress(Exception):
                 value = getattr(self, key)
                 if value is not None:
-                    persistence[key] = value
+                    persistence[key] = _encode_persistence_value(value)
 
         return {
             "index_schema_version": int(schema),
@@ -205,6 +279,11 @@ class MetaMixin:
         -------
         json_str
             JSON representation of the metadata.
+
+        Raises
+        ------
+        TypeError
+            If the exported metadata contains non-JSON-serializable values.
 
         See Also
         --------
@@ -248,22 +327,35 @@ class MetaMixin:
             If input types are invalid.
         ValueError
             If required fields are missing or invalid.
+        RuntimeError
+            If schema version is missing on the class.
         AttributeError
             If backend ``set_params``/``load`` are missing when required.
+
+        See Also
+        --------
+        to_metadata
+        from_json
+        from_yaml
         """
         if not isinstance(metadata, Mapping):
             raise TypeError("metadata must be a mapping")
-
-        schema_obj = metadata.get("index_schema_version", None)
 
         expected_schema = getattr(cls, "_META_SCHEMA_VERSION", None)
         if expected_schema is None:
             raise RuntimeError("MetaMixin requires cls._META_SCHEMA_VERSION")
         expected = int(expected_schema)
-        if schema_obj is not None and int(schema_obj) != expected:
-            raise ValueError(
-                f"Unsupported index_schema_version {int(schema_obj)}; expected {expected}."
-            )
+
+        schema_obj = metadata.get("index_schema_version", None)
+        if schema_obj is not None:
+            try:
+                schema = int(schema_obj)
+            except Exception as e:
+                raise ValueError("index_schema_version must be int-compatible") from e
+            if schema != expected:
+                raise ValueError(
+                    f"Unsupported index_schema_version {schema}; expected {expected}."
+                )
 
         params_obj = metadata.get("params", None)
         if not isinstance(params_obj, Mapping):
@@ -273,7 +365,10 @@ class MetaMixin:
         if "f" not in params or "metric" not in params:
             raise ValueError("metadata params must contain 'f' and 'metric'")
 
-        f = int(params["f"])
+        try:
+            f = int(params["f"])
+        except Exception as e:
+            raise ValueError("metadata['params']['f'] must be int-compatible") from e
         metric = params["metric"]
         if not isinstance(metric, str) or not metric:
             raise ValueError("metadata['params']['metric'] must be a non-empty string")
@@ -292,19 +387,16 @@ class MetaMixin:
             if not callable(set_params):
                 raise AttributeError("Missing set_params(**params) on instance/backend")
 
-            if set_params_owner is backend:
-                with lock_for(obj):
-                    set_params(**rest)
-            else:
+            with lock_for(obj):
                 set_params(**rest)
 
         # Apply optional persistence knobs when supported by the instance.
         persistence = metadata.get("persistence", None)
         if isinstance(persistence, Mapping):
             for key in ("pickle_mode", "compress_mode"):
-                if hasattr(obj, key) and key in persistence:
+                if key in persistence:
                     with contextlib.suppress(Exception):
-                        setattr(obj, key, persistence[key])
+                        _apply_persistence_value(obj, key, persistence[key])
 
         # Optionally load the on-disk index if requested and available.
         on_disk_path = params.get("on_disk_path", None)  # noqa: SIM910
@@ -321,18 +413,20 @@ class MetaMixin:
                 load_fn = getattr(backend, "load", None)
                 if callable(load_fn):
                     prefault = params.get("prefault", None)  # noqa: SIM910
-                    if prefault is None:
-                        with lock_for(obj):
+                    with lock_for(obj):
+                        if prefault is None:
                             load_fn(os.fspath(on_disk_path))
-                    else:
-                        with lock_for(obj):
+                        else:
                             load_fn(os.fspath(on_disk_path), prefault=bool(prefault))
 
         return cast(Self, obj)
 
     @classmethod
     def from_json(
-        cls: type[Self], path: str | os.PathLike[str], *, load: bool = True
+        cls: type[Self],
+        path: str | os.PathLike[str],
+        *,
+        load: bool = True,
     ) -> Self:
         """Load metadata from JSON and construct an index."""
         obj = json.loads(read_text(path))
@@ -363,7 +457,10 @@ class MetaMixin:
 
     @classmethod
     def from_yaml(
-        cls: type[Self], path: str | os.PathLike[str], *, load: bool = True
+        cls: type[Self],
+        path: str | os.PathLike[str],
+        *,
+        load: bool = True,
     ) -> Self:
         """Load metadata from YAML and construct an index (requires PyYAML)."""
         try:
@@ -401,7 +498,13 @@ class MetadataRoutingMixin:
             ) from e
 
         # Minimal explicit metadata request: accept no routed metadata by default.
-        return MetadataRequest(owner=type(self))
+        try:
+            return MetadataRequest(owner=type(self))
+        except TypeError:  # pragma: no cover
+            try:
+                return MetadataRequest(owner=type(self).__name__)
+            except TypeError:
+                return MetadataRequest()
 
     @staticmethod
     def build_metadata_router(*, owner: object) -> Any:
@@ -413,9 +516,11 @@ class MetadataRoutingMixin:
                 "scikit-learn is required for metadata routing. Install `scikit-learn`."
             ) from e
 
+        # MetadataRouter changed signatures across sklearn versions; be permissive.
         try:
             return MetadataRouter(owner=owner)
         except TypeError:  # pragma: no cover
-            return MetadataRouter(
-                owner=getattr(owner, "__class__", type(owner)).__name__
-            )
+            try:
+                return MetadataRouter(owner=getattr(owner, "__class__", type(owner)))
+            except TypeError:
+                return MetadataRouter()

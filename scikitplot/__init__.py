@@ -56,9 +56,6 @@ __version__ = "0.5.dev0"  # dev
 
 # import logging as _logging
 # logger.setLevel(logger.DEBUG)  # for debugging
-#
-# Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
-# Unified logging alias logger utility combined :mod:`logging` and :mod:`logging.getLogger`.
 from . import logging as logger  # alias not a module or namespace just global attr
 from .logging import get_logger
 

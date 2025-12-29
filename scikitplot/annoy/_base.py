@@ -49,6 +49,10 @@ __all__ = [
     "Index",
 ]
 
+
+# Type used for isinstance checks of threading.RLock() results.
+_RLOCK_TYPE = type(FALLBACK_LOCK)
+
 # ------------------------------------------------------------------
 # Low-level access
 # This wrapper supports both inheritance (self is the backend) and
@@ -96,6 +100,20 @@ class Index(
 
     Attributes
     ----------
+    f : int, default=0
+        Vector dimension. ``0`` means "unknown / lazy".
+    metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'}, default="angular"
+        Canonical metric name, or None if not configured yet (lazy).
+    on_disk_path : str or None, optional, default=None
+        Configured on-disk build path. Setting this attribute enables on-disk
+        build mode (equivalent to :meth:`on_disk_build`), with safety checks
+        to avoid implicit truncation of existing files.
+    prefault : bool, default=False
+        Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
+    schema_version : int, default=0
+        Reserved schema/version marker (stored; does not affect on-disk format).
+    y: list[Any] | None
+        Stored labels.
     pickle_mode : PickleMode
         Pickle strategy used by :class:`~scikitplot.annoy._mixins._pickle.PickleMixin`.
     compress_mode : CompressMode or None
@@ -134,14 +152,17 @@ class Index(
         """
         # Prefer an instance lock when possible; fall back to a shared lock
         # when the C-extension type does not support dynamic attributes.
-        lock = getattr(self, "_lock", None)
-        if lock is not None:
+        try:
+            lock = object.__getattribute__(self, "_lock")
+        except Exception:
+            lock = None
+        if isinstance(lock, _RLOCK_TYPE):
             return lock
 
         new_lock = threading.RLock()
         try:
             object.__setattr__(self, "_lock", new_lock)
-        except (AttributeError, TypeError):
+        except Exception:
             return FALLBACK_LOCK
         return new_lock
 
@@ -216,17 +237,15 @@ class Index(
         The implementation uses Annoy's native serialization. It does not attempt
         to copy internal pointers or C++ state directly.
 
+        This method is deterministic. It always constructs a new index from the
+        serialized payload; it does not share low-level state between objects.
+
         See Also
         --------
         Annoy.serialize
         Annoy.deserialize
         Annoy.get_params
         Annoy.set_params
-
-        Notes
-        -----
-        This method is deterministic. It always constructs a new index from the
-        serialized payload; it does not share low-level state between objects.
         """
         if not isinstance(obj, Annoy):
             raise TypeError(f"obj must be an Annoy instance, got {type(obj)!r}")

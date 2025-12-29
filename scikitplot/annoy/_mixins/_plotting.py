@@ -43,6 +43,8 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
+from .._utils import backend_for, lock_for
+
 __all__ = [  # noqa: RUF022
     # Re-exported low-level helpers (thin wrappers)
     "annoy_index_to_array",
@@ -187,34 +189,20 @@ class PlottingMixin:
         Function-level kNN edge overlay helper.
     """
 
-    # This mixin supports both inheritance-style (Index subclasses Annoy)
-    # and composition-style (Index wraps a low-level Annoy instance).
-    #
-    # Concrete classes may optionally provide ``self._annoy``; if absent,
-    # the low-level object is assumed to be ``self``.
-
-    def _low_level(self) -> Any:
-        """
-        Return the low-level Annoy object.
-
-        Preference order is explicit and deterministic:
-
-        1) ``self._annoy`` when present (composition style)
-        2) ``self`` (inheritance style)
-        """
-        ll = getattr(self, "_annoy", None)
-        return ll if ll is not None else self
-
     # NOTE: This method is intentionally tiny and explicit.
     # Subclasses that wrap/compose Annoy should override it.
     def _plotting_backend(self) -> Any:
         """
         Return the Annoy-like backend used for plotting.
 
-        The default implementation returns ``self``.
+        The default implementation is composition-friendly and deterministic:
+        it returns :func:`~scikitplot.annoy._utils.backend_for`.
+
+        Override this method if your wrapper uses a different delegation
+        mechanism.
         """
 
-        return self
+        return backend_for(self)
 
     @staticmethod
     def _as_2d_coords(y2: Any) -> np.ndarray:
@@ -306,20 +294,22 @@ class PlottingMixin:
         >>> y2, ids, ax = idx.plot_index(labels=labels, projection="pca")
         """
 
-        return plot_annoy_index(
-            self._plotting_backend(),
-            labels=labels,
-            ids=ids,
-            projection=projection,
-            dims=dims,
-            center=center,
-            maxabs=maxabs,
-            l2_normalize=l2_normalize,
-            dtype=dtype,
-            ax=ax,
-            title=title,
-            plot_kwargs=plot_kwargs,
-        )
+        backend = self._plotting_backend()
+        with lock_for(self):
+            return plot_annoy_index(
+                backend,
+                labels=labels,
+                ids=ids,
+                projection=projection,
+                dims=dims,
+                center=center,
+                maxabs=maxabs,
+                l2_normalize=l2_normalize,
+                dtype=dtype,
+                ax=ax,
+                title=title,
+                plot_kwargs=plot_kwargs,
+            )
 
     def plot_knn_edges(
         self,
@@ -375,13 +365,15 @@ class PlottingMixin:
                 f"len(ids)={len(ids)!r}, y2.shape={y2_arr.shape!r}"
             )
 
-        return plot_annoy_knn_edges(
-            self._plotting_backend(),
-            y2_arr,
-            ids=ids,
-            k=k,
-            search_k=search_k,
-            ax=ax,
-            line_kwargs=line_kwargs,
-            undirected=undirected,
-        )
+        backend = self._plotting_backend()
+        with lock_for(self):
+            return plot_annoy_knn_edges(
+                backend,
+                y2_arr,
+                ids=ids,
+                k=k,
+                search_k=search_k,
+                ax=ax,
+                line_kwargs=line_kwargs,
+                undirected=undirected,
+            )

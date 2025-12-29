@@ -14,6 +14,7 @@ from ._mixins._vectors import VectorOpsMixin
 
 # --- Allowed metric literals (simple type hints) ---
 # AnnoyMetric: TypeAlias = Literal["angular", "euclidean", "manhattan", "dot", "hamming"]
+# Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
 AnnoyMetric: TypeAlias = (
     Literal[
         "angular",

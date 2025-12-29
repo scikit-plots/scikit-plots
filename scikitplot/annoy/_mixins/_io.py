@@ -26,9 +26,10 @@ from __future__ import annotations
 import contextlib
 import os
 import tempfile
+from collections.abc import Callable
 from os import PathLike
-from typing import Callable
 
+# from typing import Callable
 from typing_extensions import Self
 
 from .._utils import backend_for, ensure_parent_dir, lock_for
@@ -81,8 +82,8 @@ class IndexIOMixin:
 
     - ``save(path, prefault=...)``
     - ``load(path, prefault=...)``
-    - ``serialize() -> bytes``
-    - ``deserialize(data: bytes, prefault=...)``
+    - ``serialize() -> bytes-like``
+    - ``deserialize(data: bytes-like, prefault=...)``
 
     Notes
     -----
@@ -123,7 +124,7 @@ class IndexIOMixin:
             For filesystem-level failures.
         """
         p = os.fspath(path)
-        ensure_parent_dir(p)
+        ensure_parent_dir(p)  # needed for non-atomic writes; harmless otherwise
 
         backend = backend_for(self)
         save = getattr(backend, "save", None)
@@ -139,15 +140,15 @@ class IndexIOMixin:
                 save(dst, prefault=bool(prefault))
 
         with lock:
-            if not atomic:
-                _write(p)
-            else:
+            if atomic:
                 _atomic_backend_write(p, _write)
+            else:
+                _write(p)
 
-        # Best-effort: keep a stable 'on_disk_path' attribute in sync when possible.
-        for attr in ("on_disk_path", "_on_disk_path"):
-            with contextlib.suppress(Exception):
-                setattr(self, attr, p)
+            # Best-effort: keep a stable 'on_disk_path' attribute in sync when possible.
+            for attr in ("on_disk_path", "_on_disk_path"):
+                with contextlib.suppress(Exception):
+                    setattr(self, attr, p)
 
     def load_index(
         self,
@@ -187,9 +188,9 @@ class IndexIOMixin:
             else:
                 load(p, prefault=bool(prefault))
 
-        for attr in ("on_disk_path", "_on_disk_path"):
-            with contextlib.suppress(Exception):
-                setattr(self, attr, p)
+            for attr in ("on_disk_path", "_on_disk_path"):
+                with contextlib.suppress(Exception):
+                    setattr(self, attr, p)
 
     # --------
     # Bytes I/O (serialize/deserialize)
@@ -210,24 +211,24 @@ class IndexIOMixin:
         RuntimeError
             If serialization fails.
         TypeError
-            If the backend returns non-bytes data.
+            If the backend returns non-bytes-like data.
         """
         backend = backend_for(self)
         serialize = getattr(backend, "serialize", None)
         if not callable(serialize):
-            raise AttributeError("Backend does not provide serialize() -> bytes")
+            raise AttributeError("Backend does not provide serialize() -> bytes-like")
 
         lock = lock_for(self)
         with lock:
             data = serialize()
-        if not isinstance(data, (bytes, bytearray)):
-            raise TypeError("serialize() must return bytes")
+        if not isinstance(data, (bytes, bytearray, memoryview)):
+            raise TypeError("serialize() must return a bytes-like object")
         return bytes(data)
 
     @classmethod
     def from_bytes(
         cls: type[Self],
-        data: bytes,
+        data: bytes | bytearray | memoryview,
         *,
         f: int,
         metric: str,
@@ -333,10 +334,12 @@ class IndexIOMixin:
         manifest_path = os.path.join(dir_s, manifest_filename)
         index_path = os.path.join(dir_s, index_filename)
 
-        # Let MetaMixin handle atomic metadata writes.
-        to_json(manifest_path)
+        lock = lock_for(self)
+        with lock:
+            # Let MetaMixin handle atomic metadata writes.
+            to_json(manifest_path)
 
-        self.save_index(index_path, prefault=prefault, atomic=True)
+            self.save_index(index_path, prefault=prefault, atomic=True)
 
     @classmethod
     def load_bundle(
