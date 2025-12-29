@@ -35,14 +35,14 @@ from sklearn.model_selection import train_test_split
 
 # %%
 Xdi_train, Xdi_val, ydi_train, ydi_val = train_test_split(
-    *load_diabetes(return_X_y=True), test_size=0.25, random_state=42
+    *load_diabetes(return_X_y=True, n_retries=10, delay=5.0), test_size=0.25, random_state=42
 )
 Xca_train, Xca_val, yca_train, yca_val = train_test_split(
-    *fetch_california_housing(return_X_y=True), test_size=0.25, random_state=42
+    *fetch_california_housing(return_X_y=True, n_retries=10, delay=5.0), test_size=0.25, random_state=42
 )
 Xbc_train, Xbc_val, ybc_train, ybc_val = train_test_split(
-    *data_2_classes(return_X_y=True), test_size=0.25, random_state=42,
-    stratify=data_2_classes(return_X_y=True)[1]
+    *data_2_classes(return_X_y=True, n_retries=10, delay=5.0), test_size=0.25, random_state=42,
+    stratify=data_2_classes(return_X_y=True, n_retries=10, delay=5.0)[1]  # (data, target)
 )
 
 
