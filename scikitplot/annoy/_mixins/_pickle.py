@@ -36,17 +36,25 @@ from collections.abc import Mapping
 from dataclasses import dataclass  # noqa: F401
 from enum import Enum  # noqa: F401
 from pathlib import Path  # noqa: F401
-from typing import Any, ClassVar, Literal, TypeAlias, cast
+from typing import Any, ClassVar, Literal, TypeAlias, TypeAliasType, cast  # noqa: F401
 
 from typing_extensions import Self
 
 from .._utils import _get_lock, backend_for
 
-CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
-"""Compression used for ``"byte"`` pickling."""
+#: Compression used for ``"byte"`` pickling.
+CompressMode = TypeAliasType(
+    "CompressMode",
+    Literal["zlib", "gzip"] | None,
+    doc='Compression used for ``"byte"`` pickling.',
+)
 
-PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
-"""Persistence strategy used by :class:`~.PickleMixin`."""
+#: Persistence strategy used by :class:`~.PickleMixin`.
+PickleMode = TypeAliasType(
+    "PickleMode",
+    Literal["auto", "disk", "byte"],
+    doc="Persistence strategy used by :class:`~.PickleMixin`.",
+)
 
 __all__ = [
     "CompressMode",

@@ -10,8 +10,8 @@ There are two distinct persistence concepts:
 1. **Annoy index persistence** (native, recommended)
    Writes/loads the actual forest via the low-level backend:
 
-   - :meth:`save_index` / :meth:`load_index` wrap backend ``save`` / ``load``
-   - :meth:`to_bytes` / :meth:`from_bytes` wrap backend ``serialize`` / ``deserialize``
+   - :py:meth:`save_index` / :py:meth:`load_index` wrap backend ``save`` / ``load``
+   - :py:meth:`to_bytes` / :py:meth:`from_bytes` wrap backend ``serialize`` / ``deserialize``
 
 2. **Python object persistence** (pickling)
    Pickling serializes the *Python object* and is handled by
@@ -87,10 +87,10 @@ class IndexIOMixin:
     Notes
     -----
     - Methods in this mixin acquire a per-instance lock if one is available.
-    - :meth:`save_index` defaults to atomic writes (write temp + :func:`os.replace`)
+    - :py:meth:`save_index` defaults to atomic writes (write temp + :func:`os.replace`)
       to reduce the risk of partial/corrupt files on failure.
-    - :meth:`save_bundle` / :meth:`load_bundle` require :meth:`to_json` /
-      :meth:`from_json` (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
+    - :py:meth:`save_bundle` / :py:meth:`load_bundle` require :py:meth:`to_json` /
+      :py:meth:`from_json` (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
     """
 
     # --------
@@ -161,7 +161,7 @@ class IndexIOMixin:
         Parameters
         ----------
         path : str or os.PathLike
-            Path to a file previously created by :meth:`save_index` or the
+            Path to a file previously created by :py:meth:`save_index` or the
             backend ``save``.
         prefault
             Forwarded to the backend. If ``None``, the backend default is used.
@@ -239,7 +239,7 @@ class IndexIOMixin:
         Parameters
         ----------
         data
-            Bytes produced by :meth:`to_bytes` (backend ``serialize``).
+            Bytes produced by :py:meth:`to_bytes` (backend ``serialize``).
         f
             Vector dimension for construction.
         metric
@@ -299,8 +299,8 @@ class IndexIOMixin:
         Save a *directory bundle* containing metadata + the index file.
 
         The bundle contains:
-        - ``manifest.json``: metadata payload produced by :meth:`to_json`
-        - ``index.ann``: Annoy index produced by :meth:`save_index`
+        - ``manifest.json``: metadata payload produced by :py:meth:`to_json`
+        - ``index.ann``: Annoy index produced by :py:meth:`save_index`
 
         Parameters
         ----------
@@ -311,12 +311,12 @@ class IndexIOMixin:
         manifest_filename
             Filename for the metadata manifest inside the directory.
         prefault
-            Forwarded to :meth:`save_index`.
+            Forwarded to :py:meth:`save_index`.
 
         Raises
         ------
         AttributeError
-            If :meth:`to_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
+            If :py:meth:`to_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
         OSError
             On filesystem failures.
         """
@@ -348,7 +348,7 @@ class IndexIOMixin:
         prefault: bool | None = None,
     ) -> Self:
         """
-        Load a directory bundle created by :meth:`save_bundle`.
+        Load a directory bundle created by :py:meth:`save_bundle`.
 
         Parameters
         ----------
@@ -359,7 +359,7 @@ class IndexIOMixin:
         manifest_filename
             Filename for the metadata manifest inside the directory.
         prefault
-            Forwarded to :meth:`load_index`.
+            Forwarded to :py:meth:`load_index`.
 
         Returns
         -------
@@ -369,9 +369,9 @@ class IndexIOMixin:
         Raises
         ------
         AttributeError
-            If :meth:`from_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
+            If :py:meth:`from_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
         TypeError
-            If :meth:`from_json` returns an unexpected type.
+            If :py:meth:`from_json` returns an unexpected type.
         OSError
             On filesystem failures.
         """

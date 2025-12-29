@@ -26,7 +26,7 @@ scikitplot.cexternals._annoy.Annoy
 """
 
 #   .. seealso::
-#     * :py:obj:`~scikitplot.annoy.Index.from_low_level`
+#     * :py:meth:`~scikitplot.annoy.Index.from_low_level`
 #     * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
 
 from __future__ import annotations
@@ -171,7 +171,7 @@ class Index(
     @property
     def backend(self) -> Annoy:
         """
-        Public alias for :meth:`~scikitplot.annoy.Index._backend`.
+        Public alias for :py:meth:`~scikitplot.annoy.Index._backend`.
 
         Returns
         -------
@@ -194,7 +194,7 @@ class Index(
         obj : scikitplot.cexternals._annoy.Annoy
             Low-level Annoy instance.
         prefault : bool or None, default=None
-            Prefault override passed to :meth:`~.Annoy.deserialize`. If None, the
+            Prefault override passed to :py:meth:`~.Annoy.deserialize`. If None, the
             value is taken from ``obj.get_params(deep=False)`` when available,
             otherwise it falls back to ``obj.prefault`` / destination defaults.
 
