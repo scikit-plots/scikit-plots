@@ -42,6 +42,7 @@ from typing_extensions import Self
 
 from .._utils import _get_lock, backend_for
 
+# Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
 #: Compression used for ``"byte"`` pickling.
 CompressMode = TypeAliasType(
     "CompressMode",
@@ -49,6 +50,7 @@ CompressMode = TypeAliasType(
     doc='Compression used for ``"byte"`` pickling.',
 )
 
+# Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
 #: Persistence strategy used by :class:`~.PickleMixin`.
 PickleMode = TypeAliasType(
     "PickleMode",
