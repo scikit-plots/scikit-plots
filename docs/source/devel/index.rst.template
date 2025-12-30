@@ -196,8 +196,7 @@ Getting Started Contribute Guide
 
 We welcome you to get more involved with the scikit-plots project! If you are new
 to contributing, we recommend that you first read our
-:ref:`Getting Started Contribute Guide <guide_gs_contribute>`:
-
+:ref:`Getting Started Contribute Guide <contributing>`:
 
 .. toctree::
    :caption: getting started
@@ -206,6 +205,7 @@ to contributing, we recommend that you first read our
    Getting Started Contribute Guide <guide_gs_contribute.rst>
 
 .. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+
 
 .. grid:: 1 1 2 2
    :class-row: sd-fs-5 sd-align-minor-center

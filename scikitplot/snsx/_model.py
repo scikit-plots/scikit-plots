@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Model Instance and/or Attributes Visualization.
+Model Instance and/or Attributes Visualization. [1] [2]_.
 
 Supported attributes:
 
@@ -21,7 +21,7 @@ PCA : Principal component analysis (PCA).
 KernelPCA : Kernel Principal component analysis (KPCA).
 SparsePCA : Sparse Principal Components Analysis (SparsePCA).
 TruncatedSVD : Dimensionality reduction using truncated SVD.
-permutation_importance : Permutation importance for feature evaluation [BRE].
+permutation_importance : Permutation importance for feature evaluation [BRE]_.
 partial_dependence : Compute Partial Dependence values.
 PartialDependenceDisplay : Partial dependence visualization.
 PartialDependenceDisplay.from_estimator : Plot Partial Dependence.

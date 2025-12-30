@@ -1394,8 +1394,12 @@ CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG='c:/vcpkg/installed/arm64-windows/tools/p
     path = "changed-models"
 
   [[tool.towncrier.section]]
-    name = "Security"
-    path = "security"
+    name = "custom-top-level"
+    path = "custom-top-level"
+
+  [[tool.towncrier.section]]
+    name = "Documentation"
+    path = "documentation"
 
   [[tool.towncrier.section]]
     name = "Changes impacting many modules"
@@ -1406,8 +1410,8 @@ CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG='c:/vcpkg/installed/arm64-windows/tools/p
     path = "metadata-routing"
 
   [[tool.towncrier.section]]
-    name = "custom-top-level"
-    path = "custom-top-level"
+    name = "Security"
+    path = "security"
 
   [[tool.towncrier.section]]
     name = ":mod:`scikitplot.cexternals._astropy`"

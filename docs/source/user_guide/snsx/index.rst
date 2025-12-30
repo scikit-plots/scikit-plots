@@ -15,10 +15,18 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. currentmodule:: scikitplot.snsx
+
 .. _snsx-index:
+
 snsx Seaborn eXtended (experimental)
 ======================================================================
 
 Examples relevant to the :py:mod:`~.snsx` module.
 
 .. _decile-index:
+
+Decile Plot (experimental)
+======================================================================
+
+Examples relevant to the :py:mod:`~.decileplot` module.

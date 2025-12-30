@@ -1,260 +1,108 @@
 # scikitplot/annoy/_mixins/_vectors.pyi
-# fmt: off
-# ruff: noqa
-# ruff: noqa: PGH004
-# flake8: noqa
-# pylint: skip-file
-# mypy: ignore-errors
-# type: ignore[]
 
-"""Vector utilities for Annoy-style indexes (typing stubs)."""
+"""Typing stubs for vector neighbor utilities."""  # noqa: PYI021
 
 # from __future__ import annotations
 
-from typing import Any, Iterable, Iterator, Protocol, Sequence, TypeAlias, overload, runtime_checkable
-from typing_extensions import Literal
+from collections.abc import Iterable
+from typing import Any, Literal, Protocol, TypeAlias, runtime_checkable
 
-try:
-    import numpy as np
-except Exception:  # pragma: no cover
-    np = Any  # type: ignore[assignment]
+import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
-Ids: TypeAlias = list[int]
-Dists: TypeAlias = list[float]
-Vector: TypeAlias = Sequence[float]
+__all__: tuple[str, ...] = ("VectorOpsMixin",)
 
-NeighborIdsReturn: TypeAlias = Ids | tuple[Ids, Dists]
-NeighborVectorsMatrix: TypeAlias = list[Sequence[float]] | "np.ndarray"
-NeighborVectorsReturn: TypeAlias = NeighborVectorsMatrix | tuple[NeighborVectorsMatrix, Dists]
-
-__all__: list[str]
-
+IndexArray: TypeAlias = NDArray[np.intp]
+DistanceArray: TypeAlias = NDArray[np.floating]
 
 @runtime_checkable
-class AnnoyVectorOps(Protocol):
+class _AnnoyVectorBackend(Protocol):  # noqa: PYI046
     def get_nns_by_item(
         self,
         item: int,
         n: int,
         search_k: int = ...,
         include_distances: bool = ...,
-    ) -> Ids | tuple[Ids, Dists]: ...
-
+    ) -> list[int] | tuple[list[int], list[float]]: ...
     def get_nns_by_vector(
         self,
-        vector: Vector,
+        vector: list[float],
         n: int,
         search_k: int = ...,
         include_distances: bool = ...,
-    ) -> Ids | tuple[Ids, Dists]: ...
-
-    def get_item_vector(self, item: int) -> Sequence[float]: ...
-
+    ) -> list[int] | tuple[list[int], list[float]]: ...
+    def get_item_vector(self, item: int) -> list[float]: ...
+    def get_n_trees(self) -> int: ...
+    def get_n_items(self) -> int: ...
 
 class VectorOpsMixin:
-
-    def _filter_ids(
-        self,
-        ids: Ids,
-        dists: Dists | None,
-        *,
-        exclude_ids: set[int] | None = ...,
-    ) -> tuple[Ids, Dists | None]: ...
-
-    def _require_numpy(self) -> Any: ...
-    def _vectors_equal_strict(self, a: Vector, b: Vector) -> bool: ...
-    def _find_first_exact_match_id(self, vector: Vector, ids: Ids) -> int | None: ...
-
-    def _neighbor_ids_by_item(
+    def query_by_item(
         self,
         item: int,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_self: bool = False,
-        include_distances: bool = False,
-    ) -> NeighborIdsReturn: ...
-
-    def _neighbor_ids_by_vector(
-        self,
-        vector: Vector,
-        n: int,
+        n_neighbors: int,
         *,
         search_k: int = -1,
         include_distances: bool = False,
-        include_self: bool = False,
-        exclude_item: int | None = None,
+        exclude_self: bool = True,
         exclude_item_ids: Iterable[int] | None = None,
-    ) -> NeighborIdsReturn: ...
-
-    @overload
-    def get_neighbor_ids_by_item(
+    ) -> IndexArray | tuple[IndexArray, DistanceArray]: ...
+    def query_by_vector(
+        self,
+        vector: ArrayLike,
+        n_neighbors: int,
+        *,
+        search_k: int = -1,
+        include_distances: bool = False,
+        exclude_self: bool = True,
+        exclude_item_ids: Iterable[int] | None = None,
+        ensure_all_finite: bool | Literal["allow-nan"] = True,
+        copy: bool = False,
+    ) -> IndexArray | tuple[IndexArray, DistanceArray]: ...
+    def query_vectors_by_item(
         self,
         item: int,
-        n: int,
+        n_neighbors: int,
         *,
         search_k: int = -1,
-        include_self: bool = False,
-        include_distances: Literal[False] = False,
-    ) -> Ids: ...
-    @overload
-    def get_neighbor_ids_by_item(
-        self,
-        item: int,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_self: bool = False,
-        include_distances: Literal[True] = True,
-    ) -> tuple[Ids, Dists]: ...
-
-    @overload
-    def get_neighbor_vectors_by_item(
-        self,
-        item: int,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_self: bool = False,
-        include_distances: Literal[False] = False,
-        as_numpy: Literal[False] = False,
-        dtype: str = "float32",
-    ) -> list[Sequence[float]]: ...
-    @overload
-    def get_neighbor_vectors_by_item(
-        self,
-        item: int,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_self: bool = False,
-        include_distances: Literal[False] = False,
-        as_numpy: Literal[True],
-        dtype: str = "float32",
-    ) -> "np.ndarray": ...
-    @overload
-    def get_neighbor_vectors_by_item(
-        self,
-        item: int,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_self: bool = False,
-        include_distances: Literal[True] = True,
-        as_numpy: Literal[False] = False,
-        dtype: str = "float32",
-    ) -> tuple[list[Sequence[float]], Dists]: ...
-    @overload
-    def get_neighbor_vectors_by_item(
-        self,
-        item: int,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_self: bool = False,
-        include_distances: Literal[True] = True,
-        as_numpy: Literal[True] = True,
-        dtype: str = "float32",
-    ) -> tuple["np.ndarray", Dists]: ...
-
-    def iter_neighbor_vectors_by_item(
-        self,
-        item: int,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_self: bool = False,
-    ) -> Iterator[Sequence[float]]: ...
-
-    @overload
-    def get_neighbor_ids_by_vector(
-        self,
-        vector: Vector,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_distances: Literal[False] = False,
-        include_self: bool = False,
-        exclude_item: int | None = None,
+        include_distances: bool = False,
+        exclude_self: bool = True,
         exclude_item_ids: Iterable[int] | None = None,
-    ) -> Ids: ...
-    @overload
-    def get_neighbor_ids_by_vector(
+        dtype: Any = ...,
+    ) -> NDArray[Any] | tuple[NDArray[Any], DistanceArray]: ...
+    def query_vectors_by_vector(
         self,
-        vector: Vector,
-        n: int,
+        vector: ArrayLike,
+        n_neighbors: int,
         *,
         search_k: int = -1,
-        include_distances: Literal[True] = True,
-        include_self: bool = False,
-        exclude_item: int | None = None,
+        include_distances: bool = False,
+        exclude_self: bool = True,
         exclude_item_ids: Iterable[int] | None = None,
-    ) -> tuple[Ids, Dists]: ...
-
-    @overload
-    def get_neighbor_vectors_by_vector(
+        ensure_all_finite: bool | Literal["allow-nan"] = True,
+        copy: bool = False,
+        dtype: Any = ...,
+    ) -> NDArray[Any] | tuple[NDArray[Any], DistanceArray]: ...
+    def kneighbors(
         self,
-        vector: Vector,
-        n: int,
+        X: ArrayLike,
+        n_neighbors: int = 5,
         *,
         search_k: int = -1,
-        include_distances: Literal[False] = False,
-        include_self: bool = False,
-        exclude_item: int | None = None,
+        include_distances: bool = True,
+        exclude_self: bool = True,
         exclude_item_ids: Iterable[int] | None = None,
-        as_numpy: Literal[False] = False,
-        dtype: str = "float32",
-    ) -> list[Sequence[float]]: ...
-    @overload
-    def get_neighbor_vectors_by_vector(
+        ensure_all_finite: bool | Literal["allow-nan"] = True,
+        copy: bool = False,
+    ) -> IndexArray | tuple[IndexArray, DistanceArray]: ...
+    def kneighbors_graph(
         self,
-        vector: Vector,
-        n: int,
+        X: ArrayLike,
+        n_neighbors: int = 5,
         *,
         search_k: int = -1,
-        include_distances: Literal[False] = False,
-        include_self: bool = False,
-        exclude_item: int | None = None,
+        mode: Literal["connectivity", "distance"] = "connectivity",
+        exclude_self: bool = True,
         exclude_item_ids: Iterable[int] | None = None,
-        as_numpy: Literal[True] = True,
-        dtype: str = "float32",
-    ) -> "np.ndarray": ...
-    @overload
-    def get_neighbor_vectors_by_vector(
-        self,
-        vector: Vector,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_distances: Literal[True] = True,
-        include_self: bool = False,
-        exclude_item: int | None = None,
-        exclude_item_ids: Iterable[int] | None = None,
-        as_numpy: Literal[False] = False,
-        dtype: str = "float32",
-    ) -> tuple[list[Sequence[float]], Dists]: ...
-    @overload
-    def get_neighbor_vectors_by_vector(
-        self,
-        vector: Vector,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_distances: Literal[True] = True,
-        include_self: bool = False,
-        exclude_item: int | None = None,
-        exclude_item_ids: Iterable[int] | None = None,
-        as_numpy: Literal[True] = True,
-        dtype: str = "float32",
-    ) -> tuple["np.ndarray", Dists]: ...
-
-    def iter_neighbor_vectors_by_vector(
-        self,
-        vector: Vector,
-        n: int,
-        *,
-        search_k: int = -1,
-        include_self: bool = False,
-        exclude_item: int | None = None,
-        exclude_item_ids: Iterable[int] | None = None,
-    ) -> Iterator[Sequence[float]]: ...
+        ensure_all_finite: bool | Literal["allow-nan"] = True,
+        copy: bool = False,
+    ) -> Any: ...

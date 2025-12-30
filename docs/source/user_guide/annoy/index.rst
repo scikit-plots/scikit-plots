@@ -53,9 +53,9 @@ Workflow
 --------
 
 1. Create an :class:`~AnnoyIndex` with a fixed vector length ``f`` and a metric.
-2. Add items with :meth:`~AnnoyIndex.add_item`.
-3. Build the forest with :meth:`~AnnoyIndex.build`.
-4. Save and load with :meth:`~AnnoyIndex.save` and :meth:`~AnnoyIndex.load`.
+2. Add items with :py:obj:`~AnnoyIndex.add_item`.
+3. Build the forest with :py:obj:`~AnnoyIndex.build`.
+4. Save and load with :py:obj:`~AnnoyIndex.save` and :py:obj:`~AnnoyIndex.load`.
 
 Quick start
 -----------
@@ -86,7 +86,7 @@ Notes
 -----
 
 * Every added vector must have length ``f``.
-* Add items before calling :meth:`~AnnoyIndex.build`.
+* Add items before calling :py:obj:`~AnnoyIndex.build`.
 * Item ids are integers. Storage is allocated up to ``max(id) + 1``.
 
 High-level wrapper: :class:`~Index`
@@ -100,21 +100,8 @@ safe to serialize and move between processes.
 Mixins used by the high-level wrapper
 -------------------------------------
 
-The wrapper uses mixins to keep features separate and explicit.
-
-ANNoy Index Mixins
-------------------
-
-- ``CompressMode``
-- ``ManifestMixin``: Export/import metadata only.
-- ``NDArrayExportMixin``: Export mixin for Annoy-like classes.
-- ``ObjectIOMixin``: Persistence for the Python object (Index/Annoy alias),
-  not the raw Annoy index file.
-- ``PathAwareAnnoy``: Thin Python subclass that tracks the last known on-disk path.
-- ``PickleMixin``: Adds strict persistence support.
-- ``PickleMode``
-- ``SerializerBackend``
-- ``VectorOpsMixin``: High-level vector operations for Annoy-like objects.
+The wrapper uses mixins :py:mod:`~scikitplot.annoy._mixins`
+to keep features separate and explicit.
 
 Further reading
 ---------------

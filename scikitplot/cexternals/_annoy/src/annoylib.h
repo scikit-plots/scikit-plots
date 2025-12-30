@@ -1,3 +1,4 @@
+// scikitplot/cexternals/_annoy/src/annoylib.h
 // Copyright (c) 2013 Spotify AB
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -16,7 +17,7 @@
 #ifndef ANNOY_ANNOYLIB_H
 #define ANNOY_ANNOYLIB_H
 
-#include <stdio.h>
+#include <stdio.h>  // ?
 #include <sys/stat.h>
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -128,35 +129,14 @@ typedef signed __int64    int64_t;
 
 namespace Annoy {
 
-// -------------------------------------------------------------------------
-// MetricId forward declaration for Python binding consistency
-// -------------------------------------------------------------------------
-// enum MetricId : uint8_t {
-//   METRIC_UNKNOWN = 0,
-//   METRIC_ANGULAR,
-//   METRIC_EUCLIDEAN,
-//   METRIC_MANHATTAN,
-//   METRIC_DOT,
-//   METRIC_HAMMING
-// };
-
-// // Convert MetricId → canonical string
-// static inline const char* metric_to_cstr(MetricId m) {
-//   switch (m) {
-//     case METRIC_ANGULAR:   return "angular";
-//     case METRIC_EUCLIDEAN: return "euclidean";
-//     case METRIC_MANHATTAN: return "manhattan";
-//     case METRIC_DOT:       return "dot";
-//     case METRIC_HAMMING:   return "hamming";
-//     default:               return nullptr;
-//   }
-// }
-
 inline void set_error_from_errno(char **error, const char* msg) {
   annoylib_showUpdate("%s: %s (%d)\n", msg, strerror(errno), errno);
   if (error) {
     *error = (char *)malloc(256);  // TODO: win doesn't support snprintf
-    snprintf(*error, 255, "%s: %s (%d)", msg, strerror(errno), errno);
+    // snprintf(*error, 255, "%s: %s (%d)", msg, strerror(errno), errno);
+    if (*error) {
+      snprintf(*error, 255, "%s: %s (%d)", msg, strerror(errno), errno);
+    }
   }
 }
 
@@ -164,7 +144,10 @@ inline void set_error_from_string(char **error, const char* msg) {
   annoylib_showUpdate("%s\n", msg);
   if (error) {
     *error = (char *)malloc(strlen(msg) + 1);
-    strcpy(*error, msg);
+    // strcpy(*error, msg);
+    if (*error) {
+      strcpy(*error, msg);
+    }
   }
 }
 
@@ -1437,7 +1420,14 @@ public:
   }
 
   void set_seed(R seed) {
-    _seed = seed;
+    // _seed = seed;
+    // kissrandom.h documents that seeds should be non-zero. For API stability,
+    // normalize seed=0 to the RNG's default seed.
+    if (seed == static_cast<R>(0)) {
+      _seed = Random::default_seed;
+    } else {
+      _seed = seed;
+    }
   }
 
   vector<uint8_t> serialize(char** error=NULL) const {

@@ -16,6 +16,7 @@
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
 .. _pipeline-index:
+
 ======================================================================
 Pipeline
 ======================================================================

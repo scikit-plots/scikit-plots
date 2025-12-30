@@ -24,7 +24,7 @@ Spotify ANNoy [0]_ (Approximate Nearest Neighbors Oh Yeah).
 Exports:
 
 * Annoy       → low-level C-extension type (stable) `c-api powered new features <https://scikit-plots.github.io/dev/modules/generated/scikitplot.cexternals._annoy.Annoy.html>`_
-* AnnoyIndex  → alias of annoy.Annoy Index
+* AnnoyIndex  → alias of Annoy (legacy AnnoyIndex name)
 
 Examples
 --------
@@ -68,9 +68,14 @@ AnnoyIndex = Annoy  # alias of Annoy Index c-api
 __version__ = "2.0.0+git.20251130.8a7e82cb537053926b0ac6ec132b9ccc875af40c"  # Ref Branch, Tag, or Commit SHA
 __author__ = "Erik Bernhardsson"
 __author_email__ = "mail@erikbern.com"
-__git_hash__  = "8a7e82cb537053926b0ac6ec132b9ccc875af40c"
+__git_hash__ = "8a7e82cb537053926b0ac6ec132b9ccc875af40c"
 
 __all__ = [
     "Annoy",
     "AnnoyIndex",
+    "annoylib",
+    # "__version__",
+    # "__author__",
+    # "__author_email__",
+    # "__git_hash__",
 ]

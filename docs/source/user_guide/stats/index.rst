@@ -23,23 +23,27 @@
 Stats
 ======================================================================
 
-Examples relevant to the :py:mod:`~.stats` module.
+Examples relevant to the :py:mod:`~scikitplot.stats` module.
+
+.. TODO: Describe Astrostatistics Tools
+.. TODO: Describe Tweedie Distribution
 
 .. _astrostatistics-index:
 
 Astrostatistics Tools (experimental)
 ----------------------------------------------------------------------
 
+Examples relevant to the :py:mod:`~scikitplot.cexternals._astropy.stats` module.
+
 Documentation is available in the docstrings and
 online at https://www.astropy.org/.
-
 
 .. _tweedie-dist-index:
 
 Tweedie Distribution (generalized family)
 ----------------------------------------------------------------------
 
-Examples relevant to the :py:obj:`~.tweedie` variable.
+Examples relevant to the :py:mod:`~scikitplot.externals._tweedie` module.
 
 Tweedie distributions are a very general family of distributions
 that includes the Gaussian, Poisson, and Gamma (among many others)
@@ -49,7 +53,7 @@ Parameter 𝑝: The Tweedie family is defined by a parameter 𝑝,
 which controls the distribution's properties. For different values of 𝑝,
 the distribution can take different forms.
 
-Example of the Tweedie Family:
+Example of the Tweedie Family :py:obj:`~.tweedie` or :py:obj:`~.tweedie_gen` :
 
 * 𝑝=0: Gaussian (Normal) distribution
 * 𝑝=1: Poisson distribution
