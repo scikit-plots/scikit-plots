@@ -1,2 +1,0 @@
-- Test pull request.
-  By :user:`muce <celik-muhammed>`
