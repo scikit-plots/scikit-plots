@@ -20,7 +20,6 @@ of the NumPy License.
 NO WARRANTY IS EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
 
 .. seealso::
-
    * https://stdlib.fortran-lang.org/lists/modules.html
    * https://numpy.org/doc/stable/f2py/index.html
    * https://scipy.github.io/old-wiki/pages/Cookbook/f2py_and_NumPy.html

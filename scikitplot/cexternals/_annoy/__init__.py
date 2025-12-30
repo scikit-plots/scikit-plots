@@ -26,6 +26,17 @@ Exports:
 * Annoy       → low-level C-extension type (stable) `c-api powered new features <https://scikit-plots.github.io/dev/modules/generated/scikitplot.cexternals._annoy.Annoy.html>`_
 * AnnoyIndex  → alias of Annoy (legacy AnnoyIndex name)
 
+.. seealso::
+    * :ref:`ANNoy <annoy-index>`
+    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
+
+References
+----------
+.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
+
 Examples
 --------
 >>> import random; random.seed(0)
@@ -38,17 +49,6 @@ Examples
 >>> t.add_item(0, [1] * f)
 >>> t.build(10)  # Build 10 trees
 >>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
-
-.. seealso::
-    * :ref:`ANNoy <annoy-index>`
-    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
-    * https://github.com/spotify/annoy
-    * https://pypi.org/project/annoy
-
-References
-----------
-.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
-   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
 """
 
 # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup

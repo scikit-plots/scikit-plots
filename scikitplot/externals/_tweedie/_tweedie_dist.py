@@ -30,6 +30,12 @@ The Tweedie distribution family includes several well-known distributions based 
 
 The Tweedie distribution is undefined for values of `p` in the range `(0, 1)`.
 
+See Also
+--------
+* https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html
+* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution
+* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood
+
 References
 ----------
 [1] Jørgensen, B. (1987). "Exponential dispersion models".
@@ -41,13 +47,6 @@ References
     Statistical Methods Series: Zero-Inflated GLM and GLMM.
 [4] [Google]
     https://www.statisticshowto.com/tweedie-distribution/
-
-See Also
---------
-* https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html
-* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution
-* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood
-
 """
 
 import numpy as np

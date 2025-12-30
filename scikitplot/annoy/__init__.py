@@ -40,12 +40,23 @@ Notes
 This module intentionally avoids side effects at import time (no implicit NumPy
 or matplotlib imports).
 
+.. seealso::
+    * :ref:`ANNoy <annoy-index>`
+    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
+    * https://github.com/spotify/annoy
+    * https://pypi.org/project/annoy
+
 See Also
 --------
 scikitplot.cexternals._annoy
     Low-level C-extension backend.
 scikitplot.annoy.Index
     High-level wrapper composed from mixins.
+
+References
+----------
+.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
 
 Examples
 --------
@@ -61,17 +72,6 @@ Examples
 >>> t.add_item(0, [1] * f)
 >>> t.build(10)  # Build 10 trees
 >>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
-
-.. seealso::
-    * :ref:`ANNoy <annoy-index>`
-    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
-    * https://github.com/spotify/annoy
-    * https://pypi.org/project/annoy
-
-References
-----------
-.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
-   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
 """
 
 # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup

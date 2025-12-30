@@ -26,6 +26,10 @@
     .. prompt:: powershell PS C:\>
     .. prompt:: docker root@container:~#
 
+    .. .. jupyter-execute
+    .. .. code-block:: python
+    .. prompt:: python >>>
+
 Install conda using the `miniforge installers
 <https://github.com/conda-forge/miniforge#miniforge>`__ (no administrator permission
 required). Then run:

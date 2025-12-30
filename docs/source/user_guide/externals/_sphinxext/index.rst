@@ -18,6 +18,7 @@ A directive for including a Matplotlib plot in a Sphinx document
 This is a Sphinx extension providing a reStructuredText directive `.. plot::` for including a plot in a Sphinx document.
 
 ::
+
    .. plot:: path/to/plot.py
 
 ::

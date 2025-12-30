@@ -57,6 +57,7 @@ np.sum(a)                nc::sum(a)
 np.linalg.inv(a)         nc::linalg::inv(a)
 =======================  ===========================
 
+.. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>
 

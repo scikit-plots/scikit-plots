@@ -91,8 +91,25 @@ class GetDummies(TransformerMixin, BaseEstimator):
     dtype : number type, default=np.float64
         Data type for the output values. (sklearn default is float)
 
-    Example
-    -------
+    See Also
+    --------
+    DummyCodeEncoder : Same but more extended and support convert to dummy codes to
+        :py:class:`scipy.sparse._csr.csr_matrix` compressed Sparse Row matrix.
+    pandas.Series.str.get_dummies : Convert Series of strings to dummy codes.
+    pandas.from_dummies : Convert dummy codes back to categorical DataFrame.
+    sklearn.preprocessing.OneHotEncoder : General-purpose one-hot encoder.
+    sklearn.preprocessing.MultiLabelBinarizer : Multi-label binarizer for
+        iterable of iterables.
+
+    References
+    ----------
+    .. [1] `Çelik, M. (2023, December 9).
+       "How to converting pandas column of comma-separated strings into dummy variables?."
+       Medium. https://medium.com/@celik-muhammed/how-to-converting-pandas-column-of-comma-separated-strings-into-dummy-variables-762c02282a6c
+       <https://medium.com/@celik-muhammed/how-to-converting-pandas-column-of-comma-separated-strings-into-dummy-variables-762c02282a6c>`_
+
+    Examples
+    --------
     >>> import pandas as pd
     >>> df = pd.DataFrame(
     ...     {
@@ -122,23 +139,6 @@ class GetDummies(TransformerMixin, BaseEstimator):
     3      4   0.0   0.0   0.0      0.0       0.0     1.0
     >>> type(X_trans)
     <class 'pandas.core.frame.DataFrame'>
-
-    See Also
-    --------
-    DummyCodeEncoder : Same but more extended and support convert to dummy codes to
-        :py:class:`scipy.sparse._csr.csr_matrix` compressed Sparse Row matrix.
-    pandas.Series.str.get_dummies : Convert Series of strings to dummy codes.
-    pandas.from_dummies : Convert dummy codes back to categorical DataFrame.
-    sklearn.preprocessing.OneHotEncoder : General-purpose one-hot encoder.
-    sklearn.preprocessing.MultiLabelBinarizer : Multi-label binarizer for
-        iterable of iterables.
-
-    References
-    ----------
-    .. [1] `Çelik, M. (2023, December 9).
-       "How to converting pandas column of comma-separated strings into dummy variables?."
-       Medium. https://medium.com/@celik-muhammed/how-to-converting-pandas-column-of-comma-separated-strings-into-dummy-variables-762c02282a6c
-       <https://medium.com/@celik-muhammed/how-to-converting-pandas-column-of-comma-separated-strings-into-dummy-variables-762c02282a6c>`_
     """
 
     def __init__(
@@ -635,10 +635,8 @@ class _BaseEncoder(TransformerMixin, BaseEstimator):
         ----------
         category_count : ndarray of shape (n_cardinality,)
             Category counts.
-
         n_samples : int
             Number of samples.
-
         col_idx : int
             Index of the current category. Only used for the error message.
 
@@ -766,10 +764,8 @@ class _BaseEncoder(TransformerMixin, BaseEstimator):
         ----------
         X_int: ndarray of shape (n_samples, n_features)
             Integer encoded categories.
-
         X_mask: ndarray of shape (n_samples, n_features)
             Bool mask for valid values in `X_int`.
-
         ignore_category_indices : dict
             Dictionary mapping from feature_idx to category index to ignore.
             Ignored indexes will not be grouped and the original ordinal encoding
@@ -847,50 +843,36 @@ class DummyCodeEncoder(_BaseEncoder):
     For a comparison of different encoders, refer to:
     :ref:`sphx_glr_auto_examples_preprocessing_plot_target_encoder.py`.
 
+    .. caution::
+        These parameters are reserved for future use;
+        some have no impact on the current implementation,
+        and their behavior or presence may change in future versions
+        without notice.
+
     Parameters
     ----------
     columns : list-like, default=None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
         `object`, `string`, or `category` dtype will be converted.
-
-        .. caution::
-            This parameter is reserved for future use, has no effect
-            in the current implementation, and its behavior or existence
-            may change without warning in future versions.
-
     sep : callable or str, default='|'
         String regex or literal separator to split on (e.g., "a,b,c").
 
         - sep=',',
         - sep=r'\\s*[,;|]\\s*',
         - sep=lambda s: re.split(r'\\s*[,;|]\\s*', s.lower()),
-
     regex : bool, default=True
         Use regex to split on (e.g., "a,b|C;") by ``sep`` like:
 
         - ``pattern=r'\\s*[,;|]\\s*'``
-
     prefix : str, list of str, or dict of str, default=None
         String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
-
-        .. caution::
-            This parameter is reserved for future use, has no effect
-            in the current implementation, and its behavior or existence
-            may change without warning in future versions.
-
     prefix_sep : str, default='_'
         If appending prefix, separator/delimiter to use. Or pass a
         list or dictionary as with `prefix` (e.g., "tags_a").
-
-        .. caution::
-            This parameter is reserved for future use, has no effect
-            in the current implementation, and its behavior or existence
-            may change without warning in future versions.
-
     dummy_na : bool, default=False
         Add a column to indicate NaNs, if False NaNs are ignored.
 
@@ -898,12 +880,6 @@ class DummyCodeEncoder(_BaseEncoder):
             If enabled to encode multi-feature supports only one contains ``None``.
             Due to total categories need to unique so suggested dummy
             fill instead of keeping one of (e.g., None, np.nan, pd.Na, pd.NAT).
-
-        .. caution::
-            This parameter is reserved for future use, has no effect
-            in the current implementation, and its behavior or existence
-            may change without warning in future versions.
-
     categories : 'auto' or a list of array-like, default='auto'
         Categories (unique values) per feature:
 
@@ -914,7 +890,6 @@ class DummyCodeEncoder(_BaseEncoder):
           numeric values.
 
         The used categories can be found in the ``categories_`` attribute.
-
     drop : {'first', 'if_binary'} or an array-like of shape (n_features,), \
             default=None
         Specifies a methodology to use to drop one of the categories per
@@ -938,19 +913,11 @@ class DummyCodeEncoder(_BaseEncoder):
         When `max_categories` or `min_frequency` is configured to group
         infrequent categories, the dropping behavior is handled after the
         grouping.
-
-        .. caution::
-            This parameter is reserved for future use, has no effect
-            in the current implementation, and its behavior or existence
-            may change without warning in future versions.
-
     sparse_output : bool, default=True
         When ``True``, it returns a :class:`scipy.sparse.csr_matrix`,
         i.e. a sparse matrix in "Compressed Sparse Row" (CSR) format.
-
     dtype : number type, default=np.float64
         Desired dtype of output.
-
     handle_unknown : {'error', 'ignore', 'infrequent_if_exist', 'warn'}, \
                      default='error'
         Specifies the way unknown categories are handled during :meth:`transform`.
@@ -974,12 +941,6 @@ class DummyCodeEncoder(_BaseEncoder):
         - 'warn' : When an unknown category is encountered during transform
           a warning is issued, and the encoding then proceeds as described for
           `handle_unknown="infrequent_if_exist"`.
-
-        .. caution::
-            This parameter is reserved for future use, has no effect
-            in the current implementation, and its behavior or existence
-            may change without warning in future versions.
-
     min_frequency : int or float, default=None
         Specifies the minimum frequency below which a category will be
         considered infrequent.
@@ -992,12 +953,6 @@ class DummyCodeEncoder(_BaseEncoder):
 
         .. versionadded:: 1.1
             Read more in the :ref:`User Guide <encoder_infrequent_categories>`.
-
-        .. caution::
-            This parameter is reserved for future use, has no effect
-            in the current implementation, and its behavior or existence
-            may change without warning in future versions.
-
     max_categories : int, default=None
         Specifies an upper limit to the number of output features for each input
         feature when considering infrequent categories. If there are infrequent
@@ -1007,12 +962,6 @@ class DummyCodeEncoder(_BaseEncoder):
 
         .. versionadded:: 1.1
             Read more in the :ref:`User Guide <encoder_infrequent_categories>`.
-
-        .. caution::
-            This parameter is reserved for future use, has no effect
-            in the current implementation, and its behavior or existence
-            may change without warning in future versions.
-
     feature_name_combiner : "concat" or callable, default="concat"
         Callable with signature `def callable(input_feature, category)` that returns a
         string. This is used to create feature names to be returned by
@@ -1029,7 +978,6 @@ class DummyCodeEncoder(_BaseEncoder):
         (in order of the features in X and corresponding with the output
         of ``transform``). This includes the category specified in ``drop``
         (if any).
-
     drop_idx_ : array of shape (n_features,)
         - ``drop_idx_[i]`` is the index in ``categories_[i]`` of the category
           to be dropped for each feature.
@@ -1046,7 +994,6 @@ class DummyCodeEncoder(_BaseEncoder):
 
         .. versionchanged:: 0.23
            Added the possibility to contain `None` values.
-
     infrequent_categories_ : list of ndarray
         Defined only if infrequent categories are enabled by setting
         `min_frequency` or `max_categories` to a non-default value.
@@ -1055,18 +1002,15 @@ class DummyCodeEncoder(_BaseEncoder):
         `infrequent_categories_[i]` is None.
 
         .. versionadded:: 1.1
-
     n_features_in_ : int
         Number of features seen during :term:`fit`.
 
         .. versionadded:: 1.0
-
     feature_names_in_ : ndarray of shape (`n_features_in_`,)
         Names of features seen during :term:`fit`. Defined only when `X`
         has feature names that are all strings.
 
         .. versionadded:: 1.0
-
     feature_name_combiner : callable or None
         Callable with signature `def callable(input_feature, category)` that returns a
         string. This is used to create feature names to be returned by
@@ -1618,7 +1562,6 @@ class DummyCodeEncoder(_BaseEncoder):
         ----------
         X : array-like of shape (n_samples, n_features)
             The data to determine the categories of each feature.
-
         y : None
             Ignored. This parameter exists only for compatibility with
             :class:`~sklearn.pipeline.Pipeline`.

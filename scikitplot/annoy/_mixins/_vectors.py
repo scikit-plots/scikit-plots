@@ -5,14 +5,6 @@ Vector neighbor utilities for Annoy-style indexes.
 Defines :class:`~scikitplot.annoy._mixins._vectors.VectorOpsMixin`, a
 **deterministic**, **explicit** mixin providing user-facing neighbor queries.
 
-Key rules
----------
-- No heuristics, no implicit dispatch. Every behavior is controlled by explicit
-  parameters.
-- Mixin independence: no ``__init__`` and no reliance on other mixins being
-  present in the MRO.
-- Supports inheritance or composition via :func:`~scikitplot.annoy._utils.backend_for`.
-
 Required backend surface
 ------------------------
 - ``get_nns_by_item(item: int, n: int, search_k: int = -1, include_distances: bool = False)``

@@ -262,11 +262,11 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         with the voyager backend will raise :class:`ValueError`.
 
         .. seealso::
-            :py:mod:`~scipy.spatial.distance.cosine`
-            :py:mod:`~scipy.spatial.distance.euclidean`
-            :py:mod:`~scipy.spatial.distance.cityblock`
-            :py:mod:`~scipy.sparse.coo_array.dot`
-            :py:mod:`~scipy.spatial.distance.hamming`
+            * :py:func:`~scipy.spatial.distance.cosine`
+            * :py:func:`~scipy.spatial.distance.euclidean`
+            * :py:func:`~scipy.spatial.distance.cityblock`
+            * :py:func:`~scipy.sparse.coo_array.dot`
+            * :py:func:`~scipy.spatial.distance.hamming`
 
     initial_strategy : {'mean', 'median', 'most_frequent', 'constant'}, default='mean'
         Which strategy to use to initialize the missing values when building

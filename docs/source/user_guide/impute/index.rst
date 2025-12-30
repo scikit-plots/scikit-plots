@@ -74,6 +74,8 @@ Unlike exact KNN imputation :py:class:`~sklearn.impute.KNNImputer`, using Annoy 
 
 Example: Your exact NumPy array example:
 
+.. .. jupyter-execute
+.. .. code-block:: python
 .. prompt:: python >>>
 
     import numpy as np

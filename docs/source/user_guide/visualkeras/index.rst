@@ -33,9 +33,9 @@ For visualkeras for Keras / TensorFlow Models :py:class:`~tensorflow.keras.Model
 Documentation is available in the docstrings and
 online at https://github.com/paulgavrikov/visualkeras.
 
+.. .. jupyter-execute
 .. .. code-block:: python
-
-.. prompt:: bash >>> auto
+.. prompt:: python >>>
 
    # (optionally)
    import visualkeras

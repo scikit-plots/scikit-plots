@@ -5,8 +5,6 @@ High-level plotting helpers for :mod:`scikitplot.annoy`.
 This module is the **high-level** counterpart of
 :mod:`scikitplot.cexternals._annoy._plotting`.
 
-Big picture
------------
 The project has two layers:
 
 1. **Low-level** (C-extension + thin Python helpers)
@@ -20,14 +18,6 @@ To avoid duplicated implementations drifting over time, this module **delegates*
 all plotting/projection helpers to the low-level implementation and only adds a
 small :class:`~PlottingMixin` that high-level classes (e.g.,
 ``scikitplot.annoy.Index``) can inherit.
-
-Design rules
-------------
-- **Deterministic**: no implicit randomness, sampling, or size-based behavior.
-- **Dependency-light imports**: Matplotlib (and other heavier dependencies) are
-  imported lazily inside the delegated functions.
-- **Single source of truth**: all numeric/projection logic lives in
-  :mod:`scikitplot.cexternals._annoy._plotting`.
 
 See Also
 --------

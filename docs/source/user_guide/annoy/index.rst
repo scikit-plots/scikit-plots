@@ -49,6 +49,20 @@ This module exports:
 - :class:`~Index`:
   High-level Python wrapper subclass (picklable).
 
+
+.. grid:: 1 1 2 2
+
+    .. grid-item-card::
+        :padding: 2
+
+        **architecture**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Index Architecture <annoy_index_inheritance_diagrams.rst>
+
+
 Workflow
 --------
 
@@ -60,7 +74,9 @@ Workflow
 Quick start
 -----------
 
-.. code-block:: python
+.. .. jupyter-execute
+.. .. code-block:: python
+.. prompt:: python >>>
 
     import random; random.seed(0)
     # from annoy import Annoy, AnnoyIndex

@@ -63,11 +63,14 @@ The best way to truly understand ...
    * https://numpy.org/devdocs/user/c-info.html
    * https://numpy.org/devdocs/reference/c-api/index.html
 
-.. jupyter-execute::
+.. .. jupyter-execute
+.. .. code-block:: python
+.. prompt:: python >>>
 
-    >>> import numpy as np
-    >>> # Return the directory that contains the NumPy *.h header files.
-    >>> np.get_include()
+   import numpy as np
+
+   # Return the directory that contains the NumPy *.h header files.
+   np.get_include()
 
 
 
@@ -77,17 +80,33 @@ LightNumPy C/Cpp-API Headers
 A lightweight version of NumPy (or similar functionality).
 
 .. seealso::
-
-   * https://github.com/scikit-plots/lightnumpy
    * https://github.com/dpilger26/NumCpp
+   * https://github.com/scikit-plots/lightnumpy
 
-.. jupyter-execute::
+.. .. jupyter-execute
+.. .. code-block:: python
+.. prompt:: python >>>
 
-    >>> try:
-    >>>   # pip install git+https://github.com/scikit-plots/lightnumpy.git@main
-    >>>   import lightnumpy as lp
-    >>>   # Return the directory that contains the NumCpp *.h header files.
-    >>>   inc_dir_lightnumpy = lp.get_include()
-    >>> except: pass
-    >>> else:
-    >>>   !ls $inc_dir_lightnumpy
+    try:
+      # pip install git+https://github.com/scikit-plots/lightnumpy.git@main
+      import lightnumpy as lp
+      # Return the directory that contains the NumCpp *.h header files.
+      inc_dir_lightnumpy = lp.get_include()
+    except: pass
+    else:
+      !ls $inc_dir_lightnumpy
+
+.. .. jupyter-execute
+.. .. code-block:: python
+.. prompt:: python >>>
+
+   from scikitplot import nc
+   nc.get_include()
+
+.. .. code-block:: python
+.. prompt:: python >>>
+
+   from scikitplot import nc
+   print(nc.__doc__)
+
+   print(nc.dot.__doc__)
