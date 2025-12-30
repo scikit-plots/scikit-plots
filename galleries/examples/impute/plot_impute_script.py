@@ -50,6 +50,13 @@ from sklearn.preprocessing import MaxAbsScaler, RobustScaler, StandardScaler
 
 # %%
 
+import joblib
+
+# joblib.dump(fetch_california_housing(return_X_y=True), "fetch_california_housing.joblib")
+joblib.load("fetch_california_housing.joblib")
+
+# %%
+
 def add_missing_values(X_full, y_full, rng=np.random.RandomState(0)):
     n_samples, n_features = X_full.shape
 
@@ -70,13 +77,17 @@ def add_missing_values(X_full, y_full, rng=np.random.RandomState(0)):
 # %%
 
 Xdi_train, Xdi_val, ydi_train, ydi_val = train_test_split(
-    *load_diabetes(return_X_y=True), test_size=0.25, random_state=42
+    *load_diabetes(return_X_y=True),
+    test_size=0.25, random_state=42
 )
 Xca_train, Xca_val, yca_train, yca_val = train_test_split(
-    *fetch_california_housing(return_X_y=True), test_size=0.25, random_state=42
+    # *fetch_california_housing(return_X_y=True),
+    *joblib.load("fetch_california_housing.joblib"),
+    test_size=0.25, random_state=42
 )
 Xbc_train, Xbc_val, ybc_train, ybc_val = train_test_split(
-    *data_2_classes(return_X_y=True), test_size=0.25, random_state=42,
+    *data_2_classes(return_X_y=True),
+    test_size=0.25, random_state=42,
     stratify=data_2_classes(return_X_y=True)[1]  # (data, target)
 )
 
