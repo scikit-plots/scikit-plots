@@ -45,7 +45,8 @@ TL;DR
 Quick start
 -----------
 
-.. code-block:: python
+.. .. code-block:: python
+.. prompt:: python >>>
 
     import random
     random.seed(0)

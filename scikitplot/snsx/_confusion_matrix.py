@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Confusion Matrix and a text report showing the main classification metrics visualization.
+Confusion Matrix [1]_ and a text report showing the main classification metrics visualization.
 
 References
 ----------

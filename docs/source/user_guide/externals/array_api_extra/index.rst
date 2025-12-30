@@ -1,6 +1,7 @@
 
 
 .. _externals-array_api_extra-index:
+
 ======================================================================
 Python Data API Standards: array_api_extra (experimental)
 ======================================================================

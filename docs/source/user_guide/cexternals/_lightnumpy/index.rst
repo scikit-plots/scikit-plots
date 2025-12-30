@@ -1,36 +1,27 @@
 
-
 .. _cexternals-lightnumpy-index:
+
 ======================================================================
 LightNumPy (experimental)
 ======================================================================
 
-A lightweight version of NumPy or Cupy (or similar functionality). See :py:mod:`~._numcpp`.
+A lightweight version of NumPy or Cupy (or similar functionality).
+See :py:mod:`~._numcpp` and :py:mod:`~.nc`.
 
 .. seealso::
 
    * https://github.com/scikit-plots/lightnumpy
 
-Why LightNumPy?
-----------------------------------------------------------------------
-Performance-Driven: Optimized for both CPU and hardware accelerators (GPU/TPU).
-Focused: Includes essential features without unnecessary overhead.
-Adaptable: Modular structure for customized extensions.
-Scalable: Ideal for IoT, embedded systems, and resource-limited devices.
+.. .. code-block:: python
+.. prompt:: python >>>
 
-Get Header files location:
+   from scikitplot import nc
+   nc.get_include()
 
-::
+.. .. code-block:: python
+.. prompt:: python >>>
 
-    >>> try:
-    >>>   # pip install git+https://github.com/scikit-plots/lightnumpy.git@main
-    >>>   import lightnumpy as ln
-    >>>   # Return the directory that contains the lightnumpy and NumCpp *.h header files.
-    >>>   inc_dir_lightnumpy = ln.get_include()
-    >>> except: pass
-    >>> else:
-    >>>   !ls $inc_dir_lightnumpy
+   from scikitplot import nc
+   print(nc.__doc__)
 
-::
-
-   >>> import lightnumpy as ln
+   print(nc.dot.__doc__)

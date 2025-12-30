@@ -15,7 +15,10 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. currentmodule:: scikitplot.cexternals
+
 .. _cexternals-index:
+
 ======================================================================
 C-Externals (experimental)
 ======================================================================

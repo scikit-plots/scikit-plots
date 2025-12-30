@@ -1,4 +1,5 @@
 .. _contributing:
+.. _getting_started_contributing:
 
 ======================================================================
 Getting Started Contributing Guidelines

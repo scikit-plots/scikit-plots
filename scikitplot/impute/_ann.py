@@ -87,7 +87,7 @@ __all__ = [
 # --------------------------------------------------------------------------- #
 # class _BaseImputer(TransformerMixin, BaseEstimator):
 class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
-    r"""
+    """
     Approximate K-nearest-neighbours (KNN) imputer with pluggable ANN backends.
 
     :class:`~.ANNImputer` performs vector-based imputation by querying an
@@ -232,10 +232,10 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         - callable : custom function taking an array of distances
           and returning an array of weights.
 
-    metric : {"angular", "cosine",
-              "euclidean", "l2", "lstsq",
-              "manhattan", "l1", "cityblock", "taxicab",
-              "dot", "@", ".", "dotproduct", "inner", "innerproduct",
+    metric : {"angular", "cosine", \
+              "euclidean", "l2", "lstsq", \
+              "manhattan", "l1", "cityblock", "taxicab", \
+              "dot", "@", ".", "dotproduct", "inner", "innerproduct", \
               "hamming"}, optional, default='angular'
         Distance metric used for nearest-neighbor search:
 
@@ -386,7 +386,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
     For each sample :math:`x_i` and feature :math:`j`, the imputed value is:
 
     .. math::
-        \hat{x}_{ij} = \frac{\sum_{k \in N_i} w_{ik} x_{kj}}{\sum_{k \in N_i} w_{ik}}
+        \\hat{x}_{ij} = \\frac{\\sum_{k \\in N_i} w_{ik} x_{kj}}{\\sum_{k \\in N_i} w_{ik}}
 
     where :math:`N_i` is the set of K nearest neighbors of :math:`x_i`,
     and :math:`w_{ik}` is the neighbor weight:
@@ -437,7 +437,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
            [3. , 4. , 3. ],
            [4. , 6. , 5. ],
            [8. , 8. , 7. ]])
-    """
+    """  # noqa: D301
 
     # ------------------------------------------------------------------ #
     # sklearn parameter constraints

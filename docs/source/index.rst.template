@@ -33,6 +33,9 @@ References:
 
 - https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
 
+.. https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#role-external
+.. https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#confval-intersphinx_mapping
+
 .. rst Comments one-line below multi-line
 .. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#comments
 ..

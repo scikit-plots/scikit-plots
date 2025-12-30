@@ -15,6 +15,8 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. currentmodule:: scikitplot.api
+
 .. _api-index:
 ======================================================================
 Metric Performance

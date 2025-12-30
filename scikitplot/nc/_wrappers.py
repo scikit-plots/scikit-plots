@@ -130,8 +130,8 @@ def _binary_arraylike(
     Wrap a binary C++ kernel so it behaves like a NumPy-style array_like function.
 
     This helper is intended for internal use when exposing low-level kernels
-    such as :mod:`scikitplot.nc._linalg._linalg` to the public Python API
-    in :mod:`scikitplot.nc.linalg` and :mod:`scikitplot.nc`.
+    such as :mod:`~scikitplot.nc._linalg._linalg` to the public Python API
+    in :mod:`~scikitplot.nc.linalg` and :mod:`~scikitplot.nc`.
 
     It takes a C++-backed function that operates on two
     :class:`numpy.ndarray` objects and returns a new Python function that:
@@ -147,7 +147,7 @@ def _binary_arraylike(
     core : callable
         Low-level kernel that expects two ``numpy.ndarray`` inputs and returns
         a ``numpy.ndarray``. For example, a function bound from C++ via
-        pybind11 that wraps :cpp:`nc::dot` or another NumCpp routine.
+        pybind11 that wraps ``nc::dot`` or another NumCpp routine.
 
     name : str, optional
         Human-readable name used in error messages and assigned to the wrapper

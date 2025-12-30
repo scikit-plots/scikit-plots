@@ -1209,6 +1209,7 @@ tags_badge_colors = {
 # intersphinx configuration
 # Locations of objects.inv files for intersphinx extension that auto-links
 # to external api docs.
+# https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#confval-intersphinx_mapping
 intersphinx_mapping = {
     # Build
     "python": (f"https://docs.python.org/{sys.version_info.major}", None),

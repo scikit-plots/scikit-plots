@@ -1,3 +1,6 @@
+
+.. currentmodule:: scikitplot._logo
+
 .. _logo-index:
 
 Logo API

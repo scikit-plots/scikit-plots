@@ -43,7 +43,7 @@ def get_include() -> str:
     -----
     When using ``setuptools``, for example in ``setup.py``::
 
-        import scikitplot.cexternals._numcpp as nc
+        import scikitplot.nc as nc
         ...
         Extension('extension_name', ...
                   include_dirs=nc.[get_include()])

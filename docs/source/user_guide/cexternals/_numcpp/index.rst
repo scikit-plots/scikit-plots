@@ -1,6 +1,6 @@
 
-
 .. _cexternals-numcpp-index:
+
 ======================================================================
 NumCpp Header Only C++ (experimental)
 ======================================================================
@@ -56,3 +56,17 @@ np.arange(3, 7)          nc::arange<int>(3, 7)
 np.sum(a)                nc::sum(a)
 np.linalg.inv(a)         nc::linalg::inv(a)
 =======================  ===========================
+
+.. .. code-block:: python
+.. prompt:: python >>>
+
+   from scikitplot import nc
+   nc.get_include()
+
+.. .. code-block:: python
+.. prompt:: python >>>
+
+   from scikitplot import nc
+   print(nc.__doc__)
+
+   print(nc.dot.__doc__)

@@ -16,7 +16,7 @@ into ten equal parts, so that each part represents 1/10 of the sample or populat
 A decile is one possible form of a quantile; others include the quartile and percentile.
 A decile rank arranges the data in order from lowest to highest and
 is done on a scale of one to ten where each successive number corresponds to
-an increase of 10 percentage points. See [2]_ for model details.
+an increase of 10 percentage points. See [1]_ [2]_ for more details.
 
 References
 ----------

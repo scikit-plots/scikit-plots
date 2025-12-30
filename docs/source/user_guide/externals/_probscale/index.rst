@@ -1,6 +1,7 @@
 
 
 .. _externals-probscale-index:
+
 ======================================================================
 Probability Plots (experimental)
 ======================================================================
@@ -25,8 +26,7 @@ This module contains functions related to :py:mod:`~scikitplot.externals._probsc
    * https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/NCSS/Probability_Plots.pdf
 
 .. .. code-block:: python
-
-.. prompt:: bash >>> auto
+.. prompt:: python >>>
 
    # (recommended)
    import probscale

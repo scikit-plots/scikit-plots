@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Seaborn-style PR and ROC curve plotting.
+Seaborn-style PR and ROC [1]_ curve plotting.
 
 This module provides:
 - A core `_AucPlotter` class (subclass of VectorPlotter) for handling

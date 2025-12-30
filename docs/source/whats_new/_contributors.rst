@@ -27,5 +27,10 @@
 .. Label (target) used for internal referencing, use underscores or hyphens (no spaces allowed)
 .. Underscores are the official recommended separator in reST labels.
 .. Dashes are allowed but sometimes can conflict with word hyphens.
-.. See the section on `whatever <#muhammed-celik>`_ or See :ref:`a`.
-.. _muhammed-celik: https://github.com/celik-muhammed
+.. Usage on `Muhammed Çelik`_, `whatever <#Muhammed Çelik>`_ or See :ref:`Muhammed Çelik`.
+
+.. _David Pilger: https://github.com/dpilger26
+
+.. _Jurriaan Nagelkerke: https://github.com/jurrr
+
+.. _Muhammed Çelik: https://github.com/celik-muhammed

@@ -829,7 +829,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     #   _get_submodule("scikitplot.cexternals", "_astropy")
                     #   + "\n\n"
                     #   +
-                    _get_guide("astropy-index")
+                    _get_guide("astrostatistics-index")
                 ),
                 "autosummary": [
                     "Events",
@@ -844,7 +844,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.cexternals._astropy.stats", "funcs")
                     + "\n\n"
-                    + _get_guide("astropy-index")
+                    + _get_guide("astrostatistics-index")
                 ),
                 "autosummary": [
                     "binned_binom_proportion",
@@ -870,7 +870,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # "description": (
                 #   _get_submodule("scikitplot.cexternals._astropy.stats", "histogram")
                 #   + "\n\n"
-                #   + _get_guide("astropy-index")
+                #   + _get_guide("astrostatistics-index")
                 # ),
                 "autosummary": [
                     "calculate_bin_edges",
@@ -885,7 +885,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.cexternals._astropy.stats", "info_theory")
                     + "\n\n"
-                    + _get_guide("astropy-index")
+                    + _get_guide("astrostatistics-index")
                 ),
                 "autosummary": [
                     "akaike_info_criterion",
@@ -899,7 +899,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_submodule("scikitplot.externals._tweedie", "_tweedie_dist")
                     + "\n\n"
-                    + _get_guide("tweedie-index")
+                    + _get_guide("tweedie-dist-index")
                 ),
                 "autosummary": [
                     "tweedie_gen",

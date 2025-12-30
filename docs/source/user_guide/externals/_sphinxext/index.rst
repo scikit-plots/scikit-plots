@@ -1,6 +1,7 @@
 
 
 .. _externals-sphinxext-index:
+
 ======================================================================
 Matplotlib Sphinx extensions for embedded plots (experimental)
 ======================================================================

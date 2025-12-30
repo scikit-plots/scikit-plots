@@ -109,8 +109,9 @@ static const char ANNOY_MOD_DOC[] =
     "High-performance approximate nearest neighbours (Annoy) C++ core.\n"
     "\n"
     "This module is a low-level backend (``annoylib``). It exposes the\n"
-    "C++-powered :class:`~.Annoy` type. For day-to-day work, prefer a\n"
-    "higher-level Python wrapper (if your project provides one)::\n"
+    "C++-powered :class:`~scikitplot.cexternals._annoy.Annoy` type.\n"
+    "For day-to-day work, prefer a higher-level Python wrapper\n"
+    "(if your project provides one)::\n"
     "\n"
     "    >>> from annoy import Annoy, AnnoyIndex\n"
     "\n"
@@ -414,10 +415,13 @@ Notes
 Developer Notes:
 
 - Source of truth:
-* ``f`` (int) and ``metric_id`` (enum) describe configuration.
-* ``ptr`` is NULL when index is not constructed.
+
+  * ``f`` (int) and ``metric_id`` (enum) describe configuration.
+  * ``ptr`` is NULL when index is not constructed.
+
 - Invariant:
-* ``ptr != NULL`` implies ``f > 0`` and ``metric_id != METRIC_UNKNOWN``.
+
+  * ``ptr != NULL`` implies ``f > 0`` and ``metric_id != METRIC_UNKNOWN``.
 
 See Also
 --------

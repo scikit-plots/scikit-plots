@@ -9,7 +9,7 @@ Development Details Guidelines
    Template for further usage, template belong to `astropy <https://docs.astropy.org/en/latest/development/development_details.html#>`_.
 
 This document contains somewhat-independent sections that provide details on
-topics covered in the :ref:`contributing_quickstart` guide.
+topics covered in the :ref:`quickstart_contributing` guide.
 
 .. _pre-commit:
 
