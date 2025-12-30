@@ -21,6 +21,10 @@
 #
 # Available phony targets: help, all, clean, publish
 .ONESHELL:
+.SHELLFLAGS := -euo pipefail -c
+SHELL := bash
+
+
 .PHONY: help all clean publish
 
 ######################################################################
@@ -822,52 +826,58 @@ infobr:
 
 newbr:
 	@set -euo pipefail; \
-	BR="subpackage-bug-fix"; BASE="main"; REMOTE="origin"; \
-	echo ">> Reset '$$BR' to '$$REMOTE/$$BASE' (deterministic, PR-safe; no remote delete)"; \
-	echo ">> [0] Preconditions"; \
-	git rev-parse --is-inside-work-tree >/dev/null; \
-	git diff --quiet && git diff --cached --quiet || { echo "!! Dirty working tree. Commit/stash first."; exit 1; }; \
-	CUR="$$(git symbolic-ref --quiet --short HEAD || echo DETACHED)"; \
-	if [ "$$CUR" = "$$BR" ]; then echo "!! Currently on '$$BR'. Switch away first."; exit 1; fi; \
-	echo ">> [1] Fetch + prune"; \
-	git fetch "$$REMOTE" --prune; \
-	echo ">> [2] Resolve source of truth: $$REMOTE/$$BASE"; \
-	git show-ref --verify --quiet "refs/remotes/$$REMOTE/$$BASE" || { echo "!! Missing '$$REMOTE/$$BASE'"; exit 1; }; \
-	SRC_SHA="$$(git rev-parse --short "refs/remotes/$$REMOTE/$$BASE")"; \
-	echo ">>     $$REMOTE/$$BASE @ $$SRC_SHA"; \
-	echo ">> [3] Safety: refuse if local '$$BASE' is ahead of '$$REMOTE/$$BASE'"; \
-	if git show-ref --verify --quiet "refs/heads/$$BASE"; then \
-		AHEAD="$$(git rev-list --count "$$REMOTE/$$BASE..$$BASE")"; \
-		if [ "$$AHEAD" -ne 0 ]; then \
-			echo "!! Local '$$BASE' is $$AHEAD commit(s) ahead of '$$REMOTE/$$BASE'."; \
-			echo "!! Refusing to avoid discarding local commits."; \
+	git switch main && git pull; \
+	git branch -d subpackage-bug-fix 2>/dev/null || true; \
+	git branch -D subpackage-bug-fix 2>/dev/null || true; \
+	git switch -c subpackage-bug-fix; \
+	git push -u origin subpackage-bug-fix; \
+	git branch && echo ">> New branch created and pushed successfully."
+
+
+REMOTE ?= origin
+BASE   ?= main
+BRANCH ?= subpackage-bug-fix
+FORCE  ?= 0   # set FORCE=1 to push --force-with-lease
+
+recreate-branch:
+	@# Ensure we're inside a git repo
+	git rev-parse --is-inside-work-tree >/dev/null
+
+	@# Safeguard: require clean working tree
+	if ! git diff --quiet || ! git diff --cached --quiet; then \
+		echo "ERROR: Uncommitted changes detected. Commit/stash before running."; \
+		exit 1; \
+	fi
+
+	@# Safeguard: ensure remote exists
+	git remote get-url "$(REMOTE)" >/dev/null
+
+	@# Update base branch safely
+	git fetch "$(REMOTE)" --prune
+	git switch "$(BASE)"
+	git pull --ff-only "$(REMOTE)" "$(BASE)"
+
+	@# Delete local branch if it exists (but never delete the checked-out branch)
+	if git show-ref --verify --quiet "refs/heads/$(BRANCH)"; then \
+		if [ "$$(git symbolic-ref --short HEAD)" = "$(BRANCH)" ]; then \
+			echo "ERROR: Currently on '$(BRANCH)'. Switch away before recreating."; \
 			exit 1; \
 		fi; \
-	fi; \
-	echo ">> [4] Remote '$$REMOTE/$$BR' status (before)"; \
-	if git show-ref --verify --quiet "refs/remotes/$$REMOTE/$$BR"; then \
-		OLD_SHA="$$(git rev-parse --short "refs/remotes/$$REMOTE/$$BR")"; \
-		BB="$$(git rev-list --left-right --count "$$REMOTE/$$BASE...$$REMOTE/$$BR")"; \
-		echo ">>     $$REMOTE/$$BR @ $$OLD_SHA"; \
-		echo ">>     unique commits vs $$REMOTE/$$BASE: $$BB  [base_only branch_only]"; \
+		git branch -D "$(BRANCH)"; \
+	fi
+
+	@# Create branch from updated base
+	git switch -c "$(BRANCH)"
+
+	@# Push (optionally force-with-lease)
+	if [ "$(FORCE)" = "1" ]; then \
+		git push -u --force-with-lease "$(REMOTE)" "$(BRANCH)"; \
 	else \
-		echo ">>     $$REMOTE/$$BR does not exist (will be created)"; \
-	fi; \
-	echo ">> [5] Recreate local '$$BR' exactly at '$$REMOTE/$$BASE'"; \
-	git branch -D "$$BR" >/dev/null 2>&1 || true; \
-	git switch -c "$$BR" "$$REMOTE/$$BASE" >/dev/null; \
-	NEW_SHA="$$(git rev-parse --short HEAD)"; \
-	echo ">>     local $$BR @ $$NEW_SHA"; \
-	echo ">> [6] Push (force-with-lease)"; \
-	git push -u --force-with-lease "$$REMOTE" "$$BR"; \
-	echo ">> [7] Verify remote equals source-of-truth"; \
-	git fetch "$$REMOTE" --prune; \
-	POST_SHA="$$(git rev-parse --short "refs/remotes/$$REMOTE/$$BR")"; \
-	if [ "$$POST_SHA" != "$$SRC_SHA" ]; then \
-		echo "!! Unexpected: $$REMOTE/$$BR @ $$POST_SHA but expected $$SRC_SHA"; \
-		exit 1; \
-	fi; \
-	echo ">> OK: $$REMOTE/$$BR now equals $$REMOTE/$$BASE @ $$SRC_SHA"
+		git push -u "$(REMOTE)" "$(BRANCH)"; \
+	fi
+
+	git status -sb
+	@echo ">> Branch '$(BRANCH)' created from '$(BASE)' and pushed to '$(REMOTE)'."
 
 ## push
 ## Stage all changes, commit with a message, and push to the current branch.
