@@ -658,6 +658,58 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.logging": {
+        "short_summary": "Scikit-plots Logging.",
+        "description": _get_guide("logging-index"),
+        "sections": [
+            {
+                "title": "Logging Levels",
+                "description": None,
+                "autosummary": [
+                    "CRITICAL",
+                    "DEBUG",
+                    "ERROR",
+                    "FATAL",
+                    "INFO",
+                    "NOTSET",
+                    "WARN",
+                    "WARNING",
+                ],
+            },
+            {
+                "title": "Functional Interface - get_logger",
+                # "description": (
+                #   _get_submodule("scikitplot.logging", "SpLogger")
+                #   + "\n\n"
+                #   + _get_guide("logging-index")
+                # ),
+                "autosummary": [
+                    "AlwaysStdErrHandler",
+                    "GoogleLogFormatter",
+                    "critical",
+                    "debug",
+                    "error",
+                    "error_log",
+                    "fatal",
+                    "getEffectiveLevel",
+                    "get_logger",
+                    "log_if",
+                    "setLevel",
+                    "vlog",
+                    "warn",
+                    "warning",
+                ],
+            },
+            # {
+            #     "title": "Class Interface - SpLogger",
+            #     "description": None,
+            #     "autosummary": [
+            #         "SpLogger",
+            #         "sp_logger",
+            #     ],
+            # },
+        ],
+    },
     "scikitplot.modelplotpy": {
         "short_summary": "ModelPlotPy: Predictive model insights",
         "description": _get_guide("modelplotpy-index", "modelplotpy_financial-index"),
@@ -742,12 +794,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "sections": [
             {
                 "title": ".api.metrics to SeabornX",
-                "description": None,
+                # "description": None,
                 # "description": (
                 #   _get_submodule("scikitplot.snsx", "_auc")
                 #   + "\n\n"
                 #   + _get_guide("auc-index")
                 # ),
+                "description": _get_guide("aucplot-index", "evalplot-index"),
                 "autosummary": [
                     "aucplot",
                     "evalplot",
@@ -758,65 +811,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                   _get_submodule("scikitplot.snsx", "_decile")
                   + "\n\n"
-                  + _get_guide("decile-index")
+                  + _get_guide("decileplot-index")
                 ),
                 "autosummary": [
                     "decileplot",
                     "print_labels",
                 ],
             },
-        ],
-    },
-    "scikitplot.logging": {
-        "short_summary": "Scikit-plots Logging.",
-        "description": _get_guide("logging-index"),
-        "sections": [
-            {
-                "title": "Logging Levels",
-                "description": None,
-                "autosummary": [
-                    "CRITICAL",
-                    "DEBUG",
-                    "ERROR",
-                    "FATAL",
-                    "INFO",
-                    "NOTSET",
-                    "WARN",
-                    "WARNING",
-                ],
-            },
-            {
-                "title": "Functional Interface - get_logger",
-                # "description": (
-                #   _get_submodule("scikitplot.logging", "SpLogger")
-                #   + "\n\n"
-                #   + _get_guide("logging-index")
-                # ),
-                "autosummary": [
-                    "AlwaysStdErrHandler",
-                    "GoogleLogFormatter",
-                    "critical",
-                    "debug",
-                    "error",
-                    "error_log",
-                    "fatal",
-                    "getEffectiveLevel",
-                    "get_logger",
-                    "log_if",
-                    "setLevel",
-                    "vlog",
-                    "warn",
-                    "warning",
-                ],
-            },
-            # {
-            #     "title": "Class Interface - SpLogger",
-            #     "description": None,
-            #     "autosummary": [
-            #         "SpLogger",
-            #         "sp_logger",
-            #     ],
-            # },
         ],
     },
     "scikitplot.stats": {
