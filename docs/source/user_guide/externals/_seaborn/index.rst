@@ -20,6 +20,7 @@ For Seaborn: statistical data visualization.
    * https://seaborn.pydata.org/
    * Documentation is available in the docstrings and online at https://seaborn.pydata.org/index.html.
 
+.. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>
 

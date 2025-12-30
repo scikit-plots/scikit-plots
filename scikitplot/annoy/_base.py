@@ -112,8 +112,10 @@ class Index(
         Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
     schema_version : int, default=0
         Reserved schema/version marker (stored; does not affect on-disk format).
-    y: list[Any] | None
-        Stored labels.
+    y: dict | None, default=None
+        If provided to fit(X, y), labels are stored here after a successful build.
+        You may also set this property manually. When possible, the setter enforces
+        that len(y) matches the current number of items (n_items).
     pickle_mode : PickleMode
         Pickle strategy used by :class:`~scikitplot.annoy._mixins._pickle.PickleMixin`.
     compress_mode : CompressMode or None

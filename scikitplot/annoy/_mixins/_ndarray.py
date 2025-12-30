@@ -6,14 +6,6 @@ Defines :class:`~scikitplot.annoy._mixins._ndarray.NDArrayMixin`, a **NumPy-firs
 **explicit**, **deterministic** mixin providing batch add and export utilities
 for Annoy-like indexes.
 
-Key rules
----------
-- No heuristics or tolerance logic. Ambiguity raises a clear exception.
-- Mixin independence: no ``__init__``; works with arbitrary MRO.
-- Supports inheritance or composition via :func:`~scikitplot.annoy._utils.backend_for`.
-
-Required backend surface
-------------------------
 The mixin expects that ``backend_for(self)`` returns an object implementing:
 
 - ``add_item(i: int, vector: Sequence[float])``
@@ -32,7 +24,7 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Iterable, Iterator, Sequence
-from typing import Any, Literal, TypeAlias, overload
+from typing import Any, Literal, TypeAlias
 
 import numpy as np
 
@@ -514,32 +506,6 @@ class NDArrayMixin:
     # ------------------------------------------------------------------
     # Public: export
     # ------------------------------------------------------------------
-    @overload
-    def get_item_vectors(
-        self,
-        ids: IdsInput = None,
-        *,
-        dtype: Any = np.float32,
-        start: int = 0,
-        stop: int | None = None,
-        n_rows: int | None = None,
-        return_ids: Literal[False] = False,
-        validate_vector_len: bool = True,
-    ) -> np.ndarray: ...
-
-    @overload
-    def get_item_vectors(
-        self,
-        ids: IdsInput,
-        *,
-        dtype: Any = np.float32,
-        start: int = 0,
-        stop: int | None = None,
-        n_rows: int | None = None,
-        return_ids: Literal[True],
-        validate_vector_len: bool = True,
-    ) -> tuple[np.ndarray, np.ndarray]: ...
-
     def get_item_vectors(
         self,
         ids: IdsInput = None,

@@ -46,13 +46,11 @@ from .._utils import backend_for, lock_for
 # Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
 #: Compression used for ``"byte"`` pickling.
 CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
-"""Compression used for ``"byte"`` pickling."""
 
 # https://peps.python.org/pep-0258/#attribute-docstrings
 # Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
 #: Persistence strategy used by :class:`~.PickleMixin`.
 PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
-"""Persistence strategy used by :class:`~.PickleMixin`."""
 
 __all__ = [
     "CompressMode",

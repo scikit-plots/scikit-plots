@@ -25,6 +25,7 @@ This module contains functions related to :py:mod:`~scikitplot.externals._probsc
    * https://www.itl.nist.gov/div898/handbook/eda/section3/probplot.htm
    * https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/NCSS/Probability_Plots.pdf
 
+.. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>
 

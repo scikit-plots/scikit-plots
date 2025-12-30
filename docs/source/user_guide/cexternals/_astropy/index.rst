@@ -21,6 +21,7 @@ This module contains some functions related to :py:mod:`~._astropy` under :py:mo
    * https://docs.astropy.org/en/stable/stats/ref_api.html#module-astropy.stats
    * Documentation is available in the docstrings and online at https://www.astropy.org/.
 
+.. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>
 

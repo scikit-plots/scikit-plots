@@ -10,7 +10,8 @@
 # This module was copied from the annoy project.
 # https://github.com/spotify/annoy/blob/main/annoy/__init__.pyi
 
-"""Typing stubs for the Annoy C-extension wrapper.
+"""
+Typing stubs for the Annoy C-extension wrapper.
 
 This module is derived from the upstream Annoy project stubs and extended to
 match the API implemented by this repository's C-extension (see the corresponding
@@ -204,8 +205,22 @@ class Annoy:
         Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
     schema_version : int, default=0
         Reserved schema/version marker (stored; does not affect on-disk format).
-    y: list[Any] | None
-        Stored labels.
+    y: dict | None, default=None
+        If provided to fit(X, y), labels are stored here after a successful build.
+        You may also set this property manually. When possible, the setter enforces
+        that len(y) matches the current number of items (n_items).
+
+    See Also
+    --------
+    add_item : Add a vector to the index.
+    build : Build the forest after adding items.
+    unbuild : Remove trees to allow adding more items.
+    get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
+    save, load : Persist the index to/from disk.
+    serialize, deserialize : Persist the index to/from bytes.
+    set_seed : Set the random seed deterministically.
+    verbose : Set verbosity level.
+    info : Return a structured summary of the current index.
 
     Notes
     -----
@@ -238,18 +253,6 @@ class Annoy:
     * ``ptr`` is NULL when index is not constructed.
     - Invariant:
     * ``ptr != NULL`` implies ``f > 0`` and ``metric_id != METRIC_UNKNOWN``.
-
-    See Also
-    --------
-    add_item : Add a vector to the index.
-    build : Build the forest after adding items.
-    unbuild : Remove trees to allow adding more items.
-    get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
-    save, load : Persist the index to/from disk.
-    serialize, deserialize : Persist the index to/from bytes.
-    set_seed : Set the random seed deterministically.
-    verbose : Set verbosity level.
-    info : Return a structured summary of the current index.
 
     Examples
     --------
@@ -338,10 +341,8 @@ class Annoy:
     _schema_version: int
     _f: int
     _metric_id: int
+    _metric_id: int
     _prefault: bool
-
-    # Stored labels (optional, scikit-learn compatible).
-    y_: list[Any] | None
 
     # ---- Core configuration (lazy-safe properties) ---------------------------
     @property
@@ -381,6 +382,14 @@ class Annoy:
     @verbose.setter
     def verbose(self, level: int | None) -> None: ...
 
+    # Stored labels y (optional, scikit-learn compatible).
+    @property
+    def _y(self) -> dict | None: ...
+    @property
+    def y(self) -> dict | None: ...
+    @y.setter
+    def y(self, value: dict | None) -> None: ...
+
     def __init__(
         self,
         f: int | None = None,
@@ -418,16 +427,16 @@ class Annoy:
         :class:`~.Annoy`
             This instance (self), enabling method chaining.
 
-        Notes
-        -----
-        Items must be added *before* calling :meth:`build`. After building
-        the forest, further calls to :meth:`add_item` are not supported.
-
         See Also
         --------
         build : Build the forest after adding items.
         unbuild : Remove trees to allow adding more items.
         get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
+
+        Notes
+        -----
+        Items must be added *before* calling :meth:`build`. After building
+        the forest, further calls to :meth:`add_item` are not supported.
 
         Examples
         --------
@@ -470,6 +479,13 @@ class Annoy:
         :class:`~.Annoy`
             This instance (self), enabling method chaining.
 
+        See Also
+        --------
+        add_item : Add vectors before building.
+        unbuild : Drop trees to add more items.
+        get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
+        save, load : Persist the index to/from disk.
+
         Notes
         -----
         After :meth:`build` completes, the index becomes read-only for queries.
@@ -478,13 +494,6 @@ class Annoy:
         References
         ----------
         .. [1] Erik Bernhardsson, "Annoy: Approximate Nearest Neighbours in C++/Python".
-
-        See Also
-        --------
-        add_item : Add vectors before building.
-        unbuild : Drop trees to add more items.
-        get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
-        save, load : Persist the index to/from disk.
 
         Examples
         --------
@@ -528,15 +537,15 @@ class Annoy:
         RuntimeError
             If the index is not initialized.
 
+        See Also
+        --------
+        serialize : full in-memory index into a byte string.
+
         Notes
         -----
         Portable blobs add a small header (version, ABI sizes, endianness, metric, f)
         to ensure incompatible binaries fail loudly and safely. They are not a
         cross-architecture wire format; the payload remains Annoy's native snapshot.
-
-        See Also
-        --------
-        serialize : full in-memory index into a byte string.
         """
         ...
 
@@ -571,7 +580,7 @@ class Annoy:
         X : array-like of shape (n_samples, n_features), default=None
             Vectors to add to the index. If None (and y is None), fit() only builds.
         y : array-like of shape (n_samples,), default=None
-            Optional labels associated with X. Stored as y_ after successful build.
+            Optional labels associated with X. Stored as y after successful build.
         n_trees : int, default=-1
             Number of trees to build. Use -1 for Annoy's internal default.
         n_jobs : int, default=-1
@@ -599,8 +608,8 @@ class Annoy:
         add_item : Add one item at a time.
         build : Build the forest after manual calls to add_item.
         unbuild : Remove trees so items can be appended.
-        y_ : Stored labels (if provided).
         get_params, set_params : Estimator parameter API.
+        y : Stored labels (if provided).
         """
         ...
 
@@ -614,22 +623,22 @@ class Annoy:
         reset: bool = True,
         start_index: int | None = None,
         missing_value: float | None = None,
-        n_neighbors: int = 10,
+        n_neighbors: int = 5,
         search_k: int = -1,
         include_distances: bool = False,
         return_labels: bool = False,
         y_fill_value: Any = None,
     ) -> TransformOutput:
-        """fit_transform(X, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None,
-                      missing_value=None, n_neighbors=10, search_k=-1, include_distances=False,
-                      return_labels=False, y_fill_value=None)
+        """fit_transform(X, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None, \
+            missing_value=None, n_neighbors=5, search_k=-1, include_distances=False, \
+            return_labels=False, y_fill_value=None)
 
         Fit the index and transform X in a single deterministic call.
 
         This is equivalent to:
-            self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...)
-            self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=...,
-                           y_fill_value=..., missing_value=...)
+            self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...) \
+            self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=..., \
+            y_fill_value=..., missing_value=...)
 
         See Also
         --------
@@ -919,15 +928,15 @@ class Annoy:
         params : dict
             Dictionary of stable, user-facing parameters.
 
-        Notes
-        -----
-        This is intended to make Annoy behave like a scikit-learn estimator for
-        tools such as :func:`sklearn.base.clone` and parameter grids.
-
         See Also
         --------
         set_params : Set estimator-style parameters.
         schema_version : Controls pickle / snapshot strategy.
+
+        Notes
+        -----
+        This is intended to make Annoy behave like a scikit-learn estimator for
+        tools such as :func:`sklearn.base.clone` and parameter grids.
         """
         ...
 
@@ -958,6 +967,13 @@ class Annoy:
         -------
         info : dict
             Dictionary describing the current index state.
+
+        See Also
+        --------
+        serialize : Create a binary snapshot of the index.
+        deserialize : Restore from a binary snapshot.
+        save : Persist the index to disk.
+        load : Load the index from disk.
 
         Notes
         -----
@@ -998,13 +1014,6 @@ class Annoy:
             Approximate memory usage in bytes. Present only when requested and available.
         * memory_usage_mib : float
             Approximate memory usage in MiB. Present only when requested and available.
-
-        See Also
-        --------
-        serialize : Create a binary snapshot of the index.
-        deserialize : Restore from a binary snapshot.
-        save : Persist the index to disk.
-        load : Load the index from disk.
 
         Examples
         --------
@@ -1051,16 +1060,16 @@ class Annoy:
         :class:`~.Annoy`
             This instance (self), enabling method chaining.
 
-        Notes
-        -----
-        The in-memory index must have been constructed with the same dimension
-        and metric as the on-disk file.
-
         See Also
         --------
         save : Save the current index to disk.
         on_disk_build : Build directly using an on-disk backing file.
         unload : Release mmap resources.
+
+        Notes
+        -----
+        The in-memory index must have been constructed with the same dimension
+        and metric as the on-disk file.
         """
         ...
 
@@ -1102,16 +1111,16 @@ class Annoy:
         :class:`~.Annoy`
             This instance (self), enabling method chaining.
 
-        Notes
-        -----
-        This mode is useful for very large datasets that do not fit
-        comfortably in RAM during construction.
-
         See Also
         --------
         build : Build trees after adding items (on-disk backed).
         load : Memory-map the built index.
         save : Persist the built index to disk.
+
+        Notes
+        -----
+        This mode is useful for very large datasets that do not fit
+        comfortably in RAM during construction.
         """
         ...
 
@@ -1151,7 +1160,15 @@ class Annoy:
         Returns
         -------
         :class:`~.Annoy`
-            A new Annoy instance containing the same items (and y_ metadata if present).
+            A new Annoy instance containing the same items (and y metadata if present).
+
+        See Also
+        --------
+        get_params : Read constructor parameters.
+        set_params : Update estimator parameters (use with `fit(X)` when refitting from data).
+        fit : Build the index from `X` (preferred if you already have `X` available).
+        serialize, deserialize : Persist / restore indexes; canonical restores rebuild deterministically.
+        __sklearn_clone__ : Unfitted clone hook (no fitted state).
 
         Notes
         -----
@@ -1162,14 +1179,6 @@ class Annoy:
         Use `rebuild()` when you want to change `metric` while *reusing the already-stored
         vectors* (e.g., you do not want to re-read or re-materialize `X`, or you loaded an
         index from disk and only have access to its stored vectors).
-
-        See Also
-        --------
-        get_params : Read constructor parameters.
-        set_params : Update estimator parameters (use with `fit(X)` when refitting from data).
-        fit : Build the index from `X` (preferred if you already have `X` available).
-        serialize, deserialize : Persist / restore indexes; canonical restores rebuild deterministically.
-        __sklearn_clone__ : Unfitted clone hook (no fitted state).
         """
         ...
 
@@ -1213,15 +1222,15 @@ class Annoy:
         RuntimeError
             If the index is not initialized or save fails.
 
-        Notes
-        -----
-        The output file will be overwritten if it already exists.
-        Use prefault=None to fall back to the stored :attr:`prefault` setting.
-
         See Also
         --------
         load : Load an index from disk.
         serialize : Snapshot to bytes for in-memory persistence.
+
+        Notes
+        -----
+        The output file will be overwritten if it already exists.
+        Use prefault=None to fall back to the stored :attr:`prefault` setting.
 
         Examples
         --------
@@ -1263,6 +1272,10 @@ class Annoy:
         OverflowError
             If the serialized payload is too large to fit in a Python bytes object.
 
+        See Also
+        --------
+        deserialize : Restore an index from a serialized byte string.
+
         Notes
         -----
         "Portable" blobs are the native snapshot with additional compatibility guards.
@@ -1270,10 +1283,6 @@ class Annoy:
 
         "Canonical" blobs trade load time for portability: deserialization rebuilds
         the index with ``n_jobs=1`` for deterministic reconstruction.
-
-        See Also
-        --------
-        deserialize : Restore an index from a serialized byte string.
 
         Examples
         --------
@@ -1306,19 +1315,19 @@ class Annoy:
         TypeError
             If parameter names are not strings or types are invalid.
 
+        See Also
+        --------
+        get_params : Return estimator-style parameters.
+
         Notes
         -----
         Changing structural parameters (notably ``metric``) on an already
         initialized index resets the index deterministically (drops all items,
-        trees, and :attr:`y_`). Refit/rebuild is required before querying.
+        trees, and :attr:`y`). Refit/rebuild is required before querying.
 
         This behavior matches scikit-learn expectations: ``set_params`` may be
         called at any time, but parameter changes that affect learned state
         invalidate the fitted model.
-
-        See Also
-        --------
-        get_params : Return estimator-style parameters.
         """
         ...
 
@@ -1422,7 +1431,7 @@ class Annoy:
         self,
         X: Any,
         *,
-        n_neighbors: int = 10,
+        n_neighbors: int = 5,
         search_k: int = -1,
         include_distances: bool = False,
         return_labels: bool = False,
@@ -1430,8 +1439,8 @@ class Annoy:
         input_type: TransformInputType = "vector",
         missing_value: float | None = None,
     ) -> TransformOutput:
-        """transform(X, *, n_neighbors=10, search_k=-1, include_distances=False, return_labels=False,
-              y_fill_value=None, input_type='vector', missing_value=None)
+        """transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False, \
+            y_fill_value=None, input_type='vector', missing_value=None)
 
         Transform queries into nearest-neighbor ids (and optional distances / labels).
 
@@ -1442,16 +1451,16 @@ class Annoy:
 
             - input_type='vector': X must be a 2D array-like of shape (n_queries, f).
             - input_type='item':   X must be a 1D sequence of item ids.
-        n_neighbors : int, default=10
+        n_neighbors : int, default=5
             Number of neighbors to retrieve for each query.
         search_k : int, default=-1
             Search parameter passed to Annoy (-1 uses Annoy's default).
         include_distances : bool, default=False
             If True, also return per-neighbor distances.
         return_labels : bool, default=False
-            If True, also return per-neighbor labels resolved from y_.
+            If True, also return per-neighbor labels resolved from y.
         y_fill_value : object, default=None
-            Value used when y_ is unset or missing an entry for a neighbor id.
+            Value used when y is unset or missing an entry for a neighbor id.
         input_type : {'vector', 'item'}, default='vector'
             Controls how X is interpreted.
         missing_value : float or None, default=None
@@ -1489,15 +1498,15 @@ class Annoy:
         :class:`~.Annoy`
             This instance (self), enabling method chaining.
 
-        Notes
-        -----
-        After calling :meth:`unbuild`, you must call :meth:`build`
-        again before running nearest-neighbour queries.
-
         See Also
         --------
         build : Rebuild the forest after adding new items.
         add_item : Add items (only valid when no trees are built).
+
+        Notes
+        -----
+        After calling :meth:`unbuild`, you must call :meth:`build`
+        again before running nearest-neighbour queries.
 
         Examples
         --------
@@ -1516,15 +1525,15 @@ class Annoy:
         :class:`~.Annoy`
             This instance (self), enabling method chaining.
 
-        Notes
-        -----
-        This releases OS-level resources associated with the mmap,
-        but keeps the Python object alive.
-
         See Also
         --------
         load : Memory-map an on-disk index into this object.
         on_disk_build : Configure on-disk build mode.
+
+        Notes
+        -----
+        This releases OS-level resources associated with the mmap,
+        but keeps the Python object alive.
 
         Examples
         --------
@@ -1555,16 +1564,16 @@ class Annoy:
             * ``1``    : info (Annoy's ``verbose=True``)
             * ``>= 2`` : debug (currently same as info, reserved for future use)
 
-        Returns
-        -------
-        :class:`~.Annoy`
-            This instance (self), enabling method chaining.
-
         See Also
         --------
         set_verbosity : Alias of :meth:`set_verbose`.
         verbose : Parameter attribute (int | None).
         get_params, set_params : Estimator parameter API.
+
+        Returns
+        -------
+        :class:`~.Annoy`
+            This instance (self), enabling method chaining.
         """
         ...
 
@@ -1675,28 +1684,28 @@ class Annoy:
         html : str
             HTML string (safe to embed) describing the current configuration.
 
-        Notes
-        -----
-        This representation is deterministic and side-effect free. It intentionally
-        avoids expensive operations such as serialization or memory-usage estimation.
-
         See Also
         --------
         info : Return a Python dict with configuration and metadata.
         __repr__ : Text representation.
+
+        Notes
+        -----
+        This representation is deterministic and side-effect free. It intentionally
+        avoids expensive operations such as serialization or memory-usage estimation.
         """
         ...
 
-        def __len__(self) -> int:
-            """
-            Return the number of items currently stored in the index.
+    def __len__(self) -> int:
+        """
+        Return the number of items currently stored in the index.
 
-            Notes
-            -----
-            This is equivalent to :meth:`get_n_items`. If the underlying index is not
-            initialized yet, ``0`` is returned.
-            """
-            ...
+        Notes
+        -----
+        This is equivalent to :meth:`get_n_items`. If the underlying index is not
+        initialized yet, ``0`` is returned.
+        """
+        ...
 
     def __sklearn_is_fitted__(self) -> bool:
         """__sklearn_is_fitted__() -> bool
@@ -1720,14 +1729,14 @@ class Annoy:
         tags : sklearn.utils.Tags
             Conservative tags for this estimator.
 
+        See Also
+        --------
+        sklearn.utils.get_tags : Read estimator tags.
+
         Notes
         -----
         This method is consulted by scikit-learn utilities such as
         ``sklearn.utils.get_tags``.
-
-        See Also
-        --------
-        sklearn.utils.get_tags : Read estimator tags.
         """
         ...
 
@@ -1778,8 +1787,6 @@ class AnnoyLike(Protocol):
     # _metric_id: int
     # _on_disk_path: str or None
 
-    y_: list[Any] | None
-
     # --- Core configuration ---
     @property
     def f(self) -> int: ...
@@ -1817,6 +1824,13 @@ class AnnoyLike(Protocol):
     def verbose(self) -> int | None: ...
     @verbose.setter
     def verbose(self, level: int | None) -> None: ...
+
+    @property
+    def _y(self) -> dict | None: ...
+    @property
+    def y(self) -> dict | None: ...
+    @y.setter
+    def y(self, value: dict | None) -> None: ...
 
     # --- Build / lifecycle ---
     def add_item(self, i: ItemIndex, vector: Vector) -> Self: ...
@@ -1910,7 +1924,7 @@ class AnnoyLike(Protocol):
         self,
         X: Any,
         *,
-        n_neighbors: int = 10,
+        n_neighbors: int = 5,
         search_k: int = -1,
         include_distances: bool = False,
         return_labels: bool = False,
@@ -1928,7 +1942,7 @@ class AnnoyLike(Protocol):
         reset: bool = True,
         start_index: int | None = None,
         missing_value: float | None = None,
-        n_neighbors: int = 10,
+        n_neighbors: int = 5,
         search_k: int = -1,
         include_distances: bool = False,
         return_labels: bool = False,

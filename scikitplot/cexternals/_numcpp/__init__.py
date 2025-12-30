@@ -16,6 +16,5 @@ Compilers:
 * Boost Versions: 1.73+
 
 .. seealso::
-
    * https://github.com/dpilger26/NumCpp
 """

@@ -315,11 +315,7 @@ f : int or None, optional, default=None
     Vector dimension. If ``0`` or ``None``, dimension may be inferred from the
     first vector passed to ``add_item`` (lazy mode).
     If None, treated as ``0`` (reset to default).
-metric : {"angular", "cosine", \
-        "euclidean", "l2", "lstsq", \
-        "manhattan", "l1", "cityblock", "taxicab", \
-        "dot", "@", ".", "dotproduct", "inner", "innerproduct", \
-        "hamming"} or None, optional, default=None
+metric : {"angular", "cosine", "euclidean", "l2", "lstsq", "manhattan", "l1", "cityblock", "taxicab", "dot", "@", ".", "dotproduct", "inner", "innerproduct", "hamming"} or None, optional, default=None
     Distance metric (one of 'angular', 'euclidean', 'manhattan', 'dot', 'hamming').
     If omitted and ``f > 0``, defaults to ``'angular'`` (cosine-like).
     If omitted and ``f == 0``, metric may be set later before construction.
@@ -387,6 +383,22 @@ prefault : bool, default=False
     Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
 schema_version : int, default=0
     Reserved schema/version marker (stored; does not affect on-disk format).
+y : dict | None, optional, default=None
+    If provided to fit(X, y), labels are stored here after a successful build.
+    You may also set this property manually. When possible, the setter enforces
+    that len(y) matches the current number of items (n_items).
+
+See Also
+--------
+add_item : Add a vector to the index.
+build : Build the forest after adding items.
+unbuild : Remove trees to allow adding more items.
+get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
+save, load : Persist the index to/from disk.
+serialize, deserialize : Persist the index to/from bytes.
+set_seed : Set the random seed deterministically.
+verbose : Set verbosity level.
+info : Return a structured summary of the current index.
 
 Notes
 -----
@@ -422,18 +434,6 @@ Developer Notes:
 - Invariant:
 
   * ``ptr != NULL`` implies ``f > 0`` and ``metric_id != METRIC_UNKNOWN``.
-
-See Also
---------
-add_item : Add a vector to the index.
-build : Build the forest after adding items.
-unbuild : Remove trees to allow adding more items.
-get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
-save, load : Persist the index to/from disk.
-serialize, deserialize : Persist the index to/from bytes.
-set_seed : Set the random seed deterministically.
-verbose : Set verbosity level.
-info : Return a structured summary of the current index.
 
 Examples
 --------
@@ -558,6 +558,13 @@ Returns
 str or None
     Canonical metric name, or None if not configured yet.
 
+.. seealso::
+  * :py:func:`~scipy.spatial.distance.cosine`
+  * :py:func:`~scipy.spatial.distance.euclidean`
+  * :py:func:`~scipy.spatial.distance.cityblock`
+  * :py:func:`~scipy.sparse.coo_array.dot`
+  * :py:func:`~scipy.spatial.distance.hamming`
+
 Notes
 -----
 Changing ``metric`` after the index has been initialized (items added and/or
@@ -566,15 +573,8 @@ the distance function.
 
 For scikit-learn compatibility, setting a different metric on an already
 initialized index will deterministically **reset** the index (drop all items,
-trees, and :attr:`y_`). You must call :meth:`fit` (or :meth:`add_item` +
+trees, and :attr:`y`). You must call :meth:`fit` (or :meth:`add_item` +
 :meth:`build`) again before querying.
-
-.. seealso::
-  * :py:mod:`~scipy.spatial.distance.cosine`
-  * :py:mod:`~scipy.spatial.distance.euclidean`
-  * :py:mod:`~scipy.spatial.distance.cityblock`
-  * :py:mod:`~scipy.sparse.coo_array.dot`
-  * :py:mod:`~scipy.spatial.distance.hamming`
 )METRIC";
 
 static const char kOnDiskPathDoc[] =
@@ -585,6 +585,11 @@ Returns
 -------
 str or None
     Filesystem path used for on-disk operations, or None if not configured.
+
+.. seealso::
+  * :meth:`on_disk_build`
+  * :meth:`load`
+  * :meth:`unload`
 
 Notes
 -----
@@ -597,11 +602,6 @@ Notes
   when no disk-backed index is currently active.
 - Clearing/changing this while an on-disk index is active is disallowed.
   Call :meth:`unload` first.
-
-.. seealso::
-  * :meth:`on_disk_build`
-  * :meth:`load`
-  * :meth:`unload`
 )ODP";
 
 static const char kPrefaultDoc[] =
@@ -1065,7 +1065,7 @@ typedef struct {
 
   // Optional labels / targets associated with vectors (set by fit or manually).
   // Stored as a Python object (typically 1D array-like) and managed with ref-counting.
-  PyObject* y;                  // labels/targets (y_ / y), or NULL
+  PyObject* y;                  // labels/targets (y / _y), or NULL
 
   int f;                        // 0 means "unknown / lazy" (dimension inferred from first add_item)
   MetricId metric_id;           // METRIC_UNKNOWN means "unknown / lazy"
@@ -1979,6 +1979,14 @@ static PyMemberDef py_annoy_members[] = {
     (char*)"internal: raw prefault value (read-only). Use .prefault property instead."
   },
 
+  // {
+  //   (char*)"_y",
+  //   T_OBJECT_EX, offsetof(py_annoy, y),
+  //   // READONLY is mandatory: otherwise obj._y = True bypasses your .y setter and breaks sync.
+  //   READONLY,  // 0
+  //   (char*)"internal: raw y object (read-only binding). WARNING: dict can still be mutated in-place. Use .y property instead."
+  // },
+
   {NULL}  /* Sentinel */
 };
 
@@ -1987,15 +1995,15 @@ static PyMemberDef py_annoy_members[] = {
 // getter: PyObject* (py_annoy*, void*)
 // setter: int (py_annoy*, PyObject*, void*)
 
-// Optional sklearn-style fitted attribute: y_ (labels / targets)
+// Optional sklearn-style fitted attribute: y (labels / targets)
 //
 // Notes
 // -----
 // scikit-learn estimators do not typically store `y`, but for Annoy it can be
-// useful to attach labels/metadata for downstream retrieval. We store `y_` as a
+// useful to attach labels/metadata for downstream retrieval. We store :attr:`y` as a
 // Python object and validate basic shape constraints when possible.
 //
-static PyObject* py_annoy_get_y_(
+static PyObject* py_annoy_get_y(
   py_annoy* self,
   void*) {
   if (!self || !self->y) Py_RETURN_NONE;
@@ -2004,7 +2012,7 @@ static PyObject* py_annoy_get_y_(
 }
 
 
-static int py_annoy_set_y_(
+static int py_annoy_set_y(
   py_annoy* self,
   PyObject* value,
   void*) {
@@ -2013,7 +2021,7 @@ static int py_annoy_set_y_(
     return -1;
   }
   if (value == NULL) {
-    PyErr_SetString(PyExc_TypeError, "Cannot delete attribute y_");
+    PyErr_SetString(PyExc_TypeError, "Cannot delete attribute y");
     return -1;
   }
   if (value == Py_None) {
@@ -2030,7 +2038,7 @@ static int py_annoy_set_y_(
     // Require an array-like (sequence), but reject str/bytes which are sequences.
     if (!PySequence_Check(value) || PyUnicode_Check(value) || PyBytes_Check(value)) {
       PyErr_SetString(PyExc_TypeError,
-        "y_ must be a dict {item_id -> label}, a 1D array-like (sequence), or None");
+        "y must be a dict {item_id -> label}, a 1D array-like (sequence), or None");
       return -1;
     }
     // If the index currently has items, enforce length equality deterministically.
@@ -2041,7 +2049,7 @@ static int py_annoy_set_y_(
         if (n < 0) return -1;  // error already set
         if ((int64_t)n != (int64_t)n_items) {
           PyErr_Format(PyExc_ValueError,
-            "y_ must have length %d to match current index size (n_items)", n_items);
+            "y must have length %d to match current index size (n_items)", n_items);
           return -1;
         }
       }
@@ -2056,19 +2064,19 @@ static int py_annoy_set_y_(
       while (PyDict_Next(value, &pos, &key, &val)) {
         if (!PyLong_Check(key)) {
           PyErr_SetString(PyExc_TypeError,
-            "y_ dict keys must be integers (item ids)");
+            "y dict keys must be integers (item ids)");
           return -1;
         }
         long long kid = PyLong_AsLongLong(key);
         if (kid == -1 && PyErr_Occurred()) return -1;
         if (kid < 0) {
           PyErr_SetString(PyExc_ValueError,
-            "y_ dict keys must be >= 0");
+            "y dict keys must be >= 0");
           return -1;
         }
         if (n_items > 0 && kid >= (long long)n_items) {
           PyErr_Format(PyExc_ValueError,
-            "y_ dict key %lld is out of range for current index size (n_items=%d)",
+            "y dict key %lld is out of range for current index size (n_items=%d)",
             kid, n_items);
           return -1;
         }
@@ -2175,7 +2183,7 @@ static int py_annoy_set_metric(
     if (self->ptr) {
       if (!reset_index_state(
             self,
-            "Changing metric resets the existing index (drops all items/trees and y_). "
+            "Changing metric resets the existing index (drops all items/trees and y). "
             "Refit is required.")) {
         return -1;
       }
@@ -2202,7 +2210,7 @@ static int py_annoy_set_metric(
   if (self->ptr && self->metric_id != id) {
     if (!reset_index_state(
           self,
-          "Changing metric resets the existing index (drops all items/trees and y_). "
+          "Changing metric resets the existing index (drops all items/trees and y). "
           "Refit is required.")) {
       return -1;
     }
@@ -2549,6 +2557,14 @@ static PyObject* py_annoy_get_n_features_(
 // ===================== Get/Set table ======================================
 
 static PyGetSetDef py_annoy_getset[] = {
+
+  {
+    (char*)"schema_version",
+    (getter)py_annoy_get_schema_version,
+    (setter)py_annoy_set_schema_version,
+    (char*)kSchemaVersionDoc,
+    NULL
+  },
   {
     (char*)"f",
     (getter)py_annoy_get_f,
@@ -2574,18 +2590,19 @@ static PyGetSetDef py_annoy_getset[] = {
   },
 
   {
-    (char*)"prefault",
-    (getter)py_annoy_get_prefault,
-    (setter)py_annoy_set_prefault,
-    (char*)kPrefaultDoc,
+    (char*)"_on_disk_path",
+    (getter)py_annoy_get_on_disk_path,
+    // (setter)py_annoy_set_on_disk_path,
+    NULL,  // read-only alias of on_disk_path (prevents bypassing validation)
+    (char*)"internal: alias of on_disk_path (read-only). Use .on_disk_path to set.",
     NULL
   },
 
   {
-    (char*)"schema_version",
-    (getter)py_annoy_get_schema_version,
-    (setter)py_annoy_set_schema_version,
-    (char*)kSchemaVersionDoc,
+    (char*)"prefault",
+    (getter)py_annoy_get_prefault,
+    (setter)py_annoy_set_prefault,
+    (char*)kPrefaultDoc,
     NULL
   },
 
@@ -2638,17 +2655,9 @@ static PyGetSetDef py_annoy_getset[] = {
   },
 
   {
-    (char*)"_on_disk_path",
-    (getter)py_annoy_get_on_disk_path,
-    NULL,  // read-only alias of on_disk_path (prevents bypassing validation)
-    (char*)"internal: alias of on_disk_path (read-only). Use .on_disk_path to set.",
-    NULL
-  },
-
-  {
-    (char*)"y_",
-    (getter)py_annoy_get_y_,
-    (setter)py_annoy_set_y_,
+    (char*)"y",
+    (getter)py_annoy_get_y,
+    (setter)py_annoy_set_y,
     (char*)
     "Labels / targets associated with the index items.\n"
     "\n"
@@ -2656,16 +2665,17 @@ static PyGetSetDef py_annoy_getset[] = {
     "-----\n"
     "If provided to fit(X, y), labels are stored here after a successful build.\n"
     "You may also set this property manually. When possible, the setter enforces\n"
-    "that len(y_) matches the current number of items (n_items).\n",
+    "that len(y) matches the current number of items (n_items).\n",
     NULL
   },
 
   {
-    (char*)"y",
-    (getter)py_annoy_get_y_,
-    (setter)py_annoy_set_y_,
+    (char*)"_y",
+    (getter)py_annoy_get_y,
+    // (setter)py_annoy_set_y,
+    NULL,  // read-only alias of on_disk_path (prevents bypassing validation)
     (char*)
-    "Alias for y_.\n",
+    "Alias for :attr:`y`.\n",
     NULL
   },
 
@@ -3705,7 +3715,7 @@ static bool is_index_built(
 // IMPORTANT
 // ---------
 // This helper must only be called while holding the GIL (it may emit warnings
-// and clears Python-owned metadata like y_).
+// and clears Python-owned metadata like y).
 static bool reset_index_state(
   py_annoy* self,
   const char* warn_msg) {
@@ -4360,7 +4370,7 @@ static PyObject* py_an_rebuild(
     return NULL;
   }
 
-  // Copy labels/targets (y_) if present. This is metadata keyed by item id.
+  // Copy labels/targets (y) if present. This is metadata keyed by item id.
   if (self->y) {
     Py_INCREF(self->y);
     Py_XDECREF(out->y);
@@ -4843,8 +4853,8 @@ static PyObject* py_an_build(
 //       - reset=True (default): clear existing items (fresh index) before adding.
 //       - reset=False: append items. If the index is currently built, we will
 //         unbuild() first and emit a warning (Annoy cannot add to a built index).
-//   * If y is provided alongside X: store labels to `y_` (and alias `y`) after a
-//     successful build. If y is None, `y_` is cleared to avoid stale metadata.
+//   * If y is provided alongside X: store labels to :attr:`y` (and alias `_y`) after a
+//     successful build. If y is None, `y` is cleared to avoid stale metadata.
 //
 // Notes
 // -----
@@ -5055,7 +5065,7 @@ static PyObject* py_an_fit(
         return NULL;
       }
     }
-    // In append mode, we keep any existing y_ metadata if the user does not
+    // In append mode, we keep any existing y metadata if the user does not
     // provide new labels for the appended rows.
   }
 
@@ -5114,7 +5124,7 @@ static PyObject* py_an_fit(
     missing_fill = (float)mv;
   }
 
-  // Number of items before adding rows from X (used for y_ merging).
+  // Number of items before adding rows from X (used for y merging).
   const int n_items_before = self->ptr ? self->ptr->get_n_items() : 0;
 
   // Validate start_index + n_samples fits in int32 range.
@@ -5178,7 +5188,7 @@ static PyObject* py_an_fit(
 
 
 
-// Store y_ only after successful build.
+// Store y only after successful build.
 //
 // We store labels as a dict mapping {item_id -> label} so that:
 // - gaps are representable,
@@ -5201,7 +5211,7 @@ if (have_y) {
       const Py_ssize_t n_old = PySequence_Size(self->y);
       if (n_old < 0) { Py_DECREF(y_seq); return NULL; }
       if ((int64_t)n_old == (int64_t)n_items_before) {
-        PyObject* old_seq = PySequence_Fast(self->y, "y_ must be a sequence");
+        PyObject* old_seq = PySequence_Fast(self->y, "y must be a sequence");
         if (!old_seq) { Py_DECREF(y_seq); return NULL; }
 
         y_dict = PyDict_New();
@@ -5264,8 +5274,8 @@ PY_RETURN_SELF;
 // sklearn-style transformer API: transform / fit_transform
 // ------------------------------------------------------------------
 
-// Lookup helper for y_ metadata (optional). Always returns a new reference.
-static PyObject* annoy_lookup_y_(
+// Lookup helper for  metadata (optional). Always returns a new reference.
+static PyObject* annoy_lookup_y(
   py_annoy* self,
   int32_t item_id,
   PyObject* y_fill_value) {
@@ -5333,7 +5343,7 @@ static PyObject* py_an_transform(
   PyObject* out = NULL;
   PyObject* X = NULL;
 
-  int n_neighbors = 10;
+  int n_neighbors = 5;
   int search_k = -1;
   int include_distances = 0;
   int return_labels = 0;
@@ -5550,7 +5560,7 @@ static PyObject* py_an_transform(
       }
 
       if (return_labels) {
-        PyObject* lbl = annoy_lookup_y_(self, result[(size_t)j], y_fill_value);
+        PyObject* lbl = annoy_lookup_y(self, result[(size_t)j], y_fill_value);
         if (!lbl) {
           Py_DECREF(row_ids);
           Py_XDECREF(row_dists);
@@ -5613,7 +5623,7 @@ static PyObject* py_an_fit_transform(
   PyObject* start_index_obj = Py_None;
   PyObject* missing_value_obj = Py_None;
 
-  int n_neighbors = 10;
+  int n_neighbors = 5;
   int search_k = -1;
   int include_distances = 0;
   int return_labels = 0;
@@ -7168,16 +7178,16 @@ static PyMethodDef py_annoy_methods[] = {
     ":class:`~.Annoy`\n"
     "    This instance (self), enabling method chaining.\n"
     "\n"
-    "Notes\n"
-    "-----\n"
-    "Items must be added *before* calling :meth:`build`. After building\n"
-    "the forest, further calls to :meth:`add_item` are not supported.\n"
-    "\n"
     "See Also\n"
     "--------\n"
     "build : Build the forest after adding items.\n"
     "unbuild : Remove trees to allow adding more items.\n"
     "get_nns_by_item, get_nns_by_vector : Query nearest neighbours.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "Items must be added *before* calling :meth:`build`. After building\n"
+    "the forest, further calls to :meth:`add_item` are not supported.\n"
     "\n"
     "Examples\n"
     "--------\n"
@@ -7226,6 +7236,13 @@ static PyMethodDef py_annoy_methods[] = {
     ":class:`~.Annoy`\n"
     "    This instance (self), enabling method chaining.\n"
     "\n"
+    "See Also\n"
+    "--------\n"
+    "add_item : Add vectors before building.\n"
+    "unbuild : Drop trees to add more items.\n"
+    "get_nns_by_item, get_nns_by_vector : Query nearest neighbours.\n"
+    "save, load : Persist the index to/from disk.\n"
+    "\n"
     "Notes\n"
     "-----\n"
     "After :meth:`build` completes, the index becomes read-only for queries.\n"
@@ -7234,13 +7251,6 @@ static PyMethodDef py_annoy_methods[] = {
     "References\n"
     "----------\n"
     ".. [1] Erik Bernhardsson, \"Annoy: Approximate Nearest Neighbours in C++/Python\".\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "add_item : Add vectors before building.\n"
-    "unbuild : Drop trees to add more items.\n"
-    "get_nns_by_item, get_nns_by_vector : Query nearest neighbours.\n"
-    "save, load : Persist the index to/from disk.\n"
     "\n"
     "Examples\n"
     "--------\n"
@@ -7321,7 +7331,7 @@ static PyMethodDef py_annoy_methods[] = {
     "X : array-like of shape (n_samples, n_features), default=None\n"
     "    Vectors to add to the index. If None (and y is None), fit() only builds.\n"
     "y : array-like of shape (n_samples,), default=None\n"
-    "    Optional labels associated with X. Stored as y_ after successful build.\n"
+    "    Optional labels associated with X. Stored as :attr:`y` after successful build.\n"
     "n_trees : int, default=-1\n"
     "    Number of trees to build. Use -1 for Annoy's internal default.\n"
     "n_jobs : int, default=-1\n"
@@ -7349,7 +7359,7 @@ static PyMethodDef py_annoy_methods[] = {
     "add_item : Add one item at a time.\n"
     "build : Build the forest after manual calls to add_item.\n"
     "unbuild : Remove trees so items can be appended.\n"
-    "y_ : Stored labels (if provided).\n"
+    "y : Stored labels :attr:`y` (if provided).\n"
     "get_params, set_params : Estimator parameter API.\n"
     "\n"
     "Examples\n"
@@ -7377,7 +7387,7 @@ static PyMethodDef py_annoy_methods[] = {
     METH_VARARGS | METH_KEYWORDS,
     (char*)
     "fit_transform(X, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None,\n"
-    "              missing_value=None, n_neighbors=10, search_k=-1, include_distances=False,\n"
+    "              missing_value=None, n_neighbors=5, search_k=-1, include_distances=False,\n"
     "              return_labels=False, y_fill_value=None)\n"
     "\n"
     "Fit the index and transform X in a single deterministic call.\n"
@@ -7385,7 +7395,7 @@ static PyMethodDef py_annoy_methods[] = {
     "This is equivalent to:\n"
     "    self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...)\n"
     "    self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=...,\n"
-    "                   y_fill_value=..., missing_value=...)\n"
+    "    y_fill_value=..., missing_value=...)\n"
     "\n"
     "See Also\n"
     "--------\n"
@@ -7605,15 +7615,15 @@ static PyMethodDef py_annoy_methods[] = {
     "params : dict\n"
     "    Dictionary of stable, user-facing parameters.\n"
     "\n"
-    "Notes\n"
-    "-----\n"
-    "This is intended to make Annoy behave like a scikit-learn estimator for\n"
-    "tools such as :func:`sklearn.base.clone` and parameter grids.\n"
-    "\n"
     "See Also\n"
     "--------\n"
     "set_params : Set estimator-style parameters.\n"
     "schema_version : Controls pickle / snapshot strategy.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This is intended to make Annoy behave like a scikit-learn estimator for\n"
+    "tools such as :func:`sklearn.base.clone` and parameter grids.\n"
   },
 
   {
@@ -7668,6 +7678,13 @@ static PyMethodDef py_annoy_methods[] = {
     "info : dict\n"
     "    Dictionary describing the current index state.\n"
     "\n"
+    "See Also\n"
+    "--------\n"
+    "serialize : Create a binary snapshot of the index.\n"
+    "deserialize : Restore from a binary snapshot.\n"
+    "save : Persist the index to disk.\n"
+    "load : Load the index from disk.\n"
+    "\n"
     "Notes\n"
     "-----\n"
     "- Some keys are optional depending on include_* flags.\n"
@@ -7708,13 +7725,6 @@ static PyMethodDef py_annoy_methods[] = {
     "* memory_usage_mib : float\n"
     "    Approximate memory usage in MiB. Present only when requested and available.\n"
     "\n"
-    "See Also\n"
-    "--------\n"
-    "serialize : Create a binary snapshot of the index.\n"
-    "deserialize : Restore from a binary snapshot.\n"
-    "save : Persist the index to disk.\n"
-    "load : Load the index from disk.\n"
-    "\n"
     "Examples\n"
     "--------\n"
     ">>> info = idx.info()\n"
@@ -7743,6 +7753,11 @@ static PyMethodDef py_annoy_methods[] = {
     "    If None, use the stored :attr:`prefault` value.\n"
     "    Primarily useful on some platforms for very large indexes.\n"
     "\n"
+    "Returns\n"
+    "-------\n"
+    ":class:`~.Annoy`\n"
+    "    This instance (self), enabling method chaining.\n"
+    "\n"
     "Raises\n"
     "------\n"
     "IOError\n"
@@ -7750,21 +7765,16 @@ static PyMethodDef py_annoy_methods[] = {
     "RuntimeError\n"
     "    If the index is not initialized or the file is incompatible.\n"
     "\n"
-    "Returns\n"
-    "-------\n"
-    ":class:`~.Annoy`\n"
-    "    This instance (self), enabling method chaining.\n"
-    "\n"
-    "Notes\n"
-    "-----\n"
-    "The in-memory index must have been constructed with the same dimension\n"
-    "and metric as the on-disk file.\n"
-    "\n"
     "See Also\n"
     "--------\n"
     "save : Save the current index to disk.\n"
     "on_disk_build : Build directly using an on-disk backing file.\n"
     "unload : Release mmap resources.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "The in-memory index must have been constructed with the same dimension\n"
+    "and metric as the on-disk file.\n"
   },
 
   {
@@ -7808,16 +7818,16 @@ static PyMethodDef py_annoy_methods[] = {
     ":class:`~.Annoy`\n"
     "    This instance (self), enabling method chaining.\n"
     "\n"
-    "Notes\n"
-    "-----\n"
-    "This mode is useful for very large datasets that do not fit\n"
-    "comfortably in RAM during construction.\n"
-    "\n"
     "See Also\n"
     "--------\n"
     "build : Build trees after adding items (on-disk backed).\n"
     "load : Memory-map the built index.\n"
     "save : Persist the built index to disk.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This mode is useful for very large datasets that do not fit\n"
+    "comfortably in RAM during construction.\n"
   },
 
    {
@@ -7853,7 +7863,15 @@ static PyMethodDef py_annoy_methods[] = {
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    A new Annoy instance containing the same items (and y_ metadata if present).\n"
+    "    A new Annoy instance containing the same items (and :attr:`y` metadata if present).\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "get_params : Read constructor parameters.\n"
+    "set_params : Update estimator parameters (use with `fit(X)` when refitting from data).\n"
+    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
+    "serialize, deserialize : Persist / restore indexes; canonical restores rebuild deterministically.\n"
+    "__sklearn_clone__ : Unfitted clone hook (no fitted state).\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -7864,14 +7882,6 @@ static PyMethodDef py_annoy_methods[] = {
     "Use `rebuild()` when you want to change `metric` while *reusing the already-stored\n"
     "vectors* (e.g., you do not want to re-read or re-materialize `X`, or you loaded an\n"
     "index from disk and only have access to its stored vectors).\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "get_params : Read constructor parameters.\n"
-    "set_params : Update estimator parameters (use with `fit(X)` when refitting from data).\n"
-    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
-    "serialize, deserialize : Persist / restore indexes; canonical restores rebuild deterministically.\n"
-    "__sklearn_clone__ : Unfitted clone hook (no fitted state).\n"
   },
 
   {
@@ -7922,15 +7932,15 @@ static PyMethodDef py_annoy_methods[] = {
     "RuntimeError\n"
     "    If the index is not initialized or save fails.\n"
     "\n"
-    "Notes\n"
-    "-----\n"
-    "The output file will be overwritten if it already exists.\n"
-    "Use prefault=None to fall back to the stored :attr:`prefault` setting.\n"
-    "\n"
     "See Also\n"
     "--------\n"
     "load : Load an index from disk.\n"
     "serialize : Snapshot to bytes for in-memory persistence.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "The output file will be overwritten if it already exists.\n"
+    "Use prefault=None to fall back to the stored :attr:`prefault` setting.\n"
   },
 
   {
@@ -7968,6 +7978,10 @@ static PyMethodDef py_annoy_methods[] = {
     "OverflowError\n"
     "    If the serialized payload is too large to fit in a Python bytes object.\n"
     "\n"
+    "See Also\n"
+    "--------\n"
+    "deserialize : Restore an index from a serialized byte string.\n"
+    "\n"
     "Notes\n"
     "-----\n"
     "\"Portable\" blobs are the native snapshot with additional compatibility guards.\n"
@@ -7975,10 +7989,6 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "\"Canonical\" blobs trade load time for portability: deserialization rebuilds\n"
     "the index with ``n_jobs=1`` for deterministic reconstruction.\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "deserialize : Restore an index from a serialized byte string.\n"
   },
 
   {
@@ -8007,19 +8017,19 @@ static PyMethodDef py_annoy_methods[] = {
     "TypeError\n"
     "    If parameter names are not strings or types are invalid.\n"
     "\n"
+    "See Also\n"
+    "--------\n"
+    "get_params : Return estimator-style parameters.\n"
+    "\n"
     "Notes\n"
     "-----\n"
     "Changing structural parameters (notably ``metric``) on an already\n"
     "initialized index resets the index deterministically (drops all items,\n"
-    "trees, and :attr:`y_`). Refit/rebuild is required before querying.\n"
+    "trees, and :attr:`y`). Refit/rebuild is required before querying.\n"
     "\n"
     "This behavior matches scikit-learn expectations: ``set_params`` may be\n"
     "called at any time, but parameter changes that affect learned state\n"
     "invalidate the fitted model.\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "get_params : Return estimator-style parameters.\n"
   },
 
   // ------------------------------------------------------------------
@@ -8062,7 +8072,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "transform(X, *, n_neighbors=10, search_k=-1, include_distances=False, return_labels=False,\n"
+    "transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False,\n"
     "          y_fill_value=None, input_type='vector', missing_value=None)\n"
     "\n"
     "Transform queries into nearest-neighbor ids (and optional distances / labels).\n"
@@ -8074,16 +8084,16 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "    - input_type='vector': X must be a 2D array-like of shape (n_queries, f).\n"
     "    - input_type='item':   X must be a 1D sequence of item ids.\n"
-    "n_neighbors : int, default=10\n"
+    "n_neighbors : int, default=5\n"
     "    Number of neighbors to retrieve for each query.\n"
     "search_k : int, default=-1\n"
     "    Search parameter passed to Annoy (-1 uses Annoy's default).\n"
     "include_distances : bool, default=False\n"
     "    If True, also return per-neighbor distances.\n"
     "return_labels : bool, default=False\n"
-    "    If True, also return per-neighbor labels resolved from y_.\n"
+    "    If True, also return per-neighbor labels resolved from :attr:`y`.\n"
     "y_fill_value : object, default=None\n"
-    "    Value used when y_ is unset or missing an entry for a neighbor id.\n"
+    "    Value used when :attr:`y` is unset or missing an entry for a neighbor id.\n"
     "input_type : {'vector', 'item'}, default='vector'\n"
     "    Controls how X is interpreted.\n"
     "missing_value : float or None, default=None\n"
@@ -8125,15 +8135,15 @@ static PyMethodDef py_annoy_methods[] = {
     ":class:`~.Annoy`\n"
     "    This instance (self), enabling method chaining.\n"
     "\n"
-    "Notes\n"
-    "-----\n"
-    "After calling :meth:`unbuild`, you must call :meth:`build`\n"
-    "again before running nearest-neighbour queries.\n"
-    "\n"
     "See Also\n"
     "--------\n"
     "build : Rebuild the forest after adding new items.\n"
     "add_item : Add items (only valid when no trees are built).\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "After calling :meth:`unbuild`, you must call :meth:`build`\n"
+    "again before running nearest-neighbour queries.\n"
   },
 
   {
@@ -8150,15 +8160,15 @@ static PyMethodDef py_annoy_methods[] = {
     ":class:`~.Annoy`\n"
     "    This instance (self), enabling method chaining.\n"
     "\n"
-    "Notes\n"
-    "-----\n"
-    "This releases OS-level resources associated with the mmap,\n"
-    "but keeps the Python object alive.\n"
-    "\n"
     "See Also\n"
     "--------\n"
     "load : Memory-map an on-disk index into this object.\n"
     "on_disk_build : Configure on-disk build mode.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This releases OS-level resources associated with the mmap,\n"
+    "but keeps the Python object alive.\n"
   },
 
   {
@@ -8321,15 +8331,15 @@ static PyMethodDef py_annoy_methods[] = {
     "html : str\n"
     "    HTML string (safe to embed) describing the current configuration.\n"
     "\n"
-    "Notes\n"
-    "-----\n"
-    "This representation is deterministic and side-effect free. It intentionally\n"
-    "avoids expensive operations such as serialization or memory-usage estimation.\n"
-    "\n"
     "See Also\n"
     "--------\n"
     "info : Return a Python dict with configuration and metadata.\n"
     "__repr__ : Text representation.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This representation is deterministic and side-effect free. It intentionally\n"
+    "avoids expensive operations such as serialization or memory-usage estimation.\n"
   },
 
   {
@@ -8346,14 +8356,14 @@ static PyMethodDef py_annoy_methods[] = {
     "tags : sklearn.utils.Tags\n"
     "    Conservative tags for this estimator.\n"
     "\n"
+    "See Also\n"
+    "--------\n"
+    "sklearn.utils.get_tags : Read estimator tags.\n"
+    "\n"
     "Notes\n"
     "-----\n"
     "This method is consulted by scikit-learn utilities such as\n"
     "``sklearn.utils.get_tags``.\n"
-    "\n"
-    "See Also\n"
-    "--------\n"
-    "sklearn.utils.get_tags : Read estimator tags.\n"
   },
 
   {

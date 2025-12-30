@@ -32,6 +32,7 @@ Examples relevant to the :py:mod:`~.nc` module with  :py:mod:`~._numcpp`.
    * https://numcpp.readthedocs.io/en/latest/
    * https://numcpp.readthedocs.io/en/latest/commandTable.html
 
+.. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>
 

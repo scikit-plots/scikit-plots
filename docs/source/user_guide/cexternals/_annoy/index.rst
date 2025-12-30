@@ -45,6 +45,7 @@ TL;DR
 Quick start
 -----------
 
+.. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>
 
@@ -127,7 +128,9 @@ Important rules
 Example
 ~~~~~~~
 
-.. code-block:: python
+.. .. jupyter-execute
+.. .. code-block:: python
+.. prompt:: python >>>
 
     import random
     from scikitplot.annoy import AnnoyIndex

@@ -74,7 +74,9 @@ Workflow
 Quick start
 -----------
 
-.. code-block:: python
+.. .. jupyter-execute
+.. .. code-block:: python
+.. prompt:: python >>>
 
     import random; random.seed(0)
     # from annoy import Annoy, AnnoyIndex
