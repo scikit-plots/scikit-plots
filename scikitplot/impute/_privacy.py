@@ -6,10 +6,15 @@
 
 from __future__ import annotations
 
+import itertools
 import os
 from pathlib import Path
 
 from sklearn.utils.validation import check_is_fitted
+
+from ..utils._path import PathNamer, make_path
+
+_counter = itertools.count()
 
 
 class PrivateIndexMixin:
@@ -141,7 +146,13 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
     ``index_access='public'`` mode.
     """  # noqa: D205
 
-    def _store_index(self, index, *, public_name: str, index_path: str | None = None):
+    def _store_index(
+        self,
+        index,
+        *,
+        public_name: str,
+        index_path: str | PathNamer | None = None,
+    ):
         """
         Store the fitted index according to ``index_access``.
 
@@ -162,10 +173,9 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
 
         index_path : str or None, optional
             Target file path when ``index_access='external'``. If this
-            is ``None``, an OS-friendly unique file name of the form
-            ``"<unix-timestamp>-<uuid>.annoy"`` will be generated in
-            :attr:`index_base_dir` if present, otherwise in the current
-            working directory.
+            is ``None``, an OS-friendly unique file name from
+            :func:`~scikitplot.utils._path.make_path` will be generated,
+            otherwise in the current working directory.
         """
         # Default to external if not set by the estimator
         mode = getattr(self, "index_access", "external")
@@ -198,19 +208,25 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
 
             # 1) Metadata: ISO 8601 creation time (for logs / audit)
             created_at = _dt.datetime.now(_dt.timezone.utc)
-            self.index_created_at_ = created_at.isoformat()
 
             # 2) OS-friendly file name if path not provided
             if index_path is None:
-                # Plain unix timestamp (int seconds)
-                ts = int(created_at.timestamp())
-                # Random UUID to avoid collisions
-                uid = _uuid.uuid4().hex
-                # Example: "1733735400-4f9c3b1f2d0e4c0a9e8d123456789abc.annoy"
-                # index_path = f"{ts}-{uid}.annoy"
-                base = Path(getattr(self, "index_base_dir", None) or ".")
-                index_path = (base / f"{ts}-{uid}.annoy").resolve()
-                index_path.parent.mkdir(parents=True, exist_ok=True)
+                # # Plain unix timestamp (int seconds)
+                # ts = int(created_at.timestamp())
+                # # Random UUID to avoid collisions
+                # uid = _uuid.uuid4().hex
+                # # Example: "1733735400-4f9c3b1f2d0e4c0a9e8d123456789abc.annoy"
+                # # index_path = f"{ts}-{uid}.annoy"
+                # base = Path(getattr(self, "index_base_dir", None) or ".")
+                # # ``"<unix-timestamp>-<uuid>.annoy"``
+                # index_path = (base / f"{ts}-{uid}.annoy").resolve()
+                index_path = make_path(
+                    prefix="OutsourcedIndexMixin",
+                )
+            elif isinstance(index_path, PathNamer):
+                index_path = index_path.make_path(
+                    # prefix="OutsourcedIndexMixin",
+                )
             else:
                 index_path = Path(index_path).resolve()
 
@@ -230,6 +246,7 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
 
             # Estimator metadata
             self.index_path_ = str(index_path)
+            self.index_created_at_ = created_at.isoformat()
 
             # Do NOT keep the index in the internal store. For runtime use,
             # call `_get_index_for_runtime` with an appropriate loader.

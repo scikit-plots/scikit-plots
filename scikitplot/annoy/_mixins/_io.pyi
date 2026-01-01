@@ -15,38 +15,40 @@ class IndexIOMixin:
         path: str | PathLike[str],
         *,
         prefault: bool | None = ...,
-        atomic: bool = ...,
-    ) -> None: ...
+    ) -> str | PathLike: ...
     def load_index(
         self,
+        f: int,
+        metric: str,
         path: str | PathLike[str],
         *,
         prefault: bool | None = ...,
     ) -> None: ...
-    def to_bytes(self) -> bytes: ...
+    def save_bundle(
+        self,
+        manifest_filename: str = ...,
+        index_filename: str = ...,
+        *,
+        prefault: bool | None = ...,
+    ) -> list[str]: ...
+    @classmethod
+    def load_bundle(
+        cls: type[Self],
+        manifest_filename: str = ...,
+        index_filename: str = ...,
+        *,
+        prefault: bool | None = ...,
+    ) -> Self: ...
+    def to_bytes(
+        self,
+        format: str | None = ...,
+    ) -> bytes: ...
     @classmethod
     def from_bytes(
         cls: type[Self],
         data: bytes | bytearray | memoryview,
         *,
-        f: int,
-        metric: str,
-        prefault: bool | None = ...,
-    ) -> Self: ...
-    def save_bundle(
-        self,
-        directory: str | PathLike[str],
-        *,
-        index_filename: str = ...,
-        manifest_filename: str = ...,
-        prefault: bool | None = ...,
-    ) -> None: ...
-    @classmethod
-    def load_bundle(
-        cls: type[Self],
-        directory: str | PathLike[str],
-        *,
-        index_filename: str = ...,
-        manifest_filename: str = ...,
+        f: int | None = ...,
+        metric: str | None = ...,
         prefault: bool | None = ...,
     ) -> Self: ...

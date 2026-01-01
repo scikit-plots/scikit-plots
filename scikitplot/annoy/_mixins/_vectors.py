@@ -2,17 +2,29 @@
 """
 Vector neighbor utilities for Annoy-style indexes.
 
-Defines :class:`~scikitplot.annoy._mixins._vectors.VectorOpsMixin`, a
+This module defines :class:`~scikitplot.annoy._mixins._vectors.VectorOpsMixin`, a
 **deterministic**, **explicit** mixin providing user-facing neighbor queries.
 
-Required backend surface
-------------------------
+Required backend surface:
+
+A backend returned by :func:`~scikitplot.annoy._utils.backend_for` is expected to
+implement:
+
 - ``get_nns_by_item(item: int, n: int, search_k: int = -1, include_distances: bool = False)``
 - ``get_nns_by_vector(vector: Sequence[float], n: int, search_k: int = -1, include_distances: bool = False)``
-- ``get_item_vector(item: int) -> Sequence[float]`` (only for *_vectors helpers)
-- Optional: ``get_n_trees() -> int`` (built-state detection)
-- Optional: ``get_n_items() -> int`` (graph sizing)
-- Optional: attribute/property ``f`` (dimension)
+
+- ``get_item_vector(item: int) -> Sequence[float]`` (only for ``*_vectors`` helpers)
+
+Optional backend surface:
+
+- ``get_n_trees() -> int`` (built-state detection)
+- ``get_n_items() -> int`` (graph sizing / defensive checks)
+- attribute/property ``f`` (dimension)
+
+Notes
+-----
+All validated query inputs are converted to contiguous ``float32`` arrays before
+dispatching to the backend. Returned distances are exposed as ``float32`` arrays.
 
 See Also
 --------
@@ -22,8 +34,8 @@ scikitplot.annoy._mixins._ndarray.NDArrayMixin
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import Any, Literal
+from collections.abc import Iterable, Sequence
+from typing import Any, Literal, cast
 
 import numpy as np
 from sklearn.exceptions import NotFittedError
@@ -40,6 +52,49 @@ from .._utils import backend_for, lock_for
 __all__: tuple[str, ...] = ("VectorOpsMixin",)
 
 
+# ------------------------------------------------------------------
+# Small, deterministic validators (no implicit behavior changes).
+# ------------------------------------------------------------------
+def _as_positive_int(name: str, value: Any) -> int:
+    """Cast ``value`` to ``int`` and ensure it is strictly positive."""
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise ValueError(f"{name} must be a positive integer; got {ivalue}.")
+    return ivalue
+
+
+def _as_int(name: str, value: Any) -> int:
+    """Cast ``value`` to ``int`` (for explicit public parameters)."""
+    try:
+        return int(value)
+    except Exception as e:
+        raise TypeError(f"{name} must be an int; got {type(value)!r}.") from e
+
+
+def _normalize_exclude_ids(exclude_item_ids: Iterable[int] | None) -> frozenset[int]:
+    """Normalize excluded ids to a ``frozenset[int]`` for stable membership tests."""
+    if exclude_item_ids is None:
+        return frozenset()
+    try:
+        return frozenset(int(i) for i in exclude_item_ids)
+    except Exception as e:
+        raise TypeError("exclude_item_ids must be an iterable of ints or None.") from e
+
+
+def _raise_if_not_built(backend: Any) -> None:
+    """Raise ``NotFittedError`` if the backend can report that it is unbuilt."""
+    get_n_trees = getattr(backend, "get_n_trees", None)
+    if callable(get_n_trees):
+        try:
+            n_trees = int(get_n_trees())
+        except Exception:
+            return
+        if n_trees <= 0:
+            raise NotFittedError(
+                "This Annoy index does not appear to be built. Call build(...) before querying."
+            )
+
+
 def _validate_query_matrix(
     est: Any,
     X: Any,
@@ -47,8 +102,19 @@ def _validate_query_matrix(
     ensure_all_finite: bool | Literal["allow-nan"],
     copy: bool,
 ) -> np.ndarray:
-    """Validate query matrix with scikit-learn utilities (deterministic)."""
-    # Check that X and y have correct shape, set n_features_in_, etc.
+    """
+    Validate a query matrix with scikit-learn utilities.
+
+    This is deterministic and does not infer or impute values. It either accepts
+    the input (after dtype/shape validation) or raises an error.
+
+    Returns
+    -------
+    Xv : numpy.ndarray
+        Contiguous ``float32`` array of shape ``(n_samples, n_features)``.
+    """
+    # Prefer validate_data when available to respect scikit-learn estimator
+    # conventions (e.g., n_features_in_). Fall back to check_array otherwise.
     try:
         Xv = validate_data(  # noqa: N806
             est,
@@ -67,238 +133,172 @@ def _validate_query_matrix(
             ensure_all_finite=ensure_all_finite,
             copy=copy,
         )
-    return np.ascontiguousarray(np.asarray(Xv))
+    # Annoy backends typically expect contiguous float arrays.
+    return np.ascontiguousarray(np.asarray(Xv), dtype=np.float32)
+
+
+def _vectors_validate_1d(
+    est: Any,
+    x: Any,
+    *,
+    ensure_all_finite: bool | Literal["allow-nan"],
+    copy: bool,
+) -> np.ndarray:
+    """
+    Validate a single query vector as a 1D ``float32`` array.
+
+    Accepts ``(f,)`` or ``(1, f)`` and rejects anything else deterministically.
+
+    Returns
+    -------
+    v : numpy.ndarray of shape (f,)
+        Contiguous ``float32`` query vector.
+    """
+    arr = np.asarray(x, dtype=np.float32)
+
+    if arr.ndim == 2:  # noqa: PLR2004
+        if int(arr.shape[0]) != 1:
+            raise ValueError(
+                "vector must be 1D of shape (f,) or 2D with a single row (1, f); "
+                f"got shape={arr.shape}."
+            )
+        arr = arr.reshape(-1)
+    elif arr.ndim != 1:
+        raise ValueError(f"vector must be 1D of shape (f,); got ndim={int(arr.ndim)}.")
+
+    Xv = _validate_query_matrix(  # noqa: N806
+        est,
+        arr.reshape(1, -1),
+        ensure_all_finite=ensure_all_finite,
+        copy=copy,
+    )
+    v = Xv.ravel()
+
+    f = int(getattr(est, "f", 0) or 0)
+    if f > 0 and int(v.shape[0]) != f:
+        raise ValueError(
+            f"Query vector has {int(v.shape[0])} features, but index dimension f={f}."
+        )
+    return v
+
+
+def _vectors_validate_2d(
+    est: Any,
+    X: Any,
+    *,
+    ensure_all_finite: bool | Literal["allow-nan"],
+    copy: bool,
+) -> np.ndarray:
+    """
+    Validate multiple query vectors as a 2D ``float32`` array.
+
+    Returns
+    -------
+    Xv : numpy.ndarray of shape (n_queries, f)
+        Contiguous ``float32`` query matrix.
+    """
+    Xv = _validate_query_matrix(  # noqa: N806
+        est,
+        X,
+        ensure_all_finite=ensure_all_finite,
+        copy=copy,
+    )
+    if Xv.ndim != 2:  # noqa: PLR2004
+        raise ValueError(
+            f"X must be 2D of shape (n_queries, n_features); got ndim={Xv.ndim}."
+        )
+    f = int(getattr(est, "f", 0) or 0)
+    if f > 0 and int(Xv.shape[1]) != f:
+        raise ValueError(
+            f"X has {int(Xv.shape[1])} features, but index dimension f={f}."
+        )
+    return Xv
+
+
+def _filter_and_slice_neighbors(
+    idx: Sequence[int] | np.ndarray,
+    dists: Sequence[float] | np.ndarray,
+    *,
+    n_neighbors: int,
+    exclude_ids: frozenset[int],
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Filter neighbors by id, preserving order, and slice to ``n_neighbors``.
+
+    Parameters
+    ----------
+    idx, dists
+        Sequences returned by the backend (must have equal length).
+    n_neighbors
+        Number of results required after filtering.
+    exclude_ids
+        Ids to exclude.
+
+    Returns
+    -------
+    idx_out, dists_out
+        Filtered arrays (both sliced to ``n_neighbors``).
+
+    Raises
+    ------
+    ValueError
+        If fewer than ``n_neighbors`` results remain after filtering.
+    """
+    idx_arr = np.asarray(idx, dtype=np.intp)
+    dists_arr = np.asarray(dists, dtype=np.float32)
+
+    if idx_arr.shape[0] != dists_arr.shape[0]:
+        raise RuntimeError(
+            "Backend returned indices and distances with different lengths: "
+            f"len(idx)={idx_arr.shape[0]} len(dists)={dists_arr.shape[0]}."
+        )
+
+    if exclude_ids:
+        keep_mask = np.fromiter(
+            (int(i) not in exclude_ids for i in idx_arr), dtype=bool, count=idx_arr.size
+        )
+        idx_arr = idx_arr[keep_mask]
+        dists_arr = dists_arr[keep_mask]
+
+    if idx_arr.shape[0] < n_neighbors:
+        raise ValueError(
+            "Backend did not return enough neighbors after applying exclusions. "
+            f"requested={n_neighbors}, returned={int(idx_arr.shape[0])}."
+        )
+
+    return idx_arr[:n_neighbors], dists_arr[:n_neighbors]
 
 
 class VectorOpsMixin:
-    """User-facing neighbor queries for Annoy-like backends."""
+    """
+    User-facing neighbor queries for Annoy-like backends.
+
+    This mixin exposes explicit per-query helpers (:meth:`query_by_item`,
+    :meth:`query_by_vector`) and scikit-learn style batch helpers
+    (:meth:`kneighbors`, :meth:`kneighbors_graph`).
+
+    Notes
+    -----
+    Output ordering for :meth:`kneighbors` is ``(neighbors, distances)`` when
+    ``include_distances=True`` (neighbors first). This is *not* the same as
+    ``sklearn.neighbors.NearestNeighbors.kneighbors`` (which returns distances
+    first). The order is intentional and documented.
+    """
 
     # ------------------------------------------------------------------
-    # State checks
+    # Public API: explicit queries
     # ------------------------------------------------------------------
-    def _vectors_require_built(self) -> None:
-        """Raise ``NotFittedError`` if the backend indicates the index is not built."""
-        backend = backend_for(self)
-        get_n_trees = getattr(backend, "get_n_trees", None)
-        if callable(get_n_trees):
-            try:
-                if int(get_n_trees()) <= 0:
-                    raise NotFittedError(
-                        "This Annoy index is not built yet. Call `build(...)` before querying."
-                    )
-            except NotFittedError:
-                raise
-            except Exception:
-                # If the backend doesn't support the call reliably, do not guess.
-                pass
-
-    # ------------------------------------------------------------------
-    # Validation helpers
-    # ------------------------------------------------------------------
-    def _vectors_validate_vector(
-        self,
-        x: Any,
-        *,
-        ensure_all_finite: bool | Literal["allow-nan"],
-        copy: bool,
-    ) -> np.ndarray:
-        """Validate a single query vector as a 1D float array."""
-        X = _validate_query_matrix(
-            self,
-            np.asarray(x).reshape(1, -1),
-            ensure_all_finite=ensure_all_finite,
-            copy=copy,
-        )
-        v = X.ravel()
-        f = int(getattr(self, "f", 0) or 0)
-        if f > 0 and int(v.shape[0]) != f:
-            raise ValueError(
-                f"Query vector has {int(v.shape[0])} features, but index dimension f={f}."
-            )
-        return v
-
-    def _vectors_validate_vectors(
-        self,
-        X: Any,
-        *,
-        ensure_all_finite: bool | Literal["allow-nan"],
-        copy: bool,
-    ) -> np.ndarray:
-        """Validate multiple query vectors as a 2D float array."""
-        Xv = _validate_query_matrix(  # noqa: N806
-            self,
-            X,
-            ensure_all_finite=ensure_all_finite,
-            copy=copy,
-        )  # noqa: N806
-        if Xv.ndim != 2:  # noqa: PLR2004
-            raise ValueError(
-                f"X must be 2D of shape (n_queries, n_features); got ndim={Xv.ndim}."
-            )
-        f = int(getattr(self, "f", 0) or 0)
-        if f > 0 and int(Xv.shape[1]) != f:
-            raise ValueError(
-                f"X has {int(Xv.shape[1])} features, but index dimension f={f}."
-            )
-        return Xv
-
-    # ------------------------------------------------------------------
-    # Core filtering logic (single-pass, deterministic)
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _vectors_filter_topk(
-        ids: Any,
-        dists: Any | None,
-        *,
-        k: int,
-        exclude: set[int],
-    ) -> tuple[np.ndarray, np.ndarray | None]:
-        """Filter ids (and optional distances) and return up to k results."""
-        out_ids: list[int] = []
-        out_dists: list[float] | None = [] if dists is not None else None
-
-        if dists is not None and len(ids) != len(dists):
-            raise RuntimeError(
-                "Backend returned ids and distances of different lengths; this indicates a backend error."
-            )
-
-        if dists is None:
-            for i in ids:
-                ii = int(i)
-                if ii in exclude:
-                    continue
-                out_ids.append(ii)
-                if len(out_ids) >= k:
-                    break
-            return np.asarray(out_ids, dtype=np.intp), None
-
-        assert out_dists is not None  # noqa: S101
-        for i, d in zip(ids, dists):
-            ii = int(i)
-            if ii in exclude:
-                continue
-            out_ids.append(ii)
-            out_dists.append(float(d))
-            if len(out_ids) >= k:
-                break
-        return np.asarray(out_ids, dtype=np.intp), np.asarray(
-            out_dists, dtype=np.float32
-        )
-
-    # ------------------------------------------------------------------
-
-    def _vectors_maybe_exclude_first_zero_distance(
-        self,
-        ids: Any,
-        dists: Any,
-        *,
-        exclude: set[int],
-    ) -> set[int]:
-        """
-        Exclude the first non-excluded candidate if its distance is exactly 0.
-
-        This implements deterministic ``exclude_self`` behavior for by-vector queries
-        without guessing based on vector equality. It relies on the backend's distance
-        computation (which may include internal normalization depending on the metric).
-
-        Rules
-        -----
-        1. The caller requests one extra neighbor.
-        2. We scan the returned candidates in order, skipping ids already in ``exclude``.
-        3. If the first remaining candidate has distance ``0.0`` (exact), we exclude it.
-
-        Notes
-        -----
-        - If multiple items are true duplicates under the metric (distance 0), this rule
-          will exclude the first such candidate. If you need to exclude a specific id,
-          pass it explicitly via ``exclude_item_ids``.
-        - This method does not attempt approximate comparisons.
-        """
-        if dists is None:
-            return exclude
-
-        # Defensive: backend should return aligned sequences.
-        try:
-            it = zip(ids, dists)
-        except Exception:
-            return exclude
-
-        for cand, dist in it:
-            ii = int(cand)
-            if ii in exclude:
-                continue
-            if float(dist) == 0.0:
-                new_exclude = set(exclude)
-                new_exclude.add(ii)
-                return new_exclude
-            return exclude
-        return exclude
-
-    # ------------------------------------------------------------------
-    # Internal: validated by-vector query (no re-validation in loops)
-    # ------------------------------------------------------------------
-    def _vectors_query_by_vector_validated(
-        self,
-        v: np.ndarray,
-        n_neighbors: int,
-        *,
-        search_k: int,
-        include_distances: bool,
-        exclude_self: bool,
-        exclude: set[int],
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-        backend = backend_for(self)
-        exclude_local = exclude
-        n_req = int(n_neighbors) + len(exclude_local) + (1 if exclude_self else 0)
-        q = v.tolist()  # predictable sequence interface for the C-extension
-
-        # If we need to exclude self, we must inspect distances deterministically.
-        need_distances = bool(include_distances) or bool(exclude_self)
-
-        if need_distances:
-            ids, dists = backend.get_nns_by_vector(  # type: ignore[attr-defined]
-                q,
-                n_req,
-                search_k=int(search_k),
-                include_distances=True,
-            )
-            if exclude_self:
-                exclude_local = self._vectors_maybe_exclude_first_zero_distance(
-                    ids, dists, exclude=exclude_local
-                )
-
-            idx, dist = self._vectors_filter_topk(
-                ids, dists, k=int(n_neighbors), exclude=exclude_local
-            )
-            if include_distances:
-                return idx, (
-                    dist if dist is not None else np.empty((0,), dtype=np.float32)
-                )
-            return idx
-
-        ids = backend.get_nns_by_vector(  # type: ignore[attr-defined]
-            q,
-            n_req,
-            search_k=int(search_k),
-            include_distances=False,
-        )
-        idx, _ = self._vectors_filter_topk(
-            ids, None, k=int(n_neighbors), exclude=exclude_local
-        )
-        return idx
-
-    # ------------------------------------------------------------------
-    # Public API: canonical explicit queries
-    # ------------------------------------------------------------------
-    def query_by_item(  # noqa: D417
+    def query_by_item(
         self,
         item: int,
         n_neighbors: int,
         *,
         search_k: int = -1,
         include_distances: bool = False,
-        exclude_self: bool = True,
+        exclude_self: bool = False,
         exclude_item_ids: Iterable[int] | None = None,
+        ensure_all_finite: bool | Literal["allow-nan"] = True,
+        copy: bool = False,
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Query neighbors by stored item id.
@@ -313,11 +313,14 @@ class VectorOpsMixin:
             Search parameter forwarded to the backend.
         include_distances : bool, default=False
             If True, also return distances.
-        exclude_self : bool, default=True
-            If True (default), apply the same deterministic self-exclusion rule as
-            :meth:`kneighbors` for each query row.
+        exclude_self : bool, default=False
+            If True, exclude ``item`` from the returned neighbors.
         exclude_item_ids : iterable of int, optional
             Additional item ids to exclude.
+        ensure_all_finite : bool or 'allow-nan', default=True
+            Input validation option forwarded to scikit-learn.
+        copy : bool, default=False
+            Input validation option forwarded to scikit-learn.
 
         Returns
         -------
@@ -329,65 +332,151 @@ class VectorOpsMixin:
         Raises
         ------
         sklearn.exceptions.NotFittedError
-            If the index appears to be unbuilt.
+            If the backend reports that the index is unbuilt.
         ValueError
-            If ``n_neighbors <= 0``.
+            If ``n_neighbors <= 0`` or not enough neighbors remain after exclusions.
 
         Notes
         -----
-        This method is deterministic given the underlying backend.
+        Exclusions are applied deterministically in the order returned by the backend.
 
         See Also
         --------
         query_by_vector : Query neighbors by an explicit vector.
-        kneighbors : scikit-learn style batch query.
+        kneighbors : Batch neighbor queries (sklearn-like).
         """
-        if int(n_neighbors) <= 0:
-            raise ValueError("n_neighbors must be a positive integer")
-        self._vectors_require_built()
-        if int(item) < 0:
-            raise ValueError("item must be a non-negative integer")
+        n_neighbors_i = _as_positive_int("n_neighbors", n_neighbors)
+        search_k_i = _as_int("search_k", search_k)
 
         backend = backend_for(self)
-        exclude: set[int] = {int(x) for x in (exclude_item_ids or [])}
-        if exclude_self:
-            exclude.add(int(item))
+        _raise_if_not_built(backend)
 
-        n_req = int(n_neighbors) + len(exclude)
+        item_i = _as_int("item", item)
+        # vector = _vectors_validate_1d(
+        #     self,
+        #     vector,
+        #     ensure_all_finite=ensure_all_finite,
+        #     copy=copy,
+        # )
+
+        exclude_ids = _normalize_exclude_ids(exclude_item_ids)
+        if exclude_self:
+            exclude_ids = exclude_ids | frozenset({item_i})
+
+        # Request enough candidates to account for exclusions.
+        n_request = n_neighbors_i + len(exclude_ids)
+        get_n_items = getattr(backend, "get_n_items", None)
+        if callable(get_n_items):
+            try:
+                n_items = int(get_n_items())
+            except Exception:
+                n_items = 0
+            if n_items > 0:
+                n_request = min(n_request, n_items)
+
         with lock_for(self):
-            if include_distances:
-                ids, dists = backend.get_nns_by_item(  # type: ignore[attr-defined]
-                    int(item),
-                    n_req,
-                    search_k=int(search_k),
+            try:
+                idx, dists = backend.get_nns_by_item(  # type: ignore[attr-defined]
+                    item_i,
+                    int(n_request),
+                    search_k=search_k_i,
                     include_distances=True,
                 )
-                idx, dist = self._vectors_filter_topk(
-                    ids, dists, k=int(n_neighbors), exclude=exclude
-                )
-                return idx, (
-                    dist if dist is not None else np.empty((0,), dtype=np.float32)
+            except Exception as e:  # pragma: no cover
+                raise RuntimeError("Backend get_nns_by_item failed.") from e
+
+            if list(exclude_ids):
+                idx, dists = _filter_and_slice_neighbors(
+                    idx,
+                    dists,
+                    n_neighbors=n_neighbors_i,
+                    exclude_ids=exclude_ids,
                 )
 
-            ids = backend.get_nns_by_item(  # type: ignore[attr-defined]
-                int(item),
-                n_req,
-                search_k=int(search_k),
-                include_distances=False,
-            )
-            idx, _ = self._vectors_filter_topk(
-                ids, None, k=int(n_neighbors), exclude=exclude
-            )
-            return idx
+        if include_distances:
+            return idx, dists
+        return idx
 
-    def query_by_vector(  # noqa: D417
+    def query_vectors_by_item(
+        self,
+        item: int,
+        n_neighbors: int,
+        *,
+        search_k: int = -1,
+        include_distances: bool = False,
+        exclude_self: bool = False,
+        exclude_item_ids: Iterable[int] | None = None,
+        ensure_all_finite: bool | Literal["allow-nan"] = True,
+        copy: bool = False,
+        dtype: Any = np.float32,
+        return_type: Literal["id", "vector"] = "vector",
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        """
+        Query neighbor vectors by stored item id.
+
+        This is a convenience wrapper over :meth:`query_by_item` that materializes
+        vectors using the backend's ``get_item_vector``.
+
+        Parameters
+        ----------
+        item, n_neighbors, search_k, include_distances, exclude_self, exclude_item_ids
+            See :meth:`query_by_item`.
+        ensure_all_finite, copy
+            See :meth:`query_by_vector`.
+        dtype : numpy dtype, default=numpy.float32
+            Output dtype for the returned vectors.
+        return_type : {'id', 'vector'}, default='vector'
+            If 'vector', return neighbor vectors. If 'id', return neighbor ids.
+
+        Returns
+        -------
+        vectors : numpy.ndarray of shape (n_neighbors, f)
+            Neighbor vectors.
+        (vectors, distances) : tuple
+            Returned when ``include_distances=True``.
+
+        See Also
+        --------
+        query_vectors_by_vector : Vector query returning vectors (or ids).
+        """
+        backend = backend_for(self)
+
+        with lock_for(self):
+            idx, dist = cast(
+                tuple[np.ndarray, np.ndarray],
+                self.query_by_item(
+                    item,
+                    n_neighbors,
+                    search_k=search_k,
+                    include_distances=True,
+                    exclude_self=exclude_self,
+                    exclude_item_ids=exclude_item_ids,
+                    ensure_all_finite=ensure_all_finite,
+                    copy=copy,
+                ),
+            )
+
+        with lock_for(self):
+            if return_type == "vector":
+                idx = np.asarray(
+                    [backend.get_item_vector(int(i)) for i in idx],
+                    dtype=dtype,
+                )
+            else:
+                idx = np.asarray(idx, dtype=np.intp)
+
+        if include_distances:
+            return idx, dist
+        return idx
+
+    def query_by_vector(
         self,
         vector: Any,
         n_neighbors: int,
         *,
         search_k: int = -1,
         include_distances: bool = False,
-        exclude_self: bool = True,
+        exclude_self: bool = False,
         exclude_item_ids: Iterable[int] | None = None,
         ensure_all_finite: bool | Literal["allow-nan"] = True,
         copy: bool = False,
@@ -405,11 +494,16 @@ class VectorOpsMixin:
             Search parameter forwarded to the backend.
         include_distances : bool, default=False
             If True, also return distances.
-        exclude_self : bool, default=True
-            If True (default), exclude the first returned candidate whose distance is exactly ``0.0``.
-            This is intended for queries where ``vector`` comes from the index itself.
+        exclude_self : bool, default=False
+            If True, exclude the first returned candidate whose distance
+            is exactly ``0.0``. This is intended for queries where ``vector`` comes
+            from the index itself.
         exclude_item_ids : iterable of int, optional
             Additional item ids to exclude.
+        ensure_all_finite : bool or 'allow-nan', default=True
+            Input validation option forwarded to scikit-learn.
+        copy : bool, default=False
+            Input validation option forwarded to scikit-learn.
 
         Returns
         -------
@@ -421,193 +515,148 @@ class VectorOpsMixin:
         Raises
         ------
         sklearn.exceptions.NotFittedError
-            If the index appears to be unbuilt.
+            If the backend reports that the index is unbuilt.
         ValueError
-            If ``n_neighbors <= 0`` or the vector dimension mismatches ``f``.
+            If ``n_neighbors <= 0``, vector dimension mismatches ``f``, or not
+            enough neighbors remain after exclusions.
 
         Notes
         -----
-        This API is **explicit**.
-
-        - For strict exclusion by id, pass ``exclude_item_ids``.
-        - If ``exclude_self=True`` and no explicit id is provided, the method performs a
-          deterministic, exact check against the *first* returned candidate: if that
-          candidate has distance exactly ``0.0``, it is excluded.
+        Exclusions are applied deterministically in the order returned by the backend.
+        If ``exclude_self=True`` and no exact ``0.0`` distance candidate is returned
+        in the first position, no additional self-exclusion is applied.
 
         See Also
         --------
         query_by_item : Query neighbors by stored item id.
-        kneighbors : scikit-learn style batch query.
+        kneighbors : Batch neighbor queries (sklearn-like).
         """
-        if int(n_neighbors) <= 0:
-            raise ValueError("n_neighbors must be a positive integer")
-        self._vectors_require_built()
+        n_neighbors_i = _as_positive_int("n_neighbors", n_neighbors)
+        search_k_i = _as_int("search_k", search_k)
 
-        v = self._vectors_validate_vector(
-            vector, ensure_all_finite=ensure_all_finite, copy=copy
-        )
-        exclude: set[int] = {int(x) for x in (exclude_item_ids or [])}
+        backend = backend_for(self)
+        _raise_if_not_built(backend)
+
+        # vector = _vectors_validate_1d(
+        #     self,
+        #     vector,
+        #     ensure_all_finite=ensure_all_finite,
+        #     copy=copy,
+        # )
+
+        exclude_ids = _normalize_exclude_ids(exclude_item_ids)
+
+        # Request enough candidates to account for exclusions and possible self-drop.
+        n_request = n_neighbors_i + len(exclude_ids) + int(bool(exclude_self))
 
         with lock_for(self):
-            return self._vectors_query_by_vector_validated(
-                v,
-                int(n_neighbors),
-                search_k=int(search_k),
-                include_distances=bool(include_distances),
-                exclude_self=bool(exclude_self),
-                exclude=exclude,
-            )
+            try:
+                idx, dists = backend.get_nns_by_vector(  # type: ignore[attr-defined]
+                    vector,
+                    int(n_request),
+                    search_k=search_k_i,
+                    include_distances=True,
+                )
+            except Exception as e:  # pragma: no cover
+                raise RuntimeError("Backend get_nns_by_vector failed.") from e
 
-    # ------------------------------------------------------------------
-    # Convenience: return vectors instead of ids
-    # ------------------------------------------------------------------
-    def _vectors_materialize_vectors(
-        self, ids: np.ndarray, *, dtype: Any
-    ) -> np.ndarray:
-        """
-        Materialize backend vectors for a 1D array of ids.
+            idx = np.asarray(idx, dtype=np.intp)
+            dists = np.asarray(dists, dtype=np.float32)
 
-        Parameters
-        ----------
-        ids : numpy.ndarray of shape (n_ids,)
-            Item ids to materialize.
-        dtype : numpy dtype
-            Output dtype.
+            # Deterministic self-exclusion rule for vector queries.
+            if exclude_self and dists.size and float(dists[0]) == 0.0:
+                idx = idx[1:]
+                dists = dists[1:]
 
-        Returns
-        -------
-        vectors : numpy.ndarray of shape (n_ids, f)
-            Materialized vectors in the same order as ``ids``.
-        """
-        backend = backend_for(self)
-        with lock_for(self):
-            vecs = [backend.get_item_vector(int(i)) for i in ids]  # type: ignore[attr-defined]
-        return np.asarray(vecs, dtype=dtype)
+            if list(exclude_ids):
+                idx, dists = _filter_and_slice_neighbors(
+                    idx,
+                    dists,
+                    n_neighbors=n_neighbors_i,
+                    exclude_ids=exclude_ids,
+                )
 
-    def query_vectors_by_item(
-        self,
-        item: int,
-        n_neighbors: int,
-        *,
-        search_k: int = -1,
-        include_distances: bool = False,
-        exclude_self: bool = True,
-        exclude_item_ids: Iterable[int] | None = None,
-        dtype: Any = np.float32,
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-        """
-        Query neighbor vectors by stored item id.
-
-        This is a convenience wrapper over :meth:`query_by_item` that materializes
-        vectors using the backend's ``get_item_vector``.
-
-        Parameters
-        ----------
-        item, n_neighbors, search_k, include_distances, exclude_self, exclude_item_ids
-            See :meth:`query_by_item`.
-        dtype : numpy dtype, default=numpy.float32
-            Output dtype.
-
-        Returns
-        -------
-        vectors : numpy.ndarray of shape (n_neighbors, f)
-            Neighbor vectors.
-        (vectors, distances) : tuple
-            Returned when ``include_distances=True``.
-
-        See Also
-        --------
-        query_vectors_by_vector : Vector query returning vectors.
-        """
-        backend = backend_for(self)
         if include_distances:
-            idx, dist = self.query_by_item(
-                item,
-                n_neighbors,
-                search_k=search_k,
-                include_distances=True,
-                exclude_self=exclude_self,
-                exclude_item_ids=exclude_item_ids,
-            )
-            vecs = self._vectors_materialize_vectors(idx, dtype=dtype)
-            return vecs, dist
+            return idx, dists
+        return idx
 
-        idx = self.query_by_item(
-            item,
-            n_neighbors,
-            search_k=search_k,
-            include_distances=False,
-            exclude_self=exclude_self,
-            exclude_item_ids=exclude_item_ids,
-        )
-        return self._vectors_materialize_vectors(idx, dtype=dtype)
-
-    def query_vectors_by_vector(  # noqa: D417
+    def query_vectors_by_vector(
         self,
         vector: Any,
         n_neighbors: int,
         *,
         search_k: int = -1,
         include_distances: bool = False,
-        exclude_self: bool = True,
+        exclude_self: bool = False,
         exclude_item_ids: Iterable[int] | None = None,
         ensure_all_finite: bool | Literal["allow-nan"] = True,
         copy: bool = False,
         dtype: Any = np.float32,
+        return_type: Literal["id", "vector"] = "vector",
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Query neighbor vectors by an explicit vector.
 
-        Convenience wrapper over :meth:`query_by_vector`.
+        Convenience wrapper over :meth:`query_by_vector`. By default it returns
+        vectors; set ``return_type='id'`` to return neighbor ids instead.
 
         Parameters
         ----------
         vector, n_neighbors, search_k, include_distances, exclude_self, exclude_item_ids,
+            See :meth:`query_by_item`.
         ensure_all_finite, copy
             See :meth:`query_by_vector`.
         dtype : numpy dtype, default=numpy.float32
-            Output dtype.
+            Output dtype for the returned vectors.
+        return_type : {'id', 'vector'}, default='vector'
+            If 'vector', return neighbor vectors. If 'id', return neighbor ids.
 
         Returns
         -------
-        vectors : numpy.ndarray of shape (n_neighbors, f)
-            Neighbor vectors.
-        (vectors, distances) : tuple
+        neighbors : numpy.ndarray
+            If ``return_type='vector'``, an array of shape ``(n_neighbors, f)``.
+            If ``return_type='id'``, an array of shape ``(n_neighbors,)``.
+        (neighbors, distances) : tuple
             Returned when ``include_distances=True``.
 
         See Also
         --------
         query_vectors_by_item : Item id query returning vectors.
+        query_by_vector : Per-query id interface.
         """
         backend = backend_for(self)
-        if include_distances:
-            idx, dist = self.query_by_vector(
-                vector,
-                n_neighbors,
-                search_k=search_k,
-                include_distances=True,
-                exclude_self=exclude_self,
-                exclude_item_ids=exclude_item_ids,
-                ensure_all_finite=ensure_all_finite,
-                copy=copy,
-            )
-            vecs = self._vectors_materialize_vectors(idx, dtype=dtype)
-            return vecs, dist
 
-        idx = self.query_by_vector(
-            vector,
-            n_neighbors,
-            search_k=search_k,
-            include_distances=False,
-            exclude_self=exclude_self,
-            exclude_item_ids=exclude_item_ids,
-            ensure_all_finite=ensure_all_finite,
-            copy=copy,
-        )
-        return self._vectors_materialize_vectors(idx, dtype=dtype)
+        with lock_for(self):
+            idx, dist = cast(
+                tuple[np.ndarray, np.ndarray],
+                self.query_by_vector(
+                    vector,
+                    n_neighbors,
+                    search_k=search_k,
+                    include_distances=True,
+                    exclude_self=exclude_self,
+                    exclude_item_ids=exclude_item_ids,
+                    ensure_all_finite=ensure_all_finite,
+                    copy=copy,
+                ),
+            )
+
+        with lock_for(self):
+            if return_type == "vector":
+                if return_type == "vector":
+                    idx = np.asarray(
+                        [backend.get_item_vector(int(i)) for i in idx],
+                        dtype=dtype,
+                    )
+                else:
+                    idx = np.asarray(idx, dtype=np.intp)
+
+        if include_distances:
+            return idx, dist
+        return idx
 
     # ------------------------------------------------------------------
-    # scikit-learn compatible APIs
+    # scikit-learn style APIs (batch)
     # ------------------------------------------------------------------
     def kneighbors(  # noqa: D417
         self,
@@ -616,16 +665,16 @@ class VectorOpsMixin:
         *,
         search_k: int = -1,
         include_distances: bool = True,
-        exclude_self: bool = True,
+        exclude_self: bool = False,
         exclude_item_ids: Iterable[int] | None = None,
         ensure_all_finite: bool | Literal["allow-nan"] = True,
         copy: bool = False,
+        return_type: Literal["id", "vector"] = "vector",
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Find k nearest neighbors for one or more query vectors.
 
-        This is a scikit-learn compatible convenience wrapper that returns
-        rectangular (2D) arrays.
+        This is a sklearn-like convenience wrapper that returns rectangular arrays.
 
         Parameters
         ----------
@@ -636,91 +685,86 @@ class VectorOpsMixin:
         search_k : int, default=-1
             Search parameter forwarded to the backend.
         include_distances : bool, default=True
-            If True, return ``(indices, distances)``. Otherwise return indices.
-        exclude_self : bool, default=True
-            If True (default), apply the same deterministic self-exclusion rule as
+            If True, return ``(neighbors, distances)``. Otherwise return neighbors.
+        exclude_self : bool, default=False
+            If True, apply the same deterministic self-exclusion rule as
             :meth:`query_by_vector` for each query row.
         exclude_item_ids : iterable of int, optional
             Exclude these ids for every query.
+        ensure_all_finite : bool or 'allow-nan', default=True
+            Input validation option forwarded to scikit-learn.
+        copy : bool, default=False
+            Input validation option forwarded to scikit-learn.
+        return_type : {'id', 'vector'}, default='vector'
+            If 'id', return neighbor ids. If 'vector', return neighbor vectors.
 
         Returns
         -------
-        indices : numpy.ndarray of shape (n_queries, n_neighbors)
-            Neighbor ids.
+        neighbors : numpy.ndarray
+            If ``return_type='id'``, shape is ``(n_queries, n_neighbors)``.
+            If ``return_type='vector'``, shape is ``(n_queries, n_neighbors, f)``.
         distances : numpy.ndarray of shape (n_queries, n_neighbors)
             Neighbor distances. Returned when ``include_distances=True``.
 
         Raises
         ------
         sklearn.exceptions.NotFittedError
-            If the index appears to be unbuilt.
+            If the backend reports that the index is unbuilt.
         ValueError
-            If any query returns fewer than ``n_neighbors`` neighbors.
+            If ``n_neighbors <= 0`` or any query yields too few neighbors after exclusions.
 
         See Also
         --------
         query_by_vector : Per-query 1D interface.
         kneighbors_graph : CSR kNN graph.
         """
-        if int(n_neighbors) <= 0:
-            raise ValueError("n_neighbors must be a positive integer")
-        self._vectors_require_built()
+        n_neighbors_i = _as_positive_int("n_neighbors", n_neighbors)
+        search_k_i = _as_int("search_k", search_k)
 
         Xv = np.asarray(X)  # noqa: N806
         if Xv.ndim == 1:
             Xv = Xv.reshape(1, -1)  # noqa: N806
-        Xv = self._vectors_validate_vectors(  # noqa: N806
-            Xv, ensure_all_finite=ensure_all_finite, copy=copy
-        )  # noqa: N806
 
-        n_queries = int(Xv.shape[0])
-        indices = np.empty((n_queries, int(n_neighbors)), dtype=np.intp)
-        distances = (
-            np.empty((n_queries, int(n_neighbors)), dtype=np.float32)
-            if include_distances
-            else None
-        )
+        # Xv = _vectors_validate_2d(
+        #     self,
+        #     Xv,
+        #     ensure_all_finite=ensure_all_finite,
+        #     copy=copy,
+        # )
 
-        exclude: set[int] = {int(x) for x in (exclude_item_ids or [])}
+        distances = np.empty((Xv.shape[0], n_neighbors_i), dtype=np.float32)
 
-        with lock_for(self):
-            for i in range(n_queries):
-                if include_distances:
-                    idx, dist = self._vectors_query_by_vector_validated(
-                        Xv[i],
-                        int(n_neighbors),
-                        search_k=int(search_k),
-                        include_distances=True,
-                        exclude_self=exclude_self,
-                        exclude=exclude,
-                    )
-                else:
-                    idx = self._vectors_query_by_vector_validated(
-                        Xv[i],
-                        int(n_neighbors),
-                        search_k=int(search_k),
-                        include_distances=False,
-                        exclude_self=exclude_self,
-                        exclude=exclude,
-                    )
-                if int(idx.size) != int(n_neighbors):
-                    raise ValueError(
-                        f"Backend returned {int(idx.size)} neighbors for query row {i}, expected {int(n_neighbors)}. "
-                        "Reduce n_neighbors or add more items to the index."
-                    )
-                indices[i] = idx
-                if distances is not None:
-                    if int(dist.size) != int(n_neighbors):
-                        raise ValueError(
-                            f"Backend returned {int(dist.size)} distances for query row {i}, expected {int(n_neighbors)}."
-                        )
-                    distances[i] = dist
+        if return_type == "id":
+            neighbors: np.ndarray = np.empty(
+                (Xv.shape[0], n_neighbors_i), dtype=np.intp
+            )
+        else:
+            neighbors = np.empty(
+                (Xv.shape[0], n_neighbors_i, Xv.shape[1]), dtype=np.float32
+            )
+
+        for i in range(int(Xv.shape[0])):
+            neigh_i, dist_i = cast(
+                tuple[np.ndarray, np.ndarray],
+                self.query_vectors_by_vector(
+                    Xv[i],
+                    n_neighbors_i,
+                    search_k=search_k_i,
+                    include_distances=True,
+                    exclude_self=exclude_self,
+                    exclude_item_ids=exclude_item_ids,
+                    ensure_all_finite=ensure_all_finite,
+                    copy=copy,
+                    dtype=np.float32,
+                    return_type=return_type,
+                ),
+            )
+            neighbors[i] = neigh_i
+            distances[i] = dist_i
 
         if include_distances:
-            assert distances is not None  # noqa: S101
-            # always use indices, distances
-            return indices, distances
-        return indices
+            return neighbors, distances
+        return neighbors
 
     def kneighbors_graph(
         self,
@@ -729,10 +773,11 @@ class VectorOpsMixin:
         *,
         search_k: int = -1,
         mode: Literal["connectivity", "distance"] = "connectivity",
-        exclude_self: bool = True,
+        exclude_self: bool = False,
         exclude_item_ids: Iterable[int] | None = None,
         ensure_all_finite: bool | Literal["allow-nan"] = True,
         copy: bool = False,
+        return_type: Literal["id", "vector"] = "id",
     ) -> Any:
         """
         Compute the k-neighbors graph (CSR) for query vectors.
@@ -748,8 +793,8 @@ class VectorOpsMixin:
         mode : {'connectivity', 'distance'}, default='connectivity'
             If 'connectivity', graph entries are 1. If 'distance', entries are
             backend distances.
-        exclude_self : bool, default=True
-            If True (default), apply the same deterministic self-exclusion rule as
+        exclude_self : bool, default=False
+            If True, apply the same deterministic self-exclusion rule as
             :meth:`kneighbors` for each query row.
         exclude_item_ids : iterable of int, optional
             Exclude these ids for every query.
@@ -757,18 +802,22 @@ class VectorOpsMixin:
             Input validation option forwarded to scikit-learn.
         copy : bool, default=False
             Input validation option forwarded to scikit-learn.
+        return_type : {'id'}, default='id'
+            Must be 'id' for CSR construction.
 
         Returns
         -------
         graph : scipy.sparse.csr_matrix
-            CSR matrix of shape (n_queries, n_items).
+            CSR matrix of shape ``(n_queries, n_items)``.
 
         Raises
         ------
         ImportError
             If SciPy is not installed.
         ValueError
-            If ``mode`` is invalid.
+            If ``mode`` is invalid or ``return_type != 'id'``.
+        RuntimeError
+            If the backend returns an out-of-range neighbor id.
 
         See Also
         --------
@@ -777,6 +826,9 @@ class VectorOpsMixin:
         if mode not in {"connectivity", "distance"}:
             raise ValueError("mode must be 'connectivity' or 'distance'")
 
+        if return_type != "id":
+            raise ValueError("kneighbors_graph requires return_type='id'")
+
         try:
             import scipy.sparse as sp  # noqa: PLC0415
         except Exception as e:  # pragma: no cover
@@ -784,8 +836,9 @@ class VectorOpsMixin:
 
         backend = backend_for(self)
 
-        if mode == "distance":
-            indices, distances = self.kneighbors(
+        indices, distances = cast(
+            tuple[np.ndarray, np.ndarray],
+            self.kneighbors(
                 X,
                 n_neighbors=n_neighbors,
                 search_k=search_k,
@@ -794,19 +847,13 @@ class VectorOpsMixin:
                 exclude_item_ids=exclude_item_ids,
                 ensure_all_finite=ensure_all_finite,
                 copy=copy,
-            )
+                return_type="id",
+            ),
+        )
+
+        if mode == "distance":
             data = distances.ravel()
         else:
-            indices = self.kneighbors(
-                X,
-                n_neighbors=n_neighbors,
-                search_k=search_k,
-                include_distances=False,
-                exclude_self=exclude_self,
-                exclude_item_ids=exclude_item_ids,
-                ensure_all_finite=ensure_all_finite,
-                copy=copy,
-            )
             data = np.ones(indices.size, dtype=np.float32)
 
         n_queries = int(indices.shape[0])
@@ -821,10 +868,11 @@ class VectorOpsMixin:
                     f"[0, n_items). max_id={max_id}, n_items={n_items}."
                 )
         else:
-            # If the backend cannot report n_items, infer the minimal valid column
-            # dimension from the returned ids (deterministic).
             n_items = max_id + 1
 
-        rows = np.repeat(np.arange(n_queries, dtype=np.intp), int(n_neighbors))
+        rows = np.repeat(
+            np.arange(n_queries, dtype=np.intp),
+            _as_positive_int("n_neighbors", n_neighbors),
+        )
         cols = indices.ravel().astype(np.intp, copy=False)
         return sp.csr_matrix((data, (rows, cols)), shape=(n_queries, n_items))

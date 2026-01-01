@@ -144,7 +144,7 @@ class MetaMixin:
     behavior controlled only by explicit fields.
     """
 
-    _META_SCHEMA_VERSION: int
+    _META_SCHEMA_VERSION: int = 0
 
     def to_metadata(  # noqa: PLR0912
         self,
@@ -249,55 +249,6 @@ class MetaMixin:
             "persistence": persistence or None,
         }
 
-    def to_json(
-        self,
-        path: str | os.PathLike[str] | None = None,
-        *,
-        indent: int = 2,
-        sort_keys: bool = True,
-        ensure_ascii: bool = False,
-        include_info: bool = True,
-        strict: bool = True,
-    ) -> str:
-        """
-        Serialize :meth:`to_metadata` to JSON.
-
-        Parameters
-        ----------
-        path
-            If provided, write the JSON to this path atomically.
-        indent
-            Indentation level passed to :func:`json.dumps`.
-        sort_keys
-            If True, sort keys for stable output.
-        ensure_ascii
-            If True, escape non-ASCII characters.
-        include_info, strict
-            Forwarded to :meth:`to_metadata`.
-
-        Returns
-        -------
-        json_str
-            JSON representation of the metadata.
-
-        Raises
-        ------
-        TypeError
-            If the exported metadata contains non-JSON-serializable values.
-
-        See Also
-        --------
-        from_json
-        to_metadata
-        """
-        metadata = self.to_metadata(include_info=include_info, strict=strict)
-        s = json.dumps(
-            metadata, indent=indent, sort_keys=sort_keys, ensure_ascii=ensure_ascii
-        )
-        if path is not None:
-            atomic_write_text(path, s)
-        return s
-
     @classmethod
     def from_metadata(  # noqa: PLR0912
         cls: type[Self],
@@ -375,51 +326,97 @@ class MetaMixin:
 
         obj = cls(f, metric)
 
-        # Apply remaining params via strict backend API.
-        rest = {k: v for k, v in params.items() if k not in {"f", "metric"}}
-        if rest:
-            backend = backend_for(obj)
-            set_params = getattr(obj, "set_params", None)
-            set_params_owner: object = obj
-            if not callable(set_params):
-                set_params = getattr(backend, "set_params", None)
-                set_params_owner = backend
-            if not callable(set_params):
-                raise AttributeError("Missing set_params(**params) on instance/backend")
+        backend = backend_for(obj)
+        with lock_for(obj):
+            # Apply remaining params via strict backend API.
+            rest = {k: v for k, v in params.items() if k not in {"f", "metric"}}
+            if rest:
+                set_params = getattr(obj, "set_params", None)
+                set_params_owner: object = obj
+                if not callable(set_params):
+                    set_params = getattr(backend, "set_params", None)
+                    set_params_owner = backend
+                if not callable(set_params):
+                    raise AttributeError(
+                        "Missing set_params(**params) on instance/backend"
+                    )
 
-            with lock_for(obj):
                 set_params(**rest)
 
-        # Apply optional persistence knobs when supported by the instance.
-        persistence = metadata.get("persistence", None)
-        if isinstance(persistence, Mapping):
-            for key in ("pickle_mode", "compress_mode"):
-                if key in persistence:
-                    with contextlib.suppress(Exception):
-                        _apply_persistence_value(obj, key, persistence[key])
+            # Apply optional persistence knobs when supported by the instance.
+            persistence = metadata.get("persistence", None)
+            if isinstance(persistence, Mapping):
+                for key in ("pickle_mode", "compress_mode"):
+                    if key in persistence:
+                        with contextlib.suppress(Exception):
+                            _apply_persistence_value(obj, key, persistence[key])
 
-        # Optionally load the on-disk index if requested and available.
-        on_disk_path = params.get("on_disk_path", None)  # noqa: SIM910
-        if load and on_disk_path is not None:
-            # Prefer the explicit IO mixin helper when present; otherwise fall back
-            # to the backend load. This keeps mixins independent and avoids
-            # reimplementing persistence logic.
-            load_index = getattr(obj, "load_index", None)
-            if callable(load_index):
-                prefault = params.get("prefault", None)  # noqa: SIM910
-                load_index(os.fspath(on_disk_path), prefault=prefault)
-            else:
-                backend = backend_for(obj)
-                load_fn = getattr(backend, "load", None)
-                if callable(load_fn):
+            # Optionally load the on-disk index if requested and available.
+            on_disk_path = params.get("on_disk_path", None)  # noqa: SIM910
+            # if on_disk_path:
+            #     on_disk_build = getattr(obj, "on_disk_build", None)
+            #     if callable(on_disk_build):
+            #         on_disk_build(on_disk_path)
+            if load and on_disk_path is not None:
+                # Keeps mixin independent and avoids reimplementing persistence logic.
+                load = getattr(obj, "load", None)
+                if callable(load):
                     prefault = params.get("prefault", None)  # noqa: SIM910
-                    with lock_for(obj):
-                        if prefault is None:
-                            load_fn(os.fspath(on_disk_path))
-                        else:
-                            load_fn(os.fspath(on_disk_path), prefault=bool(prefault))
+                    if prefault is None:
+                        load(os.fspath(on_disk_path))
+                    else:
+                        load(os.fspath(on_disk_path), prefault=bool(prefault))
 
         return cast(Self, obj)
+
+    def to_json(
+        self,
+        path: str | os.PathLike[str] | None = None,
+        *,
+        indent: int = 2,
+        sort_keys: bool = True,
+        ensure_ascii: bool = False,
+        include_info: bool = True,
+        strict: bool = True,
+    ) -> str:
+        """
+        Serialize :meth:`to_metadata` to JSON.
+
+        Parameters
+        ----------
+        path
+            If provided, write the JSON to this path atomically.
+        indent
+            Indentation level passed to :func:`json.dumps`.
+        sort_keys
+            If True, sort keys for stable output.
+        ensure_ascii
+            If True, escape non-ASCII characters.
+        include_info, strict
+            Forwarded to :meth:`to_metadata`.
+
+        Returns
+        -------
+        json_str
+            JSON representation of the metadata.
+
+        Raises
+        ------
+        TypeError
+            If the exported metadata contains non-JSON-serializable values.
+
+        See Also
+        --------
+        from_json
+        to_metadata
+        """
+        metadata = self.to_metadata(include_info=include_info, strict=strict)
+        s = json.dumps(
+            metadata, indent=indent, sort_keys=sort_keys, ensure_ascii=ensure_ascii
+        )
+        if path is not None:
+            atomic_write_text(path, s)
+        return s
 
     @classmethod
     def from_json(

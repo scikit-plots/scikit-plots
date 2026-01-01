@@ -5,7 +5,7 @@
 # from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, Literal, Protocol, TypeAlias, runtime_checkable
+from typing import Any, Literal, Protocol, TypeAlias, overload, runtime_checkable
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -13,7 +13,10 @@ from numpy.typing import ArrayLike, NDArray
 __all__: tuple[str, ...] = ("VectorOpsMixin",)
 
 IndexArray: TypeAlias = NDArray[np.intp]
-DistanceArray: TypeAlias = NDArray[np.floating]
+DistanceArray: TypeAlias = NDArray[np.float32]
+VectorArray: TypeAlias = NDArray[np.float32]
+VectorMatrix: TypeAlias = NDArray[np.float32]
+VectorBatch: TypeAlias = NDArray[np.float32]
 
 @runtime_checkable
 class _AnnoyVectorBackend(Protocol):  # noqa: PYI046
@@ -36,73 +39,206 @@ class _AnnoyVectorBackend(Protocol):  # noqa: PYI046
     def get_n_items(self) -> int: ...
 
 class VectorOpsMixin:
+    """User-facing neighbor queries for Annoy-like backends."""  # noqa: PYI021
+
+    @overload
     def query_by_item(
         self,
         item: int,
         n_neighbors: int,
         *,
-        search_k: int = -1,
-        include_distances: bool = False,
-        exclude_self: bool = True,
-        exclude_item_ids: Iterable[int] | None = None,
-    ) -> IndexArray | tuple[IndexArray, DistanceArray]: ...
-    def query_by_vector(
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+    ) -> IndexArray: ...
+    @overload
+    def query_by_item(
         self,
-        vector: ArrayLike,
+        item: int,
         n_neighbors: int,
         *,
-        search_k: int = -1,
-        include_distances: bool = False,
-        exclude_self: bool = True,
-        exclude_item_ids: Iterable[int] | None = None,
-        ensure_all_finite: bool | Literal["allow-nan"] = True,
-        copy: bool = False,
-    ) -> IndexArray | tuple[IndexArray, DistanceArray]: ...
+        search_k: int = ...,
+        include_distances: Literal[True],
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+    ) -> tuple[IndexArray, DistanceArray]: ...
+    @overload
     def query_vectors_by_item(
         self,
         item: int,
         n_neighbors: int,
         *,
-        search_k: int = -1,
-        include_distances: bool = False,
-        exclude_self: bool = True,
-        exclude_item_ids: Iterable[int] | None = None,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
         dtype: Any = ...,
-    ) -> NDArray[Any] | tuple[NDArray[Any], DistanceArray]: ...
+    ) -> VectorMatrix: ...
+    @overload
+    def query_vectors_by_item(
+        self,
+        item: int,
+        n_neighbors: int,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[True],
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        dtype: Any = ...,
+    ) -> tuple[VectorMatrix, DistanceArray]: ...
+    @overload
+    def query_by_vector(
+        self,
+        vector: ArrayLike,
+        n_neighbors: int,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+    ) -> IndexArray: ...
+    @overload
+    def query_by_vector(
+        self,
+        vector: ArrayLike,
+        n_neighbors: int,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[True],
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+    ) -> tuple[IndexArray, DistanceArray]: ...
+    @overload
     def query_vectors_by_vector(
         self,
         vector: ArrayLike,
         n_neighbors: int,
         *,
-        search_k: int = -1,
-        include_distances: bool = False,
-        exclude_self: bool = True,
-        exclude_item_ids: Iterable[int] | None = None,
-        ensure_all_finite: bool | Literal["allow-nan"] = True,
-        copy: bool = False,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
         dtype: Any = ...,
-    ) -> NDArray[Any] | tuple[NDArray[Any], DistanceArray]: ...
+        return_type: Literal["id"],
+    ) -> IndexArray: ...
+    @overload
+    def query_vectors_by_vector(
+        self,
+        vector: ArrayLike,
+        n_neighbors: int,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[True],
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+        dtype: Any = ...,
+        return_type: Literal["id"],
+    ) -> tuple[IndexArray, DistanceArray]: ...
+    @overload
+    def query_vectors_by_vector(
+        self,
+        vector: ArrayLike,
+        n_neighbors: int,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+        dtype: Any = ...,
+        return_type: Literal["vector"] = ...,
+    ) -> VectorMatrix: ...
+    @overload
+    def query_vectors_by_vector(
+        self,
+        vector: ArrayLike,
+        n_neighbors: int,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[True],
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+        dtype: Any = ...,
+        return_type: Literal["vector"] = ...,
+    ) -> tuple[VectorMatrix, DistanceArray]: ...
+    @overload
     def kneighbors(
         self,
         X: ArrayLike,
-        n_neighbors: int = 5,
+        n_neighbors: int = ...,
         *,
-        search_k: int = -1,
-        include_distances: bool = True,
-        exclude_self: bool = True,
-        exclude_item_ids: Iterable[int] | None = None,
-        ensure_all_finite: bool | Literal["allow-nan"] = True,
-        copy: bool = False,
-    ) -> IndexArray | tuple[IndexArray, DistanceArray]: ...
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+        return_type: Literal["id"],
+    ) -> NDArray[np.intp]: ...
+    @overload
+    def kneighbors(
+        self,
+        X: ArrayLike,
+        n_neighbors: int = ...,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[True],
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+        return_type: Literal["id"],
+    ) -> tuple[NDArray[np.intp], NDArray[np.float32]]: ...
+    @overload
+    def kneighbors(
+        self,
+        X: ArrayLike,
+        n_neighbors: int = ...,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+        return_type: Literal["vector"] = ...,
+    ) -> NDArray[np.float32]: ...
+    @overload
+    def kneighbors(
+        self,
+        X: ArrayLike,
+        n_neighbors: int = ...,
+        *,
+        search_k: int = ...,
+        include_distances: Literal[True],
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+        return_type: Literal["vector"] = ...,
+    ) -> tuple[NDArray[np.float32], NDArray[np.float32]]: ...
     def kneighbors_graph(
         self,
         X: ArrayLike,
-        n_neighbors: int = 5,
+        n_neighbors: int = ...,
         *,
-        search_k: int = -1,
-        mode: Literal["connectivity", "distance"] = "connectivity",
-        exclude_self: bool = True,
-        exclude_item_ids: Iterable[int] | None = None,
-        ensure_all_finite: bool | Literal["allow-nan"] = True,
-        copy: bool = False,
+        search_k: int = ...,
+        mode: Literal["connectivity", "distance"] = ...,
+        exclude_self: bool = ...,
+        exclude_item_ids: Iterable[int] | None = ...,
+        ensure_all_finite: bool | Literal["allow-nan"] = ...,
+        copy: bool = ...,
+        return_type: Literal["id"] = ...,
     ) -> Any: ...

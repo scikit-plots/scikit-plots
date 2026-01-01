@@ -17,6 +17,7 @@ import os
 import tempfile
 import threading
 from os import PathLike
+from pathlib import Path  # noqa: F401
 from typing import Any
 
 # ----------------------------------------------------------------------
@@ -135,12 +136,22 @@ _backend = backend_for
 # ----------------------------------------------------------------------
 
 
-def ensure_parent_dir(path: str | PathLike[str]) -> None:
+def _ensure_parent_dir(path: str | PathLike[str]) -> None:
     """Create the parent directory for ``path`` if it does not exist."""
+    # converts path-like objects to filesystem paths
     p = os.fspath(path)
     parent = os.path.dirname(os.path.abspath(p))
     if parent:
         os.makedirs(parent, exist_ok=True)
+
+
+def ensure_parent_dir(path: str) -> None:
+    """Create the parent directory for ``path`` if it does not exist."""
+    # converts path-like objects to filesystem paths
+    p = os.fspath(path)
+    p = Path(p).expanduser().resolve()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    return p
 
 
 def _atomic_replace(tmp_path: str, dst_path: str) -> None:

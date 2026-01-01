@@ -218,9 +218,8 @@ struct TempAnnoyIndexFile {
   ~TempAnnoyIndexFile() {
     if (!path.empty()) {
       std::remove(path.c_str());
-      }
     }
-
+  }
   TempAnnoyIndexFile(const TempAnnoyIndexFile&) = delete;
   TempAnnoyIndexFile& operator=(const TempAnnoyIndexFile&) = delete;
 };
@@ -530,9 +529,17 @@ int
 Notes
 -----
 - ``Annoy(f=None, ...)`` is supported at construction time and is treated as ``f=0``.
-  After construction, assigning ``None`` to :attr:`f` is not supported; use ``0``.
-- ``f`` may be set only before the underlying C++ index is created.
-- After construction, attempting to change ``f`` raises AttributeError.
+- ``0`` (or ``None``) means "unknown / lazy": the first call to :meth:`add_item`
+  will infer ``f`` from the input vector length and then fix it.
+
+Changing ``f`` after the index has been initialized (items added and/or
+trees built) is a *structural* change: the stored items and all tree splits
+depend on the vector dimension.
+
+For scikit-learn compatibility, assigning a different ``f`` (or ``None``) on
+an already initialized index will deterministically **reset** the index (drop
+all items, trees, and :attr:`y`). You must call :meth:`fit` (or
+:meth:`add_item` + :meth:`build`) again before querying.
 )FDOC";
 
 static const char kMetricDoc[] =
@@ -2108,10 +2115,13 @@ static int py_annoy_set_f(
     return -1;
   }
   if (value == Py_None) {
+    // Treat None as an explicit request to reset to the lazy/unknown state.
+    // If a live index exists, this is a structural change and must drop it.
     if (self->ptr) {
-      PyErr_SetString(PyExc_AttributeError,
-        "Cannot unset f after the index has been created. If not loaded from file to call :meth:`unload`");
-      return -1;
+      if (!reset_index_state(self,
+            "Unsetting f resets the existing index (drops items, trees, and y).")) {
+        return -1;
+      }
     }
     self->f = 0;
     return 0;
@@ -2121,17 +2131,20 @@ static int py_annoy_set_f(
       "f must be an integer");
     return -1;
   }
-  if (self->ptr) {
-    PyErr_SetString(PyExc_AttributeError,
-      "Cannot change f after the index has been created.");
-    return -1;
-  }
   long fv = PyLong_AsLong(value);
   if (fv == -1 && PyErr_Occurred()) return -1;
   if (fv < 0) {
     PyErr_SetString(PyExc_ValueError,
       "f must be non-negative (0 means infer from first vector)");
     return -1;
+  }
+  // Changing f on an initialized index is a structural change.
+  // For scikit-learn compatibility we deterministically reset fitted state.
+  if (self->ptr && self->f != (int)fv) {
+    if (!reset_index_state(self,
+          "Changing f resets the existing index (drops items, trees, and y).")) {
+      return -1;
+    }
   }
   self->f = (int)fv;
   return 0;
@@ -3936,62 +3949,72 @@ static PyObject* py_an_set_params(
 // See Also
 // --------
 // sklearn.utils.get_tags : Consumes __sklearn_tags__ when available.
+static PyObject* annoy_tags_fallback_dict() {
+  // Minimal legacy tag format (scikit-learn < 1.6). Kept intentionally small:
+  // this estimator does not require y.
+  PyObject* d = PyDict_New();
+  if (!d) return NULL;
+  if (PyDict_SetItemString(d, "requires_y", Py_False) < 0) {
+    Py_DECREF(d);
+    return NULL;
+  }
+  return d;
+}
+
 static PyObject* py_an_sklearn_tags(
   py_annoy* self,
-  PyObject* Py_UNUSED(ignored)) {
+  PyObject* args) {  // PyObject* Py_UNUSED(ignored)
   (void)self;
 
+  if (!PyArg_ParseTuple(args, ""))
+    return NULL;
+
   PyObject* utils_mod = PyImport_ImportModule("sklearn.utils");
-  if (!utils_mod) return NULL;
+  if (!utils_mod) {
+    PyErr_Clear();
+    return annoy_tags_fallback_dict();
+  }
 
   PyObject* Tags = PyObject_GetAttrString(utils_mod, "Tags");
   PyObject* TargetTags = PyObject_GetAttrString(utils_mod, "TargetTags");
   Py_DECREF(utils_mod);
 
   if (!Tags || !TargetTags) {
+    PyErr_Clear();
     Py_XDECREF(Tags);
     Py_XDECREF(TargetTags);
-    return NULL;
+    return annoy_tags_fallback_dict();
   }
 
   // TargetTags signature (scikit-learn >= 1.6):
   //   TargetTags(required: bool, one_d_labels: bool = False, ...)
   // Older builds may accept TargetTags() without arguments.
   // Deterministic policy for this estimator: y is NOT required.
-  PyObject* target = PyObject_CallObject(TargetTags, NULL);
-  if (!target && PyErr_ExceptionMatches(PyExc_TypeError)) {
-    PyErr_Clear();
-
+  PyObject* target = NULL;
+  // Prefer explicit required=False.
+  {
+    PyObject* empty_args = PyTuple_New(0);
     PyObject* tt_kwargs = PyDict_New();
-    if (!tt_kwargs) {
-      Py_DECREF(TargetTags);
-      Py_DECREF(Tags);
-      return NULL;
+    if (empty_args && tt_kwargs &&
+        PyDict_SetItemString(tt_kwargs, "required", Py_False) == 0) {
+      target = PyObject_Call(TargetTags, empty_args, tt_kwargs);
     }
-    if (PyDict_SetItemString(tt_kwargs, "required", Py_False) < 0) {
-      Py_DECREF(tt_kwargs);
-      Py_DECREF(TargetTags);
-      Py_DECREF(Tags);
-      return NULL;
-    }
-
-    PyObject* tt_args = PyTuple_New(0);
-    if (!tt_args) {
-      Py_DECREF(tt_kwargs);
-      Py_DECREF(TargetTags);
-      Py_DECREF(Tags);
-      return NULL;
-    }
-
-    target = PyObject_Call(TargetTags, tt_args, tt_kwargs);
-    Py_DECREF(tt_args);
-    Py_DECREF(tt_kwargs);
+    Py_XDECREF(empty_args);
+    Py_XDECREF(tt_kwargs);
   }
-
-  Py_DECREF(TargetTags);
   if (!target) {
+    PyErr_Clear();
+    target = PyObject_CallFunctionObjArgs(TargetTags, Py_False, NULL);
+  }
+  if (!target) {
+    PyErr_Clear();
+    target = PyObject_CallObject(TargetTags, NULL);
+  }
+  if (!target) {
+    PyErr_Clear();
     Py_DECREF(Tags);
-    return NULL;
+    Py_DECREF(TargetTags);
+    return annoy_tags_fallback_dict();
   }
 
   // kwargs: Tags(estimator_type=None, target_tags=TargetTags())
@@ -3999,28 +4022,37 @@ static PyObject* py_an_sklearn_tags(
   if (!kwargs) {
     Py_DECREF(target);
     Py_DECREF(Tags);
+    Py_DECREF(TargetTags);
     return NULL;
   }
   if (PyDict_SetItemString(kwargs, "estimator_type", Py_None) < 0 ||
       PyDict_SetItemString(kwargs, "target_tags", target) < 0) {
-    Py_DECREF(kwargs);
     Py_DECREF(target);
+    Py_DECREF(kwargs);
     Py_DECREF(Tags);
+    Py_DECREF(TargetTags);
     return NULL;
   }
   Py_DECREF(target);
 
-  PyObject* args = PyTuple_New(0);
-  if (!args) {
+  PyObject* empty_args = PyTuple_New(0);
+  if (!empty_args) {
     Py_DECREF(kwargs);
     Py_DECREF(Tags);
+    Py_DECREF(TargetTags);
     return NULL;
   }
 
-  PyObject* tags = PyObject_Call(Tags, args, kwargs);
-  Py_DECREF(args);
+  PyObject* tags = PyObject_Call(Tags, empty_args, kwargs);
+  Py_DECREF(empty_args);
   Py_DECREF(kwargs);
   Py_DECREF(Tags);
+  Py_DECREF(TargetTags);
+
+  if (!tags) {
+    PyErr_Clear();
+    return annoy_tags_fallback_dict();
+  }
   return tags;
 }
 
@@ -4776,12 +4808,9 @@ static PyObject* py_an_on_disk_build(
     return NULL;
   }
 
-  if (!self->ptr) {
-    PyErr_SetString(PyExc_RuntimeError,
-      "Annoy index is not initialized; construct it with Annoy(f, metric) "
-      "and add items before on_disk_build().");
-    return NULL;
-  }
+  // Ensure underlying C++ index exists. This requires that f and metric have
+  // been configured (either at construction time or via properties).
+  if (!ensure_index(self)) return NULL;
 
   // NOTE:
   //  * on_disk_build is allowed to create a new file; we do NOT call file_exists().
@@ -5379,22 +5408,25 @@ static PyObject* py_an_transform(
     return NULL;
   }
 
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
+    return NULL;
+  }
+
+  if (n_neighbors <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return NULL;
+  }
+
   if (!self || !self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
       "Annoy index is not initialized");
     return NULL;
   }
+
   if (!is_index_built(self)) {
     PyErr_SetString(PyExc_RuntimeError,
       "Index is not built; call build() or fit() before transform().");
-    return NULL;
-  }
-  if (n_neighbors <= 0) {
-    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
-    return NULL;
-  }
-  if (search_k < -1) {
-    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
     return NULL;
   }
 
@@ -5661,6 +5693,16 @@ static PyObject* py_an_fit_transform(
         &include_distances,
         &return_labels,
         &y_fill_value)) {
+    return NULL;
+  }
+
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
+    return NULL;
+  }
+
+  if (n_neighbors <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
     return NULL;
   }
 
@@ -5988,7 +6030,8 @@ static PyObject* get_nns_to_python(
   // ------------------------------------------------------------------
   // Pack (indices, distances) tuple PyTuple_Pack, PyTuple_SET_ITEM
   // ------------------------------------------------------------------
-  if ((py_tuple = PyTuple_Pack(2, py_indices, py_distances)) == NULL) {  // steals reference
+  // PyTuple_Pack creates a new tuple and increments references to its items.
+  if ((py_tuple = PyTuple_Pack(2, py_indices, py_distances)) == NULL) {
     goto error;
   }
   Py_DECREF(py_indices);
@@ -6050,6 +6093,16 @@ static PyObject* py_an_get_nns_by_item(
     return NULL;
   }
 
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
+    return NULL;
+  }
+
+  if (n_neighbors <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return NULL;
+  }
+
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
       "Annoy index is not initialized");
@@ -6060,12 +6113,6 @@ static PyObject* py_an_get_nns_by_item(
   if (!is_index_built(self)) {
     PyErr_SetString(PyExc_RuntimeError,
       "Index is not built; call build() or fit() before querying.");
-    return NULL;
-  }
-
-  if (n_neighbors <= 0) {
-    PyErr_SetString(PyExc_ValueError,
-      "`n` (number of neighbors) must be positive");
     return NULL;
   }
 
@@ -6137,6 +6184,16 @@ static PyObject* py_an_get_nns_by_vector(
     return NULL;
   }
 
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
+    return NULL;
+  }
+
+  if (n_neighbors <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return NULL;
+  }
+
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
       "Annoy index is not initialized. "
@@ -6148,12 +6205,6 @@ static PyObject* py_an_get_nns_by_vector(
   if (!is_index_built(self)) {
     PyErr_SetString(PyExc_RuntimeError,
       "Index is not built; call build() or fit() before querying.");
-    return NULL;
-  }
-
-  if (n_neighbors <= 0) {
-    PyErr_SetString(PyExc_ValueError,
-      "`n` (number of neighbors) must be positive");
     return NULL;
   }
 
@@ -8446,7 +8497,7 @@ static PyObject* py_an_repr(
 fail:
   Py_XDECREF(out);
   Py_XDECREF(d_repr);
-  Py_DECREF(d);
+  Py_XDECREF(d);
   return NULL;
 }
 
@@ -8863,9 +8914,20 @@ static void annoy_docs_links_try_fill_stable(annoy_docs_links* out) {
   if (!scikitplot_mod) return;
 
   PyObject* ver_obj = PyObject_GetAttrString(scikitplot_mod, "__version__");  // new ref
-  if (!ver_obj) return;
+  if (!ver_obj) {
+    // Optional best-effort: __version__ may not exist. Do not leak an exception
+    // into repr_html.
+    PyErr_Clear();
+    return;
+  }
 
   const char* ver = PyUnicode_AsUTF8(ver_obj);
+  if (!ver) {
+    // __version__ should be unicode; if not, keep repr_html exception-clean.
+    PyErr_Clear();
+    Py_DECREF(ver_obj);
+    return;
+  }
   if (ver && *ver) {
     unsigned long major = 0, minor = 0;
     if (annoy_parse_major_minor_strict(ver, &major, &minor)) {

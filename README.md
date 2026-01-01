@@ -998,6 +998,69 @@ and [LICENSES](https://github.com/scikit-plots/scikit-plots/tree/main/LICENSES) 
  ☮️ ☯️ ⚙️
  📍 🗝️ 🔍 🔎 🕵️‍♂️ 🕵️‍♀️ 🧐 👀 👁️ 📝 🔬
  🚧 🚦 🚥
+
+
+Core labels (most useful)
+
+ℹ️ Info: general information
+
+✅ Success: done / passed / correct
+
+🎉 Success+: big win / milestone
+
+🟢 OK: normal / healthy / green
+
+⚠️ Caution: be careful / potential issue
+
+🚨 Urgent: critical / immediate attention
+
+❌ Error: failed / wrong
+
+🛑 Stop: do not proceed / blocked
+
+Help / guidance
+
+💡 Tip: best practice / improvement
+
+🧠 Hint: small nudge / clue
+
+🔎 Note: observation / detail to check
+
+📌 Reminder: don’t forget
+
+👉 Action: what to do next
+
+🧭 Guide: step-by-step direction
+
+Progress / workflow
+
+⏳ Pending: waiting / in progress
+
+🔄 Update: changed / refreshed
+
+🧪 Test: experiment / validation
+
+🧩 Example: sample usage
+
+📝 Draft: not final
+
+📦 Release: shipped / delivered
+
+Risk / security / attention
+
+🔒 Security: auth, secrets, safety
+
+🧯 Mitigation: workaround / fix
+
+🧨 Breaking: breaking change (strong!)
+
+🚧 WIP: work in progress
+
+Quick “ready-to-copy” mini legend
+
+✅ Success | 💡 Tip | 🧠 Hint | ℹ️ Info | ⚠️ Caution | 🚨 Urgent | ❌ Error | 🔒 Security
+
+
  -->
 
 <!-- ✔🚦 GitHub-flavored Markdown (GFM) does not support inline CSS or HTML layout tags -->

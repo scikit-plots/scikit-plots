@@ -922,6 +922,14 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             '_time.Timer',
           ],
         },
+        {
+          "title": "File/Folder Utilities",
+          "description": _get_submodule("scikitplot.utils", "_path"),
+          "autosummary": [
+            '_path.PathNamer',
+            '_path.make_path',
+          ],
+        },
         # {
         #   "title": "Optimal matplotlib operations",
         #   "description": _get_submodule("scikitplot.utils", "_figures"),

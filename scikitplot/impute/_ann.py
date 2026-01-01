@@ -59,6 +59,7 @@ from sklearn.utils.validation import (
     validate_data,
 )
 
+from ..utils._path import PathNamer, make_path, normalize_directory_path
 from ..utils._time import Timer
 from ._privacy import OutsourcedIndexMixin
 
@@ -104,9 +105,8 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
 
     All high-level imputation parameters (:attr:`n_neighbors`,
     :attr:`weights`, :attr:`metric`, :attr:`index_access`,
-    :attr:`index_store_path`, :attr:`index_base_dir`) are shared across
-    backends. Backend-specific details (such as the Annoy forest size)
-    are handled internally.
+    :attr:`index_store_path`. Backend-specific details
+    (such as the Annoy forest size) are handled internally.
 
     This imputer identifies approximate nearest neighbors for samples
     containing missing values and imputes those values using statistics computed
@@ -130,7 +130,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         installed. An :class:`ImportError` is raised otherwise.
 
         Parameters :attr:`index_access`, :attr:`index_store_path` and
-        :attr:`index_base_dir` behave identically for both backends.
+        behave identically for both backends.
 
     index_access : {'public', 'private', 'external'}, default='external'
         Controls whether and how the fitted ANN index is exposed or stored.
@@ -153,7 +153,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         recommended to keep the default ``'external'`` mode so that the
         underlying ANN index is not part of the public API by default.
 
-    index_store_path : str or path-like, default=None
+    index_store_path : str or path-like, PathNamer, default=None
         Target file path used when ``index_access='external'``. The
         fitted ANN index is saved to this location via the backend index
         :py:meth:`save` method, and only the file name and metadata
@@ -161,20 +161,8 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
 
         If ``index_access='external'`` and this is ``None``,
         :meth:`fit` will automatically generate an OS-friendly unique
-        file name of the form ``"<unix-timestamp>-<uuid>.<ext>"`` in
-        :attr:`index_base_dir` (or the current working directory) and
+        file name by :class:`~.PathNamer` (or the current working directory) and
         save the ANN index there.
-
-    index_base_dir : str or path-like, default=None
-        Base directory used when automatically generating an index file
-        name in ``index_access='external'`` mode or when building the
-        index on disk (``on_disk_build=True``). If ``None``, the current
-        working directory is used.
-
-        This parameter is backend-agnostic and is intended to be reused
-        unchanged by other ANN-based imputers (for example Voyager or
-        HNSW variants) so that all of them honour the same index storage
-        configuration.
 
     on_disk_build : bool, default=False
         Only used when ``backend='annoy'``. Ignored for other backends.
@@ -331,6 +319,10 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         Seed for the backend index construction (e.g. Annoy hyperplanes,
         Voyager graph initialization).
 
+        .. caution::
+            ⚠️ Reproducibility for Annoy required both ``random_state``
+            with ``n_trees``.
+
     Attributes
     ----------
     indicator_ : :class:`~sklearn.impute.MissingIndicator`
@@ -417,6 +409,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
     sklearn_ann.kneighbors.annoy.AnnoyTransformer : Wrapper for using annoy.AnnoyIndex as
         sklearn's KNeighborsTransformer `AnnoyTransformer
         <https://sklearn-ann.readthedocs.io/en/latest/kneighbors.html#annoy>`_
+    PathNamer : Naming helper for external index file.
 
     References
     ----------
@@ -450,8 +443,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         "index_access": [
             StrOptions({"public", "private", "external"}),
         ],
-        "index_store_path": [str, os.PathLike, None],
-        "index_base_dir": [str, os.PathLike, None],
+        "index_store_path": [str, os.PathLike, PathNamer, None],
         "on_disk_build": ["boolean"],
         "n_trees": [
             Interval(Integral, 1, None, closed="left"),  # integers ≥ 1
@@ -511,8 +503,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         missing_values=np.nan,
         backend="annoy",
         index_access="external",
-        index_store_path=None,  # <ts>-<uuid>.annoy / .voy
-        index_base_dir=None,  # "."
+        index_store_path=None,  # PathNamer .annoy/.voy
         on_disk_build=False,
         n_trees=-1,  # annoy default -1 (dynamic heuristic)
         search_k=-1,  # backend search depth (-1: backend default)
@@ -537,7 +528,6 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         self.backend = backend
         self.index_access = index_access
         self.index_store_path = index_store_path
-        self.index_base_dir = index_base_dir
         self.on_disk_build = on_disk_build
         # ANN / imputation hyperparameters
         self.n_trees = n_trees
@@ -584,40 +574,86 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
     # ------------------------------------------------------------------ #
     def _resolve_index_store_path(self) -> str | None:
         """
-        Resolve the on-disk path used to persist the ANN index in
-        ``index_access='external'`` mode.
+        Resolve the on-disk path used to persist the ANN index.
+
+        In ``index_access='external'`` mode, a path is required. If none is provided,
+        a new unique path is generated once and cached.
+
+        In non-external modes, a path is only used if explicitly provided.
 
         Returns
         -------
         path : str or None
-            Absolute file path, or ``None`` if no external storage is used.
-        """  # noqa: D205
-        # ts-uuid.[annoy|voyager]
-        import time  # noqa: PLC0415
-        import uuid  # noqa: PLC0415
+            Absolute file path for the index (e.g., ``*.annoy`` or ``*.voy``),
+            or ``None`` when no on-disk persistence is used.
 
-        # For non-external modes we never auto-generate a path.
-        if getattr(self, "index_access", "external") != "external":
-            if self.index_store_path is None:
+        Notes
+        -----
+        - The resolved path is cached into ``self.index_store_path`` as a string to
+        ensure stability across repeated calls.
+        - If ``self.index_store_path`` is a :class:`~scikitplot.utils._path.PathNamer`,
+        a single path is generated once and then cached.
+        """
+        # Cosmetic extension only; actual backend governs file content/format.
+        backend = getattr(self, "backend", "annoy")
+        ext = ".voy" if backend == "voyager" else ".annoy"
+
+        index_access = getattr(self, "index_access", "external")
+        store = getattr(self, "index_store_path", None)
+
+        # ------------------------------------------------------------------ #
+        # Non-external modes: never auto-generate a path.
+        # ------------------------------------------------------------------ #
+        if index_access != "external":
+            if store is None:
                 return None
-            return str(Path(self.index_store_path).expanduser().resolve())
 
-        # Reuse user-provided explicit path if any.
-        if self.index_store_path is not None:
-            return str(Path(self.index_store_path).expanduser().resolve())
+            # If already cached as a string/pathlike, normalize + re-cache.
+            if isinstance(store, (str, os.PathLike)):
+                resolved = normalize_directory_path(store)
+                self.index_store_path = resolved
+                return resolved
 
-        base = Path(self.index_base_dir or ".").expanduser().resolve()
-        base.mkdir(parents=True, exist_ok=True)
+            # If user provided a generator, generate once then cache.
+            if isinstance(store, PathNamer):
+                generated = store.make_path(
+                    # prefix="ANNImputer", ext=ext
+                )
+                resolved = str(generated)
+                self.index_store_path = resolved
+                return resolved
 
-        ts = int(time.time())
-        uid = uuid.uuid4().hex
-        # Use backend-specific extension, but purely cosmetic.
-        ext = ".voy" if getattr(self, "backend", "annoy") == "voyager" else ".annoy"
-        path = (base / f"{ts}-{uid}{ext}").resolve()
+            raise TypeError(
+                "index_store_path must be None, a path-like (str/PathLike), or PathNamer."
+            )
 
-        # Cache the resolved path so subsequent calls are stable.
-        self.index_store_path = str(path)
-        return self.index_store_path
+        # ------------------------------------------------------------------ #
+        # External mode: a path is required; generate one if not provided.
+        # ------------------------------------------------------------------ #
+        if store is None:
+            # Generate once and cache. Keep in current working directory by default.
+            generated = make_path(
+                prefix="ANNImputer",
+                ext=ext,
+            )
+            resolved = str(generated)
+            self.index_store_path = resolved
+            return resolved
+
+        if isinstance(store, (str, os.PathLike)):
+            resolved = normalize_directory_path(store)
+            self.index_store_path = resolved
+            return resolved
+
+        if isinstance(store, PathNamer):
+            generated = store.make_path()
+            resolved = str(generated)
+            self.index_store_path = resolved
+            return resolved
+
+        raise TypeError(
+            "index_store_path must be None, a path-like (str/PathLike), or PathNamer."
+        )
 
     def _ensure_voyager_available(self) -> None:
         """Raise a clear error if backend='voyager' but voyager is not installed."""
@@ -869,7 +905,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
                     fd, temp_build_path = tempfile.mkstemp(
                         prefix="annoy-build-",
                         suffix=".annoy",
-                        dir=self.index_base_dir or None,
+                        dir=Path.cwd() or None,
                     )
                     os.close(fd)
                     build_path = temp_build_path
@@ -1304,12 +1340,13 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             "search_k": search_k,  # If -1, defaults to approximately n_trees * n
             "include_distances": True,  # (weights == "distance")
         }
-        if hasattr(train_index, "get_neighbor_ids_by_vector"):
+        if hasattr(train_index, "query_vectors_by_vector"):
             # scikit-plot wrapper API
             query_kwargs.pop("n", None)
             query_kwargs["n_neighbors"] = n_neighbors
             query_kwargs["exclude_self"] = True
-            neighbor_ids, dists = train_index.get_neighbor_ids_by_vector(
+            query_kwargs["return_type"] = "id"
+            neighbor_ids, dists = train_index.query_vectors_by_vector(
                 vec,  # row, X[i]
                 **query_kwargs,
             )
@@ -1321,7 +1358,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             )
         # Annoy returns the query point itself as the first element
         # Remove self-neighbors (distance == 0)
-        if not neighbor_ids:  # python list or not neighbor_ids
+        if not list(neighbor_ids):  # python list or not neighbor_ids
             return i, row  # nothing to impute
 
         # Convert to 2D so _get_weights expects shape (n_queries, n_neighbors)
