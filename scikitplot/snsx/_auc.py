@@ -1,20 +1,29 @@
+# scikitplot/snsx/_auc.py
+
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Seaborn-style PR and ROC [1]_ curve plotting.
+Seaborn-style PR and ROC [1]_ curve plotting for model exploration.
 
-This module provides:
-- A core `_AucPlotter` class (subclass of VectorPlotter) for handling
-  data preparation and plotting PR/ROC curves.
-- User-facing functions `prplot()` and `rocplot()` that work just like
-  seaborn's high-level API (e.g., scatterplot, lineplot).
+This module implements :func:`~scikitplot.snsx.aucplot`, a high-level API that
+follows seaborn's data/semantic mapping style while computing PR/ROC curves
+using scikit-learn metrics.
 
-Features:
-- Multiple groups with `hue`
-- Automatic legends with AUC scores
-- Optional filled area under curve
-- Baselines (random chance lines or prevalence lines)
+Notes
+-----
+- **PR curve score**: this implementation reports *Average Precision* (AP) via
+  :func:`sklearn.metrics.average_precision_score`. AP is the standard summary
+  score for precision-recall curves in scikit-learn and differs from a simple
+  trapezoidal integration of the PR curve.
+- ``y`` may be probabilities **or** arbitrary decision scores (as accepted by
+  :func:`sklearn.metrics.roc_curve` and :func:`sklearn.metrics.precision_recall_curve`).
+
+See Also
+--------
+sklearn.metrics.roc_curve
+sklearn.metrics.precision_recall_curve
+sklearn.metrics.average_precision_score
 
 References
 ----------
@@ -33,9 +42,6 @@ References
 # )
 from __future__ import annotations  # Allows string type hints
 
-# --------------------------------------------------------------------
-# Imports
-# --------------------------------------------------------------------
 import warnings
 from typing import ClassVar, Literal
 
@@ -55,6 +61,7 @@ from sklearn.utils.multiclass import unique_labels  # noqa: F401
 from sklearn.utils.validation import check_array, check_consistent_length
 
 try:
+    # Prefer the user's seaborn installation when available.
     from seaborn._base import VectorPlotter
     from seaborn._compat import groupby_apply_include_groups  # noqa: F401
     from seaborn._docstrings import (
@@ -66,7 +73,8 @@ try:
     from seaborn.axisgrid import _facet_docs
     from seaborn.external import husl
     from seaborn.utils import _check_argument, _default_color
-except:
+except ImportError:  # pragma: no cover
+    # Fallback to the vendored seaborn subset shipped with scikit-plots.
     from ..externals._seaborn._base import VectorPlotter
     from ..externals._seaborn._compat import groupby_apply_include_groups  # noqa: F401
     from ..externals._seaborn._docstrings import (
@@ -146,11 +154,10 @@ _param_docs = DocstringComponents.from_nested_components(
 # --------------------------------------------------------------------
 class _AucPlotter(VectorPlotter):
     """
-    Seaborn-style Auc plotter internal class for PR / ROC curves plotting.
+    Seaborn-style internal plotter class for PR/ROC curves.
 
-    Expects the VectorPlotter pipeline to have mapped incoming data into
-    standardized columns "x", "y", optionally grouping (hue), legend creation,
-    "weights", and subset iteration.
+    This class plugs into seaborn's ``VectorPlotter`` pipeline to support
+    ``data``/``x``/``y``/``hue`` mapping, subset iteration, and facet handling.
     """
 
     # minimal structural hints for wide vs flat data (keeps consistency with VectorPlotter)
@@ -174,7 +181,7 @@ class _AucPlotter(VectorPlotter):
         super().__init__(data=data, variables=variables)
 
     @property
-    def univariate(self):
+    def univariate(self) -> bool:
         """Return True if only x or y are used."""
         # TODO this could go down to core, but putting it here now.
         # We'd want to be conceptually clear that univariate only applies
@@ -183,7 +190,7 @@ class _AucPlotter(VectorPlotter):
         return bool({"x", "y"} - set(self.variables))
 
     @property
-    def data_variable(self):
+    def data_variable(self) -> str:
         """Return the variable with data for univariate plots."""
         # TODO This could also be in core, but it should have a better name.
         if not self.univariate:
@@ -191,7 +198,7 @@ class _AucPlotter(VectorPlotter):
         return {"x", "y"}.intersection(self.variables).pop()
 
     @property
-    def has_xy_data(self):
+    def has_xy_data(self) -> bool:
         """Return True at least one of x or y is defined."""
         # TODO see above points about where this should go
         return bool({"x", "y"} & set(self.variables))
@@ -236,10 +243,20 @@ class _AucPlotter(VectorPlotter):
                 **legend_kws,
             )
 
-    def _artist_kws(self, kws, fill, element, multiple, color, alpha):
-        """Handle differences between artists in filled/unfilled plots."""
+    def _artist_kws(
+        self,
+        kws: dict,
+        # *,
+        fill: bool,
+        element: str,
+        multiple: str,
+        color,
+        alpha: float,
+    ) -> dict:
+        """Normalize/complete matplotlib kwargs for line or fill artists."""
         kws = kws.copy()
         if fill:
+            # kwargs for PolyCollection (fill_between)
             kws = normalize_kwargs(kws, mpl.collections.PolyCollection)
             kws.setdefault("facecolor", to_rgba(color, alpha))
 
@@ -256,7 +273,9 @@ class _AucPlotter(VectorPlotter):
             kws["facecolor"] = "none"
             kws["edgecolor"] = to_rgba(color, alpha)
         else:
-            kws["color"] = to_rgba(color, alpha)
+            kws.setdefault("color", to_rgba(color, alpha))
+        # Avoid passing seaborn-ish control keys through to matplotlib.
+        kws.pop("chance", None)
         return kws
 
     def _cmap_from_color(self, color):
@@ -460,10 +479,14 @@ class _AucPlotter(VectorPlotter):
     # -------------------------
     # Helpers - data extraction
     # ------------------------
-    def _prepare_subset(
+    def _prepare_subset(  # noqa: PLR0912
         self,
         sub_data: pd.DataFrame,
-    ) -> "tuple[np.ndarray, np.ndarray, np.ndarray]":  # noqa: UP037
+        *,
+        threshold: float = 0.5,
+        allow_probs: bool = True,
+        labels=None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | tuple[None, None, None]:
         """
         Extract y_true (binary labels) and y_score (probabilities) arrays from a subset DataFrame.
 
@@ -472,10 +495,25 @@ class _AucPlotter(VectorPlotter):
           the approach used in seaborn's VectorPlotter pattern).
         - Enforces types: y_true -> int (0/1), y_score -> float.
 
+        Parameters
+        ----------
+        sub_data : DataFrame
+            Subset data from :meth:`VectorPlotter.iter_data` with
+            ``from_comp_data=True``.
+        threshold : float
+            Threshold used to convert probabilities into predicted labels when
+            ``allow_probs=True``.
+        allow_probs : bool
+            If True, interpret ``y`` as probabilities in ``[0, 1]`` and threshold
+            into predicted labels. Requires binary classification.
+        labels : array-like, optional
+            Label ordering forwarded to scikit-learn. When ``allow_probs=True``,
+            this must be length 2 and is used to define the negative/positive class.
+
         Returns
         -------
         y_true : ndarray of shape (n_samples,)
-        y_score : ndarray of shape (n_samples,)
+        y_score or y_pred : ndarray of shape (n_samples,)
         weights : ndarray or None
         """
         # Extract the data points from this sub set
@@ -489,32 +527,243 @@ class _AucPlotter(VectorPlotter):
         # df.dropna(axis=1, how="all")  # Drop completely empty columns
 
         # Drop rows missing either true labels or predicted scores
-        sub = sub_data.dropna(subset=["x", "y"])
+        required = ["x", "y"]
+        subset_cols = required + (["weights"] if "weights" in sub_data.columns else [])
+        sub = sub_data.dropna(subset=subset_cols)
         if sub.empty:
             return None, None, None
 
         try:
             # Coerce true labels to integers array (0/1 for binary classification)
             y_true = np.asarray(sub["x"], dtype=int)  # .astype(int)
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             raise ValueError(f"Cannot convert x to integer labels: {e}") from e
 
         # Scores must be float
         try:
-            y_score = np.asarray(sub["y"], dtype=float)  # .astype(float)
-        except Exception as e:
+            y_in = np.asarray(sub["y"], dtype=float)  # .astype(float)
+        except Exception as e:  # pragma: no cover
             raise ValueError(f"Cannot convert y to float scores: {e}") from e
 
         # Extract weights if present
-        weights = sub["weights"].to_numpy() if "weights" in sub.columns else None
+        weights = None
+        if "weights" in sub.columns:
+            weights = sub["weights"].to_numpy(dtype=float)
+            if np.any(weights < 0):
+                raise ValueError("weights must be non-negative.")
+            if not np.isfinite(weights).all():
+                raise ValueError("weights contains NaN or infinite values.")
+
+        if np.issubdtype(y_true.dtype, np.number) and not np.isfinite(y_true).all():
+            raise ValueError("x contains NaN or infinite values.")
+        if np.issubdtype(y_in.dtype, np.number) and not np.isfinite(y_in).all():
+            raise ValueError("y contains NaN or infinite values.")
+
+        if allow_probs:
+            y_score = np.asarray(y_in, dtype=float)
+            if np.any((y_score < 0) | (y_score > 1)):
+                raise ValueError("y must be within [0, 1] when allow_probs=True.")
+
+            classes = unique_labels(y_true) if labels is None else np.asarray(labels)
+
+            if len(classes) != 2:  # noqa: PLR2004
+                raise ValueError(
+                    "allow_probs=True requires binary classification (2 unique labels)."  # noqa: E501
+                )
+
+            neg_label, pos_label = classes[0], classes[1]
+            y_pred = np.where(y_score > threshold, pos_label, neg_label)
+        else:
+            # Interpret y as predicted labels
+            y_pred = y_in
+
+        if weights is None:
+            check_consistent_length(y_true, y_pred)
+        else:
+            check_consistent_length(y_true, y_pred, weights)
 
         return y_true, y_score, weights
 
-    def _compute_pr(
+    @staticmethod
+    def _weighted_positive_rate(
+        y_true: np.ndarray,
+        sample_weight: np.ndarray | None,
+    ) -> float:
+        """Compute positive prevalence in a deterministic, weighted way."""
+        if sample_weight is None:
+            return float(np.mean(y_true))
+        sw = np.asarray(sample_weight, dtype=float)
+        return float(np.sum(y_true * sw) / np.sum(sw))
+
+    @staticmethod
+    def _validate_curve_inputs(
+        y_true: np.ndarray,
+        y_score: np.ndarray,
+        sample_weight: np.ndarray | None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+        """
+        Validate inputs for PR/ROC curve computation.
+
+        Ensures binary ``y_true`` in ``{0, 1}`` and numeric finite ``y_score``.
+        """
+        y_true = check_array(y_true, ensure_2d=False, dtype=int).ravel()
+        y_score = check_array(y_score, ensure_2d=False, dtype=float).ravel()
+
+        check_consistent_length(y_true, y_score)
+
+        if sample_weight is not None:
+            sample_weight = check_array(
+                sample_weight, ensure_2d=False, dtype=float
+            ).ravel()
+            check_consistent_length(y_true, sample_weight)
+            if np.any(sample_weight < 0):
+                raise ValueError("sample_weight must be non-negative.")
+
+        unique_true = np.unique(y_true)
+        if not np.isin(unique_true, [0, 1]).all():
+            raise ValueError(
+                f"y_true must be binary in {{0, 1}}; got unique values: {unique_true}"
+            )
+
+        if not (np.isfinite(y_true).all() and np.isfinite(y_score).all()):
+            raise ValueError("y_true or y_score contains NaN or inf values.")
+
+        return y_true, y_score, sample_weight
+
+    def assert_binary_compat(  # noqa: PLR0912
         self,
         y_true,
-        y_score,
-        sample_weight,
+        y_score=None,
+        y_pred=None,
+        threshold=0.5,
+        allow_probs=True,
+    ):
+        """
+        Validate compatibility of y_true, y_score, and y_pred for binary classification input consistency.
+
+        Supports:
+            - (y_true, y_pred)
+            - (y_true, y_score) → auto-derives y_pred from y_score if needed.
+
+        Ensures:
+            • same length and shape
+            • no NaN / inf values
+            • binary {0,1} targets
+            • valid [0,1] probability ranges when allow_probs=True
+            • consistent return of (y_true, y_score, y_pred)
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,)
+            True binary target values {0, 1}.
+
+        y_score : array-like of shape (n_samples,), optional
+            Predicted scores or probabilities. Used if `y_pred` is not given.
+
+        y_pred : array-like of shape (n_samples,), optional
+            Predicted binary labels {0, 1}. If not provided, will be derived from
+            `y_score` using `threshold`.
+
+        threshold : float, default=0.5
+            Threshold used to convert `y_score` to binary labels when `y_pred` is None.
+
+        allow_probs : bool, default=False
+            Whether `y_score` can contain probabilities in [0, 1].
+            When True, `y_pred` is derived as (y_score > threshold) like :py:func:`numpy.argmax`.
+
+        Returns
+        -------
+        tuple of ndarray of shape (n_samples,)
+            (y_true, y_score, y_pred)
+
+            • `y_score` may be None if not provided.
+            • `y_pred` is always returned and guaranteed strictly binary {0, 1}.
+
+        Raises
+        ------
+        ValueError
+            If input arrays are incompatible, contain NaN/inf, or non-binary values.
+
+        Examples
+        --------
+        >>> assert_binary_compat([0, 1, 0], [0.1, 0.9, 0.3])  # auto thresholds
+        >>> assert_binary_compat([0, 1, 0], y_pred=[0, 1, 0])  # direct
+        >>> assert_binary_compat([0, 1, 0], [0.1, 0.9, 0.3], allow_probs=True)
+        """
+        # --- Input normalization ---
+        # Convert if provided (keeps None otherwise)
+        y_true = np.asarray(y_true).ravel()
+        y_score = np.asarray(y_score).ravel() if y_score is not None else None
+        y_pred = np.asarray(y_pred).ravel() if y_pred is not None else None
+
+        # --- Normalize and validate inputs ---
+        y_true = check_array(y_true, ensure_2d=False, dtype=int)
+        y_score = (
+            check_array(y_score, ensure_2d=False, dtype=float)
+            if y_score is not None
+            else None
+        )
+        y_pred = (
+            check_array(y_pred, ensure_2d=False, dtype=int)
+            if y_pred is not None
+            else None
+        )
+
+        # --- Validate presence/combination ---
+        if y_score is None and y_pred is None:
+            raise ValueError(
+                "Either y_score or y_pred must be provided (not both None)."
+            )
+        if y_score is not None and y_pred is not None:
+            raise ValueError("Provide only one of y_score or y_pred, not both.")
+
+        # --- Auto-Derive y_pred if y_score is given ---
+        if y_score is not None:
+            if allow_probs:
+                if not ((y_score >= 0) & (y_score <= 1)).all():
+                    raise ValueError(
+                        "y_score must be within [0, 1] when allow_probs=True"
+                    )
+                y_pred = np.asarray(y_score > threshold, dtype=int)  # .astype(int)
+            else:
+                unique_score = np.unique(y_score)
+                if not np.isin(unique_score, [0, 1]).all():
+                    raise ValueError(
+                        f"y_score must be binary when allow_probs=False; got unique values {unique_score}"
+                    )
+                y_pred = np.asarray(y_score, dtype=int)  # .astype(int)
+
+        # --- Validate binary y_true ---
+        unique_true = np.unique(y_true)
+        if not np.isin(unique_true, [0, 1]).all():
+            raise ValueError(f"y_true must be binary; got unique values: {unique_true}")
+
+        # --- Validate binary y_pred ---
+        unique_pred = np.unique(y_pred)
+        if not np.isin(unique_pred, [0, 1]).all():
+            raise ValueError(f"y_pred must be binary; got unique values: {unique_pred}")
+
+        # --- Length consistency ---
+        check_consistent_length(y_true, y_pred)
+
+        # --- NaN / Inf checks (faster in one call) ---
+        # assert np.isfinite(y_true).all(), "y_true contains NaN or inf"  # noqa: S101
+        if not (np.isfinite(y_true).all() and np.isfinite(y_pred).all()):
+            raise ValueError("y_true or y_pred contains NaN or inf values")
+
+        # --- Sanity & consistency checks ---
+        n_true, n_pred = len(y_true), len(y_pred)
+        if n_true != n_pred:
+            raise ValueError(f"Length mismatch: y_true={n_true}, y_pred={n_pred}")
+
+        # --- Return consistent tuple ---
+        return y_true, y_score, y_pred
+
+    @staticmethod
+    def _compute_pr(
+        y_true: np.ndarray,
+        y_score: np.ndarray,
+        sample_weight: np.ndarray | None,
         # sub_vars,
     ) -> "tuple[np.ndarray, np.ndarray, float] | None":  # noqa: UP037
         # pick one
@@ -539,12 +788,13 @@ class _AucPlotter(VectorPlotter):
             # Option 1: trapezoidal PR-AUC (not standard)
             # pr_auc_trapz = auc(recall, precision)
             # Option 2: average precision (preferred sklearn)
-            pr_auc_avg = average_precision_score(
+            ap = average_precision_score(
                 y_true,
                 y_score,
                 sample_weight=sample_weight,
             )
-            return recall, precision, pr_auc_avg
+            # Plot with recall on x-axis, precision on y-axis
+            return recall, precision, ap
         except Exception as e:
             warnings.warn(
                 f"Unable to compute PR curve for subset {''}: {e}",
@@ -553,12 +803,11 @@ class _AucPlotter(VectorPlotter):
             )
             return None, None, None
 
+    @staticmethod
     def _compute_roc(
-        self,
-        y_true,
-        y_score,
-        sample_weight,
-        # sub_vars,
+        y_true: np.ndarray,
+        y_score: np.ndarray,
+        sample_weight: np.ndarray | None,
     ) -> "tuple[np.ndarray, np.ndarray, float] | None":  # noqa: UP037
         try:
             # prepare coordinates (fpr on x, tpr on y)
@@ -568,6 +817,7 @@ class _AucPlotter(VectorPlotter):
                 y_score,
                 sample_weight=sample_weight,  # pos_label=None
             )
+            # Plot with fpr on x-axis, tpr on y-axis
             return fpr, tpr, auc(fpr, tpr)  # roc_auc
         except Exception as e:
             warnings.warn(
@@ -743,135 +993,6 @@ class _AucPlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def assert_binary_compat(  # noqa: PLR0912
-        self,
-        y_true,
-        y_score=None,
-        y_pred=None,
-        threshold=0.5,
-        allow_probs=True,
-    ):
-        """
-        Validate compatibility of y_true, y_score, and y_pred for binary classification input consistency.
-
-        Supports:
-            - (y_true, y_pred)
-            - (y_true, y_score) → auto-derives y_pred from y_score if needed.
-
-        Ensures:
-            • same length and shape
-            • no NaN / inf values
-            • binary {0,1} targets
-            • valid [0,1] probability ranges when allow_probs=True
-            • consistent return of (y_true, y_score, y_pred)
-
-        Parameters
-        ----------
-        y_true : array-like of shape (n_samples,)
-            True binary target values {0, 1}.
-
-        y_score : array-like of shape (n_samples,), optional
-            Predicted scores or probabilities. Used if `y_pred` is not given.
-
-        y_pred : array-like of shape (n_samples,), optional
-            Predicted binary labels {0, 1}. If not provided, will be derived from
-            `y_score` using `threshold`.
-
-        threshold : float, default=0.5
-            Threshold used to convert `y_score` to binary labels when `y_pred` is None.
-
-        allow_probs : bool, default=False
-            Whether `y_score` can contain probabilities in [0, 1].
-            When True, `y_pred` is derived as (y_score > threshold) like :py:func:`numpy.argmax`.
-
-        Returns
-        -------
-        tuple of ndarray of shape (n_samples,)
-            (y_true, y_score, y_pred)
-
-            • `y_score` may be None if not provided.
-            • `y_pred` is always returned and guaranteed strictly binary {0, 1}.
-
-        Raises
-        ------
-        ValueError
-            If input arrays are incompatible, contain NaN/inf, or non-binary values.
-
-        Examples
-        --------
-        >>> assert_binary_compat([0, 1, 0], [0.1, 0.9, 0.3])  # auto thresholds
-        >>> assert_binary_compat([0, 1, 0], y_pred=[0, 1, 0])  # direct
-        >>> assert_binary_compat([0, 1, 0], [0.1, 0.9, 0.3], allow_probs=True)
-        """
-        # --- Input normalization ---
-        # Convert if provided (keeps None otherwise)
-        y_true = np.asarray(y_true).ravel()
-        y_score = np.asarray(y_score).ravel() if y_score is not None else None
-        y_pred = np.asarray(y_pred).ravel() if y_pred is not None else None
-
-        # --- Normalize and validate inputs ---
-        y_true = check_array(y_true, ensure_2d=False, dtype=int)
-        y_score = (
-            check_array(y_score, ensure_2d=False, dtype=float)
-            if y_score is not None
-            else None
-        )
-        y_pred = (
-            check_array(y_pred, ensure_2d=False, dtype=int)
-            if y_pred is not None
-            else None
-        )
-
-        # --- Validate presence/combination ---
-        if y_score is None and y_pred is None:
-            raise ValueError(
-                "Either y_score or y_pred must be provided (not both None)."
-            )
-        if y_score is not None and y_pred is not None:
-            raise ValueError("Provide only one of y_score or y_pred, not both.")
-
-        # --- Auto-Derive y_pred if y_score is given ---
-        if y_score is not None:
-            if allow_probs:
-                if not ((y_score >= 0) & (y_score <= 1)).all():
-                    raise ValueError(
-                        "y_score must be within [0, 1] when allow_probs=True"
-                    )
-                y_pred = np.asarray(y_score > threshold, dtype=int)  # .astype(int)
-            else:
-                unique_score = np.unique(y_score)
-                if not np.isin(unique_score, [0, 1]).all():
-                    raise ValueError(
-                        f"y_score must be binary when allow_probs=False; got unique values {unique_score}"
-                    )
-                y_pred = np.asarray(y_score, dtype=int)  # .astype(int)
-
-        # --- Validate binary y_true ---
-        unique_true = np.unique(y_true)
-        if not np.isin(unique_true, [0, 1]).all():
-            raise ValueError(f"y_true must be binary; got unique values: {unique_true}")
-
-        # --- Validate binary y_pred ---
-        unique_pred = np.unique(y_pred)
-        if not np.isin(unique_pred, [0, 1]).all():
-            raise ValueError(f"y_pred must be binary; got unique values: {unique_pred}")
-
-        # --- Length consistency ---
-        check_consistent_length(y_true, y_pred)
-
-        # --- NaN / Inf checks (faster in one call) ---
-        # assert np.isfinite(y_true).all(), "y_true contains NaN or inf"  # noqa: S101
-        if not (np.isfinite(y_true).all() and np.isfinite(y_pred).all()):
-            raise ValueError("y_true or y_pred contains NaN or inf values")
-
-        # --- Sanity & consistency checks ---
-        n_true, n_pred = len(y_true), len(y_pred)
-        if n_true != n_pred:
-            raise ValueError(f"Length mismatch: y_true={n_true}, y_pred={n_pred}")
-
-        # --- Return consistent tuple ---
-        return y_true, y_score, y_pred
-
     # -------------------------
     # AUC plotting
     # -------------------------
@@ -900,7 +1021,7 @@ class _AucPlotter(VectorPlotter):
         digits: "int | None" = None,  # noqa: UP037
         verbose=False,
         **plot_kws,
-    ):
+    ) -> None:
         # x_col = self.variables.get("x")
         # y_col = self.variables.get("y")
         # # If no x/y data return early
@@ -912,6 +1033,9 @@ class _AucPlotter(VectorPlotter):
         # line_kws = {} if line_kws is None else line_kws.copy()
         # estimate_kws = {} if estimate_kws is None else estimate_kws.copy()
         # orient = self.data_variable
+
+        annot = bool(annot) if annot is not None else False
+        annot_kws = {} if annot_kws is None else dict(annot_kws)
 
         # Interpret plotting options
         # label = plot_kws.pop("label", "")
@@ -945,7 +1069,12 @@ class _AucPlotter(VectorPlotter):
 
             # plot line and optional fill, Use element "line" for curve plotting
             artist_kws = self._artist_kws(
-                plot_kws, fill, "line", "layer", sub_color, alpha
+                plot_kws,
+                fill,
+                "line",
+                "layer",
+                sub_color,
+                alpha,
             )
             # Merge user requested line style/marker if present
             if linestyle is not None:
@@ -956,9 +1085,11 @@ class _AucPlotter(VectorPlotter):
             # Prepare arrays
             try:
                 y_true, y_score, _sw = self._prepare_subset(sub_data)
+                if y_true is None:
+                    continue
             except ValueError as e:
                 warnings.warn(
-                    f"Skipping subset {sub_vars} due to data error: {e}",
+                    f"Skipping subset {dict(sub_vars)!r} due to data error: {e}",
                     UserWarning,
                     stacklevel=2,
                 )
@@ -969,9 +1100,6 @@ class _AucPlotter(VectorPlotter):
                 # threshold=threshold,
                 # allow_probs=allow_probs,
             )
-            if y_true is None:
-                continue
-
             # binary vs multiclass detection
             # classes = unique_labels(y_true, y_pred)  # both sorted
             classes = np.unique(y_true)
@@ -1049,6 +1177,8 @@ def aucplot(  # noqa: D417
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
     # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
     # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+
+    # Normalize and validate arguments
     kind = (kind and kind.lower().strip()) or "roc"
     _check_argument(
         "kind",
@@ -1091,8 +1221,10 @@ def aucplot(  # noqa: D417
         return ax
 
     # --- Draw the plots
+    # Direct keyword arguments should take precedence over the dict.
     auc_kws = kwargs.copy()
     # auc_kws["color"] = color
+
     # _assign_default_kwargs(pr_kws, p.plot_rocauc, prplot)
     p.plot_aucplot(
         kind=kind,
@@ -1110,7 +1242,7 @@ def aucplot(  # noqa: D417
 
 
 aucplot.__doc__ = """\
-AUC curve plot, Seaborn-style.
+Plot PR or ROC curves with a seaborn-like API.
 
 Parameters
 ----------
@@ -1164,9 +1296,19 @@ Returns
 
 .. warning::
 
-    Some function parameters are experimental prototypes.
-    These may be modified, renamed, or removed in future library versions.
-    Use with caution and check documentation for the latest updates.
+Some function parameters are experimental prototypes.
+These may be modified, renamed, or removed in future library versions.
+Use with caution and check documentation for the latest updates.
+
+See Also
+--------
+sklearn.metrics.roc_curve
+sklearn.metrics.precision_recall_curve
+sklearn.metrics.average_precision_score
+
+Notes
+-----
+For PR curves, the score displayed as ``AUC`` is Average Precision (AP).
 """.format(  # noqa: UP032
     params=_param_docs,
     returns=_core_docs["returns"],

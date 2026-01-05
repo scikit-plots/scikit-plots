@@ -1,6 +1,11 @@
 """
-Seaborn-style scikit-plots Plotting.
+Seaborn-style scikit-plots plotting (snsx).
+
+This submodule provides a seaborn-like, high-level plotting API for
+machine-learning model exploration.
 """
+
+from __future__ import annotations
 
 from ._auc import aucplot
 from ._confusion_matrix import evalplot

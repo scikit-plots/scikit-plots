@@ -59,7 +59,7 @@ from sklearn.utils.validation import (
     validate_data,
 )
 
-from ..utils._path import PathNamer, make_path, normalize_directory_path
+from ..utils._path import PathNamer, make_path, make_temp_path, normalize_directory_path
 from ..utils._time import Timer
 from ._privacy import OutsourcedIndexMixin
 
@@ -542,9 +542,6 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         self.n_jobs = n_jobs
         self.random_state = random_state
 
-        # if index_access not in {"public", "private"}:
-        #     raise ValueError("index_access must be 'public' or 'private'")
-
     # ------------------------------------------------------------------ #
     # Optional public view of the index (encapsulated)
     # ------------------------------------------------------------------ #
@@ -594,62 +591,54 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         - If ``self.index_store_path`` is a :class:`~scikitplot.utils._path.PathNamer`,
         a single path is generated once and then cached.
         """
+        index_store_path = getattr(self, "index_store_path", None)
+        index_access = getattr(self, "index_access", "external")
+
         # Cosmetic extension only; actual backend governs file content/format.
         backend = getattr(self, "backend", "annoy")
         ext = ".voy" if backend == "voyager" else ".annoy"
 
-        index_access = getattr(self, "index_access", "external")
-        store = getattr(self, "index_store_path", None)
-
-        # ------------------------------------------------------------------ #
-        # Non-external modes: never auto-generate a path.
-        # ------------------------------------------------------------------ #
-        if index_access != "external":
-            if store is None:
-                return None
-
-            # If already cached as a string/pathlike, normalize + re-cache.
-            if isinstance(store, (str, os.PathLike)):
-                resolved = normalize_directory_path(store)
-                self.index_store_path = resolved
-                return resolved
-
-            # If user provided a generator, generate once then cache.
-            if isinstance(store, PathNamer):
-                generated = store.make_path(
-                    # prefix="ANNImputer", ext=ext
+        if index_access == "external":
+            # ------------------------------------------------------------------ #
+            # External mode: a path is required; generate one if not provided.
+            # ------------------------------------------------------------------ #
+            if index_store_path is None:
+                # Generate once and cache. Keep in current working directory by default.
+                self.index_store_path = str(
+                    make_path(
+                        prefix="ANNImputer",
+                        ext=ext,
+                    )
                 )
-                resolved = str(generated)
-                self.index_store_path = resolved
-                return resolved
+                return self.index_store_path
+
+            if isinstance(index_store_path, (str, os.PathLike)):
+                self.index_store_path = str(normalize_directory_path(index_store_path))
+                return self.index_store_path
+
+            if isinstance(index_store_path, PathNamer):
+                self.index_store_path = str(index_store_path.make_path())
+                return self.index_store_path
 
             raise TypeError(
                 "index_store_path must be None, a path-like (str/PathLike), or PathNamer."
             )
 
         # ------------------------------------------------------------------ #
-        # External mode: a path is required; generate one if not provided.
+        # Non-external modes: never auto-generate a path.
         # ------------------------------------------------------------------ #
-        if store is None:
-            # Generate once and cache. Keep in current working directory by default.
-            generated = make_path(
-                prefix="ANNImputer",
-                ext=ext,
-            )
-            resolved = str(generated)
-            self.index_store_path = resolved
-            return resolved
+        if index_store_path is None:
+            return None
 
-        if isinstance(store, (str, os.PathLike)):
-            resolved = normalize_directory_path(store)
-            self.index_store_path = resolved
-            return resolved
+        # If already cached as a string/pathlike, normalize + re-cache.
+        if isinstance(index_store_path, (str, os.PathLike)):
+            self.index_store_path = str(normalize_directory_path(index_store_path))
+            return self.index_store_path
 
-        if isinstance(store, PathNamer):
-            generated = store.make_path()
-            resolved = str(generated)
-            self.index_store_path = resolved
-            return resolved
+        # If user provided a generator, generate once then cache.
+        if isinstance(index_store_path, PathNamer):
+            self.index_store_path = str(index_store_path.make_path())
+            return self.index_store_path
 
         raise TypeError(
             "index_store_path must be None, a path-like (str/PathLike), or PathNamer."
@@ -901,14 +890,8 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
                     # external mode: build directly into the final file
                     build_path = external_path
                 else:
-                    # public/private: create a temporary backing file
-                    fd, temp_build_path = tempfile.mkstemp(
-                        prefix="annoy-build-",
-                        suffix=".annoy",
-                        dir=Path.cwd() or None,
-                    )
-                    os.close(fd)
-                    build_path = temp_build_path
+                    # public/private mode: create a temporary backing file
+                    build_path = make_temp_path(prefix="ANNImputer-", ext=".annoy")
 
             # Temporarily fill NaNs (mean/median/etc.) before index build
             X = self._apply_fill_vector(X)
@@ -948,7 +931,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             self._store_index(
                 train_index,
                 public_name="train_index_",
-                index_path=external_path if self.index_access == "external" else None,
+                index_path=external_path,
             )
 
             # Clean up temporary build file (public/private + on_disk_build)
@@ -1002,7 +985,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             self._store_index(
                 train_index,
                 public_name="train_index_",
-                index_path=external_path if self.index_access == "external" else None,
+                index_path=external_path,
             )
 
     def _build_index_for_backend(self, X_for_index: np.ndarray) -> None:

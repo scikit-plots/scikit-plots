@@ -80,23 +80,68 @@ class Index(
     Parameters
     ----------
     f : int or None, optional, default=None
-        Vector dimensionality passed to the backend. If ``0`` or ``None``, the backend may
-        infer dimensionality lazily from the first added vector.
-    metric : str or None, optional, default=None
-        Metric name passed to the backend. Common values include
-        ``"angular"``, ``"euclidean"``, ``"manhattan"``, ``"dot"``, and
-        ``"hamming"`` (synonyms may also be accepted by the backend).
-        If None, defaults to the backend default (typically ``"angular"``).
-    on_disk_path : str or os.PathLike or None, default=None
-        Optional backing path used by on-disk build and mmap load (backend-defined).
-    prefault : bool, default=False
-        Annoy prefault behavior (passed to low-level setter).
-    schema_version : int or None, default=None
-        Optional schema marker, when supported by the backend.
-    seed : int or None, default=None
-        Optional seed controlling backend randomness, when supported.
-    verbose : int or None, default=None
-        Optional verbosity level, when supported.
+        Vector dimension. If ``0`` or ``None``, dimension may be inferred from the
+        first vector passed to ``add_item`` (lazy mode).
+        If None, treated as ``0`` (reset to default).
+    metric : {"angular", "cosine", \
+            "euclidean", "l2", "lstsq", \
+            "manhattan", "l1", "cityblock", "taxicab", \
+            "dot", "@", ".", "dotproduct", "inner", "innerproduct", \
+            "hamming"} or None, optional, default=None
+        Distance metric (one of 'angular', 'euclidean', 'manhattan', 'dot', 'hamming').
+        If omitted and ``f > 0``, defaults to ``'angular'`` (cosine-like).
+        If omitted and ``f == 0``, metric may be set later before construction.
+        If None, behavior depends on ``f``:
+
+        * If ``f > 0``: defaults to ``'angular'`` (legacy behavior; may emit a
+        :class:`FutureWarning`).
+        * If ``f == 0``: leaves the metric unset (lazy). You may set
+        :attr:`metric` later before construction, or it will default to
+        ``'angular'`` on first :meth:`add_item`.
+    n_neighbors : int, default=5
+        Non-negative integer Number of neighbors to retrieve for each query.
+    on_disk_path : str or None, optional, default=None
+        If provided, configures the path for on-disk building. When the underlying
+        index exists, this enables on-disk build mode (equivalent to calling
+        :meth:`on_disk_build` with the same filename).
+
+        Note: Annoy core truncates the target file when enabling on-disk build.
+        This wrapper treats ``on_disk_path`` as strictly equivalent to calling
+        :meth:`on_disk_build` with the same filename (truncate allowed).
+
+        In lazy mode (``f==0`` and/or ``metric is None``), activation occurs once
+        the underlying C++ index is created.
+    prefault : bool or None, optional, default=None
+        If True, request page-faulting index pages into memory when loading
+        (when supported by the underlying platform/backing).
+        If None, treated as ``False`` (reset to default).
+    seed : int or None, optional, default=None
+        Non-negative integer seed. If set before the index is constructed,
+        the seed is stored and applied when the C++ index is created.
+        Seed value ``0`` is treated as \"use Annoy's deterministic default seed\"
+        (a :class:`UserWarning` is emitted when ``0`` is explicitly provided).
+    verbose : int or None, optional, default=None
+        Verbosity level. Values are clamped to the range ``[-2, 2]``.
+        ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
+        Logging level inspired by gradient-boosting libraries:
+
+        * ``<= 0`` : quiet (warnings only)
+        * ``1``    : info (Annoy's ``verbose=True``)
+        * ``>= 2`` : debug (currently same as info, reserved for future use)
+    schema_version : int, optional, default=None
+        Serialization/compatibility strategy marker.
+
+        This does not change the Annoy on-disk format, but it *does* control
+        how the index is snapshotted in pickles.
+
+        * ``0`` or ``1``: pickle stores a ``portable-v1`` snapshot (fast restore,
+        ABI-checked).
+        * ``2``: pickle stores ``canonical-v1`` (portable across ABIs; restores by
+        rebuilding deterministically).
+        * ``>=3``: pickle stores both portable and canonical (canonical is used as
+        a fallback if the ABI check fails).
+
+        If None, treated as ``0`` (reset to default).
 
     Attributes
     ----------
@@ -104,15 +149,28 @@ class Index(
         Vector dimension. ``0`` means "unknown / lazy".
     metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'}, default="angular"
         Canonical metric name, or None if not configured yet (lazy).
+    n_neighbors : int, default=5
+        Non-negative integer Number of neighbors to retrieve for each query.
     on_disk_path : str or None, optional, default=None
         Configured on-disk build path. Setting this attribute enables on-disk
         build mode (equivalent to :meth:`on_disk_build`), with safety checks
         to avoid implicit truncation of existing files.
+    seed, random_state : int or None, optional, default=None
+        Non-negative integer seed.
+    verbose : int or None, optional, default=None
+        Verbosity level.
     prefault : bool, default=False
         Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
     schema_version : int, default=0
         Reserved schema/version marker (stored; does not affect on-disk format).
-    y: dict | None, default=None
+    n_features, n_features_, n_features_in_ : int
+        Alias of `f` (dimension), provided for scikit-learn naming parity.
+    n_features_out_ : int
+        Number of output features produced by transform.
+    feature_names_in_ : list-like
+        Input feature names seen during fit.
+        Set only when explicitly provided via fit(..., feature_names=...).
+    y : dict | None, optional, default=None
         If provided to fit(X, y), labels are stored here after a successful build.
         You may also set this property manually. When possible, the setter enforces
         that len(y) matches the current number of items (n_items).
@@ -133,7 +191,7 @@ class Index(
     --------
     scikitplot.cexternals._annoy.Annoy
     Index.from_low_level
-    """
+    """  # noqa: D301
 
     # __slots__ = ()
     # Re-entrant lock for deterministic, thread-safe reduce/rebuild paths.

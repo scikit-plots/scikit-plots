@@ -807,6 +807,16 @@ grep:
 # - 'upstream' is the original repository (if needed)
 #
 
+# git ls-remote --heads origin | grep <branch_name>
+# git clone --branch <branch_name> --single-branch https://github.com/<org>/<repo>.git
+# git clone -b <branch_name> --single-branch --depth 1 <repo_url>  # Same, but shallow (faster / less history)
+# git switch -c <branch_name> --track origin/<branch_name>
+git_clone:
+	git clone <repo_url>
+	cd <repo>
+	git fetch origin <branch_name>
+	git checkout -b <branch_name> --track origin/<branch_name>
+
 git_pre_push_check:
 	@set -euo pipefail; \
 	echo ">> Pre-push checks..."; \

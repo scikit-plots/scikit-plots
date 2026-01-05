@@ -99,11 +99,12 @@ class AnnoyInfo(TypedDict):
     # Always-present keys (stable)
     f: Required[int]
     metric: Required[AnnoyMetricCanonical | None]
+    n_neighbors: Required[int]
     on_disk_path: Required[str | None]
     prefault: Required[bool]
-    schema_version: Required[int]
     seed: Required[int | None]
     verbose: Required[int | None]
+    schema_version: Required[int]
 
     # Optional keys (controlled by include_* flags)
     n_items: NotRequired[int]
@@ -122,11 +123,12 @@ class Annoy:
     >>>     f=None,
     >>>     metric=None,
     >>>     *,
+    >>>     n_neighbors=5,
     >>>     on_disk_path=None,
     >>>     prefault=None,
-    >>>     schema_version=None,
     >>>     seed=None,
     >>>     verbose=None,
+    >>>     schema_version=None,
     >>> )
 
     Parameters
@@ -146,18 +148,20 @@ class Annoy:
         If None, behavior depends on ``f``:
 
         * If ``f > 0``: defaults to ``'angular'`` (legacy behavior; may emit a
-          :class:`FutureWarning`).
+        :class:`FutureWarning`).
         * If ``f == 0``: leaves the metric unset (lazy). You may set
-          :attr:`metric` later before construction, or it will default to
-          ``'angular'`` on first :meth:`add_item`.
+        :attr:`metric` later before construction, or it will default to
+        ``'angular'`` on first :meth:`add_item`.
+    n_neighbors : int, default=5
+        Non-negative integer Number of neighbors to retrieve for each query.
     on_disk_path : str or None, optional, default=None
         If provided, configures the path for on-disk building. When the underlying
         index exists, this enables on-disk build mode (equivalent to calling
         :meth:`on_disk_build` with the same filename).
 
-        Safety: Annoy core truncates the target file when enabling on-disk build.
-        Therefore, if the path already exists, it is **not** truncated implicitly.
-        Call :meth:`on_disk_build` explicitly to overwrite.
+        Note: Annoy core truncates the target file when enabling on-disk build.
+        This wrapper treats ``on_disk_path`` as strictly equivalent to calling
+        :meth:`on_disk_build` with the same filename (truncate allowed).
 
         In lazy mode (``f==0`` and/or ``metric is None``), activation occurs once
         the underlying C++ index is created.
@@ -165,6 +169,19 @@ class Annoy:
         If True, request page-faulting index pages into memory when loading
         (when supported by the underlying platform/backing).
         If None, treated as ``False`` (reset to default).
+    seed : int or None, optional, default=None
+        Non-negative integer seed. If set before the index is constructed,
+        the seed is stored and applied when the C++ index is created.
+        Seed value ``0`` is treated as \"use Annoy's deterministic default seed\"
+        (a :class:`UserWarning` is emitted when ``0`` is explicitly provided).
+    verbose : int or None, optional, default=None
+        Verbosity level. Values are clamped to the range ``[-2, 2]``.
+        ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
+        Logging level inspired by gradient-boosting libraries:
+
+        * ``<= 0`` : quiet (warnings only)
+        * ``1``    : info (Annoy's ``verbose=True``)
+        * ``>= 2`` : debug (currently same as info, reserved for future use)
     schema_version : int, optional, default=None
         Serialization/compatibility strategy marker.
 
@@ -179,17 +196,6 @@ class Annoy:
         a fallback if the ABI check fails).
 
         If None, treated as ``0`` (reset to default).
-    seed : int or None, optional, default=None
-        Non-negative integer seed. If set before the index is constructed,
-        the seed is stored and applied when the C++ index is created.
-    verbose : int or None, optional, default=None
-        Verbosity level. Values are clamped to the range ``[-2, 2]``.
-        ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
-        Logging level inspired by gradient-boosting libraries:
-
-        * ``<= 0`` : quiet (warnings only)
-        * ``1``    : info (Annoy's ``verbose=True``)
-        * ``>= 2`` : debug (currently same as info, reserved for future use)
 
     Attributes
     ----------
@@ -197,15 +203,28 @@ class Annoy:
         Vector dimension. ``0`` means "unknown / lazy".
     metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'}, default="angular"
         Canonical metric name, or None if not configured yet (lazy).
+    n_neighbors : int, default=5
+        Non-negative integer Number of neighbors to retrieve for each query.
     on_disk_path : str or None, optional, default=None
         Configured on-disk build path. Setting this attribute enables on-disk
         build mode (equivalent to :meth:`on_disk_build`), with safety checks
         to avoid implicit truncation of existing files.
+    seed, random_state : int or None, optional, default=None
+        Non-negative integer seed.
+    verbose : int or None, optional, default=None
+        Verbosity level.
     prefault : bool, default=False
         Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
     schema_version : int, default=0
         Reserved schema/version marker (stored; does not affect on-disk format).
-    y: dict | None, default=None
+    n_features, n_features_, n_features_in_ : int
+        Alias of `f` (dimension), provided for scikit-learn naming parity.
+    n_features_out_ : int
+        Number of output features produced by transform.
+    feature_names_in_ : list-like
+        Input feature names seen during fit.
+        Set only when explicitly provided via fit(..., feature_names=...).
+    y : dict | None, optional, default=None
         If provided to fit(X, y), labels are stored here after a successful build.
         You may also set this property manually. When possible, the setter enforces
         that len(y) matches the current number of items (n_items).
@@ -225,26 +244,26 @@ class Annoy:
     Notes
     -----
     * Once the underlying C++ index is created, ``f`` and ``metric`` are immutable.
-      This keeps the object consistent and avoids undefined behavior.
+    This keeps the object consistent and avoids undefined behavior.
     * The C++ index is created lazily when sufficient information is available:
-      when both ``f > 0`` and ``metric`` are known, or when an operation that
-      requires the index is first executed.
+    when both ``f > 0`` and ``metric`` are known, or when an operation that
+    requires the index is first executed.
     * If ``f == 0``, the dimensionality is inferred from the first non-empty vector
-      passed to :meth:`add_item` and is then fixed for the lifetime of the index.
+    passed to :meth:`add_item` and is then fixed for the lifetime of the index.
     * Assigning ``None`` to :attr:`f` is not supported. Use ``0`` for lazy
-      inference (this matches ``Annoy(f=None, ...)`` at construction time).
+    inference (this matches ``Annoy(f=None, ...)`` at construction time).
     * If ``metric`` is omitted while ``f > 0``, the current behavior defaults to
-      ``'angular'`` and may emit a :class:`FutureWarning`. To avoid warnings and
-      future behavior changes, always pass ``metric=...`` explicitly.
+    ``'angular'`` and may emit a :class:`FutureWarning`. To avoid warnings and
+    future behavior changes, always pass ``metric=...`` explicitly.
     * Items must be added *before* calling :meth:`build`. After :meth:`build`, the
-      index becomes read-only; to add more items, call :meth:`unbuild`, add items
-      again with :meth:`add_item`, then call :meth:`build` again.
+    index becomes read-only; to add more items, call :meth:`unbuild`, add items
+    again with :meth:`add_item`, then call :meth:`build` again.
     * Very large indexes can be built directly on disk with :meth:`on_disk_build`
-      and then memory-mapped with :meth:`load`.
+    and then memory-mapped with :meth:`load`.
     * :meth:`info` returns a structured summary (dimension, metric, counts, and
-      optional memory usage) suitable for programmatic inspection.
+    optional memory usage) suitable for programmatic inspection.
     * This wrapper stores user configuration (e.g., seed/verbosity) even before the
-      C++ index exists and applies it deterministically upon construction.
+    C++ index exists and applies it deterministically upon construction.
 
     Developer Notes:
 
@@ -338,11 +357,10 @@ class Annoy:
     """
 
     # ---- Internal fields (implementation detail; present for type-checkers) ---
-    _schema_version: int
     _f: int
     _metric_id: int
-    _metric_id: int
     _prefault: bool
+    _schema_version: int
 
     # ---- Core configuration (lazy-safe properties) ---------------------------
     @property
@@ -354,6 +372,11 @@ class Annoy:
     def metric(self) -> AnnoyMetricCanonical | None: ...
     @metric.setter
     def metric(self, metric: AnnoyMetric | None) -> None: ...
+
+    @property
+    def n_neighbors(self) -> int: ...
+    @n_neighbors.setter
+    def n_neighbors(self, n_neighbors: int) -> None: ...
 
     @property
     def _on_disk_path(self) -> str | None: ...
@@ -368,19 +391,39 @@ class Annoy:
     def prefault(self, prefault: bool | None) -> None: ...
 
     @property
-    def schema_version(self) -> int: ...
-    @schema_version.setter
-    def schema_version(self, schema_version: int | None) -> None: ...
-
-    @property
     def seed(self) -> int | None: ...
     @seed.setter
     def seed(self, seed: int | None) -> None: ...
 
     @property
+    def random_state(self) -> int | None: ...
+    @random_state.setter
+    def random_state(self, seed: int | None) -> None: ...
+
+    @property
     def verbose(self) -> int | None: ...
     @verbose.setter
     def verbose(self, level: int | None) -> None: ...
+
+    @property
+    def schema_version(self) -> int: ...
+    @schema_version.setter
+    def schema_version(self, schema_version: int | None) -> None: ...
+
+    @property
+    def n_features_(self) -> int: ...
+    @property
+    def n_features_in_(self) -> int: ...
+    @property
+    def n_features(self) -> int: ...
+    @n_features.setter
+    def n_features(self, f: int) -> None: ...
+
+    @property
+    def n_features_out_(self) -> int: ...
+
+    @property
+    def feature_names_in_(self) -> list[str]: ...
 
     # Stored labels y (optional, scikit-learn compatible).
     @property
@@ -395,11 +438,12 @@ class Annoy:
         f: int | None = None,
         metric: AnnoyMetric | None = None,
         *,
+        n_neighbors: int = 5,
         on_disk_path: str | None = None,
         prefault: bool | None = None,
-        schema_version: int | None = None,
         seed: int | None = None,
         verbose: int | None = None,
+        schema_version: int | None = None,
     ) -> None: ...
 
     def __len__(self) -> int: ...
@@ -563,7 +607,7 @@ class Annoy:
         """
         Fit the Annoy index (scikit-learn compatible).
 
-        fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None)
+        fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)
 
         This method supports two deterministic workflows:
 
@@ -630,8 +674,8 @@ class Annoy:
         y_fill_value: Any = None,
     ) -> TransformOutput:
         """fit_transform(X, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None, \
-            missing_value=None, n_neighbors=5, search_k=-1, include_distances=False, \
-            return_labels=False, y_fill_value=None)
+            missing_value=None, feature_names=None, n_neighbors=None, search_k=-1, \
+            include_distances=False, return_labels=False, y_fill_value=None)
 
         Fit the index and transform X in a single deterministic call.
 
@@ -937,6 +981,32 @@ class Annoy:
         -----
         This is intended to make Annoy behave like a scikit-learn estimator for
         tools such as :func:`sklearn.base.clone` and parameter grids.
+        """
+        ...
+
+    def get_feature_names_out(self, input_features=None)
+        """
+        Get output feature names for the transformer-style API.
+
+        Parameters
+        ----------
+        input_features : sequence of str or None, optional, default=None
+            If provided, validated deterministically against the fitted input
+            feature names (if available) and the expected input dimensionality.
+
+        Returns
+        -------
+        tuple of str
+            Output feature names: ``('neighbor_0', ..., 'neighbor_{k-1}')`` where
+            ``k == n_neighbors``.
+
+        Raises
+        ------
+        AttributeError
+            If called before :meth:`fit`/`build`.
+        ValueError
+            If ``input_features`` is provided but does not match
+            :attr:`feature_names_in_`.
         """
         ...
 
@@ -1439,7 +1509,7 @@ class Annoy:
         input_type: TransformInputType = "vector",
         missing_value: float | None = None,
     ) -> TransformOutput:
-        """transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False, \
+        """transform(X, *, n_neighbors=None, search_k=-1, include_distances=False, return_labels=False, \
             y_fill_value=None, input_type='vector', missing_value=None)
 
         Transform queries into nearest-neighbor ids (and optional distances / labels).
@@ -1451,7 +1521,7 @@ class Annoy:
 
             - input_type='vector': X must be a 2D array-like of shape (n_queries, f).
             - input_type='item':   X must be a 1D sequence of item ids.
-        n_neighbors : int, default=5
+        n_neighbors : int or None, default=None
             Number of neighbors to retrieve for each query.
         search_k : int, default=-1
             Search parameter passed to Annoy (-1 uses Annoy's default).
@@ -1787,7 +1857,7 @@ class AnnoyLike(Protocol):
     # _metric_id: int
     # _on_disk_path: str or None
 
-    # --- Core configuration ---
+    # ---- Core configuration (lazy-safe properties) ---------------------------
     @property
     def f(self) -> int: ...
     @f.setter
@@ -1797,6 +1867,11 @@ class AnnoyLike(Protocol):
     def metric(self) -> AnnoyMetricCanonical | None: ...
     @metric.setter
     def metric(self, metric: AnnoyMetric | None) -> None: ...
+
+    @property
+    def n_neighbors(self) -> int: ...
+    @n_neighbors.setter
+    def n_neighbors(self, n_neighbors: int) -> None: ...
 
     @property
     def _on_disk_path(self) -> str | None: ...
@@ -1811,20 +1886,41 @@ class AnnoyLike(Protocol):
     def prefault(self, prefault: bool | None) -> None: ...
 
     @property
-    def schema_version(self) -> int: ...
-    @schema_version.setter
-    def schema_version(self, schema_version: int | None) -> None: ...
-
-    @property
     def seed(self) -> int | None: ...
     @seed.setter
     def seed(self, seed: int | None) -> None: ...
+
+    @property
+    def random_state(self) -> int | None: ...
+    @random_state.setter
+    def random_state(self, seed: int | None) -> None: ...
 
     @property
     def verbose(self) -> int | None: ...
     @verbose.setter
     def verbose(self, level: int | None) -> None: ...
 
+    @property
+    def schema_version(self) -> int: ...
+    @schema_version.setter
+    def schema_version(self, schema_version: int | None) -> None: ...
+
+    @property
+    def n_features_(self) -> int: ...
+    @property
+    def n_features_in_(self) -> int: ...
+    @property
+    def n_features(self) -> int: ...
+    @n_features.setter
+    def n_features(self, f: int) -> None: ...
+
+    @property
+    def n_features_out_(self) -> int: ...
+
+    @property
+    def feature_names_in_(self) -> list[str]: ...
+
+    # Stored labels y (optional, scikit-learn compatible).
     @property
     def _y(self) -> dict | None: ...
     @property

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import datetime as _dt
 import itertools
 import os
 from pathlib import Path
@@ -47,7 +48,6 @@ class PrivateIndexMixin:
     """
 
     # ---------------- internal storage helpers ---------------- #
-
     def _set_internal_index(self, index):
         """
         Store the fitted index in a name-mangled attribute on this mixin.
@@ -73,14 +73,31 @@ class PrivateIndexMixin:
             ) from exc
 
     # ---------------- public-policy helper ---------------- #
+    def _set_index(
+        self,
+        public_name: str = "train_index_",
+        value=None,
+    ):
+        """
+        Disallow external code from overwriting the internal index.
 
-    def _get_index(self, public_name: str):
+        The index should only be created during `fit`.
+        """
+        raise AttributeError(
+            f"Direct assignment to '{public_name}' is not supported. "
+            "The index is built internally during `fit`."
+        )
+
+    def _get_index(
+        self,
+        public_name: str = "train_index_",
+    ):
         """
         Return the internal index or raise if `index_access` is not ``'public'``.
 
         Parameters
         ----------
-        public_name : str
+        public_name : str, default="train_index_"
             Public attribute name for error messages
             (e.g. ``'train_index_'``).
         """
@@ -96,17 +113,6 @@ class PrivateIndexMixin:
             f"instantiated with `index_access='{mode}'`. Re-create it with "
             "`index_access='public'` if you need direct access to the "
             "underlying index object."
-        )
-
-    def _set_index(self, public_name: str, value):
-        """
-        Disallow external code from overwriting the internal index.
-
-        The index should only be created during `fit`.
-        """
-        raise AttributeError(
-            f"Direct assignment to '{public_name}' is not supported. "
-            "The index is built internally during `fit`."
         )
 
 
@@ -150,8 +156,8 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
         self,
         index,
         *,
-        public_name: str,
-        index_path: str | PathNamer | None = None,
+        public_name: str = "train_index_",
+        index_path: str | os.PathLike | PathNamer | None = None,
     ):
         """
         Store the fitted index according to ``index_access``.
@@ -167,7 +173,7 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
             The fitted ANN index. Must implement ``save(path)`` when
             used with ``index_access='external'``.
 
-        public_name : str
+        public_name : str, default="train_index_"
             Public attribute name used only for error messages
             (for example ``'train_index_'``).
 
@@ -179,12 +185,16 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
         """
         # Default to external if not set by the estimator
         mode = getattr(self, "index_access", "external")
+        on_disk_path = getattr(index, "on_disk_path", None)
 
         if mode not in {"public", "private", "external"}:
             raise ValueError(
                 f"{self.__class__.__name__}: invalid `index_access={mode!r}`. "
                 "Expected one of {'public', 'private', 'external'}."
             )
+
+        # Metadata: ISO 8601 creation time (for logs / audit)
+        self.index_created_at_ = _dt.datetime.now(_dt.timezone.utc).isoformat()
 
         # -------------------------------------------------------------
         # public / private  => normal in-memory behaviour
@@ -194,46 +204,26 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
             self._set_internal_index(index)
             # If caller passed a path we still record it as metadata,
             # but we do not require it.
-            if index_path is not None:
-                self.index_path_ = index_path  # str(index_path)
+            self.index_path_ = index_path  # str(index_path)
             return
 
         # -------------------------------------------------------------
         # external  => index kept on disk, only path stored on estimator
         # -------------------------------------------------------------
         if mode == "external":
-            # Persist the index to disk and keep only metadata on the estimator.
-            import datetime as _dt  # noqa: PLC0415
-            import uuid as _uuid  # noqa: PLC0415
-
-            # 1) Metadata: ISO 8601 creation time (for logs / audit)
-            created_at = _dt.datetime.now(_dt.timezone.utc)
-
-            # 2) OS-friendly file name if path not provided
+            # OS-friendly file name if path not provided
             if index_path is None:
-                # # Plain unix timestamp (int seconds)
-                # ts = int(created_at.timestamp())
-                # # Random UUID to avoid collisions
-                # uid = _uuid.uuid4().hex
-                # # Example: "1733735400-4f9c3b1f2d0e4c0a9e8d123456789abc.annoy"
-                # # index_path = f"{ts}-{uid}.annoy"
-                # base = Path(getattr(self, "index_base_dir", None) or ".")
-                # # ``"<unix-timestamp>-<uuid>.annoy"``
-                # index_path = (base / f"{ts}-{uid}.annoy").resolve()
                 index_path = make_path(
                     prefix="OutsourcedIndexMixin",
                 )
             elif isinstance(index_path, PathNamer):
-                index_path = index_path.make_path(
-                    # prefix="OutsourcedIndexMixin",
-                )
+                index_path = index_path.make_path()
             else:
                 index_path = Path(index_path).resolve()
 
             index_path.parent.mkdir(parents=True, exist_ok=True)
 
             # 3) Persist index and remember the path
-            on_disk_path = getattr(index, "on_disk_path", None)
             should_save = True
             if on_disk_path is not None:
                 try:
@@ -242,11 +232,11 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
                     should_save = str(on_disk_path) != str(index_path)
 
             if should_save:
+                # Persist the index to disk and keep only metadata on the estimator.
                 index.save(str(index_path))
 
             # Estimator metadata
             self.index_path_ = str(index_path)
-            self.index_created_at_ = created_at.isoformat()
 
             # Do NOT keep the index in the internal store. For runtime use,
             # call `_get_index_for_runtime` with an appropriate loader.
@@ -257,7 +247,11 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
             "Expected one of {'public', 'private', 'external'}."
         )
 
-    def _get_index_for_runtime(self, public_name: str, loader: callable | None = None):
+    def _get_index_for_runtime(
+        self,
+        public_name: str = "train_index_",
+        loader: callable | None = None,
+    ):
         """
         Return an index object usable at runtime (e.g. in ``transform``).
 
@@ -272,7 +266,7 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
 
         Parameters
         ----------
-        public_name : str
+        public_name : str, default="train_index_"
             Public attribute name used only for error messages.
 
         loader : Callable or None

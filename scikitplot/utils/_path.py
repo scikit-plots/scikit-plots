@@ -22,6 +22,7 @@ import itertools
 import os
 import re
 import secrets
+import tempfile
 import threading
 import uuid
 from dataclasses import dataclass
@@ -31,6 +32,7 @@ from pathlib import Path
 __all__ = [
     "PathNamer",
     "make_path",
+    "make_temp_path",
     "normalize_directory_path",
     "normalize_extension",
     "sanitize_path_component",
@@ -80,7 +82,7 @@ def _ensure_aware_utc(now: datetime | None) -> datetime:
         Timezone-aware datetime in UTC.
     """
     if now is None:
-        return datetime.now(timezone.utc)  # .isoformat()
+        return datetime.now(timezone.utc)  # .timestamp(), .isoformat()
     if now.tzinfo is None:
         return now.replace(tzinfo=timezone.utc)
     return now.astimezone(timezone.utc)
@@ -90,6 +92,15 @@ def _utc_timestamp_ms(now_utc: datetime) -> str:
     """Format a UTC datetime as YYYYMMDDTHHMMSSmmmZ."""
     # Example: 20260101T031522123Z
     return now_utc.strftime("%Y%m%dT%H%M%S") + f"{now_utc.microsecond // 1000:03d}Z"
+
+
+def _uuid4_hex():
+    return uuid.uuid4().hex
+
+
+def _secret_token_hex():
+    # 8 bytes => 16 hex chars (stronger opacity than the earlier 4 bytes).
+    return secrets.token_hex(8)
 
 
 def _next_counter(modulus: int = 1_000_000) -> int:
@@ -293,12 +304,12 @@ class PathNamer:
 
     Parameters
     ----------
-    root : pathlib.Path, default=Path("output")
-        Base directory where paths are created. "~" and env vars are expanded.
     default_prefix : str, default="file"
         Default filename prefix (sanitized before use).
     default_ext : str, default=""
         Default extension, with or without a leading dot (e.g., ``"csv"``).
+    root : pathlib.Path, default=Path("scikitplot-artifacts")
+        Base directory where paths are created. "~" and env vars are expanded.
     by_day : bool, default=False
         If True, nest outputs under ``YYYY/MM/DD`` using UTC dates.
     add_secret : bool, default=False
@@ -351,7 +362,7 @@ class PathNamer:
     Disable date folders and group under a custom subdirectory:
 
     >>> namer = PathNamer(
-    ...     root=Path("output"),
+    ...     root=Path("scikitplot-artifacts"),
     ...     by_day=False,
     ...     default_prefix="snapshot",
     ...     default_ext="parquet",
@@ -371,16 +382,19 @@ class PathNamer:
     Private (unguessable) names:
 
     >>> namer = PathNamer(
-    ...     root="output", default_prefix="report", default_ext="csv", private=True
+    ...     root="scikitplot-artifacts",
+    ...     default_prefix="report",
+    ...     default_ext="csv",
+    ...     private=True,
     ... )
     >>> p = namer.make_path()
     >>> p.name.endswith(".csv")
     True
     """
 
-    root: Path = Path("scikitplot-artifacts")
     default_prefix: str = "file"
     default_ext: str = ""
+    root: Path = Path("scikitplot-artifacts")
     by_day: bool = False
     add_secret: bool = False
     private: bool = False
@@ -411,23 +425,22 @@ class PathNamer:
         filename : str
             A filename (no directory) suitable for common filesystems.
         """
-        now_utc = _ensure_aware_utc(now)
-
         prefix_s = sanitize_path_component(
             prefix or self.default_prefix,
             default=self.default_prefix,
         )
         ext_s = normalize_extension(ext if ext is not None else self.default_ext)
 
+        now_utc = _ensure_aware_utc(now)
         ts = _utc_timestamp_ms(now_utc)
         ctr = _next_counter()
-        uid = uuid.uuid4().hex
+        uid = _uuid4_hex()
+        token = _secret_token_hex()  # 8 hex chars
 
+        # ``{prefix}-{YYYYMMDDTHHMMSSmmmZ}-{counter:06d}-{uuid4hex}[ -{secret} ].{ext}``
         parts = [prefix_s, ts, f"{ctr:06d}", uid]  # type: list[str]
-
         if self.private or self.add_secret:
-            # 8 bytes => 16 hex chars (stronger opacity than the earlier 4 bytes).
-            parts.append(secrets.token_hex(8))  # 8 hex chars
+            parts.append(token)
 
         return "-".join(parts) + ext_s
 
@@ -469,8 +482,8 @@ class PathNamer:
         A single timestamp (`now`) is used for both folder selection and filename,
         preventing mismatches at day boundaries.
         """
-        now_utc = _ensure_aware_utc(now)
         base = normalize_directory_path(self.root)
+        now_utc = _ensure_aware_utc(now)
 
         if self.by_day:
             base = base / now_utc.strftime("%Y/%m/%d")
@@ -487,9 +500,9 @@ _DEFAULT_NAMER = PathNamer()
 
 
 def make_path(
-    root: str | Path = _DEFAULT_NAMER.root,
     prefix: str = _DEFAULT_NAMER.default_prefix,
     ext: str = _DEFAULT_NAMER.default_ext,
+    root: str | Path = _DEFAULT_NAMER.root,
     *,
     by_day: bool = _DEFAULT_NAMER.by_day,
     add_secret: bool = _DEFAULT_NAMER.add_secret,
@@ -503,12 +516,12 @@ def make_path(
 
     Parameters
     ----------
-    root : str or pathlib.Path, default=Path("output")
-        Base output directory.
     prefix : str, default="file"
         Filename prefix.
     ext : str, default=""
         File extension (e.g., ``"csv"``).
+    root : str or pathlib.Path, default=Path("scikitplot-artifacts")
+        Base output directory.
     by_day : bool, default=False
         If True, nest outputs under ``YYYY/MM/DD`` in UTC.
     add_secret : bool, default=False
@@ -558,7 +571,11 @@ def make_path(
     Disable daily folders and write under a stable subdirectory:
 
     >>> p = make_path(
-    ...     root="output", by_day=False, subdir="runs", prefix="run", ext="json"
+    ...     root="scikitplot-artifacts",
+    ...     by_day=False,
+    ...     subdir="runs",
+    ...     prefix="run",
+    ...     ext="json",
     ... )
     >>> "runs" in p.as_posix()
     True
@@ -570,12 +587,26 @@ def make_path(
     True
     """
     namer = PathNamer(
-        root=normalize_directory_path(root),
         default_prefix=prefix,
         default_ext=ext,
+        root=normalize_directory_path(root),
         by_day=by_day,
         add_secret=add_secret,
         private=private,
         mkdir=mkdir,
     )
     return namer.make_path(subdir=subdir, now=now)
+
+
+def make_temp_path(
+    prefix: str = _DEFAULT_NAMER.default_prefix,
+    ext: str = _DEFAULT_NAMER.default_ext,
+    root: str | Path = _DEFAULT_NAMER.root,
+):
+    fd, temp_build_path = tempfile.mkstemp(
+        prefix=prefix,
+        suffix=ext,
+        dir=root or Path.cwd(),
+    )
+    os.close(fd)
+    return temp_build_path

@@ -4,6 +4,10 @@
 """
 Confusion Matrix [1]_ and a text report showing the main classification metrics visualization.
 
+This module provides :func:`evalplot`, a seaborn-like wrapper around scikit-learn's
+classification evaluation metrics. It can render a confusion matrix heatmap and/or
+a text-based classification report.
+
 References
 ----------
 .. [1] `scikit-learn contributors. (2025).
@@ -52,7 +56,7 @@ try:
     from seaborn.axisgrid import _facet_docs
     from seaborn.external import husl
     from seaborn.utils import _check_argument, _default_color
-except:
+except (ImportError, ModuleNotFoundError):
     from ..externals._seaborn._base import VectorPlotter
     from ..externals._seaborn._compat import groupby_apply_include_groups  # noqa: F401
     from ..externals._seaborn._docstrings import (
@@ -77,7 +81,7 @@ __all__ = [
 
 
 # ==================================================================================== #
-# Module documentation
+# Docstring components (seaborn-style)
 # ==================================================================================== #
 
 _dist_params = dict(  # noqa: C408
@@ -132,7 +136,7 @@ _param_docs = DocstringComponents.from_nested_components(
 # --------------------------------------------------------------------
 class _ConfusionMatrixPlotter(VectorPlotter):
     """
-    Seaborn-style ConfusionMatrix visualization.
+    Seaborn-style plotter for evaluation metrics.
 
     Expects the VectorPlotter pipeline to have mapped incoming data into
     standardized columns "x", "y", optionally grouping (hue), legend creation,
@@ -160,7 +164,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         super().__init__(data=data, variables=variables)
 
     @property
-    def univariate(self):
+    def univariate(self) -> bool:
         """Return True if only x or y are used."""
         # TODO this could go down to core, but putting it here now.
         # We'd want to be conceptually clear that univariate only applies
@@ -169,7 +173,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         return bool({"x", "y"} - set(self.variables))
 
     @property
-    def data_variable(self):
+    def data_variable(self) -> str:
         """Return the variable with data for univariate plots."""
         # TODO This could also be in core, but it should have a better name.
         if not self.univariate:
@@ -177,11 +181,14 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         return {"x", "y"}.intersection(self.variables).pop()
 
     @property
-    def has_xy_data(self):
+    def has_xy_data(self) -> bool:
         """Return True at least one of x or y is defined."""
         # TODO see above points about where this should go
         return bool({"x", "y"} & set(self.variables))
 
+    # -----------------------------------------------------------------
+    # Seaborn helpers (kept for consistency with VectorPlotter)
+    # -----------------------------------------------------------------
     def _add_legend(
         self,
         ax_obj,
@@ -223,7 +230,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
             )
 
     def _artist_kws(self, kws, fill, element, multiple, color, alpha):
-        """Handle differences between artists in filled/unfilled plots."""
+        """Normalize artist kwargs for filled/unfilled plotting."""
         kws = kws.copy()
         if fill:
             kws = normalize_kwargs(kws, mpl.collections.PolyCollection)
@@ -279,13 +286,17 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         labels = [lbl if lbl is not None else "" for lbl in labels]
         return handles, labels
 
-    # -------------------------
-    # Helpers - data extraction
-    # ------------------------
-    def _prepare_subset(
+    # -----------------------------------------------------------------
+    # Data extraction / validation
+    # -----------------------------------------------------------------
+    def _prepare_subset(  # noqa: PLR0912
         self,
         sub_data: pd.DataFrame,
-    ) -> "tuple[np.ndarray, np.ndarray, np.ndarray]":  # noqa: UP037
+        *,
+        threshold: float = 0.5,
+        allow_probs: bool = True,
+        labels=None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | tuple[None, None, None]:
         """
         Extract y_true (binary labels) and y_pred (prediction) arrays from a subset DataFrame.
 
@@ -295,10 +306,25 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         - Enforces types: y_true -> int (0/1), y_score -> float.
         - Internally y_pred -> int.
 
+        Parameters
+        ----------
+        sub_data : DataFrame
+            Subset data from :meth:`VectorPlotter.iter_data` with
+            ``from_comp_data=True``.
+        threshold : float
+            Threshold used to convert probabilities into predicted labels when
+            ``allow_probs=True``.
+        allow_probs : bool
+            If True, interpret ``y`` as probabilities in ``[0, 1]`` and threshold
+            into predicted labels. Requires binary classification.
+        labels : array-like, optional
+            Label ordering forwarded to scikit-learn. When ``allow_probs=True``,
+            this must be length 2 and is used to define the negative/positive class.
+
         Returns
         -------
         y_true : ndarray of shape (n_samples,)
-        y_pred : ndarray of shape (n_samples,)
+        y_score or y_pred : ndarray of shape (n_samples,)
         weights : ndarray or None
         """
         # Extract the data points from this sub set
@@ -312,7 +338,9 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         # df.dropna(axis=1, how="all")  # Drop completely empty columns
 
         # Drop rows missing either true labels or predicted scores
-        sub = sub_data.dropna(subset=["x", "y"])
+        required = ["x", "y"]
+        subset_cols = required + (["weights"] if "weights" in sub_data.columns else [])
+        sub = sub_data.dropna(subset=subset_cols)
         if sub.empty:
             return None, None, None
 
@@ -324,30 +352,69 @@ class _ConfusionMatrixPlotter(VectorPlotter):
 
         try:
             # Scores must be float
-            y_pred = np.asarray(sub["y"], dtype=float)  # .astype(float)
+            y_in = np.asarray(sub["y"], dtype=float)  # .astype(float)
         except Exception as e:
             raise ValueError(f"Cannot convert y to float scores: {e}") from e
 
         # Extract weights if present
-        weights = sub["weights"].to_numpy() if "weights" in sub.columns else None
+        weights = None
+        if "weights" in sub.columns:
+            weights = sub["weights"].to_numpy(dtype=float)
+            if np.any(weights < 0):
+                raise ValueError("weights must be non-negative.")
+            if not np.isfinite(weights).all():
+                raise ValueError("weights contains NaN or infinite values.")
+
+        if np.issubdtype(y_true.dtype, np.number) and not np.isfinite(y_true).all():
+            raise ValueError("x contains NaN or infinite values.")
+        if np.issubdtype(y_in.dtype, np.number) and not np.isfinite(y_in).all():
+            raise ValueError("y contains NaN or infinite values.")
+
+        if allow_probs:
+            y_score = np.asarray(y_in, dtype=float)
+            if np.any((y_score < 0) | (y_score > 1)):
+                raise ValueError("y must be within [0, 1] when allow_probs=True.")
+
+            classes = unique_labels(y_true) if labels is None else np.asarray(labels)
+
+            if len(classes) != 2:  # noqa: PLR2004
+                raise ValueError(
+                    "allow_probs=True requires binary classification (2 unique labels)."  # noqa: E501
+                )
+
+            neg_label, pos_label = classes[0], classes[1]
+            y_pred = np.where(y_score > threshold, pos_label, neg_label)
+        else:
+            # Interpret y as predicted labels
+            y_pred = y_in
+
+        if weights is None:
+            check_consistent_length(y_true, y_pred)
+        else:
+            check_consistent_length(y_true, y_pred, weights)
 
         return y_true, y_pred, weights
 
+    # -----------------------------------------------------------------
+    # Metric computation
+    # -----------------------------------------------------------------
     def _compute_classification_report(
         self,
         y_true,
         y_pred,
-        sample_weight,
+        sample_weight=None,
         labels=None,
-        digits=4,
-        normalize=None,
+        digits: int = 4,
+        normalize: "Literal['true', 'pred', 'all'] | None" = None,  # noqa: UP037
         # sub_vars=None,
     ) -> "tuple[int, float, str] | None":  # noqa: UP037
+        """Compute a scikit-learn classification report string."""
         try:
             # Generate the classification report
             s = classification_report(
                 y_true,
                 y_pred,
+                sample_weight=sample_weight,
                 labels=labels,
                 digits=digits,
                 zero_division=np.nan,
@@ -365,18 +432,20 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         self,
         y_true,
         y_pred,
-        sample_weight,
+        sample_weight=None,
         labels=None,
-        digits=4,
-        normalize=None,
+        digits: int = 4,
+        normalize: "Literal['true', 'pred', 'all'] | None" = None,  # noqa: UP037
         # sub_vars=None,
     ) -> "tuple[np.ndarray, None, None] | None":  # noqa: UP037
+        """Compute a scikit-learn confusion matrix."""
         try:
             # Generate the confusion matrix
             cm = np.around(
                 confusion_matrix(
                     y_true,
                     y_pred,
+                    sample_weight=sample_weight,
                     labels=labels,
                     normalize=normalize,
                 ),
@@ -391,6 +460,9 @@ class _ConfusionMatrixPlotter(VectorPlotter):
             )
             return None, None, None
 
+    # -----------------------------------------------------------------
+    # Plotting primitives
+    # -----------------------------------------------------------------
     def _plot_classification_report(
         self,
         y_true,
@@ -400,26 +472,30 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         labels,
         legend,
         ax,
+        cbar_kws,
         cbar,
         cbar_ax,
-        cbar_kws,
         text_kws,
         image_kws,
         annot_kws,
+        annot,
+        fmt,
         digits,
         **kws,
     ):
+        """Render the classification report into an axes."""
         # x, y
         x, y, s = self._compute_classification_report(
             y_true,
             y_pred,
             sample_weight,
             labels,
-            digits,
+            digits=int(digits) if digits is not None else 4,
         )
         # text_kws = kws.pop('text_kws', {})
         # ha: Horizontal alignment ('left', 'center', 'right').
         # text_kws["ha"] = text_kws.pop("horizontalalignment", text_kws.pop("ha", 'left'))
+        text_kws = {} if text_kws is None else text_kws.copy()
         text_kws.setdefault(
             "ha", text_kws.pop("horizontalalignment", text_kws.pop("ha", "center"))
         )
@@ -446,7 +522,8 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         artist = ax.text(
             x,
             y,
-            s,
+            s if s is not None else "Unable to compute classification report.",
+            # transform=ax.transAxes,
             **text_kws,
         )
         # ax.set_aspect('auto')  # not work expected
@@ -463,15 +540,19 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         labels,
         legend,
         ax,
+        cbar_kws,
         cbar,
         cbar_ax,
-        cbar_kws,
         text_kws,
         image_kws,
         annot_kws,
+        annot,
+        fmt,
         digits,
         **kws,
     ):
+        """Plot confusion matrix as a heatmap with optional annotations."""
+        normalize = kws.pop("normalize", None)
         # x, y
         x, _, _ = self._compute_confusion_matrix(
             y_true,
@@ -479,10 +560,23 @@ class _ConfusionMatrixPlotter(VectorPlotter):
             sample_weight,
             labels,
             digits,
+            normalize=normalize,
         )
+        if x is None:
+            ax.axis("off")
+            ax.text(
+                0.5,
+                0.5,
+                "Unable to compute confusion matrix.",
+                ha="center",
+                va="center",
+                # transform=ax.transAxes,
+            )
+            return
         # text_kws = kws.pop('text_kws', {})
         # ha: Horizontal alignment ('left', 'center', 'right').
         # text_kws["ha"] = text_kws.pop("horizontalalignment", text_kws.pop("ha", 'left'))
+        text_kws = {} if text_kws is None else text_kws.copy()
         text_kws.setdefault(
             "ha", text_kws.pop("horizontalalignment", text_kws.pop("ha", "center"))
         )
@@ -499,11 +593,17 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         # image_kws = kws.pop('image_kws', {})
         # Choose a colormap
         # image_kws["cmap"] = plt.get_cmap(image_kws.pop("cmap", None))
+        image_kws = {} if image_kws is None else image_kws.copy()
         image_kws.setdefault("aspect", image_kws.pop("aspect", "auto"))  # "equal"
         image_kws.setdefault("cmap", plt.get_cmap(image_kws.pop("cmap", None)))
 
+        if normalize is not None:
+            image_kws.setdefault("vmin", 0.0)
+            image_kws.setdefault("vmax", 1.0)
+
         fig = ax.figure
         ax.axis("off")
+        # ax.grid(True)
 
         # Save artist and label (include statement if legend requested)
         # artists, labels = [], []
@@ -515,12 +615,15 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         )
         # ax.set_aspect('auto')
         ax.set(
-            xlabel="Predicted Labels",
-            ylabel="True Labels",
+            xlabel="Predicted Label",
+            ylabel="True Label",
             title="Confusion Matrix",
         )
+
+        classes = np.asarray(classes)
         ax.set_xticks(np.arange(len(classes)))
         ax.set_yticks(np.arange(len(classes)))
+
         ax.set_xticklabels(
             classes,
             fontsize=text_kws["fontsize"],
@@ -530,13 +633,6 @@ class _ConfusionMatrixPlotter(VectorPlotter):
             fontsize=text_kws["fontsize"],
             # rotation=0,
         )
-        # ax.grid(True)
-
-        # Remove the edge of the matshow
-        ax.spines["top"].set_visible(False)
-        ax.spines["bottom"].set_visible(False)
-        ax.spines["left"].set_visible(False)
-        ax.spines["right"].set_visible(False)
 
         # Move x-axis labels to the bottom and y-axis labels to the right
         ax.xaxis.set_label_position("bottom")
@@ -544,15 +640,30 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         ax.yaxis.set_label_position("left")
         ax.yaxis.tick_left()
 
+        # Remove the edge of the matshow
+        # ax.spines["top"].set_visible(False)
+        # ax.spines["bottom"].set_visible(False)
+        # ax.spines["left"].set_visible(False)
+        # ax.spines["right"].set_visible(False)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
         # Add colorbar
         # from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         # ax1_divider = make_axes_locatable(ax1)
         # # Add an Axes to the right of the main Axes.
         # cax1 = ax1_divider.append_axes("right", size="7%", pad="2%")
         # cb1 = fig.colorbar(im1, cax=cax1)
-        cbar = fig.colorbar(mappable=artist, ax=ax)  # shrink=0.8
-        # Also remove the colorbar edge
-        cbar.outline.set_edgecolor("none")
+        if cbar:  # bool
+            cbar_kws = {} if cbar_kws is None else cbar_kws.copy()
+            cb = fig.colorbar(
+                mappable=artist, ax=ax, cax=cbar_ax, **cbar_kws
+            )  # shrink=0.8
+            # Also remove the colorbar edge
+            cb.outline.set_edgecolor("none")
+
+        # if annot and not fmt:
+        #     fmt = ".2f"
 
         # Annotate the matrix with dynamic text color
         threshold = x.max() / 2.0
@@ -564,17 +675,18 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                 else image_kws["cmap"].get_under
             )
             # Get the color at the top end of the colormap
+            # rgba = artist.cmap(artist.norm(val))
             rgba = cmap_method()  # Get the RGB values
 
             # Calculate the luminance of this color
             luminance = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2]
-
             # If luminance is low (dark color), use white text; otherwise, use black text
             text_color = {True: "w", False: "k"}[(luminance < 0.5)]  # noqa: PLR2004
+
             ax.text(
                 j,
                 i,
-                f"{val}",
+                f"{val}",  # format(val, fmt) if fmt else f"{val}"
                 color=text_color,
                 # transform=ax.transAxes,
                 **text_kws,
@@ -589,16 +701,18 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         labels,
         legend,
         ax,
+        cbar_kws,
         cbar,
         cbar_ax,
-        cbar_kws,
         text_kws,
         image_kws,
         annot_kws,
+        annot,
+        fmt,
         digits,
         **kws,
     ):
-        """1x2 dashboard with all metrics."""
+        """Render a 1x2 dashboard: report + confusion matrix."""
         # fig, axes = plt.subplots(2, 2, figsize=(10, 8))
         # Get the parent figure from the given Axes
         fig = ax.figure
@@ -634,12 +748,14 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                     labels,
                     legend,
                     _ax,
+                    cbar_kws,
                     cbar,
                     cbar_ax,
-                    cbar_kws,
                     text_kws,
                     image_kws,
                     annot_kws,
+                    annot,
+                    fmt,
                     digits,
                     **kws,
                 )
@@ -820,16 +936,20 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         # kde,
         # kde_kws,
         # line_kws,
+        cbar_kws,
         cbar,
         cbar_ax,
-        cbar_kws,
         text_kws,
         image_kws,
         annot_kws,
+        annot,
+        fmt,
         digits,
+        # normalize: "Literal['true', 'pred', 'all'] | None" = None,  # noqa: UP037
         verbose=False,
         **plot_kws,
     ) -> None:
+        """Draw evaluation plots for each semantic subset."""
         # x_col = self.variables.get("x")
         # y_col = self.variables.get("y")
         # # If no x/y data return early
@@ -969,12 +1089,14 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                         labels,
                         legend,
                         ax,
+                        cbar_kws,
                         cbar,
                         cbar_ax,
-                        cbar_kws,
                         text_kws,
                         image_kws,
                         annot_kws,
+                        annot,
+                        fmt,
                         digits,
                         **artist_kws,
                     )
@@ -995,12 +1117,13 @@ def evalplot(  # noqa: D417  # evalmap
     labels=None,
     threshold: float = 0.5,
     allow_probs: bool = False,
+    # normalize: "Literal['true', 'pred', 'all'] | None" = None,  # noqa: UP037
     # Hue mapping parameters
     hue_order=None,
     hue_norm=None,
     palette=None,
     color=None,
-    # appearance parameters
+    # Appearance keywords (reserved for API compatibility)
     fill=False,
     # Other appearance keywords
     baseline=False,
@@ -1010,21 +1133,22 @@ def evalplot(  # noqa: D417  # evalmap
     log_scale=None,
     legend=False,
     ax=None,
+    cbar_kws=None,
     cbar=True,
     cbar_ax=None,
-    cbar_kws=None,
     # smoothing
     text_kws=None,
     image_kws=None,
-    annot=None,
-    fmt="",
     annot_kws=None,
+    annot=True,
+    fmt="",
     # computation parameters
     digits: "int | None" = 4,  # noqa: UP037
     common_norm=None,
     verbose: bool = False,
     **kwargs,
 ) -> mpl.axes.Axes:
+    """Plot confusion matrix / classification report with a seaborn-like API."""
     # https://rsted.info.ucl.ac.be/
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
@@ -1083,12 +1207,14 @@ def evalplot(  # noqa: D417  # evalmap
         allow_probs=allow_probs,
         color=color,
         legend=legend,
+        cbar_kws=cbar_kws,
         cbar=cbar,
         cbar_ax=cbar_ax,
-        cbar_kws=cbar_kws,
         text_kws=text_kws,
         image_kws=image_kws,
         annot_kws=annot_kws,
+        annot=annot,
+        fmt=fmt,
         digits=digits or 2,
         **eval_kws,
     )
@@ -1107,14 +1233,24 @@ Parameters
 {params.core.xy}
 {params.core.hue}
 kind : {{'all', 'classification_report', 'confusion_matrix'}} or None, default=None
-    Kind of plot to make.
+    Which visualization to draw.
+
+    - ``'classification_report'``: text report from
+      :func:`sklearn.metrics.classification_report`.
+    - ``'confusion_matrix'``: heatmap from :func:`sklearn.metrics.confusion_matrix`.
+    - ``'all'``: a 1x2 dashboard (classification report + confusion matrix).
 weights : vector or key in ``data``
-    If provided, observation weights used for computing the distribution function.
-threshold : float, default=0.5 allow_probs: bool = False,
-    Used to observation `'y'` derive as `'y_pred'`.
-    Behavior like 'y > thr' see :py:func:`numpy.argmax`.
+    Sample weights passed to the underlying scikit-learn metric functions.
+labels : array-like, optional
+    Class label ordering. When provided, it is forwarded to
+    :func:`sklearn.metrics.confusion_matrix` and :func:`sklearn.metrics.classification_report`.
+threshold : float, default=0.5
+    Threshold used to convert probabilities into predicted class labels when
+    ``allow_probs=True``.
 allow_probs : bool, default=False
-    If provided, observation `'y'` assume probability to derive as `'y_pred'` by `'threshold'`.
+    If True, interpret ``y`` as probabilities in ``[0, 1]`` and derive predicted
+    labels via ``y > threshold``. This requires binary classification.
+    Behavior like 'y > thr' see :py:func:`numpy.argmax`.
 {params.core.hue_order}
 {params.core.hue_norm}
 {params.core.palette}
@@ -1127,15 +1263,15 @@ fill : bool or None
 {params.dist.log_scale}
 {params.dist.legend}
 {params.core.ax}
+{params.dist.cbar_kws}
 {params.dist.cbar}
 {params.dist.cbar_ax}
-{params.dist.cbar_kws}
-text_kws : dict
-    Parameters that control the `'classification_report'` visualization, passed to
-    :py:func:`~matplotlib.axes.Axes.text`.
-image_kws : dict
-    Parameters that control the `'confusion_matrix'` visualization, passed to
-    :py:func:`~matplotlib.axes.Axes.imshow`.
+text_kws : dict, optional
+    Keyword arguments passed to :meth:`matplotlib.axes.Axes.text` when rendering
+    the classification report (and for confusion-matrix annotations).
+image_kws : dict, optional
+    Keyword arguments passed to :meth:`matplotlib.axes.Axes.imshow` when drawing
+    the confusion matrix.
     Recognized keys:
 
     cmap : None, str or matplotlib.colors.Colormap, optional, default=None
@@ -1146,38 +1282,39 @@ image_kws : dict
         - https://matplotlib.org/stable/users/explain/colors/index.html
         - plt.colormaps()
         - plt.get_cmap()  # None == 'viridis'
-digits : int, optional, default=4
-    Number of digits for formatting output floating point values.
-    When ``output_dict`` is ``True``, this will be ignored and the
-    returned values will not be rounded.
-output_dict : bool, default=False
-    If True, return output as dict.
-zero_division : {{"warn", 0.0, 1.0, np.nan}}, default="warn"
-    Sets the value to return when there is a zero division. If set to
-    "warn", this acts as 0, but warnings are also raised.
-common_norm : bool
-    If True, scale each conditional density by the number of observations
-    such that the total area under all densities sums to 1. Otherwise,
-    normalize each density independently.
-verbose : bool, optional, default=False
-    Whether to be verbose.
-normalize : {{'true', 'pred', 'all', None}}, optional
-    Normalizes the confusion matrix according to the specified mode. Defaults to None.
-
-    - 'true': Normalizes by true (actual) values.
-    - 'pred': Normalizes by predicted values.
-    - 'all': Normalizes by total values.
-    - None: No normalization.
+annot_kws : dict of key, value mappings, optional
+    Keyword arguments for :meth:`matplotlib.axes.Axes.text` when ``annot``
+    is True.
 annot : bool or rectangular dataset, optional
     If True, write the data value in each cell. If an array-like with the
     same shape as ``data``, then use this to annotate the heatmap instead
     of the data. Note that DataFrames will match on position, not index.
 fmt : str, optional, default=''
-    String formatting code to use when adding annotations
-    (e.g., '.2g', '.4g').
-annot_kws : dict of key, value mappings, optional
-    Keyword arguments for :meth:`matplotlib.axes.Axes.text` when ``annot``
-    is True.
+    Formatting spec for confusion matrix annotations (e.g., ``'.2f'``). When
+    ``normalize`` is not None and ``fmt`` is empty, it defaults to ``'.2f'``.
+digits : int, optional, default=4
+    Number of digits for formatting output floating point values.
+    When ``output_dict`` is ``True``, this will be ignored and the
+    returned values will not be rounded.
+normalize : {{'true', 'pred', 'all', None}}, optional, default=None
+    Normalization mode passed to :func:`sklearn.metrics.confusion_matrix` when
+    ``kind`` includes ``'confusion_matrix'``.
+
+    - 'true': Normalizes by true (actual) values.
+    - 'pred': Normalizes by predicted values.
+    - 'all': Normalizes by total values.
+    - None: No normalization.
+common_norm : bool
+    If True, scale each conditional density by the number of observations
+    such that the total area under all densities sums to 1. Otherwise,
+    normalize each density independently.
+zero_division : {{"warn", 0.0, 1.0, np.nan}}, default="warn"
+    Sets the value to return when there is a zero division. If set to
+    "warn", this acts as 0, but warnings are also raised.
+output_dict : bool, default=False
+    If True, return output as dict.
+verbose : bool, optional, default=False
+    Whether to be verbose.
 kwargs
     Other keyword arguments are passed to one of the following matplotlib
     functions:
@@ -1194,11 +1331,23 @@ Returns
     These may be modified, renamed, or removed in future library versions.
     Use with caution and check documentation for the latest updates.
 
+See Also
+--------
+sklearn.metrics.confusion_matrix
+sklearn.metrics.classification_report
+
+Notes
+-----
+- When ``kind='all'``, a 1x2 dashboard is created. If the provided ``ax`` is not
+  the only axes in its figure, a new figure is created.
+- If multiple semantic subsets are present (e.g., multiple ``hue`` levels),
+  confusion-matrix-style plots do not overlay cleanly; only the first subset is
+  plotted and a warning is emitted.
+
 References
 ----------
-.. [1] `scikit-learn contributors. (2025).
-    "sklearn.metrics"
-    scikit-learn. https://scikit-learn.org/stable/api/sklearn.metrics.html
+.. [1] `scikit-learn contributors. (2025). "sklearn.metrics"
+    scikit-learn documentation. https://scikit-learn.org/stable/api/sklearn.metrics.html
     <https://scikit-learn.org/stable/api/sklearn.metrics.html>`_
 """.format(  # noqa: UP032
     params=_param_docs,
