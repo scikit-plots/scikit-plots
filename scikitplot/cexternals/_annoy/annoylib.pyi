@@ -984,7 +984,7 @@ class Annoy:
         """
         ...
 
-    def get_feature_names_out(self, input_features=None)
+    def get_feature_names_out(self, input_features=None) -> list[str]:
         """
         Get output feature names for the transformer-style API.
 
