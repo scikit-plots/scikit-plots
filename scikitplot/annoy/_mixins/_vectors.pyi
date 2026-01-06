@@ -126,7 +126,7 @@ class VectorOpsMixin:
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
         dtype: Any = ...,
-        return_type: Literal["id"],
+        output_type: Literal["item"],
     ) -> IndexArray: ...
     @overload
     def query_vectors_by_vector(
@@ -141,7 +141,7 @@ class VectorOpsMixin:
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
         dtype: Any = ...,
-        return_type: Literal["id"],
+        output_type: Literal["item"],
     ) -> tuple[IndexArray, DistanceArray]: ...
     @overload
     def query_vectors_by_vector(
@@ -156,7 +156,7 @@ class VectorOpsMixin:
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
         dtype: Any = ...,
-        return_type: Literal["vector"] = ...,
+        output_type: Literal["vector"] = ...,
     ) -> VectorMatrix: ...
     @overload
     def query_vectors_by_vector(
@@ -171,7 +171,7 @@ class VectorOpsMixin:
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
         dtype: Any = ...,
-        return_type: Literal["vector"] = ...,
+        output_type: Literal["vector"] = ...,
     ) -> tuple[VectorMatrix, DistanceArray]: ...
     @overload
     def kneighbors(
@@ -185,7 +185,7 @@ class VectorOpsMixin:
         exclude_item_ids: Iterable[int] | None = ...,
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
-        return_type: Literal["id"],
+        output_type: Literal["item"],
     ) -> NDArray[np.intp]: ...
     @overload
     def kneighbors(
@@ -199,7 +199,7 @@ class VectorOpsMixin:
         exclude_item_ids: Iterable[int] | None = ...,
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
-        return_type: Literal["id"],
+        output_type: Literal["item"],
     ) -> tuple[NDArray[np.intp], NDArray[np.float32]]: ...
     @overload
     def kneighbors(
@@ -213,7 +213,7 @@ class VectorOpsMixin:
         exclude_item_ids: Iterable[int] | None = ...,
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
-        return_type: Literal["vector"] = ...,
+        output_type: Literal["vector"] = ...,
     ) -> NDArray[np.float32]: ...
     @overload
     def kneighbors(
@@ -227,7 +227,7 @@ class VectorOpsMixin:
         exclude_item_ids: Iterable[int] | None = ...,
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
-        return_type: Literal["vector"] = ...,
+        output_type: Literal["vector"] = ...,
     ) -> tuple[NDArray[np.float32], NDArray[np.float32]]: ...
     def kneighbors_graph(
         self,
@@ -240,5 +240,5 @@ class VectorOpsMixin:
         exclude_item_ids: Iterable[int] | None = ...,
         ensure_all_finite: bool | Literal["allow-nan"] = ...,
         copy: bool = ...,
-        return_type: Literal["id"] = ...,
+        output_type: Literal["item"] = ...,
     ) -> Any: ...

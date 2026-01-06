@@ -21,6 +21,32 @@ Notes
 -----
 - This is a ``annoylib.pyi`` stub: it contains signatures and docstrings only.
 - Keep signatures and docstrings in sync with the C-extension's public API.
+
+Examples
+--------
+The public import path is stable and should be used as-is:
+
+>>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
+
+Build an index from vectors (``fit``) and query neighbors (``transform``):
+
+>>> idx = Annoy(f=128, metric='angular', n_neighbors=10)
+>>> idx.fit(X, n_trees=10)
+>>> ids = idx.transform(X_query, input_type='vector', output_type='item', n_neighbors=10)
+
+Query by stored item ids (and exclude the query id itself):
+
+>>> ids = idx.transform([0, 1], input_type='item', output_type='item', n_neighbors=10, exclude_self=True)
+
+Return neighbor vectors instead of ids:
+
+>>> vecs = idx.transform([0], input_type='item', output_type='vector', n_neighbors=5, exclude_self=True)
+
+Exclude explicit ids for vector queries (recommended; do not infer "self" from distance):
+
+>>> ids = idx.transform(X_query, input_type='vector', output_type='item', n_neighbors=10, exclude_items=[0, 1])
+
+Tip: set ``include_distances=True`` and/or ``return_labels=True`` to return distances and labels alongside neighbors.
 """
 
 # from __future__ import annotations
@@ -46,7 +72,8 @@ AnnoyMetricCanonical: TypeAlias = Literal[
 ]
 
 SerializeFormat: TypeAlias = Literal["native", "portable", "canonical"]
-TransformInputType: TypeAlias = Literal["vector", "item"]
+TransformInputType: TypeAlias = Literal["item", "vector"]
+TransformOutputType: TypeAlias = Literal["item", "vector"]
 
 ItemIndex: TypeAlias = int
 TreeCount: TypeAlias = int
@@ -60,13 +87,23 @@ NeighborLabels: TypeAlias = list[Any]
 Indices2D: TypeAlias = list[list[int]]
 Distances2D: TypeAlias = list[list[float]]
 Labels2D: TypeAlias = list[list[Any]]
+NeighborVectors3D: TypeAlias = list[list[list[float]]]
 
-TransformOutput: TypeAlias = (
+TransformItemOutput: TypeAlias = (
     Indices2D
     | tuple[Indices2D, Distances2D]
     | tuple[Indices2D, Labels2D]
     | tuple[Indices2D, Distances2D, Labels2D]
 )
+
+TransformVectorOutput: TypeAlias = (
+    NeighborVectors3D
+    | tuple[NeighborVectors3D, Distances2D]
+    | tuple[NeighborVectors3D, Labels2D]
+    | tuple[NeighborVectors3D, Distances2D, Labels2D]
+)
+
+TransformOutput: TypeAlias = TransformItemOutput | TransformVectorOutput
 
 # --- Generic type variable that preserves literal type ---
 # AnnoyMetricT = TypeVar("AnnoyMetricT", AnnoyMetric, bound=LiteralString)
@@ -603,6 +640,7 @@ class Annoy:
         reset: bool = True,
         start_index: int | None = None,
         missing_value: float | None = None,
+        feature_names: list[str] | None = None,
     ) -> Self:
         """
         Fit the Annoy index (scikit-learn compatible).
@@ -641,6 +679,9 @@ class Annoy:
             - Dict rows: fills missing keys (and None values) with missing_value.
 
             If None, missing entries raise an error (strict mode).
+        feature_names : sequence of str or None, optional, default=None
+            Provide feature names :attr:`feature_names_in_`
+            and the expected input dimensionality.
 
         Returns
         -------
@@ -667,6 +708,7 @@ class Annoy:
         reset: bool = True,
         start_index: int | None = None,
         missing_value: float | None = None,
+        feature_names: list[str] | None = None,
         n_neighbors: int = 5,
         search_k: int = -1,
         include_distances: bool = False,
@@ -682,7 +724,7 @@ class Annoy:
         This is equivalent to:
             self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...) \
             self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=..., \
-            y_fill_value=..., missing_value=...)
+            y_fill_value=..., input_type='vector', output_type='item', exclude_items=..., missing_value=...)
 
         See Also
         --------
@@ -1443,8 +1485,12 @@ class Annoy:
         return_labels: Literal[False] = ...,
         y_fill_value: Any = ...,
         input_type: Literal["vector"] = ...,
+        output_type: Literal["item"] = ...,
+        exclude_self: Literal[False] = ...,
+        exclude_items: Sequence[int] | None = ...,
         missing_value: float | None = ...,
     ) -> Indices2D: ...
+
     @overload
     def transform(
         self,
@@ -1452,12 +1498,16 @@ class Annoy:
         *,
         n_neighbors: int = ...,
         search_k: int = ...,
-        include_distances: Literal[True],
+        include_distances: Literal[True] = ...,
         return_labels: Literal[False] = ...,
         y_fill_value: Any = ...,
         input_type: Literal["vector"] = ...,
+        output_type: Literal["item"] = ...,
+        exclude_self: Literal[False] = ...,
+        exclude_items: Sequence[int] | None = ...,
         missing_value: float | None = ...,
     ) -> tuple[Indices2D, Distances2D]: ...
+
     @overload
     def transform(
         self,
@@ -1466,11 +1516,15 @@ class Annoy:
         n_neighbors: int = ...,
         search_k: int = ...,
         include_distances: Literal[False] = ...,
-        return_labels: Literal[True],
+        return_labels: Literal[True] = ...,
         y_fill_value: Any = ...,
         input_type: Literal["vector"] = ...,
+        output_type: Literal["item"] = ...,
+        exclude_self: Literal[False] = ...,
+        exclude_items: Sequence[int] | None = ...,
         missing_value: float | None = ...,
     ) -> tuple[Indices2D, Labels2D]: ...
+
     @overload
     def transform(
         self,
@@ -1478,12 +1532,84 @@ class Annoy:
         *,
         n_neighbors: int = ...,
         search_k: int = ...,
-        include_distances: Literal[True],
-        return_labels: Literal[True],
+        include_distances: Literal[True] = ...,
+        return_labels: Literal[True] = ...,
         y_fill_value: Any = ...,
         input_type: Literal["vector"] = ...,
+        output_type: Literal["item"] = ...,
+        exclude_self: Literal[False] = ...,
+        exclude_items: Sequence[int] | None = ...,
         missing_value: float | None = ...,
     ) -> tuple[Indices2D, Distances2D, Labels2D]: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[Sequence[Any]],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        return_labels: Literal[False] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["vector"] = ...,
+        output_type: Literal["vector"] = ...,
+        exclude_self: Literal[False] = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> NeighborVectors3D: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[Sequence[Any]],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[True] = ...,
+        return_labels: Literal[False] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["vector"] = ...,
+        output_type: Literal["vector"] = ...,
+        exclude_self: Literal[False] = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[NeighborVectors3D, Distances2D]: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[Sequence[Any]],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        return_labels: Literal[True] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["vector"] = ...,
+        output_type: Literal["vector"] = ...,
+        exclude_self: Literal[False] = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[NeighborVectors3D, Labels2D]: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[Sequence[Any]],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[True] = ...,
+        return_labels: Literal[True] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["vector"] = ...,
+        output_type: Literal["vector"] = ...,
+        exclude_self: Literal[False] = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[NeighborVectors3D, Distances2D, Labels2D]: ...
+
     @overload
     def transform(
         self,
@@ -1491,12 +1617,135 @@ class Annoy:
         *,
         n_neighbors: int = ...,
         search_k: int = ...,
-        include_distances: bool = ...,
-        return_labels: bool = ...,
+        include_distances: Literal[False] = ...,
+        return_labels: Literal[False] = ...,
         y_fill_value: Any = ...,
         input_type: Literal["item"],
+        output_type: Literal["item"] = ...,
+        exclude_self: bool = ...,
+        exclude_items: Sequence[int] | None = ...,
         missing_value: float | None = ...,
-    ) -> TransformOutput: ...
+    ) -> Indices2D: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[int],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[True] = ...,
+        return_labels: Literal[False] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["item"],
+        output_type: Literal["item"] = ...,
+        exclude_self: bool = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[Indices2D, Distances2D]: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[int],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        return_labels: Literal[True] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["item"],
+        output_type: Literal["item"] = ...,
+        exclude_self: bool = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[Indices2D, Labels2D]: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[int],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[True] = ...,
+        return_labels: Literal[True] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["item"],
+        output_type: Literal["item"] = ...,
+        exclude_self: bool = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[Indices2D, Distances2D, Labels2D]: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[int],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        return_labels: Literal[False] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["item"],
+        output_type: Literal["vector"],
+        exclude_self: bool = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> NeighborVectors3D: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[int],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[True] = ...,
+        return_labels: Literal[False] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["item"],
+        output_type: Literal["vector"],
+        exclude_self: bool = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[NeighborVectors3D, Distances2D]: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[int],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[False] = ...,
+        return_labels: Literal[True] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["item"],
+        output_type: Literal["vector"],
+        exclude_self: bool = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[NeighborVectors3D, Labels2D]: ...
+
+    @overload
+    def transform(
+        self,
+        X: Sequence[int],
+        *,
+        n_neighbors: int = ...,
+        search_k: int = ...,
+        include_distances: Literal[True] = ...,
+        return_labels: Literal[True] = ...,
+        y_fill_value: Any = ...,
+        input_type: Literal["item"],
+        output_type: Literal["vector"],
+        exclude_self: bool = ...,
+        exclude_items: Sequence[int] | None = ...,
+        missing_value: float | None = ...,
+    ) -> tuple[NeighborVectors3D, Distances2D, Labels2D]: ...
+
     def transform(
         self,
         X: Any,
@@ -1507,55 +1756,89 @@ class Annoy:
         return_labels: bool = False,
         y_fill_value: Any = None,
         input_type: TransformInputType = "vector",
+        output_type: TransformOutputType = "vector",
+        exclude_self: bool = False,
+        exclude_items: Sequence[int] | None = None,
         missing_value: float | None = None,
     ) -> TransformOutput:
-        """transform(X, *, n_neighbors=None, search_k=-1, include_distances=False, return_labels=False, \
-            y_fill_value=None, input_type='vector', missing_value=None)
+        """transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False, \
+            y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False, \
+            exclude_items=None, missing_value=None)
 
-        Transform queries into nearest-neighbor ids (and optional distances / labels).
+        Transform queries into nearest-neighbor outputs (ids or vectors), with optional distances and labels.
 
         Parameters
         ----------
         X : array-like
-            Query inputs. The expected shape/type depends on `input_type`:
+            Query inputs. The expected shape/type depends on ``input_type``:
 
-            - input_type='vector': X must be a 2D array-like of shape (n_queries, f).
-            - input_type='item':   X must be a 1D sequence of item ids.
-        n_neighbors : int or None, default=None
+            - ``input_type='item'``  : X must be a 1D sequence of item ids.
+            - ``input_type='vector'``: X must be a 2D array-like of shape (n_queries, f).
+        n_neighbors : int, default=5
             Number of neighbors to retrieve for each query.
         search_k : int, default=-1
             Search parameter passed to Annoy (-1 uses Annoy's default).
         include_distances : bool, default=False
             If True, also return per-neighbor distances.
         return_labels : bool, default=False
-            If True, also return per-neighbor labels resolved from y.
+            If True, also return per-neighbor labels resolved from :attr:`y` (as set via :meth:`fit`).
         y_fill_value : object, default=None
-            Value used when y is unset or missing an entry for a neighbor id.
+            Value used when ``y`` is unset or missing an entry for a neighbor id.
         input_type : {'vector', 'item'}, default='vector'
-            Controls how X is interpreted.
+            Controls how ``X`` is interpreted.
+        output_type : {'item', 'vector'}, default='item'
+            Controls what is returned for each neighbor:
+
+            - ``'item'``  : return neighbor ids (integers).
+            - ``'vector'``: return neighbor vectors (lists of floats).
+        exclude_self : bool, default=False
+            If True, exclude the query item id from results. Only valid when ``input_type='item'``.
+            For vector queries, "self" is undefined; use ``exclude_items``.
+        exclude_items : sequence of int or None, default=None
+            Explicit neighbor ids to exclude from results (deterministic filtering by id equality).
         missing_value : float or None, default=None
-            If not None, imputes missing entries in X (None values in dense rows;
-            missing keys / None values in dict rows). If None, missing entries raise.
+            If not None, imputes missing entries in X (None values in dense rows; missing keys / None values in dict rows).
+            If None, missing entries raise.
 
         Returns
         -------
-        indices : list of list of int
-            Neighbor ids for each query.
-        (indices, distances) : tuple
+        neighbors
+            Neighbor ids or vectors for each query. The returned shape depends on `output_type`:
+
+            - ``output_type='item'``  : list[list[int]] with shape (n_queries, n_neighbors)
+            - ``output_type='vector'``: list[list[list[float]]] with shape (n_queries, n_neighbors, f)
+        (neighbors, distances) : tuple
             Returned when include_distances=True.
-        (indices, labels) : tuple
+        (neighbors, labels) : tuple
             Returned when return_labels=True.
-        (indices, distances, labels) : tuple
+        (neighbors, distances, labels) : tuple
             Returned when include_distances=True and return_labels=True.
 
         See Also
         --------
-        get_nns_by_vector, get_nns_by_item : Low-level query methods.
+        get_nns_by_item : Neighbor search by item id.
+        get_nns_by_vector : Neighbor search by query vector.
         fit, fit_transform : Estimator-style APIs.
 
         Notes
         -----
-        transform() requires a built index; call fit() or build() first.
+        - Excluding self is performed by matching neighbor ids to the query id (not by checking distance values).
+        - For input_type='vector', exclude_self=True is an error; use exclude_items for explicit, deterministic filtering.
+        - If exclusions prevent returning exactly `n_neighbors` results, this method raises ValueError.
+
+        Examples
+        --------
+        Item queries (exclude the query id itself):
+
+        >>> idx.transform([10, 20], input_type='item', output_type='item', n_neighbors=5, exclude_self=True)
+
+        Vector queries (exclude explicit ids):
+
+        >>> idx.transform(X_query, input_type='vector', output_type='item', n_neighbors=5, exclude_items=[10, 20])
+
+        Return neighbor vectors:
+
+        >>> idx.transform([10], input_type='item', output_type='vector', n_neighbors=5, exclude_self=True)
         """
         ...
 

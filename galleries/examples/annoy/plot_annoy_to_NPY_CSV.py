@@ -78,6 +78,51 @@ idx
 
 # %%
 
+import random
+from scikitplot.utils._time import Timer
+
+n, f = 1_000, 10
+X = [[random.gauss(0, 1) for _ in range(f)] for _ in range(n)]
+q = [[random.gauss(0, 1) for _ in range(f)]]
+
+q
+
+# %%
+
+# idx = Index().fit(X, feature_names=map("feature_{}".format, range(0,10)))
+idx = Index().fit(X, feature_names=map("col_{}".format, range(0,10)))
+idx
+
+# %%
+
+idx.feature_names_in_
+
+# %%
+
+idx.transform(X[:5])
+
+# %%
+
+idx.transform(X[:5], output_type="item")
+
+# %%
+
+idx.transform(q, output_type="item")
+
+# %%
+
+idx.transform(q, output_type="vector")
+
+# %%
+
+idx.kneighbors(q, n_neighbors=5, output_type="vector")
+
+# %%
+
+idx.kneighbors(X[:5], n_neighbors=5, include_distances=False).shape
+
+# %%
+
 import numpy as np
 
 arr = idx.to_numpy()

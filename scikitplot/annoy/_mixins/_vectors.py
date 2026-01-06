@@ -409,7 +409,7 @@ class VectorOpsMixin:
         ensure_all_finite: bool | Literal["allow-nan"] = True,
         copy: bool = False,
         dtype: Any = np.float32,
-        return_type: Literal["id", "vector"] = "vector",
+        output_type: Literal["item", "vector"] = "vector",
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Query neighbor vectors by stored item id.
@@ -425,8 +425,8 @@ class VectorOpsMixin:
             See :meth:`query_by_vector`.
         dtype : numpy dtype, default=numpy.float32
             Output dtype for the returned vectors.
-        return_type : {'id', 'vector'}, default='vector'
-            If 'vector', return neighbor vectors. If 'id', return neighbor ids.
+        output_type : {'item', 'vector'}, default='vector'
+            If 'vector', return neighbor vectors. If 'item', return neighbor ids.
 
         Returns
         -------
@@ -457,7 +457,7 @@ class VectorOpsMixin:
             )
 
         with lock_for(self):
-            if return_type == "vector":
+            if output_type == "vector":
                 idx = np.asarray(
                     [backend.get_item_vector(int(i)) for i in idx],
                     dtype=dtype,
@@ -592,13 +592,13 @@ class VectorOpsMixin:
         ensure_all_finite: bool | Literal["allow-nan"] = True,
         copy: bool = False,
         dtype: Any = np.float32,
-        return_type: Literal["id", "vector"] = "vector",
+        output_type: Literal["item", "vector"] = "vector",
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Query neighbor vectors by an explicit vector.
 
         Convenience wrapper over :meth:`query_by_vector`. By default it returns
-        vectors; set ``return_type='id'`` to return neighbor ids instead.
+        vectors; set ``output_type='item'`` to return neighbor ids instead.
 
         Parameters
         ----------
@@ -608,14 +608,14 @@ class VectorOpsMixin:
             See :meth:`query_by_vector`.
         dtype : numpy dtype, default=numpy.float32
             Output dtype for the returned vectors.
-        return_type : {'id', 'vector'}, default='vector'
-            If 'vector', return neighbor vectors. If 'id', return neighbor ids.
+        output_type : {'item', 'vector'}, default='vector'
+            If 'vector', return neighbor vectors. If 'item', return neighbor ids.
 
         Returns
         -------
         neighbors : numpy.ndarray
-            If ``return_type='vector'``, an array of shape ``(n_neighbors, f)``.
-            If ``return_type='id'``, an array of shape ``(n_neighbors,)``.
+            If ``output_type='vector'``, an array of shape ``(n_neighbors, f)``.
+            If ``output_type='item'``, an array of shape ``(n_neighbors,)``.
         (neighbors, distances) : tuple
             Returned when ``include_distances=True``.
 
@@ -642,8 +642,8 @@ class VectorOpsMixin:
             )
 
         with lock_for(self):
-            if return_type == "vector":
-                if return_type == "vector":
+            if output_type == "vector":
+                if output_type == "vector":
                     idx = np.asarray(
                         [backend.get_item_vector(int(i)) for i in idx],
                         dtype=dtype,
@@ -669,7 +669,7 @@ class VectorOpsMixin:
         exclude_item_ids: Iterable[int] | None = None,
         ensure_all_finite: bool | Literal["allow-nan"] = True,
         copy: bool = False,
-        return_type: Literal["id", "vector"] = "vector",
+        output_type: Literal["item", "vector"] = "vector",
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Find k nearest neighbors for one or more query vectors.
@@ -695,14 +695,14 @@ class VectorOpsMixin:
             Input validation option forwarded to scikit-learn.
         copy : bool, default=False
             Input validation option forwarded to scikit-learn.
-        return_type : {'id', 'vector'}, default='vector'
-            If 'id', return neighbor ids. If 'vector', return neighbor vectors.
+        output_type : {'item', 'vector'}, default='vector'
+            If 'item', return neighbor ids. If 'vector', return neighbor vectors.
 
         Returns
         -------
         neighbors : numpy.ndarray
-            If ``return_type='id'``, shape is ``(n_queries, n_neighbors)``.
-            If ``return_type='vector'``, shape is ``(n_queries, n_neighbors, f)``.
+            If ``output_type='item'``, shape is ``(n_queries, n_neighbors)``.
+            If ``output_type='vector'``, shape is ``(n_queries, n_neighbors, f)``.
         distances : numpy.ndarray of shape (n_queries, n_neighbors)
             Neighbor distances. Returned when ``include_distances=True``.
 
@@ -734,7 +734,7 @@ class VectorOpsMixin:
 
         distances = np.empty((Xv.shape[0], n_neighbors_i), dtype=np.float32)
 
-        if return_type == "id":
+        if output_type == "item":
             neighbors: np.ndarray = np.empty(
                 (Xv.shape[0], n_neighbors_i), dtype=np.intp
             )
@@ -756,7 +756,7 @@ class VectorOpsMixin:
                     ensure_all_finite=ensure_all_finite,
                     copy=copy,
                     dtype=np.float32,
-                    return_type=return_type,
+                    output_type=output_type,
                 ),
             )
             neighbors[i] = neigh_i
@@ -777,7 +777,7 @@ class VectorOpsMixin:
         exclude_item_ids: Iterable[int] | None = None,
         ensure_all_finite: bool | Literal["allow-nan"] = True,
         copy: bool = False,
-        return_type: Literal["id", "vector"] = "id",
+        output_type: Literal["item", "vector"] = "item",
     ) -> Any:
         """
         Compute the k-neighbors graph (CSR) for query vectors.
@@ -802,8 +802,8 @@ class VectorOpsMixin:
             Input validation option forwarded to scikit-learn.
         copy : bool, default=False
             Input validation option forwarded to scikit-learn.
-        return_type : {'id'}, default='id'
-            Must be 'id' for CSR construction.
+        output_type : {'item'}, default='item'
+            Must be 'item' for CSR construction.
 
         Returns
         -------
@@ -815,7 +815,7 @@ class VectorOpsMixin:
         ImportError
             If SciPy is not installed.
         ValueError
-            If ``mode`` is invalid or ``return_type != 'id'``.
+            If ``mode`` is invalid or ``output_type != 'item'``.
         RuntimeError
             If the backend returns an out-of-range neighbor id.
 
@@ -826,8 +826,8 @@ class VectorOpsMixin:
         if mode not in {"connectivity", "distance"}:
             raise ValueError("mode must be 'connectivity' or 'distance'")
 
-        if return_type != "id":
-            raise ValueError("kneighbors_graph requires return_type='id'")
+        if output_type != "item":
+            raise ValueError("kneighbors_graph requires output_type='item'")
 
         try:
             import scipy.sparse as sp  # noqa: PLC0415
@@ -847,7 +847,7 @@ class VectorOpsMixin:
                 exclude_item_ids=exclude_item_ids,
                 ensure_all_finite=ensure_all_finite,
                 copy=copy,
-                return_type="id",
+                output_type="item",
             ),
         )
 

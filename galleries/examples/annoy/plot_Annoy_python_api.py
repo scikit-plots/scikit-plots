@@ -483,9 +483,23 @@ idx.get_nns_by_item(0, 10), len(idx.get_item_vector(0))
 import random
 from scikitplot.utils._time import Timer
 
-n, f = 10_000, 1_000
+n, f = 1_000_000, 10
 X = [[random.gauss(0, 1) for _ in range(f)] for _ in range(n)]
 q = [[random.gauss(0, 1) for _ in range(f)]]
+
+# %%
+
+# idx = Index().fit(X, feature_names=map("feature_{}".format, range(0,10)))
+idx = Index().fit(X, feature_names=map("col_{}".format, range(0,10)))
+idx
+
+# %%
+
+idx.feature_names_in_
+
+# %%
+
+idx.transform(X[:5], include_distances=True, return_labels=True)
 
 # %%
 

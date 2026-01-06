@@ -5045,16 +5045,23 @@ static PyObject* py_an_add_item(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
-  int32_t indice;           // Annoy item id (row id)
+  int indice_tmp = 0;       // Parsed from Python (C int)
   PyObject* embedding_obj;  // Python sequence of floats
 
   // NOTE: kwlist uses "i" and "vector" for backward compatibility,
   // but conceptually they are (indice, embedding).
   static const char* kwlist[] = {"i", "vector", NULL};
   if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "iO", (char**)kwlist, &indice, &embedding_obj)) {
+      args, kwargs, "iO", (char**)kwlist, &indice_tmp, &embedding_obj)) {
     return NULL;
   }
+
+  // Convert to int32_t (Annoy item id). Use an explicit bound check before casting.
+  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+    return NULL;
+  }
+  const int32_t indice = static_cast<int32_t>(indice_tmp);
 
   // During build stage: allow gaps, but forbid negative ids.
   if (!check_constraints(self, indice, /*building=*/true))
@@ -5808,13 +5815,18 @@ static PyObject* py_an_transform(
   PyObject* out = NULL;
   PyObject* X = NULL;
 
-  Py_ssize_t n_neighbors_ssz = self ? static_cast<Py_ssize_t>(self->n_neighbors) : 5;
+  Py_ssize_t n_neighbors_ssz = self ? static_cast<Py_ssize_t>(self->n_neighbors) : (Py_ssize_t)5;
   int search_k = -1;
   int include_distances = 0;
   int return_labels = 0;
 
   PyObject* y_fill_value = Py_None;
-  PyObject* input_type_obj = NULL;     // optional
+
+  PyObject* input_type_obj = NULL;      // optional
+  PyObject* output_type_obj = NULL;     // optional
+  int exclude_self = 0;
+  PyObject* exclude_items_obj = Py_None;
+
   PyObject* missing_value_obj = Py_None;
 
   static const char* kwlist[] = {
@@ -5825,13 +5837,16 @@ static PyObject* py_an_transform(
     "return_labels",
     "y_fill_value",
     "input_type",
+    "output_type",
+    "exclude_self",
+    "exclude_items",
     "missing_value",
     NULL
   };
 
   if (!PyArg_ParseTupleAndKeywords(
         args, kwargs,
-        "O|nippOOO",
+        "O|nippOOOpOO",
         (char**)kwlist,
         &X,
         &n_neighbors_ssz,
@@ -5840,6 +5855,9 @@ static PyObject* py_an_transform(
         &return_labels,
         &y_fill_value,
         &input_type_obj,
+        &output_type_obj,
+        &exclude_self,
+        &exclude_items_obj,
         &missing_value_obj)) {
     return NULL;
   }
@@ -5918,6 +5936,64 @@ static PyObject* py_an_transform(
     return NULL;
   }
 
+    std::string output_type = "vector";
+    if (output_type_obj && output_type_obj != Py_None) {
+      if (!PyUnicode_Check(output_type_obj) && !PyBytes_Check(output_type_obj)) {
+        PyErr_SetString(PyExc_TypeError,
+          "output_type must be a string ('vector' or 'item')");
+        return NULL;
+      }
+      const char* s = PyUnicode_Check(output_type_obj)
+        ? PyUnicode_AsUTF8(output_type_obj)
+        : PyBytes_AsString(output_type_obj);
+      if (!s) return NULL;
+      output_type.assign(s);
+      for (size_t i = 0; i < output_type.size(); ++i) {
+        output_type[i] = (char)std::tolower((unsigned char)output_type[i]);
+      }
+    }
+
+    const bool out_vector = (output_type == "vector");
+    if (!out_vector && output_type != "item") {
+      PyErr_SetString(PyExc_ValueError,
+        "output_type must be 'vector' or 'item'");
+      return NULL;
+    }
+
+    if (exclude_self && !by_item) {
+      PyErr_SetString(PyExc_ValueError,
+        "exclude_self is only supported when input_type='item'");
+      return NULL;
+    }
+
+    std::unordered_map<int32_t, char> exclude_map;
+    if (exclude_items_obj && exclude_items_obj != Py_None) {
+      PyObject* ex_seq = PySequence_Fast(exclude_items_obj,
+        "exclude_items must be a sequence of ints or None");
+      if (!ex_seq) return NULL;
+      const Py_ssize_t ex_n = PySequence_Fast_GET_SIZE(ex_seq);
+      exclude_map.reserve((size_t)((ex_n > 0) ? ex_n : 0));
+      for (Py_ssize_t i = 0; i < ex_n; ++i) {
+        PyObject* o = PySequence_Fast_GET_ITEM(ex_seq, i);  // borrowed
+        if (!PyLong_Check(o)) {
+          Py_DECREF(ex_seq);
+          PyErr_SetString(PyExc_TypeError,
+            "exclude_items must contain integers");
+          return NULL;
+        }
+        long long kid = PyLong_AsLongLong(o);
+        if (kid == -1 && PyErr_Occurred()) { Py_DECREF(ex_seq); return NULL; }
+        if (kid < 0 || kid > (long long)INT32_MAX) {
+          Py_DECREF(ex_seq);
+          PyErr_SetString(PyExc_ValueError,
+            "exclude_items id out of int32 range");
+          return NULL;
+        }
+        exclude_map[(int32_t)kid] = (char)1;
+      }
+      Py_DECREF(ex_seq);
+    }
+
   PyObject* X_seq = NULL;
   Py_ssize_t n_queries = 0;
 
@@ -5951,12 +6027,26 @@ static PyObject* py_an_transform(
   std::vector<float> query;
   query.reserve((size_t)self->f);
 
+  // Raw results from Annoy (may include excluded ids).
   std::vector<int32_t> result;
   std::vector<float> distances;
+
+  // Filtered results after applying exclude_self / exclude_items (always length n_neighbors).
+  std::vector<int32_t> filtered;
+  std::vector<float> filtered_dists;
+  filtered.reserve(n_neighbors);
+  filtered_dists.reserve(n_neighbors);
+
+  // Temporary buffer for materializing neighbor vectors when output_type='vector'.
+  std::vector<float> neighbor_vec;
+  if (out_vector) {
+    neighbor_vec.resize((size_t)self->f);
+  }
 
   for (Py_ssize_t i = 0; i < n_queries; ++i) {
     result.clear();
     distances.clear();
+    int32_t result_query_item_id = -1;
 
     if (by_item) {
       PyObject* obj = PySequence_Fast_GET_ITEM(X_seq, i);  // borrowed
@@ -5971,13 +6061,18 @@ static PyObject* py_an_transform(
         goto fail;
       }
       const int32_t item_id = (int32_t)kid;
+      result_query_item_id = item_id;
       if (!check_constraints(self, item_id, /*building=*/false)) goto fail;
+
+      size_t k_request = n_neighbors + exclude_map.size() + (exclude_self ? (size_t)1 : (size_t)0);
+      const size_t n_items_sz = (size_t)self->ptr->get_n_items();
+      if (k_request > n_items_sz) k_request = n_items_sz;
 
       Py_BEGIN_ALLOW_THREADS;
       if (include_distances) {
-        self->ptr->get_nns_by_item(item_id, n_neighbors, search_k, &result, &distances);
+        self->ptr->get_nns_by_item(item_id, k_request, search_k, &result, &distances);
       } else {
-        self->ptr->get_nns_by_item(item_id, n_neighbors, search_k, &result, NULL);
+        self->ptr->get_nns_by_item(item_id, k_request, search_k, &result, NULL);
       }
       Py_END_ALLOW_THREADS;
     } else {
@@ -5988,11 +6083,15 @@ static PyObject* py_an_transform(
         goto fail;  // exception already set
       }
 
+      size_t k_request = n_neighbors + exclude_map.size();
+      const size_t n_items_sz = (size_t)self->ptr->get_n_items();
+      if (k_request > n_items_sz) k_request = n_items_sz;
+
       Py_BEGIN_ALLOW_THREADS;
       if (include_distances) {
-        self->ptr->get_nns_by_vector(query.data(), n_neighbors, search_k, &result, &distances);
+        self->ptr->get_nns_by_vector(query.data(), k_request, search_k, &result, &distances);
       } else {
-        self->ptr->get_nns_by_vector(query.data(), n_neighbors, search_k, &result, NULL);
+        self->ptr->get_nns_by_vector(query.data(), k_request, search_k, &result, NULL);
       }
       Py_END_ALLOW_THREADS;
     }
@@ -6003,41 +6102,99 @@ static PyObject* py_an_transform(
       goto fail;
     }
 
+    // Apply exclusions deterministically by id (no distance-based heuristics).
+    filtered.clear();
+    filtered_dists.clear();
+
+    // Query-specific self exclusion applies only to input_type='item'.
+    const int32_t qid_self = (by_item ? result_query_item_id : -1);
+
+    for (size_t j = 0; j < result.size(); ++j) {
+      const int32_t nid = result[j];
+      if (exclude_self && by_item && nid == qid_self) continue;
+      if (!exclude_map.empty() && exclude_map.find(nid) != exclude_map.end()) continue;
+
+      filtered.push_back(nid);
+      if (include_distances) filtered_dists.push_back(distances[j]);
+
+      if (filtered.size() == n_neighbors) break;
+    }
+
+    if (filtered.size() != n_neighbors) {
+      PyErr_Format(PyExc_ValueError,
+        "Unable to return %llu neighbors after exclusions (got %llu). "
+        "Try reducing n_neighbors or exclusions.",
+        (unsigned long long)n_neighbors,
+        (unsigned long long)filtered.size());
+      goto fail;
+    }
+
+    result.swap(filtered);
+    if (include_distances) distances.swap(filtered_dists);
+
     // Build Python row objects.
-    PyObject* row_ids = PyList_New((Py_ssize_t)result.size());
-    if (!row_ids) goto fail;
+    PyObject* row_neighbors = PyList_New((Py_ssize_t)result.size());
+    if (!row_neighbors) goto fail;
 
     PyObject* row_dists = NULL;
     if (include_distances) {
       row_dists = PyList_New((Py_ssize_t)distances.size());
-      if (!row_dists) { Py_DECREF(row_ids); goto fail; }
+      if (!row_dists) { Py_DECREF(row_neighbors); goto fail; }
     }
 
     PyObject* row_labels = NULL;
     if (return_labels) {
       row_labels = PyList_New((Py_ssize_t)result.size());
       if (!row_labels) {
-        Py_DECREF(row_ids);
+        Py_DECREF(row_neighbors);
         Py_XDECREF(row_dists);
         goto fail;
       }
     }
 
     for (Py_ssize_t j = 0; j < (Py_ssize_t)result.size(); ++j) {
-      PyObject* pid = PyLong_FromLong((long)result[(size_t)j]);
-      if (!pid) {
-        Py_DECREF(row_ids);
-        Py_XDECREF(row_dists);
-        Py_XDECREF(row_labels);
-        goto fail;
+      const int32_t nid = result[(size_t)j];
+
+      if (out_vector) {
+        self->ptr->get_item(nid, neighbor_vec.data());
+
+        PyObject* vec = PyList_New((Py_ssize_t)self->f);
+        if (!vec) {
+          Py_DECREF(row_neighbors);
+          Py_XDECREF(row_dists);
+          Py_XDECREF(row_labels);
+          goto fail;
+        }
+
+        for (Py_ssize_t k = 0; k < (Py_ssize_t)self->f; ++k) {
+          PyObject* pf = PyFloat_FromDouble((double)neighbor_vec[(size_t)k]);
+          if (!pf) {
+            Py_DECREF(vec);
+            Py_DECREF(row_neighbors);
+            Py_XDECREF(row_dists);
+            Py_XDECREF(row_labels);
+            goto fail;
+          }
+          PyList_SET_ITEM(vec, k, pf);  // steals ref
+        }
+
+        PyList_SET_ITEM(row_neighbors, j, vec);  // steals ref
+      } else {
+        PyObject* pid = PyLong_FromLongLong((long long)nid);
+        if (!pid) {
+          Py_DECREF(row_neighbors);
+          Py_XDECREF(row_dists);
+          Py_XDECREF(row_labels);
+          goto fail;
+        }
+        PyList_SET_ITEM(row_neighbors, j, pid);  // steals ref
       }
-      PyList_SET_ITEM(row_ids, j, pid);  // steals ref
 
       if (include_distances) {
         PyObject* pd = PyFloat_FromDouble((double)distances[(size_t)j]);
         if (!pd) {
-          Py_DECREF(row_ids);
-          Py_DECREF(row_dists);
+          Py_DECREF(row_neighbors);
+          Py_XDECREF(row_dists);
           Py_XDECREF(row_labels);
           goto fail;
         }
@@ -6045,18 +6202,18 @@ static PyObject* py_an_transform(
       }
 
       if (return_labels) {
-        PyObject* lbl = annoy_lookup_y(self, result[(size_t)j], y_fill_value);
+        PyObject* lbl = annoy_lookup_y(self, nid, y_fill_value);
         if (!lbl) {
-          Py_DECREF(row_ids);
+          Py_DECREF(row_neighbors);
           Py_XDECREF(row_dists);
-          Py_DECREF(row_labels);
+          Py_XDECREF(row_labels);
           goto fail;
         }
         PyList_SET_ITEM(row_labels, j, lbl);  // steals ref
       }
     }
 
-    PyList_SET_ITEM(indices_outer, i, row_ids);
+    PyList_SET_ITEM(indices_outer, i, row_neighbors);
 
     if (include_distances) {
       PyList_SET_ITEM(distances_outer, i, row_dists);
@@ -6555,7 +6712,7 @@ static PyObject* py_an_get_nns_by_item(
   PyObject*  args,
   PyObject*  kwargs) {
 
-  int32_t indice;
+  int indice_tmp = 0;
   Py_ssize_t n_neighbors_ssz = self ? static_cast<Py_ssize_t>(self->n_neighbors) : 5;
   int search_k          = -1;
   int include_distances = 0;
@@ -6573,12 +6730,19 @@ static PyObject* py_an_get_nns_by_item(
     kwargs,
     "i|nip",
     (char**)kwlist,
-    &indice,
+    &indice_tmp,
     &n_neighbors_ssz,
     &search_k,
     &include_distances)) {
     return NULL;
   }
+
+  // Convert to int32_t item id with explicit bounds check.
+  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+    return NULL;
+  }
+  const int32_t indice = static_cast<int32_t>(indice_tmp);
 
   if (n_neighbors_ssz <= 0) {
     PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
@@ -6756,13 +6920,21 @@ static PyObject* py_an_get_item_vector(
   PyObject* args,
   PyObject* kwargs) {
   (void)kwargs;
-  int32_t indice;
+
+  int indice_tmp = 0;
 
   static const char* kwlist[] = {"i", NULL};
   if (!PyArg_ParseTupleAndKeywords(
-    args, kwargs, "i", (char**)kwlist, &indice)) {
+    args, kwargs, "i", (char**)kwlist, &indice_tmp)) {
     return NULL;
   }
+
+  // Convert to int32_t (Annoy item id). Use explicit bounds check before casting.
+  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+    return NULL;
+  }
+  const int32_t indice = static_cast<int32_t>(indice_tmp);
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
@@ -6815,14 +6987,25 @@ static PyObject* py_an_get_distance(
   PyObject*  args,
   PyObject*  kwargs) {
   // (void)kwargs;
-  int32_t i = 0;
-  int32_t j = 0;
+
+  int i_tmp = 0;
+  int j_tmp = 0;
+
   static const char* kwlist[] = {"i", "j", NULL};
 
   if (!PyArg_ParseTupleAndKeywords(
-    args, kwargs, "ii", (char**)kwlist, &i, &j)) {
+    args, kwargs, "ii", (char**)kwlist, &i_tmp, &j_tmp)) {
     return NULL;
   }
+
+  // Convert to int32_t (Annoy item ids). Use explicit bounds checks before casting.
+  if (i_tmp < 0 || i_tmp > (int)std::numeric_limits<int32_t>::max() ||
+      j_tmp < 0 || j_tmp > (int)std::numeric_limits<int32_t>::max()) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+    return NULL;
+  }
+  const int32_t i = static_cast<int32_t>(i_tmp);
+  const int32_t j = static_cast<int32_t>(j_tmp);
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
@@ -8712,19 +8895,20 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "transform(X, *, n_neighbors=None, search_k=-1, include_distances=False, return_labels=False,\n"
-    "          y_fill_value=None, input_type='vector', missing_value=None)\n"
+    "transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False,\n"
+    "          y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False,\n"
+    "          exclude_items=None, missing_value=None)\n"
     "\n"
-    "Transform queries into nearest-neighbor ids (and optional distances / labels).\n"
+    "Transform queries into nearest-neighbor results (ids or vectors; optional distances / labels).\n"
     "\n"
     "Parameters\n"
     "----------\n"
     "X : array-like\n"
     "    Query inputs. The expected shape/type depends on `input_type`:\n"
     "\n"
+    "    - input_type='item'  : X must be a 1D sequence of item ids.\n"
     "    - input_type='vector': X must be a 2D array-like of shape (n_queries, f).\n"
-    "    - input_type='item':   X must be a 1D sequence of item ids.\n"
-    "n_neighbors : int or None, default=None\n"
+    "n_neighbors : int or None, default=5\n"
     "    Number of neighbors to retrieve for each query. For backwards compatibility\n"
     "    this keyword is accepted, but it must match the estimator parameter\n"
     "    ``n_neighbors`` (STRICT schema).\n"
@@ -8733,34 +8917,62 @@ static PyMethodDef py_annoy_methods[] = {
     "include_distances : bool, default=False\n"
     "    If True, also return per-neighbor distances.\n"
     "return_labels : bool, default=False\n"
-    "    If True, also return per-neighbor labels resolved from :attr:`y`.\n"
+    "    If True, also return per-neighbor labels resolved from :attr:`y` (as set via :meth:`fit`).\n"
     "y_fill_value : object, default=None\n"
     "    Value used when :attr:`y` is unset or missing an entry for a neighbor id.\n"
     "input_type : {'vector', 'item'}, default='vector'\n"
     "    Controls how X is interpreted.\n"
+    "output_type : {'vector', 'item'}, default='vector'\n"
+    "    Controls what neighbors are returned.\n"
+    "    - output_type='item':   return neighbor ids.\n"
+    "    - output_type='vector': return neighbor vectors.\n"
+    "exclude_self : bool, default=False\n"
+    "    If True, exclude the query item id from results. Only valid when\n"
+    "    input_type='item'.\n"
+    "exclude_items : sequence of int or None, default=None\n"
+    "    Explicit neighbor ids to exclude from results.\n"
     "missing_value : float or None, default=None\n"
     "    If not None, imputes missing entries in X (None values in dense rows;\n"
     "    missing keys / None values in dict rows). If None, missing entries raise.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "indices : list of list of int\n"
-    "    Neighbor ids for each query.\n"
-    "(indices, distances) : tuple\n"
+    "neighbors : list\n"
+    "    Neighbor results for each query.\n"
+    "    - output_type='item'  : list of list of int\n"
+    "    - output_type='vector': list of list of list of float\n"
+    "(neighbors, distances) : tuple\n"
     "    Returned when include_distances=True.\n"
-    "(indices, labels) : tuple\n"
+    "(neighbors, labels) : tuple\n"
     "    Returned when return_labels=True.\n"
-    "(indices, distances, labels) : tuple\n"
+    "(neighbors, distances, labels) : tuple\n"
     "    Returned when include_distances=True and return_labels=True.\n"
     "\n"
     "See Also\n"
     "--------\n"
-    "get_nns_by_vector, get_nns_by_item : Low-level query methods.\n"
+    "get_nns_by_item : Neighbor search by item id.\n"
+    "get_nns_by_vector : Neighbor search by query vector.\n"
     "fit, fit_transform : Estimator-style APIs.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "transform() requires a built index; call fit() or build() first.\n"
+    "- Excluding self is performed by matching neighbor ids to the query id (not by checking distance values).\n"
+    "- For input_type='vector', exclude_self=True is an error; use exclude_items for explicit, deterministic filtering.\n"
+    "- If exclusions prevent returning exactly `n_neighbors` results, this method raises ValueError.\n"
+    "\n"
+    "Examples\n"
+    "--------\n"
+    "Item queries (exclude the query id itself):\n"
+    "\n"
+    ">>> idx.transform([10, 20], input_type='item', output_type='item', n_neighbors=5, exclude_self=True)\n"
+    "\n"
+    "Vector queries (exclude explicit ids):\n"
+    "\n"
+    ">>> idx.transform(X_query, input_type='vector', output_type='item', n_neighbors=5, exclude_items=[10, 20])\n"
+    "\n"
+    "Return neighbor vectors:\n"
+    "\n"
+    ">>> idx.transform([10], input_type='item', output_type='vector', n_neighbors=5, exclude_self=True)\n"
   },
 
   {
