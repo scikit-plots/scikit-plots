@@ -36,6 +36,7 @@ repos:
           .*CDNOW_master.txt|\
           .*example_transactions.csv|\
           scikitplot/cexternals/annoy/ann.png|\
+          scikitplot/cexternals/_annoy/src/annoymodule.cc|\
         )$"
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.

@@ -44,7 +44,7 @@ FROM ${BASE_IMAGE} AS base
 ## ⚠️ ARG may specified again because the FROM directive resets ARGs
 ## (but their default value is retained if set previously)
 
-ARG SCIKITPLOT_VERSION=0.4.0.post3
+ARG SCIKITPLOT_VERSION=0.4.0.post9
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 
 # LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"

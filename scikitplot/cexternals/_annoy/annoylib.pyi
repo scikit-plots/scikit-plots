@@ -174,11 +174,8 @@ class Annoy:
         Vector dimension. If ``0`` or ``None``, dimension may be inferred from the
         first vector passed to ``add_item`` (lazy mode).
         If None, treated as ``0`` (reset to default).
-    metric : {"angular", "cosine", \
-            "euclidean", "l2", "lstsq", \
-            "manhattan", "l1", "cityblock", "taxicab", \
-            "dot", "@", ".", "dotproduct", "inner", "innerproduct", \
-            "hamming"} or None, optional, default=None
+    metric : {"angular", "cosine", "euclidean", "l2", "lstsq", "manhattan", "l1", "cityblock", "taxicab", \
+            "dot", "@", ".", "dotproduct", "inner", "innerproduct", "hamming"} or None, optional, default=None
         Distance metric (one of 'angular', 'euclidean', 'manhattan', 'dot', 'hamming').
         If omitted and ``f > 0``, defaults to ``'angular'`` (cosine-like).
         If omitted and ``f == 0``, metric may be set later before construction.

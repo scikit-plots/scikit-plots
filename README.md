@@ -82,7 +82,7 @@
  <!-- 🐋 Docker Image Version (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Version (tag)" height="17"
-   src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Version&color=blue">
+   src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Version&color=blue">
  </a>
  <!-- 🐋 Docker Total Pulls 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
@@ -93,7 +93,7 @@
  <!-- 🐋 Docker Image Size (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Size (tag)" height="17"
-   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=orange">
+   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=orange">
  </a>
  <!-- pre-commit -->
  <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">

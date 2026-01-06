@@ -167,7 +167,7 @@ services:
       args:
         PY_VERSION: "${PY_VERSION:-3.11}"
         # SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-}"  # for dev or SCIKITPLOT_VERSION=
-        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post3}"  # for release
+        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post9}"  # for release
     ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed
@@ -223,7 +223,7 @@ services:
         BASE_IMAGE: "${BASE_IMAGE:-jupyter/tensorflow-notebook:latest}"
         NB_PASS: "jovyan"
         # SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-}"  # for dev or SCIKITPLOT_VERSION=
-        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post3}"  # for release
+        SCIKITPLOT_VERSION: "${SCIKITPLOT_VERSION:-0.4.0.post9}"  # for release
     ## Change User
     # user: root  # Ensure the container runs as "root", jupyter default "jovyan"
     ## Adjust the working directory as needed

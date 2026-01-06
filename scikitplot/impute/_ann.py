@@ -220,11 +220,8 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         - callable : custom function taking an array of distances
           and returning an array of weights.
 
-    metric : {"angular", "cosine", \
-              "euclidean", "l2", "lstsq", \
-              "manhattan", "l1", "cityblock", "taxicab", \
-              "dot", "@", ".", "dotproduct", "inner", "innerproduct", \
-              "hamming"}, optional, default='angular'
+    metric : {"angular", "cosine", "euclidean", "l2", "lstsq", "manhattan", "l1", "cityblock", "taxicab", \
+              "dot", "@", ".", "dotproduct", "inner", "innerproduct", "hamming"}, optional, default='angular'
         Distance metric used for nearest-neighbor search:
 
         - `'angular'` : Cosine similarity (angle only, ignores magnitude).
@@ -253,7 +250,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             * :py:func:`~scipy.spatial.distance.cosine`
             * :py:func:`~scipy.spatial.distance.euclidean`
             * :py:func:`~scipy.spatial.distance.cityblock`
-            * :py:func:`~scipy.sparse.coo_array.dot`
+            * :py:meth:`~scipy.sparse.coo_array.dot`
             * :py:func:`~scipy.spatial.distance.hamming`
 
     initial_strategy : {'mean', 'median', 'most_frequent', 'constant'}, default='mean'
@@ -1267,7 +1264,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
     # ------------------------------------------------------------------ #
     # Per-row backends (Annoy / Voyager)
     # ------------------------------------------------------------------ #
-    def _process_single_row(  # noqa: PLR0912, PLR0913
+    def _process_single_row_annoy(  # noqa: PLR0912, PLR0913
         self,
         i: int,
         row: np.ndarray,
@@ -1328,7 +1325,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             query_kwargs.pop("n", None)
             query_kwargs["n_neighbors"] = n_neighbors
             query_kwargs["exclude_self"] = True
-            query_kwargs["return_type"] = "id"
+            query_kwargs["output_type"] = "item"
             neighbor_ids, dists = train_index.query_vectors_by_vector(
                 vec,  # row, X[i]
                 **query_kwargs,
@@ -1493,7 +1490,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             # Iterate over rows with missing values
             # for i, row in enumerate(X):
             results = Parallel(n_jobs=self.n_jobs)(
-                delayed(self._process_single_row)(
+                delayed(self._process_single_row_annoy)(
                     i,
                     X[i],
                     missing_mask[i],

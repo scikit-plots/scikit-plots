@@ -99,6 +99,10 @@ idx.feature_names_in_
 
 # %%
 
+idx.get_feature_names_out()
+
+# %%
+
 idx.transform(X[:5])
 
 # %%

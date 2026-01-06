@@ -377,16 +377,17 @@ on_disk_path : str or None, optional, default=None
     Configured on-disk build path. Setting this attribute enables on-disk
     build mode (equivalent to :meth:`on_disk_build`), with safety checks
     to avoid implicit truncation of existing files.
-seed, random_state : int or None, optional, default=None
-    Non-negative integer seed.
+seed : int or None, optional, default=None
+    Non-negative integer seed. Also provides :meth:`random_state`
 verbose : int or None, optional, default=None
     Verbosity level.
 prefault : bool, default=False
     Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
 schema_version : int, default=0
     Reserved schema/version marker (stored; does not affect on-disk format).
-n_features, n_features_, n_features_in_ : int
-    Alias of `f` (dimension), provided for scikit-learn naming parity.
+n_features : int
+    Alias of :meth:`f` (dimension), provided for scikit-learn naming parity.
+    Also provides :meth:`n_features_`, :meth:`n_features_in_`.
 n_features_out_ : int
     Number of output features produced by transform.
 feature_names_in_ : list-like
@@ -579,7 +580,7 @@ str or None
   * :py:func:`~scipy.spatial.distance.cosine`
   * :py:func:`~scipy.spatial.distance.euclidean`
   * :py:func:`~scipy.spatial.distance.cityblock`
-  * :py:func:`~scipy.sparse.coo_array.dot`
+  * :py:meth:`~scipy.sparse.coo_array.dot`
   * :py:func:`~scipy.spatial.distance.hamming`
 
 Notes
@@ -8031,8 +8032,11 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "See Also\n"
     "--------\n"
+    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
     "add_item : Add vectors before building.\n"
     "unbuild : Drop trees to add more items.\n"
+    "rebuild : Return a new Annoy index rebuilt from the current index contents.\n"
+    "on_disk_build : Configure on-disk build mode.\n"
     "get_nns_by_item, get_nns_by_vector : Query nearest neighbours.\n"
     "save, load : Persist the index to/from disk.\n"
     "\n"
@@ -8093,6 +8097,11 @@ static PyMethodDef py_annoy_methods[] = {
     "RuntimeError\n"
     "    If the index is not initialized.\n"
     "\n"
+    "See Also\n"
+    "--------\n"
+    "serialize : Create a binary snapshot of the index.\n"
+    "on_disk_build : Configure on-disk build mode.\n"
+    "\n"
     "Notes\n"
     "-----\n"
     "Portable blobs add a small header (version, ABI sizes, endianness, metric, f)\n"
@@ -8149,8 +8158,11 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "See Also\n"
     "--------\n"
+    "fit_transform : Estimator-style APIs.\n"
+    "transform : Query the built index.\n"
     "add_item : Add one item at a time.\n"
     "build : Build the forest after manual calls to add_item.\n"
+    "on_disk_build : Configure on-disk build mode.\n"
     "unbuild : Remove trees so items can be appended.\n"
     "y : Stored labels :attr:`y` (if provided).\n"
     "get_params, set_params : Estimator parameter API.\n"
@@ -8192,8 +8204,9 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "See Also\n"
     "--------\n"
-    "fit : Build the index.\n"
+    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
     "transform : Query the built index.\n"
+    "on_disk_build : Configure on-disk build mode.\n"
     "\n"
     "Examples\n"
     "--------\n"
@@ -8644,6 +8657,8 @@ static PyMethodDef py_annoy_methods[] = {
     "See Also\n"
     "--------\n"
     "build : Build trees after adding items (on-disk backed).\n"
+    "rebuild : Return a new Annoy index rebuilt from the current index contents.\n"
+    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
     "load : Memory-map the built index.\n"
     "save : Persist the built index to disk.\n"
     "\n"
@@ -8690,9 +8705,11 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "See Also\n"
     "--------\n"
+    "build : Build trees after adding items (on-disk backed).\n"
+    "on_disk_build : Configure on-disk build mode.\n"
+    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
     "get_params : Read constructor parameters.\n"
     "set_params : Update estimator parameters (use with `fit(X)` when refitting from data).\n"
-    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
     "serialize, deserialize : Persist / restore indexes; canonical restores rebuild deterministically.\n"
     "__sklearn_clone__ : Unfitted clone hook (no fitted state).\n"
     "\n"
@@ -8758,7 +8775,9 @@ static PyMethodDef py_annoy_methods[] = {
     "See Also\n"
     "--------\n"
     "load : Load an index from disk.\n"
+    "on_disk_build : Configure on-disk build mode.\n"
     "serialize : Snapshot to bytes for in-memory persistence.\n"
+    "deserialize : Restore an index from a serialized byte string.\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -8804,6 +8823,7 @@ static PyMethodDef py_annoy_methods[] = {
     "See Also\n"
     "--------\n"
     "deserialize : Restore an index from a serialized byte string.\n"
+    "on_disk_build : Configure on-disk build mode.\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -8884,6 +8904,10 @@ static PyMethodDef py_annoy_methods[] = {
     ":class:`~.Annoy`\n"
     "    This instance (self), enabling method chaining.\n"
     "\n"
+    "See Also\n"
+    "--------\n"
+    "seed : Parameter attribute (int | None).\n"
+    "\n"
     "Notes\n"
     "-----\n"
     "Annoy is deterministic by default. Setting an explicit seed is useful for\n"
@@ -8952,7 +8976,8 @@ static PyMethodDef py_annoy_methods[] = {
     "--------\n"
     "get_nns_by_item : Neighbor search by item id.\n"
     "get_nns_by_vector : Neighbor search by query vector.\n"
-    "fit, fit_transform : Estimator-style APIs.\n"
+    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
+    "fit_transform : Estimator-style APIs.\n"
     "\n"
     "Notes\n"
     "-----\n"
@@ -8992,6 +9017,8 @@ static PyMethodDef py_annoy_methods[] = {
     "See Also\n"
     "--------\n"
     "build : Rebuild the forest after adding new items.\n"
+    "rebuild : Return a new Annoy index rebuilt from the current index contents.\n"
+    "fit : Build the index from `X` (preferred if you already have `X` available).\n"
     "add_item : Add items (only valid when no trees are built).\n"
     "\n"
     "Notes\n"
@@ -9056,8 +9083,8 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "See Also\n"
     "--------\n"
-    "set_verbosity : Alias of :meth:`set_verbose`.\n"
     "verbose : Parameter attribute (int | None).\n"
+    "set_verbosity : Alias of :meth:`set_verbose`.\n"
     "get_params, set_params : Estimator parameter API.\n"
   },
 
@@ -9069,6 +9096,11 @@ static PyMethodDef py_annoy_methods[] = {
     "set_verbosity(level=1)\n"
     "\n"
     "Alias of :meth:`set_verbose`.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "verbose : Parameter attribute (int | None).\n"
+    "set_verbose : Set the verbosity level (callable setter).\n"
   },
 
   // Pickle / joblib
