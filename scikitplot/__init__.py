@@ -47,7 +47,7 @@ from numpy import __version__ as __numpy_version__
 # __version__ = "0.3.7.post0"  # 0.3.7
 # __version__ = "0.3.8.post0"  # 0.3.8
 # __version__ = "0.3.9.post0"  # 0.3.9
-# __version__ = "0.4.0.post8"  # 0.4.0  # 👈 (tagged) last release
+# __version__ = "0.4.0.post9"  # 0.4.0  # 👈 (tagged) last release
 # __version__ = "0.4.1rc0"  # 0.4.1
 # __version__ = "0.4.2rc0"  # 0.4.2
 # __version__ = "0.5.1rc0"  # 0.5.1

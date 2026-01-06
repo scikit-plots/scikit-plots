@@ -579,7 +579,7 @@ str or None
   * :py:func:`~scipy.spatial.distance.cosine`
   * :py:func:`~scipy.spatial.distance.euclidean`
   * :py:func:`~scipy.spatial.distance.cityblock`
-  * :py:func:`~scipy.sparse.coo_array.dot`
+  * :py:meth:`~scipy.sparse.coo_array.dot`
   * :py:func:`~scipy.spatial.distance.hamming`
 
 Notes

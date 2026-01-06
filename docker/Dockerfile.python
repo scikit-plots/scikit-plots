@@ -14,7 +14,7 @@ ARG PY_VERSION
 # ENV ENV_NAME=py${PY_VERSION//./}  # Not a valid syntax in Dockerfile, but works.
 RUN export ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"
 
-ARG SCIKITPLOT_VERSION=0.4.0.post3
+ARG SCIKITPLOT_VERSION=0.4.0.post9
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 
 ## Set environment variables

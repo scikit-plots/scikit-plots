@@ -1040,7 +1040,7 @@ tag:
 archive:
 ifdef GIT_TAG
 	@echo "Remove tag locally: "$(GIT_TAG)""
-	@#git tag -d "v0.4.0rc0" "0.4.0.post6"
+	@#git tag -d "v0.4.0rc0" "0.4.0.post9"
 	@git tag -d "$(GIT_TAG)" || true
 
 	@echo "Creates tag locally"
