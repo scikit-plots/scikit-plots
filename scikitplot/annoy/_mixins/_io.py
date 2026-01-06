@@ -23,11 +23,13 @@ This file intentionally does **not** implement general-purpose ``pickle``.
 
 from __future__ import annotations
 
-import contextlib
+import contextlib  # noqa: F401
 import os
-import tempfile
-from collections.abc import Callable
+import shutil  # noqa: F401
+import tempfile  # noqa: F401
+from collections.abc import Callable  # noqa: F401
 from os import PathLike
+from pathlib import Path  # noqa: F401
 
 # from typing import Callable
 from typing_extensions import Self
@@ -35,42 +37,6 @@ from typing_extensions import Self
 from .._utils import backend_for, ensure_parent_dir, lock_for
 
 __all__ = ["IndexIOMixin"]
-
-
-def _atomic_backend_write(target_path: str, write_fn: Callable[[str], None]) -> None:
-    """
-    Atomically write/replace a file produced by a backend writer.
-
-    Parameters
-    ----------
-    target_path
-        Final destination path.
-    write_fn
-        Function called as ``write_fn(tmp_path)`` that must write the full file.
-
-    Notes
-    -----
-    - Uses a *unique* temporary file in the same directory as the target and
-      replaces it into place via :func:`os.replace`.
-    - Best-effort cleanup is attempted on failure.
-    """
-    ensure_parent_dir(target_path)
-    directory = os.path.dirname(target_path) or "."
-    base = os.path.basename(target_path)
-
-    fd, tmp = tempfile.mkstemp(prefix=f".{base}.", suffix=".tmp", dir=directory)
-    os.close(fd)
-
-    try:
-        write_fn(tmp)
-        os.replace(tmp, target_path)
-    finally:
-        # If replacement failed, clean up the temp file.
-        try:
-            if os.path.exists(tmp):
-                os.unlink(tmp)
-        except OSError:
-            pass
 
 
 class IndexIOMixin:
@@ -88,8 +54,7 @@ class IndexIOMixin:
     Notes
     -----
     - Methods in this mixin acquire a per-instance lock if one is available.
-    - :py:meth:`save_index` defaults to atomic writes (write temp + :func:`os.replace`)
-      to reduce the risk of partial/corrupt files on failure.
+    - :py:meth:`save_index` defaults to Annoy.save
     - :py:meth:`save_bundle` / :py:meth:`load_bundle` require :py:meth:`to_json` /
       :py:meth:`from_json` (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
     """
@@ -102,8 +67,7 @@ class IndexIOMixin:
         path: str | PathLike[str],
         *,
         prefault: bool | None = None,
-        atomic: bool = True,
-    ) -> None:
+    ) -> Self:
         """
         Persist the Annoy index to disk.
 
@@ -113,8 +77,6 @@ class IndexIOMixin:
             Destination path for the Annoy index file.
         prefault
             Forwarded to the backend. If ``None``, the backend default is used.
-        atomic : bool, default=True
-            If True, write to a unique temporary file and replace into place.
 
         Raises
         ------
@@ -123,44 +85,40 @@ class IndexIOMixin:
         OSError
             For filesystem-level failures.
         """
-        p = os.fspath(path)
-        ensure_parent_dir(p)  # needed for non-atomic writes; harmless otherwise
-
         backend = backend_for(self)
         save = getattr(backend, "save", None)
         if not callable(save):
             raise AttributeError("Backend does not provide save(path, prefault=...)")
 
+        p = os.fspath(path)
+        ensure_parent_dir(p)
+
         lock = lock_for(self)
-
-        def _write(dst: str) -> None:
-            if prefault is None:
-                save(dst)
-            else:
-                save(dst, prefault=bool(prefault))
-
         with lock:
-            if atomic:
-                _atomic_backend_write(p, _write)
+            if prefault is None:
+                save(p)
             else:
-                _write(p)
+                save(p, prefault=bool(prefault))
+        return self
 
-            # Best-effort: keep a stable 'on_disk_path' attribute in sync when possible.
-            for attr in ("on_disk_path", "_on_disk_path"):
-                with contextlib.suppress(Exception):
-                    setattr(self, attr, p)
-
+    @classmethod
     def load_index(
-        self,
+        cls: type[Self],
+        f: int,
+        metric: str,
         path: str | PathLike[str],
         *,
         prefault: bool | None = None,
-    ) -> None:
+    ) -> Self:
         """
         Load (mmap) an Annoy index file into this object.
 
         Parameters
         ----------
+        f
+            Vector dimension for construction.
+        metric
+            Metric name for construction.
         path : str or os.PathLike
             Path to a file previously created by :py:meth:`save_index` or the
             backend ``save``.
@@ -174,30 +132,149 @@ class IndexIOMixin:
         OSError
             If loading fails (backend or filesystem).
         """
-        p = os.fspath(path)
+        if int(f) <= 0:
+            raise ValueError("f must be a positive integer")
+        if not isinstance(metric, str) or not metric:
+            raise ValueError("metric must be a non-empty string")
 
-        backend = backend_for(self)
+        obj = cls(int(f), metric)
+        backend = backend_for(obj)
         load = getattr(backend, "load", None)
         if not callable(load):
             raise AttributeError("Backend does not provide load(path, prefault=...)")
-        lock = lock_for(self)
 
+        p = os.fspath(path)
+
+        lock = lock_for(obj)
         with lock:
             if prefault is None:
                 load(p)
             else:
                 load(p, prefault=bool(prefault))
+        return obj
 
-            for attr in ("on_disk_path", "_on_disk_path"):
-                with contextlib.suppress(Exception):
-                    setattr(self, attr, p)
+    # --------
+    # Bundle I/O (manifest + index)
+    # --------
+    def save_bundle(
+        self,
+        manifest_filename: str = "manifest.json",
+        index_filename: str = "index.ann",
+        *,
+        prefault: bool | None = None,
+    ) -> list[str]:
+        """
+        Save a *directory bundle* containing metadata + the index file.
+
+        The bundle contains:
+        - ``manifest.json``: metadata payload produced by :py:meth:`to_json`
+        - ``index.ann``: Annoy index produced by :py:meth:`save_index`
+
+        Parameters
+        ----------
+        manifest_filename
+            Filename for the metadata manifest inside the directory.
+        index_filename
+            Filename for the Annoy index inside the directory.
+        prefault
+            Forwarded to :py:meth:`save_index`.
+
+        Raises
+        ------
+        AttributeError
+            If :py:meth:`to_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
+        OSError
+            On filesystem failures.
+        """
+        # `MetaMixin` provides `to_json()`; keep the dependency explicit.
+        to_json = getattr(self, "to_json", None)
+        if not callable(to_json):
+            raise AttributeError(
+                "save_bundle requires to_json() (compose with MetaMixin)."
+            )
+
+        manifest_path: str | PathLike[str] = os.fspath(manifest_filename)
+        index_path: str | PathLike[str] = os.fspath(index_filename)
+
+        lock = lock_for(self)
+        with lock:
+            self.save_index(index_path, prefault=prefault)
+            # Must after save index
+            to_json(manifest_path)
+            return [manifest_path, index_path]
+
+    @classmethod
+    def load_bundle(
+        cls: type[Self],
+        manifest_filename: str = "manifest.json",
+        index_filename: str = "index.ann",  # noqa: ARG003
+        *,
+        prefault: bool | None = None,  # noqa: ARG003
+    ) -> Self:
+        """
+        Load a directory bundle created by :py:meth:`save_bundle`.
+
+        Parameters
+        ----------
+        manifest_filename
+            Filename for the metadata manifest inside the directory.
+        index_filename
+            Filename for the Annoy index inside the directory.
+        prefault
+            Forwarded to :py:meth:`load_index`.
+
+        Returns
+        -------
+        index
+            Newly constructed index.
+
+        Raises
+        ------
+        AttributeError
+            If :py:meth:`from_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
+        TypeError
+            If :py:meth:`from_json` returns an unexpected type.
+        OSError
+            On filesystem failures.
+        """
+        from_json = getattr(cls, "from_json", None)
+        if not callable(from_json):
+            raise AttributeError(
+                "load_bundle requires from_json() (compose with MetaMixin)."
+            )
+
+        manifest_path: str | PathLike[str] = os.fspath(manifest_filename)
+        obj = from_json(manifest_path, load=True)
+        if not isinstance(obj, cls):
+            raise TypeError("from_json() returned an unexpected type")
+
+        index_path: str | PathLike[str]  # = os.fspath(index_filename)  # noqa: F842
+        # obj.load_index(index_path, f=obj.f, metric=obj.metric, prefault=prefault)
+        return obj
 
     # --------
     # Bytes I/O (serialize/deserialize)
     # --------
-    def to_bytes(self) -> bytes:
+    def to_bytes(
+        self,
+        format=None,
+    ) -> bytes:
         """
         Serialize the built index to bytes (backend ``serialize``).
+
+        Parameters
+        ----------
+        format : {"native", "portable", "canonical"} or None, optional, default=None
+            Serialization format. If ``None`` used ``"canonical"``
+
+            * "native" (legacy): raw Annoy memory snapshot. Fastest, but
+              only compatible when the ABI matches exactly.
+            * "portable": prepend a small compatibility header (version,
+              endianness, sizeof checks, metric, f) so deserialization fails
+              loudly on mismatches.
+            * "canonical": rebuildable wire format storing item vectors + build
+              parameters. Portable across ABIs (within IEEE-754 float32) and
+              restores by rebuilding trees deterministically.
 
         Returns
         -------
@@ -212,6 +289,14 @@ class IndexIOMixin:
             If serialization fails.
         TypeError
             If the backend returns non-bytes-like data.
+
+        Notes
+        -----
+        "Portable" blobs are the native snapshot with additional compatibility guards.
+        They are not a cross-architecture wire format.
+
+        "Canonical" blobs trade load time for portability: deserialization rebuilds
+        the index with ``n_jobs=1`` for deterministic reconstruction.
         """
         backend = backend_for(self)
         serialize = getattr(backend, "serialize", None)
@@ -220,7 +305,7 @@ class IndexIOMixin:
 
         lock = lock_for(self)
         with lock:
-            data = serialize()
+            data = serialize(format=format or "canonical")
         if not isinstance(data, (bytes, bytearray, memoryview)):
             raise TypeError("serialize() must return a bytes-like object")
         return bytes(data)
@@ -230,8 +315,8 @@ class IndexIOMixin:
         cls: type[Self],
         data: bytes | bytearray | memoryview,
         *,
-        f: int,
-        metric: str,
+        f: int | None = None,
+        metric: str | None = None,
         prefault: bool | None = None,
     ) -> Self:
         """
@@ -261,136 +346,35 @@ class IndexIOMixin:
             If ``f`` or ``metric`` is invalid.
         AttributeError
             If the backend does not provide ``deserialize``.
+
+        Notes
+        -----
+        Portable blobs add a small header (version, ABI sizes, endianness, metric, f)
+        to ensure incompatible binaries fail loudly and safely. They are not a
+        cross-architecture wire format; the payload remains Annoy's native snapshot.
+
+        For ``data`` if fed :meth:`to_bytes(format='native') required params
+        ``f``, ``metric``.
         """
         if not isinstance(data, (bytes, bytearray, memoryview)):
             raise TypeError("data must be bytes-like")
-        if int(f) <= 0:
-            raise ValueError("f must be a positive integer")
-        if not isinstance(metric, str) or not metric:
-            raise ValueError("metric must be a non-empty string")
+        # if int(f) <= 0:
+        #     raise ValueError("f must be a positive integer")
+        # if not isinstance(metric, str) or not metric:
+        #     raise ValueError("metric must be a non-empty string")
 
-        obj = cls(int(f), str(metric))
+        obj = cls(f, metric)
         backend = backend_for(obj)
         deserialize = getattr(backend, "deserialize", None)
         if not callable(deserialize):
             raise AttributeError(
                 "Backend does not provide deserialize(data, prefault=...)"
             )
-        lock = lock_for(obj)
 
+        lock = lock_for(obj)
         with lock:
             if prefault is None:
                 deserialize(bytes(data))
             else:
                 deserialize(bytes(data), prefault=bool(prefault))
-        return obj
-
-    # --------
-    # Bundle I/O (manifest + index)
-    # --------
-    def save_bundle(
-        self,
-        directory: str | PathLike[str],
-        *,
-        index_filename: str = "index.ann",
-        manifest_filename: str = "manifest.json",
-        prefault: bool | None = None,
-    ) -> None:
-        """
-        Save a *directory bundle* containing metadata + the index file.
-
-        The bundle contains:
-        - ``manifest.json``: metadata payload produced by :py:meth:`to_json`
-        - ``index.ann``: Annoy index produced by :py:meth:`save_index`
-
-        Parameters
-        ----------
-        directory
-            Destination directory (created if missing).
-        index_filename
-            Filename for the Annoy index inside the directory.
-        manifest_filename
-            Filename for the metadata manifest inside the directory.
-        prefault
-            Forwarded to :py:meth:`save_index`.
-
-        Raises
-        ------
-        AttributeError
-            If :py:meth:`to_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
-        OSError
-            On filesystem failures.
-        """
-        # `MetaMixin` provides `to_json()`; keep the dependency explicit.
-        to_json = getattr(self, "to_json", None)
-        if not callable(to_json):
-            raise AttributeError(
-                "save_bundle requires to_json() (compose with MetaMixin)."
-            )
-
-        dir_s = os.fspath(directory)
-        os.makedirs(dir_s, exist_ok=True)
-
-        manifest_path = os.path.join(dir_s, manifest_filename)
-        index_path = os.path.join(dir_s, index_filename)
-
-        lock = lock_for(self)
-        with lock:
-            # Let MetaMixin handle atomic metadata writes.
-            to_json(manifest_path)
-
-            self.save_index(index_path, prefault=prefault, atomic=True)
-
-    @classmethod
-    def load_bundle(
-        cls: type[Self],
-        directory: str | PathLike[str],
-        *,
-        index_filename: str = "index.ann",
-        manifest_filename: str = "manifest.json",
-        prefault: bool | None = None,
-    ) -> Self:
-        """
-        Load a directory bundle created by :py:meth:`save_bundle`.
-
-        Parameters
-        ----------
-        directory
-            Bundle directory.
-        index_filename
-            Filename for the Annoy index inside the directory.
-        manifest_filename
-            Filename for the metadata manifest inside the directory.
-        prefault
-            Forwarded to :py:meth:`load_index`.
-
-        Returns
-        -------
-        index
-            Newly constructed index.
-
-        Raises
-        ------
-        AttributeError
-            If :py:meth:`from_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
-        TypeError
-            If :py:meth:`from_json` returns an unexpected type.
-        OSError
-            On filesystem failures.
-        """
-        from_json = getattr(cls, "from_json", None)
-        if not callable(from_json):
-            raise AttributeError(
-                "load_bundle requires from_json() (compose with MetaMixin)."
-            )
-
-        dir_s = os.fspath(directory)
-        manifest_path = os.path.join(dir_s, manifest_filename)
-        index_path = os.path.join(dir_s, index_filename)
-
-        obj = from_json(manifest_path, load=False)
-        if not isinstance(obj, cls):
-            raise TypeError("from_json() returned an unexpected type")
-
-        obj.load_index(index_path, prefault=prefault)
         return obj

@@ -844,7 +844,7 @@ class DummyCodeEncoder(_BaseEncoder):
     :ref:`sphx_glr_auto_examples_preprocessing_plot_target_encoder.py`.
 
     .. caution::
-        These parameters are reserved for future use;
+        ⚠️ These parameters are reserved for future use;
         some have no impact on the current implementation,
         and their behavior or presence may change in future versions
         without notice.

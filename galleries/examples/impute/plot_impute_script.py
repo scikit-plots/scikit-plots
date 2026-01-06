@@ -332,18 +332,22 @@ time_data[6] = T
 # %%
 
 t0 = time.time()
-imputer = ANNImputer(add_indicator=True, random_state=42,)
+# ⚠️ Reproducibility for Annoy required both random_state and n_trees
+imputer = ANNImputer(add_indicator=True, random_state=42, n_trees=5,
+    index_access="private", on_disk_build=True, index_store_path=None,)
 mses_diabetes[7], stds_diabetes[7] = get_score(
     Xdi_train_miss, Xdi_val_miss, ydi_train_miss, ydi_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
 )
-#  n_neighbors=430, metric='euclidean', initial_strategy="median", weights="distance")
-#  n_neighbors=484, metric='euclidean', initial_strategy="median", weights="distance", n_trees=10)
+imputer = ANNImputer(add_indicator=True, random_state=42, n_trees=10,
+    # metric='euclidean', initial_strategy="median", weights="distance", n_neighbors=430,)
+    # metric='euclidean', initial_strategy="median", weights="distance", n_neighbors=484, n_trees=10
+    index_access="public", on_disk_build=True, index_store_path=None,)
 mses_california[7], stds_california[7] = get_score(
     Xca_train_miss, Xca_val_miss, yca_train_miss, yca_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),
 )
-#  n_neighbors=1, metric='euclidean', initial_strategy="median")
+imputer = ANNImputer(add_indicator=True, random_state=42, n_trees=10)
 mses_train[7], stds_train[7] = get_score(
     Xbc_train_miss, Xbc_val_miss, ybc_train_miss, ybc_val_miss,
     make_pipeline(MaxAbsScaler(), RobustScaler(), imputer),

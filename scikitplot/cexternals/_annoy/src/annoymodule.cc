@@ -70,12 +70,6 @@
   #define PyInt_FromLong PyLong_FromLong
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER == 1500
-  typedef signed __int32 int32_t;
-#else
-  #include <stdint.h>
-#endif
-
 #ifndef Py_TYPE
   #define Py_TYPE(ob) (((PyObject*)(ob))->ob_type)
 #endif
@@ -148,7 +142,7 @@ using namespace Annoy;
 //
 // Semantics (deterministic):
 //   * seed is None -> "use Annoy's default seed".
-//   * seed is int  -> validated to be in [0, 2**64 - 1] and normalized via
+//   * seed is uint64_t -> validated to be in [0, 2**64 - 1] and normalized via
 //                    normalize_seed_u64() (so seed=0 maps to the default seed with warn).
 static inline uint64_t annoy_default_seed_u64() {
   return static_cast<uint64_t>(Kiss64Random::default_seed);
@@ -218,9 +212,8 @@ struct TempAnnoyIndexFile {
   ~TempAnnoyIndexFile() {
     if (!path.empty()) {
       std::remove(path.c_str());
-      }
     }
-
+  }
   TempAnnoyIndexFile(const TempAnnoyIndexFile&) = delete;
   TempAnnoyIndexFile& operator=(const TempAnnoyIndexFile&) = delete;
 };
@@ -302,11 +295,12 @@ Approximate Nearest Neighbors index (Annoy) with a small, lazy C-extension wrapp
 >>>     f=None,
 >>>     metric=None,
 >>>     *,
+>>>     n_neighbors=5,
 >>>     on_disk_path=None,
 >>>     prefault=None,
->>>     schema_version=None,
 >>>     seed=None,
 >>>     verbose=None,
+>>>     schema_version=None,
 >>> )
 
 Parameters
@@ -326,14 +320,16 @@ metric : {"angular", "cosine", "euclidean", "l2", "lstsq", "manhattan", "l1", "c
     * If ``f == 0``: leaves the metric unset (lazy). You may set
       :attr:`metric` later before construction, or it will default to
       ``'angular'`` on first :meth:`add_item`.
+n_neighbors : int, default=5
+    Non-negative integer Number of neighbors to retrieve for each query.
 on_disk_path : str or None, optional, default=None
     If provided, configures the path for on-disk building. When the underlying
     index exists, this enables on-disk build mode (equivalent to calling
     :meth:`on_disk_build` with the same filename).
 
-    Safety: Annoy core truncates the target file when enabling on-disk build.
-    Therefore, if the path already exists, it is **not** truncated implicitly.
-    Call :meth:`on_disk_build` explicitly to overwrite.
+    Note: Annoy core truncates the target file when enabling on-disk build.
+    This wrapper treats ``on_disk_path`` as strictly equivalent to calling
+    :meth:`on_disk_build` with the same filename (truncate allowed).
 
     In lazy mode (``f==0`` and/or ``metric is None``), activation occurs once
     the underlying C++ index is created.
@@ -341,6 +337,19 @@ prefault : bool or None, optional, default=None
     If True, request page-faulting index pages into memory when loading
     (when supported by the underlying platform/backing).
     If None, treated as ``False`` (reset to default).
+seed : int or None, optional, default=None
+    Non-negative integer seed. If set before the index is constructed,
+    the seed is stored and applied when the C++ index is created.
+    Seed value ``0`` is treated as \"use Annoy's deterministic default seed\"
+    (a :class:`UserWarning` is emitted when ``0`` is explicitly provided).
+verbose : int or None, optional, default=None
+    Verbosity level. Values are clamped to the range ``[-2, 2]``.
+    ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
+    Logging level inspired by gradient-boosting libraries:
+
+    * ``<= 0`` : quiet (warnings only)
+    * ``1``    : info (Annoy's ``verbose=True``)
+    * ``>= 2`` : debug (currently same as info, reserved for future use)
 schema_version : int, optional, default=None
     Serialization/compatibility strategy marker.
 
@@ -355,19 +364,6 @@ schema_version : int, optional, default=None
       a fallback if the ABI check fails).
 
     If None, treated as ``0`` (reset to default).
-seed : int or None, optional, default=None
-    Non-negative integer seed. If set before the index is constructed,
-    the seed is stored and applied when the C++ index is created.
-    Seed value ``0`` is treated as \"use Annoy's deterministic default seed\"
-    (a :class:`UserWarning` is emitted when ``0`` is explicitly provided).
-verbose : int or None, optional, default=None
-    Verbosity level. Values are clamped to the range ``[-2, 2]``.
-    ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.
-    Logging level inspired by gradient-boosting libraries:
-
-    * ``<= 0`` : quiet (warnings only)
-    * ``1``    : info (Annoy's ``verbose=True``)
-    * ``>= 2`` : debug (currently same as info, reserved for future use)
 
 Attributes
 ----------
@@ -375,14 +371,27 @@ f : int, default=0
     Vector dimension. ``0`` means "unknown / lazy".
 metric : {'angular', 'euclidean', 'manhattan', 'dot', 'hamming'}, default="angular"
     Canonical metric name, or None if not configured yet (lazy).
+n_neighbors : int, default=5
+    Non-negative integer Number of neighbors to retrieve for each query.
 on_disk_path : str or None, optional, default=None
     Configured on-disk build path. Setting this attribute enables on-disk
     build mode (equivalent to :meth:`on_disk_build`), with safety checks
     to avoid implicit truncation of existing files.
+seed, random_state : int or None, optional, default=None
+    Non-negative integer seed.
+verbose : int or None, optional, default=None
+    Verbosity level.
 prefault : bool, default=False
     Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
 schema_version : int, default=0
     Reserved schema/version marker (stored; does not affect on-disk format).
+n_features, n_features_, n_features_in_ : int
+    Alias of `f` (dimension), provided for scikit-learn naming parity.
+n_features_out_ : int
+    Number of output features produced by transform.
+feature_names_in_ : list-like
+    Input feature names seen during fit.
+    Set only when explicitly provided via fit(..., feature_names=...).
 y : dict | None, optional, default=None
     If provided to fit(X, y), labels are stored here after a successful build.
     You may also set this property manually. When possible, the setter enforces
@@ -530,9 +539,17 @@ int
 Notes
 -----
 - ``Annoy(f=None, ...)`` is supported at construction time and is treated as ``f=0``.
-  After construction, assigning ``None`` to :attr:`f` is not supported; use ``0``.
-- ``f`` may be set only before the underlying C++ index is created.
-- After construction, attempting to change ``f`` raises AttributeError.
+- ``0`` (or ``None``) means "unknown / lazy": the first call to :meth:`add_item`
+  will infer ``f`` from the input vector length and then fix it.
+
+Changing ``f`` after the index has been initialized (items added and/or
+trees built) is a *structural* change: the stored items and all tree splits
+depend on the vector dimension.
+
+For scikit-learn compatibility, assigning a different ``f`` (or ``None``) on
+an already initialized index will deterministically **reset** the index (drop
+all items, trees, and :attr:`y`). You must call :meth:`fit` (or
+:meth:`add_item` + :meth:`build`) again before querying.
 )FDOC";
 
 static const char kMetricDoc[] =
@@ -595,9 +612,9 @@ Notes
 -----
 - Assigning a string/PathLike to ``on_disk_path`` configures on-disk build mode
   (equivalent to calling :meth:`on_disk_build` with the same filename).
-- Safety: Annoy core truncates the target file when enabling on-disk build.
-  Therefore, an existing file is never truncated implicitly when setting this
-  attribute. Call :meth:`on_disk_build` explicitly to overwrite.
+- Note: Annoy core truncates the target file when enabling on-disk build.
+  ``on_disk_path`` is strictly equivalent to calling :meth:`on_disk_build`
+  with the same filename (truncate allowed).
 - Assigning ``None`` (or an empty string) clears the configured path, but only
   when no disk-backed index is currently active.
 - Clearing/changing this while an on-disk index is active is disallowed.
@@ -1074,8 +1091,25 @@ typedef struct {
   // --- Optional on-disk path (for on_disk_build / load) ---
   bool on_disk_active;          // true if ptr is currently backed by disk (load() or on_disk_build())
   std::string on_disk_path;     // Always has a valid string object, Default constructor "" to check method .empty(), back to "" (empty string) method .clear()
+  bool on_disk_pending;         // true if on-disk build should be activated on first ensure_index() after ptr creation
   bool prefault;                //
   int schema_version;           //
+
+  // Optional input feature names (SLEP007).
+  //
+  // Stored ONLY when explicitly provided to fit/fit_transform via
+  // the keyword-only argument feature_names=.
+  //
+  // When unset, feature_names_in_ is intentionally absent (raises AttributeError),
+  // matching scikit-learn's explicit-only contract.
+  PyObject* feature_names_in;   // tuple[str] or NULL
+
+  // Fixed output width for estimator-style transforms (SLEP013).
+  //
+  // This is an estimator parameter (not fitted state) and defines:
+  //   * n_features_out_ (available once fitted)
+  //   * get_feature_names_out() output length
+  size_t n_neighbors;              // > 0
 
   // --- Pending runtime configuration (before C++ index exists) ---
   uint64_t pending_seed;        // last seed requested via set_seed()
@@ -1127,22 +1161,24 @@ static bool ensure_index(py_annoy* self) {
   if (self->has_pending_seed)    self->ptr->set_seed(self->pending_seed);
   if (self->has_pending_verbose) self->ptr->verbose(self->pending_verbose >= 1);
 
-  // If an on-disk path is configured, enable on-disk build mode as soon as the
-  // underlying index exists (equivalent to calling on_disk_build(fn)).
+  // STRICT disk equivalence (on_disk_path ↔ on_disk_build(on_disk_path)):
   //
-  // Safety: Annoy core's on_disk_build() opens the file with O_TRUNC; to avoid
-  // accidental data loss, we do not implicitly truncate an existing file.
-  if (!self->on_disk_path.empty() && !self->on_disk_active) {
-    if (path_exists_noexc(self->on_disk_path.c_str())) {
-      if (PyErr_WarnEx(
-            PyExc_UserWarning,
-            "on_disk_path points to an existing file; refusing to truncate it "
-            "implicitly. Call on_disk_build(on_disk_path) explicitly to overwrite.",
-            1) < 0) {
-        delete self->ptr;
-        self->ptr = NULL;
-        return false;
-    }
+  // - Setting `on_disk_path` arms on-disk build mode.
+  // - Activation (ptr->on_disk_build) happens only when `on_disk_pending` is true.
+  // - Behavior is identical to calling on_disk_build(on_disk_path): truncation is allowed.
+  //
+  // This design prevents accidental truncation from merely having a path
+  // configured (e.g., after restoring metadata).
+  if (self->on_disk_pending) {
+    if (self->on_disk_active) {
+      // Defensive: keep state consistent if a caller toggled flags manually.
+      self->on_disk_pending = false;
+    } else if (self->on_disk_path.empty()) {
+      delete self->ptr;
+      self->ptr = NULL;
+      PyErr_SetString(PyExc_RuntimeError,
+        "Internal error: on_disk_pending is true but on_disk_path is empty");
+      return false;
     } else {
       ScopedError error;
       if (!self->ptr->on_disk_build(self->on_disk_path.c_str(), &error.err)) {
@@ -1152,8 +1188,9 @@ static bool ensure_index(py_annoy* self) {
         PyErr_SetString(PyExc_IOError,
           error.err ? error.err : (char*)"on_disk_build failed");
         return false;
-    }
+      }
       self->on_disk_active = true;
+      self->on_disk_pending = false;
     }
   }
 
@@ -1505,6 +1542,13 @@ static PyObject* py_an_new(
 
   self->ptr = NULL;
 
+  // Reset estimator parameters (SLEP013).
+  self->n_neighbors = 5;
+
+  self->feature_names_in = NULL;
+  // Clear fitted feature names (SLEP007).
+  Py_CLEAR(self->feature_names_in);
+
   self->y = NULL;
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
@@ -1513,6 +1557,7 @@ static PyObject* py_an_new(
   self->metric_id = METRIC_UNKNOWN;
 
   self->on_disk_active = false;
+  self->on_disk_pending = false;
   // Construct placement-new std::string members (py_annoy is a C struct,
   // so tp_alloc does not run C++ constructors).
   try {
@@ -1573,14 +1618,21 @@ static int py_an_init(
     self->ptr = NULL;
   }
 
+  // Reset estimator parameters to defaults (sklearn-like).
+  self->n_neighbors = 5;
+
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
+
+  // Clear fitted feature names (SLEP007).
+  Py_CLEAR(self->feature_names_in);
 
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
 
   self->on_disk_active = false;
   self->on_disk_path.clear();
+  self->on_disk_pending = false;
 
   self->prefault = false;
   self->schema_version = 0;
@@ -1616,12 +1668,13 @@ static int py_an_init(
   PyObject* f_obj      = (nargs >= 1) ? PyTuple_GET_ITEM(args, 0) : NULL;
   PyObject* metric_obj = (nargs >= 2) ? PyTuple_GET_ITEM(args, 1) : NULL;
 
-  PyObject*   on_disk_path   = NULL;
-  PyObject*   prefault       = NULL;
-  PyObject*   schema_version = NULL;
-  PyObject*   seed           = NULL;
-  PyObject*   random_state   = NULL;
-  PyObject*   verbose        = NULL;
+  PyObject*   on_disk_path    = NULL;
+  PyObject*   prefault        = NULL;
+  PyObject*   schema_version  = NULL;
+  PyObject*   seed            = NULL;
+  PyObject*   random_state    = NULL;
+  PyObject*   verbose         = NULL;
+  PyObject*   n_neighbors_obj = NULL;
 
   // parse by PyArg_ParseTuple or PyArg_ParseTupleAndKeywords
   // "O|s" f (required, PyObject), metric (optional, const char*)
@@ -1651,7 +1704,7 @@ static int py_an_init(
         PyErr_SetString(PyExc_TypeError,
           "keyword arguments must be strings");
         return -1;
-    }
+      }
 
       const char* k = PyUnicode_AsUTF8(key);
       if (!k) return -1;
@@ -1664,13 +1717,14 @@ static int py_an_init(
       const bool is_seed         = (std::strcmp(k, "seed") == 0);
       const bool is_random_state = (std::strcmp(k, "random_state") == 0);
       const bool is_verbose      = (std::strcmp(k, "verbose") == 0);
+      const bool is_n_neighbors  = (std::strcmp(k, "n_neighbors") == 0);
 
       if (!(is_f || is_metric || is_on_disk_path || is_prefault ||
-          is_schema_ver || is_seed || is_random_state || is_verbose)) {
+          is_schema_ver || is_seed || is_random_state || is_verbose || is_n_neighbors)) {
         PyErr_Format(PyExc_TypeError,
           "Annoy() got an unexpected keyword argument '%s'", k);
         return -1;
-    }
+      }
 
       if (is_f) {
         if (nargs >= 1) {
@@ -1679,26 +1733,28 @@ static int py_an_init(
           return -1;
         }
         f_obj = value;
-    } else if (is_metric) {
+      } else if (is_metric) {
         if (nargs >= 2) {
           PyErr_SetString(PyExc_TypeError,
             "Annoy() got multiple values for argument 'metric'");
           return -1;
         }
         metric_obj = value;
-    } else if (is_on_disk_path) {
+      } else if (is_on_disk_path) {
         on_disk_path = value;
-    } else if (is_prefault) {
+      } else if (is_prefault) {
         prefault = value;
-    } else if (is_schema_ver) {
+      } else if (is_schema_ver) {
         schema_version = value;
-    } else if (is_seed) {
+      } else if (is_seed) {
         seed = value;
-    } else if (is_random_state) {
+      } else if (is_random_state) {
         random_state = value;
-    } else if (is_verbose) {
+      } else if (is_verbose) {
         verbose = value;
-    }
+      } else if (is_n_neighbors) {
+        n_neighbors_obj = value;
+      }
     }
   }
 
@@ -1760,11 +1816,11 @@ static int py_an_init(
 
   // --------------------------
   // Apply on_disk_path.
-  // If provided, this enables on-disk build mode (same as calling
-  // on_disk_build(fn)). For safety, an existing file is never truncated
-  // implicitly; call on_disk_build(path) explicitly to overwrite.
-  // In lazy mode, activation occurs once the underlying index exists
-  // (see ensure_index()).
+  // If provided, this is strictly equivalent to calling
+  // on_disk_build(on_disk_path) once the underlying index exists.
+  // Activation is explicit and deterministic:
+  //   * if ptr exists now: on_disk_build is called immediately (truncate allowed)
+  //   * otherwise: on_disk_pending is armed and activation happens in ensure_index()
   // --------------------------
   if (on_disk_path) {
     if (py_annoy_set_on_disk_path(self, on_disk_path, NULL) != 0)
@@ -1840,6 +1896,23 @@ static int py_an_init(
     self->has_pending_verbose = true;
   }
 
+  // --------------------------
+  // Apply n_neighbors (estimator parameter; STRICT schema for transform APIs)
+  // --------------------------
+  if (n_neighbors_obj && n_neighbors_obj != Py_None) {
+    unsigned long long kn = PyLong_AsUnsignedLongLong(n_neighbors_obj);
+    if (kn == (unsigned long long)-1 && PyErr_Occurred()) return -1;
+    if (kn == 0ULL) {
+      PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+      return -1;
+    }
+    if (kn > (unsigned long long)std::numeric_limits<size_t>::max()) {
+      PyErr_SetString(PyExc_OverflowError, "n_neighbors is too large for this platform");
+      return -1;
+    }
+    self->n_neighbors = static_cast<size_t>(kn);
+  }
+
   // Eagerly construct the underlying C++ index only when both f and metric are known.
   if (self->f > 0 && self->metric_id != METRIC_UNKNOWN) {
     if (!ensure_index(self)) return -1;
@@ -1879,6 +1952,9 @@ static void py_an_dealloc(py_annoy* self) {
 
   // Clear instance dictionary (if enabled).
   Py_CLEAR(self->dict);
+
+  // Clear fitted input feature names (SLEP007).
+  Py_CLEAR(self->feature_names_in);
 
   // Clear fitted labels / targets (if any).
   Py_CLEAR(self->y);
@@ -1941,6 +2017,201 @@ static inline bool resolve_prefault_arg(
   return true;
 }
 
+// ---------------------------------------------------------------------
+// Feature name helpers (sklearn SLEP007)
+// ---------------------------------------------------------------------
+
+// Build a tuple[str] from a 1D sequence of str.
+//
+// Parameters
+// ----------
+// obj : object
+//     A 1D sequence of Python strings.
+// expected_len : Py_ssize_t
+//     If >= 0, require len(obj) == expected_len.
+// out_tuple : PyObject**
+//     Output pointer set to a new reference on success.
+// param_name : const char*
+//     Parameter name used in error messages.
+//
+// Returns
+// -------
+// bool
+//     True on success. On failure, sets a Python exception and returns false.
+static bool build_feature_names_tuple(
+  PyObject* obj,
+  Py_ssize_t expected_len,
+  PyObject** out_tuple,
+  const char* param_name) {
+  if (!out_tuple) {
+    PyErr_SetString(PyExc_RuntimeError, "internal error: out_tuple is NULL");
+    return false;
+  }
+  *out_tuple = NULL;
+
+  if (obj == NULL || obj == Py_None) {
+    PyErr_Format(PyExc_TypeError, "%s must be a 1D sequence of str, not None",
+                param_name ? param_name : "feature_names");
+    return false;
+  }
+
+  // Reject raw strings/bytes: they are sequences but represent a single name.
+  if (PyUnicode_Check(obj) || PyBytes_Check(obj)) {
+    PyErr_Format(PyExc_TypeError,
+      "%s must be a 1D sequence of str, not a string",
+      param_name ? param_name : "feature_names");
+    return false;
+  }
+
+  PyObject* seq = PySequence_Fast(obj, "feature_names must be a 1D sequence of str");
+  if (!seq) return false;
+
+  const Py_ssize_t n = PySequence_Fast_GET_SIZE(seq);
+  if (n < 0) { Py_DECREF(seq); return false; }
+  if (expected_len >= 0 && n != expected_len) {
+    PyErr_Format(PyExc_ValueError,
+      "%s must have length %zd",
+      param_name ? param_name : "feature_names", expected_len);
+    Py_DECREF(seq);
+    return false;
+  }
+
+  PyObject* tup = PyTuple_New(n);
+  if (!tup) { Py_DECREF(seq); return false; }
+
+  PyObject** items = PySequence_Fast_ITEMS(seq);
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    PyObject* it = items[i];  // borrowed
+    if (!PyUnicode_Check(it)) {
+      PyErr_Format(PyExc_TypeError,
+        "%s[%zd] must be str",
+        param_name ? param_name : "feature_names", i);
+      Py_DECREF(seq);
+      Py_DECREF(tup);
+      return false;
+    }
+    Py_INCREF(it);
+    PyTuple_SET_ITEM(tup, i, it);  // steals ref
+  }
+
+  Py_DECREF(seq);
+  *out_tuple = tup;
+  return true;
+}
+
+// Compare two tuples[str] for exact equality, without invoking arbitrary user code.
+// Returns true if equal, false if not equal. On error, sets a Python exception and returns false.
+static bool feature_names_tuple_equal(
+  PyObject* a,
+  PyObject* b,
+  bool* out_equal) {
+  if (!out_equal) {
+    PyErr_SetString(PyExc_RuntimeError, "internal error: out_equal is NULL");
+    return false;
+  }
+  *out_equal = false;
+
+  if (!a || !b) {
+    *out_equal = (a == b);
+    return true;
+  }
+  if (!PyTuple_Check(a) || !PyTuple_Check(b)) {
+    PyErr_SetString(PyExc_RuntimeError, "internal error: expected tuples");
+    return false;
+  }
+
+  const Py_ssize_t na = PyTuple_GET_SIZE(a);
+  const Py_ssize_t nb = PyTuple_GET_SIZE(b);
+  if (na != nb) {
+    *out_equal = false;
+    return true;
+  }
+
+  for (Py_ssize_t i = 0; i < na; ++i) {
+    PyObject* ai = PyTuple_GET_ITEM(a, i);
+    PyObject* bi = PyTuple_GET_ITEM(b, i);
+    // Both should be unicode, but guard anyway.
+    if (!PyUnicode_Check(ai) || !PyUnicode_Check(bi)) {
+      PyErr_SetString(PyExc_RuntimeError, "internal error: feature names must be str");
+      return false;
+    }
+    const int cmp = PyUnicode_Compare(ai, bi);
+    if (cmp < 0) return false;
+    if (cmp != 0) {
+      *out_equal = false;
+      return true;
+    }
+  }
+
+  *out_equal = true;
+  return true;
+}
+
+// Return whether the current index has a built forest.
+//
+// Annoy's C++ core reports build status via get_n_trees():
+// - 0 trees => not built (or has been unbuilt)
+// - >0 trees => built and query-ready
+static bool is_index_built(
+  const py_annoy* self) {
+  return (self && self->ptr && self->ptr->get_n_trees() > 0);
+}
+
+// sklearn protocol hook (optional): `__sklearn_is_fitted__`
+//
+// This allows scikit-learn utilities to query fitted state without relying on
+// heuristics.
+static PyObject* py_an_sklearn_is_fitted(
+  py_annoy* self,
+  PyObject* Py_UNUSED(ignored)) {
+  return PyBool_FromLong(is_index_built(self) ? 1 : 0);
+}
+
+// Deterministically drop all index state (items/trees) while keeping the Python
+// wrapper object and estimator-style parameters.
+//
+// IMPORTANT
+// ---------
+// This helper must only be called while holding the GIL (it may emit warnings
+// and clears Python-owned metadata like y).
+static bool reset_index_state(
+  py_annoy* self,
+  const char* warn_msg) {
+  if (!self) return true;
+  if (!self->ptr) {
+    // Even without a live C++ index, clear any stale metadata to keep state
+    // consistent.
+    self->on_disk_active = false;
+    self->on_disk_path.clear();
+    self->on_disk_pending = false;
+    Py_CLEAR(self->feature_names_in);
+    Py_CLEAR(self->y);
+    return true;
+  }
+
+  if (warn_msg) {
+    if (PyErr_WarnEx(PyExc_UserWarning, warn_msg, 1) < 0) {
+      return false;
+    }
+  }
+
+  // Best-effort resource release: unload mmap/on-disk state before deleting.
+  try { self->ptr->unload(); } catch (...) {}
+  delete self->ptr;
+  self->ptr = NULL;
+
+  // After a reset the index is no longer backed by any on-disk file.
+  self->on_disk_active = false;
+  self->on_disk_path.clear();
+  self->on_disk_pending = false;
+
+  // Prevent stale label metadata from being queried against a new index.
+  Py_CLEAR(self->feature_names_in);
+  Py_CLEAR(self->y);
+
+  return true;
+}
+
 // ===================== Annoy Attr =========================
 
 // The metric is exposed via the get/set table (py_annoy_getset).
@@ -1948,12 +2219,6 @@ static inline bool resolve_prefault_arg(
 // Internal / debug-only snapshot (must be READONLY to prevent bypassing setters)
 // _f, _metric_id  (and _on_disk_path via getset alias)
 static PyMemberDef py_annoy_members[] = {
-  {
-    (char*)"_schema_version",
-    T_INT, offsetof(py_annoy, schema_version),
-    READONLY,  // 0
-    (char*)"internal: raw schema_version value (read-only). Use .schema_version property instead."
-  },
 
   {
     (char*)"_f",
@@ -1977,6 +2242,12 @@ static PyMemberDef py_annoy_members[] = {
     // READONLY is mandatory: otherwise obj._prefault = True bypasses your .prefault setter and breaks sync.
     READONLY,  // 0
     (char*)"internal: raw prefault value (read-only). Use .prefault property instead."
+  },
+  {
+    (char*)"_schema_version",
+    T_INT, offsetof(py_annoy, schema_version),
+    READONLY,  // 0
+    (char*)"internal: raw schema_version value (read-only). Use .schema_version property instead."
   },
 
   // {
@@ -2108,10 +2379,13 @@ static int py_annoy_set_f(
     return -1;
   }
   if (value == Py_None) {
+    // Treat None as an explicit request to reset to the lazy/unknown state.
+    // If a live index exists, this is a structural change and must drop it.
     if (self->ptr) {
-      PyErr_SetString(PyExc_AttributeError,
-        "Cannot unset f after the index has been created. If not loaded from file to call :meth:`unload`");
-      return -1;
+      if (!reset_index_state(self,
+            "Unsetting f resets the existing index (drops items, trees, and y).")) {
+        return -1;
+      }
     }
     self->f = 0;
     return 0;
@@ -2121,17 +2395,20 @@ static int py_annoy_set_f(
       "f must be an integer");
     return -1;
   }
-  if (self->ptr) {
-    PyErr_SetString(PyExc_AttributeError,
-      "Cannot change f after the index has been created.");
-    return -1;
-  }
   long fv = PyLong_AsLong(value);
   if (fv == -1 && PyErr_Occurred()) return -1;
   if (fv < 0) {
     PyErr_SetString(PyExc_ValueError,
       "f must be non-negative (0 means infer from first vector)");
     return -1;
+  }
+  // Changing f on an initialized index is a structural change.
+  // For scikit-learn compatibility we deterministically reset fitted state.
+  if (self->ptr && self->f != (int)fv) {
+    if (!reset_index_state(self,
+          "Changing f resets the existing index (drops items, trees, and y).")) {
+      return -1;
+    }
   }
   self->f = (int)fv;
   return 0;
@@ -2164,6 +2441,73 @@ static PyObject* py_annoy_get_n_features_in_(
     return NULL;
   }
   return PyLong_FromLong((long)self->f);
+}
+
+// Read-only sklearn-style fitted attribute: feature_names_in_ (SLEP007)
+
+static PyObject* py_annoy_get_feature_names_in_(
+  py_annoy* self,
+  void*) {
+  if (!self || !self->feature_names_in) {
+    PyErr_SetString(PyExc_AttributeError,
+      "feature_names_in_ is not available unless explicitly provided during fit");
+    return NULL;
+  }
+  Py_INCREF(self->feature_names_in);
+  return self->feature_names_in;
+}
+
+// Estimator parameter: n_neighbors (SLEP013; STRICT output schema)
+
+static PyObject* py_annoy_get_n_neighbors(
+  py_annoy* self,
+  void*) {
+  if (!self) Py_RETURN_NONE;
+  return PyLong_FromSize_t(self->n_neighbors);
+}
+
+static int py_annoy_set_n_neighbors(
+  py_annoy* self,
+  PyObject* value,
+  void*) {
+  if (value == NULL) {
+    PyErr_SetString(PyExc_AttributeError, "Cannot delete n_neighbors attribute");
+    return -1;
+  }
+  if (value == Py_None) {
+    PyErr_SetString(PyExc_TypeError, "n_neighbors must be a positive integer");
+    return -1;
+  }
+
+  // Accept any Python int >= 1, but store as size_t (platform width).
+  unsigned long long kn = PyLong_AsUnsignedLongLong(value);
+  if (kn == (unsigned long long)-1 && PyErr_Occurred()) return -1;
+
+  if (kn == 0ULL) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return -1;
+  }
+  if (kn > (unsigned long long)std::numeric_limits<size_t>::max()) {
+    PyErr_SetString(PyExc_OverflowError, "n_neighbors is too large for this platform");
+    return -1;
+  }
+
+  self->n_neighbors = static_cast<size_t>(kn);
+  return 0;
+}
+
+// sklearn-style fitted attribute: n_features_out_ (SLEP013)
+// Available only once the index is fitted/built.
+static PyObject* py_annoy_get_n_features_out_(
+  py_annoy* self,
+  void*) {
+  if (!self || !is_index_built(self)) {
+    PyErr_SetString(PyExc_AttributeError,
+      "n_features_out_ is not available before fit/build");
+    return NULL;
+  }
+  // return PyLong_FromLong((long)self->n_neighbors);
+  return PyLong_FromSize_t(self->n_neighbors);
 }
 
 // Setter for 'metric'
@@ -2234,15 +2578,18 @@ static int py_annoy_set_on_disk_path(
   py_annoy* self,
   PyObject* value,
   void*) {
-  // Semantics (deterministic):
-  //   * None (or deletion) clears the configured on-disk path (if no disk-backed
-  //     index is currently active).
-  //   * A string / PathLike sets the path and enables on-disk build mode as soon
-  //     as the underlying index exists (equivalent to calling on_disk_build(fn)).
+  // STRICT disk equivalence (on_disk_path ↔ on_disk_build(on_disk_path)):
   //
-  // Safety: Annoy core's on_disk_build() truncates existing files. Therefore, we
-  // do not implicitly enable on-disk build if the target path already exists;
-  // call on_disk_build(path) explicitly to overwrite.
+  // - None / deletion clears the configured path (and clears any pending activation),
+  //   provided no on-disk index is currently active.
+  // - Setting a non-empty path arms on-disk build mode.
+  //   * If the C++ index already exists: activate immediately by calling
+  //     ptr->on_disk_build(path) (truncate allowed; identical to on_disk_build()).
+  //   * If the C++ index does not exist yet: set on_disk_pending=true and activate
+  //     on first ensure_index() after ptr creation.
+  //
+  // This avoids any "refuse truncation" policy divergence: the behavior matches
+  // Annoy core's on_disk_build() exactly.
   if (!value || value == Py_None) {
     if (self->on_disk_active) {
       PyErr_SetString(PyExc_AttributeError,
@@ -2250,6 +2597,7 @@ static int py_annoy_set_on_disk_path(
       return -1;
     }
     self->on_disk_path.clear();
+    self->on_disk_pending = false;
     return 0;
   }
 
@@ -2295,40 +2643,32 @@ static int py_annoy_set_on_disk_path(
   // Treat empty path as "clear" (same as None), for deterministic behavior.
   if (new_path.empty()) {
     self->on_disk_path.clear();
+    self->on_disk_pending = false;
     return 0;
   }
 
+  // Update configured path.
   const std::string old_path = self->on_disk_path;
   self->on_disk_path = new_path;
 
-  // If the index already exists, enable on-disk build mode immediately so the
-  // backing file is created right away (Annoy core behavior).
+  // If the index already exists, activate immediately (truncate allowed).
   if (self->ptr && !self->on_disk_active) {
-    if (path_exists_noexc(self->on_disk_path.c_str())) {
-      // Refuse to truncate implicitly. Keep the path for introspection and for
-      // an explicit on_disk_build() call by the user.
-      if (PyErr_WarnEx(
-            PyExc_UserWarning,
-            "on_disk_path points to an existing file; refusing to truncate it "
-            "implicitly. Call on_disk_build(on_disk_path) explicitly to overwrite.",
-            1) < 0) {
-        self->on_disk_path = old_path;
-        return -1;
-    }
-      return 0;
-    }
-
     ScopedError error;
     if (!self->ptr->on_disk_build(self->on_disk_path.c_str(), &error.err)) {
       // Roll back attribute value (best-effort).
       self->on_disk_path = old_path;
+      self->on_disk_pending = false;
       PyErr_SetString(PyExc_IOError,
         error.err ? error.err : (char*)"on_disk_build failed");
       return -1;
     }
     self->on_disk_active = true;
+    self->on_disk_pending = false;
+    return 0;
   }
 
+  // Lazy: arm activation for first ensure_index() after ptr creation.
+  self->on_disk_pending = true;
   return 0;
 }
 
@@ -2559,13 +2899,6 @@ static PyObject* py_annoy_get_n_features_(
 static PyGetSetDef py_annoy_getset[] = {
 
   {
-    (char*)"schema_version",
-    (getter)py_annoy_get_schema_version,
-    (setter)py_annoy_set_schema_version,
-    (char*)kSchemaVersionDoc,
-    NULL
-  },
-  {
     (char*)"f",
     (getter)py_annoy_get_f,
     (setter)py_annoy_set_f,
@@ -2578,6 +2911,14 @@ static PyGetSetDef py_annoy_getset[] = {
     (getter)py_annoy_get_metric,
     (setter)py_annoy_set_metric,
     (char*)kMetricDoc,
+    NULL
+  },
+
+  {
+    (char*)"n_neighbors",
+    (getter)py_annoy_get_n_neighbors,
+    (setter)py_annoy_set_n_neighbors,
+    (char*)"Number of neighbors returned by transform/fit_transform (SLEP013; strict schema).",
     NULL
   },
 
@@ -2631,6 +2972,14 @@ static PyGetSetDef py_annoy_getset[] = {
   },
 
   {
+    (char*)"schema_version",
+    (getter)py_annoy_get_schema_version,
+    (setter)py_annoy_set_schema_version,
+    (char*)kSchemaVersionDoc,
+    NULL
+  },
+
+  {
     (char*)"n_features",
     (getter)py_annoy_get_n_features,
     (setter)py_annoy_set_n_features,
@@ -2651,6 +3000,22 @@ static PyGetSetDef py_annoy_getset[] = {
     (getter)py_annoy_get_n_features_in_,
     NULL,  // read-only
     (char*)"Number of features seen during fit (scikit-learn compatible). Alias of `f` when available.",
+    NULL
+  },
+
+  {
+    (char*)"n_features_out_",
+    (getter)py_annoy_get_n_features_out_,
+    NULL,  // read-only
+    (char*)"Number of output features produced by transform (SLEP013). Equals n_neighbors once fitted.",
+    NULL
+  },
+
+  {
+    (char*)"feature_names_in_",
+    (getter)py_annoy_get_feature_names_in_,
+    NULL,  // read-only
+    (char*)"Input feature names seen during fit (SLEP007). Set only when explicitly provided via fit(..., feature_names=...).",
     NULL
   },
 
@@ -3699,67 +4064,6 @@ static bool get_memory_usage_byte(
   return true;
 }
 
-// Return whether the current index has a built forest.
-//
-// Annoy's C++ core reports build status via get_n_trees():
-// - 0 trees => not built (or has been unbuilt)
-// - >0 trees => built and query-ready
-static bool is_index_built(
-  const py_annoy* self) {
-  return (self && self->ptr && self->ptr->get_n_trees() > 0);
-}
-
-// Deterministically drop all index state (items/trees) while keeping the Python
-// wrapper object and estimator-style parameters.
-//
-// IMPORTANT
-// ---------
-// This helper must only be called while holding the GIL (it may emit warnings
-// and clears Python-owned metadata like y).
-static bool reset_index_state(
-  py_annoy* self,
-  const char* warn_msg) {
-  if (!self) return true;
-  if (!self->ptr) {
-    // Even without a live C++ index, clear any stale metadata to keep state
-    // consistent.
-    self->on_disk_active = false;
-    self->on_disk_path.clear();
-    Py_CLEAR(self->y);
-    return true;
-  }
-
-  if (warn_msg) {
-    if (PyErr_WarnEx(PyExc_UserWarning, warn_msg, 1) < 0) {
-      return false;
-    }
-  }
-
-  // Best-effort resource release: unload mmap/on-disk state before deleting.
-  try { self->ptr->unload(); } catch (...) {}
-  delete self->ptr;
-  self->ptr = NULL;
-
-  // After a reset the index is no longer backed by any on-disk file.
-  self->on_disk_active = false;
-  self->on_disk_path.clear();
-
-  // Prevent stale label metadata from being queried against a new index.
-  Py_CLEAR(self->y);
-
-  return true;
-}
-
-// sklearn protocol hook (optional): `__sklearn_is_fitted__`
-//
-// This allows scikit-learn utilities to query fitted state without relying on
-// heuristics.
-static PyObject* py_an_sklearn_is_fitted(
-  py_annoy* self,
-  PyObject* Py_UNUSED(ignored)) {
-  return PyBool_FromLong(is_index_built(self) ? 1 : 0);
-}
-
 // ---------------------------------------------------------------------
 // save(fn: str, prefault: bool = False) -> Annoy
 //
@@ -3825,6 +4129,11 @@ static PyObject* py_an_get_params(
     v = Py_None;
   }
   if (!v || PyDict_SetItemString(d, "metric", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  // n_neighbors (unsigned long long)
+  v = PyLong_FromSize_t(self->n_neighbors);
+  if (!v || PyDict_SetItemString(d, "n_neighbors", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
   Py_DECREF(v);
 
   // seed / verbose (None if not explicitly set)
@@ -3904,6 +4213,8 @@ static PyObject* py_an_set_params(
       if (py_annoy_set_f(self, value, NULL) != 0) return NULL;
     } else if (std::strcmp(k, "metric") == 0) {
       if (py_annoy_set_metric(self, value, NULL) != 0) return NULL;
+    } else if (std::strcmp(k, "n_neighbors") == 0) {
+      if (py_annoy_set_n_neighbors(self, value, NULL) != 0) return NULL;
     } else if (std::strcmp(k, "seed") == 0 || std::strcmp(k, "random_state") == 0) {
       if (py_annoy_set_seed(self, value ? value : Py_None, NULL) != 0) return NULL;
     } else if (std::strcmp(k, "verbose") == 0) {
@@ -3917,7 +4228,7 @@ static PyObject* py_an_set_params(
     } else {
       PyErr_Format(PyExc_ValueError,
         "Invalid parameter %R for Annoy. Valid parameters are: "
-        "f, metric, seed, random_state, verbose, prefault, schema_version, on_disk_path.",
+        "f, metric, n_neighbors, seed, random_state, verbose, prefault, schema_version, on_disk_path.",
         key);
       return NULL;
     }
@@ -3936,62 +4247,72 @@ static PyObject* py_an_set_params(
 // See Also
 // --------
 // sklearn.utils.get_tags : Consumes __sklearn_tags__ when available.
+static PyObject* annoy_tags_fallback_dict() {
+  // Minimal legacy tag format (scikit-learn < 1.6). Kept intentionally small:
+  // this estimator does not require y.
+  PyObject* d = PyDict_New();
+  if (!d) return NULL;
+  if (PyDict_SetItemString(d, "requires_y", Py_False) < 0) {
+    Py_DECREF(d);
+    return NULL;
+  }
+  return d;
+}
+
 static PyObject* py_an_sklearn_tags(
   py_annoy* self,
-  PyObject* Py_UNUSED(ignored)) {
+  PyObject* args) {  // PyObject* Py_UNUSED(ignored)
   (void)self;
 
+  if (!PyArg_ParseTuple(args, ""))
+    return NULL;
+
   PyObject* utils_mod = PyImport_ImportModule("sklearn.utils");
-  if (!utils_mod) return NULL;
+  if (!utils_mod) {
+    PyErr_Clear();
+    return annoy_tags_fallback_dict();
+  }
 
   PyObject* Tags = PyObject_GetAttrString(utils_mod, "Tags");
   PyObject* TargetTags = PyObject_GetAttrString(utils_mod, "TargetTags");
   Py_DECREF(utils_mod);
 
   if (!Tags || !TargetTags) {
+    PyErr_Clear();
     Py_XDECREF(Tags);
     Py_XDECREF(TargetTags);
-    return NULL;
+    return annoy_tags_fallback_dict();
   }
 
   // TargetTags signature (scikit-learn >= 1.6):
   //   TargetTags(required: bool, one_d_labels: bool = False, ...)
   // Older builds may accept TargetTags() without arguments.
   // Deterministic policy for this estimator: y is NOT required.
-  PyObject* target = PyObject_CallObject(TargetTags, NULL);
-  if (!target && PyErr_ExceptionMatches(PyExc_TypeError)) {
-    PyErr_Clear();
-
+  PyObject* target = NULL;
+  // Prefer explicit required=False.
+  {
+    PyObject* empty_args = PyTuple_New(0);
     PyObject* tt_kwargs = PyDict_New();
-    if (!tt_kwargs) {
-      Py_DECREF(TargetTags);
-      Py_DECREF(Tags);
-      return NULL;
+    if (empty_args && tt_kwargs &&
+        PyDict_SetItemString(tt_kwargs, "required", Py_False) == 0) {
+      target = PyObject_Call(TargetTags, empty_args, tt_kwargs);
     }
-    if (PyDict_SetItemString(tt_kwargs, "required", Py_False) < 0) {
-      Py_DECREF(tt_kwargs);
-      Py_DECREF(TargetTags);
-      Py_DECREF(Tags);
-      return NULL;
-    }
-
-    PyObject* tt_args = PyTuple_New(0);
-    if (!tt_args) {
-      Py_DECREF(tt_kwargs);
-      Py_DECREF(TargetTags);
-      Py_DECREF(Tags);
-      return NULL;
-    }
-
-    target = PyObject_Call(TargetTags, tt_args, tt_kwargs);
-    Py_DECREF(tt_args);
-    Py_DECREF(tt_kwargs);
+    Py_XDECREF(empty_args);
+    Py_XDECREF(tt_kwargs);
   }
-
-  Py_DECREF(TargetTags);
   if (!target) {
+    PyErr_Clear();
+    target = PyObject_CallFunctionObjArgs(TargetTags, Py_False, NULL);
+  }
+  if (!target) {
+    PyErr_Clear();
+    target = PyObject_CallObject(TargetTags, NULL);
+  }
+  if (!target) {
+    PyErr_Clear();
     Py_DECREF(Tags);
-    return NULL;
+    Py_DECREF(TargetTags);
+    return annoy_tags_fallback_dict();
   }
 
   // kwargs: Tags(estimator_type=None, target_tags=TargetTags())
@@ -3999,28 +4320,37 @@ static PyObject* py_an_sklearn_tags(
   if (!kwargs) {
     Py_DECREF(target);
     Py_DECREF(Tags);
+    Py_DECREF(TargetTags);
     return NULL;
   }
   if (PyDict_SetItemString(kwargs, "estimator_type", Py_None) < 0 ||
       PyDict_SetItemString(kwargs, "target_tags", target) < 0) {
-    Py_DECREF(kwargs);
     Py_DECREF(target);
+    Py_DECREF(kwargs);
     Py_DECREF(Tags);
+    Py_DECREF(TargetTags);
     return NULL;
   }
   Py_DECREF(target);
 
-  PyObject* args = PyTuple_New(0);
-  if (!args) {
+  PyObject* empty_args = PyTuple_New(0);
+  if (!empty_args) {
     Py_DECREF(kwargs);
     Py_DECREF(Tags);
+    Py_DECREF(TargetTags);
     return NULL;
   }
 
-  PyObject* tags = PyObject_Call(Tags, args, kwargs);
-  Py_DECREF(args);
+  PyObject* tags = PyObject_Call(Tags, empty_args, kwargs);
+  Py_DECREF(empty_args);
   Py_DECREF(kwargs);
   Py_DECREF(Tags);
+  Py_DECREF(TargetTags);
+
+  if (!tags) {
+    PyErr_Clear();
+    return annoy_tags_fallback_dict();
+  }
   return tags;
 }
 
@@ -4492,6 +4822,7 @@ static PyObject* annoy_build_summary_dict(
 
   PyObject* py_f = NULL;
   PyObject* py_metric = NULL;
+  PyObject* py_n_neighbors = NULL;
   PyObject* py_path = NULL;
   PyObject* py_prefault = NULL;
   PyObject* py_schema = NULL;
@@ -4523,6 +4854,10 @@ static PyObject* annoy_build_summary_dict(
     if (PyDict_SetItemString(d, "metric", py_metric) < 0) goto fail;
   }
 
+  py_n_neighbors = PyLong_FromSize_t(self->n_neighbors);
+  if (!py_n_neighbors) goto fail;
+  if (PyDict_SetItemString(d, "n_neighbors", py_n_neighbors) < 0) goto fail;
+
   if (self->on_disk_path.empty()) {
     py_path = Py_None;
     Py_INCREF(py_path);
@@ -4535,10 +4870,6 @@ static PyObject* annoy_build_summary_dict(
   py_prefault = PyBool_FromLong(self->prefault ? 1 : 0);
   if (!py_prefault) goto fail;
   if (PyDict_SetItemString(d, "prefault", py_prefault) < 0) goto fail;
-
-  py_schema = PyLong_FromLong((long)self->schema_version);
-  if (!py_schema) goto fail;
-  if (PyDict_SetItemString(d, "schema_version", py_schema) < 0) goto fail;
 
   if (self->has_pending_seed) {
     py_seed = PyLong_FromUnsignedLongLong(
@@ -4558,6 +4889,10 @@ static PyObject* annoy_build_summary_dict(
     Py_INCREF(py_verbose);
   }
   if (PyDict_SetItemString(d, "verbose", py_verbose) < 0) goto fail;
+
+  py_schema = PyLong_FromLong((long)self->schema_version);
+  if (!py_schema) goto fail;
+  if (PyDict_SetItemString(d, "schema_version", py_schema) < 0) goto fail;
 
   // Optional keys (included only when requested)
   if (include_n_items || include_n_trees) {
@@ -4604,11 +4939,12 @@ static PyObject* annoy_build_summary_dict(
   // Success
   Py_DECREF(py_f);
   Py_XDECREF(py_metric);
+  Py_XDECREF(py_n_neighbors);
   Py_DECREF(py_path);
   Py_DECREF(py_prefault);
-  Py_DECREF(py_schema);
   Py_DECREF(py_seed);
   Py_DECREF(py_verbose);
+  Py_DECREF(py_schema);
   Py_XDECREF(py_items);
   Py_XDECREF(py_trees);
   Py_XDECREF(py_byte);
@@ -4618,11 +4954,12 @@ static PyObject* annoy_build_summary_dict(
 fail:
   Py_XDECREF(py_f);
   Py_XDECREF(py_metric);
+  Py_XDECREF(py_n_neighbors);
   Py_XDECREF(py_path);
   Py_XDECREF(py_prefault);
-  Py_XDECREF(py_schema);
   Py_XDECREF(py_seed);
   Py_XDECREF(py_verbose);
+  Py_XDECREF(py_schema);
   Py_XDECREF(py_items);
   Py_XDECREF(py_trees);
   Py_XDECREF(py_byte);
@@ -4708,16 +5045,23 @@ static PyObject* py_an_add_item(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
-  int32_t indice;           // Annoy item id (row id)
+  int indice_tmp = 0;       // Parsed from Python (C int)
   PyObject* embedding_obj;  // Python sequence of floats
 
   // NOTE: kwlist uses "i" and "vector" for backward compatibility,
   // but conceptually they are (indice, embedding).
   static const char* kwlist[] = {"i", "vector", NULL};
   if (!PyArg_ParseTupleAndKeywords(
-          args, kwargs, "iO", (char**)kwlist, &indice, &embedding_obj)) {
+      args, kwargs, "iO", (char**)kwlist, &indice_tmp, &embedding_obj)) {
     return NULL;
   }
+
+  // Convert to int32_t (Annoy item id). Use an explicit bound check before casting.
+  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+    return NULL;
+  }
+  const int32_t indice = static_cast<int32_t>(indice_tmp);
 
   // During build stage: allow gaps, but forbid negative ids.
   if (!check_constraints(self, indice, /*building=*/true))
@@ -4776,25 +5120,28 @@ static PyObject* py_an_on_disk_build(
     return NULL;
   }
 
-  if (!self->ptr) {
-    PyErr_SetString(PyExc_RuntimeError,
-      "Annoy index is not initialized; construct it with Annoy(f, metric) "
-      "and add items before on_disk_build().");
-    return NULL;
-  }
+  // Ensure underlying C++ index exists. This requires that f and metric have
+  // been configured (either at construction time or via properties).
+  // Explicit method call: ignore any pending on_disk_path activation and
+  // perform exactly the requested on-disk build.
+  self->on_disk_pending = false;
+  if (!ensure_index(self)) return NULL;
 
   // NOTE:
   //  * on_disk_build is allowed to create a new file; we do NOT call file_exists().
   //  * Errors (invalid path, permission, etc.) are reported via `error`.
   ScopedError error;
   if (!self->ptr->on_disk_build(filename, &error.err)) {
-    PyErr_SetString(PyExc_IOError, error.err ? error.err : (char*)"on_disk_build failed");
+    PyErr_SetString(
+      PyExc_IOError,
+      error.err ? error.err : (char*)"on_disk_build failed");
     return NULL;
   }
 
   // Remember the last on-disk path for __repr__ / info()
   self->on_disk_path = filename;
   self->on_disk_active = true;
+  self->on_disk_pending = false;
   // Chaining: a.build(...).save(...).info()
   PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
@@ -4886,6 +5233,10 @@ static PyObject* py_an_fit(
   PyObject* start_index_obj = Py_None;
   PyObject* missing_value_obj = Py_None;
 
+  // SLEP007: optional explicit feature names (explicit-only storage)
+  PyObject* feature_names_obj = Py_None;
+  bool feature_names_provided = false;
+
   // Allow keyword X/y as well (sklearn style), but forbid duplicates.
   if (kwargs && kwargs != Py_None) {
     if (!PyDict_Check(kwargs)) {
@@ -4967,10 +5318,14 @@ static PyObject* py_an_fit(
         // If not None, this numeric value is used to impute missing entries
         // (None values in dense rows; missing keys / None values in dict rows).
         missing_value_obj = value ? value : Py_None;
+      } else if (std::strcmp(k, "feature_names") == 0) {
+        // Optional explicit feature names (SLEP007).
+        feature_names_provided = true;
+        feature_names_obj = value ? value : Py_None;
       } else {
         PyErr_Format(PyExc_TypeError,
           "fit() got an unexpected keyword argument %R "
-          "(allowed: X, y, n_trees, n_jobs, reset, start_index)",
+          "(allowed: X, y, n_trees, n_jobs, reset, start_index, feature_names, missing_value)",
           key);
         return NULL;
       }
@@ -5046,6 +5401,8 @@ static PyObject* py_an_fit(
       self->ptr = NULL;
     }
     self->on_disk_active = false;  // items are no longer backed by disk
+    // Clear any previously stored feature names (SLEP007).
+    Py_CLEAR(self->feature_names_in);
     // Clear any previously stored labels to prevent stale metadata.
     Py_CLEAR(self->y);
   } else {
@@ -5104,6 +5461,44 @@ static PyObject* py_an_fit(
     Py_DECREF(row0_seq);
     if (f <= 0) { Py_DECREF(X_seq); PyErr_SetString(PyExc_ValueError, "X rows must be non-empty"); return NULL; }
     self->f = (int)f;
+  }
+
+  // SLEP007: handle explicit feature names
+  //
+  // Rules:
+  // - Stored only if explicitly provided (feature_names=...).
+  // - On reset=True, prior feature_names_in_ is always cleared.
+  // - On reset=False (append mode), provided feature_names must match existing feature_names_in_ exactly.
+  if (feature_names_provided) {
+    if (feature_names_obj == Py_None) {
+      // Explicit request to clear feature_names_in_.
+      Py_CLEAR(self->feature_names_in);
+    } else {
+      PyObject* fn_tuple = NULL;
+      if (!build_feature_names_tuple(feature_names_obj, (Py_ssize_t)self->f, &fn_tuple, "feature_names")) {
+        Py_DECREF(X_seq);
+        return NULL;
+      }
+      if (self->feature_names_in) {
+        bool eq = false;
+        if (!feature_names_tuple_equal(fn_tuple, self->feature_names_in, &eq)) {
+          Py_DECREF(fn_tuple);
+          Py_DECREF(X_seq);
+          return NULL;
+        }
+        if (!eq) {
+          Py_DECREF(fn_tuple);
+          Py_DECREF(X_seq);
+          PyErr_SetString(PyExc_ValueError,
+            "feature_names must match existing feature_names_in_ in append mode");
+          return NULL;
+        }
+        Py_DECREF(fn_tuple);
+      } else {
+        // Store new tuple (immutable)
+        self->feature_names_in = fn_tuple;
+      }
+    }
   }
 
   // Default metric if still unknown (true lazy mode).
@@ -5274,6 +5669,83 @@ PY_RETURN_SELF;
 // sklearn-style transformer API: transform / fit_transform
 // ------------------------------------------------------------------
 
+// ------------------------------------------------------------------
+// sklearn feature names API (SLEP007)
+// ------------------------------------------------------------------
+//
+// get_feature_names_out(input_features=None) -> tuple[str]
+//
+// Output feature names are independent of input feature names for this
+// transformer-style API. They are a stable schema based on the estimator
+// parameter `n_neighbors`:
+//
+//   ("neighbor_0", "neighbor_1", ..., "neighbor_{k-1}")
+//
+// If input_features is provided, it is validated deterministically:
+// - must be a 1D sequence of str with length == n_features_in_
+// - if feature_names_in_ was set during fit, input_features must match it
+//
+static PyObject* py_an_get_feature_names_out(
+  py_annoy* self,
+  PyObject* args,
+  PyObject* kwargs) {
+  PyObject* input_features = Py_None;
+  static const char* kwlist[] = {"input_features", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs, "|O", (char**)kwlist, &input_features)) {
+    return NULL;
+  }
+
+  if (!self || !is_index_built(self)) {
+    PyErr_SetString(PyExc_AttributeError,
+      "get_feature_names_out is not available before fit/build");
+    return NULL;
+  }
+
+  if (input_features && input_features != Py_None) {
+    PyObject* in_tuple = NULL;
+    if (!build_feature_names_tuple(
+          input_features, (Py_ssize_t)self->f, &in_tuple, "input_features")) {
+      return NULL;
+    }
+    if (self->feature_names_in) {
+      bool eq = false;
+      if (!feature_names_tuple_equal(in_tuple, self->feature_names_in, &eq)) {
+        Py_DECREF(in_tuple);
+        return NULL;
+      }
+      if (!eq) {
+        Py_DECREF(in_tuple);
+        PyErr_SetString(PyExc_ValueError,
+          "input_features must match feature_names_in_");
+        return NULL;
+      }
+    }
+    Py_DECREF(in_tuple);
+  }
+
+  const int k = self->n_neighbors;
+  if (k <= 0) {
+    PyErr_SetString(PyExc_RuntimeError, "Internal error: n_neighbors must be > 0");
+    return NULL;
+  }
+
+  PyObject* out = PyTuple_New((Py_ssize_t)k);
+  if (!out) return NULL;
+
+  for (int i = 0; i < k; ++i) {
+    PyObject* name = PyUnicode_FromFormat("neighbor_%d", i);
+    if (!name) {
+      Py_DECREF(out);
+      return NULL;
+    }
+    PyTuple_SET_ITEM(out, (Py_ssize_t)i, name);  // steals
+  }
+
+  return out;
+}
+
 // Lookup helper for  metadata (optional). Always returns a new reference.
 static PyObject* annoy_lookup_y(
   py_annoy* self,
@@ -5343,13 +5815,18 @@ static PyObject* py_an_transform(
   PyObject* out = NULL;
   PyObject* X = NULL;
 
-  int n_neighbors = 5;
+  Py_ssize_t n_neighbors_ssz = self ? static_cast<Py_ssize_t>(self->n_neighbors) : (Py_ssize_t)5;
   int search_k = -1;
   int include_distances = 0;
   int return_labels = 0;
 
   PyObject* y_fill_value = Py_None;
-  PyObject* input_type_obj = NULL;     // optional
+
+  PyObject* input_type_obj = NULL;      // optional
+  PyObject* output_type_obj = NULL;     // optional
+  int exclude_self = 0;
+  PyObject* exclude_items_obj = Py_None;
+
   PyObject* missing_value_obj = Py_None;
 
   static const char* kwlist[] = {
@@ -5360,22 +5837,55 @@ static PyObject* py_an_transform(
     "return_labels",
     "y_fill_value",
     "input_type",
+    "output_type",
+    "exclude_self",
+    "exclude_items",
     "missing_value",
     NULL
   };
 
   if (!PyArg_ParseTupleAndKeywords(
         args, kwargs,
-        "O|iippOOO",
+        "O|nippOOOpOO",
         (char**)kwlist,
         &X,
-        &n_neighbors,
+        &n_neighbors_ssz,
         &search_k,
         &include_distances,
         &return_labels,
         &y_fill_value,
         &input_type_obj,
+        &output_type_obj,
+        &exclude_self,
+        &exclude_items_obj,
         &missing_value_obj)) {
+    return NULL;
+  }
+
+  if (n_neighbors_ssz <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return NULL;
+  }
+
+  if ((unsigned long long)n_neighbors_ssz > (unsigned long long)std::numeric_limits<size_t>::max()) {
+    PyErr_SetString(PyExc_OverflowError, "n_neighbors is too large for this platform");
+    return NULL;
+  }
+  const size_t n_neighbors_req = static_cast<size_t>(n_neighbors_ssz);
+
+  // STRICT (SLEP013): output schema is fixed at estimator level.
+  // We accept the keyword for backwards compatibility but it must match
+  // the estimator parameter `n_neighbors`.
+  if (n_neighbors_req != self->n_neighbors) {
+    PyErr_Format(PyExc_ValueError,
+      "n_neighbors must equal estimator n_neighbors=%llu",
+      (unsigned long long)self->n_neighbors);
+    return NULL;
+  }
+  const size_t n_neighbors = self->n_neighbors;
+
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
     return NULL;
   }
 
@@ -5384,17 +5894,10 @@ static PyObject* py_an_transform(
       "Annoy index is not initialized");
     return NULL;
   }
+
   if (!is_index_built(self)) {
     PyErr_SetString(PyExc_RuntimeError,
       "Index is not built; call build() or fit() before transform().");
-    return NULL;
-  }
-  if (n_neighbors <= 0) {
-    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
-    return NULL;
-  }
-  if (search_k < -1) {
-    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
     return NULL;
   }
 
@@ -5433,6 +5936,64 @@ static PyObject* py_an_transform(
     return NULL;
   }
 
+    std::string output_type = "vector";
+    if (output_type_obj && output_type_obj != Py_None) {
+      if (!PyUnicode_Check(output_type_obj) && !PyBytes_Check(output_type_obj)) {
+        PyErr_SetString(PyExc_TypeError,
+          "output_type must be a string ('vector' or 'item')");
+        return NULL;
+      }
+      const char* s = PyUnicode_Check(output_type_obj)
+        ? PyUnicode_AsUTF8(output_type_obj)
+        : PyBytes_AsString(output_type_obj);
+      if (!s) return NULL;
+      output_type.assign(s);
+      for (size_t i = 0; i < output_type.size(); ++i) {
+        output_type[i] = (char)std::tolower((unsigned char)output_type[i]);
+      }
+    }
+
+    const bool out_vector = (output_type == "vector");
+    if (!out_vector && output_type != "item") {
+      PyErr_SetString(PyExc_ValueError,
+        "output_type must be 'vector' or 'item'");
+      return NULL;
+    }
+
+    if (exclude_self && !by_item) {
+      PyErr_SetString(PyExc_ValueError,
+        "exclude_self is only supported when input_type='item'");
+      return NULL;
+    }
+
+    std::unordered_map<int32_t, char> exclude_map;
+    if (exclude_items_obj && exclude_items_obj != Py_None) {
+      PyObject* ex_seq = PySequence_Fast(exclude_items_obj,
+        "exclude_items must be a sequence of ints or None");
+      if (!ex_seq) return NULL;
+      const Py_ssize_t ex_n = PySequence_Fast_GET_SIZE(ex_seq);
+      exclude_map.reserve((size_t)((ex_n > 0) ? ex_n : 0));
+      for (Py_ssize_t i = 0; i < ex_n; ++i) {
+        PyObject* o = PySequence_Fast_GET_ITEM(ex_seq, i);  // borrowed
+        if (!PyLong_Check(o)) {
+          Py_DECREF(ex_seq);
+          PyErr_SetString(PyExc_TypeError,
+            "exclude_items must contain integers");
+          return NULL;
+        }
+        long long kid = PyLong_AsLongLong(o);
+        if (kid == -1 && PyErr_Occurred()) { Py_DECREF(ex_seq); return NULL; }
+        if (kid < 0 || kid > (long long)INT32_MAX) {
+          Py_DECREF(ex_seq);
+          PyErr_SetString(PyExc_ValueError,
+            "exclude_items id out of int32 range");
+          return NULL;
+        }
+        exclude_map[(int32_t)kid] = (char)1;
+      }
+      Py_DECREF(ex_seq);
+    }
+
   PyObject* X_seq = NULL;
   Py_ssize_t n_queries = 0;
 
@@ -5466,12 +6027,26 @@ static PyObject* py_an_transform(
   std::vector<float> query;
   query.reserve((size_t)self->f);
 
+  // Raw results from Annoy (may include excluded ids).
   std::vector<int32_t> result;
   std::vector<float> distances;
+
+  // Filtered results after applying exclude_self / exclude_items (always length n_neighbors).
+  std::vector<int32_t> filtered;
+  std::vector<float> filtered_dists;
+  filtered.reserve(n_neighbors);
+  filtered_dists.reserve(n_neighbors);
+
+  // Temporary buffer for materializing neighbor vectors when output_type='vector'.
+  std::vector<float> neighbor_vec;
+  if (out_vector) {
+    neighbor_vec.resize((size_t)self->f);
+  }
 
   for (Py_ssize_t i = 0; i < n_queries; ++i) {
     result.clear();
     distances.clear();
+    int32_t result_query_item_id = -1;
 
     if (by_item) {
       PyObject* obj = PySequence_Fast_GET_ITEM(X_seq, i);  // borrowed
@@ -5486,13 +6061,18 @@ static PyObject* py_an_transform(
         goto fail;
       }
       const int32_t item_id = (int32_t)kid;
+      result_query_item_id = item_id;
       if (!check_constraints(self, item_id, /*building=*/false)) goto fail;
+
+      size_t k_request = n_neighbors + exclude_map.size() + (exclude_self ? (size_t)1 : (size_t)0);
+      const size_t n_items_sz = (size_t)self->ptr->get_n_items();
+      if (k_request > n_items_sz) k_request = n_items_sz;
 
       Py_BEGIN_ALLOW_THREADS;
       if (include_distances) {
-        self->ptr->get_nns_by_item(item_id, n_neighbors, search_k, &result, &distances);
+        self->ptr->get_nns_by_item(item_id, k_request, search_k, &result, &distances);
       } else {
-        self->ptr->get_nns_by_item(item_id, n_neighbors, search_k, &result, NULL);
+        self->ptr->get_nns_by_item(item_id, k_request, search_k, &result, NULL);
       }
       Py_END_ALLOW_THREADS;
     } else {
@@ -5503,11 +6083,15 @@ static PyObject* py_an_transform(
         goto fail;  // exception already set
       }
 
+      size_t k_request = n_neighbors + exclude_map.size();
+      const size_t n_items_sz = (size_t)self->ptr->get_n_items();
+      if (k_request > n_items_sz) k_request = n_items_sz;
+
       Py_BEGIN_ALLOW_THREADS;
       if (include_distances) {
-        self->ptr->get_nns_by_vector(query.data(), n_neighbors, search_k, &result, &distances);
+        self->ptr->get_nns_by_vector(query.data(), k_request, search_k, &result, &distances);
       } else {
-        self->ptr->get_nns_by_vector(query.data(), n_neighbors, search_k, &result, NULL);
+        self->ptr->get_nns_by_vector(query.data(), k_request, search_k, &result, NULL);
       }
       Py_END_ALLOW_THREADS;
     }
@@ -5518,41 +6102,99 @@ static PyObject* py_an_transform(
       goto fail;
     }
 
+    // Apply exclusions deterministically by id (no distance-based heuristics).
+    filtered.clear();
+    filtered_dists.clear();
+
+    // Query-specific self exclusion applies only to input_type='item'.
+    const int32_t qid_self = (by_item ? result_query_item_id : -1);
+
+    for (size_t j = 0; j < result.size(); ++j) {
+      const int32_t nid = result[j];
+      if (exclude_self && by_item && nid == qid_self) continue;
+      if (!exclude_map.empty() && exclude_map.find(nid) != exclude_map.end()) continue;
+
+      filtered.push_back(nid);
+      if (include_distances) filtered_dists.push_back(distances[j]);
+
+      if (filtered.size() == n_neighbors) break;
+    }
+
+    if (filtered.size() != n_neighbors) {
+      PyErr_Format(PyExc_ValueError,
+        "Unable to return %llu neighbors after exclusions (got %llu). "
+        "Try reducing n_neighbors or exclusions.",
+        (unsigned long long)n_neighbors,
+        (unsigned long long)filtered.size());
+      goto fail;
+    }
+
+    result.swap(filtered);
+    if (include_distances) distances.swap(filtered_dists);
+
     // Build Python row objects.
-    PyObject* row_ids = PyList_New((Py_ssize_t)result.size());
-    if (!row_ids) goto fail;
+    PyObject* row_neighbors = PyList_New((Py_ssize_t)result.size());
+    if (!row_neighbors) goto fail;
 
     PyObject* row_dists = NULL;
     if (include_distances) {
       row_dists = PyList_New((Py_ssize_t)distances.size());
-      if (!row_dists) { Py_DECREF(row_ids); goto fail; }
+      if (!row_dists) { Py_DECREF(row_neighbors); goto fail; }
     }
 
     PyObject* row_labels = NULL;
     if (return_labels) {
       row_labels = PyList_New((Py_ssize_t)result.size());
       if (!row_labels) {
-        Py_DECREF(row_ids);
+        Py_DECREF(row_neighbors);
         Py_XDECREF(row_dists);
         goto fail;
       }
     }
 
     for (Py_ssize_t j = 0; j < (Py_ssize_t)result.size(); ++j) {
-      PyObject* pid = PyLong_FromLong((long)result[(size_t)j]);
-      if (!pid) {
-        Py_DECREF(row_ids);
-        Py_XDECREF(row_dists);
-        Py_XDECREF(row_labels);
-        goto fail;
+      const int32_t nid = result[(size_t)j];
+
+      if (out_vector) {
+        self->ptr->get_item(nid, neighbor_vec.data());
+
+        PyObject* vec = PyList_New((Py_ssize_t)self->f);
+        if (!vec) {
+          Py_DECREF(row_neighbors);
+          Py_XDECREF(row_dists);
+          Py_XDECREF(row_labels);
+          goto fail;
+        }
+
+        for (Py_ssize_t k = 0; k < (Py_ssize_t)self->f; ++k) {
+          PyObject* pf = PyFloat_FromDouble((double)neighbor_vec[(size_t)k]);
+          if (!pf) {
+            Py_DECREF(vec);
+            Py_DECREF(row_neighbors);
+            Py_XDECREF(row_dists);
+            Py_XDECREF(row_labels);
+            goto fail;
+          }
+          PyList_SET_ITEM(vec, k, pf);  // steals ref
+        }
+
+        PyList_SET_ITEM(row_neighbors, j, vec);  // steals ref
+      } else {
+        PyObject* pid = PyLong_FromLongLong((long long)nid);
+        if (!pid) {
+          Py_DECREF(row_neighbors);
+          Py_XDECREF(row_dists);
+          Py_XDECREF(row_labels);
+          goto fail;
+        }
+        PyList_SET_ITEM(row_neighbors, j, pid);  // steals ref
       }
-      PyList_SET_ITEM(row_ids, j, pid);  // steals ref
 
       if (include_distances) {
         PyObject* pd = PyFloat_FromDouble((double)distances[(size_t)j]);
         if (!pd) {
-          Py_DECREF(row_ids);
-          Py_DECREF(row_dists);
+          Py_DECREF(row_neighbors);
+          Py_XDECREF(row_dists);
           Py_XDECREF(row_labels);
           goto fail;
         }
@@ -5560,18 +6202,18 @@ static PyObject* py_an_transform(
       }
 
       if (return_labels) {
-        PyObject* lbl = annoy_lookup_y(self, result[(size_t)j], y_fill_value);
+        PyObject* lbl = annoy_lookup_y(self, nid, y_fill_value);
         if (!lbl) {
-          Py_DECREF(row_ids);
+          Py_DECREF(row_neighbors);
           Py_XDECREF(row_dists);
-          Py_DECREF(row_labels);
+          Py_XDECREF(row_labels);
           goto fail;
         }
         PyList_SET_ITEM(row_labels, j, lbl);  // steals ref
       }
     }
 
-    PyList_SET_ITEM(indices_outer, i, row_ids);
+    PyList_SET_ITEM(indices_outer, i, row_neighbors);
 
     if (include_distances) {
       PyList_SET_ITEM(distances_outer, i, row_dists);
@@ -5622,8 +6264,10 @@ static PyObject* py_an_fit_transform(
   int reset = 1;
   PyObject* start_index_obj = Py_None;
   PyObject* missing_value_obj = Py_None;
+  PyObject* feature_names_obj = NULL;
+  bool feature_names_provided = false;
 
-  int n_neighbors = 5;
+  Py_ssize_t n_neighbors_ssz = self ? static_cast<Py_ssize_t>(self->n_neighbors) : 5;
   int search_k = -1;
   int include_distances = 0;
   int return_labels = 0;
@@ -5637,6 +6281,7 @@ static PyObject* py_an_fit_transform(
     "reset",
     "start_index",
     "missing_value",
+    "feature_names",
     "n_neighbors",
     "search_k",
     "include_distances",
@@ -5646,21 +6291,54 @@ static PyObject* py_an_fit_transform(
   };
 
   if (!PyArg_ParseTupleAndKeywords(
-        args, kwargs,
-        "O|OiipOOiippO",
-        (char**)kwlist,
-        &X,
-        &y,
-        &n_trees,
-        &n_jobs,
-        &reset,
-        &start_index_obj,
-        &missing_value_obj,
-        &n_neighbors,
-        &search_k,
-        &include_distances,
-        &return_labels,
-        &y_fill_value)) {
+      args, kwargs,
+      "O|OiipOOOnippO",
+      (char**)kwlist,
+      &X,
+      &y,
+      &n_trees,
+      &n_jobs,
+      &reset,
+      &start_index_obj,
+      &missing_value_obj,
+      &feature_names_obj,
+      &n_neighbors_ssz,
+      &search_k,
+      &include_distances,
+      &return_labels,
+      &y_fill_value)) {
+    return NULL;
+  }
+
+  // Detect whether feature_names was explicitly provided (including None).
+  // This enables SLEP007 "explicit-only" storage semantics.
+  if (kwargs && kwargs != Py_None && PyDict_Check(kwargs)) {
+    feature_names_provided =
+      (PyDict_GetItemString(kwargs, "feature_names") != NULL);
+  }
+
+  if (n_neighbors_ssz <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return NULL;
+  }
+
+  if ((unsigned long long)n_neighbors_ssz > (unsigned long long)std::numeric_limits<size_t>::max()) {
+    PyErr_SetString(PyExc_OverflowError, "n_neighbors is too large for this platform");
+    return NULL;
+  }
+  const size_t n_neighbors_req = static_cast<size_t>(n_neighbors_ssz);
+
+  // STRICT (SLEP013): output schema is fixed at estimator level.
+  if (n_neighbors_req != self->n_neighbors) {
+    PyErr_Format(PyExc_ValueError,
+      "n_neighbors must equal estimator n_neighbors=%llu",
+      (unsigned long long)self->n_neighbors);
+    return NULL;
+  }
+  const size_t n_neighbors = self->n_neighbors;
+
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
     return NULL;
   }
 
@@ -5692,6 +6370,12 @@ static PyObject* py_an_fit_transform(
     Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL;
   }
 
+  if (feature_names_provided) {
+    if (PyDict_SetItemString(fit_kwargs, "feature_names", feature_names_obj ? feature_names_obj : Py_None) < 0) {
+      Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL;
+    }
+  }
+
   PyObject* fitted = py_an_fit(self, fit_args, fit_kwargs);
   Py_DECREF(fit_args);
   Py_DECREF(fit_kwargs);
@@ -5705,7 +6389,7 @@ static PyObject* py_an_fit_transform(
   PyObject* tr_kwargs = PyDict_New();
   if (!tr_kwargs) { Py_DECREF(tr_args); return NULL; }
 
-  v = PyLong_FromLong((long)n_neighbors);
+  v = PyLong_FromSize_t(n_neighbors);
   if (!v || PyDict_SetItemString(tr_kwargs, "n_neighbors", v) < 0) { Py_XDECREF(v); Py_DECREF(tr_args); Py_DECREF(tr_kwargs); return NULL; }
   Py_DECREF(v);
 
@@ -5870,6 +6554,7 @@ static PyObject* py_an_load(
   // Track backing path for __repr__ / .info()
   self->on_disk_path = filename;
   self->on_disk_active = true;
+  self->on_disk_pending = false;
 
   // Chaining: a.build(...).save(...).info()
   PY_RETURN_SELF; // Py_RETURN_TRUE;
@@ -5899,6 +6584,7 @@ static PyObject* py_an_unload(
   self->ptr->unload();
   self->on_disk_path.clear();   // no longer backed by any file
   self->on_disk_active = false;
+  self->on_disk_pending = false;
   // Chaining: a.build(...).save(...).info()
   PY_RETURN_SELF; // Py_RETURN_TRUE;
 }
@@ -5988,7 +6674,8 @@ static PyObject* get_nns_to_python(
   // ------------------------------------------------------------------
   // Pack (indices, distances) tuple PyTuple_Pack, PyTuple_SET_ITEM
   // ------------------------------------------------------------------
-  if ((py_tuple = PyTuple_Pack(2, py_indices, py_distances)) == NULL) {  // steals reference
+  // PyTuple_Pack creates a new tuple and increments references to its items.
+  if ((py_tuple = PyTuple_Pack(2, py_indices, py_distances)) == NULL) {
     goto error;
   }
   Py_DECREF(py_indices);
@@ -6010,7 +6697,7 @@ error:
 //
 //   get_nns_by_item(
 //       i: int,
-//       n: int,
+//       n: size_t,
 //       search_k: int = -1,
 //       include_distances: bool = False,
 //   ) -> list[int] | tuple[list[int], list[float]]
@@ -6025,10 +6712,10 @@ static PyObject* py_an_get_nns_by_item(
   PyObject*  args,
   PyObject*  kwargs) {
 
-  int32_t indice;
-  int32_t n_neighbors;
-  int32_t search_k          = -1;
-  int32_t include_distances = 0;
+  int indice_tmp = 0;
+  Py_ssize_t n_neighbors_ssz = self ? static_cast<Py_ssize_t>(self->n_neighbors) : 5;
+  int search_k          = -1;
+  int include_distances = 0;
 
   static const char* kwlist[] = {
     "i",
@@ -6041,12 +6728,35 @@ static PyObject* py_an_get_nns_by_item(
   if (!PyArg_ParseTupleAndKeywords(
     args,
     kwargs,
-    "ii|ii",
+    "i|nip",
     (char**)kwlist,
-    &indice,
-    &n_neighbors,
+    &indice_tmp,
+    &n_neighbors_ssz,
     &search_k,
     &include_distances)) {
+    return NULL;
+  }
+
+  // Convert to int32_t item id with explicit bounds check.
+  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+    return NULL;
+  }
+  const int32_t indice = static_cast<int32_t>(indice_tmp);
+
+  if (n_neighbors_ssz <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return NULL;
+  }
+
+  if ((unsigned long long)n_neighbors_ssz > (unsigned long long)std::numeric_limits<size_t>::max()) {
+    PyErr_SetString(PyExc_OverflowError, "n_neighbors is too large for this platform");
+    return NULL;
+  }
+  const size_t n_neighbors = static_cast<size_t>(n_neighbors_ssz);
+
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
     return NULL;
   }
 
@@ -6063,12 +6773,6 @@ static PyObject* py_an_get_nns_by_item(
     return NULL;
   }
 
-  if (n_neighbors <= 0) {
-    PyErr_SetString(PyExc_ValueError,
-      "`n` (number of neighbors) must be positive");
-    return NULL;
-  }
-
   // Validate indice against current index state
   if (!check_constraints(self, indice, /*building=*/false))
     return NULL;
@@ -6079,7 +6783,7 @@ static PyObject* py_an_get_nns_by_item(
   Py_BEGIN_ALLOW_THREADS;
   self->ptr->get_nns_by_item(
     indice,
-    static_cast<size_t>(n_neighbors),
+    n_neighbors,
     search_k,
     &indice_result,
     include_distances ? &distance_result : NULL);
@@ -6097,7 +6801,7 @@ static PyObject* py_an_get_nns_by_item(
 //
 //   get_nns_by_vector(
 //       vector: Sequence[float],
-//       n: int,
+//       n: size_t,
 //       search_k: int = -1,
 //       include_distances: bool = False,
 //   ) -> list[int] | tuple[list[int], list[float]]
@@ -6113,9 +6817,9 @@ static PyObject* py_an_get_nns_by_vector(
   PyObject*  kwargs) {
 
   PyObject* vector_obj = NULL;
-  int32_t   n_neighbors;
-  int32_t   search_k          = -1;
-  int32_t   include_distances = 0;
+  Py_ssize_t n_neighbors_ssz = self ? static_cast<Py_ssize_t>(self->n_neighbors) : 5;
+  int   search_k          = -1;
+  int   include_distances = 0;
 
   static const char* kwlist[] = {
     "vector",
@@ -6128,12 +6832,28 @@ static PyObject* py_an_get_nns_by_vector(
   if (!PyArg_ParseTupleAndKeywords(
     args,
     kwargs,
-    "Oi|ii",
+    "O|nip",
     (char**)kwlist,
     &vector_obj,
-    &n_neighbors,
+    &n_neighbors_ssz,
     &search_k,
     &include_distances)) {
+    return NULL;
+  }
+
+  if (n_neighbors_ssz <= 0) {
+    PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
+    return NULL;
+  }
+
+  if ((unsigned long long)n_neighbors_ssz > (unsigned long long)std::numeric_limits<size_t>::max()) {
+    PyErr_SetString(PyExc_OverflowError, "n_neighbors is too large for this platform");
+    return NULL;
+  }
+  const size_t n_neighbors = static_cast<size_t>(n_neighbors_ssz);
+
+  if (search_k < -1) {
+    PyErr_SetString(PyExc_ValueError, "search_k must be >= -1");
     return NULL;
   }
 
@@ -6148,12 +6868,6 @@ static PyObject* py_an_get_nns_by_vector(
   if (!is_index_built(self)) {
     PyErr_SetString(PyExc_RuntimeError,
       "Index is not built; call build() or fit() before querying.");
-    return NULL;
-  }
-
-  if (n_neighbors <= 0) {
-    PyErr_SetString(PyExc_ValueError,
-      "`n` (number of neighbors) must be positive");
     return NULL;
   }
 
@@ -6177,7 +6891,7 @@ static PyObject* py_an_get_nns_by_vector(
   Py_BEGIN_ALLOW_THREADS;
   self->ptr->get_nns_by_vector(
     query.data(),
-    static_cast<size_t>(n_neighbors),
+    n_neighbors,
     search_k,
     &indice_result,
     include_distances ? &distance_result : NULL);
@@ -6206,13 +6920,21 @@ static PyObject* py_an_get_item_vector(
   PyObject* args,
   PyObject* kwargs) {
   (void)kwargs;
-  int32_t indice;
+
+  int indice_tmp = 0;
 
   static const char* kwlist[] = {"i", NULL};
   if (!PyArg_ParseTupleAndKeywords(
-    args, kwargs, "i", (char**)kwlist, &indice)) {
+    args, kwargs, "i", (char**)kwlist, &indice_tmp)) {
     return NULL;
   }
+
+  // Convert to int32_t (Annoy item id). Use explicit bounds check before casting.
+  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+    return NULL;
+  }
+  const int32_t indice = static_cast<int32_t>(indice_tmp);
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
@@ -6265,14 +6987,25 @@ static PyObject* py_an_get_distance(
   PyObject*  args,
   PyObject*  kwargs) {
   // (void)kwargs;
-  int32_t i = 0;
-  int32_t j = 0;
+
+  int i_tmp = 0;
+  int j_tmp = 0;
+
   static const char* kwlist[] = {"i", "j", NULL};
 
   if (!PyArg_ParseTupleAndKeywords(
-    args, kwargs, "ii", (char**)kwlist, &i, &j)) {
+    args, kwargs, "ii", (char**)kwlist, &i_tmp, &j_tmp)) {
     return NULL;
   }
+
+  // Convert to int32_t (Annoy item ids). Use explicit bounds checks before casting.
+  if (i_tmp < 0 || i_tmp > (int)std::numeric_limits<int32_t>::max() ||
+      j_tmp < 0 || j_tmp > (int)std::numeric_limits<int32_t>::max()) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+    return NULL;
+  }
+  const int32_t i = static_cast<int32_t>(i_tmp);
+  const int32_t j = static_cast<int32_t>(j_tmp);
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
@@ -6437,6 +7170,30 @@ static PyObject* py_an_getstate(
   v = PyLong_FromLong((long)self->schema_version);
   if (!v || PyDict_SetItemString(state, "schema_version", v) < 0) {
     Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
+  Py_DECREF(v);
+
+  // n_neighbors (SLEP013; estimator parameter)
+  v = PyLong_FromSize_t(self->n_neighbors);
+  if (!v || PyDict_SetItemString(state, "n_neighbors", v) < 0) {
+    Py_XDECREF(v);
+    Py_DECREF(state);
+    return NULL;
+  }
+  Py_DECREF(v);
+
+  // feature_names_in (SLEP007; explicit-only fitted metadata)
+  if (self->feature_names_in) {
+    Py_INCREF(self->feature_names_in);
+    v = self->feature_names_in;
+  } else {
+    Py_INCREF(Py_None);
+    v = Py_None;
+  }
+  if (PyDict_SetItemString(state, "feature_names_in", v) < 0) {
+    Py_DECREF(v);
     Py_DECREF(state);
     return NULL;
   }
@@ -6708,6 +7465,10 @@ static PyObject* py_an_setstate(
     if (!self->dict) return NULL;
   }
 
+  self->n_neighbors = 5;
+  // Reset fitted feature names / strict schema (SLEP007/SLEP013)
+  Py_CLEAR(self->feature_names_in);
+
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
 
@@ -6716,6 +7477,7 @@ static PyObject* py_an_setstate(
 
   self->on_disk_active = false;
   self->on_disk_path.clear();
+  self->on_disk_pending = false;
 
   self->prefault = false;
   self->schema_version = 0;
@@ -6808,6 +7570,37 @@ static PyObject* py_an_setstate(
       return NULL;
     }
     self->schema_version = (int)sv;
+  }
+
+  // n_neighbors (SLEP013; estimator parameter)
+  PyObject* kn_obj = PyDict_GetItemString(state, "n_neighbors");  // borrowed
+  if (kn_obj && kn_obj != Py_None) {
+    long kn = PyLong_AsLong(kn_obj);
+    if (kn == -1 && PyErr_Occurred()) return NULL;
+    if (kn <= 0) {
+      PyErr_SetString(PyExc_ValueError,
+        "`n_neighbors` in pickle state must be a positive integer");
+      return NULL;
+    }
+    self->n_neighbors = (int)kn;
+  }
+
+  // feature_names_in (SLEP007; explicit-only fitted metadata)
+  PyObject* fn_obj = PyDict_GetItemString(state, "feature_names_in");  // borrowed
+  if (fn_obj && fn_obj != Py_None) {
+    if (self->f <= 0) {
+      PyErr_SetString(PyExc_ValueError,
+        "Cannot restore `feature_names_in` when `f` is unknown in pickle state");
+      return NULL;
+    }
+    PyObject* fn_tuple = NULL;
+    if (!build_feature_names_tuple(fn_obj, (Py_ssize_t)self->f, &fn_tuple, "feature_names_in")) {
+      return NULL;
+    }
+    Py_XDECREF(self->feature_names_in);
+    self->feature_names_in = fn_tuple;  // steals
+  } else {
+    Py_CLEAR(self->feature_names_in);
   }
 
   // --------------------------
@@ -7312,7 +8105,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None)\n"
+    "fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)\n"
     "\n"
     "Fit the Annoy index (scikit-learn compatible).\n"
     "\n"
@@ -7387,8 +8180,8 @@ static PyMethodDef py_annoy_methods[] = {
     METH_VARARGS | METH_KEYWORDS,
     (char*)
     "fit_transform(X, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None,\n"
-    "              missing_value=None, n_neighbors=5, search_k=-1, include_distances=False,\n"
-    "              return_labels=False, y_fill_value=None)\n"
+    "              missing_value=None, feature_names=None, n_neighbors=None, search_k=-1,\n"
+    "              include_distances=False, return_labels=False, y_fill_value=None)\n"
     "\n"
     "Fit the index and transform X in a single deterministic call.\n"
     "\n"
@@ -7440,6 +8233,36 @@ static PyMethodDef py_annoy_methods[] = {
     "    If the index is not initialized.\n"
     "IndexError\n"
     "    If either index is out of range.\n"
+  },
+
+  {
+    "get_feature_names_out",
+    (PyCFunction)py_an_get_feature_names_out,
+    METH_VARARGS | METH_KEYWORDS,
+    (char*)
+    "get_feature_names_out(input_features=None)\n"
+    "\n"
+    "Get output feature names for the transformer-style API.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "input_features : sequence of str or None, optional, default=None\n"
+    "    If provided, validated deterministically against the fitted input\n"
+    "    feature names (if available) and the expected input dimensionality.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "tuple of str\n"
+    "    Output feature names: ``('neighbor_0', ..., 'neighbor_{k-1}')`` where\n"
+    "    ``k == n_neighbors``.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "AttributeError\n"
+    "    If called before :meth:`fit`/`build`.\n"
+    "ValueError\n"
+    "    If ``input_features`` is provided but does not match\n"
+    "    :attr:`feature_names_in_`.\n"
   },
 
   {
@@ -8073,52 +8896,83 @@ static PyMethodDef py_annoy_methods[] = {
     METH_VARARGS | METH_KEYWORDS,
     (char*)
     "transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False,\n"
-    "          y_fill_value=None, input_type='vector', missing_value=None)\n"
+    "          y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False,\n"
+    "          exclude_items=None, missing_value=None)\n"
     "\n"
-    "Transform queries into nearest-neighbor ids (and optional distances / labels).\n"
+    "Transform queries into nearest-neighbor results (ids or vectors; optional distances / labels).\n"
     "\n"
     "Parameters\n"
     "----------\n"
     "X : array-like\n"
     "    Query inputs. The expected shape/type depends on `input_type`:\n"
     "\n"
+    "    - input_type='item'  : X must be a 1D sequence of item ids.\n"
     "    - input_type='vector': X must be a 2D array-like of shape (n_queries, f).\n"
-    "    - input_type='item':   X must be a 1D sequence of item ids.\n"
-    "n_neighbors : int, default=5\n"
-    "    Number of neighbors to retrieve for each query.\n"
+    "n_neighbors : int or None, default=5\n"
+    "    Number of neighbors to retrieve for each query. For backwards compatibility\n"
+    "    this keyword is accepted, but it must match the estimator parameter\n"
+    "    ``n_neighbors`` (STRICT schema).\n"
     "search_k : int, default=-1\n"
     "    Search parameter passed to Annoy (-1 uses Annoy's default).\n"
     "include_distances : bool, default=False\n"
     "    If True, also return per-neighbor distances.\n"
     "return_labels : bool, default=False\n"
-    "    If True, also return per-neighbor labels resolved from :attr:`y`.\n"
+    "    If True, also return per-neighbor labels resolved from :attr:`y` (as set via :meth:`fit`).\n"
     "y_fill_value : object, default=None\n"
     "    Value used when :attr:`y` is unset or missing an entry for a neighbor id.\n"
     "input_type : {'vector', 'item'}, default='vector'\n"
     "    Controls how X is interpreted.\n"
+    "output_type : {'vector', 'item'}, default='vector'\n"
+    "    Controls what neighbors are returned.\n"
+    "    - output_type='item':   return neighbor ids.\n"
+    "    - output_type='vector': return neighbor vectors.\n"
+    "exclude_self : bool, default=False\n"
+    "    If True, exclude the query item id from results. Only valid when\n"
+    "    input_type='item'.\n"
+    "exclude_items : sequence of int or None, default=None\n"
+    "    Explicit neighbor ids to exclude from results.\n"
     "missing_value : float or None, default=None\n"
     "    If not None, imputes missing entries in X (None values in dense rows;\n"
     "    missing keys / None values in dict rows). If None, missing entries raise.\n"
     "\n"
     "Returns\n"
     "-------\n"
-    "indices : list of list of int\n"
-    "    Neighbor ids for each query.\n"
-    "(indices, distances) : tuple\n"
+    "neighbors : list\n"
+    "    Neighbor results for each query.\n"
+    "    - output_type='item'  : list of list of int\n"
+    "    - output_type='vector': list of list of list of float\n"
+    "(neighbors, distances) : tuple\n"
     "    Returned when include_distances=True.\n"
-    "(indices, labels) : tuple\n"
+    "(neighbors, labels) : tuple\n"
     "    Returned when return_labels=True.\n"
-    "(indices, distances, labels) : tuple\n"
+    "(neighbors, distances, labels) : tuple\n"
     "    Returned when include_distances=True and return_labels=True.\n"
     "\n"
     "See Also\n"
     "--------\n"
-    "get_nns_by_vector, get_nns_by_item : Low-level query methods.\n"
+    "get_nns_by_item : Neighbor search by item id.\n"
+    "get_nns_by_vector : Neighbor search by query vector.\n"
     "fit, fit_transform : Estimator-style APIs.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "transform() requires a built index; call fit() or build() first.\n"
+    "- Excluding self is performed by matching neighbor ids to the query id (not by checking distance values).\n"
+    "- For input_type='vector', exclude_self=True is an error; use exclude_items for explicit, deterministic filtering.\n"
+    "- If exclusions prevent returning exactly `n_neighbors` results, this method raises ValueError.\n"
+    "\n"
+    "Examples\n"
+    "--------\n"
+    "Item queries (exclude the query id itself):\n"
+    "\n"
+    ">>> idx.transform([10, 20], input_type='item', output_type='item', n_neighbors=5, exclude_self=True)\n"
+    "\n"
+    "Vector queries (exclude explicit ids):\n"
+    "\n"
+    ">>> idx.transform(X_query, input_type='vector', output_type='item', n_neighbors=5, exclude_items=[10, 20])\n"
+    "\n"
+    "Return neighbor vectors:\n"
+    "\n"
+    ">>> idx.transform([10], input_type='item', output_type='vector', n_neighbors=5, exclude_self=True)\n"
   },
 
   {
@@ -8446,7 +9300,7 @@ static PyObject* py_an_repr(
 fail:
   Py_XDECREF(out);
   Py_XDECREF(d_repr);
-  Py_DECREF(d);
+  Py_XDECREF(d);
   return NULL;
 }
 
@@ -8863,9 +9717,20 @@ static void annoy_docs_links_try_fill_stable(annoy_docs_links* out) {
   if (!scikitplot_mod) return;
 
   PyObject* ver_obj = PyObject_GetAttrString(scikitplot_mod, "__version__");  // new ref
-  if (!ver_obj) return;
+  if (!ver_obj) {
+    // Optional best-effort: __version__ may not exist. Do not leak an exception
+    // into repr_html.
+    PyErr_Clear();
+    return;
+  }
 
   const char* ver = PyUnicode_AsUTF8(ver_obj);
+  if (!ver) {
+    // __version__ should be unicode; if not, keep repr_html exception-clean.
+    PyErr_Clear();
+    Py_DECREF(ver_obj);
+    return;
+  }
   if (ver && *ver) {
     unsigned long major = 0, minor = 0;
     if (annoy_parse_major_minor_strict(ver, &major, &minor)) {
@@ -8978,11 +9843,13 @@ static PyObject* py_an_repr_html(PyObject* obj, PyObject* Py_UNUSED(ignored)) {
     }
   }
 
+  // n_neighbors
+  if (annoy_append_param_long(html, "n_neighbors", (long)self->n_neighbors) < 0) goto fail;
+
   // on_disk_path
   if (annoy_append_param_none_or_str(html, "on_disk_path", self->on_disk_path) < 0) goto fail;
 
   if (annoy_append_param_bool(html, "prefault", self->prefault != 0) < 0) goto fail;
-  if (annoy_append_param_long(html, "schema_version", (long)self->schema_version) < 0) goto fail;
 
   // seed / verbose (pending values)
   if (annoy_append_param_none_or_ull(html, "seed",
@@ -8992,6 +9859,8 @@ static PyObject* py_an_repr_html(PyObject* obj, PyObject* Py_UNUSED(ignored)) {
   if (annoy_append_param_none_or_long(html, "verbose",
                                      self->has_pending_verbose != 0,
                                      (long)self->pending_verbose) < 0) goto fail;
+
+  if (annoy_append_param_long(html, "schema_version", (long)self->schema_version) < 0) goto fail;
 
   html.append("</tbody></table>");
   html.append("</details>");  // parameters details
@@ -9072,6 +9941,7 @@ static int py_an_traverse(
   py_annoy* self = (py_annoy*)obj;
   // traverse
   Py_VISIT(self->dict);
+  Py_VISIT(self->feature_names_in);
   Py_VISIT(self->y);
   return 0;
 }
@@ -9081,6 +9951,7 @@ static int py_an_clear(
   py_annoy* self = (py_annoy*)obj;
   // clear
   Py_CLEAR(self->dict);
+  Py_CLEAR(self->feature_names_in);
   Py_CLEAR(self->y);
   return 0;
 }
