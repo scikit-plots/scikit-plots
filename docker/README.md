@@ -129,13 +129,13 @@ docker logs CONTAINER_ID_OR_NAME  # find jupyter (token) http address 127.0....
 docker exec -it CONTAINER_ID_OR_NAME bash  # Connect interactive terminal
 ```
 
-### ▶️ Run setup_vscode_ext.sh
+### ▶️ Run setup_vscode_extensions.sh
 
 ```sh
 ## (Optionally) Install common vscode extensions
 ##✅ C/C++/Python and Jupyter Notebook
 ##✅ Linter and Formatter
-bash docker/scripts/setup_vscode_ext.sh  # (not needed every time)
+bash docker/scripts/setup_vscode_extensions.sh  # (not needed every time)
 ```
 
 

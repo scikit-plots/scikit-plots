@@ -73,7 +73,6 @@ networks:
 ## Declares services (containers) that will be run by Docker Compose
 services:
 
-
   ## docker compose -f 'docker/docker-compose.yml' up -d --build 'scikit-plots_latest-python-3.11'
   "scikit-plots_latest-python-3.11":  # Name of the service (can be any name you choose)
     container_name: "scikit-plots_latest-python-3.11"
@@ -98,6 +97,7 @@ services:
     #   - .env  # Load environment from file
     environment:
       # This overrides the ENV at runtime. So the container will have:
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
     ports:
@@ -180,6 +180,7 @@ services:
     #   - .env  # Load environment from file
     environment:
       # This overrides the ENV at runtime. So the container will have:
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       # - SKIP_CONDA=true  # Skip conda installation
@@ -236,9 +237,9 @@ services:
     #   - .env  # Load environment from file
     environment:
       # This overrides the ENV at runtime. So the container will have:
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
-      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       # - SKIP_CONDA=true  # Skip conda installation
       # - SKIP_MICROMAMBA=true  # Skip micromamba installation
     ports:
@@ -283,13 +284,13 @@ services:
     #   - .env  # Load environment from file
     environment:
       # This overrides the ENV at runtime. So the container will have:
+      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
-      - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
-      - JUPYTER_PORT=8889
-      - EXTENDED_PACKAGES=true  # 🏗️ Docker Build with Conditional Argument
       # - SKIP_CONDA=true  # Skip conda installation
       # - SKIP_MICROMAMBA=true  # Skip micromamba installation
+      - EXTENDED_PACKAGES=true  # 🏗️ Docker Build with Conditional Argument
+      - JUPYTER_PORT=8889
     ports:
       ## Map host port 8888 to container port 8888 (default)
       - "8889:8889"  # Exposing port for Jupyter Notebook (default 8888)

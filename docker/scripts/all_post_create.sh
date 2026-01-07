@@ -15,9 +15,14 @@
 # ✅ #!/usr/bin/env python3 — For Python scripts using env.
 # ✅ #!/usr/bin/env -S bash -e — Bash with options (modern env). Advanced with arguments (less common, Bash-only).
 
-set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
-set -x  # Enable debugging (prints commands as they run)
+set -e  # Exit immediately if a command exits with a non-zero status (Disable 'exit on error' temporarily for debugging)
+set -u  # Treat unset variables as an error
+set -x  # Enable debugging Print each command before executing it
+set -o pipefail  # Ensure pipeline errors are captured
 set -euxo pipefail
+
+# Printing all environment variables...
+printenv
 
 cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
 cat uname -u || echo "No uname -u output available. Skipping system information."

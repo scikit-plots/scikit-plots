@@ -50,10 +50,10 @@ services:
     #   - .env  # Load environment from file
     environment:
       # This overrides the ENV at runtime. So the container will have:
-      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
-      - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       - TZ=Etc/GMT  # Set timezone to Greenwich Mean Time (GMT)
+      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
+      - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       ## https://forums.developer.nvidia.com/t/nvidia-docker-runtime-does-not-seem-to-work-with-docker-compose/307879
       # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
       - NVIDIA_DISABLE_REQUIRE=1
@@ -157,10 +157,10 @@ services:
     #   - .env  # Load environment from file
     environment:
       # This overrides the ENV at runtime. So the container will have:
-      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
-      - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       - TZ=Etc/GMT  # Set timezone to Greenwich Mean Time (GMT)
+      # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
+      - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
       ## https://forums.developer.nvidia.com/t/nvidia-docker-runtime-does-not-seem-to-work-with-docker-compose/307879
       # - LD_LIBRARY_PATH=/usr/local/cuda/lib64  # Ensure libraries are linked
       - NVIDIA_DISABLE_REQUIRE=1

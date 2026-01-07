@@ -8,8 +8,10 @@
 # ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
 # { ...; } || fallback runs in current shell — can exit or affect current environment.
 
-set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
-set -x  # Enable debugging (prints commands as they run)
+set -e  # Exit immediately if a command exits with a non-zero status (Disable 'exit on error' temporarily for debugging)
+set -u  # Treat unset variables as an error
+set -x  # Enable debugging Print each command before executing it
+set -o pipefail  # Ensure pipeline errors are captured
 set -euxo pipefail
 
 cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."

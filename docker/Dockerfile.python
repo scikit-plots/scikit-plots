@@ -77,9 +77,9 @@ RUN apt-get update \
 ######################################################################
 ## Set working directory inside the container
 WORKDIR /tmp
+COPY requirements ./requirements/
 COPY docker ./docker/
 COPY docker/env_conda/environment.yml ./
-COPY requirements ./requirements/
 
 ## micromamba and post create steps
 ## Make sure there’s a space between the variable assignment and the . for sourcing.
@@ -115,6 +115,6 @@ ENTRYPOINT ["bash"]
 
 ## Set working directory inside the container
 WORKDIR /work
+COPY requirements ./requirements/
 COPY docker/env_conda/environment.yml ./
 COPY docker/env_pipenv/ ./env_pipenv/
-COPY requirements ./requirements/
