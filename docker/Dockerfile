@@ -172,9 +172,9 @@ ENV LANGUAGE=C.UTF-8
 ARG NB_PASS=jovyan
 # ENV HOME=/home/${NB_USER}
 ## Ensure sudo is installed and allow ${NB_USER} to use it without a password
-RUN apt-get update \
+RUN apt-get update; \
   ## Install sudo, gosu and set up a passwordless sudo user
-  && apt-get install -y --no-install-recommends sudo gosu \
+  apt-get install -y --no-install-recommends sudo gosu \
   ## && useradd -m -s /bin/bash $NB_USER && \
   ## $$ useradd --no-log-init --create-home --shell /bin/bash --uid "${NB_UID}" --no-user-group "${NB_USER}"
   ## Set the password for ${NB_USER} to "jovyan" (or any other password you prefer)
@@ -205,8 +205,8 @@ RUN apt-get update \
 #     && sed -i '/jammy-security/s/^/#/' /etc/apt/sources.list
 
 ## Install common dependencies
-RUN apt-get update --yes \
-  && apt-get install -y --no-install-recommends \
+RUN apt-get update --yes; \
+  apt-get install -y --no-install-recommends \
     --fix-broken --allow-downgrades \
     ## CA certificates for secure HTTPS connections
     ca-certificates \
