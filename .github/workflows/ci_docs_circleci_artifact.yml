@@ -116,7 +116,7 @@ jobs:
       - name: "🔗 Redirect to Post CircleCI Artifact Link"
         id: docs_link_redirector
         # uses: larsoner/circleci-artifacts-redirector-action@4e13a10d89177f4bfc8007a7064bdbeda848d8d1 # master
-        uses: scientific-python/circleci-artifacts-redirector-action@7eafdb60666f57706a5525a2f5eb76224dc8779b # v1.1.0
+        uses: scientific-python/circleci-artifacts-redirector-action@5d358ff96e96429a5c64a969bb4a574555439f4f # v1.3.1
         # Run step only if IS_SKIP is false
         # if: steps.check_skip.outputs.IS_SKIP == 'false'
         continue-on-error: true
