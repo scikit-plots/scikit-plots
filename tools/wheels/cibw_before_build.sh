@@ -35,10 +35,11 @@
 ######################################################################
 ## RUNNING
 ######################################################################
-set -e  # Exit immediately if a command exits with a non-zero status
-set -o pipefail  # Ensure pipeline errors are captured
+set -e  # Exit immediately if a command exits with a non-zero status (Disable 'exit on error' temporarily for debugging)
 set -u  # Treat unset variables as an error
-set -x  # Print each command before executing it
+set -x  # Enable debugging Print each command before executing it
+set -o pipefail  # Ensure pipeline errors are captured
+set -euxo pipefail
 # Set environment variables to make our wheel build easier to reproduce byte
 # for byte from source. See https://reproducible-builds.org/. The long term
 # motivation would be to be able to detect supply chain attacks.

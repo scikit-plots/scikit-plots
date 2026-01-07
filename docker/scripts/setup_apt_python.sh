@@ -15,8 +15,8 @@
 # limitations under the License.
 # ==============================================================================
 #
-# setup.python.sh: Install a specific Python version and packages for it.
-# Usage: setup.python.sh <pyversion> <requirements.txt>
+# setup_apt_python.sh: Install a specific Python version and packages for it.
+# Usage: setup_apt_python.sh <pyversion> <requirements.txt>
 ######################################################################
 ## https://github.com/tensorflow/build/blob/master/tensorflow_runtime_dockerfiles/setup.python.sh
 set -xe
@@ -32,7 +32,7 @@ $VERSION-venv
 $VERSION-distutils
 $VERSION-dev
 EOF
-/setup.packages.sh pythons.txt
+/setup_apt_packages.sh pythons.txt
 
 # Setup links for TensorFlow to compile.
 # Referenced in devel.usertools/*.bazelrc

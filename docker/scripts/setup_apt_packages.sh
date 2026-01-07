@@ -15,8 +15,9 @@
 # limitations under the License.
 # ==============================================================================
 #
-# setup.packages.sh: Given a list of Ubuntu packages, install them and clean up.
-# Usage: setup.packages.sh <package_list.txt>
+# setup_apt_packages.sh: Given a list of Ubuntu packages, install them and clean up.
+# Usage: setup_apt_packages.sh <package_list.txt>
+## https://github.com/tensorflow/build/blob/master/tensorflow_runtime_dockerfiles/setup.packages.sh
 set -e
 
 # Prevent "apt install tzinfo" from raising an interactive location prompt

@@ -38,14 +38,25 @@
 ## ARG: You can override it during the docker build with --build-arg.
 ## Ubuntu 20.04 (focal), https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
 ARG BASE_IMAGE=jupyter/scipy-notebook:latest
+ARG EXTENDED_PACKAGES=false
+ARG SCIKITPLOT_VERSION=0.4.0.post9
 
 ## Use the argument to specify the base image
 FROM ${BASE_IMAGE} AS base
 ## ⚠️ ARG may specified again because the FROM directive resets ARGs
 ## (but their default value is retained if set previously)
 
-ARG SCIKITPLOT_VERSION=0.4.0.post9
+ARG EXTENDED_PACKAGES
+ARG SCIKITPLOT_VERSION
+
+## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
+ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
+
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
+
+## Set environment variable to avoid interactive prompts during builds
+## Prevent apt install tzinfo from asking our location (assumes UTC)
+ENV DEBIAN_FRONTEND=noninteractive
 
 # LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
 LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
@@ -59,14 +70,6 @@ LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
 # LABEL org.opencontainers.image.licenses="BSD-3-Clause"
 # LABEL org.opencontainers.image.version="latest"
 # LABEL org.opencontainers.image.revision="latest"
-
-## Set environment variable to avoid interactive prompts during builds
-## Prevent apt install tzinfo from asking our location (assumes UTC)
-ENV DEBIAN_FRONTEND=noninteractive
-
-## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
-ARG EXTENDED_PACKAGES=false
-ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
 
 ######################################################################
 ## default user jupyter ${NB_UID}
@@ -301,6 +304,8 @@ RUN apt-get update --yes \
     ## Graph visualization software
     ## Graph visualization software: dot -V
     graphviz \
+    ## Vector graphics editor
+    inkscape \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; }; \
   ## Cleanup to reduce image size
@@ -317,23 +322,18 @@ RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     ## Vulkan (MoltenVK) – Alternative to OpenGL & CUDA
     ## Metal Performance Shaders (MPS) – Apple’s GPU Framework
     ## TensorFlow with Metal Backend (ML-Specific)
-    apt-get update --yes && apt-get install --yes --no-install-recommends \
+    apt-get update --yes; \
+    apt-get install --yes --no-install-recommends \
       ## General-purpose C++ development
       ## TBB (Threading Building Blocks) - Intel's Threading Building Blocks for task-based parallelism in C++.
       libtbb-dev \
       ## Boost C++ Libraries - a set of portable C++ source libraries
       libboost-all-dev \
-      ## MKL (Intel Math Kernel Library) - Optimized math library for scientific computing with multi-threading support.
-      # libmkl-dev \
-      ## Graph visualization software
-      ## Graph visualization software: dot -V
-      graphviz \
-      ## Vector graphics editor
-      inkscape \
     || { echo "Failed to install extended packages"; }; \
     ## Install separately and ignore failure
-    ## MKL (Intel Math Kernel Library)
-    apt-get install --yes --no-install-recommends libmkl-dev || true; \
+    ## MKL (Intel Math Kernel Library) - Optimized math library for scientific computing with multi-threading support.
+    apt-get install --yes --no-install-recommends \
+      libmkl-dev || true; \
     ## Cleanup to reduce image size
     apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -355,9 +355,9 @@ USER ${NB_UID}
 ######################################################################
 ## Set working directory inside the container
 WORKDIR /tmp
+COPY requirements ./requirements/
 COPY docker ./docker/
 COPY docker/env_conda/environment.yml ./
-COPY requirements ./requirements/
 
 ## micromamba and post create steps
 # RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
@@ -455,9 +455,9 @@ USER ${NB_UID}
 
 ## Set working directory inside the container
 WORKDIR "${HOME}"
+COPY requirements ./requirements/
 COPY docker/env_conda/environment.yml ./
 COPY docker/env_pipenv/ ./env_pipenv/
-COPY requirements ./requirements/
 
 # macOS Rosetta virtualization creates junk directory which gets owned by root further up.
 # It'll get re-created, but as USER runner after the next directive so hopefully should not cause permission issues.
