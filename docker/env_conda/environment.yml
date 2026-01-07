@@ -95,19 +95,32 @@ dependencies:
   - ipywidgets
   - widgetsnbextension
 
+  # 🧰 Compilers and Build
+  - conda-lock
+  - meson
+  - ninja
+  - meson-python
+  - cython
+  - pybind11
+  - pythran
+
+  # 📚 Docs
+  - sphinx
+  - numpydoc
+
   # 📊 Data Manipulation
   - pandas
   - scipy
 
   # 📥 File I/O and formats
-  - anaconda::click      # CLI utilities
+  - anaconda::click  # CLI utilities
   - requests
   - pyyaml
   - xlrd
   - openpyxl
   - pyarrow
 
-  # 📈 Visualization
+  # 📈 🖼️ Visualization
   - matplotlib-base
   - seaborn
   - pillow
@@ -126,69 +139,41 @@ dependencies:
   - joblib
   - h5py
 
+  # === 🧩 Extended Dependencies (Optional) ===
+  # 📊 Model Tracking and SQL
+  - mlflow
+  - sqlalchemy
+  - sqlparse
+
+  # 🛠️ Dev Tools
+  - pre_commit
+  - setuptools
+  - wheel
+  - build
+
+  # 🧪 Testing
+  - pytest
+  - hypothesis
+  - codecov
+  - cython-lint
+
+  # 🚀 Deployment
+  - streamlit
+  - fastapi
+  - flask
+  - uvicorn
+  - waitress
+  - gunicorn
+
+  # 📦 Requirements generation
+  - pipreqs
+  - pipenv
+
   # Comment out this line and download Rtools and add <path>\ucrt64\bin\ to your path:
   # https://cran.r-project.org/bin/windows/Rtools/rtools40.html
   # - compilers  # Currently unavailable for Windows.
-
   # 📦 Optional pip section (can be removed if unused)
   - pip
   - pip:
       # - your-package
       - -r requirements/build.txt
-
-
-# === Extended Dependencies (Optional) ===
-# 🧩 Optional: extended group (can be installed later)
-optional-dependencies:
-  extended:
-    # 📊 Model Tracking and SQL
-    - mlflow
-    - sqlalchemy
-    - sqlparse
-
-    # 🚀 Deployment
-    - streamlit
-    - fastapi
-    - flask
-    - uvicorn
-    - waitress
-    - gunicorn
-
-    # 🛠️ Dev Tools
-    - pre_commit
-    - setuptools
-    - wheel
-    - build
-
-    # 🧰 Compilers and Build
-    - conda-lock
-    - meson
-    - ninja
-    - meson-python
-    - cython
-    - pybind11
-    - pythran
-
-    # 🧪 Testing
-    - pytest
-    - hypothesis
-    - codecov
-    - cython-lint
-
-    # 📚 Docs
-    - sphinx
-    - numpydoc
-
-    # 📦 Requirements generation
-    - pipreqs
-    - pipenv
-
-    # 📦 Optional pip section (can be removed if unused)
-    - pip
-    - pip:
-        # - -r requirements.txt
-        # - your-package
-        - aggdraw
-
-    # 🖼️ Additional Visualization
-    # - aggdraw              # Antialiased drawing for PIL
