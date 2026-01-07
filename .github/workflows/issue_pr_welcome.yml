@@ -52,8 +52,8 @@ jobs:
       - name: 'Greet First-Time Contributors'
         uses: actions/first-interaction@34f15e814fe48ac9312ccf29db4e74fa767cbab7  # v1.3.0
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: >+
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: >+
             Thank you for opening your first Issue into scikit-plots👋!
 
             If you have not heard from us in a week or so, please leave a new
@@ -79,7 +79,7 @@ jobs:
             how to use scikit-plots, please instead raise your question in the
             [on github](https://github.com/orgs/scikit-plots/discussions) and close
             this issue.
-          pr-message: >+
+          pr_message: >+
             Thank you for opening your first PR into scikit-plots👋!
 
             If you have not heard from us in a week or so, please leave a new
