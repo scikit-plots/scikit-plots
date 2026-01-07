@@ -377,12 +377,12 @@ on_disk_path : str or None, optional, default=None
     Configured on-disk build path. Setting this attribute enables on-disk
     build mode (equivalent to :meth:`on_disk_build`), with safety checks
     to avoid implicit truncation of existing files.
+prefault : bool, default=False
+    Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
 seed : int or None, optional, default=None
     Non-negative integer seed. Also provides :meth:`random_state`
 verbose : int or None, optional, default=None
     Verbosity level.
-prefault : bool, default=False
-    Stored prefault flag (see :meth:`load`/`:meth:`save` prefault parameters).
 schema_version : int, default=0
     Reserved schema/version marker (stored; does not affect on-disk format).
 n_features : int

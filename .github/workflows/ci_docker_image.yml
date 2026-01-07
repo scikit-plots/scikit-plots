@@ -124,7 +124,7 @@ jobs:
       SCIKITPLOT_VERSION: 0.4.0.post9  # install latest release on PyPI
 
     ## To enable this workflow on a fork, comment out:
-    if: github.repository == 'scikit-plots/scikit-plots'
+    # if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
       ## 📥 Checkout the Git repository into the runner

@@ -1,5 +1,5 @@
 # Concept	    Analogy                             	Role (Related To)
-# WASM	      Machine code                          The target binary format (WebAssembly VM, Browser)
+# WASM        Machine code                          The target binary format (WebAssembly VM, Browser)
 # WebAssembly	The CPU architecture                  Platform-independent bytecode spec (WASM, Browsers) = technology/platform.
 # Emscripten	The compiler (like GCC)               Compiles C/C++ → WebAssembly (Uses LLVM)
 # Pyodide	    Python interpreter running on WASM    Python compiled via Emscripten to WASM (Uses CPython + Emscripten) = an application/runtime built on WebAssembly.

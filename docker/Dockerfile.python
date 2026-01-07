@@ -1,20 +1,22 @@
+# docker/Dockerfile.python
 ## ✅ Declare default only once before FROM if you want a default.
 ARG PY_VERSION=3.11
+ARG SCIKITPLOT_VERSION=0.4.0.post9
 
 ## Use an official Python runtime as a parent image
 FROM python:${PY_VERSION}-slim
-## ✅ Valid and recommended to redeclare ARG after FROM without default to get the passed/default value correctly.
-ARG PY_VERSION
+
 ## ❌ Avoid redeclaring with a default after FROM, it overrides build-arg.
 ## ARG PY_VERSION=3.11        # <-- This overrides any build-arg passed earlier!
+## ✅ Valid and recommended to redeclare ARG after FROM without default to get the passed/default value correctly.
+ARG PY_VERSION
+ARG SCIKITPLOT_VERSION
 
 ## Use ENV with shell-style expansion to get ENV_NAME=py3.11
-## Bash-style string substitution syntax (${VAR//./})
 ## Replace '.' in PY_VERSION to get py311 instead of py3.11
-# ENV ENV_NAME=py${PY_VERSION//./}  # Not a valid syntax in Dockerfile, but works.
-RUN export ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"
-
-ARG SCIKITPLOT_VERSION=0.4.0.post9
+## Bash-style string substitution syntax (${VAR//./})
+ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
+# ENV ENV_NAME=${ENV_NAME:-py$(printf '%s' "$PY_VERSION" | tr -d '.')}
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 
 ## Set environment variables
