@@ -1,3 +1,4 @@
+# .github/dependabot.yml
 # To get started with Dependabot version updates, you'll need to specify which
 # package ecosystems to update and where the package manifests are located.
 # Please see the documentation for all configuration options:
@@ -16,7 +17,7 @@ updates:
     directory: "/"    # ".github/workflows" Location of package manifests
     schedule:
       interval: daily                # daily, weekly, monthly
-      time: '11:11'
+      # time: '11:11'
     ignore:
       - dependency-name: "bus1/cabuild"
     commit-message:
@@ -41,8 +42,8 @@ updates:
   - package-ecosystem: pip
     directory: /
     schedule:
-      interval: daily
-      time: '11:11'
+      interval: daily  # "weekly" "monthly"
+      # time: '11:11'
     ignore:
       - dependency-name: "bus1/cabuild"
     commit-message:
@@ -55,3 +56,8 @@ updates:
       - no-changelog-entry-needed
     # reviewers:
     #   - "scikit-plots/core-devs"
+
+  - package-ecosystem: "conda"
+    directory: "/"
+    schedule:
+      interval: "daily"

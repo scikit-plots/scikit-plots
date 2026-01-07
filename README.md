@@ -19,23 +19,16 @@
 <div align="center">
  <!-- codespaces -->
  <!-- <a target="_blank" rel="noopener noreferrer" href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest"><img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg"></a> -->
- <a target="_blank" rel="noopener noreferrer"
-  href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest">
-  <img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue?style=flat-square&logo=github&label='&labelColor=rgb(56,56,56)&color=rgb(40,40,40)">
+ <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
+  <!-- https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue?style=flat-square&logo=github&label=%20&labelColor=rgb(56,56,56)&color=rgb(40,40,40) -->
+  <img alt="Open in GitHub Codespaces" height="17px" width="auto"
+  src="https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue.svg?style=flat-square&logo=github&label=%20&labelColor=383838&color=282828">
  </a>
- <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
- <!-- pepy.tech -->
- <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <!-- [![PyPI Downloads](https://static.pepy.tech/badge/scikit-plots/month)](https://pepy.tech/projects/scikit-plots) -->
-  <!-- [![PyPI Downloads](https://static.pepy.tech/badge/scikit-plots)](https://pepy.tech/projects/scikit-plots) -->
-  <img alt="Pepy Total Downloads" height="17"
-   src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=Total%20Downloads&color=olivegreen">
- </a>
+ <!-- PyPI -->
  <!-- https://opensource.com/article/21/3/python-package-index-json-apis-requests -->
  <!-- https://www.piwheels.org/project/scikit-plots/json/ -->
  <!-- https://pypi.org/pypi/scikit-plots/json  $.info.downloads.last_month -->
  <!-- https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fpypi.org%2Fpypi%2Fscikit-plots%2Fjson&query=%24.info.downloads.last_month&style=flat-square&logo=pypi&label=PyPI%20%7C%20Downloads&color=olivegreen -->
- <!-- PyPI -->
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="PyPI Version Status" height="17"
    src="https://img.shields.io/pypi/v/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Version&color=blue">
@@ -43,41 +36,49 @@
  <!-- PyPI - Daily, Weekly, or Monthly Downloads -->
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="PyPI Downloads" height="17"
-   src="https://img.shields.io/pypi/dm/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Downloads&color=olivegreen">
+   src="https://img.shields.io/pypi/dm/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Downloads&color=green">
+ </a>
+ <!-- pepy.tech -->
+ <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
+ <!-- https://static.pepy.tech/personalized-badge/scikit-plots?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=%F0%9F%93%A6+pepy.tech+%7C+Total+Downloads -->
+ <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Pepy Total Downloads" height="17"
+   src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=pepy.tech%20%7C%20Total%20Downloads&color=green">
  </a>
  <!-- Anaconda Stable Conda -->
+ <!-- https://anaconda.org/conda-forge/scikit-plots/badges/version.svg -->
  <a href="https://anaconda.org/conda-forge/scikit-plots" target="_blank"
   rel="noopener noreferrer">
-  <!-- https://anaconda.org/conda-forge/scikit-plots/badges/version.svg -->
   <img alt="Anaconda Stable Wheels Version" height="17"
-   src="https://img.shields.io/conda/v/conda-forge/scikit-plots?style=flat-square&logo=condaforge&label=conda-forge%20|%20Version&color=olivegreen">
+   src="https://img.shields.io/conda/v/conda-forge/scikit-plots?style=flat-square&logo=condaforge&label=conda-forge%20|%20Version&color=blue">
  </a>
  <!-- Anaconda Stable Daily, Weekly, or Monthly Downloads -->
  <a href="https://anaconda.org/conda-forge/scikit-plots" target="_blank"
   rel="noopener noreferrer">
+  <!-- https://anaconda.org/conda-forge/scikit-plots/badges/downloads.svg -->
   <img alt="Anaconda Stable Wheels Downloads" height="17"
    src="https://img.shields.io/conda/d/conda-forge/scikit-plots?style=flat-square&logo=condaforge&label=conda-forge%20|%20Downloads&color=green">
-  <!-- <img alt="Anaconda Stable Wheels Downloads" height="17" src="https://anaconda.org/conda-forge/scikit-plots/badges/downloads.svg"> -->
  </a>
  <!-- Anaconda Stable Wheels Release Date -->
- <a href="https://github.com/conda-forge/scikit-plots-feedstock" target="_blank"
+ <!-- https://anaconda.org/conda-forge/scikit-plots/badges/latest_release_date.svg -->
+ <!-- <a href="https://github.com/conda-forge/scikit-plots-feedstock" target="_blank"
   rel="noopener noreferrer">
   <img alt="Anaconda Stable Wheels Release Date" height="17"
-  src="https://anaconda.org/conda-forge/scikit-plots/badges/latest_release_date.svg?logo=condaforge&label=conda%20|%20Downloads">
- </a>
+  src="https://img.shields.io/badge/17%20Nov%202025-blue.svg?style=flat-square&logo=condaforge&label=conda-forge%20|%20Last%20Updated&color=green">
+ </a> -->
  <!-- Anaconda Nightly Conda -->
+ <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
   rel="noopener noreferrer">
-  <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
   <img alt="Anaconda Nightly Wheels Version" height="17"
-   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda-nightly-wheels%20|%20Version&color=orange">
+   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Version%20Nightly&color=orange">
  </a>
  <!-- Anaconda Nightly Daily, Weekly, or Monthly Downloads -->
+ <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg -->
  <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
   rel="noopener noreferrer">
   <img alt="Anaconda Nightly Wheels Downloads" height="17"
-   src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda-nightly-wheels%20|%20Downloads&color=orange">
-  <!-- <img alt="Anaconda Nightly Wheels Downloads" height="17" src="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg"> -->
+   src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads%20Nightly&color=orange">
  </a>
  <!-- 🐋 Docker Image Version (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
@@ -85,15 +86,15 @@
    src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Version&color=blue">
  </a>
  <!-- 🐋 Docker Total Pulls 🐳 -->
+ <!-- https://img.shields.io/docker/pulls/scikitplot/scikit-plots -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <!-- https://img.shields.io/docker/pulls/scikitplot/scikit-plots -->
   <img alt="🐋 Docker Total Pulls" height="17"
-   src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Total%20Pulls&color=olivegreen">
+   src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Pulls&color=green">
  </a>
  <!-- 🐋 Docker Image Size (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Size (tag)" height="17"
-   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=orange">
+   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=green">
  </a>
  <!-- pre-commit -->
  <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
@@ -106,8 +107,8 @@
    src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
  </a>
  <!-- Code Style - Ruff -->
+ <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
  <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
-  <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
   <img alt="Code Style - Ruff" height="17"
    src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
  </a>
@@ -122,16 +123,16 @@
    src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
  </a>
  <!-- GitHub Actions -->
+ <!-- https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg -->
  <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank"
   rel="noopener noreferrer">
-  <!-- https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg -->
   <img alt="GitHub Actions CI Build Wheels Status" height="17"
    src="https://img.shields.io/github/actions/workflow/status/scikit-plots/scikit-plots/ci_wheels_conda.yml?style=flat-square&logo=githubactions&label=GitHub%20Actions%20%7C%20Wheels%20Conda&color=olivegreen">
  </a>
  <!-- CircleCI -->
+ <!-- https://dl.circleci.com/status-badge/img/gh/scikit-plots/scikit-plots/tree/main.svg?style=shield -->
  <a href="https://dl.circleci.com/status-badge/redirect/gh/scikit-plots/scikit-plots/tree/main" target="_blank"
   rel="noopener noreferrer">
-  <!-- https://dl.circleci.com/status-badge/img/gh/scikit-plots/scikit-plots/tree/main.svg?style=shield -->
   <img alt="CircleCI Status" height="17"
    src="https://img.shields.io/circleci/build/github/scikit-plots/scikit-plots/main?style=flat-square&logo=circleci&label=CircleCI%20%7C%20Docs%20Build&color=olivegreen">
  </a>
@@ -145,10 +146,10 @@
    src="https://img.shields.io/pypi/pyversions/scikit-plots.svg?style=flat-square&logo=pypi&label=PyPI%20%7C%20Python&color=blue">
  </a>
  <!-- GitHub License -->
+ <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
+ <!-- https://img.shields.io/conda/l/scikit-plots-wheels-staging-nightly/scikit-plots?logo=anaconda&label=conda%20|%20License&labelColor=gray&color=blue -->
  <a href="https://github.com/scikit-plots/scikit-plots?tab=BSD-3-Clause-1-ov-file#readme" target="_blank"
   rel="noopener noreferrer">
-  <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
-  <!-- https://img.shields.io/conda/l/scikit-plots-wheels-staging-nightly/scikit-plots?logo=anaconda&label=conda%20|%20License&labelColor=gray&color=blue -->
   <img alt="GitHub License" height="17"
    src="https://img.shields.io/github/license/scikit-plots/scikit-plots?style=flat-square&logo=github&label=License&labelColor=gray&color=blue">
  </a>
@@ -158,11 +159,12 @@
  </a>
 </div>
 
+<br>
 
 <!-- Scikit-plots favicon image -->
 <div>
+ <!-- https://raw.githubusercontent.com/scikit-plots/scikit-plots/refs/heads/main/docs/source/logos/gpt/scikit-plots-logo-medium.png -->
  <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
-  <!-- https://raw.githubusercontent.com/scikit-plots/scikit-plots/refs/heads/main/docs/source/logos/gpt/scikit-plots-logo-medium.png -->
   <img alt="Scikit-plots" height="230"
    src="https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/docs/source/logos/gpt/scikit-plots-logo-medium.png">
  </a>
