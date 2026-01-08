@@ -56,7 +56,7 @@ ARG APT_INSTALL_DEVTOOLS=1
 # Needed if you want conda env active for subsequent shell-form RUN steps
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 # Path to the conda environment spec inside the build context
-ARG ENV_FILE=docker/env_conda/environment.yml
+ARG ENV_FILE=environment.yml
 # Optional: run repo post-create scripts at build time (OFF by default)
 ARG RUN_POST_CREATE=1
 
@@ -488,6 +488,7 @@ USER ${NB_UID}
 
 ## Set working directory inside the container
 WORKDIR "${HOME}"
+
 COPY requirements ./requirements/
 COPY docker/env_conda/environment.yml ./
 COPY docker/env_pipenv/ ./env_pipenv/

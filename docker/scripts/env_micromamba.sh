@@ -162,6 +162,46 @@ append_line_once() {
   fi
 }
 
+detect_os() {
+  local uname_s
+  if command -v uname >/dev/null 2>&1; then
+    uname_s="$(uname -s 2>/dev/null || printf '%s' unknown)"
+  else
+    uname_s="unknown"
+  fi
+
+  case "$uname_s" in
+    Linux) echo "linux" ;;
+    Darwin) echo "macos" ;;
+    MINGW*|MSYS*|CYGWIN*) echo "windows-gitbash" ;;
+    *) echo "unknown" ;;
+  esac
+}
+
+detect_arch() {
+  local uname_m
+  if command -v uname >/dev/null 2>&1; then
+    uname_m="$(uname -m 2>/dev/null || printf '%s' unknown)"
+  else
+    uname_m="unknown"
+  fi
+
+  # normalize
+  uname_m="$(printf '%s' "$uname_m" | tr '[:upper:]' '[:lower:]')"
+
+  case "$uname_m" in
+    i386|i486|i586|i686|x86)
+      # Canonical: treat as 32-bit x86
+      echo "x86" ;;
+    x86_64|amd64|*amd64*)
+      echo "x86_64" ;;
+    aarch64|arm64)
+      echo "arm64" ;;
+    *)
+      echo "unknown" ;;
+  esac
+}
+
 micromamba_api_platform() {
   # Deterministic override (recommended for buildx):
   # MICROMAMBA_API_PLATFORM=linux-64|linux-aarch64|osx-64|osx-arm64|win-64

@@ -175,5 +175,5 @@ dependencies:
   # 📦 Optional pip section (can be removed if unused)
   - pip
   - pip:
-      # - your-package
+      # ⚠️ Use ROOT Path, Not work for "docker/env_conda/environment.yml"
       - -r requirements/build.txt
