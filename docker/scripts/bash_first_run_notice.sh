@@ -1,145 +1,210 @@
 #!/usr/bin/env bash
+# docker/scripts/bash_first_run_notice.sh
+# ===============================================================
+# bash_first_run_notice.sh — Dev Container first-run UX setup
+# ===============================================================
+# USER NOTES
+# - This script is intended to be run inside a Dev Container / Docker
+#   environment (postCreateCommand / postStartCommand), but is safe to run
+#   on any Linux host: it performs no installs and has no background actions.
+# - System-wide changes are performed ONLY when running as root or when
+#   passwordless sudo is available (sudo -n).
 #
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
+# DEV NOTES
+# - Bash script (uses BASH_SOURCE). Keep logic deterministic and explicit.
+# - Avoid "realpath" dependency; use script-relative paths.
+# - No package installation here. Keep installs in a dedicated script.
 #
-## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
-## Inside bash -c '...' string	\$p, if needed
-# ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
-# { ...; } || fallback runs in current shell — can exit or affect current environment.
+# Canonical Dev Containers first-run notice destination:
+#   /usr/local/etc/vscode-dev-containers/first-run-notice.txt
+# (used by devcontainers/images and commonly referenced by the community)
+# ===============================================================
 
-set -e  # Exit immediately if a command exits with a non-zero status (Disable 'exit on error' temporarily for debugging)
-set -u  # Treat unset variables as an error
-set -x  # Enable debugging Print each command before executing it
-set -o pipefail  # Ensure pipeline errors are captured
-set -euxo pipefail
+set -Eeuo pipefail
 
-cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
-cat uname -u || echo "No uname -u output available. Skipping system information."
+# ---------- Error reporting ----------
+trap 'rc=$?; echo "[ERROR] bash_first_run_notice.sh failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
 
-## Dynamically get shell name (bash, zsh, fish, etc.)
-echo "CWD_DIR=$PWD"
-echo "REAL_DIR=$(realpath ./)"
-echo "SCRIPT_DIR=$(cd -- $(dirname ${BASH_SOURCE[0]}) && pwd)"
-echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
-echo "SHELL_NAME=$(basename $SHELL)"
+# ---------- Locate script + optional common library ----------
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
-## Make sudo Passwordless for the User
-sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
+# If the POSIX common library exists, source it for consistent logging/helpers.
+# Then re-assert bash strict options.
+if [[ -f "${SCRIPT_DIR}/lib/common.sh" ]]; then
+  # shellcheck disable=SC1091
+  . "${SCRIPT_DIR}/lib/common.sh"
+  set -Eeuo pipefail
+fi
 
-## Ensure os packages installed
-echo "📦 Installing dev tools (if sudo available)..."
-{ sudo -n true && sudo apt-get update -y \
-  && sudo apt-get install -y sudo gosu git curl build-essential gfortran ninja-build; } \
-  || echo "⚠️ Failed or skipped installing dev tools"
+# ---------- Minimal fallback logging (if common.sh not sourced) ----------
+if ! command -v log_info >/dev/null 2>&1; then
+  log_info()    { printf '%s\n' "[INFO] $*" >&2; }
+  log_warning() { printf '%s\n' "[WARNING] $*" >&2; }
+  log_success() { printf '%s\n' "[SUCCESS] $*" >&2; }
+  log_error()   { printf '%s\n' "[ERROR] $*" >&2; exit 1; }
+  log_debug()   { :; }
+fi
 
-# green
-print_info() {
-  echo -e "\033[1;32m$1\033[0m"
-}
-# yellow-orange
-print_warn() {
-  echo -e "\033[1;33m$1\033[0m"
-}
-# red
-print_error() {
-  echo -e "\033[1;31m$1\033[0m"
-}
-# blue
-print_url() {
-  echo -e "\033[1;34m$1\033[0m"
-}
-# purple
-print_info2() {
-  echo -e "\033[1;36m$1\033[0m"
+# ---------- Controls (explicit, deterministic) ----------
+POST_CREATE_OVERWRITE="${POST_CREATE_OVERWRITE:-1}"
+POST_CREATE_STRICT="${POST_CREATE_STRICT:-0}"
+
+# ---------- Helpers ----------
+_is_root() { [[ "$(id -u)" -eq 0 ]]; }
+
+_sudo_nopass() {
+  command -v sudo >/dev/null 2>&1 || return 1
+  sudo -n true >/dev/null 2>&1
 }
 
-######################################################################
-## DevContainer First-Run Notice (if possible)
-######################################################################
+_as_root() {
+  if _is_root; then
+    "$@"
+  else
+    _sudo_nopass || return 1
+    sudo -n "$@"
+  fi
+}
 
-echo -e "\033[1;34m📝 Setting up first-run notice (if possible)...\033[0m"
+_require_file_or_warn() {
+  local p="$1"
+  if [[ -f "$p" ]]; then
+    return 0
+  fi
+  if [[ "$POST_CREATE_STRICT" = "1" ]]; then
+    log_error "Required file not found: $p"
+  fi
+  log_warning "Skipping (source not found): $p"
+  return 1
+}
 
-NOTICE_SOURCE="$(realpath ./docker/scripts/bash-first-run-notice.txt)"
-NOTICE_TARGET="/usr/local/etc/vscode-dev-containers/bash-first-run-notice.txt"
+_copy_file() {
+  local src="$1"
+  local dst="$2"
+  local mode="${3:-}"
 
-# Use sudo non-interactively if available
-if sudo -n true 2>/dev/null; then
-    if [ -f "$NOTICE_SOURCE" ]; then
-        sudo mkdir -p "$(dirname "$NOTICE_TARGET")"
-        sudo cp "$NOTICE_SOURCE" "$NOTICE_TARGET" && \
-          echo -e "\033[1;32m✅ First-run notice installed at $NOTICE_TARGET\033[0m" || \
-          echo -e "\033[1;33m\⚠️ Could not copy first-run notice file\033[0m"
+  local parent
+  parent="$(dirname -- "$dst")"
+
+  if command -v install >/dev/null 2>&1; then
+    if [[ -n "$mode" ]]; then
+      install -m "$mode" -D "$src" "$dst"
     else
-        echo -e "\033[1;33m⚠️ Source notice file not found: $NOTICE_SOURCE\033[0m"
+      install -D "$src" "$dst"
     fi
-else
-    echo -e "\033[1;33m⚠️ Skipping first-run notice setup (sudo not available or permission denied)\033[0m"
-fi
-
-######################################################################
-## 📝 ASCII banner for scikit-plots (bashrc.prefix → /etc/bash.bashrc)
-######################################################################
-
-echo -e "\033[1;34m📝 Setting up bash first-run notice (if possible)...\033[0m"
-
-# [ -f "./docker/scripts/bash-first-run-notice.txt" ] && { cp ./docker/scripts/bash-first-run-notice.txt ~/.bash-first-run-notice.txt; } || true
-NOTICE_SOURCE="$(realpath ./docker/scripts/bash-first-run-notice.txt)"
-NOTICE_TARGET=~/.bash-first-run-notice.txt
-
-# if [ -f "$NOTICE_SOURCE" ] && [ ! -f "$NOTICE_TARGET" ]; then
-if [ -f "$NOTICE_SOURCE" ]; then
-  cp -u "$NOTICE_SOURCE" "$NOTICE_TARGET" && \
-  echo "✅ First-run notice installed to $NOTICE_TARGET" || \
-  echo "⚠️ Could not copy notice to $NOTICE_TARGET"
-else
-  echo "⚠️ Notice file not found: $NOTICE_SOURCE"
-fi
-
-######################################################################
-## 🧩 Setup bashrc.prefix (→ /etc/bash.bashrc) [System-wide]
-######################################################################
-
-BASHRC_PREFIX_SOURCE="$(realpath ./docker/scripts/bashrc.prefix)"
-BASHRC_PREFIX_TARGET="/etc/bash.bashrc"  # to System wide initialization file
-
-# sudo chmod a+rwx "$BASHRC_PREFIX_TARGET" && \
-if [ -f "$BASHRC_PREFIX_SOURCE" ]; then
-  if sudo -n true 2>/dev/null; then
-    sudo cp "$BASHRC_PREFIX_SOURCE" "$BASHRC_PREFIX_TARGET" && \
-    sudo chmod a+r "$BASHRC_PREFIX_TARGET" && \
-    echo "✅ Global bashrc.prefix installed to $BASHRC_PREFIX_TARGET" || \
-    echo "⚠️ Failed to install to $BASHRC_PREFIX_TARGET"
-  else
-    echo "⚠️ Skipped: sudo not available to install to $BASHRC_PREFIX_TARGET"
+    return 0
   fi
-else
-  echo "⚠️ Prefix source file not found: $BASHRC_PREFIX_SOURCE"
-fi
 
-######################################################################
-## 👤 Setup bashrc.suffix (appended to ~/.bashrc if not already present)
-######################################################################
-
-BASHRC_SUFFIX_SOURCE="$(realpath ./docker/scripts/bashrc.suffix)"
-BASHRC_SUFFIX_TARGET=~/.bashrc  # to the standard personal initialization file
-BASHRC_SUFFIX_MARKER="# >>> (bashrc.suffix) scikit-plots personal initialization >>>"
-
-## -q	Quiet, just return status	Basic existence check
-## -F	Fixed (literal) string	Avoiding regex interpretation
-## -x	Match entire line exactly	Ensuring full-line match, not partial
-# grep -Fxq '# >>> (bashrc.suffix) scikit-plots personal initialization >>>' \"~/.bashrc\" || cat ./docker/scripts/bashrc >> \"~/.bashrc\" || true
-if [ -f "$BASHRC_SUFFIX_SOURCE" ]; then
-  if ! grep -Fq "$BASHRC_SUFFIX_MARKER" "$BASHRC_SUFFIX_TARGET"; then
-    {
-      echo ""
-      echo "$BASHRC_SUFFIX_MARKER"
-      cat "$BASHRC_SUFFIX_SOURCE"
-    } >> "$BASHRC_SUFFIX_TARGET" && \
-    echo "✅ Appended bashrc.suffix to $BASHRC_SUFFIX_TARGET"
-  else
-    echo "✅ bashrc.suffix already present in $BASHRC_SUFFIX_TARGET"
+  mkdir -p -- "$parent"
+  cp -f -- "$src" "$dst"
+  if [[ -n "$mode" ]]; then
+    chmod "$mode" "$dst"
   fi
-else
-  echo "⚠️ Suffix source file not found: $BASHRC_SUFFIX_SOURCE"
+}
+
+_copy_file_user() {
+  local src="$1"
+  local dst="$2"
+  local mode="${3:-}"
+
+  if [[ "$POST_CREATE_OVERWRITE" = "1" ]]; then
+    _copy_file "$src" "$dst" "$mode"
+  else
+    [[ -e "$dst" ]] || _copy_file "$src" "$dst" "$mode"
+  fi
+}
+
+_copy_file_system() {
+  local src="$1"
+  local dst="$2"
+  local mode="${3:-}"
+
+  if ! _is_root && ! _sudo_nopass; then
+    log_warning "Skipping system install (need root or passwordless sudo): $dst"
+    return 0
+  fi
+
+  if [[ "$POST_CREATE_OVERWRITE" = "1" ]]; then
+    _as_root bash -lc "$(printf '%q ' _copy_file "$src" "$dst" "$mode")"
+  else
+    if _as_root test -e "$dst"; then
+      log_info "System target already exists (overwrite disabled): $dst"
+    else
+      _as_root bash -lc "$(printf '%q ' _copy_file "$src" "$dst" "$mode")"
+    fi
+  fi
+}
+
+_append_once() {
+  local marker="$1"
+  local src="$2"
+  local target="$3"
+
+  [[ -f "$target" ]] || touch "$target"
+
+  if grep -Fq "$marker" "$target"; then
+    log_info "Already present: $marker -> $target"
+    return 0
+  fi
+
+  {
+    printf '\n%s\n' "$marker"
+    cat "$src"
+  } >> "$target"
+
+  log_success "Appended to $target"
+}
+
+# ---------- Paths (script-relative sources) ----------
+NOTICE_SRC_DEFAULT="${SCRIPT_DIR}/bash-first-run-notice.txt"
+NOTICE_SRC="${POST_CREATE_NOTICE_SOURCE:-$NOTICE_SRC_DEFAULT}"
+
+DEVCONTAINER_NOTICE_DST_DEFAULT="/usr/local/etc/vscode-dev-containers/first-run-notice.txt"
+DEVCONTAINER_NOTICE_DST="${POST_CREATE_DEVCONTAINER_NOTICE_TARGET:-$DEVCONTAINER_NOTICE_DST_DEFAULT}"
+
+USER_NOTICE_DST_DEFAULT="${HOME}/.bash-first-run-notice.txt"
+USER_NOTICE_DST="${POST_CREATE_USER_NOTICE_TARGET:-$USER_NOTICE_DST_DEFAULT}"
+
+BASHRC_PREFIX_SRC_DEFAULT="${SCRIPT_DIR}/bashrc.prefix"
+BASHRC_PREFIX_SRC="${POST_CREATE_BASHRC_PREFIX_SOURCE:-$BASHRC_PREFIX_SRC_DEFAULT}"
+BASHRC_PREFIX_DST_DEFAULT="/etc/bash.bashrc"
+BASHRC_PREFIX_DST="${POST_CREATE_BASHRC_PREFIX_TARGET:-$BASHRC_PREFIX_DST_DEFAULT}"
+
+BASHRC_SUFFIX_SRC_DEFAULT="${SCRIPT_DIR}/bashrc.suffix"
+BASHRC_SUFFIX_SRC="${POST_CREATE_BASHRC_SUFFIX_SOURCE:-$BASHRC_SUFFIX_SRC_DEFAULT}"
+BASHRC_SUFFIX_DST_DEFAULT="${HOME}/.bashrc"
+BASHRC_SUFFIX_DST="${POST_CREATE_BASHRC_SUFFIX_TARGET:-$BASHRC_SUFFIX_DST_DEFAULT}"
+BASHRC_SUFFIX_MARKER="${POST_CREATE_BASHRC_SUFFIX_MARKER:-# >>> (bashrc.suffix) scikit-plots personal initialization >>>}"
+
+# ---------- Main ----------
+log_info "Setting up Dev Containers first-run notice and bashrc customizations..."
+log_debug "SCRIPT_DIR=$SCRIPT_DIR"
+
+# 1) Dev Containers canonical first-run notice (system-wide)
+if _require_file_or_warn "$NOTICE_SRC"; then
+  _copy_file_system "$NOTICE_SRC" "$DEVCONTAINER_NOTICE_DST" "0644"
+  log_success "Dev Containers notice -> $DEVCONTAINER_NOTICE_DST"
 fi
+
+# 2) User-level notice (home)
+if _require_file_or_warn "$NOTICE_SRC"; then
+  _copy_file_user "$NOTICE_SRC" "$USER_NOTICE_DST" "0644"
+  log_success "User notice -> $USER_NOTICE_DST"
+fi
+
+# 3) System-wide bashrc prefix (Debian/Ubuntu typically uses /etc/bash.bashrc)
+if _require_file_or_warn "$BASHRC_PREFIX_SRC"; then
+  if [[ -f "$BASHRC_PREFIX_DST" ]]; then
+    _copy_file_system "$BASHRC_PREFIX_SRC" "$BASHRC_PREFIX_DST" "0644"
+    log_success "System bashrc prefix -> $BASHRC_PREFIX_DST"
+  else
+    log_warning "Skipping system bashrc prefix: target not found ($BASHRC_PREFIX_DST)"
+  fi
+fi
+
+# 4) Append bashrc suffix once (user-level)
+if _require_file_or_warn "$BASHRC_SUFFIX_SRC"; then
+  _append_once "$BASHRC_SUFFIX_MARKER" "$BASHRC_SUFFIX_SRC" "$BASHRC_SUFFIX_DST"
+fi
+
+log_success "bash_first_run_notice.sh completed."

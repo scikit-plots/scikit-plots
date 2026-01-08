@@ -662,7 +662,7 @@ cd scikit-plots
 ```
 ```sh
 ## (if Necessary) Add safe directories for git
-# bash docker/script/safe_dirs.sh
+# bash docker/script/git_add_safe_dirs.sh
 git config --global --add safe.directory '*'
 ```
 ```sh

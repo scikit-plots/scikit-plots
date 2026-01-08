@@ -5,7 +5,7 @@
 
 set -e  # Exit script on error (Disable 'exit on error' temporarily for debugging)
 set -x  # Enable debugging (prints commands as they run)
-# set -euxo pipefail
+set -euxo pipefail
 
 # ================================
 # List of Extensions to Install
@@ -120,6 +120,8 @@ fi
 # ================================
 # Installing Extensions (Only if Missing)
 # ================================
+# for f in $(ls data); do ... done
+# find "data" -type f -print | while IFS= read -r f; do ... done
 for extension in $extensions; do
     if ! code --list-extensions | grep -q "^$extension$"; then
         echo "Installing: $extension"

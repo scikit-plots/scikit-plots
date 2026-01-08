@@ -240,7 +240,7 @@ services:
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
-      - SKIP_CONDA=true  # Skip conda installation
+      # - SKIP_CONDA=true  # Skip conda installation
       # - SKIP_MICROMAMBA=true  # Skip micromamba installation
     ports:
       ## Map host port 8888 to container port 8888 (default)
@@ -287,7 +287,7 @@ services:
       - DEBIAN_FRONTEND=noninteractive  # Disable interactive prompts during installation
       # Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
       - IS_DOCKERENV=true  # 🐳 Used to detect if the app is running inside Docker
-      - SKIP_CONDA=true  # Skip conda installation
+      # - SKIP_CONDA=true  # Skip conda installation
       # - SKIP_MICROMAMBA=true  # Skip micromamba installation
       # - EXTENDED_PACKAGES=true  # 🏗️ Docker Build with Conditional Argument
       - JUPYTER_PORT=8889

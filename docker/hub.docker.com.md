@@ -197,7 +197,7 @@ See: [Contributing Guidelines to scikit-plots][Contributing-Guidelines]
 [Contributing-Guidelines]: https://scikit-plots.github.io/dev/devel/index.html
 
 ```sh
-# bash docker/scripts/safe_dirs.sh  # add safe directories for git
+# bash docker/scripts/git_add_safe_dirs.sh  # add safe directories for git
 git config --global --add safe.directory '*'
 ```
 ```sh

@@ -27,8 +27,22 @@
 # https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry
 # https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
 # https://github.com/docker/login-action?tab=readme-ov-file#github-container-registry
+#
+# python - <<'PY'
+# import yaml, sys
+# yaml.safe_load(open("ci_docker_image.yml","r",encoding="utf-8"))
+# print("OK: YAML parses")
+# PY
+#
+# Dry-run the tag logic (no push)
+# export GITHUB_EVENT_NAME=pull_request
+# export GITHUB_SHA=0123456789abcdef0123456789abcdef01234567
+# export REF_TYPE=branch VERSION="" BRANCH=main
+# export IMAGE_NAMESPACE=scikitplot IMAGE_REPO=scikit-plots
+# export TAG=python-3.11 REF_TAG=ref_tags-python-3.11 ALIAS=latest-python-3.11 ALIAS2=latest
+# bash -euxo pipefail -c '...paste the run: | script body here...'
 ---
-name: CI 🐋 Docker Image Build and Push Multi-Arch  #  (Auto-Tagging with scikitplot)
+name: CI 🐋 Docker Recommended multi-platform flow (QEMU + Buildx + build-push-action)  #  (Auto-Tagging with scikitplot)
 
 # Trigger the workflow on push to any branch or tag
 on:
@@ -124,7 +138,7 @@ jobs:
       SCIKITPLOT_VERSION: 0.4.0.post9  # install latest release on PyPI
 
     ## To enable this workflow on a fork, comment out:
-    # if: github.repository == 'scikit-plots/scikit-plots'
+    if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
       ## 📥 Checkout the Git repository into the runner
@@ -167,22 +181,130 @@ jobs:
       #       echo "❌ Missing DOCKERHUB_TOKEN"
       #       exit 0
       #     fi
+      ################################################################
+      ## Docker build (multi-arch) — canonical Buildx workflow
+      ################################################################
+      ## - Uses Docker-maintained GitHub Actions:
+      ##   * docker/setup-qemu-action (emulation for arm64)
+      ##   * docker/setup-buildx-action (Buildx builder)
+      ##   * docker/login-action (registry auth)
+      ##   * docker/build-push-action (build + cache + push)
+      ##
+      ## - Deterministic:
+      ##   * No continue-on-error
+      ##   * Push is enabled only when tags are computed AND credentials exist
+      ##   * PRs build only (no push)
+      ################################################################
+
+      - name: ⚙️ Set up QEMU (multi-arch emulation)
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      - name: 🧱 Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: 🧮 Compute Docker build plan (tags, dockerfile, push)
+        id: docker_plan
+        shell: bash
+        env:
+          REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
+          VERSION: ${{ steps.gitref.outputs.version_tag }}
+          BRANCH: ${{ steps.gitref.outputs.branch_tag }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          IMAGE_NAMESPACE: ${{ matrix.service[1] }}
+          IMAGE_REPO: ${{ matrix.service[2] }}
+          TAG: ${{ matrix.tag.tag }}
+          REF_TAG: ${{ matrix.tag.ref_tag }}
+          ALIAS: ${{ matrix.tag.alias }}
+          ALIAS2: ${{ matrix.tag.alias2 }}
+        run: |
+          set -Eeuo pipefail
+
+          IMAGE_NAME="${IMAGE_NAMESPACE}/${IMAGE_REPO}"
+
+          # Select Dockerfile based on image flavor (TAG).
+          case "${TAG}" in
+            python-3.11) DOCKERFILE_PATH="docker/Dockerfile.python" ;;
+            jupyter)     DOCKERFILE_PATH="docker/Dockerfile" ;;
+            *)           DOCKERFILE_PATH="docker/Dockerfile.python" ;;
+          esac
+
+          # Map git ref -> FINAL_TAG (push tag) deterministically.
+          FINAL_TAG=""
+          if [[ "${REF_TYPE}" == "tag" && "${REF_TAG}" == ref_tags-* ]]; then
+            SUFFIX="${REF_TAG#ref_tags-}"
+            [[ -n "${VERSION}" ]] || { echo "VERSION is empty for tag ref" >&2; exit 2; }
+            FINAL_TAG="${VERSION}-${SUFFIX}"
+          elif [[ "${BRANCH}" == "main" ]]; then
+            [[ -n "${ALIAS}" ]] || { echo "matrix.tag.alias is required on main (TAG=${TAG})" >&2; exit 2; }
+            FINAL_TAG="${ALIAS}"
+          elif [[ "${BRANCH}" == maintenance-* ]]; then
+            BRANCH_VERSION="${BRANCH#maintenance-}"
+            [[ -n "${BRANCH_VERSION}" ]] || { echo "Invalid maintenance branch name: ${BRANCH}" >&2; exit 2; }
+            FINAL_TAG="${BRANCH_VERSION}-${TAG}"
+          else
+            echo "No push policy for BRANCH=${BRANCH} REF_TYPE=${REF_TYPE}; build-only." >&2
+          fi
+
+          # Decide push behavior:
+          # - Never push on PRs
+          # - Push only when FINAL_TAG is present and Docker Hub credentials exist
+          DO_PUSH="false"
+          if [[ -n "${FINAL_TAG}" && "${GITHUB_EVENT_NAME}" != "pull_request" ]]; then
+            [[ -n "${DOCKERHUB_USERNAME}" && -n "${DOCKERHUB_TOKEN}" ]] || { echo "Missing Docker Hub credentials (DOCKERHUB_USERNAME/DOCKERHUB_TOKEN)" >&2; exit 2; }
+            DO_PUSH="true"
+          fi
+
+          # Build tags list (newline-delimited for docker/build-push-action).
+          TAGS=()
+          if [[ -n "${FINAL_TAG}" ]]; then
+            TAGS+=("${IMAGE_NAME}:${FINAL_TAG}")
+            [[ -n "${ALIAS2}" ]] && TAGS+=("${IMAGE_NAME}:${ALIAS2}")
+          else
+            # Deterministic local-only tag for build-only runs (no registry push).
+            TAGS+=("${IMAGE_NAME}:ci-${GITHUB_SHA::12}")
+          fi
+
+          {
+            echo "image_name=${IMAGE_NAME}"
+            echo "dockerfile=${DOCKERFILE_PATH}"
+            echo "push=${DO_PUSH}"
+            echo "tags<<EOF"
+            printf '%s\n' "${TAGS[@]}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "Dockerfile=${DOCKERFILE_PATH}" >&2
+          echo "Push=${DO_PUSH}" >&2
+          echo "Tags:" >&2
+          printf '  - %s\n' "${TAGS[@]}" >&2
+
       - name: 🔐 Login to Docker Hub
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
-        continue-on-error: true
+        # if: steps.docker_plan.outputs.push == 'true'
+        # continue-on-error: true
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      ################################################################
-      ## DockerFile (Multi-Arch Docker Builds)
-      ################################################################
-      ## ✅ Migrate to docker buildx for Multi-Arch Docker Builds in GitHub Actions
-      ## ✅ Use "docker buildx build" or "docker buildx bake + docker-bake.hcl" instead of docker compose build to produce a multi-architecture image.
-      ## Set up Docker Buildx (build engine)
-      - name: 🧱 Set up Docker Buildx
+      - name: 🏗️ Build (multi-arch) and Push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: ${{ steps.docker_plan.outputs.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ steps.docker_plan.outputs.push }}
+          tags: ${{ steps.docker_plan.outputs.tags }}
+          # Canonical cache backend for GitHub Actions runners
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🧹 Cleanup (optional)
+        if: always()
         continue-on-error: true
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        run: docker system prune -f
+
+      ################################################################
 
       ## Cache Docker layers to speed up build (optional but speeds things up)
       # - name: Cache Docker layers
@@ -193,77 +315,61 @@ jobs:
       #     restore-keys: |
       #       ${{ runner.os }}-docker-
 
-      - name: 🏗️ Build and Push Multi-Arch Docker Image
-        if: contains(matrix.service[0], matrix.tag.tag)
-        env:
-          REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
-          VERSION: ${{ steps.gitref.outputs.version_tag }}
-          BRANCH: ${{ steps.gitref.outputs.branch_tag }}
-        run: |
-          set -euo pipefail
-
-          CONTEXT_PATH=$(realpath ./)
-          IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
-          TAG_NAME="${{ matrix.tag.tag }}"
-
-          # SERVICE=${{ matrix.service[0] }}
-          # DOCKERFILE_PATH=docker/${SERVICE}/Dockerfile
-
-          if [[ "$TAG_NAME" == "python-3.11" ]]; then
-            DOCKERFILE_PATH=docker/Dockerfile.python
-          elif [[ "$TAG_NAME" == "jupyter" ]]; then
-            DOCKERFILE_PATH=docker/Dockerfile
-          else
-            # fallback default dockerfile
-            DOCKERFILE_PATH=docker/Dockerfile.python
-          fi
-
-          echo "🔧 Dockerfile: $DOCKERFILE_PATH"
-          echo "📦 Image: $IMAGE_NAME"
-
-          MATRIX_JSON='${{ toJSON(matrix.tag) }}'
-          FORMATTED_JSON=$(echo "$MATRIX_JSON" | jq -c 'if type=="array" then . else [.] end')
-
-          echo "$FORMATTED_JSON" | jq -c '.[]' | while read -r entry; do
-            TAG=$(echo "$entry" | jq -r '.tag')
-            REF_TAG=$(echo "$entry" | jq -r '.ref_tag')
-            ALIAS=$(echo "$entry" | jq -r '.alias // empty')
-            ALIAS2=$(echo "$entry" | jq -r '.alias2 // empty')
-
-            if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" == "tag" ]]; then
-              SUFFIX="${REF_TAG#ref_tags-}"
-              FINAL_TAG="${VERSION}-${SUFFIX}"
-            elif [[ "$BRANCH" == "main" ]]; then
-              FINAL_TAG="$ALIAS"
-            elif [[ "$BRANCH" == maintenance-* ]]; then
-              BRANCH_VERSION="${BRANCH#maintenance-}"
-              FINAL_TAG="${BRANCH_VERSION}-${TAG}"
-            else
-              echo "⏭️ Skipping: unrecognized branch pattern $BRANCH"
-              continue
-            fi
-
-            TAGS=(--tag "$IMAGE_NAME:$FINAL_TAG")
-            [[ -n "$ALIAS2" ]] && TAGS+=(--tag "$IMAGE_NAME:$ALIAS2")
-
-            echo "🚀 Building and pushing:"
-            printf '  - %s\n' "${TAGS[@]}"
-
-            docker buildx build \
-              --platform linux/amd64,linux/arm64 \
-              --file "$DOCKERFILE_PATH" \
-              "${TAGS[@]}" \
-              --push \
-              "$CONTEXT_PATH"
-          done
-
-          echo "✅ All applicable tags pushed."
-          echo "🔗 View at: https://hub.docker.com/r/$IMAGE_NAME/tags"
-
-      - name: 🧹 Cleanup (optional)
-        if: always()
-        continue-on-error: true
-        run: docker system prune -f
+      # - name: 🏗️ Build and Push Multi-Arch Docker Image
+      #   if: contains(matrix.service[0], matrix.tag.tag)
+      #   env:
+      #     REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
+      #     VERSION: ${{ steps.gitref.outputs.version_tag }}
+      #     BRANCH: ${{ steps.gitref.outputs.branch_tag }}
+      #   run: |
+      #     set -euo pipefail
+      #     CONTEXT_PATH=$(realpath ./)
+      #     IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
+      #     TAG_NAME="${{ matrix.tag.tag }}"
+      #     # SERVICE=${{ matrix.service[0] }}
+      #     # DOCKERFILE_PATH=docker/${SERVICE}/Dockerfile
+      #     if [[ "$TAG_NAME" == "python-3.11" ]]; then
+      #       DOCKERFILE_PATH=docker/Dockerfile.python
+      #     elif [[ "$TAG_NAME" == "jupyter" ]]; then
+      #       DOCKERFILE_PATH=docker/Dockerfile
+      #     else
+      #       # fallback default dockerfile
+      #       DOCKERFILE_PATH=docker/Dockerfile.python
+      #     fi
+      #     echo "🔧 Dockerfile: $DOCKERFILE_PATH"
+      #     echo "📦 Image: $IMAGE_NAME"
+      #     MATRIX_JSON='${{ toJSON(matrix.tag) }}'
+      #     FORMATTED_JSON=$(echo "$MATRIX_JSON" | jq -c 'if type=="array" then . else [.] end')
+      #     echo "$FORMATTED_JSON" | jq -c '.[]' | while read -r entry; do
+      #       TAG=$(echo "$entry" | jq -r '.tag')
+      #       REF_TAG=$(echo "$entry" | jq -r '.ref_tag')
+      #       ALIAS=$(echo "$entry" | jq -r '.alias // empty')
+      #       ALIAS2=$(echo "$entry" | jq -r '.alias2 // empty')
+      #       if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" == "tag" ]]; then
+      #         SUFFIX="${REF_TAG#ref_tags-}"
+      #         FINAL_TAG="${VERSION}-${SUFFIX}"
+      #       elif [[ "$BRANCH" == "main" ]]; then
+      #         FINAL_TAG="$ALIAS"
+      #       elif [[ "$BRANCH" == maintenance-* ]]; then
+      #         BRANCH_VERSION="${BRANCH#maintenance-}"
+      #         FINAL_TAG="${BRANCH_VERSION}-${TAG}"
+      #       else
+      #         echo "⏭️ Skipping: unrecognized branch pattern $BRANCH"
+      #         continue
+      #       fi
+      #       TAGS=(--tag "$IMAGE_NAME:$FINAL_TAG")
+      #       [[ -n "$ALIAS2" ]] && TAGS+=(--tag "$IMAGE_NAME:$ALIAS2")
+      #       echo "🚀 Building and pushing:"
+      #       printf '  - %s\n' "${TAGS[@]}"
+      #       docker buildx build \
+      #         --platform linux/amd64,linux/arm64 \
+      #         --file "$DOCKERFILE_PATH" \
+      #         "${TAGS[@]}" \
+      #         --push \
+      #         "$CONTEXT_PATH"
+      #     done
+      #     echo "✅ All applicable tags pushed."
+      #     echo "🔗 View at: https://hub.docker.com/r/$IMAGE_NAME/tags"
 
       ################################################################
       ## Docker Compose file (only host-native architecture)
