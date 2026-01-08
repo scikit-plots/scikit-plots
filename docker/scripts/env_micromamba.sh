@@ -55,7 +55,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
 
-COMMON_SH="${COMMON_SH:-$SCRIPT_DIR/lib/common.sh}"
+COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
 if [[ -f "$COMMON_SH" ]]; then
   # common.sh is POSIX; safe to source from bash.
   # It sets `set -eu` internally; we re-apply bash strict mode after.
@@ -430,7 +430,7 @@ micromamba install -n base python="$PY_VERSION" ipykernel pip -y || true
 
 # Env creation (strict)
 if micromamba_env_exists "$ENV_NAME"; then
-  log_success "Environment exists: $ENV_NAME"
+  log_info "Environment exists: $ENV_NAME"
 else
   if [[ -f "$ENV_FILE" ]]; then
     create_env_from_file "$ENV_FILE"
@@ -446,7 +446,7 @@ else
 
   # After creation, enforce expected ENV_NAME
   if micromamba_env_exists "$ENV_NAME"; then
-    log_success "Environment created: $ENV_NAME"
+    log_info "Environment created: $ENV_NAME"
   else
     log_error "Environment file created an unexpected name. Expected ENV_NAME='$ENV_NAME'. Update ENV_NAME or environment.yml."
   fi
@@ -472,7 +472,7 @@ envs_dirs:
   - ~/micromamba/envs
 EOF
 
-log_success "Micromamba setup complete."
+log_info "Micromamba setup complete."
 log_info "Next steps:"
 log_info "  - Open a new shell, or: source \"$MICROMAMBA_RC_FILE\""
 log_info "  - Activate: micromamba activate \"$ENV_NAME\""

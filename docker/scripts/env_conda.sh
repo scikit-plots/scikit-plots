@@ -69,7 +69,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
 
 # ---------- optional: source common.sh if present (portable POSIX library) ----------
-COMMON_SH="${COMMON_SH:-$SCRIPT_DIR/lib/common.sh}"
+COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
 if [[ -f "$COMMON_SH" ]]; then
   # common.sh is POSIX; safe to source from bash.
   # It sets `set -eu` internally; we re-apply bash strict mode after.

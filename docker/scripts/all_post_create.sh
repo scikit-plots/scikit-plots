@@ -99,8 +99,9 @@ else
   # Minimal fallback logger if common.sh is missing.
   log() { printf '%s\n' "$*" >&2; }
   log_error_code() { local code="${1:-1}"; shift || true; log "[ERROR] $*"; exit "$code"; }
-  log_info() { log "[INFO] $*"; }
+  log_error() { log "[ERROR] $*"; exit 1; }
   log_warning() { log "[WARNING] $*"; }
+  log_info() { log "[INFO] $*"; }
 fi
 
 # ---------- Error trap (canonical bash) ----------
