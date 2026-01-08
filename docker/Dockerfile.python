@@ -44,6 +44,8 @@ ENV IS_DOCKERENV=true
 # USER root
 # USER $MAMBA_USER
 
+SHELL ["/bin/bash", "-Eeuo", "pipefail", "-c"]
+
 ## Install system dependencies (including bash and sudo)
 RUN if [ "${APT_INSTALL_DEVTOOLS}" = "1" ]; then \
   apt-get update \
@@ -131,7 +133,7 @@ RUN bash -lc 'set -Eeuo pipefail; \
     POST_CREATE_RUN_POST_CREATE=1 \
     MICROMAMBA_ALLOW_INSTALL=1 \
     MICROMAMBA_INSTALL_MODE=script \
-    MICROMAMBA_INSTALL_INTERACTIVE=0 \
+    MICROMAMBA_INSTALL_INTERACTIVE=1 \
     MICROMAMBA_VERIFY=1 \
     MICROMAMBA_CLEAN=0 \
     POST_CREATE_ENV_REQUIRED=1 \
