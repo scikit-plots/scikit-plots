@@ -88,9 +88,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd -P)"
 
 # Source the POSIX common library (works in bash). Re-apply bash strict after.
-COMMON_SH="$SCRIPT_DIR/lib/common.sh"
+COMMON_SH="${COMMON_SH:-$SCRIPT_DIR/lib/common.sh}"
 if [[ -f "$COMMON_SH" ]]; then
-  # shellcheck disable=SC1090
+  # common.sh is POSIX; safe to source from bash.
+  # It sets `set -eu` internally; we re-apply bash strict mode after.
+  # shellcheck source=/dev/null
   . "$COMMON_SH"
   set -Eeuo pipefail
 else
