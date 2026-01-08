@@ -96,7 +96,7 @@ dependencies:
   - scipy                # Scientific computing
 
   # 📥 File I/O and formats
-  - anaconda::click      # CLI utilities
+  # - anaconda::click      # CLI utilities
   - requests             # HTTP for APIs
   - pyyaml               # YAML parsing
   - xlrd                 # Read Excel files (.xls)

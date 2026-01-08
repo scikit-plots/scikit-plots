@@ -113,7 +113,7 @@ dependencies:
   - scipy
 
   # 📥 File I/O and formats
-  - anaconda::click  # CLI utilities
+  # - anaconda::click  # CLI utilities
   - requests
   - pyyaml
   - xlrd

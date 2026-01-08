@@ -111,25 +111,33 @@ COPY docker/env_conda/environment.yml ./
 # RUN micromamba install --yes --name base --file /tmp/environment.yml \
 #     && micromamba clean --all --yes
 
+ARG TARGETARCH
 ## micromamba and post create steps
 ## Make sure there’s a space between the variable assignment and the . for sourcing.
 # RUN bash -i -c "SKIP_CONDA=${SKIP_CONDA:=true} . ./docker/scripts/all_post_create.sh"
 # Optional: reuse your post-create orchestration during build
 # NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
-RUN if [ "${RUN_POST_CREATE}" = "1" ]; then \
-  POST_CREATE_RUN_CONDA=0 \
-  POST_CREATE_RUN_MAMBA=1 \
-  POST_CREATE_RUN_FIRST_NOTICE=1 \
-  POST_CREATE_RUN_POST_CREATE=1 \
-  MICROMAMBA_ALLOW_INSTALL=1 \
-  MICROMAMBA_INSTALL_MODE=script \
-  MICROMAMBA_INSTALL_INTERACTIVE=1 \
-  MICROMAMBA_VERIFY=1 \
-  MICROMAMBA_CLEAN=1 \
-  POST_CREATE_ENV_REQUIRED=1 \
-  POST_CREATE_ENV_TOOL=micromamba \
-  bash docker/scripts/all_post_create.sh; \
-fi
+RUN bash -lc 'set -Eeuo pipefail; \
+  if [[ "${RUN_POST_CREATE}" == "1" ]]; then \
+    case "${TARGETARCH}" in \
+      amd64) export MICROMAMBA_API_PLATFORM=linux-64 ;; \
+      arm64) export MICROMAMBA_API_PLATFORM=linux-aarch64 ;; \
+      *) echo "Unsupported TARGETARCH=${TARGETARCH}" >&2; exit 2 ;; \
+    esac; \
+    POST_CREATE_STRICT=1 \
+    POST_CREATE_RUN_CONDA=0 \
+    POST_CREATE_RUN_MAMBA=1 \
+    POST_CREATE_RUN_FIRST_NOTICE=1 \
+    POST_CREATE_RUN_POST_CREATE=1 \
+    MICROMAMBA_ALLOW_INSTALL=1 \
+    MICROMAMBA_INSTALL_MODE=script \
+    MICROMAMBA_INSTALL_INTERACTIVE=0 \
+    MICROMAMBA_VERIFY=1 \
+    MICROMAMBA_CLEAN=0 \
+    POST_CREATE_ENV_REQUIRED=1 \
+    POST_CREATE_ENV_TOOL=micromamba \
+    bash docker/scripts/all_post_create.sh; \
+  fi'
 
 ######################################################################
 ## -------- Final Stage --------
