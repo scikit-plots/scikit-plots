@@ -162,36 +162,18 @@ append_line_once() {
 
 install_micromamba_via_api() {
   # Non-interactive install:
-  # - downloads micromamba tarball from micro.mamba.pm API
-  # - extracts the micromamba binary into ~/.local/bin (default)
+  # - downloads tar.bz2 from micro.mamba.pm
+  # - extracts micromamba binary into MICROMAMBA_BIN_DIR (default ~/.local/bin)
   #
-  # Requires: curl or wget, tar, bzip2
-  local os arch platform url bin_dir tmp tarball
+  # Requires: curl or wget, tar
+  # bzip2 is not pre-checked; we attempt extraction and fail with guidance if needed.
 
-  os="$(detect_os 2>/dev/null || echo unknown)"
-  arch="$(detect_arch 2>/dev/null || echo unknown)"
+  local url bin_dir tmp tarball platform
 
-  if [[ "$os" != "linux" && "$os" != "macos" && "$os" != "windows-gitbash" ]]; then
-    log_error "Unsupported OS for api install: $os"
-  fi
-
-  # micro.mamba.pm API platform mapping
-  # linux: linux-64, linux-aarch64
-  # macos: osx-64, osx-arm64
-  # git bash windows: win-64
-  platform=""
-  if [[ "$os" == "linux" && "$arch" == "x86_64" ]]; then platform="linux-64"; fi
-  if [[ "$os" == "linux" && "$arch" == "arm64" ]]; then platform="linux-aarch64"; fi
-  if [[ "$os" == "macos" && "$arch" == "x86_64" ]]; then platform="osx-64"; fi
-  if [[ "$os" == "macos" && "$arch" == "arm64" ]]; then platform="osx-arm64"; fi
-  if [[ "$os" == "windows-gitbash" ]]; then platform="win-64"; fi
-
-  [[ -n "$platform" ]] || log_error "No api platform mapping for OS=$os ARCH=$arch"
+  platform="$(micromamba_api_platform)"
+  url="https://micro.mamba.pm/api/micromamba/${platform}/latest"
 
   has_cmd tar || log_error "tar is required for micromamba api install"
-  has_cmd bzip2 || log_error "bzip2 is required for micromamba api install"
-
-  url="https://micro.mamba.pm/api/micromamba/${platform}/latest"
 
   bin_dir="${MICROMAMBA_BIN_DIR:-$HOME/.local/bin}"
   ensure_dir "$bin_dir"
@@ -202,7 +184,7 @@ install_micromamba_via_api() {
 
   tarball="$tmp/micromamba.tar.bz2"
 
-  log_info "Downloading micromamba: $url"
+  log_info "Downloading micromamba (${platform}): $url"
   if has_cmd curl; then
     curl -fsSL "$url" -o "$tarball"
   elif has_cmd wget; then
@@ -211,13 +193,26 @@ install_micromamba_via_api() {
     log_error "Need curl or wget to download micromamba"
   fi
 
-  # Extract only the binary if possible
-  # Most tarballs contain: bin/micromamba
-  tar -xjf "$tarball" -C "$tmp"
+  # Try extraction; if it fails, tell the user what to install (strict).
+  if ! tar -xjf "$tarball" -C "$tmp" 2>/dev/null; then
+    log_error "Failed to extract micromamba tarball (tar -xjf). Install bzip2 support (e.g., apt-get install -y bzip2) or use a base image with bzip2 enabled."
+  fi
+
+  # Install binary (prefer `install`, fallback to cp+chmod)
   if [[ -f "$tmp/bin/micromamba" ]]; then
-    install -m 0755 "$tmp/bin/micromamba" "$bin_dir/micromamba"
+    if has_cmd install; then
+      install -m 0755 "$tmp/bin/micromamba" "$bin_dir/micromamba"
+    else
+      cp "$tmp/bin/micromamba" "$bin_dir/micromamba"
+      chmod 0755 "$bin_dir/micromamba"
+    fi
   elif [[ -f "$tmp/micromamba" ]]; then
-    install -m 0755 "$tmp/micromamba" "$bin_dir/micromamba"
+    if has_cmd install; then
+      install -m 0755 "$tmp/micromamba" "$bin_dir/micromamba"
+    else
+      cp "$tmp/micromamba" "$bin_dir/micromamba"
+      chmod 0755 "$bin_dir/micromamba"
+    fi
   else
     log_error "micromamba binary not found after extraction"
   fi
