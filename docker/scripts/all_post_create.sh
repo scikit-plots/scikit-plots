@@ -60,6 +60,46 @@
 # set -o pipefail  # Ensure pipeline errors are captured
 set -Eeuxo pipefail
 
+is_sourced() {
+  # Deterministic bash check
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
+
+exit_or_return() {
+  local code="${1:-0}"
+  if is_sourced; then
+    return "$code"
+  else
+    exit "$code"
+  fi
+}
+
+# ---------- truthy parsing (bash) ----------
+## Normalize to lowercase and handle multiple truthy values
+## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
+## case "$(printf '%s' $SKIP_CONDA | tr '[:upper:]' '[:lower:]')" in
+is_true() {
+  # Usage: is_true "$VAL"
+  # Returns 0 for: 1,true,yes,on  (case-insensitive)
+  local v="${1:-}"
+  v="${v,,}"
+  case "$v" in
+    1|true|yes|y|on) return 0 ;;
+    0|false|no|n|off|"") return 1 ;;
+    *) return 1 ;;
+  esac
+}
+
+# ---------- Error reporting ----------
+_on_err() {
+  local lineno="$1"
+  local cmd="$2"
+  printf '%s\n' "[ERROR] all_post_create.sh failed at line ${lineno}: ${cmd}" >&2
+  exit 1
+}
+# trap 'rc=$?; echo "[ERROR] all_post_create.sh failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
+trap '_on_err "$LINENO" "$BASH_COMMAND"' ERR
+
 # The special shell variable IFS determines how Bash recognizes word boundaries while splitting a sequence of character strings.
 # The default value of IFS is a three-character string comprising a space, tab, and newline:
 echo "$IFS" | cat -et
@@ -85,10 +125,9 @@ printenv
 # echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
 # echo "SHELL_NAME=$(basename $SHELL)"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd -P)"
-
+REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
 # Source the POSIX common library (works in bash). Re-apply bash strict after.
-COMMON_SH="${COMMON_SH:-$SCRIPT_DIR/lib/common.sh}"
+COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
 if [[ -f "$COMMON_SH" ]]; then
   # common.sh is POSIX; safe to source from bash.
   # It sets `set -eu` internally; we re-apply bash strict mode after.
@@ -102,15 +141,10 @@ else
   log_error() { log "[ERROR] $*"; exit 1; }
   log_warning() { log "[WARNING] $*"; }
   log_info() { log "[INFO] $*"; }
+  log_success() { printf '%s\n' "[SUCCESS] $*" >&2; }
+  log_debug()   { :; }
+  has_cmd() { command -v "$1" >/dev/null 2>&1; }
 fi
-
-# ---------- Error trap (canonical bash) ----------
-on_err() {
-  local lineno="$1"
-  local cmd="$2"
-  log_error_code 1 "Failure at line ${lineno}: ${cmd}"
-}
-trap 'on_err "$LINENO" "$BASH_COMMAND"' ERR
 
 # ---------- Defaults (explicit) ----------
 PY_VERSION="${PY_VERSION:-3.11}"
@@ -122,11 +156,6 @@ POST_CREATE_RUN_CONDA="${POST_CREATE_RUN_CONDA:-1}"
 POST_CREATE_RUN_MAMBA="${POST_CREATE_RUN_MAMBA:-1}"
 POST_CREATE_RUN_FIRST_NOTICE="${POST_CREATE_RUN_FIRST_NOTICE:-1}"
 POST_CREATE_RUN_POST_CREATE="${POST_CREATE_RUN_POST_CREATE:-1}"
-
-# Map install allow flag into common.sh expected name
-if [[ "${POST_CREATE_ALLOW_INSTALL:-0}" == "1" ]]; then
-  export COMMON_ALLOW_INSTALL=1
-fi
 
 # ---------- Helpers ----------
 maybe_fail() {
@@ -157,6 +186,11 @@ source_step() {
 
   log_info "${title}: done"
 }
+
+# Map install allow flag into common.sh expected name
+if [[ "${POST_CREATE_ALLOW_INSTALL:-0}" == "1" ]]; then
+  export COMMON_ALLOW_INSTALL=1
+fi
 
 # ---------- Optional prints (strict opt-in) ----------
 if [[ "${POST_CREATE_PRINTENV:-0}" == "1" ]]; then

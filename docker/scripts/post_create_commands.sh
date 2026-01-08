@@ -40,22 +40,52 @@
 # - POST_CREATE_PRINT_NEXT_STEPS=0|1      : default 1
 # ===============================================================
 
-__pc_is_sourced=0
-if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
-  __pc_is_sourced=1
-fi
+set -Eeuo pipefail
 
-# Strict only when executed directly (avoid mutating parent when sourced)
-if [[ "$__pc_is_sourced" == "0" ]]; then
-  set -Eeuo pipefail
-  IFS=$'\n\t'
-fi
+is_sourced() {
+  # Deterministic bash check
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
+
+exit_or_return() {
+  local code="${1:-0}"
+  if is_sourced; then
+    return "$code"
+  else
+    exit "$code"
+  fi
+}
+
+# ---------- truthy parsing (bash) ----------
+## Normalize to lowercase and handle multiple truthy values
+## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
+## case "$(printf '%s' $SKIP_CONDA | tr '[:upper:]' '[:lower:]')" in
+is_true() {
+  # Usage: is_true "$VAL"
+  # Returns 0 for: 1,true,yes,on  (case-insensitive)
+  local v="${1:-}"
+  v="${v,,}"
+  case "$v" in
+    1|true|yes|y|on) return 0 ;;
+    0|false|no|n|off|"") return 1 ;;
+    *) return 1 ;;
+  esac
+}
+
+# ---------- Error reporting ----------
+_on_err() {
+  local lineno="$1"
+  local cmd="$2"
+  printf '%s\n' "[ERROR] post_create_commands.sh failed at line ${lineno}: ${cmd}" >&2
+  exit_or_return 1
+}
+# trap 'rc=$?; echo "[ERROR] post_create_commands.sh failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
+trap '_on_err "$LINENO" "$BASH_COMMAND"' ERR
 
 # Resolve paths deterministically (no realpath dependency)
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
-
-# Source common.sh if present (idempotent)
+# Source the POSIX common library (works in bash). Re-apply bash strict after.
 COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
 if [[ -f "$COMMON_SH" ]]; then
   # common.sh is POSIX; safe to source from bash.
@@ -63,57 +93,43 @@ if [[ -f "$COMMON_SH" ]]; then
   # shellcheck source=/dev/null
   . "$COMMON_SH"
   set -Eeuo pipefail
+else
+  # Minimal fallback logger if common.sh is missing.
+  log() { printf '%s\n' "$*" >&2; }
+  log_error_code() { local code="${1:-1}"; shift || true; log "[ERROR] $*"; exit "$code"; }
+  log_error() { log "[ERROR] $*"; exit 1; }
+  log_warning() { log "[WARNING] $*"; }
+  log_info() { log "[INFO] $*"; }
+  log_success() { printf '%s\n' "[SUCCESS] $*" >&2; }
+  log_debug()   { :; }
+  has_cmd() { command -v "$1" >/dev/null 2>&1; }
 fi
 
-# ---------- Logging wrappers (never exit when sourced) ----------
-_pc_ts() {
-  if command -v _common_ts >/dev/null 2>&1; then
-    _common_ts
-  else
-    date -u +"%Y-%m-%dT%H:%M:%SZ"
-  fi
-}
-
-_pc_log() { printf '%s\n' "$*" >&2; }
-
-_pc_info()    { local ts; ts="$(_pc_ts)"; _pc_log "${ts} ${BOLD:-}${BLUE:-}[INFO]${RESET:-} $*"; }
-_pc_warn()    { local ts; ts="$(_pc_ts)"; _pc_log "${ts} ${BOLD:-}${YELLOW:-}[WARNING]${RESET:-} $*"; }
-_pc_success() { local ts; ts="$(_pc_ts)"; _pc_log "${ts} ${BOLD:-}${GREEN:-}[SUCCESS]${RESET:-} $*"; }
-_pc_error()   { local ts; ts="$(_pc_ts)"; _pc_log "${ts} ${BOLD:-}${RED:-}[ERROR]${RESET:-} $*"; }
-
-_pc_die() {
-  local code="${1:-1}"; shift || true
-  _pc_error "$*"
-  if [[ "$__pc_is_sourced" == "1" ]]; then
-    return "$code"
-  fi
-  exit "$code"
-}
-
-# If executed directly, add a canonical ERR trap
-if [[ "$__pc_is_sourced" == "0" ]]; then
-  trap '_pc_die 1 "Failure at line ${LINENO}: ${BASH_COMMAND}"' ERR
-fi
-
-# ---------- Strict controls ----------
 POST_CREATE_STRICT="${POST_CREATE_STRICT:-0}"
 
+# ---------- Helpers ----------
+maybe_fail() {
+  # Usage: maybe_fail "message"
+  if [[ "$POST_CREATE_STRICT" == "1" ]]; then
+    log_error_code 1 "$1"
+  else
+    log_warning "$1"
+  fi
+}
 _pc_optional_fail() {
   # Usage: _pc_optional_fail <code> <message...>
   local code="$1"; shift || true
   if [[ "$POST_CREATE_STRICT" == "1" ]]; then
-    _pc_die "$code" "$*"
+    maybe_fail "$code" "$*"
   fi
-  _pc_warn "$*"
+  log_warning "$*"
   return 0
 }
 
-_pc_has_cmd() { command -v "$1" >/dev/null 2>&1; }
-
 _pc_abspath_existing() {
   local p="$1"
-  [[ -n "$p" ]] || _pc_die 2 "abspath_existing: missing path"
-  [[ -e "$p" ]] || _pc_die 2 "Path does not exist: $p"
+  [[ -n "$p" ]] || maybe_fail "abspath_existing: missing path"
+  [[ -e "$p" ]] || maybe_fail "Path does not exist: $p"
   if [[ -d "$p" ]]; then
     (cd -- "$p" && pwd -P)
   else
@@ -140,12 +156,12 @@ pc_git_safe_directories() {
   local allow_all="${GIT_SAFE_DIR_ALLOW_ALL:-0}"
   local failed=0
 
-  if ! _pc_has_cmd git; then
+  if ! has_cmd git; then
     _pc_optional_fail 0 "git not found; skipping safe.directory config"
     return 0
   fi
 
-  _pc_info "Configuring git safe.directory entries..."
+  log_info "Configuring git safe.directory entries..."
 
   local -a dirs
   dirs=(
@@ -161,55 +177,55 @@ pc_git_safe_directories() {
     if [[ -d "$d" ]]; then
       abs="$(_pc_abspath_existing "$d")"
       if ! git config --global --add safe.directory "$abs" >/dev/null 2>&1; then
-        _pc_warn "Failed to add safe.directory: $abs"
+        log_warning "Failed to add safe.directory: $abs"
         failed=1
       fi
     else
-      _pc_warn "Directory missing (skip): $d"
+      log_warning "Directory missing (skip): $d"
     fi
   done
 
   if [[ "$failed" == "1" && "$allow_all" == "1" ]]; then
-    _pc_warn "Some safe.directory entries failed; adding wildcard '*' (GIT_SAFE_DIR_ALLOW_ALL=1)"
+    log_warning "Some safe.directory entries failed; adding wildcard '*' (GIT_SAFE_DIR_ALLOW_ALL=1)"
     git config --global --add safe.directory '*' >/dev/null 2>&1 || _pc_optional_fail 0 "Failed to add safe.directory '*'"
   fi
 
-  _pc_success "git safe.directory configuration complete"
+  log_success "git safe.directory configuration complete"
 }
 
 pc_git_submodules_init() {
-  if ! _pc_has_cmd git; then
+  if ! has_cmd git; then
     _pc_optional_fail 0 "git not found; skipping submodules"
     return 0
   fi
 
   if [[ ! -f "$REPO_ROOT/.gitmodules" ]]; then
-    _pc_info "No .gitmodules found; skipping submodule init"
+    log_info "No .gitmodules found; skipping submodule init"
     return 0
   fi
 
-  _pc_info "Initializing/updating git submodules..."
+  log_info "Initializing/updating git submodules..."
   (cd -- "$REPO_ROOT" && git submodule update --init --recursive) || _pc_optional_fail 0 "Submodule init failed"
-  _pc_success "Submodule setup complete"
+  log_success "Submodule setup complete"
 }
 
 pc_git_config_upstream() {
-  if ! _pc_has_cmd git; then
+  if ! has_cmd git; then
     _pc_optional_fail 0 "git not found; skipping upstream remote config"
     return 0
   fi
 
   local upstream_url="${POST_CREATE_UPSTREAM_URL:-https://github.com/scikit-plots/scikit-plots.git}"
 
-  _pc_info "Configuring upstream remote (if needed)..."
+  log_info "Configuring upstream remote (if needed)..."
   (cd -- "$REPO_ROOT" && git remote get-url upstream >/dev/null 2>&1) || {
     (cd -- "$REPO_ROOT" && git remote add upstream "$upstream_url") || _pc_optional_fail 0 "Failed to add upstream remote"
   }
 
-  _pc_info "Fetching upstream tags..."
+  log_info "Fetching upstream tags..."
   (cd -- "$REPO_ROOT" && git fetch upstream --tags) || _pc_optional_fail 0 "Failed to fetch upstream tags"
 
-  _pc_success "Git remote configuration complete"
+  log_success "Git remote configuration complete"
 }
 
 # ===============================================================
@@ -222,27 +238,27 @@ pc_select_env_runner() {
 
   case "$tool" in
     micromamba|conda|auto) ;;
-    *) _pc_die 2 "Invalid POST_CREATE_ENV_TOOL: $tool (expected auto|micromamba|conda)" ;;
+    *) maybe_fail "Invalid POST_CREATE_ENV_TOOL: $tool (expected auto|micromamba|conda)" ;;
   esac
 
   if [[ "$tool" == "micromamba" ]]; then
-    _pc_has_cmd micromamba || _pc_die 1 "micromamba required but not found"
+    has_cmd micromamba || maybe_fail "micromamba required but not found"
     _pc_env_kind="micromamba"
     return 0
   fi
 
   if [[ "$tool" == "conda" ]]; then
-    _pc_has_cmd conda || _pc_die 1 "conda required but not found"
+    has_cmd conda || maybe_fail "conda required but not found"
     _pc_env_kind="conda"
     return 0
   fi
 
   # auto (deterministic priority: micromamba then conda)
-  if _pc_has_cmd micromamba; then
+  if has_cmd micromamba; then
     _pc_env_kind="micromamba"
     return 0
   fi
-  if _pc_has_cmd conda; then
+  if has_cmd conda; then
     _pc_env_kind="conda"
     return 0
   fi
@@ -253,13 +269,13 @@ pc_select_env_runner() {
 
 pc_env_run() {
   local env_name="$1"; shift || true
-  [[ -n "$env_name" ]] || _pc_die 2 "pc_env_run: env name is empty"
-  [[ -n "$_pc_env_kind" ]] || _pc_die 2 "pc_env_run: env runner not selected"
+  [[ -n "$env_name" ]] || maybe_fail "pc_env_run: env name is empty"
+  [[ -n "$_pc_env_kind" ]] || maybe_fail "pc_env_run: env runner not selected"
 
   case "$_pc_env_kind" in
     micromamba) micromamba run -n "$env_name" -- "$@" ;;
     conda) conda run --no-capture-output -n "$env_name" -- "$@" ;;
-    *) _pc_die 2 "Unknown env runner kind: $_pc_env_kind" ;;
+    *) maybe_fail "Unknown env runner kind: $_pc_env_kind" ;;
   esac
 }
 
@@ -281,16 +297,16 @@ pc_pip_install_requirements() {
     return 0
   fi
 
-  _pc_info "Installing requirements: $file_path"
+  log_info "Installing requirements: $file_path"
   pc_env_run "$env_name" python -m pip install --no-input -r "$file_path" || _pc_optional_fail 1 "pip requirements install failed"
-  _pc_success "Requirements installed"
+  log_success "Requirements installed"
 }
 
 pc_install_scikit_plots() {
   local env_name="$1"
 
   if [[ -n "${SCIKITPLOT_VERSION:-}" ]]; then
-    _pc_info "Installing scikit-plots from PyPI: scikit-plots==${SCIKITPLOT_VERSION}"
+    log_info "Installing scikit-plots from PyPI: scikit-plots==${SCIKITPLOT_VERSION}"
     pc_env_run "$env_name" python -m pip install --no-input "scikit-plots==${SCIKITPLOT_VERSION}" \
       || _pc_optional_fail 1 "Failed to install scikit-plots==${SCIKITPLOT_VERSION}"
     return 0
@@ -300,11 +316,11 @@ pc_install_scikit_plots() {
   local allow_fallback="${POST_CREATE_ALLOW_FALLBACK:-0}"
   local install_extras="${POST_CREATE_INSTALL_EXTRAS:-1}"
 
-  _pc_info "Installing local scikit-plots (editable) from repo: $REPO_ROOT"
+  log_info "Installing local scikit-plots (editable) from repo: $REPO_ROOT"
   if [[ "$install_extras" == "1" ]]; then
     if ! (cd -- "$REPO_ROOT" && pc_env_run "$env_name" python -m pip install --no-input --no-build-isolation --no-cache-dir -e ".[${extras}]" -v); then
       if [[ "$allow_fallback" == "1" ]]; then
-        _pc_warn "Editable install with extras failed; falling back to minimal editable install (POST_CREATE_ALLOW_FALLBACK=1)"
+        log_warning "Editable install with extras failed; falling back to minimal editable install (POST_CREATE_ALLOW_FALLBACK=1)"
         (cd -- "$REPO_ROOT" && pc_env_run "$env_name" python -m pip install --no-input --no-build-isolation --no-cache-dir -e . -v) \
           || _pc_optional_fail 1 "Minimal editable install failed"
       else
@@ -316,29 +332,29 @@ pc_install_scikit_plots() {
       || _pc_optional_fail 1 "Minimal editable install failed"
   fi
 
-  _pc_success "scikit-plots installation step complete"
+  log_success "scikit-plots installation step complete"
 }
 
 pc_install_precommit() {
   local env_name="$1"
 
-  if ! _pc_has_cmd git; then
+  if ! has_cmd git; then
     _pc_optional_fail 0 "git not found; skipping pre-commit install"
     return 0
   fi
 
-  _pc_info "Installing pre-commit..."
+  log_info "Installing pre-commit..."
   pc_env_run "$env_name" python -m pip install --no-input pre-commit || _pc_optional_fail 1 "Failed to install pre-commit"
 
-  _pc_info "Installing pre-commit hooks..."
+  log_info "Installing pre-commit hooks..."
   (cd -- "$REPO_ROOT" && pc_env_run "$env_name" pre-commit install) || _pc_optional_fail 0 "Failed to install pre-commit hooks"
 
-  _pc_success "pre-commit setup complete"
+  log_success "pre-commit setup complete"
 }
 
 pc_show_env_info() {
   local env_name="$1"
-  _pc_info "Environment runner: ${_pc_env_kind:-none} env=${env_name}"
+  log_info "Environment runner: ${_pc_env_kind:-none} env=${env_name}"
 
   if [[ -n "$_pc_env_kind" ]]; then
     pc_env_run "$env_name" python -c 'import sys; print("python:", sys.version)' || true
@@ -348,9 +364,9 @@ pc_show_env_info() {
 }
 
 pc_print_next_steps() {
-  _pc_info "Next steps:"
-  _pc_info " - Create a branch (see contribution guide):"
-  _pc_info "   https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch"
+  log_info "Next steps:"
+  log_info " - Create a branch (see contribution guide):"
+  log_info "   https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch"
 }
 
 # ---------- defaults (explicit + canonical) ----------
@@ -364,7 +380,7 @@ ENV_FILE="${ENV_FILE:-$REPO_ROOT/environment.yml}"
 
 post_create_main() {
   local old_pwd="$PWD"
-  cd -- "$REPO_ROOT" || _pc_die 1 "Failed to cd to repo root: $REPO_ROOT"
+  cd -- "$REPO_ROOT" || maybe_fail "Failed to cd to repo root: $REPO_ROOT"
 
   # ----- Git -----
   if [[ "${POST_CREATE_GIT_SAFE_DIR:-1}" == "1" ]]; then
@@ -383,14 +399,14 @@ post_create_main() {
 
   if [[ -z "$_pc_env_kind" ]]; then
     if [[ "${POST_CREATE_ENV_REQUIRED:-0}" == "1" ]]; then
-      _pc_die 1 "No environment tool found (micromamba/conda)."
+      maybe_fail "No environment tool found (micromamba/conda)."
     fi
-    _pc_warn "No environment tool found (micromamba/conda); skipping pip/package steps"
+    log_warning "No environment tool found (micromamba/conda); skipping pip/package steps"
     cd -- "$old_pwd" || true
     return 0
   fi
 
-  _pc_info "Using env tool: $_pc_env_kind (env: $env_name)"
+  log_info "Using env tool: $_pc_env_kind (env: $env_name)"
 
   # ----- Python steps -----
   if [[ "${POST_CREATE_PIP_REQUIREMENTS:-1}" == "1" ]]; then
@@ -414,7 +430,7 @@ post_create_main() {
   fi
 
   cd -- "$old_pwd" || true
-  _pc_success "post_create_commands: complete"
+  log_success "post_create_commands: complete"
   return 0
 }
 
