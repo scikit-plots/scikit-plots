@@ -24,7 +24,7 @@
 # - POST_CREATE_UPSTREAM_URL=...          : default https://github.com/scikit-plots/scikit-plots.git
 # - GIT_SAFE_DIR_ALLOW_ALL=0|1            : default 0 (if 1 and safe-dir add fails, adds '*')
 # - POST_CREATE_ENV_TOOL=auto|micromamba|conda : default auto
-# - POST_CREATE_ENV_NAME=...              : default from ENV_NAME/CONDA_ENV_NAME else "py311"
+# - POST_CREATE_ENV_NAME=...              : default from ENV_NAME/ENV_NAME else "py311"
 # - POST_CREATE_ENV_REQUIRED=0|1          : default 0 (if 1, fail when no env tool found)
 #
 # Python/pip steps (explicit toggles)
@@ -352,8 +352,8 @@ pc_print_next_steps() {
 
 # ---------- defaults (explicit + canonical) ----------
 PY_VERSION="${PY_VERSION:-3.11}"
-CONDA_ENV_NAME="${CONDA_ENV_NAME:-py${PY_VERSION//./}}"
-# CONDA_ENV_FILE="${CONDA_ENV_FILE:-$REPO_ROOT/environment.yml}"
+ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"
+ENV_FILE="${ENV_FILE:-$REPO_ROOT/environment.yml}"
 
 # ===============================================================
 # Main
@@ -376,7 +376,7 @@ post_create_main() {
 
   # ----- Environment selection -----
   pc_select_env_runner || return $?
-  local env_name="${POST_CREATE_ENV_NAME:-${ENV_NAME:-${CONDA_ENV_NAME:-py311}}}"
+  local env_name="${POST_CREATE_ENV_NAME:-${ENV_NAME:-${ENV_NAME:-py311}}}"
 
   if [[ -z "$_pc_env_kind" ]]; then
     if [[ "${POST_CREATE_ENV_REQUIRED:-0}" == "1" ]]; then

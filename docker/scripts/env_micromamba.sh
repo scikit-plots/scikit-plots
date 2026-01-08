@@ -53,6 +53,8 @@ set -Eeuo pipefail
 
 # ---------- Source shared POSIX library (optional, but preferred) ----------
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
+
 COMMON_SH="${COMMON_SH:-$SCRIPT_DIR/lib/common.sh}"
 if [[ -f "$COMMON_SH" ]]; then
   # common.sh is POSIX; safe to source from bash.
@@ -118,7 +120,7 @@ fi
 # ---------- Config defaults (documented) ----------
 PY_VERSION="${PY_VERSION:-3.11}"
 ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"
-ENV_FILE="${ENV_FILE:-environment.yml}"
+ENV_FILE="${ENV_FILE:-$REPO_ROOT/environment.yml}"
 
 # Matches common micromamba installer default prefix ("~/micromamba")
 MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-$HOME/micromamba}"

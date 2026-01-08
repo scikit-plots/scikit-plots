@@ -110,6 +110,10 @@ on_err() {
 trap 'on_err "$LINENO" "$BASH_COMMAND"' ERR
 
 # ---------- Defaults (explicit) ----------
+PY_VERSION="${PY_VERSION:-3.11}"
+ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"
+ENV_FILE="${ENV_FILE:-$REPO_ROOT/environment.yml}"
+
 POST_CREATE_STRICT="${POST_CREATE_STRICT:-0}"
 POST_CREATE_RUN_CONDA="${POST_CREATE_RUN_CONDA:-1}"
 POST_CREATE_RUN_MAMBA="${POST_CREATE_RUN_MAMBA:-1}"
