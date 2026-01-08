@@ -162,6 +162,42 @@ append_line_once() {
   fi
 }
 
+micromamba_api_platform() {
+  # Deterministic override (recommended for buildx):
+  # MICROMAMBA_API_PLATFORM=linux-64|linux-aarch64|osx-64|osx-arm64|win-64
+  if [[ -n "${MICROMAMBA_API_PLATFORM:-}" ]]; then
+    echo "${MICROMAMBA_API_PLATFORM}"
+    return 0
+  fi
+
+  # detect_os/detect_arch common.sh'den gelmeli; yoksa strict fail
+  type detect_os   >/dev/null 2>&1 || log_error "detect_os not found (source common.sh before calling micromamba_api_platform)"
+  type detect_arch >/dev/null 2>&1 || log_error "detect_arch not found (source common.sh before calling micromamba_api_platform)"
+
+  local os arch
+  os="$(detect_os)"
+  arch="$(detect_arch)"
+
+  if [[ "$os" == "unknown" || "$arch" == "unknown" ]]; then
+    log_error "Cannot detect platform (os=$os arch=$arch). Set MICROMAMBA_API_PLATFORM explicitly (e.g. linux-64, linux-aarch64)."
+  fi
+
+  case "${os}/${arch}" in
+    linux/x86_64) echo "linux-64" ;;
+    linux/arm64)  echo "linux-aarch64" ;;
+    macos/x86_64) echo "osx-64" ;;
+    macos/arm64)  echo "osx-arm64" ;;
+    windows-gitbash/*) echo "win-64" ;;
+    *) log_error "No micromamba API mapping for OS=$os ARCH=$arch (set MICROMAMBA_API_PLATFORM explicitly)" ;;
+  esac
+}
+
+micromamba_api_url() {
+  local p
+  p="$(micromamba_api_platform)"
+  echo "https://micro.mamba.pm/api/micromamba/${p}/latest"
+}
+
 install_micromamba_via_api() {
   # Non-interactive install:
   # - downloads tar.bz2 from micro.mamba.pm
@@ -173,7 +209,7 @@ install_micromamba_via_api() {
   local url bin_dir tmp tarball platform
 
   platform="$(micromamba_api_platform)"
-  url="https://micro.mamba.pm/api/micromamba/${platform}/latest"
+  url="$(micromamba_api_url)"
 
   has_cmd tar || log_error "tar is required for micromamba api install"
 

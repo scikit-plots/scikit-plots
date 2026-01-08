@@ -97,7 +97,8 @@ USER root
 ## Needed for string substitution in RUN commands
 ## Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 ## Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# RUN bash -lc 'set -Eeuo pipefail; \
+SHELL ["/bin/bash", "-Eeuo", "pipefail", "-c"]
 
 ######################################################################
 ## Set system locale and timezone
@@ -388,6 +389,7 @@ RUN if [ "${RUN_POST_CREATE}" = "1" ]; then \
   POST_CREATE_RUN_POST_CREATE=1 \
   MICROMAMBA_ALLOW_INSTALL=1 \
   MICROMAMBA_INSTALL_MODE=api \
+  MICROMAMBA_INSTALL_INTERACTIVE=0 \
   MICROMAMBA_VERIFY=1 \
   MICROMAMBA_CLEAN=1 \
   POST_CREATE_ENV_REQUIRED=1 \
