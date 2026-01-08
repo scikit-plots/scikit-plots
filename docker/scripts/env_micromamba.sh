@@ -51,51 +51,6 @@
 
 set -Eeuo pipefail
 
-# ---------- Source shared POSIX library (optional, but preferred) ----------
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
-
-COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
-if [[ -f "$COMMON_SH" ]]; then
-  # common.sh is POSIX; safe to source from bash.
-  # It sets `set -eu` internally; we re-apply bash strict mode after.
-  # shellcheck source=/dev/null
-  . "$COMMON_SH"
-  set -Eeuo pipefail
-else
-  # Minimal fallback (keeps this script runnable standalone)
-  log() { printf '%s\n' "$*" >&2; }
-  log_info() { log "[INFO] $*"; }
-  log_warning() { log "[WARNING] $*"; }
-  log_error() { log "[ERROR] $*"; exit 1; }
-  has_cmd() { command -v "$1" >/dev/null 2>&1; }
-fi
-
-STRICT="${POST_CREATE_STRICT:-0}"
-
-maybe_die() {
-  # Usage: maybe_die "message"
-  if [[ "$STRICT" == "1" ]]; then
-    log_error "$@"
-  else
-    log_warning "$@"
-  fi
-}
-
-## Normalize to lowercase and handle multiple truthy values
-## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
-## case "$(printf '%s' $SKIP_CONDA | tr '[:upper:]' '[:lower:]')" in
-is_true() {
-  # Usage: is_true "$VAL"
-  # Returns 0 for: 1,true,yes,on  (case-insensitive)
-  local v="${1:-}"
-  v="${v,,}"
-  case "$v" in
-    1|true|yes|on) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 is_sourced() {
   # Deterministic bash check
   [[ "${BASH_SOURCE[0]}" != "$0" ]]
@@ -107,6 +62,67 @@ exit_or_return() {
     return "$code"
   else
     exit "$code"
+  fi
+}
+
+# ---------- truthy parsing (bash) ----------
+## Normalize to lowercase and handle multiple truthy values
+## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
+## case "$(printf '%s' $SKIP_CONDA | tr '[:upper:]' '[:lower:]')" in
+is_true() {
+  # Usage: is_true "$VAL"
+  # Returns 0 for: 1,true,yes,on  (case-insensitive)
+  local v="${1:-}"
+  v="${v,,}"
+  case "$v" in
+    1|true|yes|y|on) return 0 ;;
+    0|false|no|n|off|"") return 1 ;;
+    *) return 1 ;;
+  esac
+}
+
+# ---------- Error reporting ----------
+_on_err() {
+  local lineno="$1"
+  local cmd="$2"
+  printf '%s\n' "[ERROR] env_micromamba.sh failed at line ${lineno}: ${cmd}" >&2
+  exit_or_return 1
+}
+# trap 'rc=$?; echo "[ERROR] env_micromamba.sh failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
+trap '_on_err "$LINENO" "$BASH_COMMAND"' ERR
+
+# ---------- Source shared POSIX library (optional, but preferred) ----------
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
+# Source the POSIX common library (works in bash). Re-apply bash strict after.
+COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
+if [[ -f "$COMMON_SH" ]]; then
+  # common.sh is POSIX; safe to source from bash.
+  # It sets `set -eu` internally; we re-apply bash strict mode after.
+  # shellcheck source=/dev/null
+  . "$COMMON_SH"
+  set -Eeuo pipefail
+else
+  # Minimal fallback logger if common.sh is missing.
+  log() { printf '%s\n' "$*" >&2; }
+  log_error_code() { local code="${1:-1}"; shift || true; log "[ERROR] $*"; exit "$code"; }
+  log_error() { log "[ERROR] $*"; exit 1; }
+  log_warning() { log "[WARNING] $*"; }
+  log_info() { log "[INFO] $*"; }
+  log_success() { printf '%s\n' "[SUCCESS] $*" >&2; }
+  log_debug()   { :; }
+  has_cmd() { command -v "$1" >/dev/null 2>&1; }
+fi
+
+POST_CREATE_STRICT="${POST_CREATE_STRICT:-0}"
+
+# ---------- Helpers ----------
+maybe_fail() {
+  # Usage: maybe_fail "message"
+  if [[ "$POST_CREATE_STRICT" == "1" ]]; then
+    log_error_code 1 "$1"
+  else
+    log_warning "$1"
   fi
 }
 
@@ -136,9 +152,6 @@ MICROMAMBA_ADD_AUTO_ACTIVATE="${MICROMAMBA_ADD_AUTO_ACTIVATE:-0}"
 
 MICROMAMBA_VERIFY="${MICROMAMBA_VERIFY:-0}"
 MICROMAMBA_CLEAN="${MICROMAMBA_CLEAN:-0}"
-
-# ---------- Error diagnostics ----------
-trap 'log_error "Failed at line $LINENO: $BASH_COMMAND"' ERR
 
 # ===============================================================
 # Helpers
@@ -437,7 +450,7 @@ else
   else
     # Strict behavior: fail unless caller explicitly opted to skip missing file.
     if is_true "${MICROMAMBA_ALLOW_MISSING_ENV_FILE:-0}"; then
-      maybe_die "ENV_FILE missing ($ENV_FILE) and MICROMAMBA_ALLOW_MISSING_ENV_FILE=1 -> skipping env creation"
+      maybe_fail "ENV_FILE missing ($ENV_FILE) and MICROMAMBA_ALLOW_MISSING_ENV_FILE=1 -> skipping env creation"
       exit_or_return 0
     else
       log_error "ENV_FILE not found: $ENV_FILE (set ENV_FILE=... or create it)"

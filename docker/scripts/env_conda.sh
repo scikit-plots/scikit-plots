@@ -45,30 +45,52 @@
 #   If you need installs, do it in all_post_create.sh via install_dev_tools_apt (COMMON_ALLOW_INSTALL=1).
 # ===============================================================
 
-# ---------- sourced vs executed ----------
-__ENV_CONDA_SOURCED=0
-if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
-  __ENV_CONDA_SOURCED=1
-fi
+set -Eeuo pipefail
 
-# If executed directly, enable strict bash behavior + helpful ERR trap.
-if [[ "$__ENV_CONDA_SOURCED" == "0" ]]; then
-  set -Eeuo pipefail
-  IFS=$'\n\t'
-  _env_conda_on_err() {
-    local lineno="$1"
-    local cmd="$2"
-    printf '%s\n' "[ERROR] env_conda.sh failed at line ${lineno}: ${cmd}" >&2
-    exit 1
-  }
-  trap '_env_conda_on_err "$LINENO" "$BASH_COMMAND"' ERR
-fi
+is_sourced() {
+  # Deterministic bash check
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
+
+exit_or_return() {
+  local code="${1:-0}"
+  if is_sourced; then
+    return "$code"
+  else
+    exit "$code"
+  fi
+}
+
+# ---------- truthy parsing (bash) ----------
+## Normalize to lowercase and handle multiple truthy values
+## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
+## case "$(printf '%s' $SKIP_CONDA | tr '[:upper:]' '[:lower:]')" in
+is_true() {
+  # Usage: is_true "$VAL"
+  # Returns 0 for: 1,true,yes,on  (case-insensitive)
+  local v="${1:-}"
+  v="${v,,}"
+  case "$v" in
+    1|true|yes|y|on) return 0 ;;
+    0|false|no|n|off|"") return 1 ;;
+    *) return 1 ;;
+  esac
+}
+
+# ---------- Error reporting ----------
+_on_err() {
+  local lineno="$1"
+  local cmd="$2"
+  printf '%s\n' "[ERROR] env_conda.sh failed at line ${lineno}: ${cmd}" >&2
+  exit_or_return 1
+}
+# trap 'rc=$?; echo "[ERROR] env_conda.sh failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
+trap '_on_err "$LINENO" "$BASH_COMMAND"' ERR
 
 # ---------- locate script dir / repo root (deterministic, no realpath) ----------
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
-
-# ---------- optional: source common.sh if present (portable POSIX library) ----------
+# Source the POSIX common library (works in bash). Re-apply bash strict after.
 COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
 if [[ -f "$COMMON_SH" ]]; then
   # common.sh is POSIX; safe to source from bash.
@@ -77,36 +99,16 @@ if [[ -f "$COMMON_SH" ]]; then
   . "$COMMON_SH"
   set -Eeuo pipefail
 else
-  # Minimal fallback (keeps this script runnable standalone)
+  # Minimal fallback logger if common.sh is missing.
   log() { printf '%s\n' "$*" >&2; }
-  log_info() { log "[INFO] $*"; }
-  log_warning() { log "[WARNING] $*"; }
+  log_error_code() { local code="${1:-1}"; shift || true; log "[ERROR] $*"; exit "$code"; }
   log_error() { log "[ERROR] $*"; exit 1; }
+  log_warning() { log "[WARNING] $*"; }
+  log_info() { log "[INFO] $*"; }
+  log_success() { printf '%s\n' "[SUCCESS] $*" >&2; }
+  log_debug()   { :; }
   has_cmd() { command -v "$1" >/dev/null 2>&1; }
 fi
-
-_env_conda_return_or_exit() {
-  local code="${1:-1}"
-  if [[ "$__ENV_CONDA_SOURCED" == "1" ]]; then
-    return "$code"
-  fi
-  exit "$code"
-}
-
-_env_conda_fail() {
-  log_warning "$*"
-  _env_conda_return_or_exit 1
-}
-
-# ---------- truthy parsing (bash) ----------
-_is_truthy() {
-  local v="${1:-0}"
-  case "${v,,}" in
-    1|true|yes|y|on) return 0 ;;
-    0|false|no|n|off|"") return 1 ;;
-    *) return 1 ;;
-  esac
-}
 
 # ---------- defaults (explicit + canonical) ----------
 PY_VERSION="${PY_VERSION:-3.11}"
@@ -124,57 +126,54 @@ CONDA_ACTIVATE="${CONDA_ACTIVATE:-0}"
 CONDA_CLEAN="${CONDA_CLEAN:-0}"
 CONDA_RM_USER_CACHE="${CONDA_RM_USER_CACHE:-0}"
 
-if _is_truthy "$CONDA_SKIP"; then
+if is_true "$CONDA_SKIP"; then
   log_info "CONDA_SKIP=1 -> skipping conda environment setup"
-  _env_conda_return_or_exit 0
+  exit_or_return 0
 fi
 
 # If using file-defined env name, "ensure" cannot be implemented deterministically without parsing/guessing.
-if _is_truthy "$CONDA_USE_FILE_NAME" && [[ "$CONDA_ACTION" == "ensure" ]]; then
-  _env_conda_fail "CONDA_USE_FILE_NAME=1 is incompatible with CONDA_ACTION=ensure. Use CONDA_ACTION=create|update, or set CONDA_USE_FILE_NAME=0 and provide ENV_NAME."
+if is_true "$CONDA_USE_FILE_NAME" && [[ "$CONDA_ACTION" == "ensure" ]]; then
+  log_error "CONDA_USE_FILE_NAME=1 is incompatible with CONDA_ACTION=ensure. Use CONDA_ACTION=create|update, or set CONDA_USE_FILE_NAME=0 and provide ENV_NAME."
 fi
 
 # ---------- validate action ----------
 case "$CONDA_ACTION" in
   none)
     log_info "CONDA_ACTION=none -> no action"
-    _env_conda_return_or_exit 0
     ;;
   ensure|create|update) ;;
   *)
-    _env_conda_fail "Invalid CONDA_ACTION='$CONDA_ACTION' (allowed: none|ensure|create|update)"
+    log_error "Invalid CONDA_ACTION='$CONDA_ACTION' (allowed: none|ensure|create|update)"
     ;;
 esac
 
 # ---------- select manager deterministically ----------
-_has_cmd() { command -v "$1" >/dev/null 2>&1; }
-
 _selected_mgr=""
 case "$CONDA_MANAGER" in
   conda)
-    _has_cmd conda || _env_conda_fail "CONDA_MANAGER=conda but 'conda' not found in PATH"
+    has_cmd conda || log_error "CONDA_MANAGER=conda but 'conda' not found in PATH"
     _selected_mgr="conda"
     ;;
   mamba)
-    _has_cmd mamba || _env_conda_fail "CONDA_MANAGER=mamba but 'mamba' not found in PATH"
+    has_cmd mamba || log_error "CONDA_MANAGER=mamba but 'mamba' not found in PATH"
     _selected_mgr="mamba"
     ;;
   auto)
-    if _has_cmd conda; then
+    if has_cmd conda; then
       _selected_mgr="conda"
-    elif _has_cmd mamba; then
+    elif has_cmd mamba; then
       _selected_mgr="mamba"
     else
-      if _is_truthy "$CONDA_STRICT"; then
-        _env_conda_fail "No conda-compatible manager found (need 'conda' or 'mamba')"
+      if is_true "$CONDA_STRICT"; then
+        log_error "No conda-compatible manager found (need 'conda' or 'mamba')"
       else
         log_warning "No conda-compatible manager found; skipping (set CONDA_STRICT=1 to fail)"
-        _env_conda_return_or_exit 0
+        exit_or_return 0
       fi
     fi
     ;;
   *)
-    _env_conda_fail "Invalid CONDA_MANAGER='$CONDA_MANAGER' (allowed: auto|conda|mamba)"
+    log_error "Invalid CONDA_MANAGER='$CONDA_MANAGER' (allowed: auto|conda|mamba)"
     ;;
 esac
 
@@ -183,11 +182,11 @@ log_info "Repo root: ${REPO_ROOT}"
 
 # ---------- env file check (deterministic) ----------
 if [[ ! -f "$ENV_FILE" ]]; then
-  if _is_truthy "$CONDA_STRICT"; then
-    _env_conda_fail "Environment file not found: $ENV_FILE"
+  if is_true "$CONDA_STRICT"; then
+    log_error "Environment file not found: $ENV_FILE"
   else
     log_warning "Environment file not found: $ENV_FILE (skipping; set CONDA_STRICT=1 to fail)"
-    _env_conda_return_or_exit 0
+    exit_or_return 0
   fi
 fi
 
@@ -207,20 +206,20 @@ _env_exists() {
 _create_args=(env create -f "$ENV_FILE" --yes)
 _update_args=(env update -f "$ENV_FILE" --yes)
 
-if ! _is_truthy "$CONDA_USE_FILE_NAME"; then
+if ! is_true "$CONDA_USE_FILE_NAME"; then
   # Override env name deterministically
   _create_args+=(-n "$ENV_NAME")
   _update_args+=(-n "$ENV_NAME")
 fi
 
-if _is_truthy "$CONDA_PRUNE"; then
+if is_true "$CONDA_PRUNE"; then
   # Can be destructive; explicit opt-in only
   _update_args+=(--prune)
 fi
 
 # ---------- action execution ----------
 _exists=0
-if ! _is_truthy "$CONDA_USE_FILE_NAME"; then
+if ! is_true "$CONDA_USE_FILE_NAME"; then
   if _env_exists "$_selected_mgr" "$ENV_NAME"; then
     _exists=1
   fi
@@ -230,50 +229,50 @@ case "$CONDA_ACTION" in
   create)
     if [[ "$_exists" == "1" ]]; then
       log_info "Environment already exists: $ENV_NAME (CONDA_ACTION=create -> no-op)"
-      _env_conda_return_or_exit 0
+      exit_or_return 0
     fi
     log_info "Creating environment from: $ENV_FILE"
     log_info "Command: $_selected_mgr ${_create_args[*]}"
-    "$_selected_mgr" "${_create_args[@]}" || _env_conda_fail "Environment create failed"
+    "$_selected_mgr" "${_create_args[@]}" || log_error "Environment create failed"
     ;;
   update)
-    if [[ "$_exists" == "0" ]] && ! _is_truthy "$CONDA_USE_FILE_NAME"; then
-      _env_conda_fail "Environment not found: $ENV_NAME (CONDA_ACTION=update). Use CONDA_ACTION=ensure or create."
+    if [[ "$_exists" == "0" ]] && ! is_true "$CONDA_USE_FILE_NAME"; then
+      log_error "Environment not found: $ENV_NAME (CONDA_ACTION=update). Use CONDA_ACTION=ensure or create."
     fi
     log_info "Updating environment from: $ENV_FILE"
     log_info "Command: $_selected_mgr ${_update_args[*]}"
-    "$_selected_mgr" "${_update_args[@]}" || _env_conda_fail "Environment update failed"
+    "$_selected_mgr" "${_update_args[@]}" || log_error "Environment update failed"
     ;;
   ensure)
     if [[ "$_exists" == "1" ]]; then
       log_info "Environment exists: $ENV_NAME -> update"
       log_info "Command: $_selected_mgr ${_update_args[*]}"
-      "$_selected_mgr" "${_update_args[@]}" || _env_conda_fail "Environment update failed"
+      "$_selected_mgr" "${_update_args[@]}" || log_error "Environment update failed"
     else
       log_info "Environment missing -> create"
       log_info "Command: $_selected_mgr ${_create_args[*]}"
-      "$_selected_mgr" "${_create_args[@]}" || _env_conda_fail "Environment create failed"
+      "$_selected_mgr" "${_create_args[@]}" || log_error "Environment create failed"
     fi
     ;;
 esac
 
 # ---------- optional: conda init (modifies ~/.bashrc) ----------
-if _is_truthy "$CONDA_INIT_BASH"; then
-  _has_cmd conda || _env_conda_fail "CONDA_INIT_BASH=1 requires 'conda' command"
+if is_true "$CONDA_INIT_BASH"; then
+  has_cmd conda || log_error "CONDA_INIT_BASH=1 requires 'conda' command"
   log_warning "CONDA_INIT_BASH=1 -> running 'conda init bash' (modifies ~/.bashrc)"
-  conda init bash || _env_conda_fail "conda init bash failed"
+  conda init bash || log_error "conda init bash failed"
 fi
 
 # ---------- optional: activation (only meaningful when sourced) ----------
-if _is_truthy "$CONDA_ACTIVATE"; then
+if is_true "$CONDA_ACTIVATE"; then
   if [[ "$__ENV_CONDA_SOURCED" != "1" ]]; then
     log_warning "CONDA_ACTIVATE=1 has no persistent effect when executed. Source the script to activate in current shell."
   fi
 
-  _has_cmd conda || _env_conda_fail "CONDA_ACTIVATE=1 requires 'conda' command"
-  base="$(conda info --base 2>/dev/null)" || _env_conda_fail "conda info --base failed"
+  has_cmd conda || log_error "CONDA_ACTIVATE=1 requires 'conda' command"
+  base="$(conda info --base 2>/dev/null)" || log_error "conda info --base failed"
   conda_sh="${base}/etc/profile.d/conda.sh"
-  [[ -f "$conda_sh" ]] || _env_conda_fail "Missing conda shell hook: $conda_sh"
+  [[ -f "$conda_sh" ]] || log_error "Missing conda shell hook: $conda_sh"
 
   # shellcheck disable=SC1090
   . "$conda_sh"
@@ -281,17 +280,17 @@ if _is_truthy "$CONDA_ACTIVATE"; then
   ## Also Configure base
   conda install -n base python="$PY_VERSION" ipykernel pip -y || true
 
-  if _is_truthy "$CONDA_USE_FILE_NAME"; then
+  if is_true "$CONDA_USE_FILE_NAME"; then
     log_warning "CONDA_USE_FILE_NAME=1 -> activation target is file-defined; set ENV_NAME to activate explicitly."
   else
-    conda activate "$ENV_NAME" || _env_conda_fail "conda activate failed: $ENV_NAME"
+    conda activate "$ENV_NAME" || log_error "conda activate failed: $ENV_NAME"
     log_info "Activated: $ENV_NAME"
   fi
 fi
 
 # ---------- optional: cleanup ----------
-if _is_truthy "$CONDA_CLEAN"; then
-  if _has_cmd conda; then
+if is_true "$CONDA_CLEAN"; then
+  if has_cmd conda; then
     log_info "Running: conda clean --all -f -y"
     conda clean --all -f -y || log_warning "conda clean failed (ignored)"
   else
@@ -299,10 +298,9 @@ if _is_truthy "$CONDA_CLEAN"; then
   fi
 fi
 
-if _is_truthy "$CONDA_RM_USER_CACHE"; then
+if is_true "$CONDA_RM_USER_CACHE"; then
   log_warning "Removing user cache: ${HOME}/.cache"
   rm -rf -- "${HOME}/.cache" || log_warning "Failed to remove ~/.cache (ignored)"
 fi
 
 log_info "env_conda: done"
-_env_conda_return_or_exit 0

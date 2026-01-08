@@ -22,27 +22,67 @@
 
 set -Eeuo pipefail
 
+is_sourced() {
+  # Deterministic bash check
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
+
+exit_or_return() {
+  local code="${1:-0}"
+  if is_sourced; then
+    return "$code"
+  else
+    exit "$code"
+  fi
+}
+
+# ---------- truthy parsing (bash) ----------
+## Normalize to lowercase and handle multiple truthy values
+## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
+## case "$(printf '%s' $SKIP_CONDA | tr '[:upper:]' '[:lower:]')" in
+is_true() {
+  # Usage: is_true "$VAL"
+  # Returns 0 for: 1,true,yes,on  (case-insensitive)
+  local v="${1:-}"
+  v="${v,,}"
+  case "$v" in
+    1|true|yes|y|on) return 0 ;;
+    0|false|no|n|off|"") return 1 ;;
+    *) return 1 ;;
+  esac
+}
+
 # ---------- Error reporting ----------
-trap 'rc=$?; echo "[ERROR] bash_first_run_notice.sh failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
+_on_err() {
+  local lineno="$1"
+  local cmd="$2"
+  printf '%s\n' "[ERROR] bash_first_run_notice.sh failed at line ${lineno}: ${cmd}" >&2
+  exit_or_return 1
+}
+# trap 'rc=$?; echo "[ERROR] bash_first_run_notice.sh failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
+trap '_on_err "$LINENO" "$BASH_COMMAND"' ERR
 
 # ---------- Locate script + optional common library ----------
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-
-# If the POSIX common library exists, source it for consistent logging/helpers.
-# Then re-assert bash strict options.
-if [[ -f "${SCRIPT_DIR}/lib/common.sh" ]]; then
-  # shellcheck disable=SC1091
-  . "${SCRIPT_DIR}/lib/common.sh"
+REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
+# Source the POSIX common library (works in bash). Re-apply bash strict after.
+COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
+if [[ -f "$COMMON_SH" ]]; then
+  # common.sh is POSIX; safe to source from bash.
+  # It sets `set -eu` internally; we re-apply bash strict mode after.
+  # shellcheck source=/dev/null
+  . "$COMMON_SH"
   set -Eeuo pipefail
-fi
-
-# ---------- Minimal fallback logging (if common.sh not sourced) ----------
-if ! command -v log_info >/dev/null 2>&1; then
-  log_info()    { printf '%s\n' "[INFO] $*" >&2; }
-  log_warning() { printf '%s\n' "[WARNING] $*" >&2; }
+else
+  # Minimal fallback logger if common.sh is missing.
+  log() { printf '%s\n' "$*" >&2; }
+  log_error_code() { local code="${1:-1}"; shift || true; log "[ERROR] $*"; exit "$code"; }
+  log_error() { log "[ERROR] $*"; exit 1; }
+  log_warning() { log "[WARNING] $*"; }
+  log_info() { log "[INFO] $*"; }
   log_success() { printf '%s\n' "[SUCCESS] $*" >&2; }
-  log_error()   { printf '%s\n' "[ERROR] $*" >&2; exit 1; }
   log_debug()   { :; }
+  has_cmd() { command -v "$1" >/dev/null 2>&1; }
 fi
 
 # ---------- Controls (explicit, deterministic) ----------
