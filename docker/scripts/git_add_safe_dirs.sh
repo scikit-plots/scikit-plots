@@ -9,13 +9,15 @@ set -x  # Enable debugging (prints commands as they run)
 # set -euxo pipefail
 
 ## Runs on sh or bash
-# sh|bash ./safe_dirs.sh                    # (Run in a New Shell)
-# .|source ./safe_dirs.sh                   # (Run in the Same Shell)
+# sh|bash ./git_add_safe_dirs.sh                    # (Run in a New Shell)
+# .|source ./git_add_safe_dirs.sh                   # (Run in the Same Shell)
 
 # git config --global --unset-all safe.directory
 # git config --global --get-all safe.directory
 
 ## Directories to mark as safe
+# for f in $(ls data); do ... done
+# find "data" -type f -print | while IFS= read -r f; do ... done
 for DIR in \
   "$(realpath ./)" \
   "$(realpath ./third_party/array-api-compat)" \

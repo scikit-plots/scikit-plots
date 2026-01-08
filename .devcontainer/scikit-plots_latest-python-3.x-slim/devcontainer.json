@@ -233,7 +233,7 @@
     // For Images "mcr.microsoft.com/devcontainers/..."
     // "notice" Different container base image works differently See: https://github.com/orgs/community/discussions/43534
     // appears that text in "/usr/local/etc/vscode-dev-containers/bash-first-run-notice.txt" takes precedence over text in "/workspaces/.codespaces/shared/bash-first-run-notice.txt"
-    // https://github.com/devcontainers/features/blob/main/src/common-utils/scripts/rc_snippet.sh
+    // https://github.com/devcontainers/features/blob/main/src/common-utils/scripts/bashrc_snippet.sh
     // "notice_hack": "mkdir -p $HOME/.config/vscode-dev-containers/ && touch $HOME/.config/vscode-dev-containers/first-run-notice-already-displayed"
     // "notice_dyn": "python -m docker.scripts.first_run_notice | sudo tee /workspaces/.codespaces/shared/bash-first-run-notice.txt > /dev/null"
     // "notice": "sudo -n true && sudo mkdir -p /usr/local/etc/vscode-dev-containers && sudo cp .devcontainer/scripts/bash-first-run-notice.txt /usr/local/etc/vscode-dev-containers/bash-first-run-notice.txt || true"

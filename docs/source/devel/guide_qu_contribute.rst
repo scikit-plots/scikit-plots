@@ -148,7 +148,7 @@ Initialize and Fetch Submodules:
 
     ## (if Necessary) Add in git safe dirs
     ## Or use `git config ...` to add `scikit-plots` in git safe dirs
-    # bash docker/scripts/safe_dirs.sh  # add safe directories for git
+    # bash docker/scripts/git_add_safe_dirs.sh  # add safe directories for git
     git config --global --add safe.directory '*'
 
 .. prompt:: bash

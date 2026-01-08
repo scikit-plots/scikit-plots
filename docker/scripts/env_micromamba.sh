@@ -1,227 +1,392 @@
 #!/usr/bin/env bash
 #
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
+# docker/scripts/env_micromamba.sh
 #
-## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
-## Inside bash -c '...' string	\$p, if needed
-# ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
-# { ...; } || fallback runs in current shell — can exit or affect current environment.
+# bash docker/scripts/env_micromamba.sh
+# MICROMAMBA_ALLOW_INSTALL=1 MICROMAMBA_INSTALL_MODE=api bash docker/scripts/env_micromamba.sh
+# MICROMAMBA_ALLOW_INSTALL=1 MICROMAMBA_INSTALL_MODE=script MICROMAMBA_INSTALL_INTERACTIVE=1 \
+# bash docker/scripts/env_micromamba.sh
+# MICROMAMBA_SHELL_INIT=1 MICROMAMBA_ADD_AUTO_ACTIVATE=1 \
+# bash docker/scripts/env_micromamba.sh
+# MICROMAMBA_VERIFY=1 bash docker/scripts/env_micromamba.sh
+#
+# ===============================================================
+# Micromamba environment setup (Bash)
+# ===============================================================
+# USER NOTES
+# - This script is intended for Dev Containers / Docker postCreate usage.
+# - It is STRICT by default:
+#     - no OS package installs
+#     - no micromamba install
+#     - no shell rc modification
+#   Everything "heavy" is opt-in via env vars.
+#
+# DEV NOTES
+# - This is a Bash script (uses pipefail, arrays, ${var,,}, etc.)
+# - It may be EXECUTED (postCreate) or SOURCED (interactive shell).
+# - Activation only makes sense when sourced; executed scripts cannot
+#   persist environment activation into the parent shell.
+#
+# CONFIG (explicit flags; no silent fallbacks)
+# - SKIP_MICROMAMBA=1                : skip entire script
+# - MICROMAMBA_ALLOW_INSTALL=1       : allow installing micromamba if missing
+# - MICROMAMBA_INSTALL_MODE=api|script
+#     api    : download tarball from micro.mamba.pm API (non-interactive)
+#     script : run official install.sh (may prompt; requires MICROMAMBA_INSTALL_INTERACTIVE=1)
+# - MICROMAMBA_INSTALL_INTERACTIVE=1 : allow running install.sh (prompts)
+#
+# - PY_VERSION=3.11                  : used only if you create env from packages (optional)
+# - ENV_NAME=py311                   : expected env name (used for checks / optional activation)
+# - ENV_FILE=environment.yml         : file used for env creation (default: ./environment.yml)
+#
+# - MAMBA_ROOT_PREFIX=$HOME/micromamba : root prefix for micromamba (default matches common installer)
+# - MICROMAMBA_SHELL_INIT=1          : run `micromamba shell init ...` (modifies rc)
+# - MICROMAMBA_RC_FILE=~/.bashrc     : rc file target for optional activation snippet
+# - MICROMAMBA_ADD_AUTO_ACTIVATE=1   : append auto-activate ENV_NAME in rc (idempotent)
+# - MICROMAMBA_VERIFY=1              : verify env by running `python -V` inside it
+# - MICROMAMBA_CLEAN=1               : clean micromamba + caches (optional)
+#
+# - POST_CREATE_STRICT=1             : treat warnings as errors (optional)
+# ===============================================================
 
-set -e  # Exit immediately if a command exits with a non-zero status (Disable 'exit on error' temporarily for debugging)
-set -u  # Treat unset variables as an error
-set -x  # Enable debugging Print each command before executing it
-set -o pipefail  # Ensure pipeline errors are captured
-set -euxo pipefail
+set -Eeuo pipefail
 
-cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
-cat uname -u || echo "No uname -u output available. Skipping system information."
+# ---------- Source shared POSIX library (optional, but preferred) ----------
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+COMMON_SH="${COMMON_SH:-$SCRIPT_DIR/lib/common.sh}"
+if [[ -f "$COMMON_SH" ]]; then
+  # common.sh is POSIX; safe to source from bash.
+  # It sets `set -eu` internally; we re-apply bash strict mode after.
+  # shellcheck source=/dev/null
+  . "$COMMON_SH"
+  set -Eeuo pipefail
+else
+  # Minimal fallback (keeps this script runnable standalone)
+  log() { printf '%s\n' "$*" >&2; }
+  log_info() { log "[INFO] $*"; }
+  log_warning() { log "[WARNING] $*"; }
+  log_error() { log "[ERROR] $*"; exit 1; }
+  has_cmd() { command -v "$1" >/dev/null 2>&1; }
+fi
 
-## Dynamically get shell name (bash, zsh, fish, etc.)
-echo "CWD_DIR=$PWD"
-echo "REAL_DIR=$(realpath ./)"
-echo "SCRIPT_DIR=$(cd -- $(dirname ${BASH_SOURCE[0]}) && pwd)"
-echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
-echo "SHELL_NAME=$(basename $SHELL)"
+STRICT="${POST_CREATE_STRICT:-0}"
 
-## Make sudo Passwordless for the User
-sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
-
-## Ensure os packages installed
-echo "📦 Installing dev tools (if sudo available)..."
-{ sudo -n true && sudo apt-get update -y \
-  && sudo apt-get install -y sudo gosu git curl build-essential gfortran ninja-build; } \
-  || echo "⚠️ Failed or skipped installing dev tools"
-
-# green
-print_info() {
-  echo -e "\033[1;32m$1\033[0m"
+maybe_die() {
+  # Usage: maybe_die "message"
+  if [[ "$STRICT" == "1" ]]; then
+    log_error "$@"
+  else
+    log_warning "$@"
+  fi
 }
-# yellow-orange
-print_warn() {
-  echo -e "\033[1;33m$1\033[0m"
-}
-# red
-print_error() {
-  echo -e "\033[1;31m$1\033[0m"
-}
-# blue
-print_url() {
-  echo -e "\033[1;34m$1\033[0m"
-}
-# purple
-print_info2() {
-  echo -e "\033[1;36m$1\033[0m"
-}
 
-######################################################################
-## 📦 Install and Initialize Micromamba (or Conda compatible) Environment Setup Script
-# "micromamba" not "conda" keyword compatipable but same syntax
-# "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
-######################################################################
-
-## Disable unbound variable errors (for safer fallback defaults)
-set +u   # Disable strict mode (for unset variables)
-
-## Allow override from environment
-## e.g. SKIP_MICROMAMBA=true ./setup.sh or SKIP_MICROMAMBA=true . ./setup.sh
-SKIP_MICROMAMBA="${SKIP_MICROMAMBA:-false}"
 ## Normalize to lowercase and handle multiple truthy values
 ## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
 ## case "$(printf '%s' $SKIP_CONDA | tr '[:upper:]' '[:lower:]')" in
-case "${SKIP_MICROMAMBA,,}" in   # ,, converts to lowercase
-  true|1|yes|on)
-    echo "Skipping conda activation"
-    # Works whether script is sourced (returns) or executed (exits) directly
-    return 0 2>/dev/null || exit 0
-    ;;
-  false|0|no|off)
-    echo "Running Micromamba"
-    ;;
-  *)
-    echo "Unknown value for SKIP_MICROMAMBA: '$SKIP_MICROMAMBA'"
-    exit 0
-    ;;
-esac
+is_true() {
+  # Usage: is_true "$VAL"
+  # Returns 0 for: 1,true,yes,on  (case-insensitive)
+  local v="${1:-}"
+  v="${v,,}"
+  case "$v" in
+    1|true|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
-## ✅ Use POSIX-compatible:
-# if [[ "$SKIP_MICROMAMBA" == "true" ]]; then
-if [ "${SKIP_MICROMAMBA}" = "true" ]; then
-  echo "Skipping conda activation"
-  # handles both source (returns) and direct exec (exits).
-  return 0 2>/dev/null || exit 0
-fi
+is_sourced() {
+  # Deterministic bash check
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
 
-## Set default environment name if not provided
-PY_VERSION="${PY_VERSION:-3.11}"  # Default Python version "3.11"
-ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"  # Default environment name "py311"
-
-# ──────────────────────────────────────────────────────────────
-# 1. Install micromamba if not already available
-# Need curl or fallback to wget and ps (usually from procps or procps-ng)
-# ──────────────────────────────────────────────────────────────
-# Install micromamba via official install script silently, only if not installed
-echo "🔧 Installing or initializing micromamba..."
-# if ! command -v micromamba &> /dev/null; then
-if ! command -v micromamba >/dev/null 2>&1; then
-  echo "➡️  micromamba not found, attempting install..."
-  # if command -v curl &> /dev/null; then
-  if command -v curl >/dev/null 2>&1; then
-    # curl -Ls https://micro.mamba.pm/install.sh | bash
-    # curl -Ls https://micro.mamba.pm/install.sh | "${SHELL}" || echo "⚠️ micromamba install failed"
-    # "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
-    "${SHELL}" <(curl -Ls micro.mamba.pm/install.sh) < /dev/null
-  # elif command -v wget &> /dev/null; then
-  elif command -v wget >/dev/null 2>&1; then
-    wget -qO- https://micro.mamba.pm/install.sh | bash
+exit_or_return() {
+  local code="${1:-0}"
+  if is_sourced; then
+    return "$code"
   else
-    echo "❌ ERROR: Neither curl nor wget is available. Please install one to proceed."
-    # return 1 2>/dev/null || exit 0
-    # exit 1
+    exit "$code"
   fi
-else
-  echo "✅ micromamba is already installed."
+}
+
+# ---------- Skip gate ----------
+SKIP_MICROMAMBA="${SKIP_MICROMAMBA:-0}"
+if is_true "$SKIP_MICROMAMBA"; then
+  log_status "SKIP_MICROMAMBA=1 -> skipping micromamba setup"
+  exit_or_return 0
 fi
 
-# ──────────────────────────────────────────────────────────────
-# Apply shell config changes:
-# ⚠️ Please restart your shell to activate micromamba or run the following:
-# source ~/.bashrc (or ~/.zshrc, ~/.xonshrc, ~/.config/fish/config.fish, ...)
-# ──────────────────────────────────────────────────────────────
-SHELL_RC=~/."$(basename $SHELL)"rc
+# ---------- Config defaults (documented) ----------
+PY_VERSION="${PY_VERSION:-3.11}"
+ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"
+ENV_FILE="${ENV_FILE:-environment.yml}"
 
-if [ -f "$SHELL_RC" ]; then
-  echo "📄 Sourcing shell config: $SHELL_RC"
-  # shellcheck disable=SC1090
-  # . ~/.bashrc or . ~/.zshrc for zsh
-  # . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-  source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
-else
-  echo "⚠️ Shell config file not found: $SHELL_RC"
-fi
+# Matches common micromamba installer default prefix ("~/micromamba")
+MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-$HOME/micromamba}"
+export MAMBA_ROOT_PREFIX
 
-# ──────────────────────────────────────────────────────────────
-# 2. Initialize shell integration for conda/micromamba
-# ~/.bashrc or ~/.zshrc for zsh
-# ──────────────────────────────────────────────────────────────
-# Optional: also initialize conda hooks (for compatibility with existing conda setups)
-conda init --all || echo "⚠️ Failed to initialize conda hooks"
-## Initialize micromamba for the current shell
-## Initialize micromamba shell integration for bash (auto-detect install path)
-## micromamba shell init -s bash -p ~/micromamba
-micromamba shell init -s "$(basename $SHELL)" || echo "⚠️ Failed to initialize micromamba hooks"
+MICROMAMBA_ALLOW_INSTALL="${MICROMAMBA_ALLOW_INSTALL:-0}"
+MICROMAMBA_INSTALL_MODE="${MICROMAMBA_INSTALL_MODE:-api}"  # api|script
+MICROMAMBA_INSTALL_INTERACTIVE="${MICROMAMBA_INSTALL_INTERACTIVE:-0}"
 
-# ──────────────────────────────────────────────────────────────
-# 3. Source updated shell configuration (Apply shell config changes)
-# Note:
-# - ⚠️ micromamba does NOT auto-activate environments on login.
-# - ⚠️ You can activate manually: micromamba activate "$ENV_NAME"
-# - 📄 Or add `micromamba activate "$ENV_NAME"` at the end of your .bashrc
-# ──────────────────────────────────────────────────────────────
-# Re-source shell config to ensure activation takes effect
-# shellcheck disable=SC1090
-# . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
+MICROMAMBA_SHELL_INIT="${MICROMAMBA_SHELL_INIT:-0}"
+MICROMAMBA_RC_FILE="${MICROMAMBA_RC_FILE:-$HOME/.bashrc}"
+MICROMAMBA_ADD_AUTO_ACTIVATE="${MICROMAMBA_ADD_AUTO_ACTIVATE:-0}"
 
-# ──────────────────────────────────────────────────────────────
-# 4. Enable micromamba hook for current session
-# Ensure micromamba shell hook command integration is active in the current session
-# $ eval "$(micromamba shell hook --shell bash)"
-# ──────────────────────────────────────────────────────────────
-## echo micromamba shell hook --shell "$(basename $SHELL)"
-## Fallback to bash if SHELL is unset or unknown
-eval "$(micromamba shell hook --shell $(basename ${SHELL:-/bin/bash}))" || echo "⚠️ Failed to enable micromamba shell hook"
+MICROMAMBA_VERIFY="${MICROMAMBA_VERIFY:-0}"
+MICROMAMBA_CLEAN="${MICROMAMBA_CLEAN:-0}"
 
-# ──────────────────────────────────────────────────────────────
-# 5. Ensure environment exists and is registered
-# Create environment if missing and Configure "envs_dirs"
-# ──────────────────────────────────────────────────────────────
+# ---------- Error diagnostics ----------
+trap 'log_error "Failed at line $LINENO: $BASH_COMMAND"' ERR
+
+# ===============================================================
+# Helpers
+# ===============================================================
+
+ensure_dir() {
+  local d="$1"
+  [[ -n "$d" ]] || log_error "ensure_dir: empty path"
+  [[ -d "$d" ]] || mkdir -p -- "$d"
+}
+
+append_line_once() {
+  # Idempotently append a line to a file.
+  # Usage: append_line_once FILE "line"
+  local file="$1"
+  local line="$2"
+  ensure_dir "$(dirname -- "$file")"
+  touch -- "$file"
+  if ! grep -Fqx -- "$line" "$file" 2>/dev/null; then
+    printf '%s\n' "$line" >> "$file"
+  fi
+}
+
+install_micromamba_via_api() {
+  # Non-interactive install:
+  # - downloads micromamba tarball from micro.mamba.pm API
+  # - extracts the micromamba binary into ~/.local/bin (default)
+  #
+  # Requires: curl or wget, tar, bzip2
+  local os arch platform url bin_dir tmp tarball
+
+  os="$(detect_os 2>/dev/null || echo unknown)"
+  arch="$(detect_arch 2>/dev/null || echo unknown)"
+
+  if [[ "$os" != "linux" && "$os" != "macos" && "$os" != "windows-gitbash" ]]; then
+    log_error "Unsupported OS for api install: $os"
+  fi
+
+  # micro.mamba.pm API platform mapping
+  # linux: linux-64, linux-aarch64
+  # macos: osx-64, osx-arm64
+  # git bash windows: win-64
+  platform=""
+  if [[ "$os" == "linux" && "$arch" == "x86_64" ]]; then platform="linux-64"; fi
+  if [[ "$os" == "linux" && "$arch" == "arm64" ]]; then platform="linux-aarch64"; fi
+  if [[ "$os" == "macos" && "$arch" == "x86_64" ]]; then platform="osx-64"; fi
+  if [[ "$os" == "macos" && "$arch" == "arm64" ]]; then platform="osx-arm64"; fi
+  if [[ "$os" == "windows-gitbash" ]]; then platform="win-64"; fi
+
+  [[ -n "$platform" ]] || log_error "No api platform mapping for OS=$os ARCH=$arch"
+
+  has_cmd tar || log_error "tar is required for micromamba api install"
+  has_cmd bzip2 || log_error "bzip2 is required for micromamba api install"
+
+  url="https://micro.mamba.pm/api/micromamba/${platform}/latest"
+
+  bin_dir="${MICROMAMBA_BIN_DIR:-$HOME/.local/bin}"
+  ensure_dir "$bin_dir"
+
+  tmp="$(mktemp_dir micromamba 2>/dev/null || true)"
+  [[ -n "$tmp" ]] || tmp="$(mktemp -d 2>/dev/null || true)"
+  [[ -n "$tmp" ]] || log_error "Failed to create temp dir"
+
+  tarball="$tmp/micromamba.tar.bz2"
+
+  log_info "Downloading micromamba: $url"
+  if has_cmd curl; then
+    curl -fsSL "$url" -o "$tarball"
+  elif has_cmd wget; then
+    wget -qO "$tarball" "$url"
+  else
+    log_error "Need curl or wget to download micromamba"
+  fi
+
+  # Extract only the binary if possible
+  # Most tarballs contain: bin/micromamba
+  tar -xjf "$tarball" -C "$tmp"
+  if [[ -f "$tmp/bin/micromamba" ]]; then
+    install -m 0755 "$tmp/bin/micromamba" "$bin_dir/micromamba"
+  elif [[ -f "$tmp/micromamba" ]]; then
+    install -m 0755 "$tmp/micromamba" "$bin_dir/micromamba"
+  else
+    log_error "micromamba binary not found after extraction"
+  fi
+
+  cleanup_dir "$tmp" 2>/dev/null || true
+  export PATH="$bin_dir:$PATH"
+  log_success "Installed micromamba to: $bin_dir/micromamba"
+}
+
+# # if ! command -v micromamba &> /dev/null; then
+# if ! command -v micromamba >/dev/null 2>&1; then
+#   echo "➡️  micromamba not found, attempting install..."
+#   # if command -v curl &> /dev/null; then
+#   if command -v curl >/dev/null 2>&1; then
+#     # curl -Ls https://micro.mamba.pm/install.sh | bash
+#     # curl -Ls https://micro.mamba.pm/install.sh | "${SHELL}" || echo "⚠️ micromamba install failed"
+#     # "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
+#     "${SHELL}" <(curl -Ls micro.mamba.pm/install.sh) < /dev/null
+#   # elif command -v wget &> /dev/null; then
+#   elif command -v wget >/dev/null 2>&1; then
+#     wget -qO- https://micro.mamba.pm/install.sh | bash
+#   else
+#     echo "❌ ERROR: Neither curl nor wget is available. Please install one to proceed."
+#     # return 1 2>/dev/null || exit 0
+#     # exit 1
+#   fi
+# else
+#   echo "✅ micromamba is already installed."
+# fi
+install_micromamba_via_script() {
+  # Runs the official install.sh (may prompt).
+  # This is intentionally blocked unless MICROMAMBA_INSTALL_INTERACTIVE=1.
+  if ! is_true "$MICROMAMBA_INSTALL_INTERACTIVE"; then
+    log_error "MICROMAMBA_INSTALL_MODE=script requires MICROMAMBA_INSTALL_INTERACTIVE=1 (install.sh prompts)"
+  fi
+  has_cmd curl || log_error "curl is required for script install"
+  log_info "Running official micromamba installer (interactive)"
+  bash <(curl -fsSL "https://micro.mamba.pm/install.sh")
+  # Installer may place micromamba in ~/.local/bin; make it visible in this process.
+  export PATH="$HOME/.local/bin:$PATH"
+}
+
+ensure_micromamba_available() {
+  if has_cmd micromamba; then
+    return 0
+  fi
+
+  if ! is_true "$MICROMAMBA_ALLOW_INSTALL"; then
+    log_error "micromamba not found. Set MICROMAMBA_ALLOW_INSTALL=1 to allow install, or preinstall micromamba (recommended)."
+  fi
+
+  case "$MICROMAMBA_INSTALL_MODE" in
+    api) install_micromamba_via_api ;;
+    script) install_micromamba_via_script ;;
+    *) log_error "Unknown MICROMAMBA_INSTALL_MODE: $MICROMAMBA_INSTALL_MODE (use api|script)" ;;
+  esac
+
+  has_cmd micromamba || log_error "micromamba install did not make micromamba available in PATH"
+}
+
+micromamba_env_exists() {
+  local name="$1"
+  micromamba env list | awk 'NF>0 && $1 !~ /^#/ {print $1}' | grep -Fxq -- "$name"
+}
+
+create_env_from_file() {
+  local env_file="$1"
+  [[ -f "$env_file" ]] || log_error "ENV_FILE not found: $env_file"
+  log_info "Creating environment from file: $env_file"
+  micromamba env create -f "$env_file" --yes
+}
+
+shell_init_optional() {
+  if ! is_true "$MICROMAMBA_SHELL_INIT"; then
+    return 0
+  fi
+  log_info "Initializing micromamba shell integration (may modify rc files)"
+  micromamba shell init -s bash -p "$MAMBA_ROOT_PREFIX"
+}
+
+add_auto_activate_optional() {
+  if ! is_true "$MICROMAMBA_ADD_AUTO_ACTIVATE"; then
+    return 0
+  fi
+
+  # Canonical: append a small guarded snippet to rc.
+  local marker_begin marker_end
+  marker_begin="# >>> micromamba auto-activate (managed) >>>"
+  marker_end="# <<< micromamba auto-activate (managed) <<<"
+
+  log_info "Configuring auto-activation in: $MICROMAMBA_RC_FILE"
+  # eval "$(micromamba shell hook --shell $(basename ${SHELL:-/bin/bash}))" || echo "⚠️ Failed to enable micromamba shell hook"
+  append_line_once "$MICROMAMBA_RC_FILE" "$marker_begin"
+  append_line_once "$MICROMAMBA_RC_FILE" 'if command -v micromamba >/dev/null 2>&1; then'
+  append_line_once "$MICROMAMBA_RC_FILE" '  eval "$(micromamba shell hook --shell bash)"'
+  append_line_once "$MICROMAMBA_RC_FILE" "  micromamba activate \"${ENV_NAME}\" >/dev/null 2>&1 || true"
+  append_line_once "$MICROMAMBA_RC_FILE" 'fi'
+  append_line_once "$MICROMAMBA_RC_FILE" "$marker_end"
+}
+
+verify_env_optional() {
+  if ! is_true "$MICROMAMBA_VERIFY"; then
+    return 0
+  fi
+  log_info "Verifying environment '$ENV_NAME' (python -V)"
+  micromamba run -n "$ENV_NAME" python -V
+}
+
+clean_optional() {
+  if ! is_true "$MICROMAMBA_CLEAN"; then
+    return 0
+  fi
+
+  log_info "Cleaning micromamba caches"
+  micromamba clean --all --yes || true
+
+  # Optional general caches (only if tools exist)
+  if has_cmd pip; then pip cache purge || true; fi
+  rm -rf "${HOME}/.cache" 2>/dev/null || true
+}
+
+# ===============================================================
+# Main
+# ===============================================================
+
+log_env_summary 2>/dev/null || true
+
+ensure_dir "$MAMBA_ROOT_PREFIX"
+
+ensure_micromamba_available
+
+# Shell init is optional (modifies rc); keep opt-in
+shell_init_optional
+
 ## Also Configure base
 micromamba install -n base python="$PY_VERSION" ipykernel pip -y || true
 
-# ──────────────────────────────────────────────────────────────
-# Create environment "$ENV_NAME" if not already present
-# Supports either micromamba or conda
-# ──────────────────────────────────────────────────────────────
-if command -v micromamba >/dev/null 2>&1; then
-  echo "📦 Using micromamba to manage environment: $ENV_NAME"
-
-  if ! micromamba env list | grep -q "$ENV_NAME"; then
-    echo "🆕 Creating micromamba environment: $ENV_NAME"
-    # micromamba create -n py311 python=3.11 ipykernel pip -y
-    # micromamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
-    micromamba env create -f environment.yml --yes \
-    && { micromamba clean --all -f -y || true; } \
-    && { jupyter lab clean || true; } \
-    && { rm -rf "${HOME}/.cache/yarn" || true; } \
-    && { rm -rf ${HOME}/.cache || true; } \
-    || { echo "⚠️ Failed to creation Micromamba environment"; }
-  else
-    echo "✅ micromamba environment '$ENV_NAME' already exists."
-  fi
-
-elif command -v conda >/dev/null 2>&1; then
-  echo "📦 Using conda to manage environment: $ENV_NAME"
-
-  if ! conda env list | grep -q "$ENV_NAME"; then
-    echo "🆕 Creating conda environment: $ENV_NAME"
-    # conda create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
-    # conda env create -f base.yml || { echo "Failed to creation environment"; }
-    # conda env update -n "$ENV_NAME" -f "./docker/env_conda/default.yml" || { echo "Failed to update environment"; }
-    conda env create -f environment.yml --yes \
-    && { conda clean --all -f -y || true; } \
-    && { jupyter lab clean || true; } \
-    && { rm -rf "${HOME}/.cache/yarn" || true; } \
-    && { rm -rf ${HOME}/.cache || true; } \
-    || { echo "⚠️ Failed to creation Conda environment"; }
-  else
-    echo "✅ conda environment '$ENV_NAME' already exists."
-  fi
-
+# Env creation (strict)
+if micromamba_env_exists "$ENV_NAME"; then
+  log_success "Environment exists: $ENV_NAME"
 else
-  echo "❌ Neither micromamba nor conda found. Cannot create environment."
-  # return 1 2>/dev/null || exit 1
+  if [[ -f "$ENV_FILE" ]]; then
+    create_env_from_file "$ENV_FILE"
+  else
+    # Strict behavior: fail unless caller explicitly opted to skip missing file.
+    if is_true "${MICROMAMBA_ALLOW_MISSING_ENV_FILE:-0}"; then
+      maybe_die "ENV_FILE missing ($ENV_FILE) and MICROMAMBA_ALLOW_MISSING_ENV_FILE=1 -> skipping env creation"
+      exit_or_return 0
+    else
+      log_error "ENV_FILE not found: $ENV_FILE (set ENV_FILE=... or create it)"
+    fi
+  fi
+
+  # After creation, enforce expected ENV_NAME
+  if micromamba_env_exists "$ENV_NAME"; then
+    log_success "Environment created: $ENV_NAME"
+  else
+    log_error "Environment file created an unexpected name. Expected ENV_NAME='$ENV_NAME'. Update ENV_NAME or environment.yml."
+  fi
 fi
+
+# Optional: add auto-activate snippet to rc
+add_auto_activate_optional
+
+# Optional: verify
+verify_env_optional
+
+# Optional: clean
+clean_optional
 
 # Register envs directory to ".condarc" for better discovery
 # Configure micromamba envs directory to simplify env discovery by conda/micromamba
@@ -234,35 +399,7 @@ envs_dirs:
   - ~/micromamba/envs
 EOF
 
-# ──────────────────────────────────────────────────────────────
-# 6. Activate environment again for safety (e.g., py311), ignore failure if not present yet
-# ──────────────────────────────────────────────────────────────
-
-# Re-source shell config to ensure activation takes effect
-# shellcheck disable=SC1090
-# . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
-
-# Optional: auto-activate environment for current session
-if command -v micromamba >/dev/null 2>&1; then
-  micromamba activate "$ENV_NAME" || micromamba activate base || echo "⚠️ Failed to activate environment micromamba"
-fi
-# Note that `micromamba activate py311` doesn't work, it must be run by the
-# user (same applies to `conda activate`) So try to bash activate to work:
-
-######################################################################
-## Clean up caches (if possible)
-######################################################################
-
-# Clean up caches and package manager artifacts to reduce disk usage
-(sudo -n true && sudo apt-get clean) || true
-pip cache purge || true
-rm -rf ~/.cache/* || true
-
-echo "✅ Setup complete. Restart your shell or run:"
-echo "   source $SHELL_RC"
-echo "to activate the micromamba environment in new sessions."
-
-######################################################################
-## . (if possible)
-######################################################################
+log_success "Micromamba setup complete."
+log_info "Next steps:"
+log_info "  - Open a new shell, or: source \"$MICROMAMBA_RC_FILE\""
+log_info "  - Activate: micromamba activate \"$ENV_NAME\""

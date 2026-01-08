@@ -1,23 +1,34 @@
 # docker/Dockerfile.python
 ## ✅ Declare default only once before FROM if you want a default.
-ARG PY_VERSION=3.11
 ARG SCIKITPLOT_VERSION=0.4.0.post9
+ARG PY_VERSION=3.11
+# ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.4.0
 
 ## Use an official Python runtime as a parent image
-FROM python:${PY_VERSION}-slim
+# FROM ${MICROMAMBA_IMAGE} AS runtime
+FROM python:${PY_VERSION}-slim AS runtime
 
 ## ❌ Avoid redeclaring with a default after FROM, it overrides build-arg.
 ## ARG PY_VERSION=3.11        # <-- This overrides any build-arg passed earlier!
 ## ✅ Valid and recommended to redeclare ARG after FROM without default to get the passed/default value correctly.
-ARG PY_VERSION
 ARG SCIKITPLOT_VERSION
+ARG PY_VERSION
 
+# Optional heavy OS packages (OFF by default)
+ARG APT_INSTALL_DEVTOOLS=1
+# Needed if you want conda env active for subsequent shell-form RUN steps
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+# Path to the conda environment spec inside the build context
+ARG ENV_FILE=docker/env_conda/environment.yml
+# Optional: run repo post-create scripts at build time (OFF by default)
+ARG RUN_POST_CREATE=1
+
+ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 ## Use ENV with shell-style expansion to get ENV_NAME=py3.11
 ## Replace '.' in PY_VERSION to get py311 instead of py3.11
 # ENV ENV_NAME=${ENV_NAME:-py$(printf '%s' "$PY_VERSION" | tr -d '.')}
 ## Bash-style string substitution syntax (${VAR//./})
 ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
-ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 
 ## Set environment variables
 ## 🐳 Used to detect if running inside Docker (similar to checking /.dockerenv)
@@ -31,45 +42,49 @@ ENV IS_DOCKERENV=true
 # ENV PYTHONUNBUFFERED=1
 
 # USER root
+# USER $MAMBA_USER
 
 ## Install system dependencies (including bash and sudo)
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends \
-		# - `tini` is installed as a helpful container entrypoint,
-		#   that reaps zombie processes and such of the actual executable we want to start
-		#   See https://github.com/krallin/tini#why-tini for details
-		tini \
-		bash \
-		sudo \
-		gosu \
-		wget \
-		curl \
-		procps \
-		git \
-		jq \
-		pkg-config \
-		build-essential \
-		gfortran \
-		ninja-build \
-		locales \
-		unzip \
-		# lua5.3 → CLI interpreter
-		# liblua5.3-0 → runtime library
-		# liblua5.3-dev → headers & static libraries for compilation
-		# luarocks → Lua package manager
-		# lua5.3 \
-		# liblua5.3-0 \
-		# liblua5.3-dev \
-		# luarocks \
-		## newlines equivalent to single semicolon ; on terminal or in shell script.
-		|| { echo "Failed to install common dependencies"; exit 1; }; \
+RUN if [ "${APT_INSTALL_DEVTOOLS}" = "1" ]; then \
+  apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    build-essential \
+    pkg-config \
+    # - `tini` is installed as a helpful container entrypoint,
+    #   that reaps zombie processes and such of the actual executable we want to start
+    #   See https://github.com/krallin/tini#why-tini for details
+    tini \
+    bash \
+    sudo \
+    gosu \
+    wget \
+    curl \
+    procps \
+    locales \
+    unzip \
+    jq \
+    git \
+    gfortran \
+    ninja-build \
+    # lua5.3 → CLI interpreter
+    # liblua5.3-0 → runtime library
+    # liblua5.3-dev → headers & static libraries for compilation
+    # luarocks → Lua package manager
+    # lua5.3 \
+    # liblua5.3-0 \
+    # liblua5.3-dev \
+    # luarocks \
+    ## newlines equivalent to single semicolon ; on terminal or in shell script.
+    || { echo "Failed to install common dependencies"; exit 1; }; \
   ## Cleanup to reduce image size
-  apt-get clean \
-  && rm -rf /var/lib/apt/lists/* \
-	&& echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
-	&& echo "C.UTF-8 UTF-8" >> /etc/locale.gen \
-	&& locale-gen || true \
-  ;
+  apt-get clean; \
+  rm -rf /var/lib/apt/lists/*; \
+  echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+  && echo "C.UTF-8 UTF-8" >> /etc/locale.gen \
+  && locale-gen || true \
+  ; \
+fi
 
 ######################################################################
 ## WORKDIR
@@ -77,13 +92,43 @@ RUN apt-get update \
 ######################################################################
 ## Set working directory inside the container
 WORKDIR /tmp
+
+# Copy only what is needed for post-create (keeps cache stable)
+# COPY --chown=$MAMBA_USER:$MAMBA_USER requirements/ /workspace/requirements/
+# COPY --chown=$MAMBA_USER:$MAMBA_USER docker/ /workspace/docker/
 COPY requirements ./requirements/
 COPY docker ./docker/
 COPY docker/env_conda/environment.yml ./
 
+# ------------------------------------------------------------------
+# Environment: install into the pre-existing `base` environment
+# ------------------------------------------------------------------
+# IMPORTANT:
+# - Ensure ENV_FILE includes python (e.g., python=3.11) because micromamba images
+#   do NOT include python by default.
+# - Using env name other than `base` is not recommended by micromamba-docker.
+# COPY --chown=$MAMBA_USER:$MAMBA_USER ${ENV_FILE} /tmp/environment.yml
+# RUN micromamba install --yes --name base --file /tmp/environment.yml \
+#     && micromamba clean --all --yes
+
 ## micromamba and post create steps
 ## Make sure there’s a space between the variable assignment and the . for sourcing.
-RUN bash -i -c "SKIP_CONDA=${SKIP_CONDA:=true} . ./docker/scripts/all_post_create.sh"
+# RUN bash -i -c "SKIP_CONDA=${SKIP_CONDA:=true} . ./docker/scripts/all_post_create.sh"
+# Optional: reuse your post-create orchestration during build
+# NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
+RUN if [ "${RUN_POST_CREATE}" = "1" ]; then \
+  POST_CREATE_RUN_CONDA=0 \
+  POST_CREATE_RUN_MAMBA=1 \
+  POST_CREATE_RUN_FIRST_NOTICE=1 \
+  POST_CREATE_RUN_POST_CREATE=1 \
+  MICROMAMBA_ALLOW_INSTALL=1 \
+  MICROMAMBA_INSTALL_MODE=api \
+  MICROMAMBA_VERIFY=1 \
+  MICROMAMBA_CLEAN=1 \
+  POST_CREATE_ENV_REQUIRED=1 \
+  POST_CREATE_ENV_TOOL=micromamba \
+  bash docker/scripts/all_post_create.sh; \
+fi
 
 ######################################################################
 ## -------- Final Stage --------
@@ -115,6 +160,7 @@ ENTRYPOINT ["bash"]
 
 ## Set working directory inside the container
 WORKDIR /work
+
 COPY requirements ./requirements/
 COPY docker/env_conda/environment.yml ./
 COPY docker/env_pipenv/ ./env_pipenv/

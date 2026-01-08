@@ -1,58 +1,130 @@
 #!/usr/bin/env bash
+# docker/scripts/post_create_commands.sh
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 #
-## $(eval echo ~...) breaks in Docker, CI, or Windows paths.
-## Inside bash -c '...' string	\$p, if needed
-# ( ... )  || fallback runs in a subshell — changes inside don't affect the parent script.
-# { ...; } || fallback runs in current shell — can exit or affect current environment.
+# ===============================================================
+# Post-create commands (Bash)
+# ===============================================================
+# USER NOTES
+# - Intended for Dev Containers / Docker postCreate hooks.
+# - This script may be *sourced* by an orchestrator (e.g., all_post_create.sh).
+#   When sourced, it MUST NOT call `exit`. It returns non-zero on failure.
+#
+# STRICTNESS & HEAVY OPS
+# - No OS package installs here. (Use all_post_create.sh + COMMON_ALLOW_INSTALL gate.)
+# - No interactive shells. Prefer `micromamba run` / `conda run` (deterministic).
+#
+# ENV VARS (explicit controls)
+# - POST_CREATE_STRICT=0|1                : if 1, optional failures become fatal (return non-zero)
+# - POST_CREATE_GIT_SAFE_DIR=0|1          : default 1
+# - POST_CREATE_GIT_SUBMODULES=0|1        : default 1
+# - POST_CREATE_GIT_UPSTREAM=0|1          : default 1
+# - POST_CREATE_UPSTREAM_URL=...          : default https://github.com/scikit-plots/scikit-plots.git
+# - GIT_SAFE_DIR_ALLOW_ALL=0|1            : default 0 (if 1 and safe-dir add fails, adds '*')
+# - POST_CREATE_ENV_TOOL=auto|micromamba|conda : default auto
+# - POST_CREATE_ENV_NAME=...              : default from ENV_NAME/CONDA_ENV_NAME else "py311"
+# - POST_CREATE_ENV_REQUIRED=0|1          : default 0 (if 1, fail when no env tool found)
+#
+# Python/pip steps (explicit toggles)
+# - POST_CREATE_PIP_REQUIREMENTS=0|1      : default 1
+# - POST_CREATE_REQUIREMENTS_FILE=PATH    : default ./requirements/build.txt
+# - POST_CREATE_INSTALL_PACKAGE=0|1       : default 1
+# - POST_CREATE_INSTALL_EXTRAS=0|1        : default 1
+# - POST_CREATE_LOCAL_EXTRAS=...          : default "build,dev,test,doc"
+# - POST_CREATE_ALLOW_FALLBACK=0|1        : default 0 (if 1, fallback to minimal editable install)
+# - SCIKITPLOT_VERSION=...                : if set, install that exact version from PyPI
+# - POST_CREATE_INSTALL_PRECOMMIT=0|1     : default 1
+# - POST_CREATE_SHOW_ENV_INFO=0|1         : default 0
+# - POST_CREATE_PRINT_NEXT_STEPS=0|1      : default 1
+# ===============================================================
 
-set -e  # Exit immediately if a command exits with a non-zero status (Disable 'exit on error' temporarily for debugging)
-set -u  # Treat unset variables as an error
-set -x  # Enable debugging Print each command before executing it
-set -o pipefail  # Ensure pipeline errors are captured
-set -euxo pipefail
+__pc_is_sourced=0
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  __pc_is_sourced=1
+fi
 
-cat /etc/os-release || echo "No /etc/os-release file found. Skipping OS release information."
-cat uname -u || echo "No uname -u output available. Skipping system information."
+# Strict only when executed directly (avoid mutating parent when sourced)
+if [[ "$__pc_is_sourced" == "0" ]]; then
+  set -Eeuo pipefail
+  IFS=$'\n\t'
+fi
 
-## Dynamically get shell name (bash, zsh, fish, etc.)
-echo "CWD_DIR=$PWD"
-echo "REAL_DIR=$(realpath ./)"
-echo "SCRIPT_DIR=$(cd -- $(dirname ${BASH_SOURCE[0]}) && pwd)"
-echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
-echo "SHELL_NAME=$(basename $SHELL)"
+# Resolve paths deterministically (no realpath dependency)
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
 
-## Make sudo Passwordless for the User
-sudo -n true && echo "Passwordless sudo ✅" || echo "Password required ❌"
+# Source common.sh if present (idempotent)
+COMMON_SH="$SCRIPT_DIR/lib/common.sh"
+if [[ -f "$COMMON_SH" ]]; then
+  # shellcheck disable=SC1090
+  . "$COMMON_SH"
+fi
 
-## Ensure os packages installed
-echo "📦 Installing dev tools (if sudo available)..."
-{ sudo -n true && sudo apt-get update -y \
-  && sudo apt-get install -y sudo gosu git curl build-essential gfortran ninja-build; } \
-  || echo "⚠️ Failed or skipped installing dev tools"
-
-# green
-print_info() {
-  echo -e "\033[1;32m$1\033[0m"
+# ---------- Logging wrappers (never exit when sourced) ----------
+_pc_ts() {
+  if command -v _common_ts >/dev/null 2>&1; then
+    _common_ts
+  else
+    date -u +"%Y-%m-%dT%H:%M:%SZ"
+  fi
 }
-# yellow-orange
-print_warn() {
-  echo -e "\033[1;33m$1\033[0m"
+
+_pc_log() { printf '%s\n' "$*" >&2; }
+
+_pc_info()    { local ts; ts="$(_pc_ts)"; _pc_log "${ts} ${BOLD:-}${BLUE:-}[INFO]${RESET:-} $*"; }
+_pc_warn()    { local ts; ts="$(_pc_ts)"; _pc_log "${ts} ${BOLD:-}${YELLOW:-}[WARNING]${RESET:-} $*"; }
+_pc_success() { local ts; ts="$(_pc_ts)"; _pc_log "${ts} ${BOLD:-}${GREEN:-}[SUCCESS]${RESET:-} $*"; }
+_pc_error()   { local ts; ts="$(_pc_ts)"; _pc_log "${ts} ${BOLD:-}${RED:-}[ERROR]${RESET:-} $*"; }
+
+_pc_die() {
+  local code="${1:-1}"; shift || true
+  _pc_error "$*"
+  if [[ "$__pc_is_sourced" == "1" ]]; then
+    return "$code"
+  fi
+  exit "$code"
 }
-# red
-print_error() {
-  echo -e "\033[1;31m$1\033[0m"
+
+# If executed directly, add a canonical ERR trap
+if [[ "$__pc_is_sourced" == "0" ]]; then
+  trap '_pc_die 1 "Failure at line ${LINENO}: ${BASH_COMMAND}"' ERR
+fi
+
+# ---------- Strict controls ----------
+POST_CREATE_STRICT="${POST_CREATE_STRICT:-0}"
+
+_pc_optional_fail() {
+  # Usage: _pc_optional_fail <code> <message...>
+  local code="$1"; shift || true
+  if [[ "$POST_CREATE_STRICT" == "1" ]]; then
+    _pc_die "$code" "$*"
+  fi
+  _pc_warn "$*"
+  return 0
 }
-# blue
-print_url() {
-  echo -e "\033[1;34m$1\033[0m"
+
+_pc_has_cmd() { command -v "$1" >/dev/null 2>&1; }
+
+_pc_abspath_existing() {
+  local p="$1"
+  [[ -n "$p" ]] || _pc_die 2 "abspath_existing: missing path"
+  [[ -e "$p" ]] || _pc_die 2 "Path does not exist: $p"
+  if [[ -d "$p" ]]; then
+    (cd -- "$p" && pwd -P)
+  else
+    local dir base
+    dir="${p%/*}"
+    base="${p##*/}"
+    [[ "$dir" == "$p" ]] && dir="."
+    (cd -- "$dir" && printf '%s/%s\n' "$(pwd -P)" "$base")
+  fi
 }
-# purple
-print_info2() {
-  echo -e "\033[1;36m$1\033[0m"
-}
+
+# ===============================================================
+# Git steps
+# ===============================================================
 
 ######################################################################
 ## Git Safe Directories Configuration
@@ -61,156 +133,289 @@ print_info2() {
 # git config --global --unset-all safe.directory
 # git config --global --get-all safe.directory
 ######################################################################
-print_info "## Configuring Git safe.directory..."
+pc_git_safe_directories() {
+  local allow_all="${GIT_SAFE_DIR_ALLOW_ALL:-0}"
+  local failed=0
 
-## Directories to mark as safe
-# SAFE_DIRS=(
-#   "$(realpath ./)"
-#   "$(realpath ./third_party/array-api-compat)"
-#   "$(realpath ./third_party/array-api-extra)"
-#   "$(realpath ./third_party/astropy)"
-#   "$(realpath ./third_party/seaborn)"
-# )
-# for DIR in "${SAFE_DIRS[@]}"; do
-for DIR in \
-  "$(realpath ./)" \
-  "$(realpath ./third_party/array-api-compat)" \
-  "$(realpath ./third_party/array-api-extra)" \
-  "$(realpath ./third_party/astropy)" \
-  "$(realpath ./third_party/seaborn)"
-do
-  ## Check if the directory exists
-  if [ -d "$DIR" ]; then
-  # git config --global --add safe.directory "$DIR" 2>&1 | tee /dev/tty | grep -q "error"
-    git config --global --add safe.directory "$DIR" 2>/dev/null || {
-      print_warn "⚠️ Failed to add $DIR to safe.directory";
-      FALLBACK=1;
-    }
-  else
-    print_warn "⚠️ Directory does not exist: $DIR"
-  fi
-done
-
-## If any command failed, allow all directories as safe
-if [ "${FALLBACK:-}" = "1" ]; then
-  print_warn "Some directories failed. Marking all directories as safe."
-  ## Alternative: Bypass Ownership Checks (If Safe)
-  # sudo chown -R "$(whoami):$(id -gn whoami)" ~/.gitconfig || true
-  git config --global --add safe.directory '*' || true
-fi
-print_info "✅ Safe directory configuration complete."
-
-######################################################################
-## Git Submodule Handling
-######################################################################
-print_info "## Initializing and fetching submodules..."
-
-## Initialize and clone any missing submodules, set up the working tree
-## Almost always used after cloning a repo with submodules.
-git submodule update --init --recursive || print_warn "⚠️ Submodule init failed."
-
-# Optional: Keep disabled unless you need bleeding-edge submodule versions
-# print_info "## Updating submodules to latest from remote..."
-# git submodule update --remote --recursive
-
-print_info "✅ Submodule setup complete."
-
-# echo -e "\033[1;34m## Updating submodules to the latest commit...\033[0m"
-## Update submodules to the latest commit on their configured remote branch
-## Used when you want your submodules to move to their latest remote commit.
-# git submodule update --remote --recursive # (not needed every time)
-#
-## For each submodule, fetch updates from its remote
-## Used if you only want to fetch updates but not move HEAD or update the working directory yet.
-# git submodule foreach git fetch # (Less Common)
-#
-## Same as above, but tries to merge if local submodule has uncommitted changes
-## Only used if you already made changes inside submodules locally and you don't want to lose them
-## — you want Git to merge updates instead of overwriting.
-# git submodule update --remote --merge # (Rare)
-#
-# echo -e "\033[1;34m## Pulling latest changes and merging...\033[0m"
-## Update recursively, in case submodules have submodules
-## Submodules have nested submodules, and you have local changes inside those too,
-## and you want to merge, not reset.
-# git submodule update --remote --merge --recursive # (Very Rare (Edge Case))
-
-######################################################################
-## Add and Sync Remote Upstream
-######################################################################
-print_info "## Configuring upstream remote..."
-
-## Add remote upstream if not already added
-if ! git remote | grep -q upstream; then
-  git remote add upstream https://github.com/scikit-plots/scikit-plots.git || print_warn "⚠️ Failed to add upstream remote"
-else
-  print_info "✅ Upstream remote already exists."
-fi
-## Fetch tags from upstream
-print_info "## Fetching upstream tags..."
-git fetch upstream --tags || print_warn "⚠️ Failed to fetch upstream tags"
-
-print_info "✅ Git configuration done!"
-
-######################################################################
-## Installing editable scikit-plots dev version to env "py311"
-## Use micromamba See: env_micromamba.sh
-# "micromamba" not "conda" keyword compatipable but same syntax
-# "conda" keyword compatipable Env (e.g., Conda, Miniconda, Mamba)
-######################################################################
-# Re-source shell config to ensure activation takes effect
-# shellcheck disable=SC1090
-# . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
-
-# Disable unbound variable errors (for safer fallback defaults)
-set +u   # Disable strict mode (for unset variables)
-
-# Set default environment name if not provided
-PY_VERSION="${PY_VERSION:-3.11}"  # Default Python version
-ENV_NAME="${ENV_NAME:-py311}"  # Default environment name
-# ──────────────────────────────────────────────────────────────
-# Create environment "$ENV_NAME" if not already present
-# Supports either micromamba or conda
-# ──────────────────────────────────────────────────────────────
-if command -v micromamba >/dev/null 2>&1; then
-  echo "📦 Using micromamba to manage environment: $ENV_NAME"
-
-  if ! micromamba env list | grep -q "$ENV_NAME"; then
-    echo "🆕 Creating micromamba environment: $ENV_NAME"
-    # micromamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
-    micromamba env create -f environment.yml --yes \
-    && { micromamba clean --all -f -y || true; } \
-    && { jupyter lab clean || true; } \
-    && { rm -rf "${HOME}/.cache/yarn" || true; } \
-    && { rm -rf ${HOME}/.cache || true; } \
-    || { echo "Failed to creation Micromamba environment"; }
-  else
-    echo "✅ micromamba environment '$ENV_NAME' already exists."
+  if ! _pc_has_cmd git; then
+    _pc_optional_fail 0 "git not found; skipping safe.directory config"
+    return 0
   fi
 
-elif command -v conda >/dev/null 2>&1; then
-  echo "📦 Using conda to manage environment: $ENV_NAME"
+  _pc_info "Configuring git safe.directory entries..."
 
-  if ! conda env list | grep -q "$ENV_NAME"; then
-    echo "🆕 Creating conda environment: $ENV_NAME"
-    # conda create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
-    # conda env create -f base.yml || { echo "Failed to creation environment"; }
-    # conda env update -n "$ENV_NAME" -f "./docker/env_conda/default.yml" || { echo "Failed to update environment"; }
-    conda env create -f environment.yml --yes \
-    && { conda clean --all -f -y || true; } \
-    && { jupyter lab clean || true; } \
-    && { rm -rf "${HOME}/.cache/yarn" || true; } \
-    && { rm -rf ${HOME}/.cache || true; } \
-    || { echo "Failed to creation Conda environment"; }
-  else
-    echo "✅ conda environment '$ENV_NAME' already exists."
+  local -a dirs
+  dirs=(
+    "$REPO_ROOT"
+    "$REPO_ROOT/third_party/array-api-compat"
+    "$REPO_ROOT/third_party/array-api-extra"
+    "$REPO_ROOT/third_party/astropy"
+    "$REPO_ROOT/third_party/seaborn"
+  )
+
+  local d abs
+  for d in "${dirs[@]}"; do
+    if [[ -d "$d" ]]; then
+      abs="$(_pc_abspath_existing "$d")"
+      if ! git config --global --add safe.directory "$abs" >/dev/null 2>&1; then
+        _pc_warn "Failed to add safe.directory: $abs"
+        failed=1
+      fi
+    else
+      _pc_warn "Directory missing (skip): $d"
+    fi
+  done
+
+  if [[ "$failed" == "1" && "$allow_all" == "1" ]]; then
+    _pc_warn "Some safe.directory entries failed; adding wildcard '*' (GIT_SAFE_DIR_ALLOW_ALL=1)"
+    git config --global --add safe.directory '*' >/dev/null 2>&1 || _pc_optional_fail 0 "Failed to add safe.directory '*'"
   fi
 
-else
-  echo "❌ Neither micromamba nor conda found. Cannot create environment."
-  # return 1 2>/dev/null || exit 1
-fi
+  _pc_success "git safe.directory configuration complete"
+}
+
+pc_git_submodules_init() {
+  if ! _pc_has_cmd git; then
+    _pc_optional_fail 0 "git not found; skipping submodules"
+    return 0
+  fi
+
+  if [[ ! -f "$REPO_ROOT/.gitmodules" ]]; then
+    _pc_info "No .gitmodules found; skipping submodule init"
+    return 0
+  fi
+
+  _pc_info "Initializing/updating git submodules..."
+  (cd -- "$REPO_ROOT" && git submodule update --init --recursive) || _pc_optional_fail 0 "Submodule init failed"
+  _pc_success "Submodule setup complete"
+}
+
+pc_git_config_upstream() {
+  if ! _pc_has_cmd git; then
+    _pc_optional_fail 0 "git not found; skipping upstream remote config"
+    return 0
+  fi
+
+  local upstream_url="${POST_CREATE_UPSTREAM_URL:-https://github.com/scikit-plots/scikit-plots.git}"
+
+  _pc_info "Configuring upstream remote (if needed)..."
+  (cd -- "$REPO_ROOT" && git remote get-url upstream >/dev/null 2>&1) || {
+    (cd -- "$REPO_ROOT" && git remote add upstream "$upstream_url") || _pc_optional_fail 0 "Failed to add upstream remote"
+  }
+
+  _pc_info "Fetching upstream tags..."
+  (cd -- "$REPO_ROOT" && git fetch upstream --tags) || _pc_optional_fail 0 "Failed to fetch upstream tags"
+
+  _pc_success "Git remote configuration complete"
+}
+
+# ===============================================================
+# Environment runner (micromamba run / conda run)
+# ===============================================================
+
+_pc_env_kind=""  # micromamba|conda
+pc_select_env_runner() {
+  local tool="${POST_CREATE_ENV_TOOL:-auto}"
+
+  case "$tool" in
+    micromamba|conda|auto) ;;
+    *) _pc_die 2 "Invalid POST_CREATE_ENV_TOOL: $tool (expected auto|micromamba|conda)" ;;
+  esac
+
+  if [[ "$tool" == "micromamba" ]]; then
+    _pc_has_cmd micromamba || _pc_die 1 "micromamba required but not found"
+    _pc_env_kind="micromamba"
+    return 0
+  fi
+
+  if [[ "$tool" == "conda" ]]; then
+    _pc_has_cmd conda || _pc_die 1 "conda required but not found"
+    _pc_env_kind="conda"
+    return 0
+  fi
+
+  # auto (deterministic priority: micromamba then conda)
+  if _pc_has_cmd micromamba; then
+    _pc_env_kind="micromamba"
+    return 0
+  fi
+  if _pc_has_cmd conda; then
+    _pc_env_kind="conda"
+    return 0
+  fi
+
+  _pc_env_kind=""
+  return 0
+}
+
+pc_env_run() {
+  local env_name="$1"; shift || true
+  [[ -n "$env_name" ]] || _pc_die 2 "pc_env_run: env name is empty"
+  [[ -n "$_pc_env_kind" ]] || _pc_die 2 "pc_env_run: env runner not selected"
+
+  case "$_pc_env_kind" in
+    micromamba) micromamba run -n "$env_name" -- "$@" ;;
+    conda) conda run --no-capture-output -n "$env_name" -- "$@" ;;
+    *) _pc_die 2 "Unknown env runner kind: $_pc_env_kind" ;;
+  esac
+}
+
+# ===============================================================
+# Python / pip steps (explicit)
+# ===============================================================
+
+pc_pip_install_requirements() {
+  local env_name="$1"
+  local req_file="${POST_CREATE_REQUIREMENTS_FILE:-./requirements/build.txt}"
+
+  local file_path="$req_file"
+  if [[ -f "$REPO_ROOT/$req_file" ]]; then
+    file_path="$REPO_ROOT/$req_file"
+  fi
+
+  if [[ ! -f "$file_path" ]]; then
+    _pc_optional_fail 0 "Requirements file not found: $req_file"
+    return 0
+  fi
+
+  _pc_info "Installing requirements: $file_path"
+  pc_env_run "$env_name" python -m pip install --no-input -r "$file_path" || _pc_optional_fail 1 "pip requirements install failed"
+  _pc_success "Requirements installed"
+}
+
+pc_install_scikit_plots() {
+  local env_name="$1"
+
+  if [[ -n "${SCIKITPLOT_VERSION:-}" ]]; then
+    _pc_info "Installing scikit-plots from PyPI: scikit-plots==${SCIKITPLOT_VERSION}"
+    pc_env_run "$env_name" python -m pip install --no-input "scikit-plots==${SCIKITPLOT_VERSION}" \
+      || _pc_optional_fail 1 "Failed to install scikit-plots==${SCIKITPLOT_VERSION}"
+    return 0
+  fi
+
+  local extras="${POST_CREATE_LOCAL_EXTRAS:-build,dev,test,doc}"
+  local allow_fallback="${POST_CREATE_ALLOW_FALLBACK:-0}"
+  local install_extras="${POST_CREATE_INSTALL_EXTRAS:-1}"
+
+  _pc_info "Installing local scikit-plots (editable) from repo: $REPO_ROOT"
+  if [[ "$install_extras" == "1" ]]; then
+    if ! (cd -- "$REPO_ROOT" && pc_env_run "$env_name" python -m pip install --no-input --no-build-isolation --no-cache-dir -e ".[${extras}]" -v); then
+      if [[ "$allow_fallback" == "1" ]]; then
+        _pc_warn "Editable install with extras failed; falling back to minimal editable install (POST_CREATE_ALLOW_FALLBACK=1)"
+        (cd -- "$REPO_ROOT" && pc_env_run "$env_name" python -m pip install --no-input --no-build-isolation --no-cache-dir -e . -v) \
+          || _pc_optional_fail 1 "Minimal editable install failed"
+      else
+        _pc_optional_fail 1 "Editable install with extras failed (set POST_CREATE_ALLOW_FALLBACK=1 to fallback)"
+      fi
+    fi
+  else
+    (cd -- "$REPO_ROOT" && pc_env_run "$env_name" python -m pip install --no-input --no-build-isolation --no-cache-dir -e . -v) \
+      || _pc_optional_fail 1 "Minimal editable install failed"
+  fi
+
+  _pc_success "scikit-plots installation step complete"
+}
+
+pc_install_precommit() {
+  local env_name="$1"
+
+  if ! _pc_has_cmd git; then
+    _pc_optional_fail 0 "git not found; skipping pre-commit install"
+    return 0
+  fi
+
+  _pc_info "Installing pre-commit..."
+  pc_env_run "$env_name" python -m pip install --no-input pre-commit || _pc_optional_fail 1 "Failed to install pre-commit"
+
+  _pc_info "Installing pre-commit hooks..."
+  (cd -- "$REPO_ROOT" && pc_env_run "$env_name" pre-commit install) || _pc_optional_fail 0 "Failed to install pre-commit hooks"
+
+  _pc_success "pre-commit setup complete"
+}
+
+pc_show_env_info() {
+  local env_name="$1"
+  _pc_info "Environment runner: ${_pc_env_kind:-none} env=${env_name}"
+
+  if [[ -n "$_pc_env_kind" ]]; then
+    pc_env_run "$env_name" python -c 'import sys; print("python:", sys.version)' || true
+    pc_env_run "$env_name" python -m pip --version || true
+    pc_env_run "$env_name" python -m pip show scikit-plots 2>/dev/null || true
+  fi
+}
+
+pc_print_next_steps() {
+  _pc_info "Next steps:"
+  _pc_info " - Create a branch (see contribution guide):"
+  _pc_info "   https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch"
+}
+
+# ---------- defaults (explicit + canonical) ----------
+PY_VERSION="${PY_VERSION:-3.11}"
+CONDA_ENV_NAME="${CONDA_ENV_NAME:-py${PY_VERSION//./}}"
+# CONDA_ENV_FILE="${CONDA_ENV_FILE:-$REPO_ROOT/environment.yml}"
+
+# ===============================================================
+# Main
+# ===============================================================
+
+post_create_main() {
+  local old_pwd="$PWD"
+  cd -- "$REPO_ROOT" || _pc_die 1 "Failed to cd to repo root: $REPO_ROOT"
+
+  # ----- Git -----
+  if [[ "${POST_CREATE_GIT_SAFE_DIR:-1}" == "1" ]]; then
+    pc_git_safe_directories || return $?
+  fi
+  if [[ "${POST_CREATE_GIT_SUBMODULES:-1}" == "1" ]]; then
+    pc_git_submodules_init || return $?
+  fi
+  if [[ "${POST_CREATE_GIT_UPSTREAM:-1}" == "1" ]]; then
+    pc_git_config_upstream || return $?
+  fi
+
+  # ----- Environment selection -----
+  pc_select_env_runner || return $?
+  local env_name="${POST_CREATE_ENV_NAME:-${ENV_NAME:-${CONDA_ENV_NAME:-py311}}}"
+
+  if [[ -z "$_pc_env_kind" ]]; then
+    if [[ "${POST_CREATE_ENV_REQUIRED:-0}" == "1" ]]; then
+      _pc_die 1 "No environment tool found (micromamba/conda)."
+    fi
+    _pc_warn "No environment tool found (micromamba/conda); skipping pip/package steps"
+    cd -- "$old_pwd" || true
+    return 0
+  fi
+
+  _pc_info "Using env tool: $_pc_env_kind (env: $env_name)"
+
+  # ----- Python steps -----
+  if [[ "${POST_CREATE_PIP_REQUIREMENTS:-1}" == "1" ]]; then
+    pc_pip_install_requirements "$env_name" || return $?
+  fi
+
+  if [[ "${POST_CREATE_INSTALL_PACKAGE:-1}" == "1" ]]; then
+    pc_install_scikit_plots "$env_name" || return $?
+  fi
+
+  if [[ "${POST_CREATE_INSTALL_PRECOMMIT:-1}" == "1" ]]; then
+    pc_install_precommit "$env_name" || return $?
+  fi
+
+  if [[ "${POST_CREATE_SHOW_ENV_INFO:-0}" == "1" ]]; then
+    pc_show_env_info "$env_name"
+  fi
+
+  if [[ "${POST_CREATE_PRINT_NEXT_STEPS:-1}" == "1" ]]; then
+    pc_print_next_steps
+  fi
+
+  cd -- "$old_pwd" || true
+  _pc_success "post_create_commands: complete"
+  return 0
+}
+
+post_create_main
 
 ######################################################################
 ## 📦 starting a new interactive shell, and running some-command inside that new shell, not in the current shell.
@@ -219,108 +424,5 @@ fi
 ## Double quotes for the outer string and escaping the inner double quotes or use single
 ## awk '/"/ && !/\\"/ && !/".*"/ { print NR ": " $0 }' .devcontainer/scripts/post_create_commands.sh
 ######################################################################
-
 ## Activate the environment and install required packages in new interactive shell
-bash -i -c "
-## Use || exit 0: exits cleanly if the command fails (stops the script).
-## Use || true: absorbs the error, continues ( skip logic).
-## 👉 Some steps can be skipped when container creation due to storage size limitations
-## ⚠️ If mamba isn't initialized in the shell (as often happens in Docker/CI)
-## source \${MAMBA_ROOT_PREFIX:-~/micromamba}/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh || true
-
-set -euo pipefail
-set +u  # Temporarily disable unbound variable error
-# set -u  # Re-enable afterwards (if needed)
-
-## echo -e '\033[1;34m>> Checking and activating environment...\033[0m'
-printf '\033[1;34m>> Checking and activating environment...\033[0m\n'
-## Try micromamba first (faster and more portable), then fallback to conda
-## Choose micromamba if available, otherwise fallback to conda
-micromamba activate ${ENV_NAME:-py311} || conda activate ${ENV_NAME:-py311} || { . ~/.$(basename $SHELL)rc; } || true
-
-## echo -e '\033[1;32m## Installing development dependencies...\033[0m'
-printf '\033[1;32m## Installing development dependencies...\033[0m\n'
-## pip install -r ./requirements/all.txt || true
-## pip install -r ./requirements/cpu.txt || true
-pip install -r ./requirements/build.txt || true
-
-# ──────────────────────────────────────────────────────────────
-# 📦 Installing scikit-plots version
-# ──────────────────────────────────────────────────────────────
-## echo -e '\033[1;32m## Installing editable scikit-plots dev version...\033[0m\n'
-printf '\033[1;32m## Installing scikit-plots (Release or Dev)...\033[0m\n'
-
-# Install logic
-if [ -n \${SCIKITPLOT_VERSION:-} ]; then
-  echo 📦 Installing scikit-plots version: \${SCIKITPLOT_VERSION}
-  if ! pip install scikit-plots==\${SCIKITPLOT_VERSION}; then
-    { echo ⚠️ Failed to install version \${SCIKITPLOT_VERSION}, trying latest release...; }
-    pip install scikit-plots || echo ❌ Failed to install scikit-plots from PyPI
-  fi
-
-else
-  echo 🛠️ Installing development version of scikit-plots from local source...
-  if ! pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v; then
-    echo ⚠️ Failed to install full dev extras, retrying with minimal setup...
-    if ! pip install --no-build-isolation --no-cache-dir -e . -v; then
-      { echo ❌ Failed to install local development version of scikit-plots; }
-    fi
-  fi
-fi
-
-# ──────────────────────────────────────────────────────────────
-# 🧹 Install and set up pre-commit hooks
-# ──────────────────────────────────────────────────────────────
-## echo -e '\033[1;32m## Installing pre-commit...\033[0m\n'
-printf '\033[1;32m## Installing pre-commit...\033[0m\n'
-
-# Step 1: Install pre-commit
-if ! pip install pre-commit; then
-  { echo '❌ Failed to install pre-commit'; }
-else
-  printf '\033[1;32m## Installing pre-commit hooks...\033[0m\n'
-
-  # Step 2: Attempt to cd into known project directories
-  for p in /workspaces/scikit-plots /work/scikit-plots /home/jovyan/work/scikit-plots; do
-    if [ -d \$p ]; then
-      cd \$p || continue
-      break
-    fi
-  done
-
-  # Step 3: Install hooks only if pre-commit is available
-  if command -v pre-commit >/dev/null 2>&1; then
-    pre-commit install || { echo '⚠️ Failed to initialize pre-commit hooks'; }
-  else
-    { echo '⚠️ pre-commit command not found even after install'; }
-  fi
-fi
-"
-
-######################################################################
-## ℹ️  Environment & Package Info (if available)
-######################################################################
-# Re-source shell config to ensure activation takes effect
-# shellcheck disable=SC1090
-# source ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-. ~/."$(basename $SHELL)"rc || true
-
-print_info2 "🔍 Conda Environments:"
-# conda info -e | grep -iw '\*' || true
-conda info -e 2>/dev/null || echo "⚠️  Conda not found or not configured"
-
-print_info2 "🔍 Micromamba Environments:"
-micromamba info -e 2>/dev/null || echo "⚠️  Micromamba not found or not configured"
-
-print_info2 "📦 scikit-plots version:"
-scikitplot -V 2>/dev/null || echo "⚠️  scikitplot command not found"
-
-######################################################################
-## 📘 Next Steps and Contribution Guide
-######################################################################
-print_info2 "➡️  Continue to the section below: 'Creating a Branch'"
-print_info2 "📖 Read more at: $(print_url https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch)"
-
-######################################################################
-## . (if possible)
-######################################################################
+# bash -i -c ""

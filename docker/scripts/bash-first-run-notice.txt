@@ -17,7 +17,7 @@
   $ bash docker/scripts/all_post_create.sh
 
 ✅  Git Safe Configs:
-  $ # bash docker/scripts/safe_dirs.sh  # add safe directories for git
+  $ # bash docker/scripts/git_add_safe_dirs.sh  # add safe directories for git
   $ git config --global --add safe.directory '*'
 
 ✅  (Optionally) Git Submodules Clone/Download/Initialize Configs, Not Needed Every Time:

@@ -38,21 +38,36 @@
 ## ARG: You can override it during the docker build with --build-arg.
 ## Ubuntu 20.04 (focal), https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
 ARG BASE_IMAGE=jupyter/scipy-notebook:latest
-ARG EXTENDED_PACKAGES=false
 ARG SCIKITPLOT_VERSION=0.4.0.post9
+ARG PY_VERSION=3.11
+ARG EXTENDED_PACKAGES=false
 
 ## Use the argument to specify the base image
 FROM ${BASE_IMAGE} AS base
 ## ⚠️ ARG may specified again because the FROM directive resets ARGs
 ## (but their default value is retained if set previously)
 
-ARG EXTENDED_PACKAGES
 ARG SCIKITPLOT_VERSION
+ARG PY_VERSION
+ARG EXTENDED_PACKAGES
 
-## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
-ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
+# Optional heavy OS packages (OFF by default)
+ARG APT_INSTALL_DEVTOOLS=1
+# Needed if you want conda env active for subsequent shell-form RUN steps
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+# Path to the conda environment spec inside the build context
+ARG ENV_FILE=docker/env_conda/environment.yml
+# Optional: run repo post-create scripts at build time (OFF by default)
+ARG RUN_POST_CREATE=1
 
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
+## Use ENV with shell-style expansion to get ENV_NAME=py3.11
+## Replace '.' in PY_VERSION to get py311 instead of py3.11
+# ENV ENV_NAME=${ENV_NAME:-py$(printf '%s' "$PY_VERSION" | tr -d '.')}
+## Bash-style string substitution syntax (${VAR//./})
+ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
+## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
+ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
 
 ## Set environment variable to avoid interactive prompts during builds
 ## Prevent apt install tzinfo from asking our location (assumes UTC)
@@ -190,8 +205,8 @@ RUN apt-get update; \
   ## && echo "${NB_USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   ; \
   ## Cleanup to reduce image size
-  apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+  apt-get clean; \
+  rm -rf /var/lib/apt/lists/*
 
 ######################################################################
 ## OS dependencies
@@ -309,8 +324,8 @@ RUN apt-get update --yes; \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; }; \
   ## Cleanup to reduce image size
-  apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+  apt-get clean; \
+  rm -rf /var/lib/apt/lists/*
 
 ## Add a second conditional RUN block for large or optional packages:
 RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
@@ -355,14 +370,30 @@ USER ${NB_UID}
 ######################################################################
 ## Set working directory inside the container
 WORKDIR /tmp
+
 COPY requirements ./requirements/
 COPY docker ./docker/
 COPY docker/env_conda/environment.yml ./
 
 ## micromamba and post create steps
-# RUN bash -i -c ". ./docker/scripts/all_post_create.sh"
 ## Make sure there’s a space between the variable assignment and the . for sourcing.
-RUN bash -i -c "SKIP_MICROMAMBA=${SKIP_MICROMAMBA:=true} . ./docker/scripts/all_post_create.sh"
+# RUN bash -i -c "SKIP_CONDA=${SKIP_CONDA:=true} . ./docker/scripts/all_post_create.sh"
+# RUN bash -i -c "SKIP_MICROMAMBA=${SKIP_MICROMAMBA:=true} . ./docker/scripts/all_post_create.sh"
+# Optional: reuse your post-create orchestration during build
+# NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
+RUN if [ "${RUN_POST_CREATE}" = "1" ]; then \
+  POST_CREATE_RUN_CONDA=0 \
+  POST_CREATE_RUN_MAMBA=1 \
+  POST_CREATE_RUN_FIRST_NOTICE=1 \
+  POST_CREATE_RUN_POST_CREATE=1 \
+  MICROMAMBA_ALLOW_INSTALL=1 \
+  MICROMAMBA_INSTALL_MODE=api \
+  MICROMAMBA_VERIFY=1 \
+  MICROMAMBA_CLEAN=1 \
+  POST_CREATE_ENV_REQUIRED=1 \
+  POST_CREATE_ENV_TOOL=micromamba \
+  bash docker/scripts/all_post_create.sh; \
+fi
 
 ######################################################################
 ## default environment (e.g. conda, mamba, pipenv)
