@@ -48,7 +48,14 @@
 # export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-/d/micromamba}"  # D:/micromamba
 : "${CONDA_ROOT_PREFIX:=/opt/conda}"  # Default to /opt/conda if CONDA_ROOT_PREFIX is not set
 : "${MAMBA_ROOT_PREFIX:=${HOME:-/root}/micromamba}"  # Default to ~/micromamba if MAMBA_ROOT_PREFIX is not set
-#
+
+# >>> micromamba auto-activate (managed) >>>
+if command -v micromamba >/dev/null 2>&1; then
+  eval "$(micromamba shell hook --shell bash)"
+  micromamba activate \"${ENV_NAME:=py311}\" >/dev/null 2>&1 || true
+fi
+# <<< micromamba auto-activate (managed) <<<
+
 ## readonly locks it, this locks the variable so it cannot be reassigned accidentally later in the script.
 # readonly MAMBA_ROOT_PREFIX
 #

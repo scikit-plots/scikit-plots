@@ -1,189 +1,76 @@
 #!/usr/bin/env bash
-#
 # docker/scripts/env_micromamba.sh
-#
-# bash docker/scripts/env_micromamba.sh
-# MICROMAMBA_ALLOW_INSTALL=1 MICROMAMBA_INSTALL_MODE=api bash docker/scripts/env_micromamba.sh
-# MICROMAMBA_ALLOW_INSTALL=1 MICROMAMBA_INSTALL_MODE=script MICROMAMBA_INSTALL_INTERACTIVE=1 \
-# bash docker/scripts/env_micromamba.sh
-# MICROMAMBA_SHELL_INIT=1 MICROMAMBA_ADD_AUTO_ACTIVATE=1 \
-# bash docker/scripts/env_micromamba.sh
-# MICROMAMBA_VERIFY=1 bash docker/scripts/env_micromamba.sh
-#
 # ===============================================================
-# Micromamba environment setup (Bash)
+# Micromamba environment setup (Bash-contract)
 # ===============================================================
 # USER NOTES
 # - This script is intended for Dev Containers / Docker postCreate usage.
-# - It is STRICT by default:
-#     - no OS package installs
-#     - no micromamba install
-#     - no shell rc modification
-#   Everything "heavy" is opt-in via env vars.
+# - Default behavior is STRICT + LIGHTWEIGHT:
+#     - will NOT install OS packages
+#     - will NOT modify shell rc files
+#     - will NOT install micromamba unless explicitly allowed
+#     - will NOT install extra packages into base unless explicitly allowed
+#
+# - Recommended usage (postCreate):
+#     bash docker/scripts/env_micromamba.sh
+#
+# - Optional installs:
+#     MICROMAMBA_ALLOW_INSTALL=1 MICROMAMBA_INSTALL_MODE=api bash docker/scripts/env_micromamba.sh
 #
 # DEV NOTES
-# - This is a Bash script (uses pipefail, arrays, ${var,,}, etc.)
-# - It may be EXECUTED (postCreate) or SOURCED (interactive shell).
-# - Activation only makes sense when sourced; executed scripts cannot
-#   persist environment activation into the parent shell.
+# - Bash-only by contract.
+# - Safe to source: sourcing defines functions only; no traps/options are applied.
+# - The "work" happens in env_micromamba_main; executed script calls it automatically.
 #
-# CONFIG (explicit flags; no silent fallbacks)
-# - SKIP_MICROMAMBA=1                : skip entire script
-# - MICROMAMBA_ALLOW_INSTALL=1       : allow installing micromamba if missing
+# CONFIG (explicit flags)
+# - SKIP_MICROMAMBA=1
+# - MICROMAMBA_ALLOW_INSTALL=1
 # - MICROMAMBA_INSTALL_MODE=api|script
-#     api    : download tarball from micro.mamba.pm API (non-interactive)
-#     script : run official install.sh (may prompt; requires MICROMAMBA_INSTALL_INTERACTIVE=1)
-# - MICROMAMBA_INSTALL_INTERACTIVE=1 : allow running install.sh (prompts)
+# - MICROMAMBA_INSTALL_INTERACTIVE=1          (required for script mode)
+# - MICROMAMBA_BIN_DIR=$HOME/.local/bin
+# - MAMBA_ROOT_PREFIX=$HOME/micromamba
 #
-# - PY_VERSION=3.11                  : used only if you create env from packages (optional)
-# - ENV_NAME=py311                   : expected env name (used for checks / optional activation)
-# - ENV_FILE=environment.yml         : file used for env creation (default: ./environment.yml)
+# - PY_VERSION=3.11
+# - ENV_NAME=py311
+# - ENV_FILE=$REPO_ROOT/environment.yml
 #
-# - MAMBA_ROOT_PREFIX=$HOME/micromamba : root prefix for micromamba (default matches common installer)
-# - MICROMAMBA_SHELL_INIT=1          : run `micromamba shell init ...` (modifies rc)
-# - MICROMAMBA_RC_FILE=~/.bashrc     : rc file target for optional activation snippet
-# - MICROMAMBA_ADD_AUTO_ACTIVATE=1   : append auto-activate ENV_NAME in rc (idempotent)
-# - MICROMAMBA_VERIFY=1              : verify env by running `python -V` inside it
-# - MICROMAMBA_CLEAN=1               : clean micromamba + caches (optional)
+# - MICROMAMBA_SHELL_INIT=1                   (modifies rc via micromamba)
+# - MICROMAMBA_ADD_AUTO_ACTIVATE=1            (appends snippet to MICROMAMBA_RC_FILE)
+# - MICROMAMBA_RC_FILE=$HOME/.bashrc
 #
-# - POST_CREATE_STRICT=1             : treat warnings as errors (optional)
+# - MICROMAMBA_VERIFY=1                       (runs python -V inside env)
+# - MICROMAMBA_CLEAN=1                        (cleans caches)
+#
+# - MICROMAMBA_CONFIGURE_BASE=1               (installs PY_VERSION/ipykernel/pip into base)
+# - MICROMAMBA_WRITE_CONDARC=1                (writes /opt/conda/.condarc if permitted)
+#
+# - POST_CREATE_STRICT=1                      (warnings become errors)
 # ===============================================================
 
-set -Eeuo pipefail
+if [[ -z "${BASH_VERSION:-}" ]]; then
+  exec bash "$0" "$@"
+fi
 
-is_sourced() {
-  # Deterministic bash check
-  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+env_micromamba_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
+
+env_micromamba_exit_or_return() {
+  local rc="${1:-0}"
+  if env_micromamba_is_sourced; then return "$rc"; else exit "$rc"; fi
 }
 
-exit_or_return() {
-  local code="${1:-0}"
-  if is_sourced; then
-    return "$code"
-  else
-    exit "$code"
-  fi
-}
-
-# ---------- truthy parsing (bash) ----------
-## Normalize to lowercase and handle multiple truthy values
-## value=$(echo "$SKIP_CONDA" | tr '[:upper:]' '[:lower:]')
-## case "$(printf '%s' $SKIP_CONDA | tr '[:upper:]' '[:lower:]')" in
-is_true() {
-  # Usage: is_true "$VAL"
-  # Returns 0 for: 1,true,yes,on  (case-insensitive)
+env_micromamba_is_true() {
   local v="${1:-}"
-  v="${v,,}"
-  case "$v" in
-    1|true|yes|y|on) return 0 ;;
-    0|false|no|n|off|"") return 1 ;;
-    *) return 1 ;;
-  esac
+  v="$(printf '%s' "$v" | tr '[:upper:]' '[:lower:]')"
+  case "$v" in 1|true|yes|y|on) return 0 ;; *) return 1 ;; esac
 }
 
-# ---------- Error reporting ----------
-_on_err() {
-  local lineno="$1"
-  local cmd="$2"
-  printf '%s\n' "[ERROR] env_micromamba.sh failed at line ${lineno}: ${cmd}" >&2
-  exit_or_return 1
-}
-# trap 'rc=$?; echo "[ERROR] env_micromamba.sh failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
-trap '_on_err "$LINENO" "$BASH_COMMAND"' ERR
+env_micromamba_has_cmd() { command -v "$1" >/dev/null 2>&1; }
 
-# ---------- Source shared POSIX library (optional, but preferred) ----------
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
-# Source the POSIX common library (works in bash). Re-apply bash strict after.
-COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
-if [[ -f "$COMMON_SH" ]]; then
-  # common.sh is POSIX; safe to source from bash.
-  # It sets `set -eu` internally; we re-apply bash strict mode after.
-  # shellcheck source=/dev/null
-  . "$COMMON_SH"
-  set -Eeuo pipefail
-else
-  # Minimal fallback logger if common.sh is missing.
-  log() { printf '%s\n' "$*" >&2; }
-  log_error_code() { local code="${1:-1}"; shift || true; log "[ERROR] $*"; exit "$code"; }
-  log_error() { log "[ERROR] $*"; exit 1; }
-  log_warning() { log "[WARNING] $*"; }
-  log_info() { log "[INFO] $*"; }
-  log_success() { printf '%s\n' "[SUCCESS] $*" >&2; }
-  log_debug()   { :; }
-  has_cmd() { command -v "$1" >/dev/null 2>&1; }
-fi
+env_micromamba_script_dir() { ( cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P ); }
 
-POST_CREATE_STRICT="${POST_CREATE_STRICT:-0}"
-
-# ---------- Helpers ----------
-maybe_fail() {
-  # Usage: maybe_fail "message"
-  if [[ "$POST_CREATE_STRICT" == "1" ]]; then
-    log_error_code 1 "$1"
-  else
-    log_warning "$1"
-  fi
-}
-
-# ---------- Skip gate ----------
-SKIP_MICROMAMBA="${SKIP_MICROMAMBA:-0}"
-if is_true "$SKIP_MICROMAMBA"; then
-  log_status "SKIP_MICROMAMBA=1 -> skipping micromamba setup"
-  exit_or_return 0
-fi
-
-# ---------- Config defaults (documented) ----------
-PY_VERSION="${PY_VERSION:-3.11}"
-ENV_NAME="${ENV_NAME:-py${PY_VERSION//./}}"
-ENV_FILE="${ENV_FILE:-$REPO_ROOT/environment.yml}"
-
-# Matches common micromamba installer default prefix ("~/micromamba")
-MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-$HOME/micromamba}"
-export MAMBA_ROOT_PREFIX
-
-MICROMAMBA_ALLOW_INSTALL="${MICROMAMBA_ALLOW_INSTALL:-0}"
-MICROMAMBA_INSTALL_MODE="${MICROMAMBA_INSTALL_MODE:-api}"  # api|script
-MICROMAMBA_INSTALL_INTERACTIVE="${MICROMAMBA_INSTALL_INTERACTIVE:-0}"
-
-MICROMAMBA_SHELL_INIT="${MICROMAMBA_SHELL_INIT:-0}"
-MICROMAMBA_RC_FILE="${MICROMAMBA_RC_FILE:-$HOME/.bashrc}"
-MICROMAMBA_ADD_AUTO_ACTIVATE="${MICROMAMBA_ADD_AUTO_ACTIVATE:-0}"
-
-MICROMAMBA_VERIFY="${MICROMAMBA_VERIFY:-0}"
-MICROMAMBA_CLEAN="${MICROMAMBA_CLEAN:-0}"
-
-# ===============================================================
-# Helpers
-# ===============================================================
-
-ensure_dir() {
-  local d="$1"
-  [[ -n "$d" ]] || log_error "ensure_dir: empty path"
-  [[ -d "$d" ]] || mkdir -p -- "$d"
-}
-
-append_line_once() {
-  # Idempotently append a line to a file.
-  # Usage: append_line_once FILE "line"
-  local file="$1"
-  local line="$2"
-  ensure_dir "$(dirname -- "$file")"
-  touch -- "$file"
-  if ! grep -Fqx -- "$line" "$file" 2>/dev/null; then
-    printf '%s\n' "$line" >> "$file"
-  fi
-}
-
-detect_os() {
-  local uname_s
-  if command -v uname >/dev/null 2>&1; then
-    uname_s="$(uname -s 2>/dev/null || printf '%s' unknown)"
-  else
-    uname_s="unknown"
-  fi
-
-  case "$uname_s" in
+env_micromamba_detect_os() {
+  local s; s="$(uname -s 2>/dev/null || printf '%s' unknown)"
+  case "$s" in
     Linux) echo "linux" ;;
     Darwin) echo "macos" ;;
     MINGW*|MSYS*|CYGWIN*) echo "windows-gitbash" ;;
@@ -191,126 +78,93 @@ detect_os() {
   esac
 }
 
-detect_arch() {
-  local uname_m
-  if command -v uname >/dev/null 2>&1; then
-    uname_m="$(uname -m 2>/dev/null || printf '%s' unknown)"
-  else
-    uname_m="unknown"
-  fi
-
-  # normalize
-  uname_m="$(printf '%s' "$uname_m" | tr '[:upper:]' '[:lower:]')"
-
-  case "$uname_m" in
-    i386|i486|i586|i686|x86)
-      # Canonical: treat as 32-bit x86
-      echo "x86" ;;
-    x86_64|amd64|*amd64*)
-      echo "x86_64" ;;
-    aarch64|arm64)
-      echo "arm64" ;;
-    *)
-      echo "unknown" ;;
+env_micromamba_detect_arch() {
+  local m; m="$(uname -m 2>/dev/null || printf '%s' unknown)"
+  m="$(printf '%s' "$m" | tr '[:upper:]' '[:lower:]')"
+  case "$m" in
+    x86_64|amd64|*amd64*) echo "x86_64" ;;
+    aarch64|arm64)        echo "arm64" ;;
+    *)                    echo "unknown" ;;
   esac
 }
 
-micromamba_api_platform() {
-  # Deterministic override (recommended for buildx):
-  # MICROMAMBA_API_PLATFORM=linux-64|linux-aarch64|osx-64|osx-arm64|win-64
-  if [[ -n "${MICROMAMBA_API_PLATFORM:-}" ]]; then
-    echo "${MICROMAMBA_API_PLATFORM}"
-    return 0
-  fi
-
-  # detect_os/detect_arch common.sh'den gelmeli; yoksa strict fail
-  type detect_os   >/dev/null 2>&1 || log_error "detect_os not found (source common.sh before calling micromamba_api_platform)"
-  type detect_arch >/dev/null 2>&1 || log_error "detect_arch not found (source common.sh before calling micromamba_api_platform)"
+env_micromamba_api_platform() {
+  [[ -n "${MICROMAMBA_API_PLATFORM:-}" ]] && { printf '%s\n' "$MICROMAMBA_API_PLATFORM"; return 0; }
 
   local os arch
-  os="$(detect_os)"
-  arch="$(detect_arch)"
+  os="$(env_micromamba_detect_os)"
+  arch="$(env_micromamba_detect_arch)"
 
-  if [[ "$os" == "unknown" || "$arch" == "unknown" ]]; then
-    log_error "Cannot detect platform (os=$os arch=$arch). Set MICROMAMBA_API_PLATFORM explicitly (e.g. linux-64, linux-aarch64)."
-  fi
+  [[ "$os" != "unknown" && "$arch" != "unknown" ]] || {
+    echo "[ERROR] Cannot detect platform (os=$os arch=$arch). Set MICROMAMBA_API_PLATFORM." >&2
+    return 2
+  }
 
-  case "${os}/${arch}" in
+  case "$os/$arch" in
     linux/x86_64) echo "linux-64" ;;
     linux/arm64)  echo "linux-aarch64" ;;
     macos/x86_64) echo "osx-64" ;;
     macos/arm64)  echo "osx-arm64" ;;
     windows-gitbash/*) echo "win-64" ;;
-    *) log_error "No micromamba API mapping for OS=$os ARCH=$arch (set MICROMAMBA_API_PLATFORM explicitly)" ;;
+    *) echo "[ERROR] No mapping for os=$os arch=$arch (set MICROMAMBA_API_PLATFORM)" >&2; return 2 ;;
   esac
 }
 
-micromamba_api_url() {
-  local p
-  p="$(micromamba_api_platform)"
-  echo "https://micro.mamba.pm/api/micromamba/${p}/latest"
+env_micromamba_api_url() {
+  local p; p="$(env_micromamba_api_platform)" || return $?
+  # documented magic URL returns latest tarball stream :contentReference[oaicite:3]{index=3}
+  printf '%s\n' "https://micro.mamba.pm/api/micromamba/${p}/latest"
 }
 
-install_micromamba_via_api() {
-  # Non-interactive install:
-  # - downloads tar.bz2 from micro.mamba.pm
-  # - extracts micromamba binary into MICROMAMBA_BIN_DIR (default ~/.local/bin)
-  #
-  # Requires: curl or wget, tar
-  # bzip2 is not pre-checked; we attempt extraction and fail with guidance if needed.
-
-  local url bin_dir tmp tarball platform
-
-  platform="$(micromamba_api_platform)"
-  url="$(micromamba_api_url)"
-
-  has_cmd tar || log_error "tar is required for micromamba api install"
-
-  bin_dir="${MICROMAMBA_BIN_DIR:-$HOME/.local/bin}"
-  ensure_dir "$bin_dir"
-
-  tmp="$(mktemp_dir micromamba 2>/dev/null || true)"
-  [[ -n "$tmp" ]] || tmp="$(mktemp -d 2>/dev/null || true)"
-  [[ -n "$tmp" ]] || log_error "Failed to create temp dir"
-
-  tarball="$tmp/micromamba.tar.bz2"
-
-  log_info "Downloading micromamba (${platform}): $url"
-  if has_cmd curl; then
-    curl -fsSL "$url" -o "$tarball"
-  elif has_cmd wget; then
-    wget -qO "$tarball" "$url"
+env_micromamba_default_bin_dir() {
+  if [[ -n "${MICROMAMBA_BIN_DIR:-}" ]]; then
+    printf '%s\n' "$MICROMAMBA_BIN_DIR"
+    return 0
+  fi
+  # deterministic: prefer /usr/local/bin if writable, else ~/.local/bin
+  if [[ -w "/usr/local/bin" ]]; then
+    printf '%s\n' "/usr/local/bin"
   else
-    log_error "Need curl or wget to download micromamba"
+    printf '%s\n' "$HOME/.local/bin"
   fi
+}
 
-  # Try extraction; if it fails, tell the user what to install (strict).
-  if ! tar -xjf "$tarball" -C "$tmp" 2>/dev/null; then
-    log_error "Failed to extract micromamba tarball (tar -xjf). Install bzip2 support (e.g., apt-get install -y bzip2) or use a base image with bzip2 enabled."
-  fi
+env_micromamba_install_via_api() {
+  # runs in a subshell so temp cleanup traps do not clobber caller traps
+  (
+    set -Eeuo pipefail
+    local platform url bin_dir tmp
+    platform="$(env_micromamba_api_platform)"
+    url="$(env_micromamba_api_url)"
+    bin_dir="$(env_micromamba_default_bin_dir)"
+    mkdir -p -- "$bin_dir"
 
-  # Install binary (prefer `install`, fallback to cp+chmod)
-  if [[ -f "$tmp/bin/micromamba" ]]; then
-    if has_cmd install; then
-      install -m 0755 "$tmp/bin/micromamba" "$bin_dir/micromamba"
+    env_micromamba_has_cmd tar || { echo "[ERROR] tar is required" >&2; exit 2; }
+    (env_micromamba_has_cmd curl || env_micromamba_has_cmd wget) || { echo "[ERROR] need curl or wget" >&2; exit 2; }
+
+    tmp="$(mktemp -d 2>/dev/null)" || { echo "[ERROR] mktemp -d failed" >&2; exit 2; }
+    trap 'rm -rf -- "$tmp" 2>/dev/null || true' EXIT
+
+    echo "[INFO] Downloading micromamba (${platform})" >&2
+
+    # stream extract (official docs pattern) :contentReference[oaicite:4]{index=4}
+    if env_micromamba_has_cmd curl; then
+      (cd -- "$tmp" && curl -fsSL "$url" | tar -xvj "bin/micromamba")
     else
-      cp "$tmp/bin/micromamba" "$bin_dir/micromamba"
-      chmod 0755 "$bin_dir/micromamba"
+      (cd -- "$tmp" && wget -qO- "$url" | tar -xvj "bin/micromamba")
     fi
-  elif [[ -f "$tmp/micromamba" ]]; then
-    if has_cmd install; then
-      install -m 0755 "$tmp/micromamba" "$bin_dir/micromamba"
-    else
-      cp "$tmp/micromamba" "$bin_dir/micromamba"
-      chmod 0755 "$bin_dir/micromamba"
-    fi
-  else
-    log_error "micromamba binary not found after extraction"
-  fi
 
-  cleanup_dir "$tmp" 2>/dev/null || true
-  export PATH="$bin_dir:$PATH"
-  log_success "Installed micromamba to: $bin_dir/micromamba"
+    if [[ ! -f "$tmp/bin/micromamba" ]]; then
+      echo "[ERROR] extracted micromamba not found" >&2
+      exit 2
+    fi
+
+    install -m 0755 "$tmp/bin/micromamba" "$bin_dir/micromamba" 2>/dev/null || {
+      cp "$tmp/bin/micromamba" "$bin_dir/micromamba" && chmod 0755 "$bin_dir/micromamba"
+    }
+
+    echo "[SUCCESS] micromamba installed -> $bin_dir/micromamba" >&2
+  )
 }
 
 # # if ! command -v micromamba &> /dev/null; then
@@ -336,156 +190,104 @@ install_micromamba_via_api() {
 install_micromamba_via_script() {
   # Runs the official install.sh (may prompt).
   # This is intentionally blocked unless MICROMAMBA_INSTALL_INTERACTIVE=1.
-  if ! is_true "$MICROMAMBA_INSTALL_INTERACTIVE"; then
-    log_error "MICROMAMBA_INSTALL_MODE=script requires MICROMAMBA_INSTALL_INTERACTIVE=1 (install.sh prompts)"
-  fi
-  has_cmd curl || log_error "curl is required for script install"
-  log_info "Running official micromamba installer (interactive)"
+  env_micromamba_has_cmd curl || echo "[ERROR] curl is required for script install"
+  echo "[INFO] Running official micromamba installer (interactive)"
   bash <(curl -fsSL "https://micro.mamba.pm/install.sh")
   # Installer may place micromamba in ~/.local/bin; make it visible in this process.
   export PATH="$HOME/.local/bin:$PATH"
 }
 
-ensure_micromamba_available() {
-  if has_cmd micromamba; then
+env_micromamba_ensure_available() {
+  if env_micromamba_has_cmd micromamba; then
     return 0
   fi
 
-  if ! is_true "$MICROMAMBA_ALLOW_INSTALL"; then
-    log_error "micromamba not found. Set MICROMAMBA_ALLOW_INSTALL=1 to allow install, or preinstall micromamba (recommended)."
+  # default: install if missing (you requested that)
+  if ! env_micromamba_is_true "${MICROMAMBA_ALLOW_INSTALL:-1}"; then
+    echo "[ERROR] micromamba not found and MICROMAMBA_ALLOW_INSTALL=0" >&2
+    return 2
   fi
 
-  case "$MICROMAMBA_INSTALL_MODE" in
-    api) install_micromamba_via_api ;;
+  case "${MICROMAMBA_INSTALL_MODE:-api}" in
+    api) env_micromamba_install_via_api ;;
     script) install_micromamba_via_script ;;
-    *) log_error "Unknown MICROMAMBA_INSTALL_MODE: $MICROMAMBA_INSTALL_MODE (use api|script)" ;;
+    *) echo "[ERROR] MICROMAMBA_INSTALL_MODE must be 'api|script' (or implement others)" >&2; return 2 ;;
   esac
 
-  has_cmd micromamba || log_error "micromamba install did not make micromamba available in PATH"
+  local bin_dir; bin_dir="$(env_micromamba_default_bin_dir)"
+  export PATH="$bin_dir:$PATH"
+  hash -r 2>/dev/null || true
+
+  env_micromamba_has_cmd micromamba || { echo "[ERROR] micromamba still not in PATH after install" >&2; return 2; }
 }
 
-micromamba_env_exists() {
+env_micromamba_env_exists() {
   local name="$1"
-  micromamba env list | awk 'NF>0 && $1 !~ /^#/ {print $1}' | grep -Fxq -- "$name"
+  micromamba env list | awk 'NF && $1 !~ /^#/ {print $1}' | grep -Fxq -- "$name"
 }
 
-create_env_from_file() {
-  local env_file="$1"
-  [[ -f "$env_file" ]] || log_error "ENV_FILE not found: $env_file"
-  log_info "Creating environment from file: $env_file"
-  micromamba env create -f "$env_file" --yes
-}
+env_micromamba_main() {
+  # Save caller shell options/trap, restore inline (NO trap RETURN)
+  local __old_set __old_trap_err
+  __old_set="$(set +o)"
+  __old_trap_err="$(trap -p ERR || true)"
 
-shell_init_optional() {
-  if ! is_true "$MICROMAMBA_SHELL_INIT"; then
-    return 0
-  fi
-  log_info "Initializing micromamba shell integration (may modify rc files)"
-  micromamba shell init -s bash -p "$MAMBA_ROOT_PREFIX"
-}
+  set -Eeuo pipefail
+  trap 'rc=$?; echo "[ERROR] env_micromamba.sh failed at line $LINENO: ${BASH_COMMAND-<cmd>} (exit=$rc)" >&2; return $rc' ERR
 
-add_auto_activate_optional() {
-  if ! is_true "$MICROMAMBA_ADD_AUTO_ACTIVATE"; then
-    return 0
-  fi
+  local SCRIPT_DIR REPO_ROOT
+  SCRIPT_DIR="$(env_micromamba_script_dir)"
+  REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
 
-  # Canonical: append a small guarded snippet to rc.
-  local marker_begin marker_end
-  marker_begin="# >>> micromamba auto-activate (managed) >>>"
-  marker_end="# <<< micromamba auto-activate (managed) <<<"
-
-  log_info "Configuring auto-activation in: $MICROMAMBA_RC_FILE"
-  # eval "$(micromamba shell hook --shell $(basename ${SHELL:-/bin/bash}))" || echo "⚠️ Failed to enable micromamba shell hook"
-  append_line_once "$MICROMAMBA_RC_FILE" "$marker_begin"
-  append_line_once "$MICROMAMBA_RC_FILE" 'if command -v micromamba >/dev/null 2>&1; then'
-  append_line_once "$MICROMAMBA_RC_FILE" '  eval "$(micromamba shell hook --shell bash)"'
-  append_line_once "$MICROMAMBA_RC_FILE" "  micromamba activate \"${ENV_NAME}\" >/dev/null 2>&1 || true"
-  append_line_once "$MICROMAMBA_RC_FILE" 'fi'
-  append_line_once "$MICROMAMBA_RC_FILE" "$marker_end"
-}
-
-verify_env_optional() {
-  if ! is_true "$MICROMAMBA_VERIFY"; then
-    return 0
-  fi
-  log_info "Verifying environment '$ENV_NAME' (python -V)"
-  micromamba run -n "$ENV_NAME" python -V
-}
-
-clean_optional() {
-  if ! is_true "$MICROMAMBA_CLEAN"; then
+  if env_micromamba_is_true "${SKIP_MICROMAMBA:-0}"; then
+    echo "[INFO] SKIP_MICROMAMBA=1 -> skipping micromamba" >&2
+    eval "$__old_set"; [[ -n "$__old_trap_err" ]] && eval "$__old_trap_err" || trap - ERR
     return 0
   fi
 
-  log_info "Cleaning micromamba caches"
-  micromamba clean --all --yes || true
+  local PY_VERSION ENV_NAME ENV_FILE MAMBA_ROOT_PREFIX ACTION
+  PY_VERSION="${PY_VERSION:-3.11}"
+  ENV_NAME="${ENV_NAME:-py$(printf '%s' "$PY_VERSION" | tr -d '.')}"
+  ENV_FILE="${ENV_FILE:-$REPO_ROOT/environment.yml}"
+  MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-$HOME/micromamba}"
+  ACTION="${MICROMAMBA_ENV_ACTION:-ensure}"  # ensure|create|update|none
+  export MAMBA_ROOT_PREFIX
 
-  # Optional general caches (only if tools exist)
-  if has_cmd pip; then pip cache purge || true; fi
-  rm -rf "${HOME}/.cache" 2>/dev/null || true
+  mkdir -p -- "$MAMBA_ROOT_PREFIX"
+
+  env_micromamba_ensure_available
+
+  case "$ACTION" in
+    none)
+      echo "[INFO] MICROMAMBA_ENV_ACTION=none -> skip env create/update" >&2
+      ;;
+    create|update|ensure)
+      [[ -f "$ENV_FILE" ]] || { echo "[ERROR] ENV_FILE not found: $ENV_FILE" >&2; return 2; }
+
+      if env_micromamba_env_exists "$ENV_NAME"; then
+        if [[ "$ACTION" == "update" || "$ACTION" == "ensure" ]]; then
+          echo "[INFO] Updating env '$ENV_NAME' from $ENV_FILE" >&2
+          micromamba env update -n "$ENV_NAME" -f "$ENV_FILE" --yes
+        else
+          echo "[INFO] Env exists: $ENV_NAME (create -> no-op)" >&2
+        fi
+      else
+        echo "[INFO] Creating env '$ENV_NAME' from $ENV_FILE" >&2
+        micromamba env create -n "$ENV_NAME" -f "$ENV_FILE" --yes
+      fi
+      ;;
+    *)
+      echo "[ERROR] Invalid MICROMAMBA_ENV_ACTION=$ACTION (ensure|create|update|none)" >&2
+      return 2
+      ;;
+  esac
+
+  # Restore caller state
+  eval "$__old_set"
+  if [[ -n "$__old_trap_err" ]]; then eval "$__old_trap_err"; else trap - ERR; fi
+  return 0
 }
 
-# ===============================================================
-# Main
-# ===============================================================
-
-log_env_summary 2>/dev/null || true
-
-ensure_dir "$MAMBA_ROOT_PREFIX"
-
-ensure_micromamba_available
-
-# Shell init is optional (modifies rc); keep opt-in
-shell_init_optional
-
-## Also Configure base
-micromamba install -n base python="$PY_VERSION" ipykernel pip -y || true
-
-# Env creation (strict)
-if micromamba_env_exists "$ENV_NAME"; then
-  log_info "Environment exists: $ENV_NAME"
-else
-  if [[ -f "$ENV_FILE" ]]; then
-    create_env_from_file "$ENV_FILE"
-  else
-    # Strict behavior: fail unless caller explicitly opted to skip missing file.
-    if is_true "${MICROMAMBA_ALLOW_MISSING_ENV_FILE:-0}"; then
-      maybe_fail "ENV_FILE missing ($ENV_FILE) and MICROMAMBA_ALLOW_MISSING_ENV_FILE=1 -> skipping env creation"
-      exit_or_return 0
-    else
-      log_error "ENV_FILE not found: $ENV_FILE (set ENV_FILE=... or create it)"
-    fi
-  fi
-
-  # After creation, enforce expected ENV_NAME
-  if micromamba_env_exists "$ENV_NAME"; then
-    log_info "Environment created: $ENV_NAME"
-  else
-    log_error "Environment file created an unexpected name. Expected ENV_NAME='$ENV_NAME'. Update ENV_NAME or environment.yml."
-  fi
-fi
-
-# Optional: add auto-activate snippet to rc
-add_auto_activate_optional
-
-# Optional: verify
-verify_env_optional
-
-# Optional: clean
-clean_optional
-
-# Register envs directory to ".condarc" for better discovery
-# Configure micromamba envs directory to simplify env discovery by conda/micromamba
-# Enables users to activate environment without having to specify the full path
-mkdir -p ~/micromamba/envs "/opt/conda" || true
-# echo "envs_dirs:
-#   - ${HOME:-~/}/micromamba/envs" > /opt/conda/.condarc
-cat <<EOF > "/opt/conda/.condarc" || echo "⚠️ /opt/conda/.condarc: Permission denied"
-envs_dirs:
-  - ~/micromamba/envs
-EOF
-
-log_info "Micromamba setup complete."
-log_info "Next steps:"
-log_info "  - Open a new shell, or: source \"$MICROMAMBA_RC_FILE\""
-log_info "  - Activate: micromamba activate \"$ENV_NAME\""
+# IMPORTANT: run even when sourced (your orchestrator sources it)
+env_micromamba_main "$@"
+env_micromamba_exit_or_return $?
