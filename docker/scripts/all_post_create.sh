@@ -98,7 +98,7 @@ printenv
 # echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
 # echo "SHELL_NAME=$(basename $SHELL)"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-REPO_ROOT_GUESS_FROM_SCRIPT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
+REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
 PWD_ABS="$(pwd -P)"
 
 _candidates=()
@@ -115,7 +115,7 @@ _add_candidate "${COMMON_SH:-}"
 # 2) relative to script
 _add_candidate "$SCRIPT_DIR/common.sh"
 # 3) relative to repo-root guess from script
-_add_candidate "$REPO_ROOT_GUESS_FROM_SCRIPT/docker/scripts/common.sh"
+_add_candidate "$REPO_ROOT/docker/scripts/common.sh"
 # 4) relative to current working directory (you asked to add this)
 _add_candidate "./docker/scripts/common.sh"
 _add_candidate "$PWD_ABS/docker/scripts/common.sh"
