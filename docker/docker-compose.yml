@@ -82,7 +82,7 @@ services:
     # restart: "always"
     ## mambaorg/micromamba:latest
     # image: python:3.12-slim  # 130+Mb (No internal CUDA, relies on host CUDA)
-    image: scikitplot/scikit-plots:latest
+    image: scikitplot/scikit-plots:latest  # "scikitplot/scikit-plots:latest-python-3.11"
     ## (Optionally) Use Dockerfile
     # build: ...
     ## Change User
