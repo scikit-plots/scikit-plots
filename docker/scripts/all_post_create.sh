@@ -98,14 +98,53 @@ printenv
 # echo "SHELL_DIR=$(cd -- $(dirname $0) && pwd)"
 # echo "SHELL_NAME=$(basename $SHELL)"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
+REPO_ROOT_GUESS_FROM_SCRIPT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
+PWD_ABS="$(pwd -P)"
 
-# Source the POSIX common library (works in bash). Re-apply bash strict after.
-COMMON_SH="${COMMON_SH:-$SCRIPT_DIR/lib/common.sh}"
-if [[ ! -f "$COMMON_SH" ]]; then
-  printf '%s\n' "[ERROR] common.sh not found: $COMMON_SH" >&2
+_candidates=()
+_add_candidate() {
+  local p="$1"
+  [[ -n "$p" ]] || return 0
+  # de-dupe
+  local x
+  for x in "${_candidates[@]}"; do [[ "$x" == "$p" ]] && return 0; done
+  _candidates+=("$p")
+}
+
+# 1) explicit override
+_add_candidate "${COMMON_SH:-}"
+
+# 2) relative to script
+_add_candidate "$SCRIPT_DIR/lib/common.sh"
+
+# 3) relative to repo-root guess from script
+_add_candidate "$REPO_ROOT_GUESS_FROM_SCRIPT/docker/scripts/lib/common.sh"
+
+# 4) relative to current working directory (you asked to add this)
+_add_candidate "$PWD_ABS/docker/scripts/lib/common.sh"
+
+# 5) common mounts/locations
+_add_candidate "/work/docker/scripts/lib/common.sh"
+_add_candidate "/tmp/docker/scripts/lib/common.sh"
+
+COMMON_SH_RESOLVED=""
+for _p in "${_candidates[@]}"; do
+  if [[ -f "$_p" ]]; then
+    COMMON_SH_RESOLVED="$_p"
+    break
+  fi
+done
+
+if [[ -z "$COMMON_SH_RESOLVED" ]]; then
+  printf '%s\n' "[ERROR] common.sh not found. Checked:" >&2
+  for _p in "${_candidates[@]}"; do
+    printf '  - %s\n' "$_p" >&2
+  done
+  printf '%s\n' "[ERROR] Fix: ensure docker/scripts/lib/common.sh is in the image/build context (not excluded by .dockerignore), or set COMMON_SH=/abs/path/to/common.sh" >&2
   exit 2
 fi
+
+export COMMON_SH="$COMMON_SH_RESOLVED"
 # shellcheck source=/dev/null
 . "$COMMON_SH"
 
