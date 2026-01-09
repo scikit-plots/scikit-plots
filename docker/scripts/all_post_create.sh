@@ -110,23 +110,18 @@ _add_candidate() {
   for x in "${_candidates[@]}"; do [[ "$x" == "$p" ]] && return 0; done
   _candidates+=("$p")
 }
-
 # 1) explicit override
 _add_candidate "${COMMON_SH:-}"
-
 # 2) relative to script
 _add_candidate "$SCRIPT_DIR/lib/common.sh"
-
 # 3) relative to repo-root guess from script
 _add_candidate "$REPO_ROOT_GUESS_FROM_SCRIPT/docker/scripts/lib/common.sh"
-
 # 4) relative to current working directory (you asked to add this)
+_add_candidate "./docker/scripts/lib/common.sh"
 _add_candidate "$PWD_ABS/docker/scripts/lib/common.sh"
-
 # 5) common mounts/locations
 _add_candidate "/work/docker/scripts/lib/common.sh"
 _add_candidate "/tmp/docker/scripts/lib/common.sh"
-
 COMMON_SH_RESOLVED=""
 for _p in "${_candidates[@]}"; do
   if [[ -f "$_p" ]]; then
