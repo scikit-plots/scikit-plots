@@ -47,9 +47,9 @@
 # If available:
 # - shellcheck (static correctness)
 # - shfmt (format)
-# shellcheck -s sh scripts/run.sh scripts/lib/common.sh
+# shellcheck -s sh scripts/run.sh scripts/common.sh
 # shellcheck -s bash scripts/run.bash
-# shfmt -w scripts/*.sh scripts/lib/*.sh
+# shfmt -w scripts/*.sh scripts/*.sh
 
 # Enable strict mode: fail on error (-e), undefined var (-u)
 # POSIX does not have pipefail; avoid relying on it.
@@ -113,15 +113,15 @@ _add_candidate() {
 # 1) explicit override
 _add_candidate "${COMMON_SH:-}"
 # 2) relative to script
-_add_candidate "$SCRIPT_DIR/lib/common.sh"
+_add_candidate "$SCRIPT_DIR/common.sh"
 # 3) relative to repo-root guess from script
-_add_candidate "$REPO_ROOT_GUESS_FROM_SCRIPT/docker/scripts/lib/common.sh"
+_add_candidate "$REPO_ROOT_GUESS_FROM_SCRIPT/docker/scripts/common.sh"
 # 4) relative to current working directory (you asked to add this)
-_add_candidate "./docker/scripts/lib/common.sh"
-_add_candidate "$PWD_ABS/docker/scripts/lib/common.sh"
+_add_candidate "./docker/scripts/common.sh"
+_add_candidate "$PWD_ABS/docker/scripts/common.sh"
 # 5) common mounts/locations
-_add_candidate "/work/docker/scripts/lib/common.sh"
-_add_candidate "/tmp/docker/scripts/lib/common.sh"
+_add_candidate "/work/docker/scripts/common.sh"
+_add_candidate "/tmp/docker/scripts/common.sh"
 COMMON_SH_RESOLVED=""
 for _p in "${_candidates[@]}"; do
   if [[ -f "$_p" ]]; then
@@ -135,7 +135,7 @@ if [[ -z "$COMMON_SH_RESOLVED" ]]; then
   for _p in "${_candidates[@]}"; do
     printf '  - %s\n' "$_p" >&2
   done
-  printf '%s\n' "[ERROR] Fix: ensure docker/scripts/lib/common.sh is in the image/build context (not excluded by .dockerignore), or set COMMON_SH=/abs/path/to/common.sh" >&2
+  printf '%s\n' "[ERROR] Fix: ensure docker/scripts/common.sh is in the image/build context (not excluded by .dockerignore), or set COMMON_SH=/abs/path/to/common.sh" >&2
   exit 2
 fi
 
