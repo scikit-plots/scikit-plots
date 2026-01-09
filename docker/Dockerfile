@@ -51,15 +51,6 @@ ARG SCIKITPLOT_VERSION
 ARG PY_VERSION
 ARG EXTENDED_PACKAGES
 
-# Optional heavy OS packages (OFF by default)
-ARG APT_INSTALL_DEVTOOLS=1
-# Needed if you want conda env active for subsequent shell-form RUN steps
-ARG MAMBA_DOCKERFILE_ACTIVATE=1
-# Path to the conda environment spec inside the build context
-ARG ENV_FILE=environment.yml
-# Optional: run repo post-create scripts at build time (OFF by default)
-ARG RUN_POST_CREATE=1
-
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 ## Use ENV with shell-style expansion to get ENV_NAME=py3.11
 ## Replace '.' in PY_VERSION to get py311 instead of py3.11
@@ -68,6 +59,15 @@ ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
 ## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
 ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
+
+# Optional heavy OS packages (OFF by default)
+ARG APT_INSTALL_DEVTOOLS=1
+# Needed if you want conda env active for subsequent shell-form RUN steps
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+# Path to the conda environment spec inside the build context
+ARG ENV_FILE=environment.yml
+# Optional: run repo post-create scripts at build time (OFF by default)
+ARG RUN_POST_CREATE=1
 
 ## Set environment variable to avoid interactive prompts during builds
 ## Prevent apt install tzinfo from asking our location (assumes UTC)
@@ -98,7 +98,9 @@ USER root
 ## Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 ## Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
 # RUN bash -lc 'set -Eeuo pipefail; \
-SHELL ["/bin/bash", "-Eeuo", "pipefail", "-c"]
+# -c Runs commands in a non-interactive shell, not a login shell.
+# -lc Runs commands in a login shell (still non-interactive), so bash reads login startup files.
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 ######################################################################
 ## Set system locale and timezone
@@ -329,7 +331,8 @@ RUN apt-get update --yes; \
   rm -rf /var/lib/apt/lists/*
 
 ## Add a second conditional RUN block for large or optional packages:
-RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
+RUN set -Eeuo pipefail; \
+    if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     echo "Installing extended packages..."; \
     ## GPU-Based Parallel Computing
     ## CUDA – NVIDIA's framework for parallel programming on GPUs.
@@ -377,26 +380,34 @@ COPY docker ./docker/
 # Install minimal due to disc size limit
 COPY docker/env_conda/base.yml ./environment.yml
 
+ARG TARGETARCH
 ## micromamba and post create steps
 ## Make sure there’s a space between the variable assignment and the . for sourcing.
 # RUN bash -i -c "SKIP_CONDA=${SKIP_CONDA:=true} . ./docker/scripts/all_post_create.sh"
 # RUN bash -i -c "SKIP_MICROMAMBA=${SKIP_MICROMAMBA:=true} . ./docker/scripts/all_post_create.sh"
 # Optional: reuse your post-create orchestration during build
 # NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
-RUN if [ "${RUN_POST_CREATE}" = "1" ]; then \
-  POST_CREATE_STRICT=0 \
-  POST_CREATE_RUN_CONDA=1 \
-  POST_CREATE_RUN_MAMBA=0 \
-  POST_CREATE_RUN_FIRST_NOTICE=1 \
-  POST_CREATE_RUN_POST_CREATE=1 \
-  MICROMAMBA_ALLOW_INSTALL=1 \
-  MICROMAMBA_INSTALL_MODE=api \
-  MICROMAMBA_VERIFY=1 \
-  MICROMAMBA_CLEAN=1 \
-  POST_CREATE_ENV_REQUIRED=1 \
-  POST_CREATE_ENV_TOOL=conda \
-  bash docker/scripts/all_post_create.sh; \
-fi
+RUN set -Eeuo pipefail; \
+  if [ "${RUN_POST_CREATE}" = "1" ]; then \
+    case "${TARGETARCH}" in \
+      amd64) export MICROMAMBA_API_PLATFORM=linux-64 ;; \
+      arm64) export MICROMAMBA_API_PLATFORM=linux-aarch64 ;; \
+      *) echo "Unsupported TARGETARCH=${TARGETARCH}" >&2; exit 2 ;; \
+    esac; \
+    \
+    POST_CREATE_STRICT=0 \
+    POST_CREATE_ENV_REQUIRED=1 \
+    POST_CREATE_RUN_FIRST_NOTICE=1 \
+    POST_CREATE_RUN_POST_CREATE=1 \
+    \
+    # choose ONE env path:
+    POST_CREATE_RUN_CONDA=1 \
+    POST_CREATE_RUN_MICROMAMBA=0 \
+    POST_CREATE_ENV_TOOL=conda \
+    POST_CREATE_CONDA_RUNNER=auto \
+    \
+    bash docker/scripts/all_post_create.sh; \
+  fi
 
 ######################################################################
 ## default environment (e.g. conda, mamba, pipenv)

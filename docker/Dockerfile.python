@@ -14,15 +14,6 @@ FROM python:${PY_VERSION}-slim AS runtime
 ARG SCIKITPLOT_VERSION
 ARG PY_VERSION
 
-# Optional heavy OS packages (OFF by default)
-ARG APT_INSTALL_DEVTOOLS=1
-# Needed if you want conda env active for subsequent shell-form RUN steps
-ARG MAMBA_DOCKERFILE_ACTIVATE=1
-# Path to the conda environment spec inside the build context
-ARG ENV_FILE=environment.yml
-# Optional: run repo post-create scripts at build time (OFF by default)
-ARG RUN_POST_CREATE=1
-
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 ## Use ENV with shell-style expansion to get ENV_NAME=py3.11
 ## Replace '.' in PY_VERSION to get py311 instead of py3.11
@@ -35,6 +26,15 @@ ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
 ## Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
 ENV IS_DOCKERENV=true
 
+# Optional heavy OS packages (OFF by default)
+ARG APT_INSTALL_DEVTOOLS=1
+# Needed if you want conda env active for subsequent shell-form RUN steps
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+# Path to the conda environment spec inside the build context
+ARG ENV_FILE=environment.yml
+# Optional: run repo post-create scripts at build time (OFF by default)
+ARG RUN_POST_CREATE=1
+
 ## Recommended Python environment variables (uncomment if needed)
 ## Prevent Python from writing .pyc files
 # ENV PYTHONDONTWRITEBYTECODE=1
@@ -44,7 +44,12 @@ ENV IS_DOCKERENV=true
 # USER root
 # USER $MAMBA_USER
 
-SHELL ["/bin/bash", "-Eeuo", "pipefail", "-c"]
+## Fix DL4006
+## Needed for string substitution in RUN commands
+## Fix: https://github.com/hadolint/hadolint/wiki/DL4006
+## Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
+# RUN bash -lc 'set -Eeuo pipefail; \
+SHELL ["/bin/bash", "-e", "-u", "-o", "pipefail", "-c"]
 
 ## Install system dependencies (including bash and sudo)
 RUN if [ "${APT_INSTALL_DEVTOOLS}" = "1" ]; then \
@@ -119,24 +124,26 @@ ARG TARGETARCH
 # RUN bash -i -c "SKIP_CONDA=${SKIP_CONDA:=true} . ./docker/scripts/all_post_create.sh"
 # Optional: reuse your post-create orchestration during build
 # NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
-RUN bash -lc 'set -Eeuo pipefail; \
+RUN bash -c 'set -Eeuo pipefail; \
   if [[ "${RUN_POST_CREATE}" == "1" ]]; then \
     case "${TARGETARCH}" in \
       amd64) export MICROMAMBA_API_PLATFORM=linux-64 ;; \
       arm64) export MICROMAMBA_API_PLATFORM=linux-aarch64 ;; \
       *) echo "Unsupported TARGETARCH=${TARGETARCH}" >&2; exit 2 ;; \
     esac; \
+    \
     POST_CREATE_STRICT=0 \
-    POST_CREATE_RUN_CONDA=0 \
-    POST_CREATE_RUN_MAMBA=1 \
+    POST_CREATE_ENV_REQUIRED=1 \
     POST_CREATE_RUN_FIRST_NOTICE=1 \
     POST_CREATE_RUN_POST_CREATE=1 \
-    MICROMAMBA_ALLOW_INSTALL=1 \
+    \
+    POST_CREATE_RUN_CONDA=0 \
+    POST_CREATE_RUN_MICROMAMBA=1 \
+    POST_CREATE_ENV_TOOL=micromamba \
     MICROMAMBA_INSTALL_MODE=script \
     MICROMAMBA_VERIFY=1 \
-    MICROMAMBA_CLEAN=0 \
-    POST_CREATE_ENV_REQUIRED=1 \
-    POST_CREATE_ENV_TOOL=micromamba \
+    MICROMAMBA_CLEAN=1 \
+    \
     bash docker/scripts/all_post_create.sh; \
   fi'
 
