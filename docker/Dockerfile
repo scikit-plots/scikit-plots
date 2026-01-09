@@ -374,7 +374,6 @@ WORKDIR /tmp
 
 COPY requirements ./requirements/
 COPY docker ./docker/
-COPY docker/scripts/lib ./docker/scripts/lib/
 COPY docker/env_conda/environment.yml ./
 
 ## micromamba and post create steps
