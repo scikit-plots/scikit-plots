@@ -45,6 +45,11 @@ if [[ -z "${BASH_VERSION:-}" ]]; then
   exec bash "$0" "$@"
 fi
 
+# Re-source shell config to ensure activation takes effect
+# shellcheck disable=SC1090
+# . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
+
 # ---------------- sourced/executed helpers ----------------
 pc_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
 pc_exit_or_return() { local code="${1:-0}"; pc_is_sourced && return "$code" || exit "$code"; }

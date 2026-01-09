@@ -262,16 +262,45 @@ env_conda_main() {
   }
 
   # ---- run ----
-  [[ -f "$ENV_FILE" ]] || log_error "ENV_FILE not found: $ENV_FILE"
 
   _install_miniforge_if_needed
+
+  # source ~/.bashrc (or ~/.zshrc, ~/.xonshrc, ~/.config/fish/config.fish, ...)
+  # ──────────────────────────────────────────────────────────────────
+  SHELL_RC=~/."$(basename $SHELL)"rc
+
+  if [ -f "$SHELL_RC" ]; then
+    echo "📄 Sourcing shell config: $SHELL_RC"
+    # shellcheck disable=SC1090
+    # . ~/.bashrc or . ~/.zshrc for zsh
+    # . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+    source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
+  else
+    echo "⚠️ Shell config file not found: $SHELL_RC"
+  fi
+
+  # Optional: also initialize conda hooks (for compatibility with existing conda setups)
+  conda init --all || echo "⚠️ Failed to initialize conda hooks"
+  mamba init --all || echo "⚠️ Failed to initialize mamba hooks"
+
+  # Re-source shell config to ensure activation takes effect
+  # shellcheck disable=SC1090
+  # . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+  source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
+
   _maybe_bootstrap_mamba
+
   _resolve_env_name
 
   local mgr exists=0
   mgr="$(_select_manager)"
 
+  ## Also Configure base
+  "$mgr" install -n base python="$PY_VERSION" ipykernel pip -y || true
+
   if _env_exists "$mgr" "$ENV_NAME"; then exists=1; fi
+
+  [[ -f "$ENV_FILE" ]] || log_error "ENV_FILE not found: $ENV_FILE"
 
   case "$CONDA_ACTION" in
     none)

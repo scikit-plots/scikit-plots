@@ -306,20 +306,6 @@ RUN apt-get update --yes; \
     clang-format \
     ## static analysis of C++ code
     clang-tidy \
-    ## Linear algebra and Numerical Libraries
-    ## Basic Linear Algebra Subprograms (BLAS)
-    libblas-dev \
-    ## OpenBLAS (OpenBLAS Linear Algebra Library) - optimized BLAS library
-    libopenblas-dev \
-    ## BLIS (BLAS-like Library Instantiation Software) - an optimized BLAS library
-    libblis-dev \
-    ## LAPACK (Linear Algebra PACKage) - library for linear algebra operations
-    liblapack-dev \
-    ## CPU-Based Parallel Computing (Multithreading & SIMD)
-    ## Intel's Parallel Computing C++ Libraries
-    ## OpenMP - Open standard for parallel programming on multi-core CPUs.
-    libomp-dev \
-    ## Graph visualization software
     ## Graph visualization software: dot -V
     graphviz \
     ## Vector graphics editor
@@ -343,6 +329,19 @@ RUN set -Eeuo pipefail; \
     ## TensorFlow with Metal Backend (ML-Specific)
     apt-get update --yes; \
     apt-get install --yes --no-install-recommends \
+      ## Linear algebra and Numerical Libraries
+      ## Basic Linear Algebra Subprograms (BLAS)
+      libblas-dev \
+      ## OpenBLAS (OpenBLAS Linear Algebra Library) - optimized BLAS library
+      libopenblas-dev \
+      ## BLIS (BLAS-like Library Instantiation Software) - an optimized BLAS library
+      libblis-dev \
+      ## LAPACK (Linear Algebra PACKage) - library for linear algebra operations
+      liblapack-dev \
+      ## CPU-Based Parallel Computing (Multithreading & SIMD)
+      ## Intel's Parallel Computing C++ Libraries
+      ## OpenMP - Open standard for parallel programming on multi-core CPUs.
+      libomp-dev \
       ## General-purpose C++ development
       ## TBB (Threading Building Blocks) - Intel's Threading Building Blocks for task-based parallelism in C++.
       libtbb-dev \

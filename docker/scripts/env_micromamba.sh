@@ -179,13 +179,42 @@ env_micromamba_main() {
 
   _install_via_script() {
     # Official install.sh may prompt; keep it explicit by requiring MICROMAMBA_INSTALL_INTERACTIVE=1
-    default_var MICROMAMBA_INSTALL_INTERACTIVE "0"
+    default_var MICROMAMBA_INSTALL_INTERACTIVE "1"
     common_is_true "$MICROMAMBA_INSTALL_INTERACTIVE" || log_error "script install requires MICROMAMBA_INSTALL_INTERACTIVE=1"
     has_cmd curl || log_error "script install requires curl"
     log_warning "Running interactive micromamba install script"
-    bash <(curl -fsSL "https://micro.mamba.pm/install.sh")
+    # curl -Ls https://micro.mamba.pm/install.sh | bash
+    # curl -Ls https://micro.mamba.pm/install.sh | "${SHELL}" || echo "⚠️ micromamba install failed"
+    # "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
+    "${SHELL}" <(curl -Ls micro.mamba.pm/install.sh) < /dev/null || bash <(curl -fsSL "https://micro.mamba.pm/install.sh") < /dev/null
   }
 
+  # ──────────────────────────────────────────────────────────────
+  # 1. Install micromamba if not already available
+  # Need curl or fallback to wget and ps (usually from procps or procps-ng)
+  # ──────────────────────────────────────────────────────────────
+  # # Install micromamba via official install script silently, only if not installed
+  # echo "🔧 Installing or initializing micromamba..."
+  # # if ! command -v micromamba &> /dev/null; then
+  # if ! command -v micromamba >/dev/null 2>&1; then
+  #   echo "➡️  micromamba not found, attempting install..."
+  #   # if command -v curl &> /dev/null; then
+  #   if command -v curl >/dev/null 2>&1; then
+  #     # curl -Ls https://micro.mamba.pm/install.sh | bash
+  #     # curl -Ls https://micro.mamba.pm/install.sh | "${SHELL}" || echo "⚠️ micromamba install failed"
+  #     # "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
+  #     "${SHELL}" <(curl -Ls micro.mamba.pm/install.sh) < /dev/null
+  #   # elif command -v wget &> /dev/null; then
+  #   elif command -v wget >/dev/null 2>&1; then
+  #     wget -qO- https://micro.mamba.pm/install.sh | bash
+  #   else
+  #     echo "❌ ERROR: Neither curl nor wget is available. Please install one to proceed."
+  #     # return 1 2>/dev/null || exit 0
+  #     # exit 1
+  #   fi
+  # else
+  #   echo "✅ micromamba is already installed."
+  # fi
   _ensure_micromamba() {
     if has_cmd micromamba; then return 0; fi
     if [[ -x "$(_bin_dir)/micromamba" ]]; then
@@ -216,6 +245,53 @@ env_micromamba_main() {
   # ---- run ----
   _ensure_micromamba
 
+  # source ~/.bashrc (or ~/.zshrc, ~/.xonshrc, ~/.config/fish/config.fish, ...)
+  # ──────────────────────────────────────────────────────────────────
+  SHELL_RC=~/."$(basename $SHELL)"rc
+
+  if [ -f "$SHELL_RC" ]; then
+    echo "📄 Sourcing shell config: $SHELL_RC"
+    # shellcheck disable=SC1090
+    # . ~/.bashrc or . ~/.zshrc for zsh
+    # . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+    source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
+  else
+    echo "⚠️ Shell config file not found: $SHELL_RC"
+  fi
+
+  # Optional: also initialize conda hooks (for compatibility with existing conda setups)
+  conda init --all || echo "⚠️ Failed to initialize conda hooks"
+  mamba init --all || echo "⚠️ Failed to initialize mamba hooks"
+
+  ## Initialize micromamba shell integration for bash (auto-detect install path)
+  ## micromamba shell init -s bash -p ~/micromamba
+  micromamba shell init -s "$(basename $SHELL)" \
+    || echo "⚠️ Failed to initialize micromamba hooks"
+
+  ## echo micromamba shell hook --shell "$(basename $SHELL)"
+  ## Fallback to bash if SHELL is unset or unknown
+  eval "$(micromamba shell hook --shell $(basename ${SHELL:-/bin/bash}))" \
+    || echo "⚠️ Failed to enable micromamba shell hook"
+
+  # Re-source shell config to ensure activation takes effect
+  # shellcheck disable=SC1090
+  # . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
+  source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
+
+  echo "Creating micromamba base environment: $ENV_NAME"
+  micromamba install -n base python="$PY_VERSION" ipykernel pip -y || true
+
+  # Register envs directory to ".condarc" for better discovery
+  # Configure micromamba envs directory to simplify env discovery by conda/micromamba
+  # Enables users to activate environment without having to specify the full path
+  mkdir -p ~/micromamba/envs "/opt/conda" || true
+  # echo "envs_dirs:
+  #   - ${HOME:-~/}/micromamba/envs" > /opt/conda/.condarc
+  cat <<EOF > "/opt/conda/.condarc" || echo "⚠️ /opt/conda/.condarc: Permission denied"
+  envs_dirs:
+    - ~/micromamba/envs
+  EOF
+
   [[ -f "$ENV_FILE" ]] || log_error "ENV_FILE not found: $ENV_FILE"
 
   case "$MICROMAMBA_ENV_ACTION" in
@@ -228,6 +304,8 @@ env_micromamba_main() {
       else
         log_info "Creating env '$ENV_NAME' from $ENV_FILE"
         micromamba env create -n "$ENV_NAME" -f "$ENV_FILE" --yes
+        # micromamba env create -f environment.yml --yes
+        # micromamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
       fi
       ;;
     update)
