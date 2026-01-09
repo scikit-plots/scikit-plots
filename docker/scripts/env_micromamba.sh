@@ -281,17 +281,6 @@ env_micromamba_main() {
   echo "Creating micromamba base environment: $ENV_NAME"
   micromamba install -n base python="$PY_VERSION" ipykernel pip -y || true
 
-  # Register envs directory to ".condarc" for better discovery
-  # Configure micromamba envs directory to simplify env discovery by conda/micromamba
-  # Enables users to activate environment without having to specify the full path
-  mkdir -p ~/micromamba/envs "/opt/conda" || true
-  # echo "envs_dirs:
-  #   - ${HOME:-~/}/micromamba/envs" > /opt/conda/.condarc
-  cat <<EOF > "/opt/conda/.condarc" || echo "⚠️ /opt/conda/.condarc: Permission denied"
-  envs_dirs:
-    - ~/micromamba/envs
-  EOF
-
   [[ -f "$ENV_FILE" ]] || log_error "ENV_FILE not found: $ENV_FILE"
 
   case "$MICROMAMBA_ENV_ACTION" in
@@ -338,6 +327,18 @@ env_micromamba_main() {
   log_success "Micromamba env ready: $ENV_NAME"
 
   env_micromamba_restore
+
+  # # Register envs directory to ".condarc" for better discovery
+  # # Configure micromamba envs directory to simplify env discovery by conda/micromamba
+  # # Enables users to activate environment without having to specify the full path
+  # mkdir -p ~/micromamba/envs "/opt/conda" || true
+  # # echo "envs_dirs:
+  # #   - ${HOME:-~/}/micromamba/envs" > /opt/conda/.condarc
+  # cat <<EOF > "/opt/conda/.condarc" || echo "⚠️ /opt/conda/.condarc: Permission denied"
+  # envs_dirs:
+  #   - ~/micromamba/envs
+  # EOF
+
   return 0
 }
 

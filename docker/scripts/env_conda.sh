@@ -296,7 +296,7 @@ env_conda_main() {
   mgr="$(_select_manager)"
 
   ## Also Configure base
-  "$mgr" install -n base python="$PY_VERSION" ipykernel pip -y || true
+  # "$mgr" install -n base python="$PY_VERSION" ipykernel pip -y || true
 
   if _env_exists "$mgr" "$ENV_NAME"; then exists=1; fi
 
