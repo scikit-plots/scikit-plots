@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# >>> (bashrc.suffix) scikit-plots personal initialization >>>
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# ==============================================================================
+#  ____       _ _    _ _              _       _
+# / ___|  ___(_) | _(_) |_      _ __ | | ___ | |_ ___
+# \___ \ / __| | |/ / | __|____| '_ \| |/ _ \| __/ __|
+#  ___) | (__| |   <| | ||_____| |_) | | (_) | |_\__ \\
+# |____/ \___|_|_|\_\_|\__|    | .__/|_|\___/ \__|___/
+#                              |_|
+#  ____           _   _      _   _                     _           _
+# / ___|    ___  (_) | | __ (_) | |_           _ __   | |   ___   | |_   ___
+# \___ \   / __| | | | |/ / | | | __|  _____  | '_ \  | |  / _ \  | __| / __|
+#  ___) | | (__  | | |   <  | | | |_  |_____| | |_) | | | | (_) | | |_  \__ \\
+# |____/   \___| |_| |_|\_\ |_|  \__|         | .__/  |_|  \___/   \__| |___/
+#                                             |_|
+# ==============================================================================
+#
+# When bash initializes a non-login interactive bash shell on a Debian/Ubuntu-like system, the shell first reads /etc/bash.bashrc and then reads ~/.bashrc.
+# System wide initialization file /etc/bash.bashrc and the standard personal initialization file ~/.bashrc if the shell is interactivе.
+# https://github.com/tensorflow/build/blob/master/tensorflow_runtime_dockerfiles/cpu.Dockerfile
+# https://github.com/tensorflow/build/blob/master/tensorflow_runtime_dockerfiles/bashrc
+# https://github.com/jupyter/docker-stacks/issues/815
+# https://www.gnu.org/software/bash/manual/bash.html
+# https://linux.die.net/man/1/bash
+#
+# ==============================================================================
+
+# >>> Conda/Mamba environment auto-activation >>>
+## Only run in interactive shell, If Needed use (if [[ $- == *i* ]]; then ...; fi)
+## : → "do nothing" or "no-op" command, used to ensure the script runs without error.
+## Use `: "${VAR:=default}"` is roughly equivalent to `VAR="${VAR:-default}"` → Default assignment (ensure it's set).
+## Use `: "${VAR:-default}"` → Default expansion (no assignment)
+## Use `: "${VAR:+alternative}"` → Conditional expansion (if set, use alternative)
+## Use `: "${VAR:?message}"` like `: "${VAR:?VAR must be set}"` → Safety check: fail if unset or empty.
+#
+## Auto-activate $ENV_NAME if it exists, otherwise fallback to base
+# export ENV_NAME="${ENV_NAME:-py311}"  # Default to py311 if ENV_NAME is not set
+: "${ENV_NAME:=py311}"  # Default to py311 if ENV_NAME is not set
+# echo "\${ENV_NAME:=base}"  # -> don't expand, treat ${...} as plain text.
+#
+## If CONDA_ROOT_PREFIX is set, use it, Otherwise, fallback to the default: /opt/conda
+## If MAMBA_ROOT_PREFIX is set, use it, Otherwise, fallback to the nested default: ${HOME:-/root}/micromamba
+# export CONDA_ROOT_PREFIX="${CONDA_ROOT_PREFIX:-/opt/conda}"  # /d/miniconda3 D:/miniconda3
+# export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-/d/micromamba}"  # D:/micromamba
+: "${CONDA_ROOT_PREFIX:=/opt/conda}"  # Default to /opt/conda if CONDA_ROOT_PREFIX is not set
+: "${MAMBA_ROOT_PREFIX:=${HOME:-/root}/micromamba}"  # Default to ~/micromamba if MAMBA_ROOT_PREFIX is not set
+#
+## readonly locks it, this locks the variable so it cannot be reassigned accidentally later in the script.
+# readonly MAMBA_ROOT_PREFIX
+#
+## (If Necessary) Hardcoded Load conda/micromamba environment auto-activation script
+## source (or .) runs the file in the current shell session.
+if [ -f "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" ]; then
+    # source ${CONDA_ROOT_PREFIX:-/opt/conda}/etc/profile.d/conda.sh && conda activate || true
+    # source ${MAMBA_ROOT_PREFIX:-~/micromamba}/etc/profile.d/conda.sh && conda activate || true
+    . "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" && conda activate || true
+fi
+## (If Necessary) Activate logic conda/micromamba is handled in env_conda.sh or env_micromamba.sh
+# if micromamba env list | grep -qE '(^|[[:space:]])$ENV_NAME([[:space:]]|$)'; then
+if command -v conda >/dev/null 2>&1 || command -v micromamba >/dev/null 2>&1; then
+  if command -v micromamba >/dev/null 2>&1 && [[ -d "$MAMBA_ROOT_PREFIX/envs/$ENV_NAME" ]]; then
+    micromamba activate "$ENV_NAME" || true
+  elif command -v conda >/dev/null 2>&1 && [[ -d "$CONDA_ROOT_PREFIX/envs/$ENV_NAME" ]]; then
+    conda activate "$ENV_NAME" || true
+  elif command -v micromamba >/dev/null 2>&1; then
+    micromamba activate base || true
+  elif command -v conda >/dev/null 2>&1; then
+    conda activate base || true
+  else
+    echo "❌  No compatible (conda/miniconda/mamba/micromamba) environment found." >&2
+    # Don't use exit 0 in .bashrc — it can break the shell
+  fi
+else
+  # echo "❌  No compatible (conda/miniconda/mamba/micromamba) environment found." >&2
+  true
+fi
+# <<< Conda/Mamba environment auto-activation <<<

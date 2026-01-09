@@ -1,0 +1,91 @@
+👋  Welcome to the `scikit-plots` Dev Environment (Docker / Codespaces)
+
+🧭  Quick Navigation:
+• 🔎  Open the Command Palette → `Ctrl+Shift+P` / `Cmd+Shift+P` or `F1`
+• 📘  Quick Start → https://scikit-plots.github.io/dev/introduction/quick_start.html
+• 🛠️  Dev Guide → https://scikit-plots.github.io/dev/devel/index.html
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⭐ 🌟  IMPORTANT: Complete Environment Setup
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅  Check Installation:
+  $ python -c "import scikitplot; scikitplot.show_config()"
+  $ scikitplot -V
+
+✅  Post-Create Setup All-In-One Script (Recommended):
+  $ bash docker/scripts/all_post_create.sh
+
+✅  Git Safe Configs:
+  $ # bash docker/scripts/safe_dirs.sh  # add safe directories for git
+  $ git config --global --add safe.directory '*'
+
+✅  (Optionally) Git Submodules Clone/Download/Initialize Configs, Not Needed Every Time:
+  $ git submodule update --init
+  $ git submodule update --init --recursive
+
+✅  Git Upstream Configs:
+  $ git remote add upstream https://github.com/scikit-plots/scikit-plots.git
+
+✅  Git Tag Configs:
+  $ git fetch upstream --tags
+
+✅  Create Environment (Conda/Mamba):
+  $ conda create -n py311 python=3.11 ipykernel -y
+  $ conda activate py311
+
+✅  Install Build Dependencies:
+  $ pip install -r requirements/build.txt
+  $ pip install -r requirements/all.txt
+
+✅  Git hooks manager Initialize, Ensures code meets quality standards before it
+  $ pre-commit install
+
+✅  Install the current package in editable mode, using the current environment for building, and ignore cached builds:
+  $ pip install --no-build-isolation --no-cache-dir -e .
+
+✅  (Optional) Install CPU-specific packages:
+  $ pip install -r requirements/cpu.txt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦  Environment Management Notes (Conda/Anaconda/Miniconda/Miniforge/Mamba/Micromamba):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Activate environments (depending on tool):
+  $ conda activate py311
+  $ micromamba activate py311
+
+• See environments:
+  $ conda info -e
+  $ micromamba info -e
+
+• Initialize Conda shell support (if needed):
+  $ conda init
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡  Troubleshooting:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• 💽  Disk Space:
+  $ df -h && du -h --max-depth=1
+
+• 💾  Creation logs (Codespaces):
+  ⚠️ 👇 Check Codespace Container creation raise `ERROR: ... : No space left on device`
+  $ cat /workspaces/.codespaces/.persistedshare/creation.log
+
+• 📦 Warning: Clock skew detected. Your build may be incomplete (Mostly fixed; closed all open files.):
+  ⚠️ Issues mostly fixed by closing all currently open files.
+  ⚠️ ⏻ Restart Computer, If Needed.
+  $ make clean
+  $ find . -exec touch {} +
+  $ python -m pip install --no-build-isolation --no-cache-dir -e . -v
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✍  Starting Development
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌿  Create a new branch before working:
+  $ git checkout -b feature/my-new-feature
+
+✍  Proceed to create a branch if you have uncommitted changes and are beginning work on a new feature or bug fix.
+🔄  Read more: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch

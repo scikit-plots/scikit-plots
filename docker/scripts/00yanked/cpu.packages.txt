@@ -1,0 +1,6 @@
+# https://github.com/tensorflow/build/blob/master/tensorflow_runtime_dockerfiles/gpu.packages.txt
+build-essential
+pkg-config
+curl
+software-properties-common
+unzip
