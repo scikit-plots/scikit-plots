@@ -68,15 +68,15 @@ if [ -f "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" ]; then
 fi
 ## (If Necessary) Activate logic conda/micromamba is handled in env_conda.sh or env_micromamba.sh
 # if micromamba env list | grep -qE '(^|[[:space:]])$ENV_NAME([[:space:]]|$)'; then
-if command -v conda >/dev/null 2>&1 || command -v micromamba >/dev/null 2>&1; then
+if command -v conda >/dev/null 2>&1 || command -v mamba >/dev/null 2>&1 || command -v micromamba >/dev/null 2>&1; then
   if command -v micromamba >/dev/null 2>&1 && [[ -d "$MAMBA_ROOT_PREFIX/envs/${ENV_NAME:=py311}" ]]; then
     micromamba activate "${ENV_NAME:=py311}" || true
-  elif command -v conda >/dev/null 2>&1 && [[ -d "$CONDA_ROOT_PREFIX/envs/${ENV_NAME:=py311}" ]]; then
-    conda activate "${ENV_NAME:=py311}" || true
+  elif command -v conda >/dev/null 2>&1 || command -v mamba >/dev/null 2>&1 && [[ -d "$CONDA_ROOT_PREFIX/envs/${ENV_NAME:=py311}" ]]; then
+    mamba activate "${ENV_NAME:=py311}" || conda activate "${ENV_NAME:=py311}" || true
   elif command -v micromamba >/dev/null 2>&1; then
     micromamba activate base || true
-  elif command -v conda >/dev/null 2>&1; then
-    conda activate base || true
+  elif command -v conda >/dev/null 2>&1 || command -v mamba >/dev/null 2>&1; then
+    mamba activate base || conda activate base || true
   else
     echo "❌  No compatible (conda/miniconda/mamba/micromamba) environment found." >&2
     # Don't use exit 0 in .bashrc — it can break the shell

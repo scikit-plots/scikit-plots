@@ -13,7 +13,7 @@
 # - POST_CREATE_STRICT=0|1
 # - POST_CREATE_ENV_TOOL=auto|micromamba|conda|mamba
 # - POST_CREATE_ENV_TOOL_SELECTED=micromamba|conda|mamba   (set by env_* scripts)
-# - POST_CREATE_ENV_NAME=<name>                             (set by env_* scripts)
+# - ENV_NAME=<name>                                        (set by env_* scripts)
 # - ENV_NAME=<name> / PY_VERSION=<x.y>                      (fallback)
 #
 # Conda-family runner selection (deterministic)
@@ -218,9 +218,9 @@ pc_git_config_upstream() {
 _pc_env_kind=""  # micromamba|mamba|conda|empty
 
 pc_resolve_env_name() {
-  # Strict precedence: POST_CREATE_ENV_NAME -> ENV_NAME -> derive from PY_VERSION
-  if [[ -n "${POST_CREATE_ENV_NAME:-}" ]]; then
-    printf '%s\n' "${POST_CREATE_ENV_NAME}"
+  # Strict precedence: ENV_NAME -> ENV_NAME -> derive from PY_VERSION
+  if [[ -n "${ENV_NAME:-}" ]]; then
+    printf '%s\n' "${ENV_NAME}"
     return 0
   fi
   if [[ -n "${ENV_NAME:-}" ]]; then
