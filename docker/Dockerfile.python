@@ -100,7 +100,6 @@ WORKDIR /tmp
 # COPY --chown=$MAMBA_USER:$MAMBA_USER docker/ /workspace/docker/
 COPY requirements ./requirements/
 COPY docker ./docker/
-COPY docker/scripts/lib ./docker/scripts/lib/
 COPY docker/env_conda/environment.yml ./
 
 # ------------------------------------------------------------------

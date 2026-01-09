@@ -47,7 +47,7 @@ bash_first_run_notice_body() {
   local SCRIPT_DIR REPO_ROOT COMMON_SH
   SCRIPT_DIR="$(bf_script_dir)"
   REPO_ROOT="${REPO_ROOT:-$(cd -- "$SCRIPT_DIR/../.." && pwd -P)}"
-  COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/lib/common.sh}"
+  COMMON_SH="${COMMON_SH:-$REPO_ROOT/docker/scripts/common.sh}"
 
   # Logging: prefer common.sh; fallback must not hard-exit
   if [[ -f "$COMMON_SH" ]]; then

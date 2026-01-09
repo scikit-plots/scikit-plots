@@ -37,7 +37,7 @@ pc_is_true() {
 # ---------------- deterministic paths ----------------
 PC_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PC_REPO_ROOT="${REPO_ROOT:-$(cd -- "$PC_SCRIPT_DIR/../.." && pwd -P)}"
-PC_COMMON_SH="${COMMON_SH:-$PC_REPO_ROOT/docker/scripts/lib/common.sh}"
+PC_COMMON_SH="${COMMON_SH:-$PC_REPO_ROOT/docker/scripts/common.sh}"
 
 # ---------------- logging (prefer common.sh; never hard-exit here) ----------------
 if [[ -f "$PC_COMMON_SH" ]]; then

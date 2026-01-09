@@ -2,13 +2,13 @@
 # docker/scripts/tests/test_common_sh.sh
 #
 # sh docker/scripts/tests/test_common_sh.sh
-# shellcheck -s sh docker/scripts/lib/common.sh docker/scripts/tests/test_common_sh.sh
+# shellcheck -s sh docker/scripts/common.sh docker/scripts/tests/test_common_sh.sh
 
 set -eu
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
 # Source the library (must not print anything or install anything)
-. "$HERE/../lib/common.sh"
+. "$HERE/../common.sh"
 
 # Basic invariants
 [ "${COMMON_SH__LOADED:-0}" = "1" ] || die "Load guard not set"
