@@ -383,13 +383,13 @@ COPY docker/env_conda/environment.yml ./
 # Optional: reuse your post-create orchestration during build
 # NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
 RUN if [ "${RUN_POST_CREATE}" = "1" ]; then \
+  POST_CREATE_STRICT=0 \
   POST_CREATE_RUN_CONDA=0 \
   POST_CREATE_RUN_MAMBA=1 \
   POST_CREATE_RUN_FIRST_NOTICE=1 \
   POST_CREATE_RUN_POST_CREATE=1 \
   MICROMAMBA_ALLOW_INSTALL=1 \
   MICROMAMBA_INSTALL_MODE=api \
-  MICROMAMBA_INSTALL_INTERACTIVE=0 \
   MICROMAMBA_VERIFY=1 \
   MICROMAMBA_CLEAN=1 \
   POST_CREATE_ENV_REQUIRED=1 \
