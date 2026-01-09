@@ -29,7 +29,7 @@
 # OUTPUTS (exported on success)
 # - POST_CREATE_ENV_TOOL_SELECTED=conda
 # - POST_CREATE_ENV_READY=1
-# - POST_CREATE_ENV_NAME=<resolved env name>
+# - ENV_NAME=<resolved env name>
 # ===============================================================
 
 if [[ -z "${BASH_VERSION:-}" ]]; then
@@ -340,7 +340,7 @@ env_conda_main() {
 
   export POST_CREATE_ENV_TOOL_SELECTED="conda"
   export POST_CREATE_ENV_READY="1"
-  export POST_CREATE_ENV_NAME="$ENV_NAME"
+  export ENV_NAME="$ENV_NAME"
   log_success "Conda env ready: $ENV_NAME (manager=$mgr)"
 
   env_conda_restore
