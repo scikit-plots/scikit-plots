@@ -39,7 +39,7 @@
 ## Ubuntu 20.04 (focal), https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
 ARG BASE_IMAGE=jupyter/scipy-notebook:latest
 ARG SCIKITPLOT_VERSION=0.4.0.post9
-ARG PY_VERSION=3.11
+ARG PY_VERSION=3.12
 ARG EXTENDED_PACKAGES=false
 
 ## Use the argument to specify the base image
@@ -374,7 +374,8 @@ WORKDIR /tmp
 
 COPY requirements ./requirements/
 COPY docker ./docker/
-COPY docker/env_conda/environment.yml ./
+# Install minimal due to disc size limit
+COPY docker/env_conda/base.yml ./environment.yml
 
 ## micromamba and post create steps
 ## Make sure there’s a space between the variable assignment and the . for sourcing.
@@ -384,8 +385,8 @@ COPY docker/env_conda/environment.yml ./
 # NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
 RUN if [ "${RUN_POST_CREATE}" = "1" ]; then \
   POST_CREATE_STRICT=0 \
-  POST_CREATE_RUN_CONDA=0 \
-  POST_CREATE_RUN_MAMBA=1 \
+  POST_CREATE_RUN_CONDA=1 \
+  POST_CREATE_RUN_MAMBA=0 \
   POST_CREATE_RUN_FIRST_NOTICE=1 \
   POST_CREATE_RUN_POST_CREATE=1 \
   MICROMAMBA_ALLOW_INSTALL=1 \
@@ -393,7 +394,7 @@ RUN if [ "${RUN_POST_CREATE}" = "1" ]; then \
   MICROMAMBA_VERIFY=1 \
   MICROMAMBA_CLEAN=1 \
   POST_CREATE_ENV_REQUIRED=1 \
-  POST_CREATE_ENV_TOOL=micromamba \
+  POST_CREATE_ENV_TOOL=conda \
   bash docker/scripts/all_post_create.sh; \
 fi
 
