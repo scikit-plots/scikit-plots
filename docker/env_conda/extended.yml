@@ -127,7 +127,7 @@ dependencies:
   - pipenv
 
   # 📦 Optional pip section (can be removed if unused)
-  # - pip
+  - pip
   # - pip:
   #     # - your-package
   #     - -r requirements/build.txt

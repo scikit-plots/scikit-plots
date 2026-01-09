@@ -35,6 +35,10 @@ ARG ENV_FILE=environment.yml
 # Optional: run repo post-create scripts at build time (OFF by default)
 ARG RUN_POST_CREATE=1
 
+## Set environment variable to avoid interactive prompts during builds
+## Prevent apt install tzinfo from asking our location (assumes UTC)
+ENV DEBIAN_FRONTEND=noninteractive
+
 ## Recommended Python environment variables (uncomment if needed)
 ## Prevent Python from writing .pyc files
 # ENV PYTHONDONTWRITEBYTECODE=1
