@@ -402,8 +402,6 @@ RUN set -Eeuo pipefail; \
     # choose ONE env path:
     POST_CREATE_RUN_CONDA=1 \
     POST_CREATE_RUN_MICROMAMBA=0 \
-    POST_CREATE_ENV_TOOL=conda \
-    POST_CREATE_CONDA_RUNNER=auto \
     \
     bash docker/scripts/all_post_create.sh; \
   fi

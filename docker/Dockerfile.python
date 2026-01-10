@@ -143,10 +143,7 @@ RUN bash -c 'set -Eeuo pipefail; \
     \
     POST_CREATE_RUN_CONDA=0 \
     POST_CREATE_RUN_MICROMAMBA=1 \
-    POST_CREATE_ENV_TOOL=micromamba \
     MICROMAMBA_INSTALL_MODE=script \
-    MICROMAMBA_VERIFY=1 \
-    MICROMAMBA_CLEAN=1 \
     \
     bash docker/scripts/all_post_create.sh; \
   fi'
