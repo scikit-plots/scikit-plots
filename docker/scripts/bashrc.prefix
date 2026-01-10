@@ -47,7 +47,13 @@
 # https://linux.die.net/man/1/bash
 #
 # ====================================================================
-#
+
+# --- Idempotent load guard ---
+if [[ "${BASHRC_PREFIX__LOADED:-0}" == "1" ]]; then
+  return 0
+fi
+BASHRC_PREFIX__LOADED=1
+
 ## bash -c 'echo hi'
 ## Do not print anything if this is not being used interactively
 [ -z "$PS1" ] && return

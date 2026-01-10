@@ -29,6 +29,12 @@
 #
 # ==============================================================================
 
+# --- Idempotent load guard ---
+if [[ "${BASHRC_SUFFIX__LOADED:-0}" == "1" ]]; then
+  return 0
+fi
+BASHRC_SUFFIX__LOADED=1
+
 # >>> Conda/Mamba environment auto-activation >>>
 ## Only run in interactive shell, If Needed use (if [[ $- == *i* ]]; then ...; fi)
 ## : → "do nothing" or "no-op" command, used to ensure the script runs without error.
