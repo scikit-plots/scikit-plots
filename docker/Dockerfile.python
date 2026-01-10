@@ -1,18 +1,25 @@
 # docker/Dockerfile.python
 ## ✅ Declare default only once before FROM if you want a default.
+# ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.4.0
 ARG SCIKITPLOT_VERSION=0.4.0.post9
 ARG PY_VERSION=3.11
-# ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.4.0
+ARG ENV_NAME
 
 ## Use an official Python runtime as a parent image
 # FROM ${MICROMAMBA_IMAGE} AS runtime
 FROM python:${PY_VERSION}-slim AS runtime
+
+## Set environment variables
+## 🐳 Used to detect if running inside Docker (similar to checking /.dockerenv)
+## Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
+ENV IS_DOCKERENV=true
 
 ## ❌ Avoid redeclaring with a default after FROM, it overrides build-arg.
 ## ARG PY_VERSION=3.11        # <-- This overrides any build-arg passed earlier!
 ## ✅ Valid and recommended to redeclare ARG after FROM without default to get the passed/default value correctly.
 ARG SCIKITPLOT_VERSION
 ARG PY_VERSION
+ARG ENV_NAME
 
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 ## Use ENV with shell-style expansion to get ENV_NAME=py3.11
@@ -20,11 +27,6 @@ ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 # ENV ENV_NAME=${ENV_NAME:-py$(printf '%s' "$PY_VERSION" | tr -d '.')}
 ## Bash-style string substitution syntax (${VAR//./})
 ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
-
-## Set environment variables
-## 🐳 Used to detect if running inside Docker (similar to checking /.dockerenv)
-## Equivalent to IS_DOCKERENV = os.path.exists("/.dockerenv")
-ENV IS_DOCKERENV=true
 
 # Optional heavy OS packages (OFF by default)
 ARG APT_INSTALL_DEVTOOLS=1
@@ -35,15 +37,28 @@ ARG ENV_FILE=environment.yml
 # Optional: run repo post-create scripts at build time (OFF by default)
 ARG RUN_POST_CREATE=1
 
-## Set environment variable to avoid interactive prompts during builds
-## Prevent apt install tzinfo from asking our location (assumes UTC)
-ENV DEBIAN_FRONTEND=noninteractive
-
 ## Recommended Python environment variables (uncomment if needed)
 ## Prevent Python from writing .pyc files
 # ENV PYTHONDONTWRITEBYTECODE=1
 ## Make output immediate (no buffering)
 # ENV PYTHONUNBUFFERED=1
+
+## Set environment variable to avoid interactive prompts during builds
+## Prevent apt install tzinfo from asking our location (assumes UTC)
+ENV DEBIAN_FRONTEND=noninteractive
+
+# LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
+LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
+# LABEL org.opencontainers.image.authors="The scikit-plots developers <scikit-plots.github.io/dev>"
+# LABEL org.opencontainers.image.vendor="The scikit-plots developers <scikit-plots.github.io/dev>"
+# LABEL org.opencontainers.image.title="scikit-plots"
+# LABEL org.opencontainers.image.description="Scikit-plots Docker image with Jupyter Notebook support"
+# LABEL org.opencontainers.image.documentation="https://scikit-plots.github.io/dev"
+# LABEL org.opencontainers.image.source="https://github.com/scikit-plots/scikit-plots"
+# LABEL org.opencontainers.image.url="https://hub.docker.com/r/scikitplot/scikit-plots"
+# LABEL org.opencontainers.image.licenses="BSD-3-Clause"
+# LABEL org.opencontainers.image.version="latest"
+# LABEL org.opencontainers.image.revision="latest"
 
 # USER root
 # USER $MAMBA_USER
@@ -90,11 +105,10 @@ RUN if [ "${APT_INSTALL_DEVTOOLS}" = "1" ]; then \
     || { echo "Failed to install common dependencies"; exit 1; }; \
   echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
   && echo "C.UTF-8 UTF-8" >> /etc/locale.gen \
-  && locale-gen || true \
+  && locale-gen || true; \
   ## Cleanup to reduce image size
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*; \
-  ; \
 fi
 
 ######################################################################
