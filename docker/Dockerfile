@@ -240,6 +240,8 @@ RUN apt-get update --yes; \
     build-essential \
     ## Tool for configuring compile-time flags for libraries
     pkg-config \
+    ## Build system that focuses on speed
+    ninja-build \
     ## Common useful utilities
     # zsh \
     # lsb-core \
@@ -281,31 +283,28 @@ RUN apt-get update --yes; \
     ## Multimedia tools for matplotlib animations
     ffmpeg \
     ## Build tools
+    ## compiler caching tool that speeds up recompilation of C/C++ code by caching previous compilation results.
+    ccache \
     ## Utility for building and compiling software projects
     make \
     ## Cross-platform build system generator
     cmake \
-    ## Build system that focuses on speed
-    ninja-build \
-    ## Python-related tools
-    ## Python package installer for Python 3
-    python3-pip \
-    ## Python 3 virtual environments
-    python3-venv \
-    # Python development headers, useful for compiling certain packages
-    python3-dev \
     ## Compilers and build dependencies
-    ## compiler caching tool that speeds up recompilation of C/C++ code by caching previous compilation results.
-    ccache \
-    ## GNU Fortran compiler (required for some scientific libraries)
-    gfortran\
+    ## Clang compiler llvm-17 clang-17
+    clang \
     ## GNU C compiler, c/cpp 11.4.0 compiler version
     gcc \
     ## GNU C++ compiler
     g++ \
-    ## Clang compiler
-    ## llvm-17 clang-17
-    clang \
+    ## GNU Fortran compiler (required for some scientific libraries)
+    gfortran\
+    ## Python-related tools
+    ## Python package installer for Python 3
+    python3-pip \
+    ## Python 3 virtual environments
+    # python3-venv \
+    # Python development headers, useful for compiling certain packages
+    # python3-dev \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; }; \
   ## Cleanup to reduce image size
@@ -405,6 +404,24 @@ RUN set -Eeuo pipefail; \
     POST_CREATE_PACKAGE_EXTRAS="" \
     \
     bash docker/scripts/all_post_create.sh; \
+    { apt-get clean || true; }; \
+    { python -m pip cache purge >/dev/null 2>&1 || true; }; \
+    { conda clean --all -f -y || true; }; \
+    { mamba clean --all -f -y || true; }; \
+    { micromamba clean --all -f -y || true; }; \
+    { jupyter lab clean || true; }; \
+    { rm -rf /var/lib/apt/lists/* || true; }; \
+    { rm -rf /tmp/* /var/tmp/* || true; }; \
+    { \
+      rm -rf ${HOME}/.cache/* || true; \
+      rm -rf "${HOME}/.cache/pip" \
+        "${HOME}/.cache/wheels" \
+        "${HOME}/.cache/matplotlib" \
+        "${HOME}/.cache/torch" \
+        "${HOME}/.cache/huggingface" \
+        "${HOME}/.cache/uv" \
+        "${HOME}/.cache/pypoetry" \
+        "${HOME}/.conda/pkgs" || true; }; \
   fi
 
 ######################################################################
@@ -449,8 +466,7 @@ RUN set -Eeuo pipefail; \
 #   fi
 
 ## Fix permissions on "$HOME" as jovyan
-RUN { fix-permissions "/home/${NB_USER}" \
-  && fix-permissions "${CONDA_DIR}"; } || true
+RUN { fix-permissions "/home/${NB_USER}" && fix-permissions "${CONDA_DIR}" || true; };
 
 ######################################################################
 ## JUPYTER

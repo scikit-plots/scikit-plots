@@ -189,10 +189,12 @@ if command -v micromamba >/dev/null 2>&1; then
     # micromamba create -n py311 python=3.11 ipykernel pip -y
     # micromamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
     micromamba env create -f environment.yml --yes \
+    && { conda clean --all -f -y || true; } \
+    && { mamba clean --all -f -y || true; } \
     && { micromamba clean --all -f -y || true; } \
     && { jupyter lab clean || true; } \
-    && { rm -rf "${HOME}/.cache/yarn" || true; } \
     && { rm -rf ${HOME}/.cache || true; } \
+    && { rm -rf "${HOME}/.cache/yarn" || true; } \
     || { echo "⚠️ Failed to creation Micromamba environment"; }
   else
     echo "✅ micromamba environment '$ENV_NAME' already exists."

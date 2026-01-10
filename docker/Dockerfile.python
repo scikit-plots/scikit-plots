@@ -88,12 +88,12 @@ RUN if [ "${APT_INSTALL_DEVTOOLS}" = "1" ]; then \
     # luarocks \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; }; \
-  ## Cleanup to reduce image size
-  apt-get clean; \
-  rm -rf /var/lib/apt/lists/*; \
   echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
   && echo "C.UTF-8 UTF-8" >> /etc/locale.gen \
   && locale-gen || true \
+  ## Cleanup to reduce image size
+  apt-get clean; \
+  rm -rf /var/lib/apt/lists/*; \
   ; \
 fi
 
@@ -146,6 +146,24 @@ RUN bash -c 'set -Eeuo pipefail; \
     MICROMAMBA_INSTALL_MODE=script \
     \
     bash docker/scripts/all_post_create.sh; \
+    { apt-get clean || true; }; \
+    { python -m pip cache purge >/dev/null 2>&1 || true; }; \
+    { conda clean --all -f -y || true; }; \
+    { mamba clean --all -f -y || true; }; \
+    { micromamba clean --all -f -y || true; }; \
+    { jupyter lab clean || true; }; \
+    { rm -rf /var/lib/apt/lists/* || true; }; \
+    { rm -rf /tmp/* /var/tmp/* || true; }; \
+    { \
+      rm -rf ${HOME}/.cache/* || true; \
+      rm -rf "${HOME}/.cache/pip" \
+        "${HOME}/.cache/wheels" \
+        "${HOME}/.cache/matplotlib" \
+        "${HOME}/.cache/torch" \
+        "${HOME}/.cache/huggingface" \
+        "${HOME}/.cache/uv" \
+        "${HOME}/.cache/pypoetry" \
+        "${HOME}/.conda/pkgs" || true; }; \
   fi'
 
 ######################################################################
