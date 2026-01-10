@@ -45,10 +45,7 @@ if [[ -z "${BASH_VERSION:-}" ]]; then
   exec bash "$0" "$@"
 fi
 
-# Re-source shell config to ensure activation takes effect
-# shellcheck disable=SC1090
-# . ~/."$(basename $SHELL)"rc || true  # ~/.bashrc or ~/.zshrc for zsh
-source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
+echo "POST_CREATE instance: pid=$$ ts=$(date -u +%s%N) $(uname -a)" || true
 
 # ---------------- sourced/executed helpers ----------------
 pc_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
@@ -386,9 +383,16 @@ pc_pip_install_requirements_files() {
 pc_install_project() {
   local env_name="$1"
 
+  local allow_fallback="${POST_CREATE_ALLOW_FALLBACK:-0}"
   local mode="${POST_CREATE_PACKAGE_MODE:-auto}"
   local extras="${POST_CREATE_PACKAGE_EXTRAS:-build,dev,test,doc}"
-  local allow_fallback="${POST_CREATE_ALLOW_FALLBACK:-0}"
+  extras="${extras//[[:space:]]/}"
+  # If extras is empty or "none", install without extras (avoid invalid -e ".[ ]").
+  local editable_target
+  editable_target="."
+  if [[ -n "$extras" && "$extras" != "none" ]]; then
+    editable_target=".[${extras}]"
+  fi
 
   # auto is deterministic:
   # - SCIKITPLOT_VERSION set  -> pypi
@@ -426,7 +430,7 @@ pc_install_project() {
     local|local-editable)
       log_info "Installing local scikit-plots (editable) from repo: $PC_REPO_ROOT"
       if [[ "$mode" == "local-editable" ]]; then
-        if ! (cd -- "$PC_REPO_ROOT" && pc_env_run "$env_name" python -m pip install --no-input --no-build-isolation -e ".[${extras}]" -v); then
+        if ! (cd -- "$PC_REPO_ROOT" && pc_env_run "$env_name" python -m pip install --no-input --no-build-isolation -e "$editable_target" -v); then
           if [[ "$allow_fallback" == "1" ]]; then
             log_warning "Editable install with extras failed; falling back to minimal editable install (POST_CREATE_ALLOW_FALLBACK=1)"
             (cd -- "$PC_REPO_ROOT" && pc_env_run "$env_name" python -m pip install --no-input --no-build-isolation -e . -v) \

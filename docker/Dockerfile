@@ -272,10 +272,14 @@ RUN apt-get update --yes; \
     ## File and directory utilities
     ## Command-line utility for displaying directory structure
     tree \
-    ## Multimedia tools for matplotlib animations
-    ffmpeg \
+    ## Graph visualization software: dot -V
+    graphviz \
+    ## Vector graphics editor
+    inkscape \
     ## image viewer
     imagemagick \
+    ## Multimedia tools for matplotlib animations
+    ffmpeg \
     ## Build tools
     ## Utility for building and compiling software projects
     make \
@@ -302,14 +306,6 @@ RUN apt-get update --yes; \
     ## Clang compiler
     ## llvm-17 clang-17
     clang \
-    ## automatically formats C++ (and other)
-    clang-format \
-    ## static analysis of C++ code
-    clang-tidy \
-    ## Graph visualization software: dot -V
-    graphviz \
-    ## Vector graphics editor
-    inkscape \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; }; \
   ## Cleanup to reduce image size
@@ -329,6 +325,10 @@ RUN set -Eeuo pipefail; \
     ## TensorFlow with Metal Backend (ML-Specific)
     apt-get update --yes; \
     apt-get install --yes --no-install-recommends \
+      ## automatically formats C++ (and other)
+      clang-format \
+      ## static analysis of C++ code
+      clang-tidy \
       ## Linear algebra and Numerical Libraries
       ## Basic Linear Algebra Subprograms (BLAS)
       libblas-dev \
@@ -402,6 +402,7 @@ RUN set -Eeuo pipefail; \
     # choose ONE env path:
     POST_CREATE_RUN_CONDA=1 \
     POST_CREATE_RUN_MICROMAMBA=0 \
+    POST_CREATE_PACKAGE_EXTRAS="" \
     \
     bash docker/scripts/all_post_create.sh; \
   fi
