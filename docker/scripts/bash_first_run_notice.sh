@@ -425,10 +425,12 @@ bash_first_run_notice_body() {
 }
 
 # When sourced: isolate in subshell to avoid polluting caller
-if bf_is_sourced; then
-  ( bash_first_run_notice_body "$@" )
-  bf_exit_or_return $?
-else
-  bash_first_run_notice_body "$@"
-  bf_exit_or_return $?
-fi
+# if bf_is_sourced; then
+#   ( bash_first_run_notice_body "$@" )
+#   bf_exit_or_return $?
+# else
+#   bash_first_run_notice_body "$@"
+#   bf_exit_or_return $?
+# fi
+bash_first_run_notice_body "$@"
+bf_exit_or_return $?

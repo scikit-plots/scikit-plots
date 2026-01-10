@@ -577,10 +577,12 @@ post_create_body() {
 # Run mode:
 # - if sourced: isolate in subshell to avoid polluting caller
 # - if executed: run directly
-if pc_is_sourced; then
-  ( post_create_body "$@" )
-  pc_exit_or_return $?
-else
-  post_create_body "$@"
-  pc_exit_or_return $?
-fi
+# if pc_is_sourced; then
+#   ( post_create_body "$@" )
+#   pc_exit_or_return $?
+# else
+#   post_create_body "$@"
+#   pc_exit_or_return $?
+# fi
+post_create_body "$@"
+pc_exit_or_return $?
