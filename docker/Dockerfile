@@ -40,6 +40,7 @@
 ARG BASE_IMAGE=jupyter/scipy-notebook:latest
 ARG SCIKITPLOT_VERSION=0.4.0.post9
 ARG PY_VERSION=3.12
+ARG ENV_NAME
 ARG EXTENDED_PACKAGES=false
 
 ## Use the argument to specify the base image
@@ -49,7 +50,7 @@ FROM ${BASE_IMAGE} AS base
 
 ARG SCIKITPLOT_VERSION
 ARG PY_VERSION
-ARG EXTENDED_PACKAGES
+ARG ENV_NAME
 
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 ## Use ENV with shell-style expansion to get ENV_NAME=py3.11
@@ -57,8 +58,6 @@ ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
 # ENV ENV_NAME=${ENV_NAME:-py$(printf '%s' "$PY_VERSION" | tr -d '.')}
 ## Bash-style string substitution syntax (${VAR//./})
 ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
-## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
-ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
 
 # Optional heavy OS packages (OFF by default)
 ARG APT_INSTALL_DEVTOOLS=1
@@ -135,8 +134,7 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 #   dpkg-reconfigure -f noninteractive tzdata; \
 #   ## Cleanup to reduce image size
 #   apt-get clean \
-#   && rm -rf /var/lib/apt/lists/* \
-#   ;
+#   && rm -rf /var/lib/apt/lists/*;
 
 ## Set the system locale to en_US.UTF-8 (English, UTF-8 encoding)
 # ENV LANG=en_US.UTF-8 \
@@ -152,9 +150,8 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 #   && update-locale LANG=en_US.UTF-8 \
 #   && dpkg-reconfigure -f noninteractive locales; \
 #   ## Cleanup to reduce image size
-#   apt-get clean \
-#   && rm -rf /var/lib/apt/lists/* \
-#   ;
+#   apt-get clean; \
+#   rm -rf /var/lib/apt/lists/*;
 
 ## Set the system locale to C.UTF-8 (POSIX-compliant with Unicode support)
 ## Ensures that all locale categories (LC_*) are set to C.UTF-8, so the environment is fully UTF-8 enabled.
@@ -174,9 +171,8 @@ ENV LANGUAGE=C.UTF-8
 #   && locale-gen C.UTF-8 \
 #   && dpkg-reconfigure -f noninteractive locales; \
 #   ## Cleanup to reduce image size
-#   apt-get clean \
-#   && rm -rf /var/lib/apt/lists/* \
-#   ;
+#   apt-get clean; \
+#   rm -rf /var/lib/apt/lists/*;
 
 ## Set the default user and group for the Jupyter notebook
 ## whoami   # e.g., vscode
@@ -189,6 +185,7 @@ ENV LANGUAGE=C.UTF-8
 ## ARG NB_GID=100
 ARG NB_PASS=jovyan
 # ENV HOME=/home/${NB_USER}
+
 ## Ensure sudo is installed and allow ${NB_USER} to use it without a password
 RUN apt-get update; \
   ## Install sudo, gosu and set up a passwordless sudo user
@@ -209,7 +206,7 @@ RUN apt-get update; \
   ; \
   ## Cleanup to reduce image size
   apt-get clean; \
-  rm -rf /var/lib/apt/lists/*
+  rm -rf /var/lib/apt/lists/*;
 
 ######################################################################
 ## OS dependencies
@@ -292,6 +289,10 @@ RUN apt-get update --yes; \
     ## Compilers and build dependencies
     ## Clang compiler llvm-17 clang-17
     clang \
+    ## automatically formats C++ (and other)
+    clang-format \
+    ## static analysis of C++ code
+    clang-tidy \
     ## GNU C compiler, c/cpp 11.4.0 compiler version
     gcc \
     ## GNU C++ compiler
@@ -309,11 +310,15 @@ RUN apt-get update --yes; \
     || { echo "Failed to install common dependencies"; exit 1; }; \
   ## Cleanup to reduce image size
   apt-get clean; \
-  rm -rf /var/lib/apt/lists/*
+  rm -rf /var/lib/apt/lists/*;
+
+## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
+ARG EXTENDED_PACKAGES
+ENV EXTENDED_PACKAGES=${EXTENDED_PACKAGES:-false}
 
 ## Add a second conditional RUN block for large or optional packages:
 RUN set -Eeuo pipefail; \
-    if [ "$EXTENDED_PACKAGES" = "true" ]; then \
+  if [ "$EXTENDED_PACKAGES" = "true" ]; then \
     echo "Installing extended packages..."; \
     ## GPU-Based Parallel Computing
     ## CUDA – NVIDIA's framework for parallel programming on GPUs.
@@ -324,10 +329,6 @@ RUN set -Eeuo pipefail; \
     ## TensorFlow with Metal Backend (ML-Specific)
     apt-get update --yes; \
     apt-get install --yes --no-install-recommends \
-      ## automatically formats C++ (and other)
-      clang-format \
-      ## static analysis of C++ code
-      clang-tidy \
       ## Linear algebra and Numerical Libraries
       ## Basic Linear Algebra Subprograms (BLAS)
       libblas-dev \
@@ -352,9 +353,8 @@ RUN set -Eeuo pipefail; \
     apt-get install --yes --no-install-recommends \
       libmkl-dev || true; \
     ## Cleanup to reduce image size
-    apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    ; \
+    apt-get clean || true; \
+    rm -rf /var/lib/apt/lists/* || true; \
   else \
     echo "Skipping extended packages."; \
   fi
@@ -459,8 +459,7 @@ RUN set -Eeuo pipefail; \
 #     && { mamba clean --all -f -y || true; } \
 #     && { jupyter lab clean || true; } \
 #     && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
-#     && { rm -rf ${HOME}/.cache || true; } \
-#     ; \
+#     && { rm -rf ${HOME}/.cache || true; }; \
 #   else \
 #     echo "Skipping extended packages."; \
 #   fi
