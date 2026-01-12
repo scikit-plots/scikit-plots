@@ -308,7 +308,7 @@ apc_main() {
     set +e
 
     # shellcheck source=/dev/null
-    bash -c '. "$path"'
+    . "$path"
     rc=$?
 
     # restore shell state

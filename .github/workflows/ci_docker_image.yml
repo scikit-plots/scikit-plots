@@ -119,6 +119,7 @@ jobs:
               tag: "jupyter"
               ref_tag: "ref_tags-jupyter"
               alias: "latest-jupyter"
+              alias2: "latest-jupyter-python-3.12"  # <-- This key is **not required to match** unless you include it in `exclude`
           # (Optional) Don't build Exclusion (inline object):
           - service: [scikit-plots_latest-jupyter, scikitplot, scikit-plots]
             tag: {
