@@ -1,41 +1,37 @@
 #!/usr/bin/env bash
-# >>> (bashrc.suffix) scikit-plots personal initialization >>>
+# docker/scripts/.bashrc.d/10-scikit-plots.suffix.sh
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# ==============================================================================
-#  ____       _ _    _ _              _       _
-# / ___|  ___(_) | _(_) |_      _ __ | | ___ | |_ ___
-# \___ \ / __| | |/ / | __|____| '_ \| |/ _ \| __/ __|
-#  ___) | (__| |   <| | ||_____| |_) | | (_) | |_\__ \\
-# |____/ \___|_|_|\_\_|\__|    | .__/|_|\___/ \__|___/
-#                              |_|
-#  ____           _   _      _   _                     _           _
-# / ___|    ___  (_) | | __ (_) | |_           _ __   | |   ___   | |_   ___
-# \___ \   / __| | | | |/ / | | | __|  _____  | '_ \  | |  / _ \  | __| / __|
-#  ___) | | (__  | | |   <  | | | |_  |_____| | |_) | | | | (_) | | |_  \__ \\
-# |____/   \___| |_| |_|\_\ |_|  \__|         | .__/  |_|  \___/   \__| |___/
-#                                             |_|
-# ==============================================================================
+# scikit-plots bashrc drop-in (suffix)
 #
-# When bash initializes a non-login interactive bash shell on a Debian/Ubuntu-like system, the shell first reads /etc/bash.bashrc and then reads ~/.bashrc.
-# System wide initialization file /etc/bash.bashrc and the standard personal initialization file ~/.bashrc if the shell is interactivе.
-# https://github.com/tensorflow/build/blob/master/tensorflow_runtime_dockerfiles/cpu.Dockerfile
-# https://github.com/tensorflow/build/blob/master/tensorflow_runtime_dockerfiles/bashrc
-# https://github.com/jupyter/docker-stacks/issues/815
-# https://www.gnu.org/software/bash/manual/bash.html
-# https://linux.die.net/man/1/bash
+# Purpose
+# - Late, user-facing shell conveniences that should run AFTER prefix/init.
+# - Must be safe to source repeatedly (idempotent).
+# - Must NOT auto-activate environments or mutate PATH/toolchains (handled elsewhere).
+#
+# This file is intended to be sourced from ~/.bashrc.d/*.sh by a loader block.
 #
 # ==============================================================================
+# >>> 10-scikit-plots.suffix.sh scikit-plots personal initialization >>>
 
-# --- Idempotent load guard ---
-if [[ "${BASHRC_SUFFIX__LOADED:-0}" == "1" ]]; then
+# Idempotent guard (avoid double sourcing if loaded from multiple loaders)
+# if [[ "${__SCIKIT_PLOTS_SUFFIX_ONCE:-0}" == "1" ]]; then
+if [[ -n "${__SCIKIT_PLOTS_SUFFIX_ONCE:-}" ]]; then
   return 0
 fi
-BASHRC_SUFFIX__LOADED=1
+__SCIKIT_PLOTS_SUFFIX_ONCE=1
+
+# Interactive shells only $- contains shell flags (e.g. himBH).
+# case $- in *i*) ;; *) return ;; esac
+case $- in
+  *i*) ;;  # Interactive shell → continue
+  *) return ;;  # Not interactive → stop
+esac
 
 # >>> Conda/Mamba environment auto-activation >>>
+# ==============================================================================
 ## Only run in interactive shell, If Needed use (if [[ $- == *i* ]]; then ...; fi)
 ## : → "do nothing" or "no-op" command, used to ensure the script runs without error.
 ## Use `: "${VAR:=default}"` is roughly equivalent to `VAR="${VAR:-default}"` → Default assignment (ensure it's set).
@@ -56,10 +52,12 @@ BASHRC_SUFFIX__LOADED=1
 : "${MAMBA_ROOT_PREFIX:=${HOME:-/root}/micromamba}"  # Default to ~/micromamba if MAMBA_ROOT_PREFIX is not set
 
 # >>> micromamba auto-activate (managed) >>>
+# ==============================================================================
 if command -v micromamba >/dev/null 2>&1; then
   eval "$(micromamba shell hook --shell bash)"
-  micromamba activate \"${ENV_NAME:=py311}\" >/dev/null 2>&1 || true
+  # micromamba activate \"${ENV_NAME:=py311}\" >/dev/null 2>&1 || true
 fi
+# ==============================================================================
 # <<< micromamba auto-activate (managed) <<<
 
 ## readonly locks it, this locks the variable so it cannot be reassigned accidentally later in the script.
@@ -67,7 +65,7 @@ fi
 #
 ## (If Necessary) Hardcoded Load conda/micromamba environment auto-activation script
 ## source (or .) runs the file in the current shell session.
-if [ -f "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" ]; then
+if ! command -v conda >/dev/null 2>&1 && [[ -f "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" ]]; then
     # source ${CONDA_ROOT_PREFIX:-/opt/conda}/etc/profile.d/conda.sh && conda activate || true
     # source ${MAMBA_ROOT_PREFIX:-~/micromamba}/etc/profile.d/conda.sh && conda activate || true
     . "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" && conda activate || true
@@ -91,4 +89,8 @@ else
   # echo "❌  No compatible (conda/miniconda/mamba/micromamba) environment found." >&2
   true
 fi
+# ==============================================================================
 # <<< Conda/Mamba environment auto-activation <<<
+
+# ==============================================================================
+# <<< 10-scikit-plots.suffix.sh scikit-plots personal initialization <<<
