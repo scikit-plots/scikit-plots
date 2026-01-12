@@ -125,8 +125,8 @@ jobs:
             tag: {
               tag: "python-3.11",
               ref_tag: "ref_tags-python-3.11",
-              alias: "latest-python-3.11",
-              alias2: "latest"  # <-- This key is **not required to match** unless you include it in `exclude`
+              alias: "latest",
+              alias2: "latest-python-3.11"  # <-- This key is **not required to match** unless you include it in `exclude`
             }
 
     # Set your DockerHub username as a fixed env var
