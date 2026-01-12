@@ -313,13 +313,13 @@ pc_env_run() {
       ;;
     mamba)
       # Keep flags minimal for maximum compatibility across mamba versions.
-      mamba run -n "$env_name" -- "$@"
+      mamba run -n "$env_name" "$@"
       ;;
     conda)
       if [[ "$conda_no_capture" == "1" ]]; then
         conda run --no-capture-output -n "$env_name" -- "$@"
       else
-        conda run -n "$env_name" -- "$@"
+        conda run -n "$env_name" "$@"
       fi
       ;;
     *)
@@ -330,6 +330,8 @@ pc_env_run() {
 
 pc_env_assert_python() {
   local env_name="$1"
+  # micromamba run -n py311 python -c 'import sys; print(sys.version.split()[0])'
+  # conda run -n py312 python -c 'import sys; print(sys.version.split()[0])'
   if ! pc_env_run "$env_name" python -c 'import sys; print(sys.version.split()[0])' >/dev/null 2>&1; then
     pc_optional_fail 1 "Python not available in env '$env_name'. Ensure environment.yml includes python and pip."
     return 1
