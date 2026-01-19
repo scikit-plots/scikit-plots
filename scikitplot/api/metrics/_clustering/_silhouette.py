@@ -46,7 +46,6 @@ def plot_silhouette(
     cluster_labels,
     *,
     metric="euclidean",
-    # copy=True,
     ## plotting params
     title="Silhouette Analysis",
     title_fontsize="large",

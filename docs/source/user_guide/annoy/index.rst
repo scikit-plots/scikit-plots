@@ -1,3 +1,4 @@
+.. docs/source/user_guide/annoy/index.rst
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -20,48 +21,70 @@
 .. _annoy-index:
 
 ======================================================================
-ANNoy
+ANNoy Vector Database (Approximate Nearest Neighbors)
 ======================================================================
 
-This page documents the Annoy [0]_ integration shipped with scikit-plots.
+ANNoy helps you find *similar items* fast.
 
-- High-level API: :py:mod:`~scikitplot.annoy`
-- Low-level bindings: :py:mod:`~scikitplot.cexternals._annoy`
+You give your data as **vectors** (arrays of numbers). Then you can search for
+the **nearest neighbors** (the most similar vectors).
 
-High-level Python interface for the C++ Annoy backend.
+This page documents the Annoy [1]_ user guide integration shipped with scikit-plots.
 
-This page documents :py:mod:`~scikitplot.annoy`. It provides a stable import path
-and a small, user-facing API built on the low-level bindings in
-:py:mod:`~scikitplot.cexternals._annoy`.
+- Low-level bindings C-API: :py:mod:`~scikitplot.cexternals._annoy`
+- High-level Python-API: :py:mod:`~scikitplot.annoy`
 
-.. note::
-   For backend and C-extension details, see :ref:`cexternals-annoy-index`.
-
-Exports
---------
+----------------------------------------------------------------------
+Public Python API
+----------------------------------------------------------------------
 
 This module exports:
 
 - :class:`~Annoy`:
-  Low-level C-extension type (stable).
+  Low-level C-extension type (stable, picklable).
 - :class:`~AnnoyIndex`:
-  Public alias of the Annoy index.
+  Public alias of the Low-level :class:`~Annoy` index.
 - :class:`~Index`:
-  High-level Python wrapper subclass (picklable).
+  High-level Python wrapper subclass (stable, picklable).
 
+..
+  toctree::
+   :maxdepth: 2
+   :caption: Pages
+
+   vector_databases
+   annoy_index_inheritance_diagrams
 
 .. grid:: 1 1 2 2
 
     .. grid-item-card::
         :padding: 2
 
-        **architecture**
+        **VectorDB**
         ^^^
         .. toctree::
             :maxdepth: 2
 
-            Index Architecture <annoy_index_inheritance_diagrams.rst>
+            Vector Similarity Search <./annoy_index_vector_database.rst>
 
+    .. grid-item-card::
+        :padding: 2
+
+        **Architecture**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Index Inheritance <./annoy_index_inheritance_diagrams.rst>
+
+.. note::
+   For backend and C-extension details, see :ref:`cexternals-annoy-index`.
+
+High-level Python interface for the C++ Annoy backend.
+
+This page documents :py:mod:`~scikitplot.annoy`. It provides a stable import path
+and a small, user-facing API built on the low-level bindings in
+:py:mod:`~scikitplot.cexternals._annoy`.
 
 Workflow
 --------
@@ -150,5 +173,5 @@ Further reading
 
 References
 ----------
-.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
+.. [1] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
    Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_

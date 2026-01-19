@@ -3,7 +3,7 @@
 Preprocessing
 ----------------------------------------------------------------------
 
-Examples related to the :py:mod:`~scikitplot.preprocessing` module with
+Examples related to the :py:mod:`~scikitplot.preprocessing` submodule with
 e.g., :py:class:`~scikitplot.preprocessing.DummyCodeEncoder`,
 :py:class:`~scikitplot.preprocessing.GetDummies` instance.
 

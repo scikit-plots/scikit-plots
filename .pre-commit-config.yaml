@@ -115,7 +115,7 @@ repos:
           - --diff                    # Show a diff of what would change, without writing changes to disk. Often used with --check.
           ## Keep Sync: in YAML — pyproject.toml, Black uses pyproject.toml for configuration.
           - --force-exclude
-          - '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/cexperimental|scikitplot/cexternals|scikitplot/experimental|scikitplot/externals|scikitplot/modelplotpy|scikitplot/visualkeras)/'
+          - '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/cexperimental|scikitplot/cexternals|scikitplot/experimental|scikitplot/externals|scikitplot/visualkeras)/'
         # verbose: true  # Force Black to show which files were modified
         # exclude: '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests)/'
 

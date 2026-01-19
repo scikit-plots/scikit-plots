@@ -42,7 +42,7 @@ or matplotlib imports).
 
 .. seealso::
     * :ref:`ANNoy <annoy-index>`
-    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
+    * :ref:`cexternals/ANNoy <cexternals-annoy-index>`
     * https://github.com/spotify/annoy
     * https://pypi.org/project/annoy
 

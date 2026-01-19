@@ -832,7 +832,7 @@ _html_secondary_sidebars = {
     "introduction/index": [],
     "user_guide/index": [],
     "user_guide/api/index": [],
-    "user_guide/decile_wise_perf/index": [],
+    "user_guide/decile/index": [],
     "whats_new/index": [],
     "_tags/tagsindex": [],
 }

@@ -168,8 +168,8 @@ def discover_available_plots():
         pass
     # Add custom charts if available
     try:
-        import scikitplot.snsx as snsx
-        plots["decileplot"] = "scikitplot.snsx.decileplot"
+        from scikitplot.seaborn import decileplot
+        plots["decileplot"] = "scikitplot.seaborn.decileplot"
     except ImportError:
         pass
     return plots

@@ -434,7 +434,7 @@ def validate_shapes_decorator(func):
             **{
                 **kwargs,
                 "func": func,
-                "params": ["y_probas"],
+                "params": ["y_score", "y_probas"],
             },
         )
 
@@ -737,7 +737,7 @@ def validate_y_probas_decorator(func):
             **{
                 **kwargs,
                 "func": func,
-                "params": ["y_probas"],
+                "params": ["y_score", "y_probas"],
             },
         )
 
@@ -912,7 +912,7 @@ def validate_y_probas_bounds_decorator(func):
             **{
                 **kwargs,
                 "func": func,
-                "params": ["y_probas"],
+                "params": ["y_score", "y_probas"],
             },
         )
 

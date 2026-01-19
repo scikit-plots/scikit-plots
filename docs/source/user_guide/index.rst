@@ -55,17 +55,17 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Nearest Neighbor**
+        **nearest neighbor**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./annoy/index.rst
+            ANNoy Vector Index DB <./annoy/index.rst>
 
     .. grid-item-card::
         :padding: 3
 
-        **Metric Perf**
+        **metric perf**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -75,17 +75,17 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Decile-Wise Perf**
+        **decile-wise perf**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./decile_wise_perf/index.rst
+            ./decile/index.rst
 
     .. grid-item-card::
         :padding: 3
 
-        **Data Imputation**
+        **data imputation**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -95,7 +95,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Logging System**
+        **logging system**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -105,7 +105,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **High-performance Numerical Functions**
+        **high-performance numerical functions**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -115,7 +115,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Data Preprocessing**
+        **data preprocessing**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -125,17 +125,17 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **SeabornX**
+        **seaborn**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            SeabornX <./snsx/index.rst>
+            seaborn <./seaborn/index.rst>
 
     .. grid-item-card::
         :padding: 3
 
-        **Stats**
+        **stats**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -145,7 +145,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Visualkeras**
+        **visualkeras**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -155,7 +155,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Array API Dispatching**
+        **array api dispatching**
         ^^^
         .. toctree::
             :maxdepth: 2
@@ -165,7 +165,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **Brand Logo**
+        **brand logo**
         ^^^
         .. toctree::
             :maxdepth: 2
@@ -179,7 +179,7 @@ Under Development
 ----------------------------------------------------------------------
 
 .. toctree::
-   :caption: Development
+   :caption: development
    :maxdepth: 1
    :titlesonly:
 

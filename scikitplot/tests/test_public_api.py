@@ -45,6 +45,9 @@ PUBLIC_MODULES = [
         "cexternals",
         "config",
         "config.cbook",
+        "decile",
+        "decile.kds",
+        "decile.modelplotpy",
         "experimental",
         "experimental.enable_ann_imputer",
         "experimental.pipeline",
@@ -63,13 +66,11 @@ PUBLIC_MODULES = [
         "externals.array_api_extra",
         "externals.array_api_extra.testing",
         "impute",
-        "kds",
         "misc",
         "misc.plot_colortable",
-        "modelplotpy",
         "nc",
         "preprocessing",
-        "snsx",
+        "seaborn",
         "stats",
         "utils",
         "utils.plot_serializer",
@@ -301,8 +302,8 @@ def test_api_importable():
 @pytest.mark.parametrize(
     ("module_name", "correct_module"),
     [
-        ("scikitplot.kds._deciles", None)
-        #    ('scikitplot.kds._deciles.', None),
+        ("scikitplot.decile.kds._deciles", None)
+        #    ('scikitplot.decile.kds._deciles.', None),
     ],
 )
 def test_private_but_present_deprecation(module_name, correct_module):

@@ -48,7 +48,7 @@ class FunctionMeta(Enum):
     snsx_catalog = [
         {
             "module": "scikitplot",
-            "function": ".snsx.evaluation.roc_curve",
+            "function": ".seaborn.evaluation.roc_curve",
             "fallback_function": ".api.metrics.plot_roc",
             "category": "evaluation",
             "task_type": "classification",
@@ -72,7 +72,7 @@ class FunctionMeta(Enum):
 snsx_catalog = [
     {
         "module": "scikitplot",
-        "function": ".snsx.evaluation.plot_classifier_eval",
+        "function": ".seaborn.evaluation.plot_classifier_eval",
         "fallback_function": ".api.metrics.plot_classifier_eval",
         "category": "evaluation",
         "task_type": "classification",
@@ -85,7 +85,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.evaluation.roc_curve",
+        "function": ".seaborn.evaluation.roc_curve",
         "fallback_function": ".api.metrics.plot_roc",
         "category": "evaluation",
         "task_type": "classification",
@@ -100,7 +100,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.evaluation.pr_curve",
+        "function": ".seaborn.evaluation.pr_curve",
         "fallback_function": ".api.metrics.plot_precision_recall",
         "category": "evaluation",
         "task_type": "classification",
@@ -115,7 +115,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.evaluation.lift_curve",
+        "function": ".seaborn.evaluation.lift_curve",
         "fallback_function": ".kds.plot_lift",
         "category": "evaluation",
         "task_type": "classification",
@@ -130,7 +130,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.evaluation.ks_statistic",
+        "function": ".seaborn.evaluation.ks_statistic",
         "fallback_function": ".kds.plot_ks_statistic",
         "category": "evaluation",
         "task_type": "classification",
@@ -145,7 +145,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.representation.pca",
+        "function": ".seaborn.representation.pca",
         "fallback_function": ".api.metrics.plot_roc",
         "category": "representation",
         "task_type": "unsupervised",
@@ -160,7 +160,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.explanation.shap_summary",
+        "function": ".seaborn.explanation.shap_summary",
         "fallback_function": ".api.metrics.plot_roc",
         "category": "explanation",
         "task_type": "general",
@@ -175,7 +175,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.features.mutual_information",
+        "function": ".seaborn.features.mutual_information",
         "fallback_function": ".api.metrics.plot_roc",
         "category": "features",
         "task_type": "general",
@@ -188,7 +188,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.dataset.null_heatmap",
+        "function": ".seaborn.dataset.null_heatmap",
         "fallback_function": ".api.metrics.plot_roc",
         "category": "dataset",
         "task_type": "general",
@@ -203,7 +203,7 @@ snsx_catalog = [
     },
     {
         "module": "scikitplot",
-        "function": ".snsx.training.loss_curve",
+        "function": ".seaborn.training.loss_curve",
         "fallback_function": ".api.metrics.plot_roc",
         "category": "training",
         "task_type": "general",

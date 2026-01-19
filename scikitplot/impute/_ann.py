@@ -34,7 +34,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
+
+# cpu_count()            # tells you how many CPUs are available
+# Parallel(n_jobs=-1)    # uses cpu_count() workers (all CPUs)
+# Parallel(n_jobs=None)  # usually = 1 worker (sequential)
+# with parallel_config(n_jobs=-1):
+#     Parallel(n_jobs=None)  # now inherits -1 => all CPUs
+from joblib import Parallel, cpu_count, delayed, parallel_config
 
 # sklearn
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
@@ -296,7 +302,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         `fit` is called are returned in results when `transform` is called.
         The imputed value is always `0`.
 
-    n_jobs : int or None, default=-1
+    n_jobs : int or None, default=None
         Parallelism level used in two places:
 
         - during Annoy index construction, passed to
@@ -306,11 +312,13 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         - during imputation, used as the number of worker threads in a
           :class:`joblib.Parallel` loop.
 
+        If None usually = 1 worker (sequential).
+
         A value of ``-1`` uses all available CPU cores. Using threads
         for the imputation step avoids spawning new Python processes and
         keeps this estimator compatible with editable installs and other
         environments where the package cannot be safely re-imported in
-        child processes.
+        child processes. So like uses ``import joblib; joblib.cpu_count()``
 
     random_state : int or None, default=None
         Seed for the backend index construction (e.g. Annoy hyperplanes,
@@ -512,7 +520,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         copy=True,
         add_indicator=False,
         keep_empty_features=False,
-        n_jobs=-1,  # annoy default
+        n_jobs=None,  # annoy default
         random_state=None,
     ):
         # Base imputer handles missing_values / indicators
@@ -1044,7 +1052,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         self._is_empty_feature = np.all(mask_missing_values, axis=0)
 
         # For index construction we always encode missingness as np.nan
-        X = np.asarray(X, dtype=float, copy=True)
+        X = np.asarray(X, dtype=float)
         if not is_scalar_nan(self.missing_values):
             X[X_missing_mask] = np.nan
 

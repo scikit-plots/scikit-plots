@@ -4,7 +4,7 @@
 Visualkeras NLP
 ----------------------------------------------------------------------
 
-Examples related to the :py:mod:`~scikitplot.visualkeras` module with e.g. a :py:class:`~tensorflow.keras.Model` model instance.
+Examples related to the :py:mod:`~scikitplot.visualkeras` submodule with e.g. a :py:class:`~tensorflow.keras.Model` model instance.
 
 .. https://www.linkedin.com/posts/lysandredebut_i-have-bittersweet-news-to-share-yesterday-activity-7338966863403528192-om5p
 .. important::
