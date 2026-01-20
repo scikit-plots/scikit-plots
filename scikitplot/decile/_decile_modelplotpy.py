@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import logging
 import os  # noqa: F401
+import re  # noqa: F401
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypeVar
 
@@ -1111,20 +1112,30 @@ class ModelPlotPy:
 ## (cumulative) Response, Lift, Gains and Financial plots
 ##########################################################################
 
-# Dev note: The plot_* functions below are intentionally thin wrappers around
-# deterministic, unit-testable internal helpers. This prevents repetition and
-# makes the behavior consistent across plots.
+# Dev note:
+# The plot_* functions below are intentionally thin wrappers around deterministic,
+# unit-testable internal helpers. This prevents repetition and makes behavior
+# consistent across plots.
+#
+# User note:
+# - All highlight text follows a single standardized template.
+# - All formatting is done via format strings/callables (no explicit round()).
 
 import numbers
-from typing import Callable, Iterator, Literal, Sequence
+from typing import Any, Callable, Iterator, Literal, Mapping, Sequence
 
 
 class _PlotInputError(ValueError):
     """Raised when plot_input does not conform to the required schema."""
 
 
+# ---------------------------
+# Schema + validation helpers
+# ---------------------------
+
+
 def _require_columns(df: pd.DataFrame, *, required: Sequence[str], where: str) -> None:
-    """Validate that the required columns exist.
+    """Validate that required columns exist.
 
     Parameters
     ----------
@@ -1210,7 +1221,7 @@ def _unique_one(values: pd.Series, *, name: str, where: str) -> Any:
 
 
 def _ntile_label(ntiles: int) -> str:
-    """Map ntile count to a stable descriptive label.
+    """Map ntile count to a descriptive label.
 
     Parameters
     ----------
@@ -1295,10 +1306,11 @@ def _get_ntiles_from_plot_input(df: pd.DataFrame, *, where: str) -> int:
     nt = df["ntile"]
     if nt.isna().any():
         raise _PlotInputError(f"{where}: plot_input.ntile contains NaN.")
-    # Accept numpy/pandas integer dtypes and python ints; reject floats with decimals.
-    arr = nt.to_numpy()
+
+    arr = nt.to_numpy(dtype=float)
     if not np.all(np.equal(arr, np.floor(arr))):
         raise _PlotInputError(f"{where}: plot_input.ntile must be integer-like.")
+
     ntiles = int(np.max(arr))
     if ntiles < 1:
         raise _PlotInputError(f"{where}: invalid max(ntile)={ntiles}. Expected >= 1.")
@@ -1343,89 +1355,11 @@ def _scope_grouping(scope: str) -> tuple[str | None, str]:
     if scope == "compare_datasets":
         return "dataset_label", "dataset"
     if scope == "compare_targetclasses":
-        return "target_class", "target class"
+        return "target_class", "target"
     raise ValueError(f"Unknown scope='{scope}'.")
 
 
-def _setup_axis(
-    ax: plt.Axes,
-    *,
-    title: str,
-    xlabel: str,
-    ylabel: str,
-    ntiles: int,
-    xlim: tuple[int, int] = (1, 1),
-    percent_y: bool = False,
-    grid: bool = True,
-) -> None:
-    """Apply consistent axis styling.
-
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-        Axes to configure.
-    title : str
-        Axes title.
-    xlabel : str
-        X label.
-    ylabel : str
-        Y label.
-    ntiles : int
-        Number of ntiles.
-    xlim : tuple[int, int], default=(1, 1)
-        X axis limits.
-    percent_y : bool, default=False
-        Whether to format y axis as percent in [0, 1].
-    grid : bool, default=True
-        Whether to enable grid.
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    None
-
-    See Also
-    --------
-    matplotlib.ticker.PercentFormatter
-
-    Notes
-    -----
-    User note: We intentionally do not apply heuristic y-limits. Matplotlib auto-
-    scales the y-range; we only ensure a clean baseline for metrics that are
-    naturally non-negative.
-
-    Examples
-    --------
-    >>> # internal
-    """
-    ax.set_title(title, fontweight="bold")
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-
-    if percent_y:
-        ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-
-    # Strict rule: show every integer ntile tick (no heuristic downsampling).
-    ax.set_xticks(np.arange(0, ntiles + 1, 1))
-
-    ax.spines["right"].set_visible(False)
-    ax.spines["top"].set_visible(False)
-    ax.yaxis.set_ticks_position("left")
-    ax.xaxis.set_ticks_position("bottom")
-
-    ax.set_xlim(list(xlim))
-    if grid:
-        ax.grid(True)
-
-
-def _iter_groups(
-    df: pd.DataFrame,
-    *,
-    scope: str,
-) -> Iterator[tuple[str, pd.DataFrame]]:
+def _iter_groups(df: pd.DataFrame, *, scope: str) -> Iterator[tuple[str, pd.DataFrame]]:
     """Yield (label, dataframe) groups according to scope.
 
     Parameters
@@ -1462,10 +1396,8 @@ def _iter_groups(
         yield "single", df
         return
 
-    # Stable order by first appearance.
     labels = [str(v) for v in pd.unique(df[group_col])]
     for lab in labels:
-        # For target_class we stringify consistently.
         if group_col == "target_class":
             mask = df[group_col].astype(str) == lab
         else:
@@ -1473,38 +1405,187 @@ def _iter_groups(
         yield lab, df.loc[mask].copy()
 
 
-def _normalize_highlight_ntiles(
-    highlight_ntile: Any,
-    *,
-    ntiles: int,
-    where: str,
-) -> list[int]:
-    """Normalize and validate ``highlight_ntile`` into a sorted unique list.
+# ---------------------------
+# Formatting helpers (no round())
+# ---------------------------
+
+
+def _autopct(frac: float, autopct: str | Callable[[float], str] | None = None) -> str:
+    """Format a fraction into a percentage string.
 
     Parameters
     ----------
-    highlight_ntile : Any
-        Requested ntile(s). Supported inputs:
+    frac : float
+        Fraction in [0, 1] (e.g., 0.031).
+    autopct : None or str or callable, default=None
+        If not *None*, a format string or callable applied to percent values.
 
-        - ``None``
-        - int
-        - Sequence[int]
-    ntiles : int
-        Maximum ntile.
-    where : str
-        Caller name.
+        - If a string, it is used as ``fmt % pct``.
+        - If a callable, it is called as ``autopct(pct)``.
 
     Returns
     -------
-    list[int]
-        Sorted unique ntile indices in ``[1, ntiles]``.
+    str
+        Formatted percentage string.
 
     Raises
     ------
     TypeError
-        If ``highlight_ntile`` is neither an integer nor a sequence of integers.
+        If `autopct` is neither a string nor callable.
+
+    See Also
+    --------
+    matplotlib.axes.Axes.annotate
+
+    Notes
+    -----
+    User note: This helper exists to avoid explicit ``round()`` and to keep a
+    consistent formatting policy across plots.
+
+    Examples
+    --------
+    >>> _autopct(0.031, "%.2f%%")
+    '3.10%'
+    """
+    pct = 100.0 * float(frac)
+    if autopct is None:
+        return f"{pct:.2f}%"
+    if isinstance(autopct, str):
+        s = autopct % pct
+    elif callable(autopct):
+        s = autopct(pct)
+    else:
+        raise TypeError("autopct must be callable or a format string")
+
+    # Escape percent for matplotlib text backends when needed.
+    # re.sub(r"([^\\])%", r"\\1\\%", s)
+    return s
+
+
+def _as_int_like(x: Any, *, name: str, where: str) -> int:
+    """Convert an integer-like scalar to int.
+
+    Parameters
+    ----------
+    x : Any
+        Value to convert.
+    name : str
+        Field name for error messages.
+    where : str
+        Caller.
+
+    Returns
+    -------
+    int
+        Integer value.
+
+    Raises
+    ------
+    TypeError
+        If the value is not integer-like.
     ValueError
-        If any ntile is outside ``[1, ntiles]``.
+        If the value is not finite.
+
+    See Also
+    --------
+    numpy.floor
+
+    Notes
+    -----
+    Strict rule: floats are accepted only if they represent an integer exactly
+    (e.g., 10.0). No rounding is performed.
+
+    Examples
+    --------
+    >>> _as_int_like(10.0, name="n", where="x")
+    10
+    """
+    if isinstance(x, bool):
+        raise TypeError(f"{where}: {name} must be an integer-like number, got bool.")
+    if isinstance(x, numbers.Integral):
+        return int(x)
+    if isinstance(x, numbers.Real):
+        v = float(x)
+        if not np.isfinite(v):
+            raise ValueError(f"{where}: {name} must be finite.")
+        if v != float(np.floor(v)):
+            raise TypeError(f"{where}: {name} must be integer-like, got {x}.")
+        return int(v)
+    raise TypeError(
+        f"{where}: {name} must be an integer-like number, got {type(x).__name__}."
+    )
+
+
+def _currency_fmt(v: float, currency: str = "€") -> str:
+    """Format a value as EUR currency string.
+
+    Parameters
+    ----------
+    v : float
+        Amount.
+    currency : str
+        such as the dollar sign ($), euro sign (€), or pound sign (£).
+        These symbols indicate monetary values in financial contexts.
+
+    Returns
+    -------
+    str
+        Currency label (EUR).
+
+    Raises
+    ------
+    ValueError
+        If value is not finite.
+
+    See Also
+    --------
+    str.format
+
+    Notes
+    -----
+    User note: This uses numeric formatting (no explicit ``round()`` call).
+
+    Examples
+    --------
+    >>> _currency_fmt(12.3)
+    '€12'
+    """
+    v = float(v)
+    if not np.isfinite(v):
+        raise ValueError("currency amount must be finite")
+    return f"{currency}{v:,.0f}"
+
+
+# ---------------------------
+# Highlight + annotation helpers
+# ---------------------------
+
+
+def _normalize_highlight_ntiles(
+    highlight_ntile: Any, *, ntiles: int, where: str
+) -> list[int]:
+    """Normalize highlight_ntile into a sorted unique list of ints.
+
+    Parameters
+    ----------
+    highlight_ntile : Any
+        None, an int, or a sequence of ints.
+    ntiles : int
+        Maximum ntile.
+    where : str
+        Caller.
+
+    Returns
+    -------
+    list[int]
+        Sorted unique ntile indices in [1, ntiles].
+
+    Raises
+    ------
+    TypeError
+        If `highlight_ntile` is not int-like.
+    ValueError
+        If any value is outside [1, ntiles].
 
     See Also
     --------
@@ -1515,25 +1596,21 @@ def _normalize_highlight_ntiles(
     Strict rules:
 
     - Values must be integer-like (no floats/decimals).
-    - All values must be within ``[1, ntiles]``.
+    - All values must be within [1, ntiles].
     - Duplicates are removed.
 
     Examples
     --------
-    >>> _normalize_highlight_ntiles(None, ntiles=10, where="x")
-    []
     >>> _normalize_highlight_ntiles([1, 2, 2], ntiles=10, where="x")
     [1, 2]
     """
     if highlight_ntile is None:
         return []
 
-    # Single integer.
     if isinstance(highlight_ntile, numbers.Integral) and not isinstance(
         highlight_ntile, bool
     ):
         candidates = [int(highlight_ntile)]
-    # Sequence of integers.
     elif isinstance(highlight_ntile, (list, tuple, np.ndarray, pd.Series)):
         candidates = list(highlight_ntile)
     else:
@@ -1553,62 +1630,7 @@ def _normalize_highlight_ntiles(
                 f"{where}: highlight_ntile must be in [1, {ntiles}], got {h}."
             )
         out.append(h)
-
-    # Deterministic ordering: sorted unique.
     return sorted(set(out))
-
-
-def _annotation_xytext(
-    annotation_index: int, *, x_offset: int = -30, base: int = 30, gap: int = 12
-) -> tuple[int, int]:
-    """Compute a deterministic annotation offset to reduce overlaps.
-
-    Parameters
-    ----------
-    annotation_index : int
-        0-based index of the annotation.
-    x_offset : int, default=-30
-        X offset in points.
-    base : int, default=30
-        Base absolute Y offset in points.
-    gap : int, default=12
-        Additional vertical gap added every two annotations.
-
-    Returns
-    -------
-    tuple[int, int]
-        ``(x_offset, y_offset)`` in display points.
-
-    Raises
-    ------
-    ValueError
-        If ``annotation_index`` is negative.
-
-    See Also
-    --------
-    matplotlib.axes.Axes.annotate
-
-    Notes
-    -----
-    Deterministic rule (no heuristics):
-
-    - Even indices go below the point.
-    - Odd indices go above the point.
-    - Every two annotations, increase the magnitude by ``gap``.
-
-    Examples
-    --------
-    >>> _annotation_xytext(0)
-    (-30, -30)
-    >>> _annotation_xytext(1)
-    (-30, 30)
-    """
-    if annotation_index < 0:
-        raise ValueError("annotation_index must be >= 0.")
-    k = annotation_index // 2
-    mag = base + gap * k
-    y_offset = -mag if (annotation_index % 2) == 0 else mag
-    return (x_offset, y_offset)
 
 
 def _validate_highlight_how(highlight_how: str, *, where: str) -> None:
@@ -1619,7 +1641,7 @@ def _validate_highlight_how(highlight_how: str, *, where: str) -> None:
     highlight_how : str
         One of {'plot', 'text', 'plot_text'}.
     where : str
-        Caller name.
+        Caller.
 
     Returns
     -------
@@ -1644,9 +1666,74 @@ def _validate_highlight_how(highlight_how: str, *, where: str) -> None:
     """
     if highlight_how not in ("plot", "text", "plot_text"):
         raise ValueError(
-            f"{where}: invalid highlight_how='{highlight_how}'. "
-            "Allowed={'plot','text','plot_text'}."
+            f"{where}: invalid highlight_how='{highlight_how}'. Allowed={'plot', 'text', 'plot_text'}."
         )
+
+
+def _annotation_xytext(
+    annotation_index: int,
+    *,
+    layout_cols: int = 5,
+    x_offset: int = -24,
+    x_step: int = 24,
+    base: int = 24,
+    gap: int = 12,
+) -> tuple[int, int]:
+    """Compute a deterministic annotation offset to reduce overlaps.
+
+    Parameters
+    ----------
+    annotation_index : int
+        0-based index of the annotation.
+    layout_cols : int, default=5
+        Number of horizontal slots used before moving to the next row.
+    x_offset : int, default=-40
+        Starting x offset (points).
+    x_step : int, default=20
+        Horizontal step between slots (points).
+    base : int, default=30
+        Base absolute y offset (points).
+    gap : int, default=12
+        Extra y gap added per row.
+
+    Returns
+    -------
+    tuple[int, int]
+        (x_offset, y_offset) in points.
+
+    Raises
+    ------
+    ValueError
+        If `annotation_index` is negative or `layout_cols` is invalid.
+
+    See Also
+    --------
+    matplotlib.axes.Axes.annotate
+
+    Notes
+    -----
+    Deterministic rule (no heuristics):
+
+    - Place annotations on a fixed grid of offsets.
+    - Alternate above/below each row to reduce collisions.
+
+    Examples
+    --------
+    >>> _annotation_xytext(0)
+    (-40, -30)
+    """
+    if annotation_index < 0:
+        raise ValueError("annotation_index must be >= 0.")
+    if layout_cols < 1:
+        raise ValueError("layout_cols must be >= 1.")
+
+    col = annotation_index % layout_cols
+    row = annotation_index // layout_cols
+
+    xo = x_offset + x_step * col
+    mag = base + gap * row
+    yo = -mag if (annotation_index % 2) == 0 else mag
+    return (int(xo), int(yo))
 
 
 def _value_at_ntile(df: pd.DataFrame, *, ntile: int, col: str, where: str) -> float:
@@ -1661,12 +1748,12 @@ def _value_at_ntile(df: pd.DataFrame, *, ntile: int, col: str, where: str) -> fl
     col : str
         Column to retrieve.
     where : str
-        Caller name.
+        Caller.
 
     Returns
     -------
     float
-        The value.
+        Selected value.
 
     Raises
     ------
@@ -1679,8 +1766,7 @@ def _value_at_ntile(df: pd.DataFrame, *, ntile: int, col: str, where: str) -> fl
 
     Notes
     -----
-    Dev note: We require a single row at a given ntile to avoid silent
-    aggregation.
+    Dev note: We require a single row at a given ntile to avoid silent aggregation.
 
     Examples
     --------
@@ -1701,7 +1787,7 @@ def _value_at_ntile(df: pd.DataFrame, *, ntile: int, col: str, where: str) -> fl
     return v
 
 
-def _annotate_highlight(  # noqa: D417
+def _annotate_highlight(
     ax: plt.Axes,
     *,
     x: int,
@@ -1710,7 +1796,8 @@ def _annotate_highlight(  # noqa: D417
     y0: float,
     color: str,
     text: str,
-    xytext: tuple[int, int] = (-30, -30),
+    xytext: tuple[int, int],
+    annotation_kws: Mapping[str, Any] | None = None,
 ) -> None:
     """Draw guide lines and a callout annotation.
 
@@ -1726,6 +1813,10 @@ def _annotate_highlight(  # noqa: D417
         Color for guides/marker.
     text : str
         Annotation text.
+    xytext : tuple[int, int]
+        Offset (points) for the callout.
+    annotation_kws : Mapping[str, Any] or None, default=None
+        Extra kwargs for :meth:`matplotlib.axes.Axes.annotate`.
 
     Returns
     -------
@@ -1747,24 +1838,429 @@ def _annotate_highlight(  # noqa: D417
     --------
     >>> # internal
     """
+    ak = dict(annotation_kws or {})
+
+    marker_size = float(ak.pop("marker_size", 6.0))
+
     ax.plot([x0, x], [y] * 2, linestyle="-.", color=color, lw=1.5)
     ax.plot([x] * 2, [y0, y], linestyle="-.", color=color, lw=1.5)
-    ax.plot(x, y, marker="o", ms=6, color=color)
+    ax.plot(x, y, marker="o", ms=marker_size, color=color)
 
-    # Dev note: flip vertical alignment when placing the label below the point.
+    mode = ak.pop("mode", "callout")
+    if mode == "marker":
+        return
+
+    # bbox = ak.pop("bbox", {"boxstyle": "round,pad=0.4", "fc": color, "alpha": 0.85})
+    # arrowprops = ak.pop("arrowprops", {"arrowstyle": "->", "color": "black"})
+    bbox = {"boxstyle": "round,pad=0.4", "fc": color, "alpha": 0.85}
+    bbox.update(ak.pop("bbox", {}) if isinstance(ak.get("bbox", {}), dict) else {})
+    arrowprops = {"arrowstyle": "->", "color": "black"}
+    arrowprops.update(
+        ak.pop("arrowprops", {}) if isinstance(ak.get("arrowprops", {}), dict) else {}
+    )
+
     va = "bottom" if xytext[1] >= 0 else "top"
-
     ax.annotate(
         text,
         xy=(x, y),
         xytext=xytext,
         textcoords="offset points",
-        ha="center",
-        va=va,
-        color="black",
-        bbox={"boxstyle": "round, pad=0.4", "fc": color, "alpha": 0.8},
-        arrowprops={"arrowstyle": "->", "color": "black"},
+        ha=ak.pop("ha", "center"),
+        va=ak.pop("va", va),
+        color=ak.pop("color", "black"),
+        bbox=bbox,
+        arrowprops=arrowprops,
+        **ak,
     )
+
+
+# ---------------------------
+# Plot kwarg parsing
+# ---------------------------
+
+
+@dataclass(frozen=True)
+class _PlotKws:
+    """Container for per-component plot kwargs.
+
+    Notes
+    -----
+    User note: This prevents accidental mixing of kwargs meant for different
+    Matplotlib calls (line vs legend vs footer).
+    """
+
+    line_kws: Mapping[str, Any]
+    ref_line_kws: Mapping[str, Any]
+    legend_kws: Mapping[str, Any]
+    grid_kws: Mapping[str, Any]
+    axes_kws: Mapping[str, Any]
+    annotation_kws: Mapping[str, Any]
+    footer_kws: Mapping[str, Any]
+
+
+def _parse_plot_kws(
+    *,
+    line_kws: Mapping[str, Any] | None,
+    ref_line_kws: Mapping[str, Any] | None,
+    legend_kws: Mapping[str, Any] | None,
+    grid_kws: Mapping[str, Any] | None,
+    axes_kws: Mapping[str, Any] | None,
+    annotation_kws: Mapping[str, Any] | None,
+    footer_kws: Mapping[str, Any] | None,
+    legacy_line_kwargs: Mapping[str, Any],
+    where: str,
+) -> _PlotKws:
+    """Parse and validate plot kwargs.
+
+    Parameters
+    ----------
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component keyword arguments.
+    legacy_line_kwargs : Mapping[str, Any]
+        Backward-compatible `**kwargs` forwarded to line plotting.
+    where : str
+        Caller.
+
+    Returns
+    -------
+    _PlotKws
+        Parsed kwargs.
+
+    Raises
+    ------
+    ValueError
+        If both `line_kws` and legacy `**kwargs` are provided.
+
+    Notes
+    -----
+    Strict rule: do not merge two sources of line kwargs silently.
+
+    Examples
+    --------
+    >>> # internal
+    """
+    if line_kws is not None and legacy_line_kwargs:
+        raise ValueError(
+            f"{where}: do not pass both line_kws and **kwargs. Use line_kws only."
+        )
+
+    lk = dict(line_kws or legacy_line_kwargs or {})
+    rlk = dict(ref_line_kws or {})
+    rlk.setdefault("linestyle", "dashed")
+
+    legk = dict(legend_kws or {})
+    legk.setdefault("shadow", False)
+    legk.setdefault("frameon", False)
+
+    gk = dict(grid_kws or {})
+    gk.setdefault("visible", True)
+
+    axk = dict(axes_kws or {})
+
+    ank = dict(annotation_kws or {})
+
+    fk = dict(footer_kws or {})
+    fk.setdefault("x", 0.00)
+    fk.setdefault("y", 0.00)
+    fk.setdefault("ha", "left")
+    fk.setdefault("va", "top")
+    fk.setdefault("fontsize", 10)
+    fk.setdefault("base_pad", 0.10)
+    fk.setdefault("line_pad", 0.028)
+    fk.setdefault("y_margin", 0.01)
+
+    return _PlotKws(
+        line_kws=lk,
+        ref_line_kws=rlk,
+        legend_kws=legk,
+        grid_kws=gk,
+        axes_kws=axk,
+        annotation_kws=ank,
+        footer_kws=fk,
+    )
+
+
+def _setup_axis(
+    ax: plt.Axes,
+    *,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+    ntiles: int,
+    xlim: tuple[int, int],
+    percent_y: bool,
+    grid: bool,
+) -> None:
+    """Apply consistent axis styling.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes to configure.
+    title : str
+        Axes title.
+    xlabel : str
+        X label.
+    ylabel : str
+        Y label.
+    ntiles : int
+        Number of ntiles.
+    xlim : tuple[int, int]
+        X axis limits.
+    percent_y : bool
+        Whether to format y axis as percent in [0, 1].
+    grid : bool
+        Whether to enable grid.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Strict rule: show every integer ntile tick (no downsampling).
+
+    Examples
+    --------
+    >>> # internal
+    """
+    ax.set_title(title, fontweight="bold")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    if percent_y:
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+
+    ax.set_xticks(np.arange(0, ntiles + 1, 1))
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.yaxis.set_ticks_position("left")
+    ax.xaxis.set_ticks_position("bottom")
+
+    ax.set_xlim([int(xlim[0]), int(xlim[1])])
+    if grid:
+        ax.grid(True)
+
+
+def _scope_triplet(
+    *,
+    scope: str,
+    group_label: str,
+    models: Sequence[str],
+    datasets: Sequence[str],
+    targets: Sequence[str],
+) -> tuple[str, str, str]:
+    """Resolve (model, dataset, target) for a given group label.
+
+    Parameters
+    ----------
+    scope : str
+        Scope name.
+    group_label : str
+        Group label as produced by `_iter_groups`.
+    models : Sequence[str]
+        Unique models.
+    datasets : Sequence[str]
+        Unique datasets.
+    targets : Sequence[str]
+        Unique targets.
+
+    Returns
+    -------
+    tuple[str, str, str]
+        (model, dataset, target)
+
+    Raises
+    ------
+    ValueError
+        If scope is invalid.
+
+    Notes
+    -----
+    This keeps highlight text consistent across plots.
+
+    Examples
+    --------
+    >>> _scope_triplet(
+    ...     scope="compare_models",
+    ...     group_label="M1",
+    ...     models=["M1"],
+    ...     datasets=["D"],
+    ...     targets=["1"],
+    ... )
+    ('M1', 'D', '1')
+    """
+    if scope == "compare_models":
+        return (group_label, datasets[0], targets[0])
+    if scope == "compare_datasets":
+        return (models[0], group_label, targets[0])
+    if scope == "compare_targetclasses":
+        return (models[0], datasets[0], group_label)
+    if scope == "no_comparison":
+        return (models[0], datasets[0], targets[0])
+    raise ValueError(f"Unknown scope='{scope}'.")
+
+
+def _format_highlight_line(
+    *,
+    metric: str,
+    range_kind: Literal["at", "cum"],
+    ntile_label: str,
+    ntile: int,
+    model: str,
+    dataset: str,
+    target: str,
+    value: str,
+    numerator: int | None = None,
+    denominator: int | None = None,
+) -> str:
+    """Build a standardized highlight line.
+
+    Parameters
+    ----------
+    metric : str
+        Metric name shown in the highlight prefix.
+    range_kind : {'at', 'cum'}
+        Whether the metric is evaluated at a single ntile ('at') or from
+        ntile 1 up to the selected ntile ('cum').
+    ntile_label : str
+        One of {'decile','percentile','ntile'}.
+    ntile : int
+        Selected ntile.
+    model, dataset, target : str
+        Identifiers included in the standardized template.
+    value : str
+        Formatted metric value.
+    numerator, denominator : int or None
+        Optional count fields, displayed as "num / den".
+
+    Returns
+    -------
+    str
+        Standardized highlight line.
+
+    Notes
+    -----
+    Template:
+
+    - Response @ decile 3 | model=... | dataset=... | target=... | value=3.00% — 302 / 10000
+
+    Examples
+    --------
+    >>> _format_highlight_line(
+    ...     metric="Response",
+    ...     range_kind="at",
+    ...     ntile_label="decile",
+    ...     ntile=3,
+    ...     model="M",
+    ...     dataset="D",
+    ...     target="1",
+    ...     value="3.00%",
+    ... )
+    'Response @ decile 3 | model=M | dataset=D | target=1 | value=3.00%'
+    """
+    prefix = (
+        f"{metric} @ {ntile_label} {ntile}"
+        if range_kind == "at"
+        else f"{metric} 1..{ntile_label} {ntile}"
+    )
+    parts = [
+        prefix,
+        f"model={model}",
+        f"dataset={dataset}",
+        f"target={target}",
+        f"value={value}",
+    ]
+    s = " | ".join(parts)
+    if numerator is not None and denominator is not None:
+        s += f" — pos/tot={numerator:,} / {denominator:,}"
+    return s
+
+
+def _render_footer_text(
+    fig: plt.Figure,
+    *,
+    lines: Sequence[str],
+    footer_kws: Mapping[str, Any],
+) -> None:
+    """Render footer text without overlapping the plot area.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        Figure to write into.
+    lines : Sequence[str]
+        Lines to render.
+    footer_kws : Mapping[str, Any]
+        Footer configuration.
+
+        Recognized keys:
+
+        - base_pad : float
+        - line_pad : float
+        - y_margin : float
+        - x, y, ha, va, fontsize : forwarded to text call
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        If computed padding exceeds a safe fraction of the figure.
+
+    Notes
+    -----
+    Deterministic layout:
+
+    - bottom_pad = base_pad + line_pad * (n_lines - 1)
+    - reserve [0, bottom_pad] and draw the footer inside that region
+
+    Examples
+    --------
+    >>> # internal
+    """
+    if not lines:
+        return
+
+    n_lines = len(lines)
+    base_pad = float(footer_kws.get("base_pad", 0.10))
+    line_pad = float(footer_kws.get("line_pad", 0.028))
+    y_margin = float(footer_kws.get("y_margin", 0.01))
+
+    bottom_pad = base_pad + line_pad * max(0, n_lines - 1)
+    if bottom_pad >= 0.60:
+        raise ValueError(
+            f"footer would reserve too much vertical space (bottom_pad={bottom_pad:.2f}). "
+            "Reduce highlighted items or override footer_kws(base_pad/line_pad)."
+        )
+
+    # Reserve space for footer.
+    fig.subplots_adjust(bottom=bottom_pad)
+
+    # Use a dedicated axes for the footer to avoid overlap across backends.
+    footer_ax = fig.add_axes([0.0, 0.0, 1.0, bottom_pad], frameon=False)
+    footer_ax.set_axis_off()
+
+    x = float(footer_kws.get("x", 0.00))
+    y = float(footer_kws.get("y", 0.00))
+
+    text = "\n".join(lines)
+    footer_ax.text(
+        x,
+        min(1.0 - y_margin, y),
+        text,
+        ha=str(footer_kws.get("ha", "left")),
+        va=str(footer_kws.get("va", "top")),
+        fontsize=float(footer_kws.get("fontsize", 10)),
+        transform=footer_ax.transAxes,
+    )
+
+
+# ---------------------------
+# Core plotting helper
+# ---------------------------
 
 
 def _plot_metric_with_reference(  # noqa: PLR0912
@@ -1772,20 +2268,25 @@ def _plot_metric_with_reference(  # noqa: PLR0912
     *,
     metric_col: str,
     ref_col: str | None,
+    metric_name: str,
     title: str,
     ylabel: str,
     percent_y: bool,
-    xlim_start: int = 1,
-    highlight_ntiles: Sequence[int] | None,
-    highlight_how: str,
-    highlight_value_formatter: Callable[[float], str] | None,
-    highlight_text_builder: Callable[[str, int, float], str] | None,
+    xlim_start: int,
     legend_loc: str,
+    highlight_ntiles: Sequence[int],
+    highlight_how: Literal["plot", "text", "plot_text"],
+    highlight_kind: Literal["at", "cum"],
+    value_formatter: Callable[[float], str],
+    counts_at_ntile: Callable[[pd.DataFrame, int], tuple[int | None, int | None]],
     x0_for_highlight: int,
     y0_for_highlight: float,
-    ax: plt.Axes | None = None,
-    figsize: tuple[int, int] = (10, 5),
-    plot_kwargs: dict[str, Any] | None = None,
+    autopct: str | Callable[[float], str] | None,
+    ax: plt.Axes | None,
+    figsize: tuple[int, int],
+    plot_kws: _PlotKws,
+    collect_highlight_lines: list[str] | None,
+    render_footer: bool,
 ) -> plt.Axes:
     """Core implementation for single-metric plots.
 
@@ -1797,50 +2298,52 @@ def _plot_metric_with_reference(  # noqa: PLR0912
         Column name for the main metric.
     ref_col : str or None
         Optional reference column.
+    metric_name : str
+        Metric name used in standardized highlight lines.
     title : str
-        Plot title.
+        Plot title (figure title).
     ylabel : str
         Y-axis label.
     percent_y : bool
-        Format y-axis as percent in [0, 1].
-    xlim_start : int, default=1
-        Left x-limit for the plot.
-    highlight_ntiles : Sequence[int] or None
-        Ntile indices to highlight.
-    highlight_how : str
-        One of {'plot','text','plot_text'}.
-    highlight_value_formatter : Callable[[float], str] or None
-        Formats the highlighted value for the callout.
-    highlight_text_builder : Callable[[str, int, float], str] or None
-        Builds the per-group highlight text.
+        Whether to format y axis as percent.
+    xlim_start : int
+        Left x-limit.
     legend_loc : str
         Legend location.
-    x0_for_highlight : int
-        X origin for highlight guide lines.
-    y0_for_highlight : float
-        Y origin for highlight guide lines.
-    ax : matplotlib.axes.Axes or None, default=None
+    highlight_ntiles : Sequence[int]
+        Ntile indices to highlight.
+    highlight_how : {'plot','text','plot_text'}
+        Where to render highlight information.
+    highlight_kind : {'at','cum'}
+        Whether the highlighted metric is at-N or cumulative 1..N.
+    value_formatter : callable
+        Function converting raw metric value into string.
+    counts_at_ntile : callable
+        Function returning (numerator, denominator) for the standardized line.
+    x0_for_highlight, y0_for_highlight : int, float
+        Origins for guide lines.
+    autopct : str | callable | None
+        Percentage formatter for metrics in [0, 1].
+    ax : matplotlib.axes.Axes or None
         If provided, draw into this axes.
-    figsize : tuple[int, int], default=(10, 5)
+    figsize : tuple[int, int]
         Figure size when `ax` is None.
-    plot_kwargs : dict[str, Any] or None
-        Keyword args passed to the main metric line plot.
+    plot_kws : _PlotKws
+        Parsed per-component kwargs.
+    collect_highlight_lines : list[str] or None
+        If provided, highlight lines are appended here (used by plot_all).
+    render_footer : bool
+        Whether to render footer text in this call.
 
     Returns
     -------
     matplotlib.axes.Axes
-        The axes containing the plot.
+        Axes containing the plot.
 
     Raises
     ------
     _PlotInputError
         If required columns are missing.
-    ValueError
-        If scope is invalid.
-
-    See Also
-    --------
-    plot_response, plot_cumresponse, plot_cumlift, plot_cumgains
 
     Notes
     -----
@@ -1851,7 +2354,8 @@ def _plot_metric_with_reference(  # noqa: PLR0912
     --------
     >>> # internal
     """
-    where = "plot_metric"
+    where = f"plot_{metric_col.lower()}"
+
     required = [
         "model_label",
         "dataset_label",
@@ -1866,11 +2370,9 @@ def _plot_metric_with_reference(  # noqa: PLR0912
 
     scope = str(_unique_one(plot_input["scope"], name="scope", where=where))
     ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
-    xlabel = _ntile_label(ntiles)
+    nlabel = _ntile_label(ntiles)
 
     # Create figure/axes.
-    # Dev note: keep a stable flag so we can tell whether we're in multi-panel
-    # mode (axes provided) vs single-plot mode (axes created here).
     multi_panel = ax is not None
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
@@ -1878,113 +2380,159 @@ def _plot_metric_with_reference(  # noqa: PLR0912
     else:
         fig = ax.figure
 
-    # Build per-scope title details.
     models = [str(v) for v in pd.unique(plot_input["model_label"])]
     datasets = [str(v) for v in pd.unique(plot_input["dataset_label"])]
-    classes = [str(v) for v in pd.unique(plot_input["target_class"].astype(str))]
+    targets = [str(v) for v in pd.unique(plot_input["target_class"].astype(str))]
 
+    # Details title by scope.
     if scope == "no_comparison":
         details_title = (
-            f"model: {models[0]} & dataset: {datasets[0]} & target class: {classes[0]}"
+            f"model: {models[0]} & dataset: {datasets[0]} & target class: {targets[0]}"
         )
     elif scope == "compare_datasets":
-        details_title = f"scope: comparing datasets & model: {models[0]} & target class: {classes[0]}"
+        details_title = f"scope: comparing datasets & model: {models[0]} & target class: {targets[0]}"
     elif scope == "compare_models":
-        details_title = f"scope: comparing models & dataset: {datasets[0]} & target class: {classes[0]}"
-    else:  # compare_targetclasses
+        details_title = f"scope: comparing models & dataset: {datasets[0]} & target class: {targets[0]}"
+    else:
         details_title = f"scope: comparing target classes & dataset: {datasets[0]} & model: {models[0]}"
 
-    # User note: in multi-panel mode (`ax` is provided), prepend the metric title
-    # so each subplot is self-describing. In single-plot mode, we keep the legacy
-    # layout where the metric name is shown as a figure suptitle.
     ax_title = f"{title}\n{details_title}" if multi_panel else details_title
+
+    grid_visible = bool(plot_kws.grid_kws.get("visible", True))
 
     _setup_axis(
         ax,
         title=ax_title,
-        xlabel=xlabel,
+        xlabel=nlabel,
         ylabel=ylabel,
         ntiles=ntiles,
         xlim=(int(xlim_start), int(ntiles)),
         percent_y=percent_y,
+        grid=grid_visible,
     )
-    # Plot lines.
-    plot_kwargs = dict(plot_kwargs or {})
-    text_lines: list[str] = []
 
-    # Dev note: capture line colors from the actual Line2D objects rather than
-    # reconstructing Matplotlib's prop_cycle. This stays correct even if callers
-    # pass explicit colors via `plot_kwargs`.
+    # Plot lines and capture per-group colors.
+    text_lines: list[str] = []
     label_to_color: dict[str, str] = {}
 
     for lab, gdf in _iter_groups(plot_input, scope=scope):
         gdf = gdf.sort_values("ntile")  # noqa: PLW2901
 
-        # Main metric.
-        line_label = lab if scope != "no_comparison" else classes[0]
-        line = ax.plot(gdf["ntile"], gdf[metric_col], label=line_label, **plot_kwargs)
+        # Label on main metric curve.
+        line_label = targets[0] if scope == "no_comparison" else lab
+        line = ax.plot(
+            gdf["ntile"], gdf[metric_col], label=line_label, **dict(plot_kws.line_kws)
+        )
         color = str(line[0].get_color())
         label_to_color[str(lab)] = color
 
-        # Reference curve, if present.
+        # Reference curve.
         if ref_col is not None:
-            # User note: dashed line uses the same color as its metric line.
-            ax.plot(
-                gdf["ntile"],
-                gdf[ref_col],
-                linestyle="dashed",
-                color=color,
-                label=(
-                    f"overall response ({lab})"
-                    if metric_col in ("pct", "cumpct")
-                    else f"reference ({lab})"
-                ),
-            )
+            rk = dict(plot_kws.ref_line_kws)
+            rk.setdefault("color", color)
+            rk.setdefault("linestyle", "dashed")
+            ax.plot(gdf["ntile"], gdf[ref_col], label=f"reference ({line_label})", **rk)
 
-    ax.legend(loc=legend_loc, shadow=False, frameon=False)
+    ax.legend(loc=legend_loc, **dict(plot_kws.legend_kws))
 
-    # Highlight (supports multiple ntile values).
-    hl = list(highlight_ntiles or [])
-    if hl:
+    # Highlight.
+    if highlight_ntiles:
         _validate_highlight_how(highlight_how, where=where)
-        if highlight_value_formatter is None or highlight_text_builder is None:
-            raise ValueError(
-                f"{where}: highlight formatters must be provided when highlighting is enabled."
-            )
 
-        # Apply highlights in a deterministic order: groups-first (as plotted), then by highlight ntile.
         groups = list(_iter_groups(plot_input, scope=scope))
         n_groups = len(groups)
 
-        for j, ntile in enumerate(hl):
+        for j, nt in enumerate(list(highlight_ntiles)):
             for i, (lab, gdf) in enumerate(groups):
                 gdf = gdf.sort_values("ntile")  # noqa: PLW2901
-                y = _value_at_ntile(gdf, ntile=int(ntile), col=metric_col, where=where)
+                y = _value_at_ntile(gdf, ntile=int(nt), col=metric_col, where=where)
                 color = label_to_color.get(str(lab), "C0")
 
+                # Callout text value.
+                val_text = value_formatter(float(y))
+
+                # Plot annotation.
                 ann_idx = i + j * n_groups
+                xytext = _annotation_xytext(
+                    ann_idx,
+                    layout_cols=_as_int_like(
+                        plot_kws.annotation_kws.get("layout_cols", 5),
+                        name="layout_cols",
+                        where=where,
+                    ),
+                    x_offset=_as_int_like(
+                        plot_kws.annotation_kws.get("x_offset", -40),
+                        name="x_offset",
+                        where=where,
+                    ),
+                    x_step=_as_int_like(
+                        plot_kws.annotation_kws.get("x_step", 20),
+                        name="x_step",
+                        where=where,
+                    ),
+                    base=_as_int_like(
+                        plot_kws.annotation_kws.get("base", 30),
+                        name="base",
+                        where=where,
+                    ),
+                    gap=_as_int_like(
+                        plot_kws.annotation_kws.get("gap", 12), name="gap", where=where
+                    ),
+                )
+
                 _annotate_highlight(
                     ax,
-                    x=int(ntile),
+                    x=int(nt),
                     y=float(y),
                     x0=int(x0_for_highlight),
                     y0=float(y0_for_highlight),
                     color=color,
-                    text=highlight_value_formatter(float(y)),
-                    xytext=_annotation_xytext(ann_idx),
-                )
-                text_lines.append(
-                    highlight_text_builder(str(lab), int(ntile), float(y))
+                    text=val_text,
+                    xytext=xytext,
+                    annotation_kws=plot_kws.annotation_kws,
                 )
 
-        text = "\n".join(text_lines)
+                # Standardized line.
+                model, dataset, target = _scope_triplet(
+                    scope=scope,
+                    group_label=str(lab),
+                    models=models,
+                    datasets=datasets,
+                    targets=targets,
+                )
+
+                num, den = counts_at_ntile(gdf, int(nt))
+                line_txt = _format_highlight_line(
+                    metric=metric_name,
+                    range_kind=highlight_kind,
+                    ntile_label=nlabel,
+                    ntile=int(nt),
+                    model=model,
+                    dataset=dataset,
+                    target=target,
+                    value=val_text,
+                    numerator=num,
+                    denominator=den,
+                )
+
+                # Append to local and optional collector.
+                text_lines.append(line_txt)
+                if collect_highlight_lines is not None:
+                    collect_highlight_lines.append(line_txt)
+
+        # Render highlight text.
         if highlight_how in ("text", "plot_text"):
-            print(text)  # noqa: T201
-        if highlight_how in ("plot", "plot_text"):
-            # Dev note: Keep stable position for backward compatibility.
-            fig.text(0.53, 0.37, text, ha="left")
+            print("\n".join(text_lines))  # noqa: T201
+
+        if render_footer and highlight_how in ("plot", "plot_text"):
+            _render_footer_text(fig, lines=text_lines, footer_kws=plot_kws.footer_kws)
 
     return ax
+
+
+# ---------------------------
+# Public plotting functions
+# ---------------------------
 
 
 @save_plot_decorator
@@ -1994,6 +2542,14 @@ def plot_response(
     *,
     highlight_ntile: int | Sequence[int] | None = None,
     highlight_how: Literal["plot", "text", "plot_text"] = "plot_text",
+    autopct: str | Callable[[float], str] | None = "%.2f%%",
+    line_kws: Mapping[str, Any] | None = None,
+    ref_line_kws: Mapping[str, Any] | None = None,
+    legend_kws: Mapping[str, Any] | None = None,
+    grid_kws: Mapping[str, Any] | None = None,
+    axes_kws: Mapping[str, Any] | None = None,
+    annotation_kws: Mapping[str, Any] | None = None,
+    footer_kws: Mapping[str, Any] | None = None,
     save_fig: bool = True,
     save_fig_filename: str = "",
     **kwargs: Any,
@@ -2008,13 +2564,21 @@ def plot_response(
         Ntile index/indices to highlight (each must be in ``1..ntiles``).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
+    autopct : None or str or callable, default='%.2f%%'
+        Percentage formatter for values in [0, 1].
+
+        - If a string, it is used as ``fmt % pct``.
+        - If a callable, it is called as ``autopct(pct)``.
+
+        If None, values are formatted with two decimals.
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component styling kwargs.
     save_fig : bool, default=True
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     save_fig_filename : str, default=''
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     **kwargs : Any
-        Additional keyword arguments forwarded to :meth:`matplotlib.axes.Axes.plot`
-        for the main metric line.
+        Legacy alias for ``line_kws``.
 
     Returns
     -------
@@ -2023,12 +2587,8 @@ def plot_response(
 
     Raises
     ------
-    TypeError
-        If ``highlight_ntile`` is neither an int nor a sequence of ints.
-    ValueError
-        If any highlighted ntile is outside the valid range.
     _PlotInputError
-        If ``plot_input`` lacks required columns.
+        If plot_input lacks required columns.
 
     See Also
     --------
@@ -2036,67 +2596,89 @@ def plot_response(
 
     Notes
     -----
-    Response is the per-ntile positive rate (``pct``).
+    Response is the positive rate within each ntile bucket:
+
+    - response = pos / tot (at ntile N)
+
+    The highlight line uses:
+
+    - Response @ decile N | ... | value=..% — pos / tot
 
     Examples
     --------
     >>> # ax = plot_response(plot_input)
     """
-    ntiles = _get_ntiles_from_plot_input(plot_input, where="plot_response")
-    hl = _normalize_highlight_ntiles(
-        highlight_ntile, ntiles=ntiles, where="plot_response"
+    where = "plot_response"
+    _require_columns(
+        plot_input,
+        required=[
+            "scope",
+            "ntile",
+            "pct",
+            "pct_ref",
+            "pos",
+            "tot",
+            "model_label",
+            "dataset_label",
+            "target_class",
+        ],
+        where=where,
     )
 
-    def _fmt(v: float) -> str:
-        return f"{round(v * 100.0)}%"
+    ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
+    hl = _normalize_highlight_ntiles(highlight_ntile, ntiles=ntiles, where=where)
 
-    def _text(lab: str, ntile: int, v: float) -> str:
-        # User note: For no_comparison, lab is 'single'. We still use it for stable text.
-        scope = str(
-            _unique_one(plot_input["scope"], name="scope", where="plot_response")
+    pk = _parse_plot_kws(
+        line_kws=line_kws,
+        ref_line_kws=ref_line_kws,
+        legend_kws=legend_kws,
+        grid_kws=grid_kws,
+        axes_kws=axes_kws,
+        annotation_kws=annotation_kws,
+        footer_kws=footer_kws,
+        legacy_line_kwargs=kwargs,
+        where=where,
+    )
+
+    def _val_fmt(v: float) -> str:
+        return _autopct(v, autopct)
+
+    def _counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        pos = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="pos", where=where),
+            name="pos",
+            where=where,
         )
-        models = [str(x) for x in pd.unique(plot_input["model_label"])]
-        datasets = [str(x) for x in pd.unique(plot_input["dataset_label"])]
-        classes = [str(x) for x in pd.unique(plot_input["target_class"].astype(str))]
-        desc = _ntile_label(ntiles)
-
-        if scope == "compare_models":
-            model_part = f"model {lab}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{classes[0]}"
-        elif scope == "compare_datasets":
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {lab}"
-            cls_part = f"{classes[0]}"
-        elif scope == "compare_targetclasses":
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{lab}"
-        else:
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{classes[0]}"
-
-        return (
-            f"When we select {desc} {ntile} from {model_part} in {ds_part}, "  # noqa: S608
-            f"the response rate for {cls_part} is {round(v * 100.0)}%."
+        tot = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="tot", where=where),
+            name="tot",
+            where=where,
         )
+        return pos, tot
 
     return _plot_metric_with_reference(
         plot_input,
         metric_col="pct",
         ref_col="pct_ref",
+        metric_name="Response",
         title="Response",
         ylabel="response",
         percent_y=True,
+        xlim_start=1,
+        legend_loc="upper right",
         highlight_ntiles=hl,
         highlight_how=highlight_how,
-        highlight_value_formatter=_fmt,
-        highlight_text_builder=_text,
-        legend_loc="upper right",
+        highlight_kind="at",
+        value_formatter=_val_fmt,
+        counts_at_ntile=_counts,
         x0_for_highlight=1,
         y0_for_highlight=0.0,
-        plot_kwargs=kwargs,
+        autopct=autopct,
+        ax=None,
+        figsize=(10, 5),
+        plot_kws=pk,
+        collect_highlight_lines=None,
+        render_footer=True,
     )
 
 
@@ -2107,6 +2689,14 @@ def plot_cumresponse(
     *,
     highlight_ntile: int | Sequence[int] | None = None,
     highlight_how: Literal["plot", "text", "plot_text"] = "plot_text",
+    autopct: str | Callable[[float], str] | None = "%.2f%%",
+    line_kws: Mapping[str, Any] | None = None,
+    ref_line_kws: Mapping[str, Any] | None = None,
+    legend_kws: Mapping[str, Any] | None = None,
+    grid_kws: Mapping[str, Any] | None = None,
+    axes_kws: Mapping[str, Any] | None = None,
+    annotation_kws: Mapping[str, Any] | None = None,
+    footer_kws: Mapping[str, Any] | None = None,
     save_fig: bool = True,
     save_fig_filename: str = "",
     **kwargs: Any,
@@ -2121,12 +2711,16 @@ def plot_cumresponse(
         Ntile index/indices to highlight (each must be in ``1..ntiles``).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
+    autopct : None or str or callable, default='%.2f%%'
+        Percentage formatter for values in [0, 1].
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component styling kwargs.
     save_fig : bool, default=True
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     save_fig_filename : str, default=''
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     **kwargs : Any
-        Forwarded to :meth:`matplotlib.axes.Axes.plot` for the main metric line.
+        Legacy alias for ``line_kws``.
 
     Returns
     -------
@@ -2135,12 +2729,8 @@ def plot_cumresponse(
 
     Raises
     ------
-    TypeError
-        If ``highlight_ntile`` is neither an int nor a sequence of ints.
-    ValueError
-        If any highlighted ntile is outside the valid range.
     _PlotInputError
-        If ``plot_input`` lacks required columns.
+        If plot_input lacks required columns.
 
     See Also
     --------
@@ -2148,66 +2738,89 @@ def plot_cumresponse(
 
     Notes
     -----
-    Cumulative response is ``cumpct``.
+    Cumulative response is the positive rate from ntile 1 up to N:
+
+    - cumresponse = cumpos / cumtot (1..N)
+
+    Highlight line uses:
+
+    - CumResponse 1..decile N | ... | value=..% — cumpos / cumtot
 
     Examples
     --------
     >>> # ax = plot_cumresponse(plot_input)
     """
-    ntiles = _get_ntiles_from_plot_input(plot_input, where="plot_cumresponse")
-    hl = _normalize_highlight_ntiles(
-        highlight_ntile, ntiles=ntiles, where="plot_cumresponse"
+    where = "plot_cumresponse"
+    _require_columns(
+        plot_input,
+        required=[
+            "scope",
+            "ntile",
+            "cumpct",
+            "pct_ref",
+            "cumpos",
+            "cumtot",
+            "model_label",
+            "dataset_label",
+            "target_class",
+        ],
+        where=where,
     )
 
-    def _fmt(v: float) -> str:
-        return f"{round(v * 100.0)}%"
+    ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
+    hl = _normalize_highlight_ntiles(highlight_ntile, ntiles=ntiles, where=where)
 
-    def _text(lab: str, ntile: int, v: float) -> str:
-        scope = str(
-            _unique_one(plot_input["scope"], name="scope", where="plot_cumresponse")
+    pk = _parse_plot_kws(
+        line_kws=line_kws,
+        ref_line_kws=ref_line_kws,
+        legend_kws=legend_kws,
+        grid_kws=grid_kws,
+        axes_kws=axes_kws,
+        annotation_kws=annotation_kws,
+        footer_kws=footer_kws,
+        legacy_line_kwargs=kwargs,
+        where=where,
+    )
+
+    def _val_fmt(v: float) -> str:
+        return _autopct(v, autopct)
+
+    def _counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        num = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumpos", where=where),
+            name="cumpos",
+            where=where,
         )
-        models = [str(x) for x in pd.unique(plot_input["model_label"])]
-        datasets = [str(x) for x in pd.unique(plot_input["dataset_label"])]
-        classes = [str(x) for x in pd.unique(plot_input["target_class"].astype(str))]
-        desc = _ntile_label(ntiles)
-
-        if scope == "compare_models":
-            model_part = f"model {lab}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{classes[0]}"
-        elif scope == "compare_datasets":
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {lab}"
-            cls_part = f"{classes[0]}"
-        elif scope == "compare_targetclasses":
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{lab}"
-        else:
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{classes[0]}"
-
-        return (
-            f"When we select {desc} 1 until {ntile} from {model_part} in {ds_part}, "  # noqa: S608
-            f"the cumulative response rate for {cls_part} is {round(v * 100.0)}%."
+        den = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumtot", where=where),
+            name="cumtot",
+            where=where,
         )
+        return num, den
 
     return _plot_metric_with_reference(
         plot_input,
         metric_col="cumpct",
         ref_col="pct_ref",
+        metric_name="CumResponse",
         title="Cumulative Response",
         ylabel="cumulative response",
         percent_y=True,
+        xlim_start=1,
+        legend_loc="upper right",
         highlight_ntiles=hl,
         highlight_how=highlight_how,
-        highlight_value_formatter=_fmt,
-        highlight_text_builder=_text,
-        legend_loc="upper right",
+        highlight_kind="cum",
+        value_formatter=_val_fmt,
+        counts_at_ntile=_counts,
         x0_for_highlight=1,
         y0_for_highlight=0.0,
-        plot_kwargs=kwargs,
+        autopct=autopct,
+        ax=None,
+        figsize=(10, 5),
+        plot_kws=pk,
+        collect_highlight_lines=None,
+        render_footer=True,
     )
 
 
@@ -2218,6 +2831,13 @@ def plot_cumlift(
     *,
     highlight_ntile: int | Sequence[int] | None = None,
     highlight_how: Literal["plot", "text", "plot_text"] = "plot_text",
+    line_kws: Mapping[str, Any] | None = None,
+    ref_line_kws: Mapping[str, Any] | None = None,
+    legend_kws: Mapping[str, Any] | None = None,
+    grid_kws: Mapping[str, Any] | None = None,
+    axes_kws: Mapping[str, Any] | None = None,
+    annotation_kws: Mapping[str, Any] | None = None,
+    footer_kws: Mapping[str, Any] | None = None,
     save_fig: bool = True,
     save_fig_filename: str = "",
     **kwargs: Any,
@@ -2232,12 +2852,14 @@ def plot_cumlift(
         Ntile index/indices to highlight (each must be in ``1..ntiles``).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component styling kwargs.
     save_fig : bool, default=True
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     save_fig_filename : str, default=''
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     **kwargs : Any
-        Forwarded to :meth:`matplotlib.axes.Axes.plot` for the main metric line.
+        Legacy alias for ``line_kws``.
 
     Returns
     -------
@@ -2246,12 +2868,8 @@ def plot_cumlift(
 
     Raises
     ------
-    TypeError
-        If ``highlight_ntile`` is neither an int nor a sequence of ints.
-    ValueError
-        If any highlighted ntile is outside the valid range.
     _PlotInputError
-        If ``plot_input`` lacks required columns.
+        If plot_input lacks required columns.
 
     See Also
     --------
@@ -2259,71 +2877,87 @@ def plot_cumlift(
 
     Notes
     -----
-    Lift is a ratio (baseline = 1.0). We do **not** format it as percent.
+    Lift is a ratio (baseline = 1.0). It is highlighted as cumulative 1..N.
 
     Examples
     --------
     >>> # ax = plot_cumlift(plot_input)
     """
-    ntiles = _get_ntiles_from_plot_input(plot_input, where="plot_cumlift")
-    hl = _normalize_highlight_ntiles(
-        highlight_ntile, ntiles=ntiles, where="plot_cumlift"
+    where = "plot_cumlift"
+    _require_columns(
+        plot_input,
+        required=[
+            "scope",
+            "ntile",
+            "cumlift",
+            "cumpos",
+            "cumtot",
+            "model_label",
+            "dataset_label",
+            "target_class",
+        ],
+        where=where,
     )
 
-    def _fmt(v: float) -> str:
-        return f"{v:.2f}x"
+    ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
+    hl = _normalize_highlight_ntiles(highlight_ntile, ntiles=ntiles, where=where)
 
-    def _text(lab: str, ntile: int, v: float) -> str:
-        scope = str(
-            _unique_one(plot_input["scope"], name="scope", where="plot_cumlift")
+    pk = _parse_plot_kws(
+        line_kws=line_kws,
+        ref_line_kws=ref_line_kws,
+        legend_kws=legend_kws,
+        grid_kws=grid_kws,
+        axes_kws=axes_kws,
+        annotation_kws=annotation_kws,
+        footer_kws=footer_kws,
+        legacy_line_kwargs=kwargs,
+        where=where,
+    )
+
+    def _val_fmt(v: float) -> str:
+        return f"{float(v):.2f}x"
+
+    def _counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        num = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumpos", where=where),
+            name="cumpos",
+            where=where,
         )
-        models = [str(x) for x in pd.unique(plot_input["model_label"])]
-        datasets = [str(x) for x in pd.unique(plot_input["dataset_label"])]
-        classes = [str(x) for x in pd.unique(plot_input["target_class"].astype(str))]
-        desc = _ntile_label(ntiles)
-
-        if scope == "compare_models":
-            model_part = f"model {lab}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{classes[0]}"
-        elif scope == "compare_datasets":
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {lab}"
-            cls_part = f"{classes[0]}"
-        elif scope == "compare_targetclasses":
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{lab}"
-        else:
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{classes[0]}"
-
-        return (
-            f"When we select {desc} 1 until {ntile} from {model_part} in {ds_part}, "  # noqa: S608
-            f"the cumulative lift for {cls_part} is {v:.2f}x."
+        den = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumtot", where=where),
+            name="cumtot",
+            where=where,
         )
+        return num, den
 
     ax = _plot_metric_with_reference(
         plot_input,
         metric_col="cumlift",
         ref_col=None,
+        metric_name="CumLift",
         title="Cumulative Lift",
         ylabel="cumulative lift (x)",
         percent_y=False,
+        xlim_start=1,
+        legend_loc="upper right",
         highlight_ntiles=hl,
         highlight_how=highlight_how,
-        highlight_value_formatter=_fmt,
-        highlight_text_builder=_text,
-        legend_loc="upper right",
+        highlight_kind="cum",
+        value_formatter=_val_fmt,
+        counts_at_ntile=_counts,
         x0_for_highlight=1,
         y0_for_highlight=0.0,
-        plot_kwargs=kwargs,
+        autopct=None,
+        ax=None,
+        figsize=(10, 5),
+        plot_kws=pk,
+        collect_highlight_lines=None,
+        render_footer=True,
     )
 
-    # Ensure lift baseline is visible.
+    # Baseline.
     ax.axhline(1.0, linestyle="dashed", color="grey", lw=1.0, label="baseline (1.0x)")
-    ax.legend(loc="upper right", shadow=False, frameon=False)
+    ax.legend(loc="upper right", **dict(pk.legend_kws))
     return ax
 
 
@@ -2334,6 +2968,14 @@ def plot_cumgains(
     *,
     highlight_ntile: int | Sequence[int] | None = None,
     highlight_how: Literal["plot", "text", "plot_text"] = "plot_text",
+    autopct: str | Callable[[float], str] | None = "%.2f%%",
+    line_kws: Mapping[str, Any] | None = None,
+    ref_line_kws: Mapping[str, Any] | None = None,
+    legend_kws: Mapping[str, Any] | None = None,
+    grid_kws: Mapping[str, Any] | None = None,
+    axes_kws: Mapping[str, Any] | None = None,
+    annotation_kws: Mapping[str, Any] | None = None,
+    footer_kws: Mapping[str, Any] | None = None,
     save_fig: bool = True,
     save_fig_filename: str = "",
     **kwargs: Any,
@@ -2348,12 +2990,16 @@ def plot_cumgains(
         Ntile index/indices to highlight (each must be in ``1..ntiles``).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
+    autopct : None or str or callable, default='%.2f%%'
+        Percentage formatter for values in [0, 1].
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component styling kwargs.
     save_fig : bool, default=True
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     save_fig_filename : str, default=''
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     **kwargs : Any
-        Forwarded to :meth:`matplotlib.axes.Axes.plot` for the main metric line.
+        Legacy alias for ``line_kws``.
 
     Returns
     -------
@@ -2362,12 +3008,8 @@ def plot_cumgains(
 
     Raises
     ------
-    TypeError
-        If ``highlight_ntile`` is neither an int nor a sequence of ints.
-    ValueError
-        If any highlighted ntile is outside the valid range.
     _PlotInputError
-        If ``plot_input`` lacks required columns.
+        If plot_input lacks required columns.
 
     See Also
     --------
@@ -2375,71 +3017,89 @@ def plot_cumgains(
 
     Notes
     -----
-    Cumulative gains is ``cumgain``. The reference is the optimal gains curve
-    ``gain_opt``.
+    Cumulative gains is highlighted as 1..N.
+
+    - value = cumgain
+    - counts use cumpos / total_pos
 
     Examples
     --------
     >>> # ax = plot_cumgains(plot_input)
     """
-    ntiles = _get_ntiles_from_plot_input(plot_input, where="plot_cumgains")
-    hl = _normalize_highlight_ntiles(
-        highlight_ntile, ntiles=ntiles, where="plot_cumgains"
+    where = "plot_cumgains"
+    _require_columns(
+        plot_input,
+        required=[
+            "scope",
+            "ntile",
+            "cumgain",
+            "gain_opt",
+            "cumpos",
+            "model_label",
+            "dataset_label",
+            "target_class",
+        ],
+        where=where,
     )
 
-    def _fmt(v: float) -> str:
-        return f"{round(v * 100.0)}%"
+    ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
+    hl = _normalize_highlight_ntiles(highlight_ntile, ntiles=ntiles, where=where)
 
-    def _text(lab: str, ntile: int, v: float) -> str:
-        scope = str(
-            _unique_one(plot_input["scope"], name="scope", where="plot_cumgains")
+    pk = _parse_plot_kws(
+        line_kws=line_kws,
+        ref_line_kws=ref_line_kws,
+        legend_kws=legend_kws,
+        grid_kws=grid_kws,
+        axes_kws=axes_kws,
+        annotation_kws=annotation_kws,
+        footer_kws=footer_kws,
+        legacy_line_kwargs=kwargs,
+        where=where,
+    )
+
+    def _val_fmt(v: float) -> str:
+        return _autopct(v, autopct)
+
+    def _counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        # numerator is cumpos at nt; denominator is total positives in the group.
+        num = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumpos", where=where),
+            name="cumpos",
+            where=where,
         )
-        models = [str(x) for x in pd.unique(plot_input["model_label"])]
-        datasets = [str(x) for x in pd.unique(plot_input["dataset_label"])]
-        classes = [str(x) for x in pd.unique(plot_input["target_class"].astype(str))]
-        desc = _ntile_label(ntiles)
-
-        if scope == "compare_models":
-            model_part = f"model {lab}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{classes[0]}"
-        elif scope == "compare_datasets":
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {lab}"
-            cls_part = f"{classes[0]}"
-        elif scope == "compare_targetclasses":
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{lab}"
-        else:
-            model_part = f"model {models[0]}"
-            ds_part = f"dataset {datasets[0]}"
-            cls_part = f"{classes[0]}"
-
-        return (
-            f"When we select {desc} 1 until {ntile} from {model_part} in {ds_part}, "  # noqa: S608
-            f"the cumulative gain for {cls_part} is {round(v * 100.0)}%."
+        den = _as_int_like(
+            _value_at_ntile(gdf, ntile=ntiles, col="cumpos", where=where),
+            name="total_pos",
+            where=where,
         )
+        return num, den
 
     ax = _plot_metric_with_reference(
         plot_input,
         metric_col="cumgain",
         ref_col="gain_opt",
+        metric_name="CumGains",
         title="Cumulative Gains",
         ylabel="cumulative gain",
         percent_y=True,
         xlim_start=0,
+        legend_loc="lower right",
         highlight_ntiles=hl,
         highlight_how=highlight_how,
-        highlight_value_formatter=_fmt,
-        highlight_text_builder=_text,
-        legend_loc="lower right",
+        highlight_kind="cum",
+        value_formatter=_val_fmt,
+        counts_at_ntile=_counts,
         x0_for_highlight=0,
         y0_for_highlight=0.0,
-        plot_kwargs=kwargs,
+        autopct=autopct,
+        ax=None,
+        figsize=(10, 5),
+        plot_kws=pk,
+        collect_highlight_lines=None,
+        render_footer=True,
     )
 
-    # Dev note: Add deterministic 'minimal gains' baseline (random selection).
+    # Minimal gains (random selection) baseline.
     ax.plot(
         list(range(ntiles + 1)),
         np.linspace(0.0, 1.0, num=ntiles + 1).tolist(),
@@ -2449,7 +3109,15 @@ def plot_cumgains(
     )
     ax.set_xlim(0, ntiles)
     ax.set_ylim(0.0, 1.0)
-    ax.legend(loc="lower right", shadow=False, frameon=False)
+    # ax.legend(loc="lower right", **dict(pk.legend_kws))
+    ax.legend(
+        **{
+            "loc": "lower right",
+            "shadow": False,
+            "frameon": False,
+            **dict(pk.legend_kws),
+        }
+    )
     return ax
 
 
@@ -2458,6 +3126,17 @@ def plot_cumgains(
 def plot_all(
     plot_input: pd.DataFrame,
     *,
+    highlight_ntile: int | Sequence[int] | None = None,
+    highlight_how: Literal["plot", "text", "plot_text"] = "plot_text",
+    autopct: str | Callable[[float], str] | None = "%.2f%%",
+    figsize: tuple[int, int] = (15, 10),
+    line_kws: Mapping[str, Any] | None = None,
+    ref_line_kws: Mapping[str, Any] | None = None,
+    legend_kws: Mapping[str, Any] | None = None,
+    grid_kws: Mapping[str, Any] | None = None,
+    axes_kws: Mapping[str, Any] | None = None,
+    annotation_kws: Mapping[str, Any] | None = None,
+    footer_kws: Mapping[str, Any] | None = None,
     save_fig: bool = True,
     save_fig_filename: str = "",
     **kwargs: Any,
@@ -2468,26 +3147,36 @@ def plot_all(
     ----------
     plot_input : pandas.DataFrame
         Output of :meth:`ModelPlotPy.plotting_scope`.
+    highlight_ntile : int, Sequence[int], or None, default=None
+        Ntile(s) to highlight across all subplots.
+    highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
+        Where to render highlight information.
+
+        - 'text' prints standardized lines to stdout
+        - 'plot' renders them in a footer area
+        - 'plot_text' does both
+    autopct : None or str or callable, default='%.2f%%'
+        Percentage formatter.
+    figsize : tuple[int, int], default=(15, 10)
+        Figure size.
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component styling kwargs.
     save_fig : bool, default=True
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     save_fig_filename : str, default=''
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     **kwargs : Any
-        Additional keyword arguments forwarded to :meth:`matplotlib.axes.Axes.plot`.
-
-        The following optional keys are also supported:
-
-        - ``figsize``: tuple[float, float] for the created figure.
+        Legacy alias for ``line_kws``.
 
     Returns
     -------
     matplotlib.axes.Axes
-        The first subplot axis (cumulative gains), matching legacy behavior.
+        The top-left subplot axis (cumulative gains), matching legacy behavior.
 
     Raises
     ------
     _PlotInputError
-        If ``plot_input`` lacks required columns.
+        If required columns are missing.
 
     See Also
     --------
@@ -2495,16 +3184,14 @@ def plot_all(
 
     Notes
     -----
-    User note: This function draws four subplots on a single figure, but returns
-    only the first Axes for backward compatibility.
+    Dev note: plot_all must not call other decorated plot_* functions.
+    Nesting save_plot_decorator calls can clear/close figures unexpectedly.
 
     Examples
     --------
     >>> # ax = plot_all(plot_input)
     """
-    # Dev note: plot_all must not call other decorated plot_* functions.
-    # Nesting save_plot_decorator calls can clear/close figures unexpectedly.
-
+    where = "plot_all"
     _require_columns(
         plot_input,
         required=[
@@ -2519,126 +3206,242 @@ def plot_all(
             "cumgain",
             "pct_ref",
             "gain_opt",
+            "pos",
+            "tot",
+            "cumpos",
+            "cumtot",
         ],
-        where="plot_all",
+        where=where,
     )
 
-    ntiles = _get_ntiles_from_plot_input(plot_input, where="plot_all")
-    scope = str(_unique_one(plot_input["scope"], name="scope", where="plot_all"))
+    ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
+    hl = _normalize_highlight_ntiles(highlight_ntile, ntiles=ntiles, where=where)
+    _validate_highlight_how(highlight_how, where=where)
 
-    # Extract metadata for the global title.
+    pk = _parse_plot_kws(
+        line_kws=line_kws,
+        ref_line_kws=ref_line_kws,
+        legend_kws=legend_kws,
+        grid_kws=grid_kws,
+        axes_kws=axes_kws,
+        annotation_kws=annotation_kws,
+        footer_kws=footer_kws,
+        legacy_line_kwargs=kwargs,
+        where=where,
+    )
+
+    scope = str(_unique_one(plot_input["scope"], name="scope", where=where))
+
     models = [str(x) for x in pd.unique(plot_input["model_label"])]
     datasets = [str(x) for x in pd.unique(plot_input["dataset_label"])]
-    classes = [str(x) for x in pd.unique(plot_input["target_class"].astype(str))]
+    targets = [str(x) for x in pd.unique(plot_input["target_class"].astype(str))]
 
     if scope == "no_comparison":
         global_title = (
-            f"model: {models[0]} & dataset: {datasets[0]} & target class: {classes[0]}"
+            f"model: {models[0]} & dataset: {datasets[0]} & target class: {targets[0]}"
         )
     elif scope == "compare_models":
-        global_title = f"scope: comparing models & dataset: {datasets[0]} & target class: {classes[0]}"
+        global_title = f"scope: comparing models & dataset: {datasets[0]} & target class: {targets[0]}"
     elif scope == "compare_datasets":
-        global_title = f"scope: comparing datasets & model: {models[0]} & target class: {classes[0]}"
+        global_title = f"scope: comparing datasets & model: {models[0]} & target class: {targets[0]}"
     else:
         global_title = f"scope: comparing target classes & dataset: {datasets[0]} & model: {models[0]}"
 
-    figsize = kwargs.pop("figsize", (15, 10))
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
+    fig.suptitle(global_title, fontsize=16)
+
+    # Collect all highlight lines once and render a single footer.
+    collected: list[str] = []
 
     # --- Cumulative gains (top-left) ---
-    # Add the minimal gains diagonal first so it appears in the legend.
     ax1.plot(
         list(range(0, ntiles + 1, 1)),
         np.linspace(0.0, 1.0, num=ntiles + 1).tolist(),
         linestyle="dashed",
-        label="minimal gains",
         color="grey",
+        label="minimal gains",
     )
+
+    def _gains_fmt(v: float) -> str:
+        return _autopct(v, autopct)
+
+    def _gains_counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        num = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumpos", where=where),
+            name="cumpos",
+            where=where,
+        )
+        den = _as_int_like(
+            _value_at_ntile(gdf, ntile=ntiles, col="cumpos", where=where),
+            name="total_pos",
+            where=where,
+        )
+        return num, den
+
     _plot_metric_with_reference(
         plot_input,
         metric_col="cumgain",
         ref_col="gain_opt",
-        title="Cumulative gains",
-        ylabel="cumulative gains",
+        metric_name="CumGains",
+        title="Cumulative Gains",
+        ylabel="cumulative gain",
         percent_y=True,
-        highlight_ntiles=[],
-        highlight_how="plot_text",
-        highlight_value_formatter=None,
-        highlight_text_builder=None,
-        legend_loc="lower right",
         xlim_start=0,
+        legend_loc="lower right",
+        highlight_ntiles=hl,
+        highlight_how=highlight_how,
+        highlight_kind="cum",
+        value_formatter=_gains_fmt,
+        counts_at_ntile=_gains_counts,
         x0_for_highlight=0,
         y0_for_highlight=0.0,
+        autopct=autopct,
         ax=ax1,
-        plot_kwargs=kwargs,
+        figsize=figsize,
+        plot_kws=pk,
+        collect_highlight_lines=collected,
+        render_footer=False,
     )
     ax1.set_ylim(0.0, 1.0)
 
     # --- Cumulative lift (top-right) ---
+    def _lift_fmt(v: float) -> str:
+        return f"{float(v):.2f}x"
+
+    def _lift_counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        num = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumpos", where=where),
+            name="cumpos",
+            where=where,
+        )
+        den = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumtot", where=where),
+            name="cumtot",
+            where=where,
+        )
+        return num, den
+
     _plot_metric_with_reference(
         plot_input,
         metric_col="cumlift",
         ref_col=None,
-        title="Cumulative lift",
-        ylabel="cumulative lift",
+        metric_name="CumLift",
+        title="Cumulative Lift",
+        ylabel="cumulative lift (x)",
         percent_y=False,
-        highlight_ntiles=[],
-        highlight_how="plot_text",
-        highlight_value_formatter=None,
-        highlight_text_builder=None,
-        legend_loc="upper right",
         xlim_start=1,
+        legend_loc="upper right",
+        highlight_ntiles=hl,
+        highlight_how=highlight_how,
+        highlight_kind="cum",
+        value_formatter=_lift_fmt,
+        counts_at_ntile=_lift_counts,
         x0_for_highlight=1,
         y0_for_highlight=0.0,
+        autopct=None,
         ax=ax2,
-        plot_kwargs=kwargs,
+        figsize=figsize,
+        plot_kws=pk,
+        collect_highlight_lines=collected,
+        render_footer=False,
     )
-    ax2.set_xlim(1, ntiles)
-    ax2.axhline(1.0, linestyle="dashed", color="grey", lw=1.0, label="no lift")
-    ax2.legend(loc="upper right", shadow=False, frameon=False)
+    ax2.axhline(1.0, linestyle="dashed", color="grey", lw=1.0, label="baseline (1.0x)")
+    ax2.legend(loc="upper right", **dict(pk.legend_kws))
 
     # --- Response (bottom-left) ---
+    def _resp_fmt(v: float) -> str:
+        return _autopct(v, autopct)
+
+    def _resp_counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        pos = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="pos", where=where),
+            name="pos",
+            where=where,
+        )
+        tot = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="tot", where=where),
+            name="tot",
+            where=where,
+        )
+        return pos, tot
+
     _plot_metric_with_reference(
         plot_input,
         metric_col="pct",
         ref_col="pct_ref",
+        metric_name="Response",
         title="Response",
         ylabel="response",
         percent_y=True,
-        highlight_ntiles=[],
-        highlight_how="plot_text",
-        highlight_value_formatter=None,
-        highlight_text_builder=None,
-        legend_loc="upper right",
         xlim_start=1,
+        legend_loc="upper right",
+        highlight_ntiles=hl,
+        highlight_how=highlight_how,
+        highlight_kind="at",
+        value_formatter=_resp_fmt,
+        counts_at_ntile=_resp_counts,
         x0_for_highlight=1,
         y0_for_highlight=0.0,
+        autopct=autopct,
         ax=ax3,
-        plot_kwargs=kwargs,
+        figsize=figsize,
+        plot_kws=pk,
+        collect_highlight_lines=collected,
+        render_footer=False,
     )
 
     # --- Cumulative response (bottom-right) ---
+    def _cumresp_fmt(v: float) -> str:
+        return _autopct(v, autopct)
+
+    def _cumresp_counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        num = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumpos", where=where),
+            name="cumpos",
+            where=where,
+        )
+        den = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumtot", where=where),
+            name="cumtot",
+            where=where,
+        )
+        return num, den
+
     _plot_metric_with_reference(
         plot_input,
         metric_col="cumpct",
         ref_col="pct_ref",
-        title="Cumulative response",
+        metric_name="CumResponse",
+        title="Cumulative Response",
         ylabel="cumulative response",
         percent_y=True,
-        highlight_ntiles=[],
-        highlight_how="plot_text",
-        highlight_value_formatter=None,
-        highlight_text_builder=None,
-        legend_loc="upper right",
         xlim_start=1,
+        legend_loc="upper right",
+        highlight_ntiles=hl,
+        highlight_how=highlight_how,
+        highlight_kind="cum",
+        value_formatter=_cumresp_fmt,
+        counts_at_ntile=_cumresp_counts,
         x0_for_highlight=1,
         y0_for_highlight=0.0,
+        autopct=autopct,
         ax=ax4,
-        plot_kwargs=kwargs,
+        figsize=figsize,
+        plot_kws=pk,
+        collect_highlight_lines=collected,
+        render_footer=False,
     )
 
-    fig.suptitle(global_title, fontsize=16)
-    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # Footer once.
+    if hl:
+        if highlight_how in ("text", "plot_text"):
+            print("\n".join(collected))  # noqa: T201
+        if highlight_how in ("plot", "plot_text"):
+            _render_footer_text(fig, lines=collected, footer_kws=pk.footer_kws)
+
+    # Tight layout (keep suptitle visible). If footer reserved space, it was
+    # already applied via subplots_adjust in _render_footer_text.
+    fig.tight_layout(rect=[0.0, 0.03, 1.0, 0.95])
 
     return ax1
 
@@ -2693,77 +3496,55 @@ def _validate_number(x: Any, *, name: str, where: str) -> float:
     return v
 
 
-def _currency_fmt(v: float) -> str:
-    """Format a value as EUR currency string.
-
-    Parameters
-    ----------
-    v : float
-        Amount.
-
-    Returns
-    -------
-    str
-        EUR string.
-
-    Raises
-    ------
-    None
-
-    See Also
-    --------
-    str.format
-
-    Notes
-    -----
-    Dev note: We keep the legacy EUR sign.
-
-    Examples
-    --------
-    >>> _currency_fmt(12.3)
-    '€12'
-    """
-    return f"€{round(v)}"
-
-
 @save_plot_decorator
 @_docstring.interpd
 def plot_costsrevs(  # noqa: PLR0912
     plot_input: pd.DataFrame,
     *,
     fixed_costs: float,
+    currency: str = "€",
     variable_costs_per_unit: float,
     profit_per_unit: float,
     highlight_ntile: int | Sequence[int] | None = None,
     highlight_how: Literal["plot", "text", "plot_text"] = "plot_text",
+    line_kws: Mapping[str, Any] | None = None,
+    ref_line_kws: Mapping[str, Any] | None = None,
+    legend_kws: Mapping[str, Any] | None = None,
+    grid_kws: Mapping[str, Any] | None = None,
+    axes_kws: Mapping[str, Any] | None = None,
+    annotation_kws: Mapping[str, Any] | None = None,
+    footer_kws: Mapping[str, Any] | None = None,
     save_fig: bool = True,
     save_fig_filename: str = "",
     **kwargs: Any,
 ) -> plt.Axes:
-    """Plot costs / revenues curve.
+    """Plot costs and revenues curves.
 
     Parameters
     ----------
     plot_input : pandas.DataFrame
         Output of :meth:`ModelPlotPy.plotting_scope`.
     fixed_costs : float
-        Fixed costs related to making a selection. These costs are constant and
-        do not vary with selection size.
+        Fixed costs independent of selection size.
+    currency : str
+        such as the dollar sign ($), euro sign (€), or pound sign (£).
+        These symbols indicate monetary values in financial contexts.
     variable_costs_per_unit : float
-        Variable costs per selected unit. These costs vary with selection size.
+        Variable cost per selected unit.
     profit_per_unit : float
-        Profit per unit in case the selected unit converts / responds positively.
+        Revenue per positive unit.
     highlight_ntile : int or Sequence[int] or None, default=None
-        Ntile index/indices to highlight (each in 1..ntiles). You may pass a
-        single int or a sequence of ints.
+        Ntile index/indices to highlight (each in 1..ntiles).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component styling kwargs.
     save_fig : bool, default=True
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     save_fig_filename : str, default=''
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     **kwargs : Any
-        Forwarded to :meth:`matplotlib.axes.Axes.plot` for the revenue curves.
+        Legacy alias for ``line_kws``.
 
     Returns
     -------
@@ -2774,12 +3555,8 @@ def plot_costsrevs(  # noqa: PLR0912
     ------
     TypeError
         If any financial parameter is not numeric.
-    ValueError
-        If highlight parameters are invalid.
     _PlotInputError
-        If plot_input lacks required columns, or if in ``compare_models`` scope
-        the cumulative selection size (``cumtot``) is not identical across
-        models for the same ntile.
+        If plot_input lacks required columns.
 
     See Also
     --------
@@ -2787,16 +3564,17 @@ def plot_costsrevs(  # noqa: PLR0912
 
     Notes
     -----
-    - This function does not mutate the caller's dataframe.
     - Revenue is computed as ``profit_per_unit * cumpos``.
-    - Total costs (investments) are computed as
-      ``fixed_costs + variable_costs_per_unit * cumtot``.
+    - Total costs are computed as ``fixed_costs + variable_costs_per_unit * cumtot``.
+
+    Highlight lines are standardized and use cumulative 1..N semantics.
 
     Examples
     --------
     >>> # ax = plot_costsrevs(plot_input, fixed_costs=100, variable_costs_per_unit=1, profit_per_unit=10)
     """
     where = "plot_costsrevs"
+
     fixed_costs = _validate_number(fixed_costs, name="fixed_costs", where=where)
     variable_costs_per_unit = _validate_number(
         variable_costs_per_unit, name="variable_costs_per_unit", where=where
@@ -2820,9 +3598,21 @@ def plot_costsrevs(  # noqa: PLR0912
     )
 
     ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
+    nlabel = _ntile_label(ntiles)
     hl = _normalize_highlight_ntiles(highlight_ntile, ntiles=ntiles, where=where)
-    if hl:
-        _validate_highlight_how(highlight_how, where=where)
+    _validate_highlight_how(highlight_how, where=where)
+
+    pk = _parse_plot_kws(
+        line_kws=line_kws,
+        ref_line_kws=ref_line_kws,
+        legend_kws=legend_kws,
+        grid_kws=grid_kws,
+        axes_kws=axes_kws,
+        annotation_kws=annotation_kws,
+        footer_kws=footer_kws,
+        legacy_line_kwargs=kwargs,
+        where=where,
+    )
 
     df = plot_input.copy()
 
@@ -2831,38 +3621,40 @@ def plot_costsrevs(  # noqa: PLR0912
     df["revenues"] = profit_per_unit * df["cumpos"]
 
     scope = str(_unique_one(df["scope"], name="scope", where=where))
-    nlabel = _ntile_label(ntiles)
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    fig.suptitle("Costs / Revenues", fontsize=16)
-    ax.set_xlabel(nlabel)
-    ax.set_ylabel("costs / revenue")
-
-    ax.set_xticks(np.arange(0, ntiles + 1, 1))
-    ax.spines["right"].set_visible(False)
-    ax.spines["top"].set_visible(False)
-    ax.yaxis.set_ticks_position("left")
-    ax.xaxis.set_ticks_position("bottom")
-    ax.grid(True)
-    ax.set_xlim([1, ntiles])
 
     models = [str(v) for v in pd.unique(df["model_label"])]
     datasets = [str(v) for v in pd.unique(df["dataset_label"])]
-    classes = [str(v) for v in pd.unique(df["target_class"].astype(str))]
+    targets = [str(v) for v in pd.unique(df["target_class"].astype(str))]
 
+    fig, ax = plt.subplots(figsize=(10, 5))
+    fig.suptitle("Costs & Revenues", fontsize=16)
+
+    # Axis styling.
+    _setup_axis(
+        ax,
+        title="",  # set below
+        xlabel=nlabel,
+        ylabel="€",
+        ntiles=ntiles,
+        xlim=(1, ntiles),
+        percent_y=False,
+        grid=bool(pk.grid_kws.get("visible", True)),
+    )
+
+    # Title details.
     if scope == "no_comparison":
         ax.set_title(
-            f"model: {models[0]} & dataset: {datasets[0]} & target class: {classes[0]}",
+            f"model: {models[0]} & dataset: {datasets[0]} & target class: {targets[0]}",
             fontweight="bold",
         )
     elif scope == "compare_datasets":
         ax.set_title(
-            f"scope: comparing datasets & model: {models[0]} & target class: {classes[0]}",
+            f"scope: comparing datasets & model: {models[0]} & target class: {targets[0]}",
             fontweight="bold",
         )
     elif scope == "compare_models":
         ax.set_title(
-            f"scope: comparing models & dataset: {datasets[0]} & target class: {classes[0]}",
+            f"scope: comparing models & dataset: {datasets[0]} & target class: {targets[0]}",
             fontweight="bold",
         )
     else:
@@ -2871,91 +3663,14 @@ def plot_costsrevs(  # noqa: PLR0912
             fontweight="bold",
         )
 
+    # Plot: solid revenues, dashed investments.
     text_lines: list[str] = []
+    label_to_color: dict[str, str] = {}
 
-    def _append_text(
-        *, model: str, dataset: str, target: str, nt: int, rev: float
-    ) -> None:
-        text_lines.append(
-            f"When we select {nlabel} 1 until {nt} from model {model} in dataset {dataset} "  # noqa: S608
-            f"the revenue for {target} is {round(rev)}."
-        )
+    groups = list(_iter_groups(df, scope=scope))
 
-    if scope == "no_comparison":
-        gdf = df.sort_values("ntile")
-        rev_line = ax.plot(gdf["ntile"], gdf["revenues"], label=classes[0], **kwargs)
-        color = str(rev_line[0].get_color())
-        ax.plot(
-            gdf["ntile"],
-            gdf["investments"],
-            linestyle="dashed",
-            label="total costs",
-            color=color,
-        )
-        legend_loc = "lower right"
-
-        if hl:
-            for h_idx, nt in enumerate(hl):
-                rev = _value_at_ntile(gdf, ntile=int(nt), col="revenues", where=where)
-                _annotate_highlight(
-                    ax,
-                    x=int(nt),
-                    y=float(rev),
-                    x0=1,
-                    y0=0.0,
-                    color=color,
-                    text=_currency_fmt(float(rev)),
-                    xytext=_annotation_xytext(h_idx),
-                )
-                _append_text(
-                    model=models[0],
-                    dataset=datasets[0],
-                    target=classes[0],
-                    nt=int(nt),
-                    rev=float(rev),
-                )
-
-    elif scope == "compare_datasets":
-        legend_loc = "upper right"
-        for d_idx, ds in enumerate([str(v) for v in pd.unique(df["dataset_label"])]):
-            gdf = df.loc[df["dataset_label"] == ds].sort_values("ntile")
-            rev_line = ax.plot(gdf["ntile"], gdf["revenues"], label=ds, **kwargs)
-            color = str(rev_line[0].get_color())
-            ax.plot(
-                gdf["ntile"],
-                gdf["investments"],
-                linestyle="dashed",
-                label=f"total costs ({ds})",
-                color=color,
-            )
-
-            if hl:
-                for h_idx, nt in enumerate(hl):
-                    rev = _value_at_ntile(
-                        gdf, ntile=int(nt), col="revenues", where=where
-                    )
-                    anno_idx = d_idx * len(hl) + h_idx
-                    _annotate_highlight(
-                        ax,
-                        x=int(nt),
-                        y=float(rev),
-                        x0=1,
-                        y0=0.0,
-                        color=color,
-                        text=_currency_fmt(float(rev)),
-                        xytext=_annotation_xytext(anno_idx),
-                    )
-                    _append_text(
-                        model=models[0],
-                        dataset=ds,
-                        target=classes[0],
-                        nt=int(nt),
-                        rev=float(rev),
-                    )
-
-    elif scope == "compare_models":
-        legend_loc = "lower right"
-
+    # Special case: compare_models must have identical cumtot per ntile for a single investments curve.
+    if scope == "compare_models":
         chk = df.groupby("ntile", sort=False)["cumtot"].nunique(dropna=False)
         if (chk > 1).any():
             bad = chk[chk > 1].index.to_list()
@@ -2965,95 +3680,129 @@ def plot_costsrevs(  # noqa: PLR0912
             )
 
         base = df.loc[df["model_label"] == models[0]].sort_values("ntile")
-        investments = fixed_costs + variable_costs_per_unit * base["cumtot"]
+        inv_curve = fixed_costs + variable_costs_per_unit * base["cumtot"]
         ax.plot(
             base["ntile"],
-            investments,
+            inv_curve,
             linestyle="dashed",
             label="total costs",
             color="grey",
         )
 
-        for m_idx, m in enumerate([str(v) for v in pd.unique(df["model_label"])]):
-            gdf = df.loc[df["model_label"] == m].sort_values("ntile")
-            rev_line = ax.plot(
-                gdf["ntile"], gdf["revenues"], label=f"revenues ({m})", **kwargs
-            )
-            color = str(rev_line[0].get_color())
+    for g_idx, (lab, gdf) in enumerate(groups):
+        gdf = gdf.sort_values("ntile")  # noqa: PLW2901
 
-            if hl:
-                for h_idx, nt in enumerate(hl):
-                    rev = _value_at_ntile(
-                        gdf, ntile=int(nt), col="revenues", where=where
-                    )
-                    anno_idx = m_idx * len(hl) + h_idx
-                    _annotate_highlight(
-                        ax,
-                        x=int(nt),
-                        y=float(rev),
-                        x0=1,
-                        y0=0.0,
-                        color=color,
-                        text=_currency_fmt(float(rev)),
-                        xytext=_annotation_xytext(anno_idx),
-                    )
-                    _append_text(
-                        model=m,
-                        dataset=datasets[0],
-                        target=classes[0],
-                        nt=int(nt),
-                        rev=float(rev),
-                    )
+        # Label selection.
+        if scope == "no_comparison":
+            line_label = targets[0]
+            ref_label = "total costs"
+        else:
+            line_label = f"revenues ({lab})"
+            ref_label = f"total costs ({lab})"
 
-    else:  # compare_targetclasses
-        legend_loc = "lower right"
-        for c_idx, cls in enumerate(
-            [str(v) for v in pd.unique(df["target_class"].astype(str))]
-        ):
-            mask = df["target_class"].astype(str) == cls
-            gdf = df.loc[mask].sort_values("ntile")
-            rev_line = ax.plot(gdf["ntile"], gdf["revenues"], label=cls, **kwargs)
-            color = str(rev_line[0].get_color())
+        rev_line = ax.plot(
+            gdf["ntile"], gdf["revenues"], label=line_label, **dict(pk.line_kws)
+        )
+        color = str(rev_line[0].get_color())
+        label_to_color[str(lab)] = color
+
+        if scope != "compare_models":
             ax.plot(
                 gdf["ntile"],
                 gdf["investments"],
+                label=ref_label,
                 linestyle="dashed",
-                label=f"total costs ({cls})",
                 color=color,
             )
 
-            if hl:
-                for h_idx, nt in enumerate(hl):
-                    rev = _value_at_ntile(
-                        gdf, ntile=int(nt), col="revenues", where=where
-                    )
-                    anno_idx = c_idx * len(hl) + h_idx
-                    _annotate_highlight(
-                        ax,
-                        x=int(nt),
-                        y=float(rev),
-                        x0=1,
-                        y0=0.0,
-                        color=color,
-                        text=_currency_fmt(float(rev)),
-                        xytext=_annotation_xytext(anno_idx),
-                    )
-                    _append_text(
-                        model=models[0],
-                        dataset=datasets[0],
-                        target=cls,
-                        nt=int(nt),
-                        rev=float(rev),
-                    )
+        if hl:
+            for j, nt in enumerate(hl):
+                rev = _value_at_ntile(gdf, ntile=int(nt), col="revenues", where=where)
 
-    ax.legend(loc=legend_loc, shadow=False, frameon=False)
+                model, dataset, target = _scope_triplet(
+                    scope=scope,
+                    group_label=str(lab),
+                    models=models,
+                    datasets=datasets,
+                    targets=targets,
+                )
+
+                # Counts: selection size and positives.
+                pos = _as_int_like(
+                    _value_at_ntile(gdf, ntile=int(nt), col="cumpos", where=where),
+                    name="cumpos",
+                    where=where,
+                )
+                tot = _as_int_like(
+                    _value_at_ntile(gdf, ntile=int(nt), col="cumtot", where=where),
+                    name="cumtot",
+                    where=where,
+                )
+
+                line_txt = _format_highlight_line(
+                    metric="Revenues",
+                    range_kind="cum",
+                    ntile_label=nlabel,
+                    ntile=int(nt),
+                    model=model,
+                    dataset=dataset,
+                    target=target,
+                    value=_currency_fmt(float(rev), currency),
+                    numerator=pos,
+                    denominator=tot,
+                )
+                text_lines.append(line_txt)
+
+                ann_idx = g_idx + j * len(groups)
+                xytext = _annotation_xytext(
+                    ann_idx,
+                    layout_cols=_as_int_like(
+                        pk.annotation_kws.get("layout_cols", 5),
+                        name="layout_cols",
+                        where=where,
+                    ),
+                    x_offset=_as_int_like(
+                        pk.annotation_kws.get("x_offset", -40),
+                        name="x_offset",
+                        where=where,
+                    ),
+                    x_step=_as_int_like(
+                        pk.annotation_kws.get("x_step", 20), name="x_step", where=where
+                    ),
+                    base=_as_int_like(
+                        pk.annotation_kws.get("base", 30), name="base", where=where
+                    ),
+                    gap=_as_int_like(
+                        pk.annotation_kws.get("gap", 12), name="gap", where=where
+                    ),
+                )
+
+                _annotate_highlight(
+                    ax,
+                    x=int(nt),
+                    y=float(rev),
+                    x0=1,
+                    y0=0.0,
+                    color=color,
+                    text=_currency_fmt(float(rev), currency),
+                    xytext=xytext,
+                    annotation_kws=pk.annotation_kws,
+                )
+
+    ax.legend(
+        loc=(
+            "lower right"
+            if scope in ("no_comparison", "compare_models", "compare_targetclasses")
+            else "upper right"
+        ),
+        **dict(pk.legend_kws),
+    )
 
     if hl:
-        text = "\n".join(text_lines)
         if highlight_how in ("text", "plot_text"):
-            print(text)  # noqa: T201
+            print("\n".join(text_lines))  # noqa: T201
         if highlight_how in ("plot", "plot_text"):
-            fig.text(0.53, 0.37, text, ha="left")
+            _render_footer_text(fig, lines=text_lines, footer_kws=pk.footer_kws)
 
     return ax
 
@@ -3064,10 +3813,18 @@ def plot_profit(
     plot_input: pd.DataFrame,
     *,
     fixed_costs: float,
+    currency: str = "€",
     variable_costs_per_unit: float,
     profit_per_unit: float,
     highlight_ntile: int | Sequence[int] | None = None,
     highlight_how: Literal["plot", "text", "plot_text"] = "plot_text",
+    line_kws: Mapping[str, Any] | None = None,
+    ref_line_kws: Mapping[str, Any] | None = None,
+    legend_kws: Mapping[str, Any] | None = None,
+    grid_kws: Mapping[str, Any] | None = None,
+    axes_kws: Mapping[str, Any] | None = None,
+    annotation_kws: Mapping[str, Any] | None = None,
+    footer_kws: Mapping[str, Any] | None = None,
     save_fig: bool = True,
     save_fig_filename: str = "",
     **kwargs: Any,
@@ -3080,6 +3837,9 @@ def plot_profit(
         Output of :meth:`ModelPlotPy.plotting_scope`.
     fixed_costs : float
         Fixed costs independent of selection size.
+    currency : str
+        such as the dollar sign ($), euro sign (€), or pound sign (£).
+        These symbols indicate monetary values in financial contexts.
     variable_costs_per_unit : float
         Variable cost per selected unit.
     profit_per_unit : float
@@ -3088,12 +3848,14 @@ def plot_profit(
         Ntile index/indices to highlight (each in 1..ntiles).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component styling kwargs.
     save_fig : bool, default=True
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     save_fig_filename : str, default=''
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     **kwargs : Any
-        Forwarded to :meth:`matplotlib.axes.Axes.plot`.
+        Legacy alias for ``line_kws``.
 
     Returns
     -------
@@ -3102,10 +3864,6 @@ def plot_profit(
 
     Raises
     ------
-    TypeError
-        If any financial parameter is not numeric.
-    ValueError
-        If highlight parameters are invalid.
     _PlotInputError
         If plot_input lacks required columns.
 
@@ -3115,13 +3873,16 @@ def plot_profit(
 
     Notes
     -----
-    Profit is revenues minus investments (fixed + variable costs).
+    Profit = revenues - investments.
+
+    Highlight lines use cumulative 1..N semantics and include cumpos / cumtot.
 
     Examples
     --------
     >>> # ax = plot_profit(plot_input, fixed_costs=100, variable_costs_per_unit=1, profit_per_unit=10)
     """
     where = "plot_profit"
+
     fixed_costs = _validate_number(fixed_costs, name="fixed_costs", where=where)
     variable_costs_per_unit = _validate_number(
         variable_costs_per_unit, name="variable_costs_per_unit", where=where
@@ -3146,38 +3907,64 @@ def plot_profit(
 
     ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
     hl = _normalize_highlight_ntiles(highlight_ntile, ntiles=ntiles, where=where)
-    if hl:
-        _validate_highlight_how(highlight_how, where=where)
+
+    pk = _parse_plot_kws(
+        line_kws=line_kws,
+        ref_line_kws=ref_line_kws,
+        legend_kws=legend_kws,
+        grid_kws=grid_kws,
+        axes_kws=axes_kws,
+        annotation_kws=annotation_kws,
+        footer_kws=footer_kws,
+        legacy_line_kwargs=kwargs,
+        where=where,
+    )
 
     df = plot_input.copy()
-
     df["variable_costs"] = variable_costs_per_unit * df["cumtot"]
     df["investments"] = fixed_costs + df["variable_costs"]
     df["revenues"] = profit_per_unit * df["cumpos"]
     df["profit"] = df["revenues"] - df["investments"]
 
-    def _fmt(v: float) -> str:
-        return _currency_fmt(v)
+    def _val_fmt(v: float) -> str:
+        return _currency_fmt(v, currency)
 
-    def _text(lab: str, ntile: int, v: float) -> str:
-        desc = _ntile_label(ntiles)
-        return f"When we select {desc} 1 until {ntile}, expected profit for '{lab}' is {round(v)}."
+    def _counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        num = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumpos", where=where),
+            name="cumpos",
+            where=where,
+        )
+        den = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumtot", where=where),
+            name="cumtot",
+            where=where,
+        )
+        return num, den
 
     return _plot_metric_with_reference(
         df,
         metric_col="profit",
         ref_col=None,
+        metric_name="Profit",
         title="Profit",
         ylabel="€",
         percent_y=False,
+        xlim_start=1,
+        legend_loc="upper right",
         highlight_ntiles=hl,
         highlight_how=highlight_how,
-        highlight_value_formatter=_fmt,
-        highlight_text_builder=_text,
-        legend_loc="upper right",
+        highlight_kind="cum",
+        value_formatter=_val_fmt,
+        counts_at_ntile=_counts,
         x0_for_highlight=1,
         y0_for_highlight=0.0,
-        plot_kwargs=kwargs,
+        autopct=None,
+        ax=None,
+        figsize=(10, 5),
+        plot_kws=pk,
+        collect_highlight_lines=None,
+        render_footer=True,
     )
 
 
@@ -3191,6 +3978,14 @@ def plot_roi(
     profit_per_unit: float,
     highlight_ntile: int | Sequence[int] | None = None,
     highlight_how: Literal["plot", "text", "plot_text"] = "plot_text",
+    autopct: str | Callable[[float], str] | None = "%.2f%%",
+    line_kws: Mapping[str, Any] | None = None,
+    ref_line_kws: Mapping[str, Any] | None = None,
+    legend_kws: Mapping[str, Any] | None = None,
+    grid_kws: Mapping[str, Any] | None = None,
+    axes_kws: Mapping[str, Any] | None = None,
+    annotation_kws: Mapping[str, Any] | None = None,
+    footer_kws: Mapping[str, Any] | None = None,
     save_fig: bool = True,
     save_fig_filename: str = "",
     **kwargs: Any,
@@ -3211,12 +4006,16 @@ def plot_roi(
         Ntile index/indices to highlight (each in 1..ntiles).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
+    autopct : None or str or callable, default='%.2f%%'
+        Percentage formatter for ROI (expressed as a fraction).
+    line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
+        Per-component styling kwargs.
     save_fig : bool, default=True
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     save_fig_filename : str, default=''
         Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
     **kwargs : Any
-        Forwarded to :meth:`matplotlib.axes.Axes.plot`.
+        Legacy alias for ``line_kws``.
 
     Returns
     -------
@@ -3225,10 +4024,8 @@ def plot_roi(
 
     Raises
     ------
-    TypeError
-        If any financial parameter is not numeric.
     ValueError
-        If investments are zero (division by zero) or highlight parameters invalid.
+        If investments are zero for any ntile.
     _PlotInputError
         If plot_input lacks required columns.
 
@@ -3238,14 +4035,20 @@ def plot_roi(
 
     Notes
     -----
-    ROI is defined as ``profit / investments``. A dashed break-even line at 0 is
-    included.
+    ROI = profit / investments.
+
+    - profit = revenues - investments
+    - revenues = profit_per_unit * cumpos
+    - investments = fixed_costs + variable_costs_per_unit * cumtot
+
+    Highlight lines use cumulative 1..N semantics and include cumpos / cumtot.
 
     Examples
     --------
     >>> # ax = plot_roi(plot_input, fixed_costs=100, variable_costs_per_unit=1, profit_per_unit=10)
     """
     where = "plot_roi"
+
     fixed_costs = _validate_number(fixed_costs, name="fixed_costs", where=where)
     variable_costs_per_unit = _validate_number(
         variable_costs_per_unit, name="variable_costs_per_unit", where=where
@@ -3270,11 +4073,20 @@ def plot_roi(
 
     ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
     hl = _normalize_highlight_ntiles(highlight_ntile, ntiles=ntiles, where=where)
-    if hl:
-        _validate_highlight_how(highlight_how, where=where)
+
+    pk = _parse_plot_kws(
+        line_kws=line_kws,
+        ref_line_kws=ref_line_kws,
+        legend_kws=legend_kws,
+        grid_kws=grid_kws,
+        axes_kws=axes_kws,
+        annotation_kws=annotation_kws,
+        footer_kws=footer_kws,
+        legacy_line_kwargs=kwargs,
+        where=where,
+    )
 
     df = plot_input.copy()
-
     df["variable_costs"] = variable_costs_per_unit * df["cumtot"]
     df["investments"] = fixed_costs + df["variable_costs"]
     df["revenues"] = profit_per_unit * df["cumpos"]
@@ -3286,31 +4098,156 @@ def plot_roi(
 
     df["roi"] = df["profit"] / df["investments"]
 
-    def _fmt(v: float) -> str:
-        return f"{round(v * 100.0)}%"
+    def _val_fmt(v: float) -> str:
+        return _autopct(v, autopct)
 
-    def _text(lab: str, ntile: int, v: float) -> str:
-        desc = _ntile_label(ntiles)
-        return f"When we select {desc} 1 until {ntile}, expected ROI for '{lab}' is {round(v * 100.0)}%."
+    def _counts(gdf: pd.DataFrame, nt: int) -> tuple[int | None, int | None]:
+        num = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumpos", where=where),
+            name="cumpos",
+            where=where,
+        )
+        den = _as_int_like(
+            _value_at_ntile(gdf, ntile=nt, col="cumtot", where=where),
+            name="cumtot",
+            where=where,
+        )
+        return num, den
 
     ax = _plot_metric_with_reference(
         df,
         metric_col="roi",
         ref_col=None,
+        metric_name="ROI",
         title="Return on Investment (ROI)",
         ylabel="ROI",
         percent_y=True,
+        xlim_start=1,
+        legend_loc="lower right",
         highlight_ntiles=hl,
         highlight_how=highlight_how,
-        highlight_value_formatter=_fmt,
-        highlight_text_builder=_text,
-        legend_loc="lower right",
+        highlight_kind="cum",
+        value_formatter=_val_fmt,
+        counts_at_ntile=_counts,
         x0_for_highlight=1,
         y0_for_highlight=0.0,
-        plot_kwargs=kwargs,
+        autopct=autopct,
+        ax=None,
+        figsize=(10, 5),
+        plot_kws=pk,
+        collect_highlight_lines=None,
+        render_footer=True,
     )
 
-    # Break-even line at ROI=0.
     ax.axhline(0.0, linestyle="dashed", color="grey", lw=1.0, label="break even")
-    ax.legend(loc="lower right", shadow=False, frameon=False)
+    ax.legend(loc="lower right", **dict(pk.legend_kws))
     return ax
+
+
+# ---------------------------
+# Advanced decile helpers (data-science oriented)
+# ---------------------------
+
+
+def summarize_selection(
+    plot_input: pd.DataFrame,
+    *,
+    ntile: int = 10,
+) -> pd.DataFrame:
+    """Return a standardized summary row per group at a selected ntile.
+
+    Parameters
+    ----------
+    plot_input : pandas.DataFrame
+        Output of :meth:`ModelPlotPy.plotting_scope`.
+    ntile : int
+        Ntile to summarize (must exist in plot_input).
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per group with standardized fields.
+
+        Columns include:
+
+        - model_label, dataset_label, target_class
+        - ntile
+        - tot, pos, pct
+        - cumtot, cumpos, cumpct
+        - cumlift, cumgain
+
+    Raises
+    ------
+    _PlotInputError
+        If required columns are missing.
+    ValueError
+        If ntile is outside valid range.
+
+    See Also
+    --------
+    ModelPlotPy.plotting_scope
+
+    Notes
+    -----
+    This helper is intended for DS/MLOps workflows where you want a stable,
+    audit-friendly view of a chosen operating point (e.g., decile 3).
+
+    Examples
+    --------
+    >>> # df = summarize_selection(plot_input, ntile=3)
+    """
+    where = "summarize_selection"
+    _require_columns(
+        plot_input,
+        required=[
+            "scope",
+            "ntile",
+            "model_label",
+            "dataset_label",
+            "target_class",
+            "tot",
+            "pos",
+            "pct",
+            "cumtot",
+            "cumpos",
+            "cumpct",
+            "cumlift",
+            "cumgain",
+        ],
+        where=where,
+    )
+
+    ntiles = _get_ntiles_from_plot_input(plot_input, where=where)
+    nt = _as_int_like(ntile, name="ntile", where=where)
+    if nt < 1 or nt > ntiles:
+        raise ValueError(f"{where}: ntile must be in [1, {ntiles}], got {nt}.")
+
+    scope = str(_unique_one(plot_input["scope"], name="scope", where=where))
+
+    rows = []
+    for lab, gdf in _iter_groups(plot_input, scope=scope):
+        gdf = gdf.sort_values("ntile")  # noqa: PLW2901
+        row = gdf.loc[gdf["ntile"] == nt]
+        if row.shape[0] != 1:
+            raise _PlotInputError(
+                f"{where}: expected 1 row at ntile={nt} for group '{lab}', found {row.shape[0]}."
+            )
+        rows.append(row)
+
+    out = pd.concat(rows, axis=0).reset_index(drop=True)
+    return out[
+        [
+            "model_label",
+            "dataset_label",
+            "target_class",
+            "ntile",
+            "tot",
+            "pos",
+            "pct",
+            "cumtot",
+            "cumpos",
+            "cumpct",
+            "cumlift",
+            "cumgain",
+        ]
+    ]

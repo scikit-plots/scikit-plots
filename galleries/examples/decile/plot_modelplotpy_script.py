@@ -248,7 +248,14 @@ ax = mp.plot_cumlift(ps, highlight_ntile=[2,3], save_fig=True)
 # what is the expected % of target class observations in that decile?
 
 # plot the response plot and annotate the plot at decile = 3
-ax = mp.plot_response(ps, highlight_ntile=[2,3], save_fig=True)
+ax = mp.plot_response(
+    ps, highlight_ntile=[2,3],
+    highlight_how="plot_text",
+    annotation_kws={"mode": "marker"},
+    footer_kws={"base_pad": 0.12, "line_pad": 0.03, "fontsize": 9},
+    line_kws={"linewidth": 2.0},
+    save_fig=True,
+)
 
 
 # %%
@@ -273,11 +280,32 @@ ax = mp.plot_cumresponse(ps, highlight_ntile=[2,3], save_fig=True)
 # plot all four evaluation plots and save to file
 ax = mp.plot_all(
     ps,
+    highlight_ntile=[2,3],
     # save_fig=True,
     # overwrite=False,
     # add_timestamp=True,
     # verbose=True,
 )
+
+
+# %%
+# Get more out of modelplotpy: using different scopes
+# --------------------------------------------------------------------
+# As we mentioned discussed earlier, the modelplotpy also enables to make interesting comparisons,
+# using the scope parameter. Comparisons between different models, between different datasets
+# and (in case of a multiclass target) between different target classes. Curious?
+# Please have a look at the package documentation or read our other posts on modelplot.
+
+# %%
+# 1. compare_models
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# However, to give one example, we could compare whether random forest
+# was indeed the best choice to select the top-30% customers for a term deposit offer:
+
+ps2 = obj.plotting_scope(scope="compare_models", select_dataset_label=["test_data"])
+
+# plot the cumulative response plot and annotate the plot at decile = 3
+ax = mp.plot_cumresponse(ps2, highlight_ntile=[2,3], save_fig=True)
 
 
 # %%
@@ -308,7 +336,7 @@ ax = mp.plot_all(
 
 # Return on Investment (ROI) plot
 ax = mp.plot_roi(
-    ps,
+    ps2,
     fixed_costs=1000,
     variable_costs_per_unit=10,
     profit_per_unit=50,
@@ -329,7 +357,7 @@ ax = mp.plot_roi(
 
 # Costs & Revenues plot, highlighted at max roi instead of max profit
 ax = mp.plot_costsrevs(
-    ps,
+    ps2,
     fixed_costs=1000,
     variable_costs_per_unit=10,
     profit_per_unit=50,
@@ -351,8 +379,9 @@ ax = mp.plot_costsrevs(
 
 # Profit plot , highlighted at custom ntile instead of at max profit
 ax = mp.plot_profit(
-    ps,
+    ps2,
     fixed_costs=1000,
+    currency="$",
     variable_costs_per_unit=10,
     profit_per_unit=50,
     highlight_ntile=[2,3],
@@ -361,23 +390,25 @@ ax = mp.plot_profit(
 
 
 # %%
-# Get more out of modelplotpy: using different scopes
+# All four plots together
 # --------------------------------------------------------------------
-# As we mentioned discussed earlier, the modelplotpy also enables to make interesting comparisons,
-# using the scope parameter. Comparisons between different models, between different datasets
-# and (in case of a multiclass target) between different target classes. Curious?
-# Please have a look at the package documentation or read our other posts on modelplot.
+# With the function call plot_all we get all four plots on one grid.
+# We can easily save it to a file to include it in a presentation or share it with colleagues.
+
+# plot all four evaluation plots and save to file
+ax = mp.plot_all(
+    ps2,
+    highlight_ntile=[2,3],
+    # highlight_how='text',
+    # save_fig=True,
+    # overwrite=False,
+    # add_timestamp=True,
+    # verbose=True,
+)
 
 # %%
-# 1. compare_models
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# However, to give one example, we could compare whether random forest
-# was indeed the best choice to select the top-30% customers for a term deposit offer:
 
-ps2 = obj.plotting_scope(scope="compare_models", select_dataset_label=["test_data"])
-
-# plot the cumulative response plot and annotate the plot at decile = 3
-ax = mp.plot_cumresponse(ps2, highlight_ntile=[2,3], save_fig=True)
+mp._decile_modelplotpy.summarize_selection(ps2, ntile=10)
 
 # %%
 

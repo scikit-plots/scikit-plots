@@ -84,9 +84,14 @@ __sp_ps1_render() {
   if env="$(__sp_env_name)"; then
     printf '(\[\e[35m\]%s\[\e[0m\]) ' "$env"
   fi
-  printf '\n\[\e[31m\]sp-docker\[\e[0m\] \[\e[33m\]\w\[\e[0m\]'
+  printf '\n\[\e[31m\]\\u@sp-docker\[\e[0m\] \[\e[33m\]\w\[\e[0m\]'
   printf '\[\e[36m\]%s\[\e[0m\]' "$(__sp_git_branch)"
-  printf '\n$ '
+  # printf '\n$ '
+  if [ "`id -u`" -eq 0 ]; then
+    printf '\n# '
+  else
+    printf '\n$ '
+  fi
 }
 
 __sp_prompt_update() { PS1="$(__sp_ps1_render)"; }

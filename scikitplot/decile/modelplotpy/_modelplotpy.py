@@ -923,8 +923,8 @@ def plot_response(
                 arrowprops={"arrowstyle": "->", "color": "black"},
             )
             text += (
-                f"When we select {description_label} {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                f"When we select {description_label} {highlight_ntile} from model {models[0]} "  # noqa: S608
+                f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                 f"in the selection is {int(cumpct[0] * 100)}% .\n"
             )
         elif scope == "compare_datasets":
@@ -963,8 +963,8 @@ def plot_response(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {i} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {i} the percentage of {classes[0]} cases "
                     f"in the selection is {int(cumpct[0] * 100)}% .\n"
                 )
         elif scope == "compare_models":
@@ -1003,8 +1003,8 @@ def plot_response(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} {highlight_ntile} from model {i}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} {highlight_ntile} from model {i} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                     f"in the selection is {int(cumpct[0] * 100)}% .\n"
                 )
         else:  # compare targetvalues
@@ -1043,14 +1043,14 @@ def plot_response(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {i} cases\n"
+                    f"When we select {description_label} {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {i} cases "
                     f"in the selection is {int(cumpct[0] * 100)}% .\n"
                 )
         if highlight_how in ("text", "plot_text"):
             print(text[:-1])
         if highlight_how in ("plot", "plot_text"):
-            fig.text(0.53, 0.37, text[:-1], ha="left")
+            fig.text(0.0, -0.06, text[:-1], ha="left")
 
     # if save_fig is True:
     #     if not save_fig_filename:
@@ -1287,8 +1287,8 @@ def plot_cumresponse(
                 arrowprops={"arrowstyle": "->", "color": "black"},
             )
             text += (
-                f"When we select {description_label} {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                f"When we select {description_label} {highlight_ntile} from model {models[0]} "  # noqa: S608
+                f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                 f"in the selection is {int(cumpct[0] * 100)}% .\n"
             )
         elif scope == "compare_datasets":
@@ -1325,8 +1325,8 @@ def plot_cumresponse(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {i} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {i} the percentage of {classes[0]} cases "
                     f"in the selection is {int(cumpct[0] * 100)}% .\n"
                 )
         elif scope == "compare_models":
@@ -1363,8 +1363,8 @@ def plot_cumresponse(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} {highlight_ntile} from model {i}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} {highlight_ntile} from model {i} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                     f"in the selection is {int(cumpct[0] * 100)}% .\n"
                 )
         else:  # compare targetvalues
@@ -1401,15 +1401,15 @@ def plot_cumresponse(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {i} cases\n"
+                    f"When we select {description_label} {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {i} cases "
                     f"in the selection is {int(cumpct[0] * 100)}% .\n"
                 )
 
         if highlight_how in ("text", "plot_text"):
             print(text[:-1])
         if highlight_how in ("plot", "plot_text"):
-            fig.text(0.53, 0.37, text[:-1], ha="left")
+            fig.text(0.0, -0.06, text[:-1], ha="left")
 
     # if save_fig is True:
     #     if not save_fig_filename:
@@ -1629,9 +1629,9 @@ def plot_cumlift(
                 arrowprops={"arrowstyle": "->", "color": "black"},
             )
             text += (
-                f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability\n"
+                f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability "
                 f"according to model {models[0]} in dataset {datasets[0]},\n"
-                f"this selection for target class {classes[0]} is {round(cumpct[0], 2)!s} times\n"
+                f"this selection for target class {classes[0]} is {round(cumpct[0], 2)!s} times "
                 f"than selecting without a model.\n"
             )
         elif scope == "compare_datasets":
@@ -1668,9 +1668,9 @@ def plot_cumlift(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability\n"
+                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability "
                     f"according to model {models[0]} in dataset {i},\n"
-                    f"this selection for target class {classes[0]} is {round(cumpct[0], 2)!s} times\n"
+                    f"this selection for target class {classes[0]} is {round(cumpct[0], 2)!s} times "
                     f"than selecting without a model.\n"
                 )
         elif scope == "compare_models":
@@ -1707,9 +1707,9 @@ def plot_cumlift(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability\n"
+                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability "
                     f"according to model {i} in dataset {datasets[0]},\n"
-                    f"this selection for target class {classes[0]} is {round(cumpct[0], 2)!s} times\n"
+                    f"this selection for target class {classes[0]} is {round(cumpct[0], 2)!s} times "
                     f"than selecting without a model.\n"
                 )
         else:  # compare targetvalues
@@ -1746,16 +1746,16 @@ def plot_cumlift(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability\n"
+                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability "
                     f"according to model {models[0]} in dataset {datasets[0]},\n"
-                    f"this selection for target class {i} is {round(cumpct[0], 2)!s} times\n"
+                    f"this selection for target class {i} is {round(cumpct[0], 2)!s} times "
                     f"than selecting without a model.\n"
                 )
 
         if highlight_how in ("text", "plot_text"):
             print(text[:-1])
         if highlight_how in ("plot", "plot_text"):
-            fig.text(0.53, 0.37, text[:-1], ha="left")
+            fig.text(0.0, -0.06, text[:-1], ha="left")
 
     # if save_fig is True:
     #     if not save_fig_filename:
@@ -1997,7 +1997,7 @@ def plot_cumgains(
                 arrowprops={"arrowstyle": "->", "color": "black"},
             )
             text += (
-                f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability\n"
+                f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability "
                 f"according to model {models[0]}, this selection holds {int(cumpct[0] * 100)}% of\n"
                 f"all {classes[0]} cases in dataset {datasets[0]}.\n"
             )
@@ -2035,7 +2035,7 @@ def plot_cumgains(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability\n"
+                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability "
                     f"according to model {models[0]}, this selection holds {int(cumpct[0] * 100)}% of\n"
                     f"all {classes[0]} cases in dataset {i}.\n"
                 )
@@ -2073,7 +2073,7 @@ def plot_cumgains(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability\n"
+                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability "
                     f"according to model {i}, this selection holds {int(cumpct[0] * 100)}% of\n"
                     f"all {classes[0]} cases in dataset {datasets[0]}.\n"
                 )
@@ -2111,7 +2111,7 @@ def plot_cumgains(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability\n"
+                    f"When we select {int((float(highlight_ntile) / ntiles) * 100)} with the highest probability "
                     f"according to model {models[0]}, this selection holds {int(cumpct[0] * 100)}% of\n"
                     f"all {i} cases in dataset {datasets[0]}.\n"
                 )
@@ -2119,7 +2119,7 @@ def plot_cumgains(
         if highlight_how in ("text", "plot_text"):
             print(text[:-1])
         if highlight_how in ("plot", "plot_text"):
-            fig.text(0.53, 0.37, text[:-1], ha="left")
+            fig.text(0.0, -0.06, text[:-1], ha="left")
 
     # if save_fig is True:
     #     if not save_fig_filename:
@@ -2727,8 +2727,8 @@ def plot_costsrevs(
                 arrowprops={"arrowstyle": "->", "color": "black"},
             )
             text += (
-                f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                 f"in the revenue is {int(cumpct[0])}.\n"
             )
         elif scope == "compare_datasets":
@@ -2767,8 +2767,8 @@ def plot_costsrevs(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {i} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {i} the percentage of {classes[0]} cases "
                     f"in the revenue is {int(cumpct[0])}.\n"
                 )
         elif scope == "compare_models":
@@ -2807,8 +2807,8 @@ def plot_costsrevs(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {i}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {i} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                     f"in the revenue is {int(cumpct[0])}.\n"
                 )
         else:  # compare targetvalues
@@ -2847,14 +2847,14 @@ def plot_costsrevs(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {i} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {i} cases "
                     f"in the revenue is {int(cumpct[0])}.\n"
                 )
         if highlight_how in ("text", "plot_text"):
             print(text[:-1])
         if highlight_how in ("plot", "plot_text"):
-            fig.text(0.53, 0.37, text[:-1], ha="left")
+            fig.text(0.0, -0.06, text[:-1], ha="left")
 
     # if save_fig is True:
     #     if not save_fig_filename:
@@ -3096,8 +3096,8 @@ def plot_profit(
                 arrowprops={"arrowstyle": "->", "color": "black"},
             )
             text += (
-                f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                 f"in the expected profit is {int(cumpct[0])}.\n"
             )
         elif scope == "compare_datasets":
@@ -3136,8 +3136,8 @@ def plot_profit(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {i} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {i} the percentage of {classes[0]} cases "
                     f"in the expected profit is {int(cumpct[0])}.\n"
                 )
         elif scope == "compare_models":
@@ -3176,8 +3176,8 @@ def plot_profit(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {i}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {i} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                     f"in the expected profit is {int(cumpct[0])}.\n"
                 )
         else:  # compare targetvalues
@@ -3216,14 +3216,14 @@ def plot_profit(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {i} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {i} cases "
                     f"in the expected profit is {int(cumpct[0])}.\n"
                 )
         if highlight_how in ("text", "plot_text"):
             print(text[:-1])
         if highlight_how in ("plot", "plot_text"):
-            fig.text(0.53, 0.37, text[:-1], ha="left")
+            fig.text(0.0, -0.06, text[:-1], ha="left")
 
     # if save_fig is True:
     #     if not save_fig_filename:
@@ -3465,8 +3465,8 @@ def plot_roi(
                 arrowprops={"arrowstyle": "->", "color": "black"},
             )
             text += (
-                f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                 f"in the expected roi is {int(cumpct[0] * 100)}.\n"
             )
         elif scope == "compare_datasets":
@@ -3505,8 +3505,8 @@ def plot_roi(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {i} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {i} the percentage of {classes[0]} cases "
                     f"in the expected roi is {int(cumpct[0] * 100)}.\n"
                 )
         elif scope == "compare_models":
@@ -3545,8 +3545,8 @@ def plot_roi(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {i}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {i} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {classes[0]} cases "
                     f"in the expected roi is {int(cumpct[0] * 100)}.\n"
                 )
         else:  # compare targetvalues
@@ -3585,14 +3585,14 @@ def plot_roi(
                     arrowprops={"arrowstyle": "->", "color": "black"},
                 )
                 text += (
-                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]}\n"  # noqa: S608
-                    f"in dataset {datasets[0]} the percentage of {i} cases\n"
+                    f"When we select {description_label} 1 until {highlight_ntile} from model {models[0]} "  # noqa: S608
+                    f"in dataset {datasets[0]} the percentage of {i} cases "
                     f"in the expected roi is {int(cumpct[0] * 100)}.\n"
                 )
         if highlight_how in ("text", "plot_text"):
             print(text[:-1])
         if highlight_how in ("plot", "plot_text"):
-            fig.text(0.53, 0.37, text[:-1], ha="left")
+            fig.text(0.0, -0.06, text[:-1], ha="left")
 
     # if save_fig is True:
     #     if not save_fig_filename:

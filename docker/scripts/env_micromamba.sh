@@ -38,6 +38,8 @@ fi
 env_micromamba_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
 env_micromamba_exit_or_return() { local rc="${1:-0}"; env_micromamba_is_sourced && return "$rc" || exit "$rc"; }
 
+# -- - makes sure you’re not accidentally passing an extra argument to the command. For example, if you try to create a directory that starts with - (dash) without using -- the directory name will be interpreted as a command argument.
+# && - ensures that the second command runs only if the first command is successful.
 env_micromamba_main() {
   # ---- preserve caller state (important when sourced) ----
   local _OLD_SET _OLD_TRAP_ERR _OLD_PWD

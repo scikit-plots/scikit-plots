@@ -47,6 +47,12 @@ export TERM=xterm-256color
 # -------------------------
 # Convenience aliases (safe)
 # -------------------------
+# function_name () {
+#   [commands]
+# }
+# function function_name {
+#   [commands]
+# }
 
 # Only define aliases if not already defined by the user
 __sp_alias() {
@@ -58,7 +64,21 @@ __sp_alias() {
 __sp_alias ll "'ls -alF'"
 __sp_alias la "'ls -A'"
 __sp_alias l  "'ls -CF'"
-__sp_alias grep "'grep --color=auto'"
+
+# export GREP_COLORS='sl=01;33:ms=06;34'
+export GREP_COLORS='mt=1;37;41'
+export GREP_OPTIONS='--color=auto'
+# alias grep='grep --color=always'
+# alias egrep='grep -E --color=always'
+# alias fgrep='grep -f --color=always'
+# # optional
+# alias xzegrep='xzegrep --color=auto'
+# alias xzfgrep='xzfgrep --color=auto'
+# alias xzgrep='xzgrep --color=auto'
+# alias zegrep='zegrep --color=auto'
+# alias zfgrep='zfgrep --color=auto'
+# alias zgrep='zgrep --color=auto'
+# __sp_alias grep "'grep --color=auto'"
 
 # Git shortcuts (only if git exists)
 if command -v git >/dev/null 2>&1; then
@@ -145,6 +165,8 @@ export HISTCONTROL="${HISTCONTROL:-ignoreboth:erasedups}"
 # Fix CUDA loading for running nvidia-smi
 ([ "$(id -u)" -eq 0 ] && command -v ldconfig >/dev/null && ldconfig) || \
 true
+
+# curl ipinfo.io/ip
 
 # ====================================================================
 # <<< 00-scikit-plots-bashrc-prefix-config.sh scikit-plots personal initialization <<<
