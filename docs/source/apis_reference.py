@@ -474,13 +474,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                   + _get_guide("decile-kds-index")
                 ),
                 "autosummary": [
-                    "print_labels",
-                    "decile_table",
-                    "plot_cumulative_gain",
-                    "plot_lift",
-                    "plot_lift_decile_wise",
-                    "plot_ks_statistic",
-                    "report",
+                    "kds.print_labels",
+                    "kds.decile_table",
+                    "kds.plot_cumulative_gain",
+                    "kds.plot_lift",
+                    "kds.plot_lift_decile_wise",
+                    "kds.plot_ks_statistic",
+                    "kds.report",
                 ],
             },
             {

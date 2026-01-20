@@ -41,7 +41,7 @@ def __dir__():
 
 def __getattr__(name):
     return _sub_module_deprecation(
-        sub_package="kds",
+        sub_package="decile.kds",
         module="_deciles",
         private_modules=[],
         all=__all__,

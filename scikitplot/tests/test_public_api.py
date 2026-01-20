@@ -303,7 +303,7 @@ def test_api_importable():
     ("module_name", "correct_module"),
     [
         ("scikitplot.decile.kds._deciles", None)
-        #    ('scikitplot.decile.kds._deciles.', None),
+        # ('scikitplot.decile.kds._deciles.', None),
     ],
 )
 def test_private_but_present_deprecation(module_name, correct_module):
@@ -312,9 +312,9 @@ def test_private_but_present_deprecation(module_name, correct_module):
     # were misleading. Check that this is resolved.
     module = importlib.import_module(module_name)
     if correct_module is None:
-        import_name = f'scikitplot.{module_name.split(".")[1]}'
+        import_name = f'scikitplot.{".".join(module_name.split(".")[1:-1])}'
     else:
-        import_name = f'scikitplot.{module_name.split(".")[1]}.{correct_module}'
+        import_name = f'scikitplot.{".".join(module_name.split(".")[1:-1])}.{correct_module}'
 
     correct_import = importlib.import_module(import_name)
 
@@ -324,7 +324,7 @@ def test_private_but_present_deprecation(module_name, correct_module):
         # ensure attribute is present where the warning is pointing
         assert (
             getattr(correct_import, attr_name, None) is not None
-        ), f"{getattr(correct_import, attr_name, None)}"
+        ), f"`{correct_import}` {getattr(correct_import, attr_name, None)}"
         message = f"Please import `{attr_name}` from the `{import_name}`..."
         with pytest.deprecated_call(match=message):
             getattr(module, attr_name)

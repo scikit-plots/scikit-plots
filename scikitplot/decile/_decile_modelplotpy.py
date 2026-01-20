@@ -12,7 +12,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-The :mod:`~scikitplot.decile` module.
+The :mod:`~scikitplot.decile` and (legacy :mod:`~scikitplot.decile.modelplotpy`) module.
 
 Includes plots for machine learning evaluation decile / ntile analysis
 (e.g., Response, Lift, Gain and related financial charts).
