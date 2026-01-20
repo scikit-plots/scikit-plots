@@ -12,8 +12,7 @@
 # https://github.com/thequackdaddy/tweedie
 
 r"""
-Tweedie Distribution Module
-===============================================
+Tweedie Distribution Module.
 
 This module implements the Tweedie distribution,
 a member of the exponential dispersion model (EDM) family,
