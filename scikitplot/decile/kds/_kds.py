@@ -331,7 +331,6 @@ def plot_lift(
     pos_label=None,  # for y_true
     class_index=1,  # for y_score
     # class_names=None,
-    # multi_class=None,
     # to_plot_class_index=None,
     ## plotting params
     title="Lift Curves",
@@ -481,7 +480,6 @@ def plot_lift_decile_wise(
     pos_label=None,  # for y_true
     class_index=1,  # for y_score
     # class_names=None,
-    # multi_class=None,
     # to_plot_class_index=None,
     ## plotting params
     title="Decile-wise Lift Plot",
@@ -619,7 +617,6 @@ def plot_cumulative_gain(
     pos_label=None,  # for y_true
     class_index=1,  # for y_score
     # class_names=None,
-    # multi_class=None,
     # to_plot_class_index=None,
     ## plotting params
     title="Cumulative Gain Plot",
@@ -774,7 +771,6 @@ def plot_ks_statistic(
     pos_label=None,  # for y_true
     class_index=1,  # for y_score
     # class_names=None,
-    # multi_class=None,
     # to_plot_class_index=None,
     ## plotting params
     title="KS Statistic Plot",
@@ -942,7 +938,6 @@ def report(
     pos_label=None,  # for y_true
     class_index=1,  # for y_score
     # class_names=None,
-    # multi_class=None,
     feature_infos=True,
     digits=3,
     ## plotting params

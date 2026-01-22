@@ -122,7 +122,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 # Instantiate a few classification models
 clf_rf = RandomForestClassifier().fit(X_train, y_train)
-clf_mult = LogisticRegression(random_state=0).fit(
+clf_mult = LogisticRegression(max_iter=int(1e5), random_state=0).fit(
     X_train, y_train
 )
 

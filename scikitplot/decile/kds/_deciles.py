@@ -65,7 +65,6 @@ def __getattr__(name):
 #     y_probas,
 #     *,
 #     class_names=None,
-#     multi_class=None,
 #     class_index=1,
 #     to_plot_class_index=None,
 #     ## plotting params
@@ -164,12 +163,6 @@ def __getattr__(name):
 #     -------
 #     matplotlib.axes.Axes
 #         The axes with the plotted cumulative gain curves.
-
-#     Notes
-#     -----
-#     The implementation is specific to binary classification. For multiclass
-#     problems, the 'ovr' or 'multinomial' strategies can be used. When
-#     `multi_class='ovr'`, the plot focuses on the specified class (`class_index`).
 
 #     References
 #     ----------
@@ -376,7 +369,6 @@ def __getattr__(name):
 #     y_probas,
 #     *,
 #     class_names=None,
-#     multi_class=None,
 #     class_index=1,
 #     to_plot_class_index=None,
 #     ## plotting params
@@ -478,12 +470,6 @@ def __getattr__(name):
 #     -------
 #     matplotlib.axes.Axes
 #         The axes with the plotted lift curves.
-
-#     Notes
-#     -----
-#     The implementation is specific to binary classification. For multiclass
-#     problems, the 'ovr' or 'multinomial' strategies can be used. When
-#     `multi_class='ovr'`, the plot focuses on the specified class (`class_index`).
 
 #     See Also
 #     --------
@@ -699,7 +685,6 @@ def __getattr__(name):
 #     y_probas,
 #     *,
 #     # class_names=None,
-#     # multi_class=None,
 #     class_index=1,
 #     # to_plot_class_index=None,
 #     ## plotting params

@@ -51,7 +51,6 @@ def plot_calibration(
     pos_label=None,  # for binary y_true
     class_index=None,  # for multi-class y_probas
     class_names=None,
-    # multi_class=None,
     to_plot_class_index=1,
     estimator_names=None,
     n_bins=10,
