@@ -124,9 +124,8 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
 .. _bash-first-run-notice:
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ▶️ Quick check bash-first-run-notice.txt
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------
 
 `"See Also: bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`__
 

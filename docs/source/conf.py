@@ -1466,6 +1466,8 @@ import gc; gc.collect()
 import importlib
 import sys
 
+import numpy as np
+
 # List of modules to reload to reset state
 for mod in ['matplotlib.pyplot', 'scikitplot']:
     if mod in sys.modules:

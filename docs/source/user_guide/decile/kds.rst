@@ -44,10 +44,10 @@ performing image:
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_kds_plot_cumulative_gain_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_cumulative_gain_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the iris dataset
 
-* :ref:`sphx_glr_auto_examples_kds_plot_cumulative_gain_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_cumulative_gain_script.py`: Example usage of
   :class:`~sklearn.ensemble.RandomForestClassifier` using the iris dataset
 
 
@@ -72,10 +72,10 @@ performing image:
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_kds_plot_lift_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_lift_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the iris dataset
 
-* :ref:`sphx_glr_auto_examples_kds_plot_lift_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_lift_script.py`: Example usage of
   :class:`~sklearn.ensemble.RandomForestClassifier` using the iris dataset
 
 

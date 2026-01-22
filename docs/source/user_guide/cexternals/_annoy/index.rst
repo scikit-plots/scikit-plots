@@ -77,7 +77,7 @@ Use Annoy when you want:
 - simple deployment (no separate database service)
 
 If you need distributed storage, many writers, metadata filtering, or a managed
-service, see :doc:`vector_databases`.
+service, see :ref:`annoy_index_vector_database`.
 
 TL;DR
 -----

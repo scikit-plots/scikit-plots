@@ -402,13 +402,13 @@ Python
 
 The additional Python packages required to build the
 :ref:`documentation <documenting-matplotlib>` are listed in
-:file:`doc-requirements.txt` and can be installed using ::
+:file:`doc.txt` and can be installed using ::
 
-    pip install -r requirements/doc/doc-requirements.txt
+    pip install -r requirements/doc.txt
 
-The content of :file:`doc-requirements.txt` is also shown below:
+The content of :file:`doc.txt` is also shown below:
 
-.. include:: ../../requirements/doc/doc-requirements.txt
+.. include:: ../../../requirements/doc.txt
    :literal:
 
 
