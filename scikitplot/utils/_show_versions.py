@@ -175,23 +175,24 @@ def _get_dep_info():
 
     core_deps = [
         "pip",
+        "meson-python",
         "setuptools",
         "cython",
         "numpy",
-        "pandas",
         "scipy",
+        "pandas",
         "matplotlib",
+        "scikit-learn",
         "joblib",
         "threadpoolctl",
     ]
     optional_deps = [
-        "sklearn",
         "seaborn",
-        "plotly",
         "aggdraw",
         "bokeh",
-        "gradio",
+        "plotly",
         "streamlit",
+        "gradio",
         "pyyaml",
     ]
     dep_info = {}
