@@ -383,7 +383,7 @@ ax = mp.plot_cumresponse(ps2, highlight_ntile=3, save_fig=True)
 
 import scikitplot as sp
 
-sp.remove_path()
+sp.utils.remove_path()
 
 # %%
 # Seems like the algorithm used will not make a big difference in this case.
