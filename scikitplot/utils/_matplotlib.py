@@ -173,6 +173,7 @@ show_fig : bool, default=True
     .. versionadded:: 0.4.0
 save_fig : bool, default=False
     Save the plot.
+    Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
 
     .. versionadded:: 0.4.0
 save_fig_filename : str, optional, default=''
@@ -180,6 +181,7 @@ save_fig_filename : str, optional, default=''
     If nothing specified, the plot will be saved as png
     inside ``result_images`` under to the current working directory.
     Defaults to plot image named to used ``func.__name__``.
+    Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
 
     .. versionadded:: 0.4.0
 overwrite : bool, optional, default=True

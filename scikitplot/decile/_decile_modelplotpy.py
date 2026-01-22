@@ -2537,7 +2537,7 @@ def _plot_metric_with_reference(  # noqa: PLR0912
 
 @save_plot_decorator
 @_docstring.interpd
-def plot_response(
+def plot_response(  # noqa: D417
     plot_input: pd.DataFrame,
     *,
     highlight_ntile: int | Sequence[int] | None = None,
@@ -2564,21 +2564,21 @@ def plot_response(
         Ntile index/indices to highlight (each must be in ``1..ntiles``).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
-    autopct : None or str or callable, default='%.2f%%'
+    autopct : None or str or callable, default='%%.2f%%%%'
         Percentage formatter for values in [0, 1].
 
-        - If a string, it is used as ``fmt % pct``.
+        - If a string, it is used as ``fmt %% pct``.
         - If a callable, it is called as ``autopct(pct)``.
 
         If None, values are formatted with two decimals.
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
-    save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
-    save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -2602,7 +2602,7 @@ def plot_response(
 
     The highlight line uses:
 
-    - Response @ decile N | ... | value=..% — pos / tot
+    - Response @ decile N | ... | value=..%% — pos / tot
 
     Examples
     --------
@@ -2684,7 +2684,7 @@ def plot_response(
 
 @save_plot_decorator
 @_docstring.interpd
-def plot_cumresponse(
+def plot_cumresponse(  # noqa: D417
     plot_input: pd.DataFrame,
     *,
     highlight_ntile: int | Sequence[int] | None = None,
@@ -2711,16 +2711,16 @@ def plot_cumresponse(
         Ntile index/indices to highlight (each must be in ``1..ntiles``).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
-    autopct : None or str or callable, default='%.2f%%'
+    autopct : None or str or callable, default='%%.2f%%%%'
         Percentage formatter for values in [0, 1].
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
-    save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
-    save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -2744,12 +2744,12 @@ def plot_cumresponse(
 
     Highlight line uses:
 
-    - CumResponse 1..decile N | ... | value=..% — cumpos / cumtot
+    - CumResponse 1..decile N | ... | value=..%% — cumpos / cumtot
 
     Examples
     --------
     >>> # ax = plot_cumresponse(plot_input)
-    """
+    """  # noqa: D301, W605
     where = "plot_cumresponse"
     _require_columns(
         plot_input,
@@ -2826,7 +2826,7 @@ def plot_cumresponse(
 
 @save_plot_decorator
 @_docstring.interpd
-def plot_cumlift(
+def plot_cumlift(  # noqa: D417
     plot_input: pd.DataFrame,
     *,
     highlight_ntile: int | Sequence[int] | None = None,
@@ -2854,12 +2854,12 @@ def plot_cumlift(
         Where to render highlight information.
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
-    save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
-    save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -2963,7 +2963,7 @@ def plot_cumlift(
 
 @save_plot_decorator
 @_docstring.interpd
-def plot_cumgains(
+def plot_cumgains(  # noqa: D417
     plot_input: pd.DataFrame,
     *,
     highlight_ntile: int | Sequence[int] | None = None,
@@ -2990,16 +2990,16 @@ def plot_cumgains(
         Ntile index/indices to highlight (each must be in ``1..ntiles``).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
-    autopct : None or str or callable, default='%.2f%%'
+    autopct : None or str or callable, default='%%.2f%%%%'
         Percentage formatter for values in [0, 1].
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
-    save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
-    save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -3025,7 +3025,7 @@ def plot_cumgains(
     Examples
     --------
     >>> # ax = plot_cumgains(plot_input)
-    """
+    """  # noqa: D301, W605
     where = "plot_cumgains"
     _require_columns(
         plot_input,
@@ -3123,7 +3123,7 @@ def plot_cumgains(
 
 @save_plot_decorator
 @_docstring.interpd
-def plot_all(
+def plot_all(  # noqa: D417
     plot_input: pd.DataFrame,
     *,
     highlight_ntile: int | Sequence[int] | None = None,
@@ -3155,18 +3155,18 @@ def plot_all(
         - 'text' prints standardized lines to stdout
         - 'plot' renders them in a footer area
         - 'plot_text' does both
-    autopct : None or str or callable, default='%.2f%%'
+    autopct : None or str or callable, default='%%.2f%%%%'
         Percentage formatter.
     figsize : tuple[int, int], default=(15, 10)
         Figure size.
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
-    save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
-    save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -3190,7 +3190,7 @@ def plot_all(
     Examples
     --------
     >>> # ax = plot_all(plot_input)
-    """
+    """  # noqa: D301, W605
     where = "plot_all"
     _require_columns(
         plot_input,
@@ -3498,7 +3498,7 @@ def _validate_number(x: Any, *, name: str, where: str) -> float:
 
 @save_plot_decorator
 @_docstring.interpd
-def plot_costsrevs(  # noqa: PLR0912
+def plot_costsrevs(  # noqa: D417, PLR0912
     plot_input: pd.DataFrame,
     *,
     fixed_costs: float,
@@ -3539,12 +3539,12 @@ def plot_costsrevs(  # noqa: PLR0912
         Where to render highlight information.
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
-    save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
-    save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -3809,7 +3809,7 @@ def plot_costsrevs(  # noqa: PLR0912
 
 @save_plot_decorator
 @_docstring.interpd
-def plot_profit(
+def plot_profit(  # noqa: D417
     plot_input: pd.DataFrame,
     *,
     fixed_costs: float,
@@ -3850,12 +3850,12 @@ def plot_profit(
         Where to render highlight information.
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
-    save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
-    save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -3970,7 +3970,7 @@ def plot_profit(
 
 @save_plot_decorator
 @_docstring.interpd
-def plot_roi(
+def plot_roi(  # noqa: D417
     plot_input: pd.DataFrame,
     *,
     fixed_costs: float,
@@ -4006,16 +4006,16 @@ def plot_roi(
         Ntile index/indices to highlight (each in 1..ntiles).
     highlight_how : {'plot', 'text', 'plot_text'}, default='plot_text'
         Where to render highlight information.
-    autopct : None or str or callable, default='%.2f%%'
+    autopct : None or str or callable, default='%%.2f%%%%'
         Percentage formatter for ROI (expressed as a fraction).
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
-    save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
-    save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
+
+    Other Parameters
+    ----------------
+    %(_save_plot_decorator_kwargs_doc)s
 
     Returns
     -------
@@ -4046,7 +4046,7 @@ def plot_roi(
     Examples
     --------
     >>> # ax = plot_roi(plot_input, fixed_costs=100, variable_costs_per_unit=1, profit_per_unit=10)
-    """
+    """  # noqa: D301, W605
     where = "plot_roi"
 
     fixed_costs = _validate_number(fixed_costs, name="fixed_costs", where=where)
