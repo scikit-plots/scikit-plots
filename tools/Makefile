@@ -40,7 +40,7 @@ aac:
     	--move-to "../scikitplot/externals/array_api_compat" \
 		--nested-folder "array_api_compat" \
 		--src-subdir "array_api_compat" \
-		--readme-name "vendor_repo.sh"
+		--readme-name "README.md"
 
 # array-api-extra as xpx
 aae:
@@ -51,47 +51,48 @@ aae:
     	--move-to "../scikitplot/externals/array_api_extra" \
 		--nested-folder "src/array_api_extra" \
 		--src-subdir "src/array_api_extra" \
-		--readme-name "vendor_repo.sh"
+		--readme-name "README.md"
 
-annoy:
-	@bash ./maint_tools/vendor_repo.sh \
-		--repo-url "https://github.com/spotify/annoy.git" \
-		--repo-ref "379f744667aba6b40ba3db8a07678df173a88f74" \
-		--target-dir "../third_party/annoy" \
-    	--move-to "../scikitplot/cexternals/_annoy" \
-		--nested-folder "" \
-		--src-subdirs "annoy src .gitignore annoy-dev-1.rockspec CMakeLists.txt LICENSE MANIFEST.in README.rst README_GO.rst README_Lua.md RELEASE.md setup.cfg setup.py tox.ini" \
-		--readme-name "vendor_repo.sh"
-
-	@# overwrite ANNoy modified files
-	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_annoy/' '../scikitplot/cexternals/_annoy' -r --progress
-
+# 3bbce08329cda35655e154f3724c585d65c3c436
 numcpp:
 	@bash ./maint_tools/vendor_repo.sh \
 		--repo-url "https://github.com/dpilger26/NumCpp.git" \
-		--repo-ref "7d390df4ae94268e58222278529b22ebae2ee663" \
+		--repo-ref "3bbce08329cda35655e154f3724c585d65c3c436" \
 		--target-dir "../third_party/NumCpp" \
     	--move-to "../scikitplot/cexternals/_numcpp" \
 		--nested-folder "" \
 		--src-subdirs include develop/NdArray develop/main.cpp \
-		--readme-name "vendor_repo.sh"
+		--readme-name "README.md"
 
 	@# overwrite NumCpp modified files
 	@# python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_numcpp/' '../scikitplot/cexternals/_numcpp' -r --progress
+
+# annoy:
+# 	@bash ./maint_tools/vendor_repo.sh \
+# 		--repo-url "https://github.com/spotify/annoy.git" \
+# 		--repo-ref "379f744667aba6b40ba3db8a07678df173a88f74" \
+# 		--target-dir "../third_party/annoy" \
+#     	--move-to "../scikitplot/cexternals/_annoy" \
+# 		--nested-folder "" \
+# 		--src-subdirs "annoy src .gitignore annoy-dev-1.rockspec CMakeLists.txt LICENSE MANIFEST.in README.rst README_GO.rst README_Lua.md RELEASE.md setup.cfg setup.py tox.ini" \
+# 		--readme-name "README.md"
+# 	@# overwrite ANNoy modified files
+# 	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_annoy/' '../scikitplot/cexternals/_annoy' -r --progress
 
 ######################################################################
 ## complex submodule: (c)externals
 ######################################################################
 
+# 0.14.0.dev0 03d80c1dc2d3551f99ae7d595b07aeb1c42c7576
 seaborn:
 	@bash ./maint_tools/vendor_repo.sh \
 		--repo-url "https://github.com/mwaskom/seaborn.git" \
-		--repo-ref "7001ebe72423238e99c0434a2ef0a0ebc9cb55c1" \
+		--repo-ref "03d80c1dc2d3551f99ae7d595b07aeb1c42c7576" \
 		--target-dir "../third_party/seaborn" \
     	--move-to "../scikitplot/externals/_seaborn" \
 		--nested-folder "seaborn" \
 		--src-subdir "seaborn" \
-		--readme-name "vendor_repo.sh"
+		--readme-name "README.md"
 
 	@# python ../scikitplot/_build_utils/copyfiles.py '../third_party/seaborn/seaborn/' '../scikitplot/externals/_seaborn' -r --progress --clean
 	@# overwrite seaborn modified files
@@ -112,13 +113,14 @@ sns: seaborn
 ## complex submodule: (c)externals
 ######################################################################
 
-astropy:
+# 7.2.0 7dc44b6ec773e290cd85c845599a1bf3f13c3bbd
+astropy_legacy:
 	@bash ./maint_tools/vendor_repo.sh \
 		--repo-url "https://github.com/astropy/astropy.git" \
-		--repo-ref "dbc384f3eeff4576b41a68486fcbb0a77789a8d8" \
+		--repo-ref "7dc44b6ec773e290cd85c845599a1bf3f13c3bbd" \
 		--target-dir "../third_party/astropy" \
 		--src-subdir "." \
-		--readme-name "vendor_repo.sh"
+		--readme-name "README.md"
 
 	@python ../scikitplot/_build_utils/copyfiles.py '../third_party/astropy/astropy/extern/' '../scikitplot/cexternals/_astropy/extern' -r --progress --clean
 	@python ../scikitplot/_build_utils/copyfiles.py '../third_party/astropy/astropy/stats/' '../scikitplot/cexternals/_astropy/stats' -r --progress --clean
@@ -145,7 +147,8 @@ astropy:
 	@# overwrite astropy modified files
 	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_astropy/' '../scikitplot/cexternals/_astropy' -r --progress
 
-astropy2:
+# 7.2.0 7dc44b6ec773e290cd85c845599a1bf3f13c3bbd
+astropy:
 	@bash ./maint_tools/vendor_repo.sh \
 		--repo-url "https://github.com/astropy/astropy.git" \
 		--repo-ref "dbc384f3eeff4576b41a68486fcbb0a77789a8d8" \
@@ -168,12 +171,12 @@ astropy2:
 			astropy/utils/shapes.py \
 			astropy/utils/state.py \
 			astropy/utils/system_info.py" \
-		--readme-name "vendor_repo.sh"
+		--readme-name "README.md"
 
 	@# overwrite astropy modified files
 	@python ../scikitplot/_build_utils/copyfiles.py './submodules/vendored_astropy/' '../scikitplot/cexternals/_astropy' -r --progress
 
-ast: astropy2
+ast: astropy
 	@python ../scikitplot/_build_utils/fix_submodule_import.py \
 		-m 'astropy' \
 		-r '../scikitplot/cexternals/_astropy' \

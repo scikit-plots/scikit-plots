@@ -187,8 +187,8 @@ def _get_dep_info():
         "threadpoolctl",
     ]
     optional_deps = [
-        "seaborn",
         "aggdraw",
+        "seaborn",
         "bokeh",
         "plotly",
         "streamlit",

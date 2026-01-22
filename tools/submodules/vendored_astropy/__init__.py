@@ -19,7 +19,7 @@ from .version import version as __version__
 # Define the astropy version
 __author__ = "Astropy Developers"
 __author_email__ = "astropy.team@gmail.com"
-__git_hash__  = "dbc384f3eeff4576b41a68486fcbb0a77789a8d8"
+__git_hash__  = "7dc44b6ec773e290cd85c845599a1bf3f13c3bbd"  # 7.2.0
 
 __all__ = [  # noqa: RUF100, RUF022
     "__version__",

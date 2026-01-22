@@ -39,4 +39,4 @@ del mpl
 
 __author__ = "Michael Waskom"
 __author_email__ = "mwaskom@gmail.com"
-__git_hash__  = "7001ebe72423238e99c0434a2ef0a0ebc9cb55c1"
+__git_hash__  = "03d80c1dc2d3551f99ae7d595b07aeb1c42c7576"

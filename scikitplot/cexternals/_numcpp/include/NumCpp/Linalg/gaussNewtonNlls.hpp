@@ -3,7 +3,7 @@
 /// [GitHub Repository](https://github.com/dpilger26/NumCpp)
 ///
 /// License
-/// Copyright 2018-2025 David Pilger
+/// Copyright 2018-2026 David Pilger
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy of this
 /// software and associated documentation files(the "Software"), to deal in the Software
@@ -23,7 +23,7 @@
 /// DEALINGS IN THE SOFTWARE.
 ///
 /// Description
-/// The GaussNewton algorithm is used to solve non-linear least squares problems.
+/// The Gauss Newton algorithm is used to solve non-linear least squares problems.
 /// It is a modification of Newton's method for finding a minimum of a function.
 ///
 /// https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm
@@ -47,7 +47,7 @@ namespace nc::linalg
 {
     //============================================================================
     // Method Description:
-    /// The GaussNewton algorithm is used to solve non-linear least squares problems.
+    /// The Gauss Newton algorithm is used to solve non-linear least squares problems.
     /// It is a modification of Newton's method for finding a minimum of a function.
     /// https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm
     ///
