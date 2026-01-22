@@ -124,6 +124,7 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
 .. _bash-first-run-notice:
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ▶️ Quick check bash-first-run-notice.txt
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

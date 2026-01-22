@@ -84,8 +84,8 @@ def print_labels(**kwargs):
 
     .. jupyter-execute::
 
-        >>> import scikitplot.decile.kds as skplt
-        >>> skplt.print_labels()
+        >>> import scikitplot.decile.kds as kds
+        >>> kds.print_labels()
 
     """
     print(
@@ -214,7 +214,7 @@ def decile_table(
         ... )
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
-        >>> import scikitplot.decile.kds as skplt
+        ...
         >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
         >>> X_train, X_test, y_train, y_test = train_test_split(
         ...     X, y, test_size=0.5, random_state=0
@@ -223,7 +223,9 @@ def decile_table(
         ...     X_train, y_train
         ... )
         >>> y_prob = clf.predict_proba(X_test)
-        >>> skplt.decile_table(
+        ...
+        >>> import scikitplot.decile.kds as kds
+        >>> kds.decile_table(
         >>>     y_test, y_prob, class_index=1
         >>> )
 
@@ -428,8 +430,8 @@ def plot_lift(
         ... )
         >>> y_score = model.predict_proba(X_val)
         ...
-        >>> import scikitplot.decile.kds as skplt
-        >>> skplt.kds.plot_lift(
+        >>> import scikitplot.decile.kds as kds
+        >>> kds.plot_lift(
         >>>     y_val, y_score, class_index=1,
         >>> );
 
@@ -564,8 +566,8 @@ def plot_lift_decile_wise(
         >>> clf = clf.fit(X_train, y_train)
         >>> y_prob = clf.predict_proba(X_test)
         ...
-        >>> import scikitplot.decile.kds as skplt
-        >>> skplt.kds.plot_lift_decile_wise(y_test, y_prob, class_index=1)
+        >>> import scikitplot.decile.kds as kds
+        >>> kds.plot_lift_decile_wise(y_test, y_prob, class_index=1)
 
     """
     # Convert input to numpy arrays for efficient processing
@@ -712,8 +714,8 @@ def plot_cumulative_gain(
         ... )
         >>> y_score = model.predict_proba(X_val)
         ...
-        >>> import scikitplot.decile.kds as skplt
-        >>> skplt.kds.plot_cumulative_gain(
+        >>> import scikitplot.decile.kds as kds
+        >>> kds.plot_cumulative_gain(
         >>>     y_val, y_score, class_index=1,
         >>> );
 
@@ -870,8 +872,8 @@ def plot_ks_statistic(
         ... )
         >>> y_score = model.predict_proba(X_val)
         ...
-        >>> import scikitplot.decile.kds as skplt
-        >>> skplt.kds.plot_ks_statistic(
+        >>> import scikitplot.decile.kds as kds
+        >>> kds.plot_ks_statistic(
         >>>     y_val, y_score, class_index=1,
         >>> );
 
@@ -1037,7 +1039,7 @@ def report(
         ... )
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
-        >>> import scikitplot.decile.kds as skplt
+        ...
         >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
         >>> X_train, X_test, y_train, y_test = train_test_split(
         ...     X, y, test_size=0.5, random_state=0
@@ -1046,7 +1048,9 @@ def report(
         ...     X_train, y_train
         ... )
         >>> y_prob = clf.predict_proba(X_test)
-        >>> dt = skplt.report(
+        ...
+        >>> import scikitplot.decile.kds as kds
+        >>> dt = kds.report(
         >>>     y_test, y_prob, class_index=1
         >>> )
         >>> dt

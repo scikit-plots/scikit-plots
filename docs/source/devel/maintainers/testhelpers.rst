@@ -72,6 +72,7 @@ Reference/API
 -------------
 
 ::
+
     .. module:: astropy.tests.helper
 
     .. automodapi:: astropy.tests.helper
