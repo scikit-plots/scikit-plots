@@ -1,6 +1,6 @@
 .. _annoy_examples:
 
-ANNoy
+ANNoy Vector Index DB
 ----------------------------------------------------------------------
 
 Examples related to the :py:mod:`~scikitplot.annoy` and :py:mod:`~scikitplot.cexternals._annoy` submodule instance.

@@ -51,7 +51,7 @@ from sklearn.preprocessing import label_binarize
 
 from ... import logger
 from ...exceptions import ScikitplotException
-from ...utils.utils_params import (
+from ...utils._inspect import (
     _get_args_kwargs,
     _get_param_w_index,
     _resolve_args_and_kwargs,

@@ -29,7 +29,7 @@ from sklearn.preprocessing import label_binarize
 from .... import logger
 from ...._docstrings import _docstring
 from ..._utils.validation import validate_inputs, validate_plotting_kwargs_decorator
-from ....utils.utils_plot_mpl import save_plot_decorator
+from ....utils._matplotlib import save_plot_decorator
 
 ## Define __all__ to specify the public interface of the module,
 # not required default all above func

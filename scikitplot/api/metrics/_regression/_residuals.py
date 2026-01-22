@@ -38,7 +38,7 @@ from scikitplot.stats import tweedie
 
 from ...._docstrings import _docstring
 from ..._utils.validation import validate_plotting_kwargs_decorator
-from ....utils.utils_plot_mpl import save_plot_decorator
+from ....utils._matplotlib import save_plot_decorator
 
 # Q-Q plot with fitted normal distribution
 # sm.qqplot

@@ -12,7 +12,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-The :mod:`~scikitplot.decile` and (legacy :mod:`~scikitplot.decile.modelplotpy`) module.
+The :mod:`~scikitplot.decile` and (⚠️ alternative legacy :mod:`scikitplot.decile.modelplotpy`) module.
 
 Includes plots for machine learning evaluation decile / ntile analysis
 (e.g., Response, Lift, Gain and related financial charts).
@@ -25,7 +25,6 @@ References
 
 from __future__ import annotations
 
-import logging
 import os  # noqa: F401
 import re  # noqa: F401
 from dataclasses import dataclass
@@ -39,7 +38,7 @@ from sklearn.base import ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 
 from .._docstrings import _docstring
-from ..utils.utils_plot_mpl import save_plot_decorator
+from ..utils._matplotlib import save_plot_decorator
 
 if TYPE_CHECKING:
     # Only imported during type checking
@@ -53,7 +52,9 @@ if TYPE_CHECKING:
         Union,
     )
 
-logger = logging.getLogger(__name__)
+# import logging
+# logger = logging.getLogger(__name__)
+from .. import logger
 
 T = TypeVar("T")
 
@@ -69,6 +70,8 @@ __all__ = [  # noqa: RUF022
     "plot_costsrevs",
     "plot_profit",
     "plot_roi",
+    # helper
+    "summarize_selection",
 ]
 
 ##########################################################################
@@ -496,9 +499,8 @@ class ModelPlotPy:
         # Dev note: require consistent class sets across models to keep columns stable.
         ref_classes = None
         for m in self.models:
-            if not isinstance(m, ClassifierMixin):
-                raise TypeError("All models must be sklearn ClassifierMixin instances.")
-            check_is_fitted(m)
+            if isinstance(m, ClassifierMixin):
+                check_is_fitted(m)
             if not hasattr(m, "predict_proba"):
                 raise TypeError("All models must implement predict_proba().")
             if not hasattr(m, "classes_"):
@@ -2230,14 +2232,12 @@ def _render_footer_text(
     y_margin = float(footer_kws.get("y_margin", 0.01))
 
     bottom_pad = base_pad + line_pad * max(0, n_lines - 1)
-    if bottom_pad >= 0.60:
-        raise ValueError(
+    if bottom_pad >= 1.0:
+        logger.info(
             f"footer would reserve too much vertical space (bottom_pad={bottom_pad:.2f}). "
             "Reduce highlighted items or override footer_kws(base_pad/line_pad)."
         )
-
-    # Reserve space for footer.
-    fig.subplots_adjust(bottom=bottom_pad)
+        # bottom_pad=min(0.6, bottom_pad)
 
     # Use a dedicated axes for the footer to avoid overlap across backends.
     footer_ax = fig.add_axes([0.0, 0.0, 1.0, bottom_pad], frameon=False)
@@ -2574,9 +2574,9 @@ def plot_response(
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
     save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
 
@@ -2716,9 +2716,9 @@ def plot_cumresponse(
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
     save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
 
@@ -2855,9 +2855,9 @@ def plot_cumlift(
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
     save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
 
@@ -2995,9 +2995,9 @@ def plot_cumgains(
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
     save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
 
@@ -3162,9 +3162,9 @@ def plot_all(
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
     save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
 
@@ -3540,9 +3540,9 @@ def plot_costsrevs(  # noqa: PLR0912
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
     save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
 
@@ -3851,9 +3851,9 @@ def plot_profit(
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
     save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
 
@@ -4011,9 +4011,9 @@ def plot_roi(
     line_kws, ref_line_kws, legend_kws, grid_kws, axes_kws, annotation_kws, footer_kws : Mapping[str, Any] or None
         Per-component styling kwargs.
     save_fig : bool, default=True
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     save_fig_filename : str, default=''
-        Used by :func:`~scikitplot.utils.utils_plot_mpl.save_plot_decorator`.
+        Used by :func:`~scikitplot.utils._matplotlib.save_plot_decorator`.
     **kwargs : Any
         Legacy alias for ``line_kws``.
 

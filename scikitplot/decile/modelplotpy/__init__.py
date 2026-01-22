@@ -1,4 +1,4 @@
-# scikitplot/modelplotpy/__init__.py
+# scikitplot/decile/modelplotpy/__init__.py
 
 # fmt: off
 # ruff: noqa

@@ -1,3 +1,5 @@
+# scikitplot/decile/__init__.py
+
 """
 Visualizing predictive model insights for enhanced business decision-making.
 

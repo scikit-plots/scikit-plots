@@ -40,7 +40,7 @@ from ...api._utils.validation import (
     validate_y_true_decorator,
 )
 from ...externals._seaborn._compat import groupby_apply_include_groups
-from ...utils.utils_plot_mpl import save_plot_decorator
+from ...utils._matplotlib import save_plot_decorator
 
 ## Define __all__ to specify the public interface of the module, not required default all above func
 __all__ = [
@@ -84,8 +84,8 @@ def print_labels(**kwargs):
 
     .. jupyter-execute::
 
-        >>> import scikitplot as skplt
-        >>> skplt.kds.print_labels()
+        >>> import scikitplot.decile.kds as skplt
+        >>> skplt.print_labels()
 
     """
     print(
@@ -214,7 +214,7 @@ def decile_table(
         ... )
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
-        >>> import scikitplot as skplt
+        >>> import scikitplot.decile.kds as skplt
         >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
         >>> X_train, X_test, y_train, y_test = train_test_split(
         ...     X, y, test_size=0.5, random_state=0
@@ -223,7 +223,7 @@ def decile_table(
         ...     X_train, y_train
         ... )
         >>> y_prob = clf.predict_proba(X_test)
-        >>> skplt.kds.decile_table(
+        >>> skplt.decile_table(
         >>>     y_test, y_prob, class_index=1
         >>> )
 
@@ -355,7 +355,7 @@ def plot_lift(
 
         **Compat aliases**
 
-        `scikitplot.kds.plot_lift`
+        `scikitplot.decile.kds.plot_lift`
 
     The lift curve is used to determine the effectiveness of a
     binary classifier. A detailed explanation can be found at
@@ -959,10 +959,10 @@ def report(
     """
     Generate a decile table and four plots.
 
-    - ``Lift`` -> :func:`~scikitplot.kds.plot_lift`
-    - ``Lift@Decile`` -> :func:`~scikitplot.kds.plot_lift_decile_wise`
-    - ``Gain`` -> :func:`~scikitplot.kds.plot_cumulative_gain`
-    - ``KS`` -> :func:`~scikitplot.kds.plot_ks_statistic`
+    - ``Lift`` -> :func:`~scikitplot.decile.kds.plot_lift`
+    - ``Lift@Decile`` -> :func:`~scikitplot.decile.kds.plot_lift_decile_wise`
+    - ``Gain`` -> :func:`~scikitplot.decile.kds.plot_cumulative_gain`
+    - ``KS`` -> :func:`~scikitplot.decile.kds.plot_ks_statistic`
 
     from labels and probabilities.
 
@@ -1044,7 +1044,7 @@ def report(
         ... )
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
-        >>> import scikitplot as skplt
+        >>> import scikitplot.decile.kds as skplt
         >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
         >>> X_train, X_test, y_train, y_test = train_test_split(
         ...     X, y, test_size=0.5, random_state=0
@@ -1053,7 +1053,7 @@ def report(
         ...     X_train, y_train
         ... )
         >>> y_prob = clf.predict_proba(X_test)
-        >>> dt = skplt.kds.report(
+        >>> dt = skplt.report(
         >>>     y_test, y_prob, class_index=1
         >>> )
         >>> dt

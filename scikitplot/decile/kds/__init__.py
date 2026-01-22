@@ -1,4 +1,4 @@
-# scikitplot/kds/__init__.py
+# scikitplot/decile/kds/__init__.py
 
 # fmt: off
 # ruff: noqa
@@ -14,7 +14,7 @@
 """
 Quick report for business analysis. Just input "labels", "probabilities" to get report.
 
-The :py:mod:`~scikitplot.kds` KeyToDataScience module to Plot Decile Table, Lift, Gain
+The :py:mod:`~scikitplot.decile.kds` KeyToDataScience module to Plot Decile Table, Lift, Gain
 and KS Statistic charts with single line functions
 
 kds is the result of a data scientist's humble effort to provide an easy way of

@@ -2968,6 +2968,9 @@ static PyGetSetDef py_annoy_getset[] = {
     (char*)"verbose",
     (getter)py_annoy_get_verbose,
     (setter)py_annoy_set_verbose,
+    // https://xgboost.readthedocs.io/en/stable/parameter.html#general-parameters
+    // https://xgboost.readthedocs.io/en/stable/r_docs/R-package/docs/reference/xgb.params.html#arg-verbosity
+    // Xgb inspired verbose/verbosity (Optional[int]) – The degree of verbosity. Values are 0 (silent), 1 (warning), 2 (info), 3 (debug).
     (char*)"Verbosity level in [-2, 2] or None (unset). Callable setter: set_verbose().",
     NULL
   },

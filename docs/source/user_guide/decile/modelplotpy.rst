@@ -38,7 +38,7 @@ plot response
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_modelplotpy_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the ``bank dataset``
 
 
@@ -52,7 +52,7 @@ plot cumresponse
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_modelplotpy_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the ``bank dataset``
 
 
@@ -66,7 +66,7 @@ plot cumlift
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_modelplotpy_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the ``bank dataset``
 
 
@@ -80,7 +80,7 @@ plot cumgains
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_modelplotpy_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the ``bank dataset``
 
 
@@ -94,7 +94,7 @@ plot all
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_modelplotpy_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the ``bank dataset``
 
 
@@ -113,7 +113,7 @@ plot costsrevs
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_modelplotpy_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the ``bank dataset``
 
 
@@ -127,7 +127,7 @@ plot profit
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_modelplotpy_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the ``bank dataset``
 
 
@@ -141,5 +141,5 @@ plot roi
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_modelplotpy_plot_modelplotpy_script.py`: Example usage of
+* :ref:`sphx_glr_auto_examples_decile_plot_modelplotpy_script.py`: Example usage of
   :class:`~sklearn.linear_model.LogisticRegression` using the ``bank dataset``

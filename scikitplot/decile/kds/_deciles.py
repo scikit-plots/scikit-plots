@@ -1,4 +1,4 @@
-# scikitplot/kds/__init__.py
+# scikitplot/decile/kds/__init__.py
 
 # fmt: off
 # ruff: noqa

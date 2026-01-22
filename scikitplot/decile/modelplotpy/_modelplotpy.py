@@ -31,7 +31,7 @@ import numpy as np  # type: ignore[reportMissingModuleSource]
 import pandas as pd
 
 from ..._docstrings import _docstring
-from ...utils.utils_plot_mpl import save_plot_decorator
+from ...utils._matplotlib import save_plot_decorator
 
 if TYPE_CHECKING:
     # Only imported during type checking

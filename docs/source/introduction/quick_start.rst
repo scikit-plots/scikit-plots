@@ -12,7 +12,9 @@ This guide provides a quick introduction to plotting with scikit-plots.
 
 - Use pip to install Scikit-plots::
 
-    >>> pip install scikit-plots
+    >>> pip install scikit-plots -U
+    >>> ## Cause numpy>=2.0.0 but support old numpy
+    >>> # pip install numpy==1.26.4
 
 
 A Simple Example

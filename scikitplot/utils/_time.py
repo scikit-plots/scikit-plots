@@ -24,7 +24,7 @@ class Timer:
 
     def __init__(
         self,
-        message: str,
+        message: str = "",
         *,
         verbose: bool = False,
         log_level: str = "info",

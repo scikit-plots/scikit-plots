@@ -7,4 +7,4 @@ Examples related to the :py:mod:`~scikitplot.decile` submodule with e.g. :py:cla
 
 .. seealso::
 
-   * :py:mod:`~scikitplot.seaborn`
+   * Seaborn-style decile analysis (Lift / Gain / KS) :py:func:`~scikitplot.seaborn.decileplot`

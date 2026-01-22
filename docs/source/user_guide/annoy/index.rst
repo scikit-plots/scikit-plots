@@ -34,19 +34,6 @@ This page documents the Annoy [1]_ user guide integration shipped with scikit-pl
 - Low-level bindings C-API: :py:mod:`~scikitplot.cexternals._annoy`
 - High-level Python-API: :py:mod:`~scikitplot.annoy`
 
-----------------------------------------------------------------------
-Public Python API
-----------------------------------------------------------------------
-
-This module exports:
-
-- :class:`~Annoy`:
-  Low-level C-extension type (stable, picklable).
-- :class:`~AnnoyIndex`:
-  Public alias of the Low-level :class:`~Annoy` index.
-- :class:`~Index`:
-  High-level Python wrapper subclass (stable, picklable).
-
 ..
   toctree::
    :maxdepth: 2
@@ -76,6 +63,18 @@ This module exports:
             :maxdepth: 2
 
             Index Inheritance <./annoy_index_inheritance_diagrams.rst>
+
+Public Python API
+----------------------------------------------------------------------
+
+This module exports:
+
+- :class:`~Annoy`:
+  Low-level C-extension type (stable, picklable).
+- :class:`~AnnoyIndex`:
+  Public alias of the Low-level :class:`~Annoy` index.
+- :class:`~Index`:
+  High-level Python wrapper subclass (stable, picklable).
 
 .. note::
    For backend and C-extension details, see :ref:`cexternals-annoy-index`.

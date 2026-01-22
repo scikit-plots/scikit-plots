@@ -27,20 +27,20 @@ Examples relevant to the :py:mod:`~.seaborn` module.
 .. _aucplot-index:
 
 AUC Plot (experimental)
-======================================================================
+----------------------------------------------------------------------
 
 Examples relevant to the :py:func:`~.aucplot` module.
 
 .. _evalplot-index:
 
 Eval Plot (experimental)
-======================================================================
+----------------------------------------------------------------------
 
 Examples relevant to the :py:func:`~.evalplot` module.
 
 .. _decileplot-index:
 
 Decile Plot (experimental)
-======================================================================
+----------------------------------------------------------------------
 
 Examples relevant to the :py:func:`~.decileplot` module.

@@ -73,13 +73,6 @@ PUBLIC_MODULES = [
         "seaborn",
         "stats",
         "utils",
-        "utils.plot_serializer",
-        "utils.utils_huggingface",
-        "utils.utils_mlflow",
-        "utils.utils_params",
-        "utils.utils_path",
-        "utils.utils_pil",
-        "utils.utils_plot_mpl",
         "utils.validation",
         "visualkeras",
         # py

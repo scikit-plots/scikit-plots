@@ -55,7 +55,7 @@ import joblib  # type: ignore[reportMissingModuleSource]
 # import psutil  # type: ignore[reportMissingModuleSource]
 ## Local application/library imports
 from .. import logger
-from ..utils.utils_params import _resolve_args_and_kwargs
+from ..utils._inspect import _resolve_args_and_kwargs
 
 # Runtime-safe imports for type hints (avoids runtime overhead)
 if TYPE_CHECKING:
