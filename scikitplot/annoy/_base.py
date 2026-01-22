@@ -91,10 +91,10 @@ class Index(
         If None, behavior depends on ``f``:
 
         * If ``f > 0``: defaults to ``'angular'`` (legacy behavior; may emit a
-        :class:`FutureWarning`).
+          :class:`FutureWarning`).
         * If ``f == 0``: leaves the metric unset (lazy). You may set
-        :attr:`metric` later before construction, or it will default to
-        ``'angular'`` on first :meth:`add_item`.
+          :attr:`metric` later before construction, or it will default to
+          ``'angular'`` on first :meth:`add_item`.
     n_neighbors : int, default=5
         Non-negative integer Number of neighbors to retrieve for each query.
     on_disk_path : str or None, optional, default=None
@@ -132,11 +132,11 @@ class Index(
         how the index is snapshotted in pickles.
 
         * ``0`` or ``1``: pickle stores a ``portable-v1`` snapshot (fast restore,
-        ABI-checked).
+          ABI-checked).
         * ``2``: pickle stores ``canonical-v1`` (portable across ABIs; restores by
-        rebuilding deterministically).
+          rebuilding deterministically).
         * ``>=3``: pickle stores both portable and canonical (canonical is used as
-        a fallback if the ABI check fails).
+          a fallback if the ABI check fails).
 
         If None, treated as ``0`` (reset to default).
 

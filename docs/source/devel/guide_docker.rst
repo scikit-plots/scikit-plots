@@ -27,11 +27,11 @@ Docker Containerization Guidelines
 
 .. seealso::
 
-   * `"🐳 Run the latest scikit-plots container — with full or partial preinstallation — interactively" <https://hub.docker.com/r/scikitplot/scikit-plots>`_
+   * `"🐳 Run the latest scikit-plots container — with full or partial preinstallation — interactively" <https://hub.docker.com/r/scikitplot/scikit-plots>`__
 
-   * `"🐋 docker/README.md" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md>`_
+   * `"🐋 docker/README.md" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md>`__
 
-   * `"💡 bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_
+   * `"💡 bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`__
 
 
 🐋 Docker Containerization
@@ -173,7 +173,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 ▶️ Run post_create_commands.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`"See Also: bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_
+`"See Also: bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`__
 
 .. dropdown:: bash-first-run-notice.txt
    :open:
@@ -259,15 +259,15 @@ If you need more control, you can use Docker CLI commands.
 🖥️ Useful References
 --------------------------------
 
-📚 `Jupyter Docker Stacks: Read the Docs <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_
+📚 `Jupyter Docker Stacks: Read the Docs <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`__
 
-📚 `Docker Compose: Official Docs <https://docs.docker.com/compose/>`_
+📚 `Docker Compose: Official Docs <https://docs.docker.com/compose/>`__
 
-📚 `Dockerfile Best Practices <https://containers.dev/guide/dockerfile>`_
+📚 `Dockerfile Best Practices <https://containers.dev/guide/dockerfile>`__
 
-📚 `LocalStack Installation with Docker Compose <https://docs.localstack.cloud/getting-started/installation/#docker-compose>`_
+📚 `LocalStack Installation with Docker Compose <https://docs.localstack.cloud/getting-started/installation/#docker-compose>`__
 
-📚 `NVIDIA CUDA in Containers: NVIDIA Docs <https://docs.nvidia.com/deeplearning/frameworks/user-guide/index.html>`_
+📚 `NVIDIA CUDA in Containers: NVIDIA Docs <https://docs.nvidia.com/deeplearning/frameworks/user-guide/index.html>`__
 
 .. image:: https://developer-blogs.nvidia.com/wp-content/uploads/2016/06/nvidia-docker.png
    :target: https://developer.nvidia.com/blog/nvidia-docker-gpu-server-application-deployment-made-easy/

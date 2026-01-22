@@ -84,7 +84,7 @@ TL;DR
 
 - **What it is:** C++ library with Python bindings for approximate nearest-neighbor (ANN) search. [1]_
 - **Origin:** Developed at Spotify (Hack Week). [1]_
-- **Since:** Open sourced in 2013. [3]_
+- **Since:** Open sourced in 2013. [2]_, [3]_
 - **Index type:** Forest of random projection trees. [1]_
 - **Storage:** File-based indexes can be memory-mapped (mmap) and shared across processes. [1]_
 - **Tuning:** Use ``n_trees`` (build) and ``search_k`` (query) to trade accuracy for speed. [1]_

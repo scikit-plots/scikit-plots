@@ -1,4 +1,5 @@
 # scikitplot/annoy/_mixins/_pickle.py
+
 """
 Pickling support for Annoy-backed indices.
 
@@ -48,8 +49,7 @@ from .._utils import backend_for, lock_for
 CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
 
 CompressMode.__doc__ = """\
-Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`.
-"""
+Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`."""
 
 # https://peps.python.org/pep-0258/#attribute-docstrings
 # Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
@@ -57,8 +57,7 @@ Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`.
 PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
 
 PickleMode.__doc__ = """\
-Persistence strategy used by :class:`~.PickleMixin`.
-"""
+Persistence strategy used by :class:`~.PickleMixin`."""
 
 __all__ = [
     "CompressMode",
@@ -170,7 +169,7 @@ def _deserialize_backend(
 
 class PickleMixin:
     """
-    Mixin adding deterministic pickle support.
+    Mixin adding pickle support.
 
     Parameters
     ----------

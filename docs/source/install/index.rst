@@ -240,8 +240,8 @@ wide range of libraries; if you need a library that is not available from the
 collection, you can install it yourself using standard methods such as *pip*.
 See the Anaconda web page for installation support.
 
-.. _system python packages:
-    https://github.com/MacPython/wiki/wiki/Which-Python#system-python-and-extra-python-packages
+.. _system python packages: https://github.com/MacPython/wiki/wiki/Which-Python#system-python-and-extra-python-packages
+
 .. _Anaconda: https://www.anaconda.com/
 
 Other options for a fresh Python install are the standard installer from

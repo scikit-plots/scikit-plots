@@ -346,16 +346,6 @@ def plot_lift(
     """
     Generate the Decile based cumulative Lift Plot from labels and probabilities.
 
-    .. dropdown:: View aliases
-
-        **Main aliases**
-
-        `scikitplot.api.kds.plot_lift`
-
-        **Compat aliases**
-
-        `scikitplot.decile.kds.plot_lift`
-
     The lift curve is used to determine the effectiveness of a
     binary classifier. A detailed explanation can be found at
     http://www2.cs.uregina.ca/~dbd/cs831/notes/lift_chart/lift_chart.html
@@ -428,7 +418,7 @@ def plot_lift(
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
-        >>> import scikitplot as skplt
+        ...
         >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
         >>> X_train, X_val, y_train, y_val = train_test_split(
         ...     X, y, test_size=0.5, random_state=0
@@ -437,6 +427,8 @@ def plot_lift(
         ...     X_train, y_train
         ... )
         >>> y_score = model.predict_proba(X_val)
+        ...
+        >>> import scikitplot.decile.kds as skplt
         >>> skplt.kds.plot_lift(
         >>>     y_val, y_score, class_index=1,
         >>> );
@@ -560,10 +552,10 @@ def plot_lift_decile_wise(
        :align: center
        :alt: Lift Decile Wise Curves
 
-        >>> import scikitplot as skplt
         >>> from sklearn.datasets import load_iris
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.tree import DecisionTreeClassifier
+        ...
         >>> X, y = load_iris(return_X_y=True)
         >>> X_train, X_test, y_train, y_test = train_test_split(
         ...     X, y, test_size=0.5, random_state=0
@@ -571,6 +563,8 @@ def plot_lift_decile_wise(
         >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0)
         >>> clf = clf.fit(X_train, y_train)
         >>> y_prob = clf.predict_proba(X_test)
+        ...
+        >>> import scikitplot.decile.kds as skplt
         >>> skplt.kds.plot_lift_decile_wise(y_test, y_prob, class_index=1)
 
     """
@@ -708,7 +702,7 @@ def plot_cumulative_gain(
         >>> from sklearn.datasets import load_iris as data_3_classes
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
-        >>> import scikitplot as skplt
+        ...
         >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
         >>> X_train, X_val, y_train, y_val = train_test_split(
         ...     X, y, test_size=0.5, random_state=0
@@ -717,6 +711,8 @@ def plot_cumulative_gain(
         ...     X_train, y_train
         ... )
         >>> y_score = model.predict_proba(X_val)
+        ...
+        >>> import scikitplot.decile.kds as skplt
         >>> skplt.kds.plot_cumulative_gain(
         >>>     y_val, y_score, class_index=1,
         >>> );
@@ -864,7 +860,7 @@ def plot_ks_statistic(
         ... )
         >>> from sklearn.model_selection import train_test_split
         >>> from sklearn.linear_model import LogisticRegression
-        >>> import scikitplot as skplt
+        ...
         >>> X, y = data_2_classes(return_X_y=True, as_frame=False)
         >>> X_train, X_val, y_train, y_val = train_test_split(
         ...     X, y, test_size=0.5, random_state=0
@@ -873,6 +869,8 @@ def plot_ks_statistic(
         ...     X_train, y_train
         ... )
         >>> y_score = model.predict_proba(X_val)
+        ...
+        >>> import scikitplot.decile.kds as skplt
         >>> skplt.kds.plot_ks_statistic(
         >>>     y_val, y_score, class_index=1,
         >>> );

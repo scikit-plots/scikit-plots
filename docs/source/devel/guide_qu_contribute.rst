@@ -14,23 +14,23 @@ Creating a development environment
 
 To make and test code changes and build the documentation locally you will need to
 create a development environment. If you run into problems at any stage do not hesitate
-to `TEMPLATE ask for help <https://scikit-plots.github.io/dev/help.html>`_.
+to `TEMPLATE ask for help <https://scikit-plots.github.io/dev/help.html>`__.
 
 Set up GitHub and Git
 ---------------------
 
-scikit-plots is hosted on `GitHub <https://github.com/scikit-plots/scikit-plots>`_, and to
+scikit-plots is hosted on `GitHub <https://github.com/scikit-plots/scikit-plots>`__, and to
 contribute, you will need a `GitHub account
-<https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github>`_.
+<https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github>`__.
 
-We use `Git <https://git-scm.com/>`_ for version control and to allow many people to
+We use `Git <https://git-scm.com/>`__ for version control and to allow many people to
 work together on the project. See the `GitHub quickstart instructions
 <https://docs.github.com/en/get-started/quickstart/set-up-git>`__ for installing and
 configuring git, as well as the :ref:`git-resources` page.
 
 If you are new to contributing to projects through forking on GitHub, see the
 `GitHub documentation for contributing to projects
-<https://docs.github.com/en/get-started/quickstart/contributing-to-projects>`_.
+<https://docs.github.com/en/get-started/quickstart/contributing-to-projects>`__.
 
 
 .. important::
@@ -47,7 +47,7 @@ How to do this will depend on your platform.
 **Windows**
 
 You will need `Build Tools for Visual Studio
-<https://visualstudio.microsoft.com/downloads/?q=build+tools>`_.
+<https://visualstudio.microsoft.com/downloads/?q=build+tools>`__.
 
 .. note::
     You DO NOT need to install Visual Studio.
@@ -58,8 +58,8 @@ You will need `Build Tools for Visual Studio
 Alternative options include:
 
 - Install the necessary components on the command line using `vs_BuildTools.exe
-  <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_.
-- Use the `WSL <https://learn.microsoft.com/en-us/windows/wsl/install>`_.
+  <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`__.
+- Use the `WSL <https://learn.microsoft.com/en-us/windows/wsl/install>`__.
 
 **MacOS**
 
@@ -81,12 +81,12 @@ Create a clone of scikit-plots
 
 If you have not done so already, you will need your own copy of ``scikit-plots`` to
 build it and/or contribute to the source. scikit-plots is hosted in the
-`scikit-plots GitHub repository <https://www.github.com/scikit-plots/scikit-plots>`_
+`scikit-plots GitHub repository <https://www.github.com/scikit-plots/scikit-plots>`__
 and you need to make a clone.
 
 First, create a `GitHub Fork
-<https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo>`_
-by going to the `scikit-plots project page <https://github.com/scikit-plots/scikit-plots>`_
+<https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo>`__
+by going to the `scikit-plots project page <https://github.com/scikit-plots/scikit-plots>`__
 and hitting the ``Fork`` button.
 
 Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your machine:
@@ -122,11 +122,12 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
         bash docker/scripts/post_create_commands.sh
 
+.. _bash-first-run-notice:
 
 ▶️ Quick check bash-first-run-notice.txt
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`"See Also: bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_
+`"See Also: bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`__
 
 .. dropdown:: bash-first-run-notice.txt
    :open:
@@ -199,12 +200,12 @@ for doing other work. This is important because the development environment will
 be unstable and possibly broken at times, and you don't want to break your other work.
 
 There are many good options for doing this, including a number of virtual environment
-managers (e.g., the Python standard library `venv <https://docs.python.org/3/library/venv.html>`_
+managers (e.g., the Python standard library `venv <https://docs.python.org/3/library/venv.html>`__
 module). Users who have a preference for a particular virtual environment manager are
 encouraged to use it!
 
-For this quickstart guide we use the `conda <https://docs.conda.io/en/latest/>`_ package
-manager provided by `miniforge <https://github.com/conda-forge/miniforge>`_. This is a
+For this quickstart guide we use the `conda <https://docs.conda.io/en/latest/>`__ package
+manager provided by `miniforge <https://github.com/conda-forge/miniforge>`__. This is a
 popular choice and generally works well, especially for newcomers. It is easy to install
 and use on all platforms and it makes it easy to install different Python versions which
 can be useful for testing.
@@ -213,7 +214,7 @@ Install miniforge and conda
 -----------------------------
 
 If you do not already have ``conda`` installed, `download and install miniforge
-<https://github.com/conda-forge/miniforge/blob/main/README.md>`_. The details depend on
+<https://github.com/conda-forge/miniforge/blob/main/README.md>`__. The details depend on
 your system but the end result is to provide a ``conda`` executable that you can use
 to create and manage isolated Python environments.
 
@@ -285,12 +286,12 @@ At this point you should be able to ``import scikitplot`` from your locally buil
 
 Next you may want to try running some or all of the ``scikitplot`` unit tests.
 Running the full test suite can take a few minutes, so you may want to start with a
-single sub-package (e.g. :ref:`kds-index`)::
+single sub-package (e.g. :ref:`decile-kds-index`)::
 
 
    >>> ## python -m pytest -p vscode_pytest --collect-only --rootdir=.
    >>> ## run a sub set of the test suite
-   >>> pytest scikitplot/kds
+   >>> pytest scikitplot/decile/kds
 
    >>> ## or the whole suite
    >>> pytest
@@ -303,8 +304,8 @@ section.
 Install pre-commit
 ------------------
 
-This is optional, but *highly recommended*. `Pre-commit <https://pre-commit.com/>`_ is a
-tool that runs a number of `Continuous Integration (CI) <contributing_ci>`_ checks
+This is optional, but *highly recommended*. `Pre-commit <https://pre-commit.com/>`__ is a
+tool that runs a number of `Continuous Integration (CI) <contributing_ci>`__ checks
 (e.g. code formatting) on your code before you commit it. If you skip this step then it
 is likely that one or more of those CI checks will fail when you make a pull request,
 resulting in lost time (yours and CI resources).
@@ -344,7 +345,7 @@ Creating and submitting a pull request
 
 You can contribute bug fixes, new features, and documentation updates by submitting a
 GitHub pull request (PR). This section will guide you through the process. We encourage
-you to `ask for help <https://github.com/orgs/scikit-plots/discussions>`_ if you get stuck.
+you to `ask for help <https://github.com/orgs/scikit-plots/discussions>`__ if you get stuck.
 The ``scikit-plots`` community is welcoming and friendly and will help you!
 
 If you are new to the ``scikit-plots`` Project and interested to submit a large patch
@@ -448,11 +449,11 @@ Delete the branch locally::
 This changes your working branch from ``main`` to the ``subpackage-bug-fix`` branch.
 Keep any changes in this branch specific to one bug or feature so it is clear what the
 branch brings to ``scikit-plots``. You can have many feature branches and switch in between them
-using the `git switch <https://git-scm.com/docs/git-switch>`_ command.
+using the `git switch <https://git-scm.com/docs/git-switch>`__ command.
 
 Using a descriptive branch name can help you stay organized. For example
 ```kds-commented-header``` might be a good name for a branch that fixes the
-commented header issue `#1 <https://github.com/scikit-plots/scikit-plots/issues/1>`_ in
+commented header issue `#1 <https://github.com/scikit-plots/scikit-plots/issues/1>`__ in
 the ``kds`` sub-package.
 
 When you want to update the feature branch with changes in main after
@@ -485,7 +486,7 @@ You can see a summary of the changes you've currently made by running:
     git status
 
 You can then commit your all your changes to your local repository with an explanatory
-`commit message <https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html>`_:
+`commit message <https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html>`__:
 
 .. prompt:: bash
 
@@ -557,7 +558,7 @@ again to address any feedback and update your pull request::
     >>> git push origin subpackage-bug-fix
 
 Any ``git push`` will automatically update your pull request with your branch's changes
-and restart the `Continuous Integration <contributing_ci>`_ checks.
+and restart the `Continuous Integration <contributing_ci>`__ checks.
 
 .. Important:: At this point please read (or at least skim) the sections :ref:`revise
     and push`, :ref:`rebase`, and :ref:`squash-if-necessary`. The information here
@@ -577,7 +578,7 @@ maintainers will take a look. To make the process as smooth and efficient as pos
 here are some tips:
 
 - **Reference any existing open issue** to `link to that issue
-  <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`_ and close the
+  <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`__ and close the
   issue if the PR is merged.
 - **Ensure you have appropriate tests**.
 - **Keep your pull requests as simple as possible** -- larger PRs take longer to review.

@@ -71,11 +71,12 @@ Removed                                                    Use this
 Reference/API
 -------------
 
-.. module:: astropy.tests.helper
+::
+    .. module:: astropy.tests.helper
 
-.. automodapi:: astropy.tests.helper
-    :no-main-docstr:
-    :no-inheritance-diagram:
+    .. automodapi:: astropy.tests.helper
+        :no-main-docstr:
+        :no-inheritance-diagram:
 
 
 Astropy Test Runner
@@ -108,7 +109,9 @@ whole new set of arguments by subclassing from
 Reference/API
 -------------
 
-.. module:: astropy.tests.runner
+::
 
-.. automodapi:: astropy.tests.runner
-    :no-main-docstr:
+    .. module:: astropy.tests.runner
+
+    .. automodapi:: astropy.tests.runner
+        :no-main-docstr:

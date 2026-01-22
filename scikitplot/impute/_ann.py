@@ -337,11 +337,11 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
     n_features_in_ : int
         Number of features seen during :term:`fit`.
 
-    feature_names_in_ : ndarray of shape (`n_features_in_`,)
+    feature_names_in_ : ndarray of shape (``n_features_in_``,)
         Names of features seen during :term:`fit`. Defined only when `X`
         has feature names that are all strings.
 
-    temp_fill_vector_ : ndarray of shape (n_features_in_,)
+    temp_fill_vector_ : ndarray of shape (``n_features_in_``,)
         Per-feature statistics (e.g. mean or median) used to temporarily
         fill missing values when building the ANN index and as a
         fallback when neighbor information is not available.

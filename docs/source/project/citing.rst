@@ -10,7 +10,8 @@ please acknowledge this fact by citing:
    :language: bibtex
 
 .. container:: sphx-glr-download
-   :download:`Download BibTeX bibliography file: CITATION.bib <../../../CITATION.bib>`
+
+   * :download:`Download BibTeX bibliography file: CITATION.bib <../../../CITATION.bib>`
 
 DOIs
 ----

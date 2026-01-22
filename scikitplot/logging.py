@@ -30,6 +30,15 @@ Scikit-plots logging helpers, supports vendoring.
 Module Dependencies:
 - Python standard library: :py:mod:`logging`
 
+.. dropdown:: View aliases
+
+    **Main aliases**
+
+    `scikitplot.logging`
+
+    **Compat aliases**
+
+    `scikitplot.logger`
 
 References
 ----------

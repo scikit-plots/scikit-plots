@@ -230,6 +230,10 @@ extensions = [
     # "sphinx.ext.githubpages",       # Publish HTML docs in GitHub Pages
     "sphinx.ext.doctest",  # Test snippets in the documentation
     #
+    # https://sphinx-automodapi.readthedocs.io/en/latest/index.html#
+    # "sphinx_automodapi.automodapi",
+    # "sphinx_automodapi.smart_resolver",
+    #
     # Matplotlib extensions (load after built-ins)
     #
     "matplotlib.sphinxext.figmpl_directive",
