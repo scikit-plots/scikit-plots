@@ -570,7 +570,7 @@ ci32_requirements = [
 ci_requirements = [
   ## https://anaconda.org/conda-forge/blas
   "scikit-plots[ci32_requirements]",        # Reference the 'core' group as a dependency
-  "scipy-openblas64==0.3.29.265.1",           # Keep this in sync with ci32_requirements.txt
+  "scipy-openblas64==0.3.31.22.0",           # Keep this in sync with ci32_requirements.txt
 ]
 
 ######################################################################
