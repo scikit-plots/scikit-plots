@@ -10,6 +10,8 @@
 Utilities for docstring in scikit-plots.
 """
 
+from __future__ import annotations
+
 # import contextlib
 import functools
 import inspect
@@ -17,7 +19,7 @@ import json
 import logging
 
 # from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from .. import _api
 
@@ -95,8 +97,8 @@ class Substitution:
 
     def __init__(
         self,
-        *args: "Union[tuple, dict]",
-        style: "Optional[str]" = None,
+        *args: tuple | dict,
+        style: str | None = None,
         **kwargs: dict,
     ):
         if args and kwargs:
@@ -104,16 +106,14 @@ class Substitution:
         if style not in (None, "percent", "format"):
             raise ValueError("style must be 'percent', 'format', or None")
         # If no positional arguments are provided, fallback to keyword arguments
-        self.params: "Union[tuple, dict[str, Any]]" = (  # noqa: UP037
-            args if args else (kwargs or {})
-        )
+        self.params: tuple | dict[str, any] = args if args else (kwargs or {})
         # Default to 'percent' if no style is provided
         self.style = style or "percent"
 
     def __call__(
         self,
-        obj: "Callable[..., Any]",
-    ) -> "Callable[..., Any]":
+        obj: Callable[..., Any],
+    ) -> Callable[..., Any]:
         """
         Apply substitution to the docstring of the given object.
 
@@ -137,10 +137,16 @@ class Substitution:
                 # handles *args or **kwargs
                 obj.__doc__ = cleaned % self.params
             elif self.style == "format":
-                if isinstance(self.params, dict):
+                if isinstance(self.params, (dict,)):
                     obj.__doc__ = cleaned.format(**self.params)
                 # handle *args tuple for further usage
-                elif isinstance(self.params, tuple):
+                elif isinstance(
+                    self.params,
+                    (
+                        list,
+                        tuple,
+                    ),
+                ):
                     obj.__doc__ = cleaned.format(*self.params)
             else:
                 # Try both
@@ -150,19 +156,19 @@ class Substitution:
                     obj.__doc__ = cleaned.format(
                         **(
                             self.params
-                            if isinstance(self.params, dict)
+                            if isinstance(self.params, (dict,))
                             else (*self.params,)
                         )
                     )
         except Exception as e:
-            logger.warning(f"Substitution failed for {obj.__name__}: {e}")
+            logger.warning(f"Substitution failed for {obj.__name__!r}: {e}")
         return obj
 
     def decorator(
         self,
         *args,
         **kwargs,
-    ) -> "Callable[..., Any]":
+    ) -> Callable[..., Any]:
         """
         Instance-Level Method (decorator).
 
@@ -211,7 +217,7 @@ class Substitution:
         cls,
         *args,
         **kwargs,
-    ) -> "Callable[[Callable[..., Any]], Callable[..., Any]]":  # Callable[[F], F]
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:  # Callable[[F], F]
         """
         Class-Level Method (decorate).
 
@@ -304,7 +310,7 @@ class _ArtistKwdocLoader(dict):
         return {k: v for k, v in self.items() if isinstance(v, str)}
 
     @classmethod
-    def from_dict(cls, data: dict) -> "_ArtistKwdocLoader":
+    def from_dict(cls, data: dict) -> Self:
         """Create an instance from a dictionary (assuming `str -> str` pairs)."""
         if not all(isinstance(k, str) and isinstance(v, str) for k, v in data.items()):
             raise ValueError("Expected a dict of `str -> str` for deserialization")
@@ -370,17 +376,13 @@ class _ArtistPropertiesSubstitution:
         If the _ArtistKwdocLoader is empty or fails, it defaults to an empty dictionary.
         """
         # Params is a dictionary with default support for kwdoc-style lookups
-        try:
-            self.params: dict[str, str] = _ArtistKwdocLoader() or {}
-        except Exception as e:
-            logger.warning(f"Failed to initialize _ArtistKwdocLoader: {e}")
-            self.params = {}  # Fallback to a plain dict if something goes wrong
+        self.params: dict[str, any] = _ArtistKwdocLoader()
 
     def __call__(  # noqa: D417
         self,
-        obj: "Union[Callable[..., Any], type[Any]]",
+        obj: Callable[..., Any] | type[Any],
         strict: bool = False,
-    ) -> "Union[Callable[..., Any], type[Any]]":
+    ) -> Callable[..., Any] | type[Any]:
         """
         Apply substitution to the given object's docstring.
 
@@ -400,18 +402,20 @@ class _ArtistPropertiesSubstitution:
         This decorator is idempotent and safe to reapply.
         """
         try:
-            doc = getattr(obj, "__doc__", None)
+            doc = getattr(obj, "__doc__", "")
             if doc:
                 obj.__doc__ = inspect.cleandoc(doc) % self.params
         except Exception as e:
-            logger.warning(f"Docstring substitution failed for {obj}: {e}")
+            logger.warning(f"Docstring substitution failed for {obj.__name__!r}: {e}")
 
         # Apply substitution to __init__ if the object is a class
         try:
             if isinstance(obj, type) and obj.__init__ != object.__init__:
                 self(obj.__init__)
         except Exception as e:
-            logger.warning(f"Substitution on __init__ failed for class {obj}: {e}")
+            logger.warning(
+                f"Substitution on __init__ failed for class {obj.__name__!r}: {e}"
+            )
 
         if strict and any(key not in doc for key in self.params):
             raise ValueError("Some keys in params were not found in docstring.")
@@ -438,8 +442,7 @@ class _ArtistPropertiesSubstitution:
             ...
         """
         try:
-            # Filter out None values and ensure empty string is used instead
-            self.params.update({k: v or "" for k, v in kwargs.items()})
+            self.params.update(**kwargs)
         except Exception as e:
             logger.warning(f"Failed to register docstring parameters: {e}")
 
@@ -474,7 +477,7 @@ interpd = _ArtistPropertiesSubstitution()
 
 def decorate_doc_kwarg(
     text: str,
-) -> "Callable[[Callable], Callable]":
+) -> Callable[[Callable], Callable]:
     """
     Decorate for defining the kwdoc documentation of artist properties.
 
@@ -513,7 +516,7 @@ def decorate_doc_kwarg(
         ...
     """
 
-    def decorator(obj: "Callable") -> "Callable":
+    def decorator(obj: Callable) -> Callable:
         # pylint: disable=protected-access
         # Used by e.g. Matplotlib kwdoc generator
         obj._kwarg_doc = text  # Attach doc text as private attribute
@@ -528,15 +531,15 @@ def decorate_doc_kwarg(
 
 
 def decorate_doc_copy(
-    obj_source: "Callable",
-) -> "Callable[[Callable], Callable]":
+    obj_source: Callable,
+) -> Callable[[Callable], Callable]:
     """
     Decorate factory to copy the docstring from another function or class (if present).
 
     This is robust to missing or None docstrings (e.g., when run with Python -OO).
     """
 
-    def decorator(obj_target: "Callable") -> "Callable":
+    def decorator(obj_target: Callable) -> Callable:
         # wrapping preserves signature and metadata
         @functools.wraps(obj_source)
         def wrapped(*args, **kwargs):

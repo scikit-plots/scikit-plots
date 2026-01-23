@@ -562,6 +562,6 @@ def __getattr__(name: str):
         )
 
         # import erfa
-        return getattr(__import__('erfa'), name, None)
+        return getattr(__import__('erfa'), name)
 
     raise AttributeError(f"Module {__name__!r} has no attribute {name!r}.")

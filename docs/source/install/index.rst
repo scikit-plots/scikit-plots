@@ -234,15 +234,15 @@ of NumPy, Scipy and Matplotlib means that these packages are difficult to
 upgrade (see `system python packages`_).  For that reason we strongly suggest
 that you install a fresh version of Python and use that as the basis for
 installing libraries such as NumPy and Matplotlib.  One convenient way to
-install Matplotlib with other useful Python software is to use the Anaconda_
+install Matplotlib with other useful Python software is to use the |Anaconda|
 Python scientific software collection, which includes Python itself and a
 wide range of libraries; if you need a library that is not available from the
 collection, you can install it yourself using standard methods such as *pip*.
 See the Anaconda web page for installation support.
 
-.. _system python packages:
-    https://github.com/MacPython/wiki/wiki/Which-Python#system-python-and-extra-python-packages
-.. _Anaconda: https://www.anaconda.com/
+.. _system python packages: https://github.com/MacPython/wiki/wiki/Which-Python#system-python-and-extra-python-packages
+
+.. Anaconda: https://www.anaconda.com/
 
 Other options for a fresh Python install are the standard installer from
 `python.org <https://www.python.org/downloads/macos/>`_, or installing

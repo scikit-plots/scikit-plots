@@ -37,7 +37,7 @@ chronologically.
 .. note::
 
    You may need to replace ``upstream`` on this page with ``astropy`` or
-   whatever remote name you use for the `astropy core repository`_.
+   whatever remote name you use for the |astropy|.
 
 .. _release-procedure-new-major:
 
@@ -177,7 +177,7 @@ branch, you should switch to it to, e.g.::
 
    $ git checkout v6.0.x
 
-To find the statistics and contributors, use the `generate_releaserst.xsh`_
+To find the statistics and contributors, use the |generate_releaserst.xsh|
 script. This requires `xonsh <https://xon.sh/>`_ and `docopt
 <http://docopt.org/>`_ which you can install with::
 
@@ -260,7 +260,7 @@ Ensure continuous integration and intensive tests pass
 ------------------------------------------------------
 
 Make sure that the continuous integration services (e.g., GitHub Actions or CircleCI) are passing
-for the `astropy core repository`_ branch you are going to release.
+for the |astropy| branch you are going to release.
 Also make sure that the ReadTheDocs build is passing for the release branch.
 
 One of the continuous integration tasks that should be run periodically is the updates to the
@@ -301,7 +301,7 @@ suffix, e.g.::
 
       $ git tag -s v6.0.0rc1 -m "Tagging v6.0.0rc1"
 
-Push up the tag to the `astropy core repository`_, e.g.::
+Push up the tag to the |astropy|, e.g.::
 
       $ git push upstream v6.0.0rc1
 
@@ -545,7 +545,7 @@ latest commit with the ``-s`` option, e.g::
 
       $ git tag -s v6.0.1 -m "Tagging v6.0.1"
 
-Push up the tag to the `astropy core repository`_, e.g.::
+Push up the tag to the |astropy|, e.g.::
 
       $ git push upstream v6.0.1
 
@@ -606,8 +606,8 @@ will need to be backported manually. This is done using the ``git cherry-pick``
 command, which applies the diff from a single commit like a patch.  For the sake
 of example, say the current bug fix branch is 'v6.0.x', and that a bug was fixed
 in main in a commit ``abcd1234``.  In order to backport the fix, checkout the
-v6.0.x branch (it's also good to make sure it's in sync with the `astropy core
-repository`_) and cherry-pick the appropriate commit::
+v6.0.x branch (it's also good to make sure it's in sync with the |astropy|)
+and cherry-pick the appropriate commit::
 
     $ git checkout v6.0.x
     $ git pull upstream v6.0.x
@@ -657,10 +657,10 @@ fixes will have an issues associated with it in the issue tracker, so make sure
 to reference all commits related to that issue in the commit message.  That way
 it's harder for commits that need to be backported from getting lost.
 
-.. _astropy core repository: https://github.com/astropy/astropy
-.. _signed tags: https://git-scm.com/book/en/v2/Git-Basics-Tagging#Signed-Tags
-.. _cython: http://www.cython.org/
-.. _astropy-tools repository: https://github.com/astropy/astropy-tools
-.. _Anaconda: https://conda.io/docs/
-.. _twine: https://packaging.python.org/key_projects/#twine
-.. _generate_releaserst.xsh: https://raw.githubusercontent.com/sunpy/sunpy/main/tools/generate_releaserst.xsh
+.. Anaconda: https://conda.io/docs/
+.. Cython: http://www.cython.org/
+.. astropy: https://github.com/astropy/astropy
+.. astropy-tools: https://github.com/astropy/astropy-tools
+.. twine: https://packaging.python.org/key_projects/#twine
+.. signed tags: https://git-scm.com/book/en/v2/Git-Basics-Tagging#Signed-Tags
+.. generate_releaserst.xsh: https://raw.githubusercontent.com/sunpy/sunpy/main/tools/generate_releaserst.xsh

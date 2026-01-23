@@ -51,7 +51,7 @@ from sklearn.preprocessing import label_binarize
 
 from ... import logger
 from ...exceptions import ScikitplotException
-from ...utils.utils_params import (
+from ...utils._inspect import (
     _get_args_kwargs,
     _get_param_w_index,
     _resolve_args_and_kwargs,
@@ -434,7 +434,7 @@ def validate_shapes_decorator(func):
             **{
                 **kwargs,
                 "func": func,
-                "params": ["y_probas"],
+                "params": ["y_score", "y_probas"],
             },
         )
 
@@ -737,7 +737,7 @@ def validate_y_probas_decorator(func):
             **{
                 **kwargs,
                 "func": func,
-                "params": ["y_probas"],
+                "params": ["y_score", "y_probas"],
             },
         )
 
@@ -912,7 +912,7 @@ def validate_y_probas_bounds_decorator(func):
             **{
                 **kwargs,
                 "func": func,
-                "params": ["y_probas"],
+                "params": ["y_score", "y_probas"],
             },
         )
 

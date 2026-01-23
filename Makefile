@@ -533,7 +533,7 @@ newm:
 	# mamba create -n py39  python=3.9  ipykernel -y
 	# mamba create -n py310 python=3.10 ipykernel -y
 	mamba create -n py311 python=3.11 ipykernel -y
-	# mamba create -n py312 python=3.12 ipykernel -y
+	# micromamba create -n py312 python=3.12 ipykernel -y
 	# mamba create -n py313 python=3.13 ipykernel -y
 	# mamba create -n py314 python=3.14 ipykernel -y
 

@@ -12,7 +12,7 @@ Astropy Testing Tools
 *********************
 
 This section is primarily a reference for developers that want to understand or
-add to the Astropy testing machinery. See :doc:`/development/testguide` for an
+add to the Astropy testing machinery. See :doc:`/devel/guide_test` for an
 overview of running or writing the tests.
 
 Details
@@ -71,11 +71,13 @@ Removed                                                    Use this
 Reference/API
 -------------
 
-.. module:: astropy.tests.helper
+::
 
-.. automodapi:: astropy.tests.helper
-    :no-main-docstr:
-    :no-inheritance-diagram:
+    .. module:: astropy.tests.helper
+
+    .. automodapi:: astropy.tests.helper
+        :no-main-docstr:
+        :no-inheritance-diagram:
 
 
 Astropy Test Runner
@@ -108,7 +110,9 @@ whole new set of arguments by subclassing from
 Reference/API
 -------------
 
-.. module:: astropy.tests.runner
+::
 
-.. automodapi:: astropy.tests.runner
-    :no-main-docstr:
+    .. module:: astropy.tests.runner
+
+    .. automodapi:: astropy.tests.runner
+        :no-main-docstr:

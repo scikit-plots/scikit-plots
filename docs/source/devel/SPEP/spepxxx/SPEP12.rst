@@ -110,7 +110,7 @@ sections described above. "Clean-up" should involve:
     """
 
 
-* PEP8_ clean-ups (running `flake8
+* |PEP8| clean-ups (running `flake8
   <https://pypi.org/project/flake8/>`_, or a similar checker, is
   highly recommended)
 * Commented-out code should be removed.
@@ -197,7 +197,8 @@ would be a big win for users with specific goals, the plot gallery will remain
 the entry point to these examples, and sections could really help users
 navigate the gallery. Thus, tags are complementary to this reorganization.
 
-
-.. _PEP8: https://www.python.org/dev/peps/pep-0008/
+.. references
+.. docs/source/conf.py#rst_prolog |PEP8| to PEP8_
+.. PEP8: https://www.python.org/dev/peps/pep-0008/
 
 .. [1] https://github.com/matplotlib/matplotlib/pull/714

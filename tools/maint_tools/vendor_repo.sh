@@ -27,8 +27,8 @@ log() {
 # read -r ACTUAL_MODE ACTUAL_HASH < <(compute_tree_hash "$TARGET_DIR")
 compute_tree_hash() {
     # Excludes vendor.lock.json, README.md, and .gitignore for reproducibility.
-    local excludes="( -name vendor.lock.json -o -name README.md -o -name .gitignore ) -prune -o"
-    local EXCLUDES=("vendor.lock.json" "README.md" ".gitignore")
+    local excludes="( -name vendor.lock.json -o -name $README_NAME -o -name .gitignore ) -prune -o"
+    local EXCLUDES=("vendor.lock.json" "$README_NAME" ".gitignore")
     local exclude_expr=()
     for f in "${EXCLUDES[@]}"; do
         exclude_expr+=(-not -name "$f")
@@ -58,10 +58,10 @@ compute_tree_hash() {
         echo "⚙️  Falling back to $mode mode for tree hash..." >&2
         local hash
         # hash=$(python - "$dir" <<'EOF'
-        hash=$(python - <<'EOF' "$dir"
+        hash=$(python - << EOF "$dir"
 import hashlib, os, sys
 root = sys.argv[1]
-exclude = {"vendor.lock.json", "README.md", ".gitignore"}
+exclude = {"vendor.lock.json", "$README_NAME", ".gitignore"}
 hasher = hashlib.sha256()
 for path, _, files in os.walk(root):
     for f in sorted(files):
@@ -96,7 +96,7 @@ REPO_REF="${REPO_REF:-""}"        # Ref Branch, Tag, or Commit SHA
 TARGET_DIR="${TARGET_DIR:-""}"    # Directory to clone into
 SRC_SUBDIR="${SRC_SUBDIR:-"."}"   # legacy single subdir (for backward compatibility)
 SRC_SUBDIRS=()                    # list of subdirs/files (new, plural form)
-README_NAME="vendor_repo.sh"
+README_NAME="README.md"           # README.md
 MOVE_TO=""                        # optional move, default: do not move
 # Optional nested folder name inside target to move
 # --nested-folder "astropy" means only move $TARGET_DIR/astropy → MOVE_TO
@@ -148,7 +148,7 @@ done
 # TARGET_DIR=$(basename "$REPO_URL" .git)
 TARGET_DIR=$(realpath "$TARGET_DIR")
 LOCK_FILE="$TARGET_DIR/vendor.lock.json"
-README_FILE="$TARGET_DIR/README.md"
+README_FILE="$TARGET_DIR/$README_NAME"
 # Determine which path to reference in README instructions
 FINAL_TARGET="$TARGET_DIR"  # after possible move
 
@@ -162,14 +162,14 @@ copy_src_paths() {
     local target_dir="$2"
 
     if [[ ${#SRC_SUBDIRS[@]} -eq 0 ]]; then
-        echo "📦 Copying entire repository..."
+        echo "📦  Copying entire repository..."
         # cp -a "$tmp_dir"/. "$target_dir/"
         # cp -a --preserve=all "$src" "$target_dir/$relpath"
         cp -a --preserve=timestamps,mode "$tmp_dir"/. "$target_dir/"
         return
     fi
 
-    echo "📂 Copying specific paths:"
+    echo "📂  Copying specific paths:"
     for pattern in "${SRC_SUBDIRS[@]}"; do
         # Expand globs safely *inside* tmp_dir
         local matches=()
@@ -198,10 +198,10 @@ copy_src_paths() {
 #######################################
 # echo "$MODE"
 if [[ "$MODE" == "check" ]]; then
-    echo "🔍 Running integrity check on $TARGET_DIR..."
+    echo "🔍  Running integrity check on $TARGET_DIR..."
     # [[ -f "$LOCK_FILE" ]] || { echo "❌ No vendor.lock.json found; cannot verify."; exit 1; }
     if [[ ! -f "$LOCK_FILE" ]]; then
-        echo "❌ No vendor.lock.json found; cannot verify."
+        echo "❌  No vendor.lock.json found; cannot verify."
         exit 1
     fi
 
@@ -210,7 +210,7 @@ if [[ "$MODE" == "check" ]]; then
         # EXPECTED_HASH=$(jq -r '.commit_hash' "$LOCK_FILE")
         EXPECTED_HASH=$(jq -r '.tree_hash' "$LOCK_FILE")
     else
-        echo "⚠ jq not found, using fallback JSON parser or python"
+        echo "⚠  jq not found, using fallback JSON parser or python"
         # EXPECTED_HASH=$(grep -o '"commit_hash": *"[^"]*"' "$LOCK_FILE" | sed -E 's/.*"commit_hash": *"([^"]*)".*/\1/')
         EXPECTED_HASH=$(python -c "import json,sys; print(json.load(open('$LOCK_FILE'))['tree_hash'])")
     fi
@@ -221,11 +221,11 @@ if [[ "$MODE" == "check" ]]; then
 
     echo "🔍 Verification mode: $ACTUAL_MODE"
     if [[ "$EXPECTED_HASH" == "$ACTUAL_HASH" ]]; then
-        # echo "✅ Verified: Commit hash matches ($EXPECTED_HASH)"
-        echo "✅ Verified: Tree hash matches ($EXPECTED_HASH)"
+        # echo "✅  Verified: Commit hash matches ($EXPECTED_HASH)"
+        echo "✅  Verified: Tree hash matches ($EXPECTED_HASH)"
         exit 0
     else
-        echo "❌ Drift detected!"
+        echo "❌  Drift detected!"
         echo "   • Expected: $EXPECTED_HASH"
         echo "   •   Actual: $ACTUAL_HASH"
         echo "   •    Mode : $ACTUAL_MODE"
@@ -239,17 +239,23 @@ fi
 # bash ./tools/maint_tools/vendor_repo.sh \
 #   --target-dir "../scikitplot/cexternals/NumCpp" \
 #   --update-hash
+
+# Escape a string for safe use in a sed replacement (handles / and &)
+sed_repl_escape() {
+  printf '%s' "$1" | sed 's/[\/&]/\\&/g';
+}
+
 if [ "$MODE" = "update_hash" ]; then
-    echo "🔁 Recomputing tree hash for $TARGET_DIR..."
+    echo "🔁  Recomputing tree hash for $TARGET_DIR..."
 
     # [[ -f "$LOCK_FILE" ]] || { echo "❌ No vendor.lock.json found; cannot update hash."; exit 1; }
     if [ ! -f "$LOCK_FILE" ]; then
-        echo "❌ No vendor.lock.json found; cannot update hash."
+        echo "❌  No vendor.lock.json found; cannot update hash."
         exit 1
     fi
 
     read -r NEW_MODE NEW_HASH <<<"$(compute_tree_hash "$TARGET_DIR")"
-    echo "🔐 New Tree Hash: $NEW_HASH ($NEW_MODE)"
+    echo "🔐  New Tree Hash: $NEW_HASH ($NEW_MODE)"
 
     if command -v jq >/dev/null 2>&1; then
         tmpfile=$(mktemp)
@@ -272,26 +278,51 @@ EOF
     fi
 
     # Update README.md if exists
-    if [ -f "$TARGET_DIR/README.md" ]; then
-        sed -i.bak -E \
-            -e "s/^(- Tree Mode:).*/\1  $NEW_MODE/" \
-            -e "s/^(- Tree Hash:).*/\1  $NEW_HASH/" \
-            -e "s/^(- Retrieved:).*/\1  $(date -u +'%Y-%m-%dT%H:%M:%SZ')/" \
-            "$TARGET_DIR/README.md" && rm -f "$TARGET_DIR/README.md.bak"
-        echo "📘 Updated README.md with new hash."
+    # if [ -f "$README_FILE" ]; then
+    #     sed -i.bak -E \
+    #         -e "s/^(- Tree Mode:).*/\1  $NEW_MODE/" \
+    #         -e "s/^(- Tree Hash:).*/\1  $NEW_HASH/" \
+    #         -e "s/^(- Retrieved:).*/\1  $(date -u +'%Y-%m-%dT%H:%M:%SZ')/" \
+    #         "$README_FILE" && rm -f "$README_FILE.bak"
+    #     echo "📘 Updated $README_FILE with new hash."
+    # fi
+
+    # Update README.md if exists
+    if [ -f "$README_FILE" ]; then
+      NEW_MODE_ESC="$(sed_repl_escape "$NEW_MODE")"
+      NEW_HASH_ESC="$(sed_repl_escape "$NEW_HASH")"
+      NOW="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+      NOW_ESC="$(sed_repl_escape "$NOW")"
+
+      # --- New table format ---
+      # --- Legacy bullet format (if still present) ---
+      sed -i.bak -E \
+        \
+        -e "s/^(\|[[:space:]]*Tree Mode[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $NEW_MODE_ESC \2/" \
+        -e "s/^(\|[[:space:]]*Tree Hash[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $NEW_HASH_ESC \2/" \
+        -e "s/^(\|[[:space:]]*Retrieved[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $NOW_ESC \2/" \
+        \
+        -e "s/^(- Tree Mode:).*/\1  $NEW_MODE_ESC/" \
+        -e "s/^(- Tree Hash:).*/\1  $NEW_HASH_ESC/" \
+        -e "s/^(- Retrieved:).*/\1  $NOW_ESC/" \
+        \
+        "$README_FILE" && rm -f "$README_FILE.bak"
+
+      echo "📘 Updated README.md with new hash."
     fi
 
-    echo "✅ Updated vendor.lock.json and README.md with recomputed hash."
+    echo "✅  Updated vendor.lock.json and $README_NAME with recomputed hash."
     exit 0
 fi
+
 
 #######################################
 # Update (vendoring) mode
 #######################################
 # --- Step 1: Validate Inputs ---
 # [[ -z "$REPO_URL" || -z "$REPO_REF" ]] && { echo "❌ --repo-url and --repo-ref required for update mode."; exit 1; }
-[[ -z "$REPO_URL" ]] && { echo "❌ --repo-url required."; exit 1; }
-[[ -z "$REPO_REF" ]] && { echo "❌ --repo-ref required."; exit 1; }
+[[ -z "$REPO_URL" ]] && { echo "❌  --repo-url required."; exit 1; }
+[[ -z "$REPO_REF" ]] && { echo "❌  --repo-ref required."; exit 1; }
 
 # ---------------------------------------------------------------------
 # Function: Determine if provided ref appears to be a commit hash
@@ -310,13 +341,13 @@ ref_exists_remotely() {
 if ! is_commit_hash; then
   if ! git ls-remote --exit-code --tags "$REPO_URL" "refs/tags/$REPO_REF" >/dev/null 2>&1; then
     if ! git ls-remote --exit-code --heads "$REPO_URL" "$REPO_REF" >/dev/null 2>&1; then
-        echo "❌ Repository ref '$REPO_REF' is not a tag or branch in $REPO_URL"
+        echo "❌  Repository ref '$REPO_REF' is not a tag or branch in $REPO_URL"
         echo "ℹ️  If this is a commit hash, please confirm it exists."
         exit 1
     fi
   fi
 else
-  echo "ℹ️ Detected commit hash: skipping tag/branch remote validation."
+  echo "ℹ️  Detected commit hash: skipping tag/branch remote validation."
 fi
 
 TMP_DIR="$TARGET_DIR/.tmp"
@@ -350,7 +381,7 @@ clone_specific_commit() {
   # Checkout commit in detached HEAD
   git checkout "$REPO_REF"                 # CHECKS OUT SNAPSHOT OF THAT COMMIT
   popd >/dev/null
-  log "INFO" "✅ Checked out commit $REPO_REF in detached HEAD mode on branch 'main'."
+  log "INFO" "✅  Checked out commit $REPO_REF in detached HEAD mode on branch 'main'."
 }
 
 # ---------------------------------------------------------------------
@@ -376,7 +407,7 @@ elif is_commit_hash; then
   clone_specific_commit
 else
   if ! ref_exists_remotely; then
-    echo "❌ Ref '$REPO_REF' not found in $REPO_URL"
+    echo "❌  Ref '$REPO_REF' not found in $REPO_URL"
     exit 1
   fi
   clone_branch_or_tag
@@ -390,7 +421,7 @@ HASH=$(git rev-parse HEAD)
 popd >/dev/null
 
 log "SUCCESS" "Repository successfully checked out to: $TMP_DIR"
-echo "📦 Checked out commit $HASH from $REPO_URL"
+echo "📦  Checked out commit $HASH from $REPO_URL"
 
 # --- Step 3: Move or Copy files exactly-deterministically ---
 # if [[ -n "$SRC_SUBDIR" && ! -d "$TMP/$SRC_SUBDIR" ]]; then
@@ -400,7 +431,7 @@ echo "📦 Checked out commit $HASH from $REPO_URL"
 # [[ -d "${SRC_PATH:-}" ]] || { echo "❌ Subdir '$SRC_SUBDIR' not found."; exit 1; }
 # cp -a "$SRC_PATH"/. "$TARGET_DIR/"
 if [[ ${#SRC_SUBDIRS[@]} -eq 0 ]]; then
-    echo "📦 Copying entire repository..."
+    echo "📦  Copying entire repository..."
     cp -a --preserve=timestamps,mode "$TMP_DIR"/. "$TARGET_DIR/"
 else
     # Verify all requested paths exist before copying
@@ -438,7 +469,7 @@ rm -rf "$TMP_DIR"
 # --- Step 3b: Move if requested (with safety check) ---
 if [[ -n "${MOVE_TO:-}" ]]; then
     MOVE_TO=$(realpath "$MOVE_TO")
-    echo "📦 Moving vendored content from $TARGET_DIR to $MOVE_TO ..."
+    echo "📦  Moving vendored content from $TARGET_DIR to $MOVE_TO ..."
 
     rm -rf "$MOVE_TO"
     mkdir -p "$(dirname "$MOVE_TO")"
@@ -447,7 +478,7 @@ if [[ -n "${MOVE_TO:-}" ]]; then
         NESTED_PATH="$TARGET_DIR/$NESTED_FOLDER"
         # Safety check: ensure nested folder is within target
         if [[ "$NESTED_PATH" != "$TARGET_DIR"* ]]; then
-            echo "❌ Error: --nested-folder '$NESTED_FOLDER' points outside target!"
+            echo "❌  Error: --nested-folder '$NESTED_FOLDER' points outside target!"
             exit 1
         fi
         if [[ -d "$NESTED_PATH" ]]; then
@@ -456,7 +487,7 @@ if [[ -n "${MOVE_TO:-}" ]]; then
             # Remove empty parent directories if needed
             rmdir --ignore-fail-on-non-empty "$TARGET_DIR" 2>/dev/null || true
         else
-            echo "❌ Nested folder '$NESTED_FOLDER' not found in target."
+            echo "❌  Nested folder '$NESTED_FOLDER' not found in target."
             exit 1
         fi
     else
@@ -466,7 +497,7 @@ if [[ -n "${MOVE_TO:-}" ]]; then
 
     # Update TARGET_DIR path for following steps (README, tree hash)
     LOCK_FILE="$MOVE_TO/vendor.lock.json"
-    README_FILE="$MOVE_TO/README.md"
+    README_FILE="$MOVE_TO/$README_NAME"
     FINAL_TARGET="$MOVE_TO"  # after possible move
 fi
 
@@ -487,39 +518,61 @@ cat <<EOF > "$LOCK_FILE"
 }
 EOF
 
+code_block() {
+  local code="$1"
+  printf '```bash\n%s\n```\n' "$code"
+}
+code_block_p() {
+  local code="$1"
+  printf '~~~bash\n%s\n~~~\n' "$code"
+}
+
 # --- Step 5: Record provenance exactly README.md ---
+# quote the delimiter (e.g., <<'EOF', <<"EOF", or <<\EOF).
+# Single quotes	              <<'EOF'	No expansion; simplest and most common.
+# Double quotes	              <<"EOF"	No expansion (same as single quotes here).
+# Escaping the delimiter      <<\EOF	No expansion (backslash is stripped).
+# here-doc uses leading tabs  <<-'EOF'  Hyphen strips leading tabs
 # {echo "Vendored repository information"} > "$TARGET_DIR/README.md"
 # cat >"$TARGET_DIR/README.md" <<EOF
+
 cat <<EOF > "$README_FILE"
 Vendored repository information
 ===============================
 
-- Repository: $REPO_URL  # Remote Git repo URL
-- Version:    $REPO_REF  # Ref Branch, Tag, or Commit SHA
-- Commit:     $HASH
-- Tree Mode:  $TREE_MODE
-- Tree Hash:  $TREE_HASH
-- Retrieved:  $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+|     |     |     |
+| --: | :-- | --- |
+| Repository (Remote Git repo URL)         : | $REPO_URL ||
+| Version (Ref Branch, Tag, or Commit SHA) : | $REPO_REF ||
+| Commit                                   : | $HASH ||
+| Tree Mode                                : | $TREE_MODE ||
+| Tree Hash                                : | $TREE_HASH ||
+| Retrieved                                : | $(date -u +'%Y-%m-%dT%H:%M:%SZ') ||
 
 To update (git clone), run:
-  bash ./tools/maint_tools/$README_NAME \\
-    --repo-url "$REPO_URL" \\
-    --repo-ref "$REPO_REF" \\
-    --target-dir "$TARGET_DIR" \\
-    --move-to "$MOVE_TO" \\
-    --nested-folder "$NESTED_FOLDER" \\
-    --src-subdirs "${SRC_SUBDIRS[*]}" \\
-    --readme-name "$README_NAME"
+
+$(code_block_p "bash ./tools/maint_tools/vendor_repo.sh \\
+  --repo-url $REPO_URL \\
+  --repo-ref $REPO_REF \\
+  --target-dir $TARGET_DIR \\
+  --move-to $MOVE_TO \\
+  --nested-folder $NESTED_FOLDER \\
+  --src-subdirs ${SRC_SUBDIRS[*]} \\
+  --readme-name $README_NAME")
 
 To update only the tree hash (no git clone):
-  bash ./tools/maint_tools/$README_NAME \\
-    --target-dir "$FINAL_TARGET" \\
-    --update-hash
+
+$(code_block_p "bash ./tools/maint_tools/vendor_repo.sh \\
+  --target-dir $FINAL_TARGET \\
+  --update-hash")
 
 To verify in CI:
-  bash ./tools/maint_tools/$README_NAME --target-dir "$FINAL_TARGET" --check
-  python ./tools/maint_tools/verify_vendor.py "$FINAL_TARGET"  # --json --pretty
+
+$(code_block_p "bash ./tools/maint_tools/vendor_repo.sh --target-dir $FINAL_TARGET --check")
+
+$(code_block_p "# python ./tools/maint_tools/verify_vendor.py "./scikitplot/"
+python ./tools/maint_tools/verify_vendor.py \"$FINAL_TARGET\"  # --json --pretty")
 EOF
 
-echo "✅ Vendoring complete (commit: $HASH)"
-echo "🔐 Integrity fingerprint: $TREE_HASH"
+echo "✅  Vendoring complete (commit: $HASH)"
+echo "🔐  Integrity fingerprint: $TREE_HASH"

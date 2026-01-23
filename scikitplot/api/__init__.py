@@ -7,8 +7,7 @@ Scikit-plots Functional API module.
 
 # To get sub-modules into your current module"s scope or to add global attribute
 from .._testing._pytesttester import PytestTester  # Pytest testing
-from ..utils.utils_plot_mpl import stack  # not a module or namespace, global attr
-from ..utils.utils_path import remove_path
+from ..utils._matplotlib import stack  # not a module or namespace, global attr
 from .decomposition import *  # into your current module"s scope
 from .estimators import *
 from .metrics import *
@@ -37,7 +36,6 @@ __all__ = [
     "plot_roc_curve",
     "plot_silhouette",
     "plotters",
-    "remove_path",
     "stack",
     "test",
 ]

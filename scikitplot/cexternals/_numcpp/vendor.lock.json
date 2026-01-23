@@ -1,8 +1,8 @@
 {
   "repository": "https://github.com/dpilger26/NumCpp.git",
-  "version": "7d390df4ae94268e58222278529b22ebae2ee663",
-  "commit_hash": "7d390df4ae94268e58222278529b22ebae2ee663",
+  "version": "3bbce08329cda35655e154f3724c585d65c3c436",
+  "commit_hash": "3bbce08329cda35655e154f3724c585d65c3c436",
   "tree_mode": "bash-sha256sum",
-  "tree_hash": "8e81be0a8f6ced1951ecee332230d590474379255fcd222fef3be21a2c7d8a61",
-  "generated_utc": "2025-10-29T06:44:31Z"
+  "tree_hash": "bb44ad7df6b7cf3d12b8171e33a6c05c9c98f7776679f5ed183820905ba3d254",
+  "generated_utc": "2026-01-22T12:48:15Z"
 }

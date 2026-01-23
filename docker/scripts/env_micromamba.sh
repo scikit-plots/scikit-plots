@@ -21,7 +21,7 @@
 # - MICROMAMBA_ALLOW_INSTALL=0|1                         (default: 1)
 # - MICROMAMBA_INSTALL_MODE=api|script                   (default: api)
 # - MICROMAMBA_BIN_DIR=/path                             (default: /usr/local/bin if writable else ~/.local/bin)
-# - MAMBA_ROOT_PREFIX=/path                              (default: ~/.micromamba)
+# - MAMBA_ROOT_PREFIX=/path                              (default: ~/micromamba)
 # - MICROMAMBA_ENV_ACTION=none|ensure|create|update      (default: ensure)
 # - MICROMAMBA_PRUNE=0|1                                 (default: 0; applies to update/ensure(update))
 #
@@ -38,6 +38,8 @@ fi
 env_micromamba_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
 env_micromamba_exit_or_return() { local rc="${1:-0}"; env_micromamba_is_sourced && return "$rc" || exit "$rc"; }
 
+# -- - makes sure you’re not accidentally passing an extra argument to the command. For example, if you try to create a directory that starts with - (dash) without using -- the directory name will be interpreted as a command argument.
+# && - ensures that the second command runs only if the first command is successful.
 env_micromamba_main() {
   # ---- preserve caller state (important when sourced) ----
   local _OLD_SET _OLD_TRAP_ERR _OLD_PWD
@@ -118,10 +120,11 @@ env_micromamba_main() {
   fi
   export PY_VERSION ENV_NAME ENV_FILE
 
+  # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html
   default_var MICROMAMBA_ALLOW_INSTALL "1"
   default_var MICROMAMBA_INSTALL_MODE "api"
   default_var MICROMAMBA_BIN_DIR ""
-  default_var MAMBA_ROOT_PREFIX "$HOME/.micromamba"
+  default_var MAMBA_ROOT_PREFIX "$HOME/micromamba"
   default_var MICROMAMBA_ENV_ACTION "ensure"
   default_var MICROMAMBA_PRUNE "0"
 
@@ -132,6 +135,11 @@ env_micromamba_main() {
   export MAMBA_ROOT_PREFIX
 
   # ---- helpers ----
+  # https://mamba.readthedocs.io/en/latest/user_guide/concepts.html#root-prefix
+  # https://mamba.readthedocs.io/en/latest/user_guide/configuration.html#configuration
+  # The location of the micromamba executable depends on your installation method:
+  # Automatic installation script: The executable is typically installed to ~/.local/bin/micromamba (Linux/macOS)
+  # or %LOCALAPPDATA%\micromamba\micromamba.exe (Windows).
   _bin_dir() {
     if [[ -n "${MICROMAMBA_BIN_DIR:-}" ]]; then
       printf '%s\n' "$MICROMAMBA_BIN_DIR"; return 0

@@ -1,3 +1,4 @@
+.. docs/source/user_guide/cexternals/_annoy/index.rst
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -20,23 +21,70 @@
 .. _cexternals-annoy-index:
 
 ======================================================================
-spotify/ANNoy (experimental)
+spotify/ANNoy Vector Database (Approximate Nearest Neighbors)
 ======================================================================
 
-This page documents the Annoy [0]_ integration shipped with scikit-plots.
+ANNoy helps you find *similar items* fast.
 
-- High-level API: :py:mod:`~scikitplot.annoy`
-- Low-level bindings: :py:mod:`~scikitplot.cexternals._annoy`
+You give your data as **vectors** (arrays of numbers). Then you can search for
+the **nearest neighbors** (the most similar vectors).
 
-Annoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
+This page documents the Annoy [1]_ user guide integration shipped with scikit-plots.
+
+- Low-level bindings C-API: :py:mod:`~scikitplot.cexternals._annoy`
+- High-level Python-API: :py:mod:`~scikitplot.annoy`
+
+----------------------------------------------------------------------
+Python API
+----------------------------------------------------------------------
+
+ANNoy (Approximate Nearest Neighbors Oh Yeah) is a C++ library with Python bindings
 for approximate nearest-neighbor search in high-dimensional vector spaces. [1]_
+
+- A **vector** is a list of numbers.
+- “Similarity search” means: *find items that are close to each other*.
+- Annoy builds an index so searching is fast.
+
+Many AI apps convert data into vectors:
+
+- text → embeddings
+- images → embeddings
+- audio → embeddings
+
+After that, you can do **vector similarity search**: you search with a query
+vector and get back the closest vectors. This is useful for:
+
+- semantic search (meaning-based search)
+- recommendations (“users like you also liked…”)
+- de-duplication (find near-duplicates)
+
+Annoy is an **approximate nearest neighbor (ANN)** method.
+
+- It is **fast** for search.
+- It is **approximate** (it may not return the exact best answer every time).
+- You often tune index/search parameters to trade off **speed vs accuracy**.
+
+If you need a full service (storage, filtering, replication, access control),
+you may want a **vector database** instead of a single in-process index.
+
+When to use Annoy
+-----------------
+
+Use Annoy when you want:
+
+- a lightweight, local index (often inside one Python process)
+- fast similarity search for a static or slowly changing dataset
+- simple deployment (no separate database service)
+
+If you need distributed storage, many writers, metadata filtering, or a managed
+service, see :ref:`annoy_index_vector_database`.
 
 TL;DR
 -----
 
 - **What it is:** C++ library with Python bindings for approximate nearest-neighbor (ANN) search. [1]_
 - **Origin:** Developed at Spotify (Hack Week). [1]_
-- **Since:** Open sourced in 2013. [3]_
+- **Since:** Open sourced in 2013. [2]_, [3]_
 - **Index type:** Forest of random projection trees. [1]_
 - **Storage:** File-based indexes can be memory-mapped (mmap) and shared across processes. [1]_
 - **Tuning:** Use ``n_trees`` (build) and ``search_k`` (query) to trade accuracy for speed. [1]_
@@ -208,8 +256,24 @@ See also
 
 References
 ----------
-.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
-   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
-.. [1] https://github.com/spotify/annoy (README: API, mmap, prefault, on-disk build, tuning)
+.. [1] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://github.com/spotify/annoy <https://github.com/spotify/annoy>`_
 .. [2] https://pypi.org/project/annoy/ (Project description)
 .. [3] https://erikbern.com/2015/05/03/annoy-now-without-boost-dependencies-and-with-python-3-support.html (History note: open sourced in 2013)
+
+
+Glossary
+--------
+
+Vector
+  An array of numbers (often an embedding).
+
+Embedding
+  A vector representation created by a model (text/image/audio → numbers).
+
+Vector similarity search
+  Find vectors in a dataset that are most similar to a query vector.
+
+Vector database
+  A system that stores, manages, and indexes high-dimensional vector data for
+  low-latency similarity queries.

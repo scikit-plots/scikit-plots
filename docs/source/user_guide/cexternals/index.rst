@@ -28,12 +28,12 @@ C-Externals (experimental)
     .. grid-item-card::
         :padding: 3
 
-        **ANNoy Nearest Neighbor**
+        **Nearest Neighbor**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            ./_annoy/index.rst
+            spotify/ANNoy Vector Index DB <./_annoy/index.rst>
 
     .. grid-item-card::
         :padding: 3

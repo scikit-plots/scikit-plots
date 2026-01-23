@@ -3,7 +3,7 @@
 /// [GitHub Repository](https://github.com/dpilger26/NumCpp)
 ///
 /// License
-/// Copyright 2018-2025 David Pilger
+/// Copyright 2018-2026 David Pilger
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy of this
 /// software and associated documentation files(the "Software"), to deal in the Software
@@ -51,15 +51,11 @@ namespace nc
     {
         STATIC_ASSERT_ARITHMETIC_OR_COMPLEX(dtype);
 
-        const auto size = inArray1.size();
+        const auto size1 = inArray1.size();
+        const auto size2 = inArray2.size();
 
-        if (size != inArray2.size())
-        {
-            THROW_INVALID_ARGUMENT_ERROR("Input arrays must be the same length");
-        }
-
-        auto returnArray = NdArray<dtype>(size);
-        for (uint32 row = 0; row < size; ++row)
+        auto returnArray = NdArray<dtype>(size1, size2);
+        for (uint32 row = 0; row < size1; ++row)
         {
             const auto array1Value = inArray1[row];
 

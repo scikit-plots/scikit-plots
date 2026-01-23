@@ -83,8 +83,10 @@ import jinja2
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_sphinx_ext/sklearn_ext"))
 sys.path.insert(0, os.path.abspath("."))
 
-# Use datetime.UTC if available (Python 3.11+), else fallback to datetime.timezone.utc
-UTC = getattr(datetime, "UTC", datetime.timezone.utc)  # datetime.datetime.now(tz=UTC)
+# Use datetime.UTC if available (Python 3.11+),
+# else fallback to datetime.timezone.utc, time.timezone.utc
+# for datetime.datetime.now(tz=UTC)
+UTC = getattr(datetime, "UTC", datetime.timezone.utc)
 
 # %%
 #
@@ -205,6 +207,9 @@ print(f"gh_branch: {gh_branch}")
 # - Built-in Sphinx extensions (e.g., 'sphinx.ext.*') should generally come first.
 # - Custom or third-party extensions should be added after all core extensions.
 # - If you encounter issues, consider changing the order to resolve potential conflicts.
+#
+# https://pypi.org/project/sphinx-substitution-extensions/
+# https://pypi.org/project/sphinxcontrib-globalsubs/
 extensions = [
     # Core extensions
     #
@@ -230,6 +235,10 @@ extensions = [
     # "sphinx.ext.githubpages",       # Publish HTML docs in GitHub Pages
     "sphinx.ext.doctest",  # Test snippets in the documentation
     #
+    # https://sphinx-automodapi.readthedocs.io/en/latest/index.html#
+    # "sphinx_automodapi.automodapi",
+    # "sphinx_automodapi.smart_resolver",
+    #
     # Matplotlib extensions (load after built-ins)
     #
     "matplotlib.sphinxext.figmpl_directive",
@@ -250,7 +259,10 @@ extensions = [
     "sphinxext.opengraph",  # Add OpenGraph metadata for better sharing of documentation.
     "sphinx_copybutton",  # Add a "copy" button to code blocks in the documentation
     "sphinx_design",  # Add design components and elements to documentation.
+    #
+    "_sphinx_ext.skplt_ext.compat_sphinx_tabs_backrefs",   # <-- must come BEFORE sphinx_tabs.tabs
     "sphinx_tabs.tabs",  # Tabbed content extension
+    #
     # 'nbsphinx',                     # to publish Jupyter notebooks as documentation pages.
     # 'myst_parser',                  # Markdown parser (.md files) with Sphinx
     # gallery extensions (these affect layout and content presentation)
@@ -507,7 +519,7 @@ default_role = "literal"
 # output. They are ignored by default.
 # show_authors = False
 
-# rst_prolog for docs text substitution
+# rst_prologue for docs text substitution
 # will be included at the beginning of every source file that is read.
 # Purpose:
 # Injects reStructuredText substitution definitions into every RST source file.
@@ -525,10 +537,29 @@ rst_prolog = f"""
 .. |psf| replace:: Python Software Foundation
 .. |full_version| replace:: {_version_raw}
 
-.. _Python: https://www.python.org/
 .. _PEP8: https://peps.python.org/pep-0008/
-.. _conda: https://docs.conda.io/en/latest/
+.. _Python: https://www.python.org/
+.. _pip: https://pypi.org/project/pip/
+.. _Cython: https://cython.org/
+.. _setuptools: https://pypi.org/project/setuptools/
+.. _PyPI: https://pypi.org/project
+.. _dateutil: https://pypi.org/project/python-dateutil/
+.. _distribute: https://pypi.org/project/distribute/
 .. _pytest: https://docs.pytest.org/en/stable/
+.. _pytest-cov: https://pytest-cov.readthedocs.io/en/latest/
+.. _pytest-doctestplus: https://pypi.org/project/pytest-doctestplus/
+.. _pytest-timeout: https://pypi.org/project/pytest-timeout/
+.. _pytest-remotedata: https://pypi.org/project/pytest-remotedata/
+.. _pytest-xdist: https://pypi.org/project/pytest-xdist/
+.. _pytest-xvfb: https://pypi.org/project/pytest-xvfb/
+.. _Ruff: https://docs.astral.sh/ruff/
+.. _flake8: https://flake8.pycqa.org/
+.. _black: https://black.readthedocs.io/
+.. _venv: https://docs.python.org/3/library/venv.html
+.. _Anaconda: https://conda.io/docs/
+.. _conda: https://docs.conda.io/en/latest/
+.. _mamba: https://mamba.readthedocs.io/en/latest/
+.. _miniforge: https://github.com/conda-forge/miniforge
 .. _NumPy: https://numpy.org/
 .. _SciPy: https://scipy.org/
 .. _pandas: https://pandas.pydata.org/
@@ -550,11 +581,51 @@ rst_prolog = f"""
 .. _onnx: https://onnx.ai/
 .. _wandb: https://wandb.ai/
 .. _Weights & Biases: https://wandb.ai/
+.. _pyparsing: https://pypi.org/project/pyparsing/
+.. _pytz: https://pypi.org/project/pytz/
+.. _six: https://pypi.org/project/six/
+.. _easy_install: https://setuptools.readthedocs.io/en/latest/easy_install.html
+.. _astropy: https://github.com/astropy/astropy
+.. _astropy-tools: https://github.com/astropy/astropy-tools
+.. _pytest-astropy: https://pypi.org/project/pytest-astropy/
+.. _twine: https://packaging.python.org/key_projects/#twine
+.. _signed tags: https://git-scm.com/book/en/v2/Git-Basics-Tagging#Signed-Tags
+.. _generate_releaserst.xsh: https://raw.githubusercontent.com/sunpy/sunpy/main/tools/generate_releaserst.xsh
+.. _numpydoc: https://numpydoc.readthedocs.io/en/latest/
+.. _docutils: https://docutils.sourceforge.io/rst.html
+.. _sphinx: https://pypi.org/project/Sphinx/
+.. _sphinx-gallery: https://sphinx-gallery.readthedocs.io/en/latest/
+.. _xarray: https://pypi.org/project/xarray/
+.. _nbconvert: https://pypi.org/project/nbconvert/
+.. _nbformat: https://pypi.org/project/nbformat/
+.. _pikepdf: https://pypi.org/project/pikepdf/
+.. _psutil: https://pypi.org/project/psutil/
+.. _Inkscape: https://inkscape.org
+.. _Ghostscript: https://ghostscript.com/
 
-.. |Python| replace:: `Python`_
 .. |PEP8| replace:: PEP8_
-.. |conda| replace:: conda_
+.. |Python| replace:: `Python`_
+.. |pip| replace:: `pip`_
+.. |Cython| replace:: `Cython`_
+.. |setuptools| replace:: `setuptools`_
+.. |PyPI| replace:: PyPI_
+.. |dateutil| replace:: dateutil_
+.. |distribute| replace:: distribute_
 .. |pytest| replace:: pytest_
+.. |pytest-cov| replace:: `pytest-cov`_
+.. |pytest-doctestplus| replace:: `pytest-doctestplus`_
+.. |pytest-timeout| replace:: `pytest-timeout`_
+.. |pytest-remotedata| replace:: `pytest-remotedata`_
+.. |pytest-xdist| replace:: `pytest-xdist`_
+.. |pytest-xvfb| replace:: `pytest-xvfb`_
+.. |Ruff| replace:: Ruff_
+.. |flake8| replace:: flake8_
+.. |black| replace:: black_
+.. |venv| replace:: venv_
+.. |Anaconda| replace:: Anaconda_
+.. |conda| replace:: conda_
+.. |mamba| replace:: mamba_
+.. |miniforge| replace:: miniforge_
 .. |NumPy| replace:: NumPy_
 .. |SciPy| replace:: SciPy_
 .. |pandas| replace:: pandas_
@@ -575,6 +646,33 @@ rst_prolog = f"""
 .. |skorch| replace:: skorch_
 .. |onnx| replace:: ONNX_
 .. |wandb| replace:: `Weights & Biases`_
+.. |pyparsing| replace:: pyparsing_
+.. |pytz| replace:: pytz_
+.. |six| replace:: six_
+.. |easy_install| replace:: easy_install_
+.. |astropy| replace:: astropy_
+.. |astropy-tools| replace:: astropy-tools_
+.. |pytest-astropy| replace:: pytest-astropy_
+.. |twine| replace:: twine_
+.. |signed tags| replace:: `signed tags`_
+.. |generate_releaserst.xsh| replace:: `generate_releaserst.xsh`_
+.. |numpydoc| replace:: numpydoc_
+.. |docutils| replace:: docutils_
+.. |sphinx| replace:: sphinx_
+.. |sphinx-gallery| replace:: sphinx-gallery_
+.. |xarray| replace:: xarray_
+.. |nbconvert| replace:: nbconvert_
+.. |nbformat| replace:: nbformat_
+.. |pikepdf| replace:: pikepdf_
+.. |psutil| replace:: psutil_
+.. |Inkscape| replace:: Inkscape_
+.. |Ghostscript| replace:: Ghostscript_
+
+.. _minimum_numpy_version: 1.20
+.. |minimum_numpy_version| replace:: minimum_numpy_version_
+
+.. _astropy-dev mailing list: https://github.com/astropy/astropy
+.. |astropy-dev mailing list| replace:: `astropy-dev mailing list`_
 
 .. |emoji| unicode:: U+1F680
    :trim:
@@ -832,7 +930,7 @@ _html_secondary_sidebars = {
     "introduction/index": [],
     "user_guide/index": [],
     "user_guide/api/index": [],
-    "user_guide/decile_wise_perf/index": [],
+    "user_guide/decile/index": [],
     "whats_new/index": [],
     "_tags/tagsindex": [],
 }
@@ -1210,6 +1308,7 @@ tags_badge_colors = {
 # Locations of objects.inv files for intersphinx extension that auto-links
 # to external api docs.
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#confval-intersphinx_mapping
+# https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#role-external
 intersphinx_mapping = {
     # Build
     "python": (f"https://docs.python.org/{sys.version_info.major}", None),
@@ -1224,6 +1323,7 @@ intersphinx_mapping = {
     "pytest": ("https://pytest.org/en/stable/", None),
     "tox": ("https://tox.wiki/en/stable", None),
     # Docs
+    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
     "numpydoc": ("https://numpydoc.readthedocs.io/en/latest", None),
     # Data Manuplation
     "numpy": ("https://numpy.org/doc/stable", None),
@@ -1462,6 +1562,8 @@ import gc; gc.collect()
 import importlib
 import sys
 
+import numpy as np
+
 # List of modules to reload to reset state
 for mod in ['matplotlib.pyplot', 'scikitplot']:
     if mod in sys.modules:
@@ -1581,7 +1683,7 @@ sphinx_gallery_conf = {
     # Links examples to APIs documentation
     "backreferences_dir": os.path.join("modules", "generated"),
     # Specify the module to document
-    "doc_module": ("scikitplot", "sklearn"),
+    "doc_module": ("scikitplot", "sklearn", "matplotlib"),
     # Linking to external packages for reference URLs
     "reference_url": {
         "scikitplot": None,  # Will link to local module documentation

@@ -1,4 +1,5 @@
 # scikitplot/annoy/_mixins/_pickle.py
+
 """
 Pickling support for Annoy-backed indices.
 
@@ -48,8 +49,7 @@ from .._utils import backend_for, lock_for
 CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
 
 CompressMode.__doc__ = """\
-Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`.
-"""
+Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`."""
 
 # https://peps.python.org/pep-0258/#attribute-docstrings
 # Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
@@ -57,8 +57,7 @@ Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`.
 PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
 
 PickleMode.__doc__ = """\
-Persistence strategy used by :class:`~.PickleMixin`.
-"""
+Persistence strategy used by :class:`~.PickleMixin`."""
 
 __all__ = [
     "CompressMode",
@@ -170,7 +169,7 @@ def _deserialize_backend(
 
 class PickleMixin:
     """
-    Mixin adding deterministic pickle support.
+    Mixin adding pickle support.
 
     Parameters
     ----------
@@ -204,20 +203,24 @@ class PickleMixin:
     # Configuration properties
     @property
     def pickle_mode(self) -> PickleMode:
+        """Persist strategy used by :class:`~.PickleMixin`."""
         return self._pickle_mode
 
     @pickle_mode.setter
     def pickle_mode(self, value: PickleMode) -> None:
+        """Persist strategy used by :class:`~.PickleMixin`."""
         if value not in ("auto", "disk", "byte"):
             raise ValueError("pickle_mode must be one of: 'auto', 'disk', 'byte'")
         self._pickle_mode = value
 
     @property
     def compress_mode(self) -> CompressMode:
+        """Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`."""
         return self._compress_mode
 
     @compress_mode.setter
     def compress_mode(self, value: CompressMode) -> None:
+        """Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`."""
         if value not in (None, "zlib", "gzip"):
             raise ValueError("compress_mode must be one of: None, 'zlib', 'gzip'")
         self._compress_mode = value

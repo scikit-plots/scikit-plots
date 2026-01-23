@@ -20,7 +20,7 @@ from typing import Optional, Union
 
 from ... import logger
 from ...utils._env import get_env_var
-from ...utils._stream import streamlit_stream_or_return
+from ...utils._streamlit import streamlit_stream_or_return
 from .clint_provider import get_client, hf_fallback_request
 from .model_registry import LLM_PROVIDER_CONFIG_MAP, LLM_PROVIDER_ENV_CONNECTOR_MAP
 
@@ -415,6 +415,7 @@ def get_response(
         Whether to stream response in Streamlit.
     **kwargs : dict, optional
         Additional keyword arguments forwarded to the client constructor.
+
         - base_url : str, optional
           `model_provider` API format compatible with OpenAI `base_url` params.
           Like (OpenAI(api_key="<DeepSeek API Key>", base_url="https://api.deepseek.com"))

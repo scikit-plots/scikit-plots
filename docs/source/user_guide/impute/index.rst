@@ -47,7 +47,7 @@ outperforming Annoy in most use cases, especially when precision is important.
 .. _ann_imputer-index:
 
 ANNImputer
-**********************************************************************
+----------------------------------------------------------------------
 
 This module contains some functions related to :py:class:`~.ANNImputer`.
 

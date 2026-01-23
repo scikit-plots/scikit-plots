@@ -59,8 +59,8 @@ Notes
 Use both NumCpp and Numpy. https://github.com/dpilger26/NumCpp/issues/16
 
 The computation is performed by the C++ NumCpp implementation
-:cpp:`nc::dot` on :cpp:`nc::NdArray` containers obtained via the
-NumCpp pybind interface.
+``nc::dot`` on ``nc::NdArray`` containers obtained via the
+NumCpp pybind interface to :py:func:`~scikitplot.nc.dot`.
 
 This is a low-level C++ binding. It expects NumPy arrays and is
 typically called via :func:`~scikitplot.nc.dot`, which accepts

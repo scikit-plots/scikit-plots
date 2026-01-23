@@ -107,14 +107,15 @@ We recommend using one of the following options for a dedicated development envi
 because these options are configured to install the Python dependencies as part of their
 setup.
 
-.. _venv: https://docs.python.org/3/library/venv.html
-.. _conda: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+.. venv: https://docs.python.org/3/library/venv.html
+.. conda: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+.. mamba: https://mamba.readthedocs.io/en/latest/
 
 .. tab-set::
 
    .. tab-item:: venv environment
 
-      Create a new `venv`_ environment with ::
+      Create a new |venv| environment with ::
 
         python -m venv <file folder location>
 
@@ -135,14 +136,12 @@ setup.
 
    .. tab-item:: conda environment
 
-      Create a new `conda`_ environment and install the Python dependencies with ::
+      Create a new |conda| environment and install the Python dependencies with ::
 
         conda env create -f environment.yml
 
       You can use ``mamba`` instead of ``conda`` in the above command if
-      you have `mamba`_ installed.
-
-      .. _mamba: https://mamba.readthedocs.io/en/latest/
+      you have |mamba| installed.
 
       Activate the environment using ::
 

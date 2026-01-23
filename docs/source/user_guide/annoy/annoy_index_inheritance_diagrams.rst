@@ -1,3 +1,4 @@
+.. docs/source/user_guide/annoy/annoy_index_inheritance_diagrams.rst
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -19,36 +20,28 @@
 
 .. _annoy_index_inheritance_diagrams:
 
-Annoy Index Architecture (Inheritance Diagrams)
-===============================================
+======================================================================
+Annoy :class:`~Index` class Inheritance Diagrams (MRO)
+======================================================================
 
 This page shows the **class inheritance structure** for the Annoy backend and the
-high-level :class:`~scikitplot.annoy.Index` facade, using Sphinx’s built-in
+high-level :class:`~scikitplot.annoy.Index` facade class, using Sphinx’s built-in
 inheritance diagram support (the same approach used in Matplotlib’s docs).
 
-.. note::
-   Enable the extension and ensure Graphviz is available:
-
-   .. code-block:: python
-
-      extensions += ["sphinx.ext.inheritance_diagram"]
-
-   The directive renders via Graphviz (``dot``). Install Graphviz in your build
-   environment if it is missing.
-
-----------------------------------------
-Index + backend + mixins (public view)
-----------------------------------------
+----------------------------------------------------------------------
+Index + mixins
+----------------------------------------------------------------------
 
 .. inheritance-diagram::
    scikitplot.cexternals._annoy.Annoy
-   scikitplot.annoy.Index
    scikitplot.annoy._mixins._meta.MetaMixin
    scikitplot.annoy._mixins._io.IndexIOMixin
    scikitplot.annoy._mixins._pickle.PickleMixin
    scikitplot.annoy._mixins._vectors.VectorOpsMixin
    scikitplot.annoy._mixins._ndarray.NDArrayMixin
    scikitplot.annoy._mixins._plotting.PlottingMixin
+   scikitplot.annoy.Index
+   :top-classes: scikitplot.cexternals._annoy.Annoy
    :parts: 1
    :private-bases:
 
@@ -59,9 +52,9 @@ Index + backend + mixins (public view)
 - :class:`~scikitplot.annoy.Index` is the **Python facade** that subclasses the backend
   and composes behavior using independent mixins.
 
-----------------------------------------
+-------------------------------------
 Mixins only (independence + MRO scan)
-----------------------------------------
+-------------------------------------
 
 This diagram focuses only on the mixins so you can quickly confirm there is no
 unexpected inheritance between mixins (they should be **independent**).
@@ -75,14 +68,29 @@ unexpected inheritance between mixins (they should be **independent**).
    scikitplot.annoy._mixins._plotting.PlottingMixin
    :parts: 1
 
-----------------------------------------
-Notes and limitations
-----------------------------------------
+---------------------
+Notes and Limitations
+---------------------
 
 Inheritance diagrams show **class derivation**, but they do not show **composition**
 relationships (e.g., an optional ``self._annoy`` backend attribute). For composition
 support, refer to the “glue” helpers documented elsewhere (e.g., ``backend_for(self)``,
 ``lock_for(self)``).
+
+- An inheritance diagram shows “parent → child” class relationships.
+- It helps you understand which class extends another class.
+
+Sphinx can render inheritance diagrams using the built-in extension
+``sphinx.ext.inheritance_diagram``. The diagram is rendered using Graphviz
+(the ``dot`` tool), so Graphviz must be available in your build environment.
+
+.. note::
+
+   In your ``conf.py``:
+
+   .. code-block:: python
+
+      extensions += ["sphinx.ext.inheritance_diagram"]
 
 See Also
 --------

@@ -1,6 +1,5 @@
 r"""
-Tweedie Distribution Module
-===============================================
+Tweedie Distribution Module.
 
 This module implements the Tweedie distribution,
 a member of the exponential dispersion model (EDM) family,
@@ -12,6 +11,12 @@ where data often exhibit a mixture of zeroes and positive continuous values.
 The primary focus of this package is the compound-Poisson behavior
 of the Tweedie distribution, particularly in the range `1 < p < 2`.
 However, it supports calculations for all valid values of the shape parameter `p`.
+
+See Also
+--------
+* https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html
+* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution
+* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood
 
 Notes
 -----
@@ -29,12 +34,6 @@ The Tweedie distribution family includes several well-known distributions based 
 - `p > 3`     : Positive stable distributions
 
 The Tweedie distribution is undefined for values of `p` in the range `(0, 1)`.
-
-See Also
---------
-* https://www.statsmodels.org/dev/generated/statsmodels.genmod.families.family.Tweedie.html
-* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution
-* https://glum.readthedocs.io/en/latest/glm.html#glum.TweedieDistribution.log_likelihood
 
 References
 ----------
@@ -271,11 +270,6 @@ by a `p` parameter that determines its behavior:
 - `p = 3`: Inverse Gaussian distribution
 - `1 < p < 2`: Compound Poisson-Gamma distribution
 
-See Also
---------
-tweedie_gen :
-    A Tweedie continuous random variable.
-
 Parameters
 ----------
 p : float
@@ -284,6 +278,11 @@ mu : float
     Mean or location parameter.
 phi : float
     Dispersion parameter, controlling the variance of the distribution.
+
+See Also
+--------
+tweedie_gen :
+    A Tweedie continuous random variable.
 
 Examples
 --------

@@ -4,4 +4,4 @@
 Stats
 ----------------------------------------------------------------------
 
-Examples related to the :py:mod:`~scikitplot.stats` module with e.g. :py:class:`~sklearn.linear_model.LinearRegression` instance.
+Examples related to the :py:mod:`~scikitplot.stats` submodule with e.g. :py:class:`~sklearn.linear_model.LinearRegression` instance.

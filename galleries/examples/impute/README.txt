@@ -3,7 +3,7 @@
 Impute
 ----------------------------------------------------------------------
 
-Examples related to the :py:mod:`~scikitplot.impute` module
+Examples related to the :py:mod:`~scikitplot.impute` submodule
 with a scikit-learn regressor (e.g., :py:class:`~sklearn.linear_model.LinearRegression`) instance.
 
 .. seealso::

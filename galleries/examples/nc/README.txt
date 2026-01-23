@@ -3,4 +3,4 @@
 nc (NumCpp)
 ----------------------------------------------------------------------
 
-Examples related to the :py:mod:`~scikitplot.nc` module.
+Examples related to the :py:mod:`~scikitplot.nc` submodule.

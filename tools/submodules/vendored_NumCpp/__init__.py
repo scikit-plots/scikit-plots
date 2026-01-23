@@ -19,3 +19,6 @@ Compilers:
 * Clang LLVM: 18, 19
 * Boost Versions: 1.73+
 """
+
+# Header files hash
+__git_hash__  = "3bbce08329cda35655e154f3724c585d65c3c436"

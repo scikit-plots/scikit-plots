@@ -1,4 +1,8 @@
 # docker/Dockerfile.python
+
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 ## ✅ Declare default only once before FROM if you want a default.
 # ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.4.0
 ARG SCIKITPLOT_VERSION=0.4.0.post9
@@ -210,6 +214,71 @@ ENTRYPOINT ["bash"]
 
 ## Set working directory inside the container
 WORKDIR /work
+
+# cat /etc/login.defs | grep -i UID
+# ARG ARG_GID
+# ARG ARG_UID
+# ARG USER=${username:-some_user}
+# ARG PASS=${username:-some_user}
+# ENV GID=${ARG_GID:-some_user}
+# ENV UID=${ARG_UID:-some_user}
+
+# # Use `useradd` instead of its interactive `adduser` to add user.
+# # RUN adduser <username>	Adds a new user with a home directory.
+# # RUN useradd <username>	Adds a new user without a home directory.
+# # RUN adduser -q --uid $UID --gid $GID scikitplot
+# # -m so that we the user has a homedir.
+# # -s /bin/bash so that the user has bash as default shell.
+# # https://docs.docker.com/reference/dockerfile#user
+# RUN useradd -m -s /bin/bash $USER && echo "$USER:$PASS" | chpasswd
+# RUN groupadd -r scikitplot && useradd -r -m -s /bin/bash -g scikitplot scikitplot
+
+# Create user with specific UID/GID and set a password
+# grep -E '^UID_MIN|^UID_MAX' /etc/login.defs
+RUN userdel -rf scikitplot || killall -u scikitplot
+# useradd -m -p $(openssl passwd -1 'yourpassword') scikitplot
+RUN groupadd -r scikitplot --gid=996 && \
+    useradd -r --create-home --shell=/bin/bash -g scikitplot --uid=996 scikitplot
+
+# Add user to sudo group (if needed)
+# groups scikitplot
+# grep sudo /etc/group
+RUN usermod -aG sudo scikitplot
+# cat /etc/sudoers
+## username ALL=(ALL) ALL or %groupname ALL=(ALL) ALL
+# "scikitplot  ALL=(ALL:ALL) ALL" >> /etc/sudoers
+
+# Set password 'user:password' (for development only)
+# RUN echo 'scikitplot:scikitplot' | chpasswd
+# Set the password for the new user
+# -s --stdin Read the new password from standard input, allowing usage in pipes.
+# -S Display account status information, including lock status, last change date, and password age limits.
+# L	Locked account (password is disabled), NP	No password is set for the account, P	Password is set and active
+# -d Delete a user's password (make it empty). This disables the password for the account, making it passwordless.
+# -l Lock the account's password, disabling login with it while retaining other authentication methods like SSH keys.
+# -u Unlock the account's password, restoring its previous value before being locked.
+# -e Immediately expire an account's password, forcing a change at the next login.
+RUN passwd -d scikitplot && passwd -e scikitplot
+# Set an expiration date for the user account
+# chage -E 2024-12-31 scikitplot
+# chage -l scikitplot
+
+# ps -U scikitplot -u scikitplot
+# getent passwd scikitplot
+# getent passwd {[first-UID]..[last-UID]}
+# cat /etc/passwd | wc -l
+# cat /etc/passwd | grep scikitplot
+# awk -F':' '{ print $1}' /etc/passwd
+# grep scikitplot /etc/passwd
+# 1. login name; 2. encrypted password - refer to crypt for details on how this string is interpreted; 3. date of last password change;
+# 4. min password age; 5. max password age; 6. password warning period; 7. password inactivity period; 8. account expiration date; 9. reserved field.
+# cat /etc/shadow | grep scikitplot
+
+# Change file ownership
+# chown -R username:groupname /path/to/files
+
+# Switch to non-root user "su scikitplot"
+# USER scikitplot
 
 COPY requirements ./requirements/
 COPY docker/env_conda/environment.yml ./

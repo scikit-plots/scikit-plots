@@ -28,13 +28,13 @@ Examples relevant to the :py:mod:`~.preprocessing` module.
 .. _dummy_code_encoder-index:
 
 DummyCodeEncoder
-**********************************************************************
+----------------------------------------------------------------------
 
 This module contains some functions related to :py:class:`~.DummyCodeEncoder`.
 
 .. _get_dummies-index:
 
 GetDummies
-**********************************************************************
+----------------------------------------------------------------------
 
 This module contains some functions related to :py:class:`~.GetDummies`.

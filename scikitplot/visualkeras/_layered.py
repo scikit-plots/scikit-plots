@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 from .. import logger
 from .._compat.optional_deps import LazyImport
 from .._docstrings import _docstring
-from ..utils.utils_pil import get_font, save_image_pil_decorator
+from ..utils._pil import get_font, save_image_pil_decorator
 from ._layer_utils import *
 from ._utils import *
 

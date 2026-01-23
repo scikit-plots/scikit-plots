@@ -21,6 +21,8 @@ This documentation is only relevant for Matplotlib developers, not for users.
 
 """
 
+from __future__ import annotations
+
 import difflib
 import functools
 import itertools

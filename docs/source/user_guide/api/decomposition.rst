@@ -7,7 +7,18 @@ Decomposition
 
 This module contains functions related to decomposition.
 
+.. _pca:
 
+Principal Component Analysis (PCA)
+----------------------------------------------------------------------
+
+.. dropdown:: References
+
+  * `"scikit-learn PCA"
+    <https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html#pca>`_.
+
+  * `"scikit-learn Linear and quadratic discriminant analysis"
+    <https://scikit-learn.org/1.5/api/sklearn.discriminant_analysis.html>`_.
 
 .. _plot_pca_component_variance:
 

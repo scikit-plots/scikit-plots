@@ -462,6 +462,64 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.decile": {
+        "short_summary": "Predictive model insights",
+        "description": _get_guide("decile-index"),
+        "sections": [
+            {
+                "title": "Key To DataScience: kds",
+                "description": (
+                  _get_submodule("scikitplot.decile", "kds")
+                  + "\n\n"
+                  + _get_guide("decile-kds-index")
+                ),
+                "autosummary": [
+                    "kds.print_labels",
+                    "kds.decile_table",
+                    "kds.plot_cumulative_gain",
+                    "kds.plot_lift",
+                    "kds.plot_lift_decile_wise",
+                    "kds.plot_ks_statistic",
+                    "kds.report",
+                ],
+            },
+            {
+                "title": "ModelPlotPy Initializer object",
+                "description": (
+                  _get_submodule("scikitplot.decile", "_decile_modelplotpy")
+                  + "\n\n"
+                  + _get_guide("decile-modelplotpy-index", "decile-modelplotpy-financial-index")
+                ),
+                "autosummary": [
+                    # Initialize modelplotpy object
+                    "ModelPlotPy",
+                ],
+            },
+            {
+                "title": "(Cumulative) Gains, Lift and Response Plots",
+                # "description": None,
+                "description": _get_guide("decile-modelplotpy-index"),
+                "autosummary": [
+                    # (Cumulative) Gains, Lift and Response Plots
+                    "plot_response",
+                    "plot_cumresponse",
+                    "plot_cumlift",
+                    "plot_cumgains",
+                    "plot_all",
+                ],
+            },
+            {
+                "title": "Business-savvy Financial Insight Plots",
+                "description": _get_guide("decile-modelplotpy-financial-index"),
+                "autosummary": [
+                    # Business-savvy financial plots
+                    "plot_costsrevs",
+                    "plot_profit",
+                    "plot_roi",
+                ],
+            },
+        ],
+    },
     "scikitplot.exceptions": {
         "short_summary": "Exceptions and warnings.",
         "description": None,
@@ -635,29 +693,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
-    "scikitplot.kds": {
-        "short_summary": "KeyToDataScience: kds",
-        "description": _get_guide("kds-index"),
-        "sections": [
-            {
-                "title": "Key To DataScience",
-                # "description": (
-                #   _get_submodule("scikitplot.kds", "_kds")
-                #   + "\n\n"
-                #   + _get_guide("kds-index")
-                # ),
-                "autosummary": [
-                    "print_labels",
-                    "decile_table",
-                    "plot_cumulative_gain",
-                    "plot_lift",
-                    "plot_lift_decile_wise",
-                    "plot_ks_statistic",
-                    "report",
-                ],
-            },
-        ],
-    },
     "scikitplot.logging": {
         "short_summary": "Scikit-plots Logging.",
         "description": _get_guide("logging-index"),
@@ -710,46 +745,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             # },
         ],
     },
-    "scikitplot.modelplotpy": {
-        "short_summary": "ModelPlotPy: Predictive model insights",
-        "description": _get_guide("modelplotpy-index", "modelplotpy_financial-index"),
-        "sections": [
-            {
-                "title": "Initializer ModelPlotPy object",
-                # "description": (
-                #   _get_submodule("scikitplot.modelplotpy", "_modelplotpy")
-                #   + "\n\n"
-                #   + _get_guide("modelplotpy-index")
-                # ),
-                "autosummary": [
-                    # Initialize modelplotpy object
-                    "ModelPlotPy",
-                ],
-            },
-            {
-                "title": "Gains, Lift and (cumulative) Response Plots",
-                "description": None,
-                "autosummary": [
-                    # Gains, Lift and (cumulative) Response plots
-                    "plot_response",
-                    "plot_cumresponse",
-                    "plot_cumlift",
-                    "plot_cumgains",
-                    "plot_all",
-                ],
-            },
-            {
-                "title": "Business-savvy Financial Insight Plots",
-                "description": None,
-                "autosummary": [
-                    # Business-savvy financial plots
-                    "plot_costsrevs",
-                    "plot_profit",
-                    "plot_roi",
-                ],
-            },
-        ],
-    },
     "scikitplot.nc": {
         "short_summary": "High-performance Numerical Functions",
         "description": _get_guide("nc-index"),
@@ -788,15 +783,15 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
-    "scikitplot.snsx": {
-        "short_summary": "Seaborn Extended as snsX",
-        "description": _get_guide("snsx-index"),
+    "scikitplot.seaborn": {
+        "short_summary": "Extended Seaborn",
+        "description": _get_guide("seaborn-index"),
         "sections": [
             {
-                "title": ".api.metrics to SeabornX",
+                "title": ".scikitplot via Seaborn",
                 # "description": None,
                 # "description": (
-                #   _get_submodule("scikitplot.snsx", "_auc")
+                #   _get_submodule("scikitplot.seaborn", "_auc")
                 #   + "\n\n"
                 #   + _get_guide("auc-index")
                 # ),
@@ -809,7 +804,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": ".kds to SeabornX",
                 "description": (
-                  _get_submodule("scikitplot.snsx", "_decile")
+                  _get_submodule("scikitplot.seaborn", "_decile")
                   + "\n\n"
                   + _get_guide("decileplot-index")
                 ),

@@ -1,0 +1,3 @@
+- docs/source/_sphinx_ext/skplt_ext/compat_sphinx_tabs_backrefs.py.
+  More details in `compat_sphinx_tabs_backrefs.py <https://github.com/scikit-plots/scikit-plots/tree/main/docs/source/_sphinx_ext/skplt_ext>`_.
+  By :user:`muce <celik-muhammed>`

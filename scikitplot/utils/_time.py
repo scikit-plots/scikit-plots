@@ -18,13 +18,14 @@ class Timer:
 
     Examples
     --------
+    >>> from scikitplot.utils._time import Timer
     >>> with Timer("Building Annoy index...", verbose=True):
     >>>     build_index()
     """
 
     def __init__(
         self,
-        message: str,
+        message: str = "",
         *,
         verbose: bool = False,
         log_level: str = "info",

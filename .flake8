@@ -87,12 +87,9 @@ exclude =
     scikitplot/cexternals/**,                # ← Ensure the `tools/` folder is ignored
     scikitplot/experimental/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/externals/**,                # ← Ensure the `tools/` folder is ignored
-    scikitplot/kds/**,                      # ← Ensure the `tools/` folder is ignored
-    scikitplot/modelplotpy/**,              # ← Ensure the `tools/` folder is ignored
     scikitplot/visualkeras/**,              # ← Ensure the `tools/` folder is ignored
     scikitplot/_preprocess.py,
 
 per-file-ignores =
-    scikitplot/kds/_kds.py: D412, E225, E231, E261, E262, D412
-
+    scikitplot/decile/kds/_kds.py: D412, E225, E231, E261, E262, D412
     scikitplot/visualkeras/layered.py: F405
