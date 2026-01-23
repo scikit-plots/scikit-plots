@@ -235,7 +235,7 @@ WORKDIR /work
 
 # Create user with specific UID/GID and set a password
 # grep -E '^UID_MIN|^UID_MAX' /etc/login.defs
-RUN userdel -rf scikitplot || killall -u scikitplot
+# RUN userdel -rf scikitplot || killall -u scikitplot
 # useradd -m -p $(openssl passwd -1 'yourpassword') scikitplot
 RUN groupadd -r scikitplot --gid=996 && \
     useradd -r --create-home --shell=/bin/bash -g scikitplot --uid=996 scikitplot
