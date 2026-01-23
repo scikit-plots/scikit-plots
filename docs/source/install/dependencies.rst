@@ -345,22 +345,22 @@ Python
 These packages are installed when :ref:`creating a virtual environment <dev-environment>`,
 otherwise they must be installed manually:
 
-- nbformat_ and nbconvert_ used to test the notebook backend
-- pandas_ used to test compatibility with Pandas
-- pikepdf_ used in some tests for the pgf and pdf backends
-- psutil_ used in testing the interactive backends
-- pytest-cov_ (>= 2.3.1) to collect coverage information
-- pytest-timeout_ to limit runtime in case of stuck tests
-- pytest-xdist_ to run tests in parallel
-- pytest-xvfb_ to run tests without windows popping up (Linux)
-- pytz_ used to test pytz int
-- sphinx_ used to test our sphinx extensions
-- xarray_ used to test compatibility with xarray
+- |nbformat| and |nbconvert| used to test the notebook backend
+- |pandas| used to test compatibility with Pandas
+- |pikepdf| used in some tests for the pgf and pdf backends
+- |psutil| used in testing the interactive backends
+- |pytest-cov| (>= 2.3.1) to collect coverage information
+- |pytest-timeout| to limit runtime in case of stuck tests
+- |pytest-xdist| to run tests in parallel
+- |pytest-xvfb| to run tests without windows popping up (Linux)
+- |pytz| used to test pytz int
+- |sphinx| used to test our sphinx extensions
+- |xarray| used to test compatibility with xarray
 
 External tools
 ^^^^^^^^^^^^^^
-- Ghostscript_ (>= 9.0, to render PDF files)
-- Inkscape_ (to render SVG files)
+- |Ghostscript| (>= 9.0, to render PDF files)
+- |Inkscape| (to render SVG files)
 - `WenQuanYi Zen Hei`_ and `Noto Sans CJK`_ fonts for testing font fallback and
   non-Western fonts
 
@@ -373,23 +373,24 @@ them will be skipped by pytest.
   Inkscape to system PATH”, either for all users or current user, or the
   tests will not find it.
 
-.. _Ghostscript: https://ghostscript.com/
-.. _Inkscape: https://inkscape.org
+.. Ghostscript: https://ghostscript.com/
+.. Inkscape: https://inkscape.org
+.. nbconvert: https://pypi.org/project/nbconvert/
+.. nbformat: https://pypi.org/project/nbformat/
+.. pandas: https://pypi.org/project/pandas/
+.. pikepdf: https://pypi.org/project/pikepdf/
+.. psutil: https://pypi.org/project/psutil/
+.. pytz: https://pypi.org/project/pytz/
+.. pytest: http://doc.pytest.org/en/latest/
+.. sphinx: https://pypi.org/project/Sphinx/
+.. xarray: https://pypi.org/project/xarray/
+.. pytest-cov: https://pytest-cov.readthedocs.io/en/latest/
+.. pytest-timeout: https://pypi.org/project/pytest-timeout/
+.. pytest-xdist: https://pypi.org/project/pytest-xdist/
+.. pytest-xvfb: https://pypi.org/project/pytest-xvfb/
+
 .. _WenQuanYi Zen Hei: http://wenq.org/en/
-.. _nbconvert: https://pypi.org/project/nbconvert/
-.. _nbformat: https://pypi.org/project/nbformat/
-.. _pandas: https://pypi.org/project/pandas/
-.. _pikepdf: https://pypi.org/project/pikepdf/
-.. _psutil: https://pypi.org/project/psutil/
-.. _pytz: https://pypi.org/project/pytz/
-.. _pytest-cov: https://pytest-cov.readthedocs.io/en/latest/
-.. _pytest-timeout: https://pypi.org/project/pytest-timeout/
-.. _pytest-xdist: https://pypi.org/project/pytest-xdist/
-.. _pytest-xvfb: https://pypi.org/project/pytest-xvfb/
-.. _pytest: http://doc.pytest.org/en/latest/
-.. _sphinx: https://pypi.org/project/Sphinx/
 .. _Noto Sans CJK: https://fonts.google.com/noto/use
-.. _xarray: https://pypi.org/project/xarray/
 
 
 .. _doc-dependencies:
@@ -477,7 +478,7 @@ Optional
 The documentation can be built without Inkscape and optipng, but the build
 process will raise various warnings.
 
-* Inkscape_
+* |Inkscape|
 * `optipng <http://optipng.sourceforge.net>`_
 * the font `xkcd script <https://github.com/ipython/xkcd-font/>`_ or `Comic Neue <https://github.com/crozynski/comicneue>`_
 * the font "Times New Roman"

@@ -415,6 +415,7 @@ def get_response(
         Whether to stream response in Streamlit.
     **kwargs : dict, optional
         Additional keyword arguments forwarded to the client constructor.
+
         - base_url : str, optional
           `model_provider` API format compatible with OpenAI `base_url` params.
           Like (OpenAI(api_key="<DeepSeek API Key>", base_url="https://api.deepseek.com"))

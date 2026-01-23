@@ -168,8 +168,10 @@ Footnote references:
 
 Footnote bodies (explicit markup):
 
-.. [#] Text of the first footnote.
-.. [#] Text of the second footnote.
+::
+
+   .. [#] Text of the first footnote.
+   .. [#] Text of the second footnote.
 
 
 Use of reST in Python docstrings

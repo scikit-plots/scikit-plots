@@ -12,7 +12,7 @@ These guidelines are applicable when **acting as a representative** of Matplotli
 for example at sprints or when giving official talks or tutorials, and in any
 community venue managed by Matplotlib.
 
-Our approach to community engagement is foremost guided by our :ref:`mission_statement`:
+Our approach to community engagement is foremost guided by our :ref:`mission-statement`:
 
 * We demonstrate that we care about visualization as a practice
 * We deepen our practice and the community’s capacity to support users,

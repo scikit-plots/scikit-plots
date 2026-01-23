@@ -9,7 +9,7 @@ Docker Containerization Guidelines
 
    By default, all Docker containers are pre-configured and ready to use.
 
-   The **editable development version** of `scikit-plots` is already installed,
+   The **editable development version** of ``scikit-plots`` is already installed,
    so you can verify the installation immediately by running:
 
    ::
@@ -108,7 +108,7 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
 
    You can use the prebuilt image directly from Docker Hub:
 
-   📄 Docker Hub: `https://hub.docker.com/r/scikitplot/scikit-plots`__
+   * 📄 Docker Hub: `hub.docker.com/r/scikitplot/scikit-plots <https://hub.docker.com/r/scikitplot/scikit-plots>`__
 
 
 .. code-block:: sh
@@ -149,8 +149,8 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
      </a>
    </div>
 
-▶️ Connect Docker Container Especially When `Docker-GUI dont available`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+▶️ Connect Docker Container Especially When ``Docker-GUI dont available``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: sh
 
@@ -233,10 +233,12 @@ If you need more control, you can use Docker CLI commands.
 
 ▶️ Build & Run the Container Manually
 
+
 .. code-block:: sh
 
    docker build -t my-custom-container -f docker/Dockerfile .
    docker run -it --rm -p 8888:8888 my-custom-container
+
 
 ▶️ Check GPU Availability Inside Container
 
@@ -256,6 +258,7 @@ If you need more control, you can use Docker CLI commands.
    ├── scripts/
    │   ├── install_gpu_nvidia_cuda.sh  # GPU setup scripts
 
+
 🖥️ Useful References
 --------------------------------
 
@@ -265,12 +268,16 @@ If you need more control, you can use Docker CLI commands.
 
 📚 `Dockerfile Best Practices <https://containers.dev/guide/dockerfile>`__
 
-📚 `LocalStack Installation with Docker Compose <https://docs.localstack.cloud/getting-started/installation/#docker-compose>`__
+📚 `LocalStack with Docker <https://docs.docker.com/guides/localstack/>`__
+
+📚 `LocalStack Installation with Docker Compose <https://awesome-docker-compose.com/apps/paas/localstack>`__
 
 📚 `NVIDIA CUDA in Containers: NVIDIA Docs <https://docs.nvidia.com/deeplearning/frameworks/user-guide/index.html>`__
+
 
 .. image:: https://developer-blogs.nvidia.com/wp-content/uploads/2016/06/nvidia-docker.png
    :target: https://developer.nvidia.com/blog/nvidia-docker-gpu-server-application-deployment-made-easy/
    :align: center
+
 
 🚀 Now you're ready to run Jupyter notebooks in Docker! 😊

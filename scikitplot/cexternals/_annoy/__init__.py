@@ -19,7 +19,7 @@
 """
 High-level Python interface for the C++ ANNoy backend.
 
-Spotify ANNoy [0]_ (Approximate Nearest Neighbors Oh Yeah).
+Spotify ANNoy [1]_ (Approximate Nearest Neighbors Oh Yeah).
 
 Exports:
 
@@ -34,8 +34,8 @@ Exports:
 
 References
 ----------
-.. [0] `Spotify AB. (2013, Feb 20). "Approximate Nearest Neighbors Oh Yeah"
-   Github. https://pypi.org/project/annoy <https://pypi.org/project/annoy>`_
+.. [1] `Spotify AB. (2013). "Approximate Nearest Neighbors Oh Yeah"
+   Github. https://github.com/spotify/annoy <https://github.com/spotify/annoy>`_
 
 Examples
 --------

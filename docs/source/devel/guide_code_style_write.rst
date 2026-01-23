@@ -22,7 +22,7 @@ consistency, and maintainability of the code base.
 PEP8, as enforced by flake8
 ===========================
 
-Formatting should follow the recommendations of PEP8_, as enforced by flake8_.
+Formatting should follow the recommendations of |PEP8|, as enforced by |flake8|.
 Matplotlib modifies PEP8 to extend the maximum line length to 88
 characters. You can check flake8 compliance from the command line with ::
 
@@ -30,12 +30,16 @@ characters. You can check flake8 compliance from the command line with ::
     flake8 /path/to/module.py
 
 or your editor may provide integration with it.  Note that Matplotlib intentionally
-does not use the black_ auto-formatter (1__), in particular due to its inability
+does not use the |black| auto-formatter (1__), in particular due to its inability
 to understand the semantics of mathematical expressions (2__, 3__).
 
-.. _PEP8: https://www.python.org/dev/peps/pep-0008/
-.. _flake8: https://flake8.pycqa.org/
-.. _black: https://black.readthedocs.io/
+.. references
+.. docs/source/conf.py#rst_prolog |PEP8| to PEP8_
+
+.. PEP8: https://www.python.org/dev/peps/pep-0008/
+.. flake8: https://flake8.pycqa.org/
+.. black: https://black.readthedocs.io/
+
 .. __: https://github.com/matplotlib/matplotlib/issues/18796
 .. __: https://github.com/psf/black/issues/148
 .. __: https://github.com/psf/black/issues/1984

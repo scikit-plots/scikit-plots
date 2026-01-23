@@ -17,13 +17,13 @@ Ensure that the correct python.pythonPath is set in your `.vscode/settings.json`
     }
 
 
-Matplotlib uses the pytest_ framework.
+Matplotlib uses the |pytest| framework.
 
 The tests are in :file:`lib/matplotlib/tests`, and customizations to the pytest
 testing infrastructure are in :mod:`matplotlib.testing`.
 
-.. _pytest: http://doc.pytest.org/en/latest/
-.. _pytest-xdist: https://pypi.org/project/pytest-xdist/
+.. pytest: http://doc.pytest.org/en/latest/
+.. pytest-xdist: https://pypi.org/project/pytest-xdist/
 
 
 .. _testing_requirements:
@@ -61,7 +61,7 @@ In the root directory of your development repository run::
 =============================  ===========
 ``-v`` or ``--verbose``        Be more verbose
 ``-n NUM``                     Run tests in parallel over NUM
-                               processes (requires pytest-xdist_)
+                               processes (requires |pytest-xdist|)
 ``--capture=no`` or ``-s``     Do not capture stdout
 =============================  ===========
 

@@ -30,10 +30,10 @@ General file structure
 
 All documentation is built from the :file:`doc/`.  The :file:`doc/`
 directory contains configuration files for Sphinx and reStructuredText
-(ReST_; ``.rst``) files that are rendered to documentation pages.
+(|docutils|; ``.rst``) files that are rendered to documentation pages.
 
 Documentation is created in three ways.  First, API documentation
-(:file:`doc/api`) is created by Sphinx_ from
+(:file:`doc/api`) is created by |sphinx| from
 the docstrings of the classes in the Matplotlib library.  Except for
 :file:`doc/api/api_changes/`,  ``.rst`` files in :file:`doc/api` are created
 when the documentation is built.  See :ref:`writing-docstrings` below.
@@ -43,7 +43,7 @@ are created by `Sphinx Gallery`_.  Sphinx Gallery converts example Python files
 to ``*.rst`` files with the result of Matplotlib plot calls as embedded images.
 See :ref:`writing-examples-and-tutorials` below.
 
-Third, Matplotlib has narrative docs written in ReST_ in subdirectories of
+Third, Matplotlib has narrative docs written in |docutils| in subdirectories of
 :file:`doc/users/`.  If you would like to add new documentation that is suited
 to an ``.rst`` file rather than a gallery or tutorial example, choose an
 appropriate subdirectory to put it in, and add the file to the table of
@@ -54,14 +54,14 @@ contents of :file:`index.rst` of the subdirectory.  See
 
   Don't directly edit the ``.rst`` files in :file:`doc/plot_types`,
   :file:`doc/gallery`,  :file:`doc/tutorials`, and :file:`doc/api`
-  (excepting :file:`doc/api/api_changes/`).  Sphinx_ regenerates
+  (excepting :file:`doc/api/api_changes/`).  |sphinx| regenerates
   files in these directories when building documentation.
 
 Set up the build
 ----------------
 
-The documentation for Matplotlib is generated from reStructuredText (ReST_)
-using the Sphinx_ documentation generation tool.
+The documentation for Matplotlib is generated from reStructuredText (|docutils|)
+using the |sphinx| documentation generation tool.
 
 To build the documentation you will need to
 :ref:`set up Matplotlib for development <installing_for_devs>`. Note in
@@ -147,7 +147,7 @@ Write ReST pages
 
 Most documentation is either in the docstrings of individual
 classes and methods, in explicit ``.rst`` files, or in examples and tutorials.
-All of these use the ReST_ syntax and are processed by Sphinx_.
+All of these use the |docutils| syntax and are processed by |sphinx|.
 
 The `Sphinx reStructuredText Primer
 <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_ is
@@ -263,7 +263,7 @@ nor the ````literal```` role:
 Refer to other documents and sections
 -------------------------------------
 
-Sphinx_ supports internal references_:
+|sphinx| supports internal `https://www.sphinx-doc.org/en/stable/usage/restructuredtext/roles.html`__:
 
 ==========  ===============  ===========================================
 Role        Links target     Representation in rendered HTML
@@ -296,7 +296,7 @@ will render as:
 
   See the tutorial :ref:`quick_start`
 
-  See the example :doc:`/gallery/lines_bars_and_markers/simple_plot`
+  See the example :external+matplotlib:doc:`/gallery/lines_bars_and_markers/simple_plot`
 
 Sections can also be given reference labels.  For instance from the
 :doc:`/install/index` link:
@@ -438,7 +438,7 @@ In rare cases we want the rendering of the mathematical text in the
 documentation html to exactly match with the rendering of the mathematical
 expression in the Matplotlib figure. In these cases, you can use the
 `matplotlib.sphinxext.mathmpl` Sphinx extension (See also the
-:doc:`../users/explain/text/mathtext` tutorial.)
+:external+matplotlib:doc:`/users/explain/text/mathtext` tutorial.)
 
 .. _writing-docstrings:
 
@@ -456,7 +456,7 @@ blocks in source code that explain how the code works.
    the current style are very welcome.
 
 All new or edited docstrings should conform to the `numpydoc docstring guide`_.
-Much of the ReST_ syntax discussed above (:ref:`writing-rest-pages`) can be
+Much of the |docutils| syntax discussed above (:ref:`writing-rest-pages`) can be
 used for links and references.  These docstrings eventually populate the
 :file:`doc/api` directory and form the reference documentation for the
 library.
@@ -506,14 +506,14 @@ An example docstring looks like:
 
 See the `~.Axes.hlines` documentation for how this renders.
 
-The Sphinx_ website also contains plenty of documentation_ concerning ReST
+The |sphinx| website also contains plenty of `https://www.sphinx-doc.org/en/master/contents.html`__ concerning ReST
 markup and working with Sphinx in general.
 
 Formatting conventions
 ----------------------
 
-The basic docstring conventions are covered in the `numpydoc docstring guide`_
-and the Sphinx_ documentation.  Some Matplotlib-specific formatting conventions
+The basic docstring conventions are covered in the |numpydoc|
+and the |sphinx| documentation.  Some Matplotlib-specific formatting conventions
 to keep in mind:
 
 Quote positions
@@ -890,7 +890,7 @@ Note that ``examples/text_labels_and_annotations/legend.py`` has been mapped to
 fixed in future re-organization of the docs.
 
 Plots can also be directly placed inside docstrings.  Details are in
-:doc:`/api/sphinxext_plot_directive_api`.  A short example is:
+:external+matplotlib:doc:`/api/sphinxext_plot_directive_api`.  A short example is:
 
 .. code-block:: python
 
@@ -941,12 +941,12 @@ In the Python files, to exclude an example from having a plot generated, insert
 
 
 The format of these files is relatively straightforward.  Properly
-formatted comment blocks are treated as ReST_ text, the code is
+formatted comment blocks are treated as |docutils| text, the code is
 displayed, and figures are put into the built page.  Matplotlib uses the
 ``# %%`` section separator so that IDEs will identify "code cells" to make
 it easy to re-run sub-sections of the example.
 
-For instance the example :doc:`/gallery/lines_bars_and_markers/simple_plot`
+For instance the example :external+matplotlib:doc:`/gallery/lines_bars_and_markers/simple_plot`
 example is generated from
 :file:`/galleries/examples/lines_bars_and_markers/simple_plot.py`, which looks
 like:
@@ -977,8 +977,8 @@ like:
     ax.grid()
     plt.show()
 
-The first comment block is treated as ReST_ text.  The other comment blocks
-render as comments in :doc:`/gallery/lines_bars_and_markers/simple_plot`.
+The first comment block is treated as |docutils| text.  The other comment blocks
+render as comments in :external+matplotlib:doc:`/gallery/lines_bars_and_markers/simple_plot`.
 
 Tutorials are made with the exact same mechanism, except they are longer and
 typically have more than one comment block (i.e. :ref:`quick_start`).  The
@@ -1088,7 +1088,8 @@ Raw restructured text files in the gallery
 Python source files that are then translated to an ``index.rst`` file and a
 series of ``example_name.rst`` files in the :file:`doc/` subdirectories.
 However, Sphinx Gallery also allows raw ``*.rst`` files to be passed through a
-gallery (see `Manually passing files`_ in the Sphinx Gallery documentation). We
+gallery (see `https://sphinx-gallery.github.io/stable/configuration.html#manually-passing-files`__
+in the Sphinx Gallery documentation). We
 use this feature in :file:`galleries/users_explain`, where, for instance,
 :file:`galleries/users_explain/colors` is a regular Sphinx Gallery
 subdirectory, but  :file:`galleries/users_explain/artists` has a mix of
@@ -1138,15 +1139,15 @@ All :ref:`examples-index` should aim to follow these guidelines:
        doing. When more context or explanation is required, add a text paragraph before
        the code example.
 
-:doc:`/gallery/misc/bbox_intersect` demonstrates the point of visual examples.
+:external+matplotlib:doc:`/gallery/misc/bbox_intersect` demonstrates the point of visual examples.
 This example is "messy" in that it's hard to categorize, but the gallery is the right
 spot for it because it makes sense to find it by visual search
 
-:doc:`/gallery/images_contours_and_fields/colormap_interactive_adjustment` is an
+:external+matplotlib:doc:`/gallery/images_contours_and_fields/colormap_interactive_adjustment` is an
 example of a good descriptive title that briefly summarizes how the showcased
 library features are used to implement the demonstrated visualization technique.
 
-:doc:`/gallery/lines_bars_and_markers/lines_with_ticks_demo` is an example of having a
+:external+matplotlib:doc:`/gallery/lines_bars_and_markers/lines_with_ticks_demo` is an example of having a
 minimal amount of code necessary to showcase the feature. The lack of extraneous code
 makes it easier for the reader to map which parts of code correspond to which parts of
 the plot.
@@ -1226,11 +1227,6 @@ style or topbar should be made there to propagate across all subprojects.
 
 .. TODO: Add section about uploading docs
 
-.. _ReST: https://docutils.sourceforge.io/rst.html
-.. _Sphinx: http://www.sphinx-doc.org
-.. _documentation: https://www.sphinx-doc.org/en/master/contents.html
-.. _index: http://www.sphinx-doc.org/markup/para.html#index-generating-markup
-.. _`Sphinx Gallery`: https://sphinx-gallery.readthedocs.io/en/latest/
-.. _references: https://www.sphinx-doc.org/en/stable/usage/restructuredtext/roles.html
-.. _`numpydoc docstring guide`: https://numpydoc.readthedocs.io/en/latest/format.html
-.. _`Manually passing files`: https://sphinx-gallery.github.io/stable/configuration.html#manually-passing-files
+.. docutils: https://docutils.sourceforge.io/rst.html
+.. Sphinx: http://www.sphinx-doc.org
+.. `Sphinx Gallery`: https://sphinx-gallery.readthedocs.io/en/latest/

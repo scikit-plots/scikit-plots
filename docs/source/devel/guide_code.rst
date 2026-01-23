@@ -24,9 +24,9 @@ Interface and Dependencies
 * The core package should be importable with no
   dependencies other than components already in the Astropy core, the
   `Python Standard Library <https://docs.python.org/3/library/index.html>`_,
-  and `NumPy`_ |minimum_numpy_version| or later.
+  and |NumPy| |minimum_numpy_version| or later.
 
-* Additional dependencies - such as `SciPy`_, `Matplotlib`_, or other
+* Additional dependencies - such as |SciPy|, |Matplotlib|, or other
   third-party packages - are allowed for sub-modules or in function
   calls, but they must be noted in the package documentation and
   should only affect the relevant component.  In functions and
@@ -59,7 +59,7 @@ Documentation and Testing
 =========================
 
 * Docstrings must be present for all public classes/methods/functions, and
-  must follow the form outlined in the :doc:`docguide` document.
+  must follow the form outlined in the :doc:`guide_document` document.
 
 * Write usage examples in the docstrings of all classes and functions whenever
   possible. These examples should be short and simple to reproduce--users
@@ -68,7 +68,7 @@ Documentation and Testing
   executed as part of the test suite.
 
 * Unit tests should be provided for as many public methods and functions as
-  possible, and should adhere to the standards set in the :doc:`testguide`
+  possible, and should adhere to the standards set in the :doc:`guide_code`
   document.
 
 
@@ -134,7 +134,7 @@ Coding Style/Conventions
     `ruff format <https://docs.astral.sh/ruff/formatter/>`_ code formatter, which closely follows the
     `The Black Code Style <https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html>`_.
 
-  * In the rare cases that ruff_ formatting is undesirable, it is possible to
+  * In the rare cases that |Ruff| formatting is undesirable, it is possible to
     `disable formatting locally <https://docs.astral.sh/ruff/formatter/#format-suppression>`_.
 
       .. note::
@@ -142,7 +142,7 @@ Coding Style/Conventions
         achieved by using the
         `magic trailing comma <https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#the-magic-trailing-comma>`_.
         This is frequently sufficient for keeping matrices formatted as one row
-        per line while still allowing ruff_ to check the code::
+        per line while still allowing |Ruff| to check the code::
 
             arr = [
                 [0, 1],
@@ -150,19 +150,19 @@ Coding Style/Conventions
             ]
 
 
-* Our testing infrastructure currently enforces a subset of the `PEP8`_ style guide. In
+* Our testing infrastructure currently enforces a subset of the |PEP8| style guide. In
   addition, these checks also enforce `isort <https://pycqa.github.io/isort/>`_ to sort
-  the module imports and a large set of style-checks supported by ruff_.
+  the module imports and a large set of style-checks supported by |Ruff|.
 
   * We provide a `pre-commit <https://pre-commit.com/>`_ configuration which
     automatically enforces and fixes (whenever possible) the coding style, see
     :ref:`pre-commit` for details on how to set up and use this. We note that the
-    particular set of `PEP8`_ and style-related checks that are used in Astropy do not
-    need to be used in affiliated packages. In particular, the set of ruff_ checks is
+    particular set of |PEP8| and style-related checks that are used in Astropy do not
+    need to be used in affiliated packages. In particular, the set of |Ruff| checks is
     not required for affiliated packages.
 
   .. note:: There are multiple options for testing PEP8 compliance of code,
-            see :doc:`testguide` for more information.
+            see :doc:`guide_code` for more information.
 
 * ``astropy`` source code should contain a comment at the beginning of the file
   pointing to the license for the ``astropy`` source code.  This line should say::
@@ -199,7 +199,7 @@ Coding Style/Conventions
   it fits in one file, it should simply be a single file, rather than a
   directory with an ``__init__.py`` file.
 
-* Command-line scripts should follow the form outlined in the :doc:`scripts`
+* Command-line scripts should follow the form outlined in the :doc:`guide_scripts_cli`
   document.
 
 .. _handling-unicode:
@@ -251,7 +251,7 @@ Including C Code
   provided the needed functionality. When C extensions are used, the Python
   interface must meet the aforementioned Python interface guidelines.
 
-* The use of Cython_ is strongly recommended for C extensions. Cython_
+* The use of |Cython| is strongly recommended for C extensions. |Cython|
   extensions should store ``.pyx`` files in the source code repository,
   but not the generated ``.c`` files.
 
@@ -265,11 +265,11 @@ Including C Code
   of the library, e.g. ``ASTROPY_USE_SYSTEM_WCSLIB`` (see also
   :ref:`external_c_libraries`).
 
-* In cases where C extensions are needed but Cython_ cannot be used, the `PEP 7
+* In cases where C extensions are needed but |Cython| cannot be used, the `PEP 7
   Style Guide for C Code <https://www.python.org/dev/peps/pep-0007/>`_ is
   recommended.
 
-* C extensions (Cython_ or otherwise) should provide the necessary information
+* C extensions (|Cython| or otherwise) should provide the necessary information
   for building the extension via the mechanisms described in
   :ref:`building-c-or-cython-extensions`.
 
@@ -436,13 +436,17 @@ the hierarchy.
 
 ..
 
-  See the `matplotlib documentation`_ for more info.
+  .. See the `matplotlib documentation`_ for more info.
   .. _matplotlib documentation: https://matplotlib.org/
 
-.. _PEP8: https://peps.python.org/pep-0008/
-.. _Numpy: https://numpy.org/
-.. _Scipy: https://www.scipy.org/
-.. _Matplotlib: https://matplotlib.org/
-.. _Cython: https://cython.org/
-.. _PyPI: https://pypi.org/project
-.. _ruff: https://docs.astral.sh/ruff/
+
+.. references
+.. docs/source/conf.py#rst_prolog |PEP8| to PEP8_
+
+.. PEP8: https://peps.python.org/pep-0008/
+.. Numpy: https://numpy.org/
+.. Scipy: https://www.scipy.org/
+.. Matplotlib: https://matplotlib.org/
+.. Cython: https://cython.org/
+.. PyPI: https://pypi.org/project
+.. Ruff: https://docs.astral.sh/ruff/

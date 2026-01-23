@@ -36,7 +36,9 @@ in the source code ``docs`` directory and provides a more tutorial-like overview
 sub-package together with other topical information like What's New, Installation,
 Developer documentation, etc.
 
-The |OpenAstronomy Packaging Guide| provides a recommended general structure for
+.. _OpenAstronomy Packaging Guide: https://packaging-guide.openastronomy.org/en/latest
+
+The `OpenAstronomy Packaging Guide`_ provides a recommended general structure for
 documentation.
 
 Astropy Documentation Guidelines
@@ -46,7 +48,7 @@ This section describes the standards for documentation that any contribution
 being considered for integration into the core package should follow, as well as
 the standard Astropy docstring format.
 
-* Documentation text should follow the :ref:`astropy-style-guide`.
+* Documentation text should follow the :external+astropy:ref:`astropy-style-guide`.
 
 * Docstrings must be provided for all public classes, methods, and functions, and be
   written using the `numpydoc format

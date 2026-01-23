@@ -890,8 +890,7 @@ def mad_std(
     ignore_nan: bool | None = False,
 ) -> float | NDArray:
     r"""
-    Calculate a robust standard deviation using the `median absolute deviation (MAD)
-    <https://en.wikipedia.org/wiki/Median_absolute_deviation>`_.
+    Calculate a robust standard deviation using the `median absolute deviation (MAD) <https://en.wikipedia.org/wiki/Median_absolute_deviation>`_.
 
     The standard deviation estimator is given by:
 

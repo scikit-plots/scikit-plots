@@ -19,7 +19,12 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. Use the :doc: role to cross-reference another page, as opposed to a specific section, like what the :ref: role does.
+.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#xref-syntax
+.. https://sphinx-intro-tutorial.readthedocs.io/en/latest/sphinx_roles.html
 .. https://www.sphinx-doc.org/en/master/usage/domains/python.html#cross-referencing-python-objects
+
+.. https://documatt.com/restructuredtext-reference/element/image.html
 
 References:
 - https://www.sphinx-doc.org/en/master/index.html
@@ -109,6 +114,8 @@ References:
 .. Use the `:orphan:` metadata to let a document be built, but notify Sphinx that it is not reachable via a toctree.
 .. Sphinx issues a warning: WARNING: document isn't included in any toctree.
 .. Sphinx suppresses the warning, and the file can still be built and accessed by its direct URL.
+
+.. https://www.tarantool.io/en/doc/latest/contributing/docs/sphinx-warnings/
 
 -#}
 

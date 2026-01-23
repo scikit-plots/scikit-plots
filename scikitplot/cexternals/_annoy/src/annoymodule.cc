@@ -8117,9 +8117,9 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)\n"
-    "\n"
     "Fit the Annoy index (scikit-learn compatible).\n"
+    "\n"
+    "fit(X=None, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)\n"
     "\n"
     "This method supports two deterministic workflows:\n"
     "\n"
@@ -8194,16 +8194,17 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "fit_transform(X, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None,\n"
-    "              missing_value=None, feature_names=None, n_neighbors=None, search_k=-1,\n"
-    "              include_distances=False, return_labels=False, y_fill_value=None)\n"
-    "\n"
     "Fit the index and transform X in a single deterministic call.\n"
     "\n"
+    "fit_transform(X, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None,\n"
+    "missing_value=None, feature_names=None, n_neighbors=None, search_k=-1,\n"
+    "include_distances=False, return_labels=False, y_fill_value=None)\n"
+    "\n"
     "This is equivalent to:\n"
-    "    self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...)\n"
-    "    self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=...,\n"
-    "    y_fill_value=..., missing_value=...)\n"
+    "\n"
+    "self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...)\n"
+    "self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=...,\n"
+    "y_fill_value=..., missing_value=...)\n"
     "\n"
     "See Also\n"
     "--------\n"
@@ -8922,11 +8923,11 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False,\n"
-    "          y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False,\n"
-    "          exclude_items=None, missing_value=None)\n"
-    "\n"
     "Transform queries into nearest-neighbor results (ids or vectors; optional distances / labels).\n"
+    "\n"
+    "transform(X, \\*, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False,\n"
+    "y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False,\n"
+    "exclude_items=None, missing_value=None)\n"
     "\n"
     "Parameters\n"
     "----------\n"
@@ -8951,6 +8952,7 @@ static PyMethodDef py_annoy_methods[] = {
     "    Controls how X is interpreted.\n"
     "output_type : {'vector', 'item'}, default='vector'\n"
     "    Controls what neighbors are returned.\n"
+    "\n"
     "    - output_type='item':   return neighbor ids.\n"
     "    - output_type='vector': return neighbor vectors.\n"
     "exclude_self : bool, default=False\n"

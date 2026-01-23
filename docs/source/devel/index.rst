@@ -387,7 +387,8 @@ manage, or release manage, these guidelines describe how our current process wor
          guide_code_style_write
          guide_code_api_ver_change
          guide_code_testing
-         Command-Line Scripts Guide <guide_cli_scripts.rst>
+         guide_test
+         Command-Line Scripts Guide <guide_scripts_cli.rst>
 
    .. grid-item-card::
       :shadow: none

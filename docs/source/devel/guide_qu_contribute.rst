@@ -20,17 +20,15 @@ Set up GitHub and Git
 ---------------------
 
 scikit-plots is hosted on `GitHub <https://github.com/scikit-plots/scikit-plots>`__, and to
-contribute, you will need a `GitHub account
-<https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github>`__.
+contribute, you will need a `GitHub account <https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github>`__.
 
 We use `Git <https://git-scm.com/>`__ for version control and to allow many people to
-work together on the project. See the `GitHub quickstart instructions
-<https://docs.github.com/en/get-started/quickstart/set-up-git>`__ for installing and
-configuring git, as well as the :ref:`git-resources` page.
+work together on the project. See the
+`GitHub quickstart instructions <https://docs.github.com/en/get-started/quickstart/set-up-git>`__
+for installing and configuring git, as well as the :ref:`git-resources` page.
 
 If you are new to contributing to projects through forking on GitHub, see the
-`GitHub documentation for contributing to projects
-<https://docs.github.com/en/get-started/quickstart/contributing-to-projects>`__.
+`GitHub documentation for contributing to projects <https://docs.github.com/en/get-started/quickstart/contributing-to-projects>`__.
 
 
 .. important::
@@ -46,8 +44,8 @@ How to do this will depend on your platform.
 
 **Windows**
 
-You will need `Build Tools for Visual Studio
-<https://visualstudio.microsoft.com/downloads/?q=build+tools>`__.
+You will need
+`Build Tools for Visual Studio <https://visualstudio.microsoft.com/downloads/?q=build+tools>`__.
 
 .. note::
     You DO NOT need to install Visual Studio.
@@ -57,8 +55,7 @@ You will need `Build Tools for Visual Studio
 
 Alternative options include:
 
-- Install the necessary components on the command line using `vs_BuildTools.exe
-  <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`__.
+- Install the necessary components on the command line using `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`__.
 - Use the `WSL <https://learn.microsoft.com/en-us/windows/wsl/install>`__.
 
 **MacOS**
@@ -84,8 +81,7 @@ build it and/or contribute to the source. scikit-plots is hosted in the
 `scikit-plots GitHub repository <https://www.github.com/scikit-plots/scikit-plots>`__
 and you need to make a clone.
 
-First, create a `GitHub Fork
-<https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo>`__
+First, create a `GitHub Fork <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo>`__
 by going to the `scikit-plots project page <https://github.com/scikit-plots/scikit-plots>`__
 and hitting the ``Fork`` button.
 
@@ -125,7 +121,7 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 .. _bash-first-run-notice:
 
 ▶️ Quick check bash-first-run-notice.txt
------------------------------------------
+---------------------------------------------
 
 `"See Also: bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`__
 
@@ -138,8 +134,8 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 
 
 
-Initialize and Fetch Submodules:
---------------------------------
+Initialize and Fetch Submodules
+-------------------------------
 
 .. note::
 
@@ -148,7 +144,7 @@ Initialize and Fetch Submodules:
 .. prompt:: bash
 
     ## (if Necessary) Add in git safe dirs
-    ## Or use `git config ...` to add `scikit-plots` in git safe dirs
+    ## Or use ``git config ...`` to add ``scikit-plots`` in git safe dirs
     # bash docker/scripts/git_add_safe_dirs.sh  # add safe directories for git
     git config --global --add safe.directory '*'
 
@@ -213,8 +209,9 @@ can be useful for testing.
 Install miniforge and conda
 -----------------------------
 
-If you do not already have ``conda`` installed, `download and install miniforge
-<https://github.com/conda-forge/miniforge/blob/main/README.md>`__. The details depend on
+If you do not already have ``conda`` installed,
+`download and install miniforge <https://github.com/conda-forge/miniforge/blob/main/README.md>`__.
+The details depend on
 your system but the end result is to provide a ``conda`` executable that you can use
 to create and manage isolated Python environments.
 
@@ -264,7 +261,7 @@ all the dependencies needed to build and fully test ``scikit-plots``::
 .. _contributing_check_build:
 
 Checking the build scikit-plots
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 At this point you should be able to ``import scikitplot`` from your locally built version:
 
@@ -336,7 +333,9 @@ Now all of the styling checks will be run each time you commit changes, ensuring
 the CI formatting checks for your :ref:`pull request <quickstart_pull_request>` will
 pass.
 
-.. tip:: To learn more about pre-commit, see the :ref:`pre-commit` section.
+.. tip::
+
+    To learn more about pre-commit, see the :ref:`pre-commit` section.
 
 .. _contributing_pull_request:
 
@@ -362,8 +361,9 @@ First ensure it's up-to-date with the ``main`` ``scikit-plots`` repository::
     >>> # git checkout main
     >>> git switch main
 
-(Recommended) Use Fast-forward only:
-------------------------------------
+
+(Recommended) Use Fast-forward only
+-----------------------------------
 
 - Fast-forward only: Updates your branch only if it can be fast-forwarded (i.e., no local commits that diverge from upstream/main).
 - If divergence exists: Git refuses to pull, and you must manually resolve the situation (e.g., using git rebase or git merge).
@@ -393,8 +393,9 @@ Use when you have no local commits diverging from upstream/main::
              \
               X---Y  (local main)  ❌ (Fast-forward not possible)
 
-(if Necessary) Rebases:
------------------------
+
+(if Necessary) Rebases
+----------------------
 
 - Rebases your local commits on top of the latest upstream/main
 - Rewrites history by replaying your commits on top of upstream/main, making the history linear
@@ -452,7 +453,7 @@ branch brings to ``scikit-plots``. You can have many feature branches and switch
 using the `git switch <https://git-scm.com/docs/git-switch>`__ command.
 
 Using a descriptive branch name can help you stay organized. For example
-```kds-commented-header``` might be a good name for a branch that fixes the
+``kds-commented-header`` might be a good name for a branch that fixes the
 commented header issue `#1 <https://github.com/scikit-plots/scikit-plots/issues/1>`__ in
 the ``kds`` sub-package.
 
@@ -477,7 +478,9 @@ code or documentation! At a high level this breaks into a few parts:
 - **Add a changelog entry**: For most code changes you will need to
   :ref:`add-changelog`.
 
-.. tip:: For more information and examples see :ref:`edit-flow` section.
+.. tip::
+
+    For more information and examples see :ref:`edit-flow` section.
 
 You can see a summary of the changes you've currently made by running:
 
@@ -493,8 +496,10 @@ You can then commit your all your changes to your local repository with an expla
     git add files-that-you-changed ...
     git commit -m "your commit message goes here"
 
-.. Important:: Never merge changes from ``upstream/main`` into your feature branch. If
-   changes in ``main`` require changes to our code you must :ref:`rebase`.
+.. Important::
+
+    Never merge changes from ``upstream/main`` into your feature branch. If
+    changes in ``main`` require changes to our code you must :ref:`rebase`.
 
 .. _contributing_push_code:
 
@@ -534,8 +539,8 @@ you can follow the :ref:`pull-request` instructions.
 Follow the instructions in the PR template and fill it out as completely as possible.
 
 If your PR is still a work in progress then instead of clicking "Create pull request",
-click on the small down arrow next to it and select "`Create draft pull request
-<https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`__".
+click on the small down arrow next to it and select
+"`Create draft pull request <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`__".
 In addition, if your commits are not ready for CI testing, you
 should include ``[ci skip]`` the last commit message – but note that code formatting
 checks and documentation building will still be done. Formatting and style errors *should*
@@ -560,8 +565,10 @@ again to address any feedback and update your pull request::
 Any ``git push`` will automatically update your pull request with your branch's changes
 and restart the `Continuous Integration <contributing_ci>`__ checks.
 
-.. Important:: At this point please read (or at least skim) the sections :ref:`revise
-    and push`, :ref:`rebase`, and :ref:`squash-if-necessary`. The information here
+.. Important::
+
+    At this point please read (or at least skim) the sections :ref:`revise and push`,
+    :ref:`rebase`, and :ref:`squash-if-necessary`. The information here
     covers situations that happen on occasion and can be cause trouble. As always if
     you have questions, ask for help from the maintainer reviewing your PR.
 
@@ -577,9 +584,8 @@ If you have made it to this point and submitted a pull request, one of the core
 maintainers will take a look. To make the process as smooth and efficient as possible,
 here are some tips:
 
-- **Reference any existing open issue** to `link to that issue
-  <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`__ and close the
-  issue if the PR is merged.
+- **Reference any existing open issue** to `link to that issue <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests#draft-pull-requests>`__
+  and close the issue if the PR is merged.
 - **Ensure you have appropriate tests**.
 - **Keep your pull requests as simple as possible** -- larger PRs take longer to review.
 - **When practical, limit the scope of a PR to one sub-package** -- this means fewer
