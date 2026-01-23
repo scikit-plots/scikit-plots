@@ -8117,9 +8117,9 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "Fit the Annoy index (scikit-learn compatible).\n"
-    "\n"
     "fit(X=None, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)\n"
+    "\n"
+    "Fit the Annoy index (scikit-learn compatible).\n"
     "\n"
     "This method supports two deterministic workflows:\n"
     "\n"
@@ -8194,11 +8194,9 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "Fit the index and transform X in a single deterministic call.\n"
+    "fit_transform(X, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None, n_neighbors=None, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None)\n"
     "\n"
-    "fit_transform(X, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None,\n"
-    "missing_value=None, feature_names=None, n_neighbors=None, search_k=-1,\n"
-    "include_distances=False, return_labels=False, y_fill_value=None)\n"
+    "Fit the index and transform X in a single deterministic call.\n"
     "\n"
     "This is equivalent to:\n"
     "\n"
@@ -8923,11 +8921,9 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "Transform queries into nearest-neighbor results (ids or vectors; optional distances / labels).\n"
+    "transform(X, \\*, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False, exclude_items=None, missing_value=None)\n"
     "\n"
-    "transform(X, \\*, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False,\n"
-    "y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False,\n"
-    "exclude_items=None, missing_value=None)\n"
+    "Transform queries into nearest-neighbor results (ids or vectors; optional distances / labels).\n"
     "\n"
     "Parameters\n"
     "----------\n"
