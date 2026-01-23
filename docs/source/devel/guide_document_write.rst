@@ -39,7 +39,7 @@ the docstrings of the classes in the Matplotlib library.  Except for
 when the documentation is built.  See :ref:`writing-docstrings` below.
 
 Second, our example pages, tutorials, and some of the narrative documentation
-are created by `Sphinx Gallery`_.  Sphinx Gallery converts example Python files
+are created by |sphinx-gallery|.  Sphinx Gallery converts example Python files
 to ``*.rst`` files with the result of Matplotlib plot calls as embedded images.
 See :ref:`writing-examples-and-tutorials` below.
 
@@ -455,7 +455,7 @@ blocks in source code that explain how the code works.
    you may see in the source code. Pull requests updating docstrings to
    the current style are very welcome.
 
-All new or edited docstrings should conform to the `numpydoc docstring guide`_.
+All new or edited docstrings should conform to the |numpydoc|.
 Much of the |docutils| syntax discussed above (:ref:`writing-rest-pages`) can be
 used for links and references.  These docstrings eventually populate the
 :file:`doc/api` directory and form the reference documentation for the
@@ -577,7 +577,7 @@ understandable by humans. If the possible types are too complex use a
 simplification for the type description and explain the type more
 precisely in the text.
 
-Generally, the `numpydoc docstring guide`_ conventions apply. The following
+Generally, the |numpydoc| conventions apply. The following
 rules expand on them where the numpydoc conventions are not specific.
 
 Use ``float`` for a type that can be any number.
@@ -914,7 +914,7 @@ code will also appear in interactive docstrings.
 Write examples and tutorials
 ============================
 
-Examples and tutorials are Python scripts that are run by `Sphinx Gallery`_.
+Examples and tutorials are Python scripts that are run by |sphinx-gallery|.
 Sphinx Gallery finds ``*.py`` files in source directories and runs the files to
 create images and narrative that are embedded in ``*.rst`` files in a build
 location of the :file:`doc/` directory.  Files in the build location should not
@@ -1084,7 +1084,7 @@ should ideally be named similar to :file:`imshow_mynewexample.py`.
 Raw restructured text files in the gallery
 ------------------------------------------
 
-`Sphinx Gallery`_ folders usually consist of a ``README.txt`` and a series of
+|sphinx-gallery| folders usually consist of a ``README.txt`` and a series of
 Python source files that are then translated to an ``index.rst`` file and a
 series of ``example_name.rst`` files in the :file:`doc/` subdirectories.
 However, Sphinx Gallery also allows raw ``*.rst`` files to be passed through a
