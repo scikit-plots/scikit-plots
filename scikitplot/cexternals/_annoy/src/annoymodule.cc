@@ -1082,8 +1082,17 @@ typedef struct {
   AnnoyIndexInterface<int32_t, float>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngular*>(ptr)
 
   // Optional labels / targets associated with vectors (set by fit or manually).
-  // Stored as a Python object (typically 1D array-like) and managed with ref-counting.
-  PyObject* y;                  // labels/targets (y / _y), or NULL
+  //
+  // Canonical representation:
+  //   * y_map : dict {item_id -> label} (sparse / gap-friendly)
+  // Dense cache:
+  //   * y     : sequence aligned to item ids; may be NULL when y_map is used
+  //
+  // Invariant:
+  //   - y_map is the authoritative storage when present
+  //   - y is an optional cache materialized from y_map on demand
+  PyObject* y;                  // dense labels cache (sequence), or NULL
+  PyObject* y_map;              // sparse labels mapping (dict), or NULL
 
   int f;                        // 0 means "unknown / lazy" (dimension inferred from first add_item)
   MetricId metric_id;           // METRIC_UNKNOWN means "unknown / lazy"
@@ -1553,6 +1562,11 @@ static PyObject* py_an_new(
   self->y = NULL;
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
+
+  self->y_map = NULL;
+  // Clear fitted sparse labels mapping (if any) on re-init.
+  Py_CLEAR(self->y_map);
 
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
@@ -1624,6 +1638,8 @@ static int py_an_init(
 
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
+  // Clear fitted sparse labels mapping (if any) on re-init.
+  Py_CLEAR(self->y_map);
 
   // Clear fitted feature names (SLEP007).
   Py_CLEAR(self->feature_names_in);
@@ -1959,6 +1975,8 @@ static void py_an_dealloc(py_annoy* self) {
 
   // Clear fitted labels / targets (if any).
   Py_CLEAR(self->y);
+  // Clear fitted sparse labels mapping (if any).
+  Py_CLEAR(self->y_map);
 
   // Make the wrapper resilient to any finalizers triggered while clearing
   // Python references below.
@@ -2267,22 +2285,138 @@ static PyMemberDef py_annoy_members[] = {
 // getter: PyObject* (py_annoy*, void*)
 // setter: int (py_annoy*, PyObject*, void*)
 
-// Optional sklearn-style fitted attribute: y (labels / targets)
+// Optional sklearn-style fitted attribute: y (dense labels cache) and y_map (sparse mapping)
 //
 // Notes
 // -----
-// scikit-learn estimators do not typically store `y`, but for Annoy it can be
-// useful to attach labels/metadata for downstream retrieval. We store :attr:`y` as a
-// Python object and validate basic shape constraints when possible.
-//
+// - Canonical storage is :attr:`y_map` (dict {item_id -> label}).
+// - :attr:`y` is a convenience cache: a 1D sequence aligned to item ids.
+// - Setting y replaces y_map, and vice versa.
+// - Backward compatibility: if a legacy pickle stored a dict in `y`, we
+//   migrate it to `y_map` lazily.
+static int annoy_migrate_legacy_y_dict(py_annoy* self) {
+  if (!self) return 0;
+  if (self->y && self->y != Py_None && PyDict_Check(self->y) && (!self->y_map || self->y_map == Py_None)) {
+    PyObject* cp = PyDict_Copy(self->y);
+    if (!cp) return -1;
+    Py_XDECREF(self->y_map);
+    self->y_map = cp;
+    // Clear dense cache: it will be materialized on demand.
+    Py_CLEAR(self->y);
+  }
+  return 0;
+}
+
+static int annoy_validate_y_map_keys(py_annoy* self, PyObject* d, const char* name) {
+  if (!d || d == Py_None) return 0;
+  if (!PyDict_Check(d)) {
+    PyErr_Format(PyExc_TypeError, "%s must be a dict or None", name);
+    return -1;
+  }
+  const int n_items = (self && self->ptr) ? self->ptr->get_n_items() : 0;
+  PyObject* key = NULL;
+  PyObject* val = NULL;
+  Py_ssize_t pos = 0;
+  while (PyDict_Next(d, &pos, &key, &val)) {
+    if (!PyLong_Check(key)) {
+      PyErr_Format(PyExc_TypeError, "%s dict keys must be integers (item ids)", name);
+      return -1;
+    }
+    long long kid = PyLong_AsLongLong(key);
+    if (kid == -1 && PyErr_Occurred()) return -1;
+    if (kid < 0) {
+      PyErr_Format(PyExc_ValueError, "%s dict keys must be >= 0", name);
+      return -1;
+    }
+    if (n_items > 0 && kid >= (long long)n_items) {
+      PyErr_Format(PyExc_ValueError,
+        "%s dict key %lld is out of range for current index size (n_items=%d)",
+        name, kid, n_items);
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static PyObject* annoy_build_y_map_from_sequence(PyObject* seq_fast) {
+  // seq_fast must be a sequence-fast object (PySequence_Fast) whose items are borrowed.
+  const Py_ssize_t n = PySequence_Fast_GET_SIZE(seq_fast);
+  PyObject* d = PyDict_New();
+  if (!d) return NULL;
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    PyObject* key = PyLong_FromSsize_t(i);
+    if (!key) { Py_DECREF(d); return NULL; }
+    PyObject* v = PySequence_Fast_GET_ITEM(seq_fast, i);  // borrowed
+    if (PyDict_SetItem(d, key, v) < 0) { Py_DECREF(key); Py_DECREF(d); return NULL; }
+    Py_DECREF(key);
+  }
+  return d;
+}
+
+static PyObject* annoy_materialize_dense_y_from_y_map(py_annoy* self) {
+  if (!self || !self->y_map || self->y_map == Py_None) {
+    Py_RETURN_NONE;
+  }
+  if (!PyDict_Check(self->y_map)) {
+    PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+    return NULL;
+  }
+  Py_ssize_t n = 0;
+  if (self->ptr) {
+    n = (Py_ssize_t)self->ptr->get_n_items();
+  } else {
+    // No live index: infer a deterministic length from max key + 1.
+    PyObject* key = NULL; PyObject* val = NULL; Py_ssize_t pos = 0;
+    long long max_k = -1;
+    while (PyDict_Next(self->y_map, &pos, &key, &val)) {
+      if (!PyLong_Check(key)) {
+        PyErr_SetString(PyExc_TypeError, "y_map dict keys must be integers (item ids)");
+        return NULL;
+      }
+      long long kid = PyLong_AsLongLong(key);
+      if (kid == -1 && PyErr_Occurred()) return NULL;
+      if (kid > max_k) max_k = kid;
+    }
+    n = (max_k >= 0) ? (Py_ssize_t)(max_k + 1) : 0;
+  }
+  PyObject* lst = PyList_New(n);
+  if (!lst) return NULL;
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    Py_INCREF(Py_None);
+    PyList_SET_ITEM(lst, i, Py_None);
+  }
+  PyObject* key = NULL; PyObject* val = NULL; Py_ssize_t pos = 0;
+  while (PyDict_Next(self->y_map, &pos, &key, &val)) {
+    long long kid = PyLong_AsLongLong(key);
+    if (kid == -1 && PyErr_Occurred()) { Py_DECREF(lst); return NULL; }
+    if (kid < 0 || kid >= (long long)n) continue;
+    Py_INCREF(val);
+    Py_DECREF(PyList_GET_ITEM(lst, (Py_ssize_t)kid));
+    PyList_SET_ITEM(lst, (Py_ssize_t)kid, val);  // steals
+  }
+  return lst;
+}
+
 static PyObject* py_annoy_get_y(
   py_annoy* self,
   void*) {
-  if (!self || !self->y) Py_RETURN_NONE;
-  Py_INCREF(self->y);
-  return self->y;
+  if (!self) Py_RETURN_NONE;
+  if (annoy_migrate_legacy_y_dict(self) != 0) return NULL;
+  if (self->y && self->y != Py_None && !PyDict_Check(self->y)) {
+    Py_INCREF(self->y);
+    return self->y;
+  }
+  if (self->y_map && self->y_map != Py_None) {
+    PyObject* dense = annoy_materialize_dense_y_from_y_map(self);
+    if (!dense) return NULL;
+    if (dense == Py_None) return dense;
+    Py_XDECREF(self->y);
+    self->y = dense;  // steal
+    Py_INCREF(self->y);
+    return self->y;
+  }
+  Py_RETURN_NONE;
 }
-
 
 static int py_annoy_set_y(
   py_annoy* self,
@@ -2298,67 +2432,103 @@ static int py_annoy_set_y(
   }
   if (value == Py_None) {
     Py_CLEAR(self->y);
+    Py_CLEAR(self->y_map);
     return 0;
   }
-
-  // Accept either:
-  // - dict-like mapping {item_id -> label}, or
-  // - 1D array-like (sequence) aligned to item ids 0..len-1.
-  const bool is_dict = PyDict_Check(value);
-
-  if (!is_dict) {
-    // Require an array-like (sequence), but reject str/bytes which are sequences.
-    if (!PySequence_Check(value) || PyUnicode_Check(value) || PyBytes_Check(value)) {
-      PyErr_SetString(PyExc_TypeError,
-        "y must be a dict {item_id -> label}, a 1D array-like (sequence), or None");
-      return -1;
-    }
-    // If the index currently has items, enforce length equality deterministically.
-    if (self->ptr) {
-      const int n_items = self->ptr->get_n_items();
-      if (n_items > 0) {
-        const Py_ssize_t n = PySequence_Size(value);
-        if (n < 0) return -1;  // error already set
-        if ((int64_t)n != (int64_t)n_items) {
-          PyErr_Format(PyExc_ValueError,
-            "y must have length %d to match current index size (n_items)", n_items);
-          return -1;
-        }
-      }
-    }
-  } else {
-    // For dict input, validate keys when possible (deterministic safety check).
-    if (self->ptr) {
-      const int n_items = self->ptr->get_n_items();
-      PyObject* key = NULL;
-      PyObject* val = NULL;
-      Py_ssize_t pos = 0;
-      while (PyDict_Next(value, &pos, &key, &val)) {
-        if (!PyLong_Check(key)) {
-          PyErr_SetString(PyExc_TypeError,
-            "y dict keys must be integers (item ids)");
-          return -1;
-        }
-        long long kid = PyLong_AsLongLong(key);
-        if (kid == -1 && PyErr_Occurred()) return -1;
-        if (kid < 0) {
-          PyErr_SetString(PyExc_ValueError,
-            "y dict keys must be >= 0");
-          return -1;
-        }
-        if (n_items > 0 && kid >= (long long)n_items) {
-          PyErr_Format(PyExc_ValueError,
-            "y dict key %lld is out of range for current index size (n_items=%d)",
-            kid, n_items);
-          return -1;
-        }
+  if (PyDict_Check(value)) {
+    PyErr_SetString(PyExc_TypeError,
+      "y must be a 1D array-like (sequence). For dict mapping use y_map.");
+    return -1;
+  }
+  if (!PySequence_Check(value) || PyUnicode_Check(value) || PyBytes_Check(value)) {
+    PyErr_SetString(PyExc_TypeError,
+      "y must be a 1D array-like (sequence) or None");
+    return -1;
+  }
+  if (self->ptr) {
+    const int n_items = self->ptr->get_n_items();
+    if (n_items > 0) {
+      const Py_ssize_t n = PySequence_Size(value);
+      if (n < 0) return -1;
+      if ((int64_t)n != (int64_t)n_items) {
+        PyErr_Format(PyExc_ValueError,
+          "y must have length %d to match current index size (n_items)", n_items);
+        return -1;
       }
     }
   }
-
-  Py_INCREF(value);
+  PyObject* seq_fast = PySequence_Fast(value, "y must be a 1D array-like (sequence)");
+  if (!seq_fast) return -1;
+  PyObject* y_map_new = annoy_build_y_map_from_sequence(seq_fast);
+  if (!y_map_new) { Py_DECREF(seq_fast); return -1; }
+  // Store a list copy as dense cache to avoid aliasing/mutation surprises.
+  const Py_ssize_t n = PySequence_Fast_GET_SIZE(seq_fast);
+  PyObject* lst = PyList_New(n);
+  if (!lst) { Py_DECREF(seq_fast); Py_DECREF(y_map_new); return -1; }
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    PyObject* v = PySequence_Fast_GET_ITEM(seq_fast, i);  // borrowed
+    Py_INCREF(v);
+    PyList_SET_ITEM(lst, i, v);  // steals
+  }
+  Py_DECREF(seq_fast);
+  Py_XDECREF(self->y_map);
+  self->y_map = y_map_new;  // steal
   Py_XDECREF(self->y);
-  self->y = value;
+  self->y = lst;  // steal
+  return 0;
+}
+
+static PyObject* py_annoy_get_y_map(
+  py_annoy* self,
+  void*) {
+  if (!self) Py_RETURN_NONE;
+  if (annoy_migrate_legacy_y_dict(self) != 0) return NULL;
+  if (self->y_map && self->y_map != Py_None) {
+    Py_INCREF(self->y_map);
+    return self->y_map;
+  }
+  if (self->y && self->y != Py_None && !PyDict_Check(self->y)) {
+    PyObject* seq_fast = PySequence_Fast(self->y, "y must be a 1D array-like (sequence)");
+    if (!seq_fast) return NULL;
+    PyObject* d = annoy_build_y_map_from_sequence(seq_fast);
+    Py_DECREF(seq_fast);
+    if (!d) return NULL;
+    Py_XDECREF(self->y_map);
+    self->y_map = d;  // steal
+    Py_INCREF(self->y_map);
+    return self->y_map;
+  }
+  Py_RETURN_NONE;
+}
+
+static int py_annoy_set_y_map(
+  py_annoy* self,
+  PyObject* value,
+  void*) {
+  if (!self) {
+    PyErr_SetString(PyExc_RuntimeError, "Annoy object is not initialized");
+    return -1;
+  }
+  if (value == NULL) {
+    PyErr_SetString(PyExc_TypeError, "Cannot delete attribute y_map");
+    return -1;
+  }
+  if (value == Py_None) {
+    Py_CLEAR(self->y_map);
+    Py_CLEAR(self->y);
+    return 0;
+  }
+  if (!PyDict_Check(value)) {
+    PyErr_SetString(PyExc_TypeError, "y_map must be a dict {item_id -> label} or None");
+    return -1;
+  }
+  if (annoy_validate_y_map_keys(self, value, "y_map") != 0) return -1;
+  PyObject* cp = PyDict_Copy(value);
+  if (!cp) return -1;
+  Py_XDECREF(self->y_map);
+  self->y_map = cp;  // steal
+  // Invalidate dense cache.
+  Py_CLEAR(self->y);
   return 0;
 }
 
@@ -3028,13 +3198,13 @@ static PyGetSetDef py_annoy_getset[] = {
     (getter)py_annoy_get_y,
     (setter)py_annoy_set_y,
     (char*)
-    "Labels / targets associated with the index items.\n"
+    "Dense labels/targets cache aligned to item ids (0..n_items-1).\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "If provided to fit(X, y), labels are stored here after a successful build.\n"
-    "You may also set this property manually. When possible, the setter enforces\n"
-    "that len(y) matches the current number of items (n_items).\n",
+    "Canonical storage is :attr:`y_map` (a dict). This attribute is a\n"
+    "convenience cache and will be materialized from y_map on demand.\n"
+    "Setting y replaces y_map. For sparse mappings use y_map.\n",
     NULL
   },
 
@@ -3045,6 +3215,28 @@ static PyGetSetDef py_annoy_getset[] = {
     NULL,  // read-only alias of on_disk_path (prevents bypassing validation)
     (char*)
     "Alias for :attr:`y`.\n",
+    NULL
+  },
+
+  {
+    (char*)"y_map",
+    (getter)py_annoy_get_y_map,
+    (setter)py_annoy_set_y_map,
+    (char*)
+    "Sparse labels/targets mapping: dict {item_id -> label}.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "This is the canonical label metadata storage. When set, :attr:`y` may\n"
+    "be cleared and rebuilt lazily.\n",
+    NULL
+  },
+
+  {
+    (char*)"_y_map",
+    (getter)py_annoy_get_y_map,
+    NULL,
+    (char*)"Alias for :attr:`y_map`.\n",
     NULL
   },
 
@@ -4704,11 +4896,32 @@ static PyObject* py_an_rebuild(
     return NULL;
   }
 
-  // Copy labels/targets (y) if present. This is metadata keyed by item id.
-  if (self->y) {
-    Py_INCREF(self->y);
-    Py_XDECREF(out->y);
-    out->y = self->y;
+  // Copy label metadata (y_map/y) if present.
+  // Prefer y_map when available.
+  if (annoy_migrate_legacy_y_dict(self) != 0) { Py_DECREF(out_obj); return NULL; }
+  if (self->y_map && self->y_map != Py_None) {
+    if (!PyDict_Check(self->y_map)) {
+      Py_DECREF(out_obj);
+      PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+      return NULL;
+    }
+    PyObject* cp = PyDict_Copy(self->y_map);
+    if (!cp) { Py_DECREF(out_obj); return NULL; }
+    Py_XDECREF(out->y_map);
+    out->y_map = cp;  // steal
+    Py_CLEAR(out->y);
+  } else if (self->y) {
+    if (PyDict_Check(self->y)) {
+      PyObject* cp = PyDict_Copy(self->y);
+      if (!cp) { Py_DECREF(out_obj); return NULL; }
+      Py_XDECREF(out->y_map);
+      out->y_map = cp;
+      Py_CLEAR(out->y);
+    } else {
+      Py_INCREF(self->y);
+      Py_XDECREF(out->y);
+      out->y = self->y;
+    }
   }
 
   // Rebuild forest deterministically.
@@ -5229,6 +5442,7 @@ static PyObject* py_an_fit(
 
   PyObject* X = (nargs >= 1) ? PyTuple_GET_ITEM(args, 0) : Py_None;  // borrowed
   PyObject* y = (nargs >= 2) ? PyTuple_GET_ITEM(args, 1) : Py_None;  // borrowed
+  PyObject* y_map = Py_None;  // borrowed
 
   // Defaults
   int n_trees = 10;
@@ -5250,6 +5464,7 @@ static PyObject* py_an_fit(
 
     PyObject* x_kw = PyDict_GetItemString(kwargs, "X");  // borrowed
     PyObject* y_kw = PyDict_GetItemString(kwargs, "y");  // borrowed
+    PyObject* y_map_kw = PyDict_GetItemString(kwargs, "y_map");  // borrowed
     if (x_kw) {
       if (nargs >= 1 && X != Py_None) {
         PyErr_SetString(PyExc_TypeError,
@@ -5267,6 +5482,16 @@ static PyObject* py_an_fit(
       y = y_kw;
     }
 
+    if (y_map_kw) {
+      if (y != Py_None) {
+        PyErr_SetString(PyExc_TypeError,
+          "fit() got multiple values for argument 'y' (use y_map for mappings)"
+        );
+        return NULL;
+      }
+      y_map = y_map_kw;
+    }
+
     // Validate / parse supported keyword parameters.
     PyObject* key = NULL;
     PyObject* value = NULL;
@@ -5279,7 +5504,7 @@ static PyObject* py_an_fit(
       const char* k = PyUnicode_AsUTF8(key);
       if (!k) return NULL;
 
-      if (std::strcmp(k, "X") == 0 || std::strcmp(k, "y") == 0) {
+      if (std::strcmp(k, "X") == 0 || std::strcmp(k, "y") == 0 || std::strcmp(k, "y_map") == 0) {
         continue;  // handled above
       } else if (std::strcmp(k, "n_trees") == 0) {
         // None means "use the default" (handy when parameters come from config files).
@@ -5329,7 +5554,7 @@ static PyObject* py_an_fit(
       } else {
         PyErr_Format(PyExc_TypeError,
           "fit() got an unexpected keyword argument %R "
-          "(allowed: X, y, n_trees, n_jobs, reset, start_index, feature_names, missing_value)",
+          "(allowed: X, y, y_map, n_trees, n_jobs, reset, start_index, feature_names, missing_value)",
           key);
         return NULL;
       }
@@ -5340,9 +5565,14 @@ static PyObject* py_an_fit(
 
   const bool have_X = (X != Py_None);
   const bool have_y = (y != Py_None);
+  const bool have_y_map = (y_map != Py_None);
+  if (have_y && have_y_map) {
+    PyErr_SetString(PyExc_TypeError, "fit() received both y and y_map; provide only one");
+    return NULL;
+  }
 
   // Mode 1: build-only (manual add_item workflow)
-  if (!have_X && !have_y) {
+  if (!have_X && !have_y && !have_y_map) {
     PyObject* bargs = PyTuple_New(2);
     if (!bargs) return NULL;
 
@@ -5364,8 +5594,8 @@ static PyObject* py_an_fit(
   }
 
   // If y is provided, X must also be provided.
-  if (!have_X && have_y) {
-    PyErr_SetString(PyExc_TypeError, "fit() got y but X is None");
+  if (!have_X && (have_y || have_y_map)) {
+    PyErr_SetString(PyExc_TypeError, "fit() got y/y_map but X is None");
     return NULL;
   }
 
@@ -5397,6 +5627,14 @@ static PyObject* py_an_fit(
     }
   }
 
+  if (have_y_map) {
+    if (!PyDict_Check(y_map)) {
+      Py_DECREF(X_seq);
+      PyErr_SetString(PyExc_TypeError, "y_map must be a dict {item_id -> label}");
+      return NULL;
+    }
+  }
+
   // If reset=True: drop all items/trees (fresh index) deterministically.
   if (reset) {
     if (self->ptr) {
@@ -5409,6 +5647,7 @@ static PyObject* py_an_fit(
     Py_CLEAR(self->feature_names_in);
     // Clear any previously stored labels to prevent stale metadata.
     Py_CLEAR(self->y);
+    Py_CLEAR(self->y_map);
   } else {
     // Append mode: if built, unbuild first and warn.
     if (self->ptr && self->ptr->get_n_trees() > 0) {
@@ -5587,82 +5826,65 @@ static PyObject* py_an_fit(
 
 
 
-// Store y only after successful build.
+// Store label metadata only after successful build.
 //
-// We store labels as a dict mapping {item_id -> label} so that:
-// - gaps are representable,
-// - append mode can merge without ambiguity,
-// - callers can retrieve labels by the same ids used in add_item.
-if (have_y) {
-  PyObject* y_seq = PySequence_Fast(y, "y must be a 1D array-like (sequence)");
-  if (!y_seq) return NULL;
-
+// Canonical storage is y_map (dict {item_id -> label}). When provided as a
+// dense sequence y, we deterministically convert it to a mapping.
+if (have_y || have_y_map) {
   PyObject* y_dict = NULL;
 
-  if (!reset && self->y) {
-    if (PyDict_Check(self->y)) {
-      // Append mode: extend existing mapping in-place.
-      y_dict = self->y;
-      Py_INCREF(y_dict);
-    } else if (PySequence_Check(self->y) && !PyUnicode_Check(self->y) && !PyBytes_Check(self->y)) {
-      // Deterministic upgrade path: if an existing sequence aligns to current
-      // item ids (length == n_items_before), convert it to a dict mapping.
-      const Py_ssize_t n_old = PySequence_Size(self->y);
-      if (n_old < 0) { Py_DECREF(y_seq); return NULL; }
-      if ((int64_t)n_old == (int64_t)n_items_before) {
-        PyObject* old_seq = PySequence_Fast(self->y, "y must be a sequence");
-        if (!old_seq) { Py_DECREF(y_seq); return NULL; }
-
-        y_dict = PyDict_New();
-        if (!y_dict) { Py_DECREF(old_seq); Py_DECREF(y_seq); return NULL; }
-
-        for (Py_ssize_t i = 0; i < n_old; ++i) {
-          PyObject* key = PyLong_FromSsize_t(i);
-          if (!key) { Py_DECREF(old_seq); Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
-          PyObject* label = PySequence_Fast_GET_ITEM(old_seq, i);  // borrowed
-          if (PyDict_SetItem(y_dict, key, label) < 0) {
-            Py_DECREF(key);
-            Py_DECREF(old_seq);
-            Py_DECREF(y_seq);
-            Py_DECREF(y_dict);
-            return NULL;
-          }
-          Py_DECREF(key);
-        }
-        Py_DECREF(old_seq);
+  // Start from existing mapping in append mode when available.
+  if (!reset) {
+    if (annoy_migrate_legacy_y_dict(self) != 0) return NULL;
+    if (self->y_map && self->y_map != Py_None) {
+      if (!PyDict_Check(self->y_map)) {
+        PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+        return NULL;
       }
+      y_dict = self->y_map;
+      Py_INCREF(y_dict);
     }
   }
 
   if (!y_dict) {
-    // Reset mode or no usable prior labels: create a fresh mapping.
     y_dict = PyDict_New();
-    if (!y_dict) { Py_DECREF(y_seq); return NULL; }
+    if (!y_dict) return NULL;
   }
 
-  for (Py_ssize_t i = 0; i < n_samples; ++i) {
-    const int32_t item_id = (int32_t)(start_index + (int64_t)i);
-    PyObject* key = PyLong_FromLong((long)item_id);
-    if (!key) { Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
-
-    PyObject* label = PySequence_Fast_GET_ITEM(y_seq, i);  // borrowed
-    // PyDict_SetItem INCREFs key and value as needed.
-    if (PyDict_SetItem(y_dict, key, label) < 0) {
+  if (have_y) {
+    PyObject* y_seq = PySequence_Fast(y, "y must be a 1D array-like (sequence)");
+    if (!y_seq) { Py_DECREF(y_dict); return NULL; }
+    for (Py_ssize_t i = 0; i < n_samples; ++i) {
+      const int32_t item_id = (int32_t)(start_index + (int64_t)i);
+      PyObject* key = PyLong_FromLong((long)item_id);
+      if (!key) { Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
+      PyObject* label = PySequence_Fast_GET_ITEM(y_seq, i);  // borrowed
+      if (PyDict_SetItem(y_dict, key, label) < 0) {
+        Py_DECREF(key);
+        Py_DECREF(y_seq);
+        Py_DECREF(y_dict);
+        return NULL;
+      }
       Py_DECREF(key);
-      Py_DECREF(y_seq);
-      Py_DECREF(y_dict);
-      return NULL;
     }
-    Py_DECREF(key);
+    Py_DECREF(y_seq);
+  } else {
+    // have_y_map: merge provided mapping.
+    if (annoy_validate_y_map_keys(self, y_map, "y_map") != 0) { Py_DECREF(y_dict); return NULL; }
+    PyObject* key = NULL; PyObject* val = NULL; Py_ssize_t pos = 0;
+    while (PyDict_Next(y_map, &pos, &key, &val)) {
+      if (PyDict_SetItem(y_dict, key, val) < 0) { Py_DECREF(y_dict); return NULL; }
+    }
   }
 
-  Py_DECREF(y_seq);
-
-  Py_XDECREF(self->y);
-  self->y = y_dict;  // already INCREF'ed above
+  Py_XDECREF(self->y_map);
+  self->y_map = y_dict;  // steal
+  // Invalidate dense cache; it will be rebuilt lazily.
+  Py_CLEAR(self->y);
 } else if (reset) {
   // Reset mode without labels: remove any prior labels to avoid stale metadata.
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
 }
 
 PY_RETURN_SELF;
@@ -5757,12 +5979,43 @@ static PyObject* annoy_lookup_y(
   PyObject* y_fill_value) {
   if (!y_fill_value) y_fill_value = Py_None;
 
-  if (!self || !self->y || self->y == Py_None) {
+  if (!self) {
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+  }
+  if (annoy_migrate_legacy_y_dict(self) != 0) return NULL;
+  // Prefer canonical y_map when present.
+  if (self->y_map && self->y_map != Py_None) {
+    if (!PyDict_Check(self->y_map)) {
+      PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+      return NULL;
+    }
+#if PY_VERSION_HEX >= 0x030A0000
+    PyObject* key = PyLong_FromLong((long)item_id);
+    if (!key) return NULL;
+    PyObject* v = PyDict_GetItemWithError(self->y_map, key);  // borrowed
+    Py_DECREF(key);
+    if (v) { Py_INCREF(v); return v; }
+    if (PyErr_Occurred()) return NULL;
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+#else
+    PyObject* key = PyLong_FromLong((long)item_id);
+    if (!key) return NULL;
+    PyObject* v = PyDict_GetItem(self->y_map, key);  // borrowed
+    Py_DECREF(key);
+    if (v) { Py_INCREF(v); return v; }
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+#endif
+  }
+
+  if (!self->y || self->y == Py_None) {
     Py_INCREF(y_fill_value);
     return y_fill_value;
   }
 
-  // Dict mapping: {item_id -> label}
+  // Dict mapping: {item_id -> label} (legacy)
   if (PyDict_Check(self->y)) {
 #if PY_VERSION_HEX >= 0x030A0000
     PyObject* key = PyLong_FromLong((long)item_id);
@@ -6262,6 +6515,7 @@ static PyObject* py_an_fit_transform(
   PyObject* kwargs) {
   PyObject* X = NULL;
   PyObject* y = Py_None;
+  PyObject* y_map = Py_None;
 
   int n_trees = 10;
   int n_jobs = -1;
@@ -6291,12 +6545,13 @@ static PyObject* py_an_fit_transform(
     "include_distances",
     "return_labels",
     "y_fill_value",
+    "y_map",
     NULL
   };
 
   if (!PyArg_ParseTupleAndKeywords(
       args, kwargs,
-      "O|OiipOOOnippO",
+      "O|OiipOOOnippO$O",
       (char**)kwlist,
       &X,
       &y,
@@ -6310,7 +6565,13 @@ static PyObject* py_an_fit_transform(
       &search_k,
       &include_distances,
       &return_labels,
-      &y_fill_value)) {
+      &y_fill_value,
+      &y_map)) {
+    return NULL;
+  }
+
+  if (y != Py_None && y_map != Py_None) {
+    PyErr_SetString(PyExc_TypeError, "fit_transform() received both y and y_map; provide only one");
     return NULL;
   }
 
@@ -6376,6 +6637,12 @@ static PyObject* py_an_fit_transform(
 
   if (feature_names_provided) {
     if (PyDict_SetItemString(fit_kwargs, "feature_names", feature_names_obj ? feature_names_obj : Py_None) < 0) {
+      Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL;
+    }
+  }
+
+  if (y_map != Py_None) {
+    if (PyDict_SetItemString(fit_kwargs, "y_map", y_map) < 0) {
       Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL;
     }
   }
@@ -7265,6 +7532,42 @@ static PyObject* py_an_getstate(
   }
   Py_DECREF(v);
 
+  // Label metadata (optional, additive).
+  // Canonical: y_map; dense y is included only if y_map is absent.
+  if (annoy_migrate_legacy_y_dict(self) != 0) { Py_DECREF(state); return NULL; }
+  if (self->y_map && self->y_map != Py_None) {
+    if (!PyDict_Check(self->y_map)) {
+      PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+      Py_DECREF(state);
+      return NULL;
+    }
+    v = PyDict_Copy(self->y_map);
+    if (!v || PyDict_SetItemString(state, "y_map", v) < 0) {
+      Py_XDECREF(v);
+      Py_DECREF(state);
+      return NULL;
+    }
+    Py_DECREF(v);
+  } else if (self->y && self->y != Py_None && !PyDict_Check(self->y)) {
+    Py_INCREF(self->y);
+    v = self->y;
+    if (PyDict_SetItemString(state, "y", v) < 0) {
+      Py_DECREF(v);
+      Py_DECREF(state);
+      return NULL;
+    }
+    Py_DECREF(v);
+  } else {
+    Py_INCREF(Py_None);
+    v = Py_None;
+    if (PyDict_SetItemString(state, "y_map", v) < 0) {
+      Py_DECREF(v);
+      Py_DECREF(state);
+      return NULL;
+    }
+    Py_DECREF(v);
+  }
+
   // Build metadata (sklearn-like): record compile/build info for warnings on load.
   v = PyUnicode_FromString(COMPILER_INFO ". " AVX_INFO);
   if (!v || PyDict_SetItemString(state, "_backend_build", v) < 0) {
@@ -7475,6 +7778,7 @@ static PyObject* py_an_setstate(
 
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
 
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
@@ -7605,6 +7909,39 @@ static PyObject* py_an_setstate(
     self->feature_names_in = fn_tuple;  // steals
   } else {
     Py_CLEAR(self->feature_names_in);
+  }
+
+  // --------------------------
+  // Label metadata (optional)
+  // --------------------------
+  PyObject* ymap_obj = PyDict_GetItemString(state, "y_map");  // borrowed
+  PyObject* y_obj = PyDict_GetItemString(state, "y");          // borrowed
+
+  // Prefer y_map when present.
+  if (ymap_obj && ymap_obj != Py_None) {
+    if (!PyDict_Check(ymap_obj)) {
+      PyErr_SetString(PyExc_TypeError, "`y_map` in pickle state must be a dict or None");
+      return NULL;
+    }
+    PyObject* cp = PyDict_Copy(ymap_obj);
+    if (!cp) return NULL;
+    Py_XDECREF(self->y_map);
+    self->y_map = cp;
+    Py_CLEAR(self->y);
+  } else if (y_obj && y_obj != Py_None) {
+    // Backward-compat: allow dict stored under `y`.
+    if (PyDict_Check(y_obj)) {
+      PyObject* cp = PyDict_Copy(y_obj);
+      if (!cp) return NULL;
+      Py_XDECREF(self->y_map);
+      self->y_map = cp;
+      Py_CLEAR(self->y);
+    } else {
+      Py_INCREF(y_obj);
+      Py_XDECREF(self->y);
+      self->y = y_obj;
+      // y_map can be built lazily on first access.
+    }
   }
 
   // --------------------------
@@ -9976,6 +10313,7 @@ static int py_an_traverse(
   Py_VISIT(self->dict);
   Py_VISIT(self->feature_names_in);
   Py_VISIT(self->y);
+  Py_VISIT(self->y_map);
   return 0;
 }
 
@@ -9986,6 +10324,7 @@ static int py_an_clear(
   Py_CLEAR(self->dict);
   Py_CLEAR(self->feature_names_in);
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
   return 0;
 }
 
