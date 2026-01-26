@@ -73,7 +73,6 @@ PUBLIC_MODULES = [
         "seaborn",
         "stats",
         "utils",
-        "utils.logger",
         "utils.validation",
         "visualkeras",
         # py
@@ -173,6 +172,7 @@ SKIP_LIST_2 = [
     # root artifact
     # "scikitplot.conftest",
     "scikitplot.logger",
+    "scikitplot.utils.logger",
     # api artifact
     "scikitplot.decomposition",
     "scikitplot.estimators",
