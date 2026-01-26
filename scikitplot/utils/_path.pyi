@@ -21,8 +21,9 @@ def normalize_extension(ext: str | None) -> str: ...
 @dataclass(frozen=True)
 class PathNamer:
     root: Path
-    default_prefix: str
-    default_ext: str
+    prefix: str
+    suffix: str
+    ext: str
     by_day: bool
     add_secret: bool
     private: bool
@@ -31,8 +32,9 @@ class PathNamer:
     def __init__(
         self,
         root: Path = ...,
-        default_prefix: str = ...,
-        default_ext: str = ...,
+        prefix: str = ...,
+        suffix: str = ...,
+        ext: str = ...,
         by_day: bool = ...,
         add_secret: bool = ...,
         private: bool = ...,
@@ -41,6 +43,7 @@ class PathNamer:
     def make_filename(
         self,
         prefix: str | None = ...,
+        suffix: str | None = ...,
         ext: str | None = ...,
         *,
         now: datetime | None = ...,
@@ -48,6 +51,7 @@ class PathNamer:
     def make_path(
         self,
         prefix: str | None = ...,
+        suffix: str | None = ...,
         ext: str | None = ...,
         *,
         subdir: str | None = ...,
@@ -57,6 +61,7 @@ class PathNamer:
 def make_path(
     root: str | Path = ...,
     prefix: str = ...,
+    suffix: str = ...,
     ext: str = ...,
     *,
     by_day: bool = ...,

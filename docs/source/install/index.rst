@@ -127,7 +127,7 @@ Install from source
 
   If you would like to contribute to Matplotlib or otherwise need to
   install the latest development code, please follow the instructions in
-  :ref:`installing_for_devs`.
+  :external+matplotlib:ref:`installing_for_devs`.
 
 The following instructions are for installing from source for production use.
 This is generally *not* recommended; please use prebuilt packages when possible.
@@ -160,7 +160,7 @@ Aspects of some behaviorial defaults of the library can be configured via:
   environment_variables_faq.rst
 
 Default plotting appearance and behavior can be configured via the
-:ref:`rcParams file <customizing-with-matplotlibrc-files>`
+:external+matplotlib:ref:`rcParams file <customizing-with-matplotlibrc-files>`
 
 
 Dependencies
@@ -189,7 +189,7 @@ See :ref:`reporting-problems`.
 Matplotlib compiled fine, but nothing shows up when I use it
 ------------------------------------------------------------
 
-The first thing to try is a :ref:`clean install <clean-install>` and see if
+The first thing to try is a :external+matplotlib:ref:`clean install <clean-install>` and see if
 that helps.  If not, the best way to test your install is by running a script,
 rather than working interactively from a python shell or an integrated
 development environment such as :program:`IDLE` which add additional
@@ -200,7 +200,7 @@ example::
 
 This will give you additional information about which backends Matplotlib is
 loading, version information, and more. At this point you might want to make
-sure you understand Matplotlib's :ref:`configuration <customizing>`
+sure you understand Matplotlib's :external+matplotlib:ref:`configuration <customizing>`
 process, governed by the :file:`matplotlibrc` configuration file which contains
 instructions within and the concept of the Matplotlib backend.
 
@@ -214,11 +214,9 @@ How to completely remove Matplotlib
 Occasionally, problems with Matplotlib can be solved with a clean
 installation of the package.  In order to fully remove an installed Matplotlib:
 
-1. Delete the caches from your :ref:`Matplotlib configuration directory
-   <locating-matplotlib-config-dir>`.
+1. Delete the caches from your :external+matplotlib:ref:`Matplotlib configuration directory <locating-matplotlib-config-dir>`.
 
-2. Delete any Matplotlib directories or eggs from your :ref:`installation
-   directory <locating-matplotlib-install>`.
+2. Delete any Matplotlib directories or eggs from your :external+matplotlib:ref:`installation directory <locating-matplotlib-install>`.
 
 macOS Notes
 -----------

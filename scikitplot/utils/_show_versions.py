@@ -230,14 +230,20 @@ def show_versions(mode: str = "stdout") -> Optional[dict[str, any]]:
 
     Examples
     --------
-    >>> import scikitplot
-    >>> # !scikitplot show_versions -j
-    >>> data = scikitplot.show_versions(mode="dict")
-    >>> scikitplot.show_versions()
+    .. jupyter-execute::
+
+      >>> import scikitplot
+      >>> scikitplot.show_versions()
 
     .. jupyter-execute::
 
-        >>> !scikitplot show_versions || true
+      >>> import scikitplot
+      >>> scikitplot.show_versions(mode="dict")
+
+    .. jupyter-execute::
+
+      >>> # !scikitplot show_versions -j
+      >>> !scikitplot show_versions || true
     """
     sys_info = _get_system_info()  # Returns dict of system info
     dep_info = _get_dep_info()  # Returns dict of dependency info

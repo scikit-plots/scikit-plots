@@ -39,7 +39,7 @@ and printing the ``__file__`` attribute::
 --------------------------------------------------------------
 
 Each user has a Matplotlib configuration directory which may contain a
-:ref:`matplotlibrc <customizing-with-matplotlibrc-files>` file. To
+:external+matplotlib:ref:`matplotlibrc <customizing-with-matplotlibrc-files>` file. To
 locate your :file:`matplotlib/` configuration directory, use
 :func:`matplotlib.get_configdir`::
 
@@ -71,6 +71,6 @@ directory by default::
 If you would like to use a different configuration directory, you can
 do so by specifying the location in your :envvar:`MPLCONFIGDIR`
 environment variable -- see
-:ref:`setting-linux-macos-environment-variables`.  Note that
+:external+matplotlib:ref:`setting-linux-macos-environment-variables`.  Note that
 :envvar:`MPLCONFIGDIR` sets the location of both the configuration
 directory and the cache directory.

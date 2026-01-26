@@ -73,6 +73,7 @@ try:
         # use that instead so override version if any.
         __git_hash__,
         __version__,
+        __version_iso_8601__,
     )
 except (ImportError, ModuleNotFoundError):
     _BUILT_WITH_MESON = None
@@ -144,6 +145,7 @@ _submodules = sorted(
         "__git_hash__",
         "__numpy_version__",
         "__version__",
+        "__version_iso_8601__",
         "get_logger",
         "logger",
         "online_help",

@@ -320,49 +320,49 @@ def binary_ks_curve(y_true, y_probas):
 
     Examples
     --------
-
     .. plot::
-       :context: close-figs
-       :align: center
-       :alt: Kolmogorov-Smirnov (KS) Statistic
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: Kolmogorov-Smirnov (KS) Statistic
 
-        >>> from sklearn.datasets import make_classification
-        >>> from sklearn.linear_model import LogisticRegression
-        >>> from sklearn.model_selection import train_test_split
-        >>> import matplotlib.pyplot as plt
-        >>> # Generate a binary classification dataset
-        >>> X, y = make_classification(
-        ...     n_samples=1000,
-        ...     n_classes=2,
-        ...     n_informative=3,
-        ...     random_state=0,
-        ... )
-        >>> # Split into training and test sets
-        >>> X_train, X_test, y_train, y_test = train_test_split(
-        ...     X, y, test_size=0.5, random_state=0
-        ... )
-        >>> # Train a logistic regression model
-        >>> model = LogisticRegression()
-        >>> model.fit(X_train, y_train)
-        >>> # Predict probabilities for the test set
-        >>> y_probas = model.predict_proba(X_test)[:, 1]
-        >>> # Calculate the KS Statistic curve
-        >>> import scikitplot as sp
-        >>> (
-        ...     thresholds,
-        ...     pct1,
-        ...     pct2,
-        ...     ks_statistic,
-        ...     max_distance_at,
-        ...     classes,
-        ... ) = sp.api._utils.binary_ks_curve(y_test, y_probas)
-        >>> # Plot the KS Statistic curve
-        >>> plt.plot(thresholds, pct1 - pct2, marker='o')
-        >>> plt.xlabel('Threshold')
-        >>> plt.ylabel('KS Statistic')
-        >>> plt.title('KS Statistic Curve')
-        >>> plt.grid()
-        >>> plt.show()
+      >>> from sklearn.datasets import make_classification
+      >>> from sklearn.linear_model import LogisticRegression
+      >>> from sklearn.model_selection import train_test_split
+      >>> import matplotlib.pyplot as plt
+      >>> # Generate a binary classification dataset
+      >>> X, y = make_classification(
+      ...     n_samples=1000,
+      ...     n_classes=2,
+      ...     n_informative=3,
+      ...     random_state=0,
+      ... )
+      >>> # Split into training and test sets
+      >>> X_train, X_test, y_train, y_test = train_test_split(
+      ...     X, y, test_size=0.5, random_state=0
+      ... )
+      >>> # Train a logistic regression model
+      >>> model = LogisticRegression()
+      >>> model.fit(X_train, y_train)
+      >>> # Predict probabilities for the test set
+      >>> y_probas = model.predict_proba(X_test)[:, 1]
+      >>> # Calculate the KS Statistic curve
+      >>> import scikitplot as sp
+      >>> (
+      ...     thresholds,
+      ...     pct1,
+      ...     pct2,
+      ...     ks_statistic,
+      ...     max_distance_at,
+      ...     classes,
+      ... ) = sp.api._utils.binary_ks_curve(y_test, y_probas)
+      >>> # Plot the KS Statistic curve
+      >>> plt.plot(thresholds, pct1 - pct2, marker='o')
+      >>> plt.xlabel('Threshold')
+      >>> plt.ylabel('KS Statistic')
+      >>> plt.title('KS Statistic Curve')
+      >>> plt.grid()
+      >>> plt.show()
 
     """
     # Convert input to numpy arrays for efficient processing

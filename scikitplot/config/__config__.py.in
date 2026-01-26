@@ -200,8 +200,8 @@ def show_config(mode=DisplayModes.stdout.value): # Value of the enum member
   --------
   .. jupyter-execute::
 
-      >>> import scikitplot
-      >>> scikitplot.show_config()
+    >>> import scikitplot
+    >>> scikitplot.show_config()
   """
   if mode == DisplayModes.stdout.value:
     try:  # Non-standard library, check import

@@ -20,7 +20,7 @@
 # - SKIP_MICROMAMBA=0|1                                  (legacy toggle)
 # - MICROMAMBA_ALLOW_INSTALL=0|1                         (default: 1)
 # - MICROMAMBA_INSTALL_MODE=api|script                   (default: api)
-# - MICROMAMBA_BIN_DIR=/path                             (default: /usr/local/bin if writable else ~/.local/bin)
+# - MAMBA_EXE=/path                                      (default: /usr/local/bin if writable else ~/.local/bin)
 # - MAMBA_ROOT_PREFIX=/path                              (default: ~/micromamba)
 # - MICROMAMBA_ENV_ACTION=none|ensure|create|update      (default: ensure)
 # - MICROMAMBA_PRUNE=0|1                                 (default: 0; applies to update/ensure(update))
@@ -30,7 +30,19 @@
 # - POST_CREATE_ENV_READY=1
 # - ENV_NAME=<resolved env name>
 # ===============================================================
-
+# # >>> mamba initialize >>>
+# # !! Contents within this block are managed by 'micromamba shell init' !!
+# export MAMBA_EXE='/root/.local/bin/micromamba';
+# export MAMBA_ROOT_PREFIX='/root/micromamba';
+# __mamba_setup="$("$MAMBA_EXE" shell hook --shell bash --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
+# if [ $? -eq 0 ]; then
+#     eval "$__mamba_setup"
+# else
+#     alias micromamba="$MAMBA_EXE"  # Fallback on help from micromamba activate
+# fi
+# unset __mamba_setup
+# # <<< mamba initialize <<<
+# ===============================================================
 if [[ -z "${BASH_VERSION:-}" ]]; then
   exec bash "$0" "$@"
 fi
@@ -123,7 +135,7 @@ env_micromamba_main() {
   # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html
   default_var MICROMAMBA_ALLOW_INSTALL "1"
   default_var MICROMAMBA_INSTALL_MODE "api"
-  default_var MICROMAMBA_BIN_DIR ""
+  default_var MAMBA_EXE ""
   default_var MAMBA_ROOT_PREFIX "$HOME/micromamba"
   default_var MICROMAMBA_ENV_ACTION "ensure"
   default_var MICROMAMBA_PRUNE "0"
@@ -141,8 +153,8 @@ env_micromamba_main() {
   # Automatic installation script: The executable is typically installed to ~/.local/bin/micromamba (Linux/macOS)
   # or %LOCALAPPDATA%\micromamba\micromamba.exe (Windows).
   _bin_dir() {
-    if [[ -n "${MICROMAMBA_BIN_DIR:-}" ]]; then
-      printf '%s\n' "$MICROMAMBA_BIN_DIR"; return 0
+    if [[ -n "${MAMBA_EXE:-}" ]]; then
+      printf '%s\n' "$MAMBA_EXE"; return 0
     fi
     if [[ -w "/usr/local/bin" ]]; then
       printf '%s\n' "/usr/local/bin"
@@ -271,11 +283,12 @@ env_micromamba_main() {
   conda init --all || echo "⚠️ Failed to initialize conda hooks"
   mamba init --all || echo "⚠️ Failed to initialize mamba hooks"
 
-  ## Initialize micromamba shell integration for bash (auto-detect install path)
+  ## ✅ Initialize micromamba shell integration for bash (auto-detect install path)
   ## micromamba shell init -s bash -p ~/micromamba
   micromamba shell init -s "$(basename $SHELL)" \
     || echo "⚠️ Failed to initialize micromamba hooks"
 
+  ## ✅ Ensure available
   ## echo micromamba shell hook --shell "$(basename $SHELL)"
   ## Fallback to bash if SHELL is unset or unknown
   eval "$(micromamba shell hook --shell $(basename ${SHELL:-/bin/bash}))" \

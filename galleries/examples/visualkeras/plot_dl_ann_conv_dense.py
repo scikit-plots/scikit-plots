@@ -26,10 +26,14 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # visualkeras Need aggdraw tensorflow
 # !pip install scikitplot[core, cpu]
 
+# python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
+# python -m pip check
+
 # or
 # !pip install aggdraw
 # !pip install tensorflow
 
+# pip install -U "protobuf<6"
 # pip install protobuf==5.29.4
 import tensorflow as tf
 

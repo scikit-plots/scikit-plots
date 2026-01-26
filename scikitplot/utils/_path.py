@@ -18,7 +18,7 @@ The core building block is `PathNamer`, plus a zero-argument convenience wrapper
 
 Filename format:
 
-- ``{prefix}-{YYYYMMDDTHHMMSSmmmZ}-{counter:06d}-{uuid4hex}[ -{secret} ].{ext}``
+- ``[ {prefix}- ]{YYYYMMDDTHHMMSSmmmZ}-{counter:06d}-{uuid4hex}[ -{secret} ][ -{suffix} ][ .{ext} ]``
 """
 
 from __future__ import annotations
@@ -186,7 +186,7 @@ def normalize_directory_path(
 def sanitize_path_component(
     name: str | None,
     *,
-    default: str = "file",
+    default: str = "",
     max_len: int = 80,
 ) -> str:
     """
@@ -200,7 +200,7 @@ def sanitize_path_component(
     name : str or None
         Input name to sanitize. If None or empty after sanitization, `default`
         is used.
-    default : str, default="file"
+    default : str, default=""
         Fallback name when the input is empty or becomes empty after cleanup.
     max_len : int, default=80
         Maximum length of the resulting component.
@@ -241,7 +241,7 @@ def sanitize_path_component(
 
     Empty values fall back to the default:
 
-    >>> sanitize_path_component("")
+    >>> sanitize_path_component("file")
     'file'
     """
     s = (name or "").strip().replace(" ", "_")
@@ -260,7 +260,7 @@ def sanitize_path_component(
     s = s.rstrip(" .")
 
     if not s:
-        s = (default or "file").strip() or "file"
+        s = (default or "").strip()
 
     # Avoid Windows reserved device names.
     if s.upper() in _RESERVED_WIN_NAMES:
@@ -315,9 +315,11 @@ class PathNamer:
 
     Parameters
     ----------
-    default_prefix : str, default="file"
+    prefix : str, default=""
         Default filename prefix (sanitized before use).
-    default_ext : str, default=""
+    suffix : str, default=""
+        Default filename suffix (sanitized before use).
+    ext : str, default=""
         Default extension, with or without a leading dot (e.g., ``"csv"``).
     root : pathlib.Path, default=Path("scikitplot-artifacts")
         Base directory where paths are created. "~" and env vars are expanded.
@@ -344,28 +346,42 @@ class PathNamer:
     -----
     Generated filename format (default):
 
-    ``{prefix}-{YYYYMMDDTHHMMSSmmmZ}-{counter:06d}-{uuid4hex}[ -{secret} ].{ext}``
+    ``[ {prefix}- ]{YYYYMMDDTHHMMSSmmmZ}-{counter:06d}-{uuid4hex}[ -{secret} ][ -{suffix} ][ .{ext} ]``
 
     Examples
     --------
+    >>> import scikitplot.utils as sp
+
+    >>> with sp.Timer(verbose=True, logging_level="debug"):
+    ...     sp.PathNamer()
+
+    >>> with sp.Timer(logging_level="debug"):
+    ...     sp.PathNamer().make_filename()
+
+    >>> with sp.Timer(logging_level="info"):
+    ...     sp.PathNamer().make_path()
+
+    >>> with sp.Timer(logging_level="warn"):
+    ...     sp.make_path()
+
     Create a path with defaults (UTC date folders):
 
     >>> from scikitplot.utils._path import PathNamer
     >>> namer = PathNamer()
-    >>> path = namer.make_path()
-    >>> path.parts[-1].startswith("file-")
+    >>> path = namer.make_path(prefix="report")
+    >>> path.parts[-1].startswith("report-")
     True
 
     Write outputs under a project directory:
 
     >>> from pathlib import Path
     >>> namer = PathNamer(
-    ...     root=Path("artifacts"), default_prefix="report", default_ext="csv"
+    ...     root=Path("artifacts"), prefix="report", suffix="report", ext="csv"
     ... )
     >>> p = namer.make_path()
     >>> p.as_posix().startswith("artifacts/")
     True
-    >>> namer = PathNamer(root="~/artifacts", default_prefix="run", default_ext="json")
+    >>> namer = PathNamer(root="~/artifacts", prefix="run", suffix="report", ext="json")
     >>> p = namer.make_path()
     >>> p.name.startswith("run-")
     True
@@ -375,8 +391,8 @@ class PathNamer:
     >>> namer = PathNamer(
     ...     root=Path("scikitplot-artifacts"),
     ...     by_day=False,
-    ...     default_prefix="snapshot",
-    ...     default_ext="parquet",
+    ...     prefix="snapshot",
+    ...     ext="parquet",
     ... )
     >>> p = namer.make_path(subdir="models")
     >>> "models" in p.as_posix()
@@ -394,8 +410,8 @@ class PathNamer:
 
     >>> namer = PathNamer(
     ...     root="scikitplot-artifacts",
-    ...     default_prefix="report",
-    ...     default_ext="csv",
+    ...     prefix="report",
+    ...     ext="csv",
     ...     private=True,
     ... )
     >>> p = namer.make_path()
@@ -403,9 +419,10 @@ class PathNamer:
     True
     """
 
-    default_prefix: str = "file"
-    default_ext: str = ""
     root: Path = Path("scikitplot-artifacts")
+    prefix: str = ""
+    suffix: str = ""
+    ext: str = ""
     by_day: bool = False
     add_secret: bool = False
     private: bool = False
@@ -414,6 +431,7 @@ class PathNamer:
     def make_filename(
         self,
         prefix: str | None = None,
+        suffix: str | None = None,
         ext: str | None = None,
         *,
         now: datetime | None = None,
@@ -424,9 +442,11 @@ class PathNamer:
         Parameters
         ----------
         prefix : str or None, default=None
-            Filename prefix. If None, uses `default_prefix`.
+            Filename prefix. If None, uses `prefix` attr.
+        suffix : str or None, default=None
+            Filename suffix. If None, uses `suffix` attr.
         ext : str or None, default=None
-            File extension. If None, uses `default_ext`.
+            File extension. If None, uses `ext` attr.
         now : datetime or None, default=None
             Timestamp to use. If None, uses current time in UTC.
             Naive datetimes are treated as UTC.
@@ -437,10 +457,14 @@ class PathNamer:
             A filename (no directory) suitable for common filesystems.
         """
         prefix_s = sanitize_path_component(
-            prefix or self.default_prefix,
-            default=self.default_prefix,
+            prefix or self.prefix,
+            default=self.prefix,
         )
-        ext_s = normalize_extension(ext if ext is not None else self.default_ext)
+        suffix_s = sanitize_path_component(
+            suffix or self.suffix,
+            default=self.suffix,
+        )
+        ext_s = normalize_extension(ext if ext is not None else self.ext)
 
         now_utc = _ensure_aware_utc(now)
         ts = _utc_timestamp_ms(now_utc)
@@ -448,16 +472,19 @@ class PathNamer:
         uid = _uuid4_hex()
         token = _secret_token_hex()  # 8 hex chars
 
-        # ``{prefix}-{YYYYMMDDTHHMMSSmmmZ}-{counter:06d}-{uuid4hex}[ -{secret} ].{ext}``
-        parts = [prefix_s, ts, f"{ctr:06d}", uid]  # type: list[str]
+        # ``[ {prefix}- ]{YYYYMMDDTHHMMSSmmmZ}-{counter:06d}-{uuid4hex}[ -{secret} ][ -{suffix} ][ .{ext} ]``
+        # Filtering with None (Truthiness Check)
+        parts = [prefix_s, ts, f"{ctr:06d}", uid]
         if self.private or self.add_secret:
             parts.append(token)
+        parts += [suffix_s]
 
-        return "-".join(parts) + ext_s
+        return "-".join(filter(None, parts)) + ext_s
 
     def make_path(
         self,
         prefix: str | None = None,
+        suffix: str | None = None,
         ext: str | None = None,
         *,
         subdir: str | None = None,
@@ -469,9 +496,11 @@ class PathNamer:
         Parameters
         ----------
         prefix : str or None, default=None
-            Filename prefix. If None, uses `default_prefix`.
+            Filename prefix. If None, uses `prefix` attr.
+        suffix : str or None, default=None
+            Filename suffix. If None, uses `suffix` attr.
         ext : str or None, default=None
-            File extension. If None, uses `default_ext`.
+            File extension. If None, uses `ext` attr.
         subdir : str or None, default=None
             Optional subdirectory (sanitized) when `by_day=False`.
         now : datetime or None, default=None
@@ -504,15 +533,18 @@ class PathNamer:
         if self.mkdir:
             base.mkdir(parents=True, exist_ok=True)
 
-        return base / self.make_filename(prefix=prefix, ext=ext, now=now_utc)
+        return base / self.make_filename(
+            prefix=prefix, suffix=suffix, ext=ext, now=now_utc
+        )
 
 
 _DEFAULT_NAMER = PathNamer()
 
 
 def make_path(
-    prefix: str = _DEFAULT_NAMER.default_prefix,
-    ext: str = _DEFAULT_NAMER.default_ext,
+    prefix: str = _DEFAULT_NAMER.prefix,
+    suffix: str = _DEFAULT_NAMER.suffix,
+    ext: str = _DEFAULT_NAMER.ext,
     root: str | Path = _DEFAULT_NAMER.root,
     *,
     by_day: bool = _DEFAULT_NAMER.by_day,
@@ -527,8 +559,10 @@ def make_path(
 
     Parameters
     ----------
-    prefix : str, default="file"
+    prefix : str, default=""
         Filename prefix.
+    suffix : str, default=""
+        Filename suffix.
     ext : str, default=""
         File extension (e.g., ``"csv"``).
     root : str or pathlib.Path, default=Path("scikitplot-artifacts")
@@ -598,8 +632,9 @@ def make_path(
     True
     """
     namer = PathNamer(
-        default_prefix=prefix,
-        default_ext=ext,
+        prefix=prefix,
+        suffix=suffix,
+        ext=ext,
         root=normalize_directory_path(root),
         by_day=by_day,
         add_secret=add_secret,
@@ -610,12 +645,13 @@ def make_path(
 
 
 def make_temp_path(
-    prefix: str = _DEFAULT_NAMER.default_prefix,
-    ext: str = _DEFAULT_NAMER.default_ext,
+    prefix: str = _DEFAULT_NAMER.prefix,
+    suffix: str = _DEFAULT_NAMER.suffix,
+    ext: str = _DEFAULT_NAMER.ext,
     root: str | Path = _DEFAULT_NAMER.root,
 ):
     fd, temp_build_path = tempfile.mkstemp(
-        prefix=prefix,
+        prefix=prefix + suffix,
         suffix=ext,
         dir=root or Path.cwd(),
     )
@@ -631,8 +667,7 @@ def make_temp_path(
 def _filename_extension_normalizer(
     filename: str,
     ext: str | None = None,
-    allowed_exts: tuple[str, ...] = (".png", ".jpg", ".jpeg", ".pdf"),
-    default_ext: str = ".png",
+    allowed_exts: list[str] | None = None,
 ) -> tuple[str, str]:
     """
     Normalize a filename and ensure it has a valid extension.
@@ -646,10 +681,8 @@ def _filename_extension_normalizer(
         The input filename, with or without an extension.
     ext : str, optional
         An explicit extension to use. If provided, it overrides the one in `filename`.
-    allowed_exts : tuple of str, optional
+    allowed_exts : list of str, optional
         A tuple of allowed extensions. Defaults to (".png", ".jpg", ".jpeg", ".pdf").
-    default_ext : str, optional
-        Default extension to use if none is provided or inferred.
 
     Returns
     -------
@@ -659,53 +692,44 @@ def _filename_extension_normalizer(
 
     Examples
     --------
-    >>> _normalize_filename_extension("chart.png")
+    >>> _filename_extension_normalizer("chart.png")
     ('chart', '.png')
 
-    >>> _normalize_filename_extension("photo", ext=".jpg")
+    >>> _filename_extension_normalizer("photo", ext=".jpg")
     ('photo', '.jpg')
 
-    >>> _normalize_filename_extension("document.PDF", allowed_exts=(".pdf",))
+    >>> _filename_extension_normalizer("document.PDF", allowed_exts=(".pdf",))
     ('document', '.pdf')
 
-    >>> _normalize_filename_extension("archive", ext="zip")
-    ('archive', '.png')  # fallback to default_ext
+    >>> _filename_extension_normalizer("archive", ext="zip")
+    ('archive', '.png')  # fallback to ext
 
-    >>> _normalize_filename_extension("output")
-    ('output', '.png')  # Uses default_ext
+    >>> _filename_extension_normalizer("output")
+    ('output', '.png')  # Uses ext
 
     Notes
     -----
     - Case-insensitive matching of allowed extensions is applied.
     - The returned extension always includes the leading dot.
-    - If the provided extension is not allowed, `default_ext` is used.
+    - If the provided extension is not allowed, `ext` is used.
     - Errors in parsing are safely caught, and the default extension is used.
     """
+    allowed_exts = allowed_exts or []
+    filename_lower = filename.lower()
     try:
-        filename_lower = filename.lower()
-        matched_ext = None
-
         if ext is None:
             for allowed in allowed_exts:
                 if filename_lower.endswith(allowed.lower()):
-                    filename, matched_ext = os.path.splitext(filename)  # noqa: PTH122
+                    filename, ext = os.path.splitext(filename)  # noqa: PTH122
                     break
-            if matched_ext is None:
-                filename, _ = os.path.splitext(filename)  # noqa: PTH122
-                matched_ext = default_ext
-        else:
-            if not ext.startswith("."):
-                ext = f".{ext}"
-            if ext.lower() in map(str.lower, allowed_exts):
-                matched_ext = ext
-            else:
-                matched_ext = default_ext
-
-        return filename, matched_ext
-
+            if ext in [None, ""]:
+                filename, ext = os.path.splitext(filename)  # noqa: PTH122
+        elif ext and not ext.startswith(".") and not ext.endswith("."):
+            ext = f".{ext}"
+        return filename, ext
     except Exception:
         # Gracefully fallback if anything goes wrong
-        return filename, default_ext
+        return filename, ext
 
 
 def _filename_sanitizer(filename: str) -> str:
@@ -804,6 +828,7 @@ def get_path(  # noqa: D417
     """
     # Validate file extension
     allowed_exts = (".png", ".jpg", ".jpeg", ".pdf")
+    ext = ext or ".png"
 
     # Default to 'plot_image' if no filename provided
     if filename is None:

@@ -414,7 +414,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
     sklearn_ann.kneighbors.annoy.AnnoyTransformer : Wrapper for using annoy.AnnoyIndex as
         sklearn's KNeighborsTransformer `AnnoyTransformer
         <https://sklearn-ann.readthedocs.io/en/latest/kneighbors.html#annoy>`_
-    PathNamer : Naming helper for external index file.
+    scikitplot.utils._path.PathNamer : Naming helper for external index file.
 
     References
     ----------

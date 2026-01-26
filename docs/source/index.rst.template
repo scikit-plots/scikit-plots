@@ -3,6 +3,7 @@
 .. https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
 
 ..
+
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
   # with overline, for parts    : ######################################################################
@@ -47,35 +48,36 @@ References:
 .. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#comments
 ..
 
-   Headings and Sections:
+	Headings and Sections:
 
-   = Main title or top-level heading.
-   - Second-level heading.
-   ~ Third-level heading.
-   ^ Fourth-level heading.
-   " Fifth-level heading.
+	= Main title or top-level heading.
+	- Second-level heading.
+	~ Third-level heading.
+	^ Fourth-level heading.
+	" Fifth-level heading.
 
 .. raw:: html
 
-   <div style="text-align: center"><strong>
-   Welcome to Scikit-plots 101<br>|full_version| - |today|
-   </strong></div>
+	<div style="text-align: center"><strong>
+	Welcome to Scikit-plots 101<br>|full_version| - |today|
+	</strong></div>
 
 .. Use RST with Centering via CSS
 .. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
 .. container:: center-text
 
-   **Welcome to Scikit-plots 101**
-   |full_version| – |today|
+	**Welcome to Scikit-plots 101**
+	|full_version| – |today|
 
 ..
-   .center-text {
-      text-align: center;
-      font-weight: bold;
-   }
+
+	.center-text {
+		text-align: center;
+		font-weight: bold;
+	}
 
 .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
-   centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
+	centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
 
 .. https://docutils.sourceforge.io/docs/ref/rst/roles.html#standard-roles
 .. https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
@@ -88,7 +90,7 @@ References:
    :format: latex
 .. https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
 .. role:: raw-html(raw)
-   :format: html
+	:format: html
 .. :raw-html:`<br />`
 
 .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#substitutions
@@ -114,8 +116,72 @@ References:
 .. Use the `:orphan:` metadata to let a document be built, but notify Sphinx that it is not reachable via a toctree.
 .. Sphinx issues a warning: WARNING: document isn't included in any toctree.
 .. Sphinx suppresses the warning, and the file can still be built and accessed by its direct URL.
+..
+
+  # This file is included. So it needs to be marked as orphan to suppress warnings.
+  .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/field-lists.html#metadata
+  .. include:: installation_instructions_conda.rst
+		:start-after: :orphan:
 
 .. https://www.tarantool.io/en/doc/latest/contributing/docs/sphinx-warnings/
+
+.. https://documatt.com/restructuredtext-reference/intro/sphinx-docutils.html
+.. https://documatt.com/restructuredtext-reference/element/literal-block.html
+.. https://documatt.com/restructuredtext-reference/element/code-block.html
+.. https://pygments.org/languages/
+..
+
+	# Code syntax
+	:: >>>
+	python, r, c, cpp, sql, bash, shell, make, cmake, docker,
+	html, markdown, javascript, json, yaml, toml, ini, diff, text, etc.
+	.. 	General-purpose code (highlighting only)
+
+	https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-literalinclude
+	.. literalinclude:: filename
+
+	https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block
+	.. code-block:: python
+	.. code-block:: bash
+
+	.. 'sphinx_prompt' Simulates interactive terminal prompts
+	.. prompt:: bash $
+	.. prompt:: python >>>
+	.. prompt:: ipython In [1]:
+	.. prompt:: sh $
+	.. prompt:: powershell PS C:\>
+	.. prompt:: docker root@container:~#
+
+    https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block
+	https://scikit-plots.github.io/dev/modules/generated/scikitplot.externals._sphinxext.html
+    .. plot::
+
+	"IPython.sphinxext.ipython_console_highlighting",  # for .. ipython::
+	"IPython.sphinxext.ipython_directive",
+	.. ipython::
+
+	"jupyterlite-sphinx" also provides the experimental .. try_examples:: directive
+	https://jupyterlite-sphinx.readthedocs.io/en/stable/installation.html
+	.. jupyterlite::
+	.. notebooklite::
+	.. try_examples::
+
+	"jupyter-sphinx"
+	https://jupyter-sphinx.readthedocs.io/en/latest/setup.html
+	https://jupyter-sphinx.readthedocs.io/en/latest/thebelab.html
+	.. jupyter-execute::
+	.. thebe-button:: Optional title
+
+	"sphinx_thebe"
+	https://sphinx-thebe.readthedocs.io/en/latest/
+	https://sphinx-thebe.readthedocs.io/en/latest/configure.html
+	https://thebe.readthedocs.io/en/latest/start.html
+	.. container:: thebe
+		.. code-block:: r
+			print("hi")
+
+		.. container:: output
+			"hi"
 
 -#}
 
@@ -129,44 +195,44 @@ References:
 .. _root-index:
 
 .. Define the overall structure, that affects the prev-next buttons and the order
-   of the sections in the top navbar.
+	of the sections in the top navbar.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Introduction
-   :hidden:
+	:maxdepth: 2
+	:caption: Introduction
+	:hidden:
 
-   Introduction <introduction/index.rst>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Documentation
-   :hidden:
-
-   User Guide <user_guide/index.rst>
-   APIs Reference <apis/index.rst>
+	Introduction <introduction/index.rst>
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
-   :hidden:
+	:maxdepth: 2
+	:caption: Documentation
+	:hidden:
 
-   Tutorials <auto_examples/index>
-   Tags <_tags/tagsindex.rst>
+	User Guide <user_guide/index.rst>
+	APIs Reference <apis/index.rst>
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Project
-   :hidden:
+	:maxdepth: 2
+	:caption: Tutorials
+	:hidden:
 
-   Release History <whats_new/index.rst>
-   {%- if development_link | default(false) %}
-   {#- if development_link is defined and development_link #}
-   Developer's Guide <{{ development_link }}>
-   {#- else #}
-   {%- endif %}
-   Community <project/community.rst>
-   Code of Conduct <project/code_of_conduct.rst>
-   Governance Process <project/governance.rst>
-   Roadmap <project/roadmap.rst>
-   About Us | Project <project/index.rst>
+	Tutorials <auto_examples/index>
+	Tags <_tags/tagsindex.rst>
+
+.. toctree::
+	:maxdepth: 1
+	:caption: Project
+	:hidden:
+
+	Release History <whats_new/index.rst>
+	{%- if development_link | default(false) %}
+	{#- if development_link is defined and development_link #}
+	Developer's Guide <{{ development_link }}>
+	{#- else #}
+	{%- endif %}
+	Community <project/community.rst>
+	Code of Conduct <project/code_of_conduct.rst>
+	Governance Process <project/governance.rst>
+	Roadmap <project/roadmap.rst>
+	About Us | Project <project/index.rst>

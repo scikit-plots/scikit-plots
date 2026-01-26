@@ -96,8 +96,10 @@ Workflow
 Quick start
 -----------
 
-.. .. jupyter-execute
 .. .. code-block:: python
+.. .. code-block:: bash
+.. .. jupyter-execute
+.. .. prompt:: python >>>
 .. prompt:: python >>>
 
     import random; random.seed(0)

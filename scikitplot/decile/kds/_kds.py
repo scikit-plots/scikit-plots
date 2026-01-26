@@ -81,11 +81,10 @@ def print_labels(**kwargs):
 
     Examples
     --------
-
     .. jupyter-execute::
 
-        >>> import scikitplot.decile.kds as kds
-        >>> kds.print_labels()
+      >>> import scikitplot.decile.kds as kds
+      >>> kds.print_labels()
 
     """
     print(
@@ -140,42 +139,41 @@ def decile_table(
     we create groups containing the same numbers of customers, for example, 10 decile
     groups each containing 10% of the customer base.
 
-    .. versionadded:: 0.3.9
-
     Parameters
     ----------
     y_true : array-like of shape (n_samples,)
-    True binary labels. If labels are not either {-1, 1} or {0, 1}, then pos_label should be explicitly given.
-
+        True binary labels. If labels are not either {-1, 1} or {0, 1},
+        then pos_label should be explicitly given.
     y_score : array-like of shape (n_samples,)
-    Target scores, can either be probability estimates of the positive class, confidence values, or non-thresholded measure of decisions (as returned by “decision_function” on some classifiers). For decision_function scores, values greater than or equal to zero should indicate the positive class.
-
+        Target scores, can either be probability estimates of the positive class,
+        confidence values, or non-thresholded measure of decisions
+        (as returned by “decision_function” on some classifiers).
+        For decision_function scores, values greater than or equal to zero
+        should indicate the positive class.
     pos_label : int, float, bool or str, default=None
-    The label of the positive class. When pos_label=None, if y_true is in {-1, 1} or {0, 1}, pos_label is set to 1, otherwise an error will be raised.
-
+        The label of the positive class. When pos_label=None,
+        if y_true is in {-1, 1} or {0, 1}, pos_label is set to 1,
+        otherwise an error will be raised.
     class_index : int, optional
         Index of the class for which to extract probabilities in multi-class case.
         If None, returns all class probabilities in the 2D case. Ignored if y_score is 1D.
 
         .. versionadded:: 0.3.9
-
     labels : array-like of shape (n_classes,), default=None
-    List of labels to index the matrix. This may be used to reorder or select a subset of labels. If None is given, those that appear at least once in y_true or y_pred are used in sorted order.
-
+        List of labels to index the matrix.
+        This may be used to reorder or select a subset of labels.
+        If None is given, those that appear at least once in y_true or
+        y_pred are used in sorted order.
     sample_weightarray-like of shape (n_samples,), default=None
-    Sample weights.
-
+        Sample weights.
     change_deciles : int, optional, default=10
         The number of partitions for creating the table. Defaults to 10 for deciles.
-
     digits : int, optional, default=6
         The decimal precision for the result.
 
         .. versionadded:: 0.3.9
-
     feature_infos : bool, optional, default=None
         If True, prints a legend for the abbreviations of decile table column names.
-
     **kwargs : dict, optional
 
         .. versionadded:: 0.3.9
@@ -206,28 +204,27 @@ def decile_table(
 
     Examples
     --------
-
     .. jupyter-execute::
 
-        >>> from sklearn.datasets import (
-        ...     load_breast_cancer as data_2_classes,
-        ... )
-        >>> from sklearn.model_selection import train_test_split
-        >>> from sklearn.tree import DecisionTreeClassifier
-        ...
-        >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
-        >>> X_train, X_test, y_train, y_test = train_test_split(
-        ...     X, y, test_size=0.5, random_state=0
-        ... )
-        >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(
-        ...     X_train, y_train
-        ... )
-        >>> y_prob = clf.predict_proba(X_test)
-        ...
-        >>> import scikitplot.decile.kds as kds
-        >>> kds.decile_table(
-        >>>     y_test, y_prob, class_index=1
-        >>> )
+      >>> from sklearn.datasets import (
+      ...     load_breast_cancer as data_2_classes,
+      ... )
+      >>> from sklearn.model_selection import train_test_split
+      >>> from sklearn.tree import DecisionTreeClassifier
+      ...
+      >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
+      >>> X_train, X_test, y_train, y_test = train_test_split(
+      ...     X, y, test_size=0.5, random_state=0
+      ... )
+      >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(
+      ...     X_train, y_train
+      ... )
+      >>> y_prob = clf.predict_proba(X_test)
+      ...
+      >>> import scikitplot.decile.kds as kds
+      >>> kds.decile_table(
+      >>>     y_test, y_prob, class_index=1
+      >>> )
 
     """
     # Convert input to numpy arrays for efficient processing
@@ -411,10 +408,10 @@ def plot_lift(
 
     Examples
     --------
-
     .. plot::
-       :context: close-figs
+       :include-source:
        :align: center
+       :context: close-figs
        :alt: Lift Curves
 
         >>> from sklearn.datasets import load_iris as data_3_classes
@@ -548,10 +545,10 @@ def plot_lift_decile_wise(
 
     Examples
     --------
-
     .. plot::
-       :context: close-figs
+       :include-source:
        :align: center
+       :context: close-figs
        :alt: Lift Decile Wise Curves
 
         >>> from sklearn.datasets import load_iris
@@ -695,10 +692,10 @@ def plot_cumulative_gain(
 
     Examples
     --------
-
     .. plot::
-       :context: close-figs
+       :include-source:
        :align: center
+       :context: close-figs
        :alt: Cumulative Gain Curves
 
         >>> from sklearn.datasets import load_iris as data_3_classes
@@ -851,10 +848,10 @@ def plot_ks_statistic(
 
     Examples
     --------
-
     .. plot::
-       :context: close-figs
+       :include-source:
        :align: center
+       :context: close-figs
        :alt: KS Statistic Plot
 
         >>> from sklearn.datasets import (
@@ -1031,29 +1028,32 @@ def report(
 
     Examples
     --------
+    .. plot::
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: KDS Report
 
-    .. jupyter-execute::
-
-        >>> from sklearn.datasets import (
-        ...     load_breast_cancer as data_2_classes,
-        ... )
-        >>> from sklearn.model_selection import train_test_split
-        >>> from sklearn.tree import DecisionTreeClassifier
-        ...
-        >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
-        >>> X_train, X_test, y_train, y_test = train_test_split(
-        ...     X, y, test_size=0.5, random_state=0
-        ... )
-        >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(
-        ...     X_train, y_train
-        ... )
-        >>> y_prob = clf.predict_proba(X_test)
-        ...
-        >>> import scikitplot.decile.kds as kds
-        >>> dt = kds.report(
-        >>>     y_test, y_prob, class_index=1
-        >>> )
-        >>> dt
+      >>> from sklearn.datasets import (
+      ...     load_breast_cancer as data_2_classes,
+      ... )
+      >>> from sklearn.model_selection import train_test_split
+      >>> from sklearn.tree import DecisionTreeClassifier
+      ...
+      >>> X, y = data_2_classes(return_X_y=True, as_frame=True)
+      >>> X_train, X_test, y_train, y_test = train_test_split(
+      ...     X, y, test_size=0.5, random_state=0
+      ... )
+      >>> clf = DecisionTreeClassifier(max_depth=1, random_state=0).fit(
+      ...     X_train, y_train
+      ... )
+      >>> y_prob = clf.predict_proba(X_test)
+      ...
+      >>> import scikitplot.decile.kds as kds
+      >>> dt = kds.report(
+      >>>     y_test, y_prob, class_index=1
+      >>> )
+      >>> dt
 
     """
     # Convert input to numpy arrays for efficient processing

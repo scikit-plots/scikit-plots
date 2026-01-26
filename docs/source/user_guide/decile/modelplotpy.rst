@@ -10,12 +10,12 @@
 
 .. _decile-modelplotpy-index:
 
-modelplotpy
+ModelPlotPy
 ======================================================================
 
-This module contains functions related to :py:mod:`~.modelplotpy`.
+This module contains functions related to :py:mod:`~.decile` and legacy :py:mod:`~.modelplotpy`.
 
-The :py:mod:`~.modelplotpy` module to build nice plots to explain
+The :py:class:`~.decile.ModelPlotPy` class dataframe helper to build nice plots to explain
 your modelling efforts easily to business colleagues.
 
 .. seealso::
@@ -24,17 +24,17 @@ your modelling efforts easily to business colleagues.
    * https://modelplot.github.io/intro_modelplotpy.html
 
 
-modelplotpy Plots
+ModelPlotPy Plots
 ----------------------------------------------------------------------
 
-* Let's introduce the Gains, Lift and (cumulative) Response plots.
+* Let's introduce the Gains, Lift and (cumulative) Response plots :py:class:`~.decile.ModelPlotPy`.
 
 .. _plot_response:
 
 plot response
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~.modelplotpy.plot_response`
+:py:func:`~.decile.plot_response` or :py:func:`~.modelplotpy.plot_response`
 
 .. rubric:: Examples
 
@@ -48,7 +48,7 @@ plot response
 plot cumresponse
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~.modelplotpy.plot_cumresponse`
+:py:func:`~.decile.plot_cumresponse` or :py:func:`~.modelplotpy.plot_cumresponse`
 
 .. rubric:: Examples
 
@@ -62,7 +62,7 @@ plot cumresponse
 plot cumlift
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~.modelplotpy.plot_cumlift`
+:py:func:`~.decile.plot_cumlift` or :py:func:`~.modelplotpy.plot_cumlift`
 
 .. rubric:: Examples
 
@@ -76,7 +76,7 @@ plot cumlift
 plot cumgains
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~.modelplotpy.plot_cumgains`
+:py:func:`~.decile.plot_cumgains` or :py:func:`~.modelplotpy.plot_cumgains`
 
 .. rubric:: Examples
 
@@ -90,7 +90,7 @@ plot cumgains
 plot all
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~.modelplotpy.plot_all`
+:py:func:`~.decile.plot_all` or :py:func:`~.modelplotpy.plot_all`
 
 .. rubric:: Examples
 
@@ -109,7 +109,7 @@ modelplotpy financial
 plot costsrevs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~.modelplotpy.plot_costsrevs`
+:py:func:`~.decile.plot_costsrevs` or :py:func:`~.modelplotpy.plot_costsrevs`
 
 .. rubric:: Examples
 
@@ -123,7 +123,7 @@ plot costsrevs
 plot profit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~.modelplotpy.plot_profit`
+:py:func:`~.decile.plot_profit` or :py:func:`~.modelplotpy.plot_profit`
 
 .. rubric:: Examples
 
@@ -137,7 +137,7 @@ plot profit
 plot roi
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:py:func:`~.modelplotpy.plot_roi`
+:py:func:`~.decile.plot_roi` or :py:func:`~.modelplotpy.plot_roi`
 
 .. rubric:: Examples
 

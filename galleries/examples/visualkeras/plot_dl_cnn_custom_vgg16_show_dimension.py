@@ -1,6 +1,6 @@
 """
-visualkeras: custom vgg16 example
-==========================================
+visualkeras: custom vgg16 show dimension example
+======================================================================
 
 An example showing the :py:func:`~scikitplot.visualkeras` function
 used by a :py:class:`~tensorflow.keras.Model` model.
@@ -14,10 +14,14 @@ used by a :py:class:`~tensorflow.keras.Model` model.
 # visualkeras Need aggdraw tensorflow
 # !pip install scikitplot[core, cpu]
 
+# python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
+# python -m pip check
+
 # or
 # !pip install aggdraw
 # !pip install tensorflow
 
+# pip install -U "protobuf<6"
 # pip install protobuf==5.29.4
 import tensorflow as tf
 
@@ -84,6 +88,7 @@ model.add(tf.keras.layers.Dense(1000, activation="softmax"))
 
 # %%
 # Now visualize the model!
+
 from collections import defaultdict
 
 color_map = defaultdict(dict)
@@ -99,96 +104,135 @@ from PIL import ImageFont
 
 ImageFont.load_default()
 
-# %%
-img_vgg16 = visualkeras.layered_view(
-    model,
-    type_ignore=[visualkeras.SpacingDummyLayer],
-    # to_file="result_images/vgg16.png",
-    save_fig=True,
-    save_fig_filename="vgg16.png",
-)
 
 # %%
-img_vgg16_legend = visualkeras.layered_view(
+img_vgg16_show_dimension = visualkeras.layered_view(
     model,
-    type_ignore=[visualkeras.SpacingDummyLayer],
     legend=True,
+    show_dimension=True,
+    type_ignore=[visualkeras.SpacingDummyLayer],
     font={
         "font_size": 61,
         # 'use_default_font': False,
         # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     },
-    # to_file="result_images/vgg16_legend.png",
+    # to_file="result_images/vgg16_show_dimension.png",
     save_fig=True,
-    save_fig_filename="vgg16_legend.png",
+    save_fig_filename="vgg16_show_dimension.png",
 )
-img_vgg16_legend
+img_vgg16_show_dimension
 
 # %%
-img_vgg16_spacing_layers = visualkeras.layered_view(
+img_vgg16_legend_show_dimension = visualkeras.layered_view(
     model,
+    legend=True,
+    show_dimension=True,
+    type_ignore=[visualkeras.SpacingDummyLayer],
+    font={
+        "font_size": 61,
+        # 'use_default_font': False,
+        # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    },
+    # to_file="result_images/vgg16_legend_show_dimension.png",
+    save_fig=True,
+    save_fig_filename="vgg16_legend_show_dimension.png",
+)
+img_vgg16_legend_show_dimension
+
+# %%
+img_vgg16_spacing_layers_show_dimension = visualkeras.layered_view(
+    model,
+    legend=True,
+    show_dimension=True,
     type_ignore=[],
     spacing=0,
-    # to_file="result_images/vgg16_spacing_layers.png",
+    font={
+        "font_size": 61,
+        # 'use_default_font': False,
+        # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    },
+    # to_file="result_images/vgg16_spacing_layers_show_dimension.png",
     save_fig=True,
-    save_fig_filename="vgg16_spacing_layers.png",
+    save_fig_filename="vgg16_spacing_layers_show_dimension.png",
 )
-img_vgg16_spacing_layers
+img_vgg16_spacing_layers_show_dimension
 
 # %%
-img_vgg16_type_ignore = visualkeras.layered_view(
+img_vgg16_type_ignore_show_dimension = visualkeras.layered_view(
     model,
+    legend=True,
+    show_dimension=True,
     type_ignore=[
         tf.keras.layers.ZeroPadding2D,
         tf.keras.layers.Dropout,
         tf.keras.layers.Flatten,
         visualkeras.SpacingDummyLayer,
     ],
-    # to_file="result_images/vgg16_type_ignore.png",
+    font={
+        "font_size": 61,
+        # 'use_default_font': False,
+        # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    },
+    # to_file="result_images/vgg16_type_ignore_show_dimension.png",
     save_fig=True,
-    save_fig_filename="vgg16_type_ignore.png",
+    save_fig_filename="vgg16_type_ignore_show_dimension.png",
 )
-img_vgg16_type_ignore
+img_vgg16_type_ignore_show_dimension
 
 # %%
-img_vgg16_color_map = visualkeras.layered_view(
+img_vgg16_color_map_show_dimension = visualkeras.layered_view(
     model,
+    legend=True,
+    show_dimension=True,
     type_ignore=[visualkeras.SpacingDummyLayer],
     color_map=color_map,
-    # to_file="result_images/vgg16_color_map.png",
+    font={
+        "font_size": 61,
+        # 'use_default_font': False,
+        # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    },
+    # to_file="result_images/vgg16_color_map_show_dimension.png",
     save_fig=True,
-    save_fig_filename="vgg16_color_map.png",
+    save_fig_filename="vgg16_color_map_show_dimension.png",
 )
-img_vgg16_color_map
+img_vgg16_color_map_show_dimension
 
 # %%
-img_vgg16_flat = visualkeras.layered_view(
+img_vgg16_flat_show_dimension = visualkeras.layered_view(
     model,
+    legend=True,
+    show_dimension=True,
     type_ignore=[visualkeras.SpacingDummyLayer],
     draw_volume=False,
-    # to_file="result_images/vgg16_flat.png",
+    font={
+        "font_size": 61,
+        # 'use_default_font': False,
+        # 'font_path': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    },
+    # to_file="result_images/vgg16_flat_show_dimension.png",
     save_fig=True,
-    save_fig_filename="vgg16_flat.png",
+    save_fig_filename="vgg16_flat_show_dimension.png",
 )
-img_vgg16_flat
+img_vgg16_flat_show_dimension
 
 # %%
-img_vgg16_scaling = visualkeras.layered_view(
+img_vgg16_scaling_show_dimension = visualkeras.layered_view(
     model,
+    legend=True,
+    show_dimension=True,
     type_ignore=[visualkeras.SpacingDummyLayer],
-    # legend=True,
-    min_z=1,
-    min_xy=1,
-    max_z=4096,
-    max_xy=4096,
-    scale_z=0.5,
-    scale_xy=11,
-    # font={'font_size': 99},
-    # to_file="result_images/vgg16_scaling.png",
+    # min_z = 1,
+    # min_xy = 1,
+    # max_z = 4096,
+    # max_xy = 4096,
+    # scale_z = 0.25,
+    # scale_xy = 5,
+    font={"font_size": 61},
+    # to_file="result_images/vgg16_scaling_show_dimension.png",
     save_fig=True,
-    save_fig_filename="vgg16_scaling.png",
+    save_fig_filename="vgg16_scaling_show_dimension.png",
 )
-img_vgg16_scaling
+img_vgg16_scaling_show_dimension
 
 # %%
 #

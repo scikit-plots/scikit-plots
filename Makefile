@@ -254,21 +254,21 @@ clean-basic:
 	echo "   - Removed pip cache files"; \
 	\
 	echo ">> [2] Jupyter checkpoints"; \
-	find . -name '.ipynb_checkpoints'
-		-not -path './third_party/*'
+	find . -name '.ipynb_checkpoints' \
+		-not -path './third_party/*' \
 		-exec rm -rf {} +; \
 	rm -rf "./third_party/.ipynb_checkpoints" || true; \
 	echo "   - Removed '.ipynb_checkpoints'"; \
 	\
 	echo ">> [3] Python bytecode caches"; \
-	find . -name '__pycache__'
-		-not -path './third_party/*'
+	find . -name '__pycache__' \
+		-not -path './third_party/*' \
 		-exec rm -rf {} +; \
 	echo "   - Removed '__pycache__'"; \
 	\
 	echo ">> [4] Zip leftovers"; \
-	find . -name '__MACOSX'
-		-not -path './third_party/*'
+	find . -name '__MACOSX' \
+		-not -path './third_party/*' \
 		-exec rm -rf {} +; \
 	echo "   - Removed '__MACOSX'"; \
 	\
@@ -290,14 +290,14 @@ clean-basic:
 	\
 	echo ">> [8] Matplotlib result images"; \
 	rm -rf "result_images" || true; \
-	find . -name 'result_images'
-		-not -path './third_party/*'
+	find . -name 'result_images' \
+		-not -path './third_party/*' \
 		-exec rm -rf {} +; \
 	echo "   - Removed 'result_images'"; \
 	\
 	echo ">> [9] Pytest cache"; \
-	find . -name '.pytest_cache'
-		-not -path './third_party/*'
+	find . -name '.pytest_cache' \
+		-not -path './third_party/*' \
 		-exec rm -rf {} +; \
 	echo "   - Removed '.pytest_cache'"; \
 	\
@@ -320,8 +320,8 @@ clean-test:
 	echo ">> Starting test cleaning..."; \
 	\
 	echo ">> [1] Pytest cache"; \
-	find . -name '.pytest_cache'
-		-not -path './third_party/*'
+	find . -name '.pytest_cache' \
+		-not -path './third_party/*' \
 		-exec rm -rf {} +; \
 	echo "   - Removed '.pytest_cache'"; \
 	\
@@ -868,7 +868,7 @@ recreate-branch:
 	git pull --ff-only "$(REMOTE)" "$(BASE)"
 
 	@# Delete local branch if it exists (but never delete the checked-out branch)
-	if git show-ref --verify --quiet "refs/heads/$(BRANCH)"; then \
+	@if git show-ref --verify --quiet "refs/heads/$(BRANCH)"; then \
 		if [ "$$(git symbolic-ref --short HEAD)" = "$(BRANCH)" ]; then \
 			echo "ERROR: Currently on '$(BRANCH)'. Switch away before recreating."; \
 			exit 1; \
@@ -877,16 +877,16 @@ recreate-branch:
 	fi
 
 	@# Create branch from updated base
-	git switch -c "$(BRANCH)"
+	@git switch -c "$(BRANCH)"
 
 	@# Push (optionally force-with-lease)
-	if [ "$(FORCE)" = "1" ]; then \
+	@if [ "$(FORCE)" = "1" ]; then \
 		git push -u --force-with-lease "$(REMOTE)" "$(BRANCH)"; \
 	else \
 		git push -u "$(REMOTE)" "$(BRANCH)"; \
 	fi
 
-	git status -sb
+	@git status -sb
 	@echo ">> Branch '$(BRANCH)' created from '$(BASE)' and pushed to '$(REMOTE)'."
 
 ## push

@@ -155,20 +155,21 @@ def plot_elbow(
     Examples
     --------
     .. plot::
-       :context: close-figs
-       :align: center
-       :alt: Elbow Curve
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: Elbow Curve
 
-        >>> from sklearn.cluster import KMeans
-        >>> from sklearn.datasets import load_iris as data_3_classes
-        >>> import scikitplot as skplt
-        >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
-        >>> kmeans = KMeans(random_state=0)
-        >>> skplt.estimators.plot_elbow(
-        >>>     kmeans,
-        >>>     X,
-        >>>     cluster_ranges=range(1, 10),
-        >>> );
+      >>> from sklearn.cluster import KMeans
+      >>> from sklearn.datasets import load_iris as data_3_classes
+      >>> import scikitplot as skplt
+      >>> X, y = data_3_classes(return_X_y=True, as_frame=False)
+      >>> kmeans = KMeans(random_state=0)
+      >>> skplt.estimators.plot_elbow(
+      >>>     kmeans,
+      >>>     X,
+      >>>     cluster_ranges=range(1, 10),
+      >>> );
 
     """
     if cluster_ranges is None:

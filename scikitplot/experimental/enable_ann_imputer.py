@@ -20,6 +20,7 @@ Now you can import normally from impute
 
 >>> from scikitplot.impute import ANNImputer
 """
+
 from .. import impute
 from ..impute._ann import ANNImputer  #, AnnoyKNNImputer
 

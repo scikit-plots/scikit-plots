@@ -1,11 +1,13 @@
+# scikitplot/externals/_sphinxext/sphinx_tabs_patch.py
+
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
 Sphinx compatibility shim for docutils ``backrefs``.
 
-This extension prevents a hard failure in ``sphinx-tabs`` that manifests as
-``KeyError: 'backrefs'`` during HTML builds.
+This extension prevents a hard failure in ``sphinx-tabs`` (sphinx_tabs-3.4.7)
+that manifests as ``KeyError: 'backrefs'`` with Docutils 0.22 during HTML builds.
 
 The failure is triggered by ``sphinx-tabs`` attempting to remove ``backrefs``
 from an attribute mapping using ``pop('backrefs')`` without providing a
@@ -24,25 +26,28 @@ Notes
   ``attrs.pop('backrefs', None)`` (or remove local attributes generically).
 - This shim is safe because it only adds a missing key or normalizes an
   invalid value for a docutils-internal attribute.
+- https://github.com/executablebooks/sphinx-tabs/pull/207
 
 Examples
 --------
-1) Place this file at ``docs/source/_sphinx_ext/compat_sphinx_tabs_backrefs.py``.
+1) Place this file at ``docs/source/_sphinx_ext/sphinx_tabs_patch.py``.
 
 2) In ``conf.py``:
 
-   >>> import os
-   >>> import sys
-   >>> sys.path.insert(0, os.path.abspath('_sphinx_ext'))
-   >>> extensions = [
-   ...     'compat_sphinx_tabs_backrefs',
-   ...     'sphinx_tabs.tabs',
-   ...     # ... your other extensions
-   ... ]
+>>> import os
+>>> import sys
+>>> import scikitplot
+>>> sys.path.insert(0, os.path.abspath('_sphinx_ext'))
+>>> extensions = [
+...     # 'scikitplot.externals._sphinxext.sphinx_tabs_patch',
+...     'sphinx_tabs_patch',   # <-- must come BEFORE sphinx_tabs.tabs
+...     'sphinx_tabs.tabs',
+...     # ... your other extensions
+... ]
 
 3) Rebuild:
 
-   $ make clean html
+$ make clean html
 """
 
 from __future__ import annotations
@@ -54,7 +59,8 @@ _BACKREFS_KEY = "backrefs"
 
 
 def _is_mutable_mapping(obj: Any) -> bool:
-    """Return True if *obj* looks like a mutable mapping.
+    """
+    Return True if *obj* looks like a mutable mapping.
 
     Parameters
     ----------
@@ -75,7 +81,8 @@ def _is_mutable_mapping(obj: Any) -> bool:
 
 
 def _ensure_backrefs_list(attributes: MutableMapping[str, Any]) -> None:
-    """Ensure ``attributes['backrefs']`` exists and is a list.
+    """
+    Ensure ``attributes['backrefs']`` exists and is a list.
 
     Parameters
     ----------
@@ -124,7 +131,8 @@ def _ensure_backrefs_list(attributes: MutableMapping[str, Any]) -> None:
 
 
 def _iter_element_nodes(doctree: Any) -> Iterable[Any]:
-    """Yield docutils element nodes from a doctree.
+    """
+    Yield docutils element nodes from a doctree.
 
     Parameters
     ----------
@@ -155,7 +163,8 @@ def _iter_element_nodes(doctree: Any) -> Iterable[Any]:
 
 
 def _normalize_doctree_backrefs(doctree: Any) -> None:
-    """Normalize ``backrefs`` attributes throughout a doctree.
+    """
+    Normalize ``backrefs`` attributes throughout a doctree.
 
     Parameters
     ----------
@@ -175,7 +184,8 @@ def _normalize_doctree_backrefs(doctree: Any) -> None:
 
 
 def _on_doctree_read(app: Any, doctree: Any) -> None:
-    """Sphinx event handler for ``doctree-read``.
+    """
+    Sphinx event handler for ``doctree-read``.
 
     Parameters
     ----------
@@ -198,7 +208,8 @@ def _on_doctree_read(app: Any, doctree: Any) -> None:
 
 
 def _on_doctree_resolved(app: Any, doctree: Any, docname: str) -> None:
-    """Sphinx event handler for ``doctree-resolved``.
+    """
+    Sphinx event handler for ``doctree-resolved``.
 
     Parameters
     ----------
@@ -223,7 +234,8 @@ def _on_doctree_resolved(app: Any, doctree: Any, docname: str) -> None:
 
 
 def setup(app: Any) -> Mapping[str, Any]:
-    """Register the extension with Sphinx.
+    """
+    Register the extension with Sphinx.
 
     Parameters
     ----------

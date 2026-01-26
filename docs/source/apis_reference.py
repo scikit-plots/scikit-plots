@@ -231,6 +231,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ),
                 # "description": None,
                 "autosummary": [
+                    # "__git_hash__",
+                    "__version__",
+                    "__version_iso_8601__",
                     "config_context",
                     "get_config",
                     "get_logger",
@@ -486,6 +489,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "ModelPlotPy Initializer object",
                 "description": (
+                  _get_submodule("scikitplot.decile", "modelplotpy")
+                  # + "\n\n"
+                  # + _get_guide("decile-modelplotpy-index", "decile-modelplotpy-financial-index")
+                ),
+                "autosummary": [
+                    # Initialize modelplotpy object
+                    "modelplotpy.ModelPlotPy",
+                ],
+            },
+            {
+                "title": "ModelPlotPy Initializer object",
+                "description": (
                   _get_submodule("scikitplot.decile", "_decile_modelplotpy")
                   + "\n\n"
                   + _get_guide("decile-modelplotpy-index", "decile-modelplotpy-financial-index")
@@ -605,6 +620,28 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("externals-index"),
         "sections": [
             {
+                "title": "data-apis array_api_compat as submodule.",
+                "description": (
+                    _get_submodule("scikitplot.externals", "array_api_compat")
+                    + "\n\n"
+                    + _get_guide("externals-array_api_compat-index")
+                ),
+                "autosummary": [
+                    "array_api_compat",
+                ],
+            },
+            {
+                "title": "data-apis array_api_extra as submodule.",
+                "description": (
+                    _get_submodule("scikitplot.externals", "array_api_extra")
+                    + "\n\n"
+                    + _get_guide("externals-array_api_extra-index")
+                ),
+                "autosummary": [
+                    "array_api_extra",
+                ],
+            },
+            {
                 "title": "Real probability scales for matplotlib.",
                 "description": (
                     _get_submodule("scikitplot.externals", "_probscale")
@@ -639,6 +676,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ),
                 "autosummary": [
                     "_sphinxext",
+                    "_sphinxext.figmpl_directive",
+                    "_sphinxext.mathmpl",
+                    "_sphinxext.plot_directive",
+                    "_sphinxext.roles",
+                    "_sphinxext.sphinx_tabs_patch",
                 ],
             },
             {
@@ -650,28 +692,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ),
                 "autosummary": [
                     "_tweedie",
-                ],
-            },
-            {
-                "title": "data-apis array_api_compat as submodule.",
-                "description": (
-                    _get_submodule("scikitplot.externals", "array_api_compat")
-                    + "\n\n"
-                    + _get_guide("externals-array_api_compat-index")
-                ),
-                "autosummary": [
-                    "array_api_compat",
-                ],
-            },
-            {
-                "title": "data-apis array_api_extra as submodule.",
-                "description": (
-                    _get_submodule("scikitplot.externals", "array_api_extra")
-                    + "\n\n"
-                    + _get_guide("externals-array_api_extra-index")
-                ),
-                "autosummary": [
-                    "array_api_extra",
+                    "_tweedie.tweedie",
+                    "_tweedie.tweedie_gen",
                 ],
             },
         ],

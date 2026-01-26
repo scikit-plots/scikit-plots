@@ -8,40 +8,40 @@
 .. _root-index:
 
 .. Define the overall structure, that affects the prev-next buttons and the order
-   of the sections in the top navbar.
+	of the sections in the top navbar.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Introduction
-   :hidden:
+	:maxdepth: 2
+	:caption: Introduction
+	:hidden:
 
-   Introduction <introduction/index.rst>
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Documentation
-   :hidden:
-
-   User Guide <user_guide/index.rst>
-   APIs Reference <apis/index.rst>
+	Introduction <introduction/index.rst>
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
-   :hidden:
+	:maxdepth: 2
+	:caption: Documentation
+	:hidden:
 
-   Tutorials <auto_examples/index>
-   Tags <_tags/tagsindex.rst>
+	User Guide <user_guide/index.rst>
+	APIs Reference <apis/index.rst>
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Project
-   :hidden:
+	:maxdepth: 2
+	:caption: Tutorials
+	:hidden:
 
-   Release History <whats_new/index.rst>
-   Developer's Guide <devel/index>
-   Community <project/community.rst>
-   Code of Conduct <project/code_of_conduct.rst>
-   Governance Process <project/governance.rst>
-   Roadmap <project/roadmap.rst>
-   About Us | Project <project/index.rst>
+	Tutorials <auto_examples/index>
+	Tags <_tags/tagsindex.rst>
+
+.. toctree::
+	:maxdepth: 1
+	:caption: Project
+	:hidden:
+
+	Release History <whats_new/index.rst>
+	Developer's Guide <devel/index>
+	Community <project/community.rst>
+	Code of Conduct <project/code_of_conduct.rst>
+	Governance Process <project/governance.rst>
+	Roadmap <project/roadmap.rst>
+	About Us | Project <project/index.rst>

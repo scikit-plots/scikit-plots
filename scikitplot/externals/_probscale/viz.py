@@ -112,7 +112,6 @@ def probplot(
            only be used by seaborn when operating within a
            ``FacetGrid``.
 
-
     Returns
     -------
     fig : matplotlib.Figure
@@ -139,45 +138,49 @@ def probplot(
     Probability plot with the probabilities on the y-axis
 
     .. plot::
-        :context: close-figs
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: Probplot probabilities
 
-        >>> import numpy
-        ...
-        ... numpy.random.seed(0)
-        >>> from matplotlib import pyplot
-        >>> from scipy import stats
-        >>> import scikitplot.externals._probscale as probscale
-        >>> data = numpy.random.normal(loc=5, scale=1.25, size=37)
-        >>> fig = probscale.probplot(
-        ...     data,
-        ...     plottype='prob',
-        ...     probax='y',
-        ...     problabel='Non-exceedance probability',
-        ...     datalabel='Observed values',
-        ...     bestfit=True,
-        ...     line_kws=dict(linestyle='--', linewidth=2),
-        ...     scatter_kws=dict(marker='o', alpha=0.5),
-        ... )
-
+      >>> import numpy
+      ...
+      ... numpy.random.seed(0)
+      >>> from matplotlib import pyplot
+      >>> from scipy import stats
+      >>> import scikitplot.externals._probscale as probscale
+      >>> data = numpy.random.normal(loc=5, scale=1.25, size=37)
+      >>> fig = probscale.probplot(
+      ...     data,
+      ...     plottype='prob',
+      ...     probax='y',
+      ...     problabel='Non-exceedance probability',
+      ...     datalabel='Observed values',
+      ...     bestfit=True,
+      ...     line_kws=dict(linestyle='--', linewidth=2),
+      ...     scatter_kws=dict(marker='o', alpha=0.5),
+      ... )
 
     Quantile plot with the quantiles on the x-axis
 
     .. plot::
-        :context: close-figs
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: Probplot quantiles
 
-        >>> import scikitplot.externals._probscale as probscale
-        >>> data = numpy.random.normal(loc=5, scale=1.25, size=37)
-        >>> fig = probscale.probplot(
-        ...     data,
-        ...     plottype='qq',
-        ...     probax='x',
-        ...     problabel='Theoretical Quantiles',
-        ...     datalabel='Observed values',
-        ...     bestfit=True,
-        ...     line_kws=dict(linestyle='-', linewidth=2),
-        ...     scatter_kws=dict(marker='s', alpha=0.5),
-        ... )
-
+      >>> import scikitplot.externals._probscale as probscale
+      >>> data = numpy.random.normal(loc=5, scale=1.25, size=37)
+      >>> fig = probscale.probplot(
+      ...     data,
+      ...     plottype='qq',
+      ...     probax='x',
+      ...     problabel='Theoretical Quantiles',
+      ...     datalabel='Observed values',
+      ...     bestfit=True,
+      ...     line_kws=dict(linestyle='-', linewidth=2),
+      ...     scatter_kws=dict(marker='s', alpha=0.5),
+      ... )
     """
     if dist is None:
         dist = _minimal_norm

@@ -324,7 +324,7 @@ core = [
   'aggdraw>=1.3.11;sys_platform!="emscripten"',
   "pillow>=6.2.0",                          # Image processing matplotlib handle
 
-  # --- Visualkeras Dependency ---
+  # --- Impute Dependency ---
   "voyager>=1.2.5",                         # fast approximate nearest-neighbor searches on an in-memory collection of vectors.
 
   # --- Optional Web Interface Dependencies (commented out) ---

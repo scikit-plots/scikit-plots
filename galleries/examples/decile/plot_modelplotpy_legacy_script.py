@@ -1,6 +1,6 @@
 """
-Introduction to modelplotpy
-================================
+Introduction to modelplotpy (legacy)
+====================================
 
 To install the latest version (with pip)::
 
@@ -8,7 +8,7 @@ To install the latest version (with pip)::
     >>> ## Cause numpy>=2.0.0 but support old numpy
     >>> pip install numpy==1.26.4
 
-This exercise is used in :py:class:`~scikitplot.modelplotpy.ModelPlotPy` class the part of the
+This exercise is used in :py:class:`scikitplot.decile.modelplotpy.ModelPlotPy` class the part of the
 :ref:`decile-modelplotpy-index` and :ref:`decile-modelplotpy-financial-index` sections.
 
 .. rubric:: References

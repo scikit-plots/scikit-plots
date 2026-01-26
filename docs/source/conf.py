@@ -247,7 +247,7 @@ extensions = [
     # 'matplotlib.sphinxext.roles',  # required matplotlib 3.9.1
     "scikitplot.externals._sphinxext.roles",  # If matplotlib 3.9.1
     # IPython extensions (load after built-ins and matplotlib)
-    "IPython.sphinxext.ipython_console_highlighting",
+    "IPython.sphinxext.ipython_console_highlighting",  # for .. ipython::
     "IPython.sphinxext.ipython_directive",
     #
     # Third-party extensions (load after built-ins and matplotlib/IPython)
@@ -260,7 +260,8 @@ extensions = [
     "sphinx_copybutton",  # Add a "copy" button to code blocks in the documentation
     "sphinx_design",  # Add design components and elements to documentation.
     #
-    "_sphinx_ext.skplt_ext.compat_sphinx_tabs_backrefs",   # <-- must come BEFORE sphinx_tabs.tabs
+    # "_sphinx_ext.skplt_ext.sphinx_tabs_patch",   # <-- must come BEFORE sphinx_tabs.tabs
+    'scikitplot.externals._sphinxext.sphinx_tabs_patch',   # <-- must come BEFORE sphinx_tabs.tabs
     "sphinx_tabs.tabs",  # Tabbed content extension
     #
     # 'nbsphinx',                     # to publish Jupyter notebooks as documentation pages.
@@ -318,13 +319,65 @@ else:
 ## https://sphinx-gallery.github.io/stable/configuration.html#generate-jupyterlite-links-for-gallery-notebooks-experimental
 ##########################################################################
 
+# # Code syntax
+# :: >>>
+# python, r, c, cpp, sql, bash, shell, make, cmake, docker,
+# html, markdown, javascript, json, yaml, toml, ini, diff, text, etc.
+# .. 	General-purpose code (highlighting only)
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-literalinclude
+# .. literalinclude:: filename
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block
+# .. code-block:: python
+# .. code-block:: bash
+
+# .. 'sphinx_prompt' Simulates interactive terminal prompts
+# .. prompt:: bash $
+# .. prompt:: python >>>
+# .. prompt:: ipython In [1]:
+# .. prompt:: sh $
+# .. prompt:: powershell PS C:\>
+# .. prompt:: docker root@container:~#
+
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block
+# https://scikit-plots.github.io/dev/modules/generated/scikitplot.externals._sphinxext.html
+# .. plot::
+
+# "IPython.sphinxext.ipython_console_highlighting",  # for .. ipython::
+# "IPython.sphinxext.ipython_directive",
+# .. ipython::
+
+# "jupyterlite-sphinx" also provides the experimental .. try_examples:: directive
+# https://jupyterlite-sphinx.readthedocs.io/en/stable/installation.html
+# .. jupyterlite::
+# .. notebooklite::
+# .. try_examples::
+
+# "jupyter-sphinx"
+# https://jupyter-sphinx.readthedocs.io/en/latest/setup.html
+# https://jupyter-sphinx.readthedocs.io/en/latest/thebelab.html
+# .. jupyter-execute
+# .. thebe-button:: Optional title
+
+# "sphinx_thebe"
+# https://sphinx-thebe.readthedocs.io/en/latest/
+# https://sphinx-thebe.readthedocs.io/en/latest/configure.html
+# https://thebe.readthedocs.io/en/latest/start.html
+# .. container:: thebe
+#     .. code-block:: r
+#         print("hi")
+
+#     .. container:: output
+#         "hi"
+
 try:
     import jupyter_sphinx  # noqa: F401  # pylint: disable=W0611
 
+    # https://jupyter-sphinx.readthedocs.io/en/latest/setup.html#enabling-the-extension
     extensions.append("jupyter_sphinx")
 
     import jupyterlite_sphinx  # noqa: F401  # pylint: disable=W0611
 
+    # https://jupyterlite-sphinx.readthedocs.io/en/latest/installation.html
     extensions.append("jupyterlite_sphinx")
     with_jupyterlite = True
 except ImportError:
@@ -1309,58 +1362,75 @@ tags_badge_colors = {
 # to external api docs.
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#confval-intersphinx_mapping
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#role-external
+# python -m sphinx.ext.intersphinx https://docs.python.org/3/objects.inv
 intersphinx_mapping = {
     # Build
-    "python": (f"https://docs.python.org/{sys.version_info.major}", None),
+    "python": (f"https://docs.python.org/{sys.version_info.major}/", None),
     "pip": ("https://pip.pypa.io/en/stable/", None),
     "meson-python": ("https://mesonbuild.com/meson-python/", None),
-    "setuptools": ("https://setuptools.pypa.io/en/stable", None),
-    "packaging": ("https://packaging.python.org/en/latest", None),
-    "virtualenv": ("https://virtualenv.pypa.io/en/stable", None),
+    "setuptools": ("https://setuptools.pypa.io/en/stable/", None),
+    "packaging": ("https://packaging.python.org/en/latest/", None),
+    "virtualenv": ("https://virtualenv.pypa.io/en/stable/", None),
     "IPython": ("https://ipython.readthedocs.io/en/stable/", None),
     "ipykernel": ("https://ipykernel.readthedocs.io/en/latest/", None),
     # Test
     "pytest": ("https://pytest.org/en/stable/", None),
-    "tox": ("https://tox.wiki/en/stable", None),
+    "tox": ("https://tox.wiki/en/stable/", None),
     # Docs
-    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
-    "numpydoc": ("https://numpydoc.readthedocs.io/en/latest", None),
+    'sphinx': ("https://www.sphinx-doc.org/en/master/", None),
+    "numpydoc": ("https://numpydoc.readthedocs.io/en/latest/", None),
     # Data Manuplation
-    "numpy": ("https://numpy.org/doc/stable", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
-    "dateutil": ("https://dateutil.readthedocs.io/en/stable/", None),
-    "xarray": ("https://docs.xarray.dev/en/stable/", None),
+    "numpy": ("https://numpy.org/devdocs/", (None, "https://numpy.org/doc/stable/")),
+    "scipy": ("https://scipy.github.io/devdocs/", (None, "https://docs.scipy.org/doc/scipy/")),
+    "pandas": ("https://pandas.pydata.org/docs/dev/", (None, "https://pandas.pydata.org/pandas-docs/stable/")),
     # Visualization
-    "matplotlib": ("https://matplotlib.org/stable/", None),
     "cycler": ("https://matplotlib.org/cycler/", None),
+    "matplotlib": ("https://matplotlib.org/devdocs/", (None, "https://matplotlib.org/stable/")),
+    "astropy": ("https://docs.astropy.org/en/latest/", (None, "https://docs.astropy.org/en/stable/")),
     "seaborn": ("https://seaborn.pydata.org/", None),
-    "astropy": ("https://docs.astropy.org/en/stable/", None),
     # ML
+    "sklearn": ("https://scikit-learn.org/dev/", (None, "https://scikit-learn.org/stable/")),
     "statsmodels": ("https://www.statsmodels.org/stable/", None),
-    "sklearn": ("https://scikit-learn.org/stable/", None),
     # DL
-    "tensorflow": (
-        "https://www.tensorflow.org/api_docs/python",
-        "https://raw.githubusercontent.com/GPflow/tensorflow-intersphinx/master/tf2_py_objects.inv",
-    ),
     # 'keras': ('https://keras.io/api/', None),  # Add Keras API documentation
+    "tensorflow": (
+        "https://www.tensorflow.org/api_docs/python/",
+        (
+            None,
+            "https://github.com/celik-muhammed/tensorflow-intersphinx/raw/master/tf2_py_objects.inv",
+            "https://github.com/GPflow/tensorflow-intersphinx/raw/master/tf2_py_objects.inv",
+            "https://raw.githubusercontent.com/GPflow/tensorflow-intersphinx/master/tf2_py_objects.inv",
+        ),
+    ),
+    "tensorflow_probability": (
+        "https://www.tensorflow.org/probability/api_docs/python/",
+        (
+            None,
+            "https://github.com/celik-muhammed/tensorflow-intersphinx/raw/master/tfp_py_objects.inv",
+            "https://github.com/GPflow/tensorflow-intersphinx/raw/master/tfp_py_objects.inv",
+            "https://raw.githubusercontent.com/GPflow/tensorflow-intersphinx/master/tfp_py_objects.inv",
+        ),
+    ),
     "pytorch": (
         "https://pytorch.org/docs/stable/",
-        None,
-        # "https://github.com/pytorch/docs/blob/main/stable/objects.inv",
+        (
+            None,
+            "https://github.com/pytorch/docs/raw/main/stable/objects.inv",
+        ),
     ),
-    "datasets": ("https://huggingface.co/docs/datasets/main/en/", None),
     "transformers": ("https://huggingface.co/docs/transformers/main/en/", None),
+    "datasets": ("https://huggingface.co/docs/datasets/main/en/", None),
     # image
     "aggdraw": ("https://aggdraw.readthedocs.io/en/stable/", None),
     "pillow": ("https://pillow.readthedocs.io/en/stable/", None),
-    "imageio": ("https://imageio.readthedocs.io/en/stable", None),
-    "skimage": ("https://scikit-image.org/docs/stable", None),
+    "imageio": ("https://imageio.readthedocs.io/en/stable/", None),
+    "skimage": ("https://scikit-image.org/docs/stable/", None),
     # Misc
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
+    "dateutil": ("https://dateutil.readthedocs.io/en/stable/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
     "skops": ("https://skops.readthedocs.io/en/stable/", None),
-    "pluggy": ("https://pluggy.readthedocs.io/en/stable", None),
+    "pluggy": ("https://pluggy.readthedocs.io/en/stable/", None),
     "flask": ("https://flask.palletsprojects.com/en/stable/", None),
 }
 

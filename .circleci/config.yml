@@ -221,6 +221,10 @@ commands:
             pip install -r ./requirements/cpu.txt
 
             # pip install voyager==2.1.0
+
+            # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
+            # python -m pip check
+            pip install -U "protobuf<6"
   build-scikit-plots:
     description: build scikit-plots
     steps:

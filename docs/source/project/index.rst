@@ -17,9 +17,9 @@
 
 .. _about-index:
 
-================
-About Us/Project
-================
+==================
+About Us | Project
+==================
 
 This project was started in 2024.
 
