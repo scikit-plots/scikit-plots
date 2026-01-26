@@ -393,10 +393,17 @@ n_features_out_ : int
 feature_names_in_ : list-like
     Input feature names seen during fit.
     Set only when explicitly provided via fit(..., feature_names=...).
-y : dict | None, optional, default=None
-    If provided to fit(X, y), labels are stored here after a successful build.
-    You may also set this property manually. When possible, the setter enforces
-    that len(y) matches the current number of items (n_items).
+y : list-like | None, optional, default=None
+    Dense label cache aligned to item ids (``0 .. n_items-1``). This is a
+    convenience view for scikit-learn style APIs and may be derived from
+    ``y_map`` lazily.
+    The setter accepts sequences only (a dict is not allowed); when possible it
+    validates that ``len(y) == n_items`` and updates ``y_map`` deterministically.
+y_map : dict | None, optional, default=None
+    Canonical sparse mapping ``{item_id -> label}``. Keys must be non-negative
+    integers and (when an index exists) strictly less than ``n_items``.
+    Setting this property invalidates the dense ``y`` cache; ``y`` is
+    materialized lazily (missing keys become ``None``).
 
 See Also
 --------
@@ -549,7 +556,7 @@ depend on the vector dimension.
 
 For scikit-learn compatibility, assigning a different ``f`` (or ``None``) on
 an already initialized index will deterministically **reset** the index (drop
-all items, trees, and :attr:`y`). You must call :meth:`fit` (or
+all items, trees, and label metadata (:attr:`y_map` and :attr:`y`)). You must call :meth:`fit` (or
 :meth:`add_item` + :meth:`build`) again before querying.
 )FDOC";
 
@@ -591,7 +598,7 @@ the distance function.
 
 For scikit-learn compatibility, setting a different metric on an already
 initialized index will deterministically **reset** the index (drop all items,
-trees, and :attr:`y`). You must call :meth:`fit` (or :meth:`add_item` +
+trees, and label metadata (:attr:`y_map` and :attr:`y`). You must call :meth:`fit` (or :meth:`add_item` +
 :meth:`build`) again before querying.
 )METRIC";
 
@@ -1555,18 +1562,11 @@ static PyObject* py_an_new(
   // Reset estimator parameters (SLEP013).
   self->n_neighbors = 5;
 
+  // Python-owned fitted metadata (GC-tracked).
+  // Initialize to NULL; tp_alloc zeroes memory, but we set explicitly for clarity/safety.
   self->feature_names_in = NULL;
-  // Clear fitted feature names (SLEP007).
-  Py_CLEAR(self->feature_names_in);
-
   self->y = NULL;
-  // Clear fitted labels (if any) on re-init.
-  Py_CLEAR(self->y);
-  Py_CLEAR(self->y_map);
-
   self->y_map = NULL;
-  // Clear fitted sparse labels mapping (if any) on re-init.
-  Py_CLEAR(self->y_map);
 
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
@@ -2192,7 +2192,7 @@ static PyObject* py_an_sklearn_is_fitted(
 // IMPORTANT
 // ---------
 // This helper must only be called while holding the GIL (it may emit warnings
-// and clears Python-owned metadata like y).
+// and clears Python-owned metadata like y/y_map).
 static bool reset_index_state(
   py_annoy* self,
   const char* warn_msg) {
@@ -2205,6 +2205,7 @@ static bool reset_index_state(
     self->on_disk_pending = false;
     Py_CLEAR(self->feature_names_in);
     Py_CLEAR(self->y);
+    Py_CLEAR(self->y_map);
     return true;
   }
 
@@ -2227,6 +2228,7 @@ static bool reset_index_state(
   // Prevent stale label metadata from being queried against a new index.
   Py_CLEAR(self->feature_names_in);
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
 
   return true;
 }
@@ -3198,13 +3200,34 @@ static PyGetSetDef py_annoy_getset[] = {
     (getter)py_annoy_get_y,
     (setter)py_annoy_set_y,
     (char*)
-    "Dense labels/targets cache aligned to item ids (0..n_items-1).\n"
+    "y : list[object] | None\n"
+    "    Dense labels/targets aligned to item ids ``0..n_items-1``.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "y : list[object] | None\n"
+    "    A Python list of length ``n_items`` (missing labels are ``None``), or\n"
+    "    ``None`` if no label metadata is available.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "TypeError\n"
+    "    If assigned a dict. Use :attr:`y_map` for dict mappings.\n"
+    "ValueError\n"
+    "    If assigned a sequence whose length does not match ``n_items`` when the\n"
+    "    index already contains items.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "y_map : Canonical sparse mapping of labels by item id.\n"
+    "fit, fit_transform : Set labels while fitting.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "Canonical storage is :attr:`y_map` (a dict). This attribute is a\n"
-    "convenience cache and will be materialized from y_map on demand.\n"
-    "Setting y replaces y_map. For sparse mappings use y_map.\n",
+    "- :attr:`y_map` is the canonical storage. :attr:`y` is a convenience cache\n"
+    "  that may be cleared and materialized from :attr:`y_map` on demand.\n"
+    "- Setting ``y`` replaces :attr:`y_map` deterministically.\n",
+
     NULL
   },
 
@@ -3223,12 +3246,34 @@ static PyGetSetDef py_annoy_getset[] = {
     (getter)py_annoy_get_y_map,
     (setter)py_annoy_set_y_map,
     (char*)
-    "Sparse labels/targets mapping: dict {item_id -> label}.\n"
+    "y_map : dict[int, object] | None\n"
+    "    Sparse mapping ``{item_id -> label/target}``.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "y_map : dict[int, object] | None\n"
+    "    Mapping of labels keyed by item id, or ``None`` if unset.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "TypeError\n"
+    "    If assigned a non-dict (other than ``None``).\n"
+    "ValueError\n"
+    "    If any key is negative, not an integer, or (when the index already contains\n"
+    "    items) out of range.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "y : Dense cache aligned to item ids.\n"
+    "fit, fit_transform : Set labels while fitting.\n"
+    "transform : Use ``return_labels=True`` to return labels.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "This is the canonical label metadata storage. When set, :attr:`y` may\n"
-    "be cleared and rebuilt lazily.\n",
+    "- This is the canonical label metadata storage.\n"
+    "- Missing keys imply \"no label\"; when :attr:`y` is materialized, missing ids\n"
+    "  become ``None``.\n",
+
     NULL
   },
 
@@ -5410,15 +5455,16 @@ static PyObject* py_an_build(
 //
 // Deterministic semantics:
 //
-// - fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None)
+// - fit(X=None, y=None, *, y_map=None, n_trees=-1, n_jobs=-1, reset=True, start_index=None)
 //   * If X is None and y is None: build the forest using previously-added items
 //     (equivalent to calling build(n_trees, n_jobs)).
 //   * If X is provided: add all rows in X via add_item and then build.
 //       - reset=True (default): clear existing items (fresh index) before adding.
 //       - reset=False: append items. If the index is currently built, we will
 //         unbuild() first and emit a warning (Annoy cannot add to a built index).
-//   * If y is provided alongside X: store labels to :attr:`y` (and alias `_y`) after a
-//     successful build. If y is None, `y` is cleared to avoid stale metadata.
+//   * If y or y_map is provided alongside X: store labels canonically to :attr:`y_map`
+//     (dict {item_id -> label}) after a successful build, and invalidate dense cache
+//     :attr:`y` to avoid stale metadata.
 //
 // Notes
 // -----
@@ -8454,7 +8500,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "fit(X=None, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)\n"
+    "fit(X=None, y=None, *, y_map=None, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)\n"
     "\n"
     "Fit the Annoy index (scikit-learn compatible).\n"
     "\n"
@@ -8473,7 +8519,11 @@ static PyMethodDef py_annoy_methods[] = {
     "X : array-like of shape (n_samples, n_features), default=None\n"
     "    Vectors to add to the index. If None (and y is None), fit() only builds.\n"
     "y : array-like of shape (n_samples,), default=None\n"
-    "    Optional labels associated with X. Stored as :attr:`y` after successful build.\n"
+    "    Optional dense labels/targets associated with X. This must be a 1D\n"
+    "    sequence (dicts are not accepted; use ``y_map``).\n"
+    "y_map : dict[int, object] or None, default=None\n"
+    "    Optional sparse mapping ``{item_id -> label/target}``. This is the\n"
+    "    canonical label metadata storage. Provide only one of ``y`` or ``y_map``.\n"
     "n_trees : int, default=-1\n"
     "    Number of trees to build. Use -1 for Annoy's internal default.\n"
     "n_jobs : int, default=-1\n"
@@ -8504,7 +8554,7 @@ static PyMethodDef py_annoy_methods[] = {
     "build : Build the forest after manual calls to add_item.\n"
     "on_disk_build : Configure on-disk build mode.\n"
     "unbuild : Remove trees so items can be appended.\n"
-    "y : Stored labels :attr:`y` (if provided).\n"
+    "y_map, y : Stored label metadata (canonical mapping and dense cache).\n"
     "get_params, set_params : Estimator parameter API.\n"
     "\n"
     "Examples\n"
@@ -8531,15 +8581,33 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "fit_transform(X, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None, n_neighbors=None, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None)\n"
+    "fit_transform(X, y=None, *, y_map=None, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None, n_neighbors=None, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None)\n"
     "\n"
     "Fit the index and transform X in a single deterministic call.\n"
     "\n"
-    "This is equivalent to:\n"
+    "This is equivalent to calling :meth:`fit` followed by :meth:`transform`.\n"
     "\n"
-    "self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...)\n"
-    "self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=...,\n"
-    "y_fill_value=..., missing_value=...)\n"
+    "Parameters\n"
+    "----------\n"
+    "X : array-like\n"
+    "    Training data / queries. See :meth:`fit` and :meth:`transform`.\n"
+    "y : array-like of shape (n_samples,), default=None\n"
+    "    Optional dense labels/targets aligned to rows of ``X``.\n"
+    "y_map : dict[int, object] or None, default=None\n"
+    "    Optional sparse mapping ``{item_id -> label/target}``. Provide only one\n"
+    "    of ``y`` or ``y_map``.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "neighbors : object\n"
+    "    The output of :meth:`transform` for ``X`` under the provided query options.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "TypeError\n"
+    "    If both ``y`` and ``y_map`` are provided, or if input types are invalid.\n"
+    "ValueError\n"
+    "    If the index cannot be built deterministically or query options are inconsistent.\n"
     "\n"
     "See Also\n"
     "--------\n"
@@ -9040,7 +9108,7 @@ static PyMethodDef py_annoy_methods[] = {
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    A new Annoy instance containing the same items (and :attr:`y` metadata if present).\n"
+    "    A new Annoy instance containing the same items (and label metadata if present).\n"
     "\n"
     "See Also\n"
     "--------\n"
@@ -9207,7 +9275,7 @@ static PyMethodDef py_annoy_methods[] = {
     "-----\n"
     "Changing structural parameters (notably ``metric``) on an already\n"
     "initialized index resets the index deterministically (drops all items,\n"
-    "trees, and :attr:`y`). Refit/rebuild is required before querying.\n"
+    "trees, and label metadata (:attr:`y_map` and :attr:`y`). Refit/rebuild is required before querying.\n"
     "\n"
     "This behavior matches scikit-learn expectations: ``set_params`` may be\n"
     "called at any time, but parameter changes that affect learned state\n"
@@ -9258,7 +9326,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "transform(X, \\*, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False, exclude_items=None, missing_value=None)\n"
+    "transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False, exclude_items=None, missing_value=None)\n"
     "\n"
     "Transform queries into nearest-neighbor results (ids or vectors; optional distances / labels).\n"
     "\n"
@@ -9278,9 +9346,9 @@ static PyMethodDef py_annoy_methods[] = {
     "include_distances : bool, default=False\n"
     "    If True, also return per-neighbor distances.\n"
     "return_labels : bool, default=False\n"
-    "    If True, also return per-neighbor labels resolved from :attr:`y` (as set via :meth:`fit`).\n"
+    "    If True, also return per-neighbor labels resolved from :attr:`y_map` (or :attr:`y` cache).\n"
     "y_fill_value : object, default=None\n"
-    "    Value used when :attr:`y` is unset or missing an entry for a neighbor id.\n"
+    "    Value used when label metadata is unset or missing an entry for a neighbor id.\n"
     "input_type : {'vector', 'item'}, default='vector'\n"
     "    Controls how X is interpreted.\n"
     "output_type : {'vector', 'item'}, default='vector'\n"
