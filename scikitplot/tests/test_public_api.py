@@ -73,6 +73,7 @@ PUBLIC_MODULES = [
         "seaborn",
         "stats",
         "utils",
+        "utils.logger",
         "utils.validation",
         "visualkeras",
         # py
