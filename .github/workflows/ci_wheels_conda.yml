@@ -297,7 +297,7 @@ jobs:
           submodules: true  # Fetch Hugo themes (true OR recursive)
 
       - name: "🐍 Python Setup"  # → Used to push the built wheels
-        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           # python-version: "3.x"
           python-version: "3.11"
@@ -552,7 +552,7 @@ jobs:
           # include-hidden-files: true
 
       - name: Conda environment creation and activation anaconda-client
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           ## for installation of anaconda-client, required for upload to
           ## anaconda.org
@@ -675,7 +675,7 @@ jobs:
 
       # Used to push the built wheels
       - name: "🐍 Python Setup"  # Used to push the built wheels
-        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           # Build sdist on lowest supported Python
           python-version: "3.10"  # due to array api compat
@@ -719,7 +719,7 @@ jobs:
           # include-hidden-files: true
 
       - name: Conda environment creation and activation anaconda-client
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           # for installation of anaconda-client, required for upload to
           # anaconda.org
@@ -835,7 +835,7 @@ jobs:
           # include-hidden-files: true
 
       - name: Conda environment creation and activation anaconda-client
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         continue-on-error: true
         with:
           ## for installation of anaconda-client, required for upload to
