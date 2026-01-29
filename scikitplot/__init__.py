@@ -122,6 +122,7 @@ _submodules = sorted(
         "externals",
         "impute",
         "misc",
+        "mlflow",
         "nc",
         "preprocessing",
         "seaborn",  # Seaborn-style Plotting.

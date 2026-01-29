@@ -60,7 +60,7 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            ANNoy Vector Index DB <./annoy/index.rst>
+            ANNoy <./annoy/index.rst>
 
     .. grid-item-card::
         :padding: 3
@@ -105,6 +105,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **mlflow workflow automation**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            MLflow <./mlflow/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **high-performance numerical functions**
         ^^^
         .. toctree::
@@ -130,7 +140,7 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            seaborn <./seaborn/index.rst>
+            Seaborn <./seaborn/index.rst>
 
     .. grid-item-card::
         :padding: 3

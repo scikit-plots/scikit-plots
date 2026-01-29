@@ -219,6 +219,7 @@ commands:
             # tf need for documentation examples
             # pip install -r ./requirements/gpu.txt
             pip install -r ./requirements/cpu.txt
+            pip install -r ./requirements/mlflow.txt
 
             # pip install voyager==2.1.0
 

@@ -1,3 +1,5 @@
+# scikitplot/_datasets/_data_loader.py
+#
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
@@ -5,11 +7,15 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
 # pylint: disable=line-too-long
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""dataset_loader - Unified and extensible data loading module."""
+"""
+_dataset_loader.
+
+- Unified pd.read_* read_auto and extensible data loading module.
+"""
 
 import asyncio  # noqa: F401
 import io

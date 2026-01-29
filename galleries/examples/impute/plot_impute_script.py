@@ -2,6 +2,8 @@
 annoy impute with examples
 ==================================
 
+.. currentmodule:: scikitplot.impute
+
 Examples related to the :py:class:`~scikitplot.impute._ann.ANNImputer` class
 with a scikit-learn regressor (e.g., :py:class:`~sklearn.linear_model.LinearRegression`) instance.
 

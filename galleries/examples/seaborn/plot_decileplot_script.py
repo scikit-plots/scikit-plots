@@ -2,6 +2,8 @@
 plot_decileplot_script with examples
 ==========================================
 
+.. currentmodule:: scikitplot.seaborn
+
 An example showing the :py:func:`~scikitplot.seaborn.decileplot` function
 with a scikit-learn classifier (e.g., :py:class:`~sklearn.linear_model.LogisticRegression`) instance.
 """

@@ -1255,19 +1255,6 @@ def get_logger() -> _logging.Logger:
 ######################################################################
 
 
-# logging.TaskLevelStatusMessage
-def TaskLevelStatusMessage(msg):  # noqa: N802
-    """
-    Compatibility wrapper for legacy call sites.
-
-    Parameters
-    ----------
-    msg : str
-        Message to log.
-    """
-    error(msg)
-
-
 def getEffectiveLevel():  # noqa: N802
     """
     Return the effective level for the scikit-plots logger.
@@ -1428,6 +1415,19 @@ def exception(msg, *args, exc_info=True, **kwargs):
     with a pre-defined format.
     """
     error(msg, *args, exc_info=exc_info, **kwargs)
+
+
+# logging.TaskLevelStatusMessage
+def TaskLevelStatusMessage(msg):  # noqa: N802
+    """
+    Compatibility wrapper for legacy call sites.
+
+    Parameters
+    ----------
+    msg : str
+        Message to log.
+    """
+    error(msg)
 
 
 def warning(msg, *args, **kwargs):

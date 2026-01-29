@@ -19,7 +19,7 @@
 
 .. _nc-index:
 
-nc (NumCpp)
+Nc (NumCpp)
 ======================================================================
 
 Examples relevant to the :py:mod:`~.nc` module with  :py:mod:`~._numcpp`.

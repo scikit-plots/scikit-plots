@@ -27,10 +27,15 @@
 .streamlit/secrets.toml
 
 # model registry
-mlruns
-mlruns.db
+!docs/source/user_guide/mlflow
+!galleries/examples/mlflow
+!scikitplot/mlflow
+.mlflow
 mlflow
 mlflow.db
+mlruns
+mlruns.db
+configs
 outputs
 
 # =========================

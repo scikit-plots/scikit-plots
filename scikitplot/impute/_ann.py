@@ -409,6 +409,9 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
 
     See Also
     --------
+    sklearn.neighbors : The k-nearest neighbors algorithms.
+    sklearn.neighbors.NearestNeighbors : Unsupervised learner for implementing neighbor searches.
+    sklearn.neighbors.KNeighborsTransformer : Transform X into a (weighted) graph of k nearest neighbors.
     sklearn.impute.KNNImputer : Multivariate imputer that estimates missing features using
         nearest samples. Exact KNN-based imputer using brute-force search.
     sklearn_ann.kneighbors.annoy.AnnoyTransformer : Wrapper for using annoy.AnnoyIndex as

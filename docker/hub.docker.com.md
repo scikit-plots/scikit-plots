@@ -49,6 +49,13 @@ docker run scikitplot/scikit-plots:latest
 
 ## Quickstart
 
+<!-- "https://github.com/scikit-plots/scikit-plots.github.io/raw/main/dev/_static/plot_directive/introduction/quick_start_tf.png" -->
+<div align=center>
+ <img
+  src="https://github.com/scikit-plots/scikit-plots/raw/main/docker/scripts/bash-screenshot.png"
+  alt="docker/scripts/bash-screenshot.png" width="62.5%" height="365.6px">
+</div>
+
 ### Drop-in volume-mount examples
 ```sh
 # Quickstart bash scikitplot/scikit-plots:latest

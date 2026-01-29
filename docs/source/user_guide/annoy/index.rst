@@ -147,30 +147,30 @@ Further reading
 ---------------
 
 .. seealso::
-    * :ref:`ANNoy <annoy-index>`
-    * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
-    * https://github.com/spotify/annoy
-    * https://pypi.org/project/annoy
+  * :ref:`ANNoy <annoy-index>`
+  * :ref:`cexternals/ANNoy (experimental) <cexternals-annoy-index>`
+  * https://github.com/spotify/annoy
+  * https://pypi.org/project/annoy
 
 .. seealso::
-   * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
-   * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
-   * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
-   * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
-   * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
-   * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
-
-   * Python pickling: https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
-   * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+  * Python pickling: https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+  * https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+  * `github: ANNoy based on random projection (hyperplane) trees <https://github.com/spotify/annoy>`__
+  * `pypi: ANNoy based on random projection (hyperplane) method <https://pypi.org/project/annoy>`__
+  * `github: Voyager based on HNSW algorithm (hnswlib) <https://github.com/spotify/voyager>`__
+  * `pypi: Voyager based on HNSW algorithm (hnswlib) <https://pypi.org/project/voyager>`__
+  * `github: HNSW implementation Header-only C++/python <https://github.com/nmslib/hnswlib>`__
+  * `pypi: HNSW implementation Header-only C++/python <https://pypi.org/project/hnswlib>`__
+  * `github: Non-Metric Space Library (NMSLIB) <https://github.com/nmslib/nmslib>`__
 
 .. * Annoy overview: https://www.sandgarden.com/learn/annoy-approximate-nearest-neighbors-oh-yeah
 .. * FAISS overview: https://www.sandgarden.com/learn/faiss
 .. seealso::
-   * Nearest neighbor search (background): https://en.wikipedia.org/wiki/Nearest_neighbor_search
-   * https://www.researchgate.net/publication/386374637_Optimizing_Domain-Specific_Image_Retrieval_A_Benchmark_of_FAISS_and_Annoy_with_Fine-Tuned_Features
-   * https://www.researchgate.net/publication/363234433_Analysis_of_Image_Similarity_Using_CNN_and_ANNOY
-   * https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/XboxInnerProduct.pdf
-   * https://link.springer.com/chapter/10.1007/978-981-97-7831-7_2
+  * Nearest neighbor search (background): https://en.wikipedia.org/wiki/Nearest_neighbor_search
+  * https://www.researchgate.net/publication/386374637_Optimizing_Domain-Specific_Image_Retrieval_A_Benchmark_of_FAISS_and_Annoy_with_Fine-Tuned_Features
+  * https://www.researchgate.net/publication/363234433_Analysis_of_Image_Similarity_Using_CNN_and_ANNOY
+  * https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/XboxInnerProduct.pdf
+  * https://link.springer.com/chapter/10.1007/978-981-97-7831-7_2
 
 References
 ----------

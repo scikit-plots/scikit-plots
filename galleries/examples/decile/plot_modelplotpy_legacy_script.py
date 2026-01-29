@@ -2,6 +2,8 @@
 Introduction to modelplotpy (legacy)
 ====================================
 
+.. currentmodule:: scikitplot.decile
+
 To install the latest version (with pip)::
 
     >>> pip install scikit-learn scikit-plots --upgrade

@@ -237,5 +237,6 @@ Who Should Not Use Free-Threaded Python Yet
     # Python prints -VV, by subprocess
     output = subprocess.Popen(["python", "-VV"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).communicate()[0].strip()
     output = subprocess.run(["python", "-VV"], capture_output=True, text=True).stdout.strip()
+    output = subprocess.call(["python", "-VV"])
     output = subprocess.check_output("python -VV", shell=True, text=True).strip()
     print(output)

@@ -258,3 +258,9 @@ repos:
   #   rev: v2.8.0
   #   hooks:
   #   - id: setup-cfg-fmt
+
+  # - repo: https://github.com/pytest-dev/pytest
+  #   rev: main
+  #   hooks:
+  #     - id: pytest
+  #       name: Run pytest before commit

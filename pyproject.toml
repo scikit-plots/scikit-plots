@@ -494,6 +494,11 @@ maintenance = [
   "conda-lock>=3.0.0",                      # Dependency lock files for Conda
 ]
 
+## Mlflow
+mlflow = [
+  "mlflow",                                 # Dependency lock files for Conda
+]
+
 ## Specialized dependencies for specific hardware
 cpu = [
   ## https://pytorch.org/get-started/locally/#start-locally

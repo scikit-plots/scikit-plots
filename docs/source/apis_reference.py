@@ -734,37 +734,110 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "Functional Interface - get_logger",
-                # "description": (
-                #   _get_submodule("scikitplot.logging", "SpLogger")
-                #   + "\n\n"
-                #   + _get_guide("logging-index")
-                # ),
+                "title": "Logging Helpers",
+                "description": None,
                 "autosummary": [
                     "AlwaysStdErrHandler",
                     "GoogleLogFormatter",
-                    "critical",
-                    "debug",
-                    "error",
-                    "error_log",
-                    "fatal",
                     "getEffectiveLevel",
                     "get_logger",
-                    "log_if",
+                    "get_verbosity",
                     "setLevel",
-                    "vlog",
-                    "warn",
-                    "warning",
+                    "set_verbosity",
                 ],
             },
-            # {
-            #     "title": "Class Interface - SpLogger",
-            #     "description": None,
-            #     "autosummary": [
-            #         "SpLogger",
-            #         "sp_logger",
-            #     ],
-            # },
+            {
+                "title": "Log the Message",
+                "description": "Log the message at a predefined logging level.",
+                "autosummary": [
+                    "log",
+                    "log_every_n",
+                    "log_first_n",
+                    "log_if",
+                    "vlog",
+                    "debug",
+                    "info",
+                    "warning",
+                    "warn",
+                    "error",
+                    "error_log",
+                    "exception",
+                    "TaskLevelStatusMessage",
+                    "critical",
+                    "fatal",
+                ],
+            },
+        ],
+    },
+    "scikitplot.mlflow": {
+        "short_summary": "Missing value imputation.",
+        "description": _get_guide("mlflow-index"),
+        "sections": [
+            {
+                "title": "Mlflow Session Helper",
+                "description": (
+                  _get_submodule("scikitplot.mlflow", "_session")
+                  + "\n\n"
+                  + _get_guide("mlflow-index")
+                ),
+                "autosummary": [
+                    "MlflowHandle",
+                    "session",
+                    "session_from_file",
+                    "session_from_toml",
+                ],
+            },
+            {
+                "title": "project config helpers",
+                "description": (
+                  _get_submodule("scikitplot.mlflow", "_project")
+                  + "\n\n"
+                  + _get_guide("mlflow-index")
+                ),
+                "autosummary": [
+                    "find_project_root",
+                    "load_project_config",
+                    "load_project_config_toml",
+                    "dump_project_config_yaml",
+                ],
+            },
+            {
+                "title": "config",
+                "description": (
+                  _get_submodule("scikitplot.mlflow", "_config")
+                  + "\n\n"
+                  + _get_guide("mlflow-index")
+                ),
+                "autosummary": [
+                    "ServerConfig",
+                    "SessionConfig",
+                    "ProjectConfig",
+                ],
+            },
+            {
+                "title": "errors",
+                "description": None,
+                "autosummary": [
+                    "MlflowIntegrationError",
+                    "MlflowNotInstalledError",
+                    "MlflowCliIncompatibleError",
+                    "MlflowServerStartError",
+                ],
+            },
+            {
+                "title": "workflow helpers",
+                "description": (
+                  _get_submodule("scikitplot.mlflow", "_workflow")
+                  + "\n\n"
+                  + _get_guide("mlflow-index")
+                ),
+                "autosummary": [
+                    "workflow",
+                    "builtin_config_path",
+                    "export_builtin_config",
+                    "default_project_paths",
+                ],
+            },
         ],
     },
     "scikitplot.nc": {
