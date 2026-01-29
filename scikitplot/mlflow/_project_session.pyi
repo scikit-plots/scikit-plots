@@ -1,0 +1,13 @@
+# from __future__ import annotations
+
+from pathlib import Path
+from typing import Iterator
+
+from ._session import MlflowHandle
+
+def session_from_toml(
+    toml_path: str | Path, *, profile: str = ...
+) -> Iterator[MlflowHandle]: ...
+def session_from_file(
+    config_path: str | Path, *, profile: str = ...
+) -> Iterator[MlflowHandle]: ...
