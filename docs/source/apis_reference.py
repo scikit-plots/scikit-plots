@@ -795,6 +795,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                   + _get_guide("mlflow-index")
                 ),
                 "autosummary": [
+                    "DEFAULT_PROJECT_MARKERS",
                     "find_project_root",
                     "load_project_config",
                     "load_project_config_toml",

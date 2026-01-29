@@ -24,16 +24,29 @@ MLflow Workflow Automation
 
 Examples relevant to the :py:mod:`~.mlflow` module.
 
+.. rubric:: Examples
+
+* :ref:`sphx_glr_auto_examples_mlflow_plot_mlflow.py`: Example usage of
+  :func:`~.workflow` using template.
+
 .. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>
 
-   import scikitplot as sp
+  Quiskstart Template: Beginner workflow demo
 
-   sp.mlflow.workflow(
-       profile="local",
-       open_ui_seconds=30,
-       experiment_name="my-first-project",
-       fmt="toml",
-       overwrite=True,  # Config already exists: ./configs/mlflow.toml (use overwrite=True).
-   )
+  import os
+  import scikitplot as sp
+
+  # print(sp.mlflow.DEFAULT_PROJECT_MARKERS)
+  # Walk upward from `start` until a directory containing any marker is found.
+  # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+  os.environ["SCIKITPLOT_PROJECT_MARKERS"]='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+
+  sp.mlflow.workflow(
+      profile="local",
+      open_ui_seconds=30,
+      experiment_name="my-first-project",
+      fmt="toml",
+      overwrite=True,  # If config already exists: ./configs/mlflow.toml (use overwrite=True).
+  )

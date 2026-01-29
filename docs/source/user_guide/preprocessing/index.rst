@@ -32,6 +32,11 @@ DummyCodeEncoder
 
 This module contains some functions related to :py:class:`~.DummyCodeEncoder`.
 
+.. rubric:: Examples
+
+* :ref:`sphx_glr_auto_examples_preprocessing_plot_dummy_code_encoder.py`: Example usage of
+  :ckass:`~.DummyCodeEncoder`.
+
 .. _get_dummies-index:
 
 GetDummies

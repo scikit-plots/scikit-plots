@@ -32,7 +32,13 @@ Option A — temporary (best for automation pipelines)
 
 Option B — environment (best for CI)
 
->>> export SCIKITPLOT_PROJECT_MARKERS='["pyproject.toml",".git","configs/mlflow.toml"]'
+>>> import os
+>>> # Default marker file-folder for auto detection
+>>> # Walk upward from `start` until a directory containing any marker is found.
+>>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+>>> os.environ["SCIKITPLOT_PROJECT_MARKERS"] = (
+...     '[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+... )
 
 Option C — config-driven (best for teams)
 
@@ -62,7 +68,17 @@ from ._config import ServerConfig, SessionConfig
 # ---------------------------------------------------------------------------
 
 #: Public, stable default markers documented for users.
-DEFAULT_PROJECT_MARKERS: tuple[str, ...] = ("pyproject.toml", ".git")
+DEFAULT_PROJECT_MARKERS: tuple[str, ...] = (
+    ".git",
+    "configs",
+    "configs/mlflow.toml",
+    "Makefile",
+    "pyproject.toml",
+    "README",
+    "README.txt",
+    "README.md",
+    "README.rst",
+)
 
 # Private mutable default used when caller does not pass markers and no config/env override exists.
 _PROJECT_MARKERS: tuple[str, ...] = DEFAULT_PROJECT_MARKERS

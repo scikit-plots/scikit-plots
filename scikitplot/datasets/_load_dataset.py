@@ -23,9 +23,9 @@ from ..externals._appdirs import user_cache_dir
 DATASET_SOURCE = "https://raw.githubusercontent.com/scikit-plots/scikit-plots-data/main"
 DATASET_NAMES_URL = f"{DATASET_SOURCE}/dataset_names.txt"
 
-__all_ = [
-    "get_dataset_names",
+__all__ = [
     "get_data_home",
+    "get_dataset_names",
     "load_dataset",
 ]
 

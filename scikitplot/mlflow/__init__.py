@@ -12,9 +12,16 @@ regardless of current working directory.
 
 Examples
 --------
-Quiskstart: Beginner workflow demo
+Quiskstart Template: Beginner workflow demo
 
+>>> import os
 >>> import scikitplot as sp
+>>> # print(sp.mlflow.DEFAULT_PROJECT_MARKERS)
+>>> # Walk upward from `start` until a directory containing any marker is found.
+>>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+>>> os.environ["SCIKITPLOT_PROJECT_MARKERS"] = (
+...     '[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+... )
 >>> sp.mlflow.workflow(
 ...     profile="local",
 ...     open_ui_seconds=30,
@@ -25,6 +32,8 @@ Quiskstart: Beginner workflow demo
 
 CLI
 
+>>> # Walk upward from `start` until a directory containing any marker is found.
+>>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
 >>> python -m scikitplot.mlflow --profile local --open-ui-seconds 5
 """
 
@@ -40,6 +49,7 @@ from ._errors import (
     MlflowServerStartError,
 )
 from ._project import (
+    DEFAULT_PROJECT_MARKERS,
     ProjectConfig,
     dump_project_config_yaml,
     find_project_root,
@@ -71,6 +81,7 @@ __all__ = [  # noqa: RUF022
     "session_from_file",
     "session_from_toml",
     # project config helpers
+    "DEFAULT_PROJECT_MARKERS",
     "find_project_root",
     "load_project_config",
     "load_project_config_toml",

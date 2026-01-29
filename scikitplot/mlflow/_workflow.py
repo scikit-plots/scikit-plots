@@ -396,7 +396,7 @@ def workflow(
     run_demo
         The implementation used by the CLI entry point.
     """
-    run_demo(
+    return run_demo(
         profile=profile,
         open_ui_seconds=open_ui_seconds,
         experiment_name=experiment_name,

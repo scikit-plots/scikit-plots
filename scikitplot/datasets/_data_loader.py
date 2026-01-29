@@ -1,4 +1,4 @@
-# scikitplot/_datasets/_data_loader.py
+# scikitplot/datasets/_data_loader.py
 #
 # pylint: disable=import-error
 # pylint: disable=unused-import
