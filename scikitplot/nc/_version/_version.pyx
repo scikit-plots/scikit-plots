@@ -72,4 +72,4 @@ cnp.import_array()
 # Import C++ declarations from _version.pxd
 from ._version cimport VERSION
 # Exported Python variables
-__version__ = VERSION.decode('utf-8')  # Convert const char* to Python str (safe)
+__version__ = VERSION.decode("utf-8")  # Convert const char* to Python str (safe)

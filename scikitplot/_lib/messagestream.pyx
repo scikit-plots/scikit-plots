@@ -26,7 +26,7 @@ cdef class MessageStream:
             return
 
         # Fall back to temporary files
-        fd, self._filename = tempfile.mkstemp(prefix=b'scipy-')
+        fd, self._filename = tempfile.mkstemp(prefix=b"scipy-")
 
         # Use a posix-style deleted file, if possible
         try:
@@ -35,7 +35,7 @@ cdef class MessageStream:
         except PermissionError:
             self._removed = 0
 
-        self.handle = stdio.fdopen(fd, 'wb+')
+        self.handle = stdio.fdopen(fd, "wb+")
         if self.handle == NULL:
             os.close(fd)
             if not self._removed:
@@ -73,7 +73,7 @@ cdef class MessageStream:
             finally:
                 stdlib.free(buf)
 
-        return obj.decode('latin1')
+        return obj.decode("latin1")
 
     def clear(self):
         stdio.rewind(self.handle)
