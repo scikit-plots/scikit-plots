@@ -1060,7 +1060,7 @@ line_length = 88  # Matches Black and Flake8 line length
 
 ######################################################################
 ## Linters and Formatters
-## 6. cython-lint
+## 6. cython-lint (.cython-lint.toml)
 ## Lint for Cython files
 ######################################################################
 
