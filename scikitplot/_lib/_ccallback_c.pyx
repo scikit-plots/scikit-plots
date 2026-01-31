@@ -50,7 +50,7 @@ def get_raw_capsule(func_obj, name_obj, context_obj):
     if name_obj is None:
         name = NULL
     elif not isinstance(name_obj, bytes):
-        name_obj = name_obj.encode('ascii')
+        name_obj = name_obj.encode("ascii")
         name = <char*>name_obj
     else:
         name = <char*>name_obj
@@ -91,7 +91,7 @@ def get_capsule_signature(capsule_obj):
     name = PyCapsule_GetName(capsule_obj)
     if name == NULL:
         raise ValueError("Capsule has no signature")
-    return bytes(name).decode('ascii')
+    return bytes(name).decode("ascii")
 
 
 def check_capsule(item):

@@ -1064,7 +1064,12 @@ line_length = 88  # Matches Black and Flake8 line length
 ## Lint for Cython files
 ######################################################################
 
+# https://github.com/MarcoGorelli/cython-lint
 [tool.cython-lint]
+
+# max-line-length = 88
+max-line-length = 110
+
 # Ignore the same error codes as ruff
 # + E501 (line too long) because keeping it < 88 in cython
 # often makes code less readable.
@@ -1088,11 +1093,12 @@ ignore = [
   # imported but unused
   # 'F401',
 ]
+
 # Exclude files are generated from tempita templates
 exclude= '''
 (
-    benchmarks/
-  | scikitplot/metrics/_dist_metrics.pyx
+  benchmarks/
+  |scikitplot/metrics/_dist_metrics.pyx
 )
 '''
 
