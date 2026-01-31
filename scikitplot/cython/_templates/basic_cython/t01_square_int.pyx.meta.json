@@ -1,0 +1,6 @@
+{
+  "title": "Basic: typed square",
+  "description": "Minimal typed Cython function.",
+  "requires_numpy": false,
+  "language": null
+}

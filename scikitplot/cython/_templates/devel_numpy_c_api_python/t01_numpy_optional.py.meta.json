@@ -1,0 +1,6 @@
+{
+  "title": "Devel NumPy: optional",
+  "description": "Optional NumPy import pattern.",
+  "requires_numpy": false,
+  "language": null
+}

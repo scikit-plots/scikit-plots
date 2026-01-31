@@ -1,0 +1,6 @@
+{
+  "title": "Easy: memoryview sum",
+  "description": "Typed memoryview summation loop.",
+  "requires_numpy": false,
+  "language": null
+}

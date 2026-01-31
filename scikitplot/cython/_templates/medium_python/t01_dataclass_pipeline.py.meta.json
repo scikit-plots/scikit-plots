@@ -1,0 +1,6 @@
+{
+  "title": "Medium: dataclass pipeline",
+  "description": "Dataclass + fit/transform pattern.",
+  "requires_numpy": false,
+  "language": null
+}

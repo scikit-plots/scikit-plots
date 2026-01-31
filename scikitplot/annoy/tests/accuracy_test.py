@@ -28,6 +28,8 @@ from scikitplot.annoy import AnnoyIndex
 
 HERE = os.path.dirname(__file__)  # "tests"
 
+# np = pytest.importorskip("numpy")
+
 # Unconditional Skipping
 # # Skipping an Individual Test Function
 # pytest.skip("Skipping this test at runtime")

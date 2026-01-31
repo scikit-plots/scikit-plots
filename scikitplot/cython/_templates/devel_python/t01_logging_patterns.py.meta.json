@@ -1,0 +1,6 @@
+{
+  "title": "Logging patterns",
+  "description": "Shows logger usage and custom exceptions.",
+  "requires_numpy": false,
+  "kind": "python"
+}

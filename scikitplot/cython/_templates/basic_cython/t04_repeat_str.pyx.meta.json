@@ -1,0 +1,10 @@
+{
+  "kind": "cython",
+  "level": "basic",
+  "requires_numpy": false,
+  "tags": [
+    "str",
+    "exceptions"
+  ],
+  "title": "Repeat string (str * n)"
+}

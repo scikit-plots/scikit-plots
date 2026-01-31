@@ -465,6 +465,141 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.cython": {
+        "short_summary": "Compile your source then import ready to use quick test.",
+        "description": _get_guide("cython-index"),
+        "sections": [
+            {
+                "title": "Cython Realtime PKG/MOD Generation",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    # Public compilation/import API
+                    "compile_and_load",
+                    "compile_and_load_result",
+                    "cython_import",
+                    "cython_import_result",
+                    "cython_import_all",
+                    "build_package_from_code",
+                    "build_package_from_code_result",
+                    "build_package_from_paths",
+                    "build_package_from_paths_result",
+                    "import_cached",
+                    "import_cached_result",
+                    "import_cached_by_name",
+                    "import_cached_package",
+                    "import_cached_package_result",
+                    "register_cached_artifact_path",
+                    "register_cached_artifact_bytes",
+                    "import_artifact_path",
+                    "import_artifact_bytes",
+                    "export_cached",
+                ],
+            },
+            {
+                "title": "Cache management",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    # Cache management
+                    "get_cache_dir",
+                    "list_cached",
+                    "list_cached_packages",
+                    "cache_stats",
+                    "gc_cache",
+                    "purge_cache",
+                ],
+            },
+            {
+                "title": "Pins/aliases",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    # Pins/aliases
+                    "pin",
+                    "unpin",
+                    "list_pins",
+                    "import_pinned",
+                    "import_pinned_result",
+                ],
+            },
+            {
+                "title": "Prereqs",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    # Prereqs
+                    "check_build_prereqs",
+                ],
+            },
+            {
+                "title": "Results",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    # Results
+                    "BuildResult",
+                    "PackageBuildResult",
+                    "CacheStats",
+                    "CacheGCResult",
+                    "CacheEntry",
+                    "PackageCacheEntry",
+                ],
+            },
+            {
+                "title": "Templates / workflows",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    # Templates / workflows
+                    "TemplateInfo",
+                    "template_root",
+                    "list_templates",
+                    "get_template_path",
+                    "read_template",
+                    "read_template_info",
+                    "load_template_metadata",
+                    "compile_template",
+                    "compile_template_result",
+                    "list_package_examples",
+                    "get_package_example_path",
+                    "load_package_example_metadata",
+                    "build_package_example_result",
+                    "build_package_example",
+                    "list_workflows",
+                    "get_workflow_path",
+                    "workflow_cli_template_path",
+                    "copy_workflow",
+                    "generate_sphinx_template_docs",
+                ],
+            },
+        ],
+    },
+    "scikitplot.datasets": {
+        "short_summary": "Utilities to load popular datasets and artificial data generators.",
+        # "description": _get_guide("datasets-index"),
+        "sections": [
+            {
+                "title": "Load an example dataset",
+                "description": (
+                  _get_submodule("scikitplot.datasets", "_load_dataset")
+                  # + "\n\n"
+                  # + _get_guide("datasets-index")
+                ),
+                "autosummary": [
+                    "get_data_home",
+                    "get_dataset_names",
+                    "load_dataset",
+                ],
+            },
+        ],
+    },
     "scikitplot.decile": {
         "short_summary": "Predictive model insights",
         "description": _get_guide("decile-index"),

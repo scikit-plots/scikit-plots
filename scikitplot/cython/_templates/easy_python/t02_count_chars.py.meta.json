@@ -1,0 +1,9 @@
+{
+  "kind": "python",
+  "level": "easy",
+  "tags": [
+    "str",
+    "counter"
+  ],
+  "title": "Count chars (Python)"
+}

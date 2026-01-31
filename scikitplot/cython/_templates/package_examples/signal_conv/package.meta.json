@@ -1,0 +1,8 @@
+{
+  "modules": {
+    "convolve1d": "convolve1d.pyx",
+    "window": "window.pyx"
+  },
+  "package_name": "scikitplot_pkg_signal_conv",
+  "support_paths": []
+}

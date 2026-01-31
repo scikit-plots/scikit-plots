@@ -1,0 +1,11 @@
+{
+  "kind": "cython",
+  "level": "complex",
+  "requires_numpy": false,
+  "tags": [
+    "bit",
+    "uint64_t",
+    "popcount"
+  ],
+  "title": "Popcount uint64"
+}

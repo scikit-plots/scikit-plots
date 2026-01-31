@@ -1,0 +1,6 @@
+{
+  "title": "Medium: fused types dot",
+  "description": "Fused types and shape checks.",
+  "requires_numpy": false,
+  "language": null
+}

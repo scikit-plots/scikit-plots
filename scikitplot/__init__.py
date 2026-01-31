@@ -116,6 +116,7 @@ _submodules = sorted(
         "cexperimental",
         "cexternals",
         "config",
+        "cython",
         "datasets",
         "decile",
         "experimental",

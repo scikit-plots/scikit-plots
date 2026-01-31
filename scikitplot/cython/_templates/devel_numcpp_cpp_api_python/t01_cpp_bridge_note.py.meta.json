@@ -1,0 +1,6 @@
+{
+  "title": "C++ bridge notes",
+  "description": "Documentation-oriented notes for C++ extension workflows.",
+  "requires_numpy": false,
+  "kind": "python"
+}

@@ -1,0 +1,11 @@
+{
+  "kind": "cython",
+  "level": "medium",
+  "requires_numpy": false,
+  "tags": [
+    "min",
+    "max",
+    "memoryview"
+  ],
+  "title": "Min/max on memoryview"
+}

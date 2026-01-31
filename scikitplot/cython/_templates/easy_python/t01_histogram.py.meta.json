@@ -1,0 +1,6 @@
+{
+  "title": "Histogram (pure Python)",
+  "description": "Counts integer occurrences using Counter.",
+  "requires_numpy": false,
+  "kind": "python"
+}

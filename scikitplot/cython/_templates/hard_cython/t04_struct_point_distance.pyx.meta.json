@@ -1,0 +1,11 @@
+{
+  "kind": "cython",
+  "level": "hard",
+  "requires_numpy": false,
+  "tags": [
+    "struct",
+    "math",
+    "nogil"
+  ],
+  "title": "cdef struct Point2 + distance"
+}

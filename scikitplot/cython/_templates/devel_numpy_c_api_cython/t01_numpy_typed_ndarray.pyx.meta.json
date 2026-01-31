@@ -1,0 +1,6 @@
+{
+  "title": "Devel NumPy: typed ndarray",
+  "description": "cimport numpy example.",
+  "requires_numpy": true,
+  "language": null
+}

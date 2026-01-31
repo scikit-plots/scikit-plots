@@ -1,0 +1,6 @@
+{
+  "title": "Hard: thread map",
+  "description": "ThreadPoolExecutor map pattern.",
+  "requires_numpy": false,
+  "language": null
+}

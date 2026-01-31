@@ -1,0 +1,6 @@
+{
+  "title": "Registry pattern",
+  "description": "Simple in-module registry pattern.",
+  "requires_numpy": false,
+  "kind": "python"
+}

@@ -38,6 +38,16 @@ Preset = Literal["favicon", "avatar", "docs-hero"]
 # Public constants
 # -----------------------------
 
+_SCIKITPLOT_BANNER: str = r"""
+ ____       _ _    _ _              _       _
+/ ___|  ___(_) | _(_) |_      _ __ | | ___ | |_ ___
+\___ \ / __| | |/ / | __|____| '_ \| |/ _ \| __/ __|
+ ___) | (__| |   <| | ||_____| |_) | | (_) | |_\__ \
+|____/ \___|_|_|\_\_|\__|    | .__/|_|\___/ \__|___/
+                             |_|
+"""
+_SCIKITPLOT_BANNER.lstrip()
+
 _VARIANTS: tuple[Variant, ...] = ("primary", "small", "metrics", "knn")
 
 

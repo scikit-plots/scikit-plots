@@ -1,0 +1,8 @@
+# https://github.com/MarcoGorelli/cython-lint
+# exclude lines by including a # no-cython-lint comment (analogous to # noqa in flake8);
+
+# [tool.cython-lint]
+
+# max-line-length = 88
+# ignore = ['E503', 'E504']
+# exclude = 'my_project/excluded_cython_file.pyx'

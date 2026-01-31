@@ -1357,7 +1357,7 @@ def critical(msg, *args, **kwargs):
 
 def fatal(msg, *args, **kwargs):
     """
-    Log a message at the FATAL - CRITICAL log level.
+    Log a message at the FATAL -> CRITICAL log level.
 
     Parameters
     ----------
@@ -1448,7 +1448,7 @@ def warning(msg, *args, **kwargs):
 
 def warn(msg, *args, **kwargs):
     """
-    Log a message at the WARN - WARNING log level.
+    Log a message at the WARN -> WARNING log level.
 
     Parameters
     ----------

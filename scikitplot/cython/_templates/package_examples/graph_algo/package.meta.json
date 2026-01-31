@@ -1,0 +1,8 @@
+{
+  "modules": {
+    "bfs": "bfs.pyx",
+    "degree": "degree.pyx"
+  },
+  "package_name": "scikitplot_pkg_graph_algo",
+  "support_paths": []
+}

@@ -5,6 +5,13 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+"""
+Load an example dataset from the online repository (requires internet if any).
+
+.. seealso::
+  * https://github.com/scikit-plots/scikit-plots-data
+"""
+
 import colorsys
 import inspect
 import os
@@ -51,12 +58,12 @@ def get_data_home(data_home=None):
     This directory is used by :func:`load_dataset`.
 
     If the ``data_home`` argument is not provided, it will use a directory
-    specified by the `SEABORN_DATA` environment variable (if it exists)
+    specified by the `SCIKITPLOT_DATA` environment variable (if it exists)
     or otherwise default to an OS-appropriate user cache location.
 
     """
     if data_home is None:
-        data_home = os.environ.get("SEABORN_DATA", user_cache_dir("scikit-plots"))
+        data_home = os.environ.get("SCIKITPLOT_DATA", user_cache_dir("scikit-plots"))
     data_home = os.path.expanduser(data_home)
     if not os.path.exists(data_home):
         os.makedirs(data_home)

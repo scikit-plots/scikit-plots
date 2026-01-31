@@ -83,8 +83,9 @@ exclude =
     scikitplot/_lib/**,                     # ← Ensure the `tools/` folder is ignored
     scikitplot/_utils/**,                   # ← Ensure the `tools/` folder is ignored
     scikitplot/api/**,                      # ← Ensure the `tools/` folder is ignored
-    scikitplot/cexperimental/**,             # ← Ensure the `tools/` folder is ignored
-    scikitplot/cexternals/**,                # ← Ensure the `tools/` folder is ignored
+    scikitplot/cexperimental/**,            # ← Ensure the `tools/` folder is ignored
+    scikitplot/cexternals/**,               # ← Ensure the `tools/` folder is ignored
+    scikitplot/cython/_templates/**,        # ← Ensure the `tools/` folder is ignored
     scikitplot/experimental/**,             # ← Ensure the `tools/` folder is ignored
     scikitplot/externals/**,                # ← Ensure the `tools/` folder is ignored
     scikitplot/visualkeras/**,              # ← Ensure the `tools/` folder is ignored

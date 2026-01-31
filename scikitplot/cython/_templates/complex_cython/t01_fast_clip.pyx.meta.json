@@ -1,0 +1,7 @@
+{
+  "title": "In-place clip",
+  "description": "Fast clip on a memoryview with boundscheck disabled.",
+  "requires_numpy": false,
+  "kind": "cython",
+  "language": "c"
+}

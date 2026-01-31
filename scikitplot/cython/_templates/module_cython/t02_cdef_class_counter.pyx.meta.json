@@ -1,0 +1,10 @@
+{
+  "kind": "cython",
+  "level": "module",
+  "requires_numpy": false,
+  "tags": [
+    "cdef class",
+    "methods"
+  ],
+  "title": "cdef class Counter"
+}

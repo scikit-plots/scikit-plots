@@ -1,0 +1,9 @@
+{
+  "kind": "python",
+  "level": "complex",
+  "tags": [
+    "cache",
+    "recursion"
+  ],
+  "title": "LRU cache fibonacci (Python)"
+}

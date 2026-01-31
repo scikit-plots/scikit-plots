@@ -1,7 +1,7 @@
 # scikitplot/datasets/__init__.py
 
 """
-datasets helper.
+Utilities to load popular datasets and artificial data generators.
 """
 
 from ._load_dataset import *  # noqa: F403

@@ -1,0 +1,14 @@
+{
+  "kind": "cython",
+  "level": "module",
+  "requires_numpy": false,
+  "support_paths": [
+    "helper_add.h"
+  ],
+  "tags": [
+    "header",
+    "extern",
+    "multi-file"
+  ],
+  "title": "Extern header (header-only)"
+}

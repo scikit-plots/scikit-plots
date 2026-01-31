@@ -1,0 +1,1 @@
+{"title": "NumPy ndarray sum (Cython)", "description": "Typed NumPy ndarray access.", "kind": "cython", "requires_numpy": true}

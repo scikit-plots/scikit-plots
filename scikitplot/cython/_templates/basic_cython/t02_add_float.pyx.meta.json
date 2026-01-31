@@ -1,0 +1,11 @@
+{
+  "kind": "cython",
+  "level": "basic",
+  "requires_numpy": false,
+  "tags": [
+    "double",
+    "cpdef",
+    "types"
+  ],
+  "title": "Add two floats (double)"
+}

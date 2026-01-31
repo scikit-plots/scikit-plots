@@ -1,0 +1,6 @@
+{
+  "title": "Complex: C++ vector",
+  "description": "C++ std::vector integration.",
+  "requires_numpy": false,
+  "language": "c++"
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Basic: square",
+  "description": "Pure Python function example.",
+  "requires_numpy": false,
+  "language": null
+}

@@ -75,6 +75,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **cython realtime pkg/mod generation**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Cython <./cython/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **decile-wise perf**
         ^^^
         .. toctree::
@@ -100,7 +110,7 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            ./logging/index.rst
+            Logging <./logging/index.rst>
 
     .. grid-item-card::
         :padding: 3
@@ -120,7 +130,7 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            ./nc/index.rst
+            Nc <./nc/index.rst>
 
     .. grid-item-card::
         :padding: 3

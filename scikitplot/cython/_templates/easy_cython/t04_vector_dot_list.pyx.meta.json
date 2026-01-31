@@ -1,0 +1,12 @@
+{
+  "kind": "cython",
+  "level": "easy",
+  "requires_numpy": false,
+  "tags": [
+    "vector",
+    "dot",
+    "sequence",
+    "double"
+  ],
+  "title": "Dot product on Python sequences"
+}

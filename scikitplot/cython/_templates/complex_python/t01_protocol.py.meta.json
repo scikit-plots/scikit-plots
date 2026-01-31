@@ -1,0 +1,6 @@
+{
+  "title": "Protocol-based helper",
+  "description": "Shows structural typing with Protocol.",
+  "requires_numpy": false,
+  "kind": "python"
+}

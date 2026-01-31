@@ -1,0 +1,6 @@
+{
+  "title": "Easy: running mean",
+  "description": "Streaming running mean generator.",
+  "requires_numpy": false,
+  "language": null
+}

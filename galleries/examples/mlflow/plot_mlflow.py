@@ -44,7 +44,7 @@ sp.mlflow.find_project_root()
 # %%
 # 💡 Quiskstart Template: Beginner workflow demo
 # -----------------------------------------------
-# Demo save config from default settings then custamize.
+# Demo save config from default settings then customize.
 
 sp.mlflow.workflow(
     profile="local",

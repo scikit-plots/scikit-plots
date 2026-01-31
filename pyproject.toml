@@ -735,6 +735,7 @@ exclude = [
   "scikitplot/cexperimental",
   "scikitplot/cexternals",
   "scikitplot/config",
+  "scikitplot/cython/_templates",
   "scikitplot/experimental",
   "scikitplot/externals",
   "scikitplot/visualkeras",
@@ -782,6 +783,7 @@ exclude = [
   "scikitplot/cexperimental",
   "scikitplot/cexternals",
   "scikitplot/config",
+  "scikitplot/cython/_templates",
   "scikitplot/experimental",
   "scikitplot/externals",
   "scikitplot/visualkeras",
@@ -1007,29 +1009,30 @@ target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 
 preview = true                              # Enable Black's preview features
 
+# black --verbose --check .
 extend-exclude = '''
 # A regex preceded with ^/ will apply only to files and directories
 # in the root of the project.
-/(
-    \.eggs         # exclude a few common directories in the
-  | \.git          # root of the project
-  | \.mypy_cache
-  | \.vscode
-  | benchmarks
-  | build
-  | dist
-  | docs/build
-  | docs/source
-  | galleries
-  | third_party
-  | tools
-  | tests
-  | scikitplot/cexperimental
-  | scikitplot/cexternals
-  | scikitplot/experimental
-  | scikitplot/externals
-  | scikitplot/modelplotpy
-  | scikitplot/visualkeras
+/(\.eggs          # exclude a few common directories in the
+  |\.git          # root of the project
+  |\.mypy_cache
+  |\.vscode
+  |benchmarks
+  |build
+  |dist
+  |docs/build
+  |docs/source
+  |galleries
+  |third_party
+  |tools
+  |tests
+  |scikitplot/cexperimental
+  |scikitplot/cexternals
+  |scikitplot/cython/_templates
+  |scikitplot/experimental
+  |scikitplot/externals
+  |scikitplot/modelplotpy
+  |scikitplot/visualkeras
 )/
 '''
 

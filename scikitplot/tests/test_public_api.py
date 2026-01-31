@@ -45,6 +45,7 @@ PUBLIC_MODULES = [
         "cexternals",
         "config",
         "config.cbook",
+        "cython",
         "datasets",
         "decile",
         "decile.kds",
@@ -311,7 +312,9 @@ def test_private_but_present_deprecation(module_name, correct_module):
     if correct_module is None:
         import_name = f'scikitplot.{".".join(module_name.split(".")[1:-1])}'
     else:
-        import_name = f'scikitplot.{".".join(module_name.split(".")[1:-1])}.{correct_module}'
+        import_name = (
+            f'scikitplot.{".".join(module_name.split(".")[1:-1])}.{correct_module}'
+        )
 
     correct_import = importlib.import_module(import_name)
 

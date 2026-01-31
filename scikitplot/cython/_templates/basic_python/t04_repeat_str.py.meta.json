@@ -1,0 +1,9 @@
+{
+  "kind": "python",
+  "level": "basic",
+  "tags": [
+    "str",
+    "exceptions"
+  ],
+  "title": "Repeat string (Python)"
+}

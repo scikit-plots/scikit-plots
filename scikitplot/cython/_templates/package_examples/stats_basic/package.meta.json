@@ -1,0 +1,10 @@
+{
+  "modules": {
+    "hist": "hist.pyx",
+    "meanvar": "meanvar.pyx"
+  },
+  "package_name": "scikitplot_pkg_stats_basic",
+  "support_paths": [
+    "common.pxi"
+  ]
+}
