@@ -15,10 +15,10 @@ e.g. a DL (ANN, CNN, NLP) :py:class:`~tensorflow.keras.Model` model instance.
 
 .. prompt:: bash $
 
-    # visualkeras Need aggdraw tensorflow
+    # 💡visualkeras Need aggdraw tensorflow or tensorflow-cpu
     pip install scikitplot[core, cpu]
 
-    # or
+    # (Recommended)
     # !pip install aggdraw
     # !pip install tensorflow
 

@@ -4,11 +4,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-A small runtime inplace Cython devkit with caching, pinning, GC, and templates.
+A lightweight runtime Cython development kit with caching, pinning,
+garbage collection, and templating support.
+
+:mod:`scikitplot.cython` enables real-time, in-place (in-situ) generation of
+low-level Cython packages and modules for immediate use and testing.
 
 .. seealso::
-  * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
-"""
+   * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
+   * https://github.com/cython/cython
+   * https://cython.readthedocs.io/en/latest/index.html
+"""  # noqa: D205
+# A small runtime Cython devkit with caching, pinning, GC, and templates.
 
 from __future__ import annotations
 

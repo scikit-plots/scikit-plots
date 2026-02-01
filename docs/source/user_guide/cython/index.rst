@@ -19,7 +19,7 @@
 
 .. _cython-index:
 
-Cython Realtime PKG/MOD Generation
+Cython Realtime Inplace PKG/MOD Generation
 ======================================================================
 
 Examples relevant to the :py:mod:`~.cython` module.
@@ -38,6 +38,10 @@ Examples relevant to the :py:mod:`~.cython` module.
   m = compile_and_load("def f(int n):\n    return n*n")
   m.f(10)
 
+.. seealso::
+  * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
+  * https://github.com/cython/cython
+  * https://cython.readthedocs.io/en/latest/index.html
 
 .. grid:: 1 1 1 1
 

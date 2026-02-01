@@ -27,12 +27,14 @@ Examples
 Option A — temporary (best for automation pipelines)
 
 >>> from scikitplot.mlflow._project import project_markers, find_project_root
+>>>
 >>> with project_markers(["pyproject.toml", ".git", "configs/mlflow.toml"]):
 ...     root = find_project_root()
 
 Option B — environment (best for CI)
 
 >>> import os
+>>>
 >>> # Default marker file-folder for auto detection
 >>> # Walk upward from `start` until a directory containing any marker is found.
 >>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'

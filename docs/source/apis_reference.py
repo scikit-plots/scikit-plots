@@ -466,11 +466,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         ],
     },
     "scikitplot.cython": {
-        "short_summary": "Compile your source then import ready to use quick test.",
+        "short_summary": "A small runtime Cython devkit with caching, pinning, GC, and templates.",
         "description": _get_guide("cython-index"),
         "sections": [
             {
-                "title": "Cython Realtime PKG/MOD Generation",
+                "title": "Cython Realtime Inplace PKG/MOD Generation",
                 # "description": (
                 #     _get_submodule("scikitplot.cython", "__init__")
                 # ),
