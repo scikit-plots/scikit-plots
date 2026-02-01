@@ -92,6 +92,8 @@ TL;DR
 Quick start
 -----------
 
+.. rubric:: Examples
+
 .. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>

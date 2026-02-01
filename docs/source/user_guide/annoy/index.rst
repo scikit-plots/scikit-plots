@@ -96,6 +96,8 @@ Workflow
 Quick start
 -----------
 
+.. rubric:: Examples
+
 .. .. code-block:: python
 .. .. code-block:: bash
 .. .. jupyter-execute

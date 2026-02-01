@@ -1,27 +1,113 @@
+# .gitignore
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+#
+# =====================================================================
+# Git ignore & tracking guide (READ THIS FIRST)
+# =====================================================================
+#
+# Purpose:
+#   This file defines which files Git should IGNORE.
+#   It does NOT affect files that are already tracked.
+#
+# Core diagnostics (use these before changing rules):
+#   git status                     # Show tracked / untracked / ignored files
+#   git ls-files <path>            # Check if a file is TRACKED
+#                                  # → output = tracked, no output = not tracked
+#   git check-ignore -v <path>     # Explain WHY a file is ignored (rule + source)
+#
+# ---------------------------------------------------------------------
+# CRITICAL rules you must understand
+# ---------------------------------------------------------------------
+#
+# 1) .gitignore does NOT apply to files already tracked
+#    To stop tracking a file but keep it locally:
+#      git rm --cached <path>
+#
+# 2) Rule order MATTERS
+#    Later rules override earlier ones.
+#    Negation (!) must always come AFTER the ignore rule.
+#
+# 3) Parent directories must NOT be ignored for ! rules to work
+#    Correct pattern order example:
+#      build/*
+#      !build/
+#      !build/keep.txt
+#
+# 4) Prefer IGNORE-BROAD → ALLOW-NARROW design
+#    Example:
+#      *
+#      !src/
+#      !src/**/*.py
+#
+# 5) Use trailing '/' to target directories only
+#      cache/    → directory only
+#      cache     → file OR directory
+#
+# 6) Use RELATIVE paths when debugging ignore rules
+#    (paths are evaluated from repo root or the local .gitignore)
+#
+# 7) Root .gitignore defines global policy
+#    Subfolder .gitignore should be used ONLY for strict local rules
+#
+# 8) Generated artifacts (build/, dist/, Cython output, caches)
+#    should NEVER be committed — ignore entire directories
+#
+# ---------------------------------------------------------------------
+# Quick sanity checks
+# ---------------------------------------------------------------------
+#   git status --ignored            # List ignored files
+#   git check-ignore -v <path>      # Verify ignore logic (safe, no changes)
+#   git ls-files <path>             # Confirm a file is no longer tracked
+#
+# =====================================================================
+# gitignore pattern reference
+# =====================================================================
+#
+# Symbols & meanings:
+#   (none)   Exact name or path match
+#   *        Matches any characters EXCEPT '/'
+#   **       Matches across directory boundaries INCLUDE '/'
+#   /        (Slash) Path anchor or directory separator
+#   !        (Negation) Re-include (override a previous ignore rule)
+#
+# Notes:
+#   *   → Matches within ONE directory level only. ✔ Matches files in the same directory ✖ Does NOT cross into subdirectories
+#   **  → (globstar) Matches ZERO or more directories. ✔ Crosses directory boundaries ✔ Can match deeply nested paths
+#   /x  → (path anchoring At the START) anchored to repo root ✔ Matches only 'x' at the repository root ✖ Does NOT match 'folder/x'
+#   x/x → (path anchoring At the MIDDLE) directory only ✔ Matches exactly that path ✖ Matches nothing else
+#   x/  → (path anchoring At the END) directory only ✔ Ignores any directory named 'x' ✖ Does NOT ignore a file named 'x'
+#   !   → (re-include) Re-includes a path previously ignored.
+#
+# ! Rules MUST appear AFTER the ignore rule. Parent directories must NOT be ignored.
+# ⚠️ Common mistake:
+#   build/*
+#   !build/keep.txt        ❌ does NOT work (parent dir ignored)
+#
+# ✅ Correct:
+#   build/*
+#   !build/
+#   !build/keep.txt
+# =====================================================================
 
-# git status                  # Shows the current status of all files
-# git ls-files <file_name>    # Checks if config.json is tracked
-# If the file is tracked, it will return the file path.
-# If the file is not tracked, there will be no output.
-
-# git clones, if needed
+# git_clone[s], if needed
 .git_clone*/*
+!.git_clone*/
 !.git_clone*/.gitignore
 !.git_clone*/README.md
 
-# Sphinx documentation
 # 'matplotlib.sphinxext.plot_directive'
-docs/source/index.rst
-docs/source/sg_execution_times.rst
+# 'scikitplot/externals/_sphinxext.plot_directive'
 **result_images/
-**docs/source/apis/*.rst
+
+# Sphinx documentation
+**build/
 **_tags/
+**/apis/*.rst
 **auto_examples/
 **jupyterlite_contents/
-**generated/
-**build/
+**/modules/generated/
 
 # UI app
 .gradio
@@ -29,9 +115,6 @@ docs/source/sg_execution_times.rst
 .streamlit/secrets.toml
 
 # model registry
-!docs/source/user_guide/mlflow
-!galleries/examples/mlflow
-!scikitplot/mlflow
 .mlflow
 mlflow
 mlflow.db
@@ -39,6 +122,10 @@ mlruns
 mlruns.db
 configs
 outputs
+# (re-include)
+!docs/source/user_guide/mlflow
+!galleries/examples/mlflow
+!scikitplot/mlflow
 
 # =========================
 # ML / model artifacts
@@ -63,7 +150,7 @@ catboost_info/
 *.idx
 *.voy
 *.voyager
-# Keep test fixtures (exact paths are most deterministic)
+# (re-include) Keep test fixtures (exact paths are most deterministic)
 !scikitplot/annoy/tests/test.tree
 !scikitplot/annoy/tests/test_v2.tree
 

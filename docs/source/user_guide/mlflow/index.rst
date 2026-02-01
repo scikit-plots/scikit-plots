@@ -29,11 +29,12 @@ Examples relevant to the :py:mod:`~.mlflow` module.
 * :ref:`sphx_glr_auto_examples_mlflow_plot_mlflow.py`: Example usage of
   :func:`~.workflow` using template.
 
+
+.. rubric:: Quiskstart Template: Beginner workflow demo
+
 .. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>
-
-  Quiskstart Template: Beginner workflow demo
 
   import os
   import scikitplot as sp

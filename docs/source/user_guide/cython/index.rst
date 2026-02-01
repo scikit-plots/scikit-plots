@@ -29,6 +29,8 @@ Examples relevant to the :py:mod:`~.cython` module.
 * :ref:`sphx_glr_auto_examples_cython_plot_cython_template.py`: Example usage of
   :func:`~.compile_and_load` using template.
 
+.. rubric:: Quiskstart
+
 .. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>

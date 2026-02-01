@@ -154,8 +154,11 @@ if report.get('cython', {}).get('ok'):
     print("  HTML report :", r_ann.meta["annotate_html"])
 
 # %%
-# Display Profile
-# ---------------
+# Display `annotate` Profile to see the actual C code
+# ---------------------------------------------------
+# cython --annotate <pyx file> will output an html report where each line of the the pyx file
+# is color coded as to the amount of back and forth to the python interpreter that is required,
+# and each line can be expanded to see the actual C code generated.
 
 def read_html_file(file_path):
     with open(file_path, 'r') as file:
@@ -172,8 +175,11 @@ if report.get('cython', {}).get('ok'):
         display(HTML(read_html_file(ann_path)))
 
 # %%
-# Viewing the HTML web file
-# -------------------------
+# Viewing the HTML web file to see the actual C code
+# --------------------------------------------------
+# cython --annotate <pyx file> will output an html report where each line of the the pyx file
+# is color coded as to the amount of back and forth to the python interpreter that is required,
+# and each line can be expanded to see the actual C code generated.
 
 # import module
 # import webbrowser

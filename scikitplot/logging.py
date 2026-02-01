@@ -39,6 +39,9 @@ Scikit-plots logging helpers, supports vendoring.
 Module Dependencies:
 - Python standard library: :py:mod:`logging`
 
+.. seealso::
+  * https://github.com/python/cpython/blob/main/Lib/logging/__init__.py
+
 References
 ----------
 .. [1] `Tensorflow contributors. (2025).
