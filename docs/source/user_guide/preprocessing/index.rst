@@ -32,6 +32,8 @@ DummyCodeEncoder
 
 This module contains some functions related to :py:class:`~.DummyCodeEncoder`.
 
+Encode categorical features into dummy/indicator 0/1 variables.
+
 .. rubric:: Examples
 
 * :ref:`sphx_glr_auto_examples_preprocessing_plot_dummy_code_encoder.py`: Example usage of
@@ -43,3 +45,5 @@ GetDummies
 ----------------------------------------------------------------------
 
 This module contains some functions related to :py:class:`~.GetDummies`.
+
+Encode categorical features into dummy/indicator 0/1 variables.

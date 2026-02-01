@@ -24,11 +24,9 @@ MLflow Workflow Automation
 
 Examples relevant to the :py:mod:`~.mlflow` module.
 
-.. rubric:: Examples
-
-* :ref:`sphx_glr_auto_examples_mlflow_plot_mlflow.py`: Example usage of
-  :func:`~.workflow` using template.
-
+Adds a **project-level configuration** mechanism so multiple scripts
+(e.g., `train.py`, `hpo.py`, `predict.py`) share the exact same MLflow settings,
+regardless of current working directory.
 
 .. rubric:: Quiskstart Template: Beginner workflow demo
 
@@ -51,3 +49,8 @@ Examples relevant to the :py:mod:`~.mlflow` module.
       fmt="toml",
       overwrite=True,  # If config already exists: ./configs/mlflow.toml (use overwrite=True).
   )
+
+.. rubric:: Examples
+
+* :ref:`sphx_glr_auto_examples_mlflow_plot_mlflow.py`: Example usage of
+  :func:`~.workflow` using template.

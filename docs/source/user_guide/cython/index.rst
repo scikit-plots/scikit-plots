@@ -24,10 +24,11 @@ Cython Realtime Inplace PKG/MOD Generation
 
 Examples relevant to the :py:mod:`~.cython` module.
 
-.. rubric:: Examples
+A lightweight runtime Cython development kit with caching, pinning,
+garbage collection, and templating support.
 
-* :ref:`sphx_glr_auto_examples_cython_plot_cython_template.py`: Example usage of
-  :func:`~.compile_and_load` using template.
+:mod:`scikitplot.cython` enables real-time, in-place (in-situ) generation of
+low-level Cython packages and modules for immediate use and testing.
 
 .. rubric:: Quiskstart
 
@@ -39,6 +40,11 @@ Examples relevant to the :py:mod:`~.cython` module.
 
   m = compile_and_load("def f(int n):\n    return n*n")
   m.f(10)
+
+.. rubric:: Examples
+
+* :ref:`sphx_glr_auto_examples_cython_plot_cython_template.py`: Example usage of
+  :func:`~.compile_and_load` using template.
 
 .. seealso::
   * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
