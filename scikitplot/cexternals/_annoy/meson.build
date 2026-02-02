@@ -208,8 +208,8 @@ annoy_static = static_library(
 annoy_extension_metadata = {
   ## Define Python Module Name
   ## Check: ELF 64-bit LSB shared object, dynamically linked
-  # file builddir/scikitplot/cexternals/annoy/annoylib.so
-  'annoylib':  ## Build static Annoy core library (C++)
+  # file builddir/scikitplot/cexternals/_annoy/annoylib.so
+  'annoylib':  ## Build static `annoylib` Annoy core library (C++)
   {
     # Only module your actual C++/Python/Pybind11 binding sources
     'sources': [                                  # C++ source file with Python/Pybind11 bindings entrypoint
@@ -275,5 +275,9 @@ endforeach
 # )
 
 ######################################################################
-##
+## Next
 ######################################################################
+
+# submodules
+subdir('_kissrandom')
+subdir('_mman')

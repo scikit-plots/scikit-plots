@@ -3,6 +3,7 @@
 
 namespace Annoy {}
 
+// echo '#include <cerrno>' | g++ -x c++ - -E
 %{
 #include "annoygomodule.h"
 %}

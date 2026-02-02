@@ -883,20 +883,23 @@ cli_cython = find_program(cy.cmd_array()[0])
 # Define the arguments for the Cython command. These arguments will be passed
 # to the Cython compiler when generating the C source files.
 cython_c_args = [
+  # '--annotate',                             # Generate HTML annotation files
+  '--fast-fail',                              # Halt on first error during compilation
   '-3',                                       # Optimization level
+  '-X', 'language_level=3',                   # Ensure Cython targets Python3 like '-3'
+  # '-X', 'embedsignature=True',
+  # '-X', 'binding=True',
   # '-X boundscheck=' + boundscheck,          # Control bounds checking (True/False)
-  '-X language_level=3',                      # Ensure Cython targets Python3 like '-3'
   # Prevents using negative indexing, which can provide a speedup for array handling.
   '-X wraparound=False',                      # Disable negative indexing (wraparound)
+  # Enables C-style division (ignores Python division safety), improving performance.
+  '-X cdivision=True',                        # Enable C division
   # Skips checking for uninitialized variables, improving performance at the cost of safety.
   '-X initializedcheck=False',                # Disable check for uninitialized variables
   # Skips checking for None values, improving performance when you're sure that variables won’t be None.
   '-X nonecheck=False',                       # Disable None checks
-  # Enables C-style division (ignores Python division safety), improving performance.
-  '-X cdivision=True',                        # Enable C division
   # Disables profiling support, which improves speed if profiling isn’t needed.
   '-X profile=False',                         # Disable profiling
-  '--fast-fail',                              # Halt on first error during compilation
   # Specifies the include directory where Cython can find the necessary headers.
   # Needed for cython imports across subpackages, e.g. cluster pyx that
   # cimports metrics pxd
@@ -905,12 +908,16 @@ cython_c_args = [
   # '--output-file', '@OUTPUT@',              # Specify output file for generated C code
   # '@INPUT@',                                # Input file placeholder managed by Meson
 ]
+
 # If the Cython version is 3.1.0 or newer, add the option for free threading compatibility
 if cy.version().version_compare('>=3.1.0')
   cython_c_args += ['-Xfreethreading_compatible=True']
 endif
+
 # Define additional arguments specifically for generating C++ files with Cython
-cython_cpp_args = cython_c_args + ['--cplus']  # The '--cplus' flag tells Cython to generate C++ code
+cython_cpp_args = cython_c_args + [
+  '--cplus',  # The '--cplus' flag tells Cython to generate C++ code
+]
 
 ######################################################################
 ## Cython generator/compiler
@@ -920,9 +927,9 @@ cython_cpp_args = cython_c_args + ['--cplus']  # The '--cplus' flag tells Cython
 ######################################################################
 
 _gen_cython_args = [
-  # '--include-dir', '@BUILD_ROOT@',      # Placeholder for Meson to replace later
-  '--output-file', '@OUTPUT@',          # Specify output file for generated C code
   '@INPUT@',                            # Input file placeholder managed by Meson
+  '--output-file', '@OUTPUT@',          # Specify output file for generated C code
+  # '--include-dir', '@BUILD_ROOT@',      # Placeholder for Meson to replace later
 ]
 
 # Create a generator for converting .pyx files to .c files using the defined Cython arguments
