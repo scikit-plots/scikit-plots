@@ -1042,9 +1042,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     _get_guide("random-index")
                 ),
                 "autosummary": [
-                    'PyKiss32Random',
-                    'PyKiss64Random',
-                    'PyKissRandom',
+                    'Kiss32Random',
+                    'Kiss64Random',
+                    'KissRandom',
                     'KissSeedSequence',
                     'KissBitGenerator',
                     'KissGenerator',

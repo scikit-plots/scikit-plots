@@ -21,10 +21,10 @@ and simplicity of the KISS algorithm.
 
 Key Components
 --------------
-PyKiss32Random, PyKiss64Random
+Kiss32Random, Kiss64Random
     Low-level Cython wrappers around C++ KISS implementation
     (32-bit: ~2^121 period, 64-bit: ~2^250 period)
-PyKissRandom
+KissRandom
     Factory function with auto-detection (32/64-bit)
 KissSeedSequence
     NumPy SeedSequence compatible entropy management
@@ -131,8 +131,8 @@ from libc.stdint cimport uint32_t, uint64_t
 from libc.stddef cimport size_t
 from cpython.pycapsule cimport PyCapsule_New  # PyCapsule_GetPointer
 
-# Import C++ classes from our .pxd declarations
-from scikitplot.cexternals._annoy._kissrandom cimport kissrandom as kr
+# C-level Import C++ classes from our .pxd declarations
+from scikitplot.cexternals._annoy._kissrandom.kissrandom cimport CKiss32Random, CKiss64Random
 
 # ===========================================================================
 # Module metadata
@@ -142,9 +142,9 @@ __version__ = "1.0.0"
 
 __all__ = [
     # Legacy Low-level API RNGs
-    "PyKiss32Random",
-    "PyKiss64Random",
-    "PyKissRandom",
+    "Kiss32Random",
+    "Kiss64Random",
+    "KissRandom",
 
     # NumPy ecosystem
     "KissSeedSequence",
@@ -453,9 +453,9 @@ class KissSeedSequence:
 
     See Also
     --------
-    PyKiss32Random : 32-bit version for smaller datasets
-    PyKiss64Random : 64-bit version for larger datasets
-    PyKissRandom : Factory function for auto-detecting
+    Kiss32Random : 32-bit version for smaller datasets
+    Kiss64Random : 64-bit version for larger datasets
+    KissRandom : Factory function for auto-detecting
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
     KissRandomState inherites from KissGenerator
@@ -978,10 +978,10 @@ class KissSeedSequence:
 # Low-Level KISS Random (Legacy API with Context Manager Support)
 # ===========================================================================
 # ===========================================================================
-# PyKiss32Random - Legacy 32-bit wrapper
+# Kiss32Random - Legacy 32-bit wrapper
 # ===========================================================================
 
-cdef class PyKiss32Random:
+cdef class Kiss32Random:
     """
     32-bit KISS RNG with complete serialization support.
 
@@ -1003,8 +1003,8 @@ cdef class PyKiss32Random:
 
     See Also
     --------
-    PyKiss64Random : 64-bit version for larger datasets
-    PyKissRandom : Factory function for auto-detecting
+    Kiss64Random : 64-bit version for larger datasets
+    KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
@@ -1016,7 +1016,7 @@ cdef class PyKiss32Random:
     - Period: approximately 2^121
     - Not cryptographically secure
     - Suitable for up to ~2^24 data points
-    - For larger datasets, use PyKiss64Random
+    - For larger datasets, use Kiss64Random
     - Thread-safe via context manager
     - Deterministic: same seed → same sequence
     - Complete pickle/JSON support
@@ -1032,7 +1032,7 @@ cdef class PyKiss32Random:
 
     Examples
     --------
-    >>> rng = PyKiss32Random(42)
+    >>> rng = Kiss32Random(42)
     >>> rng.kiss()  # Random uint32
     >>>
     >>> # Context manager (thread-safe)
@@ -1050,7 +1050,7 @@ cdef class PyKiss32Random:
     default_seed = KISS32_DEFAULT_SEED
 
     # C++ object (stored as pointer)
-    cdef kr.Kiss32Random* _rng
+    cdef CKiss32Random* _rng
     cdef uint32_t _seed
     cdef readonly object lock
 
@@ -1063,8 +1063,8 @@ cdef class PyKiss32Random:
         else:
             cseed = _safe_to_uint32(seed)
 
-        self._seed = kr.Kiss32Random.normalize_seed(cseed)
-        self._rng = new kr.Kiss32Random(self._seed)
+        self._seed = CKiss32Random.normalize_seed(cseed)
+        self._rng = new CKiss32Random(self._seed)
         if self._rng is NULL:
             raise MemoryError("Failed to allocate Kiss32Random")
 
@@ -1088,7 +1088,7 @@ cdef class PyKiss32Random:
 
     def __repr__(self) -> str:
         """
-        Return string representation of PyKiss32Random instance.
+        Return string representation of Kiss32Random instance.
 
         Returns
         -------
@@ -1097,9 +1097,9 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> repr(rng)
-        'PyKiss32Random(seed=42)'
+        'Kiss32Random(seed=42)'
         """
         return f"{self} at 0x{id(self):X}"
 
@@ -1136,7 +1136,7 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> rng.seed
         42
         """
@@ -1161,13 +1161,13 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random()
+        >>> rng = Kiss32Random()
         >>> rng.seed = 42
         >>> rng.seed
         42
         """
         cdef uint32_t cseed = _safe_to_uint32(value)
-        self._seed = kr.Kiss32Random.normalize_seed(cseed)
+        self._seed = CKiss32Random.normalize_seed(cseed)
         with self.lock:
             self._rng.reset(self._seed)
 
@@ -1183,10 +1183,10 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> PyKiss32Random.get_default_seed()
+        >>> Kiss32Random.get_default_seed()
         123456789
         """
-        return kr.Kiss32Random.get_default_seed()
+        return CKiss32Random.get_default_seed()
 
     @staticmethod
     def normalize_seed(seed: int) -> int:
@@ -1209,9 +1209,9 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> PyKiss32Random.normalize_seed(42)
+        >>> Kiss32Random.normalize_seed(42)
         42
-        >>> PyKiss32Random.normalize_seed(0)
+        >>> Kiss32Random.normalize_seed(0)
         123456789
         """
         if not isinstance(seed, int):
@@ -1220,7 +1220,7 @@ cdef class PyKiss32Random:
             raise ValueError(
                 f"seed must be in [0, {UINT32_MAX}], got {seed}"
             )
-        return kr.Kiss32Random.normalize_seed(<uint32_t>seed)
+        return CKiss32Random.normalize_seed(<uint32_t>seed)
 
     def reset(self, seed: int) -> None:
         """
@@ -1242,7 +1242,7 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> values1 = [rng.kiss() for _ in range(5)]
         >>> rng.reset(42)
         >>> values2 = [rng.kiss() for _ in range(5)]
@@ -1256,7 +1256,7 @@ cdef class PyKiss32Random:
                 f"seed must be in [0, {UINT32_MAX}], got {seed}"
             )
 
-        cdef uint32_t cseed = kr.Kiss32Random.normalize_seed(<uint32_t>seed)
+        cdef uint32_t cseed = CKiss32Random.normalize_seed(<uint32_t>seed)
         self._seed = cseed
         with self.lock:
             self._rng.reset(cseed)
@@ -1269,9 +1269,9 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random()
+        >>> rng = Kiss32Random()
         >>> rng.reset_default()
-        >>> rng.seed == PyKiss32Random.default_seed
+        >>> rng.seed == Kiss32Random.default_seed
         True
         """
         self.reset(self.default_seed)
@@ -1287,7 +1287,7 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random()
+        >>> rng = Kiss32Random()
         >>> rng.set_seed(42)
         """
         self.reset(seed)
@@ -1308,7 +1308,7 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> value = rng.kiss()
         >>> 0 <= value < 2**32
         True
@@ -1328,13 +1328,13 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> rng.flip() in {0, 1}
         True
 
         Coin flip simulation:
 
-        >>> rng = PyKiss32Random(123)
+        >>> rng = Kiss32Random(123)
         >>> flips = [rng.flip() for _ in range(1000)]
         >>> abs(sum(flips) - 500) < 50  # Approximately 50% heads
         True
@@ -1372,7 +1372,7 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> idx = rng.index(100)
         >>> 0 <= idx < 100
         True
@@ -1381,7 +1381,7 @@ cdef class PyKiss32Random:
 
         >>> import numpy as np
         >>> arr = np.arange(100, 200)
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> random_element = arr[rng.index(len(arr))]
         """
         with self.lock:
@@ -1423,7 +1423,7 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> state = rng.get_state()
         >>> print(state["seed"])
         42
@@ -1445,9 +1445,9 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng1 = PyKiss32Random(42)
+        >>> rng1 = Kiss32Random(42)
         >>> state = rng1.get_state()
-        >>> rng2 = PyKiss32Random(0)
+        >>> rng2 = Kiss32Random(0)
         >>> rng2.set_state(state)
         """
         _validate_state_dict(state, {"seed"})
@@ -1469,7 +1469,7 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> params = rng.get_params()
         >>> print(params)
         {'seed': 42}
@@ -1492,7 +1492,7 @@ cdef class PyKiss32Random:
 
         Examples
         --------
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> rng.set_params(seed=123)
         >>> print(rng.seed)
         123
@@ -1516,12 +1516,12 @@ cdef class PyKiss32Random:
         Examples
         --------
         >>> import json
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> data = rng.serialize()
         >>> json_str = json.dumps(data)
         """
         state = self.get_state()
-        state["__class__"] = "PyKiss32Random"
+        state["__class__"] = "Kiss32Random"
         state["__module__"] = self.__module__
         return _add_metadata(state)
 
@@ -1537,16 +1537,16 @@ cdef class PyKiss32Random:
 
         Returns
         -------
-        PyKiss32Random
+        Kiss32Random
             Restored instance
 
         Examples
         --------
         >>> import json
-        >>> rng = PyKiss32Random(42)
+        >>> rng = Kiss32Random(42)
         >>> json_str = json.dumps(rng.serialize())
         >>> data = json.loads(json_str)
-        >>> restored = PyKiss32Random.deserialize(data)
+        >>> restored = Kiss32Random.deserialize(data)
         """
         _validate_state_dict(data, {"seed"})
         return cls(seed=int(data["seed"]))
@@ -1562,10 +1562,10 @@ cdef class PyKiss32Random:
 
 
 # ===========================================================================
-# PyKiss64Random - Legacy 64-bit wrapper
+# Kiss64Random - Legacy 64-bit wrapper
 # ===========================================================================
 
-cdef class PyKiss64Random:
+cdef class Kiss64Random:
     """
     Low-level 64-bit KISS RNG with context manager support.
 
@@ -1590,8 +1590,8 @@ cdef class PyKiss64Random:
 
     See Also
     --------
-    PyKiss32Random : 32-bit version for smaller datasets
-    PyKissRandom : Factory function for auto-detecting
+    Kiss32Random : 32-bit version for smaller datasets
+    KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
@@ -1603,7 +1603,7 @@ cdef class PyKiss64Random:
     - Period: approximately 2^250
     - Not cryptographically secure
     - Recommended for datasets larger than ~16 million points
-    - Slightly slower than PyKiss32Random but much longer period
+    - Slightly slower than Kiss32Random but much longer period
     - Thread-safe via context manager
     - Deterministic: same seed → same sequence
     - Complete pickle/JSON support
@@ -1611,7 +1611,7 @@ cdef class PyKiss64Random:
 
     Examples
     --------
-    >>> rng = PyKiss64Random(42)
+    >>> rng = Kiss64Random(42)
     >>> rng.kiss()  # Random uint64
     >>>
     >>> # Context manager (thread-safe)
@@ -1629,7 +1629,7 @@ cdef class PyKiss64Random:
     default_seed = KISS64_DEFAULT_SEED
 
     # C++ object (stored as pointer)
-    cdef kr.Kiss64Random* _rng
+    cdef CKiss64Random* _rng
     cdef uint64_t _seed
     cdef readonly object lock
 
@@ -1642,8 +1642,8 @@ cdef class PyKiss64Random:
         else:
             cseed = _safe_to_uint64(seed)
 
-        self._seed = kr.Kiss64Random.normalize_seed(cseed)
-        self._rng = new kr.Kiss64Random(self._seed)
+        self._seed = CKiss64Random.normalize_seed(cseed)
+        self._rng = new CKiss64Random(self._seed)
         if self._rng is NULL:
             raise MemoryError("Failed to allocate Kiss64Random")
 
@@ -1685,14 +1685,14 @@ cdef class PyKiss64Random:
     def seed(self, value: int) -> None:
         """Set new seed and reinitialize generator."""
         cdef uint64_t cseed = _safe_to_uint64(value)
-        self._seed = kr.Kiss64Random.normalize_seed(cseed)
+        self._seed = CKiss64Random.normalize_seed(cseed)
         with self.lock:
             self._rng.reset(self._seed)
 
     @staticmethod
     def get_default_seed() -> int:
         """Get default seed value."""
-        return kr.Kiss64Random.get_default_seed()
+        return CKiss64Random.get_default_seed()
 
     @staticmethod
     def normalize_seed(seed: int) -> int:
@@ -1701,7 +1701,7 @@ cdef class PyKiss64Random:
             raise TypeError(f"seed must be int, got {type(seed)}")
         if seed < 0:
             raise ValueError(f"seed must be non-negative, got {seed}")
-        return kr.Kiss64Random.normalize_seed(<uint64_t>(seed & UINT64_MAX))
+        return CKiss64Random.normalize_seed(<uint64_t>(seed & UINT64_MAX))
 
     def reset(self, seed: int) -> None:
         """Reset RNG state with new seed."""
@@ -1710,7 +1710,7 @@ cdef class PyKiss64Random:
         if seed < 0:
             raise ValueError(f"seed must be non-negative, got {seed}")
 
-        cdef uint64_t cseed = kr.Kiss64Random.normalize_seed(
+        cdef uint64_t cseed = CKiss64Random.normalize_seed(
             <uint64_t>(seed & UINT64_MAX)
         )
         self._seed = cseed
@@ -1786,7 +1786,7 @@ cdef class PyKiss64Random:
 
         Examples
         --------
-        >>> rng = PyKiss64Random(42)
+        >>> rng = Kiss64Random(42)
         >>> state = rng.get_state()
         >>> print(state["seed"])
         42
@@ -1808,9 +1808,9 @@ cdef class PyKiss64Random:
 
         Examples
         --------
-        >>> rng1 = PyKiss64Random(42)
+        >>> rng1 = Kiss64Random(42)
         >>> state = rng1.get_state()
-        >>> rng2 = PyKiss64Random(0)
+        >>> rng2 = Kiss64Random(0)
         >>> rng2.set_state(state)
         """
         _validate_state_dict(state, {"seed"})
@@ -1832,7 +1832,7 @@ cdef class PyKiss64Random:
 
         Examples
         --------
-        >>> rng = PyKiss64Random(42)
+        >>> rng = Kiss64Random(42)
         >>> params = rng.get_params()
         >>> print(params)
         {'seed': 42}
@@ -1855,7 +1855,7 @@ cdef class PyKiss64Random:
 
         Examples
         --------
-        >>> rng = PyKiss64Random(42)
+        >>> rng = Kiss64Random(42)
         >>> rng.set_params(seed=123)
         >>> print(rng.seed)
         123
@@ -1879,12 +1879,12 @@ cdef class PyKiss64Random:
         Examples
         --------
         >>> import json
-        >>> rng = PyKiss64Random(42)
+        >>> rng = Kiss64Random(42)
         >>> data = rng.serialize()
         >>> json_str = json.dumps(data)
         """
         state = self.get_state()
-        state["__class__"] = "PyKiss64Random"
+        state["__class__"] = "Kiss64Random"
         state["__module__"] = self.__module__
         return _add_metadata(state)
 
@@ -1900,16 +1900,16 @@ cdef class PyKiss64Random:
 
         Returns
         -------
-        PyKiss64Random
+        Kiss64Random
             Restored instance
 
         Examples
         --------
         >>> import json
-        >>> rng = PyKiss64Random(42)
+        >>> rng = Kiss64Random(42)
         >>> json_str = json.dumps(rng.serialize())
         >>> data = json.loads(json_str)
-        >>> restored = PyKiss64Random.deserialize(data)
+        >>> restored = Kiss64Random.deserialize(data)
         """
         _validate_state_dict(data, {"seed"})
         return cls(seed=int(data["seed"]))
@@ -1924,10 +1924,10 @@ cdef class PyKiss64Random:
         return cls.deserialize(data)
 
 # ===========================================================================
-# Auto-detecting PyKissRandom (NEW!)
+# Auto-detecting KissRandom (NEW!)
 # ===========================================================================
 
-def PyKissRandom(seed=None, bit_width=None):
+def KissRandom(seed=None, bit_width=None):
     """
     Factory function for auto-detecting 32-bit vs 64-bit RNG.
 
@@ -1943,13 +1943,13 @@ def PyKissRandom(seed=None, bit_width=None):
 
     Returns
     -------
-    PyKiss32Random or PyKiss64Random
+    Kiss32Random or Kiss64Random
         RNG instance
 
     See Also
     --------
-    PyKiss32Random : 32-bit version for smaller datasets
-    PyKiss64Random : 64-bit version for larger datasets
+    Kiss32Random : 32-bit version for smaller datasets
+    Kiss64Random : 64-bit version for larger datasets
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
@@ -1958,10 +1958,10 @@ def PyKissRandom(seed=None, bit_width=None):
 
     Examples
     --------
-    >>> rng = PyKissRandom(42)  # Auto-detect
-    >>> rng = PyKissRandom(42, bit_width=32)  # Force 32-bit
-    >>> rng = PyKissRandom(42, bit_width=64)  # Force 64-bit
-    >>> rng = PyKissRandom(42, bit_width=None)  # Auto-detect
+    >>> rng = KissRandom(42)  # Auto-detect
+    >>> rng = KissRandom(42, bit_width=32)  # Force 32-bit
+    >>> rng = KissRandom(42, bit_width=64)  # Force 64-bit
+    >>> rng = KissRandom(42, bit_width=None)  # Auto-detect
     """
     if bit_width is None or bit_width == "auto":
         bit_width = _detect_optimal_bit_width()
@@ -1969,9 +1969,9 @@ def PyKissRandom(seed=None, bit_width=None):
         raise ValueError(f"bit_width must be None, 'auto', 32, or 64; got {bit_width}")
 
     if bit_width == 32:
-        return PyKiss32Random(seed)
+        return Kiss32Random(seed)
     else:
-        return PyKiss64Random(seed)
+        return Kiss64Random(seed)
 
 # ===========================================================================
 # C Type, Callback Functions for NumPy Generator Interface
@@ -1980,18 +1980,18 @@ def PyKissRandom(seed=None, bit_width=None):
 
 cdef uint64_t kiss64_next_uint64(void *st) noexcept nogil:
     """C callback for next_uint64 - called by NumPy Generator."""
-    cdef kr.Kiss64Random *rng = <kr.Kiss64Random *>st
+    cdef CKiss64Random *rng = <CKiss64Random *>st
     return rng.kiss()
 
 cdef uint32_t kiss64_next_uint32(void *st) noexcept nogil:
     """C callback for next_uint32 - called by NumPy Generator."""
-    cdef kr.Kiss64Random *rng = <kr.Kiss64Random *>st
+    cdef CKiss64Random *rng = <CKiss64Random *>st
     cdef uint64_t val = rng.kiss()
     return <uint32_t>(val >> 32)
 
 cdef double kiss64_next_double(void *st) noexcept nogil:
     """C callback for next_double - called by NumPy Generator."""
-    cdef kr.Kiss64Random *rng = <kr.Kiss64Random *>st
+    cdef CKiss64Random *rng = <CKiss64Random *>st
     cdef uint64_t val = rng.kiss()
     return (<double>val) / (<double>UINT64_MAX)
 
@@ -2002,14 +2002,14 @@ cdef uint64_t kiss64_next_raw(void *st) noexcept nogil:
 # Similar callbacks for 32-bit
 cdef uint64_t kiss32_next_uint64(void *st) noexcept nogil:
     """C callback for next_uint64 from 32-bit RNG."""
-    cdef kr.Kiss32Random *rng = <kr.Kiss32Random *>st
+    cdef CKiss32Random *rng = <CKiss32Random *>st
     cdef uint64_t high = rng.kiss()
     cdef uint64_t low = rng.kiss()
     return (high << 32) | low
 
 cdef uint32_t kiss32_next_uint32(void *st) noexcept nogil:
     """C callback for next_uint32 from 32-bit RNG."""
-    cdef kr.Kiss32Random *rng = <kr.Kiss32Random *>st
+    cdef CKiss32Random *rng = <CKiss32Random *>st
     return rng.kiss()
 
 cdef double kiss32_next_double(void *st) noexcept nogil:
@@ -2030,7 +2030,7 @@ cdef uint64_t kiss_random_raw(void* st) noexcept nogil:
 
     This function is called by NumPy to generate raw random bits.
     """
-    cdef kr.Kiss64Random* rng = <kr.Kiss64Random*>st
+    cdef CKiss64Random* rng = <CKiss64Random*>st
     return rng.kiss()
 
 cdef class KissBitGenerator:
@@ -2058,9 +2058,9 @@ cdef class KissBitGenerator:
 
     See Also
     --------
-    PyKiss32Random : 32-bit version for smaller datasets
-    PyKiss64Random : 64-bit version for larger datasets
-    PyKissRandom : Factory function for auto-detecting
+    Kiss32Random : 32-bit version for smaller datasets
+    Kiss64Random : 64-bit version for larger datasets
+    KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissGenerator : High-level generator using this BitGenerator
     KissRandomState inherites from KissGenerator
@@ -2098,8 +2098,8 @@ cdef class KissBitGenerator:
     # __module__ = "scikitplot.cexternals._annoy._kissrandom.kissrandom"
     __module__ = "scikitplot.random"
 
-    cdef kr.Kiss32Random* _rng32
-    cdef kr.Kiss64Random* _rng
+    cdef CKiss32Random* _rng32
+    cdef CKiss64Random* _rng
     cdef uint64_t _seed
     cdef readonly object lock
     cdef bitgen_t _bitgen
@@ -2140,10 +2140,10 @@ cdef class KissBitGenerator:
 
         # Extract seed value (safely)
         cdef uint64_t cseed = _safe_to_uint64(self.seed_seq.entropy)
-        self._seed = kr.Kiss64Random.normalize_seed(cseed)
+        self._seed = CKiss64Random.normalize_seed(cseed)
 
         # Allocate C++ RNG
-        self._rng = new kr.Kiss64Random(self._seed)
+        self._rng = new CKiss64Random(self._seed)
         if self._rng is NULL:
             raise MemoryError("Failed to allocate Kiss64Random")
 
@@ -2160,7 +2160,7 @@ cdef class KissBitGenerator:
         # Initialize RNG based on bit width
         # if self._bit_width == 32:
         #     state = self.seed_seq.generate_state(1, dtype=np.uint32)
-        #     self._rng32 = new kr.Kiss32Random(<uint32_t>state[0])
+        #     self._rng32 = new CKiss32Random(<uint32_t>state[0])
         #     if self._rng32 == NULL:
         #         raise MemoryError("Failed to allocate Kiss32Random")
         #     # Setup bitgen_t structure for NumPy
@@ -2406,7 +2406,7 @@ cdef class KissBitGenerator:
 
         # Reset RNG
         cdef uint64_t cseed = _safe_to_uint64(seed_value)
-        self._seed = kr.Kiss64Random.normalize_seed(cseed)
+        self._seed = CKiss64Random.normalize_seed(cseed)
         with self.lock:
             self._rng.reset(self._seed)
 
@@ -2457,7 +2457,7 @@ cdef class KissBitGenerator:
         if "seed" in params:
             seed_value = int(params["seed"])
             cseed = _safe_to_uint64(seed_value)
-            self._seed = kr.Kiss64Random.normalize_seed(cseed)
+            self._seed = CKiss64Random.normalize_seed(cseed)
             with self.lock:
                 self._rng.reset(self._seed)
 
@@ -2591,9 +2591,9 @@ cdef class KissGenerator:
 
     See Also
     --------
-    PyKiss32Random : 32-bit version for smaller datasets
-    PyKiss64Random : 64-bit version for larger datasets
-    PyKissRandom : Factory function for auto-detecting
+    Kiss32Random : 32-bit version for smaller datasets
+    Kiss64Random : 64-bit version for larger datasets
+    KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissRandomState inherites from KissGenerator
@@ -3356,9 +3356,9 @@ cdef class KissRandomState(KissGenerator):
 
     See Also
     --------
-    PyKiss32Random : 32-bit version for smaller datasets
-    PyKiss64Random : 64-bit version for larger datasets
-    PyKissRandom : Factory function for auto-detecting
+    Kiss32Random : 32-bit version for smaller datasets
+    Kiss64Random : 64-bit version for larger datasets
+    KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
@@ -3552,9 +3552,9 @@ def default_rng(seed=None, bit_width=None):
 
     See Also
     --------
-    PyKiss32Random : 32-bit version for smaller datasets
-    PyKiss64Random : 64-bit version for larger datasets
-    PyKissRandom : Factory function for auto-detecting
+    Kiss32Random : 32-bit version for smaller datasets
+    Kiss64Random : 64-bit version for larger datasets
+    KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
@@ -3621,9 +3621,9 @@ def kiss_context(seed=None, bit_width=None):
 
     See Also
     --------
-    PyKiss32Random : 32-bit version for smaller datasets
-    PyKiss64Random : 64-bit version for larger datasets
-    PyKissRandom : Factory function for auto-detecting
+    Kiss32Random : 32-bit version for smaller datasets
+    Kiss64Random : 64-bit version for larger datasets
+    KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
@@ -3707,9 +3707,9 @@ def _verify_numpy_compatibility():
 
 
 # if __name__ == "__main__":
-# _ = PyKiss32Random()
-# _ = PyKiss64Random()
-# _ = PyKissRandom()
+# _ = Kiss32Random()
+# _ = Kiss64Random()
+# _ = KissRandom()
 # KissSeedSequence()
 # KissBitGenerator()
 # KissGenerator()

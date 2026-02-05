@@ -374,13 +374,13 @@ print(f"Speedup: {numpy_time/kiss_time:.2f}x")
 
 ## Migration Guide
 
-### From Old PyKissRandom
+### From Old KissRandom
 
 **Before:**
 ```python
-from scikitplot.cexternals._annoy._kissrandom import PyKiss64Random
+from scikitplot.cexternals._annoy._kissrandom import Kiss64Random
 
-rng = PyKiss64Random(42)
+rng = Kiss64Random(42)
 values = [rng.kiss() / (2**64) for _ in range(1000)]
 ```
 

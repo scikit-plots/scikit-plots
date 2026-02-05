@@ -8,7 +8,7 @@ Enhanced KISS Random Generator - Complete Usage Examples
 .. currentmodule:: scikitplot.random
 
 Demonstrates all new features:
-1. Auto-detection (PyKiss64Random with None, 32, or 64)
+1. Auto-detection (Kiss64Random with None, 32, or 64)
 2. Context manager support (with statement)
 3. NumPy-like BitGenerator and Generator
 4. State serialization/deserialization
@@ -29,9 +29,9 @@ from scipy import stats
 # Import enhanced module
 # from scikitplot.cexternals._annoy._kissrandom.kissrandom import (
 from scikitplot.random import (
-    PyKiss32Random,         # Explicit 32-bit
-    PyKiss64Random,         # Explicit 64-bit
-    PyKissRandom,
+    Kiss32Random,         # Explicit 32-bit
+    Kiss64Random,         # Explicit 64-bit
+    KissRandom,
     KissSeedSequence,
     KissBitGenerator,       # NumPy-compatible BitGenerator
     KissGenerator,          # High-level Generator
@@ -155,16 +155,16 @@ for method in ["random", "uniform"]:
 # ===========================================================================
 
 print("\n" + "=" * 70)
-print("1. AUTO-DETECTION (PyKiss64Random factory)")
+print("1. AUTO-DETECTION (Kiss64Random factory)")
 print("=" * 70)
 
 # Explicit 32-bit
-rng_32 = PyKiss32Random(seed=42)
+rng_32 = Kiss32Random(seed=42)
 print(f"64-bit RNG: {rng_32}")
 print(f"Type: {type(rng_32).__name__}")
 
 # Explicit 64-bit
-rng_64 = PyKiss64Random(seed=42)
+rng_64 = Kiss64Random(seed=42)
 print(f"64-bit RNG: {rng_64}")
 print(f"Type: {type(rng_64).__name__}")
 
@@ -186,14 +186,14 @@ print("=" * 70)
 
 # Basic context manager usage
 print("Basic usage:")
-with PyKiss64Random(42) as rng:
+with Kiss64Random(42) as rng:
     values = [rng.kiss() for _ in range(5)]
     print(f"  Generated 5 values: {values[:3]}...")
 
 # Nested context managers (independent RNGs)
 print("\nNested contexts (independent streams):")
-with PyKiss64Random(100) as rng1:
-    with PyKiss64Random(200) as rng2:
+with Kiss64Random(100) as rng1:
+    with Kiss64Random(200) as rng2:
         val1 = rng1.kiss()
         val2 = rng2.kiss()
         print(f"  RNG1 (seed=100): {val1}")
@@ -202,7 +202,7 @@ with PyKiss64Random(100) as rng1:
 
 # Context manager ensures thread safety
 print("\nThread-safe access with context manager:")
-rng = PyKiss64Random(42)
+rng = Kiss64Random(42)
 
 def worker(thread_id):
     """Worker function using shared RNG."""
@@ -377,7 +377,7 @@ print(f"Sequences match: {sequence1 == sequence2} ✅")
 # Can also pickle/unpickle state
 # state_pickled = pickle.dumps(state)
 # state_restored = pickle.loads(state_pickled)
-# rng3 = PyKiss64Random.from_state(state_restored)
+# rng3 = Kiss64Random.from_state(state_restored)
 # sequence3 = [rng3.random_raw() for _ in range(5)]
 # print(f"Pickled/unpickled: {sequence1 == sequence3} ✅")
 
@@ -392,7 +392,7 @@ print("8. THREAD-SAFE OPERATIONS")
 print("=" * 70)
 
 # Shared RNG with lock
-shared_rng = PyKiss64Random(seed=42)
+shared_rng = Kiss64Random(seed=42)
 
 def parallel_task(task_id):
     """Task that uses shared RNG safely."""

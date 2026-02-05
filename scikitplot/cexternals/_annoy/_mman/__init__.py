@@ -18,7 +18,7 @@
 # Python wrapper (mman.pyx OR annoy_wrapper.pyx)
 #
 # cdef cppclass Kiss32Random:     # in .pxd
-# cdef class PyKiss32Random:      # in .pyx
+# cdef class Kiss32Random:        # in .pyx
 # Never both with the same name (.h -> .pxd -> .pyx)
 # Either as a cppclass (C++ side)
 # Or as a cdef class (Python wrapper)

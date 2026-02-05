@@ -58,7 +58,7 @@ A **fully NumPy-compatible** KISS (Keep It Simple, Stupid) random number generat
                        │
 ┌──────────────────────▼──────────────────────────────────────┐
 │                   Cython Layer (Bridge)                      │
-│  PyKiss32Random, PyKiss64Random                             │
+│  Kiss32Random, Kiss64Random                             │
 │  - C++ → Python wrapping                                     │
 │  - Memory management                                         │
 │  - Performance-critical paths                                │
@@ -84,7 +84,7 @@ BitGenerator → Generator → User Code
 # Our compatible design
 KissBitGenerator → KissGenerator → User Code
     ↓                  ↓
-PyKiss64Random     methods (uniform, normal, etc.)
+Kiss64Random     methods (uniform, normal, etc.)
     ↓
 C++ Kiss64Random
 ```
@@ -552,7 +552,7 @@ cdef class KissBitGenerator:
 
     cdef object _lock
     cdef object _seed_seq
-    cdef object _rng  # PyKiss32Random or PyKiss64Random
+    cdef object _rng  # Kiss32Random or Kiss64Random
     cdef int _bit_width
 
     def __init__(
@@ -608,12 +608,12 @@ cdef class KissBitGenerator:
             # Get seed from seed sequence
             state = self._seed_seq.generate_state(1, dtype=np.uint32)
             seed_value = int(state[0])
-            self._rng = PyKiss32Random(seed_value)
+            self._rng = Kiss32Random(seed_value)
         else:  # bit_width == 64
             # Get seed from seed sequence
             state = self._seed_seq.generate_state(1, dtype=np.uint64)
             seed_value = int(state[0])
-            self._rng = PyKiss64Random(seed_value)
+            self._rng = Kiss64Random(seed_value)
 
     @property
     def lock(self) -> threading.Lock:
@@ -1962,7 +1962,7 @@ def default_rng(
 # Legacy Classes (for backward compatibility)
 # ============================================================================
 
-class PyKiss32Random:
+class Kiss32Random:
     """Legacy 32-bit KISS RNG (use KissBitGenerator instead)."""
 
     default_seed: Final[int]
@@ -1973,7 +1973,7 @@ class PyKiss32Random:
     def index(self, n: int) -> int: ...
     # ... rest of legacy API ...
 
-class PyKiss64Random:
+class Kiss64Random:
     """Legacy 64-bit KISS RNG (use KissBitGenerator instead)."""
 
     default_seed: Final[int]
@@ -2018,13 +2018,13 @@ class PyKiss64Random:
 
 ## Migration Guide
 
-### From Legacy PyKiss32Random/PyKiss64Random
+### From Legacy Kiss32Random/Kiss64Random
 
 **Before:**
 ```python
-from scikitplot.cexternals._annoy._kissrandom import PyKiss64Random
+from scikitplot.cexternals._annoy._kissrandom import Kiss64Random
 
-rng = PyKiss64Random(42)
+rng = Kiss64Random(42)
 values = [rng.kiss() / (2**64) for _ in range(1000)]
 ```
 

@@ -82,7 +82,9 @@ cdef extern from "../src/kissrandom.h" namespace "Annoy" nogil:
     # -----------------------------------------------------------------------
     # Kiss32Random - 32-bit KISS RNG
     # -----------------------------------------------------------------------
-    cdef cppclass Kiss32Random:
+    # class Kiss32Random	cppclass CKiss32Random "Kiss32Random"
+    # class CKiss32Random	cppclass CKiss32Random
+    cdef cppclass CKiss32Random "Annoy::Kiss32Random":
 
         # 🚫 must declare the function, not the constant.❌
         # Static constants
@@ -99,8 +101,8 @@ cdef extern from "../src/kissrandom.h" namespace "Annoy" nogil:
 
         # Constructors
         # Note: Cython syntax for C++ constructors
-        Kiss32Random() except +
-        Kiss32Random(uint32_t seed) except +
+        CKiss32Random() except +
+        CKiss32Random(uint32_t seed) except +
 
         # Static methods
         @staticmethod
@@ -123,12 +125,14 @@ cdef extern from "../src/kissrandom.h" namespace "Annoy" nogil:
     # -----------------------------------------------------------------------
     # Kiss64Random - 64-bit KISS RNG
     # -----------------------------------------------------------------------
-    cdef cppclass Kiss64Random:
+    # class Kiss64Random	cppclass CKiss64Random "Kiss64Random"
+    # class CKiss64Random	cppclass CKiss64Random
+    cdef cppclass CKiss64Random "Annoy::Kiss64Random":
 
         # 🚫 must declare the function, not the constant.❌
         # Static constants
         # const uint64_t default_seed "Kiss64Random::default_seed"
-        # uint64_t default_x "Kiss32Random::default_x"
+        # uint64_t default_x "Kiss64Random::default_x"
         # const uint64_t default_y "Kiss64Random::default_y"
         # const uint64_t default_z "Kiss64Random::default_z"
         # const uint64_t default_c "Kiss64Random::default_c"
@@ -139,8 +143,8 @@ cdef extern from "../src/kissrandom.h" namespace "Annoy" nogil:
         # uint64_t c
 
         # Constructors
-        Kiss64Random() except +
-        Kiss64Random(uint64_t seed) except +
+        CKiss64Random() except +
+        CKiss64Random(uint64_t seed) except +
 
         # Static methods
         @staticmethod
