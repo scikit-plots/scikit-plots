@@ -9,7 +9,10 @@
 // Original Windows implementation from: https://code.google.com/p/mman-win32/
 
 #pragma once
-
+/*
+ * sys/mman.h
+ * mman-win32
+ */
 #include <sys/types.h>
 #include <errno.h>
 #include <stdint.h>
@@ -26,6 +29,11 @@
 
 #ifndef _WIN32_WINNT		// Allow use of features specific to Windows XP or later.
 #define _WIN32_WINNT 0x0501	// Change this to the appropriate value to target other versions of Windows.
+#endif
+
+/* All the headers include this file. */
+#ifndef _MSC_VER
+#include <_mingw.h>
 #endif
 
 #include <windows.h>
@@ -59,6 +67,12 @@
 // ===========================================================================
 // Windows Helper Functions
 // ===========================================================================
+// void*   mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off);
+// int     munmap(void *addr, size_t len);
+// int     mprotect(void *addr, size_t len, int prot);
+// int     msync(void *addr, size_t len, int flags);
+// int     mlock(const void *addr, size_t len);
+// int     munlock(const void *addr, size_t len);
 
 static int __map_mman_error(const DWORD err, const int deferr)
 {

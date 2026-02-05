@@ -1,9 +1,11 @@
+# scikitplot/__init__.py
+#
 # mypy: disallow-any-generics
 # ruff: noqa: D205,F401,F403,PLC0415
 # Flake8: noqa: F403
 # type: ignore[]
 # pylint: disable=import-error,unused-import,unused-variable,no-name-in-module,line-too-long,import-outside-toplevel
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -123,6 +125,7 @@ _submodules = sorted(
         "externals",
         "impute",
         "misc",
+        "memmap",
         "mlflow",
         "nc",
         "preprocessing",

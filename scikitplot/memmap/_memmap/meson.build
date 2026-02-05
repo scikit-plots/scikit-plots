@@ -1,4 +1,4 @@
-## scikitplot/cexternals/_annoy/_mman/meson.build
+## scikitplot/memmap/_memmap/meson.build
 
 ######################################################################
 ## cython tree
@@ -7,12 +7,12 @@
 # Copy the main "__init__.py"|"*.pxd" files to the build dir (needed for Cython)
 # Need for Cython cimports across subpackages to work, i.e. avoid errors like
 # relative cimport from non-package directory is not allowed
-_mman_cython_tree = [
-  _annoy_cython_tree,
-  fs.copyfile('__init__.py'),     # Ensure __init__.py is copied early
-  fs.copyfile('mman.pyi'),  # Cython definition file for C/C++ code
+_memmap_cython_tree = [
+  _root_cython_tree,
+  fs.copyfile('__init__.py'),  # Ensure __init__.py is copied early
+  fs.copyfile('mem_map.pyi'),  # Cython definition file for C/C++ code
 
-  fs.copyfile('mman.pxd'),
+  fs.copyfile('mem_map.pxd'),
 ]
 
 
@@ -21,7 +21,7 @@ _mman_cython_tree = [
 ######################################################################
 
 # include_directories for Specific Subfolders
-_mman_inc_dir = [
+_memmap_inc_dir = [
   # 'here/include',
   # 'include',
   # 'src',
@@ -35,7 +35,7 @@ _mman_inc_dir = [
 # Use the include directory in your build setup
 # Specify Include directories where your headers are located
 # include_directories(header) -> static_library(mix), library(mix), declare_dependency(mix)
-inc_dir_mman = include_directories(_mman_inc_dir)
+inc_dir_memmap = include_directories(_memmap_inc_dir)
 
 ######################################################################
 ## extension metadata
@@ -46,18 +46,18 @@ inc_dir_mman = include_directories(_mman_inc_dir)
 ## .c → plain C
 ## .cpp or .cc → C++
 ## .cxx or .C → also C++ (less common)
-mman_extension_metadata = {
+mem_map_extension_metadata = {
   ## Define Python Module Name
   ## Check: ELF 64-bit LSB shared object, dynamically linked
-  # file builddir/scikitplot/cexternals/_annoy/_mman/mman.so.p
-  'mman':  ## Build static `mman` core library (Cython)
+  # file builddir/scikitplot/memmap/_memmap/mem_map.so.p
+  'mem_map':  ## Build static `mem_map` core library (Cython)
   {
     # Ceyton bindings source .pyx extension with C/C++ support
     'sources': [
-      'mman.pyx',  # (Cython binding)
+      'mem_map.pyx',  # (Cython binding)
     ],
     'include_directories': [                      # Include dirs for compilation
-      inc_dir_mman,
+      inc_dir_memmap,
       inc_dir_py,
     ],
     'dependencies': dep_list,                     # External libraries and dependencies
@@ -81,15 +81,15 @@ mman_extension_metadata = {
       # extra_link_args
     ],
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/cexternals/_annoy/_mman',     # Path where the module is located
+    'subdir': 'scikitplot/memmap/_memmap',     # Path where the module is located
   },
 }
 # https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
 # Loop over each defined extension and create the corresponding module
-foreach ext_name, ext_dict : mman_extension_metadata
+foreach ext_name, ext_dict : mem_map_extension_metadata
   pyext_module = py.extension_module(
     ext_name,                                                      # The name of the extension module
-    ext_dict.get('sources') + _mman_cython_tree,                   # Sources and dependencies
+    ext_dict.get('sources') + _memmap_cython_tree,                   # Sources and dependencies
     include_directories: ext_dict.get('include_directories', []),  # Include directories
     dependencies: ext_dict.get('dependencies', []),                # Additional dependencies if any
     link_with: ext_dict.get('link_with', []),                      # Libraries to link with

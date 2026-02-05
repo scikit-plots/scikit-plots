@@ -70,6 +70,7 @@ PUBLIC_MODULES = [
         "impute",
         "misc",
         "misc.plot_colortable",
+        "memmap",
         "mlflow",
         "nc",
         "neighbors",

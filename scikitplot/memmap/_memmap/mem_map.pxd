@@ -1,5 +1,8 @@
 # cython: language_level=3
 # distutils: language = c++
+
+# scikitplot/memmap/_memmap/mem_map.pxd
+
 """
 Cython declarations file for cross-platform memory mapping.
 
@@ -129,7 +132,7 @@ cdef extern from *:
     """
     int _SC_PAGESIZE
 
-cdef extern from "../src/mman.h" nogil:
+cdef extern from "../../cexternals/_annoy/src/mman.h" nogil:
 
     # --- Memory protection flags ---
     # int PROT_NONE

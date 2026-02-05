@@ -1,4 +1,10 @@
 # scikitplot/cexternals/_annoy/_mman/__init__.py
+#
+# ruff: noqa: F401,F405
+# flake8: noqa: F403
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 # Use cpdef for public API, cdef for internal helpers
 # Always manage memory explicitly (__cinit__/__dealloc__)
@@ -190,9 +196,7 @@ Examples
 --------
 Creating anonymous memory mapping::
 
-    from scikitplot.cexternals._annoy._mman.mman import (
-        MemoryMap, PROT_READ, PROT_WRITE
-    )
+    from scikitplot.cexternals._annoy._mman.mman import MemoryMap, PROT_READ, PROT_WRITE
 
     # Create 4KB anonymous mapping
     with MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE) as m:
@@ -203,15 +207,14 @@ Creating anonymous memory mapping::
 Mapping a file::
 
     with open("data.bin", "r+b") as f:
-        with MemoryMap.create_file_mapping(
-            f.fileno(), 0, 4096, PROT_READ
-        ) as m:
+        with MemoryMap.create_file_mapping(f.fileno(), 0, 4096, PROT_READ) as m:
             data = m.read(100)
 """
 
-# Module version
-__version__ = "1.0.1"
+from __future__ import annotations
 
-# Export nothing at package level
-# Users should import from .mman module directly
+from . import mem_map
+from .mem_map import *
+
 __all__ = []
+__all__ += mem_map.__all__

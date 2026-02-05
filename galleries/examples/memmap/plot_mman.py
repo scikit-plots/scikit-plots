@@ -8,7 +8,7 @@ Memory-Mapping Showcase – Basic / Medium / Advanced
 ====================================================
 
 This gallery example demonstrates the
-:py:class:`~scikitplot.cexternals._annoy._mman.mman.MemoryMap` module at
+:py:class:`~scikitplot.memmap.MemoryMap` module at
 three levels of complexity.
 
 * **Basic**   – anonymous mapping: write bytes, read them back, verify.
@@ -39,8 +39,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from scikitplot.cexternals._annoy._mman import mman
-from scikitplot.cexternals._annoy._mman.mman import (
+from scikitplot.memmap import (
     MemoryMap,
     PROT_READ,
     PROT_WRITE,

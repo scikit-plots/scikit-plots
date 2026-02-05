@@ -175,7 +175,9 @@ subdir('config')
 # c submodules
 subdir('_lib')
 subdir('cexternals')
+subdir('memmap')
 subdir('random')
+
 subdir('nc')  # defined use in dep_numcpp
 
 # submodules

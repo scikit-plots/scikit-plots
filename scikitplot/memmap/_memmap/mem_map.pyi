@@ -1,4 +1,4 @@
-# scikitplot/cexternals/_annoy/_mman/mman.pyi
+# scikitplot/memmap/_memmap/mem_map.pyi
 #
 # fmt: off
 # ruff: noqa

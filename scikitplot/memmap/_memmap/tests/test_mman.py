@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive test suite for mman module (Windows memory mapping).
+Comprehensive test suite for memmap module (Windows memory mapping).
 
 This test suite validates:
 - Basic memory mapping operations
@@ -61,8 +61,8 @@ from typing import Generator
 
 # Import the module to test
 try:
-    from scikitplot.cexternals._annoy._mman import mman
-    from scikitplot.cexternals._annoy._mman.mman import (
+    from scikitplot import memmap
+    from scikitplot.memmap import (
         MemoryMap,
         mmap_region,
         PROT_NONE, PROT_READ, PROT_WRITE, PROT_EXEC,
@@ -71,7 +71,7 @@ try:
         MMapError, MMapAllocationError,
     )
 except ImportError as e:
-    pytest.skip(f"mman module not built: {e}", allow_module_level=True)
+    pytest.skip(f"memmap module not built: {e}", allow_module_level=True)
 
 
 # ===========================================================================
@@ -121,27 +121,27 @@ def small_mapping() -> Generator[MemoryMap, None, None]:
 
 # def test_module_version():
 #     """Test that module has version attribute."""
-#     assert hasattr(mman, '__version__')
-#     assert isinstance(mman.__version__, str)
-#     assert len(mman.__version__) > 0
+#     assert hasattr(memmap, '__version__')
+#     assert isinstance(memmap.__version__, str)
+#     assert len(memmap.__version__) > 0
 
 
 def test_module_exports():
     """Test that module exports expected constants and classes."""
     # Protection flags
-    assert hasattr(mman, 'PROT_NONE')
-    assert hasattr(mman, 'PROT_READ')
-    assert hasattr(mman, 'PROT_WRITE')
-    assert hasattr(mman, 'PROT_EXEC')
+    assert hasattr(memmap, 'PROT_NONE')
+    assert hasattr(memmap, 'PROT_READ')
+    assert hasattr(memmap, 'PROT_WRITE')
+    assert hasattr(memmap, 'PROT_EXEC')
 
     # Mapping flags
-    assert hasattr(mman, 'MAP_SHARED')
-    assert hasattr(mman, 'MAP_PRIVATE')
-    assert hasattr(mman, 'MAP_ANONYMOUS')
+    assert hasattr(memmap, 'MAP_SHARED')
+    assert hasattr(memmap, 'MAP_PRIVATE')
+    assert hasattr(memmap, 'MAP_ANONYMOUS')
 
     # Classes
-    assert hasattr(mman, 'MemoryMap')
-    assert hasattr(mman, 'MMapError')
+    assert hasattr(memmap, 'MemoryMap')
+    assert hasattr(memmap, 'MMapError')
 
 
 def test_protection_flag_values():

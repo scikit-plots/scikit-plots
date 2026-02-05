@@ -115,6 +115,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **memory mapping**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            MemMap <./memmap/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **mlflow workflow automation**
         ^^^
         .. toctree::
@@ -145,7 +155,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **random**
+        **random generator**
         ^^^
         .. toctree::
             :maxdepth: 3

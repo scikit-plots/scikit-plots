@@ -6,6 +6,9 @@
 # cython: binding=True
 # distutils: language = c++
 # distutils: extra_compile_args = -std=c++11
+
+# scikitplot/memmap/_memmap/mem_map.pyx
+
 """
 Windows Memory Mapping - Cython Implementation.
 
@@ -112,7 +115,7 @@ Notes for Users
 
 Notes for Developers
 --------------------
-- Keep this file in sync with mman.h and mman.pxd
+- Keep this file in sync with mman.h and mem_map.pxd
 - Add comprehensive docstrings following NumPy style
 - Test all public functions with pytest
 - Validate all input parameters explicitly
@@ -142,14 +145,14 @@ Examples
 --------
 Create anonymous memory mapping:
 
->>> import mman
->>> mapping = MemoryMap.create_anonymous(4096, mman.PROT_READ | mman.PROT_WRITE)
+>>> import mem_map
+>>> mapping = MemoryMap.create_anonymous(4096, mem_map.PROT_READ | mem_map.PROT_WRITE)
 >>> # Use mapping...
 >>> mapping.close()
 
 Using context manager (recommended):
 
->>> with MemoryMap.create_anonymous(4096, mman.PROT_READ | mman.PROT_WRITE) as mapping:
+>>> with MemoryMap.create_anonymous(4096, mem_map.PROT_READ | mem_map.PROT_WRITE) as mapping:
 ...     # Mapping automatically closed on exit
 ...     mapping.write(b"Hello, World!")
 ...     data = mapping.read(13)
@@ -158,7 +161,7 @@ Map a file into memory:
 
 >>> with open("data.bin", "r+b") as f:
 ...     fd = f.fileno()
-...     with MemoryMap.create_file_mapping(fd, 0, 4096, mman.PROT_READ) as mapping:
+...     with MemoryMap.create_file_mapping(fd, 0, 4096, mem_map.PROT_READ) as mapping:
 ...         data = mapping.read(100)
 """
 
@@ -179,7 +182,7 @@ from libc.string cimport memcpy  # , memset
 
 # Import C functions from our .pxd declarations
 # Note: The "as mm" creates a namespace alias for cleaner code
-from scikitplot.cexternals._annoy._mman.mman cimport (
+from scikitplot.memmap._memmap.mem_map cimport (
     mmap, munmap, mprotect, msync, mlock, munlock,
     off_t, is_map_failed, validate_prot_flags, validate_map_flags,
     get_page_size,
@@ -199,6 +202,37 @@ from typing import Final
 # ===========================================================================
 
 __version__: Final[str] = "1.0.1"
+
+__all__ = [
+    # flags
+    "PROT_NONE",
+    "PROT_READ",
+    "PROT_WRITE",
+    "PROT_EXEC",
+
+    "MAP_FILE",
+    "MAP_SHARED",
+    "MAP_PRIVATE",
+    "MAP_TYPE",
+    "MAP_FIXED",
+    "MAP_ANONYMOUS",
+    "MAP_ANON",
+
+    "MS_ASYNC",
+    "MS_SYNC",
+    "MS_INVALIDATE",
+
+    "FILE_MAP_EXECUTE",
+
+    # Exceptions
+    "MMapError",
+    "MMapAllocationError",
+    "MMapInvalidParameterError",
+
+    # memmap
+    "MemoryMap",
+    "mmap_region",
+]
 
 # ===========================================================================
 # Compile-time constants using DEF

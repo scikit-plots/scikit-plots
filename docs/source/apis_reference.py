@@ -920,6 +920,24 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.memmap": {
+        "short_summary": "Cross-platform memory mapping module.",
+        "description": _get_guide("memmap-index"),
+        "sections": [
+            {
+                "title": "MemMap: file-backed or anonymous memory mapping.",
+                "description": (
+                    # _get_submodule("scikitplot.memmap", "_memmap.mem_map")
+                    # + "\n\n" +
+                    _get_guide("memmap-index")
+                ),
+                "autosummary": [
+                    'MemoryMap',
+                    'mmap_region',
+                ],
+            },
+        ],
+    },
     "scikitplot.mlflow": {
         "short_summary": "Missing value imputation.",
         "description": _get_guide("mlflow-index"),
