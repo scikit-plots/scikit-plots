@@ -1,10 +1,10 @@
 # cython: language_level=3
 # distutils: language = c++
 
-# scikitplot/cexternals/_annoy/_kissrandom/kissrandom.pxd
+# scikitplot/random/_kiss/kiss_random.pxd
 
 """
-Cython declarations file for kissrandom module.
+Cython declarations file for kiss_random module.
 
 This file contains C/C++ level type declarations and external definitions.
 It serves as the interface between Cython code and the C++ header file.
@@ -74,7 +74,7 @@ DEF USE_CPLUSPLUS = True
 # The 'extern from' directive tells Cython where to find the C++ definitions.
 # The 'namespace' specifies the C++ namespace containing these classes.
 
-cdef extern from "../src/kissrandom.h" namespace "Annoy" nogil:
+cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" nogil:
 
     # const uint32_t Kiss32Random_default_seed "Annoy::Kiss32Random::default_seed"
     # const uint64_t Kiss64Random_default_seed "Annoy::Kiss64Random::default_seed"

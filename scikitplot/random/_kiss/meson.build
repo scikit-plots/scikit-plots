@@ -1,4 +1,4 @@
-## scikitplot/cexternals/_annoy/_kissrandom/meson.build
+## scikitplot/random/_kiss/meson.build
 
 ######################################################################
 ## cython tree
@@ -7,12 +7,12 @@
 # Copy the main "__init__.py"|"*.pxd" files to the build dir (needed for Cython)
 # Need for Cython cimports across subpackages to work, i.e. avoid errors like
 # relative cimport from non-package directory is not allowed
-_kissrandom_cython_tree = [
-  _annoy_cython_tree,
-  fs.copyfile('__init__.py'),     # Ensure __init__.py is copied early
-  fs.copyfile('kissrandom.pyi'),  # Cython definition file for C/C++ code
+_kiss_random_cython_tree = [
+  _root_cython_tree,
+  fs.copyfile('__init__.py'),      # Ensure __init__.py is copied early
+  fs.copyfile('kiss_random.pyi'),  # Cython definition file for C/C++ code
 
-  fs.copyfile('kissrandom.pxd'),
+  fs.copyfile('kiss_random.pxd'),
 ]
 
 
@@ -21,7 +21,7 @@ _kissrandom_cython_tree = [
 ######################################################################
 
 # include_directories for Specific Subfolders
-_kissrandom_inc_dir = [
+_kiss_random_inc_dir = [
   # 'here/include',
   # 'include',
   # 'src',
@@ -35,7 +35,7 @@ _kissrandom_inc_dir = [
 # Use the include directory in your build setup
 # Specify Include directories where your headers are located
 # include_directories(header) -> static_library(mix), library(mix), declare_dependency(mix)
-inc_dir_kissrandom = include_directories(_kissrandom_inc_dir)
+inc_dir_kiss_random = include_directories(_kiss_random_inc_dir)
 
 ######################################################################
 ## extension metadata
@@ -46,18 +46,18 @@ inc_dir_kissrandom = include_directories(_kissrandom_inc_dir)
 ## .c → plain C
 ## .cpp or .cc → C++
 ## .cxx or .C → also C++ (less common)
-kissrandom_extension_metadata = {
+kiss_random_extension_metadata = {
   ## Define Python Module Name
   ## Check: ELF 64-bit LSB shared object, dynamically linked
-  # file builddir/scikitplot/cexternals/_annoy/_kissrandom/kissrandom.so.p
-  'kissrandom':  ## Build static `kissrandom` core library (Cython)
+  # file builddir/scikitplot/random/_kiss/kiss_random.so.p
+  'kiss_random':  ## Build static `kiss_random` core library (Cython)
   {
     # Ceyton bindings source .pyx extension with C/C++ support
     'sources': [
-      'kissrandom.pyx',  # (Cython binding)
+      'kiss_random.pyx',  # (Cython binding)
     ],
     'include_directories': [                      # Include dirs for compilation
-      inc_dir_kissrandom,
+      inc_dir_kiss_random,
       inc_dir_py,
     ],
     'dependencies': dep_list,                     # External libraries and dependencies
@@ -81,15 +81,15 @@ kissrandom_extension_metadata = {
       # extra_link_args
     ],
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/cexternals/_annoy/_kissrandom',     # Path where the module is located
+    'subdir': 'scikitplot/random/_kiss',     # Path where the module is located
   },
 }
 # https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
 # Loop over each defined extension and create the corresponding module
-foreach ext_name, ext_dict : kissrandom_extension_metadata
+foreach ext_name, ext_dict : kiss_random_extension_metadata
   pyext_module = py.extension_module(
     ext_name,                                                      # The name of the extension module
-    ext_dict.get('sources') + _kissrandom_cython_tree,                   # Sources and dependencies
+    ext_dict.get('sources') + _kiss_random_cython_tree,                   # Sources and dependencies
     include_directories: ext_dict.get('include_directories', []),  # Include directories
     dependencies: ext_dict.get('dependencies', []),                # Additional dependencies if any
     link_with: ext_dict.get('link_with', []),                      # Libraries to link with

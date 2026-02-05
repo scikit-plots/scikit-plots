@@ -6,8 +6,8 @@
 # cython: binding=True
 # distutils: language = c++
 # distutils: extra_compile_args = -std=c++11
-
-# scikitplot/cexternals/_annoy/_kissrandom/kissrandom.pyx
+#
+# scikitplot/random/_kiss/kiss_random.pyx
 
 """
 KISS Random Number Generator - NumPy-Compatible Implementation.
@@ -63,7 +63,7 @@ References
 
 Examples
 --------
->>> from scikitplot.cexternals._annoy._kissrandom.kissrandom import default_rng, kiss_context
+>>> from scikitplot.random import default_rng, kiss_context
 >>> rng = default_rng(42)
 >>> data = rng.random(1000)
 
@@ -132,7 +132,7 @@ from libc.stddef cimport size_t
 from cpython.pycapsule cimport PyCapsule_New  # PyCapsule_GetPointer
 
 # C-level Import C++ classes from our .pxd declarations
-from scikitplot.cexternals._annoy._kissrandom.kissrandom cimport CKiss32Random, CKiss64Random
+from scikitplot.random._kiss.kiss_random cimport CKiss32Random, CKiss64Random
 
 # ===========================================================================
 # Module metadata
@@ -487,7 +487,6 @@ class KissSeedSequence:
     """
 
     # Class attribute CYTHON_USE_TYPE_SPECS=1
-    # __module__ = "scikitplot.cexternals._annoy._kissrandom.kissrandom"
     __module__ = "scikitplot.random"
 
     def __init__(
@@ -1045,7 +1044,6 @@ cdef class Kiss32Random:
     """
 
     # Class attribute
-    # __module__ = "scikitplot.cexternals._annoy._kissrandom.kissrandom"
     __module__ = "scikitplot.random"
     default_seed = KISS32_DEFAULT_SEED
 
@@ -1624,7 +1622,6 @@ cdef class Kiss64Random:
     """
 
     # Class attribute
-    # __module__ = "scikitplot.cexternals._annoy._kissrandom.kissrandom"
     __module__ = "scikitplot.random"
     default_seed = KISS64_DEFAULT_SEED
 
@@ -2095,7 +2092,6 @@ cdef class KissBitGenerator:
     """
 
     # Class attribute
-    # __module__ = "scikitplot.cexternals._annoy._kissrandom.kissrandom"
     __module__ = "scikitplot.random"
 
     cdef CKiss32Random* _rng32
@@ -2627,7 +2623,6 @@ cdef class KissGenerator:
     """
 
     # Class attribute
-    # __module__ = "scikitplot.cexternals._annoy._kissrandom.kissrandom"
     __module__ = "scikitplot.random"
 
     cdef public object _bit_generator
@@ -3387,7 +3382,6 @@ cdef class KissRandomState(KissGenerator):
     """
 
     # Class attribute
-    # __module__ = "scikitplot.cexternals._annoy._kissrandom.kissrandom"
     __module__ = "scikitplot.random"
 
     cdef object lock
@@ -3567,7 +3561,7 @@ def default_rng(seed=None, bit_width=None):
 
     Examples
     --------
-    >>> from scikitplot.cexternals._annoy._kissrandom.kissrandom import default_rng
+    >>> from scikitplot.random import default_rng
     >>>
     >>> rng = default_rng(42)
     >>> rng.random(5)
@@ -3637,7 +3631,7 @@ def kiss_context(seed=None, bit_width=None):
     Examples
     --------
     >>> # from contextlib import closing
-    >>> from scikitplot.cexternals._annoy._kissrandom.kissrandom import kiss_context
+    >>> from scikitplot.random import kiss_context
     >>>
     >>> with kiss_context(42) as rng:
     ...     data = rng.random(1000)

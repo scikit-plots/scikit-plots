@@ -27,10 +27,9 @@ np.random.BitGenerator
 from scipy import stats
 
 # Import enhanced module
-# from scikitplot.cexternals._annoy._kissrandom.kissrandom import (
 from scikitplot.random import (
-    Kiss32Random,         # Explicit 32-bit
-    Kiss64Random,         # Explicit 64-bit
+    Kiss32Random,           # Explicit 32-bit
+    Kiss64Random,           # Explicit 64-bit
     KissRandom,
     KissSeedSequence,
     KissBitGenerator,       # NumPy-compatible BitGenerator

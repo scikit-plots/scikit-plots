@@ -175,7 +175,7 @@ subdir('config')
 # c submodules
 subdir('_lib')
 subdir('cexternals')
-# subdir('annoy')  # defined use in dep_annoy
+subdir('random')
 subdir('nc')  # defined use in dep_numcpp
 
 # submodules

@@ -1037,7 +1037,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`).",
                 "description": (
-                    # _get_submodule("scikitplot.cexternals._annoy._kissrandom", "kissrandom")
+                    # _get_submodule("scikitplot.random", "_kiss")
                     # + "\n\n" +
                     _get_guide("random-index")
                 ),

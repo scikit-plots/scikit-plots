@@ -1,6 +1,6 @@
 # cython: language_level=3
 
-# scikitplot/cexternals/_annoy/_kissrandom/kissrandom.pxi
+# scikitplot/random/_kiss/kiss_random.pxi
 
 """
 Shared Cython implementation code (include file).
@@ -34,11 +34,11 @@ alternatives above.
 Usage Example (NOT RECOMMENDED)
 -------------------------------
 In a .pyx file:
-    include "kissrandom.pxi"  # Textually includes this file
+    include "kiss_random.pxi"  # Textually includes this file
 
 Better Approach:
-    from kissrandom cimport Kiss32Random  # Import from .pxd
-    from kissrandom import Kiss32Random   # Import Python class from .pyx
+    from kiss_random cimport Kiss32Random  # Import from .pxd
+    from kiss_random import Kiss32Random   # Import Python class from .pyx
 
 Design Principles (if you must use .pxi)
 ----------------------------------------
@@ -180,7 +180,7 @@ DEF MAX_RECOMMENDED_32BIT = 16777216  # 2^24
 DEF MAX_RECOMMENDED_64BIT = 1152921504606846976  # 2^60 (conservative estimate)
 
 # Module metadata (can be shared across multiple .pyx files)
-# DEF MODULE_NAME = "kissrandom"
+# DEF MODULE_NAME = "kiss_random"
 # DEF MODULE_VERSION = "1.0.0"
 # DEF MODULE_AUTHOR = "Contributors"
 
@@ -222,16 +222,16 @@ Performance characteristics:
 # In real projects, use one of these alternatives:
 #
 # 1. Put these functions in a separate .pyx module:
-#    - Create kissrandom_helpers.pyx
-#    - Cimport and use: from kissrandom_helpers cimport is_power_of_two
+#    - Create kiss_random_helpers.pyx
+#    - Cimport and use: from kiss_random_helpers cimport is_power_of_two
 #
 # 2. Put declarations in .pxd and implementations in .pyx:
-#    - Declare in kissrandom.pxd: cdef inline bint is_power_of_two(size_t) nogil
-#    - Implement in kissrandom.pyx
-#    - Other modules cimport from kissrandom.pxd
+#    - Declare in kiss_random.pxd: cdef inline bint is_power_of_two(size_t) nogil
+#    - Implement in kiss_random.pyx
+#    - Other modules cimport from kiss_random.pxd
 #
 # 3. For pure Python helpers, use regular .py files:
-#    - Create kissrandom_utils.py
-#    - Import normally: from kissrandom_utils import helper_func
+#    - Create kiss_random_utils.py
+#    - Import normally: from kiss_random_utils import helper_func
 #
 # See: https://github.com/cython/cython/issues/4310

@@ -1,9 +1,33 @@
-# scikitplot/random/_kiss.py
+# scikitplot/random/_kiss/__init__.py
 #
-# ruff: noqa: B018,F405
+# ruff: noqa: F401
+# flake8: noqa: F403
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+# Use cpdef for public API, cdef for internal helpers
+# Always manage memory explicitly (__cinit__/__dealloc__)
+# Use nogil when possible for performance
+# Avoid .pxi files in modern code
+# #
+# kissrandom.h           # Pure C++ (logic, constants, inline funcs)
+# kiss_random.pxd         # (like C headers) Cython C++ declarations ONLY (cppclass) (no Python-facing logic)
+# kiss_random.pxi         # OPTIONAL thin helpers (rare, usually empty) Share Cython code between multiple .pyx for beginners: avoid .pxi
+# kiss_random.pyx         # (like C source files) Cython Python implementation code wrapper class ONCE (Python-facing cdef class wrappers logic)
+# kiss_random.pyi         # (for Python tooling) Python type hints (typing only for users, IDEs)
+#
+# C++ (kissrandom.h)
+#         ↓
+# Cython declarations (kiss_random.pxd)
+#         ↓
+# Python wrapper (kiss_random.pyx OR annoy_wrapper.pyx)
+#
+# cdef cppclass CKiss32Random:    # in .pxd
+# cdef class Kiss32Random:        # in .pyx
+# Never both with the same name (.h -> .pxd -> .pyx)
+# Either as a cppclass (C++ side)
+# Or as a cdef class (Python wrapper)
 
 """
 Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`).
@@ -59,10 +83,8 @@ JSON export
 >>> restored = KissGenerator.deserialize(json.loads(json_str))
 """
 
-from __future__ import annotations
-
-from ..cexternals._annoy._kissrandom import kissrandom as _kiss
-from ..cexternals._annoy._kissrandom.kissrandom import *  # noqa: F403
+from . import kiss_random
+from .kiss_random import *
 
 __all__ = []
-__all__ += _kiss.__all__
+__all__ += kiss_random.__all__

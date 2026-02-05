@@ -1,4 +1,4 @@
-# scikitplot/cexternals/_annoy/_kissrandom/kissrandom.pyi
+# scikitplot/random/_kiss/kiss_random.pyi
 #
 # fmt: off
 # ruff: noqa
@@ -12,16 +12,16 @@
 Type stubs for KISS random number generator module.
 
 This file provides comprehensive type hints for all public classes and
-functions in the kissrandom module, enabling static type checking with
+functions in the kiss_random module, enabling static type checking with
 mypy, pyright, and IDE autocompletion.
 
 Design Principles
 -----------------
 - Follow PEP 484 (Type Hints) and PEP 561 (Distributing Type Information)
-- Mirror the exact public API exposed in kissrandom.pyx
+- Mirror the exact public API exposed in kiss_random.pyx
 - Use precise types (no 'Any' unless unavoidable)
 - Document all public classes and methods with docstrings
-- Keep in sync with kissrandom.pyx implementation
+- Keep in sync with kiss_random.pyx implementation
 
 Notes for Maintainers
 ---------------------

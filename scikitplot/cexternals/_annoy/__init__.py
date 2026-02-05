@@ -61,6 +61,8 @@ from __future__ import annotations
 from . import annoylib
 from .annoylib import *  # Annoy low-level C-extension type, simple legacy c-api
 
+from . import _kissrandom
+
 AnnoyIndex = Annoy  # alias of Annoy Index c-api
 
 # Define the annoy version
@@ -79,3 +81,12 @@ __all__ = [
     # "__author_email__",
     # "__git_hash__",
 ]
+
+
+def __getattr__(attr):
+    if attr in __all__:
+        from importlib import import_module
+
+        return import_module("scikitplot.cexternals._annoy." + attr)
+
+    raise AttributeError(f"submodule '_annoy' has no attribute {attr!r}")

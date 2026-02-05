@@ -279,5 +279,4 @@ endforeach
 ######################################################################
 
 # submodules
-subdir('_kissrandom')
 subdir('_mman')

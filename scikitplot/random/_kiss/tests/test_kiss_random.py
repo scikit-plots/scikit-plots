@@ -34,7 +34,7 @@ from scipy import stats
 
 # Import module
 try:
-    from scikitplot.cexternals._annoy._kissrandom.kissrandom import (
+    from scikitplot.random import (
         Kiss32Random,
         Kiss64Random,
         KissRandom,
@@ -46,7 +46,7 @@ try:
         kiss_context,
     )
 except ImportError as e:
-    pytest.skip(f"kissrandom module not built: {e}", allow_module_level=True)
+    pytest.skip(f"kiss random module not built: {e}", allow_module_level=True)
 
 # ===========================================================================
 # Test Fixtures
@@ -1143,7 +1143,7 @@ class TestThreadSafety:
     """Test thread-safe operations."""
 
     def test_shared_rng_with_lock(self):
-        """Test shared RNG with lock (like plot_kissrandom.py)."""
+        """Test shared RNG with lock (like plot_kiss_random.py)."""
         shared_rng = Kiss64Random(42)
 
         def worker(task_id):
@@ -1181,7 +1181,7 @@ class TestStatisticalProperties:
     """Test statistical properties of generated numbers."""
 
     def test_uniform_distribution(self):
-        """Test uniform distribution (like plot_kissrandom.py)."""
+        """Test uniform distribution (like plot_kiss_random.py)."""
         rng = default_rng(42)
         samples = rng.random(100000)
 
@@ -1190,7 +1190,7 @@ class TestStatisticalProperties:
         assert abs(samples.std() - 0.288675) < 0.01
 
     def test_chi_square_uniformity(self):
-        """Test chi-square uniformity (like plot_kissrandom.py)."""
+        """Test chi-square uniformity (like plot_kiss_random.py)."""
         rng = default_rng(42)
         samples = rng.random(100000)
 
@@ -1219,7 +1219,7 @@ class TestReproducibility:
     """Test reproducibility and determinism."""
 
     def test_same_seed_same_sequence(self):
-        """Test same seed produces same sequence (like plot_kissrandom.py)."""
+        """Test same seed produces same sequence (like plot_kiss_random.py)."""
         seeds = [42, 123, 999]
 
         for seed in seeds:
@@ -1293,7 +1293,7 @@ class TestEdgeCases:
 # ===========================================================================
 
 class TestExtensibility:
-    """Test custom distributions (like plot_kissrandom.py)."""
+    """Test custom distributions (like plot_kiss_random.py)."""
 
     def test_custom_distribution(self):
         """Test extending KissGenerator with custom methods."""
@@ -1313,5 +1313,5 @@ class TestExtensibility:
 # ===========================================================================
 
 if __name__ == '__main__':
-    # Run with: python test_kissrandom_comprehensive.py
+    # Run with: python test_kiss_random_comprehensive.py
     pytest.main([__file__, '-v'])

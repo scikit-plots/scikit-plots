@@ -22,8 +22,7 @@
 Random
 ======================================================================
 
-Examples relevant to the :py:mod:`~.random` and
-:py:mod:`~scikitplot.cexternals._annoy._kissrandom.kissrandom` modules.
+Examples relevant to the :py:mod:`~.random` module.
 
 .. seealso::
    * https://www0.cs.ucl.ac.uk/staff/d.jones/GoodPracticeRNG.pdf
