@@ -12,15 +12,13 @@
 """
 KISS Random Number Generator - NumPy-Compatible Implementation.
 
-.. currentmodule:: scikitplot.random
-
 This module provides a high-performance, NumPy-compatible random number
 generator using the KISS (Keep It Simple, Stupid) algorithm. It implements
 the full NumPy Generator/BitGenerator protocol while maintaining the speed
 and simplicity of the KISS algorithm.
 
-Key Components
---------------
+Key Components:
+
 Kiss32Random, Kiss64Random
     Low-level Cython wrappers around C++ KISS implementation
     (32-bit: ~2^121 period, 64-bit: ~2^250 period)
@@ -37,8 +35,8 @@ KissRandomState
 default_rng()
     Main entry point
 
-Design Philosophy
------------------
+Design Philosophy:
+
 The implementation follows a three-layer architecture:
 
 1. **C++ Core (kissrandom.h)**: Pure KISS algorithm implementation
@@ -458,7 +456,7 @@ class KissSeedSequence:
     KissRandom : Factory function for auto-detecting
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
-    KissRandomState inherites from KissGenerator
+    KissRandomState : Inherites from KissGenerator
     default_rng : Convenience function to create generator
     numpy.random.SeedSequence : NumPy's seed sequence implementation
 
@@ -1007,7 +1005,7 @@ cdef class Kiss32Random:
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
-    KissRandomState inherites from KissGenerator
+    KissRandomState : Inherites from KissGenerator
     default_rng : Convenience function to create generator
 
     Notes
@@ -1593,7 +1591,7 @@ cdef class Kiss64Random:
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
-    KissRandomState inherites from KissGenerator
+    KissRandomState : Inherites from KissGenerator
     default_rng : Convenience function to create generator
 
     Notes
@@ -1950,7 +1948,7 @@ def KissRandom(seed=None, bit_width=None):
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
-    KissRandomState inherites from KissGenerator
+    KissRandomState : Inherites from KissGenerator
     default_rng : Convenience function to create generator
 
     Examples
@@ -2060,7 +2058,7 @@ cdef class KissBitGenerator:
     KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissGenerator : High-level generator using this BitGenerator
-    KissRandomState inherites from KissGenerator
+    KissRandomState : Inherites from KissGenerator
     default_rng : Convenience function to create generator
     numpy.random.BitGenerator : NumPy's BitGenerator base class
 
@@ -2592,7 +2590,7 @@ cdef class KissGenerator:
     KissRandom : Factory function for auto-detecting
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
-    KissRandomState inherites from KissGenerator
+    KissRandomState : Inherites from KissGenerator
     default_rng : Convenience function to create generator
     numpy.random.Generator : NumPy's Generator class
 
@@ -3336,7 +3334,7 @@ cdef class KissRandomState(KissGenerator):
     """
     NumPy RandomState-compatible interface with complete serialization.
 
-    KissRandomState inherites from KissGenerator.
+    KissRandomState : Inherites from KissGenerator.
     Provides legacy numpy.random.RandomState API for backward compatibility.
 
     Parameters
@@ -3552,7 +3550,7 @@ def default_rng(seed=None, bit_width=None):
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
-    KissRandomState inherites from KissGenerator
+    KissRandomState : Inherites from KissGenerator
 
     Notes
     -----
@@ -3621,7 +3619,7 @@ def kiss_context(seed=None, bit_width=None):
     KissSeedSequence : Seed sequence for initialization
     KissBitGenerator : NumPy-compatible bit generator
     KissGenerator : High-level generator using this BitGenerator
-    KissRandomState inherites from KissGenerator
+    KissRandomState : Inherites from KissGenerator
     default_rng : Convenience function to create generator
 
     Notes
