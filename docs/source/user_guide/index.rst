@@ -145,6 +145,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **random**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./random/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **seaborn**
         ^^^
         .. toctree::

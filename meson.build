@@ -81,7 +81,9 @@ meson.add_dist_script(
 ## meson
 ######################################################################
 
-cython_c_flags = []
+cython_c_flags = [
+  '-DCYTHON_USE_TYPE_SPECS=1',              # heap types enabled __module__ mutable
+]
 cython_link_flags = []
 
 dep_all = []
@@ -911,7 +913,9 @@ cython_c_args = [
 
 # If the Cython version is 3.1.0 or newer, add the option for free threading compatibility
 if cy.version().version_compare('>=3.1.0')
-  cython_c_args += ['-Xfreethreading_compatible=True']
+  cython_c_args += [
+    '-Xfreethreading_compatible=True',
+  ]
 endif
 
 # Define additional arguments specifically for generating C++ files with Cython

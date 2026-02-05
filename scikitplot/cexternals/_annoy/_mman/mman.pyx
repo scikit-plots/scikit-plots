@@ -180,8 +180,9 @@ from libc.string cimport memcpy  # , memset
 # Import C functions from our .pxd declarations
 # Note: The "as mm" creates a namespace alias for cleaner code
 from scikitplot.cexternals._annoy._mman.mman cimport (
-    mmap, munmap, mprotect, msync,  # mlock, munlock, ftruncate,
+    mmap, munmap, mprotect, msync, mlock, munlock,
     off_t, is_map_failed, validate_prot_flags, validate_map_flags,
+    get_page_size,
 )
 
 # Python-level imports
@@ -197,7 +198,7 @@ from typing import Final
 # Module metadata
 # ===========================================================================
 
-__version__: Final[str] = "1.0.0"
+__version__: Final[str] = "1.0.1"
 
 # ===========================================================================
 # Compile-time constants using DEF
@@ -205,7 +206,7 @@ __version__: Final[str] = "1.0.0"
 
 DEF VERSION_MAJOR = 1
 DEF VERSION_MINOR = 0
-DEF VERSION_PATCH = 0
+DEF VERSION_PATCH = 1
 
 # ===========================================================================
 # Exported memory protection flags (runtime)
@@ -232,7 +233,7 @@ MS_SYNC: Final[int] = 2
 MS_INVALIDATE: Final[int] = 4
 
 # MAP_FAILED: Final[int] = ((void *)-1)
-FILE_MAP_EXECUTE = 0x0020
+FILE_MAP_EXECUTE: Final[int] = 0x0020
 
 # ===========================================================================
 # Exception classes
@@ -748,9 +749,9 @@ cdef class MemoryMap:
         # 2. Snapshot base pointer FIRST (CRITICAL for safety)
         cdef void* base_addr = self._addr
 
-        # 3. Calculate destination from C variable (safe)
-        # cdef uintptr_t addr = <uintptr_t>base_addr
-        cdef char* dst = <char*>base_addr + <uintptr_t>offset
+        # 3. Derive destination via uintptr_t (matches read() path exactly)
+        cdef uintptr_t addr = <uintptr_t>base_addr
+        cdef char* dst = <char*>(addr + <uintptr_t>offset)
 
         # 4. Pure C copy
         with nogil:
@@ -844,6 +845,239 @@ cdef class MemoryMap:
         if result != 0:
             err = errno
             raise MMapError(f"Failed to sync: errno={err}")
+
+    # ---------------------------------------------------------------
+    # Page-size query (exposes the C-level helper to Python)
+    # ---------------------------------------------------------------
+
+    @property
+    def page_size(self) -> int:
+        """
+        System page size in bytes.
+
+        Returns
+        -------
+        int
+            Page size as reported by the kernel (e.g. 4096 or 16384).
+
+        Notes
+        -----
+        File-mapping offsets passed to ``create_file_mapping`` must be
+        multiples of this value.  Use it for manual alignment::
+
+            aligned = (raw_offset // m.page_size) * m.page_size
+        """
+        return <int>get_page_size()
+
+    # ---------------------------------------------------------------
+    # Page-locking (mlock / munlock)
+    # ---------------------------------------------------------------
+
+    def mlock(self) -> None:
+        """
+        Lock mapped pages in physical memory (prevent swapping).
+
+        Raises
+        ------
+        ValueError
+            If the mapping is already closed.
+        MMapError
+            If the underlying ``mlock()`` system call fails.  On Linux
+            this commonly means the process has exceeded its
+            ``RLIMIT_MEMLOCK`` soft limit; on Windows it may require
+            ``SE_LOCK_MEMORY_NAME`` privilege.
+
+        Notes
+        -----
+        Locking pages is useful for latency-sensitive code (e.g.
+        real-time signal processing) that cannot tolerate page faults.
+        Remember to call :py:meth:`munlock` when the guarantee is no
+        longer needed; otherwise the locked pages count against the
+        process resource limit for the lifetime of the mapping.
+
+        Examples
+        --------
+        >>> with MemoryMap.create_anonymous(4096) as m:
+        ...     m.mlock()       # pages will not be swapped out
+        ...     m.write(b"latency-critical data")
+        ...     m.munlock()     # release the lock
+        """
+        if not self._is_valid:
+            raise ValueError("Mapping is closed")
+
+        cdef void* c_addr = self._addr
+        cdef size_t c_size = self._size
+
+        cdef int result
+        with nogil:
+            result = mlock(c_addr, c_size)
+
+        if result != 0:
+            err = errno
+            raise MMapError(
+                f"mlock failed: errno={err} "
+                f"(check RLIMIT_MEMLOCK / SeLockmemoryPrivilege)"
+            )
+
+    def munlock(self) -> None:
+        """
+        Unlock mapped pages (allow the kernel to swap them out again).
+
+        Raises
+        ------
+        ValueError
+            If the mapping is already closed.
+        MMapError
+            If the underlying ``munlock()`` system call fails.
+
+        Notes
+        -----
+        This is the inverse of :py:meth:`mlock`.  Calling ``munlock``
+        on pages that were never locked is a no-op on most platforms
+        but the behaviour is technically undefined by POSIX; avoid it.
+
+        Examples
+        --------
+        >>> with MemoryMap.create_anonymous(4096) as m:
+        ...     m.mlock()
+        ...     # … do latency-critical work …
+        ...     m.munlock()
+        """
+        if not self._is_valid:
+            raise ValueError("Mapping is closed")
+
+        cdef void* c_addr = self._addr
+        cdef size_t c_size = self._size
+
+        cdef int result
+        with nogil:
+            result = munlock(c_addr, c_size)
+
+        if result != 0:
+            err = errno
+            raise MMapError(f"munlock failed: errno={err}")
+
+    # ---------------------------------------------------------------
+    # Zero-copy NumPy view
+    # ---------------------------------------------------------------
+
+    def as_numpy_array(self, dtype=None):
+        """
+        Return a NumPy array that shares memory with this mapping.
+
+        No data is copied.  The returned array's lifetime is tied to
+        this ``MemoryMap`` instance: using the array after the mapping
+        is closed is undefined behaviour.
+
+        Parameters
+        ----------
+        dtype : numpy.dtype or None, optional
+            Desired element type of the output array.  When *None*
+            (default) the raw view is returned as ``numpy.uint8``.
+            Any dtype whose ``itemsize`` evenly divides ``self.size``
+            is accepted.
+
+        Returns
+        -------
+        numpy.ndarray
+            A 1-D array viewing the mapped memory.  The ``WRITEABLE``
+            flag is set only when the mapping was created with
+            ``PROT_WRITE``.
+
+        Raises
+        ------
+        ValueError
+            If the mapping is closed, or if ``dtype.itemsize`` does
+            not evenly divide the mapping size.
+        ImportError
+            If NumPy is not installed.
+
+        Notes
+        -----
+        Lifetime management follows the same pattern used by
+        ``numpy.memmap``: a ctypes buffer object is created from the
+        raw pointer via ``from_address`` (zero-copy), then passed as
+        the ``buffer=`` argument to ``numpy.ndarray``.  NumPy sets
+        ``arr.base`` to that buffer object, which in turn holds a
+        ``_mmap_ref`` back-reference to this ``MemoryMap``.  The chain
+        ``arr  →  arr.base (ctypes buf)  →  buf._mmap_ref (MemoryMap)``
+        keeps everything alive as long as the array exists.
+
+        Plain ``numpy.ndarray`` is a C-extension type with **no**
+        ``__dict__``; you cannot attach arbitrary attributes to it.
+        The ctypes array *does* have a ``__dict__``, which is why the
+        back-reference is stored there and not on the ndarray itself.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> with MemoryMap.create_anonymous(4096) as m:
+        ...     arr = m.as_numpy_array()          # uint8 view
+        ...     arr[:5] = [72, 101, 108, 108, 111]
+        ...     print(m.read(5))
+        b'Hello'
+
+        Reinterpret as 32-bit floats:
+
+        >>> with MemoryMap.create_anonymous(4096) as m:
+        ...     arr = m.as_numpy_array(dtype=np.float32)
+        ...     arr[0] = 3.14
+        """
+        import ctypes
+        import numpy as np
+
+        if not self._is_valid:
+            raise ValueError("Mapping is closed")
+
+        if dtype is None:
+            dtype = np.dtype(np.uint8)
+        else:
+            dtype = np.dtype(dtype)
+
+        if self._size % dtype.itemsize != 0:
+            raise ValueError(
+                f"Mapping size {self._size} is not evenly divisible "
+                f"by dtype itemsize {dtype.itemsize}"
+            )
+
+        cdef size_t n_elements = self._size // dtype.itemsize
+
+        # -----------------------------------------------------------
+        # 1. Build a ctypes buffer that points at the mapped memory.
+        #    from_address does NOT copy — it is a thin C-pointer view.
+        #    ctypes arrays have a __dict__, so we can store our
+        #    back-reference on them (plain ndarray cannot do this).
+        # -----------------------------------------------------------
+        cdef uintptr_t raw_addr = <uintptr_t>self._addr
+        buf = (ctypes.c_char * self._size).from_address(raw_addr)
+
+        # -----------------------------------------------------------
+        # 2. Attach back-reference to self on the ctypes buffer.
+        #    This keeps the MemoryMap (and therefore the mmap region)
+        #    alive as long as buf is alive.  buf stays alive because
+        #    ndarray.base will point to it (step 3).
+        # -----------------------------------------------------------
+        buf._mmap_ref = self
+
+        # -----------------------------------------------------------
+        # 3. Construct ndarray using buffer= (the canonical numpy
+        #    pattern; see numpy.memmap source).  ndarray.__new__ sets
+        #    arr.base = buf automatically — no copy, no ambiguity.
+        # -----------------------------------------------------------
+        arr = np.ndarray(
+            shape=(n_elements,),
+            dtype=dtype,
+            buffer=buf,
+        )
+
+        # -----------------------------------------------------------
+        # 4. Set WRITEABLE to match the actual kernel protection.
+        #    ndarray constructed from a buffer defaults to writeable;
+        #    force it off when the mapping is read-only.
+        # -----------------------------------------------------------
+        arr.flags.writeable = bool(self._prot & PROT_WRITE)
+
+        return arr
 
     def __enter__(self) -> MemoryMap:
         """Context manager entry."""

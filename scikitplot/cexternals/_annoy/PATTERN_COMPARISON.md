@@ -385,14 +385,14 @@ def method(self, param: int) -> int:
 │                                                             │
 │  C/C++ Header (.h)  ──┐                                     │
 │                       │                                     │
-│  Cython Decls (.pxd)  ├──> Modern Cython Best Practices    │
+│  Cython Decls (.pxd)  ├──> Modern Cython Best Practices     │
 │                       │                                     │
-│  Python Wrap (.pyx)   ├──> - DEF constants                 │
+│  Python Wrap (.pyx)   ├──> - DEF constants                  │
 │                       │    - cpdef methods                  │
-│  Type Stubs (.pyi)    ├──> - Properties                    │
+│  Type Stubs (.pyi)    ├──> - Properties                     │
 │                       │    - Memory safety                  │
-│  Tests (.py)          ─┘    - Input validation             │
-│                             - Documentation                 │
+│  Tests (.py)         ─┘    - Input validation               │
+│                            - Documentation                  │
 └─────────────────────────────────────────────────────────────┘
 
     Applied to:              Applied to:
@@ -404,20 +404,6 @@ def method(self, param: int) -> int:
 │ kiss(), flip()   │    │ read(), write()      │
 │ seed property    │    │ addr, size props     │
 │ reset() methods  │    │ close() method       │
-│ Cross-platform   │    │ Windows-only         │
+│ Cross-platform   │    │ Cross-platform       │
 └──────────────────┘    └──────────────────────┘
 ```
-
----
-
-## Conclusion
-
-The **exact same patterns** from `kissrandom` were successfully applied to `mman`:
-
-✅ All 10 core patterns implemented
-✅ Same code quality standards
-✅ Same documentation style
-✅ Same testing approach
-✅ Same memory safety practices
-
-**Result**: Production-ready Cython wrapper following proven best practices.

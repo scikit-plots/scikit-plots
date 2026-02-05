@@ -22,3 +22,9 @@
 # Never both with the same name (.h -> .pxd -> .pyx)
 # Either as a cppclass (C++ side)
 # Or as a cdef class (Python wrapper)
+
+"""
+Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`).
+
+Use ``default_rng()`` to create a `Generator` and call its methods.
+"""

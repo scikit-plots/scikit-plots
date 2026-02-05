@@ -9,11 +9,11 @@
 # type: ignore
 
 """
-Type stubs for kissrandom module.
+Type stubs for KISS random number generator module.
 
-This file provides type hints for Python type checkers (mypy, pyright, etc.)
-and IDE autocompletion. It describes the public Python API exposed by the
-Cython extension module.
+This file provides comprehensive type hints for all public classes and
+functions in the kissrandom module, enabling static type checking with
+mypy, pyright, and IDE autocompletion.
 
 Design Principles
 -----------------
@@ -22,13 +22,6 @@ Design Principles
 - Use precise types (no 'Any' unless unavoidable)
 - Document all public classes and methods with docstrings
 - Keep in sync with kissrandom.pyx implementation
-
-Best Practices
---------------
-- Use `int` for seed types (Python's arbitrary precision int)
-- Use `Final` for constants that should not be reassigned
-- Use `@overload` if methods have multiple signatures
-- Keep stub file minimal - detailed docs go in .pyx docstrings
 
 Notes for Maintainers
 ---------------------
@@ -44,394 +37,518 @@ References
 - Typing documentation: https://docs.python.org/3/library/typing.html
 """
 
-from typing import Final
+from __future__ import annotations
+
+from collections.abc import Sequence
+from contextlib import AbstractContextManager
+from threading import Lock, RLock
+from typing import Any, Final, Literal, overload
+
+import numpy as np
+from numpy.random import SeedSequence as NumpySeedSequence
+from numpy._typing import (
+    ArrayLike,
+    DTypeLike,
+    NDArray,
+    _ShapeLike,
+)
+
+# ===========================================================================
+# Module Metadata
+# ===========================================================================
 
 __version__: Final[str]
 
-class Kiss32Random:
+__all__: list[str]
+
+# ===========================================================================
+# Seed Sequence
+# ===========================================================================
+
+class KissSeedSequence:
     """
-    32-bit KISS random number generator.
+    Seed sequence compatible with numpy.random.SeedSequence.
 
-    A fast, high-quality pseudo-random number generator combining
-    Linear Congruential Generator (LCG), Xorshift, and Multiply-With-Carry
-    (MWC) algorithms.
-
-    Attributes
-    ----------
-    default_seed : int
-        Default seed value (123456789)
-
-    Notes
-    -----
-    - Not cryptographically secure - do NOT use for security purposes
-    - Period: approximately 2^121
-    - Suitable for up to ~2^24 data points
-    - For larger datasets, use Kiss64Random
-
-    Examples
-    --------
-    >>> rng = Kiss32Random(42)
-    >>> rng.kiss()  # Generate random uint32
-    >>> rng.flip()  # Generate random 0 or 1
-    >>> rng.index(10)  # Generate random int in [0, 9]
+    NumPy-compatible seed sequence for KISS RNG with complete serialization support.
     """
 
-    default_seed: Final[int]
+    __module__: str
+
+    entropy: int | None
+    spawn_key: tuple[int, ...]
+    pool_size: int
+    n_children_spawned: int
+
+    def __init__(
+        self,
+        entropy: int | Sequence[int] | None = None,
+        *,
+        spawn_key: Sequence[int] = (),
+        pool_size: int = 4,
+        n_children_spawned: int = 0
+    ) -> None: ...
+
+    def generate_state(
+        self,
+        n_words: int,
+        dtype: DTypeLike = np.uint32
+    ) -> NDArray[np.uint32] | NDArray[np.uint64]: ...
+
+    def spawn(self, n_children: int) -> list[KissSeedSequence]: ...
+
+    # Serialization methods
+    def __getstate__(self) -> dict[str, Any]: ...
+    def __setstate__(self, state: dict[str, Any]) -> None: ...
+    def __reduce__(self) -> tuple[type[KissSeedSequence], tuple[()], dict[str, Any]]: ...
+    def __reduce_ex__(self, protocol: int) -> tuple[type[KissSeedSequence], tuple[()], dict[str, Any]]: ...
+
+    def get_state(self) -> dict[str, Any]: ...
+    def set_state(self, state: dict[str, Any]) -> None: ...
+
+    def get_params(self, deep: bool = True) -> dict[str, Any]: ...
+    def set_params(self, **params: Any) -> KissSeedSequence: ...
+
+    def serialize(self) -> dict[str, Any]: ...
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> KissSeedSequence: ...
+
+    def to_dict(self) -> dict[str, Any]: ...
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> KissSeedSequence: ...
 
     @property
-    def seed(self) -> int:
-        """
-        Get or set the current seed value.
+    def state(self) -> dict[str, Any]: ...
 
-        Returns
-        -------
-        int
-            The seed value that was last used to initialize or reset the RNG
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
 
-        Notes
-        -----
-        Getting the seed returns the normalized seed value that was last set.
-        Setting the seed reinitializes the RNG with the new seed value.
+# ===========================================================================
+# Low-Level RNG Classes
+# ===========================================================================
 
-        Examples
-        --------
-        >>> rng = Kiss32Random(42)
-        >>> rng.seed  # Get current seed
-        42
-        >>> rng.seed = 123  # Set new seed (reinitializes RNG)
-        >>> rng.seed
-        123
-        """
-        ...
-
-    @seed.setter
-    def seed(self, value: int) -> None:
-        """Set new seed and reinitialize RNG."""
-        ...
-
-    def __init__(self, seed: int = 123456789) -> None:
-        """
-        Initialize Kiss32Random with given seed.
-
-        Parameters
-        ----------
-        seed : int, optional
-            Initial seed value. If 0, uses default_seed (123456789).
-            Default: 123456789
-
-        Notes
-        -----
-        - Seed value 0 is automatically normalized to default_seed
-        - All internal state is fully reset when seed is set
-        """
-        ...
-
-    @staticmethod
-    def get_default_seed() -> int:
-        """
-        Get the default seed value.
-
-        Returns
-        -------
-        int
-            Default seed value (123456789)
-        """
-        ...
-
-    @staticmethod
-    def normalize_seed(seed: int) -> int:
-        """
-        Normalize seed to valid non-zero value.
-
-        Parameters
-        ----------
-        seed : int
-            User-provided seed value
-
-        Returns
-        -------
-        int
-            Normalized seed (original if non-zero, else default_seed)
-
-        Notes
-        -----
-        Maps seed==0 to default_seed to avoid degenerate RNG states.
-        """
-        ...
-
-    def reset(self, seed: int) -> None:
-        """
-        Reset RNG state with new seed.
-
-        Parameters
-        ----------
-        seed : int
-            New seed value. If 0, uses default_seed.
-
-        Notes
-        -----
-        - Fully resets all internal state variables
-        - Ensures deterministic behavior from the same seed
-        """
-        ...
-
-    def reset_default(self) -> None:
-        """
-        Reset RNG to default seed.
-
-        Equivalent to reset(default_seed).
-        """
-        ...
-
-    def set_seed(self, seed: int) -> None:
-        """
-        Set new seed (alias for reset).
-
-        Parameters
-        ----------
-        seed : int
-            New seed value. If 0, uses default_seed.
-        """
-        ...
-
-    def kiss(self) -> int:
-        """
-        Generate next random 32-bit unsigned integer.
-
-        Returns
-        -------
-        int
-            Random value in [0, 2^32-1]
-
-        Notes
-        -----
-        This is the core RNG method. Other methods (flip, index) are
-        built on top of kiss().
-        """
-        ...
-
-    def flip(self) -> int:
-        """
-        Generate random binary value (0 or 1).
-
-        Returns
-        -------
-        int
-            Either 0 or 1 with equal probability
-        """
-        ...
-
-    def index(self, n: int) -> int:
-        """
-        Generate random index in range [0, n-1].
-
-        Parameters
-        ----------
-        n : int
-            Upper bound (exclusive). Must be >= 0.
-
-        Returns
-        -------
-        int
-            Random integer in [0, n-1], or 0 if n==0
-
-        Notes
-        -----
-        - Handles n==0 gracefully (returns 0)
-        - Uses modulo bias for simplicity (suitable for non-crypto use)
-        """
-        ...
-
-
-class Kiss64Random:
+class PyKiss32Random:
     """
-    64-bit KISS random number generator.
+    32-bit KISS random number generator with complete serialization support.
 
-    A fast, high-quality pseudo-random number generator for large datasets.
-    Use this when you have more than ~2^24 data points.
-
-    Attributes
-    ----------
-    default_seed : int
-        Default seed value (1234567890987654321)
-
-    Notes
-    -----
-    - Not cryptographically secure - do NOT use for security purposes
-    - Period: approximately 2^250
-    - Recommended for datasets larger than ~16 million points
-    - Slightly slower than Kiss32Random but much longer period
-
-    Examples
-    --------
-    >>> rng = Kiss64Random(12345678901234567890)
-    >>> rng.kiss()  # Generate random uint64
-    >>> rng.flip()  # Generate random 0 or 1
-    >>> rng.index(1000000)  # Generate random int in [0, 999999]
+    Legacy 32-bit KISS RNG (use KissBitGenerator instead).
+    Period: approximately 2^121
     """
 
-    default_seed: Final[int]
+    __module__: str
+
+    lock: Lock
+
+    def __init__(self, seed: int | None = None) -> None: ...
 
     @property
-    def seed(self) -> int:
-        """
-        Get or set the current seed value.
-
-        Returns
-        -------
-        int
-            The seed value that was last used to initialize or reset the RNG
-
-        Notes
-        -----
-        Getting the seed returns the normalized seed value that was last set.
-        Setting the seed reinitializes the RNG with the new seed value.
-
-        Examples
-        --------
-        >>> rng = Kiss64Random(12345678901234567890)
-        >>> rng.seed  # Get current seed
-        12345678901234567890
-        >>> rng.seed = 999  # Set new seed
-        >>> rng.seed
-        999
-        """
-        ...
+    def seed(self) -> int: ...
 
     @seed.setter
-    def seed(self, value: int) -> None:
-        """Set new seed and reinitialize RNG."""
-        ...
-
-    def __init__(self, seed: int = 1234567890987654321) -> None:
-        """
-        Initialize Kiss64Random with given seed.
-
-        Parameters
-        ----------
-        seed : int, optional
-            Initial seed value. If 0, uses default_seed.
-            Default: 1234567890987654321
-
-        Notes
-        -----
-        - Seed value 0 is automatically normalized to default_seed
-        - All internal state is fully reset when seed is set
-        """
-        ...
+    def seed(self, value: int) -> None: ...
 
     @staticmethod
-    def get_default_seed() -> int:
-        """
-        Get the default seed value.
-
-        Returns
-        -------
-        int
-            Default seed value (1234567890987654321)
-        """
-        ...
+    def get_default_seed() -> int: ...
 
     @staticmethod
-    def normalize_seed(seed: int) -> int:
-        """
-        Normalize seed to valid non-zero value.
+    def normalize_seed(seed: int) -> int: ...
 
-        Parameters
-        ----------
-        seed : int
-            User-provided seed value
+    def reset(self, seed: int) -> None: ...
+    def reset_default(self) -> None: ...
+    def set_seed(self, seed: int) -> None: ...
 
-        Returns
-        -------
-        int
-            Normalized seed (original if non-zero, else default_seed)
+    def kiss(self) -> int: ...
+    def flip(self) -> int: ...
+    def index(self, n: int) -> int: ...
 
-        Notes
-        -----
-        Maps seed==0 to default_seed to avoid degenerate RNG states.
-        """
-        ...
+    # Context manager
+    def __enter__(self) -> PyKiss32Random: ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool: ...
 
-    def reset(self, seed: int) -> None:
-        """
-        Reset RNG state with new seed.
+    # Serialization methods
+    def __getstate__(self) -> dict[str, Any]: ...
+    def __setstate__(self, state: dict[str, Any]) -> None: ...
+    def __reduce__(self) -> tuple[type[PyKiss32Random], tuple[int], None]: ...
+    def __reduce_ex__(self, protocol: int) -> tuple[type[PyKiss32Random], tuple[int], None]: ...
 
-        Parameters
-        ----------
-        seed : int
-            New seed value. If 0, uses default_seed.
+    def get_state(self) -> dict[str, Any]: ...
+    def set_state(self, state: dict[str, Any]) -> None: ...
 
-        Notes
-        -----
-        - Fully resets all internal state variables
-        - Ensures deterministic behavior from the same seed
-        """
-        ...
+    def get_params(self, deep: bool = True) -> dict[str, Any]: ...
+    def set_params(self, **params: Any) -> PyKiss32Random: ...
 
-    def reset_default(self) -> None:
-        """
-        Reset RNG to default seed.
+    def serialize(self) -> dict[str, Any]: ...
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> PyKiss32Random: ...
 
-        Equivalent to reset(default_seed).
-        """
-        ...
+    def to_dict(self) -> dict[str, Any]: ...
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PyKiss32Random: ...
 
-    def set_seed(self, seed: int) -> None:
-        """
-        Set new seed (alias for reset).
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
 
-        Parameters
-        ----------
-        seed : int
-            New seed value. If 0, uses default_seed.
-        """
-        ...
 
-    def kiss(self) -> int:
-        """
-        Generate next random 64-bit unsigned integer.
+class PyKiss64Random:
+    """
+    64-bit KISS random number generator with complete serialization support.
 
-        Returns
-        -------
-        int
-            Random value in [0, 2^64-1]
+    Legacy 64-bit KISS RNG (use KissBitGenerator instead).
+    Period: approximately 2^250
+    """
 
-        Notes
-        -----
-        This is the core RNG method. Other methods (flip, index) are
-        built on top of kiss().
-        """
-        ...
+    __module__: str
 
-    def flip(self) -> int:
-        """
-        Generate random binary value (0 or 1).
+    lock: Lock
 
-        Returns
-        -------
-        int
-            Either 0 or 1 with equal probability
-        """
-        ...
+    def __init__(self, seed: int | None = None) -> None: ...
 
-    def index(self, n: int) -> int:
-        """
-        Generate random index in range [0, n-1].
+    @property
+    def seed(self) -> int: ...
 
-        Parameters
-        ----------
-        n : int
-            Upper bound (exclusive). Must be >= 0.
+    @seed.setter
+    def seed(self, value: int) -> None: ...
 
-        Returns
-        -------
-        int
-            Random integer in [0, n-1], or 0 if n==0
+    @staticmethod
+    def get_default_seed() -> int: ...
 
-        Notes
-        -----
-        - Handles n==0 gracefully (returns 0)
-        - Uses modulo bias for simplicity (suitable for non-crypto use)
-        """
-        ...
+    @staticmethod
+    def normalize_seed(seed: int) -> int: ...
+
+    def reset(self, seed: int) -> None: ...
+    def reset_default(self) -> None: ...
+    def set_seed(self, seed: int) -> None: ...
+
+    def kiss(self) -> int: ...
+    def flip(self) -> int: ...
+    def index(self, n: int) -> int: ...
+
+    # Context manager
+    def __enter__(self) -> PyKiss64Random: ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool: ...
+
+    # Serialization methods
+    def __getstate__(self) -> dict[str, Any]: ...
+    def __setstate__(self, state: dict[str, Any]) -> None: ...
+    def __reduce__(self) -> tuple[type[PyKiss64Random], tuple[int], None]: ...
+    def __reduce_ex__(self, protocol: int) -> tuple[type[PyKiss64Random], tuple[int], None]: ...
+
+    def get_state(self) -> dict[str, Any]: ...
+    def set_state(self, state: dict[str, Any]) -> None: ...
+
+    def get_params(self, deep: bool = True) -> dict[str, Any]: ...
+    def set_params(self, **params: Any) -> PyKiss64Random: ...
+
+    def serialize(self) -> dict[str, Any]: ...
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> PyKiss64Random: ...
+
+    def to_dict(self) -> dict[str, Any]: ...
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PyKiss64Random: ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+
+
+def PyKissRandom(
+    seed: int | None = None,
+    bit_width: int | Literal['auto'] | None = None
+) -> PyKiss32Random | PyKiss64Random: ...
+
+# ===========================================================================
+# Bit Generator
+# ===========================================================================
+
+class KissBitGenerator:
+    """
+    NumPy-compatible BitGenerator using KISS algorithm with complete serialization.
+    """
+
+    __module__: str
+
+    lock: Lock
+    seed_seq: KissSeedSequence
+
+    def __init__(
+        self,
+        seed: int | KissSeedSequence | NumpySeedSequence | None = None,
+        *,
+        bit_width: int = 64
+    ) -> None: ...
+
+    # Random generation
+    @overload
+    def random_raw(
+        self, size: None = None, output: Literal[True] = True
+    ) -> int: ...
+
+    @overload
+    def random_raw(
+        self, size: int | tuple[int, ...], output: Literal[True] = True
+    ) -> NDArray[np.uint64]: ...
+
+    @overload
+    def random_raw(
+        self, size: int | tuple[int, ...] | None = None, *, output: Literal[False]
+    ) -> None: ...
+
+    def spawn(self, n_children: int) -> list[KissBitGenerator]: ...
+
+    @property
+    def capsule(self) -> Any: ...
+
+    @property
+    def state(self) -> dict[str, Any]: ...
+
+    @state.setter
+    def state(self, value: dict[str, Any]) -> None: ...
+
+    # Context manager
+    def __enter__(self) -> KissBitGenerator: ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool: ...
+
+    # Serialization methods
+    def __getstate__(self) -> dict[str, Any]: ...
+    def __setstate__(self, state: dict[str, Any]) -> None: ...
+    def __reduce__(self) -> tuple[type[KissBitGenerator], tuple[KissSeedSequence], None]: ...
+    def __reduce_ex__(self, protocol: int) -> tuple[type[KissBitGenerator], tuple[KissSeedSequence], None]: ...
+
+    def get_state(self) -> dict[str, Any]: ...
+    def set_state(self, state: dict[str, Any]) -> None: ...
+
+    def get_params(self, deep: bool = True) -> dict[str, Any]: ...
+    def set_params(self, **params: Any) -> KissBitGenerator: ...
+
+    def serialize(self) -> dict[str, Any]: ...
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> KissBitGenerator: ...
+
+    def to_dict(self) -> dict[str, Any]: ...
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> KissBitGenerator: ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+
+# ===========================================================================
+# Generator
+# ===========================================================================
+
+class KissGenerator:
+    """
+    High-level random number generator using KISS algorithm.
+
+    NumPy Generator-like high-level interface with complete serialization support.
+    """
+
+    __module__: str
+
+    _bit_generator: KissBitGenerator
+    lock: RLock
+
+    def __init__(
+        self, bit_generator: int | KissBitGenerator | None = None
+    ) -> None: ...
+
+    # BitGenerator access
+    @property
+    def bit_generator(self) -> KissBitGenerator: ...
+
+    @bit_generator.setter
+    def bit_generator(self, value: KissBitGenerator) -> None: ...
+
+    def get_bit_generator(self) -> KissBitGenerator: ...
+    def set_bit_generator(self, bit_generator: KissBitGenerator) -> None: ...
+
+    # Random floats
+    @overload
+    def random(
+        self,
+        size: None = None,
+        dtype: DTypeLike = np.float64,
+        out: None = None
+    ) -> float: ...
+
+    @overload
+    def random(
+        self,
+        size: int | tuple[int, ...],
+        dtype: DTypeLike = np.float64,
+        out: NDArray[np.floating[Any]] | None = None
+    ) -> NDArray[np.floating[Any]]: ...
+
+    # Random integers
+    @overload
+    def integers(
+        self,
+        low: int,
+        high: int | None = None,
+        size: None = None,
+        dtype: DTypeLike = np.int64,
+        endpoint: bool = False
+    ) -> int: ...
+
+    @overload
+    def integers(
+        self,
+        low: int,
+        high: int | None = None,
+        size: int | tuple[int, ...] = ...,
+        dtype: DTypeLike = np.int64,
+        endpoint: bool = False
+    ) -> NDArray[np.signedinteger[Any]]: ...
+
+    # Normal distribution
+    @overload
+    def normal(
+        self, loc: float = 0.0, scale: float = 1.0, size: None = None
+    ) -> float: ...
+
+    @overload
+    def normal(
+        self,
+        loc: ArrayLike = 0.0,
+        scale: ArrayLike = 1.0,
+        size: int | tuple[int, ...] | None = ...
+    ) -> NDArray[np.float64]: ...
+
+    # Uniform distribution
+    @overload
+    def uniform(
+        self, low: float = 0.0, high: float = 1.0, size: None = None
+    ) -> float: ...
+
+    @overload
+    def uniform(
+        self,
+        low: ArrayLike = 0.0,
+        high: ArrayLike = 1.0,
+        size: int | tuple[int, ...] | None = ...
+    ) -> NDArray[np.float64]: ...
+
+    # Choice
+    @overload
+    def choice(
+        self,
+        a: int,
+        size: None = None,
+        replace: bool = True,
+        p: ArrayLike | None = None
+    ) -> int: ...
+
+    @overload
+    def choice(
+        self,
+        a: ArrayLike,
+        size: None = None,
+        replace: bool = True,
+        p: ArrayLike | None = None
+    ) -> Any: ...
+
+    @overload
+    def choice(
+        self,
+        a: int | ArrayLike,
+        size: int | tuple[int, ...],
+        replace: bool = True,
+        p: ArrayLike | None = None
+    ) -> NDArray[Any]: ...
+
+    # Array operations
+    def shuffle(self, x: NDArray[Any]) -> None: ...
+
+    # Spawning
+    def spawn(self, n_children: int) -> list[KissGenerator]: ...
+
+    # Context manager
+    def __enter__(self) -> KissGenerator: ...
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool: ...
+
+    # Serialization methods
+    def __getstate__(self) -> dict[str, Any]: ...
+    def __setstate__(self, state: dict[str, Any]) -> None: ...
+    def __reduce__(self) -> tuple[type[KissGenerator], tuple[()], dict[str, Any]]: ...
+    def __reduce_ex__(self, protocol: int) -> tuple[type[KissGenerator], tuple[()], dict[str, Any]]: ...
+
+    def get_state(self) -> dict[str, Any]: ...
+    def set_state(self, state: dict[str, Any]) -> None: ...
+
+    def get_params(self, deep: bool = True) -> dict[str, Any]: ...
+    def set_params(self, **params: Any) -> KissGenerator: ...
+
+    def serialize(self) -> dict[str, Any]: ...
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> KissGenerator: ...
+
+    def to_dict(self) -> dict[str, Any]: ...
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> KissGenerator: ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+
+# ===========================================================================
+# RandomState (Legacy)
+# ===========================================================================
+
+class KissRandomState(KissGenerator):
+    """
+    NumPy RandomState-compatible interface.
+
+    Provides legacy numpy.random.RandomState API for backward compatibility.
+    Inherits all methods from KissGenerator.
+    """
+
+    __module__: str
+
+    def __init__(self, seed: int | None = None) -> None: ...
+
+    # RandomState-specific methods
+    def seed(self, seed: int | None = None) -> None: ...
+
+    def rand(self, *args: int) -> float | NDArray[np.float64]: ...
+    def randn(self, *args: int) -> float | NDArray[np.float64]: ...
+
+    def randint(
+        self,
+        low: int,
+        high: int | None = None,
+        size: int | tuple[int, ...] | None = None,
+        dtype: DTypeLike = np.int64
+    ) -> int | NDArray[np.signedinteger[Any]]: ...
+
+    def random_sample(
+        self, size: int | tuple[int, ...] | None = None
+    ) -> float | NDArray[np.float64]: ...
+
+    # Aliases
+    def random(
+        self, size: int | tuple[int, ...] | None = None
+    ) -> float | NDArray[np.float64]: ...
+
+    def sample(
+        self, size: int | tuple[int, ...] | None = None
+    ) -> float | NDArray[np.float64]: ...
+
+    def ranf(
+        self, size: int | tuple[int, ...] | None = None
+    ) -> float | NDArray[np.float64]: ...
+
+    # State management (RandomState-style)
+    def get_state(self) -> dict[str, Any]: ...
+    def set_state(self, state: dict[str, Any]) -> None: ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+
+# ===========================================================================
+# Convenience Functions
+# ===========================================================================
+
+def default_rng(
+    seed: int | KissSeedSequence | KissBitGenerator | KissGenerator | KissRandomState | None = None
+) -> KissGenerator: ...
+
+def kiss_context(
+    seed: int | KissSeedSequence | None = None
+) -> AbstractContextManager[KissGenerator]: ...

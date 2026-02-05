@@ -74,6 +74,7 @@ PUBLIC_MODULES = [
         "nc",
         "neighbors",
         "preprocessing",
+        "random",
         "seaborn",
         "stats",
         "utils",

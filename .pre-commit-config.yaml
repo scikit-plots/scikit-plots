@@ -30,6 +30,7 @@ repos:
           docs/source/logos/.*|\
           docs/source/_static/logos/.*|\
           docs/source/devel/sampledoc.pdf|\
+          docs/source/user_guide/random/GoodPracticeRNG.pdf|\
           docs/source/.jupyterlite.doit.db|\
           galleries/.*|\
           third_party/.*|\

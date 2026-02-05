@@ -108,6 +108,27 @@ DEF FILE_MAP_EXECUTE = 0x0020
 # IMPORTANT: Do NOT add docstrings inside cdef extern blocks!
 # They cause C++ compilation errors ("Memory does not name a type")
 
+# ---------------------------------------------------------------------------
+# sysconf – required by get_page_size() on POSIX.
+# On Windows sysconf does not exist, but the generated C++ never calls it
+# there because get_page_size() falls back to 4096 when ps <= 0.
+# ---------------------------------------------------------------------------
+cdef extern from "<unistd.h>" nogil:
+    long sysconf(int name) nogil
+
+# _SC_PAGESIZE is a compile-time macro on every POSIX system.  Pull the real
+# value via a verbatim C snippet; provide a Windows dummy so the translation
+# unit parses on MSVC even though the value is never used there.
+cdef extern from *:
+    """
+    #if defined(_WIN32) || defined(_WIN64)
+        #ifndef _SC_PAGESIZE
+            #define _SC_PAGESIZE 30
+        #endif
+    #endif
+    """
+    int _SC_PAGESIZE
+
 cdef extern from "../src/mman.h" nogil:
 
     # --- Memory protection flags ---
@@ -348,28 +369,29 @@ cdef inline int validate_map_flags(int flags) except -1:
 
 cdef inline size_t get_page_size() nogil:
     """
-    Get system page size.
+    Return the OS page size in bytes.
 
     Returns
     -------
     size_t
-        System page size in bytes (typically 4096)
+        Page size as reported by the kernel.  Typical values: 4096 (x86-64),
+        16384 (macOS ARM64 / Apple Silicon).
 
     Notes
     -----
-    - On Unix/Linux: Uses sysconf(_SC_PAGESIZE)
-    - On Windows: Uses GetSystemInfo()
-    - Page size is typically 4096 (4 KB) on x86-64
-    - Offsets for mmap must be page-aligned
+    Calls ``sysconf(_SC_PAGESIZE)`` on POSIX.  Falls back to 4096 when the
+    call returns a non-positive value or on Windows where sysconf is
+    unavailable.
 
     Examples
     --------
     cdef size_t page_size = get_page_size()
     cdef size_t aligned_offset = (offset / page_size) * page_size
     """
-    # This would need platform-specific implementation
-    # For now, return common default
-    return 4096
+    cdef long ps = sysconf(_SC_PAGESIZE)
+    if ps <= 0:
+        return 4096          # fallback; also covers Windows
+    return <size_t>ps
 
 
 cdef inline bint is_page_aligned(size_t value) nogil:

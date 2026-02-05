@@ -1,616 +1,1317 @@
 #!/usr/bin/env python3
 """
-Comprehensive test suite for kissrandom module.
+Comprehensive Test Suite for KISS Random Generator with serialization
 
-This test suite validates:
-- Basic functionality of PyKiss32Random and PyKiss64Random
-- Statistical properties of generated random numbers
-- Edge cases and error handling
-- Property-based seed management
-- Reproducibility and determinism
-- Performance benchmarks
-
-Test Organization
------------------
-- test_kiss32_*: Tests for PyKiss32Random
-- test_kiss64_*: Tests for PyKiss64Random
-- test_statistical_*: Statistical tests
-- test_benchmark_*: Performance benchmarks
-
-Running Tests
--------------
-Run all tests:
-    pytest test_kissrandom.py -v
-
-Run specific test:
-    pytest test_kissrandom.py::test_kiss32_basic -v
-
-Run with coverage:
-    pytest test_kissrandom.py --cov=kissrandom --cov-report=html
-
-Skip slow tests:
-    pytest test_kissrandom.py -m "not slow"
-
-Run only benchmarks:
-    pytest test_kissrandom.py -m benchmark
-
-Design Principles
------------------
-- Test each public method thoroughly
-- Validate edge cases (n=0, overflow, etc.)
-- Check statistical properties (within reason)
-- Test reproducibility from same seeds
-- Validate error handling
-- Benchmark performance
-- Use fixtures for common setup
-- Clear test names and docstrings
-
-References
-----------
-- pytest: https://docs.pytest.org/
-- NumPy testing: https://numpy.org/doc/stable/reference/testing.html
+Tests all features including:
+✅ PyKiss32Random / PyKiss64Random with full serialization
+✅ PyKissRandom auto-detection
+✅ Context managers
+✅ Thread safety
+✅ KissSeedSequence
+✅ KissBitGenerator
+✅ KissGenerator
+✅ KissRandomState (NEW)
+✅ default_rng()
+✅ kiss_context()
+✅ Pickle support (__getstate__, __setstate__, __reduce__, __reduce_ex__)
+✅ State management (get_state, set_state)
+✅ Sklearn compatibility (get_params, set_params)
+✅ JSON serialization (serialize, deserialize, to_dict, from_dict)
+✅ Statistical validation
+✅ Reproducibility
 """
 
-# %%
 import sys
-from typing import List, Callable
+import time
+import pickle
+import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+import numpy as np
+from scipy import stats
 
+# Import module
 try:
-    import numpy as np
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
-    np = None
-
-# Import the module to test
-try:
-    from scikitplot.cexternals._annoy._kissrandom import kissrandom
-    from scikitplot.cexternals._annoy._kissrandom.kissrandom import PyKiss32Random, PyKiss64Random
+    from scikitplot.cexternals._annoy._kissrandom.kissrandom import (
+        PyKiss32Random,
+        PyKiss64Random,
+        PyKissRandom,
+        KissSeedSequence,
+        KissBitGenerator,
+        KissGenerator,
+        KissRandomState,
+        default_rng,
+        kiss_context,
+    )
 except ImportError as e:
     pytest.skip(f"kissrandom module not built: {e}", allow_module_level=True)
-
 
 # ===========================================================================
 # Test Fixtures
 # ===========================================================================
 
 @pytest.fixture
-def kiss32_default():
-    """Fixture providing PyKiss32Random with default seed."""
-    return PyKiss32Random()
-
-
-@pytest.fixture
-def kiss32_fixed():
-    """Fixture providing PyKiss32Random with fixed seed for reproducibility."""
+def kiss32():
+    """PyKiss32Random with fixed seed."""
     return PyKiss32Random(42)
 
-
 @pytest.fixture
-def kiss64_default():
-    """Fixture providing PyKiss64Random with default seed."""
-    return PyKiss64Random()
-
-
-@pytest.fixture
-def kiss64_fixed():
-    """Fixture providing PyKiss64Random with fixed seed for reproducibility."""
+def kiss64():
+    """PyKiss64Random with fixed seed."""
     return PyKiss64Random(42)
 
+@pytest.fixture
+def seed_sequence():
+    """KissSeedSequence with fixed seed."""
+    return KissSeedSequence(42)
+
+@pytest.fixture
+def bit_generator():
+    """KissBitGenerator with fixed seed."""
+    return KissBitGenerator(42)
+
+@pytest.fixture
+def generator():
+    """KissGenerator with fixed seed."""
+    return KissGenerator(42)
+
+@pytest.fixture
+def random_state():
+    """KissRandomState with fixed seed."""
+    return KissRandomState(42)
 
 # ===========================================================================
-# Module-Level Tests
+# Test Serialization - ALL CLASSES
 # ===========================================================================
 
-# def test_module_version():
-#     """Test that module has version attribute."""
-#     assert hasattr(kissrandom, '__version__')
-#     assert isinstance(kissrandom.__version__, str)
-#     assert len(kissrandom.__version__) > 0
+class TestPickleSupport:
+    """Test pickle support for all classes."""
+
+    def test_pickle_kiss32_round_trip(self, kiss32):
+        """Test PyKiss32Random pickle round-trip."""
+        # Generate sequence
+        seq1 = [kiss32.kiss() for _ in range(5)]
+
+        # Pickle and unpickle
+        pickled = pickle.dumps(kiss32)
+        restored = pickle.loads(pickled)
+
+        # Generate sequence from restored
+        seq2 = [restored.kiss() for _ in range(5)]
+
+        # Sequences should match
+        assert seq1 == seq2
+
+    def test_pickle_kiss64_round_trip(self, kiss64):
+        """Test PyKiss64Random pickle round-trip."""
+        # Generate sequence
+        seq1 = [kiss64.kiss() for _ in range(5)]
+
+        # Pickle and unpickle
+        pickled = pickle.dumps(kiss64)
+        restored = pickle.loads(pickled)
+
+        # Generate sequence from restored
+        seq2 = [restored.kiss() for _ in range(5)]
+
+        # Sequences should match
+        assert seq1 == seq2
+
+    def test_pickle_seed_sequence_round_trip(self, seed_sequence):
+        """Test KissSeedSequence pickle round-trip."""
+        # Get state before
+        state1 = seed_sequence.generate_state(5)
+
+        # Pickle and unpickle
+        pickled = pickle.dumps(seed_sequence)
+        restored = pickle.loads(pickled)
+
+        # Generate state from restored
+        state2 = restored.generate_state(5)
+
+        # States should match
+        assert np.array_equal(state1, state2)
+
+    def test_pickle_bit_generator_round_trip(self, bit_generator):
+        """Test KissBitGenerator pickle round-trip."""
+        # Generate sequence
+        seq1 = [bit_generator.random_raw() for _ in range(5)]
+
+        # Pickle and unpickle
+        pickled = pickle.dumps(bit_generator)
+        restored = pickle.loads(pickled)
+
+        # Generate sequence from restored
+        seq2 = [restored.random_raw() for _ in range(5)]
+
+        # Sequences should match
+        assert seq1 == seq2
+
+    def test_pickle_generator_round_trip(self, generator):
+        """Test KissGenerator pickle round-trip."""
+        # Generate sequence
+        seq1 = generator.random(10)
+
+        # Pickle and unpickle
+        pickled = pickle.dumps(generator)
+        restored = pickle.loads(pickled)
+
+        # Generate sequence from restored
+        seq2 = restored.random(10)
+
+        # Sequences should match
+        assert np.allclose(seq1, seq2)
+
+    def test_pickle_random_state_round_trip(self, random_state):
+        """Test KissRandomState pickle round-trip."""
+        # Generate sequence
+        seq1 = random_state.rand(10)
+
+        # Pickle and unpickle
+        pickled = pickle.dumps(random_state)
+        restored = pickle.loads(pickled)
+
+        # Generate sequence from restored
+        seq2 = restored.rand(10)
+
+        # Sequences should match
+        assert np.allclose(seq1, seq2)
+
+    def test_pickle_all_protocols(self):
+        """Test all classes with all pickle protocols."""
+        objects = [
+            PyKiss32Random(42),
+            PyKiss64Random(42),
+            KissSeedSequence(42),
+            KissBitGenerator(42),
+            KissGenerator(42),
+            KissRandomState(42),
+        ]
+
+        for obj in objects:
+            for protocol in range(pickle.HIGHEST_PROTOCOL + 1):
+                pickled = pickle.dumps(obj, protocol=protocol)
+                restored = pickle.loads(pickled)
+                assert type(restored) is type(obj)
 
 
-def test_module_exports():
-    """Test that module exports expected classes."""
-    assert hasattr(kissrandom, 'PyKiss32Random')
-    assert hasattr(kissrandom, 'PyKiss64Random')
+class TestStateManagement:
+    """Test get_state/set_state for all classes."""
+
+    def test_kiss32_get_set_state(self):
+        """Test PyKiss32Random state management."""
+        rng1 = PyKiss32Random(42)
+        seq1 = [rng1.kiss() for _ in range(5)]
+
+        # Get state
+        state = rng1.get_state()
+        assert isinstance(state, dict)
+        assert "seed" in state
+        assert "__version__" in state
+
+        # Create new RNG and set state
+        rng2 = PyKiss32Random(0)
+        rng2.set_state(state)
+
+        # Generate same sequence
+        seq2 = [rng2.kiss() for _ in range(5)]
+        assert seq1 == seq2
+
+    def test_kiss64_get_set_state(self):
+        """Test PyKiss64Random state management."""
+        rng1 = PyKiss64Random(42)
+        seq1 = [rng1.kiss() for _ in range(5)]
+
+        # Get state
+        state = rng1.get_state()
+        assert isinstance(state, dict)
+        assert "seed" in state
+        assert "__version__" in state
+
+        # Create new RNG and set state
+        rng2 = PyKiss64Random(0)
+        rng2.set_state(state)
+
+        # Generate same sequence
+        seq2 = [rng2.kiss() for _ in range(5)]
+        assert seq1 == seq2
+
+    def test_seed_sequence_get_set_state(self):
+        """Test KissSeedSequence state management."""
+        seq1 = KissSeedSequence(42)
+        state1 = seq1.generate_state(5)
+
+        # Get state
+        state = seq1.get_state()
+        assert isinstance(state, dict)
+        assert "entropy" in state
+
+        # Create new and set state
+        seq2 = KissSeedSequence(0)
+        seq2.set_state(state)
+
+        # Generate same state
+        state2 = seq2.generate_state(5)
+        assert np.array_equal(state1, state2)
+
+    def test_bit_generator_get_set_state(self):
+        """Test KissBitGenerator state management."""
+        bg1 = KissBitGenerator(42)
+        seq1 = [bg1.random_raw() for _ in range(5)]
+
+        # Get state
+        state = bg1.get_state()
+        assert isinstance(state, dict)
+        assert "seed_sequence" in state
+        assert "seed_sequence_state" in state
+
+        # Create new and set state
+        bg2 = KissBitGenerator(0)
+        bg2.set_state(state)
+
+        # Generate same sequence
+        seq2 = [bg2.random_raw() for _ in range(5)]
+        assert seq1 == seq2
+
+    def test_generator_get_set_state(self):
+        """Test KissGenerator state management."""
+        gen1 = KissGenerator(42)
+        seq1 = gen1.random(10)
+
+        # Get state
+        state = gen1.get_state()
+        assert isinstance(state, dict)
+        assert "bit_generator" in state
+        assert "bit_generator_state" in state
+
+        # Create new and set state
+        gen2 = KissGenerator(0)
+        gen2.set_state(state)
+
+        # Generate same sequence
+        seq2 = gen2.random(10)
+        assert np.allclose(seq1, seq2)
+
+    def test_random_state_get_set_state(self):
+        """Test KissRandomState state management."""
+        rs1 = KissRandomState(42)
+        seq1 = rs1.rand(10)
+
+        # Get state
+        state = rs1.get_state()
+        assert isinstance(state, dict)
+
+        # Create new and set state
+        rs2 = KissRandomState(0)
+        rs2.set_state(state)
+
+        # Generate same sequence
+        seq2 = rs2.rand(10)
+        assert np.allclose(seq1, seq2)
 
 
-# ===========================================================================
-# PyKiss32Random - Basic Functionality Tests
-# ===========================================================================
+class TestSklearnCompatibility:
+    """Test get_params/set_params for sklearn compatibility."""
 
-class TestPyKiss32RandomBasic:
-    """Basic functionality tests for PyKiss32Random."""
-
-    def test_initialization_default(self):
-        """Test initialization with default seed."""
-        rng = PyKiss32Random()
-        assert rng is not None
-        assert rng.seed == PyKiss32Random.get_default_seed()
-
-    def test_initialization_custom_seed(self):
-        """Test initialization with custom seed."""
-        seed = 12345
-        rng = PyKiss32Random(seed)
-        assert rng.seed == seed
-
-    def test_initialization_zero_seed(self):
-        """Test that seed=0 is normalized to default_seed."""
-        rng = PyKiss32Random(0)
-        assert rng.seed == PyKiss32Random.get_default_seed()
-
-    def test_initialization_none_seed(self):
-        """Test initialization with None (should use default)."""
-        rng = PyKiss32Random(None)
-        assert rng.seed == PyKiss32Random.get_default_seed()
-
-    def test_initialization_invalid_seed_negative(self):
-        """Test that negative seed raises ValueError."""
-        with pytest.raises(ValueError, match="seed must be in"):
-            PyKiss32Random(-1)
-
-    def test_initialization_invalid_seed_overflow(self):
-        """Test that seed > 2^32-1 raises ValueError."""
-        with pytest.raises(ValueError, match="seed must be in"):
-            PyKiss32Random(2**32)
-
-    def test_default_seed_constant(self):
-        """Test that default_seed is correct constant."""
-        assert PyKiss32Random.get_default_seed() == 123456789
-
-    def test_get_default_seed(self):
-        """Test get_default_seed static method."""
-        assert PyKiss32Random.get_default_seed() == 123456789
-
-    def test_normalize_seed_nonzero(self):
-        """Test normalize_seed with non-zero value."""
-        assert PyKiss32Random.normalize_seed(42) == 42
-
-    def test_normalize_seed_zero(self):
-        """Test normalize_seed with zero."""
-        assert PyKiss32Random.normalize_seed(0) == PyKiss32Random.get_default_seed()
-
-    def test_repr(self):
-        """Test string representation."""
+    def test_kiss32_get_set_params(self):
+        """Test PyKiss32Random sklearn compatibility."""
         rng = PyKiss32Random(42)
-        repr_str = repr(rng)
-        assert "PyKiss32Random" in repr_str
-        assert "42" in repr_str
 
-    def test_str(self):
-        """Test string conversion."""
-        rng = PyKiss32Random(42)
-        str_repr = str(rng)
-        assert "PyKiss32Random" in str_repr
+        # Get params
+        params = rng.get_params()
+        assert isinstance(params, dict)
+        assert "seed" in params
+        assert params["seed"] == 42
+
+        # Set params
+        rng.set_params(seed=123)
+        assert rng.seed == 123
+
+    def test_kiss64_get_set_params(self):
+        """Test PyKiss64Random sklearn compatibility."""
+        rng = PyKiss64Random(42)
+
+        # Get params
+        params = rng.get_params()
+        assert isinstance(params, dict)
+        assert "seed" in params
+        assert params["seed"] == 42
+
+        # Set params
+        rng.set_params(seed=123)
+        assert rng.seed == 123
+
+    def test_seed_sequence_get_set_params(self):
+        """Test KissSeedSequence sklearn compatibility."""
+        seq = KissSeedSequence(42)
+
+        # Get params
+        params = seq.get_params()
+        assert isinstance(params, dict)
+        assert "entropy" in params
+
+        # Set params
+        seq.set_params(entropy=123)
+        assert seq.entropy == 123
+
+    def test_bit_generator_get_set_params(self):
+        """Test KissBitGenerator sklearn compatibility."""
+        bg = KissBitGenerator(42)
+
+        # Get params
+        params = bg.get_params(deep=True)
+        assert isinstance(params, dict)
+        assert "seed" in params
+
+    def test_generator_get_set_params(self):
+        """Test KissGenerator sklearn compatibility."""
+        gen = KissGenerator(42)
+
+        # Get params
+        params = gen.get_params(deep=True)
+        assert isinstance(params, dict)
+
+    def test_random_state_get_set_params(self):
+        """Test KissRandomState sklearn compatibility."""
+        rs = KissRandomState(42)
+
+        # Get params (inherits from KissGenerator)
+        params = rs.get_params(deep=True)
+        assert isinstance(params, dict)
 
 
-class TestPyKiss32RandomSeedProperty:
-    """Tests for seed property getter/setter."""
+class TestJSONSerialization:
+    """Test serialize/deserialize for JSON compatibility."""
 
-    def test_seed_getter(self):
-        """Test seed property getter."""
+    def test_kiss32_json_round_trip(self):
+        """Test PyKiss32Random JSON serialization."""
+        rng1 = PyKiss32Random(42)
+        seq1 = [rng1.kiss() for _ in range(5)]
+
+        # Serialize to JSON
+        data = rng1.serialize()
+        json_str = json.dumps(data)
+
+        # Deserialize
+        loaded_data = json.loads(json_str)
+        rng2 = PyKiss32Random.deserialize(loaded_data)
+
+        # Generate same sequence
+        seq2 = [rng2.kiss() for _ in range(5)]
+        assert seq1 == seq2
+
+    def test_kiss64_json_round_trip(self):
+        """Test PyKiss64Random JSON serialization."""
+        rng1 = PyKiss64Random(42)
+        seq1 = [rng1.kiss() for _ in range(5)]
+
+        # Serialize to JSON
+        data = rng1.serialize()
+        json_str = json.dumps(data)
+
+        # Deserialize
+        loaded_data = json.loads(json_str)
+        rng2 = PyKiss64Random.deserialize(loaded_data)
+
+        # Generate same sequence
+        seq2 = [rng2.kiss() for _ in range(5)]
+        assert seq1 == seq2
+
+    def test_seed_sequence_json_round_trip(self):
+        """Test KissSeedSequence JSON serialization."""
+        seq1 = KissSeedSequence(42)
+        state1 = seq1.generate_state(5)
+
+        # Serialize to JSON
+        data = seq1.serialize()
+        json_str = json.dumps(data)
+
+        # Deserialize
+        loaded_data = json.loads(json_str)
+        seq2 = KissSeedSequence.deserialize(loaded_data)
+
+        # Generate same state
+        state2 = seq2.generate_state(5)
+        assert np.array_equal(state1, state2)
+
+    # @pytest.mark.xfail(reason="Test data unavailable.")
+    def test_bit_generator_json_round_trip(self):
+        """Test KissBitGenerator JSON serialization."""
+        bg1 = KissBitGenerator(42)
+        seq1 = [bg1.random_raw() for _ in range(5)]
+
+        # Serialize to JSON
+        data = bg1.serialize()
+        json_str = json.dumps(data)
+
+        # Deserialize
+        # with pytest.raises(Exception) as e:
+        loaded_data = json.loads(json_str)
+        bg2 = KissBitGenerator.deserialize(loaded_data)
+
+        # Generate same sequence
+        seq2 = [bg2.random_raw() for _ in range(5)]
+        assert seq1 == seq2
+
+    def test_generator_json_round_trip(self):
+        """Test KissGenerator JSON serialization."""
+        gen1 = KissGenerator(42)
+        seq1 = gen1.random(10)
+
+        # Serialize to JSON
+        data = gen1.serialize()
+        json_str = json.dumps(data)
+
+        # Deserialize
+        loaded_data = json.loads(json_str)
+        gen2 = KissGenerator.deserialize(loaded_data)
+
+        # Generate same sequence
+        seq2 = gen2.random(10)
+        assert np.allclose(seq1, seq2)
+
+    def test_random_state_json_round_trip(self):
+        """Test KissRandomState JSON serialization (inherits)."""
+        rs1 = KissRandomState(42)
+        seq1 = rs1.rand(10)
+
+        # Serialize to JSON
+        data = rs1.serialize()
+        json_str = json.dumps(data)
+
+        # Deserialize
+        loaded_data = json.loads(json_str)
+        rs2 = KissRandomState.deserialize(loaded_data)
+
+        # Generate same sequence
+        seq2 = rs2.rand(10)
+        assert np.allclose(seq1, seq2)
+
+    def test_to_dict_from_dict_aliases(self):
+        """Test to_dict/from_dict aliases."""
+        gen1 = KissGenerator(42)
+
+        # to_dict is alias for serialize
+        data1 = gen1.to_dict()
+        data2 = gen1.serialize()
+        assert data1 == data2
+
+        # from_dict is alias for deserialize
+        gen2 = KissGenerator.from_dict(data1)
+        assert isinstance(gen2, KissGenerator)
+
+
+class TestMetadata:
+    """Test metadata inclusion in serialization."""
+
+    def test_metadata_in_serialization(self):
+        """Test that metadata is included in serialize()."""
+        gen = KissGenerator(42)
+        data = gen.serialize()
+
+        # Check metadata
+        assert "__version__" in data
+        assert "metadata" in data
+        assert "python_version" in data["metadata"]
+        assert "numpy_version" in data["metadata"]
+        assert "platform" in data["metadata"]
+
+    def test_class_and_module_in_serialization(self):
+        """Test that __class__ and __module__ are included."""
+        classes = [
+            (PyKiss32Random(42), PyKiss32Random(42).__str__()),
+            (PyKiss64Random(42), PyKiss64Random(42).__str__()),
+            (KissSeedSequence(42), KissSeedSequence(42).__str__()),
+            (KissBitGenerator(42), KissBitGenerator(42).__str__()),
+            (KissGenerator(42), KissGenerator(42).__str__()),
+            (KissRandomState(42), KissGenerator(42).__str__()),  # inherited
+        ]
+
+        for obj, class_name in classes:
+            data = obj.serialize()
+            assert "__class__" in data
+            assert data["__class__"] == class_name
+            assert "__module__" in data
+
+
+# ===========================================================================
+# Test PyKiss32Random / PyKiss64Random
+# ===========================================================================
+
+class TestLowLevelAPI:
+    """Test low-level PyKiss32Random and PyKiss64Random."""
+
+    def test_kiss32_basic(self, kiss32):
+        """Test PyKiss32Random basic functionality."""
+        # kiss() returns uint32
+        value = kiss32.kiss()
+        assert isinstance(value, int)
+        assert 0 <= value <= 0xFFFFFFFF
+
+        # flip() returns 0 or 1
+        flip_val = kiss32.flip()
+        assert flip_val in (0, 1)
+
+        # index(n) returns value in [0, n-1]
+        idx = kiss32.index(100)
+        assert 0 <= idx < 100
+
+    def test_kiss64_basic(self, kiss64):
+        """Test PyKiss64Random basic functionality."""
+        # kiss() returns uint64
+        value = kiss64.kiss()
+        assert isinstance(value, int)
+        assert 0 <= value <= 0xFFFFFFFFFFFFFFFF
+
+        # flip() returns 0 or 1
+        flip_val = kiss64.flip()
+        assert flip_val in (0, 1)
+
+        # index(n) returns value in [0, n-1]
+        idx = kiss64.index(100)
+        assert 0 <= idx < 100
+
+    def test_kiss32_seed_property(self):
+        """Test PyKiss32Random seed property."""
         rng = PyKiss32Random(42)
         assert rng.seed == 42
 
-    def test_seed_setter(self):
-        """Test seed property setter."""
-        rng = PyKiss32Random(42)
+        # Change seed
         rng.seed = 123
         assert rng.seed == 123
 
-    def test_seed_setter_resets_state(self):
-        """Test that setting seed resets internal state."""
-        rng = PyKiss32Random(42)
-        val1 = rng.kiss()
-
-        rng.seed = 42  # Reset to same seed
-        val2 = rng.kiss()
-
-        assert val1 == val2  # Should produce same first value
-
-    def test_seed_setter_invalid_negative(self):
-        """Test seed setter with negative value."""
-        rng = PyKiss32Random()
-        with pytest.raises(ValueError, match="seed must be in"):
-            rng.seed = -1
-
-    def test_seed_setter_invalid_overflow(self):
-        """Test seed setter with overflow value."""
-        rng = PyKiss32Random()
-        with pytest.raises(ValueError, match="seed must be in"):
-            rng.seed = 2**32
-
-
-class TestPyKiss32RandomMethods:
-    """Tests for PyKiss32Random core methods."""
-
-    def test_kiss_returns_uint32(self, kiss32_fixed):
-        """Test that kiss() returns valid uint32."""
-        val = kiss32_fixed.kiss()
-        assert isinstance(val, int)
-        assert 0 <= val < 2**32
-
-    def test_kiss_produces_different_values(self, kiss32_fixed):
-        """Test that consecutive kiss() calls produce different values."""
-        values = [kiss32_fixed.kiss() for _ in range(100)]
-        unique_values = len(set(values))
-        # Should have at least 95% unique values (probabilistic test)
-        assert unique_values >= 95
-
-    def test_flip_returns_binary(self, kiss32_fixed):
-        """Test that flip() returns 0 or 1."""
-        for _ in range(100):
-            val = kiss32_fixed.flip()
-            assert val in (0, 1)
-
-    def test_flip_distribution(self, kiss32_fixed):
-        """Test that flip() has roughly 50/50 distribution."""
-        n_trials = 10000
-        ones = sum(kiss32_fixed.flip() for _ in range(n_trials))
-        ratio = ones / n_trials
-        # Should be close to 0.5 (within 3 standard deviations)
-        # std = sqrt(0.5 * 0.5 / n_trials) ≈ 0.005
-        assert 0.46 <= ratio <= 0.54
-
-    def test_index_returns_valid_range(self, kiss32_fixed):
-        """Test that index(n) returns values in [0, n-1]."""
-        n = 100
-        for _ in range(1000):
-            idx = kiss32_fixed.index(n)
-            assert 0 <= idx < n
-
-    def test_index_zero_returns_zero(self, kiss32_fixed):
-        """Test that index(0) returns 0."""
-        assert kiss32_fixed.index(0) == 0
-
-    def test_index_one_returns_zero(self, kiss32_fixed):
-        """Test that index(1) always returns 0."""
-        for _ in range(10):
-            assert kiss32_fixed.index(1) == 0
-
-    def test_index_coverage(self, kiss32_fixed):
-        """Test that index(n) covers all values in range."""
-        n = 10
-        values = set()
-        for _ in range(1000):
-            values.add(kiss32_fixed.index(n))
-        # Should cover all values (probabilistic, may rarely fail)
-        assert len(values) == n
-
-
-class TestPyKiss32RandomReproducibility:
-    """Tests for reproducibility and determinism."""
-
-    def test_same_seed_same_sequence(self):
-        """Test that same seed produces identical sequences."""
-        seed = 42
-        rng1 = PyKiss32Random(seed)
-        rng2 = PyKiss32Random(seed)
-
-        seq1 = [rng1.kiss() for _ in range(100)]
-        seq2 = [rng2.kiss() for _ in range(100)]
-
-        assert seq1 == seq2
-
-    def test_different_seeds_different_sequences(self):
-        """Test that different seeds produce different sequences."""
-        rng1 = PyKiss32Random(42)
-        rng2 = PyKiss32Random(43)
-
-        seq1 = [rng1.kiss() for _ in range(100)]
-        seq2 = [rng2.kiss() for _ in range(100)]
-
-        # Sequences should be mostly different
-        differences = sum(a != b for a, b in zip(seq1, seq2))
-        assert differences >= 95
-
-    def test_reset_reproduces_sequence(self):
-        """Test that reset() reproduces sequence from same seed."""
-        rng = PyKiss32Random(42)
-        seq1 = [rng.kiss() for _ in range(10)]
-
-        rng.reset(42)
-        seq2 = [rng.kiss() for _ in range(10)]
-
-        assert seq1 == seq2
-
-    def test_set_seed_reproduces_sequence(self):
-        """Test that set_seed() reproduces sequence."""
-        rng = PyKiss32Random(42)
-        seq1 = [rng.kiss() for _ in range(10)]
-
-        rng.set_seed(42)
-        seq2 = [rng.kiss() for _ in range(10)]
-
-        assert seq1 == seq2
-
-    def test_reset_default_uses_default_seed(self):
-        """Test that reset_default() uses default seed."""
-        rng = PyKiss32Random(999)
-        rng.reset_default()
-
-        rng_default = PyKiss32Random()
-
-        # Should produce same sequence as default seed
-        assert rng.kiss() == rng_default.kiss()
-
-
-# ===========================================================================
-# PyKiss64Random - Basic Functionality Tests
-# ===========================================================================
-
-class TestPyKiss64RandomBasic:
-    """Basic functionality tests for PyKiss64Random."""
-
-    def test_initialization_default(self):
-        """Test initialization with default seed."""
-        rng = PyKiss64Random()
-        assert rng is not None
-        assert rng.seed == PyKiss64Random.get_default_seed()
-
-    def test_initialization_custom_seed(self):
-        """Test initialization with custom seed."""
-        seed = 12345678901234567890
-        rng = PyKiss64Random(seed)
-        assert rng.seed == seed
-
-    def test_initialization_zero_seed(self):
-        """Test that seed=0 is normalized to default_seed."""
-        rng = PyKiss64Random(0)
-        assert rng.seed == PyKiss64Random.get_default_seed()
-
-    def test_default_seed_constant(self):
-        """Test that default_seed is correct constant."""
-        assert PyKiss64Random.get_default_seed() == 1234567890987654321
-
-    def test_get_default_seed(self):
-        """Test get_default_seed static method."""
-        assert PyKiss64Random.get_default_seed() == 1234567890987654321
-
-    def test_normalize_seed_nonzero(self):
-        """Test normalize_seed with non-zero value."""
-        assert PyKiss64Random.normalize_seed(999) == 999
-
-    def test_normalize_seed_zero(self):
-        """Test normalize_seed with zero."""
-        assert PyKiss64Random.normalize_seed(0) == PyKiss64Random.get_default_seed()
-
-
-class TestPyKiss64RandomMethods:
-    """Tests for PyKiss64Random core methods."""
-
-    def test_kiss_returns_uint64(self, kiss64_fixed):
-        """Test that kiss() returns valid uint64."""
-        val = kiss64_fixed.kiss()
-        assert isinstance(val, int)
-        assert 0 <= val < 2**64
-
-    def test_flip_returns_binary(self, kiss64_fixed):
-        """Test that flip() returns 0 or 1."""
-        for _ in range(100):
-            val = kiss64_fixed.flip()
-            assert val in (0, 1)
-
-    def test_index_returns_valid_range(self, kiss64_fixed):
-        """Test that index(n) returns values in [0, n-1]."""
-        n = 1000000
-        for _ in range(1000):
-            idx = kiss64_fixed.index(n)
-            assert 0 <= idx < n
-
-    def test_index_large_range(self, kiss64_fixed):
-        """Test index with very large range."""
-        n = 10**15  # 1 quadrillion
-        idx = kiss64_fixed.index(n)
-        assert 0 <= idx < n
-
-
-class TestPyKiss64RandomReproducibility:
-    """Tests for PyKiss64Random reproducibility."""
-
-    def test_same_seed_same_sequence(self):
-        """Test that same seed produces identical sequences."""
-        seed = 12345678901234567890
-        rng1 = PyKiss64Random(seed)
-        rng2 = PyKiss64Random(seed)
-
-        seq1 = [rng1.kiss() for _ in range(100)]
-        seq2 = [rng2.kiss() for _ in range(100)]
-
-        assert seq1 == seq2
-
-    def test_seed_property_reset(self):
-        """Test seed property reset functionality."""
+    def test_kiss64_seed_property(self):
+        """Test PyKiss64Random seed property."""
         rng = PyKiss64Random(42)
-        seq1 = [rng.kiss() for _ in range(10)]
+        assert rng.seed == 42
 
-        rng.seed = 42
-        seq2 = [rng.kiss() for _ in range(10)]
+        # Change seed
+        rng.seed = 123
+        assert rng.seed == 123
+
+    def test_kiss32_reproducibility(self):
+        """Test PyKiss32Random reproducibility."""
+        rng1 = PyKiss32Random(42)
+        rng2 = PyKiss32Random(42)
+
+        # Same seed → same sequence
+        seq1 = [rng1.kiss() for _ in range(10)]
+        seq2 = [rng2.kiss() for _ in range(10)]
 
         assert seq1 == seq2
 
+    def test_kiss64_reproducibility(self):
+        """Test PyKiss64Random reproducibility."""
+        rng1 = PyKiss64Random(42)
+        rng2 = PyKiss64Random(42)
 
-# ===========================================================================
-# Statistical Tests
-# ===========================================================================
+        # Same seed → same sequence
+        seq1 = [rng1.kiss() for _ in range(10)]
+        seq2 = [rng2.kiss() for _ in range(10)]
 
-@pytest.mark.slow
-@pytest.mark.skipif(not HAS_NUMPY, reason="NumPy required for statistical tests")
-class TestStatisticalProperties:
-    """Statistical tests for random number quality."""
+        assert seq1 == seq2
 
-    def test_uniform_distribution_kiss32(self):
-        """Test that PyKiss32Random produces uniform distribution."""
+    def test_kiss32_context_manager(self):
+        """Test PyKiss32Random context manager."""
         rng = PyKiss32Random(42)
-        n_samples = 100000
-        n_bins = 100
 
-        # Generate samples and normalize to [0, 1]
-        samples = np.array([rng.kiss() for _ in range(n_samples)]) / (2**32 - 1)
+        # Should not hang
+        start = time.time()
+        with rng:
+            value = rng.kiss()
+        elapsed = time.time() - start
 
-        # Chi-square test for uniformity
-        hist, _ = np.histogram(samples, bins=n_bins, range=(0, 1))
-        expected = n_samples / n_bins
-        chi_square = np.sum((hist - expected)**2 / expected)
+        assert elapsed < 0.1  # Should be instant
+        assert isinstance(value, int)
 
-        # Critical value for chi-square with 99 df at p=0.01 is ~135
-        assert chi_square < 135
+    def test_kiss64_context_manager(self):
+        """Test PyKiss64Random context manager."""
+        rng = PyKiss64Random(42)
 
-    def test_mean_kiss32(self):
-        """Test that mean of PyKiss32Random is approximately 2^31."""
-        rng = PyKiss32Random(42)
-        n_samples = 10000
+        # Should not hang
+        start = time.time()
+        with rng:
+            value = rng.kiss()
+        elapsed = time.time() - start
 
-        samples = [rng.kiss() for _ in range(n_samples)]
-        mean = sum(samples) / n_samples
-        expected_mean = (2**32 - 1) / 2
+        assert elapsed < 0.1  # Should be instant
+        assert isinstance(value, int)
 
-        # Mean should be within 1% of expected
-        assert abs(mean - expected_mean) / expected_mean < 0.01
+    def test_kiss64_nested_context_managers(self):
+        """Test nested context managers (no infinite loop)."""
+        start = time.time()
 
-    def test_flip_probability(self):
-        """Test that flip() has p=0.5."""
-        rng = PyKiss32Random(123)
-        n_trials = 10000
+        with PyKiss64Random(100) as rng1:
+            with PyKiss64Random(200) as rng2:
+                val1 = rng1.kiss()
+                val2 = rng2.kiss()
 
-        ones = sum(rng.flip() for _ in range(n_trials))
-        ratio = ones / n_trials
+        elapsed = time.time() - start
 
-        # Within 3 sigma (99.7% confidence)
-        std = np.sqrt(0.5 * 0.5 / n_trials)
-        assert abs(ratio - 0.5) < 3 * std
-
+        assert elapsed < 0.1  # Should be instant
+        assert val1 != val2  # Different seeds
 
 # ===========================================================================
-# Performance Benchmarks
+# Test PyKissRandom Auto-Detection
 # ===========================================================================
 
-# @pytest.mark.benchmark
-# class TestBenchmarks:
-#     """Performance benchmarks."""
+class TestAutoDetection:
+    """Test PyKissRandom factory function."""
 
-#     def test_benchmark_kiss32_generation(self, benchmark):
-#         """Benchmark PyKiss32Random.kiss() performance."""
-#         rng = PyKiss32Random(42)
-#         benchmark(rng.kiss)
+    def test_auto_detection(self):
+        """Test auto bit width detection."""
+        rng = PyKissRandom(42)
 
-#     def test_benchmark_kiss64_generation(self, benchmark):
-#         """Benchmark PyKiss64Random.kiss() performance."""
-#         rng = PyKiss64Random(42)
-#         benchmark(rng.kiss)
+        # Should return one of the types
+        assert isinstance(rng, (PyKiss32Random, PyKiss64Random))
 
-#     def test_benchmark_kiss32_flip(self, benchmark):
-#         """Benchmark PyKiss32Random.flip() performance."""
-#         rng = PyKiss32Random(42)
-#         benchmark(rng.flip)
+    def test_explicit_32bit(self):
+        """Test explicit 32-bit selection."""
+        rng = PyKissRandom(42, bit_width=32)
+        assert isinstance(rng, PyKiss32Random)
 
-#     def test_benchmark_kiss32_index(self, benchmark):
-#         """Benchmark PyKiss32Random.index() performance."""
-#         rng = PyKiss32Random(42)
-#         benchmark(lambda: rng.index(100))
+    def test_explicit_64bit(self):
+        """Test explicit 64-bit selection."""
+        rng = PyKissRandom(42, bit_width=64)
+        assert isinstance(rng, PyKiss64Random)
 
+    def test_none_bit_width(self):
+        """Test bit_width=None (auto-detect)."""
+        rng = PyKissRandom(42, bit_width=None)
+        assert isinstance(rng, (PyKiss32Random, PyKiss64Random))
+
+    def test_auto_string(self):
+        """Test bit_width='auto'."""
+        rng = PyKissRandom(42, bit_width='auto')
+        assert isinstance(rng, (PyKiss32Random, PyKiss64Random))
 
 # ===========================================================================
-# Integration Tests
+# Test KissSeedSequence
 # ===========================================================================
 
-@pytest.mark.skipif(not HAS_NUMPY, reason="NumPy required")
-class TestIntegration:
-    """Integration tests with NumPy and real-world use cases."""
+class TestKissSeedSequence:
+    """Test KissSeedSequence (NumPy SeedSequence compatible)."""
 
-    def test_array_indexing(self):
-        """Test random array indexing."""
-        rng = PyKiss32Random(42)
-        arr = np.arange(1000)
+    def test_basic_creation(self):
+        """Test basic KissSeedSequence creation."""
+        seq = KissSeedSequence(42)
+        assert seq.entropy == 42
 
-        # Random access should not raise
-        for _ in range(100):
-            idx = rng.index(len(arr))
-            _ = arr[idx]
+    def test_none_entropy(self):
+        """Test KissSeedSequence with None (OS entropy)."""
+        seq = KissSeedSequence()
+        assert seq.entropy is not None
+        assert isinstance(seq.entropy, int)
 
-    def test_fisher_yates_shuffle(self):
-        """Test Fisher-Yates shuffle implementation."""
-        rng = PyKiss32Random(123)
+    def test_large_int_entropy(self):
+        """Test KissSeedSequence with large int (no overflow)."""
+        # This was causing OverflowError before
+        huge_int = 2**128
+        seq = KissSeedSequence(huge_int)
+
+        # Should mask to 64 bits
+        assert seq.entropy is not None
+        assert isinstance(seq.entropy, int)
+
+    def test_sequence_entropy(self):
+        """Test KissSeedSequence with sequence."""
+        seq = KissSeedSequence([1, 2, 3, 4, 5])
+        assert seq.entropy is not None
+        assert isinstance(seq.entropy, int)
+
+    def test_generate_state_uint32(self):
+        """Test generate_state with uint32."""
+        seq = KissSeedSequence(42)
+        state = seq.generate_state(4, dtype=np.uint32)
+
+        assert state.dtype == np.uint32
+        assert state.shape == (4,)
+
+    def test_generate_state_uint64(self):
+        """Test generate_state with uint64."""
+        seq = KissSeedSequence(42)
+        state = seq.generate_state(2, dtype=np.uint64)
+
+        assert state.dtype == np.uint64
+        assert state.shape == (2,)
+
+    def test_spawn(self):
+        """Test KissSeedSequence spawn."""
+        seq = KissSeedSequence(42)
+        children = seq.spawn(3)
+
+        assert len(children) == 3
+        assert all(isinstance(child, KissSeedSequence) for child in children)
+        assert seq.n_children_spawned == 3
+
+    def test_state_property(self):
+        """Test KissSeedSequence state property."""
+        seq = KissSeedSequence(42)
+        state = seq.state
+
+        assert isinstance(state, dict)
+        assert 'entropy' in state
+        assert state['entropy'] == 42
+
+# ===========================================================================
+# Test KissBitGenerator
+# ===========================================================================
+
+class TestKissBitGenerator:
+    """Test KissBitGenerator (NumPy BitGenerator protocol)."""
+
+    def test_basic_creation(self, bit_generator):
+        """Test basic BitGenerator creation."""
+        assert isinstance(bit_generator, KissBitGenerator)
+        assert hasattr(bit_generator, 'lock')
+
+    def test_random_raw_scalar(self, bit_generator):
+        """Test random_raw() returns scalar."""
+        value = bit_generator.random_raw()
+
+        assert isinstance(value, (int, np.integer))
+        assert 0 <= value <= 0xFFFFFFFFFFFFFFFF
+
+    def test_random_raw_array(self, bit_generator):
+        """Test random_raw(size) returns array."""
+        arr = bit_generator.random_raw(5)
+
+        assert isinstance(arr, np.ndarray)
+        assert arr.shape == (5,)
+        assert arr.dtype == np.uint64
+
+    def test_random_raw_2d(self, bit_generator):
+        """Test random_raw with 2D shape."""
+        arr = bit_generator.random_raw((3, 4))
+
+        assert arr.shape == (3, 4)
+        assert arr.dtype == np.uint64
+
+    def test_state_property(self, bit_generator):
+        """Test BitGenerator state property."""
+        state = bit_generator.state
+
+        assert isinstance(state, dict)
+        assert state['seed_sequence'] == 'KissSeedSequence'
+        assert 'seed_sequence_state' in state
+
+    def test_state_setter(self):
+        """Test BitGenerator state setter."""
+        bg1 = KissBitGenerator(42)
+        seq1 = [bg1.random_raw() for _ in range(5)]
+
+        state = bg1.state
+
+        # Continue generating
+        bg1.random_raw()
+        bg1.random_raw()
+
+        # Restore state
+        bg2 = KissBitGenerator(0)
+        bg2.state = state
+
+        seq2 = [bg2.random_raw() for _ in range(5)]
+
+        assert seq1 == seq2
+
+    def test_setstate_method(self):
+        """Test __setstate__ method."""
+        bg1 = KissBitGenerator(42)
+        state = bg1.state
+
+        bg2 = KissBitGenerator()
+        bg2.__setstate__(state)
+
+        # Should return self
+        assert isinstance(bg2, KissBitGenerator)
+
+    def test_spawn(self, bit_generator):
+        """Test BitGenerator spawn."""
+        children = bit_generator.spawn(3)
+
+        assert len(children) == 3
+        assert all(isinstance(child, KissBitGenerator) for child in children)
+
+    def test_reproducibility(self):
+        """Test BitGenerator reproducibility."""
+        bg1 = KissBitGenerator(42)
+        bg2 = KissBitGenerator(42)
+
+        seq1 = [bg1.random_raw() for _ in range(10)]
+        seq2 = [bg2.random_raw() for _ in range(10)]
+
+        assert seq1 == seq2
+
+# ===========================================================================
+# Test KissGenerator
+# ===========================================================================
+
+class TestKissGenerator:
+    """Test KissGenerator (high-level API)."""
+
+    def test_basic_creation(self, generator):
+        """Test basic Generator creation."""
+        assert isinstance(generator, KissGenerator)
+        assert hasattr(generator, 'bit_generator')
+
+    def test_random_scalar(self, generator):
+        """Test random() returns scalar."""
+        value = generator.random()
+
+        assert isinstance(value, (float, np.floating))
+        assert 0.0 <= value < 1.0
+
+    def test_random_array(self, generator):
+        """Test random(size) returns array."""
+        arr = generator.random(5)
+
+        assert isinstance(arr, np.ndarray)
+        assert arr.shape == (5,)
+        assert np.all((arr >= 0.0) & (arr < 1.0))
+
+    def test_integers(self, generator):
+        """Test integers method."""
+        ints = generator.integers(0, 100, size=10)
+
+        assert isinstance(ints, np.ndarray)
+        assert ints.shape == (10,)
+        assert np.all((ints >= 0) & (ints < 100))
+
+    def test_integers_endpoint(self, generator):
+        """Test integers with endpoint=True."""
+        ints = generator.integers(1, 7, size=100, endpoint=True)
+
+        # Should include 7
+        assert ints.min() >= 1
+        assert ints.max() <= 7
+
+    def test_normal(self, generator):
+        """Test normal distribution."""
+        samples = generator.normal(0, 1, size=1000)
+
+        assert isinstance(samples, np.ndarray)
+        assert samples.shape == (1000,)
+
+        # Check mean and std (rough check)
+        assert abs(samples.mean()) < 0.2
+        assert abs(samples.std() - 1.0) < 0.2
+
+    def test_uniform(self, generator):
+        """Test uniform distribution."""
+        samples = generator.uniform(10, 20, size=100)
+
+        assert np.all((samples >= 10) & (samples < 20))
+
+    def test_choice(self, generator):
+        """Test choice method."""
+        arr = ['A', 'B', 'C']
+        choices = generator.choice(arr, size=10)
+
+        assert len(choices) == 10
+        assert all(c in arr for c in choices)
+
+    def test_choice_weighted(self, generator):
+        """Test choice with probabilities."""
+        choices = generator.choice(['A', 'B', 'C'], size=1000, p=[0.5, 0.3, 0.2])
+
+        # Count A's (should be ~50%)
+        count_a = list(choices).count('A')
+        assert 400 < count_a < 600  # Rough check
+
+    def test_shuffle(self, generator):
+        """Test shuffle method."""
         arr = np.arange(10)
         original = arr.copy()
 
-        # Fisher-Yates shuffle
-        for i in range(len(arr) - 1, 0, -1):
-            j = rng.index(i + 1)
-            arr[i], arr[j] = arr[j], arr[i]
+        generator.shuffle(arr)
 
-        # Shuffled array should have same elements
+        # Should be permutation
         assert set(arr) == set(original)
-        # But different order (probabilistic, may rarely fail)
+        # Should be different order (with high probability)
         assert not np.array_equal(arr, original)
 
-    def test_monte_carlo_pi_estimation(self):
-        """Test Monte Carlo estimation of π."""
-        rng = PyKiss32Random(42)
-        n_samples = 100000
-        inside = 0
+    def test_context_manager(self):
+        """Test KissGenerator context manager."""
+        gen = KissGenerator(42)
 
-        for _ in range(n_samples):
-            x = rng.kiss() / (2**32 - 1)
-            y = rng.kiss() / (2**32 - 1)
-            if x*x + y*y <= 1.0:
-                inside += 1
+        start = time.time()
+        with gen:
+            data = gen.random(100)
+        elapsed = time.time() - start
 
-        pi_estimate = 4 * inside / n_samples
-        # Should be within 1% of π
-        assert abs(pi_estimate - np.pi) / np.pi < 0.01
+        assert elapsed < 0.1
+        assert len(data) == 100
 
+    def test_get_bit_generator(self, generator):
+        """Test get_bit_generator method."""
+        bg = generator.get_bit_generator()
+
+        assert isinstance(bg, KissBitGenerator)
+
+    def test_set_bit_generator(self):
+        """Test set_bit_generator method."""
+        gen = KissGenerator(42)
+
+        # Create new BitGenerator
+        new_bg = KissBitGenerator(123)
+
+        # Set it
+        gen.set_bit_generator(new_bg)
+
+        # Verify
+        assert gen.bit_generator is new_bg
+
+    def test_spawn(self, generator):
+        """Test Generator spawn."""
+        children = generator.spawn(3)
+
+        assert len(children) == 3
+        assert all(isinstance(child, KissGenerator) for child in children)
 
 # ===========================================================================
-# Edge Cases and Error Handling
+# Test KissRandomState (NEW)
+# ===========================================================================
+
+class TestKissRandomState:
+    """Test KissRandomState (NumPy RandomState compatible)."""
+
+    def test_basic_creation(self, random_state):
+        """Test basic RandomState creation."""
+        assert isinstance(random_state, KissRandomState)
+
+    def test_rand_scalar(self, random_state):
+        """Test rand() returns scalar."""
+        value = random_state.rand()
+
+        assert isinstance(value, (float, np.floating))
+        assert 0.0 <= value < 1.0
+
+    def test_rand_array(self, random_state):
+        """Test rand(*shape) returns array."""
+        arr = random_state.rand(3, 4)
+
+        assert arr.shape == (3, 4)
+        assert np.all((arr >= 0.0) & (arr < 1.0))
+
+    def test_randn_scalar(self, random_state):
+        """Test randn() returns scalar."""
+        value = random_state.randn()
+
+        assert isinstance(value, (float, np.floating))
+
+    def test_randn_array(self, random_state):
+        """Test randn(*shape) returns array."""
+        arr = random_state.randn(3, 4)
+
+        assert arr.shape == (3, 4)
+        # Rough check for normality
+        assert abs(arr.mean()) < 0.5
+
+    def test_randint(self, random_state):
+        """Test randint method."""
+        ints = random_state.randint(0, 10, size=100)
+
+        assert np.all((ints >= 0) & (ints < 10))
+
+    def test_random_sample(self, random_state):
+        """Test random_sample method."""
+        samples = random_state.random_sample(size=10)
+
+        assert len(samples) == 10
+        assert np.all((samples >= 0.0) & (samples < 1.0))
+
+    def test_seed_method(self):
+        """Test seed() method."""
+        rs = KissRandomState()
+
+        rs.seed(42)
+        seq1 = rs.rand(5)
+
+        rs.seed(42)
+        seq2 = rs.rand(5)
+
+        assert np.allclose(seq1, seq2)
+
+    def test_get_state(self, random_state):
+        """Test get_state method."""
+        state = random_state.get_state()
+
+        assert isinstance(state, dict)
+        assert 'bit_generator' in state
+
+    def test_set_state(self):
+        """Test set_state method."""
+        rs1 = KissRandomState(42)
+        seq1 = [rs1.rand() for _ in range(5)]
+
+        state = rs1.get_state()
+
+        rs2 = KissRandomState(0)
+        rs2.set_state(state)
+
+        seq2 = [rs2.rand() for _ in range(5)]
+
+        assert np.allclose(seq1, seq2)
+
+    def test_get_bit_generator(self, random_state):
+        """Test get_bit_generator method."""
+        bg = random_state.get_bit_generator()
+
+        assert isinstance(bg, KissBitGenerator)
+
+    def test_set_bit_generator(self):
+        """Test set_bit_generator method."""
+        rs = KissRandomState(42)
+
+        new_bg = KissBitGenerator(123)
+        rs.set_bit_generator(new_bg)
+
+        assert rs.bit_generator is new_bg
+
+# ===========================================================================
+# Test default_rng()
+# ===========================================================================
+
+class TestDefaultRNG:
+    """Test default_rng() convenience function."""
+
+    def test_basic_usage(self):
+        """Test basic default_rng() usage."""
+        rng = default_rng(42)
+
+        assert isinstance(rng, KissGenerator)
+
+    def test_none_seed(self):
+        """Test default_rng(None)."""
+        rng = default_rng()
+
+        assert isinstance(rng, KissGenerator)
+
+    def test_with_seed_sequence(self):
+        """Test default_rng with SeedSequence."""
+        seq = KissSeedSequence(42)
+        rng = default_rng(seq)
+
+        assert isinstance(rng, KissGenerator)
+
+    def test_with_bit_generator(self):
+        """Test default_rng with BitGenerator."""
+        bg = KissBitGenerator(42)
+        rng = default_rng(bg)
+
+        assert isinstance(rng, KissGenerator)
+
+    def test_with_generator(self):
+        """Test default_rng with Generator."""
+        gen = KissGenerator(42)
+        rng = default_rng(gen)
+
+        assert rng is gen
+
+# ===========================================================================
+# Test kiss_context()
+# ===========================================================================
+
+class TestKissContext:
+    """Test kiss_context() context manager helper."""
+
+    def test_basic_usage(self):
+        """Test basic kiss_context usage."""
+        with kiss_context(42) as rng:
+            data = rng.random(10)
+
+        assert len(data) == 10
+        assert isinstance(rng, KissGenerator)
+
+    def test_cleanup(self):
+        """Test context manager cleanup."""
+        start = time.time()
+
+        with kiss_context(42) as rng:
+            _ = rng.random(100)
+
+        elapsed = time.time() - start
+        assert elapsed < 0.1  # Should be instant
+
+# ===========================================================================
+# Test Thread Safety
+# ===========================================================================
+
+class TestThreadSafety:
+    """Test thread-safe operations."""
+
+    def test_shared_rng_with_lock(self):
+        """Test shared RNG with lock (like plot_kissrandom.py)."""
+        shared_rng = PyKiss64Random(42)
+
+        def worker(task_id):
+            with shared_rng:
+                return [shared_rng.kiss() for _ in range(3)]
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            results = list(executor.map(worker, range(4)))
+
+        # Check all values unique
+        all_values = [v for r in results for v in r]
+        unique_values = set(all_values)
+
+        assert len(unique_values) == len(all_values)
+
+    def test_generator_thread_safety(self):
+        """Test KissGenerator thread safety."""
+        gen = KissGenerator(42)
+
+        def worker(task_id):
+            with gen:
+                return gen.random(10).tolist()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(worker, range(2)))
+
+        # Should have different values
+        assert not np.allclose(results[0], results[1])
+
+# ===========================================================================
+# Test Statistical Properties
+# ===========================================================================
+
+class TestStatisticalProperties:
+    """Test statistical properties of generated numbers."""
+
+    def test_uniform_distribution(self):
+        """Test uniform distribution (like plot_kissrandom.py)."""
+        rng = default_rng(42)
+        samples = rng.random(100000)
+
+        # Check mean and std
+        assert abs(samples.mean() - 0.5) < 0.01
+        assert abs(samples.std() - 0.288675) < 0.01
+
+    def test_chi_square_uniformity(self):
+        """Test chi-square uniformity (like plot_kissrandom.py)."""
+        rng = default_rng(42)
+        samples = rng.random(100000)
+
+        # Chi-square test
+        observed, _ = np.histogram(samples, bins=20, range=(0, 1))
+        expected = np.full(20, len(samples) / 20)
+        chi2, p_value = stats.chisquare(observed, expected)
+
+        # Should pass (p > 0.01)
+        assert p_value > 0.01
+
+    def test_normal_distribution(self):
+        """Test normal distribution properties."""
+        rng = default_rng(42)
+        samples = rng.normal(0, 1, size=10000)
+
+        # Check mean and std
+        assert abs(samples.mean()) < 0.1
+        assert abs(samples.std() - 1.0) < 0.1
+
+# ===========================================================================
+# Test Reproducibility
+# ===========================================================================
+
+class TestReproducibility:
+    """Test reproducibility and determinism."""
+
+    def test_same_seed_same_sequence(self):
+        """Test same seed produces same sequence (like plot_kissrandom.py)."""
+        seeds = [42, 123, 999]
+
+        for seed in seeds:
+            rng1 = default_rng(seed)
+            seq1 = rng1.random(10)
+
+            rng2 = default_rng(seed)
+            seq2 = rng2.random(10)
+
+            assert np.allclose(seq1, seq2)
+
+    def test_state_serialization_reproducibility(self):
+        """Test state serialization/deserialization."""
+        rng1 = KissBitGenerator(42)
+        sequence1 = [rng1.random_raw() for _ in range(5)]
+
+        state = rng1.state
+
+        # Continue generating
+        rng1.random_raw()
+        rng1.random_raw()
+
+        # Restore state
+        rng2 = KissBitGenerator()
+        rng2.state = state
+
+        sequence2 = [rng2.random_raw() for _ in range(5)]
+
+        assert sequence1 == sequence2
+
+# ===========================================================================
+# Test Edge Cases
 # ===========================================================================
 
 class TestEdgeCases:
-    """Tests for edge cases and error conditions."""
+    """Test edge cases and error handling."""
 
-    def test_kiss32_max_seed(self):
-        """Test PyKiss32Random with maximum seed value."""
-        rng = PyKiss32Random(2**32 - 1)
-        val = rng.kiss()  # Should not crash
-        assert 0 <= val < 2**32
-
-    def test_kiss64_max_seed(self):
-        """Test PyKiss64Random with maximum seed value."""
-        rng = PyKiss64Random(2**64 - 1)
-        val = rng.kiss()  # Should not crash
-        assert 0 <= val < 2**64
-
-    def test_index_boundary_values(self):
-        """Test index() with boundary values."""
-        rng = PyKiss32Random(42)
-
-        # n = 0
+    def test_index_zero(self):
+        """Test index(0) returns 0."""
+        rng = PyKiss64Random(42)
         assert rng.index(0) == 0
 
-        # n = 1
+    def test_index_one(self):
+        """Test index(1) returns 0."""
+        rng = PyKiss64Random(42)
         assert rng.index(1) == 0
 
-        # n = 2 (should return 0 or 1)
-        val = rng.index(2)
-        assert val in (0, 1)
+    def test_large_seed_no_overflow(self):
+        """Test large seed doesn't cause overflow."""
+        # This was causing OverflowError before
+        huge_seed = 2**100
+        seq = KissSeedSequence(huge_seed)
 
-    def test_multiple_instances_independent(self):
-        """Test that multiple RNG instances are independent."""
-        rng1 = PyKiss32Random(42)
-        rng2 = PyKiss32Random(43)
+        # Should work without error
+        assert seq.entropy is not None
 
-        # Should produce different sequences
-        val1 = [rng1.kiss() for _ in range(10)]
-        val2 = [rng2.kiss() for _ in range(10)]
+    def test_invalid_bit_width(self):
+        """Test invalid bit_width raises error."""
+        with pytest.raises(ValueError):
+            PyKissRandom(42, bit_width=16)
 
-        assert val1 != val2
+    def test_choice_without_replacement(self):
+        """Test choice without replacement."""
+        rng = default_rng(42)
 
-# %%
+        with pytest.raises(ValueError):
+            rng.choice(10, size=20, replace=False)
 
-if __name__ == "__main__":
-    # Run tests if executed directly
-    pytest.main([__file__, "-v"])
+# ===========================================================================
+# Test Extensibility
+# ===========================================================================
 
-# %%
+class TestExtensibility:
+    """Test custom distributions (like plot_kissrandom.py)."""
+
+    def test_custom_distribution(self):
+        """Test extending KissGenerator with custom methods."""
+        class ExtendedKissGenerator(KissGenerator):
+            def exponential(self, scale=1.0, size=None):
+                u = self.random(size)
+                return -scale * np.log(1 - u)
+
+        gen = ExtendedKissGenerator(42)
+        samples = gen.exponential(2.0, size=100)
+
+        # Check mean (should be ~2.0)
+        assert 1.5 < samples.mean() < 2.5
+
+# ===========================================================================
+# Run Tests
+# ===========================================================================
+
+if __name__ == '__main__':
+    # Run with: python test_kissrandom_comprehensive.py
+    pytest.main([__file__, '-v'])

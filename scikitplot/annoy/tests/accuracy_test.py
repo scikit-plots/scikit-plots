@@ -121,6 +121,7 @@ def _test_index(dataset, exp_accuracy, custom_metric=None, custom_dim=None):
 
 @pytest.mark.xfail(reason="Test data unavailable.")
 def test_glove_25():
+    # with pytest.raises(Exception) as e:
     _test_index("glove-25-angular", 69.00)
 
 

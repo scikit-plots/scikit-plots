@@ -227,21 +227,37 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "sections": [
             {
                 "title": (
-                    "Configure global settings and get information about the working environment."
+                    "Version Tracking"
                 ),
                 # "description": None,
                 "autosummary": [
                     # "__git_hash__",
                     "__version__",
                     "__version_iso_8601__",
+                    "online_help",
+                ],
+            },
+            {
+                "title": (
+                    "Configure global settings and get information about the working environment."
+                ),
+                # "description": None,
+                "autosummary": [
                     "config_context",
                     "get_config",
-                    "get_logger",
-                    "logger",
                     "set_config",
                     "show_config",
                     "show_versions",
-                    "online_help",
+                ],
+            },
+            {
+                "title": (
+                    "Module-Level Globals"
+                ),
+                # "description": None,
+                "autosummary": [
+                    "get_logger",
+                    "logger",
                 ],
             },
         ],
@@ -284,8 +300,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Plot a PCA representation",
                 "description": (
                     _get_submodule("scikitplot.api", "decomposition")
-                    + "\n\n"
-                    + _get_guide("decomposition-index")
+                    + "\n\n" +
+                    _get_guide("decomposition-index")
                 ),
                 "autosummary": [
                     "decomposition.plot_pca_2d_projection",
@@ -296,8 +312,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Plot Estimators (model) object instances",
                 "description": (
                     _get_submodule("scikitplot.api", "estimators")
-                    + "\n\n"
-                    + _get_guide("estimators-index")
+                    + "\n\n" +
+                    _get_guide("estimators-index")
                 ),
                 "autosummary": [
                     # Regressor estimators
@@ -313,8 +329,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Plot model evaluation metrics",
                 "description": (
                     _get_submodule("scikitplot.api", "metrics")
-                    + "\n\n"
-                    + _get_guide("metrics-index")
+                    + "\n\n" +
+                    _get_guide("metrics-index")
                 ),
                 "autosummary": [
                     # Regression metrics
@@ -335,8 +351,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "description": (
                     _get_guide("developers-guide-index", is_developer=True)
                     # _get_submodule("scikitplot.api", "utils")
-                    # + "\n\n"
-                    # + _get_guide("utils-index")
+                    # + "\n\n" +
+                    # _get_guide("utils-index")
                 ),
                 "autosummary": [
                     # _helper
@@ -357,8 +373,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Cython Bindings samples",
                 "description": (
                     _get_submodule("scikitplot.cexperimental", "_cy_cexperimental")
-                    + "\n\n"
-                    + _get_guide("cexperimental-index")
+                    + "\n\n" +
+                    _get_guide("cexperimental-index")
                 ),
                 "autosummary": [
                     # "_cy_cexperimental",
@@ -371,8 +387,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Pybind11 Bindings samples",
                 "description": (
                     _get_submodule("scikitplot.cexperimental", "_py_cexperimental")
-                    + "\n\n"
-                    + _get_guide("cexperimental-index")
+                    + "\n\n" +
+                    _get_guide("cexperimental-index")
                 ),
                 "autosummary": [
                     # "_py_cexperimental",
@@ -383,8 +399,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Python samples",
                 "description": (
                     _get_submodule("scikitplot.cexperimental", "_logsumexp")
-                    + "\n\n"
-                    + _get_guide("cexperimental-index")
+                    + "\n\n" +
+                    _get_guide("cexperimental-index")
                 ),
                 "autosummary": [
                     # "_logsumexp",
@@ -404,8 +420,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Spotify ANNoy as submodule.",
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_annoy")
-                    + "\n\n"
-                    + _get_guide("cexternals-annoy-index")
+                    + "\n\n" +
+                    _get_guide("cexternals-annoy-index")
                 ),
                 "autosummary": [
                     "_annoy",
@@ -418,8 +434,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "astropy stats as submodule.",
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_astropy")
-                    + "\n\n"
-                    + _get_guide("cexternals-astropy-index")
+                    + "\n\n" +
+                    _get_guide("cexternals-astropy-index")
                 ),
                 "autosummary": [
                     "_astropy",
@@ -430,8 +446,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "NumPy f2py as submodule.",
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_f2py")
-                    + "\n\n"
-                    + _get_guide("cexternals-f2py-index")
+                    + "\n\n" +
+                    _get_guide("cexternals-f2py-index")
                 ),
                 "autosummary": [
                     "_f2py",
@@ -442,8 +458,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "NumCpp header's as submodule.",
                 "description": (
                     _get_submodule("scikitplot.cexternals", "_numcpp")
-                    + "\n\n"
-                    + _get_guide("cexternals-numcpp-index")
+                    + "\n\n" +
+                    _get_guide("cexternals-numcpp-index")
                 ),
                 "autosummary": [
                     "_numcpp",
@@ -588,9 +604,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Load an example dataset",
                 "description": (
-                  _get_submodule("scikitplot.datasets", "_load_dataset")
-                  # + "\n\n"
-                  # + _get_guide("datasets-index")
+                    _get_submodule("scikitplot.datasets", "_load_dataset")
+                    # + "\n\n" +
+                    # _get_guide("datasets-index")
                 ),
                 "autosummary": [
                     "get_data_home",
@@ -607,9 +623,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Key To DataScience: kds",
                 "description": (
-                  _get_submodule("scikitplot.decile", "kds")
-                  + "\n\n"
-                  + _get_guide("decile-kds-index")
+                    _get_submodule("scikitplot.decile", "kds")
+                    + "\n\n" +
+                    _get_guide("decile-kds-index")
                 ),
                 "autosummary": [
                     "kds.print_labels",
@@ -624,9 +640,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "ModelPlotPy Initializer object",
                 "description": (
-                  _get_submodule("scikitplot.decile", "modelplotpy")
-                  # + "\n\n"
-                  # + _get_guide("decile-modelplotpy-index", "decile-modelplotpy-financial-index")
+                    _get_submodule("scikitplot.decile", "modelplotpy")
+                    # + "\n\n" +
+                    # _get_guide("decile-modelplotpy-index", "decile-modelplotpy-financial-index")
                 ),
                 "autosummary": [
                     # Initialize modelplotpy object
@@ -636,9 +652,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "ModelPlotPy Initializer object",
                 "description": (
-                  _get_submodule("scikitplot.decile", "_decile_modelplotpy")
-                  + "\n\n"
-                  + _get_guide("decile-modelplotpy-index", "decile-modelplotpy-financial-index")
+                    _get_submodule("scikitplot.decile", "_decile_modelplotpy")
+                    + "\n\n" +
+                    _get_guide("decile-modelplotpy-index", "decile-modelplotpy-financial-index")
                 ),
                 "autosummary": [
                     # Initialize modelplotpy object
@@ -693,8 +709,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # "description": None,
                 "description": (
                     _get_submodule("scikitplot.experimental", "__init__")
-                    # + "\n\n"
-                    # + _get_guide("experimental-index")
+                    # + "\n\n" +
+                    # _get_guide("experimental-index")
                 ),
                 "autosummary": [
                     "enable_ann_imputer",
@@ -704,8 +720,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "sklearn's pipeline.",
                 "description": (
                     _get_submodule("scikitplot.experimental", "pipeline")
-                    + "\n\n"
-                    + _get_guide("pipeline-index")
+                    + "\n\n" +
+                    _get_guide("pipeline-index")
                 ),
                 "autosummary": [
                     # "pipeline",
@@ -716,8 +732,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Musical note handling, synthesis, and notation.",
                 "description": (
                     _get_submodule("scikitplot.experimental", "_doremi")
-                    + "\n\n"
-                    + _get_guide("doremi-index")
+                    + "\n\n" +
+                    _get_guide("doremi-index")
                 ),
                 "autosummary": [
                     # "_doremi",
@@ -737,8 +753,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Large Language Models.",
                 "description": (
                     _get_submodule("scikitplot.experimental", "_llm_provider")
-                    + "\n\n"
-                    + _get_guide("llm_provider-index")
+                    + "\n\n" +
+                    _get_guide("llm_provider-index")
                 ),
                 "autosummary": [
                     # "_llm_provider",
@@ -758,8 +774,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "data-apis array_api_compat as submodule.",
                 "description": (
                     _get_submodule("scikitplot.externals", "array_api_compat")
-                    + "\n\n"
-                    + _get_guide("externals-array_api_compat-index")
+                    + "\n\n" +
+                    _get_guide("externals-array_api_compat-index")
                 ),
                 "autosummary": [
                     "array_api_compat",
@@ -769,8 +785,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "data-apis array_api_extra as submodule.",
                 "description": (
                     _get_submodule("scikitplot.externals", "array_api_extra")
-                    + "\n\n"
-                    + _get_guide("externals-array_api_extra-index")
+                    + "\n\n" +
+                    _get_guide("externals-array_api_extra-index")
                 ),
                 "autosummary": [
                     "array_api_extra",
@@ -780,8 +796,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Real probability scales for matplotlib.",
                 "description": (
                     _get_submodule("scikitplot.externals", "_probscale")
-                    + "\n\n"
-                    + _get_guide("externals-probscale-index")
+                    + "\n\n" +
+                    _get_guide("externals-probscale-index")
                 ),
                 "autosummary": [
                     # "_probscale",
@@ -795,8 +811,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Seaborn as submodule.",
                 "description": (
                     _get_submodule("scikitplot.externals", "_seaborn")
-                    + "\n\n"
-                    + _get_guide("externals-seaborn-index")
+                    + "\n\n" +
+                    _get_guide("externals-seaborn-index")
                 ),
                 "autosummary": [
                     "_seaborn",
@@ -806,8 +822,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Matplotlib Sphinxext Ext.",
                 "description": (
                     _get_submodule("scikitplot.externals", "_sphinxext")
-                      + "\n\n"
-                      + _get_guide("externals-sphinxext-index")
+                    + "\n\n" +
+                    _get_guide("externals-sphinxext-index")
                 ),
                 "autosummary": [
                     "_sphinxext",
@@ -822,8 +838,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Tweedie Family.",
                 "description": (
                     _get_submodule("scikitplot.externals", "_tweedie")
-                    + "\n\n"
-                    + _get_guide("externals-tweedie-index")
+                    + "\n\n" +
+                    _get_guide("externals-tweedie-index")
                 ),
                 "autosummary": [
                     "_tweedie",
@@ -840,9 +856,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Approximate K-nearest-neighbours (KNN) imputation.",
                 "description": (
-                  _get_submodule("scikitplot.impute", "_ann")
-                  + "\n\n"
-                  + _get_guide("ann_imputer-index")
+                    _get_submodule("scikitplot.impute", "_ann")
+                    + "\n\n" +
+                    _get_guide("ann_imputer-index")
                 ),
                 "autosummary": [
                     "_ann.ANNImputer",
@@ -911,9 +927,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Mlflow Session Helper",
                 "description": (
-                  _get_submodule("scikitplot.mlflow", "_session")
-                  + "\n\n"
-                  + _get_guide("mlflow-index")
+                    _get_submodule("scikitplot.mlflow", "_session")
+                    + "\n\n" +
+                    _get_guide("mlflow-index")
                 ),
                 "autosummary": [
                     "MlflowHandle",
@@ -925,9 +941,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "project config helpers",
                 "description": (
-                  _get_submodule("scikitplot.mlflow", "_project")
-                  + "\n\n"
-                  + _get_guide("mlflow-index")
+                    _get_submodule("scikitplot.mlflow", "_project")
+                    + "\n\n" +
+                    _get_guide("mlflow-index")
                 ),
                 "autosummary": [
                     "DEFAULT_PROJECT_MARKERS",
@@ -940,9 +956,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "config",
                 "description": (
-                  _get_submodule("scikitplot.mlflow", "_config")
-                  + "\n\n"
-                  + _get_guide("mlflow-index")
+                    _get_submodule("scikitplot.mlflow", "_config")
+                    + "\n\n" +
+                    _get_guide("mlflow-index")
                 ),
                 "autosummary": [
                     "ServerConfig",
@@ -963,9 +979,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "workflow helpers",
                 "description": (
-                  _get_submodule("scikitplot.mlflow", "_workflow")
-                  + "\n\n"
-                  + _get_guide("mlflow-index")
+                    _get_submodule("scikitplot.mlflow", "_workflow")
+                    + "\n\n" +
+                    _get_guide("mlflow-index")
                 ),
                 "autosummary": [
                     "workflow",
@@ -1003,13 +1019,56 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Extended sklearn feature preprocessing.",
                 # "description": (
-                #   _get_submodule("scikitplot.preprocessing", "_get_dummies")
-                #   + "\n\n"
-                #   + _get_guide("get_dummies-index")
+                #     _get_submodule("scikitplot.preprocessing", "_get_dummies")
+                #     + "\n\n" +
+                #     _get_guide("get_dummies-index")
                 # ),
                 "autosummary": [
                     "DummyCodeEncoder",
                     "GetDummies",
+                ],
+            },
+        ],
+    },
+    "scikitplot.random": {
+        "short_summary": "Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`).",
+        "description": _get_guide("random-index"),
+        "sections": [
+            {
+                "title": "Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`).",
+                "description": (
+                    # _get_submodule("scikitplot.cexternals._annoy._kissrandom", "kissrandom")
+                    # + "\n\n" +
+                    _get_guide("random-index")
+                ),
+                "autosummary": [
+                    'PyKiss32Random',
+                    'PyKiss64Random',
+                    'PyKissRandom',
+                    'KissSeedSequence',
+                    'KissBitGenerator',
+                    'KissGenerator',
+                    'KissRandomState',
+                    'default_rng',
+                    'kiss_context',
+                ],
+            },
+            {
+                "title": "``KissGenerator`` Distribution Methods",
+                "description": (
+                    # _get_submodule("scikitplot.random", "__init__")
+                    # + "\n\n" +
+                    _get_guide("random-index")
+                ),
+                "autosummary": [
+                    # KissGenerator Distribution Methods
+                    'choice',
+                    'integers',
+                    'normal',
+                    'permutation',
+                    'random',
+                    'shuffle',
+                    'uniform',
                 ],
             },
         ],
@@ -1022,9 +1081,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": ".scikitplot via Seaborn",
                 # "description": None,
                 # "description": (
-                #   _get_submodule("scikitplot.seaborn", "_auc")
-                #   + "\n\n"
-                #   + _get_guide("auc-index")
+                #     _get_submodule("scikitplot.seaborn", "_auc")
+                #     + "\n\n" +
+                #     _get_guide("auc-index")
                 # ),
                 "description": _get_guide("aucplot-index", "evalplot-index"),
                 "autosummary": [
@@ -1035,9 +1094,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": ".kds to SeabornX",
                 "description": (
-                  _get_submodule("scikitplot.seaborn", "_decile")
-                  + "\n\n"
-                  + _get_guide("decileplot-index")
+                    _get_submodule("scikitplot.seaborn", "_decile")
+                    + "\n\n" +
+                    _get_guide("decileplot-index")
                 ),
                 "autosummary": [
                     "decileplot",
@@ -1053,9 +1112,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Astrostatistics: Bayesian Blocks for Time Series Analysis",
                 "description": (
-                    #   _get_submodule("scikitplot.cexternals", "_astropy")
-                    #   + "\n\n"
-                    #   +
+                    # _get_submodule("scikitplot.cexternals", "_astropy")
+                    # + "\n\n" +
                     _get_guide("astrostatistics-index")
                 ),
                 "autosummary": [
@@ -1070,8 +1128,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Astrostatistics Tools",
                 "description": (
                     _get_submodule("scikitplot.cexternals._astropy.stats", "funcs")
-                    + "\n\n"
-                    + _get_guide("astrostatistics-index")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
                 ),
                 "autosummary": [
                     "binned_binom_proportion",
@@ -1095,9 +1153,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Astrostatistics: Selecting the bin width of histograms",
                 # "description": (
-                #   _get_submodule("scikitplot.cexternals._astropy.stats", "histogram")
-                #   + "\n\n"
-                #   + _get_guide("astrostatistics-index")
+                #     _get_submodule("scikitplot.cexternals._astropy.stats", "histogram")
+                #     + "\n\n" +
+                #     _get_guide("astrostatistics-index")
                 # ),
                 "autosummary": [
                     "calculate_bin_edges",
@@ -1111,8 +1169,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Astrostatistics: Model Selection",
                 "description": (
                     _get_submodule("scikitplot.cexternals._astropy.stats", "info_theory")
-                    + "\n\n"
-                    + _get_guide("astrostatistics-index")
+                    + "\n\n" +
+                    _get_guide("astrostatistics-index")
                 ),
                 "autosummary": [
                     "akaike_info_criterion",
@@ -1125,8 +1183,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Discrete Distributions Tools",
                 "description": (
                     _get_submodule("scikitplot.externals._tweedie", "_tweedie_dist")
-                    + "\n\n"
-                    + _get_guide("tweedie-dist-index")
+                    + "\n\n" +
+                    _get_guide("tweedie-dist-index")
                 ),
                 "autosummary": [
                     "tweedie_gen",
