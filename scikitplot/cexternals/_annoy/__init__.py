@@ -61,8 +61,6 @@ from __future__ import annotations
 from . import annoylib
 from .annoylib import *  # Annoy low-level C-extension type, simple legacy c-api
 
-from . import _kissrandom
-
 AnnoyIndex = Annoy  # alias of Annoy Index c-api
 
 # Define the annoy version

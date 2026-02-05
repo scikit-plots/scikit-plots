@@ -1,6 +1,6 @@
 # scikitplot/random/_kiss/__init__.py
 #
-# ruff: noqa: F401
+# ruff: noqa: F401,F405
 # flake8: noqa: F403
 #
 # Authors: The scikit-plots developers
@@ -83,8 +83,20 @@ JSON export
 >>> restored = KissGenerator.deserialize(json.loads(json_str))
 """
 
+from ..._utils import set_module
 from . import kiss_random
 from .kiss_random import *
 
 __all__ = []
 __all__ += kiss_random.__all__
+
+
+Kiss32Random = set_module()(Kiss32Random)
+Kiss64Random = set_module()(Kiss64Random)
+KissRandom.__doc__ = KissRandom.__doc__
+KissSeedSequence = set_module()(KissSeedSequence)
+KissBitGenerator = set_module()(KissBitGenerator)
+KissGenerator = set_module()(KissGenerator)
+KissRandomState = set_module()(KissRandomState)
+default_rng.__doc__ = default_rng.__doc__
+kiss_context.__doc__ = kiss_context.__doc__
