@@ -32,8 +32,6 @@
 """
 Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`).
 
-.. currentmodule:: scikitplot.random
-
 Use ``default_rng()`` to create a `Generator` and call its methods.
 
 =============== =========================================================
@@ -82,6 +80,8 @@ JSON export
 >>> json_str = json.dumps(rng.serialize())
 >>> restored = KissGenerator.deserialize(json.loads(json_str))
 """
+
+from __future__ import annotations
 
 from . import kiss_random
 from .kiss_random import *

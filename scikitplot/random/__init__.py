@@ -6,8 +6,6 @@
 """
 Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`).
 
-.. currentmodule:: scikitplot.random
-
 Use ``default_rng()`` to create a `Generator` and call its methods.
 
 .. seealso::
