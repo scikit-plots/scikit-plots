@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`).
+Random Number Generation (Numpy-Like :class:`~numpy.random.Generator`) [1]_ [2]_ [3]_.
 
 Use ``default_rng()`` to create a `Generator` and call its methods.
 

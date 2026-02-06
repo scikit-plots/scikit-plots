@@ -536,6 +536,45 @@ for seed in seeds:
 # Visualization
 # ===========================================================================
 
+import numpy as np
+from scipy.signal import correlate
+from scipy.stats import norm
+
+def autocorrelation(x, nlags):
+    """
+    Compute autocorrelation function up to nlags.
+
+    Parameters
+    ----------
+    x : array-like, shape (n_samples,)
+        Input time series.
+    nlags : int
+        Maximum lag.
+
+    Returns
+    -------
+    lags : ndarray of shape (nlags + 1,)
+        Lag indices.
+    acf : ndarray of shape (nlags + 1,)
+        Autocorrelation values.
+    """
+    x = np.asarray(x, dtype=float)
+
+    if x.ndim != 1:
+        raise ValueError("Input must be 1D")
+    if nlags < 0:
+        raise ValueError("nlags must be non-negative")
+
+    x = x - x.mean()
+    n = x.size
+
+    corr = correlate(x, x, mode="full")
+    corr = corr[n - 1 : n + nlags]
+    corr /= corr[0]
+
+    lags = np.arange(nlags + 1)
+    return lags, corr
+
 print("\n" + "=" * 70)
 print("12. VISUALIZATION")
 print("=" * 70)
@@ -585,9 +624,45 @@ ax.grid(True, alpha=0.3)
 
 # 5. Autocorrelation
 ax = axes[1, 1]
-from statsmodels.graphics.tsaplots import plot_acf
-plot_acf(uniform_samples[:1000], lags=40, ax=ax, alpha=0.05)
-ax.set_title('Autocorrelation')
+
+# from statsmodels.graphics.tsaplots import plot_acf
+# plot_acf(uniform_samples[:1000], lags=40, ax=ax, alpha=0.05)
+# ax.set_title('Autocorrelation')
+# ax.grid(True, alpha=0.3)
+lags, acf = autocorrelation(uniform_samples[:1000], nlags=40)
+
+markerline, stemlines, baseline = ax.stem(lags, acf)
+plt.setp(markerline, markersize=4)
+plt.setp(stemlines, linewidth=1)
+plt.setp(baseline, linewidth=1)
+
+# Zero line
+ax.axhline(0.0, linewidth=1)
+
+# White-noise confidence interval bounds (same assumption as statsmodels)
+alpha = 0.05
+n = 1000
+z = norm.ppf(1 - alpha / 2)
+ci = z / np.sqrt(n)
+
+ax.axhline(ci, linestyle="--", linewidth=1)
+ax.axhline(-ci, linestyle="--", linewidth=1)
+
+# Filled confidence band
+ax.fill_between(
+    lags,
+    -ci,
+    ci,
+    alpha=0.2,
+    step="mid"
+)
+
+# Axis formatting
+ax.set_ylim(-1.0, 1.0)   # ← explicit ACF bounds
+# ax.set_yticks(np.linspace(-1.0, 1.0, 5))
+ax.set_title("Autocorrelation")
+ax.set_xlabel("Lag")
+ax.set_ylabel("ACF")
 ax.grid(True, alpha=0.3)
 
 # 6. 2D scatter (independence test)

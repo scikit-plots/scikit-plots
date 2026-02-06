@@ -924,11 +924,11 @@ def import_cached_by_name(
 def cython_import_all(
     directory: str | Path,
     *,
-    pattern: str = "*.pyx",
+    pattern: str = r"*.pyx",
     recursive: bool = False,
     **kwargs: Any,
 ) -> dict[str, BuildResult]:
-    """
+    r"""
     Compile and import all ``.pyx`` files in a directory.
 
     Parameters
