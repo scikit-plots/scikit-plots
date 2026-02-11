@@ -1,1 +1,179 @@
-docker/env_conda/environment.yml
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+# | Tool        | Create Environment                                         | ⚠️ Activate Environment    | Critical Notes                                                |
+# +=============+============================================================+============================+===============================================================+
+# | conda       | conda create -n py311 python=3.11                          | conda activate py311       | Full Anaconda distribution with many preinstalled packages.   |
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+# | miniconda   | conda create -n py311 python=3.11                          | conda activate py311       | Minimal installer. Lightweight. Recommended for most users.   |
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+# | mamba       | mamba create -n py311 python=3.11                          | conda activate py311       | Drop-in faster alternative to `conda`. Needs conda to run.    |
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+# | micromamba  | micromamba create -n py311 python=3.11                     | micromamba activate py311  | No Python or conda needed. Very fast. Shell hook required.    |
+# +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
+
+# Use conda if you want the full Anaconda experience on local machines. Full-featured but heavy. Best for GUI users or those needing full Anaconda.
+# Use miniconda for lighter installs with more manual control. Lightweight, clean base. Ideal for custom setups.
+# Use mamba for speed, especially when resolving complex dependencies interactively. Same usage as conda, but much faster. Great for large envs.
+# Use micromamba in containers, CI/CD, or when minimal overhead is critical. Tiny single binary, perfect for Docker, CI/CD, and scripting.
+
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Feature                 | conda      | miniconda    | mamba           | micromamba       | Critical Notes                                           |
+# +=========================+============+============+========+==============+=========================================================================+
+# | Size                    | Large      | Medium       | Large           | Very Small       | micromamba is ideal for minimal or embedded environments |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Language                | Python     | Python       | C++             | C++              | mamba/micromamba are faster due to compiled language     |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Installation            | GUI/CLI    | CLI          | via conda/pip   | Static binary    | micromamba: no Python needed, portable                   |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Speed                   | Slow       | Slow         | Fast            | Very Fast        | mamba/micromamba offer drastically faster performance    |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Conda env creation      | ✅         | ✅          | ✅              | ✅              | All support full conda environments                      |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Scripting / Docker      | ⚠️ Heavy   | ⚠️ Moderate | ⚠️ Heavy        | ✅ Lightweight  | micromamba is best suited for Docker and automation      |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Activation support      | ✅         | ✅          | ✅              | ✅ (via hook)   | micromamba requires manual shell integration             |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Use in CI/CD            | ⚠️ Slower  | ⚠️ Moderate | ✅ Fast         | ✅ Best         | micromamba is ideal for CI/CD pipelines                  |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | GPU support             | ✅         | ✅          | ✅              | ✅              | All support CUDA & GPU packages                          |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+# | Platform support        | All        | All          | All             | All              | micromamba supports Linux/macOS/Windows (via shell)      |
+# +-------------------------+------------+--------------+-----------------+------------------+----------------------------------------------------------+
+
+# 🛠 How to Use It
+# -----------------------------------------------------------------------------
+# https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually
+# Create the environment with only default (base) packages:
+#   conda env create -f environment.yml
+#
+# Create the environment with both base and extended packages:
+#   conda create --name py311 --file environment.yml --group extended
+#
+# Add the optional extended packages later to an existing environment:
+#   conda install --name py311 --file environment.yml --group extended
+#
+# Note:
+# - Requires conda >= 23.1 (support for optional-dependencies)
+# - Some tools (e.g. micromamba) may not support groups, in which case use two files (default.yml, extended.yml)
+# -----------------------------------------------------------------------------
+
+## ✅ How to Set channel_priority Correctly
+## 📄 Example .condarc
+## Default priority (non-strict), Strict priority locks package selection to channels by order, improving stability.
+# channel_priority: strict
+
+## You can place .condarc in:
+## Your home directory: ~/.condarc
+## Or set it system-wide (e.g., /etc/conda/.condarc)
+## Or pass via command line:
+##   - conda config --set channel_priority strict
+
+# variables:
+#   VAR1: valueA
+---
+name: py311
+
+channels:
+  - conda-forge    # ✅ Preferred: community-driven, most packages, up-to-date, great for mamba/micromamba
+  # - nvidia             # NVIDIA GPU libraries and drivers
+  - defaults       # ☑️ Standard Official Anaconda-maintained packages fallback
+  - anaconda       # ⚠️ Optional, if you need Anaconda snapshot of defaults; only include if reproducing Anaconda dist
+
+dependencies:
+  # === Base Dependencies ===
+  - python=3.11
+  - ipykernel
+
+  # 📘 Jupyter and extensions
+  - notebook>=6.0.3
+  - jupyterhub>=1.1.0
+  - jupyterlab>=4.5.4
+  - jupyterlab-git
+  - ipympl
+  - ipywidgets
+  - widgetsnbextension
+
+  # 🧰 Compilers and Build
+  - conda-lock
+  - meson
+  - ninja
+  - meson-python
+  - cython
+  - pybind11
+  - pythran
+
+  # 📚 Docs
+  - sphinx
+  - numpydoc
+
+  # 📊 Data Manipulation
+  - pandas
+  - scipy
+
+  # 📥 File I/O and formats
+  # - anaconda::click  # CLI utilities
+  - requests
+  - pyyaml
+  - xlrd
+  - openpyxl
+  - pyarrow
+
+  # 📈 🖼️ Visualization
+  - matplotlib-base
+  - seaborn
+  - pillow
+
+  # 🧠 Machine Learning Models
+  - scikit-learn
+  - statsmodels
+  - catboost
+  - xgboost
+
+  # 🔍 Hyperparameter Optimization
+  - optuna
+  - hyperopt
+
+  # 💾 Model saving
+  - joblib
+  - h5py
+
+  # === 🧩 Extended Dependencies (Optional) ===
+  # 📊 Model Tracking and SQL
+  - mlflow
+  - sqlalchemy
+  - sqlparse
+
+  # 🛠️ Dev Tools
+  - pre_commit
+  - setuptools
+  - wheel
+  - build
+
+  # 🧪 Testing
+  - pytest
+  - hypothesis
+  - codecov
+  - cython-lint
+
+  # 🚀 Deployment
+  - streamlit
+  - fastapi
+  - flask
+  - uvicorn
+  - waitress
+  - gunicorn
+
+  # 📦 Requirements generation
+  - pipreqs
+  - pipenv
+
+  # Comment out this line and download Rtools and add <path>\ucrt64\bin\ to your path:
+  # https://cran.r-project.org/bin/windows/Rtools/rtools40.html
+  # - compilers  # Currently unavailable for Windows.
+  # 📦 Optional pip section (can be removed if unused)
+  - pip
+  - pip:
+      # ⚠️ Use ROOT Path, Not work for "docker/env_conda/environment.yml"
+      - -r requirements/build.txt
