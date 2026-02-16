@@ -305,6 +305,11 @@ jobs:
 
       # --- RUNNER_OS ---
 
+      # Compiler	Use flags style
+      # cl	      MSVC style /O2 /fp:precise
+      # clang-cl	MSVC style only
+      # clang	    GCC style
+      # gcc	      GCC style
       - name: "🛠️ Windows AMD64 Setup (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧 MSVC (Visual Studio only — no LLVM)
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1

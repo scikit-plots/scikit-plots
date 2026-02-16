@@ -82,13 +82,24 @@ cpu_arch = host_machine.cpu_family()
 
 # Base compile and link flags
 extra_link_args = []
-extra_compile_args = [
-  '-O3',
-  '-D_CRT_SECURE_NO_WARNINGS',
-  '-ffast-math',  # we use infinity
-  '-fpermissive',
-  '-fno-associative-math',
-]
+
+if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
+  extra_compile_args = [
+    '/O3',
+    '/D_CRT_SECURE_NO_WARNINGS',
+    '/ffast-math',  # we use infinity
+    '/fpermissive',
+    '/fno-associative-math',
+  ]
+elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
+  extra_compile_args = [
+    '-O3',
+    '-D_CRT_SECURE_NO_WARNINGS',
+    '-ffast-math',  # we use infinity
+    '-fpermissive',
+    '-fno-associative-math',
+  ]
+endif
 
 # https://stackoverflow.com/questions/22931147/stdisinf-does-not-work-with-ffast-math-how-to-check-for-infinity
 if host_machine.system() == 'windows' or cc.get_id() == 'intel'

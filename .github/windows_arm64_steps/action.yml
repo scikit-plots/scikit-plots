@@ -1,3 +1,8 @@
+# Compiler	Use flags style
+# cl	      MSVC style /O2 /fp:precise
+# clang-cl	MSVC style only
+# clang	    GCC style
+# gcc	      GCC style
 name: Build Dependencies(Win-ARM64)
 description: "Common setup steps for Win-ARM64 CI"
 runs:
@@ -6,7 +11,7 @@ runs:
     - name: Install LLVM (ARM64)  # LLVM (clang-cl, flang-new) -> Cross-toolchain & Fortran
       shell: pwsh
       # uses: ilammy/msvc-dev-cmd@v1
-      # with:  # Windows AMD64 Setup (MSVC Only)
+      # with:  # Windows AMD64 Setup (MSVC Only) clang-cl emulates MSVC cl, not GCC.
       #   arch: x64
       run: | # zizmor: ignore[github-env]
         Invoke-WebRequest https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/LLVM-20.1.8-woa64.exe -UseBasicParsing -OutFile LLVM-woa64.exe
