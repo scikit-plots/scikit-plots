@@ -317,12 +317,30 @@ jobs:
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
-      - name: Remove Git from PATH Git's link.exe shadowing MSVC's link.exe (MSVC linker)
+      - name: Ensure MSVC linker precedes Git link.exe (Git's link.exe shadowing MSVC's link.exe) (MSVC linker)
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         shell: pwsh
         run: |
-          $clean = ($env:PATH -split ';' | Where-Object {$_ -notlike '*Git*'}) -join ';'
-          echo "PATH=$clean" >> $env:GITHUB_ENV
+          $allLinks = where.exe link
+
+          $msvcLink = $allLinks | Where-Object {
+            $_ -match 'Microsoft Visual Studio'
+          } | Select-Object -First 1
+
+          if (-not $msvcLink) {
+            Write-Error "MSVC link.exe not found in PATH"
+            exit 1
+          }
+
+          Write-Host "Using MSVC linker: $msvcLink"
+
+          $msvcDir = Split-Path $msvcLink
+
+          $paths = $env:PATH -split ';'
+          $paths = @($msvcDir) + ($paths | Where-Object { $_ -ne $msvcDir })
+          $newPath = ($paths -join ';')
+
+          echo "PATH=$newPath" >> $env:GITHUB_ENV
 
       # compiler: [msvc, gcc] MSVC environment + GCC compiler That creates ABI conflicts (CRT mismatch, linking failures, NumPy build breakage).
       # ⚠️ Important: Do NOT Mix GCC + MSVC
@@ -331,6 +349,7 @@ jobs:
       - name: "🛠️ Windows AMD64 Setup Configure 🔍 Verify MSVC toolchain (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧 MSVC (Visual Studio only — no LLVM)
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}  # compiler 'msvc'
         run: |
+          # Meson will auto-detect MSVC once PATH is correct.
           # "CC=cl" >> $env:GITHUB_ENV
           # "CXX=cl" >> $env:GITHUB_ENV
           echo "CC=cl" >> "$env:GITHUB_ENV"
